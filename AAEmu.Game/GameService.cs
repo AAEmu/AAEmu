@@ -15,6 +15,7 @@ using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Tasks.Network;
 using AAEmu.Game.Utils.Scripts;
 
 using Microsoft.Extensions.Hosting;
@@ -113,6 +114,12 @@ public sealed class GameService : IHostedService, IDisposable
         GameNetwork.Instance.Start();
         StreamNetwork.Instance.Start();
         LoginNetwork.Instance.Start();
+
+        // Server-initiated game-channel keepalive. The 10.0.2.13 client drops conn 1239 ~2s after the
+        // char-list (recv exception internal 4 wsa 258) unless it keeps receiving server data, exactly
+        // like the reference server's periodic ping scheduler. 1s interval
+        // is well within the client's watchdog window (real server steps its ping counter by 1000ms).
+        TaskManager.Instance.Schedule(new GamePingTask(), TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
 
         stopWatch.Stop();
         Logger.Info($"Server started! Took {stopWatch.Elapsed}");

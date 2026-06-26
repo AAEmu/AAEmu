@@ -33,6 +33,10 @@ public class ItemGameData : Singleton<ItemGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
+                    // 10.0.2.13: item_id, item_grade_id and buff_id are nullable; skip incomplete rows
+                    if (reader.IsDBNull("item_id") || reader.IsDBNull("item_grade_id") || reader.IsDBNull("buff_id"))
+                        continue;
+
                     var itemId = reader.GetUInt32("item_id");
                     var itemGrade = reader.GetByte("item_grade_id");
                     var buffId = reader.GetUInt32("buff_id");
@@ -40,7 +44,8 @@ public class ItemGameData : Singleton<ItemGameData>, IGameDataLoader
                     if (!_itemGradeBuffs.ContainsKey(itemId))
                         _itemGradeBuffs.Add(itemId, []);
 
-                    _itemGradeBuffs[itemId].Add(itemGrade, buffId);
+                    // 10.0.2.13: duplicate (item_id, item_grade_id) pairs exist; overwrite instead of Add to avoid duplicate-key exception
+                    _itemGradeBuffs[itemId][itemGrade] = buffId;
                 }
             }
         }

@@ -1,6 +1,7 @@
 ﻿using System.Collections.Concurrent;
 using System.Text;
 
+using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
@@ -163,24 +164,70 @@ public class GameProtocolHandler : BaseProtocolHandler
 
                     //byte crc = 0;
                     //byte counter = 0;
-                    if (level == 1)
-                    {
-                        _ = stream2.ReadByte(); // TODO: verify 1.2 crc
-                        _ = stream2.ReadByte(); // TODO: verify 1.2 counter
-                    }
+                    var bodyStream = stream2;
+                    byte lookupLevel = level;
+                    ushort type;
 
-                    var type = stream2.ReadUInt16();
-                    _packets[level].TryGetValue(type, out var classType);
-                    if (classType == null)
+                    if (level == 5)
                     {
-                        HandleUnknownPacket(connection, type, level, stream2);
+                        // Encrypted C->S frame: [len][unk][level=5][hash][AES cipher]. Decrypt to
+                        // [count][type u16][body]; the decrypted packet is a normal level-1 game packet.
+                        var input = new byte[packetLen - 2];
+                        Array.Copy(stream2.Buffer, 2, input, 0, packetLen - 2);
+                        var plain = EncryptionManager.Instance.CSDecrypt(input, connection.AccountId, connection.Id);
+                        if (plain == null || plain.Length < 3)
+                        {
+                            Logger.Warn("C2S level-5 decrypt unavailable (len={0}, decrypted={1})", packetLen, plain?.Length ?? -1);
+                            continue;
+                        }
+                        // Decrypted plaintext = [crc8][count][type u16][body] (same header shape as S->C).
+                        bodyStream = new PacketStream();
+                        bodyStream.Insert(0, plain, 0, plain.Length);
+                        bodyStream.ReadByte();          // crc8
+                        bodyStream.ReadByte();          // count (CSMessageCount)
+                        type = bodyStream.ReadUInt16(); // real 10.0.2.13 opcode
+                        lookupLevel = 1;                // decrypted game packets dispatch as level-1 CS packets
                     }
                     else
                     {
-                        var packet = (GamePacket)Activator.CreateInstance(classType);
-                        packet!.Level = level;
-                        packet.Connection = connection;
-                        packet.Decode(stream2);
+                        if (level == 1)
+                        {
+                            _ = stream2.ReadByte(); // TODO: verify 1.2 crc
+                            _ = stream2.ReadByte(); // TODO: verify 1.2 counter
+                        }
+                        type = stream2.ReadUInt16();
+                    }
+
+                    // Guard the level lookup (only 1 and 2 are registered); unknown levels fall through to
+                    // HandleUnknownPacket rather than throwing KeyNotFoundException up to the outer catch
+                    // (which would Shutdown the connection).
+                    Type classType = null;
+                    if (_packets.TryGetValue(lookupLevel, out var levelMap))
+                        levelMap.TryGetValue(type, out classType);
+                    // DEBUG: log the raw C2S opcode (now incl. the decrypted level-5 opcodes — these reveal
+                    // the real 10.0.2.13 CS values to remap CSOffsets). Skip the level-2 keepalive noise.
+                    if (level != 2 || (type != 0x012 && type != 0x013 && type != 0x015 && type != 0x016))
+                        Logger.Warn("C2S RAW opcode=0x{0:X3} level={1} -> {2}", type, level, classType?.Name ?? "UNKNOWN");
+                    if (classType == null)
+                    {
+                        HandleUnknownPacket(connection, type, level, bodyStream);
+                    }
+                    else
+                    {
+                        // DEBUG: don't let a mis-dispatched C2S packet (wrong CSOffsets) kill the connection,
+                        // so we can observe the full sequence of raw opcodes. The outer framing is length-based
+                        // so per-packet failures don't desync. Remove once CSOffsets is remapped.
+                        try
+                        {
+                            var packet = (GamePacket)Activator.CreateInstance(classType);
+                            packet!.Level = level;
+                            packet.Connection = connection;
+                            packet.Decode(bodyStream);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warn("C2S dispatch of 0x{0:X3} ({1}) threw: {2}", type, classType.Name, ex.Message);
+                        }
                     }
                 }
                 else

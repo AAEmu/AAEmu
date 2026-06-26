@@ -46,6 +46,9 @@ public class ShipController(World world, ShipModelV1 shipModel)
         public const float GroundReverseSpeedCapPercentOfWater = 100f;
         /// <summary>Below this water depth (m), apply the ground-related speed caps/logic (shoals).</summary>
         public const float ShallowWaterDepthForGroundSpeedCaps = 0.35f;
+        /// <summary>10.0.2.13: ship_models.accel/reverse_accel removed — v10 ships only define top speeds.
+        /// Linear acceleration is derived as (top speed * this), so faster ships ramp up proportionally.</summary>
+        public const float AccelPerMaxSpeed = 1f;
         /// <summary>Extra acceleration multiplier when throttle opposes current motion (e.g. reverse while moving forward).</summary>
         public const float OpposingThrottleAccelMul = 1f;
         /// <summary>Additional braking multiplier for opposing throttle only (does not affect forward accel).</summary>
@@ -463,13 +466,15 @@ public class ShipController(World world, ShipModelV1 shipModel)
                 maxBackward = MathF.Min(maxBackward, -groundEscapeMaxSpeedAbs);
         }
 
-        // Use data reverse_accel for braking; scale up when fighting current motion (feels less sluggish than forward-only Accel).
-        var linearAccel = shipModel.Accel;
+        // 10.0.2.13: ship_models.accel/reverse_accel removed; v10 ships only define top speeds (velocity/reverse_velocity).
+        // Derive linear acceleration from the top speed; scale up when fighting current motion (less sluggish than forward-only).
+        var forwardAccel = shipModel.Velocity * ShipMotionDefaults.AccelPerMaxSpeed;
+        var reverseAccel = (shipModel.ReverseVelocity > 0f ? shipModel.ReverseVelocity : shipModel.Velocity) * ShipMotionDefaults.AccelPerMaxSpeed;
+        var linearAccel = forwardAccel;
         var isOpposingThrottle = throttleNorm != 0f && slave.Speed != 0f && Math.Sign(slave.Speed) != Math.Sign(throttleNorm);
         if (isOpposingThrottle)
         {
-            var reverseCap = shipModel.ReverseAccel > 0f ? shipModel.ReverseAccel : shipModel.Accel;
-            linearAccel = Math.Max(shipModel.Accel, reverseCap) * ShipMotionDefaults.OpposingThrottleAccelMul * ShipMotionDefaults.OpposingThrottleBrakeTuneMul;
+            linearAccel = Math.Max(forwardAccel, reverseAccel) * ShipMotionDefaults.OpposingThrottleAccelMul * ShipMotionDefaults.OpposingThrottleBrakeTuneMul;
         }
 
         // Non-linear approach to max speed: accelerate strongly at low speed, taper off near the cap.

@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCGetSlotCountPacket(byte sc) : GamePacket(SCOffsets.SCGetSlotCountPacket, 1)
+public class SCGetSlotCountPacket(byte sc) : GamePacket(SCOffsets.SCGetSlotCountPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

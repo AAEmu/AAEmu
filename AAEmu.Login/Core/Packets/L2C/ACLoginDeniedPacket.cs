@@ -22,6 +22,7 @@ public class ACLoginDeniedPacket(LoginDeniedReason reason, params int[] vp) : Lo
         stream.Write((byte)reason);
         stream.Write(BuildVpData(), appendSize: true); // vp - binary: [0x00 + int32_le] per entry
         stream.Write(""); // msg - completely overrides the displayed message
+        stream.Write((byte)0); // quitClient - 0 = keep client running on the login screen
 
         return stream;
     }

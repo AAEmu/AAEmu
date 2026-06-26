@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Models;
+using AAEmu.Commons.Models;
 using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Models;
@@ -16,17 +16,23 @@ public class ACWorldListPacket(List<GameServer> gameServers, List<LoginCharacter
 {
     public override PacketStream Write(PacketStream stream)
     {
+        stream.Write(false); // privacyPolicyState
+
         stream.Write((byte)gameServers.Count);
-        foreach (var gs1 in gameServers)
+        foreach (var gs in gameServers)
         {
-            stream.Write(gs1.Id.Value);
-            stream.Write(gs1.Name);
-            stream.Write(gs1.Active);
-            if (gs1.Active)
+            stream.Write(gs.Id.Value);        // id
+            stream.Write((byte)0);            // parentId (mirror parent server; 0 = primary)
+            stream.Write((ushort)0);          // type
+            stream.Write((byte)0);            // color
+            stream.Write(gs.Name);            // name
+            stream.Write((byte)(gs.Active ? 1 : 0)); // entry (selectable)
+            stream.Write((byte)(gs.Active ? 1 : 0)); // available
+            if (gs.Active)
             {
-                stream.Write((byte)gs1.Load); // con
-                for (var i = 0; i < 9; i++) // race
-                    stream.Write((byte)0); // rcon
+                stream.Write((byte)gs.Load);  // con — overall congestion
+                for (var i = 0; i < 10; i++)  // rcon — per-race congestion
+                    stream.Write((byte)0);
                 /*
                  RACE_NONE = 0,
                  RACE_NUIAN = 1,
@@ -40,9 +46,9 @@ public class ACWorldListPacket(List<GameServer> gameServers, List<LoginCharacter
                   */
                 /*
                  RACE_CONGESTION = {
-                	LOW = 0,
-	                    MIDDLE = 1,
-	                    HIGH = 2,
+                    LOW = 0,
+                    MIDDLE = 1,
+                    HIGH = 2,
                     FULL = 3,
                     PRE_SELECT_RACE_FULL = 9,
                     CHECK = 10
@@ -52,20 +58,18 @@ public class ACWorldListPacket(List<GameServer> gameServers, List<LoginCharacter
         }
 
         stream.Write((byte)characters.Count);
-        if (characters.Count > 0)
+        foreach (var character in characters)
         {
-            foreach (var character in characters)
-            {
-                stream.Write(character.AccountId);
-                stream.Write(character.GsId);
-                stream.Write(character.Id);
-                stream.Write(character.Name);
-                stream.Write(character.Race);
-                stream.Write(character.Gender);
-                stream.Write(new byte[16], true); // guid
-                stream.Write(0L); // v
-            }
+            stream.Write((ulong)character.AccountId); // accountId (uint64 on the wire)
+            stream.Write(character.GsId);             // worldId
+            stream.Write(character.Id);               // charId
+            stream.Write(character.Name);             // name
+            stream.Write(character.Race);             // CharRace
+            stream.Write(character.Gender);           // CharGender
+            stream.Write(new byte[16], true);         // guid (length-prefixed blob: [u16 16][16 bytes] — client reads it via the blob serializer)
+            stream.Write(0UL);                        // v
         }
+
         return stream;
     }
 }

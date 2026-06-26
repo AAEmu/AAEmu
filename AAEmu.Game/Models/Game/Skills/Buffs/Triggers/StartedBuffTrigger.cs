@@ -16,17 +16,9 @@ internal class StartedBuffTrigger(Buff owner, BuffTriggerTemplate template) : Bu
             return;
         }
 
+        // 10.0.2.13: buff_triggers.effect_on_source / use_original_source removed (former mock-false path).
         var target = _buff.Owner;
         owner = (Unit)_buff.Owner;
-        if (Template.EffectOnSource)
-        {
-            target = _buff.Caster;
-            //do what?
-        }
-        if (Template.UseOriginalSource)
-        {
-            owner = _buff.Caster;
-        }
 
         if (Template.TargetBuffTagId != 0)
         {

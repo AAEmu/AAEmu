@@ -11,7 +11,7 @@ public class ACWorldQueuePacket() : LoginPacket(LCOffsets.ACWorldQueuePacket)
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write((byte)0); // diw -> world id
-        stream.Write(false); // isPremium
+        stream.Write((byte)0); // userGrade
         stream.Write((ushort)0); // myTurn
         stream.Write((ushort)0); // normalLength
         stream.Write((ushort)0); // premiumLength

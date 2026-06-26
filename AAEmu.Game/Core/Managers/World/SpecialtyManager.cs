@@ -54,12 +54,10 @@ public class SpecialtyManager : Singleton<SpecialtyManager>, ISpecialtyManager
                     {
                         var template = new Specialty
                         {
+                            // 10.0.2.13: ratio, profit, vendor_exist removed from specialties table
                             Id = reader.GetUInt32("id"),
                             RowZoneGroupId = reader.GetUInt32("row_zone_group_id"),
-                            ColZoneGroupId = reader.GetUInt32("col_zone_group_id"),
-                            Ratio = reader.GetUInt32("ratio"),
-                            Profit = reader.GetUInt32("profit"),
-                            VendorExist = reader.GetBoolean("id", true)
+                            ColZoneGroupId = reader.GetUInt32("col_zone_group_id")
                         };
                         _specialties.Add(template.Id, template);
                     }
@@ -80,7 +78,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>, ISpecialtyManager
                             ItemId = reader.GetUInt32("item_id"),
                             SpecialtyBundleId = reader.GetUInt32("specialty_bundle_id"),
                             Profit = reader.GetUInt32("profit"),
-                            Ratio = reader.GetUInt32("ratio")
+                            Ratio = reader.GetInt32("ratio")
                         };
                         _specialtyBundleItems.Add(template.Id, template);
 

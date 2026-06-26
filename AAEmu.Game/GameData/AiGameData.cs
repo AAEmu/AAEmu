@@ -112,7 +112,8 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
                     tempListId.Add(template.Id);
                     template.CmdSetId = reader.GetUInt32("cmd_set_id");
                     template.CmdId = (AiCommandCategory)reader.GetUInt32("cmd_id");
-                    template.Param1 = reader.GetUInt32("param1");
+                    // 10.0.2.13: ai_commands.param1 is a varchar(32) (e.g. "3 sec"/"7.5"); read as string, parse on use.
+                    template.Param1 = reader.GetString("param1", "");
                     template.Param2 = reader.GetString("param2");
 
                     if (!_aiCommands.TryGetValue(template.CmdSetId, out var value))
@@ -137,7 +138,9 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
                 {
                     var template = new AiCommandSets
                     {
-                        Id = reader.GetUInt32("id"), Name = reader.GetString("name"), CanInteract = reader.GetBoolean("can_interact")
+                        // 10.0.2.13: can_interact is stored as text 't'/'f', so use the
+                        // string-aware boolean overload to avoid a parse exception.
+                        Id = reader.GetUInt32("id"), Name = reader.GetString("name"), CanInteract = reader.GetBoolean("can_interact", true)
                     };
 
                     _aiCommandSets.TryAdd(template.Id, template);
@@ -186,7 +189,7 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
                 Id = reader.GetInt32("id"), IgnoreCategoryId = reader.GetInt32("ignore_category_id"), Weight = reader.GetFloat("ignore_time", 0f),
                 EventName = reader.GetString("name"),
                 NpcId = reader.GetInt32("npc_id"),
-                OrUnitReqs = reader.GetBoolean("or_unit_reqs", false),
+                OrUnitReqs = reader.GetBoolean("or_unit_reqs", true), // fromString: ai_events.or_unit_reqs is a 't'/'f' text column
                 SkillId = reader.IsDBNull("skill_id") ? 0 : reader.GetInt32("skill_id")
             };
 

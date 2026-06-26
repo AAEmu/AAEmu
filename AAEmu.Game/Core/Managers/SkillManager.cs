@@ -24,24 +24,27 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded;
 
-    private Dictionary<uint, SkillTemplate> _skills;
-    private Dictionary<uint, DefaultSkill> _defaultSkills;
-    private List<uint> _commonSkills;
-    private Dictionary<AbilityType, List<SkillTemplate>> _startAbilitySkills;
-    private Dictionary<uint, PassiveBuffTemplate> _passiveBuffs;
-    private Dictionary<uint, EffectType> _types;
-    private Dictionary<string, Dictionary<uint, EffectTemplate>> _effects;
-    private Dictionary<uint, BuffTemplate> _buffs;
-    private Dictionary<uint, List<uint>> _buffTags;
-    private Dictionary<uint, List<uint>> _taggedBuffs;
-    private Dictionary<uint, List<uint>> _skillTags;
-    private Dictionary<uint, List<uint>> _taggedSkills;
-    private Dictionary<uint, List<SkillModifier>> _skillModifiers;
-    private Dictionary<uint, List<BuffTriggerTemplate>> _buffTriggers;
-    private Dictionary<uint, List<CombatBuffTemplate>> _combatBuffs;
-    private Dictionary<uint, LinearFuncTemplate> _linearFuncs;
-    private Dictionary<uint, SkillReagent> _skillReagents;
-    private Dictionary<uint, SkillProduct> _skillProducts;
+    // Initialized at declaration so a SkillManager.Load() failure (the 10.0.2.13 DB still surfaces
+    // load errors) leaves these EMPTY rather than null — runtime Get*/lookup paths (e.g.
+    // GetBuffTriggerTemplates during HousingManager.Create) must not NullRef and crash the server.
+    private Dictionary<uint, SkillTemplate> _skills = [];
+    private Dictionary<uint, DefaultSkill> _defaultSkills = [];
+    private List<uint> _commonSkills = [];
+    private Dictionary<AbilityType, List<SkillTemplate>> _startAbilitySkills = [];
+    private Dictionary<uint, PassiveBuffTemplate> _passiveBuffs = [];
+    private Dictionary<uint, EffectType> _types = [];
+    private Dictionary<string, Dictionary<uint, EffectTemplate>> _effects = [];
+    private Dictionary<uint, BuffTemplate> _buffs = [];
+    private Dictionary<uint, List<uint>> _buffTags = [];
+    private Dictionary<uint, List<uint>> _taggedBuffs = [];
+    private Dictionary<uint, List<uint>> _skillTags = [];
+    private Dictionary<uint, List<uint>> _taggedSkills = [];
+    private Dictionary<uint, List<SkillModifier>> _skillModifiers = [];
+    private Dictionary<uint, List<BuffTriggerTemplate>> _buffTriggers = [];
+    private Dictionary<uint, List<CombatBuffTemplate>> _combatBuffs = [];
+    private Dictionary<uint, LinearFuncTemplate> _linearFuncs = [];
+    private Dictionary<uint, SkillReagent> _skillReagents = [];
+    private Dictionary<uint, SkillProduct> _skillProducts = [];
     // private HashSet<ushort> _skillIds = new();
     // private ushort _skillIdIndex = 1;
 
@@ -129,9 +132,9 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         {
             Logger.Trace($"Get Effect Template: type = {type.Type}, id = {type.ActualId}");
 
-            if (_effects.TryGetValue(type.Type, out _))
+            if (_effects.TryGetValue(type.Type, out var effDict))
             {
-                return _effects[type.Type][type.ActualId];
+                return effDict.TryGetValue(type.ActualId, out var effTmpl) ? effTmpl : null;
             }
             else
             {
@@ -288,8 +291,6 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
             { "SpawnEffect", [] },
             { "SpawnGimmickEffect", [] },
             { "SpecialEffect", [] },
-            { "TrainCraftEffect", [] },
-            { "TrainCraftRankEffect", [] }, // missing from the effect table
             { "SkillController", [] }, // missing from the effect table
             { "SpawnFishEffect", [] }, // missing from the effect table
             { "ResetAoeDiminishingEffect", [] } // missing from the effect table
@@ -325,81 +326,73 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new SkillTemplate
                         {
-                            Id = reader.GetUInt32("id"), Cost = reader.GetInt32("cost"), Show = reader.GetBoolean("show", true),
+                            Id = reader.GetUInt32("id", 0), Cost = reader.GetInt32("cost", 0), Show = reader.GetBoolean("show", true),
                             FireAnim = animationManager.GetAnimation(reader.GetUInt32("fire_anim_id", 0)),
-                            AbilityId = (AbilityType)reader.GetByte("ability_id"),
-                            ManaCost = reader.GetInt32("mana_cost"),
-                            TimingId = reader.GetInt32("timing_id"),
-                            CooldownTime = reader.GetInt32("cooldown_time"),
-                            CastingTime = reader.GetInt32("casting_time"),
+                            AbilityId = (AbilityType)reader.GetByte("ability_id", 0),
+                            ManaCost = reader.GetInt32("mana_cost", 0),
+                            TimingId = reader.GetInt32("timing_id", 0),
+                            CooldownTime = reader.GetInt32("cooldown_time", 0),
+                            CastingTime = reader.GetInt32("casting_time", 0),
                             IgnoreGlobalCooldown = reader.GetBoolean("ignore_global_cooldown", true),
-                            EffectDelay = reader.GetInt32("effect_delay"),
-                            EffectSpeed = reader.GetFloat("effect_speed"),
-                            EffectRepeatCount = reader.GetInt32("effect_repeat_count"),
-                            EffectRepeatTick = reader.GetInt32("effect_repeat_tick"),
-                            ActiveWeaponId = reader.GetInt32("active_weapon_id"),
-                            TargetType = (SkillTargetType)reader.GetInt32("target_type_id"),
-                            TargetSelection = (SkillTargetSelection)reader.GetInt32("target_selection_id"),
-                            TargetRelation = (SkillTargetRelation)reader.GetInt32("target_relation_id"),
-                            TargetAreaCount = reader.GetInt32("target_area_count"),
-                            TargetAreaRadius = reader.GetInt32("target_area_radius"),
-                            TargetSiege = reader.GetBoolean("target_siege", true),
-                            WeaponSlotForAngleId = reader.GetInt32("weapon_slot_for_angle_id"),
-                            TargetAngle = reader.GetInt32("target_angle"),
-                            WeaponSlotForRangeId = reader.GetInt32("weapon_slot_for_range_id"),
-                            WeaponSlotForAutoAttackId = reader.GetInt32("weapon_slot_for_autoattack_id"),
-                            MinRange = reader.GetInt32("min_range"),
-                            MaxRange = reader.GetInt32("max_range"),
+                            EffectDelay = reader.GetInt32("effect_delay", 0),
+                            EffectSpeed = reader.GetFloat("effect_speed", 0f),
+                            EffectRepeatCount = reader.GetInt32("effect_repeat_count", 0),
+                            EffectRepeatTick = reader.GetInt32("effect_repeat_tick", 0),
+                            ActiveWeaponId = reader.GetInt32("active_weapon_id", 0),
+                            TargetType = (SkillTargetType)reader.GetInt32("target_type_id", 0),
+                            TargetSelection = (SkillTargetSelection)reader.GetInt32("target_selection_id", 0),
+                            TargetRelation = (SkillTargetRelation)reader.GetInt32("target_relation_id", 0),
+                            TargetAreaCount = reader.GetInt32("target_area_count", 0),
+                            TargetAreaRadius = reader.GetInt32("target_area_radius", 0),
+                            WeaponSlotForAngleId = reader.GetInt32("weapon_slot_for_angle_id", 0),
+                            TargetAngle = reader.GetInt32("target_angle", 0),
+                            WeaponSlotForRangeId = reader.GetInt32("weapon_slot_for_range_id", 0),
+                            WeaponSlotForAutoAttackId = reader.GetInt32("weapon_slot_for_autoattack_id", 0),
+                            MinRange = reader.GetInt32("min_range", 0),
+                            MaxRange = reader.GetInt32("max_range", 0),
                             KeepStealth = reader.GetBoolean("keep_stealth", true),
-                            Aggro = reader.GetInt32("aggro"),
-                            ChannelingTime = reader.GetInt32("channeling_time"),
-                            ChannelingTick = reader.GetInt32("channeling_tick"),
-                            ChannelingMana = reader.GetInt32("channeling_mana"),
+                            Aggro = reader.GetInt32("aggro", 0),
+                            ChannelingTime = reader.GetInt32("channeling_time", 0),
+                            ChannelingTick = reader.GetInt32("channeling_tick", 0),
+                            ChannelingMana = reader.GetInt32("channeling_mana", 0),
                             ChannelingTargetBuffId = reader.GetUInt32("channeling_target_buff_id", 0),
-                            TargetAreaAngle = reader.GetInt32("target_area_angle"),
-                            AbilityLevel = reader.GetInt32("ability_level"),
+                            TargetAreaAngle = reader.GetInt32("target_area_angle", 0),
+                            AbilityLevel = reader.GetInt32("ability_level", 0),
                             ChannelingDoodadId = reader.GetUInt32("channeling_doodad_id", 0)
                         };
-                        var value = reader.GetString("cooldown_tag_id", "0");
-                        template.CooldownTagId = value.Contains("null") ? 0 : int.Parse(value);
-                        value = reader.GetString("skill_controller_id", "0");
-                        template.SkillControllerId = value.Contains("null") ? 0 : uint.Parse(value);
-                        template.RepeatCount = reader.GetInt32("repeat_count");
-                        template.RepeatTick = reader.GetInt32("repeat_tick");
+                        template.CooldownTagId = reader.GetInt32("cooldown_tag_id", 0);
+                        template.SkillControllerId = reader.GetUInt32("skill_controller_id", 0);
+                        template.RepeatCount = reader.GetInt32("repeat_count", 0);
+                        template.RepeatTick = reader.GetInt32("repeat_tick", 0);
                         template.ToggleBuffId = reader.GetUInt32("toggle_buff_id", 0);
                         template.TargetDead = reader.GetBoolean("target_dead", true);
                         template.ChannelingBuffId = reader.GetUInt32("channeling_buff_id", 0);
-                        template.ReagentCorpseStatusId = reader.GetInt32("reagent_corpse_status_id");
-                        template.SourceDead = reader.GetBoolean("source_dead", true);
-                        template.LevelStep = reader.GetInt32("level_step");
-                        template.ValidHeight = reader.GetFloat("valid_height");
-                        template.TargetValidHeight = reader.GetFloat("target_valid_height");
-                        template.SourceMount = reader.GetBoolean("source_mount", true);
+                        template.ReagentCorpseStatusId = reader.GetInt32("reagent_corpse_status_id", 0);
+                        template.LevelStep = reader.GetInt32("level_step", 0);
+                        template.ValidHeight = reader.GetFloat("valid_height", 0f);
+                        template.TargetValidHeight = reader.GetFloat("target_valid_height", 0f);
                         template.StopCastingOnBigHit = reader.GetBoolean("stop_casting_on_big_hit", true);
                         template.StopChannelingOnBigHit = reader.GetBoolean("stop_channeling_on_big_hit", true);
                         template.AutoLearn = reader.GetBoolean("auto_learn", true);
-                        template.NeedLearn = reader.GetBoolean("need_learn", true);
                         template.MainhandToolId = reader.GetUInt32("mainhand_tool_id", 0);
                         template.OffhandToolId = reader.GetUInt32("offhand_tool_id", 0);
-                        template.FrontAngle = reader.GetInt32("front_angle");
-                        template.ManaLevelMd = reader.GetFloat("mana_level_md");
+                        template.FrontAngle = reader.GetInt32("front_angle", 0);
+                        template.ManaLevelMd = reader.GetFloat("mana_level_md", 0f);
                         template.Unmount = reader.GetBoolean("unmount", true);
                         template.DamageTypeId = reader.GetUInt32("damage_type_id", 0);
-                        template.AllowToPrisoner = reader.GetBoolean("allow_to_prisoner", true);
                         template.MilestoneId = reader.GetUInt32("milestone_id", 0);
                         template.MatchAnimation = reader.GetBoolean("match_animation", true);
-                        template.Plot = reader.IsDBNull("plot_id") ? null : plotManager.GetPlot(reader.GetUInt32("plot_id"));
+                        template.Plot = reader.IsDBNull("plot_id") ? null : plotManager.GetPlot(reader.GetUInt32("plot_id", 0));
                         template.UseAnimTime = reader.GetBoolean("use_anim_time", true);
                         template.ConsumeLaborPower = reader.GetInt32("consume_lp", 0);
-                        template.SourceStun = reader.GetBoolean("source_stun", true);
                         template.TargetAlive = reader.GetBoolean("target_alive", true);
                         template.TargetWater = reader.GetBoolean("target_water", true);
-                        template.CastingInc = reader.GetInt32("casting_inc");
+                        template.CastingInc = reader.GetInt32("casting_inc", 0);
                         template.CastingCancelable = reader.GetBoolean("casting_cancelable", true);
                         template.CastingDelayable = reader.GetBoolean("casting_delayable", true);
                         template.ChannelingCancelable = reader.GetBoolean("channeling_cancelable", true);
-                        template.TargetOffsetAngle = reader.GetFloat("target_offset_angle");
-                        template.TargetOffsetDistance = reader.GetFloat("target_offset_distance");
+                        template.TargetOffsetAngle = reader.GetFloat("target_offset_angle", 0f);
+                        template.TargetOffsetDistance = reader.GetFloat("target_offset_distance", 0f);
                         template.ActabilityGroupId = reader.GetInt32("actability_group_id", 0);
                         template.PlotOnly = reader.GetBoolean("plot_only", true);
                         template.SkillControllerAtEnd = reader.GetBoolean("skill_controller_at_end", true);
@@ -407,35 +400,29 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         template.OrUnitReqs = reader.GetBoolean("or_unit_reqs", true);
                         template.DefaultGcd = reader.GetBoolean("default_gcd", true);
                         template.KeepManaRegen = reader.GetBoolean("keep_mana_regen", true);
-                        template.CrimePoint = reader.GetInt32("crime_point");
+                        template.CrimePoint = reader.GetInt32("crime_point", 0);
                         template.LevelRuleNoConsideration =
                             reader.GetBoolean("level_rule_no_consideration", true);
                         template.UseWeaponCooldownTime = reader.GetBoolean("use_weapon_cooldown_time", true);
-                        template.CombatDiceId = reader.GetInt32("combat_dice_id");
-                        template.CustomGcd = reader.GetInt32("custom_gcd");
+                        template.CombatDiceId = reader.GetInt32("combat_dice_id", 0);
+                        template.CustomGcd = reader.GetInt32("custom_gcd", 0);
                         template.CancelOngoingBuffs = reader.GetBoolean("cancel_ongoing_buffs", true);
                         template.CancelOngoingBuffExceptionTagId = reader.GetUInt32("cancel_ongoing_buff_exception_tag_id", 0);
-                        template.SourceCannotUseWhileWalk =
-                            reader.GetBoolean("source_cannot_use_while_walk", true);
-                        template.SourceMountMate = reader.GetBoolean("source_mount_mate", true);
                         template.CheckTerrain = reader.GetBoolean("check_terrain", true);
                         template.TargetOnlyWater = reader.GetBoolean("target_only_water", true);
-                        template.SourceNotSwim = reader.GetBoolean("source_not_swim", true);
                         template.TargetPreoccupied = reader.GetBoolean("target_preoccupied", true);
                         template.StopChannelingOnStartSkill =
                             reader.GetBoolean("stop_channeling_on_start_skill", true);
                         template.StopCastingByTurn = reader.GetBoolean("stop_casting_by_turn", true);
                         template.TargetMyNpc = reader.GetBoolean("target_my_npc", true);
-                        template.GainLifePoint = reader.GetInt32("gain_life_point");
+                        template.GainLifePoint = reader.GetInt32("gain_life_point", 0);
                         template.TargetFishing = reader.GetBoolean("target_fishing", true);
-                        template.SourceNoSlave = reader.GetBoolean("source_no_slave", true);
                         template.AutoReUse = reader.GetBoolean("auto_reuse", true);
                         template.AutoReUseDelay = reader.GetInt32("auto_reuse_delay", 0);
-                        template.SourceNotCollided = reader.GetBoolean("source_not_collided", true);
-                        template.SkillPoints = reader.GetInt32("skill_points");
-                        template.DoodadHitFamily = reader.GetInt32("doodad_hit_family");
+                        template.SkillPoints = reader.GetInt32("skill_points", 0);
+                        template.DoodadHitFamily = reader.GetInt32("doodad_hit_family", 0);
                         template.FirstReagentOnly = reader.GetBoolean("first_reagent_only", true);
-                        _skills.Add(template.Id, template);
+                        _skills[template.Id] = template; // 10.0.2.13 skills has duplicate ids (e.g. 33984) -> overwrite, don't crash
                     }
                 }
             }
@@ -451,14 +438,16 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var id = (uint)reader.GetInt32("skill_id");
+                        var id = (uint)reader.GetInt32("skill_id", 0);
+                        if (!_skills.TryGetValue(id, out var defSkillTemplate))
+                            continue; // 10.0.2.13: default_skills may reference a skill that didn't load
                         var skill = new DefaultSkill
                         {
-                            Template = _skills[id],
-                            Slot = reader.GetByte("slot_index"),
+                            Template = defSkillTemplate,
+                            Slot = reader.GetByte("slot_index", 0),
                             AddToSlot = reader.GetBoolean("add_to_slot", true)
                         };
-                        _defaultSkills.Add(skill.Template.Id, skill);
+                        _defaultSkills[skill.Template.Id] = skill; // 10.0.2.13 default_skills has duplicate skill_ids (e.g. 33984) -> overwrite, don't crash
                     }
                 }
             }
@@ -474,14 +463,14 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new PassiveBuffTemplate
                         {
-                            Id = reader.GetUInt32("id"),
-                            AbilityId = (AbilityType)reader.GetByte("ability_id"),
-                            Level = reader.GetByte("level"),
-                            BuffId = reader.GetUInt32("buff_id"),
-                            ReqPoints = reader.GetInt32("req_points"),
+                            Id = reader.GetUInt32("id", 0),
+                            AbilityId = (AbilityType)reader.GetByte("ability_id", 0),
+                            Level = reader.GetByte("level", 0),
+                            BuffId = reader.GetUInt32("buff_id", 0),
+                            ReqPoints = reader.GetInt32("req_points", 0),
                             Active = reader.GetBoolean("active", true)
                         };
-                        _passiveBuffs.Add(template.Id, template);
+                        _passiveBuffs[template.Id] = template;
                     }
                 }
             }
@@ -496,18 +485,12 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        // These string values are read here so they can fit nicely in the init-only part of the template
-                        var skillControllerIdValue = reader.GetString("skill_controller_id", "0");
-                        var mainHandToolIdValue = reader.GetString("mainhand_tool_id", "0");
-                        var offhandToolIdValue = reader.GetString("offhand_tool_id", "0");
-                        var tickMainHandToolIdValue = reader.GetString("tick_mainhand_tool_id", "0");
-                        var tickOffHandToolIdValue = reader.GetString("tick_offhand_tool_id", "0");
                         var template = new BuffTemplate
                         {
-                            Id = reader.GetUInt32("id"),
+                            Id = reader.GetUInt32("id", 0),
                             AnimStartId = reader.GetUInt32("anim_start_id", 0),
                             AnimEndId = reader.GetUInt32("anim_end_id", 0),
-                            Duration = reader.GetInt32("duration"),
+                            Duration = reader.GetInt32("duration", 0),
                             Tick = reader.GetDouble("tick"),
                             Silence = reader.GetBoolean("silence", true),
                             Root = reader.GetBoolean("root", true),
@@ -517,20 +500,19 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             Stealth = reader.GetBoolean("stealth", true),
                             RemoveOnSourceDead = reader.GetBoolean("remove_on_source_dead", true),
                             LinkBuffId = reader.GetUInt32("link_buff_id", 0),
-                            TickManaCost = reader.GetInt32("tick_mana_cost"),
-                            StackRule = (BuffStackRule)reader.GetUInt32("stack_rule_id"),
-                            InitMinCharge = reader.GetInt32("init_min_charge"),
-                            InitMaxCharge = reader.GetInt32("init_max_charge"),
-                            MaxStack = reader.GetInt32("max_stack"),
-                            DamageAbsorptionTypeId = reader.GetUInt32("damage_absorption_type_id"),
-                            DamageAbsorptionPerHit = reader.GetInt32("damage_absorption_per_hit"),
-                            AuraRadius = reader.GetInt32("aura_radius"),
-                            ManaShieldRatio = reader.GetInt32("mana_shield_ratio"),
+                            TickManaCost = reader.GetInt32("tick_mana_cost", 0),
+                            StackRule = (BuffStackRule)reader.GetUInt32("stack_rule_id", 0),
+                            InitMinCharge = reader.GetInt32("init_min_charge", 0),
+                            InitMaxCharge = reader.GetInt32("init_max_charge", 0),
+                            MaxStack = reader.GetInt32("max_stack", 0),
+                            DamageAbsorptionTypeId = reader.GetUInt32("damage_absorption_type_id", 0),
+                            DamageAbsorptionPerHit = reader.GetInt32("damage_absorption_per_hit", 0),
+                            AuraRadius = reader.GetInt32("aura_radius", 0),
+                            ManaShieldRatio = reader.GetInt32("mana_shield_ratio", 0),
                             FrameHold = reader.GetBoolean("framehold", true),
                             Ragdoll = reader.GetBoolean("ragdoll", true),
                             OneTime = reader.GetBoolean("one_time", true),
-                            ReflectionChance = reader.GetInt32("reflection_chance"),
-                            ReflectionTypeId = reader.GetUInt32("reflection_type_id"),
+                            ReflectionChance = reader.GetInt32("reflection_chance", 0),
                             RequireBuffId = reader.GetUInt32("require_buff_id", 0),
                             Taunt = reader.GetBoolean("taunt", true),
                             TauntWithTopAggro = reader.GetBoolean("taunt_with_top_aggro", true),
@@ -539,46 +521,44 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             SpellImmune = reader.GetBoolean("spell_immune", true),
                             RangedImmune = reader.GetBoolean("ranged_immune", true),
                             SiegeImmune = reader.GetBoolean("siege_immune", true),
-                            ImmuneDamage = reader.GetInt32("immune_damage"),
-                            SkillControllerId =
-                                skillControllerIdValue.Contains("null") ? 0 : uint.Parse(skillControllerIdValue),
-                            ResurrectionHealth = reader.GetInt32("resurrection_health"),
-                            ResurrectionMana = reader.GetInt32("resurrection_mana"),
+                            ImmuneDamage = reader.GetInt32("immune_damage", 0),
+                            SkillControllerId = reader.GetUInt32("skill_controller_id", 0),
+                            ResurrectionHealth = reader.GetInt32("resurrection_health", 0),
+                            ResurrectionMana = reader.GetInt32("resurrection_mana", 0),
                             ResurrectionPercent = reader.GetBoolean("resurrection_percent", true),
-                            LevelDuration = reader.GetInt32("level_duration"),
-                            ReflectionRatio = reader.GetInt32("reflection_ratio"),
-                            ReflectionTargetRatio = reader.GetInt32("reflection_target_ratio"),
+                            LevelDuration = reader.GetInt32("level_duration", 0),
+                            ReflectionRatio = reader.GetInt32("reflection_ratio", 0),
+                            ReflectionTargetRatio = reader.GetInt32("reflection_target_ratio", 0),
                             KnockbackImmune = reader.GetBoolean("knockback_immune"),
-                            ImmuneBuffTagId = reader.GetUInt32("immune_buff_tag_id", 0),
-                            AuraRelationId = reader.GetUInt32("aura_relation_id"),
+                            AuraRelationId = reader.GetUInt32("aura_relation_id", 0),
                             GroupId = reader.GetUInt32("group_id", 0),
-                            GroupRank = reader.GetInt32("group_rank"),
+                            GroupRank = reader.GetInt32("group_rank", 0),
                             PerUnitCreation = reader.GetBoolean("per_unit_creation"),
-                            TickAreaRadius = reader.GetFloat("tick_area_radius"),
-                            TickAreaRelationId = reader.GetUInt32("tick_area_relation_id"),
+                            TickAreaRadius = reader.GetFloat("tick_area_radius", 0f),
+                            TickAreaRelationId = reader.GetUInt32("tick_area_relation_id", 0),
                             RemoveOnMove = reader.GetBoolean("remove_on_move", true),
                             UseSourceFaction = reader.GetBoolean("use_source_faction", true),
                             FactionId = (FactionsEnum)reader.GetUInt32("faction_id", 0),
                             Exempt = reader.GetBoolean("exempt", true),
-                            TickAreaFrontAngle = reader.GetInt32("tick_area_front_angle"),
-                            TickAreaAngle = reader.GetInt32("tick_area_angle"),
+                            TickAreaFrontAngle = reader.GetInt32("tick_area_front_angle", 0),
+                            TickAreaAngle = reader.GetInt32("tick_area_angle", 0),
                             Psychokinesis = reader.GetBoolean("psychokinesis", true),
                             NoCollide = reader.GetBoolean("no_collide", true),
-                            PsychokinesisSpeed = reader.GetFloat("psychokinesis_speed"),
+                            PsychokinesisSpeed = reader.GetFloat("psychokinesis_speed", 0f),
                             RemoveOnDeath = reader.GetBoolean("remove_on_death", true),
                             TickAnimId = reader.GetUInt32("tick_anim_id", 0),
-                            TickActiveWeaponId = reader.GetUInt32("tick_active_weapon_id"),
+                            TickActiveWeaponId = reader.GetUInt32("tick_active_weapon_id", 0),
                             ConditionalTick = reader.GetBoolean("conditional_tick", true),
                             System = reader.GetBoolean("system", true),
                             AuraSlaveBuffId = reader.GetUInt32("aura_slave_buff_id", 0),
                             NonPushable = reader.GetBoolean("non_pushable", true),
-                            ActiveWeaponId = reader.GetUInt32("active_weapon_id"),
-                            MaxCharge = reader.GetInt32("max_charge"),
+                            ActiveWeaponId = reader.GetUInt32("active_weapon_id", 0),
+                            MaxCharge = reader.GetInt32("max_charge", 0),
                             DetectStealth = reader.GetBoolean("detect_stealth", true),
                             RemoveOnExempt = reader.GetBoolean("remove_on_exempt", true),
                             RemoveOnLand = reader.GetBoolean("remove_on_land", true),
                             Gliding = reader.GetBoolean("gliding", true),
-                            GlidingRotateSpeed = reader.GetInt32("gliding_rotate_speed"),
+                            GlidingRotateSpeed = reader.GetInt32("gliding_rotate_speed", 0),
                             Knockdown = reader.GetBoolean("knock_down", true),
                             TickAreaExcludeSource = reader.GetBoolean("tick_area_exclude_source", true),
                             // TODO 
@@ -607,7 +587,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                                 gliding_move_speed_fast REAL,
                              */
                             FallDamageImmune = reader.GetBoolean("fall_damage_immune", true),
-                            Kind = (BuffKind)reader.GetInt32("kind_id"),
+                            Kind = (BuffKind)reader.GetInt32("kind_id", 0),
                             TransformBuffId = reader.GetUInt32("transform_buff_id", 0),
                             BlankMinded = reader.GetBoolean("blank_minded", true),
                             Fastened = reader.GetBoolean("fastened", true),
@@ -620,19 +600,19 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             RemoveOnMount = reader.GetBoolean("remove_on_mount", true),
                             RemoveOnStartSkill = reader.GetBoolean("remove_on_start_skill", true),
                             SprintMotion = reader.GetBoolean("sprint_motion", true),
-                            TelescopeRange = reader.GetFloat("telescope_range"),
-                            MainhandToolId = mainHandToolIdValue.Length > 0 ? uint.Parse(mainHandToolIdValue) : 0,
-                            OffhandToolId = offhandToolIdValue.Length > 0 ? uint.Parse(offhandToolIdValue) : 0,
-                            TickMainhandToolId = tickMainHandToolIdValue.Length > 0 ? uint.Parse(tickMainHandToolIdValue) : 0,
-                            TickOffhandToolId = tickOffHandToolIdValue.Length > 0 ? uint.Parse(tickOffHandToolIdValue) : 0,
-                            TickLevelManaCost = reader.GetFloat("tick_level_mana_cost"),
+                            TelescopeRange = reader.GetFloat("telescope_range", 0f),
+                            MainhandToolId = reader.GetUInt32("mainhand_tool_id", 0),
+                            OffhandToolId = reader.GetUInt32("offhand_tool_id", 0),
+                            TickMainhandToolId = reader.GetUInt32("tick_mainhand_tool_id", 0),
+                            TickOffhandToolId = reader.GetUInt32("tick_offhand_tool_id", 0),
+                            TickLevelManaCost = reader.GetFloat("tick_level_mana_cost", 0f),
                             WalkOnly = reader.GetBoolean("walk_only", true),
                             CannotJump = reader.GetBoolean("cannot_jump", true),
                             CrowdBuffId = reader.GetUInt32("crowd_buff_id", 0),
-                            CrowdRadius = reader.GetFloat("crowd_radius"),
-                            CrowdNumber = reader.GetInt32("crowd_number"),
+                            CrowdRadius = reader.GetFloat("crowd_radius", 0f),
+                            CrowdNumber = reader.GetInt32("crowd_number", 0),
                             EvadeTelescope = reader.GetBoolean("evade_telescope", true),
-                            TransferTelescopeRange = reader.GetFloat("transfer_telescope_range"),
+                            TransferTelescopeRange = reader.GetFloat("transfer_telescope_range", 0f),
                             RemoveOnAttackSpellDot = reader.GetBoolean("remove_on_attack_spell_dot", true),
                             RemoveOnAttackEtcDot = reader.GetBoolean("remove_on_attack_etc_dot", true),
                             RemoveOnAttackBuffTrigger = reader.GetBoolean("remove_on_attack_buff_trigger", true),
@@ -651,13 +631,13 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             RemoveOnDamagedEtc = reader.GetBoolean("remove_on_damaged_etc", true),
                             OwnerOnly = reader.GetBoolean("owner_only", true),
                             RemoveOnAutoAttack = reader.GetBoolean("remove_on_autoattack", true),
-                            SaveRuleId = (BuffSaveRuleType)reader.GetUInt32("save_rule_id"),
+                            SaveRuleId = (BuffSaveRuleType)reader.GetUInt32("save_rule_id", 0),
                             AntiStealth = reader.GetBoolean("anti_stealth", true),
-                            Scale = reader.GetFloat("scale"),
-                            ScaleDuration = reader.GetFloat("scaleDuration"),
+                            Scale = reader.GetFloat("scale", 0f),
+                            ScaleDuration = reader.GetFloat("scaleDuration", 0f),
                             ImmuneExceptCreator = reader.GetBoolean("immune_except_creator", true),
                             ImmuneExceptSkillTagId = reader.GetUInt32("immune_except_skill_tag_id", 0),
-                            FindSchoolOfFishRange = reader.GetFloat("find_school_of_fish_range"),
+                            FindSchoolOfFishRange = reader.GetFloat("find_school_of_fish_range", 0f),
                             AnimActionId = reader.GetUInt32("anim_action_id", 0),
                             DeadApplicable = reader.GetBoolean("dead_applicable", true),
                             TickAreaUseOriginSource = reader.GetBoolean("tick_area_use_origin_source", true),
@@ -665,15 +645,15 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             DoNotRemoveByOtherSkillController =
                                 reader.GetBoolean("do_not_remove_by_other_skill_controller", true),
                             CooldownSkillId = reader.GetUInt32("cooldown_skill_id", 0),
-                            CooldownSkillTime = reader.GetInt32("cooldown_skill_time"),
+                            CooldownSkillTime = reader.GetInt32("cooldown_skill_time", 0),
                             ManaBurnImmune = reader.GetBoolean("mana_burn_immune", true),
                             FreezeShip = reader.GetBoolean("freeze_ship", true),
                             CrowdFriendly = reader.GetBoolean("crowd_friendly", true),
                             CrowdHostile = reader.GetBoolean("crowd_hostile", true),
                         };
 
-                        // _effects["Buff"].Add(template.Id, template);
-                        _buffs.Add(template.Id, template);
+                        // _effects["Buff"][template.Id] = template;
+                        _buffs[template.Id] = template;
                     }
                 }
             }
@@ -686,14 +666,14 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var template = new BuffEffect { Id = reader.GetUInt32("id") };
-                        var buffId = reader.GetUInt32("buff_id");
+                        var template = new BuffEffect { Id = reader.GetUInt32("id", 0) };
+                        var buffId = reader.GetUInt32("buff_id", 0);
                         if (_buffs.TryGetValue(buffId, out var buff))
                             template.Buff = buff;
-                        template.Chance = reader.GetInt32("chance");
-                        template.Stack = reader.GetInt32("stack");
-                        template.AbLevel = reader.GetInt32("ab_level");
-                        _effects["BuffEffect"].Add(template.Id, template);
+                        template.Chance = reader.GetInt32("chance", 0);
+                        template.Stack = reader.GetInt32("stack", 0);
+                        template.AbLevel = reader.GetInt32("ab_level", 0);
+                        _effects["BuffEffect"][template.Id] = template;
                     }
                 }
             }
@@ -705,11 +685,12 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var buffId = reader.GetUInt32("buff_id");
-                        var template = _buffs[buffId];
+                        var buffId = reader.GetUInt32("buff_id", 0);
+                        if (!_buffs.TryGetValue(buffId, out var template))
+                            continue; // 10.0.2.13: buff_tick_effects may reference a buff that didn't load
                         var tickEffect = new TickEffect
                         {
-                            EffectId = reader.GetUInt32("effect_id"), TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0),
+                            EffectId = reader.GetUInt32("effect_id", 0), TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0),
                             TargetNoBuffTagId = reader.GetUInt32("target_nobuff_tag_id", 0)
                         };
                         template.TickEffects.Add(tickEffect);
@@ -724,14 +705,14 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var buffId = reader.GetUInt32("owner_id");
+                        var buffId = reader.GetUInt32("owner_id", 0);
                         if (!_buffs.TryGetValue(buffId, out var buff))
                             continue;
                         var template = new BonusTemplate
                         {
-                            Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id"), ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id"),
-                            Value = reader.GetInt32("value"),
-                            LinearLevelBonus = reader.GetInt32("linear_level_bonus")
+                            Attribute = (UnitAttribute)reader.GetUInt32("unit_attribute_id", 0), ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id", 0),
+                            Value = reader.GetInt64("value", 0),
+                            LinearLevelBonus = reader.GetInt32("linear_level_bonus", 0)
                         };
                         buff.Bonuses.Add(template);
                     }
@@ -747,9 +728,9 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new LinearFuncTemplate
                         {
-                            Id = reader.GetUInt32("id"),
-                            StartValue = reader.GetInt32("start_value"),
-                            EndValue = reader.GetInt32("end_value")
+                            Id = reader.GetUInt32("id", 0),
+                            StartValue = reader.GetInt32("start_value", 0),
+                            EndValue = reader.GetInt32("end_value", 0)
                         };
                         _linearFuncs[template.Id] = template;
                     }
@@ -764,14 +745,14 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var buffId = reader.GetUInt32("buff_id");
+                        var buffId = reader.GetUInt32("buff_id", 0);
                         if (!_buffs.TryGetValue(buffId, out var buff))
                             continue;
                         var template = new DynamicBonusTemplate
                         {
-                            Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id"), ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id"),
-                            FuncId = reader.GetUInt32("func_id"),
-                            FuncType = reader.GetString("func_type")
+                            Attribute = (UnitAttribute)reader.GetUInt32("unit_attribute_id", 0), ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id", 0),
+                            FuncId = reader.GetUInt32("func_id", 0),
+                            FuncType = reader.GetString("func_type", "")
                         };
                         buff.DynamicBonuses.Add(template);
                     }
@@ -789,14 +770,14 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new SkillControllerTemplate
                         {
-                            Id = reader.GetUInt32("id"),
-                            KindId = reader.GetUInt32("kind_id"),
-                            ActiveWeaponId = reader.GetByte("active_weapon_id"),
-                            // TODO 1.2 // EndSkillId = reader.GetUInt32("end_skill_id")
+                            Id = reader.GetUInt32("id", 0),
+                            KindId = reader.GetUInt32("kind_id", 0),
+                            ActiveWeaponId = reader.GetByte("active_weapon_id", 0),
+                            EndSkillId = reader.GetUInt32("end_skill_id", 0)
                         };
                         for (var i = 0; i < 15; i++)
                             template.Value[i] = reader.GetInt32($"value{i + 1}", 0);
-                        _effects["SkillController"].Add(template.Id, template);
+                        _effects["SkillController"][template.Id] = template;
                     }
                 }
             }
@@ -811,12 +792,12 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new AccountAttributeEffect
                         {
-                            Id = reader.GetUInt32("id"), KindId = reader.GetUInt32("kind_id"), BindWorld = reader.GetBoolean("bind_world"),
+                            Id = reader.GetUInt32("id", 0), KindId = reader.GetUInt32("kind_id", 0), BindWorld = reader.GetBoolean("bind_world"),
                             IsAdd = reader.GetBoolean("is_add"),
-                            Count = reader.GetUInt32("count"),
-                            Time = reader.GetUInt32("time")
+                            Count = reader.GetUInt32("count", 0),
+                            Time = reader.GetUInt32("time", 0)
                         };
-                        _effects["AccountAttributeEffect"].Add(template.Id, template);
+                        _effects["AccountAttributeEffect"][template.Id] = template;
                     }
                 }
             }
@@ -829,8 +810,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var template = new AcceptQuestEffect { Id = reader.GetUInt32("id"), QuestId = reader.GetUInt32("quest_id") };
-                        _effects["AcceptQuestEffect"].Add(template.Id, template);
+                        var template = new AcceptQuestEffect { Id = reader.GetUInt32("id", 0), QuestId = reader.GetUInt32("quest_id", 0) };
+                        _effects["AcceptQuestEffect"][template.Id] = template;
                     }
                 }
             }
@@ -845,19 +826,19 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new AggroEffect
                         {
-                            Id = reader.GetUInt32("id"),
+                            Id = reader.GetUInt32("id", 0),
                             UseFixedAggro = reader.GetBoolean("use_fixed_aggro", true),
-                            FixedMin = reader.GetInt32("fixed_min"),
-                            FixedMax = reader.GetInt32("fixed_max"),
+                            FixedMin = reader.GetInt32("fixed_min", 0),
+                            FixedMax = reader.GetInt32("fixed_max", 0),
                             UseLevelAggro = reader.GetBoolean("use_level_aggro", true),
-                            LevelMd = reader.GetFloat("level_md"),
-                            LevelVaStart = reader.GetInt32("level_va_start"),
-                            LevelVaEnd = reader.GetInt32("level_va_end"),
+                            LevelMd = reader.GetFloat("level_md", 0f),
+                            LevelVaStart = reader.GetInt32("level_va_start", 0),
+                            LevelVaEnd = reader.GetInt32("level_va_end", 0),
                             UseChargedBuff = reader.GetBoolean("use_charged_buff", true),
                             ChargedBuffId = reader.GetUInt32("charged_buff_id", 0),
-                            ChargedMul = reader.GetFloat("charged_mul")
+                            ChargedMul = reader.GetFloat("charged_mul", 0f)
                         };
-                        _effects["AggroEffect"].Add(template.Id, template);
+                        _effects["AggroEffect"][template.Id] = template;
                     }
                 }
             }
@@ -870,8 +851,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var template = new BubbleEffect { Id = reader.GetUInt32("id"), KindId = reader.GetUInt32("kind_id") };
-                        _effects["BubbleEffect"].Add(template.Id, template);
+                        var template = new BubbleEffect { Id = reader.GetUInt32("id", 0), KindId = reader.GetUInt32("kind_id", 0) };
+                        _effects["BubbleEffect"][template.Id] = template;
                     }
                 }
             }
@@ -884,8 +865,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var template = new CinemalEffect { Id = reader.GetUInt32("id"), CinemaId = reader.GetUInt32("cinema_id") };
-                        _effects["CinemaEffect"].Add(template.Id, template);
+                        var template = new CinemalEffect { Id = reader.GetUInt32("id", 0), CinemaId = reader.GetUInt32("cinema_id", 0) };
+                        _effects["CinemaEffect"][template.Id] = template;
                     }
                 }
             }
@@ -898,8 +879,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var template = new CleanupUccEffect { Id = reader.GetUInt32("id") };
-                        _effects["CleanupUccEffect"].Add(template.Id, template);
+                        var template = new CleanupUccEffect { Id = reader.GetUInt32("id", 0) };
+                        _effects["CleanupUccEffect"][template.Id] = template;
                     }
                 }
             }
@@ -914,14 +895,14 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new ConversionEffect
                         {
-                            Id = reader.GetUInt32("id"),
-                            CategoryId = reader.GetUInt32("category_id"),
-                            SourceCategoryId = reader.GetUInt32("source_category_id"),
-                            SourceValue = reader.GetInt32("source_value"),
-                            TargetCategoryId = reader.GetUInt32("target_category_id"),
-                            TargetValue = reader.GetInt32("target_value")
+                            Id = reader.GetUInt32("id", 0),
+                            CategoryId = reader.GetUInt32("category_id", 0),
+                            SourceCategoryId = reader.GetUInt32("source_category_id", 0),
+                            SourceValue = reader.GetInt32("source_value", 0),
+                            TargetCategoryId = reader.GetUInt32("target_category_id", 0),
+                            TargetValue = reader.GetInt32("target_value", 0)
                         };
-                        _effects["ConversionEffect"].Add(template.Id, template);
+                        _effects["ConversionEffect"][template.Id] = template;
                     }
                 }
             }
@@ -934,8 +915,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var template = new CraftEffect { Id = reader.GetUInt32("id"), WorldInteraction = (WorldInteractionType)reader.GetUInt32("wi_id") };
-                        _effects["CraftEffect"].Add(template.Id, template);
+                        var template = new CraftEffect { Id = reader.GetUInt32("id", 0), WorldInteraction = (WorldInteractionType)reader.GetUInt32("wi_id", 0) };
+                        _effects["CraftEffect"][template.Id] = template;
                     }
                 }
             }
@@ -950,56 +931,58 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new DamageEffect
                         {
-                            Id = reader.GetUInt32("id"),
-                            DamageType = (DamageType)reader.GetInt32("damage_type_id"),
-                            FixedMin = reader.GetInt32("fixed_min"),
-                            FixedMax = reader.GetInt32("fixed_max"),
-                            Multiplier = reader.GetFloat("multiplier"),
+                            Id = reader.GetUInt32("id", 0),
+                            DamageType = (DamageType)reader.GetInt32("damage_type_id", 0),
+                            FixedMin = reader.GetInt32("fixed_min", 0),
+                            FixedMax = reader.GetInt32("fixed_max", 0),
+                            Multiplier = reader.GetFloat("multiplier", 0f),
                             UseMainhandWeapon = reader.GetBoolean("use_mainhand_weapon", true),
                             UseOffhandWeapon = reader.GetBoolean("use_offhand_weapon", true),
                             UseRangedWeapon = reader.GetBoolean("use_ranged_weapon", true),
-                            CriticalBonus = reader.GetInt32("critical_bonus"),
+                            CriticalBonus = reader.GetInt32("critical_bonus", 0),
                             TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0),
-                            TargetBuffBonus = reader.GetInt32("target_buff_bonus"),
+                            TargetBuffBonus = reader.GetInt32("target_buff_bonus", 0),
                             UseFixedDamage = reader.GetBoolean("use_fixed_damage", true),
                             UseLevelDamage = reader.GetBoolean("use_level_damage", true),
-                            LevelMd = reader.GetFloat("level_md"),
-                            LevelVaStart = reader.GetInt32("level_va_start"),
-                            LevelVaEnd = reader.GetInt32("level_va_end"),
-                            TargetBuffBonusMul = reader.GetFloat("target_buff_bonus_mul"),
+                            LevelMd = reader.GetFloat("level_md", 0f),
+                            LevelVaStart = reader.GetInt32("level_va_start", 0),
+                            LevelVaEnd = reader.GetInt32("level_va_end", 0),
+                            TargetBuffBonusMul = reader.GetFloat("target_buff_bonus_mul", 0f),
                             UseChargedBuff = reader.GetBoolean("use_charged_buff", true),
                             ChargedBuffId = reader.GetUInt32("charged_buff_id", 0),
-                            ChargedMul = reader.GetFloat("charged_mul"),
-                            AggroMultiplier = reader.GetFloat("aggro_multiplier"),
-                            HealthStealRatio = reader.GetInt32("health_steal_ratio"),
-                            ManaStealRatio = reader.GetInt32("mana_steal_ratio"),
-                            DpsMultiplier = reader.GetFloat("dps_multiplier"),
-                            WeaponSlotId = reader.GetInt32("weapon_slot_id"),
-                            CheckCrime = reader.GetBoolean("check_crime", true),
-                            HitAnimTimingId = reader.GetUInt32("hit_anim_timing_id"),
+                            ChargedMul = reader.GetFloat("charged_mul", 0f),
+                            AggroMultiplier = reader.GetFloat("aggro_multiplier", 0f),
+                            HealthStealRatio = reader.GetInt32("health_steal_ratio", 0),
+                            ManaStealRatio = reader.GetInt32("mana_steal_ratio", 0),
+                            DpsMultiplier = reader.GetFloat("dps_multiplier", 0f),
+                            WeaponSlotId = reader.GetInt32("weapon_slot_id", 0),
+                            // check_crime renamed to crime in 10.0.2.13 schema
+                            CheckCrime = reader.GetBoolean("crime", true),
+                            HitAnimTimingId = reader.GetUInt32("hit_anim_timing_id", 0),
                             UseTargetChargedBuff = reader.GetBoolean("use_target_charged_buff", true),
                             TargetChargedBuffId = reader.GetUInt32("target_charged_buff_id", 0),
-                            TargetChargedMul = reader.GetFloat("target_charged_mul"),
-                            DpsIncMultiplier = reader.GetFloat("dps_inc_multiplier"),
+                            TargetChargedMul = reader.GetFloat("target_charged_mul", 0f),
+                            DpsIncMultiplier = reader.GetFloat("dps_inc_multiplier", 0f),
                             EngageCombat = reader.GetBoolean("engage_combat", true),
                             Synergy = reader.GetBoolean("synergy", true),
                             ActabilityGroupId = reader.GetUInt32("actability_group_id", 0),
-                            ActabilityStep = reader.GetInt32("actability_step"),
-                            ActabilityMul = reader.GetFloat("actability_mul"),
-                            ActabilityAdd = reader.GetFloat("actability_add"),
-                            ChargedLevelMul = reader.GetFloat("charged_level_mul"),
+                            ActabilityStep = reader.GetInt32("actability_step", 0),
+                            ActabilityMul = reader.GetFloat("actability_mul", 0f),
+                            ActabilityAdd = reader.GetFloat("actability_add", 0f),
+                            ChargedLevelMul = reader.GetFloat("charged_level_mul", 0f),
                             AdjustDamageByHeight = reader.GetBoolean("adjust_damage_by_height", true),
                             UsePercentDamage = reader.GetBoolean("use_percent_damage", true),
-                            PercentMin = reader.GetInt32("percent_min"),
-                            PercentMax = reader.GetInt32("percent_max"),
-                            UseCurrentHealth = reader.GetBoolean("use_current_health", true),
-                            TargetHealthMin = reader.GetInt32("target_health_min"),
-                            TargetHealthMax = reader.GetInt32("target_health_max"),
-                            TargetHealthMul = reader.GetFloat("target_health_mul"),
-                            TargetHealthAdd = reader.GetInt32("target_health_add"),
+                            PercentMin = reader.GetInt32("percent_min", 0),
+                            PercentMax = reader.GetInt32("percent_max", 0),
+                            // use_current_health renamed to use_source_health in 10.0.2.13 schema
+                            UseCurrentHealth = reader.GetBoolean("use_source_health", true),
+                            TargetHealthMin = reader.GetInt32("target_health_min", 0),
+                            TargetHealthMax = reader.GetInt32("target_health_max", 0),
+                            TargetHealthMul = reader.GetFloat("target_health_mul", 0f),
+                            TargetHealthAdd = reader.GetInt32("target_health_add", 0),
                             FireProc = reader.GetBoolean("fire_proc", true)
                         };
-                        _effects["DamageEffect"].Add(template.Id, template);
+                        _effects["DamageEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1014,12 +997,12 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new DispelEffect
                         {
-                            Id = reader.GetUInt32("id"),
-                            DispelCount = reader.GetInt32("dispel_count"),
-                            CureCount = reader.GetInt32("cure_count"),
+                            Id = reader.GetUInt32("id", 0),
+                            DispelCount = reader.GetInt32("dispel_count", 0),
+                            CureCount = reader.GetInt32("cure_count", 0),
                             BuffTagId = reader.GetUInt32("buff_tag_id", 0)
                         };
-                        _effects["DispelEffect"].Add(template.Id, template);
+                        _effects["DispelEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1032,8 +1015,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var template = new FlyingStateChangeEffect { Id = reader.GetUInt32("id"), FlyingState = reader.GetBoolean("flying_state", true) };
-                        _effects["FlyingStateChangeEffect"].Add(template.Id, template);
+                        var template = new FlyingStateChangeEffect { Id = reader.GetUInt32("id", 0), FlyingState = reader.GetBoolean("flying_state", true) };
+                        _effects["FlyingStateChangeEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1048,14 +1031,14 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new GainLootPackItemEffect
                         {
-                            Id = reader.GetUInt32("id"),
-                            LootPackId = reader.GetUInt32("loot_pack_id"),
+                            Id = reader.GetUInt32("id", 0),
+                            LootPackId = reader.GetUInt32("loot_pack_id", 0),
                             ConsumeSourceItem = reader.GetBoolean("consume_source_item", true),
                             ConsumeItemId = reader.GetUInt32("consume_item_id", 0),
-                            ConsumeCount = reader.GetInt32("consume_count"),
+                            ConsumeCount = reader.GetInt32("consume_count", 0),
                             InheritGrade = reader.GetBoolean("inherit_grade", true)
                         };
-                        _effects["GainLootPackItemEffect"].Add(template.Id, template);
+                        _effects["GainLootPackItemEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1070,27 +1053,27 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new HealEffect
                         {
-                            Id = reader.GetUInt32("id"),
+                            Id = reader.GetUInt32("id", 0),
                             UseFixedHeal = reader.GetBoolean("use_fixed_heal", true),
-                            FixedMin = reader.GetInt32("fixed_min"),
-                            FixedMax = reader.GetInt32("fixed_max"),
+                            FixedMin = reader.GetInt32("fixed_min", 0),
+                            FixedMax = reader.GetInt32("fixed_max", 0),
                             UseLevelHeal = reader.GetBoolean("use_level_heal", true),
-                            LevelMd = reader.GetFloat("level_md"),
-                            LevelVaStart = reader.GetInt32("level_va_start"),
-                            LevelVaEnd = reader.GetInt32("level_va_end"),
+                            LevelMd = reader.GetFloat("level_md", 0f),
+                            LevelVaStart = reader.GetInt32("level_va_start", 0),
+                            LevelVaEnd = reader.GetInt32("level_va_end", 0),
                             Percent = reader.GetBoolean("percent", true),
                             UseChargedBuff = reader.GetBoolean("use_charged_buff", true),
                             ChargedBuffId = reader.GetUInt32("charged_buff_id", 0),
-                            ChargedMul = reader.GetFloat("charged_mul"),
+                            ChargedMul = reader.GetFloat("charged_mul", 0f),
                             SlaveApplicable = reader.GetBoolean("slave_applicable", true),
                             IgnoreHealAggro = reader.GetBoolean("ignore_heal_aggro", true),
-                            DpsMultiplier = reader.GetFloat("dps_multiplier"),
+                            DpsMultiplier = reader.GetFloat("dps_multiplier", 0f),
                             ActabilityGroupId = reader.GetUInt32("actability_group_id", 0),
-                            ActabilityStep = reader.GetInt32("actability_step"),
-                            ActabilityMul = reader.GetFloat("actability_mul"),
-                            ActabilityAdd = reader.GetFloat("actability_add")
+                            ActabilityStep = reader.GetInt32("actability_step", 0),
+                            ActabilityMul = reader.GetFloat("actability_mul", 0f),
+                            ActabilityAdd = reader.GetFloat("actability_add", 0f)
                         };
-                        _effects["HealEffect"].Add(template.Id, template);
+                        _effects["HealEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1103,8 +1086,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var template = new ImprintUccEffect { Id = reader.GetUInt32("id"), ItemId = reader.GetUInt32("item_id", 0) };
-                        _effects["ImprintUccEffect"].Add(template.Id, template);
+                        var template = new ImprintUccEffect { Id = reader.GetUInt32("id", 0), ItemId = reader.GetUInt32("item_id", 0) };
+                        _effects["ImprintUccEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1119,21 +1102,21 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new ImpulseEffect
                         {
-                            Id = reader.GetUInt32("id"),
-                            VelImpulseX = reader.GetFloat("vel_impulse_x"),
-                            VelImpulseY = reader.GetFloat("vel_impulse_y"),
-                            VelImpulseZ = reader.GetFloat("vel_impulse_z"),
-                            AngvelImpulseX = reader.GetFloat("angvel_impulse_x"),
-                            AngvelImpulseY = reader.GetFloat("angvel_impulse_y"),
-                            AngvelImpulseZ = reader.GetFloat("angvel_impulse_z"),
-                            ImpulseX = reader.GetFloat("impulse_x"),
-                            ImpulseY = reader.GetFloat("impulse_y"),
-                            ImpulseZ = reader.GetFloat("impulse_z"),
-                            AngImpulseX = reader.GetFloat("ang_impulse_x"),
-                            AngImpulseY = reader.GetFloat("ang_impulse_y"),
-                            AngImpulseZ = reader.GetFloat("ang_impulse_z")
+                            Id = reader.GetUInt32("id", 0),
+                            VelImpulseX = reader.GetFloat("vel_impulse_x", 0f),
+                            VelImpulseY = reader.GetFloat("vel_impulse_y", 0f),
+                            VelImpulseZ = reader.GetFloat("vel_impulse_z", 0f),
+                            AngvelImpulseX = reader.GetFloat("angvel_impulse_x", 0f),
+                            AngvelImpulseY = reader.GetFloat("angvel_impulse_y", 0f),
+                            AngvelImpulseZ = reader.GetFloat("angvel_impulse_z", 0f),
+                            ImpulseX = reader.GetFloat("impulse_x", 0f),
+                            ImpulseY = reader.GetFloat("impulse_y", 0f),
+                            ImpulseZ = reader.GetFloat("impulse_z", 0f),
+                            AngImpulseX = reader.GetFloat("ang_impulse_x", 0f),
+                            AngImpulseY = reader.GetFloat("ang_impulse_y", 0f),
+                            AngImpulseZ = reader.GetFloat("ang_impulse_z", 0f)
                         };
-                        _effects["ImpulseEffect"].Add(template.Id, template);
+                        _effects["ImpulseEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1148,11 +1131,11 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new InteractionEffect
                         {
-                            Id = reader.GetUInt32("id"),
-                            WorldInteraction = (WorldInteractionType)reader.GetInt32("wi_id"),
+                            Id = reader.GetUInt32("id", 0),
+                            WorldInteraction = (WorldInteractionType)reader.GetInt32("wi_id", 0),
                             DoodadId = reader.GetUInt32("doodad_id", 0)
                         };
-                        _effects["InteractionEffect"].Add(template.Id, template);
+                        _effects["InteractionEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1167,11 +1150,11 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new KillNpcWithoutCorpseEffect
                         {
-                            Id = reader.GetUInt32("id"), NpcId = reader.GetUInt32("npc_id"), Radius = reader.GetFloat("radius"),
+                            Id = reader.GetUInt32("id", 0), NpcId = reader.GetUInt32("npc_id", 0), Radius = reader.GetFloat("radius", 0f),
                             GiveExp = reader.GetBoolean("give_exp", true),
                             Vanish = reader.GetBoolean("vanish", true)
                         };
-                        _effects["KillNpcWithoutCorpseEffect"].Add(template.Id, template);
+                        _effects["KillNpcWithoutCorpseEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1186,13 +1169,13 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new ManaBurnEffect
                         {
-                            Id = reader.GetUInt32("id"), BaseMin = reader.GetInt32("base_min"), BaseMax = reader.GetInt32("base_max"),
-                            DamageRatio = reader.GetInt32("damage_ratio"),
-                            LevelMd = reader.GetFloat("level_md"),
-                            LevelVaStart = reader.GetInt32("level_va_start"),
-                            LevelVaEnd = reader.GetInt32("level_va_end")
+                            Id = reader.GetUInt32("id", 0), BaseMin = reader.GetInt32("base_min", 0), BaseMax = reader.GetInt32("base_max", 0),
+                            DamageRatio = reader.GetInt32("damage_ratio", 0),
+                            LevelMd = reader.GetFloat("level_md", 0f),
+                            LevelVaStart = reader.GetInt32("level_va_start", 0),
+                            LevelVaEnd = reader.GetInt32("level_va_end", 0)
                         };
-                        _effects["ManaBurnEffect"].Add(template.Id, template);
+                        _effects["ManaBurnEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1205,8 +1188,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var template = new MoveToRezPointEffect { Id = reader.GetUInt32("id") };
-                        _effects["MoveToRezPointEffect"].Add(template.Id, template);
+                        var template = new MoveToRezPointEffect { Id = reader.GetUInt32("id", 0) };
+                        _effects["MoveToRezPointEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1221,12 +1204,12 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new NpcControlEffect
                         {
-                            Id = reader.GetUInt32("id"),
-                            CategoryId = (NpcControlCategory)reader.GetUInt32("category_id"),
+                            Id = reader.GetUInt32("id", 0),
+                            CategoryId = (NpcControlCategory)reader.GetUInt32("category_id", 0),
                             ParamString = reader.GetString("param_string", ""),
-                            ParamInt = reader.GetUInt32("param_int")
+                            ParamInt = reader.GetUInt32("param_int", 0)
                         };
-                        _effects["NpcControlEffect"].Add(template.Id, template);
+                        _effects["NpcControlEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1239,8 +1222,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var template = new OpenPortalEffect { Id = reader.GetUInt32("id"), Distance = reader.GetFloat("distance") };
-                        _effects["OpenPortalEffect"].Add(template.Id, template);
+                        var template = new OpenPortalEffect { Id = reader.GetUInt32("id", 0), Distance = reader.GetFloat("distance", 0f) };
+                        _effects["OpenPortalEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1255,10 +1238,10 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new PhysicalExplosionEffect
                         {
-                            Id = reader.GetUInt32("id"), Radius = reader.GetFloat("radius"), HoleSize = reader.GetFloat("hole_size"),
-                            Pressure = reader.GetFloat("pressure")
+                            Id = reader.GetUInt32("id", 0), Radius = reader.GetFloat("radius", 0f), HoleSize = reader.GetFloat("hole_size", 0f),
+                            Pressure = reader.GetFloat("pressure", 0f)
                         };
-                        _effects["PhysicalExplosionEffect"].Add(template.Id, template);
+                        _effects["PhysicalExplosionEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1273,9 +1256,9 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new PutDownBackpackEffect
                         {
-                            Id = reader.GetUInt32("id"), BackpackDoodadId = reader.GetUInt32("backpack_doodad_id")
+                            Id = reader.GetUInt32("id", 0), BackpackDoodadId = reader.GetUInt32("backpack_doodad_id", 0)
                         };
-                        _effects["PutDownBackpackEffect"].Add(template.Id, template);
+                        _effects["PutDownBackpackEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1290,13 +1273,13 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new RecoverExpEffect
                         {
-                            Id = reader.GetUInt32("id"),
+                            Id = reader.GetUInt32("id", 0),
                             NeedMoney = reader.GetBoolean("need_money", true),
                             NeedLaborPower = reader.GetBoolean("need_labor_power", true),
                             NeedPriest = reader.GetBoolean("need_priest", true)
                         };
-                        // TODO 1.2 // template.Penaltied = reader.GetBoolean("penaltied", true);
-                        _effects["RecoverExpEffect"].Add(template.Id, template);
+                        template.Penaltied = reader.GetBoolean("penaltied", true);
+                        _effects["RecoverExpEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1311,9 +1294,9 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new RepairSlaveEffect
                         {
-                            Id = reader.GetUInt32("id"), Health = reader.GetInt32("health"), Mana = reader.GetInt32("mana")
+                            Id = reader.GetUInt32("id", 0), Health = reader.GetInt32("health", 0), Mana = reader.GetInt32("mana", 0)
                         };
-                        _effects["RepairSlaveEffect"].Add(template.Id, template);
+                        _effects["RepairSlaveEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1328,9 +1311,9 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new ReportCrimeEffect
                         {
-                            Id = reader.GetUInt32("id"), Value = reader.GetInt32("value"), CrimeKindId = reader.GetUInt32("crime_kind_id")
+                            Id = reader.GetUInt32("id", 0), Value = reader.GetInt32("value", 0), CrimeKindId = reader.GetUInt32("crime_kind_id", 0)
                         };
-                        _effects["ReportCrimeEffect"].Add(template.Id, template);
+                        _effects["ReportCrimeEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1343,8 +1326,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var template = new ResetAoeDiminishingEffect { Id = reader.GetUInt32("id") };
-                        _effects["ResetAoeDiminishingEffect"].Add(template.Id, template);
+                        var template = new ResetAoeDiminishingEffect { Id = reader.GetUInt32("id", 0) };
+                        _effects["ResetAoeDiminishingEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1359,17 +1342,17 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new RestoreManaEffect
                         {
-                            Id = reader.GetUInt32("id"),
+                            Id = reader.GetUInt32("id", 0),
                             UseFixedValue = reader.GetBoolean("use_fixed_value", true),
-                            FixedMin = reader.GetInt32("fixed_min"),
-                            FixedMax = reader.GetInt32("fixed_max"),
+                            FixedMin = reader.GetInt32("fixed_min", 0),
+                            FixedMax = reader.GetInt32("fixed_max", 0),
                             UseLevelValue = reader.GetBoolean("use_level_value", true),
-                            LevelMd = reader.GetFloat("level_md"),
-                            LevelVaStart = reader.GetInt32("level_va_start"),
-                            LevelVaEnd = reader.GetInt32("level_va_end"),
+                            LevelMd = reader.GetFloat("level_md", 0f),
+                            LevelVaStart = reader.GetInt32("level_va_start", 0),
+                            LevelVaEnd = reader.GetInt32("level_va_end", 0),
                             Percent = reader.GetBoolean("percent", true)
                         };
-                        _effects["RestoreManaEffect"].Add(template.Id, template);
+                        _effects["RestoreManaEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1384,10 +1367,10 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new ScopedFEffect
                         {
-                            Id = reader.GetUInt32("id"), Range = reader.GetInt32("range"), Key = reader.GetBoolean("key", true),
-                            DoodadId = reader.GetUInt32("doodad_id")
+                            Id = reader.GetUInt32("id", 0), Range = reader.GetInt32("range", 0), Key = reader.GetString("key", ""),
+                            DoodadId = reader.GetUInt32("doodad_id", 0)
                         };
-                        _effects["ScopedFEffect"].Add(template.Id, template);
+                        _effects["ScopedFEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1402,21 +1385,22 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new SpawnEffect
                         {
-                            Id = reader.GetUInt32("id"),
-                            OwnerTypeId = (BaseUnitType)reader.GetUInt32("owner_type_id"),
-                            SubType = reader.GetUInt32("sub_type"),
-                            PosDirId = reader.GetUInt32("pos_dir_id"),
-                            PosAngle = reader.GetFloat("pos_angle"),
-                            PosDistance = reader.GetFloat("pos_distance"),
-                            OriDirId = reader.GetUInt32("ori_dir_id"),
-                            OriAngle = reader.GetFloat("ori_angle"),
+                            Id = reader.GetUInt32("id", 0),
+                            OwnerTypeId = (BaseUnitType)reader.GetUInt32("owner_type_id", 0),
+                            SubType = reader.GetUInt32("sub_type", 0),
+                            PosDirId = reader.GetUInt32("pos_dir_id", 0),
+                            // pos_angle/pos_distance split into _min/_max in 10.0.2.13 schema; use _min
+                            PosAngle = reader.GetFloat("pos_angle_min", 0f),
+                            PosDistance = reader.GetFloat("pos_distance_min", 0f),
+                            OriDirId = reader.GetUInt32("ori_dir_id", 0),
+                            OriAngle = reader.GetFloat("ori_angle", 0f),
                             UseSummonerFaction = reader.GetBoolean("use_summoner_faction", true),
-                            LifeTime = reader.GetFloat("life_time"),
+                            LifeTime = reader.GetFloat("life_time", 0f),
                             DespawnOnCreatorDeath = reader.GetBoolean("despawn_on_creator_death", true),
                             UseSummonerAggroTarget = reader.GetBoolean("use_summoner_aggro_target", true),
                             MateStateId = (MateState)reader.GetUInt32("mate_state_id", 0)
                         };
-                        _effects["SpawnEffect"].Add(template.Id, template);
+                        _effects["SpawnEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1431,14 +1415,14 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new NpcSpawnerSpawnEffect
                         {
-                            Id = reader.GetUInt32("id"),
+                            Id = reader.GetUInt32("id", 0),
                             SpawnerId = reader.GetUInt32("spawner_id", 0),
-                            LifeTime = reader.GetFloat("life_time"),
+                            LifeTime = reader.GetFloat("life_time", 0f),
                             DespawnOnCreatorDeath = reader.GetBoolean("despawn_on_creator_death", true),
                             UseSummonerAggroTarget = reader.GetBoolean("use_summoner_aggro_target", true),
                             ActivationState = reader.GetBoolean("activation_state", true)
                         };
-                        _effects["NpcSpawnerSpawnEffect"].Add(template.Id, template);
+                        _effects["NpcSpawnerSpawnEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1451,8 +1435,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var template = new NpcSpawnerDespawnEffect { Id = reader.GetUInt32("id"), SpawnerId = reader.GetUInt32("spawner_id") };
-                        _effects["NpcSpawnerDespawnEffect"].Add(template.Id, template);
+                        var template = new NpcSpawnerDespawnEffect { Id = reader.GetUInt32("id", 0), SpawnerId = reader.GetUInt32("spawner_id", 0) };
+                        _effects["NpcSpawnerDespawnEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1467,9 +1451,9 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new SpawnFishEffect
                         {
-                            Id = reader.GetUInt32("id"), Range = reader.GetUInt32("range"), DoodadId = reader.GetUInt32("doodad_id", 0)
+                            Id = reader.GetUInt32("id", 0), Range = reader.GetUInt32("range", 0), DoodadId = reader.GetUInt32("doodad_id", 0)
                         };
-                        _effects["SpawnFishEffect"].Add(template.Id, template);
+                        _effects["SpawnFishEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1484,24 +1468,24 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new SpawnGimmickEffect
                         {
-                            Id = reader.GetUInt32("id"),
-                            GimmickId = reader.GetUInt32("gimmick_id"),
+                            Id = reader.GetUInt32("id", 0),
+                            GimmickId = reader.GetUInt32("gimmick_id", 0),
                             OffsetFromSource = reader.GetBoolean("offset_from_source", true),
-                            OffsetCoordinateId = reader.GetUInt32("offset_coordiate_id"),
-                            OffsetX = reader.GetFloat("offset_x"),
-                            OffsetY = reader.GetFloat("offset_y"),
-                            OffsetZ = reader.GetFloat("offset_z"),
-                            Scale = reader.GetFloat("scale"),
-                            VelocityCoordinateId = reader.GetUInt32("velocity_coordiate_id"),
-                            VelocityX = reader.GetFloat("velocity_x"),
-                            VelocityY = reader.GetFloat("velocity_y"),
-                            VelocityZ = reader.GetFloat("velocity_z"),
-                            AngVelCoordinateId = reader.GetUInt32("ang_vel_coordiate_id"),
-                            AngVelX = reader.GetFloat("ang_vel_x"),
-                            AngVelY = reader.GetFloat("ang_vel_y"),
-                            AngVelZ = reader.GetFloat("ang_vel_z")
+                            OffsetCoordinateId = reader.GetUInt32("offset_coordiate_id", 0),
+                            OffsetX = reader.GetFloat("offset_x", 0f),
+                            OffsetY = reader.GetFloat("offset_y", 0f),
+                            OffsetZ = reader.GetFloat("offset_z", 0f),
+                            Scale = reader.GetFloat("scale", 0f),
+                            VelocityCoordinateId = reader.GetUInt32("velocity_coordiate_id", 0),
+                            VelocityX = reader.GetFloat("velocity_x", 0f),
+                            VelocityY = reader.GetFloat("velocity_y", 0f),
+                            VelocityZ = reader.GetFloat("velocity_z", 0f),
+                            AngVelCoordinateId = reader.GetUInt32("ang_vel_coordiate_id", 0),
+                            AngVelX = reader.GetFloat("ang_vel_x", 0f),
+                            AngVelY = reader.GetFloat("ang_vel_y", 0f),
+                            AngVelZ = reader.GetFloat("ang_vel_z", 0f)
                         };
-                        _effects["SpawnGimmickEffect"].Add(template.Id, template);
+                        _effects["SpawnGimmickEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1516,45 +1500,14 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new SpecialEffect
                         {
-                            Id = reader.GetUInt32("id"),
-                            SpecialEffectTypeId = (SpecialType)reader.GetInt32("special_effect_type_id"),
-                            Value1 = reader.GetInt32("value1"),
-                            Value2 = reader.GetInt32("value2"),
-                            Value3 = reader.GetInt32("value3"),
-                            Value4 = reader.GetInt32("value4")
+                            Id = reader.GetUInt32("id", 0),
+                            SpecialEffectTypeId = (SpecialType)reader.GetInt32("special_effect_type_id", 0),
+                            Value1 = reader.GetInt32("value1", 0),
+                            Value2 = reader.GetInt32("value2", 0),
+                            Value3 = reader.GetInt32("value3", 0),
+                            Value4 = reader.GetInt32("value4", 0)
                         };
-                        _effects["SpecialEffect"].Add(template.Id, template);
-                    }
-                }
-            }
-
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM train_craft_effects";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var template = new TrainCraftEffect { Id = reader.GetUInt32("id"), CraftId = reader.GetUInt32("craft_id") };
-                        _effects["TrainCraftEffect"].Add(template.Id, template);
-                    }
-                }
-            }
-
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM train_craft_rank_effects";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var template = new TrainCraftRankEffect
-                        {
-                            Id = reader.GetUInt32("id"), KindId = reader.GetUInt32("kind_id"), RankId = reader.GetUInt32("rank_id")
-                        };
-                        _effects["TrainCraftRankEffect"].Add(template.Id, template);
+                        _effects["SpecialEffect"][template.Id] = template;
                     }
                 }
             }
@@ -1569,9 +1522,9 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new EffectType
                         {
-                            Id = reader.GetUInt32("id"), ActualId = reader.GetUInt32("actual_id"), Type = reader.GetString("actual_type")
+                            Id = reader.GetUInt32("id", 0), ActualId = reader.GetUInt32("actual_id", 0), Type = reader.GetString("actual_type", "")
                         };
-                        _types.Add(template.Id, template);
+                        _types[template.Id] = template;
                     }
                 }
             }
@@ -1584,36 +1537,37 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var skillId = reader.GetUInt32("skill_id");
+                        var skillId = reader.GetUInt32("skill_id", 0);
                         if (!_skills.ContainsKey(skillId))
                             continue;
 
                         var template = new SkillEffect();
-                        var effectId = reader.GetUInt32("effect_id");
+                        var effectId = reader.GetUInt32("effect_id", 0);
 
                         //for easier debugging
                         template.EffectId = effectId;
 
-                        var type = _types[effectId];
-                        if (_effects.TryGetValue(type.Type, out var effect))
-                            template.Template = effect[type.ActualId];
-                        template.Weight = reader.GetInt32("weight");
-                        template.StartLevel = reader.GetByte("start_level");
-                        template.EndLevel = reader.GetByte("end_level");
+                        if (!_types.TryGetValue(effectId, out var type))
+                            continue; // 10.0.2.13: effect_id may reference an effect type that didn't load
+                        if (_effects.TryGetValue(type.Type, out var effect) && effect.TryGetValue(type.ActualId, out var tmpl))
+                            template.Template = tmpl; // dangling effect ref (e.g. 3612) -> leave Template null, don't crash
+                        template.Weight = reader.GetInt32("weight", 0);
+                        template.StartLevel = reader.GetByte("start_level", 0);
+                        template.EndLevel = reader.GetByte("end_level", 0);
                         template.Friendly = reader.GetBoolean("friendly", true);
                         template.NonFriendly = reader.GetBoolean("non_friendly", true);
                         template.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
                         template.TargetNoBuffTagId = reader.GetUInt32("target_nobuff_tag_id", 0);
                         template.SourceBuffTagId = reader.GetUInt32("source_buff_tag_id", 0);
                         template.SourceNoBuffTagId = reader.GetUInt32("source_nobuff_tag_id", 0);
-                        template.Chance = reader.GetInt32("chance");
+                        template.Chance = reader.GetInt32("chance", 0);
                         template.Front = reader.GetBoolean("front", true);
                         template.Back = reader.GetBoolean("back", true);
                         template.TargetNpcTagId = reader.GetUInt32("target_npc_tag_id", 0);
-                        template.ApplicationMethod = (SkillEffectApplicationMethod)reader.GetUInt32("application_method_id");
+                        template.ApplicationMethod = (SkillEffectApplicationMethod)reader.GetUInt32("application_method_id", 0);
                         template.ConsumeSourceItem = reader.GetBoolean("consume_source_item", true);
                         template.ConsumeItemId = reader.GetUInt32("consume_item_id", 0);
-                        template.ConsumeItemCount = reader.GetInt32("consume_item_count");
+                        template.ConsumeItemCount = reader.GetInt32("consume_item_count", 0);
                         template.AlwaysHit = reader.GetBoolean("always_hit", true);
                         template.ItemSetId = reader.GetUInt32("item_set_id", 0);
                         template.InteractionSuccessHit = reader.GetBoolean("interaction_success_hit", true);
@@ -1630,8 +1584,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var tagId = reader.GetUInt32("tag_id");
-                        var buffId = reader.GetUInt32("buff_id");
+                        var tagId = reader.GetUInt32("tag_id", 0);
+                        var buffId = reader.GetUInt32("buff_id", 0);
 
                         if (!_buffTags.ContainsKey(buffId))
                             _buffTags.Add(buffId, []);
@@ -1655,13 +1609,13 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new SkillModifier
                         {
-                            Id = reader.GetUInt32("id"),
-                            OwnerId = reader.GetUInt32("owner_id"),
-                            OwnerType = reader.GetString("owner_type"),
+                            Id = reader.GetUInt32("id", 0),
+                            OwnerId = reader.GetUInt32("owner_id", 0),
+                            OwnerType = reader.GetString("owner_type", ""),
                             TagId = reader.GetUInt32("tag_id", 0),
-                            SkillAttribute = (SkillAttribute)reader.GetUInt32("skill_attribute_id"),
-                            UnitModifierType = (UnitModifierType)reader.GetUInt32("unit_modifier_type_id"),
-                            Value = reader.GetInt32("value"),
+                            SkillAttribute = (SkillAttribute)reader.GetUInt32("skill_attribute_id", 0),
+                            UnitModifierType = (UnitModifierType)reader.GetUInt32("unit_modifier_type_id", 0),
+                            Value = reader.GetInt32("value", 0),
                             SkillId = reader.GetUInt32("skill_id", 0),
                             Synergy = reader.GetBoolean("synergy", true),
                         };
@@ -1681,8 +1635,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var tagId = reader.GetUInt32("tag_id");
-                        var skillId = reader.GetUInt32("skill_id");
+                        var tagId = reader.GetUInt32("tag_id", 0);
+                        var skillId = reader.GetUInt32("skill_id", 0);
 
                         //I guess we need this
                         if (!_skillTags.ContainsKey(skillId))
@@ -1706,14 +1660,15 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var combatBuffTemplate = new CombatBuffTemplate
                         {
-                            Id = reader.GetUInt32("id"),
+                            Id = reader.GetUInt32("id", 0),
                             HitSkillId = reader.GetUInt32("hit_skill_id", 0),
-                            HitType = (SkillHitType)reader.GetUInt32("hit_type_id"),
-                            BuffId = reader.GetUInt32("buff_id"),
+                            // hit_type_id renamed to hit_type_bits in 10.0.2.13 schema
+                            HitType = (SkillHitType)reader.GetUInt32("hit_type_bits", 0),
+                            BuffId = reader.GetUInt32("buff_id", 0),
                             BuffFromSource = reader.GetBoolean("buff_from_source", true),
                             BuffToSource = reader.GetBoolean("buff_to_source", true),
                             ReqSkillId = reader.GetUInt32("req_skill_id", 0),
-                            ReqBuffId = reader.GetUInt32("req_buff_id"),
+                            ReqBuffId = reader.GetUInt32("req_buff_id", 0),
                             IsHealSpell = reader.GetBoolean("is_heal_spell", true)
                         };
 
@@ -1736,21 +1691,18 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     while (reader.Read())
                     {
                         var trigger = new BuffTriggerTemplate();
-                        var buffId = reader.GetUInt32("buff_id");
+                        var buffId = reader.GetUInt32("buff_id", 0);
                         if (!_buffTriggers.TryGetValue(buffId, out var value))
                         {
                             value = [];
                             _buffTriggers.Add(buffId, value);
                         }
-                        trigger.Id = reader.GetUInt32("id");
+                        trigger.Id = reader.GetUInt32("id", 0);
                         trigger.Kind = (BuffEventTriggerKind)reader.GetUInt16("event_id");
-                        trigger.Effect = GetEffectTemplate(reader.GetUInt32("effect_id"));
-                        trigger.EffectOnSource = reader.GetBoolean("effect_on_source", true);
+                        trigger.Effect = GetEffectTemplate(reader.GetUInt32("effect_id", 0));
                         trigger.UseDamageAmount = reader.GetBoolean("use_damage_amount", true);
-                        trigger.UseOriginalSource = reader.GetBoolean("use_original_source", true);
                         trigger.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
                         trigger.TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id", 0);
-                        trigger.Synergy = reader.GetBoolean("synergy", true);
 
                         // Apparently this is possible.
                         if (trigger.Effect != null)
@@ -1773,12 +1725,12 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new SkillReagent
                         {
-                            Id = reader.GetUInt32("id"),
-                            SkillId = reader.GetUInt32("skill_id"),
-                            ItemId = reader.GetUInt32("item_id"),
+                            Id = reader.GetUInt32("id", 0),
+                            SkillId = reader.GetUInt32("skill_id", 0),
+                            ItemId = reader.GetUInt32("item_id", 0),
                             Amount = reader.GetInt16("amount")
                         };
-                        _skillReagents.Add(template.Id, template);
+                        _skillReagents[template.Id] = template;
                     }
                 }
             }
@@ -1795,12 +1747,12 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new SkillProduct
                         {
-                            Id = reader.GetUInt32("id"),
-                            SkillId = reader.GetUInt32("skill_id"),
-                            ItemId = reader.GetUInt32("item_id"),
+                            Id = reader.GetUInt32("id", 0),
+                            SkillId = reader.GetUInt32("skill_id", 0),
+                            ItemId = reader.GetUInt32("item_id", 0),
                             Amount = reader.GetInt16("amount")
                         };
-                        _skillProducts.Add(template.Id, template);
+                        _skillProducts[template.Id] = template;
                     }
                 }
                 Logger.Info("Skill Products loaded");
@@ -1811,10 +1763,11 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
         foreach (var skillTemplate in _skills.Values.Where(x => x.AutoLearn))
         {
-            if (!skillTemplate.NeedLearn && skillTemplate.AbilityId == 0 &&
+            // 10.0.2.13: skills.need_learn removed; AutoLearn (filtered above) now solely drives auto-learning.
+            if (skillTemplate.AbilityId == 0 &&
                 !_defaultSkills.ContainsKey(skillTemplate.Id))
                 _commonSkills.Add(skillTemplate.Id);
-            if (!skillTemplate.NeedLearn || skillTemplate.AbilityId == 0 || skillTemplate.AbilityLevel > 1 ||
+            if (skillTemplate.AbilityId == 0 || skillTemplate.AbilityLevel > 1 ||
                 !skillTemplate.Show)
                 continue;
             var ability = skillTemplate.AbilityId;

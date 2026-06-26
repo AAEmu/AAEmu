@@ -29,12 +29,13 @@ public static class ServiceCollectionExtensions
             .AddLoginPacket<CAListWorldPacket, CAListWorldPacketHandler>()
             .AddLoginPacket<CAOtpNumberPacket, CAOtpNumberPacketHandler>()
             .AddLoginPacket<CAPcCertNumberPacket, CAPcCertNumberPacketHandler>()
-            .AddLoginPacket<CARequestAuthGameOnPacket, CARequestAuthGameOnPacketHandler>()
-            .AddLoginPacket<CARequestAuthMailRuPacket, CARequestAuthMailRuPacketHandler>()
+            .AddLoginPacket<CAPongPacket, CAPongPacketHandler>()
             .AddLoginPacket<CARequestAuthPacket, CARequestAuthPacketHandler>()
-            .AddLoginPacket<CARequestAuthTencentPacket, CARequestAuthTencentPacketHandler>()
-            .AddLoginPacket<CARequestAuthTrionPacket, CARequestAuthTrionPacketHandler>()
-            .AddLoginPacket<CARequestReconnectPacket, CARequestReconnectPacketHandler>();
+            .AddLoginPacket<CARequestAuthPWDPacket, CARequestAuthPWDPacketHandler>()
+            .AddLoginPacket<CARequestReconnectPacket, CARequestReconnectPacketHandler>()
+            .AddLoginPacket<CARequestVarifySNPacket, CARequestVarifySNPacketHandler>()
+            .AddLoginPacket<CARequestWebAuthPacket, CARequestWebAuthPacketHandler>()
+            .AddLoginPacket<CATestArsPacket, CATestArsPacketHandler>();
     }
 
     private static IServiceCollection AddLoginPacket<TPacket, TPacketHandler>(

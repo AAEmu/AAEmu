@@ -6,14 +6,7 @@ public class IndunZone
     /// ZoneGroupId for this dungeon
     /// </summary>
     public uint ZoneGroupId { get; init; }
-    /// <summary>
-    /// Dungeon nam
-    /// </summary>
-    public string Name { get; init; }
-    /// <summary>
-    /// Dungeon comments
-    /// </summary>
-    public string Comment { get; init; }
+    // 10.0.2.13: name, comment, item_id removed from indun_zones
     /// <summary>
     /// Minimum character level required to enter this dungeon
     /// </summary>
@@ -34,10 +27,6 @@ public class IndunZone
     /// If this dungeon has its own respawn points, not sure how this is used
     /// </summary>
     public bool HasGraveyard { get; init; } = true;
-    /// <summary>
-    /// If set, the itemTemplateId of the item required/consumed to enter this dungeon
-    /// </summary>
-    public uint ItemId { get; init; }
     /// <summary>
     /// Minimum time in seconds between repeat dungeon creations by the same player
     /// </summary>
@@ -68,6 +57,6 @@ public class IndunZone
 
     public override string ToString()
     {
-        return string.IsNullOrWhiteSpace(LocalizedName) ? Name : LocalizedName;
+        return string.IsNullOrWhiteSpace(LocalizedName) ? string.Empty : LocalizedName;
     }
 }

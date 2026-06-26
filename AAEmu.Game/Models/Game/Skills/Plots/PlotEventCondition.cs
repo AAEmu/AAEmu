@@ -10,9 +10,7 @@ public class PlotEventCondition
     public int Position { get; set; }
     public PlotEffectSource SourceId { get; set; }
     public PlotEffectTarget TargetId { get; set; }
-    //public bool NotifyFailure { get; set; }
-
-    // TODO 1.2 // public bool NotifyFailure { get; set; }
+    public bool NotifyFailure { get; set; } // 10.0.2.13: plot_event_conditions.notify_failure present again
 
     public bool CheckCondition(PlotState state, PlotTargetInfo targetInfo)
     {

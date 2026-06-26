@@ -146,7 +146,7 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
                             template.NuiaReturnPointId = reader.GetUInt32("nuia_return_point_id", 0);
                             template.HariharaReturnPointId = reader.GetUInt32("harihara_return_point_id", 0);
                             template.WarTowerDefId = reader.GetUInt32("war_tower_def_id", 0);
-                            // TODO 1.2 // template.PeaceTowerDefId = reader.GetUInt32("peace_tower_def_id", 0);
+                            template.PeaceTowerDefId = reader.GetUInt32("peace_tower_def_id", 0);
                             template.Closed = reader.GetBoolean("closed", true);
 
                             _groups[zoneGroupId].Conflict = template;
@@ -177,7 +177,7 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
                             ZoneGroupId = reader.GetUInt32("zone_group_id"),
                             TagId = reader.GetUInt32("tag_id")
                         };
-                        // TODO 1.2 // template.BannedPeriodsId = reader.GetUInt32("banned_periods_id");
+                        template.BannedPeriods = reader.GetUInt32("banned_periods");
                         _groupBannedTags.Add(template.Id, template);
                     }
                 }

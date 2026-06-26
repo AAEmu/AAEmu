@@ -10,15 +10,14 @@ public class Craft
 {
     public uint Id { get; set; }
     public int CastDelay { get; set; }
-    public uint ToolId { get; set; }
+    // 10.0.2.13: ToolId removed
     public uint SkillId { get; set; }
     public uint WiId { get; set; }
     public uint MilestoneId { get; set; }
     public uint ReqDoodadId { get; set; }
-    public bool NeedBind { get; set; }
-    public uint AcId { get; set; }
+    // 10.0.2.13: NeedBind, AcId removed
     public int ActabilityLimit { get; set; }
-    public bool ShowUpperCraft { get; set; }
+    // 10.0.2.13: ShowUpperCraft removed
     public int RecommendLevel { get; set; }
     public int VisibleOrder { get; set; }
 

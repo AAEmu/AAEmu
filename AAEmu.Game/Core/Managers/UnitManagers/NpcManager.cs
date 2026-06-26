@@ -52,10 +52,6 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
     /// </summary>
     private Dictionary<uint, List<uint>> TccLookup { get; } = [];
     /// <summary>
-    /// Equip Body Parts packs
-    /// </summary>
-    private Dictionary<uint, EquipBodyPartPack> EquipPackBodyParts { get; } = [];
-    /// <summary>
     /// Contains a list of NPC (names) loaded from data/creatures.xml, Used for getting default names in NPC related GM commands
     /// </summary>
     private static Dictionary<uint, Creature> Creatures { get; set; } = [];
@@ -148,24 +144,6 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
         }
 
         npc.ModelParams = template.ModelParams;
-
-        // TODO: Check if we need to override some body parts if template.EquipBodiesId is set or not
-        if (template.EquipBodiesId > 0 && EquipPackBodyParts.TryGetValue(template.EquipBodiesId, out _)) // var equipBodyPartPack))
-        {
-            /*
-                if (equipBodyPartPack.HairColorId > 0)
-                    template.ModelParams.SetHairColorId(equipBodyPartPack.HairColorId);
-                if (equipBodyPartPack.FaceId > 0)
-                    template.BodyItems[(uint)EquipmentItemSlotType.Face] = (equipBodyPartPack.FaceId, false);
-                if (equipBodyPartPack.HairId > 0)
-                    template.BodyItems[(uint)EquipmentItemSlotType.Hair] = (equipBodyPartPack.HairId, false);
-                if (equipBodyPartPack.BeardId > 0)
-                    template.BodyItems[(uint)EquipmentItemSlotType.Beard] = (equipBodyPartPack.BeardId, false);
-                if (equipBodyPartPack.SkinColorId > 0)
-                    template.ModelParams.SetSkinColorId(equipBodyPartPack.SkinColorId);
-                // if (equipBodyPartPack.BodyDiffuseMapId > 0)
-            */
-        }
 
         SetEquipItemTemplate(npc, template.Items.Headgear, EquipmentItemSlot.Head);
         SetEquipItemTemplate(npc, template.Items.Necklace, EquipmentItemSlot.Neck);
@@ -395,7 +373,6 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
         TccLookup.Clear();
         TotalCharacterCustoms.Clear();
         ItemBodyParts.Clear();
-        EquipPackBodyParts.Clear();
         Creatures = Creature.GetAllCreatures();
 
         Logger.Info("Loading npc templates...");
@@ -414,7 +391,8 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                     {
                         var custom = new TotalCharacterCustom
                         {
-                            Id = reader.GetUInt32("id"), ModelId = reader.GetUInt32("model_id"), Name = reader.GetString("name"),
+                            Id = reader.GetUInt32("id"), ModelId = reader.GetUInt32("model_id"),
+                            // name column removed in 10.0.2.13 schema; left as default
                             NpcOnly = reader.GetBoolean("npcOnly", true),
                             HairId = reader.GetUInt32("hair_id"),
                             HairColorId = reader.GetUInt32("hair_color_id"),
@@ -514,7 +492,8 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                             Id = reader.GetUInt32("id"), Name = reader.GetString("name"), CharRaceId = reader.GetInt32("char_race_id"),
                             NpcGradeId = (NpcGradeType)reader.GetByte("npc_grade_id"),
                             NpcKindId = (NpcKindType)reader.GetByte("npc_kind_id"),
-                            Level = reader.GetByte("level"),
+                            // 10.0.2.13: npcs.level can exceed 255 (e.g. 5055); clamp into the byte field to avoid OverflowException
+                            Level = (byte)Math.Clamp(reader.GetInt32("level"), 0, 255),
                             NpcTemplateId = (NpcTemplateType)reader.GetByte("npc_template_id"),
                             ModelId = reader.GetUInt32("model_id"),
                             FactionId = (FactionsEnum)reader.GetUInt32("faction_id"),
@@ -545,7 +524,7 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                             ExpAdder = reader.GetInt32("exp_adder"),
                             Stabler = reader.GetBoolean("stabler", true),
                             AcceptAggroLink = reader.GetBoolean("accept_aggro_link", true),
-                            RecrutingBattlefieldId = reader.GetInt32("recruiting_battle_field_id"),
+                            // recruiting_battle_field_id column removed in 10.0.2.13 schema
                             ReturnDistance = reader.GetFloat("return_distance"),
                             NpcAiParamId = reader.GetInt32("npc_ai_param_id"),
                             NonPushableByActor = reader.GetBoolean("non_pushable_by_actor", true),
@@ -577,7 +556,7 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                             LookConverter = reader.GetBoolean("look_converter", true),
                             UseDDCMSMountSkill = reader.GetBoolean("use_ddcms_mount_skill", true),
                             CrowdEffect = reader.GetBoolean("crowd_effect", true),
-                            EquipBodiesId = reader.GetUInt32("equip_bodies_id", 0),
+                            // equip_bodies_id column removed in 10.0.2.13 schema; defaults to 0
                             EquipClothsId = reader.GetUInt32("equip_cloths_id", 0),
                             EquipWeaponsId = reader.GetUInt32("equip_weapons_id", 0),
                             TotalCustomId = reader.GetUInt32("total_custom_id", 0)
@@ -773,34 +752,6 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                 }
             }
 
-            // This table seems to no longer be in some of the later versions
-            // Load body part packs (probably not used)
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM equip_pack_body_parts";
-                command.Prepare();
-                using (var sqliteDataReader = command.ExecuteReader())
-                using (var reader = new SQLiteWrapperReader(sqliteDataReader))
-                {
-                    while (reader.Read())
-                    {
-                        var template = new EquipBodyPartPack
-                        {
-                            Id = reader.GetUInt32("id"),
-                            Name = reader.GetString("name"),
-                            ModelId = reader.GetUInt32("model_id"),
-                            HairColorId = reader.GetUInt32("hair_color_id"),
-                            FaceId = reader.GetUInt32("face_id"),
-                            HairId = reader.GetUInt32("hair_id"),
-                            BeardId = reader.GetUInt32("beard_id"),
-                            SkinColorId = reader.GetUInt32("skin_color_id"),
-                            BodyDiffuseMapId =  reader.GetUInt32("body_diffuse_map_id"),
-                        };
-                        EquipPackBodyParts.Add(template.Id, template);
-                    }
-                }
-            }
-
             // Load Unit modifiers for NPCs
             using (var command = connection.CreateCommand())
             {
@@ -816,8 +767,9 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                             continue;
                         var template = new BonusTemplate
                         {
-                            Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id"), ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id"),
-                            Value = reader.GetInt32("value"),
+                            // 10.0.2.13: unit_attribute_id reaches 256-261; UnitAttribute is uint-backed, read directly (no clamp/truncation).
+                            Attribute = (UnitAttribute)reader.GetUInt32("unit_attribute_id"), ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id"),
+                            Value = reader.GetInt64("value"),
                             LinearLevelBonus = reader.GetInt32("linear_level_bonus")
                         };
                         npc.Bonuses.Add(template);

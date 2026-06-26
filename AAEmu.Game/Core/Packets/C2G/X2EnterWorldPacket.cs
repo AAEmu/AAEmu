@@ -10,7 +10,7 @@ public class X2EnterWorldPacket() : GamePacket(CSOffsets.X2EnterWorldPacket, 1)
     {
         var pFrom = stream.ReadUInt32();
         var pTo = stream.ReadUInt32();
-        var accountId = stream.ReadUInt32();
+        var accountId = (uint)stream.ReadUInt64(); // client sends accountId as uint64
         var cookie = stream.ReadUInt32();
         var zoneId = stream.ReadInt32();
         var tb = stream.ReadByte();

@@ -5,5 +5,6 @@ namespace AAEmu.Game.Models.Game.Skills;
 public class Bonus
 {
     public BonusTemplate Template { get; set; }
-    public int Value { get; set; }
+    // Carries BonusTemplate.Value (long); summed into the double attribute accumulator in Unit.CalculateWithBonuses.
+    public long Value { get; set; }
 }

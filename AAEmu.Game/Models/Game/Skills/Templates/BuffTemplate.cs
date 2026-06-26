@@ -45,7 +45,6 @@ public class BuffTemplate
     public bool Ragdoll { get; init; }
     public bool OneTime { get; init; }
     public int ReflectionChance { get; init; }
-    public uint ReflectionTypeId { get; init; }
     public uint RequireBuffId { get; init; }
     public bool Taunt { get; init; }
     public bool TauntWithTopAggro { get; init; }
@@ -63,7 +62,6 @@ public class BuffTemplate
     public int ReflectionRatio { get; init; }
     public int ReflectionTargetRatio { get; init; }
     public bool KnockbackImmune { get; init; }
-    public uint ImmuneBuffTagId { get; init; }
     public uint AuraRelationId { get; init; }
     public uint GroupId { get; init; }
     public int GroupRank { get; init; }
@@ -226,7 +224,7 @@ public class BuffTemplate
 
         foreach (var template in Bonuses)
         {
-            var bonus = new Bonus { Template = template, Value = (int)Math.Round(template.Value + template.LinearLevelBonus * (buff.AbLevel / 100f)) };
+            var bonus = new Bonus { Template = template, Value = (long)Math.Round(template.Value + template.LinearLevelBonus * (buff.AbLevel / 100f)) };
             owner.AddBonus(buff.Index, bonus);
         }
 

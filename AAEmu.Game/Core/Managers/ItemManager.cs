@@ -50,7 +50,6 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     // Socketing
     private Dictionary<uint, uint> _socketChance;
     private Dictionary<uint, List<BonusTemplate>> _itemUnitModifiers;
-    private Dictionary<uint, ItemCapScale> _itemCapScales;
 
     // Loot related
     private Dictionary<uint, List<LootPackDroppingNpc>> _lootPackDroppingNpc;
@@ -65,7 +64,6 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     private Dictionary<uint, ItemProcTemplate> _itemProcTemplates;
     private Dictionary<ArmorType, Dictionary<ItemGrade, ArmorGradeBuff>> _armorGradeBuffs;
     private Dictionary<uint, EquipItemSet> _equipItemSets;
-    private Dictionary<uint, uint> _defaultDyeIds;
     private Dictionary<uint, ItemSet> _itemSets;
 
     // Events
@@ -140,45 +138,24 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     public List<Item> GetLootConvertFish(uint templateId)
     {
         var items = new List<Item>();
-        var lootPackConvertFishes = GetLootPackIdByItemId(templateId);
+        var convertFishes = GetLootPackIdByItemId(templateId);
 
-        if (lootPackConvertFishes.Count <= 0)
+        // 10.0.2.13: doodad_func_convert_fish_items now maps the source fish (item_id) directly to an output
+        // item (convert_item_id) — there is no loot pack to roll. Create the converted item directly.
+        foreach (var convertFish in convertFishes)
         {
-            return items;
-        }
+            if (convertFish.ConvertItemId == 0)
+                continue;
 
-        foreach (var lootPackConvertFish in lootPackConvertFishes)
-        {
-            var lootPacks = LootGameData.Instance.GetPack(lootPackConvertFish.LootPackId);
-            var dropRateMax = (uint)0;
-            for (var ui = 0; ui < lootPacks.Loots?.Count; ui++)
+            items.Add(new Item
             {
-                dropRateMax += lootPacks.Loots[ui].DropRate;
-            }
-            var dropRateItem = Random.Shared.Next(0, dropRateMax);
-            var dropRateItemId = 0u;
-            for (var uii = 0; uii < (lootPacks.Loots?.Count ?? 0); uii++)
-            {
-                if (lootPacks.Loots?[uii].DropRate + dropRateItemId >= dropRateItem)
-                {
-                    var item = new Item
-                    {
-                        TemplateId = lootPacks.Loots[uii].ItemId,
-                        CreateTime = DateTime.UtcNow,
-                        Id = Instance.GetNewId(),
-                        MadeUnitId = templateId,
-                        Count = Random.Shared.Next(lootPacks.Loots[uii].MinAmount, lootPacks.Loots[uii].MaxAmount)
-                    };
-                    items.Add(item);
-                    break;
-                }
-
-                if (lootPacks.Loots != null)
-                {
-                    dropRateItemId += lootPacks.Loots[uii].DropRate;
-                }
-            }
-            break; // TODO use only the first item
+                TemplateId = convertFish.ConvertItemId,
+                CreateTime = DateTime.UtcNow,
+                Id = Instance.GetNewId(),
+                MadeUnitId = templateId,
+                Count = 1
+            });
+            break; // preserve prior behaviour: yield only the first converted item
         }
 
         return items;
@@ -193,11 +170,6 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     public uint GetSocketChance(uint numSockets)
     {
         return _socketChance.ContainsKey(numSockets + 1) ? _socketChance[numSockets + 1] : 0;
-    }
-
-    public ItemCapScale GetItemCapScale(uint skillId)
-    {
-        return _itemCapScales.GetValueOrDefault(skillId);
     }
 
     public float GetDurabilityRepairCostFactor()
@@ -320,13 +292,6 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         return null;
     }
 
-    private uint GetDyeableItemDefaultDyeId(uint itemId)
-    {
-        if (_defaultDyeIds.TryGetValue(itemId, out var dyeItemId))
-            return dyeItemId;
-        return 0;
-    }
-
     public ItemProcTemplate GetItemProcTemplate(uint templateId)
     {
         return _itemProcTemplates.GetValueOrDefault(templateId);
@@ -416,7 +381,6 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         _gradesOrdered = [];
         _enchantingSupports = [];
         _socketChance = [];
-        _itemCapScales = [];
         _itemLookConverts = [];
         _holdableItemLookConverts = [];
         _wearableItemLookConverts = [];
@@ -433,7 +397,6 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         _armorGradeBuffs = [];
         _itemUnitModifiers = [];
         _equipItemSets = [];
-        _defaultDyeIds = [];
         _itemSets = [];
         _config = new ItemConfig();
         ItemTimerLock = new();
@@ -542,15 +505,8 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             UpgradeRatio = reader.GetInt32("upgrade_ratio"),
                             StatMultiplier = reader.GetInt32("stat_multiplier"),
                             RefundMultiplier = reader.GetInt32("refund_multiplier"),
-                            EnchantSuccessRatio = reader.GetInt32("grade_enchant_success_ratio"),
-                            EnchantGreatSuccessRatio = reader.GetInt32("grade_enchant_great_success_ratio"),
-                            EnchantBreakRatio = reader.GetInt32("grade_enchant_break_ratio"),
-                            EnchantDowngradeRatio = reader.GetInt32("grade_enchant_downgrade_ratio"),
-                            EnchantCost = reader.GetInt32("grade_enchant_cost"),
-                            HoldableHealDps = reader.GetFloat("var_holdable_heal_dps"),
-                            EnchantDowngradeMin = reader.GetInt32("grade_enchant_downgrade_min"),
-                            EnchantDowngradeMax = reader.GetInt32("grade_enchant_downgrade_max"),
-                            CurrencyId = reader.GetInt32("currency_id")
+                            // 10.0.2.13: grade_enchant_* / currency_id columns removed from item_grades
+                            HoldableHealDps = reader.GetFloat("var_holdable_heal_dps")
                         };
                         _grades.Add(template.Grade, template);
                         _gradesOrdered.Add(template.GradeOrder, template);
@@ -575,9 +531,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             Id = reader.GetUInt32("id"),
                             KindId = reader.GetUInt32("kind_id"),
                             Speed = reader.GetInt32("speed"),
-                            ExtraDamagePierceFactor = reader.GetInt32("extra_damage_pierce_factor"),
-                            ExtraDamageSlashFactor = reader.GetInt32("extra_damage_slash_factor"),
-                            ExtraDamageBluntFactor = reader.GetInt32("extra_damage_blunt_factor"),
+                            // 10.0.2.13: extra_damage_*_factor columns removed from holdables
                             MaxRange = reader.GetInt32("max_range"),
                             Angle = reader.GetInt32("angle"),
                             EnchantedDps1000 = reader.GetInt32("enchanted_dps1000"),
@@ -644,9 +598,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             MagicResistanceRatio = reader.GetInt32("magic_resistance_ratio"),
                             FullBufId = reader.GetUInt32("full_buff_id"),
                             HalfBufId = reader.GetUInt32("half_buff_id"),
-                            ExtraDamagePierce = reader.GetInt32("extra_damage_pierce"),
-                            ExtraDamageSlash = reader.GetInt32("extra_damage_slash"),
-                            ExtraDamageBlunt = reader.GetInt32("extra_damage_blunt"),
+                            // 10.0.2.13: extra_damage_* columns removed from wearable_kinds
                             DurabilityRatio = reader.GetFloat("durability_ratio")
                         };
                         _wearableKinds.Add(template.TypeId, template);
@@ -673,19 +625,8 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                 }
             }
 
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM dyeable_items";
-                command.Prepare();
-                using (var sqliteReader = command.ExecuteReader())
-                using (var reader = new SQLiteWrapperReader(sqliteReader))
-                {
-                    while (reader.Read())
-                    {
-                        _defaultDyeIds.Add(reader.GetUInt32("item_id"), reader.GetUInt32("default_dyeing_item_id"));
-                    }
-                }
-            }
+            // 10.0.2.13: dyeable_items.default_dyeing_item_id removed (table now stores a raw ARGB `color`);
+            // the default-dye loader, _defaultDyeIds map and ArmorTemplate.DefaultDyeItemId were dropped.
 
             // Item stat bonuses (when equipped)
             using (var command = connection.CreateCommand())
@@ -789,8 +730,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
                             ChargeCount = reader.GetInt32("charge_count", 0),
                             ItemLookConvert = GetWearableItemLookConvert(slotTypeId),
-                            EquipItemSetId = reader.GetUInt32("eiset_id", 0),
-                            DefaultDyeItemId = GetDyeableItemDefaultDyeId(id)
+                            EquipItemSetId = reader.GetUInt32("eiset_id", 0)
                         };
                         _templates.Add(template.Id, template);
                     }
@@ -913,8 +853,8 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             ItemId = reader.GetUInt32("item_id"),
                             ModelId = reader.GetUInt32("model_id"),
                             NpcOnly = reader.GetBoolean("npc_only", true),
-                            SlotTypeId = reader.GetUInt32("slot_type_id"),
-                            BeautyShopOnly = reader.GetBoolean("beautyshop_only", true)
+                            SlotTypeId = reader.GetUInt32("slot_type_id")
+                            // 10.0.2.13: beautyshop_only column removed from item_body_parts
                         };
                         _templates.Add(template.Id, template);
                     }
@@ -959,7 +899,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             DeclareSiegeZoneGroupId = reader.GetUInt32("declare_siege_zone_group_id"),
                             Heavy = reader.GetBoolean("heavy"),
                             Asset2Id = reader.GetUInt32("asset2_id"),
-                            NormalSpeciality = reader.GetBoolean("normal_specialty"),
+                            // 10.0.2.13: normal_specialty column removed from item_backpacks
                             UseAsStat = reader.GetBoolean("use_as_stat"),
                             SkinKindId = reader.GetUInt32("skin_kind_id")
                         };
@@ -996,8 +936,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                         template.Name = reader.IsDBNull("name") ? "" : reader.GetString("name");
                         template.CategoryId = reader.GetInt32("category_id");
                         template.Level = reader.GetInt32("level");
-                        template.Price = reader.GetInt32("price");
-                        template.Refund = reader.GetInt32("refund");
+                        // 10.0.2.13: price/refund columns removed from items
                         template.BindType = (ItemBindType)reader.GetUInt32("bind_id");
                         template.PickupLimit = reader.GetInt32("pickup_limit");
                         template.MaxCount = reader.GetInt32("max_stack_size");
@@ -1009,7 +948,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                         template.Gradable = reader.GetBoolean("gradable", true);
                         template.LootMulti = reader.GetBoolean("loot_multi", true);
                         template.LootQuestId = reader.GetUInt32("loot_quest_id");
-                        template.HonorPrice = reader.GetInt32("honor_price");
+                        // 10.0.2.13: honor_price column removed from items
                         template.ExpAbsLifetime = reader.GetInt32("exp_abs_lifetime");
                         template.ExpOnlineLifetime = reader.GetInt32("exp_online_lifetime");
                         template.ExpDate = !reader.IsDBNull("exp_date") ? reader.GetDateTime("exp_date") : DateTime.MinValue;
@@ -1021,7 +960,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                         template.LevelLimit = reader.GetInt32("level_limit");
                         template.FixedGrade = reader.GetInt32("fixed_grade");
                         template.Disenchantable = reader.GetBoolean("disenchantable", true);
-                        template.LivingPointPrice = reader.GetInt32("living_point_price");
+                        // 10.0.2.13: living_point_price column removed from items
                         template.CharGender = reader.GetByte("char_gender_id");
 
                         template.AuctionSettings = new AuctionSettings(
@@ -1088,41 +1027,44 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                 }
             }
 
+            // 10.0.2.13: vendor buy/sell pricing moved from items.price/refund to the new item_prices table.
+            // Apply the gold (currency_id = 0) price/refund onto each item template so vendor logic works again.
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM item_socket_chances";
+                command.CommandText = "SELECT item_id, price, refund FROM item_prices WHERE currency_id = 0";
                 command.Prepare();
                 using (var sqliteReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteReader))
                 {
                     while (reader.Read())
                     {
-                        var numSockets = reader.GetUInt32("num_sockets");
-                        var chance = reader.GetUInt32("success_ratio");
-
-                        _socketChance.TryAdd(numSockets, chance);
+                        if (_templates.TryGetValue(reader.GetUInt32("item_id"), out var itemTemplate))
+                        {
+                            itemTemplate.Price = reader.GetInt32("price");
+                            itemTemplate.Refund = reader.GetInt32("refund");
+                        }
                     }
                 }
             }
 
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM item_cap_scales";
+                // 10.0.2.13: item_socket_chances changed from per-row (num_sockets, success_ratio)
+                // to a wide format: each row is a "scale type" with socket0..socket9 columns.
+                // Use the first (default) row and map socket{N} -> key N+1, since GetSocketChance
+                // looks up _socketChance[numSockets + 1].
+                command.CommandText = "SELECT * FROM item_socket_chances ORDER BY id LIMIT 1";
                 command.Prepare();
                 using (var sqliteReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteReader))
                 {
-                    while (reader.Read())
+                    if (reader.Read())
                     {
-                        var template = new ItemCapScale
+                        for (var socketIndex = 0u; socketIndex <= 9u; socketIndex++)
                         {
-                            Id = reader.GetUInt32("id"),
-                            SkillId = reader.GetUInt32("skill_id"),
-                            ScaleMin = reader.GetInt32("scale_min"),
-                            ScaleMax = reader.GetInt32("scale_max")
-                        };
-
-                        _itemCapScales.TryAdd(template.SkillId, template);
+                            var chance = reader.GetUInt32($"socket{socketIndex}", 0);
+                            _socketChance.TryAdd(socketIndex + 1, chance);
+                        }
                     }
                 }
             }
@@ -1263,7 +1205,8 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                         {
                             Id = reader.GetUInt32("id"),
                             ItemId = reader.GetUInt32("item_id"),
-                            LootPackId = reader.GetUInt32("loot_pack_id"),
+                            // 10.0.2.13: loot_pack_id removed; conversion points directly to convert_item_id.
+                            ConvertItemId = reader.GetUInt32("convert_item_id", 0),
                             DoodadFuncConvertFishId = reader.GetUInt32("doodad_func_convert_fish_id")
                         };
                         List<LootPackConvertFish> lootPackConvertFish;
@@ -1318,9 +1261,9 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                         var itemId = reader.GetUInt32("owner_id");
                         var template = new BonusTemplate
                         {
-                            Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id"),
+                            Attribute = (UnitAttribute)reader.GetUInt32("unit_attribute_id", 0),
                             ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id"),
-                            Value = reader.GetInt32("value"),
+                            Value = reader.GetInt64("value"),
                             LinearLevelBonus = reader.GetInt32("linear_level_bonus")
                         };
 

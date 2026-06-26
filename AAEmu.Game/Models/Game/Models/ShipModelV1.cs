@@ -13,8 +13,7 @@ public class ShipModelV1 : Model
     public float WaterDensity { get; set; }
     public float WaterResistance { get; set; }
     public float SteerVel { get; set; }
-    public float Accel { get; set; }
-    public float ReverseAccel { get; set; }
+    // 10.0.2.13: Accel/ReverseAccel removed (accel/reverse_accel columns absent from ship_models)
     public float ReverseVelocity { get; set; }
     public float TurnAccel { get; set; }
     public float TubeLength { get; set; }

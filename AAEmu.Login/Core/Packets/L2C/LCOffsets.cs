@@ -1,10 +1,10 @@
-﻿namespace AAEmu.Login.Core.Packets.L2C;
+namespace AAEmu.Login.Core.Packets.L2C;
 
 public static class LCOffsets
 {
-    // All opcodes here are updated for version client_12_r208022
+    // AuthToClient opcodes — verified against client version v10.0.3_r575.
+    // Opcode 0x001 is unused in this client (no registered functor).
     public const ushort ACJoinResponsePacket = 0x000;
-    public const ushort CARequestAuthPacket = 0x001;
     public const ushort ACChallengePacket = 0x002;
     public const ushort ACAuthResponsePacket = 0x003;
     public const ushort ACChallenge2Packet = 0x004;
@@ -17,4 +17,8 @@ public static class LCOffsets
     public const ushort ACEnterWorldDeniedPacket = 0x00b;
     public const ushort ACLoginDeniedPacket = 0x00c;
     public const ushort ACAccountWarnedPacket = 0x00d;
+    public const ushort ACPublicKeyResponsePacket = 0x00e;
+    public const ushort ACSecureNumberPacket = 0x00f;
+    public const ushort ACPingPacket = 0x010;
+    public const ushort ACPrivacyPolicyResponsePacket = 0x011;
 }

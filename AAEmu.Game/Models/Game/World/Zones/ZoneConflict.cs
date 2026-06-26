@@ -25,6 +25,7 @@ public class ZoneConflict(ZoneGroup owner)
     public uint NuiaReturnPointId { get; set; }
     public uint HariharaReturnPointId { get; set; }
     public uint WarTowerDefId { get; set; }
+    public uint PeaceTowerDefId { get; set; } // 10.0.2.13: conflict_zones.peace_tower_def_id present again
     public bool Closed { get; set; } = false;
 
     public ZoneConflictType CurrentZoneState { get; protected set; } = ZoneConflictType.Tension;

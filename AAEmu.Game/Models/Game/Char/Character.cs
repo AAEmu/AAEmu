@@ -2748,11 +2748,79 @@ public partial class Character : Unit, ICharacter
         return stream;
     }
 
+    // 10.0.2.13 lobby character serialization — byte-exact mirror of the client deserializer.
+    // Differs from the 1.2 Write above: heirExp(i64) after level; abilities BEFORE equipment; equipment =
+    // validFlags(u64) + per-set-bit item structs + a SECOND "flags" u64; appearance = ext(byte)
+    // + (if ext!=0) full CustomModel; then autoUseAApoint(u8) + guid(string,16) + labor block (40B).
+    // Slot widths cross-checked vs the captured CSCreateCharacter body: u8 / u32 / i64 / float / length-prefixed
+    // string. Equipment and appearance are sent empty/default for now (validFlags=flags=0, ext=0).
+    public PacketStream WriteLobby1013(PacketStream stream)
+    {
+        stream.Write((long)Id);                                          // id (i64)
+        stream.Write(Name);                                             // name (string)
+        stream.Write((byte)Race);                                       // CharRace
+        stream.Write((byte)Gender);                                     // CharGender
+        stream.Write((byte)Level);                                      // level
+        stream.Write(0L);                                              // heirExp (i64)
+        stream.Write((uint)Hp);                                        // health
+        stream.Write((uint)Mp);                                        // mana
+        stream.Write(Transform.ZoneId);                               // zoneId (u32)
+        stream.Write((uint)(Faction?.Id ?? 0));                       // factionId (u32)
+        stream.Write(FactionName ?? "");                              // factionName (string)
+        stream.Write((uint)(Expedition?.Id ?? 0));                    // expeditionId (u32)
+        stream.Write((uint)Family);                                   // family (u32)
+        // equipment comes BEFORE abilities. validFlags(u64) + items(none) + flags(u64). Empty => both 0.
+        stream.Write(0L);                                            // equipment validFlags = 0
+        stream.Write(0L);                                            // equipment flags = 0
+        stream.Write((byte)Ability1);                                 // ability1
+        stream.Write((byte)Ability2);                                 // ability2
+        stream.Write((byte)Ability3);                                 // ability3
+        // position record (the "pos" framing carries no extra bytes on the wire)
+        stream.Write(Helpers.ConvertLongX(Transform.Local.Position.X)); // x (i64)
+        stream.Write(Helpers.ConvertLongY(Transform.Local.Position.Y)); // y (i64)
+        stream.Write(Transform.Local.Position.Z);                     // z (float)
+        stream.Write((byte)0);                                        // appearance ext = 0 (default look)
+        stream.Write((uint)0);                                        // deadCount
+        stream.Write(0L);                                            // deadTime
+        stream.Write((uint)0);                                        // rezWaitDuration
+        stream.Write((uint)0);                                        // specialRezWaitDuration
+        stream.Write(0L);                                            // rezTime
+        stream.Write((uint)0);                                        // rezPenaltyDuration
+        stream.Write(0L);                                            // lastWorldLeaveTime
+        stream.Write(0L);                                            // moneyAmount
+        stream.Write(0L);                                            // moneyAmount
+        stream.Write((uint)0);                                        // crimePoint
+        stream.Write((uint)0);                                        // crimeRecord
+        stream.Write((uint)0);                                        // crimeScore
+        stream.Write(0L);                                            // deleteRequestedTime
+        stream.Write(0L);                                            // transferRequestedTime
+        stream.Write(0L);                                            // createdTime
+        stream.Write(0L);                                            // deleteDelay
+        stream.Write(0L);                                            // moneyAmount
+        stream.Write(0L);                                            // moneyAmount
+        stream.Write((byte)0);                                        // autoUseAApoint (u8)
+        stream.Write((uint)0);                                        // prevPoint
+        stream.Write((uint)0);                                        // point
+        stream.Write((uint)0);                                        // gift
+        stream.Write(0L);                                            // updated
+        stream.Write((byte)0);                                        // forceNameChange
+        stream.Write("");                                            // guid (string, max 16)
+        // labor block — 40 bytes
+        stream.Write((uint)0);                                        // lp
+        stream.Write((uint)0);                                        // localLp
+        stream.Write((uint)0);                                        // consumed
+        stream.Write(0L);                                            // updated
+        stream.Write(0L);                                            // bmPoint
+        stream.Write((uint)0);                                        // rechargedLp
+        stream.Write(0L);                                            // rechargeResetTime
+        return stream;
+    }
+
     /// <summary>
     /// Adds crime, and returns the new (current) crime value
     /// </summary>
     /// <param name="amount"></param>
-    public void AddCrime(short amount)
+    public void AddCrime(int amount)
     {
         var newAmount = CrimePoint + amount;
         if (newAmount > short.MaxValue)

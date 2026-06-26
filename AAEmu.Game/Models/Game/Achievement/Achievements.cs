@@ -10,13 +10,11 @@ public partial class Achievements
     }
 
     public uint Id { get; set; }
-    public uint CategoryId { get; set; }
     public uint CompleteNum { get; set; }
     public bool CompleteOr { get; set; }
     public string Description { get; set; }
     //public uint GradeId { get; set; }
     public uint IconId { get; set; }
-    public bool IsActive { get; set; }
     public bool IsHidden { get; set; }
     //public uint ItemNum { get; set; }
     public uint ItemId { get; set; }

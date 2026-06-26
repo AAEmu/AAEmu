@@ -1,6 +1,5 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -10,6 +9,9 @@ public class CSPremiumServiceMsgPacket() : GamePacket(CSOffsets.CSPremiumService
     {
         var stage = stream.ReadInt32();
         Logger.Info("PremiumServieceMsg, stage {0}", stage);
-        Connection.SendPacket(new SCAccountWarnedPacket(2, "Premium ..."));
+        // NOTE: previously replied with SCAccountWarnedPacket(2,"Premium...") — that is the wrong response AND
+        // its 1.2 body (source + msg only) is too short for the 10.0.2.13 SCAccountWarned layout, so the client
+        // overran reading "countdownTime" → "sc error; not enough buffer for countdownTime" → SC message-count
+        // desync → char-select broke (create disabled). The client needs no reply here, so don't send one.
     }
 }

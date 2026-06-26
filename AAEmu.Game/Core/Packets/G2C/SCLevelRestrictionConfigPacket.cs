@@ -14,15 +14,17 @@ public class SCLevelRestrictionConfigPacket(
 {
     public override PacketStream Write(PacketStream stream)
     {
+        // 10.0.2.13: searchLevel, bidLevel, postLevel, trade, mail, perm,
+        // others (7 named u8) followed by a 20-element u8 loop = 27 bytes total.
         stream.Write(searchLevel);
         stream.Write(bidLevel);
         stream.Write(postLevel);
         stream.Write(trade);
         stream.Write(mail);
-        for (var i = 0; i < 15; i++)
-        {
-            stream.Write(limitLevels[i]);
-        }
+        stream.Write((byte)0); // perm
+        stream.Write((byte)0); // others
+        for (var i = 0; i < 20; i++)
+            stream.Write(i < limitLevels.Length ? limitLevels[i] : (byte)0);
         return stream;
     }
 }

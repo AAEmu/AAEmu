@@ -103,7 +103,6 @@ public class CharacterManager(
 
         using (var connection = SQLite.CreateConnection())
         {
-            var temp = new Dictionary<uint, byte>();
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM characters";
@@ -113,7 +112,6 @@ public class CharacterManager(
                     while (reader.Read())
                     {
                         var template = new CharacterTemplate();
-                        var id = reader.GetUInt32("id");
                         template.Race = (Race)reader.GetByte("char_race_id");
                         template.Gender = (Gender)reader.GetByte("char_gender_id");
                         template.ModelId = reader.GetUInt32("model_id");
@@ -139,23 +137,6 @@ public class CharacterManager(
 
                         var templateId = (byte)(16 * (byte)template.Gender + (byte)template.Race);
                         _templates.Add(templateId, template);
-                        temp.Add(id, templateId);
-                    }
-                }
-            }
-
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM character_buffs";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var characterId = reader.GetUInt32("character_id");
-                        var buffId = reader.GetUInt32("buff_id");
-                        var template = _templates[temp[characterId]];
-                        template.Buffs.Add(buffId);
                     }
                 }
             }
@@ -191,7 +172,8 @@ public class CharacterManager(
                 {
                     while (reader.Read())
                     {
-                        var ability = reader.GetByte("ability_id");
+                        // 10.0.2.13: ability_id was removed; the row id now identifies the ability slot.
+                        var ability = reader.GetByte("id");
                         var template = new AbilityItems { Ability = ability, Items = new EquipItemsTemplate() };
                         var clothPack = reader.GetUInt32("newbie_cloth_pack_id", 0);
                         var weaponPack = reader.GetUInt32("newbie_weapon_pack_id", 0);
@@ -320,9 +302,17 @@ public class CharacterManager(
                 }
             }
 
+            // 10.0.2.13: the actability_categories table was removed. Its data is now split between
+            // actability_view_groups (id, name, visible_order) and actability_view_group_elems
+            // (id, actability_group_id, actability_view_group_id, visible_order). Reconstruct the old
+            // template by reading each element and mapping actability_group_id -> GroupId, joining to the
+            // view group for the display name. visible_ui has no equivalent, so default it to true.
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM actability_categories";
+                command.CommandText =
+                    "SELECT e.id AS id, e.actability_group_id AS group_id, e.visible_order AS visible_order, g.name AS name " +
+                    "FROM actability_view_group_elems e " +
+                    "LEFT JOIN actability_view_groups g ON g.id = e.actability_view_group_id";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
@@ -330,11 +320,13 @@ public class CharacterManager(
                     {
                         var template = new ActabilityCategoriesTemplate
                         {
-                            Id = reader.GetUInt32("id"), Name = reader.GetString("name"), GroupId = reader.GetUInt32("group_id"),
-                            VisibleUi = reader.GetBoolean("visible_ui", true),
+                            Id = reader.GetUInt32("id"),
+                            Name = reader.IsDBNull("name") ? string.Empty : reader.GetString("name"),
+                            GroupId = reader.GetUInt32("group_id"),
+                            VisibleUi = true,
                             VisibleOrder = reader.GetInt32("visible_order")
                         };
-                        _actabilitiesCategories.Add(template.Id, template);
+                        _actabilitiesCategories.TryAdd(template.Id, template);
                     }
                 }
             }

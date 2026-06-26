@@ -35,17 +35,18 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
                     var template = new Achievements
                     {
                         Id = reader.GetUInt32("id"),
-                        CategoryId = reader.GetUInt32("category_id", 0),
+                        // 10.0.2.13: 'category_id' column removed
                         CompleteNum = reader.GetUInt32("complete_num", 0),
                         CompleteOr = reader.GetBoolean("complete_or"),
                         IconId = reader.GetUInt32("icon_id", 0),
-                        IsActive = reader.GetBoolean("is_active"),
+                        // 10.0.2.13: 'is_active' column removed
                         IsHidden = reader.GetBoolean("is_hidden"),
                         ItemId = reader.GetUInt32("item_id", 0),
                         OrUnitReqs = reader.GetBoolean("or_unit_reqs"),
                         ParentAchievementId = reader.GetUInt32("parent_achievement_id", 0),
                         Priority = reader.GetUInt32("priority", 0),
-                        SubCategoryId = reader.GetUInt32("sub_category_id", 0)
+                        // 10.0.2.13: 'sub_category_id' renamed to 'achievement_sub_category_id'
+                        SubCategoryId = reader.GetUInt32("achievement_sub_category_id", 0)
                     };
 
                     _achievements.TryAdd(template.Id, template);
@@ -120,8 +121,8 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
                     {
                         Id = reader.GetUInt32("id"),
                         KindId = (CharRecordKind)reader.GetUInt32("kind_id"),
-                        Value1 = reader.GetUInt32("value1"),
-                        Value2 = reader.GetUInt32("value2")
+                        Value1 = reader.GetInt32("value1"),
+                        Value2 = reader.GetInt32("value2")
                     };
 
                     _charRecords.Add(template.Id, template);

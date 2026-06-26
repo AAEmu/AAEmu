@@ -157,6 +157,12 @@ public class TransferGameData : Singleton<TransferGameData>, IGameDataLoader
                     continue;
                 }
 
+                if (transferPaths.ContainsKey(zoneId))
+                {
+                    Logger.Warn($"Duplicate zoneId {zoneId}");
+                    continue;
+                }
+                
                 var contents = ClientFileManager.GetFileAsString(pathFileName);
 
                 if (string.IsNullOrWhiteSpace(contents))
@@ -213,10 +219,10 @@ public class TransferGameData : Singleton<TransferGameData>, IGameDataLoader
                     }
                 }
 
-                transferPaths.Add(zoneId, transferPath);
+                transferPaths.TryAdd(zoneId, transferPath);
             }
 
-            _transferRoads.Add((byte)worldTemplate.Id, transferPaths);
+            _transferRoads.TryAdd((byte)worldTemplate.Id, transferPaths);
             GetOwnerPaths(worldTemplate.Id);
         }
 

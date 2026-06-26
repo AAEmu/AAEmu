@@ -31,20 +31,8 @@ public class FinishStatePacket() : GamePacket(PPOffsets.FinishStatePacket, 2)
                 Connection.SendPacket(new SetGameTypePacket(levelname, 0, 1)); // TODO - level
                 Connection.SendPacket(new SCInitialConfigPacket());
 
-                // Test URLs                                          // Original Trion values
-                // Client treats these as folders and will add a trailing slash (/) with whatever it needs
-                // For example, opening the Wiki would send http://localhost/aaemu/platform/login
-                var authUrl = "http://localhost/aaemu/login";         // "https://session.draft.integration.triongames.priv";
-                var platformUrl = "http://localhost/aaemu/platform";  // "http://archeage.draft.integration.triongames.priv/commerce/pruchase/credits/purchase-credits-flow.action";
-                var commerceUrl = "http://localhost/aaemu/shop";      // "" ;
-
-                // It seems this packet can be ignored if you don't use the wiki/shop
-                Connection.SendPacket(new SCTrionConfigPacket(
-                    true,
-                    authUrl,
-                    platformUrl,
-                    commerceUrl)
-                ); // TODO - config files
+                // SCTrionConfig does not exist in the 10.0.2.13 client (its opcode 0x07 now belongs to
+                // SCInitialConfig) — do not send it.
                 Connection.SendPacket(new SCAccountInfoPacket(
                         (int)Connection.Payment.Method,
                         Connection.Payment.Location,

@@ -82,15 +82,27 @@ public class SCInitialConfigPacket() : GamePacket(SCOffsets.SCInitialConfigPacke
         stream.Write(true); // canUseBank
         stream.Write(true); // canUseCopper
 
-        stream.Write((byte)2); // secondPriceType
-        /*
-         * 0 - kr aapoint
-         * 1 - ru aapoint
-         * 2 - na loyalt token
-         */
-        stream.Write((byte)0); // secondPasswordMaxFailCount
+        // --- 10.0.2.13 layout (no secondPriceType; idleKickTime is i32) ---
+        stream.Write((byte)0);    // secondPasswordMaxFailCount (u8)
+        stream.Write(600000);     // idleKickTime (i32, 10 min)
 
-        stream.Write((ushort)0); // idleKickTime
+        // premium config block: 3 bools + maxCh(u8)
+        stream.Write(false);      // enable
+        stream.Write(false);      // pcbang
+        stream.Write(false);      // premium
+        stream.Write((byte)4);    // maxCh
+
+        stream.Write((ushort)0);  // honorPointDuringWarPercent (u16)
+        stream.Write((byte)0);    // uccVer (u8)
+        stream.Write((byte)0);    // memberType (u8)
+        stream.Write((uint)0);    // bigModel (+240, 4 bytes)
+        stream.Write((byte)4);    // tmpMaxCharSlot (u8)
+
+        stream.Write("");         // cashHost (zstring, empty)
+        stream.Write("");         // securityHost (zstring, empty)
+        stream.Write(false);      // isDev (bool)
+        stream.Write(0);          // premiumConfigType (i32)
+        stream.Write((uint)0);    // specificWorldDivisionIds: Size = 0
 
         return stream;
     }

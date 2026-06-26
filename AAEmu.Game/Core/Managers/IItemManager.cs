@@ -25,7 +25,6 @@ public interface IItemManager : ILoadable
     List<Item> GetLootConvertFish(uint templateId);
     GradeDistributions GetGradeDistributions(byte id);
     uint GetSocketChance(uint numSockets);
-    ItemCapScale GetItemCapScale(uint skillId);
     float GetDurabilityRepairCostFactor();
     float GetDurabilityConst();
     float GetHoldableDurabilityConst();

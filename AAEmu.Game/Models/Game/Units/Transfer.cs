@@ -69,7 +69,7 @@ public class Transfer : Unit
                 }
                 else
                 {
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
                 }
             }
 
@@ -92,7 +92,7 @@ public class Transfer : Unit
                 }
                 else
                 {
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
                 }
             }
 
@@ -115,7 +115,7 @@ public class Transfer : Unit
                 }
                 else
                 {
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
                 }
             }
 
@@ -138,7 +138,7 @@ public class Transfer : Unit
                 }
                 else
                 {
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
                 }
             }
 
@@ -161,7 +161,7 @@ public class Transfer : Unit
                 }
                 else
                 {
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
                 }
             }
 
@@ -184,7 +184,7 @@ public class Transfer : Unit
                 }
                 else
                 {
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
                 }
             }
 
@@ -216,7 +216,7 @@ public class Transfer : Unit
                 }
                 else
                 {
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
                 }
             }
 
@@ -249,7 +249,7 @@ public class Transfer : Unit
                 }
                 else
                 {
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
                 }
             }
 
@@ -282,7 +282,7 @@ public class Transfer : Unit
                 }
                 else
                 {
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
                 }
             }
 
@@ -314,7 +314,7 @@ public class Transfer : Unit
                 }
                 else
                 {
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
                 }
             }
 
@@ -347,7 +347,7 @@ public class Transfer : Unit
                 }
                 else
                 {
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
                 }
             }
 
@@ -380,7 +380,7 @@ public class Transfer : Unit
                 }
                 else
                 {
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
                 }
             }
 
@@ -572,7 +572,8 @@ public class Transfer : Unit
             return;
 
         transfer.vPosition = transfer.Transform.World.ClonePosition();
-        MaxVelocityForward = vehicleModel.Velocity;
+        // 10.0.2.13: vehicle_models.velocity removed; v10 uses wheeled_vehicle_speed_limit (not yet loaded into VehicleModel).
+        MaxVelocityForward = 0f; // TODO(v10): load wheeled_vehicle_speed_limit into VehicleModel and use it here
         MaxForce = vehicleModel.AngVel;
         Mass = vehicleModel.WheeledVehicleMass;
         //var slowingRadius = transfer.Template.PathSmoothing; // расстояние с которого начинаем тормозить

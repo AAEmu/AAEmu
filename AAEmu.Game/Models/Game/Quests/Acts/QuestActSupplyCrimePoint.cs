@@ -5,7 +5,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 
 public class QuestActSupplyCrimePoint(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
-    public short Point { get; init; }
+    public int Point { get; init; } // 10.0.2.13: quest_act_supply_crime_points.point is integer
 
     /// <summary>
     /// Adds crime points (or subtracts them)

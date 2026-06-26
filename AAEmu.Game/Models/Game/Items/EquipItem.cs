@@ -51,7 +51,7 @@ public class EquipItem : Item
     public EquipItem(ulong id, ItemTemplate template, int count) : base(id, template, count)
     {
         GemIds = new uint[7];
-        DyeItemId = ((EquipItemTemplate)Template).DefaultDyeItemId;
+        // 10.0.2.13: DefaultDyeItemId removed; DyeItemId defaults to 0 (was always 0 via mock)
     }
 
     public override void Read(PacketStream stream)

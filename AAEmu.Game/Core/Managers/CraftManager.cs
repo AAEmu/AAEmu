@@ -29,17 +29,17 @@ public class CraftManager : Singleton<CraftManager>, ICraftManager
                     {
                         var template = new Craft
                         {
-                            Id = reader.GetUInt32("id"), CastDelay = reader.GetInt32("cast_delay"), ToolId = reader.GetUInt32("tool_id", 0),
+                            Id = reader.GetUInt32("id"), CastDelay = reader.GetInt32("cast_delay", 0),
+                            // 10.0.2.13: tool_id removed
                             SkillId = reader.GetUInt32("skill_id", 0),
-                            WiId = reader.GetUInt32("wi_id"),
+                            WiId = reader.GetUInt32("wi_id", 0),
                             MilestoneId = reader.GetUInt32("milestone_id", 0),
                             ReqDoodadId = reader.GetUInt32("req_doodad_id", 0),
-                            NeedBind = reader.GetBoolean("need_bind"),
-                            AcId = reader.GetUInt32("ac_id", 0),
-                            ActabilityLimit = reader.GetInt32("actability_limit"),
-                            ShowUpperCraft = reader.GetBoolean("show_upper_crafts"),
-                            RecommendLevel = reader.GetInt32("recommend_level"),
-                            VisibleOrder = reader.GetInt32("visible_order")
+                            // 10.0.2.13: need_bind, ac_id removed
+                            ActabilityLimit = reader.GetInt32("actability_limit", 0),
+                            // 10.0.2.13: show_upper_crafts removed
+                            RecommendLevel = reader.GetInt32("recommend_level", 0),
+                            VisibleOrder = reader.GetInt32("visible_order", 0)
                         };
                         _crafts.Add(template.Id, template);
                     }
@@ -64,7 +64,7 @@ public class CraftManager : Singleton<CraftManager>, ICraftManager
                             Id = reader.GetUInt32("id"), CraftId = reader.GetUInt32("craft_id"), ItemId = reader.GetUInt32("item_id"),
                             Amount = reader.GetInt32("amount", 1), //We always want to produce at least 1 item ?
                             Rate = reader.GetInt32("rate"),
-                            ShowLowerCrafts = reader.GetBoolean("show_lower_crafts"),
+                            // 10.0.2.13: show_lower_crafts removed
                             UseGrade = reader.GetBoolean("use_grade"),
                             ItemGradeId = reader.GetUInt32("item_grade_id")
                         };

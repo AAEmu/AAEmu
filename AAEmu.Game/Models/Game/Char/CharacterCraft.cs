@@ -111,19 +111,8 @@ public class CharacterCraft(Character owner)
 
         var skill = new Skill(SkillManager.Instance.GetSkillTemplate(craft.SkillId));
         ConsumeLaborPower = skill.Template.ConsumeLaborPower;
+        // 10.0.2.13: Craft.AcId removed; actability-based speed multiplier dropped
         var speedMultiplier = 1f;
-        if (craft.AcId > 0)
-        {
-            var actAbilityId = CharacterManager.Instance.GetActabilityIdByCategoryId(craft.AcId);
-            if (actAbilityId > 0)
-            {
-                var actAbility = owner.Actability.Actabilities.GetValueOrDefault(actAbilityId);
-                if (actAbility != null)
-                {
-                    speedMultiplier *= actAbility.GetProductionTimeMultiplier();
-                }
-            }
-        }
         skill.CastTimeMultiplier = speedMultiplier;
         skill.Use(Owner, caster, target, null, false, out _);
     }

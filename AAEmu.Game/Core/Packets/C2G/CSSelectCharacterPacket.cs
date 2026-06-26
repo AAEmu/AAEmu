@@ -95,15 +95,9 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
 
             Connection.ActiveChar.Buffs.AddBuff((uint)BuffConstants.LoggedOn, Connection.ActiveChar);
 
-            var template = CharacterManager.Instance.GetTemplate(character.Race, character.Gender);
+            // 10.0.2.13: the character_buffs table (per-race/gender default login buffs) was removed.
+            // (A v10 replacement would be character_idle_buffs — not yet loaded.)
 
-            foreach (var buff in template.Buffs)
-            {
-                var buffTemplate = SkillManager.Instance.GetBuffTemplate(buff);
-                var casterObj = new SkillCasterUnit(character.ObjId);
-                character.Buffs.AddBuff(new Buff(character, character, casterObj, buffTemplate, null, DateTime.UtcNow) { Passive = true });
-            }
-            
             // Load persistent buffs from database
             character.Buffs.LoadActiveBuffs(character);
             character.CheckWantedThreshold();

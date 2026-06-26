@@ -77,5 +77,14 @@ public enum CharRecordKind
     BattleFieldDraw = 73,
     BattleFieldKill = 74,
     BattleFieldDeath = 75,
-    BattleFieldAssist = 76
+    BattleFieldAssist = 76,
+    // 10.0.2.13: enum_char_record_kinds adds 78-85 (id 77 not present)
+    HeirLevel = 78,
+    GetGearPoint = 79,
+    EvolveItemType = 80,
+    CompleteAchievementSubCategory = 81,
+    UnpackItemType = 82,
+    EquipItemType = 83,
+    EquipSlotReinforceAttribute = 84,
+    ConsumeHonorPoint = 85
 }

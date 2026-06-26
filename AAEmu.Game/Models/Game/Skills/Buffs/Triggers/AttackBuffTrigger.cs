@@ -17,9 +17,8 @@ public class AttackBuffTrigger(Buff owner, BuffTriggerTemplate template) : BuffT
             return;
         }
 
+        // 10.0.2.13: buff_triggers.effect_on_source removed; effect applies to the owner (former mock-false path).
         var target = owner;
-        if (Template.EffectOnSource)
-            target = args.Attacker;
 
         Template.Effect.Apply(owner, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_buff),
             new EffectSource(), // TODO : EffectSource Type trigger 

@@ -188,7 +188,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                         Id = reader.GetUInt32("id"),
                         ConditionId = reader.GetUInt32("condition_id"),
                         ZoneGroupId = reader.GetUInt16("zone_group_id"),
-                        StartActionId = reader.GetUInt32("start_action_id"),
+                        StartActionId = reader.GetUInt32("start_action_id", 0),
                         DoodadAlmightyId = reader.GetUInt32("doodad_almighty_id"),
                         DoodadFuncGroupId = reader.GetUInt32("doodad_func_group_id")
                     };
@@ -217,7 +217,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                         Id = reader.GetUInt32("id"),
                         ConditionId = reader.GetUInt32("condition_id"),
                         ZoneGroupId = reader.GetUInt16("zone_group_id"),
-                        StartActionId = reader.GetUInt32("start_action_id"),
+                        StartActionId = reader.GetUInt32("start_action_id", 0),
                         RoomId = reader.GetUInt32("room_id")
                     };
 
@@ -245,7 +245,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                         Id = reader.GetUInt32("id"),
                         ConditionId = reader.GetUInt32("condition_id"),
                         ZoneGroupId = reader.GetUInt16("zone_group_id"),
-                        StartActionId = reader.GetUInt32("start_action_id"),
+                        StartActionId = reader.GetUInt32("start_action_id", 0),
                         NpcId = reader.GetUInt32("npc_id")
                     };
 
@@ -273,7 +273,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                         Id = reader.GetUInt32("id"),
                         ConditionId = reader.GetUInt32("condition_id"),
                         ZoneGroupId = reader.GetUInt16("zone_group_id"),
-                        StartActionId = reader.GetUInt32("start_action_id"),
+                        StartActionId = reader.GetUInt32("start_action_id", 0),
                         NpcId = reader.GetUInt32("npc_id")
                     };
 
@@ -301,7 +301,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                         Id = reader.GetUInt32("id"),
                         ConditionId = reader.GetUInt32("condition_id"),
                         ZoneGroupId = reader.GetUInt16("zone_group_id"),
-                        StartActionId = reader.GetUInt32("start_action_id"),
+                        StartActionId = reader.GetUInt32("start_action_id", 0),
                         NpcId = reader.GetUInt32("npc_id")
                     };
 
@@ -329,7 +329,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                         Id = reader.GetUInt32("id"),
                         ConditionId = reader.GetUInt32("condition_id"),
                         ZoneGroupId = reader.GetUInt16("zone_group_id"),
-                        StartActionId = reader.GetUInt32("start_action_id"),
+                        StartActionId = reader.GetUInt32("start_action_id", 0),
                         NpcId = reader.GetUInt32("npc_id")
                     };
 
@@ -358,14 +358,12 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                     {
                         ZoneGroupId = reader.GetUInt32("zone_group_id"),
                         // EnterCount = reader.GetUInt32("enter_count"),
-                        Name = reader.GetString("name"),
-                        Comment = reader.GetString("comment"),
+                        // 10.0.2.13: name, comment, item_id removed from indun_zones
                         LevelMin = reader.GetUInt32("level_min"),
                         LevelMax = reader.GetUInt32("level_max"),
                         MaxPlayers = reader.GetUInt32("max_players"),
                         PvP = reader.GetBoolean("pvp", true),
                         HasGraveyard = reader.GetBoolean("has_graveyard", true),
-                        ItemId = reader.GetUInt32("item_id", 0),
                         RestoreItemTime = reader.GetUInt32("restore_item_time"),
                         PartyOnly = reader.GetBoolean("party_only", true),
                         ClientDriven = reader.GetBoolean("client_driven", true),
@@ -375,7 +373,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                     // Hack for earlier versions
                     // Exception for Mirage and Library
                     indunZone.EnterCount = indunZone.ZoneGroupId == 49 || indunZone.SelectChannel ? 1000u : 3u;
-                    indunZone.LocalizedName = LocalizationManager.Instance.Get("indun_zones", "name", indunZone.ZoneGroupId, indunZone.Name);
+                    indunZone.LocalizedName = LocalizationManager.Instance.Get("indun_zones", "name", indunZone.ZoneGroupId, string.Empty);
 
                     _indunZones.Add(indunZone.ZoneGroupId, indunZone);
 

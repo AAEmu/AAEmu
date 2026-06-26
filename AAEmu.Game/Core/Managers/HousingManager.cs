@@ -1179,8 +1179,9 @@ public class HousingManager(
                 var doodad = doodadManager.Create(house.ParentWorld,  0, ForSaleMarkerDoodadId, null, true);
                 // location
                 doodad.Transform.Local.SetPosition(
-                    house.Template.GardenRadius * xMultiplier + house.Transform.World.Position.X,
-                    house.Template.GardenRadius * yMultiplier + house.Transform.World.Position.Y,
+                    // 10.0.2.13: GardenRadius removed; was mocked to 0f
+                    0f * xMultiplier + house.Transform.World.Position.X,
+                    0f * yMultiplier + house.Transform.World.Position.Y,
                     +house.Transform.World.Position.Z);
                 // adjust height to the floor
                 doodad.Transform.Local.SetHeight(doodad.ParentWorld.Template.GeoData.GetHeight(doodad.Transform.World.Position));// worldManager.GetHeight(doodad.Transform)));
@@ -1628,7 +1629,8 @@ public class HousingManager(
         foreach (var h in _houses)
         {
             var house = h.Value;
-            var r = house.Template.GardenRadius;
+            // 10.0.2.13: GardenRadius removed; was mocked to 0f
+            var r = 0f;
             var bounds = new RectangleF(house.Transform.World.Position.X - r, house.Transform.World.Position.Y - r,
                 r * 2f, r * 2f);
             if (bounds.Contains(x, y))

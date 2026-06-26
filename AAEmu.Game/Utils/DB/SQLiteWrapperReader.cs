@@ -103,6 +103,15 @@ public sealed class SQLiteWrapperReader(SqliteDataReader reader) : IDisposable
         return reader.GetInt64(GetOrdinal(column));
     }
 
+    public long GetInt64(string column, long defaultValue)
+    {
+        var ordinal = GetOrdinal(column);
+        if (reader.IsDBNull(ordinal))
+            return defaultValue;
+
+        return reader.GetInt64(ordinal);
+    }
+
     public ulong GetUInt64(string column) => (ulong)GetInt64(column);
 
     public float GetFloat(string column)

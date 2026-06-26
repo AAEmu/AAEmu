@@ -52,26 +52,9 @@ public class Buffs : IBuffs
 
     public bool CheckBuffImmune(uint buffId)
     {
-        // Create a copy of the list of effects to avoid changing the list while iterating
-        IEnumerable<Buff> effects;
-        lock (_lock)
-        {
-            effects = _effects.ToArray();
-        }
-
-        foreach (var effect in effects)
-        {
-            if (effect == null)
-                continue;
-
-            if (effect.Template.ImmuneBuffTagId == 0)
-                continue;
-
-            var buffs = SkillManager.Instance.GetBuffsByTagId(effect.Template.ImmuneBuffTagId);
-            if (buffs != null && buffs.Contains(buffId))
-                return true;
-        }
-
+        // 10.0.2.13: buffs.immune_buff_tag_id was removed, so tag-based buff immunity no longer exists in the
+        // schema (immunity is now driven by the immune_except_* columns — not yet implemented). The previous
+        // logic already no-op'd to false once the column was gone, so there is no tag immunity to apply here.
         return false;
     }
 

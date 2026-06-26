@@ -60,12 +60,11 @@ public class VehicleModel : Model
     public float LinDeaccelInertia { get; set; } // lin_deaccel_inertia
     public float RotInertia { get; set; } // rot_inertia
     public float RotDeaccelInertia { get; set; } // rot_deaccel_inertia
-    public float Velocity { get; set; } // velocity
+    // 10.0.2.13: Velocity removed (velocity column absent from vehicle_models)
     public float AngVel { get; set; } // angVel
     public float CanFly { get; set; } // can_fly
     public float WheeledVehicleMass { get; set; } // wheeled_vehicle_mass
-    public float WheeledVehiclePower { get; set; } // wheeled_vehicle_power
-    public float WheeledVehicleBrakeTorque { get; set; } // wheeled_vehicle_brake_torque
+    // 10.0.2.13: WheeledVehiclePower/WheeledVehicleBrakeTorque removed (columns absent from vehicle_models)
     public uint WheeledVehicleMaxGear { get; set; } // wheeled_vehicle_max_gear
     public float WheeledVehicleGearSpeedRatioReverse { get; set; } // wheeled_vehicle_gear_speed_ratio_reverse
     public float WheeledVehicleGearSpeedRatio1 { get; set; } // wheeled_vehicle_gear_speed_ratio_1
