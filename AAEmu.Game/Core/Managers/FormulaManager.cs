@@ -96,8 +96,10 @@ public class FormulaManager : Singleton<FormulaManager>, IFormulaManager
                             Kind = (UnitFormulaKind)reader.GetByte("kind_id"),
                             Owner = (FormulaOwnerType)reader.GetByte("owner_type_id")
                         };
-                        if (formula.Prepare())
-                            _unitFormulas[formula.Owner].Add(formula.Kind, formula);
+                        // 10.0.2.13 data may carry owner_type_id / kind values not in the 1.2 enums — skip
+                        // unknown owners and overwrite duplicate kinds instead of crashing on load.
+                        if (formula.Prepare() && _unitFormulas.TryGetValue(formula.Owner, out var ownerFormulas))
+                            ownerFormulas[formula.Kind] = formula;
                     }
                 }
             }

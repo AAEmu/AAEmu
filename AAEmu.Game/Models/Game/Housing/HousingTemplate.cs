@@ -14,7 +14,6 @@ public class HousingTemplate
     public bool GateExists { get; init; }
     public int Hp { get; init; }
     public uint RepairCost { get; init; }
-    public float GardenRadius { get; init; }
     public string Family { get; init; }
     public Taxation Taxation { get; set; }
     /// <summary>Use Taxation instead of TaxationId for functions in the server</summary>

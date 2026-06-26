@@ -7,10 +7,9 @@ public class SCAccountAttributeConfigPacket(bool[] used) : GamePacket(SCOffsets.
 {
     public override PacketStream Write(PacketStream stream)
     {
-        for (var i = 0; i < 2; i++) // 2
-        {
-            stream.Write(used[i]);
-        }
+        // 10.0.2.13 (client deserializer sub_39AA3A80): used[4] (bool).
+        for (var i = 0; i < 4; i++)
+            stream.Write(i < used.Length && used[i]);
         return stream;
     }
 }

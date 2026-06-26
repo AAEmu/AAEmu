@@ -16,17 +16,9 @@ public class DispelledBuffTrigger(Buff owner, BuffTriggerTemplate template) : Bu
             return;
         }
 
+        // 10.0.2.13: buff_triggers.effect_on_source / use_original_source removed (former mock-false path).
         var target = _buff.Owner;
         owner = _buff.Caster;
-        if (Template.EffectOnSource)
-        {
-            target = _buff.Caster;
-            //do what?
-        }
-        if (Template.UseOriginalSource)
-        {
-            owner = (Unit)_buff.Owner;
-        }
 
         Template.Effect.Apply(owner, new SkillCasterUnit(_owner.ObjId), target, new SkillCastUnitTarget(target.ObjId), new CastBuff(_buff),
             new EffectSource(), // TODO : EffectSource Type trigger 

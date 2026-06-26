@@ -38,16 +38,11 @@ public class RepairSlaveEffect : EffectTemplate
                 return;
             }
 
-            if (slaveItem.Template is not SummonSlaveTemplate summonTemplate)
+            if (slaveItem.Template is not SummonSlaveTemplate)
                 return;
 
-            if (!SlaveGameData.Instance.HasRepairEffectId(summonTemplate.SlaveId, Id))
-            {
-                targetPlayer.SendErrorMessage(ErrorMessageType.ItemFailedRepair); // not sure if this would be the correct one
-                Logger.Warn($"{targetPlayer.Name} tried to use the wrong repair item {slaveItem.Id} (template: {slaveItem.TemplateId} for slave type {summonTemplate.SlaveId}");
-                return;
-            }
-
+            // 10.0.2.13: the per-slave repair-effect gate (repairable_slaves table) was removed; the repair
+            // skill's own targeting determines validity, and repair amounts come from the RepairSlaveEffect template.
             slaveItem.IsDestroyed = 0;
             slaveItem.RepairStartTime = DateTime.UtcNow;
             slaveItem.IsDirty = true;

@@ -10,7 +10,7 @@ public class SkillControllerTemplate : EffectTemplate
     public int[] Value { get; set; } = new int[15];
 
     public byte ActiveWeaponId { get; set; }
-    // TODO 1.2 // public uint EndSkillId { get; set; }
+    public uint EndSkillId { get; set; } // 10.0.2.13: skill_controllers.end_skill_id present again
     public override bool OnActionTime { get; }
 
     public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,

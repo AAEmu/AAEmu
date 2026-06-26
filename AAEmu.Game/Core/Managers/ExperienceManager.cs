@@ -182,8 +182,30 @@ public class ExperienceManager : Singleton<ExperienceManager>, IExperienceManage
 
         Logger.Info("Loading experience data...");
 
-        foreach (var levelTemplate in loader.Load())
+        // The streaming loader enforces strict, monotonically increasing total_exp/total_mate_exp
+        // and contiguous levels. The 10.0.2.13 game DB contains malformed rows in the unused tail
+        // (e.g. level 56 has an out-of-place total_mate_exp spike, level 57 drops below it), which
+        // trips the sortedness assertion. Those rows are far beyond both level caps and are never
+        // used, so once we have already loaded every level we will ever need, we tolerate the
+        // loader's data-integrity exception for the remaining (unused) tail rather than abort.
+        var requiredLevelCount = Math.Max(playerLevelCap, mateLevelCap);
+        using var loadedTemplates = loader.Load().GetEnumerator();
+        while (true)
         {
+            ExperienceLevelTemplate levelTemplate;
+            try
+            {
+                if (!loadedTemplates.MoveNext())
+                    break;
+                levelTemplate = loadedTemplates.Current;
+            }
+            catch (InvalidDataException ex) when (_levelTemplatesByLevel.Count >= requiredLevelCount)
+            {
+                // We already have all the levels within the caps; the remaining rows are unused.
+                Logger.Warn(ex, "Ignoring malformed experience data beyond level {0}", _levelTemplatesByLevel.Count);
+                break;
+            }
+
             _levelTemplatesByLevel.Add(levelTemplate);
             _expByLevel.Add(levelTemplate.TotalExp);
             _mateExpByLevel.Add(levelTemplate.TotalMateExp);

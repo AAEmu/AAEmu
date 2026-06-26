@@ -10,7 +10,7 @@ public class CraftProduct
     public uint ItemId { get; set; }
     public int Amount { get; set; }
     public int Rate { get; set; }
-    public bool ShowLowerCrafts { get; set; }
+    // 10.0.2.13: ShowLowerCrafts removed
     public bool UseGrade { get; set; }
     public uint ItemGradeId { get; set; }
 }

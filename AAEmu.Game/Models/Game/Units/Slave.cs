@@ -140,7 +140,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
 
             return res;
@@ -163,7 +163,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -185,7 +185,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -207,7 +207,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -229,7 +229,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -251,7 +251,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -279,7 +279,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -308,7 +308,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -336,7 +336,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -364,7 +364,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -393,7 +393,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -421,7 +421,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -462,7 +462,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
 
             return (int)(res * 1000);
@@ -491,7 +491,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += res * bonus.Value / 100f;
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
 
             return (int)res;
@@ -511,7 +511,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
 
             return (int)(res * 1000);
@@ -531,7 +531,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
 
             return (int)(res * 1000);
@@ -561,7 +561,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += res * bonus.Value / 100f;
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
 
             return (int)res;
@@ -581,7 +581,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
 
             return (int)(res * 1000);
@@ -611,7 +611,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += res * bonus.Value / 100f;
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
 
             return (int)res;
@@ -640,7 +640,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -668,7 +668,7 @@ public class Slave : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }

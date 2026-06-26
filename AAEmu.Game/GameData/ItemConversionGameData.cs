@@ -79,12 +79,13 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
                 {
                     var data = new ItemConversionReagent
                     {
-                        ConversionId = reader.GetUInt32("item_conv_rpack_id"),
+                        // item_conv_rpack_id is nullable in 10.0.2.13 (24 NULL rows); default to 0
+                        ConversionId = reader.GetUInt32("item_conv_rpack_id", 0),
                         ImplId = (ItemImplEnum)reader.GetInt32("item_impl_id"),
                         MinLevel = reader.GetInt32("min_level"),
                         MaxLevel = reader.GetInt32("max_level"),
-                        MinItemGrade = reader.GetByte("item_grade_id"),
-                        MaxItemGrade = reader.GetByte("max_item_grade_id")
+                        MinItemGrade = reader.GetByte("item_grade_id", 0),
+                        MaxItemGrade = reader.GetByte("max_item_grade_id", 0)
                     };
                     _reagents.Add(data);
                 }
@@ -105,8 +106,9 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
                     {
                         ConversionId = reader.GetUInt32("item_conv_rpack_id"),
                         InputItemId = reader.GetUInt32("item_id"),
-                        MinItemGrade = reader.GetByte("grade_id"),
-                        MaxItemGrade = reader.GetByte("max_grade_id")
+                        // grade_id is nullable in 10.0.2.13; default to 1 (schema default)
+                        MinItemGrade = reader.GetByte("grade_id", 1),
+                        MaxItemGrade = reader.GetByte("max_grade_id", 0)
                     };
                     _reagents.Add(data);
                 }
@@ -159,9 +161,10 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
                         ConversionId = reader.GetUInt32("item_conv_ppack_id"),
                         ChanceRate = reader.GetInt32("chance_rate", 0),
                         OuputItemId = reader.GetUInt32("item_id"),
-                        Weight = reader.GetInt32("weight"),
-                        MinOutput = reader.GetInt32("min"),
-                        MaxOutput = reader.GetInt32("max")
+                        // weight/min/max are nullable in 10.0.2.13; default to 1 (schema default)
+                        Weight = reader.GetInt32("weight", 1),
+                        MinOutput = reader.GetInt32("min", 1),
+                        MaxOutput = reader.GetInt32("max", 1)
                     };
                     _products.Add(data);
                 }

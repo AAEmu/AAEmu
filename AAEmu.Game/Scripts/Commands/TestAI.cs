@@ -174,7 +174,7 @@ public class TestAI : ICommand
 
                 npc.Ai.EnqueueAiCommands(new[]
                 {
-                    new AiCommands { CmdId = AiCommandCategory.UseSkill, Param1 = skillId }
+                    new AiCommands { CmdId = AiCommandCategory.UseSkill, Param1 = skillId.ToString() }
                 });
                 break;
             case "follow_npc":

@@ -73,8 +73,18 @@ public class EnterWorldManager(
 
                 var port = AppConfiguration.Instance.StreamNetwork.Port;
                 var gm = connection.GetAttribute("gmFlag") != null;
-                connection.SendPacket(new X2EnterWorldResponsePacket(0, gm, connection.Id, port));
+
+                // Enter-world sequence — order verified against a working 3.5.0.3 capture:
+                //   X2EnterWorldResponse (level 5, carries RSA pubKey) -> ChangeState(0) -> SCWorldQueue.
+                // SCWorldQueue is what makes the client start sending FinishState packets, which drive the
+                // server-side config burst (see FinishStatePacket). After X2EnterWorldResponse the client's
+                // encryption gate rejects plain level-1 packets, so EncryptionActive flips on (auto level 5).
+                connection.SendPacket(new X2EnterWorldResponsePacket(0, gm, connection.Id, port, connection));
+                connection.EncryptionActive = true;
                 connection.SendPacket(new ChangeStatePacket(0));
+                // After X2EnterWorldResponse(level 5) + ChangeState the 10.0.2.13 client sends FinishState(0),
+                // which drives the server-side config burst (see FinishStatePacket). The character list is then
+                // pushed by the CSAesXorKeyPacket handler once the client sends its RSA key reply.
             }
             else
             {

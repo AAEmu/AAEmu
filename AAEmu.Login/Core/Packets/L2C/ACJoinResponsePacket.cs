@@ -44,7 +44,8 @@ public readonly record struct AfsValue(
 /// </summary>
 /// <param name="reason"></param>
 /// <param name="afs"></param>
-public class ACJoinResponsePacket(ushort reason, ulong afs) : LoginPacket(LCOffsets.ACJoinResponsePacket)
+public class ACJoinResponsePacket(ushort reason, ulong afs, byte authId = 0)
+    : LoginPacket(LCOffsets.ACJoinResponsePacket)
 {
     public ACJoinResponsePacket(JoinResponseReason reason, AfsValue afs) : this((ushort)reason, afs.ToULong())
     {
@@ -52,6 +53,7 @@ public class ACJoinResponsePacket(ushort reason, ulong afs) : LoginPacket(LCOffs
 
     public override PacketStream Write(PacketStream stream)
     {
+        stream.Write(authId);
         stream.Write(reason);
         stream.Write(afs);
 

@@ -80,13 +80,13 @@ public class RunCommandSetBehavior : BaseCombatBehavior
                 Logger.Warn($"AI Command: {aiCommand.CmdId} not implemented, NPC {Ai.Owner.ObjId} ({Ai.Owner.TemplateId}), CommandSet {aiCommand.CmdSetId}, P1 {aiCommand.Param1}, P2 {aiCommand.Param2}");
                 break;
             case AiCommandCategory.FollowPath:
-                Ai.LoadAiPathPoints(Ai.AiFileName, aiCommand.Param1 == 1);
-                if (aiCommand.Param1 == 1)
+                Ai.LoadAiPathPoints(Ai.AiFileName, aiCommand.Param1 == "1");
+                if (aiCommand.Param1 == "1")
                 {
                     Ai.PathHandler.AiPathPointsRemaining.Enqueue(new AiPathPoint { Position = Vector3.Zero, Action = AiPathPointAction.ReturnToCommandSet, Param = string.Empty });
                 }
                 Ai.GoToFollowPath();
-                if (aiCommand.Param1 == 1)
+                if (aiCommand.Param1 == "1")
                 {
                     Ai.AiFileName = aiCommand.Param2;
                 }
@@ -97,7 +97,7 @@ public class RunCommandSetBehavior : BaseCombatBehavior
 
                 break;
             case AiCommandCategory.UseSkill:
-                Ai.AiSkillId = aiCommand.Param1;
+                Ai.AiSkillId = uint.TryParse(aiCommand.Param1, out var aiSkillId) ? aiSkillId : 0u;
                 var owner = Ai.Owner; // capture once to avoid race with concurrent unit despawn
                 var skillTemplate = SkillManager.Instance.GetSkillTemplate(Ai.AiSkillId);
                 if (owner != null && skillTemplate != null && owner.UseSkill(Ai.AiSkillId, owner.CurrentTarget as Unit ?? owner) == SkillResult.Success)
@@ -107,7 +107,7 @@ public class RunCommandSetBehavior : BaseCombatBehavior
                 }
                 break;
             case AiCommandCategory.Timeout:
-                Ai.AiTimeOut = aiCommand.Param1;
+                Ai.AiTimeOut = uint.TryParse(aiCommand.Param1, out var aiTimeout) ? aiTimeout : 0u;
                 Ai.AiCurrentCommandRunTime = TimeSpan.FromMilliseconds(Ai.AiTimeOut); // This feels like this should be max cooldown remaining for all skills for param 1
                 break;
             default:

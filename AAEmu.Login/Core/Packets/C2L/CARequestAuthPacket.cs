@@ -22,8 +22,11 @@ public class CARequestAuthPacket() : LoginPacket(TypeId), ILoginPacket
         var svc = stream.ReadByte();
         var dev = stream.ReadBoolean();
         Account = stream.ReadString();
-        var mac = stream.ReadBytes();
-        var mac2 = stream.ReadBytes();
+        var mac = stream.ReadBytes(8);  // fixed 8 bytes (not length-prefixed)
+        var mac2 = stream.ReadBytes(8); // fixed 8 bytes (not length-prefixed)
         var cpu = stream.ReadUInt64();
+        var is64Bit = stream.ReadBoolean();
+        var isMultiClient = stream.ReadBoolean();
+        var clientSerial = stream.ReadByte();
     }
 }

@@ -44,6 +44,9 @@ public class GameDataManager(
 
         Logger.Info("Loading game data");
         CreateLoaders();
+        // 10.0.2.13: loaders are intentionally NOT wrapped in a swallow-and-skip try/catch. A loader failure now
+        // propagates (startup fails with a full stack trace) so DB-migration mismatches surface immediately
+        // instead of being silently skipped.
         using (var connection = SQLite.CreateConnection())
         {
             foreach (var loader in _loaders)

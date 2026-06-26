@@ -22,6 +22,12 @@ public class BattlefieldGameData : Singleton<BattlefieldGameData>, IGameDataLoad
     {
         _battlefields = new Dictionary<uint, Battlefield>();
 
+        // 10.0.2.13: the battle_field<->game_rule_set link is reversed. In 1.2 the rule set
+        // carried a battle_field_id; in 10.0.2.13 each battle_fields row carries a
+        // game_rule_set_id. Build a reverse map (ruleSetId -> battlefieldId) so we can still
+        // attach rule sets to their battlefields below.
+        var ruleSetToBattlefield = new Dictionary<uint, uint>();
+
         using (var command = connection.CreateCommand())
         {
             command.CommandText = "SELECT * FROM battle_fields";
@@ -38,6 +44,11 @@ public class BattlefieldGameData : Singleton<BattlefieldGameData>, IGameDataLoad
                     };
 
                     _battlefields.Add(bf.Id, bf);
+
+                    // game_rule_set_id (0 = none) links this battlefield to its rule set.
+                    var ruleSetId = reader.GetUInt32("game_rule_set_id", 0u);
+                    if (ruleSetId != 0u)
+                        ruleSetToBattlefield[ruleSetId] = bf.Id;
                 }
             }
         }
@@ -51,20 +62,22 @@ public class BattlefieldGameData : Singleton<BattlefieldGameData>, IGameDataLoad
             {
                 while (reader.Read())
                 {
+                    // 10.0.2.13: battle_field_id, corps_size, corps1_id, corps2_id and
+                    // time_opening were removed from game_rule_sets; only the columns below
+                    // remain. Removed model fields are left at their defaults.
+                    var ruleSetId = reader.GetUInt32("id");
+                    ruleSetToBattlefield.TryGetValue(ruleSetId, out var battlefieldId);
+
                     var gsr = new GameRuleSet
                     {
-                        Id = reader.GetUInt32("id"),
-                        BattlefieldId = reader.GetUInt32("battle_field_id"),
-                        CorpsSize = reader.GetUInt32("corps_size"),
-                        Corps1FactionId = reader.GetUInt32("corps1_id"),
-                        Corps2FactionId = reader.GetUInt32("corps2_id"),
-                        TimeOpening = reader.GetInt32("time_opening"),
+                        Id = ruleSetId,
+                        BattlefieldId = battlefieldId,
                         TimeEnding = reader.GetInt32("time_ending"),
                         TimePlaying = reader.GetInt32("time_playing"),
                         VictoryScore = reader.GetInt32("victory_score")
                     };
 
-                    if (_battlefields.TryGetValue(gsr.BattlefieldId, out var battlefield))
+                    if (battlefieldId != 0u && _battlefields.TryGetValue(battlefieldId, out var battlefield))
                         battlefield.RuleSet = gsr;
                 }
             }

@@ -12,5 +12,5 @@ public class EquipItemTemplate : ItemTemplate
     public int ChargeCount { get; set; } // does not seem to be actually used anywhere in the DB
     public ItemLookConvert ItemLookConvert { get; set; }
     public uint EquipItemSetId { get; set; }
-    public uint DefaultDyeItemId { get; set; }
+    // 10.0.2.13: DefaultDyeItemId removed (dyeable_items.default_dyeing_item_id column dropped)
 }

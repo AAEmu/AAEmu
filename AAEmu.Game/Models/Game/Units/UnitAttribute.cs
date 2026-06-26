@@ -1,6 +1,6 @@
 ﻿namespace AAEmu.Game.Models.Game.Units;
 
-public enum UnitAttribute : byte
+public enum UnitAttribute : uint // 10.0.2.13 adds unit_attribute_id 256-261 (>255), widened from byte
 {
     Str = 0,
     Dex = 1,

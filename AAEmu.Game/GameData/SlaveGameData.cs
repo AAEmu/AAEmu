@@ -24,7 +24,6 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
     private Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>> _attachPoints = [];
     private readonly Dictionary<uint, List<SlaveInitialItems>> _slaveInitialItems = []; // PackId and List<Slot/ItemData>
     private readonly Dictionary<uint, SlaveMountSkills> _slaveMountSkills = [];
-    private readonly Dictionary<uint, uint> _repairableSlaves = []; // SlaveId, RepairEffectId
 
     public void Load(SqliteConnection connection)
     {
@@ -80,9 +79,9 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
                         continue;
                     var template = new BonusTemplate
                     {
-                        Attribute = (UnitAttribute)reader.GetByte("unit_attribute_id"),
+                        Attribute = (UnitAttribute)reader.GetUInt32("unit_attribute_id", 0),
                         ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id"),
-                        Value = reader.GetInt32("value"),
+                        Value = reader.GetInt64("value"),
                         LinearLevelBonus = reader.GetInt32("linear_level_bonus")
                     };
                     slaveTemplate.Bonuses.Add(template);
@@ -308,21 +307,9 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
             }
         }
 
-        using (var command = connection.CreateCommand())
-        {
-            command.CommandText = "SELECT * FROM repairable_slaves";
-            command.Prepare();
-
-            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-            {
-                while (reader.Read())
-                {
-                    if (!_repairableSlaves.TryAdd(reader.GetUInt32("slave_id"),
-                            reader.GetUInt32("repair_slave_effect_id")))
-                        Logger.Warn($"Duplicate entry for repairable_slaves");
-                }
-            }
-        }
+        // 10.0.2.13: the 'repairable_slaves' table (slave_id -> repair_slave_effect_id mapping) was removed.
+        // Repair amounts now come solely from 'repair_slave_effects' (loaded as RepairSlaveEffect templates in
+        // SkillManager); there is no longer a per-slave repair-effect gate.
         #endregion
 
         LoadSlaveAttachmentPointLocations();
@@ -448,10 +435,4 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
         return _attachPoints.GetValueOrDefault(modelId);
     }
 
-    public bool HasRepairEffectId(uint templateId, uint expectedEffectId)
-    {
-        if (_repairableSlaves.TryGetValue(templateId, out var effectId))
-            return effectId == expectedEffectId;
-        return false;
-    }
 }

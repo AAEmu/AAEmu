@@ -156,7 +156,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
 
             return res;
@@ -185,7 +185,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -213,7 +213,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -241,7 +241,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -269,7 +269,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -297,7 +297,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -331,7 +331,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -366,7 +366,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -401,7 +401,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -435,7 +435,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -470,7 +470,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -505,7 +505,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -552,7 +552,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
 
             return (int)(res * 1000);
@@ -588,7 +588,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += res * bonus.Value / 100f;
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
 
             return (int)res;
@@ -608,7 +608,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
 
             return (int)(res * 1000);
@@ -628,7 +628,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
 
             return (int)(res * 1000);
@@ -664,7 +664,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += res * bonus.Value / 100f;
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
 
             return (int)res;
@@ -684,7 +684,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
 
             return (int)(res * 1000);
@@ -720,7 +720,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += res * bonus.Value / 100f;
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
 
             return (int)res;
@@ -755,7 +755,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }
@@ -789,7 +789,7 @@ public partial class Npc : Unit
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
                     res += (int)(res * bonus.Value / 100f);
                 else
-                    res += bonus.Value;
+                    res += (int)bonus.Value;
             }
             return res;
         }

@@ -56,10 +56,13 @@ public class ItemCapScale : SpecialEffectAction
 
         var equipItem = (EquipItem)targetItem;
 
-        var itemCapScale = ItemManager.Instance.GetItemCapScale(skill.Id);
+        // 10.0.2.13: item_cap_scales table removed; the temper range now comes from this special effect's
+        // own value1 (min) / value2 (max) params instead of a per-skill lookup.
+        var scaleMin = value1;
+        var scaleMax = Math.Max(value1 + 1, value2);
 
-        var physicalScale = (ushort)Random.Shared.Next(itemCapScale.ScaleMin, itemCapScale.ScaleMax);
-        var magicalScale = (ushort)Random.Shared.Next(itemCapScale.ScaleMin, itemCapScale.ScaleMax);
+        var physicalScale = (ushort)Random.Shared.Next(scaleMin, scaleMax);
+        var magicalScale = (ushort)Random.Shared.Next(scaleMin, scaleMax);
 
         equipItem.TemperPhysical = physicalScale;
         equipItem.TemperMagical = magicalScale;

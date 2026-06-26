@@ -333,13 +333,7 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
             return false;
         }
         
-        // Check item requirement
-        if (dungeonZone is { ItemId: > 0 } && !PortalManager.CheckItemAndRemove(character, dungeonZone.ItemId, 1))
-        {
-            Logger.Info($"[IndunManager] Player does not have the required item to create a new dungeon, characterId: {character.Id}, zoneGroupId: {dungeonZone.ZoneGroupId}, item: {dungeonZone.ItemId}");
-            character.SendErrorMessage(ErrorMessageType.EnterInstReqItem, dungeonZone.ItemId);
-            return false;
-        }
+        // 10.0.2.13: indun_zones.item_id removed; the item-requirement check was dead (ItemId always 0)
 
         return true;
     }

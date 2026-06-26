@@ -10,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects;
 public class ScopedFEffect : EffectTemplate
 {
     public int Range { get; set; }
-    public bool Key { get; set; }
+    public string Key { get; set; } // 10.0.2.13: scoped_f_effects.key is now varchar(255)
     public uint DoodadId { get; set; }
 
     public override bool OnActionTime => false;

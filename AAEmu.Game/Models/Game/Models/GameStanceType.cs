@@ -8,7 +8,7 @@ public enum GameStanceType : byte
     Relaxed = 1,
     Swim = 2,
     CoSwim = 3,
-    Combat2 = 4, // actually also called combat in the DB
+    ZeroG = 4, // DB game_stances id 5 = STANCE_ZEROG (packet value = DB id - 1)
     Stealth = 5,
     Crouch = 6,
     Prone = 7,

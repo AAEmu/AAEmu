@@ -244,7 +244,6 @@ public class UnitReqs
                 var outZone = ZoneManager.Instance.GetZoneByKey(owner.Transform.ZoneId);
                 return RetWithValue(SkillResultKeys.skill_urk_out_zone, Value1, outZone?.Id != Value1);
 
-            // case UnitReqsKindType.DominionOwner: // Needs Castle and Siege implementation
 
             case UnitReqsKindType.VerdictOnly:
                 // This needs implementation of the used to arrest Prime Suspects
@@ -259,8 +258,6 @@ public class UnitReqs
                 // Is this the same as UnitReqsKindType.MotherFaction ? 
                 return Ret(SkillResultKeys.skill_urk_mother_faction_only, (uint)(unit?.Faction?.MotherId ?? 0) == Value1);
 
-            // case UnitReqsKindType.NationOwner:
-
             case UnitReqsKindType.FactionMatchOnlyNot:
                 return Ret(SkillResultKeys.skill_urk_faction_match_only_not, (uint)(unit?.Faction?.Id ?? 0) != Value1);
 
@@ -269,8 +266,8 @@ public class UnitReqs
 
             // case UnitReqsKindType.NationMember:
             // case UnitReqsKindType.NationMemberNot:
-            // case UnitReqsKindType.NationOwnerAtPos:
-            // case UnitReqsKindType.DominionOwnerAtPos:
+            // case UnitReqsKindType.DominionMemberAtPos:
+            // case UnitReqsKindType.DominionMemberAtPosNot:
             // case UnitReqsKindType.Housing:
             // case UnitReqsKindType.HealthMargin:
             // case UnitReqsKindType.ManaMargin:
@@ -312,34 +309,15 @@ public class UnitReqs
                     (!player?.Quests.HasQuestCompleted(Value1) ?? false) &&
                     exceptReadyActiveQuest is not { Step: QuestComponentKind.Ready });
 
-            // --- Below is not used in 1.2 ---
-
-            // case UnitReqsKindType.OwnItemNot:
-            // case UnitReqsKindType.LessActAbilityPoint:
-            // case UnitReqsKindType.OwnQuestItemGroup:
-            // case UnitReqsKindType.LeadershipTotal:
-            // case UnitReqsKindType.LeadershipCurrent:
-            // case UnitReqsKindType.Hero:
-            // case UnitReqsKindType.DominionExpeditionMember:
-            // case UnitReqsKindType.DominionNationMember:
-            // case UnitReqsKindType.OwnItemCount:
-            // case UnitReqsKindType.House:
-            // case UnitReqsKindType.DoodadTargetFriendly:
-            // case UnitReqsKindType.DoodadTargetHostile:
-            // case UnitReqsKindType.DominionExpeditionMemberNot:
-            // case UnitReqsKindType.DominionMemberNot:
-            // case UnitReqsKindType.InZoneGroupHousingExist:
-            // case UnitReqsKindType.TargetNoBuffTag:
-            // case UnitReqsKindType.ExpeditionLevel:
-            // case UnitReqsKindType.IsResident:
-            // case UnitReqsKindType.ResidentServicePoint:
-            // case UnitReqsKindType.HighAbilityLevel:
-            // case UnitReqsKindType.FamilyRole:
-            // case UnitReqsKindType.TargetManaLessThan:
-            // case UnitReqsKindType.TargetManaMoreThan:
-            // case UnitReqsKindType.TargetHealthMoreThan:
-            // case UnitReqsKindType.BuffTag:
-            // case UnitReqsKindType.LaborPowerMarginLocal:
+            // --- Not yet implemented (present in data, fall through to the default 'ok' below) ---
+            // 1.2 carry-overs: OwnItemNot(74), LessActAbilityPoint(75), OwnQuestItemGroup(76), LeadershipTotal(77),
+            //   LeadershipCurrent(78), Hero(79), OwnItemCount(82), House(83), DoodadTargetFriendly(84),
+            //   DoodadTargetHostile(85), DominionMember(86), DominionMemberNot(87), InZoneGroupHousingExist(88),
+            //   TargetNoBuffTag(89), ExpeditionLevel(90), IsResident(91), ResidentServicePoint(92), FamilyRole(94),
+            //   TargetManaLessThan(95), TargetManaMoreThan(96), TargetHealthMoreThan(97), BuffTag(98), LaborPowerMarginLocal(99).
+            // 10.0.2.13 additions (kinds 100-140): HeirLevel, InZoneGroup, SkillCooldown, ..., GearScore(122),
+            //   PremiumArchePass(121), etc. — NONE are enforced yet, so these requirements currently auto-pass.
+            // TODO(v10): implement the new gating kinds; the default below is fail-OPEN by design carried from 1.2.
             default:
                 return new UnitReqsValidationResult(SkillResultKeys.ok, 0, 0);
         }

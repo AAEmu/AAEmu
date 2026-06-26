@@ -23,6 +23,14 @@ public class GameConnection
     public int PacketCount { get; set; }
     private List<IDisposable> Subscribers { get; set; }
     public GameState State { get; set; }
+
+    /// <summary>
+    /// Set once X2EnterWorldResponse has been sent. From that point the 10.8.1.0 client's encryption gate
+    /// rejects plain level-1 packets, so all level-1 S->C packets are auto-upgraded to level 5 (StoC).
+    /// Level-2 packets (ChangeState/FinishState/SetGameType) bypass the gate and stay plain.
+    /// </summary>
+    public bool EncryptionActive { get; set; }
+
     public Character ActiveChar { get; set; }
     public Dictionary<uint, Character> Characters { get; set; }
     public Dictionary<uint, House> Houses { get; set; }

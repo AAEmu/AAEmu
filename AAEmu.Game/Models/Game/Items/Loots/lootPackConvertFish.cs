@@ -4,7 +4,7 @@ public class LootPackConvertFish : IComparable<LootPackConvertFish>
 {
     public uint Id { get; set; }
     public uint ItemId { get; set; }
-    public uint LootPackId { get; set; }
+    public uint ConvertItemId { get; set; } // 10.0.2.13: convert is now a direct item, not a loot-pack roll
     public uint DoodadFuncConvertFishId { get; set; }
 
     /// <summary>

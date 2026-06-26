@@ -24,18 +24,9 @@ public class BuffTrigger
             return;
         }
 
+        // 10.0.2.13: buff_triggers.effect_on_source / use_original_source removed (former mock-false path).
         var target = _buff?.Owner;
         var source = (Unit)_buff?.Owner;
-
-        if (Template.UseOriginalSource)
-        {
-            source = _buff?.Caster;
-        }
-
-        if (Template.EffectOnSource)
-        {
-            target = source;
-        }
 
         if (Template.TargetBuffTagId != 0)
         {

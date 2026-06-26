@@ -33,5 +33,10 @@ public enum ItemImplEnum
     SlaveEquipment = 28,
     GradeEnchantingSupport = 29,
     MateArmor = 30,
-    Location = 31
+    Location = 31,
+    // 10.0.2.13: enum_item_impls adds 32-35
+    RenameCharacter = 32,
+    EvolvingMaterial = 33,
+    ButlerArmor = 34,
+    BlessUthstin = 35
 }

@@ -208,7 +208,8 @@ public class BaseUnit : GameObject, IBaseUnit
         if (baseUnit is House house)
         {
             // Subtract house radius, this should be fair enough for building
-            rawDist -= house.Template.GardenRadius * house.Scale;
+            // 10.0.2.13: GardenRadius removed; was mocked to 0f
+            rawDist -= 0f * house.Scale;
         }
         else
         {

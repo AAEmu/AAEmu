@@ -25,7 +25,6 @@ public class SkillTemplate
     public SkillTargetRelation TargetRelation { get; set; }
     public int TargetAreaCount { get; set; }
     public int TargetAreaRadius { get; set; }
-    public bool TargetSiege { get; set; }
     public int WeaponSlotForAngleId { get; set; }
     public int TargetAngle { get; set; }
     public int WeaponSlotForRangeId { get; set; }
@@ -49,28 +48,23 @@ public class SkillTemplate
     public bool TargetDead { get; set; }
     public uint ChannelingBuffId { get; set; }
     public int ReagentCorpseStatusId { get; set; }
-    public bool SourceDead { get; set; }
     public int LevelStep { get; set; }
     public float ValidHeight { get; set; }
     public float TargetValidHeight { get; set; }
-    public bool SourceMount { get; set; }
     public bool StopCastingOnBigHit { get; set; }
     public bool StopChannelingOnBigHit { get; set; }
     public bool AutoLearn { get; set; }
-    public bool NeedLearn { get; set; }
     public uint MainhandToolId { get; set; }
     public uint OffhandToolId { get; set; }
     public int FrontAngle { get; set; }
     public float ManaLevelMd { get; set; }
     public bool Unmount { get; set; }
     public uint DamageTypeId { get; set; }
-    public bool AllowToPrisoner { get; set; }
     public uint MilestoneId { get; set; }
     public bool MatchAnimation { get; set; }
     public Plot Plot { get; set; }
     public bool UseAnimTime { get; set; }
     public int ConsumeLaborPower { get; set; }
-    public bool SourceStun { get; set; }
     public bool TargetAlive { get; set; }
     public bool TargetWater { get; set; }
     public int CastingInc { get; set; }
@@ -93,21 +87,16 @@ public class SkillTemplate
     public int CustomGcd { get; set; }
     public bool CancelOngoingBuffs { get; set; }
     public uint CancelOngoingBuffExceptionTagId { get; set; }
-    public bool SourceCannotUseWhileWalk { get; set; }
-    public bool SourceMountMate { get; set; }
     public bool CheckTerrain { get; set; }
     public bool TargetOnlyWater { get; set; }
-    public bool SourceNotSwim { get; set; }
     public bool TargetPreoccupied { get; set; }
     public bool StopChannelingOnStartSkill { get; set; }
     public bool StopCastingByTurn { get; set; }
     public bool TargetMyNpc { get; set; }
     public int GainLifePoint { get; set; }
     public bool TargetFishing { get; set; }
-    public bool SourceNoSlave { get; set; }
     public bool AutoReUse { get; set; }
     public int AutoReUseDelay { get; set; }
-    public bool SourceNotCollided { get; set; }
     public int SkillPoints { get; set; }
     public int DoodadHitFamily { get; set; }
     public List<SkillEffect> Effects { get; set; } = [];

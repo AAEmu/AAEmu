@@ -903,7 +903,7 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                     var template = new QuestActConReportDoodad(parentComponent)
                     {
                         DetailId = actId, DoodadId = reader.GetUInt32("doodad_id"), UseAlias = reader.GetBoolean("use_alias", true),
-                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id")
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
                     };
                     AddActTemplate(template);
                 }
@@ -1107,7 +1107,7 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                     {
                         DetailId = actId, CraftId = reader.GetUInt32("craft_id"), Count = reader.GetInt32("count"),
                         UseAlias = reader.GetBoolean("use_alias", true),
-                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id"),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0),
                         HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0),
                         HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1) // TODO phase = 0?
                     };
@@ -1202,7 +1202,7 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                         continue;
                     var template = new QuestActObjExpressFire(parentComponent)
                     {
-                        DetailId = actId, ExpressKeyId = reader.GetUInt32("express_key_id"), NpcGroupId = reader.GetUInt32("npc_group_id"),
+                        DetailId = actId, ExpressKeyId = reader.GetUInt32("express_key_id"), NpcGroupId = reader.GetUInt32("npc_group_id", 0),
                         Count = reader.GetInt32("count"),
                         UseAlias = reader.GetBoolean("use_alias", true),
                         QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
@@ -1551,18 +1551,18 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                         continue;
                     var template = new QuestActObjZoneKill(parentComponent)
                     {
-                        DetailId = actId, CountPlayerKill = reader.GetInt32("count_pk"), CountNpc = reader.GetInt32("count_npc")
+                        DetailId = actId, CountPlayerKill = reader.GetInt32("count_pk", 0), CountNpc = reader.GetInt32("count_npc", 0)
                     };
                     template.Count = Math.Max(template.CountNpc, template.CountPlayerKill); // Exception since we have 2 possible values here
                     template.ZoneId = reader.GetUInt32("zone_id", 0);
                     template.TeamShare = reader.GetBoolean("team_share", true);
                     template.UseAlias = reader.GetBoolean("use_alias", true);
                     template.QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0);
-                    template.LvlMin = reader.GetInt32("lv_min");
-                    template.LvlMax = reader.GetInt32("lv_max");
+                    template.LvlMin = reader.GetInt32("lv_min", 0);
+                    template.LvlMax = reader.GetInt32("lv_max", 0);
                     template.IsParty = reader.GetBoolean("is_party", true);
-                    template.LvlMinNpc = reader.GetInt32("lv_min_npc");
-                    template.LvlMaxNpc = reader.GetInt32("lv_max_npc");
+                    template.LvlMinNpc = reader.GetInt32("lv_min_npc", 0);
+                    template.LvlMaxNpc = reader.GetInt32("lv_max_npc", 0);
                     template.PcFactionId = (FactionsEnum)reader.GetUInt32("pc_faction_id", 0);
                     template.PcFactionExclusive = reader.GetBoolean("pc_faction_exclusive", true);
                     template.NpcFactionId = (FactionsEnum)reader.GetUInt32("npc_faction_id", 0);
@@ -1708,7 +1708,7 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                     var parentComponent = GetComponentByActTemplate("QuestActSupplyCrimePoint", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActSupplyCrimePoint(parentComponent) { DetailId = actId, Point = reader.GetInt16("point") };
+                    var template = new QuestActSupplyCrimePoint(parentComponent) { DetailId = actId, Point = reader.GetInt32("point") };
                     AddActTemplate(template);
                 }
             }

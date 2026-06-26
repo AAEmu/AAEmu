@@ -139,6 +139,80 @@ public partial class LoginController(
         return new LoginResult(true, accountId, default);
     }
 
+    /// <summary>
+    /// Token-trusted login for web/launcher auth: authenticates by username without a password check,
+    /// creating the account when missing. The launcher session token is trusted upstream.
+    /// </summary>
+    public async Task<LoginResult> LoginTrusted(string username, IPAddress ip,
+        CancellationToken cancellationToken)
+    {
+        if (!UsernameRegex().IsMatch(username))
+            return new LoginResult(false, default, LoginDeniedReason.BadAccount);
+
+        await using var connect = connectionFactory.CreateConnection();
+
+        // Look up an existing account (no password verification — token is trusted).
+        await using (var select = connect.CreateCommand())
+        {
+            select.CommandText = "SELECT id, banned, ban_reason FROM users WHERE username = @username";
+            select.Parameters.AddWithValue("@username", username);
+            await using var reader = select.ExecuteReader();
+            if (await reader.ReadAsync(cancellationToken))
+            {
+                var existingId = new AccountId(reader.GetUInt32("id"));
+                var isBanned = reader.GetBoolean("banned");
+                var banReason = isBanned ? (LoginDeniedReason)(byte)reader.GetUInt32("ban_reason") : default;
+                await reader.CloseAsync();
+
+                if (isBanned)
+                    return new LoginResult(false, default, banReason);
+
+                await UpdateLastLoginAsync(connect, existingId, ip);
+                logger.LogInformation("{Username} connected (web-auth).", username.ReplaceLineEndings(" "));
+                return new LoginResult(true, existingId, default);
+            }
+        }
+
+        // No account yet — create one (trusted; password is a throwaway, never used for web-auth).
+        var placeholderPassword = passwordService.HashForStorage(
+            Password.FromPlaintext(Guid.NewGuid().ToString("N")));
+        var nowUnix = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds();
+
+        await using (var insert = connect.CreateCommand())
+        {
+            insert.CommandText =
+                "INSERT INTO users (username, password, email, last_ip, last_login, created_at, updated_at)" +
+                " VALUES (@username, @password, @email, @last_ip, @last_login, @created_at, @updated_at)";
+            insert.Parameters.AddWithValue("@username", username);
+            insert.Parameters.AddWithValue("@password", placeholderPassword);
+            insert.Parameters.AddWithValue("@email", "");
+            insert.Parameters.AddWithValue("@last_ip", ip.ToString());
+            insert.Parameters.AddWithValue("@last_login", nowUnix);
+            insert.Parameters.AddWithValue("@created_at", nowUnix);
+            insert.Parameters.AddWithValue("@updated_at", nowUnix);
+
+            if (await insert.ExecuteNonQueryAsync() != 1)
+                return new LoginResult(false, default, LoginDeniedReason.LoginUnknown);
+
+            var newId = new AccountId((uint)insert.LastInsertedId);
+            logger.LogInformation("{Username} created and connected (web-auth).", username.ReplaceLineEndings(" "));
+            return new LoginResult(true, newId, default);
+        }
+    }
+
+    private static async Task UpdateLastLoginAsync(MySqlConnection connect, AccountId accountId, IPAddress ip)
+    {
+        await using var update = connect.CreateCommand();
+        update.CommandText =
+            "UPDATE `users` SET last_ip = @last_ip, last_login = @last_login, updated_at = @updated_at WHERE id = @id";
+        var nowUnix = ((DateTimeOffset)DateTime.UtcNow).ToUnixTimeSeconds();
+        update.Parameters.AddWithValue("@id", accountId.Value);
+        update.Parameters.AddWithValue("@last_ip", ip.ToString());
+        update.Parameters.AddWithValue("@last_login", nowUnix);
+        update.Parameters.AddWithValue("@updated_at", nowUnix);
+        await update.ExecuteNonQueryAsync();
+    }
+
     public async Task<KoreaAuthInfo?> GetKoreaAuthInfoAsync(string username, CancellationToken cancellationToken)
     {
         await using var connect = connectionFactory.CreateConnection();

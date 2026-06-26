@@ -37,7 +37,7 @@ public class DamageModifierGameData : Singleton<DamageModifierGameData>, IGameDa
                     {
                         Attribute = (UnitAttribute)reader.GetUInt32("unit_attribute_id"),
                         ModifierType = (UnitModifierType)reader.GetUInt32("unit_modifier_type_id"),
-                        Value = reader.GetInt32("value"),
+                        Value = reader.GetInt64("value"),
                         LinearLevelBonus = reader.GetInt32("linear_level_bonus")
                     };
 

@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.Creatures;
@@ -322,24 +322,6 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_butchers
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_butchers";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncButcher
-                        {
-                            Id = reader.GetUInt32("id"),
-                            CorpseModel = reader.GetString("corpse_model")
-                        };
-                        _funcTemplates["DoodadFuncButcher"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_buy_fish_items
             using (var command = connection.CreateCommand())
@@ -399,41 +381,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_catches
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_catches";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncCatch
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncCatch"].Add(func.Id, func);
-                    }
-                }
-            }
 
-            // doodad_func_cereal_harvests
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_cereal_harvests";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncCerealHarvest
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncCerealHarvest"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_cleanup_logic_links
             using (var command = connection.CreateCommand())
@@ -484,8 +432,8 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                         var func = new DoodadFuncClimb
                         {
                             Id = reader.GetUInt32("id"),
-                            ClimbTypeId = reader.GetUInt32("climb_type_id"),
-                            AllowHorizontalMultiHanger = reader.GetBoolean("allow_horizontal_multi_hanger", true)
+                            ClimbTypeId = reader.GetUInt32("climb_type_id")
+                            // 10.0.2.13: allow_horizontal_multi_hanger removed
                         };
                         _funcTemplates["DoodadFuncClimb"].Add(func.Id, func);
                     }
@@ -592,7 +540,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                             QuestId = reader.GetUInt32("quest_id", 0),
                             QuestTriggerPhase = reader.GetUInt32("quest_trigger_phase", 0),
                             ItemId = reader.GetUInt32("item_id", 0),
-                            ItemTriggerPhase = reader.GetUInt32("item_trigger_phase", 0)
+                            ItemTriggerPhase = reader.GetInt32("item_trigger_phase", 0)
                         };
                         _funcTemplates["DoodadFuncConditionalUse"].Add(func.Id, func);
                     }
@@ -671,33 +619,14 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                         var func = new DoodadFuncConsumeChanger
                         {
                             Id = reader.GetUInt32("id"),
-                            SlotId = reader.GetUInt32("slot_id"),
-                            Count = reader.GetInt32("count")
+                            // 10.0.2.13: slot_id/count removed; source item identified by tag_id
+                            TagId = reader.GetUInt32("tag_id", 0)
                         };
                         _funcTemplates["DoodadFuncConsumeChanger"].Add(func.Id, func);
                     }
                 }
             }
 
-            // doodad_func_consume_items
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_consume_items";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncConsumeItem
-                        {
-                            Id = reader.GetUInt32("id"),
-                            ItemId = reader.GetUInt32("item_id"),
-                            Count = reader.GetInt32("count")
-                        };
-                        _phaseFuncTemplates["DoodadFuncConsumeItem"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_convert_fish_items
             using (var command = connection.CreateCommand())
@@ -713,7 +642,8 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                             Id = reader.GetUInt32("id"),
                             DoodadFuncConvertFishId = reader.GetUInt32("doodad_func_convert_fish_id"),
                             ItemId = reader.GetUInt32("item_id"),
-                            LootPackId = reader.GetUInt32("loot_pack_id")
+                            // loot_pack_id removed in 10.0.2.13 schema (replaced by convert_item_id); LootPackId is unused at runtime
+                            LootPackId = 0
                         };
                         _phaseFuncTemplates["DoodadFuncConvertFishItem"].Add(func.Id, func);
                     }
@@ -886,41 +816,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_crop_harvests
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_crop_harvests";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncCropHarvest
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncCropHarvest"].Add(func.Id, func);
-                    }
-                }
-            }
 
-            // doodad_func_crystal_collects
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_crystal_collects";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncCrystalCollect
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncCrystalCollect"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_cutdownings
             using (var command = connection.CreateCommand())
@@ -940,41 +836,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_cutdowns
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_cutdowns";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncCutdown
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncCutdown"].Add(func.Id, func);
-                    }
-                }
-            }
 
-            // doodad_func_dairy_collects
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_dairy_collects";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncDairyCollect
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncDairyCollect"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_declare_sieges
             using (var command = connection.CreateCommand())
@@ -994,23 +856,6 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_digs
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_digs";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncDig
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncDig"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_dig_terrains
             using (var command = connection.CreateCommand())
@@ -1032,23 +877,6 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_dyeingredient_collects
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_dyeingredient_collects";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncDyeingredientCollect
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncDyeingredientCollect"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_enter_instances
             using (var command = connection.CreateCommand())
@@ -1171,43 +999,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_feeds
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_feeds";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncFeed
-                        {
-                            Id = reader.GetUInt32("id"),
-                            ItemId = reader.GetUInt32("item_id"),
-                            Count = reader.GetInt32("count")
-                        };
-                        _funcTemplates["DoodadFuncFeed"].Add(func.Id, func);
-                    }
-                }
-            }
 
-            // doodad_func_fiber_collects
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_fiber_collects";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncFiberCollect
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncFiberCollect"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_finals
             using (var command = connection.CreateCommand())
@@ -1253,41 +1045,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_fruit_picks
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_fruit_picks";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncFruitPick
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncFruitPick"].Add(func.Id, func);
-                    }
-                }
-            }
 
-            // doodad_func_gass_extracts
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_gass_extracts";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncGassExtract
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncGassExtract"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_growths
             using (var command = connection.CreateCommand())
@@ -1315,23 +1073,6 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_harvests
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_harvests";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncHarvest
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncHarvest"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_house_farms
             using (var command = connection.CreateCommand())
@@ -1352,47 +1093,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_housing_areas
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_housing_areas";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncHousingArea
-                        {
-                            Id = reader.GetUInt32("id"),
-                            FactionId = (FactionsEnum)reader.GetUInt32("faction_id"),
-                            Radius = reader.GetInt32("radius")
-                        };
-                        _funcTemplates["DoodadFuncHousingArea"].Add(func.Id, func);
-                    }
-                }
-            }
 
-            // doodad_func_hungers
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_hungers";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncHunger
-                        {
-                            Id = (uint)reader.GetInt32("id"),
-                            HungryTerm = reader.GetInt32("hungry_term"),
-                            FullStep = reader.GetInt32("full_step"),
-                            PhaseChangeLimit = reader.GetInt32("phase_change_limit"),
-                            NextPhase = reader.GetInt32("next_phase", -1) >= 0 ? reader.GetInt32("next_phase") : -1
-                        };
-                        _phaseFuncTemplates["DoodadFuncHunger"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_insert_counters
             using (var command = connection.CreateCommand())
@@ -1517,59 +1218,8 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_machine_parts_collects
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_machine_parts_collects";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncMachinePartsCollect
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncMachinePartsCollect"].Add(func.Id, func);
-                    }
-                }
-            }
 
-            // doodad_func_medicalingredient_mines
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_medicalingredient_mines";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncMedicalingredientMine
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncMedicalingredientMine"].Add(func.Id, func);
-                    }
-                }
-            }
 
-            // doodad_func_mows
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_mows";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncMow
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncMow"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_navi_mark_pos_to_maps
             using (var command = connection.CreateCommand())
@@ -1610,23 +1260,6 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_navi_open_bounties
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_navi_open_bounties";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncNaviOpenBounty
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncNaviOpenBounty"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_navi_open_mailboxes
             using (var command = connection.CreateCommand())
@@ -1760,23 +1393,6 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_ore_mines
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_ore_mines";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncOreMine
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncOreMine"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_parent_infos
             using (var command = connection.CreateCommand())
@@ -1814,23 +1430,6 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_plant_collects
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_plant_collects";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncPlantCollect
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncPlantCollect"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_play_flow_graphs
             using (var command = connection.CreateCommand())
@@ -2097,24 +1696,6 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_renew_items
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_renew_items";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncRenewItem
-                        {
-                            Id = reader.GetUInt32("id"),
-                            SkillId = reader.GetUInt32("skill_id")
-                        };
-                        _funcTemplates["DoodadFuncRenewItem"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_require_items
             using (var command = connection.CreateCommand())
@@ -2176,61 +1757,8 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_rock_mines
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_rock_mines";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncRockMine
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncRockMine"].Add(func.Id, func);
-                    }
-                }
-            }
 
-            // doodad_func_seed_collects
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_seed_collects";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncSeedCollect
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncSeedCollect"].Add(func.Id, func);
-                    }
-                }
-            }
 
-            // doodad_func_shears
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_shears";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncShear
-                        {
-                            Id = reader.GetUInt32("id"),
-                            ShearTypeId = reader.GetUInt32("shear_type_id"),
-                            ShearTerm = reader.GetInt32("shear_term")
-                        };
-                        _funcTemplates["DoodadFuncShear"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_siege_periods
             using (var command = connection.CreateCommand())
@@ -2292,41 +1820,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_skin_offs
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_skin_offs";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncSkinOff
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncSkinOff"].Add(func.Id, func);
-                    }
-                }
-            }
 
-            // doodad_func_soil_collects
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_soil_collects";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncSoilCollect
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncSoilCollect"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_spawn_gimmicks
             using (var command = connection.CreateCommand())
@@ -2380,20 +1874,6 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_spice_collects
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_spice_collects";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncSpiceCollect { Id = reader.GetUInt32("id") };
-                        _funcTemplates["DoodadFuncSpiceCollect"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_stamp_makers
             using (var command = connection.CreateCommand())
@@ -2409,7 +1889,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                             Id = reader.GetUInt32("id"),
                             ConsumeMoney = reader.GetInt32("consume_money"),
                             ItemId = reader.GetUInt32("item_id"),
-                            ConsumeItemId = reader.GetUInt32("consume_item_id"),
+                            ConsumeItemId = reader.GetUInt32("consume_item_id", 0),
                             ConsumeCount = reader.GetInt32("consume_count")
                         };
                         _funcTemplates["DoodadFuncStampMaker"].Add(func.Id, func);
@@ -2499,23 +1979,6 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // doodad_func_tree_byproducts_collects
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM doodad_func_tree_byproducts_collects";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var func = new DoodadFuncTreeByProductsCollect
-                        {
-                            Id = reader.GetUInt32("id")
-                        };
-                        _funcTemplates["DoodadFuncTreeByProductsCollect"].Add(func.Id, func);
-                    }
-                }
-            }
 
             // doodad_func_ucc_imprints
             using (var command = connection.CreateCommand())

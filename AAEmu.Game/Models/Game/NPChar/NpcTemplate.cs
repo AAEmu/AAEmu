@@ -81,7 +81,6 @@ public class NpcTemplate
     public byte Race { get; set; }
     public byte Gender { get; set; }
     public uint MerchantPackId { get; set; }
-    public uint EquipBodiesId { get; set; }
     public uint EquipClothsId { get; set; }
     public uint EquipWeaponsId { get; set; }
 

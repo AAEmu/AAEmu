@@ -12,7 +12,9 @@ public class DoodadFuncConditionalUse : DoodadFuncTemplate
     public uint QuestId { get; set; }
     public uint QuestTriggerPhase { get; set; }
     public uint ItemId { get; set; }
-    public uint ItemTriggerPhase { get; set; }
+    // Signed: item_trigger_phase can be -1 ("no override phase" sentinel) and is assigned straight to
+    // Doodad.OverridePhase (int). Reading unsigned wrapped -1 to 4294967295 in the stored field/logs.
+    public int ItemTriggerPhase { get; set; }
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
@@ -26,7 +28,7 @@ public class DoodadFuncConditionalUse : DoodadFuncTemplate
 
         if (caster is Character character2 && character2.Inventory.GetItemsCount(ItemId) > 0)
         {
-            owner.OverridePhase = (int)ItemTriggerPhase;
+            owner.OverridePhase = ItemTriggerPhase;
             owner.ToNextPhase = true;
             return;
         }

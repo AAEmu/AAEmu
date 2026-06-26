@@ -10,5 +10,8 @@ public enum BuffAttribute
     AuraRadius = 6,
     GlidingMoveSpeedSlow = 7,
     GlidingMoveSpeedNormal = 8,
-    GlidingMoveSpeedFast = 9
+    GlidingMoveSpeedFast = 9,
+    // 10.0.2.13: enum_buff_attributes adds 10=heal, 11=cooldown_skill
+    Heal = 10,
+    CooldownSkill = 11
 }

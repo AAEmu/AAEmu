@@ -10,7 +10,7 @@ public class RecoverExpEffect : EffectTemplate
     public bool NeedLaborPower { get; set; }
 
     public bool NeedPriest { get; set; }
-    // TODO 1.2 // public bool Penaltied { get; set; }
+    public bool Penaltied { get; set; } // 10.0.2.13: recover_exp_effects.penaltied present again
 
     public override bool OnActionTime => false;
 

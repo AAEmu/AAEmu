@@ -8,12 +8,11 @@ public class CSRequestUIDataPacket() : GamePacket(CSOffsets.CSRequestUIDataPacke
 {
     public override void Read(PacketStream stream)
     {
-        var uiDataType = stream.ReadUInt16();
-        var id = stream.ReadUInt32();
-
-        if (Connection.Characters.TryGetValue(id, out var value))
-            Connection.SendPacket(
-                new SCResponseUIDataPacket(id, uiDataType, value.GetOption(uiDataType))
-            );
+        // The 1.2 SCResponseUIData (0x246) body layout corrupts the 10.0.2.13 client's recv
+        // ("not enough buffer for size" + SC count desync). UI data (saved layouts/keybinds) is not
+        // needed at char-select, so don't respond until SCResponseUIData is rebuilt for 10.0.2.13.
+        _ = stream.ReadUInt16(); // uiDataType
+        _ = stream.ReadUInt32(); // id
+        Logger.Debug("RequestUIData (no reply — SCResponseUIData not yet 10.0.2.13)");
     }
 }

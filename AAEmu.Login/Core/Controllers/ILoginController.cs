@@ -21,6 +21,16 @@ public interface ILoginController
     Task<LoginResult> Login(string username, Password password, IPAddress ip, CancellationToken cancellationToken);
 
     /// <summary>
+    /// Token-trusted authentication (web/launcher auth). Looks up the account by username and
+    /// authenticates it WITHOUT verifying a password — the launcher session token is trusted upstream.
+    /// Creates the account if it does not exist. Denies only when the username is invalid or banned.
+    /// </summary>
+    /// <param name="username">The account name (extracted from the launcher passport).</param>
+    /// <param name="ip">The client IP address for recording.</param>
+    /// <param name="cancellationToken">Cancellation token.</param>
+    Task<LoginResult> LoginTrusted(string username, IPAddress ip, CancellationToken cancellationToken);
+
+    /// <summary>
     /// Retrieves the Korea challenge-response authentication material for the given username.
     /// Used by <see cref="AAEmu.Login.Core.Authentication.KoreaAuthFlow"/> to seed the V2 challenge.
     /// </summary>

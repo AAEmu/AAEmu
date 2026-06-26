@@ -89,7 +89,7 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
                         GateExists = reader.GetBoolean("gate_exists", true),
                         Hp = reader.GetInt32("hp"),
                         RepairCost = reader.GetUInt32("repair_cost"),
-                        GardenRadius = reader.GetFloat("garden_radius"),
+                        // 10.0.2.13: garden_radius removed
                         Family = reader.GetString("family"),
                         TaxationId = reader.GetUInt32("taxation_id"),
                         GuardTowerSettingId = reader.GetUInt32("guard_tower_setting_id", 0),
@@ -112,8 +112,8 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
                     var templateBindings = binding.Find(x => x.TemplateId.Contains(template.Id));
                     using (var command2 = connection.CreateCommand())
                     {
-                        command2.CommandText = "SELECT * FROM housing_binding_doodads WHERE owner_id=@owner_id AND owner_type='Housing'";
-                        command2.Parameters.AddWithValue("owner_id", template.Id);
+                        command2.CommandText = "SELECT * FROM housing_binding_doodads WHERE housing_id=@housing_id";
+                        command2.Parameters.AddWithValue("housing_id", template.Id);
                         command2.Prepare();
                         using (var reader2 = new SQLiteWrapperReader(command2.ExecuteReader()))
                         {
@@ -184,19 +184,19 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
                     {
                         Id = reader.GetUInt32("id"),
                         Name = reader.GetString("name"),
-                        AllowOnFloor = reader.GetBoolean("allow_on_floor", true),
-                        AllowOnWall = reader.GetBoolean("allow_on_wall", true),
-                        AllowOnCeiling = reader.GetBoolean("allow_on_ceiling", true),
+                        AllowOnFloor = reader.GetBoolean("allow_on_floor"),
+                        AllowOnWall = reader.GetBoolean("allow_on_wall"),
+                        AllowOnCeiling = reader.GetBoolean("allow_on_ceiling"),
                         DoodadId = reader.GetUInt32("doodad_id"),
-                        AllowPivotOnGarden = reader.GetBoolean("allow_pivot_on_garden", true),
+                        // 10.0.2.13: allow_pivot_on_garden removed
                         ActabilityGroupId =
                             !reader.IsDBNull("actability_group_id") ? reader.GetUInt32("actability_group_id") : 0,
                         ActabilityUp = !reader.IsDBNull("actability_up") ? reader.GetUInt32("actability_up") : 0,
                         DecoActAbilityGroupId =
                             !reader.IsDBNull("deco_actability_group_id")
                                 ? reader.GetUInt32("deco_actability_group_id")
-                                : 0,
-                        AllowMeshOnGarden = reader.GetBoolean("allow_mesh_on_garden", true)
+                                : 0
+                        // 10.0.2.13: allow_mesh_on_garden removed
                     };
 
                     _housingDecorations.Add(template.Id, template);
@@ -234,7 +234,7 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
             template.Taxation = TaxationsManager.Instance.taxations.GetValueOrDefault(template.TaxationId);
         }
     }
-    
+
     private List<HousingBindingTemplate> LoadHousingBindings(string dataFolder)
     {
         Logger.Info("Loading Housing Templates...");
