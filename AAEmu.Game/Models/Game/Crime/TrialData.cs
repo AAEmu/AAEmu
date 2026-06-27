@@ -96,7 +96,7 @@ public class TrialData
             var thisEventScore = 0;
             switch (crimeEvent.CrimeKind)
             {
-                case CrimeKind.Unknown1:
+                case CrimeKind.None:
                     thisEventScore = 0;
                     break;
                 case CrimeKind.Assault:

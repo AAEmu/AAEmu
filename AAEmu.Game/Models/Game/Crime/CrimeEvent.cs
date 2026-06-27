@@ -12,7 +12,7 @@ public class CrimeEvent
     /// Source template of the stolen doodad
     /// </summary>
     public uint DoodadTemplate { get; set; }
-    public CrimeKind CrimeKind { get; set; } = CrimeKind.None;
+    public CrimeKind CrimeKind { get; set; } = CrimeKind.Invalid;
     public uint ZoneKey { get; set; }
     public Vector3 Position { get; set; } = Vector3.Zero;
     public DateTime CrimeTime { get; set; } = DateTime.UtcNow;

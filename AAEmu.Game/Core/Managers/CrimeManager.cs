@@ -182,7 +182,7 @@ public class CrimeManager() : Singleton<CrimeManager>, ICrimeManager
             SusManager.Instance.LogActivity(SusManager.CategoryCheating, reporter, $"Reported own crime at {evidence.Transform.World.Position} (type={evidence.TemplateId}");
             return null;
         }
-        var crimeType = CrimeKind.None;
+        var crimeType = CrimeKind.Invalid;
         short crimeValue = 0; // Not sure if needed to be known here
         var nextPhase = 0;
         foreach (var evidenceCurrentFunc in evidence.CurrentFuncs)
