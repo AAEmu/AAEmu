@@ -34,8 +34,11 @@ public enum BuffConstants : uint
     TaxProtection = 3554, // Tax Protection
     Wanted = 3710, // CrimePoint >= 50
     Contemptuous = 4832, // Pirate
+    SuspectedUser = 4862,
+    PrimeSuspect = 4863,
     OwnersMark = 4867,  // Vehicle ownership buff, prevents non-owners from attaching to the vehicle.
     EquipDualwield = 4899,
+    TransformingIntoPrimeSuspect = 4947,
     CourtHouse = 4970,
     SearchSchoolOfFish = 5736,
     ScoreMemorized = 6010,
@@ -52,4 +55,5 @@ public enum BuffConstants : uint
     TagOverburdened = 831, // SustainBuff - Carrying heavy objects reduces movement speed and prevents teleporting or gliding.
     TagWanted = 894,
     TagOffender = 1008,
+    TagSuspects = 1035, // All Bot suspect related buffs have this tag once over the threshold
 }

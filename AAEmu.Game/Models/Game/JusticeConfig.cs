@@ -12,6 +12,7 @@ public class JusticeConfig
     public bool AllowJuryEscape { get; set; } = true;
     public List<CourtRoomConfig> CourtRooms { get; init; } = [];
     public List<JailConfig> Jails { get; init; } = [];
+    public int BotReportPrimeSuspectCount { get; set; } = 5;
 }
 
 public class CourtRoomConfig

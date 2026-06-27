@@ -6,11 +6,13 @@ using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.Crime;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
 using MySql.Data.MySqlClient;
@@ -28,6 +30,7 @@ public class CrimeManager() : Singleton<CrimeManager>, ICrimeManager
     // ReSharper disable once CollectionNeverUpdated.Local
     private List<ulong> DeletedEventIds { get; } = []; // Later needed for trial and evidence tempering skills
     private List<ulong> UpdatedEventIds { get; } = [];
+    private Dictionary<uint,HashSet<uint>> ReportedSuspects { get; } = [];
 
     /// <summary>
     /// Gets a list of evidence reports for this player. 
@@ -372,5 +375,60 @@ public class CrimeManager() : Singleton<CrimeManager>, ICrimeManager
     {
         if (CrimeEvents.Remove(crimeEvent.Id, out var removed))
             DeletedEventIds.Add(removed.Id);
+    }
+
+    /// <summary>
+    /// Handle bot report skill
+    /// </summary>
+    /// <param name="bot"></param>
+    /// <param name="reporter"></param>
+    /// <returns>True if report was successfull</returns>
+    public bool ReportBot(Character bot, Character reporter)
+    {
+        if (!ReportedSuspects.TryGetValue(bot.Id, out var reportedSuspectList))
+        {
+            reportedSuspectList = [];
+            ReportedSuspects.TryAdd(bot.Id, reportedSuspectList);
+        }
+
+        if (reportedSuspectList.Add(reporter.Id))
+        {
+            // Add sus buff
+            if (!bot.Buffs.CheckBuff((uint)BuffConstants.SuspectedUser))
+            {
+                bot.Buffs.AddBuff((uint)BuffConstants.SuspectedUser, reporter);
+            }
+
+            // If enough reports, add prime sus buff
+            if (reportedSuspectList.Count >= AppConfiguration.Instance.Justice.BotReportPrimeSuspectCount)
+            {
+                if (!bot.Buffs.CheckBuffTag((uint)BuffConstants.TagSuspects))
+                {
+                    bot.Buffs.AddBuff((uint)BuffConstants.TransformingIntoPrimeSuspect, reporter);
+                }
+            }
+            return true;
+        }
+
+        return false;
+    }
+
+    public bool ReportBotExpired(Character bot)
+    {
+        if (!ReportedSuspects.TryGetValue(bot.Id, out var reportedSuspectList))
+        {
+            return true; // Does not have a report list
+        }
+
+        // Check if prime suspect
+        if (bot.Buffs.CheckBuffTag((uint)BuffConstants.TagSuspects))
+        {
+            bot.Buffs.RemoveBuffs(BuffKind.Bad, 10, (uint)BuffConstants.TagSuspects);
+            reportedSuspectList.Clear();
+            return true;
+        }
+
+        // No buffs found
+        return false;
     }
 }
