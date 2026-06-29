@@ -293,14 +293,19 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
             { "SpecialEffect", [] },
             { "SkillController", [] }, // missing from the effect table
             { "SpawnFishEffect", [] }, // missing from the effect table
-            { "ResetAoeDiminishingEffect", [] } // missing from the effect table
+            { "ResetAoeDiminishingEffect", [] }, // missing from the effect table
+            // v10 effect types loaded below from their compact.sqlite3 tables. WorldMessage/PlayLog apply for
+            // real; CombatResource/ExtendCharge/SkillMap/CharTransform load their data with the behavior left
+            // as a precise TODO (they depend on systems not yet modeled server-side).
+            { "WorldMessageEffect", [] },
+            { "PlayLogEffect", [] },
+            { "CombatResourceEffect", [] },
+            { "ExtendChargeEffect", [] },
+            { "SkillMapEffect", [] },
+            { "CharTransformEffect", [] }
         };
 
         _buffs = [];
-        // TODO 
-        /*
-            _effects.Add("PlayLogEffect", new Dictionary<uint, EffectTemplate>()); // missing from the effect table
-        */
 
         _buffTags = [];
         _taggedBuffs = [];
@@ -1017,6 +1022,153 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     {
                         var template = new FlyingStateChangeEffect { Id = reader.GetUInt32("id", 0), FlyingState = reader.GetBoolean("flying_state", true) };
                         _effects["FlyingStateChangeEffect"][template.Id] = template;
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM world_message_effects";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new WorldMessageEffect
+                        {
+                            Id = reader.GetUInt32("id", 0),
+                            ZoneGroupOnly = reader.GetBoolean("zone_group_only", false),
+                            Message = reader.GetString("message", ""),
+                            ZoneGroupWarState = reader.GetBoolean("zone_group_war_state", false),
+                            FactionScopeId = reader.GetInt32("faction_scope_id", 0),
+                            KillStreakCount = reader.GetInt32("kill_streak_count", 0),
+                            KillHero = reader.GetBoolean("kill_hero", false),
+                            IconKey = reader.GetString("icon_key", ""),
+                            ChatMsg = reader.GetBoolean("chat_msg", false),
+                            NameWithForeignWorld = reader.GetBoolean("name_with_foreign_world", false)
+                        };
+                        _effects["WorldMessageEffect"][template.Id] = template;
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM play_log_effects";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new PlayLogEffect
+                        {
+                            Id = reader.GetUInt32("id", 0),
+                            Message = reader.GetString("message", "")
+                        };
+                        _effects["PlayLogEffect"][template.Id] = template;
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM combat_resource_effects";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new CombatResourceEffect
+                        {
+                            Id = reader.GetUInt32("id", 0),
+                            MinCombatResource = reader.GetInt32("min_combat_resource", 0),
+                            MaxCombatResource = reader.GetInt32("max_combat_resource", 0),
+                            CombatResourceId = reader.GetInt32("combat_resource_id", 0),
+                            Chance = reader.GetInt32("chance", 0),
+                            ResetRemainTime = reader.GetBoolean("reset_remain_time", false)
+                        };
+                        _effects["CombatResourceEffect"][template.Id] = template;
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM extend_charge_effects";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new ExtendChargeEffect
+                        {
+                            Id = reader.GetUInt32("id", 0),
+                            DamageTypeId = reader.GetInt32("damage_type_id", 0),
+                            UseFixedCharge = reader.GetBoolean("use_fixed_charge", false),
+                            FixedMin = reader.GetInt32("fixed_min", 0),
+                            FixedMax = reader.GetInt32("fixed_max", 0),
+                            UsePercentCharge = reader.GetBoolean("use_percent_charge", false),
+                            PercentMin = reader.GetInt32("percent_min", 0),
+                            PercentMax = reader.GetInt32("percent_max", 0),
+                            UseLevelCharge = reader.GetBoolean("use_level_charge", false),
+                            LevelMd = reader.GetFloat("level_md", 0f),
+                            LevelVaStart = reader.GetInt32("level_va_start", 0),
+                            LevelVaEnd = reader.GetInt32("level_va_end", 0),
+                            UseDpsCharge = reader.GetBoolean("use_dps_charge", false),
+                            DpsIncMultiplier = reader.GetFloat("dps_inc_multiplier", 0f),
+                            UseMainhandWeapon = reader.GetBoolean("use_mainhand_weapon", false),
+                            UseOffhandWeapon = reader.GetBoolean("use_offhand_weapon", false),
+                            UseRangedWeapon = reader.GetBoolean("use_ranged_weapon", false),
+                            DpsMultiplier = reader.GetFloat("dps_multiplier", 0f),
+                            ChargeBuffId = reader.GetInt32("charge_buff_id", 0),
+                            PercentDamageResourceTypeId = reader.GetInt32("percent_damage_resource_type_id", 0),
+                            UseSourceHealth = reader.GetBoolean("use_source_health", false)
+                        };
+                        _effects["ExtendChargeEffect"][template.Id] = template;
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM skill_map_effects";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new SkillMapEffect
+                        {
+                            Id = reader.GetUInt32("id", 0),
+                            ViewTime = reader.GetInt32("view_time", 0),
+                            UseFactionColor = reader.GetBoolean("use_faction_color", false),
+                            UseUiEffect = reader.GetBoolean("use_ui_effect", false),
+                            Radius = reader.GetInt32("radius", 0),
+                            TexturePath = reader.GetString("texture_path", ""),
+                            TextureKey = reader.GetString("texture_key", ""),
+                            TextureColorKey = reader.GetString("texture_color_key", "")
+                        };
+                        _effects["SkillMapEffect"][template.Id] = template;
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM char_transform_effects";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new CharTransformEffect
+                        {
+                            Id = reader.GetUInt32("id", 0),
+                            CharRaceId = reader.GetInt32("char_race_id", 0),
+                            CharGenderId = reader.GetInt32("char_gender_id", 0),
+                            IsTransform = reader.GetBoolean("is_transform", false)
+                        };
+                        _effects["CharTransformEffect"][template.Id] = template;
                     }
                 }
             }

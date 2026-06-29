@@ -15,9 +15,10 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
 {
     public override void Read(PacketStream stream)
     {
-        var characterId = stream.ReadUInt32();
-        _ = stream.ReadBoolean(); // gm
-        stream.ReadByte();
+        // SelectCharacterPacket body: "id" group { charId = 8-byte i64 } then "exit" bool.
+        // Char ids fit in u32, so cast down.
+        var characterId = (uint)stream.ReadUInt64();
+        _ = stream.ReadBoolean(); // exit (return-to-character-select flag)
 
         if (Connection.Characters.TryGetValue(characterId, out var character))
         {

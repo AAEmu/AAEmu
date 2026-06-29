@@ -9,7 +9,10 @@ public class SummonMate : Item
     public byte DetailLevel { get; set; }
 
     public override ItemDetailType DetailType => ItemDetailType.Mate;
-    public override uint DetailBytesLength => 6;
+    // 10.0.2.13 Mate detail body is 20 bytes (Item_SerializeDetail case 3: total 21).
+    // The body is an opaque blob on the client wire; only exp + level below are interpreted.
+    // TODO(v10): decode the trailing bytes from a live capture.
+    public override uint DetailBytesLength => 20;
 
     public SummonMate()
     {
@@ -26,6 +29,7 @@ public class SummonMate : Item
         DetailMateExp = stream.ReadInt32(); // exp
         _ = stream.ReadByte();
         DetailLevel = stream.ReadByte(); // level
+        _ = stream.ReadBytes((int)DetailBytesLength - 6); // opaque 10.0.2.13 tail (see DetailBytesLength)
     }
 
     public override void WriteDetails(PacketStream stream)
@@ -33,6 +37,7 @@ public class SummonMate : Item
         stream.Write(DetailMateExp); // exp
         stream.Write((byte)0);
         stream.Write(DetailLevel); // level
+        stream.Write(new byte[DetailBytesLength - 6]); // opaque 10.0.2.13 tail (see DetailBytesLength)
     }
 
     public override void OnManuallyDestroyingItem()

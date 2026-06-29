@@ -65,6 +65,7 @@ public static class SCOffsets
     public const ushort SCCancelCharacterDeleteResponsePacket = 0x67; // 10.0.2.13 (10.0.2.13 name: CancelCharacterDeleteResponsePacket)
     public const ushort SCCharacterCreationFailedPacket = 0x68; // 10.0.2.13 (10.0.2.13 name: CharacterCreationFailedPacket)
     public const ushort SCCharacterListPacket = 0x69;
+    public const ushort SCCheckRaceCongestionResponsePacket = 0x6A;
     public const ushort SCRaceCongestionPacket = 0x6B;
     public const ushort SCCharacterStatePacket = 0x6C; // 10.0.2.13 (10.0.2.13 name: CharacterStatePacket)
     public const ushort SCNotifyResurrectionPacket = 0x6D; // 10.0.2.13
@@ -90,7 +91,7 @@ public static class SCOffsets
     public const ushort SCDeleteBlockedUserPacket = 0x81; // 10.0.2.13
     public const ushort SCLoginCharInfoHousePacket = 0x57;
     public const ushort SCCharBriefPacket = 0x82; // 10.0.2.13
-    public const ushort SCPlaytimePacket = 0x59;
+    public const ushort SCPlaytimePacket = 0x83;  // 10.0.2.13
     public const ushort SCCharacterRenamedPacket = 0x5a;
     public const ushort SCCharacterPortalsPacket = 0x5b;
     public const ushort SCCharacterReturnDistrictsPacket = 0x5c;
@@ -136,7 +137,7 @@ public static class SCOffsets
     public const ushort SCCvFCombatRelationshipPacket = 0xB3; // 10.0.2.13
     public const ushort SCFvFCombatRelationshipPacket = 0xB4; // 10.0.2.13
     public const ushort SCCombatFirstHitPacket = 0xB5; // 10.0.2.13
-    public const ushort SCDumpCombatStatPacket = 0x8a;
+    public const ushort SCDumpCombatStatPacket = 0xB6;  // 10.0.2.13
     public const ushort SCDuelChallengedPacket = 0xB7; // 10.0.2.13
     public const ushort SCDuelStartCountdownPacket = 0xB8; // 10.0.2.13
     public const ushort SCDuelStartedPacket = 0xB9; // 10.0.2.13
@@ -170,9 +171,9 @@ public static class SCOffsets
     public const ushort SCBombUpdatedPacket = 0xE0; // 10.0.2.13
     public const ushort SCCombatTextPacket = 0xE1; // 10.0.2.13
     public const ushort SCSkillCooldownResetPacket = 0xE2; // 10.0.2.13
-    public const ushort SCPlotEventPacket = 0xae;
+    public const ushort SCPlotEventPacket = 0xE3;  // 10.0.2.13
     public const ushort SCPlotEndedPacket = 0xE4; // 10.0.2.13
-    public const ushort SCPlotProcessingTimePacket = 0xb0;
+    public const ushort SCPlotProcessingTimePacket = 0xE5;  // 10.0.2.13
     public const ushort SCPlotCastingStoppedPacket = 0xE6; // 10.0.2.13
     public const ushort SCPlotChannelingStoppedPacket = 0xE7; // 10.0.2.13
     public const ushort SCEnvDamagePacket = 0xE8; // 10.0.2.13
@@ -235,7 +236,7 @@ public static class SCOffsets
     public const ushort SCConflictZoneHonorPointSumPacket = 0x12E; // 10.0.2.13
     public const ushort SCTimeOfDayPacket = 0x130; // 10.0.2.13 (10.0.2.13 name: TimeOfDayPacket)
     public const ushort SCDetailedTimeOfDayPacket = 0x131; // 10.0.2.13 (10.0.2.13 name: DetailedTimeOfDayPacket)
-    public const ushort SCQuestsPacket = 0xf2;
+    public const ushort SCQuestsPacket = 0x132; // 10.0.2.13 SC_PACKET_QUESTS (306)
     public const ushort SCCompletedQuestsPacket = 0x133; // 10.0.2.13
     public const ushort SCCraftItemUnlockPacket = 0x134; // 10.0.2.13
     public const ushort SCLootableStatePacket = 0x135; // 10.0.2.13
@@ -268,7 +269,7 @@ public static class SCOffsets
     public const ushort SCDoodadsRemovedPacket = 0x155; // 10.0.2.13
     public const ushort SCDoodadOriginatorPacket = 0x156; // 10.0.2.13
     public const ushort SCMailFailedPacket = 0x15A; // 10.0.2.13
-    public const ushort SCCountUnreadMailPacket = 0x116;
+    public const ushort SCCountUnreadMailPacket = 0x15B; // 10.0.2.13 SC_PACKET_COUNT_UNREAD_MAIL (347)
     public const ushort SCMailSentPacket = 0x15C; // 10.0.2.13
     public const ushort SCGotMailPacket = 0x15D; // 10.0.2.13
     public const ushort SCMailListPacket = 0x15E; // 10.0.2.13
@@ -282,7 +283,7 @@ public static class SCOffsets
     public const ushort SCMailReturnedPacket = 0x165; // 10.0.2.13
     public const ushort SCMailStatusUpdatedPacket = 0x166; // 10.0.2.13
     public const ushort SCMailRemovedPacket = 0x167; // 10.0.2.13
-    public const ushort SCMineAmountPacket = 0x124;
+    public const ushort SCMineAmountPacket = 0x169;  // 10.0.2.13
     public const ushort SCMateSpawnedPacket = 0x16A; // 10.0.2.13
     public const ushort SCMateEquipmentChangedPacket = 0x16B; // 10.0.2.13
     public const ushort SCMateEquipmentExpiredPacket = 0x16C; // 10.0.2.13
@@ -311,8 +312,8 @@ public static class SCOffsets
     public const ushort SCGimmickResetJointsPacket = 0x185; // 10.0.2.13
     public const ushort SCGimmickGraspedPacket = 0x186; // 10.0.2.13
     public const ushort SCWorldRayCastingResultPacket = 0x187; // 10.0.2.13
-    public const ushort SCWorldAimPointPacket = 0x143;
-    public const ushort SCWorldAABBPacket = 0x144;
+    public const ushort SCWorldAimPointPacket = 0x188;  // 10.0.2.13
+    public const ushort SCWorldAABBPacket = 0x189;  // 10.0.2.13
     public const ushort SCUnkPacket5 = 0x145;
     public const ushort SCQuestContextFailedPacket = 0x18B; // 10.0.2.13
     public const ushort SCQuestContextStartedPacket = 0x18C; // 10.0.2.13
@@ -349,7 +350,7 @@ public static class SCOffsets
     public const ushort SCTradeOkUpdatePacket = 0x1AF; // 10.0.2.13
     public const ushort SCTradeLockUpdatePacket = 0x1B0; // 10.0.2.13
     public const ushort SCTradeMadePacket = 0x1B1; // 10.0.2.13
-    public const ushort SCTowerDefListPacket = 0x16b;
+    public const ushort SCTowerDefListPacket = 0x1B2;  // 10.0.2.13
     public const ushort SCTowerDefStartPacket = 0x1B3; // 10.0.2.13
     public const ushort SCTowerDefEndPacket = 0x1B4; // 10.0.2.13
     public const ushort SCTowerDefWaveStartPacket = 0x1B5; // 10.0.2.13
@@ -395,12 +396,12 @@ public static class SCOffsets
     public const ushort SCInstantGameUnkPacket = 0x196;
     public const ushort SCLoadInstancePacket = 0x1EA; // 10.0.2.13
     public const ushort SCProcessingInstancePacket = 0x1EB; // 10.0.2.13
-    public const ushort SCGmCommandPacket = 0x199;
+    public const ushort SCGmCommandPacket = 0x1EF;  // 10.0.2.13
     public const ushort SCGmDumpInventoryPacket = 0x1F0; // 10.0.2.13
     public const ushort SCGmDumpEquipmentPacket = 0x1F1; // 10.0.2.13
     public const ushort SCGmDumpQuestsPacket = 0x19c;
-    public const ushort SCGmDumpCompletedQuestsPacket = 0x19d;
-    public const ushort SCGmDumpNpcPacket = 0x19e;
+    public const ushort SCGmDumpCompletedQuestsPacket = 0x1F3;  // 10.0.2.13
+    public const ushort SCGmDumpNpcPacket = 0x1F4;  // 10.0.2.13
     public const ushort SCUnkPacket8 = 0x19f;
     public const ushort SCKickedPacket = 0x209; // 10.0.2.13
     public const ushort SCAccountWarnedPacket = 0x20A; // 10.0.2.13
@@ -415,7 +416,7 @@ public static class SCOffsets
     public const ushort SCShipyardStatePacket = 0x21A; // 10.0.2.13
     public const ushort SCSlaveStatePacket = 0x21B; // 10.0.2.13
     public const ushort SCMateStatePacket = 0x21C; // 10.0.2.13
-    public const ushort SCDumpCombatInfoPacket = 0x1ad;
+    public const ushort SCDumpCombatInfoPacket = 0x21D;  // 10.0.2.13
     public const ushort SCUccCheckecPacket = 0x21E; // 10.0.2.13
     public const ushort SCShowQuestAreaPacket = 0x21F; // 10.0.2.13
     public const ushort SCShowCommonFarmPacket = 0x220; // 10.0.2.13
@@ -448,7 +449,7 @@ public static class SCOffsets
     public const ushort SCUnitVisualOptionsPacket = 0x247; // 10.0.2.13
     public const ushort SCNotifyUIMessagePacket = 0x249; // 10.0.2.13
     public const ushort SCRefreshInCharacterListPacket = 0x1cd;
-    public const ushort SCResultRestrictCheckPacket = 0x1ce;
+    public const ushort SCResultRestrictCheckPacket = 0x24A;
     public const ushort SCICSMenuListPacket = 0x1cf;
     public const ushort SCICSGoodListPacket = 0x1d0;
     public const ushort SCICSGoodDetailPacket = 0x1d1;
@@ -519,5 +520,11 @@ public static class SCOffsets
     public const ushort SCUnkPacket27 = 0x214;
     public const ushort SCAccountAttributeConfigPacket = 0x2A0;
     public const ushort SCIdleKickPacket = 0x2A1; // 10.0.2.13
+    public const ushort SCWorldRestrictOwnerChangePacket = 0x2A2; // 10.0.2.13 SC_PACKET_WORLD_RESTRICT_OWNER_CHANGE (674)
     public const ushort SCLevelRestrictionConfigPacket = 0x2A3;
+    public const ushort SCTaxItemConfigPacket = 0x2A4; // 10.0.2.13 SC_PACKET_TAX_ITEM_CONFIG (676)
+    public const ushort SCInGameShopConfigPacket = 0x2BB; // 10.0.2.13 SC_PACKET_INGAME_SHOP_CONFIG (699)
+    public const ushort SCGameRuleConfigPacket = 0x2BC; // 10.0.2.13 SC_PACKET_GAME_RULE_CONFIG (700)
+    public const ushort SCHousingAreaConfigPacket = 0x2BD; // 10.0.2.13 SC_PACKET_HOUSING_AREA_CONFIG (701)
+    public const ushort SCSiegeZoneConfigPacket = 0x2BE; // 10.0.2.13 SC_PACKET_SIEGE_ZONE_CONFIG (702)
 }

@@ -143,6 +143,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["npc_template"] =
                 FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId),
                 ["npc_kind"] =
@@ -172,6 +173,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["npc_template"] =
                 FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId),
                 ["npc_kind"] =
@@ -200,6 +202,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["npc_template"] =
                 FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId),
                 ["npc_kind"] =
@@ -228,6 +231,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["npc_template"] =
                 FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId),
                 ["npc_kind"] =
@@ -256,6 +260,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["npc_template"] =
                 FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId),
                 ["npc_kind"] =
@@ -284,6 +289,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["npc_template"] =
                 FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId),
                 ["npc_kind"] =
@@ -312,6 +318,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["str"] = Str,
                 ["dex"] = Dex,
                 ["sta"] = Sta,
@@ -346,6 +353,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["str"] = Str,
                 ["dex"] = Dex,
                 ["sta"] = Sta,
@@ -382,6 +390,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["str"] = Str,
                 ["dex"] = Dex,
                 ["sta"] = Sta,
@@ -416,6 +425,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["str"] = Str,
                 ["dex"] = Dex,
                 ["sta"] = Sta,
@@ -450,6 +460,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["str"] = Str,
                 ["dex"] = Dex,
                 ["sta"] = Sta,
@@ -486,6 +497,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["str"] = Str,
                 ["dex"] = Dex,
                 ["sta"] = Sta,
@@ -520,6 +532,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["str"] = Str,
                 ["dex"] = Dex,
                 ["sta"] = Sta,
@@ -569,6 +582,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["str"] = Str,
                 ["dex"] = Dex,
                 ["sta"] = Sta,
@@ -645,6 +659,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["str"] = Str,
                 ["dex"] = Dex,
                 ["sta"] = Sta,
@@ -701,6 +716,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["str"] = Str,
                 ["dex"] = Dex,
                 ["sta"] = Sta,
@@ -736,6 +752,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["str"] = Str,
                 ["dex"] = Dex,
                 ["sta"] = Sta,
@@ -770,6 +787,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["str"] = Str,
                 ["dex"] = Dex,
                 ["sta"] = Sta,
@@ -805,6 +823,7 @@ public partial class Npc : Unit
             var parameters = new Dictionary<string, double>
             {
                 ["level"] = Level,
+                ["heir_level"] = 0, // NPCs have no heir level
                 ["str"] = Str,
                 ["dex"] = Dex,
                 ["sta"] = Sta,

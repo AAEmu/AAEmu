@@ -8,8 +8,10 @@ public class CSRestrictCheckPacket() : GamePacket(CSOffsets.CSRestrictCheckPacke
 {
     public override void Read(PacketStream stream)
     {
-        var characterId = stream.ReadUInt32();
-        var code = stream.ReadByte();
-        Connection.SendPacket(new SCResultRestrictCheckPacket(characterId, code, 0));
+        // 10.0.2.13 CSRestrictCheck: restrictType i64 ("type") + restrictCode u8.
+        var restrictType = stream.ReadInt64();
+        var restrictCode = stream.ReadByte();
+        // result 0 = not restricted -> the client proceeds with enter-world.
+        Connection.SendPacket(new SCResultRestrictCheckPacket(restrictType, restrictCode, 0));
     }
 }

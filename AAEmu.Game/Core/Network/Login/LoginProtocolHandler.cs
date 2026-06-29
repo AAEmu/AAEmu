@@ -41,6 +41,12 @@ public class LoginProtocolHandler : BaseProtocolHandler
             _loadTask = null;
         }
 
+        // A disconnect during an intentional shutdown (Stop already cleared IsRunning) must not reconnect:
+        // the async disconnect callback runs after the DI IServiceProvider behind AppConfiguration.Instance
+        // is disposed, so Start() would throw ObjectDisposedException.
+        if (!LoginNetwork.Instance.IsRunning)
+            return;
+
         // TODO Hard Restart
         LoginNetwork.Instance.Stop();
         LoginNetwork.Instance.Start();

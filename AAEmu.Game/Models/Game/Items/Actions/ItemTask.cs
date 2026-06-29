@@ -5,10 +5,13 @@ namespace AAEmu.Game.Models.Game.Items.Actions;
 public abstract class ItemTask : PacketMarshaler
 {
     protected ItemAction _type;
+    // Transaction-log type byte written right after the action id (ItemTask_Serialize "tLogt").
+    protected byte _tLogt;
 
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write((byte)_type);
+        stream.Write(_tLogt);
         return stream;
     }
 
@@ -16,29 +19,12 @@ public abstract class ItemTask : PacketMarshaler
     {
     }
 
+    // Item payload for full-item tasks. v10 serializes via the canonical Item writer
+    // (Item_Serialize): header + inline variable detail (no 128-byte padding) +
+    // the chargeUseSkillTime trailer. The slot (type/index) is written by the owning task before this call.
     protected virtual void WriteDetails(PacketStream stream, Item item)
     {
         ArgumentNullException.ThrowIfNull(item);
-
-        stream.Write(item.TemplateId);      // type
-        stream.Write(item.Id);              // id
-        stream.Write(item.Grade);           // type
-        stream.Write((byte)item.ItemFlags); // bounded
-        stream.Write(item.Count);           // stack
-
-        var details = new PacketStream();
-        details.Write((byte)item.DetailType);
-        item.WriteDetails(details);
-
-        stream.Write((short)128);        // length details
-        stream.Write(details, false);
-        stream.Write(new byte[128 - details.Count]);
-
-        stream.Write(item.CreateTime);   // creationTime
-        stream.Write(item.LifespanMins); // lifespanMins
-        stream.Write(item.MadeUnitId);   // type
-        stream.Write(item.WorldId);      // worldId
-        stream.Write(item.UnsecureTime); // unsecureDateTime
-        stream.Write(item.UnpackTime);   // unpackDateTime
+        item.Write(stream);
     }
 }

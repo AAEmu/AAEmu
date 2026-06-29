@@ -38,6 +38,7 @@ public static class CSOffsets
     public const ushort CSEditCharacterPacket = 0x04A;
     public const ushort CSDeleteCharacterPacket = 0x04B;
     public const ushort CSSelectCharacterPacket = 0x04C;
+    public const ushort CSCheckRaceCongestionPacket = 0x04D;
     public const ushort CSSpawnCharacterPacket = 0x04E;
     public const ushort CSCancelCharacterDeletePacket = 0x04F;
     public const ushort CSNotifyInGamePacket = 0x051;
@@ -234,7 +235,7 @@ public static class CSOffsets
     public const ushort CSChangeAppellationPacket = 0x14C;
     public const ushort CSCreateShipyardPacket = 0x14E;
     public const ushort CSRestartMainQuestPacket = 0x14F;
-    public const ushort CSSetLpManageCharacterPacket = 0xFFF;
+    public const ushort CSSetLpManageCharacterPacket = 0x150; // 10.0.2.13 CS_SET_LP_MANAGE_CHARACTER (336)
     public const ushort CSUpgradeExpertLimitPacket = 0x151;
     public const ushort CSDowngradeExpertLimitPacket = 0x152;
     public const ushort CSExpandExpertPacket = 0x153;
@@ -250,7 +251,7 @@ public static class CSOffsets
     public const ushort CSRequestUIDataPacket = 0x16D;
     public const ushort CSSaveUIDataPacket = 0x16E;
     public const ushort CSBroadcastVisualOptionPacket = 0x16F;
-    public const ushort CSRestrictCheckPacket = 0xFFF;
+    public const ushort CSRestrictCheckPacket = 0x172;
     public const ushort CSICSMenuListPacket = 0x173;
     public const ushort CSICSGoodsListPacket = 0xFFF;
     public const ushort CSICSBuyGoodPacket = 0xFFF;

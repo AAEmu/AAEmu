@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
+using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Models.Game.Units;
 
@@ -10,25 +11,18 @@ public enum UnitCustomModelType: byte
     Face = 3
 }
 
-public class FixedDecalAsset(uint assetId = 0, float assetWeight = 0) : PacketMarshaler
+// One fixed-decal slot (asset id + blend weight). In 10.0.2.13 the ids and weights are serialized in
+// separate runs (see FaceModel), so this is a plain data holder.
+public class FixedDecalAsset(uint assetId = 0, float assetWeight = 0)
 {
     public uint AssetId { get; set; } = assetId;
     public float AssetWeight { get; set; } = assetWeight;
-
-    public override void Read(PacketStream stream)
-    {
-        AssetId = stream.ReadUInt32();
-        AssetWeight = stream.ReadSingle();
-    }
-
-    public override PacketStream Write(PacketStream stream)
-    {
-        stream.Write(AssetId);
-        stream.Write(AssetWeight);
-        return stream;
-    }
 }
 
+// 10.0.2.13 face customization tier (LobbyChar_WriteAppearance T3 block).
+// Wire order: movable face-decal transform, then a pish/pisc group of the 6
+// fixed-decal asset ids, then a pish/pisc group of {diffuse, normal, eyelash} map ids, then the 6 fixed-decal
+// weights, then the normal-map weight, then the 5 colors, then the 128-byte face-maker blob.
 public class FaceModel : PacketMarshaler
 {
     public uint MovableDecalAssetId { get; set; }
@@ -54,7 +48,7 @@ public class FaceModel : PacketMarshaler
 
     public FaceModel()
     {
-        FixedDecalAsset = new FixedDecalAsset[4];
+        FixedDecalAsset = new FixedDecalAsset[6]; // 10.0.2.13 widened the fixed-decal count from 4 to 6
         for (var i = 0; i < FixedDecalAsset.Length; i++)
             FixedDecalAsset[i] = new FixedDecalAsset();
 
@@ -81,12 +75,17 @@ public class FaceModel : PacketMarshaler
         MovableDecalMoveX = stream.ReadInt16();
         MovableDecalMoveY = stream.ReadInt16();
 
-        foreach (var asset in FixedDecalAsset)
-            asset.Read(stream);
+        var decalIds = PishPiscCodec.Read(stream, 6);
+        var mapIds = PishPiscCodec.Read(stream, 3);
+        DiffuseMapId = mapIds[0];
+        NormalMapId = mapIds[1];
+        EyelashMapId = mapIds[2];
 
-        DiffuseMapId = stream.ReadUInt32();
-        NormalMapId = stream.ReadUInt32();
-        EyelashMapId = stream.ReadUInt32();
+        for (var i = 0; i < 6; i++)
+            FixedDecalAsset[i].AssetId = decalIds[i];
+        for (var i = 0; i < 6; i++)
+            FixedDecalAsset[i].AssetWeight = stream.ReadSingle();
+
         NormalMapWeight = stream.ReadSingle();
         LipColor = stream.ReadUInt32();
         LeftPupilColor = stream.ReadUInt32();
@@ -99,6 +98,7 @@ public class FaceModel : PacketMarshaler
 
     public override PacketStream Write(PacketStream stream)
     {
+        // movable face-decal transform
         stream.Write(MovableDecalAssetId);
         stream.Write(MovableDecalWeight);
         stream.Write(MovableDecalScale);
@@ -106,30 +106,59 @@ public class FaceModel : PacketMarshaler
         stream.Write(MovableDecalMoveX);
         stream.Write(MovableDecalMoveY);
 
-        foreach (var asset in FixedDecalAsset)
-            stream.Write(asset);
+        // 6 fixed-decal asset ids, then the 3 face-map ids — each as its own pish/pisc group
+        var decalIds = new uint[6];
+        for (var i = 0; i < 6; i++)
+            decalIds[i] = FixedDecalAsset[i].AssetId;
+        PishPiscCodec.Write(stream, decalIds);
+        PishPiscCodec.Write(stream, [DiffuseMapId, NormalMapId, EyelashMapId]);
 
-        stream.Write(DiffuseMapId);
-        stream.Write(NormalMapId);
-        stream.Write(EyelashMapId);
+        // 6 fixed-decal weights, then the normal-map weight
+        for (var i = 0; i < 6; i++)
+            stream.Write(FixedDecalAsset[i].AssetWeight);
         stream.Write(NormalMapWeight);
+
         stream.Write(LipColor);
         stream.Write(LeftPupilColor);
         stream.Write(RightPupilColor);
         stream.Write(EyebrowColor);
         stream.Write(DecoColor);
 
-        stream.Write(Modifier, true);
+        stream.Write(Modifier, true); // face-maker morph sliders (length-prefixed, max 128)
         return stream;
     }
 }
 
+// 10.0.2.13 appearance block (LobbyChar_WriteAppearance). A leading `ext` byte
+// (UnitCustomModelType) is a cumulative LOD gate: 0 = nothing, 1 = +hair (T1), 2 = +body (T2), >=3 = +face (T3).
+// Shared by SC_PACKET_UNIT_STATE, the character list, and the CSCreateCharacter body.
 public class UnitCustomModelParams : PacketMarshaler
 {
     private UnitCustomModelType _type;
-    private uint HairColorId { get; set; }
-    private uint SkinColorId { get; set; }
-    private uint ModelId { get; set; }
+
+    // T1 — base appearance (ext >= Hair)
+    public byte Race { get; set; }
+    public byte Gender { get; set; }
+    public long VisualRaceExpiredTime { get; set; }
+    public byte VisualRace { get; set; }
+    public byte VisualGender { get; set; }
+    public uint HairColor { get; set; }
+    public uint HornColor { get; set; }
+    public uint HairColorId { get; set; }        // wire `defaultHairColor`
+    public uint TwoToneHairColor { get; set; }
+    public float TwoToneFirstWidth { get; set; }
+    public float TwoToneSecondWidth { get; set; }
+
+    // T2 — body (ext >= Skin)
+    public uint SkinColorId { get; set; }        // wire `skinColor`
+    public uint BodyDiffuseMap { get; set; }
+    public uint BodyNormalMap { get; set; }
+    public float BodyWeight { get; set; }
+
+    // Kept for callers; the unit's model id is sent separately (unit-state modelRef), not in this block.
+    public uint ModelId { get; set; }
+
+    // T3 — face (ext >= Face)
     public FaceModel Face { get; private set; }
 
     public UnitCustomModelParams(UnitCustomModelType type = UnitCustomModelType.None)
@@ -144,6 +173,7 @@ public class UnitCustomModelParams : PacketMarshaler
             Face = new FaceModel();
         return this;
     }
+
     public UnitCustomModelParams SetModelId(uint modelId)
     {
         ModelId = modelId;
@@ -172,20 +202,35 @@ public class UnitCustomModelParams : PacketMarshaler
     {
         SetType((UnitCustomModelType)stream.ReadByte()); // ext
 
-        if (_type <= UnitCustomModelType.None)
+        if (_type < UnitCustomModelType.Hair)
             return;
 
+        // T1
+        Race = stream.ReadByte();
+        Gender = stream.ReadByte();
+        VisualRaceExpiredTime = stream.ReadInt64();
+        VisualRace = stream.ReadByte();
+        VisualGender = stream.ReadByte();
+        HairColor = stream.ReadUInt32();
+        HornColor = stream.ReadUInt32();
         HairColorId = stream.ReadUInt32();
+        TwoToneHairColor = stream.ReadUInt32();
+        TwoToneFirstWidth = stream.ReadSingle();
+        TwoToneSecondWidth = stream.ReadSingle();
 
-        if (_type <= UnitCustomModelType.Hair)
+        if (_type < UnitCustomModelType.Skin)
             return;
 
+        // T2
         SkinColorId = stream.ReadUInt32();
-        ModelId = stream.ReadUInt32();
+        BodyDiffuseMap = stream.ReadUInt32();
+        BodyNormalMap = stream.ReadUInt32();
+        BodyWeight = stream.ReadSingle();
 
-        if (_type <= UnitCustomModelType.Skin)
+        if (_type < UnitCustomModelType.Face)
             return;
 
+        // T3
         Face.Read(stream);
     }
 
@@ -195,15 +240,33 @@ public class UnitCustomModelParams : PacketMarshaler
 
         if (_type < UnitCustomModelType.Hair)
             return stream;
-        stream.Write(HairColorId);
+
+        // T1
+        stream.Write(Race);
+        stream.Write(Gender);
+        stream.Write(VisualRaceExpiredTime);
+        stream.Write(VisualRace);
+        stream.Write(VisualGender);
+        stream.Write(HairColor);
+        stream.Write(HornColor);
+        stream.Write(HairColorId);          // defaultHairColor
+        stream.Write(TwoToneHairColor);
+        stream.Write(TwoToneFirstWidth);
+        stream.Write(TwoToneSecondWidth);
 
         if (_type < UnitCustomModelType.Skin)
             return stream;
-        stream.Write(SkinColorId);
-        stream.Write(ModelId);
+
+        // T2
+        stream.Write(SkinColorId);          // skinColor
+        stream.Write(BodyDiffuseMap);
+        stream.Write(BodyNormalMap);
+        stream.Write(BodyWeight);
 
         if (_type < UnitCustomModelType.Face)
             return stream;
+
+        // T3
         stream.Write(Face);
 
         return stream;

@@ -12,7 +12,7 @@ public class CSListCharacterPacket() : GamePacket(CSOffsets.CSListCharacterPacke
         var size = stream.ReadInt32(); // TODO max size 4096
         var data = stream.ReadBytes(); // TODO or string?
 
-        Connection.SendPacket(new SCGetSlotCountPacket(0));
+        Connection.SendPacket(new SCGetSlotCountPacket(4)); // available character slots (matches the login path)
         Connection.SendPacket(
             new SCAccountInfoPacket(
                 (int)Connection.Payment.Method,

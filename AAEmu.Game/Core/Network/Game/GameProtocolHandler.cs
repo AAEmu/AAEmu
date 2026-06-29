@@ -204,10 +204,16 @@ public class GameProtocolHandler : BaseProtocolHandler
                     Type classType = null;
                     if (_packets.TryGetValue(lookupLevel, out var levelMap))
                         levelMap.TryGetValue(type, out classType);
-                    // DEBUG: log the raw C2S opcode (now incl. the decrypted level-5 opcodes — these reveal
-                    // the real 10.0.2.13 CS values to remap CSOffsets). Skip the level-2 keepalive noise.
+                    // Unmapped C2S opcodes still warrant a Warn (they need CSOffsets entries); opcodes that
+                    // already resolve to a handler drop to Trace now that the 10.0.2.13 map is in place. The
+                    // level-2 keepalive ids are skipped entirely.
                     if (level != 2 || (type != 0x012 && type != 0x013 && type != 0x015 && type != 0x016))
-                        Logger.Warn("C2S RAW opcode=0x{0:X3} level={1} -> {2}", type, level, classType?.Name ?? "UNKNOWN");
+                    {
+                        if (classType == null)
+                            Logger.Warn("C2S RAW opcode=0x{0:X3} level={1} -> UNKNOWN", type, level);
+                        else
+                            Logger.Trace("C2S RAW opcode=0x{0:X3} level={1} -> {2}", type, level, classType.Name);
+                    }
                     if (classType == null)
                     {
                         HandleUnknownPacket(connection, type, level, bodyStream);

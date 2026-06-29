@@ -171,10 +171,9 @@ public class GameConnection
                 }
             }
 
-            /*
+            // Load each character's items so the lobby / character list renders equipped gear
             foreach (var character in Characters.Values)
-                character.Inventory.Load(connection, SlotType.Equipment);
-            */
+                character.Inventory.Load(connection);
         }
 
         // Load housing info for this account

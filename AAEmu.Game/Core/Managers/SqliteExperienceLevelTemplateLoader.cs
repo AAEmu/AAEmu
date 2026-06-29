@@ -47,7 +47,9 @@ public sealed class SqliteExperienceLevelTemplateLoader(ILogger logger) : IExper
 
             if (levelTemplate.TotalMateExp <= lastMateExp)
             {
-                logger.Error("Experience data is not sorted by total_mate_exp");
+                // total_mate_exp plateaus past the mate level cap (mates stop gaining XP at their cap); this is
+                // expected in the unused tail and ExperienceManager tolerates it once it has enough levels.
+                logger.Debug("total_mate_exp stops increasing at level {0} (mate cap reached)", levelTemplate.Level);
                 throw new InvalidDataException("Experience data is not sorted by total_mate_exp");
             }
 

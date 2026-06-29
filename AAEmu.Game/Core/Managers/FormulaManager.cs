@@ -68,6 +68,10 @@ public class FormulaManager : Singleton<FormulaManager>, IFormulaManager
         CalculationEngine.AddFunction("if_negative", (a, b, c) => a < 0 ? b : c);
         CalculationEngine.AddFunction("if_positive", (a, b, c) => a > 0 ? b : c);
         CalculationEngine.AddFunction("if_zero", (a, b, c) => a == 0 ? b : c);
+        // 'log' is base-10, not natural: the reference formula evaluator
+        // (the inlined kind-67 formula `(log((str+dex)/2)^2.65)*…`)
+        // computes it via log10f. Jace ships loge/log10/logn but no bare 'log'.
+        CalculationEngine.AddFunction("log", a => System.Math.Log10(a));
 
         _unitFormulas = [];
         foreach (var owner in Enum.GetValues(typeof(FormulaOwnerType)))

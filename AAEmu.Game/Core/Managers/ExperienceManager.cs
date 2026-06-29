@@ -201,8 +201,9 @@ public class ExperienceManager : Singleton<ExperienceManager>, IExperienceManage
             }
             catch (InvalidDataException ex) when (_levelTemplatesByLevel.Count >= requiredLevelCount)
             {
-                // We already have all the levels within the caps; the remaining rows are unused.
-                Logger.Warn(ex, "Ignoring malformed experience data beyond level {0}", _levelTemplatesByLevel.Count);
+                // We already have all the levels within the caps; the remaining rows are unused (e.g. the
+                // mate-XP plateau past the mate cap), so this is expected rather than a problem.
+                Logger.Debug(ex, "Ignoring unused experience data beyond level {0}", _levelTemplatesByLevel.Count);
                 break;
             }
 
