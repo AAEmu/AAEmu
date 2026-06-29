@@ -956,7 +956,7 @@ public class PacketStream : ICloneable, IComparable
     {
         try
         {
-            var position = ReadBytes(9);
+            var position = ReadBytes(11); // 10.0.2.13 quantized world position is 11 bytes (was 9)
             return Helpers.ConvertPosition(position);
         }
         catch (Exception ex)

@@ -10,7 +10,15 @@ namespace AAEmu.Game.Models.CryEngine.Readers;
 public class AreasMissionReader(System.IO.Stream rawStream, uint zoneId) : BaiReader(rawStream, zoneId)
 {
     private static Logger Logger { get; set; } = LogManager.GetCurrentClassLogger();
-    public static int BaiAreasFileVersion = 21;
+    // 10.0.2.13 ships areas BAI v22. The v22 layout is byte-identical to v21 for the sections the server
+    // reads: every v22 paths file parses to exactly EOF with this reader (verified over the world's
+    // areasmission set). The paths folder is a mix of versions (18-22, partial re-export); files older than
+    // this constant still fail-and-skip in the loader, as before.
+    public static int BaiAreasFileVersion = 22;
+    // 10.0.2.13's paths set is a mix of re-exported v22 files and ~1900 stale pre-v21 leftovers (v18-20) whose
+    // section layout differs and is not parsed here. They are rejected at the version check with a clear reason
+    // instead of failing mid-parse with a confusing end-of-stream error.
+    public static int BaiAreasFileVersionMin = 21;
 
     public List<AiShape> ForbiddenAreasList { get; } = [];
     public List<SpecialArea> NavigationModifiers { get; } = [];
@@ -27,8 +35,9 @@ public class AreasMissionReader(System.IO.Stream rawStream, uint zoneId) : BaiRe
 
     public override void CheckVersion(int version)
     {
-        if (version > BaiAreasFileVersion)
-            throw new GameException($"Wrong Areas BAI file version {version}, expected {BaiAreasFileVersion}");
+        if (version > BaiAreasFileVersion || version < BaiAreasFileVersionMin)
+            throw new GameException(
+                $"Unsupported Areas BAI file version {version} (supported {BaiAreasFileVersionMin}-{BaiAreasFileVersion}); skipping");
     }
 
     protected override void ReadFromFile()

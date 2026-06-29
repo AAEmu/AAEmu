@@ -106,7 +106,9 @@ public class SkillItem : SkillCaster
 
     public uint ItemTemplateId { get; set; }
     public byte Type1 { get; set; }
-    public uint Type2 { get; set; }
+    // 10.0.2.13 item-caster trailing field is i64/u64 (8 bytes) — binary UnitState_SerializeSkillCaster
+    // 0x3938E850 type 2 case writes it via vtbl +152. Was a 4-byte uint in v1.2.
+    public ulong Type2 { get; set; }
     public Item SkillSourceItem { get; private set; }
 
     public SkillItem()

@@ -7,13 +7,21 @@ namespace AAEmu.Game.Models.Game.Items;
 public class EquipItem : Item
 {
     public override ItemDetailType DetailType => ItemDetailType.Equipment;
-    public override uint DetailBytesLength => 55;
 
     public byte Durability { get; set; }
     public uint RuneId { get; set; }
     public uint[] GemIds { get; set; }
     public ushort TemperPhysical { get; set; }
     public ushort TemperMagical { get; set; }
+
+    // v10 equipment-detail fields (binary Item_SerializeDetail case 1, 0x393876A0).
+    public ushort EvolveChance { get; set; }
+    public DateTime ChargeProcTime { get; set; } = DateTime.MinValue;
+    public byte MappingFailBonus { get; set; }
+    public byte ElementLevel { get; set; }
+    // 18-value gem/socket block carried by the pish/pisc codec. The per-value semantics (which entries are
+    // GemIds/Temper) still need RE of the in-memory gem struct; meanwhile this round-trips byte-correct.
+    public uint[] GemData { get; set; }
 
     public virtual int Str => 0;
     public virtual int Dex => 0;
@@ -46,11 +54,13 @@ public class EquipItem : Item
     public EquipItem()
     {
         GemIds = new uint[7];
+        GemData = new uint[18];
     }
 
     public EquipItem(ulong id, ItemTemplate template, int count) : base(id, template, count)
     {
         GemIds = new uint[7];
+        GemData = new uint[18];
         // 10.0.2.13: DefaultDyeItemId removed; DyeItemId defaults to 0 (was always 0 via mock)
     }
 
@@ -69,45 +79,39 @@ public class EquipItem : Item
         ReadDetails(stream);
         CreateTime = stream.ReadDateTime();
         LifespanMins = stream.ReadInt32();
-        MadeUnitId = stream.ReadUInt32();
+        MadeUnitId = (uint)stream.ReadUInt64(); // v10: madeUnitId is 8 bytes on the wire
         WorldId = stream.ReadByte();
         UnsecureTime = stream.ReadDateTime();
         UnpackTime = stream.ReadDateTime();
+        ChargeUseSkillTime = stream.ReadDateTime(); // v10: new trailing field
     }
 
+    // v10 equipment detail (binary Item_SerializeDetail case 1, 0x393876A0): 8 fixed fields then an
+    // 18-value pish/pisc gem block. Variable length — replaces the v1.2 fixed 55-byte blob. NOTE: this is
+    // the same serializer used to persist the items.details blob, so the DB detail format is now v10.
     public override void ReadDetails(PacketStream stream)
     {
-        if (stream.LeftBytes < DetailBytesLength)
-            return;
-        ImageItemTemplateId = stream.ReadUInt32();
         Durability = stream.ReadByte();
-        stream.ReadInt16();
-        RuneId = stream.ReadUInt32();
-
+        ChargeCount = stream.ReadUInt16(); // chargeCount is u16 (binary serializer vtbl+168, 2 bytes), not i32
         ChargeStartTime = stream.ReadDateTime();
-        DyeItemId = stream.ReadUInt32();
-
-        for (var i = 0; i < GemIds.Length; i++)
-            GemIds[i] = stream.ReadUInt32();
-
-        TemperPhysical = stream.ReadUInt16();
-        TemperMagical = stream.ReadUInt16();
+        RuneId = stream.ReadUInt16();
+        EvolveChance = stream.ReadUInt16();
+        ChargeProcTime = stream.ReadDateTime();
+        MappingFailBonus = stream.ReadByte();
+        ElementLevel = stream.ReadByte();
+        GemData = PishPiscCodec.Read(stream, 18);
     }
 
     public override void WriteDetails(PacketStream stream)
     {
-        stream.Write(ImageItemTemplateId);
-        stream.Write(Durability);
-        stream.Write((short)0);
-        stream.Write(RuneId);
-
-        stream.Write(Template.BindType == ItemBindType.BindOnUnpack ? UnpackTime : ChargeStartTime);
-        stream.Write(DyeItemId);
-
-        foreach (var gemId in GemIds)
-            stream.Write(gemId);
-
-        stream.Write(TemperPhysical);
-        stream.Write(TemperMagical);
+        stream.Write(Durability);          // durability u8
+        stream.Write((ushort)ChargeCount); // chargeCount u16 (binary serializer vtbl+168, 2 bytes)
+        stream.Write(ChargeStartTime);     // chargeTime i64
+        stream.Write((ushort)RuneId);      // runeId u16
+        stream.Write(EvolveChance);        // evolveChance u16
+        stream.Write(ChargeProcTime);      // chargeProcTime i64
+        stream.Write(MappingFailBonus);    // mappingFailBonus u8
+        stream.Write(ElementLevel);        // elementLevel u8
+        PishPiscCodec.Write(stream, GemData ?? new uint[18]); // gem/socket block (18 values)
     }
 }

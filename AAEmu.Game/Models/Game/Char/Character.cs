@@ -2756,6 +2756,9 @@ public partial class Character : Unit, ICharacter
     // string. Equipment and appearance are sent empty/default for now (validFlags=flags=0, ext=0).
     public PacketStream WriteLobby1013(PacketStream stream)
     {
+        // Lobby character record for SC_PACKET_CHARACTER_LIST (opcode 105). Layout matches
+        // x2game-dev_dedicate.dll sub_39B165E0 (per-character writer; 8000-byte struct) invoked from
+        // CharacterListPacket::SerializeBody sub_39C18280; field names/order/types follow its ISerialize calls.
         stream.Write((long)Id);                                          // id (i64)
         stream.Write(Name);                                             // name (string)
         stream.Write((byte)Race);                                       // CharRace
@@ -2769,9 +2772,9 @@ public partial class Character : Unit, ICharacter
         stream.Write(FactionName ?? "");                              // factionName (string)
         stream.Write((uint)(Expedition?.Id ?? 0));                    // expeditionId (u32)
         stream.Write((uint)Family);                                   // family (u32)
-        // equipment (sub_39A3F7A0) comes BEFORE abilities. validFlags(u64) + items(none) + flags(u64). Empty => both 0.
-        stream.Write(0L);                                            // equipment validFlags = 0
-        stream.Write(0L);                                            // equipment flags = 0
+        // equipment (LobbyChar_WriteEquipment 0x3938AC90) comes BEFORE abilities: validFlags(u64) + occupied
+        // items + trailing flags(u64). Same serializer as the unit-state equipment block.
+        EquipmentSerializer.Write(stream, this, BaseUnitType.Character);
         stream.Write((byte)Ability1);                                 // ability1
         stream.Write((byte)Ability2);                                 // ability2
         stream.Write((byte)Ability3);                                 // ability3
@@ -2779,8 +2782,13 @@ public partial class Character : Unit, ICharacter
         stream.Write(Helpers.ConvertLongX(Transform.Local.Position.X)); // x (i64)
         stream.Write(Helpers.ConvertLongY(Transform.Local.Position.Y)); // y (i64)
         stream.Write(Transform.Local.Position.Z);                     // z (float)
-        stream.Write((byte)0);                                        // appearance ext = 0 (default look)
-        stream.Write((uint)0);                                        // deadCount
+        // appearance (LobbyChar_WriteAppearance 0x393881E0): ext-gated block carrying race/gender + customization
+        ModelParams.Race = (byte)Race;
+        ModelParams.Gender = (byte)Gender;
+        ModelParams.VisualRace = (byte)Race;
+        ModelParams.VisualGender = (byte)Gender;
+        stream.Write(ModelParams);
+        stream.Write((short)0);                                       // deadCount (i16)
         stream.Write(0L);                                            // deadTime
         stream.Write((uint)0);                                        // rezWaitDuration
         stream.Write((uint)0);                                        // specialRezWaitDuration
@@ -2789,9 +2797,9 @@ public partial class Character : Unit, ICharacter
         stream.Write(0L);                                            // lastWorldLeaveTime
         stream.Write(0L);                                            // moneyAmount
         stream.Write(0L);                                            // moneyAmount
-        stream.Write((uint)0);                                        // crimePoint
-        stream.Write((uint)0);                                        // crimeRecord
-        stream.Write((uint)0);                                        // crimeScore
+        stream.Write((short)0);                                       // crimePoint (i16)
+        stream.Write((uint)0);                                        // crimeRecord (i32)
+        stream.Write((short)0);                                       // crimeScore (i16)
         stream.Write(0L);                                            // deleteRequestedTime
         stream.Write(0L);                                            // transferRequestedTime
         stream.Write(0L);                                            // createdTime
@@ -2804,8 +2812,8 @@ public partial class Character : Unit, ICharacter
         stream.Write((uint)0);                                        // gift
         stream.Write(0L);                                            // updated
         stream.Write((byte)0);                                        // forceNameChange
-        stream.Write("");                                            // guid (string, max 16)
-        // labor block (sub_39A3B010) — 40 bytes
+        stream.Write(new byte[16]);                                  // guid (fixed 16-byte string)
+        // labor block (sub_39B12780) — 40 bytes: lp/localLp/consumed(u32) + updated/bmPoint(u64) + rechargedLp(u32) + rechargeResetTime(u64)
         stream.Write((uint)0);                                        // lp
         stream.Write((uint)0);                                        // localLp
         stream.Write((uint)0);                                        // consumed

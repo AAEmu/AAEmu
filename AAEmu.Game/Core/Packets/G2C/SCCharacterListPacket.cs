@@ -11,11 +11,7 @@ public class SCCharacterListPacket(bool last, Character[] characters) : GamePack
         stream.Write(last);
         stream.Write((byte)characters.Length);
         foreach (var character in characters)
-        {
-            var p0 = stream.Count;
-            character.WriteLobby1013(stream); // 10.0.2.13 lobby char struct
-            Logger.Warn("WriteLobby1013 {0}: {1} bytes", character.Name, stream.Count - p0);
-        }
+            character.WriteLobby1013(stream); // 10.0.2.13 lobby char record
 
         return stream;
     }

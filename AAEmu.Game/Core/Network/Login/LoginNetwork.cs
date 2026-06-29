@@ -12,6 +12,15 @@ public class LoginNetwork : Singleton<LoginNetwork>
     private Client _client;
     private readonly LoginProtocolHandler _handler;
     private LoginConnection _connection;
+    private volatile bool _running;
+
+    /// <summary>
+    /// True between <see cref="Start"/> and <see cref="Stop"/>. A disconnect while running triggers a
+    /// reconnect; a disconnect after an intentional <see cref="Stop"/> (server shutdown) must not, since
+    /// the DI <see cref="System.IServiceProvider"/> backing <see cref="AppConfiguration.Instance"/> is
+    /// already disposed by the time the async disconnect callback fires.
+    /// </summary>
+    public bool IsRunning => _running;
 
     private LoginNetwork()
     {
@@ -27,12 +36,13 @@ public class LoginNetwork : Singleton<LoginNetwork>
     {
         var config = AppConfiguration.Instance.LoginNetwork;
         _client = new Client(Dns.GetHostAddresses(config.Host).First(), config.Port, _handler);
+        _running = true;
         _client.ConnectAsync();
-
     }
 
     public void Stop()
     {
+        _running = false;
         if (_client?.IsConnected ?? false)
             _client.DisconnectAsync();
     }

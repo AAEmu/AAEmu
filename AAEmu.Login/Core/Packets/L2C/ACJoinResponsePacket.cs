@@ -11,30 +11,42 @@ public enum JoinResponseReason : ushort
 }
 
 /// <summary>
-/// An AFS (Account Feature Settings?) value.
+/// AFS (auth feature settings) bitfield delivered to the client in ACJoinResponse. The 10.0.2.13 client
+/// decodes it (x2game AuthClient feature-set reader sub_398A5F10) as: byte0 = chCountLimit (base creatable
+/// character count), byte1 = chMaxCountLimit (max characters), byte2 = chCountWorldLimit (per-world count),
+/// bit24 = waitInWorld, bit25 = premiumEntrance, bit26 = b2pService. chMaxCountLimit MUST be >= 1, otherwise
+/// the client treats the account's creatable slot count as 0 and every empty slot shows "creation unavailable".
 /// </summary>
-/// <param name="MaxCharactersPerAccount">The maximum number of characters per account.</param>
-/// <param name="AdditionalCharactersPerServer">The additional number of characters per server when using the slot increase item.</param>
-/// <param name="IsPreSelectCharacterPeriod">Whether the server is in character pre-creation mode.</param>
+/// <param name="ChCountLimit">Base creatable character count.</param>
+/// <param name="ChMaxCountLimit">Maximum characters per account.</param>
+/// <param name="ChCountWorldLimit">Maximum characters per world.</param>
 public readonly record struct AfsValue(
-    byte MaxCharactersPerAccount,
-    uint AdditionalCharactersPerServer,
-    bool IsPreSelectCharacterPeriod)
+    byte ChCountLimit,
+    byte ChMaxCountLimit,
+    byte ChCountWorldLimit,
+    bool WaitInWorld = false,
+    bool PremiumEntrance = false,
+    bool B2pService = false)
 {
-    public static AfsValue FromULong(ulong afs)
-    {
-        var maxCharactersPerAccount = (byte)(afs & 0xFF);
-        var isPreSelectCharacterPeriod = (afs & 0x100) != 0;
-        var additionalSlotsPerServer = (uint)(afs >> 32);
-
-        return new AfsValue(maxCharactersPerAccount, additionalSlotsPerServer, isPreSelectCharacterPeriod);
-    }
+    public static AfsValue FromULong(ulong afs) => new(
+        (byte)(afs & 0xFF),
+        (byte)((afs >> 8) & 0xFF),
+        (byte)((afs >> 16) & 0xFF),
+        (afs & (1UL << 24)) != 0,
+        (afs & (1UL << 25)) != 0,
+        (afs & (1UL << 26)) != 0);
 
     public ulong ToULong()
     {
-        var afs = ((ulong)AdditionalCharactersPerServer << 32)
-                  | (IsPreSelectCharacterPeriod ? 1UL << 8 : 0UL)
-                  | MaxCharactersPerAccount;
+        var afs = (ulong)ChCountLimit
+                  | ((ulong)ChMaxCountLimit << 8)
+                  | ((ulong)ChCountWorldLimit << 16);
+        if (WaitInWorld)
+            afs |= 1UL << 24;
+        if (PremiumEntrance)
+            afs |= 1UL << 25;
+        if (B2pService)
+            afs |= 1UL << 26;
         return afs;
     }
 }
@@ -55,11 +67,7 @@ public class ACJoinResponsePacket(ushort reason, ulong afs, byte authId = 0)
     {
         stream.Write(authId);
         stream.Write(reason);
-        stream.Write(afs);
-
-        // afs[0] -> max number of characters per account
-        // afs[1] -> additional number of characters per server when using the slot increase item
-        // afs[2] -> 1 - character pre-creation mode 1-режим предварительного создания персонажей
+        stream.Write(afs); // 10.0.2.13 feature-set qword: see AfsValue (byte0 chCountLimit / byte1 chMaxCountLimit / byte2 chCountWorldLimit)
 
         return stream;
     }

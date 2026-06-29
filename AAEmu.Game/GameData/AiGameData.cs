@@ -1,4 +1,7 @@
-﻿using AAEmu.Commons.Utils;
+﻿using System.Linq;
+using System.Text.RegularExpressions;
+
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.AI.Enums;
@@ -76,19 +79,10 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
                     if (!fileTypeToId.TryGetValue(id, out var fileType))
                         continue;
 
-                    try
-                    {
-                        var data = reader.IsDBNull("ai_param") ? string.Empty : reader.GetString("ai_param");
-                        var aiParams = AiParams.CreateByType(fileType, data);
-#pragma warning disable CA1508 // Avoid dead conditional code
-                        if (aiParams != null)
-                            _aiParams.TryAdd(id, aiParams);
-#pragma warning restore CA1508 // Avoid dead conditional code
-                    }
-                    catch (Exception e)
-                    {
-                        Logger.Warn("Impossible to parse npc_ai_params {0}\n{1}", id, e.Message);
-                    }
+                    var data = reader.IsDBNull("ai_param") ? string.Empty : reader.GetString("ai_param");
+                    var aiParams = TryParseAiParams(fileType, data, id);
+                    if (aiParams != null)
+                        _aiParams.TryAdd(id, aiParams);
                 }
             }
         }
@@ -150,6 +144,46 @@ public class AiGameData : Singleton<AiGameData>, IGameDataLoader
 
         LoadNpcChatBubbles(connection);
         LoadAiEvents(connection);
+    }
+
+    private static AiParams TryParseAiParams(AiParamType fileType, string data, uint id)
+    {
+        try
+        {
+            return AiParams.CreateByType(fileType, data);
+        }
+        catch
+        {
+            // The original Korean AI data has occasional malformed-Lua entries (missing commas, [N,M] index
+            // syntax, closing braces lost inside line comments, truncated tables). Retry once with a repaired copy.
+            try
+            {
+                return AiParams.CreateByType(fileType, SanitizeAiParam(data));
+            }
+            catch (Exception e)
+            {
+                Logger.Warn("Impossible to parse npc_ai_params {0}\n{1}", id, e.Message);
+                return null;
+            }
+        }
+    }
+
+    // Repairs the recurring malformations in the npc_ai_params Lua fragments so the table still parses.
+    private static string SanitizeAiParam(string data)
+    {
+        // Strip Lua line comments (-- to end of line); a trailing Korean name after '--' otherwise eats the
+        // closing braces that follow it on the same line.
+        data = Regex.Replace(data, @"--[^\r\n]*", "");
+        // '[N, M]' index syntax is invalid table content; the data means a {N, M} list.
+        data = Regex.Replace(data, @"\[\s*(\d+)\s*,\s*(\d+)\s*\]", "{$1, $2}");
+        // Missing comma between a closing brace and the next "key =".
+        data = Regex.Replace(data, @"\}(\s*)([A-Za-z_]\w*\s*=)", "},$1$2");
+        // Re-close tables truncated in the source data (or whose braces were eaten by a comment).
+        var open = data.Count(c => c == '{');
+        var close = data.Count(c => c == '}');
+        if (open > close)
+            data += new string('}', open - close);
+        return data;
     }
 
     private void LoadNpcChatBubbles(SqliteConnection connection)

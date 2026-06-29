@@ -42,6 +42,13 @@ public class FinishStatePacket() : GamePacket(PPOffsets.FinishStatePacket, 2)
                 Connection.SendPacket(new SCChatSpamDelayPacket());
                 Connection.SendPacket(new SCAccountAttributeConfigPacket(_scAccountInitPacket)); // TODO
                 Connection.SendPacket(new SCLevelRestrictionConfigPacket(10, 10, 10, 10, 10, _scLevelRestrictionInitPacket)); // TODO - config files
+
+                // The 10.0.2.13 context-establishment config block (SCW22orldRestrictOwnerChange/SCTaxItemConfig/
+                // SCInGameShopConfig/SCGameRuleConfig/SCHousingAreaConfig, opcodes 0x2A2..0x2BD) is implemented but
+                // NOT sent here: delivering it during the connect-stage establishment makes the client's
+                // gameRatingWnd.OnUpdate write to the not-yet-spawned ClientPlayer (x2game.dll sub_39348690 writes
+                // *(player+13720) with player == null) → EXCEPTION_ACCESS_VIOLATION before character select. The
+                // packets stay available for the in-world phase once the player entity exists.
                 break;
             case 1:
                 Connection.SendPacket(new ChangeStatePacket(2));

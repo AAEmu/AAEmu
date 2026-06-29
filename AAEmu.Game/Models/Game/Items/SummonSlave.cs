@@ -9,7 +9,10 @@ public class SummonSlave : Item
 {
     private DateTime _repairStartTime;
     public override ItemDetailType DetailType => ItemDetailType.Slave;
-    public override uint DetailBytesLength => 29;
+    // 10.0.2.13 Slave detail body is 33 bytes (binary Item_SerializeDetail 0x393876A0 case 2: total 34).
+    // The body is an opaque blob on the client wire; only the leading fields below are interpreted.
+    // TODO(v10): decode the trailing bytes via server-side RE or a live capture.
+    public override uint DetailBytesLength => 33;
 
     public byte SlaveType { get; set; } // Not sure about this, captures show 2 here
     public uint SlaveDbId { get; set; }
@@ -72,15 +75,10 @@ public class SummonSlave : Item
         else
             stream.Write(RepairStartTime);
 
-        stream.Write(0); // If this is anything besides 0, it will count as being in recovering (negative at that)
-
-        // The following 16 bytes somehow determine where a Vehicle is allowed to be summoned
-        // TODO: Get real live data capture of this value being set
-        // TODO: Get this from having a vehicle out when maintenance starts
-        stream.Write(0);
-        stream.Write(0);
-        stream.Write(0);
-        stream.Write(0);
+        // Opaque 10.0.2.13 tail filling the body out to DetailBytesLength. Its leading bytes gate the
+        // "recovering" state and (per earlier captures) the summon location; the exact layout is unverified.
+        // TODO(v10): decode the tail fields from a live capture.
+        stream.Write(new byte[DetailBytesLength - 9]);
     }
 
     public override void OnManuallyDestroyingItem()

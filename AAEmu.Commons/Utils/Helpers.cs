@@ -130,20 +130,22 @@ public static class Helpers
         return coords;
     }
 
+    // 10.0.2.13 quantized world position (11 bytes): x and y carry 4 bytes each (abs>>35,>>43,>>51,>>59),
+    // z is 22-bit quantized over [-100, 4096] with base 4196.0, and the trailing byte packs the high z bits
+    // plus the x/y sign bits. Verified against binary UnitState_SerializeWorldPos 0x39B11410 (z base
+    // dword_3D8B5D94 = 0x45832000 = 4196.0). v1.2 used 3 bytes for x/y (9-byte total).
     public static (float x, float y, float z) ConvertPosition(byte[] values)
     {
-        var tempX = 8 * (values[0] + ((values[1] + (values[2] << 8)) << 8));
-        var flagX = (int)(((-(values[8] & 0x80) >> 30) & 0xFFFFFFFE) + 1);
-        var resX = ((long)tempX << 32) * flagX;
+        var rawX = (long)values[0] | ((long)values[1] << 8) | ((long)values[2] << 16) | ((long)values[3] << 24);
+        var flagX = (values[10] & 0x80) != 0 ? -1 : 1;
 
-        var tempY = 8 * (values[3] + ((values[4] + (values[5] << 8)) << 8));
-        var flagY = (((-(values[8] & 0x40) >> 30) & 0xFFFFFFFE) + 1);
-        var resY = ((long)tempY << 32) * flagY;
+        var rawY = (long)values[4] | ((long)values[5] << 8) | ((long)values[6] << 16) | ((long)values[7] << 24);
+        var flagY = (values[10] & 0x40) != 0 ? -1 : 1;
 
-        var tempZ = (ulong)(values[6] + ((values[7] + ((values[8] & 0x3f) << 8)) << 8));
+        var tempZ = (ulong)(values[8] + ((values[9] + ((values[10] & 0x3f) << 8)) << 8));
 
-        var resultX = ConvertLongX(resX);
-        var resultY = ConvertLongY(resY);
+        var resultX = 8f * rawX / 4096f * flagX;
+        var resultY = 8f * rawY / 4096f * flagY;
         var resultZ = (float)Math.Round(tempZ * 0.00000023841858 * 4196 - 100, 4, MidpointRounding.ToEven);
 
         return (resultX, resultY, resultZ);
@@ -161,18 +163,20 @@ public static class Helpers
         var resultY = (preY ^ (longY + preY + (0 > preY ? 1 : 0))) >> 3;
         var resultZ = (long)Math.Floor((z + 100f) / 4196f * 4194304f + 0.5);
 
-        var position = new byte[9];
+        var position = new byte[11];
         position[0] = (byte)(resultX >> 32);
         position[1] = (byte)(resultX >> 40);
         position[2] = (byte)(resultX >> 48);
+        position[3] = (byte)(resultX >> 56);
 
-        position[3] = (byte)(resultY >> 32);
-        position[4] = (byte)(resultY >> 40);
-        position[5] = (byte)(resultY >> 48);
+        position[4] = (byte)(resultY >> 32);
+        position[5] = (byte)(resultY >> 40);
+        position[6] = (byte)(resultY >> 48);
+        position[7] = (byte)(resultY >> 56);
 
-        position[6] = (byte)resultZ;
-        position[7] = (byte)(resultZ >> 8);
-        position[8] = (byte)(((resultZ >> 16) & 0x3F) + (((y < 0 ? 1 : 0) + 2 * (x < 0 ? 1 : 0)) << 6));
+        position[8] = (byte)resultZ;
+        position[9] = (byte)(resultZ >> 8);
+        position[10] = (byte)(((resultZ >> 16) & 0x3F) + (((y < 0 ? 1 : 0) + 2 * (x < 0 ? 1 : 0)) << 6));
         return position;
     }
 

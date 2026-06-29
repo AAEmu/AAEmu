@@ -12,13 +12,14 @@ public sealed class LoginClient(ILoginConnection connection) : ILoginClient
 {
     public async ValueTask SendAuthSuccessAsync(AccountId accountId, CancellationToken cancellationToken)
     {
-        const byte MaxCharactersPerAccount = 6; // TODO: Make configurable
-        const uint AdditionalCharactersPerServer = 0; // TODO: Make configurable
-        const bool IsPreSelectCharacterPeriod = false; // TODO: Make configurable
+        // 10.0.2.13 feature set: chMaxCountLimit must be >= 1 or the client blocks character creation. TODO: Make configurable.
+        const byte ChCountLimit = 6;      // base creatable character count
+        const byte ChMaxCountLimit = 6;   // max characters per account
+        const byte ChCountWorldLimit = 6; // max characters per world
 
         await connection.SendPacketAsync(
             new ACJoinResponsePacket(JoinResponseReason.Success,
-                new AfsValue(MaxCharactersPerAccount, AdditionalCharactersPerServer, IsPreSelectCharacterPeriod)),
+                new AfsValue(ChCountLimit, ChMaxCountLimit, ChCountWorldLimit)),
             cancellationToken);
         await connection.SendPacketAsync(new ACAuthResponsePacket(accountId, 6), cancellationToken);
     }

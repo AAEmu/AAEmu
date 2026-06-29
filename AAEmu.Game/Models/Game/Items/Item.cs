@@ -69,6 +69,7 @@ public class Item : PacketMarshaler, IComparable<Item>
 
     [JsonProperty]
     public uint MadeUnitId { get => _madeUnitId; set { _madeUnitId = value; _isDirty = true; } }
+    public DateTime ChargeUseSkillTime { get; set; } // v10 common item-header trailing field (u64); binary Item_Serialize 0x39A75720
 
     [JsonProperty]
     public DateTime CreateTime { get => _createTime; set { _createTime = value; _isDirty = true; } }
@@ -225,10 +226,11 @@ public class Item : PacketMarshaler, IComparable<Item>
         ReadDetails(stream);
         CreateTime = stream.ReadDateTime();
         LifespanMins = stream.ReadInt32();
-        MadeUnitId = stream.ReadUInt32();
+        MadeUnitId = (uint)stream.ReadUInt64(); // v10: madeUnitId is 8 bytes on the wire
         WorldId = stream.ReadByte();
         UnsecureTime = stream.ReadDateTime();
         UnpackTime = stream.ReadDateTime();
+        ChargeUseSkillTime = stream.ReadDateTime(); // v10: new trailing field
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -245,109 +247,47 @@ public class Item : PacketMarshaler, IComparable<Item>
         WriteDetails(stream);
         stream.Write(CreateTime);
         stream.Write(LifespanMins);
-        stream.Write(MadeUnitId);
+        stream.Write((ulong)MadeUnitId); // v10: madeUnitId is 8 bytes on the wire
         stream.Write(WorldId);
         stream.Write(UnsecureTime);
         stream.Write(UnpackTime);
+        stream.Write(ChargeUseSkillTime); // v10: new trailing field
         return stream;
     }
 
+    // Detail-blob body length (the bytes after the leading detailType byte, which Item.Read/Write emits)
+    // for items handled by the base Item serializer. Per the 10.0.2.13 item-detail serializer
+    // (binary Item_SerializeDetail 0x393876A0) every type except Equipment writes an opaque (total-1)-byte
+    // blob keyed on the detailType byte. Equipment is structured (EquipItem); Slave/Mate/Ucc/Treasure/
+    // BigFish/MusicSheet have dedicated subclasses; the rest round-trip through this base path.
+    private static int GetDetailBodyLength(ItemDetailType detailType) => (byte)detailType switch
+    {
+        2 => 33,         // Slave               (total 34)
+        3 => 20,         // Mate                (total 21)
+        4 => 9,          // Ucc                 (total 10)
+        5 or 11 => 24,   // Treasure / Location (total 25)
+        6 or 7 => 16,    // BigFish / Decoration (total 17)
+        8 or 14 => 8,    // MusicSheet / type 0xE (total 9)
+        9 => 4,          // Glider              (total 5)
+        10 => 12,        // SlaveEquipment      (total 13)
+        12 => 10,        // type 0xC            (total 11)
+        13 => 13,        // type 0xD            (total 14)
+        _ => 0,          // Equipment(1) is structured (EquipItem); 0/unknown carries no body
+    };
+
     public virtual void ReadDetails(PacketStream stream)
     {
-        var mDetailLength = 0;
-        switch (DetailType)
-        {
-            case ItemDetailType.Equipment: // 1
-                mDetailLength = 56; // есть расшифровка в items/EquipItem
-                break;
-            case ItemDetailType.Slave: // 2
-                mDetailLength = 30;
-                break;
-            case ItemDetailType.Mate: // 3
-                mDetailLength = 7; // есть расшифровка в items/Summon
-                break;
-            case ItemDetailType.Ucc: // 4
-                mDetailLength = 10; // есть расшифровка в items/UccItem
-                break;
-            case ItemDetailType.Treasure: // 5
-            case ItemDetailType.Location: // 11
-                mDetailLength = 25;
-                break;
-            case ItemDetailType.BigFish: // 6
-            case ItemDetailType.Decoration: // 7
-                mDetailLength = 17; // есть расшифровка в items/BigFish
-                break;
-            case ItemDetailType.MusicSheet: // 8
-                mDetailLength = 9; // есть расшифровка в items/MusicSheetItem
-                break;
-            case ItemDetailType.Glider: // 9
-                mDetailLength = 5;
-                break;
-            case ItemDetailType.SlaveEquipment: // 10
-                mDetailLength = 13;
-                break;
-            case ItemDetailType.TypeMax:
-            case ItemDetailType.Invalid:
-            default:
-                break;
-        }
-
-        mDetailLength -= 1;
-        if (mDetailLength > 0)
-        {
-            Detail = stream.ReadBytes(mDetailLength);
-        }
+        var length = GetDetailBodyLength(DetailType);
+        if (length > 0)
+            Detail = stream.ReadBytes(length);
     }
 
     public virtual void WriteDetails(PacketStream stream)
     {
-        var mDetailLength = 0;
-        switch (DetailType)
-        {
-            case ItemDetailType.Equipment:
-                mDetailLength = 56; // есть расшифровка в items/Equipment
-                break;
-            case ItemDetailType.Slave:
-                mDetailLength = 30;
-                break;
-            case ItemDetailType.Mate:
-                mDetailLength = 7; // есть расшифровка в items/Summon
-                break;
-            case ItemDetailType.Ucc:
-                mDetailLength = 10; // есть расшифровка в items/UccItem
-                break;
-            case ItemDetailType.Treasure:
-            case ItemDetailType.Location: // нет в 1.2
-                mDetailLength = 25;
-                // Debug Hack
-                stream.Write(10810f);
-                stream.Write(10820f);
-                stream.Write(10830f);
-                stream.Write(10840f);
-                stream.Write(new byte[mDetailLength-16]);
-                break;
-            case ItemDetailType.BigFish: // есть расшифровка в items/BigFish
-            case ItemDetailType.Decoration:
-                mDetailLength = 17;
-                break;
-            case ItemDetailType.MusicSheet:
-                mDetailLength = 9; // есть расшифровка в items/MusicSheetItem
-                break;
-            case ItemDetailType.Glider:
-                mDetailLength = 5;
-                break;
-            case ItemDetailType.SlaveEquipment: // нет в 1.2
-                mDetailLength = 13;
-                break;
-            default:
-                break;
-        }
-        mDetailLength -= 1;
-        if (mDetailLength > 0)
-        {
-            Detail = new byte[mDetailLength];
-            stream.Write(Detail);
-        }
+        var length = GetDetailBodyLength(DetailType);
+        if (length <= 0)
+            return;
+        stream.Write(Detail?.Length == length ? Detail : new byte[length]);
     }
 
     public virtual bool HasFlag(ItemFlag flag)

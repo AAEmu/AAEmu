@@ -150,6 +150,12 @@ public class TransferGameData : Singleton<TransferGameData>, IGameDataLoader
 
             foreach (var pathFileName in pathFiles)
             {
+                // Each zone ships transfer_path.xml in up to three sibling folders (editor / server / client)
+                // holding the same data; only the client copy is authoritative, so skip the editor/server
+                // duplicates instead of loading the path three times.
+                if (Path.GetFileName(Path.GetDirectoryName(pathFileName))?.ToLowerInvariant() != "client")
+                    continue;
+
                 if (!uint.TryParse(Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(pathFileName))),
                         out var zoneId))
                 {
@@ -157,12 +163,6 @@ public class TransferGameData : Singleton<TransferGameData>, IGameDataLoader
                     continue;
                 }
 
-                if (transferPaths.ContainsKey(zoneId))
-                {
-                    Logger.Warn($"Duplicate zoneId {zoneId}");
-                    continue;
-                }
-                
                 var contents = ClientFileManager.GetFileAsString(pathFileName);
 
                 if (string.IsNullOrWhiteSpace(contents))
