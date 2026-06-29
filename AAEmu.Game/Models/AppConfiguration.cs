@@ -12,9 +12,27 @@ public partial class AppConfiguration
 {
     private static readonly AppConfiguration s_default = new();
 
-    public static AppConfiguration Instance =>
-        SingletonContainer.ServiceProvider?.GetService<IOptions<AppConfiguration>>()?.Value
-        ?? s_default;
+    public static AppConfiguration Instance
+    {
+        get
+        {
+            var provider = SingletonContainer.ServiceProvider;
+            if (provider is null)
+                return s_default;
+
+            try
+            {
+                return provider.GetService<IOptions<AppConfiguration>>()?.Value ?? s_default;
+            }
+            catch (ObjectDisposedException)
+            {
+                // The host tears down the ServiceProvider during shutdown; configuration is no longer
+                // resolvable. GetService throws ObjectDisposedException here, which the null-conditional
+                // operator does not cover. Fall back to defaults so late-running threads unwind cleanly.
+                return s_default;
+            }
+        }
+    }
 
     public byte Id { get; set; }
     public byte[] AdditionalesId { get; set; } = [];
