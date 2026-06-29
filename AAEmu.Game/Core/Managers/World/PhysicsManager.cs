@@ -819,6 +819,12 @@ public class PhysicsManager
     public void Stop()
     {
         ThreadRunning = false;
+
+        // Block until the loop actually exits. Otherwise an in-flight iteration can keep running into
+        // application shutdown and dereference AppConfiguration / the host ServiceProvider after they
+        // have been disposed. A single iteration is bounded by the physics tick time, so the join returns
+        // quickly; the timeout only guards against a wedged tick.
+        _thread?.Join(TimeSpan.FromSeconds(2));
     }
 
     public void Dispose() => _physWorld?.Dispose();
