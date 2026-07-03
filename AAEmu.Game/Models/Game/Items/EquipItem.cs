@@ -99,7 +99,7 @@ public class EquipItem : Item
         ChargeProcTime = stream.ReadDateTime();
         MappingFailBonus = stream.ReadByte();
         ElementLevel = stream.ReadByte();
-        GemData = PishPiscCodec.Read(stream, 18);
+        GemData = stream.ReadPisc(18);
     }
 
     public override void WriteDetails(PacketStream stream)
@@ -112,6 +112,6 @@ public class EquipItem : Item
         stream.Write(ChargeProcTime);      // chargeProcTime i64
         stream.Write(MappingFailBonus);    // mappingFailBonus u8
         stream.Write(ElementLevel);        // elementLevel u8
-        PishPiscCodec.Write(stream, GemData ?? new uint[18]); // gem/socket block (18 values)
+        stream.WritePisc(GemData ?? new uint[18]); // gem/socket block (18 values)
     }
 }

@@ -92,18 +92,22 @@ public class NpcSpawnerNpc : Spawner<Npc>
 
         npc.RegisterNpcEvents();
 
-        Logger.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawnerId {NpcSpawnerTemplateId} at Position: {npcSpawner.Position}");
+        // Draw a per-spawn position: a fixed point, a random candidate for multi-point
+        // spawners, or a random point inside the roaming polygon for area spawners.
+        var spawnPosition = npcSpawner.ResolveSpawnPosition();
+
+        Logger.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawnerId {NpcSpawnerTemplateId} at Position: {spawnPosition}");
 
         if (!npc.CanFly)
         {
-            var newZ = npcSpawner.ParentWorld.Template.GeoData.GetHeight(npcSpawner.Position.AsPositionVector());// WorldManager.Instance.GetHeight(npcSpawner.Position.ZoneId, npcSpawner.Position.X, npcSpawner.Position.Y, npcSpawner.Position.Z);
-            if (Math.Abs(npcSpawner.Position.Z - newZ) < 1f)
+            var newZ = npcSpawner.ParentWorld.Template.GeoData.GetHeight(spawnPosition.AsPositionVector());// WorldManager.Instance.GetHeight(spawnPosition.ZoneId, spawnPosition.X, spawnPosition.Y, spawnPosition.Z);
+            if (Math.Abs(spawnPosition.Z - newZ) < 1f)
             {
-                npcSpawner.Position.Z = newZ;
+                spawnPosition.Z = newZ;
             }
         }
 
-        npc.Transform.ApplyWorldSpawnPosition(npcSpawner.Position);
+        npc.Transform.ApplyWorldSpawnPosition(spawnPosition);
         if (npc.Transform == null)
         {
             Logger.Error($"Can't spawn npc {MemberId} from spawnerId {NpcSpawnerTemplateId}. Transform is null.");

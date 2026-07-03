@@ -212,6 +212,9 @@ public static class CSOffsets
     public const ushort CSJoinInstantGamePacket = 0xFFF;
     public const ushort CSEnteredInstantGameWorldPacket = 0xFFF;
     public const ushort CSLeaveInstantGamePacket = 0x12A;
+    // Client re-entry check, sent fire-and-forget in char-list/char-select/in-world. The reference server
+    // sends no response; handled as a no-op to stop the "Unknown packet 0x12e" log spam.
+    public const ushort CSReentryCheckPacket = 0x12E;
     public const ushort CSCreateDoodadPacket = 0x131;
     public const ushort CSSaveDoodadUccStringPacket = 0xFFF; // TODO: this packet is not in the offsets 
     public const ushort CSNaviTeleportPacket = 0x132;

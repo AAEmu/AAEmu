@@ -11,10 +11,17 @@ public class CountUnreadMail : PacketMarshaler
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(Sent);
-        stream.Write(Received);
-        stream.Write(MiaReceived);
-        stream.Write(CommercialReceived);
+        // 10.0.2.13 mail-count struct (x2game-dev_dedicate sub_39D31520, shared by SCCountTotalMail 0x15B and
+        // the mail body/list packets): 8 u32 — the four total_* counts then the four unread_* counts. AAEmu
+        // tracks only the unread counts; totals go out as 0, matching the mail block in SCCharacterState.
+        stream.Write(0);                  // total_sent
+        stream.Write(0);                  // total_received
+        stream.Write(0);                  // total_miaReceived
+        stream.Write(0);                  // total_commercialReceived
+        stream.Write(Sent);               // unread_sent
+        stream.Write(Received);           // unread_received
+        stream.Write(MiaReceived);        // unread_miaReceived
+        stream.Write(CommercialReceived); // unread_commercialReceived
         return stream;
     }
 

@@ -2812,7 +2812,11 @@ public partial class Character : Unit, ICharacter
         stream.Write((uint)0);                                        // gift
         stream.Write(0L);                                            // updated
         stream.Write((byte)0);                                        // forceNameChange
-        stream.Write(new byte[16]);                                  // guid (fixed 16-byte string)
+        // guid: ISerialize slot +464 (length-prefixed byte string), NOT raw. CharacterListPacket_WriteLobbyChar
+        // (0x39B165E0) emits it via the same writer as the name fields, so the 16 bytes go out behind a u16
+        // length. Writing 16 raw bytes leaves the record 2 B short, desyncing the labor block/tail — tolerated
+        // by the char-list screen but fatal to the strict in-world character build (StartWorld/InitCharacter).
+        stream.Write(new byte[16], true);                            // guid (u16 length + 16 bytes)
         // labor block (sub_39B12780) — 40 bytes: lp/localLp/consumed(u32) + updated/bmPoint(u64) + rechargedLp(u32) + rechargeResetTime(u64)
         stream.Write((uint)0);                                        // lp
         stream.Write((uint)0);                                        // localLp

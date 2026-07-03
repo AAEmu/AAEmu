@@ -77,9 +77,9 @@ public class SCUnitStatePacket : GamePacket
         // 2. name
         stream.Write(_unit.Name);
         // 3-5. world placement (TODO: real instance/region ids)
-        stream.Write((byte)0);   // worldId
-        stream.Write((byte)0);   // regionId
-        stream.Write(false);     // isInGlobalWorld
+        stream.Write((byte)0xFF);   // worldId  (capture: reference always sends 0xFF = derive region from position)
+        stream.Write((byte)0xFF);   // regionId
+        stream.Write(false);        // isInGlobalWorld
 
         // 6. id/type block: baseUnitType u8 + per-type ids (UnitState_SerializeIdTypeBlock)
         stream.Write((byte)_baseUnitType);
@@ -193,8 +193,8 @@ public class SCUnitStatePacket : GamePacket
         stream.Write(false); // isTempFaction
 
         // 30-31. learned skills + passive buffs — IDs packed via pish/pisc
-        PishPiscCodec.Write(stream, skillIds);
-        PishPiscCodec.Write(stream, passiveIds);
+        stream.WritePisc(skillIds);
+        stream.WritePisc(passiveIds);
 
         // 32. heading — building/housing (idType 3) writes a single f32 yaw (radians); every other unit
         // writes 3 signed bytes (rot.x/y/z). Binary UnitState_Serialize idType==3 branch vs sub_3938AFC0.
@@ -214,9 +214,9 @@ public class SCUnitStatePacket : GamePacket
         stream.Write(character?.RaceGender ?? npc?.RaceGender ?? _unit.RaceGender);
 
         // 34. stat groups — three pish/pisc groups of 4/3/4 values (TODO: map to real unit stats)
-        PishPiscCodec.Write(stream, new uint[4]);
-        PishPiscCodec.Write(stream, new uint[3]);
-        PishPiscCodec.Write(stream, new uint[4]);
+        stream.WritePisc(new uint[4]);
+        stream.WritePisc(new uint[3]);
+        stream.WritePisc(new uint[4]);
 
         // 35-36. flags (u16) + attckFactionFlags (u8). flags=0 -> client skips firstHitter/highAbility/gmmode.
         stream.Write((ushort)0);
@@ -293,7 +293,7 @@ public class SCUnitStatePacket : GamePacket
         stream.Write((byte)(effect.Caster?.Level ?? 1));  // sourceLevel u8
         stream.Write((ushort)effect.AbLevel);             // sourceAbLevel u16
         // group 1: totalTime, elapsedTime, tickTime, tickIndex
-        PishPiscCodec.Write(stream, new[]
+        stream.WritePisc(new[]
         {
             (uint)effect.Duration,
             (uint)effect.GetTimeElapsed(),
@@ -301,7 +301,7 @@ public class SCUnitStatePacket : GamePacket
             0u,
         });
         // group 2: stack, charged, cooldownSkill, reserved
-        PishPiscCodec.Write(stream, new uint[] { 1u, 0u, 0u, 0u });
+        stream.WritePisc(new uint[] { 1u, 0u, 0u, 0u });
     }
     #endregion NetBuff
 

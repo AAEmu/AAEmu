@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Tasks.World;
 
 using Newtonsoft.Json;
@@ -43,6 +44,19 @@ public class NpcSpawner : Spawner<Npc>
     public List<uint> NpcSpawnerIds { get; set; } = [];
     public NpcSpawnerTemplate Template { get; set; }
     public List<NpcSpawnerNpc> SpawnableNpcs { get; set; } = []; // List of NPCs that can be spawned
+
+    /// <summary>
+    /// Discrete candidate spawn positions for this placement. A point spawner declares
+    /// one (occasionally several) explicit points; the engine spawns up to
+    /// Template.MaxPopulation NPCs, drawing a candidate per spawn.
+    /// </summary>
+    public List<WorldSpawnPosition> SpawnPositions { get; set; } = [];
+
+    /// <summary>
+    /// Weighted triangulation of an area spawner's roaming polygon. When present, each
+    /// spawn draws a random position inside the polygon instead of using a fixed point.
+    /// </summary>
+    public List<SpawnAreaTriangle> SpawnArea { get; set; } = [];
     public ConcurrentDictionary<uint, List<Npc>> SpawnedNpcs { get; set; } = new(); // <SpawnerId, List of spawned NPCs>
     private readonly DateTime _lastSpawnTime = DateTime.MinValue;
     private readonly Dictionary<int, SpawnerPlayerCountCache> _playerCountCache = new();
@@ -60,6 +74,56 @@ public class NpcSpawner : Spawner<Npc>
         }
 
         SpawnableNpcs = [.. template.Npcs];
+    }
+
+    /// <summary>
+    /// Resolves the world position for a single NPC spawn: a random point inside the
+    /// roaming polygon for area spawners, a random candidate for multi-point spawners,
+    /// or the fixed <see cref="Spawner{T}.Position"/> otherwise.
+    /// </summary>
+    public WorldSpawnPosition ResolveSpawnPosition()
+    {
+        if (SpawnArea.Count > 0)
+            return SampleAreaPosition();
+
+        if (SpawnPositions.Count > 1)
+            return SpawnPositions[Random.Shared.Next(SpawnPositions.Count)].Clone();
+
+        return Position;
+    }
+
+    private WorldSpawnPosition SampleAreaPosition()
+    {
+        var point = PickWeightedTriangle().RandomPoint();
+        return new WorldSpawnPosition
+        {
+            WorldId = Position.WorldId,
+            ZoneId = Position.ZoneId,
+            X = point.X,
+            Y = point.Y,
+            Z = point.Z,
+            Yaw = (float)(Random.Shared.NextDouble() * Math.PI * 2.0)
+        };
+    }
+
+    private SpawnAreaTriangle PickWeightedTriangle()
+    {
+        var totalRate = 0f;
+        foreach (var triangle in SpawnArea)
+            totalRate += triangle.Rate;
+
+        if (totalRate <= 0f)
+            return SpawnArea[Random.Shared.Next(SpawnArea.Count)];
+
+        var roll = (float)Random.Shared.NextDouble() * totalRate;
+        foreach (var triangle in SpawnArea)
+        {
+            roll -= triangle.Rate;
+            if (roll <= 0f)
+                return triangle;
+        }
+
+        return SpawnArea[^1];
     }
 
     /// <summary>

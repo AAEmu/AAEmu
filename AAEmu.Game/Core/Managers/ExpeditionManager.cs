@@ -267,7 +267,8 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             new SCFactionCreatedPacket(expedition, owner.ObjId, [(owner.ObjId, owner.Id, owner.Name)])
         );
 
-        worldManager.BroadcastPacketToServer(new SCFactionListPacket(expedition));
+        // TODO 10.0.2.13: guild descriptors broadcast via SCExpeditionList (opcode 0x0A), which replaced the
+        // removed SCFactionList (0x08). SCExpeditionListPacket is not yet implemented.
         owner.BroadcastPacket(
             new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, (uint)expedition.Id, false),
             true
@@ -547,17 +548,9 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
 
     public void SendExpeditions(Character character)
     {
-        if (_expeditions.Values.Count > 0)
-        {
-            var expeditions = _expeditions.Values.ToArray();
-            for (var i = 0; i < expeditions.Length; i += 20)
-            {
-                var temp = new SystemFaction[expeditions.Length - i <= 20 ? expeditions.Length - i : 20];
-                Array.Copy(expeditions, i, temp, 0, temp.Length);
-                character.SendPacket(new SCFactionListPacket(temp));
-            }
-        }
-
+        // TODO 10.0.2.13: the character's guild list is sent via SCExpeditionList (opcode 0x0A), which replaced
+        // the removed SCFactionList (0x08). SCExpeditionListPacket is not yet implemented; the client loads
+        // guild membership from the trailing world-entry data until it is.
         character.SendPacket(new SCExpeditionRolePolicyListPacket([]));
     }
 

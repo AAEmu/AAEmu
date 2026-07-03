@@ -130,6 +130,42 @@ public class WorldConfig
     /// Configure in <c>AAEmu.Game/Configurations/World.json</c> under <c>World.UsePersistentHouseDoodads</c>.
     /// </summary>
     public bool UsePersistentHouseDoodads { get; set; } = false;
+
+    /// <summary>
+    /// When false, world NPC spawners are not spawned at world load. Diagnostic toggle for
+    /// isolating world-entry behaviour from NPC spawn data. Default: true.
+    /// Configure in <c>AAEmu.Game/Configurations/World.json</c> under <c>World.SpawnNpcs</c>.
+    /// </summary>
+    public bool SpawnNpcs { get; set; } = true;
+
+    /// <summary>
+    /// When false, world doodad spawners and persistent doodads (including player-placed doodads)
+    /// are not spawned at world load. Diagnostic toggle for isolating world-entry behaviour from
+    /// doodad spawn data. Default: true.
+    /// Configure in <c>AAEmu.Game/Configurations/World.json</c> under <c>World.SpawnDoodads</c>.
+    /// </summary>
+    public bool SpawnDoodads { get; set; } = true;
+
+    /// <summary>
+    /// When false, transfers (carriages, airships) are not spawned at world load. Diagnostic
+    /// toggle for isolating world-entry behaviour from transfer spawn data. Default: true.
+    /// Configure in <c>AAEmu.Game/Configurations/World.json</c> under <c>World.SpawnTransfers</c>.
+    /// </summary>
+    public bool SpawnTransfers { get; set; } = true;
+
+    /// <summary>
+    /// When false, gimmicks are not spawned at world load. Diagnostic toggle for isolating
+    /// world-entry behaviour from gimmick spawn data. Default: true.
+    /// Configure in <c>AAEmu.Game/Configurations/World.json</c> under <c>World.SpawnGimmicks</c>.
+    /// </summary>
+    public bool SpawnGimmicks { get; set; } = true;
+
+    /// <summary>
+    /// When false, slaves (player boats, vehicles) are not spawned at world load. Diagnostic
+    /// toggle for isolating world-entry behaviour from slave spawn data. Default: true.
+    /// Configure in <c>AAEmu.Game/Configurations/World.json</c> under <c>World.SpawnSlaves</c>.
+    /// </summary>
+    public bool SpawnSlaves { get; set; } = true;
 }
 
 public class DungeonLoadConfig

@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units.Route;
@@ -56,9 +57,32 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
 
             Connection.ActiveChar.Simulation = new Simulation(character);
 
+            // Opens the in-world data load at context-view state 2 (SELECT_CHARACTER), ahead of the server-driven
+            // ChangeState(3→7). First S2C packet after the char-select restrict/congestion checks in a live
+            // 10.0.2.13 capture (research/captures_100213/world_entry_capture_100213.md).
+            //
+            // worldId here is the game-server (shard) id the client connected to via the login server list — the
+            // login code calls the same value "WorldId" (GameController: "requesting an invalid WorldId {GsId}").
+            // It must echo AppConfiguration.Id (this shard's GameServers[].Id), NOT the internal world-instance id:
+            // sending Transform.WorldId (0 for main_world) leaves the client's current-world context unset, so
+            // SCWorldLevelInfo has nothing to bind to and the GetWorldLevel HUD provider (x2game sub_39850080)
+            // null-derefs *(ClientPlayer+104)+8 when the player-frame event window shows. The reference capture
+            // sends 0x02 because that official shard's id is 2; ours is 1.
+            Connection.SendPacket(new SCShowCurrentWorldPacket(AppConfiguration.Instance.Id));
+
             Connection.SendPacket(new SCCharacterStatePacket(character));
+
+            // SCWorldLevelInfo is NOT sent here. The client's world-level manager binds the packet's data to the
+            // local player unit, which does not exist until Spawn() runs on NotifyInGame; sending it in the select
+            // burst leaves that unit link (*(ClientPlayer+104)+8) null and the GetWorldLevel HUD provider
+            // null-derefs on player-frame show. The reference sends it ~4s after NotifyInGame — see
+            // CSNotifyInGamePacket.
+
             Connection.SendPacket(new SCCharacterGamePointsPacket(character));
             Connection.ActiveChar.Inventory.Send();
+            // Reference emits prelim equipments here (after inventory contents) to initialize the client equipment
+            // view before the player-frame renders.
+            Connection.SendPacket(new SCCharacterPrelimEquipmentsPacket());
             Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
 
             Connection.ActiveChar.Quests.Send();
@@ -71,6 +95,18 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
             Connection.ActiveChar.Friends.Send();
             Connection.ActiveChar.Blocked.Send();
 
+            // 10.0.2.13 world-entry init packets the client requires to populate its player-frame and side panels.
+            // The reference server emits each (empty/default) in the select burst; absent, the client dereferences
+            // the uninitialized structure when the matching UI window shows and crashes on load.
+            Connection.SendPacket(new SCIncreasedFavoritePortalLimitPacket());
+            Connection.SendPacket(new SCWorldRestrictOwnerChangePacket(false));
+            Connection.SendPacket(new SCPlayerGameDataPacket());
+            Connection.SendPacket(new SCInstanceVisitCountsPacket());
+            Connection.SendPacket(new SCBattleFieldRecordsPacket());
+            Connection.SendPacket(new SCFavoriteCraftsPacket());
+            Connection.SendPacket(new SCCharacterPrivacyStatusUpdatePacket());
+            Connection.SendPacket(new SCUpdateAdditionalSkillPointPacket());
+
             foreach (var house in houses)
             {
                 Connection.SendPacket(new SCMyHousePacket(house));
@@ -81,8 +117,11 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
                 Connection.SendPacket(new SCConflictZoneStatePacket(conflict.ZoneGroupId, conflict.CurrentZoneState, conflict.NextStateTime));
             }
 
-            FactionManager.Instance.SendFactions(Connection.ActiveChar);
+            // 10.0.2.13: SCFactionList (opcode 0x08) was removed; system-faction descriptors are
+            // client-side static data. Only the dynamic faction relations (SCFactionRelationList 0x0B)
+            // are pushed at world entry.
             FactionManager.Instance.SendRelations(Connection.ActiveChar);
+            Connection.SendPacket(new SCFactionPowerScorePacket());
             ExpeditionManager.Instance.SendExpeditions(Connection.ActiveChar);
 
             if (Connection.ActiveChar.Expedition != null)

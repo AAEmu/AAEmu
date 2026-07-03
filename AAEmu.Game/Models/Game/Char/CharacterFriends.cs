@@ -48,8 +48,9 @@ public class CharacterFriends(Character owner)
 
     public void Send()
     {
-        if (FriendsIdList.Count <= 0) return;
-
+        // The client expects SCFriends at entry to initialize its friend list; the reference server sends an
+        // empty one (total=0, count=0 -> 8-byte body) even with no friends. The packet already serializes 8 bytes
+        // for an empty array, so send it unconditionally instead of skipping.
         var allFriends = FriendMananger.GetFriendInfo([.. FriendsIdList.Keys]);
         var allFriendsArray = new Friend[allFriends.Count];
         allFriends.CopyTo(allFriendsArray, 0);

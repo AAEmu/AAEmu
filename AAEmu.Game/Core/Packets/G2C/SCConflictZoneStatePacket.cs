@@ -4,14 +4,17 @@ using AAEmu.Game.Models.Game.World.Zones;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCConflictZoneStatePacket(ushort zoneId, ZoneConflictType hpws, DateTime endTime)
+public class SCConflictZoneStatePacket(ushort zoneId, ZoneConflictType hpws, DateTime endTime, DateTime lockTime = default)
     : GamePacket(SCOffsets.SCConflictZoneStatePacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(zoneId);
-        stream.Write((byte)hpws);
-        stream.Write(endTime);
+        // 10.0.2.13 body (x2game-dev_dedicate SCConflictZoneStatePacket serializer sub_39C241C0):
+        // type(zoneId u16) | hpws(u8) | end(i64) | lock(i64).
+        stream.Write(zoneId);       // "type"
+        stream.Write((byte)hpws);   // "hpws"
+        stream.Write(endTime);      // "end"
+        stream.Write(lockTime);     // "lock"
         return stream;
     }
 }
