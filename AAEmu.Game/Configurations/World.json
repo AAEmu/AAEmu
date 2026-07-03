@@ -19,6 +19,11 @@
         "WindModel": "Official",
         "ActabilityRate": 1.0,
         "UsePersistentHouseDoodads": false,
+        "SpawnNpcs": false,
+        "SpawnDoodads": false,
+        "SpawnTransfers": false,
+        "SpawnGimmicks": false,
+        "SpawnSlaves": false,
         "PvpHonorRate": 1.0
     }
 }

@@ -75,8 +75,8 @@ public class FaceModel : PacketMarshaler
         MovableDecalMoveX = stream.ReadInt16();
         MovableDecalMoveY = stream.ReadInt16();
 
-        var decalIds = PishPiscCodec.Read(stream, 6);
-        var mapIds = PishPiscCodec.Read(stream, 3);
+        var decalIds = stream.ReadPisc(6);
+        var mapIds = stream.ReadPisc(3);
         DiffuseMapId = mapIds[0];
         NormalMapId = mapIds[1];
         EyelashMapId = mapIds[2];
@@ -110,8 +110,8 @@ public class FaceModel : PacketMarshaler
         var decalIds = new uint[6];
         for (var i = 0; i < 6; i++)
             decalIds[i] = FixedDecalAsset[i].AssetId;
-        PishPiscCodec.Write(stream, decalIds);
-        PishPiscCodec.Write(stream, [DiffuseMapId, NormalMapId, EyelashMapId]);
+        stream.WritePisc(decalIds);
+        stream.WritePisc([DiffuseMapId, NormalMapId, EyelashMapId]);
 
         // 6 fixed-decal weights, then the normal-map weight
         for (var i = 0; i < 6; i++)

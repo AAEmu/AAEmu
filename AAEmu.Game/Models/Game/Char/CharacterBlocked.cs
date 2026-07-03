@@ -55,8 +55,9 @@ public class CharacterBlocked(Character owner)
 
     public void Send()
     {
-
-        if (BlockedList.Count <= 0) return;
+        // The client expects SCBlockedUsers at entry to initialize its block list; the reference server sends an
+        // empty one (total=0, count=0 -> 8-byte body) even with none. The packet serializes 8 bytes for an empty
+        // array, so send it unconditionally instead of skipping.
         var allBlocked = GetBlockedInfo([.. BlockedList.Keys]);
         var allBlockedArray = new Blocked[allBlocked.Count];
         allBlocked.CopyTo(allBlockedArray, 0);

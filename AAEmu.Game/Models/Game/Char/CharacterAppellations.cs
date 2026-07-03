@@ -70,6 +70,15 @@ public class CharacterAppellations(Character owner)
 
     public void Send()
     {
+        // The client always expects SCAppellations at character entry to initialize its appellation list; the
+        // reference server sends an empty one (count=0) even with no titles. Without it the player-frame event
+        // window dereferences the uninitialized list on show and crashes. Emit the empty packet explicitly.
+        if (Appellations.Count == 0)
+        {
+            Owner.SendPacket(new SCAppellationsPacket([]));
+            return;
+        }
+
         for (var i = 0; i < Appellations.Count; i += 512)
         {
             var result = new (uint, bool)[Appellations.Count - i <= 512 ? Appellations.Count - i : 512];

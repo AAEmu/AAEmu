@@ -96,22 +96,6 @@ public class FactionManager(ILocalizationManager localizationManager) : Singleto
         _loaded = true;
     }
 
-    public void SendFactions(Character character)
-    {
-        if (_systemFactions.Values.Count == 0)
-            character.SendPacket(new SCFactionListPacket());
-        else
-        {
-            var factions = _systemFactions.Values.ToArray();
-            for (var i = 0; i < factions.Length; i += 20)
-            {
-                var temp = new SystemFaction[factions.Length - i <= 20 ? factions.Length - i : 20];
-                Array.Copy(factions, i, temp, 0, temp.Length);
-                character.SendPacket(new SCFactionListPacket(temp));
-            }
-        }
-    }
-
     public void SendRelations(Character character)
     {
         if (_relations.Count == 0)

@@ -173,27 +173,32 @@ public class WorldManager(
             foreach (var slave in world.GetAllSlaves())
                 slave.OnActiveRegionTick(delta);
 
-            var npcSpawners = world.SpawnManager.GetAllSpawners();
-
-            // Spawner filtering
-            if (sw.ElapsedMilliseconds > 50)
+            // Proximity-based NPC streaming. Respects World.SpawnNpcs so the diagnostic toggle
+            // also suppresses on-demand spawns, not just the initial bulk pass.
+            if (AppConfiguration.Instance.World.SpawnNpcs)
             {
-                Logger.Debug($"Processed in world {world.Template.Name} {npcSpawners.Count} spawners...");
-            }
+                var npcSpawners = world.SpawnManager.GetAllSpawners();
 
-            var activeSpawners = npcSpawners.Values.SelectMany(x => x)
-                .Where(spawner => spawner.Template != null && IsSpawnerActive(spawner))
-                .ToList();
+                // Spawner filtering
+                if (sw.ElapsedMilliseconds > 50)
+                {
+                    Logger.Debug($"Processed in world {world.Template.Name} {npcSpawners.Count} spawners...");
+                }
 
-            // Consistent processing of spawners
-            if (sw.ElapsedMilliseconds > 50)
-            {
-                Logger.Debug($"Processed {activeSpawners.Count} active spawners...");
-            }
+                var activeSpawners = npcSpawners.Values.SelectMany(x => x)
+                    .Where(spawner => spawner.Template != null && IsSpawnerActive(spawner))
+                    .ToList();
 
-            foreach (var npcSpawner in activeSpawners)
-            {
-                npcSpawner.Update();
+                // Consistent processing of spawners
+                if (sw.ElapsedMilliseconds > 50)
+                {
+                    Logger.Debug($"Processed {activeSpawners.Count} active spawners...");
+                }
+
+                foreach (var npcSpawner in activeSpawners)
+                {
+                    npcSpawner.Update();
+                }
             }
         }
 

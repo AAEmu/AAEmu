@@ -847,105 +847,31 @@ public class PacketStream : ICloneable, IComparable
     }
 
     /// <summary>
-    /// Reads a PISC (Packet Integer Size Compression) array from the stream.
+    /// Reads <paramref name="count"/> unsigned values written as CryNetwork "pish/pisc" variable-length groups.
+    /// Values are packed in groups of up to 4, each preceded by a "pish" header byte holding
+    /// 2 bits per value (little-endian length 1..4),
+    /// followed by the "pisc" value bytes.
     /// </summary>
     /// <param name="count">The number of values to read.</param>
-    /// <returns>An array of long values read from the stream.</returns>
-    private long[] ReadPisc(int count)
+    /// <returns>The decoded values.</returns>
+    public uint[] ReadPisc(int count)
     {
-        var result = new long[count];
-        try
+        var result = new uint[count];
+        var read = 0;
+        while (read < count)
         {
-            var pish = new BitArray(new[] { ReadByte() });
-            for (var index = 0; index < count * 2; index += 2)
+            var groupCount = Math.Min(4, count - read);
+            var pish = ReadByte();
+            for (var j = 0; j < groupCount; j++)
             {
-                if (pish[index] && pish[index + 1]) // uint
-                    result[index / 2] = ReadUInt32();
-                else if (pish[index + 1]) // bc
-                    result[index / 2] = ReadBc();
-                else if (pish[index]) // ushort
-                    result[index / 2] = ReadUInt16();
-                else // byte
-                    result[index / 2] = ReadByte();
+                var length = ((pish >> (2 * j)) & 3) + 1;
+                uint v = 0;
+                for (var b = 0; b < length; b++)
+                    v |= (uint)ReadByte() << (8 * b);
+                result[read++] = v;
             }
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Error reading PISC array.");
         }
         return result;
-    }
-
-    /// <summary>
-    /// Reads a PISC (Packet Integer Size Compression) array from the stream with a specified count.
-    /// </summary>
-    /// <param name="hcount">The number of values to read.</param>
-    /// <returns>An array of long values read from the stream.</returns>
-    public long[] ReadPiscW(int hcount)
-    {
-        if (hcount <= 0)
-        {
-            return [];
-        }
-
-        var values = new long[hcount];
-        var index = 0;
-
-        do
-        {
-            var pcount = 4;
-            if (hcount <= 4)
-                pcount = hcount;
-
-            try
-            {
-                switch (pcount)
-                {
-                    case 1:
-                        {
-                            var temp = ReadPisc(1);
-                            values[index] = temp[0];
-                            index += 1;
-                            break;
-                        }
-                    case 2:
-                        {
-                            var temp = ReadPisc(2);
-                            values[index] = temp[0];
-                            values[index + 1] = temp[1];
-                            index += 2;
-                            break;
-                        }
-                    case 3:
-                        {
-                            var temp = ReadPisc(3);
-                            values[index] = temp[0];
-                            values[index + 1] = temp[1];
-                            values[index + 2] = temp[2];
-                            index += 3;
-                            break;
-                        }
-                    case 4:
-                        {
-                            var temp = ReadPisc(4);
-                            values[index] = temp[0];
-                            values[index + 1] = temp[1];
-                            values[index + 2] = temp[2];
-                            values[index + 3] = temp[3];
-                            index += 4;
-                            break;
-                        }
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error(ex, "Error reading PISC array.");
-            }
-
-            hcount -= pcount;
-        } while (hcount > 0);
-
-        return values;
     }
 
     /// <summary>
@@ -1345,104 +1271,41 @@ public class PacketStream : ICloneable, IComparable
     /// </summary>
     /// <param name="values">The values to write.</param>
     /// <returns>The current PacketStream.</returns>
-    public PacketStream WritePisc(params long[] values)
+    public PacketStream WritePisc(params uint[] values)
     {
-        try
+        for (var i = 0; i < values.Length; i += 4)
         {
-            var pish = new BitArray(8);
-            var temp = new PacketStream();
-            var index = 0;
-            foreach (var value in values)
+            var groupCount = Math.Min(4, values.Length - i);
+            byte pish = 0;
+            for (var j = 0; j < groupCount; j++)
             {
-                if (value <= byte.MaxValue)
-                    temp.Write((byte)value);
-                else if (value <= ushort.MaxValue)
-                {
-                    pish[index] = true;
-                    temp.Write((ushort)value);
-                }
-                else if (value <= 0xffffff)
-                {
-                    pish[index + 1] = true;
-                    temp.WriteBc((uint)value);
-                }
-                else
-                {
-                    pish[index] = true;
-                    pish[index + 1] = true;
-                    temp.Write((uint)value);
-                }
-
-                index += 2;
+                var v = values[i + j];
+                var length = v < 0x100u ? 1 : v < 0x10000u ? 2 : v < 0x1000000u ? 3 : 4;
+                pish |= (byte)((length - 1) << (2 * j));
             }
-
-            var res = new byte[1];
-            pish.CopyTo(res, 0);
-            Write(res[0]);
-            Write(temp, false);
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Error writing PISC array.");
+            Write(pish);
+            for (var j = 0; j < groupCount; j++)
+            {
+                var v = values[i + j];
+                var length = v < 0x100u ? 1 : v < 0x10000u ? 2 : v < 0x1000000u ? 3 : 4;
+                for (var b = 0; b < length; b++)
+                    Write((byte)(v >> (8 * b)));
+            }
         }
         return this;
     }
 
     /// <summary>
-    /// Writes a PISC (Packet Integer Size Compression) array to the stream with a specified count.
+    /// Convenience overload for signed value lists; each value must be non-negative and fit in a u32.
     /// </summary>
-    /// <param name="hcount">The number of values to write.</param>
     /// <param name="values">The values to write.</param>
     /// <returns>The current PacketStream.</returns>
-    public PacketStream WritePiscW(int hcount, params long[] values)
+    public PacketStream WritePisc(params long[] values)
     {
-        if (hcount > 0)
-        {
-            var index = 0;
-            do
-            {
-                var pcount = 4;
-                if (hcount <= 4)
-                    pcount = hcount;
-                try
-                {
-                    switch (pcount)
-                    {
-                        case 1:
-                            {
-                                WritePisc(values[index]);
-                                index += 1;
-                                break;
-                            }
-                        case 2:
-                            {
-                                WritePisc(values[index], values[index + 1]);
-                                index += 2;
-                                break;
-                            }
-                        case 3:
-                            {
-                                WritePisc(values[index], values[index + 1], values[index + 2]);
-                                index += 3;
-                                break;
-                            }
-                        case 4:
-                            {
-                                WritePisc(values[index], values[index + 1], values[index + 2], values[index + 3]);
-                                index += 4;
-                                break;
-                            }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Logger.Error(ex, "Error writing PISC array.");
-                }
-
-                hcount -= pcount;
-            } while (hcount > 0);
-        }
-        return this;
+        var u = new uint[values.Length];
+        for (var i = 0; i < values.Length; i++)
+            u[i] = (uint)values[i];
+        return WritePisc(u);
     }
 
     /// <summary>

@@ -65,13 +65,15 @@ public class TimedRewardsManager(ITaskManager taskManager) : Singleton<TimedRewa
                 DoAddLabor(connection, accountDetails.Labor, addLabor);
             }
 
-            // Distribute Credits if needed
+            // Distribute Credits if needed. 10.0.2.13 does not push the account balance on a timer (a live
+            // official capture sends neither the credits nor loyalty packet at world entry), and the legacy
+            // SCICSCashPoint opcode 0x1D6 now collides with the client's SCMatchingInvitationInfo — sending it
+            // crashes the client on deserialization. The balance is still accrued; the client reads it on demand.
             if (AppConfiguration.Instance.Credits.TickMinutes > 0 && accountDetails.LastCreditsTick.AddMinutes(AppConfiguration.Instance.Credits.TickMinutes) <= DateTime.UtcNow)
             {
                 // Update Credits
                 AccountManager.Instance.AddCredits(connection.AccountId, AppConfiguration.Instance.Credits.GetTickAmount(connection.Payment.PremiumState));
                 AccountManager.Instance.UpdateTickTimes(connection.AccountId, DateTime.UtcNow, false, true, false);
-                connection.ActiveChar?.SendPacket(new SCICSCashPointPacket(AccountManager.Instance.GetAccountDetails(connection.AccountId).Credits));
             }
 
             // Distribute Loyalty if needed
@@ -80,7 +82,6 @@ public class TimedRewardsManager(ITaskManager taskManager) : Singleton<TimedRewa
                 // Update Loyalty
                 AccountManager.Instance.AddLoyalty(connection.AccountId, AppConfiguration.Instance.Loyalty.GetTickAmount(connection.Payment.PremiumState));
                 AccountManager.Instance.UpdateTickTimes(connection.AccountId, DateTime.UtcNow, false, false, true);
-                connection.ActiveChar?.SendPacket(new SCBmPointPacket(AccountManager.Instance.GetAccountDetails(connection.AccountId).Loyalty));
             }
         }
     }

@@ -17,6 +17,10 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
     {
         Connection.ActiveChar.IsOnline = true;
 
+        // First packet the reference pushes once the context reaches INGAME — enables the client's gameplay
+        // feature/HUD systems before the player frame renders.
+        Connection.ActiveChar.SendPacket(new SCSystemFeatureStateListPacket());
+
         Connection.ActiveChar.Spawn();
 
         // Joining channel 1 (shout) will automatically also join /lfg and /trade for that zone on the client-side
@@ -32,6 +36,17 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
         Connection.ActiveChar.Expedition?.OnCharacterLogin(Connection.ActiveChar);
 
         Connection.ActiveChar.UpdateGearBonuses(null, null);
+
+        // The player-frame event window shows during the post-NotifyInGame load and reads its event counts; the
+        // client crashes on show without them. The reference server sends this (all-zero, no active events) at
+        // world entry — emit it here so the window has data before it renders.
+        Connection.ActiveChar.SendPacket(new SCEventInfoCountPacket());
+
+        // World-level state for the GetWorldLevel HUD provider. Must be sent AFTER Spawn() (above): the client's
+        // world-level manager binds this data to the local player unit, so the unit has to exist or the link
+        // stays null and the provider null-derefs when the player-frame event window shows.
+        // The reference emits 0x038A ~4s after NotifyInGame, never in the select burst.
+        Connection.ActiveChar.SendPacket(new SCWorldLevelInfoPacket());
 
         Logger.Info($"NotifyInGame: {Connection.ActiveChar?.Name} ({Connection.ActiveChar?.Id})");
     }

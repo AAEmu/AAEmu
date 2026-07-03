@@ -11,7 +11,6 @@ public static class SCOffsets
     public const ushort SCWorldQueuePacket = 0x5;
     public const ushort SCInitialConfigPacket = 0x7;
     public const ushort SCTrionConfigPacket = 0x07;
-    public const ushort SCFactionListPacket = 0x08;
     public const ushort SCFactionRelationListPacket = 0xB; // 10.0.2.13
     public const ushort SCExpeditionRolePolicyListPacket = 0xD; // 10.0.2.13
     public const ushort SCExpeditionRolePolicyChangedPacket = 0xE; // 10.0.2.13
@@ -527,4 +526,22 @@ public static class SCOffsets
     public const ushort SCGameRuleConfigPacket = 0x2BC; // 10.0.2.13 SC_PACKET_GAME_RULE_CONFIG (700)
     public const ushort SCHousingAreaConfigPacket = 0x2BD; // 10.0.2.13 SC_PACKET_HOUSING_AREA_CONFIG (701)
     public const ushort SCSiegeZoneConfigPacket = 0x2BE; // 10.0.2.13 SC_PACKET_SIEGE_ZONE_CONFIG (702)
+    public const ushort SCShowCurrentWorldPacket = 0x354; // 10.0.2.13 SC_PACKET_SHOW_CURRENT_WORLD (852)
+    public const ushort SCWorldContentPacket = 0x009; // 10.0.2.13 SC_PACKET_WORLD_CONTENT (9)
+    public const ushort SCServerFileTimeSyncPacket = 0x305; // 10.0.2.13 SC_PACKET_SERVER_FILE_TIME_SYNC (773)
+    public const ushort SCRepreSentCharacterPacket = 0x2C4; // 10.0.2.13 SC_PACKET_REPRESENT_CHARACTER (708)
+    public const ushort SCAccountAttendancePacket = 0x2C9; // 10.0.2.13 SC_PACKET_ACCOUNT_ATTENDANCE (713)
+    public const ushort SCServerInfoPacket = 0x399; // 10.0.2.13 SC_PACKET_SERVER_INFO (921)
+    public const ushort SCEventInfoCountPacket = 0x2DD; // 10.0.2.13 SC_PACKET_EVENT_INFO_COUNT (733)
+    public const ushort SCFactionPowerScorePacket = 0x00C; // 10.0.2.13 SC_PACKET_FACTION_POWER_SCORE (12)
+    public const ushort SCIncreasedFavoritePortalLimitPacket = 0x08D; // 10.0.2.13 SC_PACKET_INCREASED_FAVORITE_PORTAL_LIMIT (141)
+    public const ushort SCInstanceVisitCountsPacket = 0x1EC; // 10.0.2.13 SC_PACKET_INSTANCE_VISIT_COUNTS (492)
+    public const ushort SCFavoriteCraftsPacket = 0x23A; // 10.0.2.13 SC_PACKET_FAVORITE_CRAFTS (570)
+    public const ushort SCBattleFieldRecordsPacket = 0x2E5; // 10.0.2.13 SC_PACKET_BATTLE_FIELD_RECORDS (741)
+    public const ushort SCCharacterPrivacyStatusUpdatePacket = 0x375; // 10.0.2.13 SC_PACKET_CHARACTER_PRIVACY_STATUS_UPDATE (885)
+    public const ushort SCUpdateAdditionalSkillPointPacket = 0x381; // 10.0.2.13 SC_PACKET_UPDATE_ADDITIONAL_SKILL_POINT (897)
+    public const ushort SCPlayerGameDataPacket = 0x39A; // 10.0.2.13 SC_PACKET_PLAYER_GAME_DATA (922)
+    public const ushort SCCharacterPrelimEquipmentsPacket = 0x79; // 10.0.2.13 SC_PACKET_CHARACTER_PRELIM_EQUIPMENTS (121)
+    public const ushort SCSystemFeatureStateListPacket = 0x393; // 10.0.2.13 SC_PACKET_SYSTEM_FEATURE_STATE_LIST (915)
+    public const ushort SCWorldLevelInfoPacket = 0x38A; // 10.0.2.13 SC_PACKET_WORLD_LEVEL_INFO (906)
 }

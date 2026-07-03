@@ -11,18 +11,19 @@ public class SCBuffCreatedPacket(Buff buff) : GamePacket(SCOffsets.SCBuffCreated
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(buff.SkillCaster);        // skillCaster
-        stream.Write(buff.Caster?.Id ?? 0);    // casterId
+        stream.Write((ulong)(buff.Caster?.Id ?? 0)); // casterId (i64)
         stream.WriteBc(buff.Owner.ObjId);      // targetId
         stream.Write(buff.Index);              // buffId
-        stream.Write(buff.Template.BuffId);    // t template buffId
-        stream.Write(buff.Caster?.Level ?? 1); // l sourceLevel
-        stream.Write((short)buff.AbLevel);     // a sourceAbLevel
+        stream.Write(buff.Template.BuffId);          // t template buffId (u32)
+        stream.Write((byte)(buff.Caster?.Level ?? 1)); // l sourceLevel (u8)
+        stream.Write((short)buff.AbLevel);           // a sourceAbLevel (u16)
         //TODO: Fix this applying CD to wrong skill
         if (buff.Skill is not null && buff.Skill.Template.ToggleBuffId.Equals(buff.Template.Id))
-            stream.Write(buff.Skill.Template.Id); // s skillId
+            stream.Write(buff.Skill.Template.Id); // s skillId (u32)
         else
             stream.Write(0);
 
+        stream.Write(1u); // stack (u32) — single application
         buff.WriteData(stream);
 
         return stream;

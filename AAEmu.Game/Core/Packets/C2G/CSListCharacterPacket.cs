@@ -49,6 +49,14 @@ public class CSListCharacterPacket() : GamePacket(CSOffsets.CSListCharacterPacke
                 Connection.SendPacket(new SCCharacterListPacket(last, temp));
             }
 
+        // Featured/representative character for the character-select screen. The reference sends
+        // SCRepreSentCharacter (0x2C4) right after the character list; represent the first character
+        // (success/first true), or an empty representation when the account has none.
+        if (characters.Length > 0)
+            Connection.SendPacket(new SCRepreSentCharacterPacket(characters[0].Id, true, true, false));
+        else
+            Connection.SendPacket(new SCRepreSentCharacterPacket(0, false, false, false));
+
         var houses = Connection.Houses.Values.ToArray();
         foreach (var house in houses)
             Connection.SendPacket(new SCLoginCharInfoHouse(house.OwnerId, house));

@@ -15,7 +15,14 @@ public class SCCharacterStatePacket(Character character) : GamePacket(SCOffsets.
     {
         // Wrapper
         stream.Write((uint)character.Transform.InstanceId); // iid
-        stream.Write(new byte[16]);                         // guid (fixed 16-byte field, not length-prefixed)
+        // guid: serialized with the same length-prefixed byte-string writer used for the faction-relation
+        // name fields, so the 16 bytes go out behind a u16 length. A live 10.0.2.13 capture
+        // shows `10 00` (len=16) then a non-zero 16-byte guid. Derive a stable per-character guid from the id so
+        // the client's identity keying is non-degenerate (the reference never sends an all-zero guid here).
+        var guid = new byte[16];
+        BitConverter.GetBytes((ulong)character.Id).CopyTo(guid, 0);
+        BitConverter.GetBytes((ulong)character.Id ^ 0x5AA5_A55A_5AA5_A55AUL).CopyTo(guid, 8);
+        stream.Write(guid, true);                           // guid (u16 length + 16 bytes)
         stream.Write(0u);                                   // rwd
         stream.Write(0u);                                   // srwd
 

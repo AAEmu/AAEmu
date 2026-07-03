@@ -6,35 +6,29 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCActionSlotsPacket(ActionSlot[] slots) : GamePacket(SCOffsets.SCActionSlotsPacket, 1)
 {
+    // 10.0.2.13: the client deserializer reads a
+    // FIXED count of slots with no length prefix — a short packet leaves it "not enough buffer for type" and
+    // crashes with a serializer size mismatch. Each slot is type(u8) + payload by type:
+    // 1/2/5/6 -> u32 actionId, 4 -> i64 itemId, everything else -> no payload.
+    private const int ClientSlotCount = 217;
+
     public override PacketStream Write(PacketStream stream)
     {
-        foreach (var s in slots)
+        for (var i = 0; i < ClientSlotCount; i++)
         {
-            var slot = (byte)s.Type;
-            stream.Write(slot);
-            switch (s.Type)
+            var s = i < slots.Length ? slots[i] : null;
+            var type = s?.Type ?? ActionSlotType.None;
+            stream.Write((byte)type);
+            switch (type)
             {
-                case ActionSlotType.None:
-                    {
-                        break;
-                    }
                 case ActionSlotType.ItemType:
                 case ActionSlotType.Spell:
                 case ActionSlotType.RidePetSpell:
-                    {
-                        stream.Write((uint)s.ActionId);
-                        break;
-                    }
+                    stream.Write((uint)s.ActionId);
+                    break;
                 case ActionSlotType.ItemId:
-                    {
-                        stream.Write(s.ActionId); // itemId
-                        break;
-                    }
-                default:
-                    {
-                        Logger.Error("SCActionSlotsPacket, Unknown ActionSlotType!");
-                        break;
-                    }
+                    stream.Write(s.ActionId); // itemId (i64)
+                    break;
             }
         }
 

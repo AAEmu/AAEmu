@@ -1,4 +1,6 @@
-﻿using AAEmu.Commons.Exceptions;
+﻿using System.Numerics;
+
+using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -17,6 +19,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Models.Json;
 using AAEmu.Game.Utils;
 
 using NLog;
@@ -147,7 +150,6 @@ public class SpawnManager(WorldInstance parentWorld)
     /// <summary>
     /// Spawn all Npcs for this world template into this instance
     /// </summary>
-    // ReSharper disable once UnusedMember.Local
     private void SpawnAllNpcs()
     {
         var spawnStartTime = DateTime.UtcNow;
@@ -271,9 +273,13 @@ public class SpawnManager(WorldInstance parentWorld)
         Logger.Info($"Loading spawn data for {World} ...");
         var worldPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", World.Template.Name);
 
-        // Load NPC Spawns
+        // Load NPC Spawns. The converted client-derived data (npc_spawners.g.json) is
+        // authoritative when present; the legacy npc_spawns*.json is the fallback.
         Logger.Debug($"Loading NPC spawn data for {World} ...");
-        _ = LoadNpcSpawns(worldPath);
+        if (File.Exists(Path.Combine(worldPath, "npc_spawners.g.json")))
+            _ = LoadNpcSpawnersG(worldPath);
+        else
+            _ = LoadNpcSpawns(worldPath);
 
         // Load Doodad spawns
         Logger.Debug($"Loading Doodad spawn data for {World} ...");
@@ -298,19 +304,22 @@ public class SpawnManager(WorldInstance parentWorld)
             Logger.Info($"Loading player housing for {World}");
             HousingManager.Instance.LoadPlayerHousing(World);
             HousingManager.Instance.SpawnAll(); // Houses need to be spawned before doodads
-            
-            Logger.Info($"Loading persistent doodads for {World}");
-            var doodadsSpawned = 0;
 
-            // Load furniture and bound doodads
-            doodadsSpawned += SpawnPersistentDoodads(DoodadOwnerType.Housing);
-            // Reconcile bound doodads: spawn any missing from DB, remove duplicates
-            if (AppConfiguration.Instance.World.UsePersistentHouseDoodads)
-                HousingManager.Instance.ReconcileBoundDoodads();
-            // Load plants/packs and everything else that was placed into the world by players
-            doodadsSpawned += SpawnPersistentDoodads(DoodadOwnerType.System);
-            doodadsSpawned += SpawnPersistentDoodads(DoodadOwnerType.Character);
-            Logger.Info($"{doodadsSpawned} doodads loaded in {World}.");
+            if (AppConfiguration.Instance.World.SpawnDoodads)
+            {
+                Logger.Info($"Loading persistent doodads for {World}");
+                var doodadsSpawned = 0;
+
+                // Load furniture and bound doodads
+                doodadsSpawned += SpawnPersistentDoodads(DoodadOwnerType.Housing);
+                // Reconcile bound doodads: spawn any missing from DB, remove duplicates
+                if (AppConfiguration.Instance.World.UsePersistentHouseDoodads)
+                    HousingManager.Instance.ReconcileBoundDoodads();
+                // Load plants/packs and everything else that was placed into the world by players
+                doodadsSpawned += SpawnPersistentDoodads(DoodadOwnerType.System);
+                doodadsSpawned += SpawnPersistentDoodads(DoodadOwnerType.Character);
+                Logger.Info($"{doodadsSpawned} doodads loaded in {World}.");
+            }
         }
 
         // Start timers
@@ -382,6 +391,92 @@ public class SpawnManager(WorldInstance parentWorld)
             }
         }
         return true;
+    }
+
+    /// <summary>
+    /// Loads npc_spawners.g.json — placements converted from the client's
+    /// npc_spawners.g — binding each to its compact.sqlite3 spawner template by
+    /// SpawnerType. Carries discrete multi-point candidates, area roaming polygons and
+    /// follow paths through to the runtime spawner.
+    /// </summary>
+    private bool LoadNpcSpawnersG(string worldPath)
+    {
+        var fileName = Path.Combine(worldPath, "npc_spawners.g.json");
+        if (!File.Exists(fileName))
+            return false;
+
+        var contents = FileManager.GetFileContents(fileName);
+        if (string.IsNullOrWhiteSpace(contents))
+        {
+            Logger.Warn($"File {fileName} is empty.");
+            return false;
+        }
+
+        if (!JsonHelper.TryDeserializeObject(contents, out List<JsonNpcSpawnerG> entries, out _))
+            throw new GameException($"SpawnManager: Parse {fileName} file");
+
+        var loaded = 0;
+        var missingTemplate = 0;
+        foreach (var entry in entries)
+        {
+            var template = NpcGameData.Instance.GetNpcSpawnerTemplate(entry.SpawnerType);
+            if (template?.Npcs == null || template.Npcs.Count == 0)
+            {
+                missingTemplate++;
+                continue;
+            }
+
+            var spawner = new NpcSpawner
+            {
+                Id = _nextId,
+                SpawnerId = entry.SpawnerType,
+                UnitId = template.Npcs[0].MemberId,
+                NpcSpawnerIds = [entry.SpawnerType],
+                Template = template,
+                ParentWorld = World,
+                FollowPath = entry.FollowPath ?? string.Empty,
+                Position = ToSpawnPosition(entry.Position)
+            };
+            spawner.InitializeSpawnableNpcs(template);
+
+            if (entry.Points is { Count: > 0 })
+                spawner.SpawnPositions = entry.Points.Select(ToSpawnPosition).ToList();
+
+            if (entry.Area is { Count: > 0 })
+                spawner.SpawnArea = entry.Area.Select(ToAreaTriangle).ToList();
+
+            NpcSpawners.TryAdd(_nextId, [spawner]);
+            _nextId++;
+            loaded++;
+        }
+
+        Logger.Info($"Loaded {loaded} npc_spawners.g placements for {World}" +
+                    (missingTemplate > 0 ? $" ({missingTemplate} skipped: no template)" : string.Empty));
+        return true;
+    }
+
+    private WorldSpawnPosition ToSpawnPosition(JsonGSpawnPos pos)
+    {
+        return new WorldSpawnPosition
+        {
+            WorldId = World.Id,
+            ZoneId = WorldManager.Instance.GetZoneId(World.Template, pos.X, pos.Y),
+            X = pos.X,
+            Y = pos.Y,
+            Z = pos.Z,
+            Yaw = pos.Yaw
+        };
+    }
+
+    private static SpawnAreaTriangle ToAreaTriangle(JsonGAreaTriangle tri)
+    {
+        return new SpawnAreaTriangle
+        {
+            A = new Vector3(tri.A.X, tri.A.Y, tri.A.Z),
+            B = new Vector3(tri.B.X, tri.B.Y, tri.B.Z),
+            C = new Vector3(tri.C.X, tri.C.Y, tri.C.Z),
+            Rate = tri.Rate
+        };
     }
 
     private static string[] ReverseSpawnFiles(string[] spawnFiles)
@@ -848,115 +943,153 @@ public class SpawnManager(WorldInstance parentWorld)
 
     public void SpawnAll()
     {
-        Logger.Info("Spawning NPCs...");
-        //Task.Run(SpawnAllNpcs);
-
-        Logger.Info("Spawning Doodads...");
-        SpawnTasks.Add(Task.Run(() =>
+        if (AppConfiguration.Instance.World.SpawnNpcs)
         {
-            var spawnStartTime = DateTime.UtcNow;
-            Logger.Info($"Spawning {DoodadSpawners.Count} Doodads in world {World}");
-            var count = 0;
-            foreach (var spawner in DoodadSpawners.Values)
+            Logger.Info("Spawning NPCs...");
+            SpawnTasks.Add(Task.Run(SpawnAllNpcs));
+        }
+        else
+        {
+            Logger.Info("NPC spawning disabled by configuration (World.SpawnNpcs)");
+        }
+
+        if (AppConfiguration.Instance.World.SpawnDoodads)
+        {
+            Logger.Info("Spawning Doodads...");
+            SpawnTasks.Add(Task.Run(() =>
             {
-                spawner.Spawn(0);
-                count++;
-                if (count % 5000 == 0)
+                var spawnStartTime = DateTime.UtcNow;
+                Logger.Info($"Spawning {DoodadSpawners.Count} Doodads in world {World}");
+                var count = 0;
+                foreach (var spawner in DoodadSpawners.Values)
                 {
-                    Logger.Debug($"In world {World} Doodads spawned: {count}...");
+                    spawner.Spawn(0);
+                    count++;
+                    if (count % 5000 == 0)
+                    {
+                        Logger.Debug($"In world {World} Doodads spawned: {count}...");
+                    }
                 }
-            }
 
-            Logger.Info($"In world {World} Doodads spawned: {count} in {DateTime.UtcNow.Subtract(spawnStartTime)} ({GameService.TimeSinceStart} since server start)");
+                Logger.Info($"In world {World} Doodads spawned: {count} in {DateTime.UtcNow.Subtract(spawnStartTime)} ({GameService.TimeSinceStart} since server start)");
 
-            // you have to wait for all the doodads to spawn before trying to initialize the fish schools
-            FishSchoolManager.Instance.Load(World);
-        }));
-
-        Logger.Info("Spawning Transfers...");
-        SpawnTasks.Add(Task.Run(() =>
+                // you have to wait for all the doodads to spawn before trying to initialize the fish schools
+                FishSchoolManager.Instance.Load(World);
+            }));
+        }
+        else
         {
-            var spawnStartTime = DateTime.UtcNow;
-            Logger.Info($"Spawning {TransferSpawners.Count} Transfers in world {World}");
-            var count = 0;
-            foreach (var spawner in TransferSpawners.Values)
-            {
-                spawner.SpawnAll();
-                count++;
-                if (count % 25 == 0)
-                {
-                    Logger.Debug($"In world {World} Transfers spawned: {count}...");
-                }
-            }
+            Logger.Info("Doodad spawning disabled by configuration (World.SpawnDoodads)");
+        }
 
-            Logger.Info($"In world {World} Transfers spawned: {count} in {DateTime.UtcNow.Subtract(spawnStartTime)} ({GameService.TimeSinceStart} since server start)");
-        }));
-
-        Logger.Info("Spawning Gimmicks...");
-        SpawnTasks.Add(Task.Run(() =>
+        if (AppConfiguration.Instance.World.SpawnTransfers)
         {
-            var spawnStartTime = DateTime.UtcNow;
-            Logger.Info($"Spawning {GimmickSpawners.Count} Gimmicks in world {World}");
-            var count = 0;
-            foreach (var spawner in GimmickSpawners.Values)
+            Logger.Info("Spawning Transfers...");
+            SpawnTasks.Add(Task.Run(() =>
             {
-                spawner.Spawn(0);
-                count++;
-                if (count % 25 == 0)
+                var spawnStartTime = DateTime.UtcNow;
+                Logger.Info($"Spawning {TransferSpawners.Count} Transfers in world {World}");
+                var count = 0;
+                foreach (var spawner in TransferSpawners.Values)
                 {
-                    Logger.Debug($"In world {World} Gimmicks spawned: {count}...");
-                }
-            }
-
-            Logger.Info($"In world {World} Gimmicks spawned: {count} in {DateTime.UtcNow.Subtract(spawnStartTime)} ({GameService.TimeSinceStart} since server start)");
-        }));
-
-        Logger.Info("Spawning Slaves...");
-        SpawnTasks.Add(Task.Run(() =>
-        {
-            var spawnStartTime = DateTime.UtcNow;
-            Logger.Info($"Spawning {SlaveSpawners.Count} Slaves in world {World}");
-            var count = 0;
-            foreach (var spawner in SlaveSpawners.Values)
-            {
-                spawner.World = World;
-                spawner.Spawn(0);
-                count++;
-                if (count % 25 == 0)
-                {
-                    Logger.Debug($"In world {World} Slaves spawned: {count}...");
-                }
-            }
-
-            Logger.Info($"In world {World} slaves spawned: {count} in {DateTime.UtcNow.Subtract(spawnStartTime)} ({GameService.TimeSinceStart} since server start)");
-        }));
-
-        Logger.Info("Spawning Player Doodads asynchronously...");
-        SpawnTasks.Add(Task.Run(() =>
-        {
-            var spawnStartTime = DateTime.UtcNow;
-            if (PlayerDoodads.Count > 0)
-                Logger.Info($"Spawning {PlayerDoodads.Count} Player Doodads");
-            var count = 0;
-            foreach (var doodad in PlayerDoodads)
-            {
-                if (doodad.Spawner == null)
-                {
-                    doodad.Spawn();
+                    spawner.SpawnAll();
                     count++;
                     if (count % 25 == 0)
                     {
-                        Logger.Debug($"In world {World} player doodads spawned: {count}...");
+                        Logger.Debug($"In world {World} Transfers spawned: {count}...");
                     }
                 }
-                else
+
+                Logger.Info($"In world {World} Transfers spawned: {count} in {DateTime.UtcNow.Subtract(spawnStartTime)} ({GameService.TimeSinceStart} since server start)");
+            }));
+        }
+        else
+        {
+            Logger.Info("Transfer spawning disabled by configuration (World.SpawnTransfers)");
+        }
+
+        if (AppConfiguration.Instance.World.SpawnGimmicks)
+        {
+            Logger.Info("Spawning Gimmicks...");
+            SpawnTasks.Add(Task.Run(() =>
+            {
+                var spawnStartTime = DateTime.UtcNow;
+                Logger.Info($"Spawning {GimmickSpawners.Count} Gimmicks in world {World}");
+                var count = 0;
+                foreach (var spawner in GimmickSpawners.Values)
                 {
-                    if (doodad.Spawner?.Spawn(doodad.ObjId) == null)
-                        Logger.Error($"Failed to spawn player doodad DbId:{doodad.DbId}, TemplateId: {doodad.TemplateId}");
+                    spawner.Spawn(0);
+                    count++;
+                    if (count % 25 == 0)
+                    {
+                        Logger.Debug($"In world {World} Gimmicks spawned: {count}...");
+                    }
                 }
-            }
-            Logger.Info($"In world {World} player doodads spawned: {count} in {DateTime.UtcNow.Subtract(spawnStartTime)} ({GameService.TimeSinceStart} since server start)");
-        }));
+
+                Logger.Info($"In world {World} Gimmicks spawned: {count} in {DateTime.UtcNow.Subtract(spawnStartTime)} ({GameService.TimeSinceStart} since server start)");
+            }));
+        }
+        else
+        {
+            Logger.Info("Gimmick spawning disabled by configuration (World.SpawnGimmicks)");
+        }
+
+        if (AppConfiguration.Instance.World.SpawnSlaves)
+        {
+            Logger.Info("Spawning Slaves...");
+            SpawnTasks.Add(Task.Run(() =>
+            {
+                var spawnStartTime = DateTime.UtcNow;
+                Logger.Info($"Spawning {SlaveSpawners.Count} Slaves in world {World}");
+                var count = 0;
+                foreach (var spawner in SlaveSpawners.Values)
+                {
+                    spawner.World = World;
+                    spawner.Spawn(0);
+                    count++;
+                    if (count % 25 == 0)
+                    {
+                        Logger.Debug($"In world {World} Slaves spawned: {count}...");
+                    }
+                }
+
+                Logger.Info($"In world {World} slaves spawned: {count} in {DateTime.UtcNow.Subtract(spawnStartTime)} ({GameService.TimeSinceStart} since server start)");
+            }));
+        }
+        else
+        {
+            Logger.Info("Slave spawning disabled by configuration (World.SpawnSlaves)");
+        }
+
+        if (AppConfiguration.Instance.World.SpawnDoodads)
+        {
+            Logger.Info("Spawning Player Doodads asynchronously...");
+            SpawnTasks.Add(Task.Run(() =>
+            {
+                var spawnStartTime = DateTime.UtcNow;
+                if (PlayerDoodads.Count > 0)
+                    Logger.Info($"Spawning {PlayerDoodads.Count} Player Doodads");
+                var count = 0;
+                foreach (var doodad in PlayerDoodads)
+                {
+                    if (doodad.Spawner == null)
+                    {
+                        doodad.Spawn();
+                        count++;
+                        if (count % 25 == 0)
+                        {
+                            Logger.Debug($"In world {World} player doodads spawned: {count}...");
+                        }
+                    }
+                    else
+                    {
+                        if (doodad.Spawner?.Spawn(doodad.ObjId) == null)
+                            Logger.Error($"Failed to spawn player doodad DbId:{doodad.DbId}, TemplateId: {doodad.TemplateId}");
+                    }
+                }
+                Logger.Info($"In world {World} player doodads spawned: {count} in {DateTime.UtcNow.Subtract(spawnStartTime)} ({GameService.TimeSinceStart} since server start)");
+            }));
+        }
     }
 
     public void Stop()

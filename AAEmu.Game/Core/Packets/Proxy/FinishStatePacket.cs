@@ -31,6 +31,13 @@ public class FinishStatePacket() : GamePacket(PPOffsets.FinishStatePacket, 2)
                 Connection.SendPacket(new SetGameTypePacket(levelname, 0, 1)); // TODO - level
                 Connection.SendPacket(new SCInitialConfigPacket());
 
+                // Lobby config-burst order verified against a live 10.0.2.13 capture:
+                // SCInitialConfig is followed by
+                // SCServerInfo then SCWorldContent, then SCAccountInfo. SCWorldContent carries the content-filter
+                // table (sent empty here = no content blocked).
+                Connection.SendPacket(new SCServerInfoPacket());
+                Connection.SendPacket(new SCWorldContentPacket());
+
                 // SCTrionConfig does not exist in the 10.0.2.13 client (its opcode 0x07 now belongs to
                 // SCInitialConfig) — do not send it.
                 Connection.SendPacket(new SCAccountInfoPacket(
@@ -42,6 +49,9 @@ public class FinishStatePacket() : GamePacket(PPOffsets.FinishStatePacket, 2)
                 Connection.SendPacket(new SCChatSpamDelayPacket());
                 Connection.SendPacket(new SCAccountAttributeConfigPacket(_scAccountInitPacket)); // TODO
                 Connection.SendPacket(new SCLevelRestrictionConfigPacket(10, 10, 10, 10, 10, _scLevelRestrictionInitPacket)); // TODO - config files
+
+                // Closes the lobby config burst (capture frame 16, after the establishment config block).
+                Connection.SendPacket(new SCServerFileTimeSyncPacket());
 
                 // The 10.0.2.13 context-establishment config block (SCWorldRestrictOwnerChange/SCTaxItemConfig/
                 // SCInGameShopConfig/SCGameRuleConfig/SCHousingAreaConfig, opcodes 0x2A2..0x2BD) is implemented but
