@@ -34,8 +34,6 @@ public partial class Character
 
     public uint ResurrectHpPercent { get; set; } = 1;
     public uint ResurrectMpPercent { get; set; } = 1;
-    public uint HostileFactionKills { get; set; }
-    public uint HonorGainedInCombat { get; set; }
 
     /// <summary>True if last death was a PvP kill in a War zone (Leech debuff on temple-revive).</summary>
     public bool DiedInPvpWarZone { get; set; }
@@ -388,14 +386,6 @@ public partial class Character
             if (Faction.Id != FactionsEnum.Pirate)
             {
                 SetFaction(FactionsEnum.Pirate);
-                if (Expedition != null && Expedition.Id != FactionsEnum.Pirate)
-                {
-                    ExpeditionManager.Instance.Kick(this.Connection, this.Id);
-                }
-                if (InParty)
-                {
-                    TeamManager.Instance.MemberRemoveFromTeam(this, this, RiskyAction.Kick);
-                }
             }
         }
         else

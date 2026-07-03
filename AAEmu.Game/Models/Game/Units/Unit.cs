@@ -927,7 +927,7 @@ public class Unit : BaseUnit, IUnit
     /// Set the faction of the owner
     /// </summary>
     /// <param name="factionId"></param>
-    public void SetFaction(FactionsEnum factionId)
+    public virtual void SetFaction(FactionsEnum factionId)
     {
         // Keep origin faction data temporarily for arena players
         OriginFaction = Faction;

@@ -172,6 +172,15 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `deleted` int(11) NOT NULL DEFAULT 0,
   `return_district` int(11) NOT NULL DEFAULT 0,
   `online_time` INT(11) NOT NULL DEFAULT 0 COMMENT 'Time that the character has been online',
+  `arrest_count` INT NULL DEFAULT '0',
+  `accept_guilty_count` INT NULL DEFAULT '0',
+  `accept_trial_count` INT NULL DEFAULT '0',
+  `not_guilty_count` INT NULL DEFAULT '0',
+  `guilty_count` INT NULL DEFAULT '0',
+  `evidence_reported_count` INT NULL DEFAULT '0',
+  `bot_reported_count` INT NULL DEFAULT '0',
+  `offline_guilty_time` INT NULL DEFAULT '0' COMMENT 'Guilty time for skipped trials',
+  `offline_guilty_region` INT NULL DEFAULT '0' COMMENT 'Region for skipped trials',
   PRIMARY KEY (`id`, `account_id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = 'Basic player character data' ROW_FORMAT = DYNAMIC;
 

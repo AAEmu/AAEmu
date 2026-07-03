@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
@@ -555,7 +556,20 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
                 queue.Add(player.Id);
             // GetJuryQueueForPlayer(player);
         }
-        // TODO: Send player to jail if trial result was guilty while offline
+
+        if (player.OfflineGuiltyTime > 0)
+        {
+            // Not the Best way to handle this, but create a temporary trial and immediately auto-plead guilty
+            var tempTrial = ArrestCriminal(player, null);
+            if (tempTrial != null)
+            {
+                ResultIsGuilty(player, tempTrial, true);
+            }
+            else
+            {
+                Logger.Error($"Failed to handle justice for skipped trial of {player.Name} ({player.Id})! Time: {player.OfflineGuiltyTime}, Region: {player.OfflineGuiltyRegion}");
+            }
+        }
     }
 
     /// <summary>
@@ -563,17 +577,18 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
     /// </summary>
     /// <param name="criminal"></param>
     /// <param name="arrestor"></param>
-    public void ArrestCriminal(Character criminal, Character arrestor)
+    public TrialData ArrestCriminal(Character criminal, Character arrestor)
     {
         // TODO: Implement better support for player nations
         var criminalCourtRegion = GetCourtRoomRegionByFaction(criminal.Faction.MotherId);
-        var arrestorCourtRegion = GetCourtRoomRegionByFaction(arrestor.Faction.MotherId);
-        if (criminalCourtRegion == CourtRoomRegion.Invalid && arrestorCourtRegion == CourtRoomRegion.Invalid)
+        var arrestorCourtRegion = arrestor != null ? GetCourtRoomRegionByFaction(arrestor.Faction.MotherId) : criminal.OfflineGuiltyRegion;
+        if (arrestor != null && criminalCourtRegion == CourtRoomRegion.Invalid && arrestorCourtRegion == CourtRoomRegion.Invalid)
         {
             // Likely both pirates, ignore
             Logger.Debug($"ArrestCriminal: {arrestor.Name} cannot arrest {criminal.Name}, both fall outside of justice system");
-            return;
+            return null;
         }
+
         // If criminal doesn't have a court region, use the arrestor's region instead
         // TODO: Verify if this is retail behaviour, or if it uses the original nation of the player
         if (criminalCourtRegion == CourtRoomRegion.Invalid)
@@ -586,7 +601,7 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
         if (tempCourtRoom == null)
         {
             Logger.Warn($"Failed to find a court room for {criminal.Name}");
-            return;
+            return null;
         }
 
         // Create Trial case
@@ -594,14 +609,16 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
         if (trialData == null)
         {
             Logger.Warn($"Failed to create a court case for {criminal.Name}");
-            return;
+            return null;
         }
 
         // Notify nearby players
-        criminal.BroadcastPacket(new SCCriminalArrestedPacket(criminal.ObjId, criminal.Name, arrestor.Name), true);
+        if (arrestor != null)
+            criminal.BroadcastPacket(new SCCriminalArrestedPacket(criminal.ObjId, criminal.Name, arrestor.Name), true);
 
         // Summon criminal to court jail
         trialData.EnterCourtJail(tempCourtRoom, criminal);
+        return trialData;
     }
 
     /// <summary>
@@ -728,6 +745,8 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
 
         // Update crime points
         var crimeCount = defendant.CrimePoint;
+        defendant.OfflineGuiltyTime = 0;
+        defendant.OfflineGuiltyRegion = CourtRoomRegion.Invalid;
         defendant.CrimePoint -= crimeCount;
         defendant.SendPacket(new SCCrimeChangedPacket(crimeCount, defendant.CrimePoint, defendant.InfamyPoint,
             defendant.GetCrimeState()));
@@ -772,13 +791,21 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
 
         // Update crime points
         var crimeCount = defendant.CrimePoint;
+        defendant.OfflineGuiltyTime = 0;
+        defendant.OfflineGuiltyRegion = CourtRoomRegion.Invalid;
         defendant.CrimePoint -= crimeCount;
         defendant.InfamyPoint -= crimeCount;
         defendant.SendPacket(new SCCrimeChangedPacket(crimeCount, defendant.CrimePoint, defendant.InfamyPoint, defendant.GetCrimeState()));
 
-        // TODO: Remove pirate if infamy <= 0
         defendant.Buffs.RemoveBuffs(BuffKind.Good, 1, (uint)BuffConstants.TagPrisoner);
         defendant.Buffs.RemoveBuff((uint)BuffConstants.Trial_Defendant);
+
+        if (defendant.InfamyPoint <= 0 && defendant.Faction.Id == FactionsEnum.Pirate)
+        {
+            // Return to original faction.
+            var defaultFactionId = CharacterManager.Instance.GetTemplate(defendant.Race, defendant.Gender).FactionId;
+            defendant.SetFaction(defaultFactionId);
+        }
     }
 
     public TrialData GetTrial(uint trialId)

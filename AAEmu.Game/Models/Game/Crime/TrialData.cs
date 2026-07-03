@@ -125,6 +125,10 @@ public class TrialData
         {
             JailTime = 40; // Math.Min(40, Math.Max(JailTime, 15)); // Not correct, but good enough for now
         }
+
+        // Store the Jail time in case the trial doesn't go through
+        Defendant.OfflineGuiltyTime = JailTime;
+        Defendant.OfflineGuiltyRegion = CourtRegion;
     }
 
     public void EnterCourtRoom(TrialCourtRoom courtRoom, Character defendant)

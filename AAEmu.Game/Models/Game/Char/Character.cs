@@ -11,6 +11,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Models.Game.Crime;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
@@ -22,6 +23,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Static;
+using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World.Transform;
@@ -87,7 +89,6 @@ public partial class Character : Unit, ICharacter
         }
     }
 
-    public int ConsumedLaborPower { get; set; }
     public AbilityType Ability1 { get; set; }
     public AbilityType Ability2 { get; set; }
     public AbilityType Ability3 { get; set; }
@@ -98,7 +99,6 @@ public partial class Character : Unit, ICharacter
     public string FactionName { get; set; }
     public string OriginFactionName { get; set; }
     public uint Family { get; set; }
-    public short DeadCount { get; set; }
     public DateTime DeadTime { get; set; }
     public int RezWaitDuration { get; set; }
     public DateTime RezTime { get; set; }
@@ -252,8 +252,6 @@ public partial class Character : Unit, ICharacter
         }
     }
 
-    private bool _inParty;
-    private bool _isOnline;
     private short _laborPower;
     private DateTime _laborPowerModified;
 
@@ -275,30 +273,30 @@ public partial class Character : Unit, ICharacter
 
     public bool InParty
     {
-        get => _inParty;
+        get;
         set
         {
-            if (_inParty == value) return;
+            if (field == value) return;
             // TODO - GUILD STATUS CHANGE
             FriendMananger.Instance.SendStatusChange(this, false, value);
-            _inParty = value;
+            field = value;
         }
     }
 
     public bool IsOnline
     {
-        get => _isOnline;
+        get;
         set
         {
-            if (_isOnline == value) return;
+            if (field == value) return;
             // TODO - GUILD STATUS CHANGE
             FriendMananger.Instance.SendStatusChange(this, true, value);
-            // Set _isOnline BEFORE the SetOffline side-effect so anything it triggers
+            // Set _isOnline BEFORE the SetOffline side effect so anything it triggers
             // (SetOffline → SCTeamMemberDisconnectedPacket → TeamMember.WritePerson)
-            // observes the new state. Otherwise WritePerson's "ObjId or 0 if offline"
+            // observes the new state. Otherwise, WritePerson's "ObjId or 0 if offline"
             // ternary would still see IsOnline = true on disconnect and write the live
             // ObjId into a packet that is supposed to carry the explicit offline marker.
-            _isOnline = value;
+            field = value;
             if (!value) TeamManager.Instance.SetOffline(this);
         }
     }
@@ -1631,17 +1629,23 @@ public partial class Character : Unit, ICharacter
         SendPacket(packets);
     }
 
-    public void SetPirate(bool pirate)
+    public override void SetFaction(FactionsEnum factionId)
     {
-        // TODO : If castle owner -> Nope
-        var defaultFactionId = CharacterManager.Instance.GetTemplate(Race, Gender).FactionId;
+        if (Faction.Id == factionId)
+            return;
+        base.SetFaction(factionId);
 
-        var newFaction = pirate ? FactionsEnum.Pirate : defaultFactionId;
-        BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction.Id, newFaction, false), true);
-        Faction = FactionManager.Instance.GetFaction(newFaction);
-        HousingManager.Instance.UpdateOwnedHousingFaction(Id, newFaction);
-        // TODO : Teleport to Growlgate
-        // TODO : Leave guild
+        //Handle houses, guild, party, etc
+        HousingManager.Instance.UpdateOwnedHousingFaction(Id, Faction.Id);
+        if (Expedition != null && Expedition.MotherId != factionId)
+        {
+            ExpeditionManager.Instance.Kick(this.Connection, this.Id);
+        }
+        if (InParty)
+        {
+            TeamManager.Instance.MemberRemoveFromTeam(this, this, RiskyAction.Kick);
+        }
+        // TODO: Pets, Vehicles
     }
 
     public override void SetPosition(float x, float y, float z, float rotationX, float rotationY, float rotationZ)
@@ -1968,14 +1972,6 @@ public partial class Character : Unit, ICharacter
     }
 
     public TimeSpan OnlineTime { get; set; } = TimeSpan.Zero;
-    // TODO: Save these new stats
-    public int ArrestCount { get; set; }
-    public int AcceptGuiltyCount { get; set; }
-    public int AcceptTrialCount { get; set; }
-    public int NotGuiltyCount { get; set; }
-    public int GuiltyCount { get; set; }
-    public int EvidenceReportedCount { get; set; }
-    public int BotReportedCount { get; set; }
 
     public override void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage)
     {
@@ -2245,6 +2241,16 @@ public partial class Character : Unit, ICharacter
                     character.ReturnDistrictId = reader.GetUInt32("return_district");
                     character.OnlineTime = TimeSpan.FromSeconds(reader.GetUInt32("online_time"));
 
+                    character.ArrestCount = reader.GetInt32("arrest_count");
+                    character.AcceptGuiltyCount = reader.GetInt32("accept_guilty_count");
+                    character.AcceptTrialCount = reader.GetInt32("accept_trial_count");
+                    character.NotGuiltyCount = reader.GetInt32("not_guilty_count");
+                    character.GuiltyCount = reader.GetInt32("guilty_count");
+                    character.EvidenceReportedCount = reader.GetInt32("evidence_reported_count");
+                    character.BotReportedCount = reader.GetInt32("bot_reported_count");
+                    character.OfflineGuiltyTime = reader.GetInt32("offline_guilty_time");
+                    character.OfflineGuiltyRegion = (CourtRoomRegion)reader.GetInt32("offline_guilty_region");
+
                     character.Inventory = new Inventory(character);
 
                     var slotsBlob = (PacketStream)(byte[])reader.GetValue("slots");
@@ -2364,6 +2370,16 @@ public partial class Character : Unit, ICharacter
                     character.Updated = reader.GetDateTime("updated_at");
                     character.ReturnDistrictId = reader.GetUInt32("return_district");
                     character.OnlineTime = TimeSpan.FromSeconds(reader.GetUInt32("online_time"));
+
+                    character.ArrestCount = reader.GetInt32("arrest_count");
+                    character.AcceptGuiltyCount = reader.GetInt32("accept_guilty_count");
+                    character.AcceptTrialCount = reader.GetInt32("accept_trial_count");
+                    character.NotGuiltyCount = reader.GetInt32("not_guilty_count");
+                    character.GuiltyCount = reader.GetInt32("guilty_count");
+                    character.EvidenceReportedCount = reader.GetInt32("evidence_reported_count");
+                    character.BotReportedCount = reader.GetInt32("bot_reported_count");
+                    character.OfflineGuiltyTime = reader.GetInt32("offline_guilty_time");
+                    character.OfflineGuiltyRegion = (CourtRoomRegion)reader.GetInt32("offline_guilty_region");
 
                     character.Inventory = new Inventory(character);
 
@@ -2589,7 +2605,9 @@ public partial class Character : Unit, ICharacter
                     "`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`jury_point`," +
                     "`hostile_faction_kills`,`pvp_honor`,`died_in_pvp`,`died_in_pvp_war_zone`," +
                     "`delete_request_time`,`transfer_request_time`,`delete_time`,`auto_use_aapoint`,`prev_point`,`point`,`gift`," +
-                    "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`created_at`,`updated_at`,`return_district`,`online_time`" +
+                    "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`created_at`,`updated_at`,`return_district`,`online_time`," +
+                    "`arrest_count`, `accept_guilty_count`, `accept_trial_count`, `not_guilty_count`, `guilty_count`, `evidence_reported_count`, `bot_reported_count`," +
+                    "`offline_guilty_time`,`offline_guilty_region`" +
                     ") VALUES (" +
                     "@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@experience,@recoverable_exp," +
                     "@hp,@mp,@consumed_lp,@ability1,@ability2,@ability3," +
@@ -2598,7 +2616,10 @@ public partial class Character : Unit, ICharacter
                     "@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@jury_point," +
                     "@hostile_faction_kills,@pvp_honor,@died_in_pvp,@died_in_pvp_war_zone," +
                     "@delete_request_time,@transfer_request_time,@delete_time,@auto_use_aapoint,@prev_point,@point,@gift," +
-                    "@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@created_at,@updated_at,@return_district,@online_time)";
+                    "@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@created_at,@updated_at,@return_district,@online_time," +
+                    "@arrest_count, @accept_guilty_count, @accept_trial_count, @not_guilty_count, @guilty_count, @evidence_reported_count, @bot_reported_count," +
+                    "@offline_guilty_time,@offline_guilty_region" +
+                    ")";
 
                 command.Parameters.AddWithValue("@id", Id);
                 command.Parameters.AddWithValue("@account_id", AccountId);
@@ -2675,6 +2696,17 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@updated_at", Updated);
                 command.Parameters.AddWithValue("@return_district", ReturnDistrictId);
                 command.Parameters.AddWithValue("@online_time", OnlineTime.TotalSeconds);
+
+                command.Parameters.AddWithValue("@arrest_count", ArrestCount);
+                command.Parameters.AddWithValue("@accept_guilty_count", AcceptGuiltyCount);
+                command.Parameters.AddWithValue("@accept_trial_count", AcceptTrialCount);
+                command.Parameters.AddWithValue("@not_guilty_count", NotGuiltyCount);
+                command.Parameters.AddWithValue("@guilty_count", GuiltyCount);
+                command.Parameters.AddWithValue("@evidence_reported_count", EvidenceReportedCount);
+                command.Parameters.AddWithValue("@bot_reported_count", BotReportedCount);
+                command.Parameters.AddWithValue("@offline_guilty_time", OfflineGuiltyTime);
+                command.Parameters.AddWithValue("@offline_guilty_region", (int)OfflineGuiltyRegion);
+
                 command.ExecuteNonQuery();
             }
 
