@@ -2248,6 +2248,7 @@ public partial class Character : Unit, ICharacter
                     character.GuiltyCount = reader.GetInt32("guilty_count");
                     character.EvidenceReportedCount = reader.GetInt32("evidence_reported_count");
                     character.BotReportedCount = reader.GetInt32("bot_reported_count");
+                    character.ReportedAsBotCount = reader.GetInt32("reported_as_bot_count");
                     character.OfflineGuiltyTime = reader.GetInt32("offline_guilty_time");
                     character.OfflineGuiltyRegion = (CourtRoomRegion)reader.GetInt32("offline_guilty_region");
 
@@ -2378,6 +2379,7 @@ public partial class Character : Unit, ICharacter
                     character.GuiltyCount = reader.GetInt32("guilty_count");
                     character.EvidenceReportedCount = reader.GetInt32("evidence_reported_count");
                     character.BotReportedCount = reader.GetInt32("bot_reported_count");
+                    character.ReportedAsBotCount = reader.GetInt32("reported_as_bot_count");
                     character.OfflineGuiltyTime = reader.GetInt32("offline_guilty_time");
                     character.OfflineGuiltyRegion = (CourtRoomRegion)reader.GetInt32("offline_guilty_region");
 
@@ -2704,6 +2706,7 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@guilty_count", GuiltyCount);
                 command.Parameters.AddWithValue("@evidence_reported_count", EvidenceReportedCount);
                 command.Parameters.AddWithValue("@bot_reported_count", BotReportedCount);
+                command.Parameters.AddWithValue("@reported_as_bot_count", ReportedAsBotCount);
                 command.Parameters.AddWithValue("@offline_guilty_time", OfflineGuiltyTime);
                 command.Parameters.AddWithValue("@offline_guilty_region", (int)OfflineGuiltyRegion);
 

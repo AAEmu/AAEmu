@@ -12,6 +12,7 @@ public class SusManager(IWorldManager worldManager) : Singleton<SusManager>, ISu
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public static string CategoryBot => "Bot";
+    public static string CategoryBotReport => "BotReport";
     public static string CategoryCheating => "Cheat";
     public static string CategoryRmt => "RMT";
     

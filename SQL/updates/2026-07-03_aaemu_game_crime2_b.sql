@@ -10,5 +10,6 @@ ALTER TABLE `characters`
 	ADD COLUMN `guilty_count` INT NULL DEFAULT '0' AFTER `not_guilty_count`,
 	ADD COLUMN `evidence_reported_count` INT NULL DEFAULT '0' AFTER `guilty_count`,
 	ADD COLUMN `bot_reported_count` INT NULL DEFAULT '0' AFTER `evidence_reported_count`,
+	ADD COLUMN `reported_as_bot_count` INT NULL DEFAULT '0' AFTER `bot_reported_count`,
 	ADD COLUMN `offline_guilty_time` INT NULL DEFAULT '0' COMMENT 'Guilty time for skipped trials' AFTER `evidence_reported_count`,
 	ADD COLUMN `offline_guilty_region` INT NULL DEFAULT '0' COMMENT 'Region for skipped trials' AFTER `offline_guilty_time`;

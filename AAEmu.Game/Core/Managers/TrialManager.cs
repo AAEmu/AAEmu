@@ -563,7 +563,7 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
             var tempTrial = ArrestCriminal(player, null);
             if (tempTrial != null)
             {
-                ResultIsGuilty(player, tempTrial, true);
+                ResultIsGuilty(player, tempTrial, false);
             }
             else
             {
@@ -602,6 +602,12 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
         {
             Logger.Warn($"Failed to find a court room for {criminal.Name}");
             return null;
+        }
+
+        // Update counter
+        if (arrestor != null)
+        {
+            criminal.ArrestCount++;
         }
 
         // Create Trial case
@@ -699,7 +705,6 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
         if (!requestTrial)
         {
             // Directly to jail with trial.JailTime time
-            defendant.AcceptGuiltyCount++;
             ResultIsGuilty(defendant, trial, true);
             return;
         }
@@ -708,7 +713,7 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
         if (trial.Step == TrialStep.DefendantAwaitingTrial)
         {
             // End timer now
-            defendant.AcceptTrialCount++;
+            defendant.AcceptTrialCount++; // TODO: How to handle if we don't respond
             trial.CurrentStepEndTime = DateTime.UtcNow;
         }
     }
@@ -748,6 +753,15 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
         defendant.OfflineGuiltyTime = 0;
         defendant.OfflineGuiltyRegion = CourtRoomRegion.Invalid;
         defendant.CrimePoint -= crimeCount;
+        // Update counters
+        if (pleadGuilty)
+        {
+            defendant.AcceptGuiltyCount++;
+        }
+        else
+        {
+            defendant.GuiltyCount++;
+        }
         defendant.SendPacket(new SCCrimeChangedPacket(crimeCount, defendant.CrimePoint, defendant.InfamyPoint,
             defendant.GetCrimeState()));
 
@@ -793,6 +807,7 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
         var crimeCount = defendant.CrimePoint;
         defendant.OfflineGuiltyTime = 0;
         defendant.OfflineGuiltyRegion = CourtRoomRegion.Invalid;
+        defendant.NotGuiltyCount++;
         defendant.CrimePoint -= crimeCount;
         defendant.InfamyPoint -= crimeCount;
         defendant.SendPacket(new SCCrimeChangedPacket(crimeCount, defendant.CrimePoint, defendant.InfamyPoint, defendant.GetCrimeState()));

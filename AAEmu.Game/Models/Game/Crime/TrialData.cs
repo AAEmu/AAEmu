@@ -475,12 +475,10 @@ public class TrialData
         JailTime = sentenceTime;
         if (isGuilty)
         {
-            Defendant.GuiltyCount++;
             TrialManager.Instance.ResultIsGuilty(Defendant, this, false);
         }
         else
         {
-            Defendant.NotGuiltyCount++;
             TrialManager.Instance.ResultIsNotGuilty(Defendant, this);
         }
     }

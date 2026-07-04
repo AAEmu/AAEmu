@@ -179,6 +179,7 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `guilty_count` INT NULL DEFAULT '0',
   `evidence_reported_count` INT NULL DEFAULT '0',
   `bot_reported_count` INT NULL DEFAULT '0',
+  `reported_as_bot_count` INT NULL DEFAULT '0',
   `offline_guilty_time` INT NULL DEFAULT '0' COMMENT 'Guilty time for skipped trials',
   `offline_guilty_region` INT NULL DEFAULT '0' COMMENT 'Region for skipped trials',
   PRIMARY KEY (`id`, `account_id`) USING BTREE

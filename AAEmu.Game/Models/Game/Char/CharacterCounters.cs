@@ -17,6 +17,7 @@ public partial class Character
     public int GuiltyCount { get; set; }
     public int EvidenceReportedCount { get; set; }
     public int BotReportedCount { get; set; }
+    public int ReportedAsBotCount { get; set; }
     /// <summary>When this is set at login, it means a trial was skipped and should be considered guilty and thrown into jail</summary>
     public int OfflineGuiltyTime { get; set; }
     public CourtRoomRegion OfflineGuiltyRegion { get; set; }

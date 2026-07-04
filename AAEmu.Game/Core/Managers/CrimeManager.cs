@@ -382,7 +382,7 @@ public class CrimeManager() : Singleton<CrimeManager>, ICrimeManager
     /// </summary>
     /// <param name="bot"></param>
     /// <param name="reporter"></param>
-    /// <returns>True if report was successfull</returns>
+    /// <returns>True if report was successful</returns>
     public bool ReportBot(Character bot, Character reporter)
     {
         if (!ReportedSuspects.TryGetValue(bot.Id, out var reportedSuspectList))
@@ -393,6 +393,8 @@ public class CrimeManager() : Singleton<CrimeManager>, ICrimeManager
 
         if (reportedSuspectList.Add(reporter.Id))
         {
+            SusManager.Instance.LogActivity(SusManager.CategoryBotReport, bot, $"Possible bot {bot.Name} ({bot.Id}) got reported by {reporter.Name} ({reporter.Id})");
+
             // Add sus buff
             if (!bot.Buffs.CheckBuff((uint)BuffConstants.SuspectedUser))
             {
@@ -406,7 +408,14 @@ public class CrimeManager() : Singleton<CrimeManager>, ICrimeManager
                 {
                     bot.Buffs.AddBuff((uint)BuffConstants.TransformingIntoPrimeSuspect, reporter);
                 }
+
+                if (reportedSuspectList.Count == AppConfiguration.Instance.Justice.BotReportPrimeSuspectCount)
+                {
+                    SusManager.Instance.LogActivity(SusManager.CategoryBot, bot, $"Possible bot {bot.Name} ({bot.Id}) has reached the report threshold of {AppConfiguration.Instance.Justice.BotReportPrimeSuspectCount}");
+                }
             }
+            reporter.BotReportedCount++;
+            bot.ReportedAsBotCount++;
             return true;
         }
 
@@ -425,6 +434,7 @@ public class CrimeManager() : Singleton<CrimeManager>, ICrimeManager
         {
             bot.Buffs.RemoveBuffs(BuffKind.Bad, 10, (uint)BuffConstants.TagSuspects);
             reportedSuspectList.Clear();
+            SusManager.Instance.LogActivity(SusManager.CategoryBot, bot, $"Possible bot {bot} ({bot.Id}) has cleared their Prime Suspect status by talking to a judge.");
             return true;
         }
 
