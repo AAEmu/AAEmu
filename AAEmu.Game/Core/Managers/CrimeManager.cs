@@ -382,8 +382,9 @@ public class CrimeManager() : Singleton<CrimeManager>, ICrimeManager
     /// </summary>
     /// <param name="bot"></param>
     /// <param name="reporter"></param>
+    /// <param name="message"></param>
     /// <returns>True if report was successful</returns>
-    public bool ReportBot(Character bot, Character reporter)
+    public bool ReportBot(Character bot, Character reporter, string message)
     {
         if (!ReportedSuspects.TryGetValue(bot.Id, out var reportedSuspectList))
         {
@@ -393,7 +394,7 @@ public class CrimeManager() : Singleton<CrimeManager>, ICrimeManager
 
         if (reportedSuspectList.Add(reporter.Id))
         {
-            SusManager.Instance.LogActivity(SusManager.CategoryBotReport, bot, $"Possible bot {bot.Name} ({bot.Id}) got reported by {reporter.Name} ({reporter.Id})");
+            SusManager.Instance.LogActivity(SusManager.CategoryBotReport, bot, $"Possible bot {bot.Name} ({bot.Id}) got reported by {reporter.Name} ({reporter.Id}), Msg: {message}");
 
             // Add sus buff
             if (!bot.Buffs.CheckBuff((uint)BuffConstants.SuspectedUser))

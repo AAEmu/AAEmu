@@ -43,7 +43,9 @@ public class ReportBot : SpecialEffectAction
                 return;
             }
 
-            if (!CrimeManager.Instance.ReportBot(targetPlayer, casterPlayer))
+            var msg = (skillObject as SkillObjectText)?.Msg ?? string.Empty;
+
+            if (!CrimeManager.Instance.ReportBot(targetPlayer, casterPlayer, msg))
             {
                 Logger.Warn($"Special effects: ReportBot target {targetPlayer.Name} failed to get reported by {casterPlayer.Name} (possible multiple reports)");
                 return;

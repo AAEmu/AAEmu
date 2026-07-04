@@ -282,7 +282,7 @@ public class Skill
                 }
 
                 // copy OpenPortalEffect.cs
-                var portalInfo = (SkillObjectUnk1)skillObject;
+                var portalInfo = (SkillObjectPortalInfo)skillObject;
                 trp = character.Portals.GetPortalInfo((uint)portalInfo.Id);
             }
 
