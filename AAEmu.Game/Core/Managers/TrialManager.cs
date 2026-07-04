@@ -883,7 +883,13 @@ public class TrialManager : Singleton<TrialManager>, ITrialManager
             Logger.Warn($"JuryVerdict by {juryMember.Name} seems to be invalid for trial {trial.Id} with seatId {juryId}");
             return; // ignore if invalid
         }
-        
+
+        if (jury.JuryMember.Id != juryMember.Id)
+        {
+            Logger.Warn($"Jury Verdict Seat does not match the expected player");
+            return;
+        }
+
         jury.SelectedSentence = sentence;
         
         var count = 0;

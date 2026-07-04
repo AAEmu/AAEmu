@@ -30,7 +30,7 @@ public class CrimeManager() : Singleton<CrimeManager>, ICrimeManager
     // ReSharper disable once CollectionNeverUpdated.Local
     private List<ulong> DeletedEventIds { get; } = []; // Later needed for trial and evidence tempering skills
     private List<ulong> UpdatedEventIds { get; } = [];
-    private Dictionary<uint,HashSet<uint>> ReportedSuspects { get; } = [];
+    private ConcurrentDictionary<uint,HashSet<uint>> ReportedSuspects { get; } = [];
 
     /// <summary>
     /// Gets a list of evidence reports for this player. 

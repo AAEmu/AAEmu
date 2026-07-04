@@ -138,7 +138,7 @@ public class TrialData
 
         // Make Jury seats
         Jury.Clear();
-        for(var i = 1; i < CourtRoom.JurySeats.Count; i++)
+        for(var i = 1; i <= CourtRoom.JurySeats.Count; i++)
         {
             var seat = CourtRoom.JurySeats.GetValueOrDefault(i);
             if (seat == null)
@@ -226,7 +226,7 @@ public class TrialData
 
             // Crime Data
             player.SendPacket(new SCCrimeDataPacket(DefendantId, DefendantName, Defendant.Race,
-                (uint)Defendant.Faction.Id, Id, JailTime * 60_0000,
+                (uint)Defendant.Faction.Id, Id, JailTime * 60_000,
                 CourtRoom.JudgeSpawner?.SpawnedNpcs.Values.FirstOrDefault()?.FirstOrDefault()?.ObjId ?? 0));
         }
         catch (Exception)
@@ -304,7 +304,7 @@ public class TrialData
                 // Send them the trial info
                 SendAllTrialRecords(player);
                 var currentJuryCount = GetActiveJuryCount();
-                SendPackets(new SCJuryWaitStatusPacket(currentJuryCount, Jury.Values.Count, JailTime * 60_0000));
+                SendPackets(new SCJuryWaitStatusPacket(currentJuryCount, Jury.Values.Count, JailTime * 60_000));
 
                 // End this trial step if all seats taken by making it trigger the end-time sooner
                 if (currentJuryCount >= Jury.Values.Count && Step == TrialStep.AwaitingJurySummons && CurrentStepEndTime > DateTime.UtcNow)

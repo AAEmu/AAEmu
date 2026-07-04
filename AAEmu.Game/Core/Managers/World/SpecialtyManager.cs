@@ -226,7 +226,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>, ISpecialtyManager
 
         Logger.Info($"GetBasePriceForSpecialty - bundleIdAtNpc: {bundleIdAtNpc}, bundleMapping: {bundleMapping.Values.Count} items, bundleItem: Id {bundleItem.Id} - ItemId {bundleItem.ItemId} - SpecialtyBundleId {bundleItem.SpecialtyBundleId}");
         var item = bundleItem.Item ?? ItemManager.Instance.GetTemplate(bundleItem.ItemId);
-        return (int)(Math.Floor(bundleItem.Profit * (bundleItem.Ratio / 1000f)) + item?.Refund ?? 0);
+        return (int)(Math.Floor(bundleItem.Profit * (bundleItem.Ratio / 1000f)) + (item?.Refund ?? 0));
     }
 
     public int SellSpecialty(Character player, uint npcObjId)
