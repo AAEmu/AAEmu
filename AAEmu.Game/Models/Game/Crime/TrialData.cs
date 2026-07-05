@@ -442,26 +442,27 @@ public class TrialData
             case 1:
                 // Not guilty
                 sentenceType = TrialSentenceResult.NotGuilty;
+                sentenceTime = 0;
                 break;
             case 2:
                 sentenceType = TrialSentenceResult.Guilty1;
-                sentenceTime = (int)Math.Round(JailTime / 3f);
+                sentenceTime = (int)Math.Round(JailTime * 0.2f);
                 break;
             case 3:
                 sentenceType = TrialSentenceResult.Guilty2;
-                sentenceTime = (int)Math.Round(JailTime * 1f);
+                sentenceTime = (int)Math.Round(JailTime * 0.5f);
                 break;
             case 4:
                 sentenceType = TrialSentenceResult.Guilty3;
-                sentenceTime = (int)Math.Round(JailTime * 1.66f);
+                sentenceTime = (int)Math.Round(JailTime * 0.8f);
                 break;
             case 5:
                 sentenceType = TrialSentenceResult.Guilty4;
-                sentenceTime = (int)Math.Round(JailTime * 2.11f);
+                sentenceTime = (int)Math.Round(JailTime * 1f);
                 break;
             case 6:
                 sentenceType = TrialSentenceResult.Guilty5;
-                sentenceTime = (int)Math.Round(JailTime * 2.5f);
+                sentenceTime = (int)Math.Round(JailTime * 1.2f);
                 break;
             default:
                 // Should not happen
