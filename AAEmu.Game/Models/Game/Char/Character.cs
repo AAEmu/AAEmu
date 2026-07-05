@@ -2488,6 +2488,11 @@ public partial class Character : Unit, ICharacter
                 try
                 {
                     saved = Save(sqlConnection, transaction);
+                    // Persist the character's items in the same transaction. The lobby/character list reloads
+                    // everything from the DB (GameConnection.LoadAccount), so freshly-created gear — including the
+                    // face/hair/body appearance parts — must be written now, not left for the periodic SaveManager.
+                    if (saved)
+                        ItemManager.Instance.Save(sqlConnection, transaction);
                     transaction.Commit();
                 }
                 catch (Exception e)

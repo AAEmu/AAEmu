@@ -99,7 +99,9 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
     public List<SkillTemplate> GetStartAbilitySkills(AbilityType ability)
     {
-        return _startAbilitySkills[ability];
+        // Not every skillset ships starter skills (e.g. the v10 skillsets past the 1.2 set), so a missing
+        // key is normal — return an empty list instead of throwing.
+        return _startAbilitySkills.TryGetValue(ability, out var skills) ? skills : [];
     }
 
     public List<DefaultSkill> GetDefaultSkills()
