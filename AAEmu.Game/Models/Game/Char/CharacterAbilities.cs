@@ -14,7 +14,8 @@ public class CharacterAbilities
     {
         Owner = owner;
         Abilities = [];
-        for (var i = 1; i < 11; i++)
+        // One entry per real skillset (1..29); None (30) is the empty-slot sentinel, General (0) is not chosen.
+        for (var i = 1; i < (int)AbilityType.None; i++)
         {
             var id = (AbilityType)i;
             Abilities[id] = new Ability(id);
@@ -25,7 +26,8 @@ public class CharacterAbilities
 
     public void SetAbility(AbilityType id, byte order)
     {
-        Abilities[id].Order = order;
+        if (Abilities.TryGetValue(id, out var ability))
+            ability.Order = order;
     }
 
     public List<AbilityType> GetActiveAbilities()

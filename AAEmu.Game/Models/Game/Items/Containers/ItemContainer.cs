@@ -345,7 +345,12 @@ public class ItemContainer
         {
             if (newSlot < 0)
             {
-                newSlot = GetUnusedSlot(preferredSlot);
+                // Equipment slots are fixed by slot type: an explicit target slot IS the destination, so use it
+                // directly instead of GetUnusedSlot (which can hand back slot 0 and reject the item).
+                if (this is EquipmentContainer && preferredSlot >= 0)
+                    newSlot = preferredSlot;
+                else
+                    newSlot = GetUnusedSlot(preferredSlot);
             }
 
             if (newSlot < 0)
