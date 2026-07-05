@@ -17,11 +17,11 @@ public class SCCharDetailPacket(Character character, bool success) : GamePacket(
         stream.Write((byte)character.Ability1);
         stream.Write((byte)character.Ability2);
         stream.Write((byte)character.Ability3);
-        stream.Write(Helpers.ConvertLongX(character.Transform.Local.Position.X));
-        stream.Write(Helpers.ConvertLongY(character.Transform.Local.Position.Y));
-        stream.Write(character.Transform.Local.Position.Z);
+        stream.Write(Helpers.ConvertLongX(character.Transform.World.Position.X));
+        stream.Write(Helpers.ConvertLongY(character.Transform.World.Position.Y));
+        stream.Write(character.Transform.World.Position.Z);
         stream.Write(character.Transform.ZoneId);
-        stream.Write(DateTime.UtcNow); // TODO: lastWorldLeaveTime
+        stream.Write(character.LeaveTime); // TODO: lastWorldLeaveTime
 
         var items = character.Inventory.Equipment.GetSlottedItemsList();
         foreach (var item in items)
