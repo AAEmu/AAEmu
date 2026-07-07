@@ -23,7 +23,7 @@ public class SavePortal : SpecialEffectAction
         {
             Logger.Debug("Special effects: SavePortal value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
 
-            if (skillObject is SkillObjectUnk2 so)
+            if (skillObject is SkillObjectSavePortalInfo so)
             {
                 if (so.Id == 0)
                 {

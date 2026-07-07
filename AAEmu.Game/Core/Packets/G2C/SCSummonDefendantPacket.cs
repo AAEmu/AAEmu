@@ -3,11 +3,11 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTrialCancledPacket(uint trialId) : GamePacket(SCOffsets.SCTrialCancledPacket, 1)
+public class SCSummonDefendantPacket(uint trial) : GamePacket(SCOffsets.SCSummonDefendantPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(trialId);
+        stream.Write(trial);
         return stream;
     }
 }

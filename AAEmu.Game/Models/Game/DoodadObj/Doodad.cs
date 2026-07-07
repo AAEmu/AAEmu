@@ -513,6 +513,8 @@ public class Doodad : BaseUnit
             {
                 // Picking up something from a doodad that isn't owned by the player, need to check permissions
                 // TODO: Enforce theft minimum level
+                // TODO: Faction check (or make this optional)
+                // TODO: Move/change this to better take into account functions that are marked as criminal
                 var newFootprint = CrimeManager.Instance.GenerateEvidenceFromTheft(casterOwningCharacter, this);
                 Logger.Debug($"Created footprint evidence at {newFootprint?.Transform} for {casterOwningCharacter?.Name}, doodad {TemplateId}");
             }

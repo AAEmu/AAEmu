@@ -18,6 +18,8 @@ public class DoodadFuncEnterInstance : DoodadFuncTemplate
 
         if (caster is Character character)
         {
+            if (TrialManager.Instance.IsPlayerInCourt(character.Id))
+                return;
             if (character.MainWorldPosition == null)
             {
                 character.MainWorldPosition = character.Transform.CloneDetached(character); // сохраним координаты для возврата в основной мир

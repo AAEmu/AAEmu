@@ -272,6 +272,12 @@ public static class Program
                 services.AddSingleton<NpcManager>();
                 services.AddSingleton<INpcManager>(sp => sp.GetRequiredService<NpcManager>());
 
+                services.AddSingleton<TrialManager>();
+                services.AddSingleton<ITrialManager>(sp => sp.GetRequiredService<TrialManager>());
+
+                services.AddSingleton<CrimeManager>();
+                services.AddSingleton<ICrimeManager>(sp => sp.GetRequiredService<CrimeManager>());
+
                 // -- Singleton<T>-based managers (AAEmu.Game.Core.Managers.World) --
                 services.AddSingleton<AreaTriggerManager>();
                 services.AddSingleton<IAreaTriggerManager>(sp => sp.GetRequiredService<AreaTriggerManager>());
@@ -306,6 +312,9 @@ public static class Program
                 services.AddSingleton<AuctionIdManager>();
                 services.AddSingleton<IAuctionIdManager>(sp => sp.GetRequiredService<AuctionIdManager>());
 
+                services.AddSingleton<ChatIdManager>();
+                services.AddSingleton<IChatIdManager>(sp => sp.GetRequiredService<ChatIdManager>());
+
                 services.AddSingleton<CharacterIdManager>();
                 services.AddSingleton<ICharacterIdManager>(sp => sp.GetRequiredService<CharacterIdManager>());
 
@@ -317,6 +326,9 @@ public static class Program
 
                 services.AddSingleton<CrimeIdManager>();
                 services.AddSingleton<ICrimeIdManager>(sp => sp.GetRequiredService<CrimeIdManager>());
+
+                services.AddSingleton<TrialIdManager>();
+                services.AddSingleton<ITrialIdManager>(sp => sp.GetRequiredService<ITrialIdManager>());
 
                 services.AddSingleton<ExpeditionIdManager>();
                 services.AddSingleton<IExpeditionIdManager>(sp => sp.GetRequiredService<ExpeditionIdManager>());

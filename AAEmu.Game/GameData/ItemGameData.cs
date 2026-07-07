@@ -48,6 +48,6 @@ public class ItemGameData : Singleton<ItemGameData>, IGameDataLoader
 
     public void PostLoad()
     {
-
+        //
     }
 }

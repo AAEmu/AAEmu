@@ -30,7 +30,7 @@ public class ChatChannel
     /// <summary>
     /// Internal Id
     /// </summary>
-    public long InternalId { get; init; }
+    public uint InternalId { get; init; }
 
     /// <summary>
     /// Internal name of this channel

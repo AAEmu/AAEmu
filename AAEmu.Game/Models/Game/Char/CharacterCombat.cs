@@ -34,8 +34,6 @@ public partial class Character
 
     public uint ResurrectHpPercent { get; set; } = 1;
     public uint ResurrectMpPercent { get; set; } = 1;
-    public uint HostileFactionKills { get; set; }
-    public uint HonorGainedInCombat { get; set; }
 
     /// <summary>True if last death was a PvP kill in a War zone (Leech debuff on temple-revive).</summary>
     public bool DiedInPvpWarZone { get; set; }
@@ -74,8 +72,12 @@ public partial class Character
         var zoneState = conflictData?.CurrentZoneState ?? ZoneConflictType.Peace;
 
         var relationState = killer.GetRelationStateTo(this);
+        var possibleArrest = false;
+        Character arrestor = null;
         if (killer is Character enemy)
         {
+            possibleArrest = true;
+            arrestor = enemy;
             if (relationState != RelationState.Friendly)
             {
                 enemy.HostileFactionKills++;
@@ -103,7 +105,9 @@ public partial class Character
                 // Friendly-fire kill → generate crime evidence (unless retaliation)
                 var killerOwner = killer.GetOwnerCharacter();
                 if (killerOwner != null && !AssaultedBy.Contains(killerOwner.Id))
+                {
                     _ = CrimeManager.Instance.GenerateEvidenceFromKill(killer, this);
+                }
             }
         }
 
@@ -112,6 +116,21 @@ public partial class Character
 
         // Clear damage history on death (heal history is intentionally kept)
         _pvpDamageHistory.Clear();
+
+        // Arrest if wanted
+        if (possibleArrest && Buffs.CheckBuffTag((uint)BuffConstants.TagWanted))
+        {
+            if (!Buffs.CheckBuff((uint)BuffConstants.Contemptuous))
+            {
+                // If not a pirate arrest regardless
+                TrialManager.Instance.ArrestCriminal(this, arrestor);
+            }
+            else if (!ZoneManager.Instance.IsPirateDesperadoZone(Transform.ZoneId))
+            {
+                // If a pirate, only arrest in faction zones
+                TrialManager.Instance.ArrestCriminal(this, arrestor);
+            }
+        }
     }
 
     /// <summary>
@@ -352,7 +371,7 @@ public partial class Character
     public void CheckWantedThreshold()
     {
         // Check wanted status
-        if (CrimeRecord >= CrimeManager.PirateCrimePointThreshold)
+        if (InfamyPoint >= CrimeManager.PirateCrimePointThreshold)
         {
             // Add wanted
             if (!Buffs.CheckBuff((uint)BuffConstants.Wanted))
@@ -367,29 +386,28 @@ public partial class Character
             if (Faction.Id != FactionsEnum.Pirate)
             {
                 SetFaction(FactionsEnum.Pirate);
-                if (Expedition != null && Expedition.MotherId != FactionsEnum.Pirate)
-                {
-                    ExpeditionManager.Instance.Kick(this.Connection, this.Id);
-                }
-                if (InParty)
-                {
-                    TeamManager.Instance.MemberRemoveFromTeam(this, this, RiskyAction.Kick);
-                }
-            }
-        }
-        else
-        if (CrimePoint >= CrimeManager.WantedCrimePointThreshold)
-        {
-            if (!Buffs.CheckBuff((uint)BuffConstants.Wanted))
-            {
-                Buffs.AddBuff((uint)BuffConstants.Wanted, this);
             }
         }
         else
         {
-            if (Buffs.CheckBuff((uint)BuffConstants.Wanted))
+            if (CrimePoint >= CrimeManager.WantedCrimePointThreshold)
             {
-                Buffs.RemoveBuff((uint)BuffConstants.Wanted);
+                if (!Buffs.CheckBuff((uint)BuffConstants.Wanted))
+                {
+                    Buffs.AddBuff((uint)BuffConstants.Wanted, this);
+                }
+            }
+            else
+            {
+                if (Buffs.CheckBuff((uint)BuffConstants.Wanted))
+                {
+                    Buffs.RemoveBuff((uint)BuffConstants.Wanted);
+                }
+            }
+            // Remove pirate buff if on
+            if (Buffs.CheckBuff((uint)BuffConstants.Contemptuous))
+            {
+                Buffs.RemoveBuff((uint)BuffConstants.Contemptuous);
             }
         }
     }

@@ -72706,6 +72706,7 @@
     },
     {
         "UnitId": 10895,
+		"SpecialLink": "justice.4.judge",
         "Position": {
             "X": 17023.73,
             "Y": 8914.805,
@@ -72715,6 +72716,7 @@
     },
     {
         "UnitId": 10895,
+		"SpecialLink": "justice.3.judge",
         "Position": {
             "X": 17030.26,
             "Y": 8901.637,
@@ -186020,15 +186022,17 @@
     },
     {
         "UnitId": 10894,
+		"SpecialLink": "justice.2.judge",
         "Position": {
             "X": 11105.4,
             "Y": 12077.7,
-            "Z": 145.7,
+            "Z": 156.27,
             "Yaw": 151.875
         }
     },
     {
         "UnitId": 10894,
+		"SpecialLink": "justice.1.judge",
         "Position": {
             "X": 11102.895,
             "Y": 12077.961,

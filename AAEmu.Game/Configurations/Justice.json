@@ -1,0 +1,93 @@
+{
+    "Justice": {
+        "CourtRooms": [
+            {
+                "Defendant": {
+                    "X": 11100.2,
+                    "Y": 12073,
+                    "Yaw": -28,
+                    "Z": 145.7
+                },
+                "Faction": 148,
+                "HoldingCell": {
+                    "X": 11092,
+                    "Y": 12085,
+                    "Z": 144.75
+                },
+                "Id": 1,
+                "Name": "Nuian Main Court"
+            },
+            {
+                "Defendant": {
+                    "X": 11100.5,
+                    "Y": 12073.7,
+                    "Yaw": -28,
+                    "Z": 156.3
+                },
+                "Faction": 148,
+                "HoldingCell": {
+                    "X": 11092,
+                    "Y": 12085,
+                    "Z": 144.75
+                },
+                "Id": 2,
+                "Name": "Nuian Alt Court"
+            },
+            {
+                "Defendant": {
+                    "X": 17026,
+                    "Y": 8901.7,
+                    "Yaw": -87.2,
+                    "Z": 158
+                },
+                "Faction": 149,
+                "HoldingCell": {
+                    "X": 17034,
+                    "Y": 8895,
+                    "Z": 147.7
+                },
+                "Id": 3,
+                "Name": "Haranyan Main Court"
+            },
+            {
+                "Defendant": {
+                    "X": 17019,
+                    "Y": 8915,
+                    "Yaw": -90,
+                    "Z": 147.7
+                },
+                "Faction": 149,
+                "HoldingCell": {
+                    "X": 17020,
+                    "Y": 8895,
+                    "Z": 147.7
+                },
+                "Id": 4,
+                "Name": "Haranyan Alt Court"
+            }
+        ],
+        "Jails": [
+            {
+                "Faction": 148,
+                "Name": "Marianople Guard Barracks",
+                "Pos": {
+                    "X": 10860,
+                    "Y": 11950,
+                    "Z": 132
+                }
+            },
+            {
+                "Faction": 149,
+                "Name": "Solis Headlands Isle of Penance",
+                "Pos": {
+                    "X": 17000,
+                    "Y": 9566,
+                    "Z": 135
+                }
+            }
+        ],
+        "KeepHistory": true,
+        "AllowJuryEscape": true,
+        "BotReportPrimeSuspectCount": 5
+    }
+}

@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Items;
@@ -926,7 +927,7 @@ public class Unit : BaseUnit, IUnit
     /// Set the faction of the owner
     /// </summary>
     /// <param name="factionId"></param>
-    public void SetFaction(FactionsEnum factionId)
+    public virtual void SetFaction(FactionsEnum factionId)
     {
         // Keep origin faction data temporarily for arena players
         OriginFaction = Faction;
@@ -947,6 +948,14 @@ public class Unit : BaseUnit, IUnit
             // BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction?.Id ?? 0, factionId, false), true);
             Faction = FactionManager.Instance.GetFaction(factionId);
             BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, oldFactionId, Faction.Id, false), true);
+            if (Faction.Id == FactionsEnum.Pirate)
+            {
+                Buffs.AddBuff((uint)BuffConstants.Contemptuous, this);
+            }
+            else
+            {
+                Buffs.RemoveBuff((uint)BuffConstants.Contemptuous);
+            }
         }
 
         // TODO added for quest Id=2486
@@ -971,6 +980,19 @@ public class Unit : BaseUnit, IUnit
         caster.ObjId = ObjId;
 
         var sct = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
+        sct.ObjId = target.ObjId;
+
+        return skill.Use(this, caster, sct, null, true, out _);
+    }
+
+    public virtual SkillResult UseSkill(uint skillId, Doodad target)
+    {
+        var skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
+
+        var caster = SkillCaster.GetByType(SkillCasterType.Unit);
+        caster.ObjId = ObjId;
+
+        var sct = SkillCastTarget.GetByType(SkillCastTargetType.Doodad);
         sct.ObjId = target.ObjId;
 
         return skill.Use(this, caster, sct, null, true, out _);

@@ -190,6 +190,8 @@ public class SpecialtyManager : Singleton<SpecialtyManager>, ISpecialtyManager
             return 0;
         }
 
+        Logger.Info($"GetBasePriceForSpecialty - {player.Name} backpack:{backpack.TemplateId}, npcObjId:{npcId}, npc: {npc.TemplateId}");
+
         if (MathUtil.CalculateDistance(player.Transform.World.Position, npc.Transform.World.Position) > 2.5)
         {
             player.SendErrorMessage(ErrorMessageType.TooFarAway);
@@ -199,7 +201,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>, ISpecialtyManager
         if (!_specialtyNpc.TryGetValue(npc.TemplateId, out var specialtyNpc))
         {
             player.SendErrorMessage(ErrorMessageType.StoreCantSellSameZone);
-            return 1;
+            return 0;
         }
 
         var bundleIdAtNpc = specialtyNpc.SpecialtyBundleId;
@@ -222,7 +224,9 @@ public class SpecialtyManager : Singleton<SpecialtyManager>, ISpecialtyManager
             return 0;
         }
 
-        return (int)(Math.Floor(bundleItem.Profit * (bundleItem.Ratio / 1000f)) + bundleItem.Item.Refund);
+        Logger.Info($"GetBasePriceForSpecialty - bundleIdAtNpc: {bundleIdAtNpc}, bundleMapping: {bundleMapping.Values.Count} items, bundleItem: Id {bundleItem.Id} - ItemId {bundleItem.ItemId} - SpecialtyBundleId {bundleItem.SpecialtyBundleId}");
+        var item = bundleItem.Item ?? ItemManager.Instance.GetTemplate(bundleItem.ItemId);
+        return (int)(Math.Floor(bundleItem.Profit * (bundleItem.Ratio / 1000f)) + (item?.Refund ?? 0));
     }
 
     public int SellSpecialty(Character player, uint npcObjId)

@@ -70,11 +70,16 @@ public class DamageEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        Logger.Trace("DamageEffect");
-
         var trg = target as Unit;
         if (trg == null || trg.Hp <= 0)
         {
+            return;
+        }
+
+        // Null check here as for some reason, in rare occasions we get null as the caster here
+        if (caster == null)
+        {
+            Logger.Warn($"No caster defined for DamageEffect {Id}, with targetObjId {target.ObjId} ({target})");
             return;
         }
 

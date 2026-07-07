@@ -16,6 +16,6 @@ public interface IPortalManager : ILoadable
     Portal GetWorldGatesById(uint id);
     uint GetDistrictReturnPoint(uint districtId);
     uint GetDistrictReturnPoint(uint districtId, FactionsEnum factionId);
-    void OpenPortal(Character owner, SkillObjectUnk1 portalEffectObj);
+    void OpenPortal(Character owner, SkillObjectPortalInfo portalEffectObj);
     Portal GetClosestReturnPortal(Character character);
 }

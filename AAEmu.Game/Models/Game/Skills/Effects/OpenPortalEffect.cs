@@ -16,7 +16,7 @@ public class OpenPortalEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        var portalInfo = (SkillObjectUnk1)skillObject;
+        var portalInfo = (SkillObjectPortalInfo)skillObject;
         var portalOwner = (Character)caster;
         // Private - [DEBUG] EffectTemplate - OpenPortalEffect, Owner: Lemes, PortalId: 4097, Type: 2, X: 20928, Y: 13145,9, Z:114,1004
         // District - [DEBUG] EffectTemplate - OpenPortalEffect, Owner: Lemes, PortalId: 3, Type: 1, X: 20921,96, Y: 13148,55, Z:114,2535

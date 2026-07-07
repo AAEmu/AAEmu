@@ -9,8 +9,8 @@ namespace AAEmu.Game.Core.Managers;
 public interface ICrimeManager: ILoadable
 {
     (int,int) Save(MySqlConnection connection, MySqlTransaction transaction);
-    CrimeEvent ReportCrime(Character reporter, Doodad evidence, uint arg1, uint arg2, uint arg3, string message);
-    List<CrimeEvent> GetCrimesOfPlayer(uint playerId);
+    CrimeEvent ReportCrime(Character reporter, Doodad evidence, uint usedSkillId, int doodadNextFuncGroup, uint doodadFuncId, string message);
+    List<CrimeEvent> GetCrimesOfPlayer(uint playerId, bool includeOld);
     Doodad GenerateEvidenceFromDamage(BaseUnit criminal, Unit victim);
     Doodad GenerateEvidenceFromKill(BaseUnit criminal, Unit victim);
 }

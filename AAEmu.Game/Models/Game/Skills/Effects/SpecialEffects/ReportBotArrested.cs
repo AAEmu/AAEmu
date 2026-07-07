@@ -5,6 +5,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
 public class ReportBotArrested : SpecialEffectAction
 {
+    protected override SpecialType SpecialEffectActionType => SpecialType.ReportBotArrested;
+
     public override void Execute(BaseUnit caster,
         SkillCaster casterObj,
         BaseUnit target,

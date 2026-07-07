@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
@@ -8,11 +8,11 @@ public class CSReportCrimePacket() : GamePacket(CSOffsets.CSReportCrimePacket, 1
 {
     public override void Read(PacketStream stream)
     {
-        // TODO find what the unknowns are
         var objId = stream.ReadBc();
-        var unkId = stream.ReadUInt32();
-        var unk2Id = stream.ReadUInt32();
-        var unk3Id = stream.ReadUInt32();
+        var skillId = stream.ReadUInt32();
+        var doodadNextFuncGroup = stream.ReadInt32();
+        // TODO find what the unknown3 is
+        var doodadFuncId = stream.ReadUInt32();
         var msg = stream.ReadString();
 
         var reporter = Connection.ActiveChar;
@@ -21,10 +21,10 @@ public class CSReportCrimePacket() : GamePacket(CSOffsets.CSReportCrimePacket, 1
         if (bloodStainDoodad != null)
         {
             var criminalName = NameManager.Instance.GetCharacterName(bloodStainDoodad.OwnerId) ?? string.Empty;
-            var crimeEvent = CrimeManager.Instance.ReportCrime(reporter, bloodStainDoodad, unkId, unk2Id, unk3Id, msg);
+            var crimeEvent = CrimeManager.Instance.ReportCrime(reporter, bloodStainDoodad, skillId, doodadNextFuncGroup, doodadFuncId, msg);
             if (crimeEvent != null)
             {
-                Logger.Debug($"ReportCrime, ObjId: {objId}, Msg: {msg}, Id: {unkId} (0x{unkId:x8}), {unk2Id} (0x{unk2Id:X8}), {unk3Id} (0x{unk3Id:X8}). Owner {criminalName} ({bloodStainDoodad.OwnerId}), OwnerDbId {bloodStainDoodad.OwnerDbId}");
+                Logger.Debug($"ReportCrime, ObjId: {objId}, Msg: {msg}, SkillId: {skillId}, DoodadFuncGroup: {doodadNextFuncGroup}, Unknown3: {doodadFuncId} (0x{doodadFuncId:X8}). Owner {criminalName} ({bloodStainDoodad.OwnerId}), OwnerDbId {bloodStainDoodad.OwnerDbId}");
             }
             else
             {

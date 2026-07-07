@@ -172,6 +172,16 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `deleted` int(11) NOT NULL DEFAULT 0,
   `return_district` int(11) NOT NULL DEFAULT 0,
   `online_time` INT(11) NOT NULL DEFAULT 0 COMMENT 'Time that the character has been online',
+  `arrest_count` INT NULL DEFAULT '0',
+  `accept_guilty_count` INT NULL DEFAULT '0',
+  `accept_trial_count` INT NULL DEFAULT '0',
+  `not_guilty_count` INT NULL DEFAULT '0',
+  `guilty_count` INT NULL DEFAULT '0',
+  `evidence_reported_count` INT NULL DEFAULT '0',
+  `bot_reported_count` INT NULL DEFAULT '0',
+  `reported_as_bot_count` INT NULL DEFAULT '0',
+  `offline_guilty_time` INT NULL DEFAULT '0' COMMENT 'Guilty time for skipped trials',
+  `offline_guilty_region` INT NULL DEFAULT '0' COMMENT 'Region for skipped trials',
   PRIMARY KEY (`id`, `account_id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = 'Basic player character data' ROW_FORMAT = DYNAMIC;
 
@@ -622,10 +632,11 @@ CREATE TABLE IF NOT EXISTS `crime` (
 	`z` FLOAT NULL DEFAULT '0',
 	`crime_time` DATETIME NULL DEFAULT NULL,
 	`report_time` DATETIME NULL DEFAULT NULL,
-	`arg1` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Argument1 of reported crime',
-	`arg2` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Argument2 of reported crime',
-	`arg3` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Argument3 of reported crime',
+	`skill_id` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Used Skill to report',
+	`next_func_group` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Next FuncGroup of the evidence',
+	`func_id` INT UNSIGNED NULL DEFAULT NULL COMMENT 'Current DoodadFunc Id',
 	`msg` TEXT NULL DEFAULT NULL COLLATE 'utf8mb4_general_ci',
+	`judgement_time` DATETIME NULL DEFAULT NULL COMMENT 'Time when this event has been processed',
 	PRIMARY KEY (`id`) USING BTREE
 )
 COMMENT='Keeps track of the crime events'

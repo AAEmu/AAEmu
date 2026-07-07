@@ -2,9 +2,11 @@
 
 public enum CrimeKind : byte
 {
+    Invalid,
     None,
-    Unknown1,
     Assault,
     Murder,
-    Theft
+    Theft,
+    BotReport,
+    FalseBotReport,
 }

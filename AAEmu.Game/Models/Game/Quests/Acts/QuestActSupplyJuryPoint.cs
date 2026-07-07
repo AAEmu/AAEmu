@@ -21,7 +21,6 @@ public class QuestActSupplyJuryPoint(QuestComponentTemplate parentComponent) : Q
         if (quest.Owner is Character player)
         {
             player.JuryPoint += Point;
-            player.SendPacket(new SCJuryPointChangedPacket(player.JuryPoint));
         }
         return true;
     }

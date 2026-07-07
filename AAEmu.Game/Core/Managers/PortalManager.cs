@@ -319,7 +319,7 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
     /// <param name="portalInfo"></param>
     /// <param name="portalEffectObj"></param>
     /// <returns></returns>
-    private Models.Game.Units.Portal MakePortal(Unit owner, bool isExit, Portal portalInfo, SkillObjectUnk1 portalEffectObj)
+    private Models.Game.Units.Portal MakePortal(Unit owner, bool isExit, Portal portalInfo, SkillObjectPortalInfo portalEffectObj)
     {
         // 3891 - Portal Entrance
         // 6949 - Portal Exit
@@ -372,7 +372,7 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
         return portalNpc;
     }
 
-    public void OpenPortal(Character owner, SkillObjectUnk1 portalEffectObj)
+    public void OpenPortal(Character owner, SkillObjectPortalInfo portalEffectObj)
     {
         var portalInfo = owner.Portals.GetPortalInfo((uint)portalEffectObj.Id);
         if (!CheckCanOpenPortal(owner, portalInfo.ZoneId)) return;
@@ -394,6 +394,12 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
         if (character.Buffs.CheckBuffTag((uint)BuffConstants.TagOverburdened))
         {
             character.SendErrorMessage(ErrorMessageType.CannotUsePortalWithBackpack);
+            return;
+        }
+
+        if (TrialManager.Instance.IsPlayerInCourt(character.Id))
+        {
+            character.SendErrorMessage(ErrorMessageType.CannotUsePortalInTrial);
             return;
         }
 
