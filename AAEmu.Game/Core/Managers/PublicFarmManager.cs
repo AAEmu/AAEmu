@@ -40,6 +40,8 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
         var deleted = new List<Doodad>();
         foreach (var doodad in world.SpawnManager?.GetAllPlayerDoodads() ?? [])
         {
+            if (doodad is null)
+                continue;
             if (doodad.FarmType == FarmType.Invalid) { continue; }
             var guardTime = CommonFarmGameData.Instance.GetDoodadGuardTime(doodad.Template.GroupId);
             if (DateTime.UtcNow < doodad.PlantTime.AddSeconds(guardTime)) { continue; }

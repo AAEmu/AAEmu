@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
@@ -15,18 +16,32 @@ public class SCCharacterStatePacket(Character character) : GamePacket(SCOffsets.
 
         character.Write(stream);
 
+        //stream.Write([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDB, 0xFB, 0x17, 0xC0]); //angles
         stream.Write(character.Transform.World.Rotation.X);
         stream.Write(character.Transform.World.Rotation.Y);
         stream.Write(character.Transform.World.Rotation.Z);
         stream.Write(character.Experience);
         stream.Write(character.RecoverableExp);
         stream.Write(0u); // penaltiedExp
-        stream.Write(character.ReturnDistrictId); // returnDistrictId
+        stream.Write(0);//character.ReturnDistrictId); // returnDistrictId
         stream.Write((uint)0); // returnDistrict -> type(id)
         stream.Write(character.ResurrectionDistrictId); // resurrectionDistrict -> type(id)
 
         for (var i = AbilityType.General; i < AbilityType.None; i++)
-            stream.Write((uint)character.Abilities.Abilities[i].Exp); // abilityExp
+        {
+            stream.Write(0u); // abilityExp
+            // TODO: Figure out what it wants here, setting it to anything besides 0 seems to crash the client
+            // Related client error "not enough buffer for abilityExp"
+            // Captures of newer versions seem to show this as exp in current level 
+            /*
+            var abilityLevel = ExperienceManager.Instance.GetLevelFromExp(character.Abilities.Abilities[i].Exp, out _, false);
+            var thisLevelStartExp = abilityLevel > 1
+                ? ExperienceManager.Instance.GetExpForLevel((byte)(abilityLevel - 1), false)
+                : 0;
+            var expInLevel = character.Abilities.Abilities[i].Exp - thisLevelStartExp; 
+            stream.Write(expInLevel); // abilityExp
+            */
+        }
 
         stream.Write(character.Mails.UnreadMailCount.Received); // unreadMail
         stream.Write(character.Mails.UnreadMailCount.MiaReceived); // unreadMiaMail
@@ -46,7 +61,7 @@ public class SCCharacterStatePacket(Character character) : GamePacket(SCOffsets.
         stream.Write(0L); // bountyMoney
         stream.Write(0L); // bountyTime
 
-        stream.Write(character.ReportedAsBotCount); // reportedNo
+        stream.Write(character.ReportedAsBotCount);//character.ReportedAsBotCount); // reportedNo
         stream.Write(0); // suspectedNo
         stream.Write((int)character.OnlineTime.TotalSeconds); // totalPlayTime
 

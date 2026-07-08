@@ -818,7 +818,7 @@ public class Slave : Unit
         InterruptSkills();
         Events.OnDeath(this, new OnDeathArgs { Killer = (Unit)killer, Victim = this });
         Buffs.RemoveEffectsOnDeath();
-        killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, (Unit)killer), true);
+        killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, 0, 0, 0, (Unit)killer), true);
 
         DestroyAttachedItems();
         DistributeSlaveDropDoodads();
