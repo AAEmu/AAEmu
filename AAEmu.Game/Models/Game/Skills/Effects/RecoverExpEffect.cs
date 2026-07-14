@@ -68,8 +68,8 @@ public class RecoverExpEffect : EffectTemplate
 
         // Use labor and recover exp
         // Note we don't use player.ChangeLabor here as that would generate extra exp from labor consumption
-        player.LaborPower -= player.Level;
-        player.SendPacket(new SCCharacterLaborPowerChangedPacket(-player.Level, 0, 0, 0));
+        player.LaborPower -= neededLaborCost;
+        player.SendPacket(new SCCharacterLaborPowerChangedPacket(-neededLaborCost, 0, 0, 0));
         player.SendPacket(new SCRecoverableExpPacket(player.ObjId, 0, 0, 1));
         player.AddExp(player.RecoverableExp, false);
         player.RecoverableExp = 0;
