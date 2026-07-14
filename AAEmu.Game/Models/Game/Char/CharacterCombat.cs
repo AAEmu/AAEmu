@@ -87,6 +87,7 @@ public partial class Character
         }
         else
         {
+            LastExpLoss = 0;
             SendDebugMessage($"No Exp Lost at max level, Lost {LastDurabilityLoss} Durability.");
         }
 
@@ -94,7 +95,10 @@ public partial class Character
         {
             Experience -= LastExpLoss;
             SendPacket(new SCRecoverableExpPacket(ObjId, RecoverableExp, LastExpLoss, (int)KillReason.Damage));
-            SendPacket(new SCExpChangedPacket(ObjId, -LastExpLoss, false));
+            if (LastExpLoss > 0)
+            {
+                SendPacket(new SCExpChangedPacket(ObjId, -LastExpLoss, false));
+            }
         }
 
         base.DoDie(killer, killReason);
