@@ -447,13 +447,34 @@ public class Unit : BaseUnit, IUnit
         InterruptSkills();
 
         IsInBattle = false;
+        var killerUnit = killer as Unit;
+        var killerCharacter = killer as Character;
+        var thisCharacter = this as Character;
 
-        Events.OnDeath(this, new OnDeathArgs { Killer = (Unit)killer, Victim = this });
-        ParentWorld.Events.OnUnitKilled(ParentWorld, new OnUnitKilledArgs { Killer = (Unit)killer, Victim = this });
-        ((Unit)killer).Events.OnKill(this, new OnKillArgs { Killer = (Unit)killer, Victim = this });
+        Events.OnDeath(this, new OnDeathArgs { Killer = killerUnit, Victim = this });
+        ParentWorld.Events.OnUnitKilled(ParentWorld, new OnUnitKilledArgs { Killer = killerUnit, Victim = this });
+        killerUnit?.Events.OnKill(this, new OnKillArgs { Killer = killerUnit, Victim = this });
 
         Buffs.RemoveEffectsOnDeath();
-        killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, (Unit)killer), true);
+
+        var lostExp = 0;
+        byte durabilityLoss = 0;
+        var resurrectWaitTime = 0;
+        // If this unit is a player and NOT killed by another player, then calculate xp loss.
+        // Only in main_world
+        if (thisCharacter is not null)
+        {
+            resurrectWaitTime = thisCharacter.RezWaitDuration;
+            lostExp = thisCharacter.LastExpLoss;
+            durabilityLoss = thisCharacter.LastDurabilityLoss;
+        }
+
+        if (this is Npc { Spawner: not null } thisNpc)
+        {
+            resurrectWaitTime = thisNpc.Spawner.RespawnTime;
+        }
+        
+        killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, resurrectWaitTime, lostExp, durabilityLoss, killerUnit), true);
         if (killer == this)
         {
             switch (this)
@@ -476,7 +497,7 @@ public class Unit : BaseUnit, IUnit
         {
             killer.SendPacketToPlayers([this, killer], new SCAiAggroPacket(killer.ObjId, 0));
 
-            if (killer is Unit killerUnit)
+            if (killerUnit is not null)
             {
                 killerUnit.SummarizeDamage = 0;
                 if (killerUnit.CurrentTarget is Unit unitTarget)
@@ -489,21 +510,21 @@ public class Unit : BaseUnit, IUnit
             //killer.StartRegen();
             killer.BroadcastPacket(new SCTargetChangedPacket(killer.ObjId, 0), true);
 
-            if (killer is Character character)
+            if (thisCharacter is not null)
             {
-                StopAutoSkill(character);
-                character.IsInBattle = false; // we need the character to be "not in battle"
-                DespawnMate(character);
-            }
-            else if (((Unit)killer).CurrentTarget is Character character2)
-            {
-                StopAutoSkill(character2);
-                character2.IsInBattle = false; // we need the character to be "not in battle"
-                character2.DeadTime = DateTime.UtcNow;
-                DespawnMate(character2);
+                StopAutoSkill(thisCharacter);
+                thisCharacter.IsInBattle = false; // we need the character to be "not in battle"
+                thisCharacter.DeadTime = DateTime.UtcNow;
+                DespawnMate(thisCharacter);
             }
 
-            ((Unit)killer).CurrentTarget = null;
+            if (killerCharacter?.CurrentTarget == thisCharacter && thisCharacter is not null)
+            {
+                StopAutoSkill(killerCharacter);
+                killerCharacter.IsInBattle = false; // we need the character to be "not in battle"
+            }
+
+            killerUnit?.CurrentTarget = null;
         }
     }
 

@@ -138,6 +138,22 @@ public class WorldConfig
     /// Configure in <c>AAEmu.Game/Configurations/World.json</c> under <c>World.UsePersistentHouseDoodads</c>.
     /// </summary>
     public bool UsePersistentHouseDoodads { get; set; } = false;
+
+    /// <summary>
+    /// Rate of exp lost on death by NPCs
+    /// Default is 5% (0.05f)
+    /// </summary>
+    public float ExpLossRateAtDeath { get; set; } = 0.05f;
+
+    /// <summary>
+    /// Amount of durability loss for equipped items on death
+    /// </summary>
+    public byte DurabilityLossAtDeath { get; set; } = 2;
+
+    /// <summary>
+    /// Level at which a player starts losing exp and durability on death
+    /// </summary>
+    public int MinimumExpLossLevel { get; set; } = 10;
 }
 
 public class DungeonLoadConfig

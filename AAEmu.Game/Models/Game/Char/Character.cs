@@ -176,6 +176,8 @@ public partial class Character : Unit, ICharacter
     public int Gift { get; set; }
     public int Experience { get; private set; }
     public int RecoverableExp { get; set; }
+    public int LastExpLoss { get; set; }
+    public byte LastDurabilityLoss { get; set; }
     public DateTime Created { get; set; } // время создания персонажа
     public DateTime Updated { get; set; } // время внесения изменений
 
@@ -2318,6 +2320,7 @@ public partial class Character : Unit, ICharacter
                     character.Level = reader.GetByte("level");
                     character.Experience = reader.GetInt32("experience");
                     character.RecoverableExp = reader.GetInt32("recoverable_exp");
+                    character.LastExpLoss = 0; // TODO: Not sure if we need to actually store this in the DB
                     character.Hp = reader.GetInt32("hp");
                     character.Mp = reader.GetInt32("mp");
                     character._savedHp = character.Hp; // save for later

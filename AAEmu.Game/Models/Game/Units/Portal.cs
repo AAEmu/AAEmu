@@ -30,7 +30,7 @@ public sealed class Portal : Npc
     public override void Delete()
     {
         // Broadcast its kill effect to be sure it's removed 
-        BroadcastPacket(new SCUnitDeathPacket(ObjId, KillReason.PortalTimeout), false);
+        BroadcastPacket(new SCUnitDeathPacket(ObjId, KillReason.PortalTimeout, 0, 0, 0), false);
         // Do normal despawn handling
         base.Delete();
         KillLinkedPortal();
