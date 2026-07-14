@@ -203,13 +203,13 @@ public class ExperienceManager : Singleton<ExperienceManager>, IExperienceManage
         return _levelTemplatesByLevel[level - 1];
     }
 
-    public uint GetExpLoss(byte level, float rate)
+    public int GetExpLoss(byte level, float rate)
     {
         if (level >= MaxPlayerLevel)
             return 0;
         var thisLevelExp = GetExpForLevel(level);
         var nextLevelExp = GetExpForLevel((byte)(level+1));
         var totalExpInThisLevel = nextLevelExp - thisLevelExp;
-        return (uint)Math.Floor(totalExpInThisLevel * rate);
+        return (int)Math.Floor(totalExpInThisLevel * rate);
     }
 }

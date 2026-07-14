@@ -456,16 +456,25 @@ public class Unit : BaseUnit, IUnit
         killerUnit?.Events.OnKill(this, new OnKillArgs { Killer = killerUnit, Victim = this });
 
         Buffs.RemoveEffectsOnDeath();
-        var lostExp = 0u;
+
+        var lostExp = 0;
         byte durabilityLoss = 0;
+        var resurrectWaitTime = 0;
         // If this unit is a player and NOT killed by another player, then calculate xp loss.
         // Only in main_world
-        if (thisCharacter is not null && killerCharacter is null && thisCharacter.Level < ExperienceManager.Instance.MaxPlayerLevel && thisCharacter.ParentWorld.Id == WorldManager.DefaultInstanceId)
+        if (thisCharacter is not null)
         {
-            lostExp = ExperienceManager.Instance.GetExpLoss(thisCharacter.Level, 0.1f);
-            durabilityLoss = 2; // 2% or 2 points?
+            resurrectWaitTime = thisCharacter.RezWaitDuration;
+            lostExp = thisCharacter.LastExpLoss;
+            durabilityLoss = thisCharacter.LastDurabilityLoss;
         }
-        killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, 15_000u, lostExp, durabilityLoss, killerUnit), true);
+
+        if (this is Npc { Spawner: not null } thisNpc)
+        {
+            resurrectWaitTime = thisNpc.Spawner.RespawnTime;
+        }
+        
+        killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, resurrectWaitTime, lostExp, durabilityLoss, killerUnit), true);
         if (killer == this)
         {
             switch (this)

@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -62,7 +63,73 @@ public partial class Character
         // Escalating respawn timer — runs BEFORE base.DoDie sends SCUnitDeathPacket
         ComputeDeathWaitTime();
 
+        LastDurabilityLoss = Level >= AppConfiguration.Instance.World.MinimumExpLossLevel
+            ? AppConfiguration.Instance.World.DurabilityLossAtDeath
+            : (byte)0;
+
+        if (Level < ExperienceManager.Instance.MaxPlayerLevel && ParentWorld.Id == WorldManager.DefaultInstanceId)
+        {
+            if (Level >= AppConfiguration.Instance.World.MinimumExpLossLevel)
+            {
+                LastExpLoss = ExperienceManager.Instance.GetExpLoss(Level, AppConfiguration.Instance.World.ExpLossRateAtDeath);
+                var thisLevelStartExp = ExperienceManager.Instance.GetExpForLevel(Level);
+                var inThisLevelExp = Experience - thisLevelStartExp;
+                LastExpLoss = Math.Min(LastExpLoss, inThisLevelExp);
+                RecoverableExp = (int)Math.Round(LastExpLoss * 0.80f);
+                SendDebugMessage($"Lost {LastExpLoss} exp, {LastDurabilityLoss} Durability. Can recover {RecoverableExp} exp");
+            }
+            else
+            {
+                // Free resurrect below level 10 
+                SendPacket(new SCNotifyResurrectionPacket(new SkillCasterUnit(ObjId)));
+                SendDebugMessage($"Free resurrect below level {AppConfiguration.Instance.World.MinimumExpLossLevel}");
+            }
+        }
+        else
+        {
+            SendDebugMessage($"No Exp Lost at max level, Lost {LastDurabilityLoss} Durability.");
+        }
+
+        if (LastExpLoss > 0 || RecoverableExp > 0)
+        {
+            Experience -= LastExpLoss;
+            SendPacket(new SCRecoverableExpPacket(ObjId, RecoverableExp, LastExpLoss, (int)KillReason.Damage));
+            SendPacket(new SCExpChangedPacket(ObjId, -LastExpLoss, false));
+        }
+
         base.DoDie(killer, killReason);
+
+        if (LastDurabilityLoss > 0)
+        {
+            var updateTasks = new List<ItemTask>();
+            foreach (var eItem in Equipment.Items)
+            {
+                if (eItem is EquipItem equipItem)
+                {
+                    if (equipItem.MaxDurability <= 0)
+                        continue;
+                    if (equipItem.Durability <= LastDurabilityLoss)
+                    {
+                        // Destroyed item
+                        equipItem.Durability = 0;
+                    }
+                    else
+                    {
+                        equipItem.Durability -= LastDurabilityLoss;
+                    }
+                    equipItem.IsDirty = true;
+                    updateTasks.Add(new ItemUpdate(equipItem));
+                }
+            }
+            LastDurabilityLoss = 0;
+
+            if (updateTasks.Count > 0)
+            {
+                // NOTE: Max 30 items, but technically speaking, you should never be able to reach that amount
+                // since you can not have that many items that have durability equipped at the same time.
+                SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.DurabilityLoss, updateTasks, null));
+            }
+        }
 
         // Resolve the victim's zone-conflict state once for both PvP-honor award and War-zone honor-loss
         var victimZone = ZoneManager.Instance.GetZoneByKey(Transform.ZoneId);
