@@ -2022,47 +2022,12 @@ public partial class Character : Unit, ICharacter
 
         if (durabilityRate > 0f)
         {
-            durabilityRate = ItemManager.Instance.GetDurabilityDecrementChance();
+            // DurabilityDecrementChance in the item_config is very likely in %
+            // So here we used a random 0f~100f for a check
+            durabilityRate *= ItemManager.Instance.GetDurabilityDecrementChance();
+            
             // Take durability damage
-            var updateTasks = new List<ItemTask>();
-            var destroyedItems = new List<Item>();
-            foreach (var item in Equipment.Items)
-            {
-                if (item is not Armor { Durability: > 0, MaxDurability: > 0 } armor)
-                    continue;
-
-                // DurabilityDecrementChance in the item_config is very likely in %
-                // So here we used a random 0f~100f for a check
-                if ((Random.Shared.NextSingle() * 100f) <= durabilityRate)
-                {
-                    armor.Durability -= 1;
-                    armor.IsDirty = true;
-                    updateTasks.Add(new ItemUpdate(armor));
-                    if (armor.Durability <= 0)
-                    {
-                        destroyedItems.Add(armor);
-                        SendDebugMessage($"Equipment Item: {armor.Id} @ITEM_NAME({armor.TemplateId}) ({armor.TemplateId}) was |cFFFF0000destroyed|r");
-                    }
-                    else
-                    {
-                        SendDebugMessage($"Equipment Item: {armor.Id} @ITEM_NAME({armor.TemplateId}) ({armor.TemplateId}) lost 1 durability");
-                    }
-                }
-            }
-
-            if (updateTasks.Count > 0)
-            {
-                SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.DurabilityLoss, updateTasks, null));
-            }
-
-            if (destroyedItems.Count > 0)
-            {
-                // Reparse equipment buffs if needed
-                foreach (var armor in destroyedItems)
-                {
-                    UpdateGearBonuses(null, armor);
-                }
-            }
+            ApplyDurabilityLossToEquipment(1, DurabilityLossTargets.AllArmor, durabilityRate);
         }
     }
 
@@ -2094,10 +2059,8 @@ public partial class Character : Unit, ICharacter
                 continue;
             }
 
-#pragma warning disable CA1508 // Avoid dead conditional code
-            if (CurrentInteractionObject is null || CurrentInteractionObject is not Npc npc)
+            if (CurrentInteractionObject is not Npc npc)
                 continue;
-#pragma warning restore CA1508 // Avoid dead conditional code
 
             if (!npc.Template.Blacksmith)
             {

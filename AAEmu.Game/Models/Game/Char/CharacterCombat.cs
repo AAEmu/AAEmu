@@ -105,34 +105,8 @@ public partial class Character
 
         if (LastDurabilityLoss > 0)
         {
-            var updateTasks = new List<ItemTask>();
-            foreach (var eItem in Equipment.Items)
-            {
-                if (eItem is EquipItem equipItem)
-                {
-                    if (equipItem.MaxDurability <= 0)
-                        continue;
-                    if (equipItem.Durability <= LastDurabilityLoss)
-                    {
-                        // Destroyed item
-                        equipItem.Durability = 0;
-                    }
-                    else
-                    {
-                        equipItem.Durability -= LastDurabilityLoss;
-                    }
-                    equipItem.IsDirty = true;
-                    updateTasks.Add(new ItemUpdate(equipItem));
-                }
-            }
+            ApplyDurabilityLossToEquipment(LastDurabilityLoss, DurabilityLossTargets.All, -1f);
             LastDurabilityLoss = 0;
-
-            if (updateTasks.Count > 0)
-            {
-                // NOTE: Max 30 items, but technically speaking, you should never be able to reach that amount
-                // since you can not have that many items that have durability equipped at the same time.
-                SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.DurabilityLoss, updateTasks, null));
-            }
         }
 
         // Resolve the victim's zone-conflict state once for both PvP-honor award and War-zone honor-loss
@@ -482,4 +456,133 @@ public partial class Character
             }
         }
     }
+
+    /// <summary>
+    /// Applied durability loss to items, sends related packets and updates bonuses if needed
+    /// </summary>
+    /// <param name="durabilityLoss"></param>
+    /// <param name="targets"></param>
+    /// <param name="durabilityRate">Percent value that an item can lose the durability, if set to &lt; 0, it will affect all target items</param>
+    private void ApplyDurabilityLossToEquipment(byte durabilityLoss, DurabilityLossTargets targets, float durabilityRate)
+    {
+        var updateTasks = new List<ItemTask>();
+        var destroyedItems = new List<Item>();
+        foreach (var item in Equipment.Items)
+        {
+            if (item is not EquipItem equipItem)
+                continue;
+
+            // Ignore if no durability
+            if (equipItem.MaxDurability <= 0)
+                continue;
+
+            // Ignore already destroyed items
+            if (!equipItem.IsNotDestroyed)
+                continue;
+
+            // Filter out by type
+            switch (targets)
+            {
+                case DurabilityLossTargets.All:
+                    // No filter, normally only used for player death
+                    break;
+                case DurabilityLossTargets.AllArmor:
+                    if (equipItem is not Items.Armor)
+                        continue;
+                    break;
+                case DurabilityLossTargets.AllWeapons:
+                    if (equipItem is not Weapon)
+                        continue;
+                    break;
+                case DurabilityLossTargets.AllMainWeapons:
+                    if (equipItem is not Weapon || equipItem.Slot != (int)EquipmentItemSlot.Mainhand || equipItem.Slot != (int)EquipmentItemSlot.Offhand)
+                        continue;
+                    break;
+                case DurabilityLossTargets.PrimaryWeapon:
+                    if (equipItem.Slot != (int)EquipmentItemSlot.Mainhand)
+                        continue;
+                    break;
+                case DurabilityLossTargets.SecondaryWeapon:
+                    if (equipItem.Slot != (int)EquipmentItemSlot.Offhand)
+                        continue;
+                    break;
+                case DurabilityLossTargets.RangedWeapon:
+                    if (equipItem.Slot != (int)EquipmentItemSlot.Ranged)
+                        continue;
+                    break;
+                case DurabilityLossTargets.Shield:
+                    if (equipItem.Template is not WeaponTemplate shieldHoldable || shieldHoldable.HoldableTemplate.SlotTypeId != (uint)EquipmentItemSlotType.Shield)
+                        continue;
+                    break;
+                case DurabilityLossTargets.Feet:
+                    if (equipItem.Slot != (int)EquipmentItemSlot.Feet)
+                        continue;
+                    break;
+                default:
+                    continue;
+            }
+
+            // If durability rate is set, apply randomness
+            if (durabilityRate >= 0f && ((Random.Shared.NextSingle() * 100f) > durabilityRate))
+            {
+                // random did not qualify for durability loss
+                continue;
+            }
+
+            // Deduct durability
+            if (equipItem.Durability <= durabilityLoss)
+            {
+                // Destroyed item
+                equipItem.Durability = 0;
+                destroyedItems.Add(equipItem);
+                SendDebugMessage($"Equipment Item: {equipItem.Id} @ITEM_NAME({equipItem.TemplateId}) ({equipItem.TemplateId}) was |cFFFF0000destroyed|r");
+            }
+            else
+            {
+                equipItem.Durability -= durabilityLoss;
+                SendDebugMessage($"Equipment Item: {equipItem.Id} @ITEM_NAME({equipItem.TemplateId}) ({equipItem.TemplateId}) lost {durabilityLoss} durability");
+            }
+
+            equipItem.IsDirty = true;
+            updateTasks.Add(new ItemUpdate(equipItem));
+        }
+
+        if (updateTasks.Count > 0)
+        {
+            // NOTE: Max 30 items, but technically speaking, you should never be able to reach that amount
+            // since you can not have that many items that have durability equipped at the same time.
+            SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.DurabilityLoss, updateTasks, null));
+        }
+
+        // Reparse equipment buffs if needed because of getting destroyed items
+        if (destroyedItems.Count > 0)
+        {
+            foreach (var item in destroyedItems)
+            {
+                UpdateGearBonuses(null, item);
+            }
+        }
+    }
+}
+
+internal enum DurabilityLossTargets
+{
+    /// <summary>Applies to all equipped items</summary>
+    All,
+    /// <summary>Only armor pieces</summary>
+    AllArmor,
+    /// <summary>Only weapons and shields</summary>
+    AllWeapons,
+    /// <summary>Only the main and offhand equipped slots</summary>
+    AllMainWeapons,
+    /// <summary>Only the equipped main weapon</summary>
+    PrimaryWeapon,
+    /// <summary>Only the equipped offhand weapon or shield</summary>
+    SecondaryWeapon,
+    /// <summary>Only the weapon in the ranged slot </summary>
+    RangedWeapon,
+    /// <summary>Only aplly to shields</summary>
+    Shield,
+    /// <summary>Only apply to feet (if you want to implement wear by walk distance for example)</summary>
+    Feet
 }
