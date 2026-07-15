@@ -994,7 +994,7 @@ public class Skill
                     var durabilityLossRate = caster is Character
                         ? AppConfiguration.Instance.World.PvPDurabilityLossRate
                         : AppConfiguration.Instance.World.PvEDurabilityLossRate;
-                    durabilityLossRate *= ItemManager.Instance.GetDeathDurabilityLossRatio();
+                    durabilityLossRate *= ItemManager.Instance.GetDurabilityDecrementChance();
                     if (durabilityLossRate > 0)
                     {
                         switch (diceResult)
