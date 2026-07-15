@@ -64,7 +64,7 @@ public partial class Character
         ComputeDeathWaitTime();
 
         LastDurabilityLoss = Level >= AppConfiguration.Instance.World.MinimumExpLossLevel
-            ? AppConfiguration.Instance.World.DurabilityLossAtDeath
+            ? ItemManager.Instance.GetDeathDurabilityLossRatio()
             : (byte)0;
 
         if (Level < ExperienceManager.Instance.MaxPlayerLevel && ParentWorld.Id == WorldManager.DefaultInstanceId)
