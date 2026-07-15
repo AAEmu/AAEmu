@@ -35,11 +35,20 @@ public class DoodadFuncSkillHit : DoodadFuncTemplate
                         var template = SkillManager.Instance.GetEffectTemplate(skillEffect.EffectId);
                         if (template is SpecialEffect specialEffect)
                         {
-                            var itemId = (uint)specialEffect.Value1;
-                            sc.ItemTemplateId = itemId;
-                            var item = ItemManager.Instance.Create(itemId, 1, 0);
-                            var res = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Loot, item.TemplateId, item.Count, item.Grade);
-                            skill.Use(caster, skillCaster, target, null, false, out _);
+                            switch (specialEffect.SpecialEffectTypeId)
+                            {
+                                case SpecialType.GainItem:
+                                case SpecialType.GainItemWithPosImprint:
+                                case SpecialType.GainItemWithEmblemImprint:
+                                    var itemId = (uint)specialEffect.Value1;
+                                    // Value2 is likely grade or count, observed 0 and 1's
+                                    sc.ItemTemplateId = itemId;
+                                    var item = ItemManager.Instance.Create(itemId, 1, 0);
+                                    var res = character.Inventory.Bag.AcquireDefaultItem(
+                                        ItemTaskType.Loot, item.TemplateId, item.Count, item.Grade);
+                                    skill.Use(caster, skillCaster, target, null, false, out _);
+                                    break;
+                            }
                         }
                     }
                 }
