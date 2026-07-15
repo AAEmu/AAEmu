@@ -181,10 +181,6 @@ public class CharacterCraft(Character owner)
             CraftOrCancel();
             return;
         }
-        
-        // Check craft skill level
-        
-        
 
         /*
         // "Proper" Grade inheritance referencing the compact flags, doesn't work for 1.2
