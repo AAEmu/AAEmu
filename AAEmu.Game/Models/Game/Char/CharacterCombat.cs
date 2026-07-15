@@ -463,7 +463,7 @@ public partial class Character
     /// <param name="durabilityLoss"></param>
     /// <param name="targets"></param>
     /// <param name="durabilityRate">Percent value that an item can lose the durability, if set to &lt; 0, it will affect all target items</param>
-    private void ApplyDurabilityLossToEquipment(byte durabilityLoss, DurabilityLossTargets targets, float durabilityRate)
+    public void ApplyDurabilityLossToEquipment(byte durabilityLoss, DurabilityLossTargets targets, float durabilityRate)
     {
         var updateTasks = new List<ItemTask>();
         var destroyedItems = new List<Item>();
@@ -495,7 +495,7 @@ public partial class Character
                         continue;
                     break;
                 case DurabilityLossTargets.AllMainWeapons:
-                    if (equipItem is not Weapon || equipItem.Slot != (int)EquipmentItemSlot.Mainhand || equipItem.Slot != (int)EquipmentItemSlot.Offhand)
+                    if (equipItem is not Weapon || (equipItem.Slot != (int)EquipmentItemSlot.Mainhand && equipItem.Slot != (int)EquipmentItemSlot.Offhand))
                         continue;
                     break;
                 case DurabilityLossTargets.PrimaryWeapon:
@@ -565,7 +565,7 @@ public partial class Character
     }
 }
 
-internal enum DurabilityLossTargets
+public enum DurabilityLossTargets
 {
     /// <summary>Applies to all equipped items</summary>
     All,
