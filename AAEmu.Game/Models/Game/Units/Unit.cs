@@ -1094,6 +1094,9 @@ public class Unit : BaseUnit, IUnit
         {
             if (item is not EquipItem ei)
                 continue;
+            
+            if (!ei.IsNotDestroyed)
+                continue;
 
             // Mods on the gear Itself
             foreach (var template in ItemManager.Instance.GetUnitModifiers(item.TemplateId))
@@ -1219,6 +1222,12 @@ public class Unit : BaseUnit, IUnit
     {
         if ((itemAdded != null || itemRemoved != null) && itemAdded is not Items.Armor && itemRemoved is not Items.Armor)
             return;
+
+        if (itemAdded is EquipItem { MaxDurability: > 0, Durability: <= 0 })
+        {
+            // Destroyed item, ignore
+            return;
+        }
 
         // Clear any existing armor grade buffs
         Buffs.RemoveBuffs((uint)BuffConstants.ArmorBuffTag, 10);
@@ -1352,55 +1361,64 @@ public class Unit : BaseUnit, IUnit
 
         if (itemAdded != null)
         {
-            // Static Buffs
-            var itemAddedBuff = ItemGameData.Instance.GetItemBuff(itemAdded.TemplateId, itemAdded.Grade) ?? SkillManager.Instance.GetBuffTemplate(itemAdded.Template.BuffId);
-            if (itemAddedBuff != null) // add buff from equipped item
+            if (itemAdded is EquipItem { MaxDurability: > 0, Durability: <= 0 })
             {
-                var newEffect =
-                    new Buff(this, this, new SkillCasterUnit(), itemAddedBuff, null, DateTime.UtcNow)
-                    {
-                        AbLevel = (uint)itemAdded.Template.Level
-                    };
-
-                Buffs.AddBuff(newEffect);
+                // Destroyed item, ignore
             }
-
-            // Charged Item Buffs
-            if (itemAdded is EquipItem equipItem && equipItem.Template is EquipItemTemplate equipItemTemplate &&
-                equipItemTemplate.RechargeBuffId > 0)
+            else
             {
-                var addChargeBuff = false;
-                var checkExpireTime = equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack)
-                    ? equipItem.UnpackTime
-                    : equipItem.ChargeStartTime;
-                checkExpireTime = checkExpireTime.AddMinutes(equipItemTemplate.ChargeLifetime);
-
-                // Check against timer
-                if (equipItemTemplate.ChargeLifetime > 0 && checkExpireTime > DateTime.UtcNow)
-                    addChargeBuff = true;
-
-                // Check against charge counter
-                if (equipItemTemplate.ChargeCount > 0 && equipItem.ChargeCount > 0)
-                    addChargeBuff = true;
-
-                // If this item is Bind on unwrap, don't start the buff if it's not unwrapped
-                if (equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack) && equipItem.HasFlag(ItemFlag.Unpacked) == false)
-                    addChargeBuff = false;
-
-                if (addChargeBuff)
+                // Static Buffs
+                var itemAddedBuff = ItemGameData.Instance.GetItemBuff(itemAdded.TemplateId, itemAdded.Grade) ??
+                                    SkillManager.Instance.GetBuffTemplate(itemAdded.Template.BuffId);
+                if (itemAddedBuff != null) // add buff from equipped item
                 {
-                    var itemAddedChargedBuff = SkillManager.Instance.GetBuffTemplate(equipItemTemplate.RechargeBuffId);
                     var newEffect =
-                        new Buff(this, this, new SkillCasterUnit(), itemAddedChargedBuff, null, DateTime.UtcNow)
+                        new Buff(this, this, new SkillCasterUnit(), itemAddedBuff, null, DateTime.UtcNow)
                         {
                             AbLevel = (uint)itemAdded.Template.Level
                         };
+
                     Buffs.AddBuff(newEffect);
                 }
+
+                // Charged Item Buffs
+                if (itemAdded is EquipItem equipItem && equipItem.Template is EquipItemTemplate equipItemTemplate &&
+                    equipItemTemplate.RechargeBuffId > 0)
+                {
+                    var addChargeBuff = false;
+                    var checkExpireTime = equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack)
+                        ? equipItem.UnpackTime
+                        : equipItem.ChargeStartTime;
+                    checkExpireTime = checkExpireTime.AddMinutes(equipItemTemplate.ChargeLifetime);
+
+                    // Check against timer
+                    if (equipItemTemplate.ChargeLifetime > 0 && checkExpireTime > DateTime.UtcNow)
+                        addChargeBuff = true;
+
+                    // Check against charge counter
+                    if (equipItemTemplate.ChargeCount > 0 && equipItem.ChargeCount > 0)
+                        addChargeBuff = true;
+
+                    // If this item is Bind on unwrap, don't start the buff if it's not unwrapped
+                    if (equipItemTemplate.BindType.HasFlag(ItemBindType.BindOnUnpack) &&
+                        equipItem.HasFlag(ItemFlag.Unpacked) == false)
+                        addChargeBuff = false;
+
+                    if (addChargeBuff)
+                    {
+                        var itemAddedChargedBuff =
+                            SkillManager.Instance.GetBuffTemplate(equipItemTemplate.RechargeBuffId);
+                        var newEffect =
+                            new Buff(this, this, new SkillCasterUnit(), itemAddedChargedBuff, null, DateTime.UtcNow)
+                            {
+                                AbLevel = (uint)itemAdded.Template.Level
+                            };
+                        Buffs.AddBuff(newEffect);
+                    }
+                }
+
+                // Unit_Modifiers from items
             }
-
-            // Unit_Modifiers from items
-
         }
 
         if (itemAdded == null && itemRemoved == null) // This is the first load check to apply buffs for equipped items. 

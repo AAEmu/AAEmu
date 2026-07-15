@@ -43,6 +43,14 @@ public class EquipItem : Item
         }
     }
 
+    public bool IsNotDestroyed
+    {
+        get
+        {
+            return MaxDurability <= 0 || Durability > 0;
+        }
+    }
+
     public EquipItem()
     {
         GemIds = new uint[7];

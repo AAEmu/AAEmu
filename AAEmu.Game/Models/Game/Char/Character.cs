@@ -332,7 +332,7 @@ public partial class Character : Unit, ICharacter
             var result = formula.Evaluate(parameters);
             var res = result;
             foreach (var item in Equipment.Items)
-                if (item is EquipItem equip)
+                if (item is EquipItem { IsNotDestroyed: true } equip)
                     res += equip.Str;
             res = CalculateWithBonuses(res, UnitAttribute.Str);
 
@@ -349,7 +349,7 @@ public partial class Character : Unit, ICharacter
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var res = formula.Evaluate(parameters);
             foreach (var item in Equipment.Items)
-                if (item is EquipItem equip)
+                if (item is EquipItem { IsNotDestroyed: true } equip)
                     res += equip.Dex;
             res = CalculateWithBonuses(res, UnitAttribute.Dex);
 
@@ -366,7 +366,7 @@ public partial class Character : Unit, ICharacter
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var res = formula.Evaluate(parameters);
             foreach (var item in Equipment.Items)
-                if (item is EquipItem equip)
+                if (item is EquipItem { IsNotDestroyed: true } equip)
                     res += equip.Sta;
             res = CalculateWithBonuses(res, UnitAttribute.Sta);
 
@@ -383,7 +383,7 @@ public partial class Character : Unit, ICharacter
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var res = formula.Evaluate(parameters);
             foreach (var item in Equipment.Items)
-                if (item is EquipItem equip)
+                if (item is EquipItem { IsNotDestroyed: true } equip)
                     res += equip.Int;
             res = CalculateWithBonuses(res, UnitAttribute.Int);
 
@@ -400,7 +400,7 @@ public partial class Character : Unit, ICharacter
             var parameters = new Dictionary<string, double> { ["level"] = Level };
             var res = formula.Evaluate(parameters);
             foreach (var item in Equipment.Items)
-                if (item is EquipItem equip)
+                if (item is EquipItem { IsNotDestroyed: true } equip)
                     res += equip.Spi;
             res = CalculateWithBonuses(res, UnitAttribute.Spi);
 
@@ -1857,7 +1857,7 @@ public partial class Character : Unit, ICharacter
     }
 
     /// <summary>
-    /// Trigger OnItemUse using a item template
+    /// Trigger OnItemUse using an item template
     /// </summary>
     /// <param name="itemTemplate"></param>
     public void ItemUseByTemplate(uint itemTemplate)
@@ -1994,6 +1994,41 @@ public partial class Character : Unit, ICharacter
             RecordPvpDamageFrom(enemyChar);
 
         base.ReduceCurrentHp(attacker, value, killReason);
+        
+        // Handle armor durability
+        var durabilityRate = 0f;
+        switch (killReason)
+        {
+            // Only take durability damage from "normal" attacks
+            case KillReason.PvpSiege:
+            case KillReason.PvpBattleField:
+            case KillReason.PvpHonorWar:
+            case KillReason.PvpEnemy:
+            case KillReason.PvpAlly:
+                durabilityRate = AppConfiguration.Instance.World.PvPDurabilityLossRate;
+                break;
+            case KillReason.Unknown:
+            case KillReason.Damage:
+                if (attacker is Character)
+                {
+                    durabilityRate = AppConfiguration.Instance.World.PvPDurabilityLossRate;
+                }
+                else
+                {
+                    durabilityRate = AppConfiguration.Instance.World.PvEDurabilityLossRate;
+                }
+                break;
+        }
+
+        if (durabilityRate > 0f)
+        {
+            // DurabilityDecrementChance in the item_config is very likely in %
+            // So here we used a random 0f~100f for a check
+            durabilityRate *= ItemManager.Instance.GetDurabilityDecrementChance();
+            
+            // Take durability damage
+            ApplyDurabilityLossToEquipment(1, DurabilityLossTargets.AllArmor, durabilityRate);
+        }
     }
 
     public void DoRepair(List<Item> items)
@@ -2024,10 +2059,8 @@ public partial class Character : Unit, ICharacter
                 continue;
             }
 
-#pragma warning disable CA1508 // Avoid dead conditional code
-            if (CurrentInteractionObject is null || CurrentInteractionObject is not Npc npc)
+            if (CurrentInteractionObject is not Npc npc)
                 continue;
-#pragma warning restore CA1508 // Avoid dead conditional code
 
             if (!npc.Template.Blacksmith)
             {

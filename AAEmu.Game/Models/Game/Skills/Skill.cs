@@ -987,6 +987,29 @@ public class Skill
                     }
                 }
                 HitTypes.TryAdd(targetUnit.ObjId, diceResult);
+                
+                // There's probably a better place to handle parry/block durability, but let's put it here for now
+                if (targetUnit is Character targetPlayer)
+                {
+                    var durabilityLossRate = caster is Character
+                        ? AppConfiguration.Instance.World.PvPDurabilityLossRate
+                        : AppConfiguration.Instance.World.PvEDurabilityLossRate;
+                    durabilityLossRate *= ItemManager.Instance.GetDurabilityDecrementChance();
+                    if (durabilityLossRate > 0)
+                    {
+                        switch (diceResult)
+                        {
+                            case SkillHitType.MeleeBlock:
+                            case SkillHitType.RangedBlock:
+                                targetPlayer.ApplyDurabilityLossToEquipment(1, DurabilityLossTargets.Shield, durabilityLossRate);
+                                break;
+                            case SkillHitType.RangedParry:
+                            case SkillHitType.MeleeParry:
+                                targetPlayer.ApplyDurabilityLossToEquipment(1, DurabilityLossTargets.AllMainWeapons, durabilityLossRate);
+                                break;
+                        }
+                    }
+                }
             }
             else if (target is Doodad doodad)
             {
@@ -1454,7 +1477,7 @@ public class Skill
                 if (damageType == DamageType.Ranged)
                     return SkillHitType.RangedBlock;
             }
-            if (Target != null && Random.Shared.Next(0F, 100f) < Target.MeleeParryRate - bullsEyeMod)
+            if (Target != null && Random.Shared.Next(0f, 100f) < Target.MeleeParryRate - bullsEyeMod)
             {
                 if (damageType == DamageType.Melee)
                     return SkillHitType.MeleeParry;

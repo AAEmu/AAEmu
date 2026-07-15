@@ -146,9 +146,14 @@ public class WorldConfig
     public float ExpLossRateAtDeath { get; set; } = 0.05f;
 
     /// <summary>
-    /// Amount of durability loss for equipped items on death
+    /// Multiplier to apply to normal wear and tear rate of equipment vs NPCs
     /// </summary>
-    public byte DurabilityLossAtDeath { get; set; } = 2;
+    public float PvEDurabilityLossRate { get; set; } = 1.0f;
+
+    /// <summary>
+    /// Multiplier to apply to normal wear and tear rate of equipment vs other players
+    /// </summary>
+    public float PvPDurabilityLossRate { get; set; } = 1.0f;
 
     /// <summary>
     /// Level at which a player starts losing exp and durability on death
