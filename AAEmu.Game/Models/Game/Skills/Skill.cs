@@ -1319,9 +1319,10 @@ public class Skill
             // Related skill Discard Portable Harpoon Cannon (skill 17735) has no reagents attached
             // The item however is marked with use_skill_as_reagent, so if it requires reagent according to the item
             // but has none attached, consume 1 of the source item instead
+            // 2026-07-15 - Added an additional check if the skill has no effects of it's own. This fixed the bug with Wrapped Sugerplum Fairy Music Box (27627) unwrapping
             // TODO: Check if this is intended behaviour, or if this is a bug in the compact.sqlite3 file
             var item = ItemManager.Instance.GetItemByItemId(skillItem.ItemId);
-            if (item?.Template.UseSkillAsReagent == true && reagents.Count <= 0 && skillProducts.Count <= 0 && consumedItems.Count <= 0)
+            if (item?.Template.UseSkillAsReagent == true && reagents.Count <= 0 && skillProducts.Count <= 0 && consumedItems.Count <= 0 && Template.Effects.Count == 0)
             {
                 consumedItems.Add((item, 1));
                 Logger.Debug($"Consumed item template 1 x {item.TemplateId} ({item.Id}) because of missing reagent information with skill {Template.Id}");
