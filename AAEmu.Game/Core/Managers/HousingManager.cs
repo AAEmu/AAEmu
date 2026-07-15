@@ -1658,7 +1658,7 @@ public class HousingManager(
             if (f.TemplateId == ForSaleMarkerDoodadId)
                 continue;
             var decoDesign = HousingGameData.Instance.GetDecorationDesignFromDoodadId(f.TemplateId);
-            if (decoDesign.ActabilityGroupId == actabilityGroupId)
+            if (decoDesign != null && decoDesign.ActabilityGroupId == actabilityGroupId)
             {
                 if (!bonusByDoodadTemplate.ContainsKey(f.TemplateId))
                     bonusByDoodadTemplate.Add(f.TemplateId, decoDesign.ActabilityUp);
