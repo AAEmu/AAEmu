@@ -49,7 +49,6 @@ while [[ $# -gt 0 ]]; do
 done
 
 CLIENT_FILES="${REPO_ROOT}/.client_files"
-mkdir -p "${CLIENT_FILES}/launcher"
 
 # Result accumulators (parallel arrays)
 declare -a R_NAME=()
@@ -220,6 +219,7 @@ if LAUNCHER="$(find_launcher_exe)"; then
   add_result "launcher" "OK" "present - skip re-download" "$LAUNCHER"
 elif [[ "$FETCH_LAUNCHER" -eq 1 ]]; then
   echo "Launcher missing - fetching latest GitHub release..."
+  mkdir -p "${CLIENT_FILES}/launcher"
   DEST_ARCHIVE="${CLIENT_FILES}/AAEmu.Launcher-latest.7z"
   EXTRACT_DIR="${CLIENT_FILES}/launcher"
   set +e

@@ -124,7 +124,7 @@ Path A often only needs `ClientData`. Path B needs DB + LoginNetwork + ClientDat
   "SecretKey": "test",
   "LoginNetwork": {
     "Host": "127.0.0.1",
-    "Port": "1235"
+    "Port": 1235
   },
   "Connections": {
     "MySQLProvider": {

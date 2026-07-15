@@ -103,9 +103,6 @@ function Get-ClientArchives {
         ForEach-Object { $_.FullName }
 }
 
-New-Item -ItemType Directory -Force -Path $clientFiles | Out-Null
-New-Item -ItemType Directory -Force -Path (Join-Path $clientFiles "launcher") | Out-Null
-
 $results = New-Object System.Collections.Generic.List[object]
 function Add-Result([string]$Name, [string]$Status, [string]$Detail, [string]$Path = "") {
     $results.Add([pscustomobject]@{ Name = $Name; Status = $Status; Detail = $Detail; Path = $Path }) | Out-Null
@@ -166,8 +163,10 @@ if ($launcher) {
 }
 elseif ($FetchLauncherIfMissing) {
     Write-Host "Launcher missing - fetching latest GitHub release..." -ForegroundColor Cyan
-    $destArchive = Join-Path $clientFiles "AAEmu.Launcher-latest.7z"
+    New-Item -ItemType Directory -Force -Path $clientFiles | Out-Null
     $extractDir = Join-Path $clientFiles "launcher"
+    New-Item -ItemType Directory -Force -Path $extractDir | Out-Null
+    $destArchive = Join-Path $clientFiles "AAEmu.Launcher-latest.7z"
     try {
         if (Get-Command gh -ErrorAction SilentlyContinue) {
             gh release download --repo ZeromusXYZ/AAEmu-Launcher --pattern "*.7z" --dir $clientFiles --clobber
@@ -182,8 +181,7 @@ elseif ($FetchLauncherIfMissing) {
         }
         $sevenZ = @(
             "${env:ProgramFiles}\7-Zip\7z.exe",
-            "${env:ProgramFiles(x86)}\7-Zip\7z.exe",
-            "C:\Program Files\Unity 6000.3.5f2\Editor\Data\Tools\7z.exe"
+            "${env:ProgramFiles(x86)}\7-Zip\7z.exe"
         ) | Where-Object { Test-Path $_ } | Select-Object -First 1
         if (-not $sevenZ -and (Get-Command 7z -ErrorAction SilentlyContinue)) { $sevenZ = "7z" }
         if ($sevenZ) {
