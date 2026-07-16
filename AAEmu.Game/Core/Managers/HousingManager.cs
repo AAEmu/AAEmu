@@ -1636,4 +1636,39 @@ public class HousingManager(
         }
         return null;
     }
+
+    public uint GetActAbilityBonusFromHouse(int actabilityGroupId, House house)
+    {
+        var res = 0u;
+        if (actabilityGroupId <= 0)
+            return res;
+
+        var furniture = house.ParentWorld.GetDoodadByHouseDbId(house.Id);
+        var bonusByDoodadTemplate = new Dictionary<uint, uint>(); // Make sure every furniture type only counts once
+        // TODO: Implement special decor effect limit
+        // This should not break gameplay as the server-side value would always be greater than or equal to what the client thinks
+
+        foreach (var f in furniture)
+        {
+            // Ignore attached objects (those are doors/windows etc)
+            if (f.AttachPoint != AttachPointKind.None)
+                continue;
+
+            // Ignore for sale signs
+            if (f.TemplateId == ForSaleMarkerDoodadId)
+                continue;
+            var decoDesign = HousingGameData.Instance.GetDecorationDesignFromDoodadId(f.TemplateId);
+            if (decoDesign != null && decoDesign.ActabilityGroupId == actabilityGroupId)
+            {
+                if (!bonusByDoodadTemplate.ContainsKey(f.TemplateId))
+                    bonusByDoodadTemplate.Add(f.TemplateId, decoDesign.ActabilityUp);
+            }
+        }
+
+        foreach (var bonus in bonusByDoodadTemplate.Values)
+        {
+            res += bonus;
+        }
+        return res;
+    }
 }

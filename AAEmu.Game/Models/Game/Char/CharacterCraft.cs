@@ -1,5 +1,4 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -112,6 +111,32 @@ public class CharacterCraft(Character owner)
         var skill = new Skill(SkillManager.Instance.GetSkillTemplate(craft.SkillId));
         ConsumeLaborPower = skill.Template.ConsumeLaborPower;
         var speedMultiplier = 1f;
+        if (skill.Template.ActabilityGroupId > 0)
+        {
+            var currentActAbilityPoints = 0u;
+            var actAbility = owner.Actability.Actabilities.GetValueOrDefault((uint)skill.Template.ActabilityGroupId);
+            if (actAbility != null)
+            {
+                speedMultiplier *= actAbility.GetProductionTimeMultiplier();
+                currentActAbilityPoints = (uint)actAbility.Point;
+            }
+
+            // Check bonus from housing
+            var house = HousingManager.Instance.GetHouseAtLocation(owner.Transform.World.Position.X, owner.Transform.World.Position.Y);
+            // We don't bother to check house permission here as you can't use the workbench if you don't have permission anyway
+            if (house != null)
+                currentActAbilityPoints += HousingManager.Instance.GetActAbilityBonusFromHouse(skill.Template.ActabilityGroupId, house);
+
+            // Validate skill level
+            if (craft.ActabilityLimit > currentActAbilityPoints)
+            {
+                Owner.SendErrorMessage(ErrorMessageType.ActabilityNotEnoughPoint, (uint)skill.Template.ActabilityGroupId);
+                CancelCraft();
+                // This breaks the craft panel, but shouldn't happen if the client is in sync with the server
+                return;
+            }
+        }
+        /*
         if (craft.AcId > 0)
         {
             var actAbilityId = CharacterManager.Instance.GetActabilityIdByCategoryId(craft.AcId);
@@ -124,6 +149,7 @@ public class CharacterCraft(Character owner)
                 }
             }
         }
+        */
         skill.CastTimeMultiplier = speedMultiplier;
         skill.Use(Owner, caster, target, null, false, out _);
     }
@@ -258,12 +284,12 @@ public class CharacterCraft(Character owner)
         {
             // Determine if this product should inherit grade  
             var productTemplate = ItemManager.Instance.GetTemplate(product.ItemId);
-            int gradeToUse = -1;
+            var gradeToUse = -1;
 
             // If we found an equipment material, inherit grade and roll for free regrade
             if (gradeMaterial != null)
             {
-                gradeToUse = FreeRegrade((int)inheritedGrade);
+                gradeToUse = FreeRegrade(inheritedGrade);
             }
             else if (product.ItemGradeId > 0)
             {
@@ -366,10 +392,10 @@ public class CharacterCraft(Character owner)
     ///</summary>
     private static int FreeRegrade(int baseGrade)
     {
-        int grade = baseGrade;
+        var grade = baseGrade;
         var maxGrade = ItemManager.MaxGradeValue;
         //Check grade is not already max
-        if (grade != (int)maxGrade)
+        if (grade != maxGrade)
         {
             //5% chance
             var luckyRoll = Random.Shared.Next(0, 20);

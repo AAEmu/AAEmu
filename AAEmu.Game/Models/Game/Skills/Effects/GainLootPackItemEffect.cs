@@ -35,43 +35,37 @@ public class GainLootPackItemEffect : EffectTemplate
         if (pack == null || pack.Loots.Count <= 0)
             return;
 
+        Logger.Debug($"GainLootPackItemEffect {LootPackId}");
+        
         // TODO: Find the related ActAbility
         var actAbility = ActabilityType.None;
+        byte? inheritedGrade = null;
 
-        if (!ConsumeSourceItem && ConsumeCount == 0)
+        if (!ConsumeSourceItem && ConsumeItemId > 0 && ConsumeCount > 0)
         {
             // the tractor collects water
             character.Inventory.Bag.ConsumeItem(ItemTaskType.ConsumeSkillSource, ConsumeItemId, ConsumeCount, null);
-            pack.GiveLootPack(character, actAbility, ItemTaskType.SkillEffectGainItem);
-            Logger.Debug($"GainLootPackItemEffect {LootPackId}");
-            return;
-        }
-
-        if (casterObj is not SkillItem skillItem)
-            return;
-
-        var sourceItem = character.Inventory.Bag.GetItemByItemId(skillItem.ItemId);
-        if (sourceItem == null)
-        {
-            Logger.Warn($"Invalid loot result items {skillItem.ItemId} in lootpack {LootPackId}");
-            return;
         }
 
         if (ConsumeSourceItem)
         {
+            if (casterObj is not SkillItem skillItem)
+                return;
+            var sourceItem = character.Inventory.Bag.GetItemByItemId(skillItem.ItemId);
+            if (sourceItem == null)
+            {
+                Logger.Warn($"Invalid loot result items {skillItem.ItemId} in lootpack {LootPackId}");
+                return;
+            }
+            if (InheritGrade)
+                inheritedGrade = sourceItem.Grade;
             character.Inventory.Bag.RemoveItem(ItemTaskType.ConsumeSkillSource, sourceItem, true);
         }
-        else
-        {
-            character.Inventory.Bag.ConsumeItem(ItemTaskType.ConsumeSkillSource, ConsumeItemId, ConsumeCount, null);
-        }
-
-        //Get the source item's grade if we need to inherit it  
-        byte? inheritedGrade = InheritGrade ? sourceItem.Grade : null;
 
         // Give the results
-        pack.GiveLootPack(character, actAbility, ItemTaskType.SkillEffectGainItem, inheritedGrade: inheritedGrade);
-
-        Logger.Debug($"GainLootPackItemEffect {LootPackId}");
+        if (!pack.GiveLootPack(character, actAbility, ItemTaskType.SkillEffectGainItem, inheritedGrade: inheritedGrade))
+        {
+            character.SendErrorMessage(ErrorMessageType.LootItemCreate);
+        }
     }
 }
