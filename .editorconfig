@@ -41,7 +41,7 @@ spelling_error_severity = error
 spelling_exclusion_path = exclusion.dic
 spelling_use_default_exclusion_dictionary = false
 
-end_of_line = crlf
+end_of_line = lf
 # Sort using and Import directives with System.* appearing first
 dotnet_sort_system_directives_first = true
 # Avoid "this." and "Me." if not necessary
