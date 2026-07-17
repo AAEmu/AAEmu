@@ -80,6 +80,14 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
         return _farmZones.GetValueOrDefault(subZoneId, FarmType.Invalid);
     }
 
+    /// <summary>
+    /// Checks if a given doodad can be placed on a given farm type.
+    /// Checks for type and max count
+    /// </summary>
+    /// <param name="character"></param>
+    /// <param name="farmType"></param>
+    /// <param name="doodadId"></param>
+    /// <returns></returns>
     public bool CanPlace(Character character, FarmType farmType, uint doodadId)
     {
         var allPlanted = GetCommonFarmDoodads(character);
