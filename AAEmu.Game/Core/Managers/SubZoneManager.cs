@@ -21,17 +21,23 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
     {
         #region LoadClientData
 
-        foreach (var world in worldManager.GetWorlds())
+        foreach (var worldTemplate in worldManager.GetAllWorldTemplates())
         {
-            var zonesList = worldManager.GetZoneKeysByWorldId(world.Id);
+            var zonesList = worldManager.GetZoneKeysByWorldId(worldTemplate.Id);
 
             foreach (var zoneKey in zonesList)
             {
                 var zone = zoneManager.GetZoneByKey(zoneKey);
+                if (zone is null)
+                {
+                    // Not done loading, or conflicting zone data?
+                    Logger.Warn($"Could not find zoneKey {zoneKey} in world {worldTemplate.Name} ZoneManager");
+                    continue;
+                }
                 var zoneId = zone.Id;
                 #region subzone
 
-                var worldLevelDesignDir = Path.Combine("game", "worlds", world.Template.Name, "level_design", "zone", zoneId.ToString(), "client");
+                var worldLevelDesignDir = Path.Combine("game", "worlds", worldTemplate.Name, "level_design", "zone", zoneId.ToString(), "client");
                 var pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "subzone_area.xml", true);
 
                 foreach (var pathFileName in pathFiles)
@@ -43,12 +49,12 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
                     }
                     else
                     {
-                        var _doc = new XmlDocument();
-                        _doc.LoadXml(contents);
-                        var _allSubzoneBlocks = _doc.SelectNodes("/Objects/Entity");
-                        for (var i = 0; i < _allSubzoneBlocks.Count; i++)
+                        var xmlDoc = new XmlDocument();
+                        xmlDoc.LoadXml(contents);
+                        var allSubzoneBlocks = xmlDoc.SelectNodes("/Objects/Entity");
+                        for (var i = 0; i < allSubzoneBlocks.Count; i++)
                         {
-                            var block = _allSubzoneBlocks[i];
+                            var block = allSubzoneBlocks[i];
                             var entityAttribs = XmlHelper.ReadNodeAttributes(block);
 
                             if (entityAttribs.TryGetValue("Name", out var blockName))
@@ -105,12 +111,12 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
 
                                     var cellOffset = new Point { X = (worldOrigins.X + cellXOffset) * 1024f, Y = (worldOrigins.Y + cellYOffset) * 1024f };
 
-                                    var pointsxml = areaNode.SelectNodes("Points/Point");
-                                    for (var n = 0; n < pointsxml.Count; n++)
+                                    var pointsXml = areaNode.SelectNodes("Points/Point");
+                                    for (var n = 0; n < pointsXml.Count; n++)
                                     {
-                                        var pointxml = pointsxml[n];
-                                        var pointattribs = XmlHelper.ReadNodeAttributes(pointxml);
-                                        if (pointattribs.TryGetValue("Pos", out var posString))
+                                        var pointXml = pointsXml[n];
+                                        var pointAttribs = XmlHelper.ReadNodeAttributes(pointXml);
+                                        if (pointAttribs.TryGetValue("Pos", out var posString))
                                         {
                                             var posVals = posString.Split(',');
                                             if (posVals.Length != 3)
@@ -134,10 +140,10 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
                                         }
                                     }
 
-                                    if (!world.Template.SubZones.TryGetValue(zoneId, out var value))
+                                    if (!worldTemplate.SubZones.TryGetValue(zoneId, out var value))
                                     {
                                         value = [];
-                                        world.Template.SubZones.Add(zoneId, value);
+                                        worldTemplate.SubZones.Add(zoneId, value);
                                     }
 
                                     value.Add(template);
@@ -151,7 +157,7 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
 
                 #region housing_area
 
-                worldLevelDesignDir = Path.Combine("game", "worlds", world.Template.Name, "level_design", "zone", zoneId.ToString(), "client");
+                worldLevelDesignDir = Path.Combine("game", "worlds", worldTemplate.Name, "level_design", "zone", zoneId.ToString(), "client");
                 pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "housing_area.xml", true);
 
                 foreach (var pathFileName in pathFiles)
@@ -164,12 +170,12 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
                     }
                     else
                     {
-                        var _doc = new XmlDocument();
-                        _doc.LoadXml(contents);
-                        var _allSubzoneBlocks = _doc.SelectNodes("/Objects/Entity");
-                        for (var i = 0; i < _allSubzoneBlocks.Count; i++)
+                        var xmlDoc = new XmlDocument();
+                        xmlDoc.LoadXml(contents);
+                        var allSubzoneBlocks = xmlDoc.SelectNodes("/Objects/Entity");
+                        for (var i = 0; i < allSubzoneBlocks.Count; i++)
                         {
-                            var block = _allSubzoneBlocks[i];
+                            var block = allSubzoneBlocks[i];
                             var entityAttribs = XmlHelper.ReadNodeAttributes(block);
 
                             if (entityAttribs.TryGetValue("Name", out var blockName))
@@ -227,12 +233,12 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
 
                                     var cellOffset = new Point { X = (worldOrigins.X + cellXOffset) * 1024f, Y = (worldOrigins.Y + cellYOffset) * 1024f };
 
-                                    var pointsxml = areaNode.SelectNodes("Points/Point");
-                                    for (var n = 0; n < pointsxml.Count; n++)
+                                    var pointsXml = areaNode.SelectNodes("Points/Point");
+                                    for (var n = 0; n < pointsXml.Count; n++)
                                     {
-                                        var pointxml = pointsxml[n];
-                                        var pointattribs = XmlHelper.ReadNodeAttributes(pointxml);
-                                        if (pointattribs.TryGetValue("Pos", out var posString))
+                                        var pointXml = pointsXml[n];
+                                        var pointAttribs = XmlHelper.ReadNodeAttributes(pointXml);
+                                        if (pointAttribs.TryGetValue("Pos", out var posString))
                                         {
                                             var posVals = posString.Split(',');
                                             if (posVals.Length != 3)
@@ -256,10 +262,10 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
                                         }
                                     }
 
-                                    if (!world.Template.HousingZones.TryGetValue(zoneId, out var value))
+                                    if (!worldTemplate.HousingZones.TryGetValue(zoneId, out var value))
                                     {
                                         value = [];
-                                        world.Template.HousingZones.Add(zoneId, value);
+                                        worldTemplate.HousingZones.Add(zoneId, value);
                                     }
 
                                     value.Add(template);
@@ -288,7 +294,7 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
         {
             if (Point.IsInside(houseZoneTemplate._points, houseZoneTemplate._points.Count, new Point(x, y, 0)))
             {
-                Logger.Debug("Is in zone {0} housezone name {2}", zoneId, houseZoneTemplate.Id, houseZoneTemplate.Name);
+                Logger.Debug($"Is in zone {zoneId} housezone name {houseZoneTemplate.Name} ({houseZoneTemplate.Id})");
                 found = true;
 
                 foundHousingZones.Add(houseZoneTemplate.Id);

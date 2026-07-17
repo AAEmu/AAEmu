@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Core.Network.Game;
+﻿using System.Collections;
+using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.World;
 
@@ -30,4 +31,5 @@ public interface IWorldManager : ILoadable
     Character GetTargetOrSelf(Character character, string targetName, out int firstNonNameArgument);
     bool TryRemoveCharacter(uint playerObjId);
     void Initialize();
+    WorldTemplate[] GetAllWorldTemplates();
 }
