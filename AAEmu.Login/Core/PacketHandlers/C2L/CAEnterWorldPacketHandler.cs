@@ -6,8 +6,7 @@ namespace AAEmu.Login.Core.PacketHandlers.C2L;
 /// <summary>
 /// Handles the <see cref="CAEnterWorldPacket"/> which is sent by the client to request entering the game world.
 /// </summary>
-public class CAEnterWorldPacketHandler
-    : ILoginPacketHandler<CAEnterWorldPacket>
+public class CAEnterWorldPacketHandler : ILoginPacketHandler<CAEnterWorldPacket>
 {
     public async Task Execute(CAEnterWorldPacket packet, ILoginSession session, CancellationToken cancellationToken)
     {

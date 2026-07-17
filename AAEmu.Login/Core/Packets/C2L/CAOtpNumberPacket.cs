@@ -14,6 +14,6 @@ public class CAOtpNumberPacket() : LoginPacket(TypeId), ILoginPacket
 
     public override void Read(PacketStream stream)
     {
-        OtpNumber = stream.ReadString(); // TODO but on old client length const 8
+        OtpNumber = stream.ReadString(); // num
     }
 }

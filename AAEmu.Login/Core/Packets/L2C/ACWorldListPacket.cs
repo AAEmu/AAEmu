@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Models;
+using AAEmu.Commons.Models;
 using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Models;
@@ -14,18 +14,24 @@ namespace AAEmu.Login.Core.Packets.L2C;
 public class ACWorldListPacket(List<GameServer> gameServers, List<LoginCharacterInfo> characters)
     : LoginPacket(LCOffsets.ACWorldListPacket)
 {
+    private readonly byte _title = 0x01; // 01-FRESH, 02-EVO, 03-WAR, 
+    private readonly byte _color = 0x01; // 02
+
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write((byte)gameServers.Count);
-        foreach (var gs1 in gameServers)
+        foreach (var gs in gameServers)
         {
-            stream.Write(gs1.Id.Value);
-            stream.Write(gs1.Name);
-            stream.Write(gs1.Active);
-            if (gs1.Active)
+            stream.Write(gs.Id.Value);
+            stream.Write(_title); // server list label: 00-none, 01-NEW, 02-MERGED, 03-MERGED, 04-none
+            stream.Write(_color); // label color: 00-blue, 01-green, 02-purple, 03/04/08-red, 0x10-
+            stream.Write(gs.Name);
+            stream.Write(gs.Active);
+            if (gs.Active)
             {
-                stream.Write((byte)gs1.Load); // con
-                for (var i = 0; i < 9; i++) // race
+                // Server Status - 0x00 - normal / 0x01 - load / 0x02 - queue
+                stream.Write((byte)gs.Load); // con
+                for (var i = 0; i < 9; i++) // race 9 in 1.2, 3+, 10 in 5+
                     stream.Write((byte)0); // rcon
                 /*
                  RACE_NONE = 0,
@@ -37,12 +43,12 @@ public class ACWorldListPacket(List<GameServer> gameServers, List<LoginCharacter
                  RACE_FERRE = 6,
                  RACE_RETURNED = 7,
                  RACE_WARBORN = 8
-                  */
+                */
                 /*
                  RACE_CONGESTION = {
-                	LOW = 0,
-	                    MIDDLE = 1,
-	                    HIGH = 2,
+                    LOW = 0,
+                    MIDDLE = 1,
+                    HIGH = 2,
                     FULL = 3,
                     PRE_SELECT_RACE_FULL = 9,
                     CHECK = 10
@@ -56,12 +62,12 @@ public class ACWorldListPacket(List<GameServer> gameServers, List<LoginCharacter
         {
             foreach (var character in characters)
             {
-                stream.Write(character.AccountId);
-                stream.Write(character.GsId);
-                stream.Write(character.Id);
-                stream.Write(character.Name);
-                stream.Write(character.Race);
-                stream.Write(character.Gender);
+                stream.Write(character.AccountId); // accountId
+                stream.Write(character.GsId);      // worldId
+                stream.Write(character.Id);        // charId
+                stream.Write(character.Name);      // name
+                stream.Write(character.Race);      // CharRace
+                stream.Write(character.Gender);    // CharGender
                 stream.Write(new byte[16], true); // guid
                 stream.Write(0L); // v
             }

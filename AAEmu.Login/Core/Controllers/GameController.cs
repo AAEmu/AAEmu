@@ -193,6 +193,15 @@ public class GameController(
             return;
         }
 
-        connection.Session.CompleteEnterWorldRequest(gsId, result);
+        var resolvedGsId = gsId;
+        if (TryGetParentId(gsId, out var parentId))
+        {
+            logger.LogDebug(
+                "EnterWorld response for mirror game server {MirrorGsId} resolved to parent {ParentGsId} for connection {ConnectionId}",
+                gsId, parentId, connectionId);
+            resolvedGsId = parentId;
+        }
+
+        connection.Session.CompleteEnterWorldRequest(resolvedGsId, result);
     }
 }

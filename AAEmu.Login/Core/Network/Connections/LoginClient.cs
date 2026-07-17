@@ -1,4 +1,4 @@
-using AAEmu.Login.Core.PacketHandlers.C2L;
+﻿using AAEmu.Login.Core.PacketHandlers.C2L;
 using AAEmu.Login.Core.Packets.L2C;
 using AAEmu.Login.Models;
 
@@ -12,15 +12,13 @@ public sealed class LoginClient(ILoginConnection connection) : ILoginClient
 {
     public async ValueTask SendAuthSuccessAsync(AccountId accountId, CancellationToken cancellationToken)
     {
-        const byte MaxCharactersPerAccount = 6; // TODO: Make configurable
-        const uint AdditionalCharactersPerServer = 0; // TODO: Make configurable
+        const byte MaxCharactersPerAccount = 2; // TODO: Make configurable
+        const byte AdditionalCharactersPerServer = 2; // TODO: Make configurable
+        const ushort AdditionalData = 22; // TODO: Make configurable
         const bool IsPreSelectCharacterPeriod = false; // TODO: Make configurable
 
-        await connection.SendPacketAsync(
-            new ACJoinResponsePacket(JoinResponseReason.Success,
-                new AfsValue(MaxCharactersPerAccount, AdditionalCharactersPerServer, IsPreSelectCharacterPeriod)),
-            cancellationToken);
-        await connection.SendPacketAsync(new ACAuthResponsePacket(accountId, 6), cancellationToken);
+        await connection.SendPacketAsync(new ACJoinResponsePacket((byte)1, JoinResponseReason.Success, new AfsValue(MaxCharactersPerAccount, AdditionalCharactersPerServer, AdditionalData, IsPreSelectCharacterPeriod)), cancellationToken);
+        await connection.SendPacketAsync(new ACAuthResponsePacket(accountId.Value, 0), cancellationToken);
     }
 
     public ValueTask SendAuthDeniedAsync(LoginDeniedReason reason, CancellationToken cancellationToken) =>
