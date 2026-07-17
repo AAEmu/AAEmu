@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Models;
+using AAEmu.Commons.Models;
 using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Models;
@@ -23,8 +23,8 @@ public class ACWorldListPacket(List<GameServer> gameServers, List<LoginCharacter
         foreach (var gs in gameServers)
         {
             stream.Write(gs.Id.Value);
-            stream.Write(_title); // надпись в списке серверов 00-нет надписи, 01- НОВЫЙ, 02-ОБЪЕДИНЕННЫЙ, 03-ОБЪЕДИНЕННЫЙ, 04-нет надписи
-            stream.Write(_color); // цвет надписи в списке серверов 00-синий, 01- зеленый, 02-фиолетовый, 03, 04, 08-красный, 0x10-
+            stream.Write(_title); // server list label: 00-none, 01-NEW, 02-MERGED, 03-MERGED, 04-none
+            stream.Write(_color); // label color: 00-blue, 01-green, 02-purple, 03/04/08-red, 0x10-
             stream.Write(gs.Name);
             stream.Write(gs.Active);
             if (gs.Active)

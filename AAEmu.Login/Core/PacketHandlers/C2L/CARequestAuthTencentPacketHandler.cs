@@ -1,4 +1,4 @@
-﻿using AAEmu.Login.Core.Authentication;
+using AAEmu.Login.Core.Authentication;
 using AAEmu.Login.Core.Network.Connections;
 using AAEmu.Login.Core.Packets.C2L;
 
@@ -13,7 +13,10 @@ public class CARequestAuthTencentPacketHandler(IKoreaAuthFlowFactory authFlowFac
     public Task Execute(CARequestAuthTencentPacket packet, ILoginSession session,
         CancellationToken cancellationToken)
     {
-        var flow = authFlowFactory.Create(packet.Account!, session.Connection.Ip);
+        if (string.IsNullOrWhiteSpace(packet.Account))
+            return Task.CompletedTask;
+
+        var flow = authFlowFactory.Create(packet.Account, session.Connection.Ip);
         return session.AuthenticateAsync(flow, cancellationToken);
     }
 }

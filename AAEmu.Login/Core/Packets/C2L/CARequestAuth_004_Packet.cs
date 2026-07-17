@@ -1,4 +1,5 @@
-﻿using System.Xml.Linq;
+using System.Xml;
+using System.Xml.Linq;
 using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 
@@ -30,7 +31,16 @@ public class CARequestAuthPacket_0x004() : LoginPacket(TypeId), ILoginPacket
         var param = stream.ReadString();
         var signature = stream.ReadString();
 
-        var xmlDoc = XDocument.Parse(param);
+        XDocument xmlDoc;
+        try
+        {
+            xmlDoc = XDocument.Parse(param);
+        }
+        catch (XmlException)
+        {
+            Logger.Error("RequestAuth_004: failed to parse ticket XML");
+            return;
+        }
 
         if (xmlDoc.Root == null)
         {

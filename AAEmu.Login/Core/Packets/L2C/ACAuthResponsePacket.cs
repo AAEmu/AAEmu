@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 namespace AAEmu.Login.Core.Packets.L2C;
 
@@ -9,6 +9,8 @@ namespace AAEmu.Login.Core.Packets.L2C;
 /// <param name="slotCount"></param>
 public class ACAuthResponsePacket(ulong accountId, byte slotCount) : LoginPacket(LCOffsets.ACAuthResponsePacket)
 {
+    // World session key expected by the 3.5.x (AAClassic) client. Protocol-level constant,
+    // identical for all sessions; captured from the official login server's ACAuthResponse.
     private readonly string _wsk = "65CCBF5AF8DB8B633D3C03C5A8735601";
 
     public override PacketStream Write(PacketStream stream)

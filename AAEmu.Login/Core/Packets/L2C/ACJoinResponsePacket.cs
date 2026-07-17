@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.L2C;
@@ -24,8 +24,7 @@ public readonly record struct AfsValue(byte MaxCharactersPerAccount, byte Additi
         var maxCharactersPerAccount = (byte)(afs & 0xFF);
         var additionalSlotsPerServer = (byte)((afs >> 8) & 0xFF);
         var additionalData = (ushort)((afs >> 16) & 0xFFFF);
-        var isPreSelectCharacterPeriod = (afs & 0x10000) != 0;
-        //var additionalSlotsPerServer = (uint)(afs >> 32);
+        var isPreSelectCharacterPeriod = (afs & 0x1_0000_0000) != 0;
 
         return new AfsValue(maxCharactersPerAccount, additionalSlotsPerServer, additionalData, isPreSelectCharacterPeriod);
     }
@@ -59,7 +58,7 @@ public class ACJoinResponsePacket(byte authId, ushort reason, ulong afs) : Login
 
         // afs[0] -> max number of characters per account
         // afs[1] -> additional number of characters per server when using the slot increase item
-        // afs[2] -> 1 - character pre-creation mode 1-режим предварительного создания персонажей
+        // afs[2] -> 1 - character pre-creation mode
 
         return stream;
     }
