@@ -4,6 +4,8 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.CommonFarm.Static;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -19,24 +21,26 @@ public class CSCreateDoodadPacket() : GamePacket(CSOffsets.CSCreateDoodadPacket,
         var scale = stream.ReadSingle();
         var itemId = stream.ReadUInt64();
 
-        Logger.Warn("CreateDoodad, Id: {0}, X: {1}, Y: {2}, Z: {3}, zRot: {4}  ItemId: {5}", id, x, y, z, zRot, itemId);
+        Logger.Warn($"CreateDoodad, Id: {id}, X: {x}, Y: {y}, Z: {z}, zRot: {zRot}  ItemId: {itemId}");
 
         var pos = new Vector3(x, y, z);
-        var InPublicFarm = PublicFarmManager.Instance.InPublicFarm(Connection.ActiveChar.ParentWorld.Template, pos);
-
-        if (!InPublicFarm)
+        var inPublicFarm = PublicFarmManager.Instance.InPublicFarm(Connection.ActiveChar.ParentWorld.Template, pos);
+        var farmType = inPublicFarm
+            ? PublicFarmManager.Instance.GetFarmType(Connection.ActiveChar.ParentWorld, pos)
+            : FarmType.Invalid;
+        if (farmType != FarmType.Invalid)
         {
-            Logger.Warn("CreateDoodad, Id: {0}, X: {1}, Y: {2}, Z: {3}, zRot: {4}  ItemId: {5}", id, x, y, z, zRot, itemId);
-            DoodadManager.Instance.CreatePlayerDoodad(Connection.ActiveChar, id, x, y, z, zRot, scale, itemId);
-        }
-        else
-        {
-            var farmType = PublicFarmManager.Instance.GetFarmType(Connection.ActiveChar.ParentWorld, pos);
-            if (PublicFarmManager.Instance.CanPlace(Connection.ActiveChar, farmType, id))
+            if (!PublicFarmManager.Instance.CanPlace(Connection.ActiveChar, farmType, id))
             {
-                Logger.Warn("CreateFarmDoodad, Id: {0}, X: {1}, Y: {2}, Z: {3}, zRot: {4}  ItemId: {5}", id, x, y, z, zRot, itemId);
-                DoodadManager.Instance.CreatePlayerDoodad(Connection.ActiveChar, id, x, y, z, zRot, scale, itemId, farmType);
+                // Invalid public farm
+                Connection.ActiveChar.SendErrorMessage(ErrorMessageType.CommonFarmNotAllowedType);
+                Logger.Warn($"CreateDoodad, ItemId: {itemId}, FarmType: {farmType}");
+                return;
             }
+
+            Logger.Warn($"CreateDoodad, ItemId: {itemId}, FarmType: {farmType}");
         }
+
+        DoodadManager.Instance.CreatePlayerDoodad(Connection.ActiveChar, id, x, y, z, zRot, scale, itemId, farmType);
     }
 }
