@@ -6,7 +6,7 @@ using AAEmu.Game.Models.StaticValues;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCICSGoodListPacket(bool pageEnd, ushort totalPage, byte mainTab, byte subTab, IcsItem item)
-    : GamePacket(SCOffsets.SCICSGoodListPacket, 1)
+    : GamePacket(SCOffsets.SCICSGoodListPacket, 5)
 {
     private readonly IcsSku _firstSku = item.FirstSku;
 

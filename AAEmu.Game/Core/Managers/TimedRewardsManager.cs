@@ -85,7 +85,7 @@ public class TimedRewardsManager(ITaskManager taskManager) : Singleton<TimedRewa
         }
     }
 
-    public void DoDailyAccountLogin(uint accountId)
+    public void DoDailyAccountLogin(ulong accountId)
     {
         if (AppConfiguration.Instance.Credits.DailyLogin > 0)
             AccountManager.Instance.AddCredits(accountId, AppConfiguration.Instance.Credits.DailyLogin);

@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
@@ -26,6 +26,12 @@ using Portal = AAEmu.Game.Models.Game.Portal;
 
 namespace AAEmu.Game.Core.Managers;
 
+/// <summary>
+/// Менеджер порталов. Загружает точки возврата/respawn/worldgate из JSON
+/// и реагенты для открытия порталов из таблиц
+/// <c>open_portal_inland_reagents</c>, <c>open_portal_outland_reagents</c> и
+/// <c>district_return_points</c> БД <c>compact.sqlite3</c>.
+/// </summary>
 public class PortalManager(ILocalizationManager localizationManager, IWorldManager worldManager, IZoneManager zoneManager, INpcManager npcManager, IObjectIdManager objectIdManager, ITaskManager taskManager) : Singleton<PortalManager>, IPortalManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
@@ -285,7 +291,7 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
     public static bool CheckItemAndRemove(Character owner, uint itemId, int amount)
     {
         if (!owner.Inventory.CheckItems(SlotType.Inventory, itemId, amount)) return false;
-        owner.Inventory.Bag.ConsumeItem(ItemTaskType.Teleport, itemId, amount, null);
+        owner.Inventory.Bag.ConsumeItem(ItemTaskType.RecoverDoodadItem, itemId, amount, null);
         return true;
     }
 
@@ -319,7 +325,7 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
     /// <param name="portalInfo"></param>
     /// <param name="portalEffectObj"></param>
     /// <returns></returns>
-    private Models.Game.Units.Portal MakePortal(Unit owner, bool isExit, Portal portalInfo, SkillObjectPortalInfo portalEffectObj)
+    private Models.Game.Units.Portal MakePortal(Unit owner, bool isExit, Portal portalInfo, SkillObjectUnk1 portalEffectObj)
     {
         // 3891 - Portal Entrance
         // 6949 - Portal Exit
@@ -372,7 +378,7 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
         return portalNpc;
     }
 
-    public void OpenPortal(Character owner, SkillObjectPortalInfo portalEffectObj)
+    public void OpenPortal(Character owner, SkillObjectUnk1 portalEffectObj)
     {
         var portalInfo = owner.Portals.GetPortalInfo((uint)portalEffectObj.Id);
         if (!CheckCanOpenPortal(owner, portalInfo.ZoneId)) return;

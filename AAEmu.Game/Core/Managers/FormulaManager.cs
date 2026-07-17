@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Utils.DB;
@@ -8,6 +8,10 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
+/// <summary>
+/// Менеджер формул, загружающий данные из таблиц <c>unit_formulas</c>,
+/// <c>unit_formula_variables</c>, <c>wearable_formulas</c> и <c>formulas</c> БД <c>compact.sqlite3</c>.
+/// </summary>
 public class FormulaManager : Singleton<FormulaManager>, IFormulaManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
@@ -51,6 +55,19 @@ public class FormulaManager : Singleton<FormulaManager>, IFormulaManager
         return _formulas.TryGetValue(id, out var value) ? value : null;
     }
 
+    /// <summary>
+    /// Загружает формулы из таблиц <c>unit_formulas</c>, <c>unit_formula_variables</c>,
+    /// <c>wearable_formulas</c> и <c>formulas</c>.
+    /// </summary>
+    /// <remarks>
+    /// Схемы таблиц (проверены по compact.sqlite3):
+    /// <list type="bullet">
+    ///   <item><description><c>unit_formulas</c>: id (PK), formula, kind_id, owner_type_id</description></item>
+    ///   <item><description><c>unit_formula_variables</c>: id (PK), unit_formula_id, variable_kind_id, key, value</description></item>
+    ///   <item><description><c>wearable_formulas</c>: kind_id, formula</description></item>
+    ///   <item><description><c>formulas</c>: id (PK), formula</description></item>
+    /// </list>
+    /// </remarks>
     public void Load()
     {
         if (_loaded)
@@ -113,6 +130,7 @@ public class FormulaManager : Singleton<FormulaManager>, IFormulaManager
                     {
                         var variable = new UnitFormulaVariable
                         {
+                            Id = reader.GetUInt32("id"),
                             FormulaId = reader.GetUInt32("unit_formula_id"),
                             Type = (UnitFormulaVariableType)reader.GetByte("variable_kind_id"),
                             Key = reader.GetUInt32("key"),
@@ -140,7 +158,6 @@ public class FormulaManager : Singleton<FormulaManager>, IFormulaManager
                     {
                         var formula = new WearableFormula
                         {
-                            Id = reader.GetUInt32("id"),
                             Type = (WearableFormulaType)reader.GetByte("kind_id"),
                             TextFormula = reader.GetString("formula")
                         };

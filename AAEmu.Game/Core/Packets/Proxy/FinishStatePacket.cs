@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -7,8 +8,8 @@ namespace AAEmu.Game.Core.Packets.Proxy;
 
 public class FinishStatePacket() : GamePacket(PPOffsets.FinishStatePacket, 2)
 {
-    private readonly bool[] _scAccountInitPacket = [false, true];
-    private readonly byte[] _scLevelRestrictionInitPacket = [0, 15, 15, 15, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 15];
+    private readonly bool[] _scAccountInitPacket = [false, false, false];
+    private readonly byte[] _scLevelRestrictionInitPacket = [0, 10, 10, 10, 0, 0, 10, 0, 0, 0, 0, 10, 0, 0, 10, 0, 0];
 
     public override void Read(PacketStream stream)
     {
@@ -34,26 +35,23 @@ public class FinishStatePacket() : GamePacket(PPOffsets.FinishStatePacket, 2)
                 // Test URLs                                          // Original Trion values
                 // Client treats these as folders and will add a trailing slash (/) with whatever it needs
                 // For example, opening the Wiki would send http://localhost/aaemu/platform/login
-                var authUrl = "http://localhost/aaemu/login";         // "https://session.draft.integration.triongames.priv";
-                var platformUrl = "http://localhost/aaemu/platform";  // "http://archeage.draft.integration.triongames.priv/commerce/pruchase/credits/purchase-credits-flow.action";
-                var commerceUrl = "http://localhost/aaemu/shop";      // "" ;
+                //var authUrl = "http://localhost/aaemu/login";         // "https://session.draft.integration.triongames.priv";
+                //var platformUrl = "http://localhost/aaemu/platform";  // "http://archeage.draft.integration.triongames.priv/commerce/pruchase/credits/purchase-credits-flow.action";
+                //var commerceUrl = "http://localhost/aaemu/shop";      // "" ;
+                //var csUrl = "http://localhost/aaemu/shop";      // "" ;
 
                 // It seems this packet can be ignored if you don't use the wiki/shop
-                Connection.SendPacket(new SCTrionConfigPacket(
-                    true,
-                    authUrl,
-                    platformUrl,
-                    commerceUrl)
-                ); // TODO - config files
-                Connection.SendPacket(new SCAccountInfoPacket(
-                        (int)Connection.Payment.Method,
-                        Connection.Payment.Location,
-                        Connection.Payment.StartTime,
-                        Connection.Payment.EndTime)
-                );
+                // нет в AAC3500 - Connection.SendPacket(new SCTrionConfigPacket(true, authUrl, platformUrl, commerceUrl, csUrl)); // TODO - config files
+                Connection.SendPacket(new SCAccountInfoPacket((int)Connection.Payment.Method, Connection.Payment.Location, Connection.Payment.StartTime, Connection.Payment.EndTime));
                 Connection.SendPacket(new SCChatSpamDelayPacket());
                 Connection.SendPacket(new SCAccountAttributeConfigPacket(_scAccountInitPacket)); // TODO
-                Connection.SendPacket(new SCLevelRestrictionConfigPacket(10, 10, 10, 10, 10, _scLevelRestrictionInitPacket)); // TODO - config files
+                Connection.SendPacket(new SCLevelRestrictionConfigPacket(45, 45, 45, 51, 51, _scLevelRestrictionInitPacket)); // TODO - config files
+                
+                Connection.SendPacket(new SCTaxItemConfigPacket(0));
+                Connection.SendPacket(new SCInGameShopConfigPacket(1, 2, 0));
+                Connection.SendPacket(new SCGameRuleConfigPacket(0, 0));
+                ExpeditionManager.Instance.SendExpeditionProtect(Connection);
+                Connection.SendPacket(new SCTaxItemConfig2Packet(0));
                 break;
             case 1:
                 Connection.SendPacket(new ChangeStatePacket(2));

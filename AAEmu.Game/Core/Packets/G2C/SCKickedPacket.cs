@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCKickedPacket(KickedReason reason, string msg) : GamePacket(SCOffsets.SCKickedPacket, 1)
+public class SCKickedPacket(KickedReason reason, string msg) : GamePacket(SCOffsets.SCKickedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

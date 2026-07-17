@@ -20,7 +20,7 @@ public class SusManager(IWorldManager worldManager) : Singleton<SusManager>, ISu
     private Dictionary<uint, (Vector3 pos, float skipTime)> LastPetPositions { get; } = [];
     
     // ReSharper disable once MemberCanBePrivate.Global
-    public bool LogActivity(string category, uint accountId, uint playerId, uint zoneGroup, Vector3 position, string description)
+    public bool LogActivity(string category, ulong accountId, uint playerId, uint zoneGroup, Vector3 position, string description)
     {
         try
         {

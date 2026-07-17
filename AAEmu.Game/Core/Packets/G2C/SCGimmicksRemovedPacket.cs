@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCGimmicksRemovedPacket(uint[] ids) : GamePacket(SCOffsets.SCGimmicksRemovedPacket, 1)
+public class SCGimmicksRemovedPacket(uint[] ids) : GamePacket(SCOffsets.SCGimmicksRemovedPacket, 5)
 {
     public const int MaxCountPerPacket = 500;
 

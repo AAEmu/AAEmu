@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Gimmicks;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCGimmicksCreatedPacket(Gimmick[] gimmicks) : GamePacket(SCOffsets.SCGimmicksCreatedPacket, 1)
+public class SCGimmicksCreatedPacket(Gimmick[] gimmicks) : GamePacket(SCOffsets.SCGimmicksCreatedPacket, 5)
 {
     public const int MaxCountPerPacket = 30;
 

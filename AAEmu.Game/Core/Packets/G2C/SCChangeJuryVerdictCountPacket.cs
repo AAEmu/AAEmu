@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCChangeJuryVerdictCountPacket(int count, int total)
-    : GamePacket(SCOffsets.SCChangeJuryVerdictCountPacket, 1)
+    : GamePacket(SCOffsets.SCChangeJuryVerdictCountPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

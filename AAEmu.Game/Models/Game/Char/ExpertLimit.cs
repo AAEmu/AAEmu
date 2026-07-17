@@ -3,6 +3,18 @@ namespace AAEmu.Game.Models.Game.Char;
 public class ExpertLimit
 {
     public uint Id { get; set; }
+
+public bool UseIntensified { get; set; }
+
+public bool Show { get; set; }
+
+public string Name { get; set; }
+
+public uint GaugeColor { get; set; }
+
+public int ExpMul { get; set; }
+
+public uint ColorArgb { get; set; }
     public int UpLimit { get; set; }
     public byte ExpertLimitCount { get; set; }
     public int Advantage { get; set; }

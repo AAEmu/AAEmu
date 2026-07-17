@@ -1,14 +1,19 @@
-﻿namespace AAEmu.Game.Models.Game.Items;
+namespace AAEmu.Game.Models.Game.Items;
 
-public class AuctionSettings(int categoryA, int categoryB, int categoryC)
+public class AuctionSettings
 {
-    public int CategoryA = categoryA;
-    public int CategoryB = categoryB;
-    public int CategoryC = categoryC;
-    //public uint AuctionCharge; // added in 3+
-    //public bool AuctionChargeDefault; // added in 3+
+    public int CategoryA;
+    public int CategoryB;
+    public int CategoryC;
+    public uint AuctionCharge;
+    public bool AuctionChargeDefault;
 
-    /*, uint auctionCharge, bool auctionChargeDefault*/
-    //AuctionCharge = auctionCharge;
-    //AuctionChargeDefault = auctionChargeDefault;
+    public AuctionSettings(int categoryA, int categoryB, int categoryC, uint auctionCharge, bool auctionChargeDefault)
+    {
+        CategoryA = categoryA;
+        CategoryB = categoryB;
+        CategoryC = categoryC;
+        AuctionCharge = auctionCharge;
+        AuctionChargeDefault = auctionChargeDefault;
+    }
 }

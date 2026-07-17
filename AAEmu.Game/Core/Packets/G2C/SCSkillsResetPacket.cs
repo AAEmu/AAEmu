@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCSkillsResetPacket(uint objId, AbilityType ability) : GamePacket(SCOffsets.SCSkillsResetPacket, 1)
+public class SCSkillsResetPacket(uint objId, AbilityType ability) : GamePacket(SCOffsets.SCSkillsResetPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

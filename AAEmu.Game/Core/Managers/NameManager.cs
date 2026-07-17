@@ -15,7 +15,7 @@ public partial class NameManager(Lazy<ICharacterManager> characterManager = null
     private Regex _characterNameRegex;
     private Dictionary<uint, string> _characterIds = [];
     private Dictionary<string, uint> _characterNames = [];
-    private Dictionary<uint, uint> _characterAccounts = [];
+    private Dictionary<uint, ulong> _characterAccounts = [];
 
     public string GetCharacterName(uint characterId)
         => _characterIds.TryGetValue(characterId, out var characterName)
@@ -27,10 +27,10 @@ public partial class NameManager(Lazy<ICharacterManager> characterManager = null
         ? characterId
         : 0u;
 
-    public uint GetCharacterAccount(uint characterId)
+    public ulong GetCharacterAccount(uint characterId)
         => _characterAccounts.TryGetValue(characterId, out var accountId)
         ? accountId
-        : 0;
+        : 0UL;
 
     public NameManager() : this(null, null) { }
 
@@ -58,7 +58,7 @@ public partial class NameManager(Lazy<ICharacterManager> characterManager = null
                     {
                         var id = reader.GetUInt32("id");
                         var name = reader.GetString("name").ToLower();
-                        var account = reader.GetUInt32("account_id");
+                        var account = reader.GetUInt64("account_id");
                         var deleted = reader.GetInt32("deleted");
                         var normalizedName = name.NormalizeName();
                         _characterIds.Add(id, normalizedName);
@@ -82,7 +82,7 @@ public partial class NameManager(Lazy<ICharacterManager> characterManager = null
     internal void Load(
         Dictionary<uint, string> characterIds,
         Dictionary<string, uint> characterNames,
-        Dictionary<uint, uint> characterAccounts)
+        Dictionary<uint, ulong> characterAccounts)
     {
         if (options?.Value.CharacterNameRegex is { } characterNameRegex &&
             characterNameRegex != DefaultCharacterNameRegexPattern)
@@ -115,7 +115,7 @@ public partial class NameManager(Lazy<ICharacterManager> characterManager = null
         (_characterNameRegex ?? DefaultCharacterNameRegex())
         .IsMatch(name);
 
-    public void AddCharacter(uint characterId, string name, uint accountId)
+    public void AddCharacter(uint characterId, string name, ulong accountId)
     {
         var normalizedName = name.NormalizeName();
         if (!_characterIds.TryAdd(characterId, name.NormalizeName()))

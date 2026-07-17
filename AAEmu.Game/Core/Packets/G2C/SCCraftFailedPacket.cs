@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCCraftFailedPacket(uint id, uint craftId, int count) : GamePacket(SCOffsets.SCCraftFailedPacket, 1)
+public class SCCraftFailedPacket(uint id, uint craftId, int count) : GamePacket(SCOffsets.SCCraftFailedPacket, 5)
 {
     // TODO needs fixing
 

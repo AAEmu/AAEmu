@@ -15,7 +15,7 @@ public class SCInstantGameKillPacket(
     sbyte killerKillstreak,
     int killerCorpsKills,
     int victimCorpsDeaths)
-    : GamePacket(SCOffsets.SCInstantGameKillPacket, 1)
+    : GamePacket(SCOffsets.SCInstantGameKillPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

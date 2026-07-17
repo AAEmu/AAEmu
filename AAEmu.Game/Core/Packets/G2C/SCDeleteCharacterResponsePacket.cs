@@ -8,7 +8,7 @@ public class SCDeleteCharacterResponsePacket(
     byte status,
     DateTime? deleteRequestedTime = null,
     DateTime? deleteDelay = null)
-    : GamePacket(SCOffsets.SCDeleteCharacterResponsePacket, 1)
+    : GamePacket(SCOffsets.SCDeleteCharacterResponsePacket, 5)
 {
     private readonly DateTime _deleteRequestedTime = deleteRequestedTime ?? DateTime.MinValue;
     private readonly DateTime _deleteDelay = deleteDelay ?? DateTime.MinValue;

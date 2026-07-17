@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Exceptions;
+using AAEmu.Commons.Exceptions;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -702,6 +702,7 @@ public class ItemContainer
             }
 
             // Timers
+            var now = DateTime.UtcNow;
             if (newItem.Template.ExpAbsLifetime > 0)
             {
                 syncPackets.Add(ItemManager.SetItemExpirationTime(newItem, DateTime.UtcNow.AddMinutes(newItem.Template.ExpAbsLifetime)));
@@ -712,9 +713,9 @@ public class ItemContainer
                 syncPackets.Add(ItemManager.SetItemOnlineExpirationTime(newItem, newItem.Template.ExpOnlineLifetime));
             }
 
-            if (newItem.Template.ExpDate > DateTime.MinValue)
+            if (newItem.Template.ExpDate > 0)
             {
-                syncPackets.Add(ItemManager.SetItemExpirationTime(newItem, newItem.Template.ExpDate));
+                syncPackets.Add(ItemManager.SetItemExpirationTime(newItem, now.AddMinutes(newItem.Template.ExpDate)));
             }
 
             if (newItem is EquipItem equipItem && newItem.Template is EquipItemTemplate equipItemTemplate)

@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Exceptions;
+using AAEmu.Commons.Exceptions;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
@@ -16,6 +16,8 @@ public class PlotCondition
 {
     protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     public uint Id { get; set; }
+    public bool OrUnitReqs { get; set; }
+    public int KindId { get; set; }
     public bool NotCondition { get; set; }
     public PlotConditionType Kind { get; set; }
     public int Param1 { get; set; }

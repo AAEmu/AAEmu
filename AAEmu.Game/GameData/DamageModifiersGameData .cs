@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -19,7 +19,7 @@ public class DamageModifierGameData : Singleton<DamageModifierGameData>, IGameDa
         return __damageModifiers.TryGetValue(ownerId, out var modifier) ? modifier : [];
     }
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         __damageModifiers = [];
 

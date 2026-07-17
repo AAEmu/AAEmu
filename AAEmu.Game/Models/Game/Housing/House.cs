@@ -26,7 +26,7 @@ public sealed class House : Unit
     private bool _isBeingLoadedFromDb;
     private int _allAction;
     private uint _id;
-    private uint _accountId;
+    private ulong _accountId;
     private uint _coOwnerId;
     private uint _templateId;
     private int _baseAction;
@@ -49,7 +49,7 @@ public sealed class House : Unit
     /// </summary>
     public bool IsBeingLoadedFromDb { get => _isBeingLoadedFromDb; set => _isBeingLoadedFromDb = value; }
     public new uint Id { get => _id; set { _id = value; _isDirty = true; } }
-    public uint AccountId { get => _accountId; set { _accountId = value; _isDirty = true; } }
+    public ulong AccountId { get => _accountId; set { _accountId = value; _isDirty = true; } }
     public uint CoOwnerId { get => _coOwnerId; set { _coOwnerId = value; _isDirty = true; } }
     //public ushort TlId { get; set; }
     public new uint TemplateId { get => _templateId; set { _templateId = value; _isDirty = true; } }

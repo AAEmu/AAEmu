@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.AI.v2.Params;
+using AAEmu.Game.Models.Game.AI.v2.Params;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -10,6 +10,48 @@ namespace AAEmu.Game.Models.Game.NPChar;
 public class NpcTemplate
 {
     public uint Id { get; set; }
+
+public bool UseModelCameraDistance { get; set; }
+
+public bool TradegoodBuy { get; set; }
+
+public uint SoundPackId { get; set; }
+
+public string SoState { get; set; }
+
+public bool ShowOnBossTelescope { get; set; }
+
+public bool ShowFactionTag { get; set; }
+
+public float RunAwayThreshold { get; set; }
+
+public int NpcStrafeParamId { get; set; }
+
+public int NpcAiClientParamId { get; set; }
+
+public bool NoPenalty { get; set; }
+
+public bool NationRelationVote { get; set; }
+
+public int MateReviveMpPercent { get; set; }
+
+public int MateReviveHpPercent { get; set; }
+
+public int MateReviveDelay { get; set; }
+
+public uint HeirLevel { get; set; }
+
+public bool ForceTargetMeOnAttack { get; set; }
+
+public bool DontPushableLikeGhost { get; set; }
+
+public int DecayingSecAfterLooted { get; set; }
+
+public bool CheckTargetUnderTerrain { get; set; }
+
+public bool CheckBackpack { get; set; }
+
+public bool BattleFieldRecruiter { get; set; }
     public string Name { get; set; }
     public int CharRaceId { get; set; }
     public NpcGradeType NpcGradeId { get; set; }

@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Effects.Enums;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -10,6 +10,10 @@ namespace AAEmu.Game.Models.Game.Skills.Effects;
 public class SpawnEffect : EffectTemplate
 {
     public BaseUnitType OwnerTypeId { get; set; }
+    public float PosDistanceMin { get; set; }
+    public float PosDistanceMax { get; set; }
+    public float PosAngleMin { get; set; }
+    public float PosAngleMax { get; set; }
     public uint SubType { get; set; }
     public uint PosDirId { get; set; }
     public float PosAngle { get; set; }

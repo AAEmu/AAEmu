@@ -13,7 +13,7 @@ public class SCUnitLootingStatePacket : GamePacket
     /// </summary>
     /// <param name="unitObjId"></param>
     /// <param name="looting">Looting state, 2 seems to be "done looting"</param>
-    public SCUnitLootingStatePacket(uint unitObjId, byte looting) : base(SCOffsets.SCUnitLootingStatePacket, 1)
+    public SCUnitLootingStatePacket(uint unitObjId, byte looting) : base(SCOffsets.SCUnitLootingStatePacket, 5)
     {
         _unitObjId = unitObjId;
         _looting = looting;

@@ -1,10 +1,12 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 namespace AAEmu.Game.Models.Game.Models;
 
 public class GameStance
 {
     public uint Id { get; set; }
+
+public bool IgnoreCollision { get; set; }
     public GameStanceType StanceId { get; set; }
     public uint ActorModelId { get; set; }
     public string Name { get; set; } // Not really needed

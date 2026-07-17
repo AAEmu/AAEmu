@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Login;
 
 namespace AAEmu.Game.Core.Packets.G2L;
 
-public class GLPlayerReconnectPacket(byte gsId, uint accountId, uint connectionId)
+public class GLPlayerReconnectPacket(byte gsId, ulong accountId, uint connectionId)
     : LoginPacket(GLOffsets.GLPlayerReconnectPacket)
 {
     public override PacketStream Write(PacketStream stream)

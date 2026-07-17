@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCExpeditionInvitationPacket(uint invitorId, string invitorName, uint factionId, string factionName)
-    : GamePacket(SCOffsets.SCExpeditionInvitationPacket, 1)
+    : GamePacket(SCOffsets.SCExpeditionInvitationPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

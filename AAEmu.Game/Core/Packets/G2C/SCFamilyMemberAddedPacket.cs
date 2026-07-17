@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCFamilyMemberAddedPacket(Family family, int addedIndex)
-    : GamePacket(SCOffsets.SCFamilyMemberAddedPacket, 1)
+    : GamePacket(SCOffsets.SCFamilyMemberAddedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

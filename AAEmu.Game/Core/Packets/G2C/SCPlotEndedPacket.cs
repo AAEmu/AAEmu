@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCPlotEndedPacket(ushort tl) : GamePacket(SCOffsets.SCPlotEndedPacket, 1)
+public class SCPlotEndedPacket(ushort tl) : GamePacket(SCOffsets.SCPlotEndedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

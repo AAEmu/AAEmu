@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCAppellationsPacket((uint id, bool active)[] appellations) : GamePacket(SCOffsets.SCAppellationsPacket, 1)
+public class SCAppellationsPacket((uint id, bool active)[] appellations) : GamePacket(SCOffsets.SCAppellationsPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

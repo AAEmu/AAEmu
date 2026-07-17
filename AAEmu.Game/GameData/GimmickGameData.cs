@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Utils.DB;
@@ -24,8 +24,8 @@ public class GimmickGameData : Singleton<GimmickGameData>, IGameDataLoader
     {
         return _templates.GetValueOrDefault(id);
     }
-    
-    public void Load(SqliteConnection connection)
+
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _templates = [];
 

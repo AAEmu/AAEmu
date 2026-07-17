@@ -1,14 +1,21 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCActionSlotsPacket(ActionSlot[] slots) : GamePacket(SCOffsets.SCActionSlotsPacket, 1)
+public class SCActionSlotsPacket : GamePacket
 {
+    private readonly ActionSlot[] _slots;
+
+    public SCActionSlotsPacket(ActionSlot[] slots) : base(SCOffsets.SCActionSlotsPacket, 5)
+    {
+        _slots = slots;
+    }
+
     public override PacketStream Write(PacketStream stream)
     {
-        foreach (var s in slots)
+        foreach (var s in _slots)
         {
             var slot = (byte)s.Type;
             stream.Write(slot);

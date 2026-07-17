@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Crime;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCBountyListPacket(int total, byte count, List<BountyDescription> bounties) : GamePacket(SCOffsets.SCBountyListPacket, 1)
+public class SCBountyListPacket(int total, byte count, List<BountyDescription> bounties) : GamePacket(SCOffsets.SCBountyListPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

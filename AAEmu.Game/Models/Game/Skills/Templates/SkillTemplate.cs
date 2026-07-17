@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Animation;
+using AAEmu.Game.Models.Game.Animation;
 using AAEmu.Game.Models.Game.Skills.Plots;
 
 namespace AAEmu.Game.Models.Game.Skills.Templates;
@@ -6,6 +6,120 @@ namespace AAEmu.Game.Models.Game.Skills.Templates;
 public class SkillTemplate
 {
     public uint Id { get; set; }
+
+public bool ValidHeightEdgeToEdge { get; set; }
+
+public bool UseSkillCamera { get; set; }
+
+public uint TwohandFireAnimId { get; set; }
+
+public uint TubeInstrumentStartAnimId { get; set; }
+
+public uint TubeInstrumentFireAnimId { get; set; }
+
+public int ThirdCooldownTagId { get; set; }
+
+public int TargetDecalRadius { get; set; }
+
+public uint SynergyIcon2Id { get; set; }
+
+public bool SynergyIcon2BuffKind { get; set; }
+
+public uint SynergyIcon1Id { get; set; }
+
+public bool SynergyIcon1BuffKind { get; set; }
+
+public bool SwitchToSkillCooldown { get; set; }
+
+public uint StringInstrumentStartAnimId { get; set; }
+
+public uint StringInstrumentFireAnimId { get; set; }
+
+public bool StopAutoattack { get; set; }
+
+public bool StartAutoattack { get; set; }
+
+public uint StartAnimId { get; set; }
+
+public bool SourceShouldSwim { get; set; }
+
+public bool SourceAlive { get; set; }
+
+public bool SkipValidateSource { get; set; }
+
+public bool SkipQuestApplyUseItem { get; set; }
+
+public bool ShowTargetCastingTime { get; set; }
+
+public bool SensitiveOperation { get; set; }
+
+public int SecondCooldownTagId { get; set; }
+
+public uint ProjectileId { get; set; }
+
+public float PitchAngle { get; set; }
+
+public uint PercussionInstrumentStartAnimId { get; set; }
+
+public uint PercussionInstrumentFireAnimId { get; set; }
+
+public string Name { get; set; }
+
+public int MinHighAbilityResource { get; set; }
+
+public int MaxHighAbilityResource { get; set; }
+
+public bool MatchAnimationCount { get; set; }
+
+public int LinkEquipSlotId { get; set; }
+
+public int LinkBackpackTypeId { get; set; }
+
+public uint IconId { get; set; }
+
+public int HighAbilityId { get; set; }
+
+public uint FxGroupId { get; set; }
+
+public uint DualWieldFireAnimId { get; set; }
+
+public uint DoodadBundleId { get; set; }
+
+public string Desc { get; set; }
+
+public int ControllerCameraSpeed { get; set; }
+
+public bool ControllerCamera { get; set; }
+
+public bool CheckObstacle { get; set; }
+
+public int CharRaceId { get; set; }
+
+public uint ChannelingAnimId { get; set; }
+
+public int CategoryId { get; set; }
+
+public bool CastingUseable { get; set; }
+
+public bool CanActiveWeaponWithoutAnim { get; set; }
+
+public float CameraSpeed { get; set; }
+
+public float CameraSlowDownDistance { get; set; }
+
+public float CameraMaxDistance { get; set; }
+
+public bool CameraHoldZ { get; set; }
+
+public float CameraDuration { get; set; }
+
+public float CameraAcceleration { get; set; }
+
+public bool CalcUserLevel { get; set; }
+
+public bool AutoFire { get; set; }
+
+public bool AccountCooldown { get; set; }
     public int Cost { get; set; }
     public bool Show { get; set; }
     public Anim FireAnim { get; set; }

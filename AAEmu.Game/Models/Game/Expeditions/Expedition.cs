@@ -17,6 +17,8 @@ public class Expedition : SystemFaction
 
     public bool isDisbanded { get; set; } = false;
 
+    public DateTime ProtectTime { get; set; }
+
     public void RemoveMember(ExpeditionMember member)
     {
         var character = WorldManager.Instance.GetCharacterById(member.CharacterId);

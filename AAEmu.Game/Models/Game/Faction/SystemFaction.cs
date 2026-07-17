@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.StaticValues;
 
@@ -7,6 +7,9 @@ namespace AAEmu.Game.Models.Game.Faction;
 public class SystemFaction : PacketMarshaler
 {
     public FactionsEnum Id { get; set; }
+    public string IconPath { get; set; }
+    public uint DiplomacyLinkId { get; set; }
+    public string DbName { get; set; }
     public string Name { get; set; }
     public uint OwnerId { get; set; }
     public string OwnerName { get; set; }

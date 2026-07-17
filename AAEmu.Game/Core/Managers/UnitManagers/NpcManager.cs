@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.Creatures;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -20,6 +20,9 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers;
 
+/// <summary>
+/// Loads and caches NPC templates and related game data from the compact SQLite database.
+/// </summary>
 public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelManager, IFactionManager factionManager, IItemManager itemManager, IAIManager aiManager) : Singleton<NpcManager>, INpcManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
@@ -38,6 +41,8 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
     /// List of goods a merchant sells
     /// </summary>
     private Dictionary<uint, MerchantGoods> Goods { get; } = [];
+    private Dictionary<uint, List<Merchants>> MerchantGoods = []; // npcId, list <MerchantGoods>
+    private Dictionary<uint, List<MerchantPacks>> MerchantPackGoods = []; // packId, list <MerchantPacks>
     /// <summary>
     /// Definitions for custom looks of humanoid NPCs
     /// </summary>
@@ -135,6 +140,7 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
             CanFly = modelManager.IsFlyOrSwim(template.ModelId),
             Faction = factionManager.GetFaction(template.FactionId),
             Level = template.Level,
+            HeirLevel = (byte)template.HeirLevel,
             Patrol = null
         };
 
@@ -428,13 +434,27 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                             FaceFixedDecalAsset1Id = reader.GetUInt32("face_fixed_decal_asset_1_id"),
                             FaceFixedDecalAsset2Id = reader.GetUInt32("face_fixed_decal_asset_2_id"),
                             FaceFixedDecalAsset3Id = reader.GetUInt32("face_fixed_decal_asset_3_id"),
+                            FaceFixedDecalAsset4Id = reader.GetUInt32("face_fixed_decal_asset_4_id"),
+                            FaceFixedDecalAsset5Id = reader.GetUInt32("face_fixed_decal_asset_5_id"),
                             FaceDiffuseMapId = reader.GetUInt32("face_diffuse_map_id"),
                             FaceNormalMapId = reader.GetUInt32("face_normal_map_id"),
                             FaceEyelashMapId = reader.GetUInt32("face_eyelash_map_id"),
                             LipColor = reader.GetUInt32("lip_color"),
                             LeftPupilColor = reader.GetUInt32("left_pupil_color"),
                             RightPupilColor = reader.GetUInt32("right_pupil_color"),
-                            EyebrowColor = reader.GetUInt32("eyebrow_color")
+                            EyebrowColor = reader.GetUInt32("eyebrow_color"),
+                            BodyNormalMapId = reader.GetUInt32("body_normal_map_id"),
+                            BodyNormalMapWeight = reader.GetFloat("body_normal_map_weight"),
+                            DefaultHairColor = reader.GetUInt32("default_hair_color"),
+                            DisplayOrder = reader.GetInt32("display_order"),
+                            FaceFixedDecalAsset4Weight = reader.GetFloat("face_fixed_decal_asset_4_weight"),
+                            FaceFixedDecalAsset5Weight = reader.GetFloat("face_fixed_decal_asset_5_weight"),
+                            HornColorId = reader.GetUInt32("horn_color_id"),
+                            HornId = reader.GetUInt32("horn_id"),
+                            IconPath = reader.GetString("icon_path"),
+                            TwoToneHairColor = reader.GetUInt32("two_tone_hair_color"),
+                            TwoToneFirstWidth = reader.GetFloat("two_tone_first_width"),
+                            TwoToneSecondWidth = reader.GetFloat("two_tone_second_width")
                         };
                         var blob = reader.GetValue("modifier");
                         if (blob != null)
@@ -461,7 +481,7 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                 }
 
                 // Pre-Load body parts
-                command.CommandText = "SELECT * FROM item_body_parts ORDER BY id";
+                command.CommandText = "SELECT * FROM item_body_parts";
                 command.Prepare();
                 using (var sqliteReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteReader))
@@ -472,10 +492,32 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                         var bodyParts = new List<BodyPartTemplate>();
                         var slotBodyParts = new Dictionary<uint, List<BodyPartTemplate>>();
 
+                        bp.Id = reader.GetUInt32("item_id", 0);
                         bp.ItemId = reader.GetUInt32("item_id", 0);
                         bp.ModelId = reader.GetUInt32("model_id", 0);
                         bp.NpcOnly = reader.GetBoolean("npc_only", true);
                         bp.SlotTypeId = reader.GetUInt32("slot_type_id");
+                        bp.AssetId = reader.GetUInt32("asset_id");
+                        bp.Asset1Id = reader.GetUInt32("asset_1_id");
+                        bp.Asset2Id = reader.GetUInt32("asset_2_id");
+                        bp.Asset3Id = reader.GetUInt32("asset_3_id");
+                        bp.Asset4Id = reader.GetUInt32("asset_4_id");
+                        bp.CustomTextureId = reader.GetUInt32("custom_texture_id");
+                        bp.CustomTexture1Id = reader.GetUInt32("custom_texture_1_id");
+                        bp.CustomTexture2Id = reader.GetUInt32("custom_texture_2_id");
+                        bp.CustomTexture3Id = reader.GetUInt32("custom_texture_3_id");
+                        bp.CustomTexture4Id = reader.GetUInt32("custom_texture_4_id");
+                        bp.FaceMask = reader.GetString("face_mask");
+                        bp.HairBase = reader.GetString("hair_base");
+                        bp.LeftEyeHeight = reader.GetInt32("left_eye_height");
+                        bp.LeftEyeWidth = reader.GetInt32("left_eye_width");
+                        bp.LeftEyeX = reader.GetInt32("left_eye_x");
+                        bp.LeftEyeY = reader.GetInt32("left_eye_y");
+                        bp.RightEyeHeight = reader.GetInt32("right_eye_height");
+                        bp.RightEyeWidth = reader.GetInt32("right_eye_width");
+                        bp.RightEyeX = reader.GetInt32("right_eye_x");
+                        bp.RightEyeY = reader.GetInt32("right_eye_y");
+                        bp.OddEye = reader.GetBoolean("odd_eye", true);
                         bodyParts.Add(bp);
 
                         if (!slotBodyParts.TryGetValue(bp.SlotTypeId, out var slotBodyTemplates))
@@ -509,79 +551,100 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                 {
                     while (reader.Read())
                     {
-                        var template = new NpcTemplate
-                        {
-                            Id = reader.GetUInt32("id"), Name = reader.GetString("name"), CharRaceId = reader.GetInt32("char_race_id"),
-                            NpcGradeId = (NpcGradeType)reader.GetByte("npc_grade_id"),
-                            NpcKindId = (NpcKindType)reader.GetByte("npc_kind_id"),
-                            Level = reader.GetByte("level"),
-                            NpcTemplateId = (NpcTemplateType)reader.GetByte("npc_template_id"),
-                            ModelId = reader.GetUInt32("model_id"),
-                            FactionId = (FactionsEnum)reader.GetUInt32("faction_id"),
-                            SkillTrainer = reader.GetBoolean("skill_trainer", true),
-                            AiFileId = reader.GetInt32("ai_file_id"),
-                            Merchant = reader.GetBoolean("merchant", true),
-                            NpcNicknameId = reader.GetInt32("npc_nickname_id"),
-                            Auctioneer = reader.GetBoolean("auctioneer", true),
-                            ShowNameTag = reader.GetBoolean("show_name_tag", true),
-                            VisibleToCreatorOnly = reader.GetBoolean("visible_to_creator_only", true),
-                            NoExp = reader.GetBoolean("no_exp", true),
-                            PetItemId = reader.GetUInt32("pet_item_id", 0),
-                            BaseSkillId = reader.GetInt32("base_skill_id"),
-                            TrackFriendship = reader.GetBoolean("track_friendship", true),
-                            Priest = reader.GetBoolean("priest", true),
-                            NpcTedencyId = reader.GetInt32("npc_tendency_id", 0),
-                            Blacksmith = reader.GetBoolean("blacksmith", true),
-                            Teleporter = reader.GetBoolean("teleporter", true),
-                            Opacity = reader.GetFloat("opacity"),
-                            AbilityChanger = reader.GetBoolean("ability_changer", true),
-                            Scale = reader.GetFloat("scale"),
-                            SightRangeScale = reader.GetFloat("sight_range_scale"),
-                            SightFovScale = reader.GetFloat("sight_fov_scale"),
-                            MilestoneId = reader.GetInt32("milestone_id", 0),
-                            AttackStartRangeScale = reader.GetFloat("attack_start_range_scale"),
-                            Aggression = reader.GetBoolean("aggression", true),
-                            ExpMultiplier = reader.GetFloat("exp_multiplier"),
-                            ExpAdder = reader.GetInt32("exp_adder"),
-                            Stabler = reader.GetBoolean("stabler", true),
-                            AcceptAggroLink = reader.GetBoolean("accept_aggro_link", true),
-                            RecrutingBattlefieldId = reader.GetInt32("recruiting_battle_field_id"),
-                            ReturnDistance = reader.GetFloat("return_distance"),
-                            NpcAiParamId = reader.GetInt32("npc_ai_param_id"),
-                            NonPushableByActor = reader.GetBoolean("non_pushable_by_actor", true),
-                            Banker = reader.GetBoolean("banker", true),
-                            AggroLinkSpecialRuleId = (AggroLinkSpecialRuleKind)reader.GetInt32("aggro_link_special_rule_id"),
-                            AggroLinkHelpDist = reader.GetFloat("aggro_link_help_dist"),
-                            AggroLinkSightCheck = reader.GetBoolean("aggro_link_sight_check", true),
-                            Expedition = reader.GetBoolean("expedition", true),
-                            HonorPoint = reader.GetInt32("honor_point"),
-                            Trader = reader.GetBoolean("trader", true),
-                            AggroLinkSpecialGuard = reader.GetBoolean("aggro_link_special_guard", true),
-                            AggroLinkSpecialIgnoreNpcAttacker = reader.GetBoolean("aggro_link_special_ignore_npc_attacker", true),
-                            AbsoluteReturnDistance = reader.GetFloat("absolute_return_distance"),
-                            Repairman = reader.GetBoolean("repairman", true),
-                            ActivateAiAlways = reader.GetBoolean("activate_ai_always", true),
-                            Specialty = reader.GetBoolean("specialty", true),
-                            SpecialtyCoinId = reader.GetUInt32("specialty_coin_id", 0),
-                            UseRangeMod = reader.GetBoolean("use_range_mod", true),
-                            NpcPostureSetId = reader.GetInt32("npc_posture_set_id"),
-                            MateEquipSlotPackId = reader.GetInt32("mate_equip_slot_pack_id", 0),
-                            MateKindId = reader.GetInt32("mate_kind_id", 0),
-                            EngageCombatGiveQuestId = reader.GetUInt32("engage_combat_give_quest_id", 0),
-                            NoApplyTotalCustom = reader.GetBoolean("no_apply_total_custom", true),
-                            BaseSkillStrafe = reader.GetBoolean("base_skill_strafe", true),
-                            BaseSkillDelay = reader.GetFloat("base_skill_delay"),
-                            NpcInteractionSetId = reader.GetInt32("npc_interaction_set_id", 0),
-                            UseAbuserList = reader.GetBoolean("use_abuser_list", true),
-                            ReturnWhenEnterHousingArea = reader.GetBoolean("return_when_enter_housing_area", true),
-                            LookConverter = reader.GetBoolean("look_converter", true),
-                            UseDDCMSMountSkill = reader.GetBoolean("use_ddcms_mount_skill", true),
-                            CrowdEffect = reader.GetBoolean("crowd_effect", true),
-                            EquipBodiesId = reader.GetUInt32("equip_bodies_id", 0),
-                            EquipClothsId = reader.GetUInt32("equip_cloths_id", 0),
-                            EquipWeaponsId = reader.GetUInt32("equip_weapons_id", 0),
-                            TotalCustomId = reader.GetUInt32("total_custom_id", 0)
-                        };
+                        var template = new NpcTemplate();
+                        template.Id = reader.GetUInt32("id");
+                        template.Name = reader.GetString("name");
+                        template.CharRaceId = reader.GetInt32("char_race_id");
+                        template.NpcGradeId = (NpcGradeType)reader.GetByte("npc_grade_id");
+                        template.NpcKindId = (NpcKindType)reader.GetByte("npc_kind_id");
+                        template.Level = (byte)Math.Clamp(reader.GetInt32("level"), byte.MinValue, byte.MaxValue);
+                        template.NpcTemplateId = (NpcTemplateType)reader.GetByte("npc_template_id");
+                        template.ModelId = reader.GetUInt32("model_id");
+                        template.FactionId = (FactionsEnum)reader.GetUInt32("faction_id");
+                        template.HeirLevel = reader.GetUInt32("heir_level");
+                        template.SkillTrainer = reader.GetBoolean("skill_trainer", true);
+                        template.AiFileId = reader.GetInt32("ai_file_id");
+                        template.Merchant = reader.GetBoolean("merchant", true);
+                        template.NpcNicknameId = reader.GetInt32("npc_nickname_id");
+                        template.Auctioneer = reader.GetBoolean("auctioneer", true);
+                        template.ShowNameTag = reader.GetBoolean("show_name_tag", true);
+                        template.VisibleToCreatorOnly = reader.GetBoolean("visible_to_creator_only", true);
+                        template.NoExp = reader.GetBoolean("no_exp", true);
+                        template.PetItemId = reader.GetUInt32("pet_item_id", 0);
+                        template.BaseSkillId = reader.GetInt32("base_skill_id");
+                        template.TrackFriendship = reader.GetBoolean("track_friendship", true);
+                        template.Priest = reader.GetBoolean("priest", true);
+                        //template.NpcTedencyId = reader.GetInt32("npc_tendency_id", 0); // there is no such field in the database for version 3.0.3.0
+                        template.Blacksmith = reader.GetBoolean("blacksmith", true);
+                        template.Teleporter = reader.GetBoolean("teleporter", true);
+                        template.Opacity = reader.GetFloat("opacity");
+                        template.AbilityChanger = reader.GetBoolean("ability_changer", true);
+                        template.Scale = reader.GetFloat("scale");
+                        template.SightRangeScale = reader.GetFloat("sight_range_scale");
+                        template.SightFovScale = reader.GetFloat("sight_fov_scale");
+                        //template.MilestoneId = reader.GetInt32("milestone_id", 0); // there is no such field in the database for version 3.0.3.0
+                        template.AttackStartRangeScale = reader.GetFloat("attack_start_range_scale");
+                        template.Aggression = reader.GetBoolean("aggression", true);
+                        template.ExpMultiplier = reader.GetFloat("exp_multiplier");
+                        template.ExpAdder = reader.GetInt32("exp_adder");
+                        template.Stabler = reader.GetBoolean("stabler", true);
+                        template.AcceptAggroLink = reader.GetBoolean("accept_aggro_link", true);
+                        //template.RecrutingBattlefieldId = reader.GetInt32("recruiting_battle_field_id"); // there is no such field in the database for version 3.0.3.0
+                        template.ReturnDistance = reader.GetFloat("return_distance");
+                        template.NpcAiParamId = reader.GetInt32("npc_ai_param_id");
+                        template.NonPushableByActor = reader.GetBoolean("non_pushable_by_actor", true);
+                        template.Banker = reader.GetBoolean("banker", true);
+                        template.AggroLinkSpecialRuleId = (AggroLinkSpecialRuleKind)reader.GetInt32("aggro_link_special_rule_id");
+                        template.AggroLinkHelpDist = reader.GetFloat("aggro_link_help_dist");
+                        template.AggroLinkSightCheck = reader.GetBoolean("aggro_link_sight_check", true);
+                        template.Expedition = reader.GetBoolean("expedition", true);
+                        template.HonorPoint = reader.GetInt32("honor_point");
+                        template.Trader = reader.GetBoolean("trader", true);
+                        template.AggroLinkSpecialGuard = reader.GetBoolean("aggro_link_special_guard", true);
+                        template.AggroLinkSpecialIgnoreNpcAttacker = reader.GetBoolean("aggro_link_special_ignore_npc_attacker", true);
+                        template.AbsoluteReturnDistance = reader.GetFloat("absolute_return_distance");
+                        template.Repairman = reader.GetBoolean("repairman", true);
+                        template.ActivateAiAlways = reader.GetBoolean("activate_ai_always", true);
+                        template.Specialty = reader.GetBoolean("specialty", true);
+                        template.SpecialtyCoinId = reader.GetUInt32("specialty_coin_id", 0);
+                        template.UseRangeMod = reader.GetBoolean("use_range_mod", true);
+                        template.NpcPostureSetId = reader.GetInt32("npc_posture_set_id");
+                        template.MateEquipSlotPackId = reader.GetInt32("mate_equip_slot_pack_id", 0);
+                        template.MateKindId = reader.GetInt32("mate_kind_id", 0);
+                        template.EngageCombatGiveQuestId = reader.GetUInt32("engage_combat_give_quest_id", 0);
+                        template.NoApplyTotalCustom = reader.GetBoolean("no_apply_total_custom", true);
+                        template.BaseSkillStrafe = reader.GetBoolean("base_skill_strafe", true);
+                        template.BaseSkillDelay = reader.GetFloat("base_skill_delay");
+                        template.NpcInteractionSetId = reader.GetInt32("npc_interaction_set_id", 0);
+                        template.UseAbuserList = reader.GetBoolean("use_abuser_list", true);
+                        template.ReturnWhenEnterHousingArea = reader.GetBoolean("return_when_enter_housing_area", true);
+                        template.LookConverter = reader.GetBoolean("look_converter", true);
+                        template.UseDDCMSMountSkill = reader.GetBoolean("use_ddcms_mount_skill", true);
+                        template.CrowdEffect = reader.GetBoolean("crowd_effect", true);
+                        //template.EquipBodiesId = reader.GetUInt32("equip_bodies_id", 0); // there is no such field in the database for version 3.0.3.0
+                        template.EquipClothsId = reader.GetUInt32("equip_cloths_id", 0);
+                        template.EquipWeaponsId = reader.GetUInt32("equip_weapons_id", 0);
+                        template.TotalCustomId = reader.GetUInt32("total_custom_id", 0);
+                        template.BattleFieldRecruiter = reader.GetBoolean("battle_field_recruiter", true);
+                        template.NpcStrafeParamId = reader.GetInt32("npc_strafe_param_id");
+                        template.NpcAiClientParamId = reader.GetInt32("npc_ai_client_param_id");
+                        template.SoundPackId = reader.GetUInt32("sound_pack_id");
+                        template.DecayingSecAfterLooted = reader.GetInt32("decaying_sec_after_looted");
+                        template.DontPushableLikeGhost = reader.GetBoolean("dont_pushable_like_ghost", true);
+                        template.ForceTargetMeOnAttack = reader.GetBoolean("force_target_me_on_attack", true);
+                        template.CheckBackpack = reader.GetBoolean("check_backpack", true);
+                        template.CheckTargetUnderTerrain = reader.GetBoolean("check_target_under_terrain", true);
+                        template.NationRelationVote = reader.GetBoolean("nation_relation_vote", true);
+                        template.NoPenalty = reader.GetBoolean("no_penalty", true);
+                        template.RunAwayThreshold = reader.GetFloat("run_away_threshold");
+                        template.ShowFactionTag = reader.GetBoolean("show_faction_tag", true);
+                        template.ShowOnBossTelescope = reader.GetBoolean("show_on_boss_telescope", true);
+                        template.SoState = reader.GetString("so_state");
+                        template.TradegoodBuy = reader.GetBoolean("tradegood_buy", true);
+                        template.UseModelCameraDistance = reader.GetBoolean("use_model_camera_distance", true);
+                        template.MateReviveDelay = reader.GetInt32("mate_revive_delay");
+                        template.MateReviveHpPercent = reader.GetInt32("mate_revive_hp_percent");
+                        template.MateReviveMpPercent = reader.GetInt32("mate_revive_mp_percent");
 
                         using (var command2 = connection.CreateCommand())
                         {
@@ -631,8 +694,12 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                                         template.Items.BraceletGrade = reader2.GetByte("bracelet_grade_id");
                                         template.Items.Back = reader2.GetUInt32("back_id");
                                         template.Items.BackGrade = reader2.GetByte("back_grade_id");
+                                        template.Items.Backpack = reader2.GetUInt32("backpack_id");
+                                        template.Items.BackpackGrade = reader2.GetByte("backpack_grade_id");
                                         template.Items.Cosplay = reader2.GetUInt32("cosplay_id");
                                         template.Items.CosplayGrade = reader2.GetByte("cosplay_grade_id");
+                                        template.Items.Stabilizer = reader2.GetUInt32("stabilizer_id");
+                                        template.Items.StabilizerGrade = reader2.GetByte("stabilizer_grade_id");
                                         template.Items.Undershirts = reader2.GetUInt32("undershirt_id");
                                         template.Items.UndershirtsGrade = reader2.GetByte("undershirt_grade_id");
                                         template.Items.Underpants = reader2.GetUInt32("underpants_id");
@@ -721,10 +788,11 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                                     {
                                         var npcPosture = new NpcPosture
                                         {
+                                            Id = reader2.GetUInt32("id"),
                                             NpcPostureSetId = reader2.GetUInt32("npc_posture_set_id"),
                                             AnimActionId = reader2.GetUInt32("anim_action_id"),
                                             TalkAnim = reader2.GetString("talk_anim"),
-                                            StartTodTime = reader2.GetFloat("start_tod_time")
+                                            StartTodTime = reader2.GetInt32("start_tod_time")
                                         };
                                         template.NpcPostureSets.Add(npcPosture);
                                     }
@@ -773,33 +841,33 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                 }
             }
 
-            // This table seems to no longer be in some of the later versions
-            // Load body part packs (probably not used)
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM equip_pack_body_parts";
-                command.Prepare();
-                using (var sqliteDataReader = command.ExecuteReader())
-                using (var reader = new SQLiteWrapperReader(sqliteDataReader))
-                {
-                    while (reader.Read())
-                    {
-                        var template = new EquipBodyPartPack
-                        {
-                            Id = reader.GetUInt32("id"),
-                            Name = reader.GetString("name"),
-                            ModelId = reader.GetUInt32("model_id"),
-                            HairColorId = reader.GetUInt32("hair_color_id"),
-                            FaceId = reader.GetUInt32("face_id"),
-                            HairId = reader.GetUInt32("hair_id"),
-                            BeardId = reader.GetUInt32("beard_id"),
-                            SkinColorId = reader.GetUInt32("skin_color_id"),
-                            BodyDiffuseMapId =  reader.GetUInt32("body_diffuse_map_id"),
-                        };
-                        EquipPackBodyParts.Add(template.Id, template);
-                    }
-                }
-            }
+            //// This table seems to no longer be in some of the later versions
+            //// Load body part packs (probably not used)
+            //using (var command = connection.CreateCommand())
+            //{
+            //    command.CommandText = "SELECT * FROM equip_pack_body_parts";
+            //    command.Prepare();
+            //    using (var sqliteDataReader = command.ExecuteReader())
+            //    using (var reader = new SQLiteWrapperReader(sqliteDataReader))
+            //    {
+            //        while (reader.Read())
+            //        {
+            //            var template = new EquipBodyPartPack
+            //            {
+            //                Id = reader.GetUInt32("id"),
+            //                Name = reader.GetString("name"),
+            //                ModelId = reader.GetUInt32("model_id"),
+            //                HairColorId = reader.GetUInt32("hair_color_id"),
+            //                FaceId = reader.GetUInt32("face_id"),
+            //                HairId = reader.GetUInt32("hair_id"),
+            //                BeardId = reader.GetUInt32("beard_id"),
+            //                SkinColorId = reader.GetUInt32("skin_color_id"),
+            //                BodyDiffuseMapId =  reader.GetUInt32("body_diffuse_map_id"),
+            //            };
+            //            EquipPackBodyParts.Add(template.Id, template);
+            //        }
+            //    }
+            //}
 
             // Load Unit modifiers for NPCs
             using (var command = connection.CreateCommand())
@@ -843,7 +911,8 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                 }
             }
 
-            // Load merchant list
+            Logger.Info("Loading merchant packs...");
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM merchants";
@@ -852,40 +921,45 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                 {
                     while (reader.Read())
                     {
-                        var id = reader.GetUInt32("npc_id");
-                        if (!Templates.TryGetValue(id, out var template))
-                            continue;
-                        template.MerchantPackId = reader.GetUInt32("merchant_pack_id");
+                        var template = new Merchants();
+                        template.NpcId = reader.GetUInt32("npc_id");
+                        template.ItemId = reader.GetUInt32("item_id");
+                        template.GradeId = reader.GetUInt32("grade_id");
+                        template.KindId = reader.GetUInt32("kind_id");
+
+                        if (MerchantGoods.ContainsKey(template.NpcId))
+                            MerchantGoods[template.NpcId].Add(template);
+                        else
+                            MerchantGoods.TryAdd(template.NpcId, [template]);
                     }
                 }
             }
 
-            // Done loading main Npc data
-            Logger.Info($"Loaded {Templates.Count} npc templates");
-
-            // Loading merchant stuff
-            Logger.Info("Loading merchant packs...");
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM merchant_goods";
+                command.CommandText = "SELECT * FROM merchant_packs";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
                     while (reader.Read())
                     {
-                        var id = reader.GetUInt32("merchant_pack_id");
-                        if (!Goods.ContainsKey(id))
-                            Goods.Add(id, new MerchantGoods(id));
+                        var id = reader.GetUInt32("pack_id");
+                        var template = new MerchantPacks(id);
+                        template.ItemId = reader.GetUInt32("item_id");
+                        template.GradeId = reader.GetUInt32("grade_id");
+                        template.KindId = reader.GetUInt32("kind_id");
 
-                        var itemId = reader.GetUInt32("item_id");
-                        var grade = reader.GetByte("grade_id");
-
-                        Goods[id].AddItemToStock(itemId, grade);
+                        if (MerchantPackGoods.ContainsKey(id))
+                            MerchantPackGoods[id].Add(template);
+                        else
+                            MerchantPackGoods.TryAdd(id, [template]);
                     }
                 }
             }
 
-            Logger.Info($"Loaded {Goods.Count} merchant packs");
+            Logger.Info($"Loaded {MerchantGoods.Count} merchants");
+            Logger.Info($"Loaded {MerchantPackGoods.Count} merchant packs");
+            Logger.Info($"Loaded {Templates.Count} npc templates");
         }
 
         // NpcGameData.Instance.LoadMemberAndSpawnerTemplateIds();

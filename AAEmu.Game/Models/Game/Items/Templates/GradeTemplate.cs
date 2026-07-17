@@ -3,6 +3,14 @@ namespace AAEmu.Game.Models.Game.Items.Templates;
 public class GradeTemplate
 {
     public int Grade { get; set; }
+
+public string Name { get; set; }
+
+public int IconId { get; set; }
+
+public string ColorArgbSecond { get; set; }
+
+public string ColorArgb { get; set; }
     public int GradeOrder { get; set; }
     public float HoldableDps { get; set; }
     public float HoldableArmor { get; set; }

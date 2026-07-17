@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 
@@ -7,6 +7,16 @@ namespace AAEmu.Game.Models.Game.Skills.Plots;
 public class PlotEventTemplate
 {
     public uint Id { get; set; }
+
+public bool OnlyPetOwner { get; set; }
+
+public bool OnlyMySlave { get; set; }
+
+public bool OnlyMyPet { get; set; }
+
+public bool OnlyDieUnit { get; set; }
+
+public string Name { get; set; }
     public uint PlotId { get; set; }
     public int Position { get; set; }
     public uint SourceUpdateMethodId { get; set; }

@@ -1,7 +1,56 @@
-﻿namespace AAEmu.Game.Models.Game.Models;
+namespace AAEmu.Game.Models.Game.Models;
 
 public class VehicleModel : Model
 {
+    public bool AutoLevel { get; set; }
+    public int WheeledVehicleSuspRearAxisType { get; set; }
+    public int WheeledVehicleSuspFrontAxisType { get; set; }
+    public float WheeledVehicleSuspDamping { get; set; }
+    public int WheeledVehicleSteer { get; set; }
+    public float WheeledVehicleSpeedLimit { get; set; }
+    public float WheeledVehicleFrictionRatio { get; set; }
+    public bool WheeledVehicleDespawnOnSpeedOver { get; set; }
+    public float WheeledVehicleBallastPosZ { get; set; }
+    public float WheeledVehicleBallastPosY { get; set; }
+    public float WheeledVehicleBallastMass { get; set; }
+    public float WheeledVehicleBallastBoxZ { get; set; }
+    public float WheeledVehicleBallastBoxY { get; set; }
+    public float WheeledVehicleBallastBoxX { get; set; }
+    public string Wheel2 { get; set; }
+    public string Wheel { get; set; }
+    public bool UseWheeledVehicleSimulation { get; set; }
+    public bool UseProxyCollision { get; set; }
+    public bool UseCenterSpindle { get; set; }
+    public float TurretYawAngvel { get; set; }
+    public float TurretYawAngleMin { get; set; }
+    public float TurretYawAngleMax { get; set; }
+    public float TurretPitchAngvel { get; set; }
+    public float TurretPitchAngleMin { get; set; }
+    public float TurretPitchAngleMax { get; set; }
+    public float TrailAlignRatio { get; set; }
+    public float SuspStroke { get; set; }
+    public bool SuspAxle { get; set; }
+    public int SoundId { get; set; }
+    public string Normal { get; set; }
+    public float MaxClimbAng { get; set; }
+    public bool InstalledTurret { get; set; }
+    public float FloatingWavePeriodRatio { get; set; }
+    public float FloatingWaveHeight { get; set; }
+    public float FloatingHeight { get; set; }
+    public string Dying { get; set; }
+    public bool DriverWalk { get; set; }
+    public string Dead { get; set; }
+    public string Damaged75 { get; set; }
+    public string Damaged50 { get; set; }
+    public string Damaged25 { get; set; }
+    public float CollisionBoxScaleZ { get; set; }
+    public float CollisionBoxScaleY { get; set; }
+    public float CollisionBoxScaleX { get; set; }
+    public float CollisionBoxOffsetZ { get; set; }
+    public float CollisionBoxOffsetY { get; set; }
+    public float CollisionBoxOffsetX { get; set; }
+    public int CharAnimSteerForwardId { get; set; }
+    public int CharAnimSteerBackwardId { get; set; }
     /*
      *id
        normal
@@ -62,7 +111,7 @@ public class VehicleModel : Model
     public float RotDeaccelInertia { get; set; } // rot_deaccel_inertia
     public float Velocity { get; set; } // velocity
     public float AngVel { get; set; } // angVel
-    public float CanFly { get; set; } // can_fly
+    public bool CanFly { get; set; } // can_fly
     public float WheeledVehicleMass { get; set; } // wheeled_vehicle_mass
     public float WheeledVehiclePower { get; set; } // wheeled_vehicle_power
     public float WheeledVehicleBrakeTorque { get; set; } // wheeled_vehicle_brake_torque

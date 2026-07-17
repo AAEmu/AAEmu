@@ -10,7 +10,7 @@ public class SCInviteToInstantGamePacket(
     uint rulesetId,
     InstantCorps corps,
     ulong qualifiedId)
-    : GamePacket(SCOffsets.SCInviteToInstantGamePacket, 1)
+    : GamePacket(SCOffsets.SCInviteToInstantGamePacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

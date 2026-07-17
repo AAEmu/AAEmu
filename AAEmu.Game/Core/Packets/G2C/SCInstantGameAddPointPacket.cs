@@ -12,7 +12,7 @@ public class SCInstantGameAddPointPacket(
     int score1,
     int score2,
     string charName)
-    : GamePacket(SCOffsets.SCInstantGameAddPointPacket, 1)
+    : GamePacket(SCOffsets.SCInstantGameAddPointPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCBondDoodadPacket(uint unitObjId, BondDoodad bond) : GamePacket(SCOffsets.SCBondDoodadPacket, 1)
+public class SCBondDoodadPacket(uint unitObjId, BondDoodad bond) : GamePacket(SCOffsets.SCBondDoodadPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

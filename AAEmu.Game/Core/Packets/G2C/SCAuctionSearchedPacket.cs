@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Auction;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCAuctionSearchedPacket(int page, int count, List<AuctionLot> lots, short errorMsg, DateTime serverTime)
-    : GamePacket(SCOffsets.SCAuctionSearchedPacket, 1)
+    : GamePacket(SCOffsets.SCAuctionSearchedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

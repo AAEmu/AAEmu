@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.NpcGroup;
@@ -39,15 +39,15 @@ public class NpcGroupGameData : Singleton<NpcGroupGameData>, IGameDataLoader
         return null;
     }
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
-        LoadNpcGroups(connection);
-        LoadNpcGroupMembers(connection);
+        LoadNpcGroups(connection, connection2);
+        LoadNpcGroupMembers(connection, connection2);
     }
 
-    private void LoadNpcGroups(SqliteConnection connection)
+    private void LoadNpcGroups(SqliteConnection connection, SqliteConnection connection2)
     {
-        using var command = connection.CreateCommand();
+        using var command = connection2.CreateCommand();
         command.CommandText = "SELECT * FROM npc_groups";
         command.Prepare();
         using var sqliteReader = command.ExecuteReader();
@@ -64,9 +64,9 @@ public class NpcGroupGameData : Singleton<NpcGroupGameData>, IGameDataLoader
         }
     }
 
-    private void LoadNpcGroupMembers(SqliteConnection connection)
+    private void LoadNpcGroupMembers(SqliteConnection connection, SqliteConnection connection2)
     {
-        using var command = connection.CreateCommand();
+        using var command = connection2.CreateCommand();
         command.CommandText = "SELECT * FROM npc_group_members";
         command.Prepare();
         using var sqliteReader = command.ExecuteReader();

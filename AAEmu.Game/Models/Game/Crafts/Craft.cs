@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Crafts;
@@ -9,6 +9,10 @@ namespace AAEmu.Game.Models.Game.Crafts;
 public class Craft
 {
     public uint Id { get; set; }
+public bool UseOnlyActability { get; set; }
+public string Title { get; set; }
+public uint ProductsPackId { get; set; }
+public string Desc { get; set; }
     public int CastDelay { get; set; }
     public uint ToolId { get; set; }
     public uint SkillId { get; set; }

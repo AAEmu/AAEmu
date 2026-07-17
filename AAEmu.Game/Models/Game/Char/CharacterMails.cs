@@ -18,7 +18,7 @@ public class CharacterMails
 
         UnreadMailCount = new CountUnreadMail
         {
-            Sent = 0,
+            TotalSent = 0,
         };
         UnreadMailCount.ResetReceived();
     }

@@ -12,7 +12,7 @@ public class SCUnitHealedPacket(
     HealType healType,
     HealHitType healHitType,
     int value)
-    : GamePacket(SCOffsets.SCUnitHealedPacket, 1)
+    : GamePacket(SCOffsets.SCUnitHealedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

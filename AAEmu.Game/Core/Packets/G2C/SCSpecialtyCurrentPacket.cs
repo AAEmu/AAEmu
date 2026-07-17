@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCSpecialtyCurrentPacket(ushort fromZoneGroup, ushort toZoneGroup, List<(uint, uint)> results)
-    : GamePacket(SCOffsets.SCSpecialtyCurrentPacket, 1)
+    : GamePacket(SCOffsets.SCSpecialtyCurrentPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

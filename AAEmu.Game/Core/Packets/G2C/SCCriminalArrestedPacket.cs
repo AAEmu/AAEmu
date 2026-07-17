@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCCriminalArrestedPacket(uint criminalObjId, string criminal, string arrestor) : GamePacket(SCOffsets.SCCriminalArrestedPacket, 1)
+public class SCCriminalArrestedPacket(uint criminalObjId, string criminal, string arrestor) : GamePacket(SCOffsets.SCCriminalArrestedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

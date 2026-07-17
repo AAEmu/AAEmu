@@ -63,6 +63,8 @@ public class Unit : BaseUnit, IUnit
 
     public byte Level { get; set; }
 
+    public byte HeirLevel { get; set; } // heir level for 3.5.0.3 (data field; heir mechanics not ported)
+
     public int Hp { get; set; }
 
     public int Hpp

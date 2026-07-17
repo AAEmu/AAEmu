@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.TowerDefs;
 using AAEmu.Game.Utils.DB;
@@ -6,13 +6,16 @@ using Microsoft.Data.Sqlite;
 
 namespace AAEmu.Game.GameData;
 
+/// <summary>
+/// Loads tower defense game data from the client and server SQLite databases.
+/// </summary>
 [GameData]
 public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
 {
     private Dictionary<uint, TowerDef> _towerDefs;
     private Dictionary<uint, TowerDefProg> _towerDefProgs;
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _towerDefs = [];
         _towerDefProgs = [];
@@ -97,7 +100,7 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
             }
         }
 
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM tower_def_prog_kill_targets";
             command.Prepare();

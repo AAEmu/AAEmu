@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.StaticValues;
@@ -59,7 +59,7 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
         return _conversions.Contains(opcode) && reagent.ConversionId == opcode;
     }
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _reagents = [];
         _products = [];

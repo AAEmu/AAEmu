@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -10,6 +10,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 public class QuestActSupplyItem(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent), IQuestActGenericItem
 {
     public uint ItemId { get; set; }
+    public bool TryEquip { get; set; }
     public byte GradeId { get; set; }
     public bool ShowActionBar { get; set; }
     public bool Cleanup { get; set; }

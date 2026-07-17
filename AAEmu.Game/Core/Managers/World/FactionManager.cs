@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
@@ -8,6 +8,10 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
+/// <summary>
+/// Менеджер фракций, загружающий данные из таблиц <c>system_factions</c>
+/// и <c>system_faction_relations</c> БД <c>compact.sqlite3</c>.
+/// </summary>
 public class FactionManager(ILocalizationManager localizationManager) : Singleton<FactionManager>, IFactionManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
@@ -26,6 +30,26 @@ public class FactionManager(ILocalizationManager localizationManager) : Singleto
         _systemFactions.TryAdd(faction.Id, faction);
     }
 
+    /// <summary>
+    /// Загружает системные фракции и их отношения.
+    /// </summary>
+    /// <remarks>
+    /// Схемы таблиц (проверены по compact.sqlite3):
+    /// <list type="bullet">
+    ///   <item>
+    ///     <description>
+    ///       <c>system_factions</c>: id (PK), owner_name, owner_type_id, owner_id,
+    ///       political_system_id, mother_id, aggro_link, guard_help, is_diplomacy_tgt,
+    ///       diplomacy_link_id, icon_path, name
+       ///     </description>
+    ///   </item>
+    ///   <item>
+    ///     <description>
+    ///       <c>system_faction_relations</c>: id (PK), faction1_id, faction2_id, state_id
+    ///     </description>
+    ///   </item>
+    /// </list>
+    /// </remarks>
     public void Load()
     {
         if (_loaded)
@@ -49,6 +73,7 @@ public class FactionManager(ILocalizationManager localizationManager) : Singleto
                         {
                             Id = (FactionsEnum)reader.GetUInt32("id"),
                             Name = localizationManager.Get("system_factions", "name", reader.GetUInt32("id")),
+                            DbName = reader.GetString("name"),
                             OwnerName = reader.GetString("owner_name"),
                             UnitOwnerType = (sbyte)reader.GetInt16("owner_type_id"),
                             OwnerId = reader.GetUInt32("owner_id"),
@@ -56,7 +81,9 @@ public class FactionManager(ILocalizationManager localizationManager) : Singleto
                             MotherId = (FactionsEnum)reader.GetUInt32("mother_id"),
                             AggroLink = reader.GetBoolean("aggro_link", true),
                             GuardHelp = reader.GetBoolean("guard_help", true),
-                            DiplomacyTarget = reader.GetBoolean("is_diplomacy_tgt", true)
+                            DiplomacyTarget = reader.GetBoolean("is_diplomacy_tgt", true),
+                            DiplomacyLinkId = reader.GetUInt32("diplomacy_link_id"),
+                            IconPath = reader.GetString("icon_path")
                         };
                         _systemFactions.Add(faction.Id, faction);
                     }
@@ -76,16 +103,18 @@ public class FactionManager(ILocalizationManager localizationManager) : Singleto
                     {
                         var relation = new FactionRelation
                         {
-                            Id = (FactionsEnum)reader.GetUInt32("faction1_id"),
-                            Id2 = (FactionsEnum)reader.GetUInt32("faction2_id"),
+                            Id = reader.GetUInt32("id"),
+                            Faction1Id = (FactionsEnum)reader.GetUInt32("faction1_id"),
+                            Faction2Id = (FactionsEnum)reader.GetUInt32("faction2_id"),
                             State = (RelationState)reader.GetByte("state_id")
                         };
+
                         _relations.Add(relation);
 
-                        var faction = _systemFactions[relation.Id];
-                        faction.Relations.Add(relation.Id2, relation);
-                        faction = _systemFactions[relation.Id2];
-                        faction.Relations.Add(relation.Id, relation);
+                        var faction1 = _systemFactions[relation.Faction1Id];
+                        var faction2 = _systemFactions[relation.Faction2Id];
+                        faction1.Relations.TryAdd(relation.Faction2Id, relation);
+                        faction2.Relations.TryAdd(relation.Faction1Id, relation);
                     }
                 }
             }
@@ -99,16 +128,13 @@ public class FactionManager(ILocalizationManager localizationManager) : Singleto
     public void SendFactions(Character character)
     {
         if (_systemFactions.Values.Count == 0)
-            character.SendPacket(new SCFactionListPacket());
+            character.SendPacket(new SCSystemFactionListPacket());
         else
         {
             var factions = _systemFactions.Values.ToArray();
-            for (var i = 0; i < factions.Length; i += 20)
-            {
-                var temp = new SystemFaction[factions.Length - i <= 20 ? factions.Length - i : 20];
-                Array.Copy(factions, i, temp, 0, temp.Length);
-                character.SendPacket(new SCFactionListPacket(temp));
-            }
+            var dividedArrays = Helpers.SplitArray(factions, 20); // Разделяем массив на массивы по 20 значений
+            foreach (var systemFaction in dividedArrays)
+                character.SendPacket(new SCSystemFactionListPacket(systemFaction));
         }
     }
 
@@ -119,12 +145,9 @@ public class FactionManager(ILocalizationManager localizationManager) : Singleto
         else
         {
             var factions = _relations.ToArray();
-            for (var i = 0; i < factions.Length; i += 200)
-            {
-                var temp = new FactionRelation[factions.Length - i <= 200 ? factions.Length - i : 200];
-                Array.Copy(factions, i, temp, 0, temp.Length);
-                character.SendPacket(new SCFactionRelationListPacket(temp));
-            }
+            var dividedArrays = Helpers.SplitArray(factions, 200); // Разделяем массив на массивы по 200 значений
+            foreach (var fr in dividedArrays)
+                character.SendPacket(new SCFactionRelationListPacket(fr));
         }
     }
 }

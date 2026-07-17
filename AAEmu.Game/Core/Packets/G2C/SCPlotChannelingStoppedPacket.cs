@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCPlotChannelingStoppedPacket(ushort tl, uint duration, byte lastEvent)
-    : GamePacket(SCOffsets.SCPlotChannelingStoppedPacket, 1)
+    : GamePacket(SCOffsets.SCPlotChannelingStoppedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

@@ -10,7 +10,7 @@ public class SCLevelRestrictionConfigPacket(
     byte trade,
     byte mail,
     byte[] limitLevels)
-    : GamePacket(SCOffsets.SCLevelRestrictionConfigPacket, 1)
+    : GamePacket(SCOffsets.SCLevelRestrictionConfigPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

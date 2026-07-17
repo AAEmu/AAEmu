@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Utils;
+using System.Collections.Concurrent;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.GameData.Framework;
@@ -36,10 +37,15 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
     private Dictionary<uint, List<uint>> NpcMemberAndSpawnerTemplateIds { get; } = [];
 
     /// <summary>
+    /// Cached list of NpcNicknames by Id
+    /// </summary>
+    private readonly ConcurrentDictionary<int, NpcNickname> _npcNicknames = [];
+
+    /// <summary>
     /// Loads static Npc related data
     /// </summary>
     /// <param name="connection"></param>
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         SkillsForNpc.Clear();
         PassivesForNpc.Clear();
@@ -47,7 +53,7 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
         NpcSpawnerTemplates.Clear();
         NpcMemberAndSpawnerTemplateIds.Clear();
 
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM np_skills";
             command.Prepare();
@@ -73,7 +79,7 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
             }
         }
 
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM np_passive_buffs";
             command.Prepare();
@@ -96,7 +102,7 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
             }
         }
 
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM npc_spawners";
             command.Prepare();
@@ -104,31 +110,34 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
             using var reader = new SQLiteWrapperReader(sqliteReader);
             while (reader.Read())
             {
-                var template = new NpcSpawnerTemplate
-                {
-                    Id = reader.GetUInt32("id"), // matches NpcSpawnerTemplateId
-                    NpcSpawnerCategoryId = (NpcSpawnerCategory)reader.GetUInt32("npc_spawner_category_id"),
-                    Name = reader.GetString("name"),
-                    Comment = reader.GetString("comment", ""),
-                    MaxPopulation = reader.GetUInt32("maxPopulation"),
-                    StartTime = reader.GetFloat("startTime"),
-                    EndTime = reader.GetFloat("endTime"),
-                    DestroyTime = reader.GetFloat("destroyTime"),
-                    SpawnDelayMin = reader.GetFloat("spawn_delay_min"),
-                    ActivationState = reader.GetBoolean("activation_state", true),
-                    SaveIndun = reader.GetBoolean("save_indun", true),
-                    MinPopulation = reader.GetUInt32("min_population"),
-                    TestRadiusNpc = reader.GetFloat("test_radius_npc"),
-                    TestRadiusPc = reader.GetFloat("test_radius_pc"),
-                    SuspendSpawnCount = reader.GetUInt32("suspend_spawn_count"),
-                    SpawnDelayMax = reader.GetFloat("spawn_delay_max"),
-                    Npcs = []
-                };
+                var template = new NpcSpawnerTemplate();
+                template.Id = reader.GetUInt32("id"); // matches NpcSpawnerTemplateId
+                template.NpcSpawnerCategoryId = (NpcSpawnerCategory)reader.GetUInt32("npc_spawner_category_id");
+                template.Name = reader.GetString("name");
+                template.Comment = reader.GetString("comment", "");
+                template.MaxPopulation = reader.GetUInt32("maxPopulation");
+                template.StartTime = reader.GetFloat("startTime");
+                template.EndTime = reader.GetFloat("endTime");
+                template.DestroyTime = reader.GetFloat("destroyTime");
+                template.SpawnDelayMin = reader.GetFloat("spawn_delay_min");
+                //template.ActivationState = reader.GetBoolean("activation_state");
+                var value = reader.GetString("activation_state", "t");
+                template.ActivationState = value.Equals("t", StringComparison.OrdinalIgnoreCase);
+                //template.SaveIndun = reader.GetBoolean("save_indun");
+                value = reader.GetString("save_indun", "t");
+                template.SaveIndun = value.Equals("t", StringComparison.OrdinalIgnoreCase);
+                template.MinPopulation = reader.GetUInt32("min_population");
+                template.TestRadiusNpc = reader.GetFloat("test_radius_npc");
+                template.TestRadiusPc = reader.GetFloat("test_radius_pc");
+                template.SuspendSpawnCount = reader.GetUInt32("suspend_spawn_count");
+                template.SpawnDelayMax = reader.GetFloat("spawn_delay_max");
+                template.Npcs = new List<NpcSpawnerNpc>();
+
                 NpcSpawnerTemplates.Add(template.Id, template);
             }
         }
 
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM npc_spawner_npcs";
             command.Prepare();
@@ -147,6 +156,23 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
 
                 NpcSpawnerTemplateNpcs.Add(nsn.Id, nsn);
                 NpcSpawnerTemplates[nsn.NpcSpawnerTemplateId].Npcs.Add(nsn);
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM npc_nicknames";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var template = new NpcNickname();
+                template.Id = reader.GetInt32("id");
+                var name = reader.GetString("name");
+                template.Name = LocalizationManager.Instance.Get("npc_nicknames", "name", template.Id, name);
+
+                _npcNicknames[template.Id] = template;
             }
         }
     }

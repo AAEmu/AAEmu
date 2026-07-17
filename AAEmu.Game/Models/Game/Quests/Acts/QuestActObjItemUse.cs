@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
@@ -7,6 +7,7 @@ internal class QuestActObjItemUse(QuestComponentTemplate parentComponent) : Ques
 {
     public override bool CountsAsAnObjective => true;
     public uint ItemId { get; set; }
+    public uint Cinema { get; set; }
     public uint HighlightDoodadId { get; set; }
     public int HighlightDoodadPhase { get; set; }
     public bool UseAlias { get; set; }

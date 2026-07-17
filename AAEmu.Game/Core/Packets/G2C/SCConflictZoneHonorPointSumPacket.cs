@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCConflictZoneHonorPointSumPacket(ushort zoneId, int sum)
-    : GamePacket(SCOffsets.SCConflictZoneHonorPointSumPacket, 1)
+    : GamePacket(SCOffsets.SCConflictZoneHonorPointSumPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

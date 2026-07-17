@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Items;
@@ -614,11 +614,11 @@ public class ItemManagerTests
     {
         // Arrange
         var manager = CreateItemManager();
-        var socketChance = new Dictionary<uint, uint>
+        var socketChance = new Dictionary<uint, ItemSocketChance>
         {
-            { 1, 100 },
-            { 2, 80 },
-            { 3, 60 }
+            { 1, new ItemSocketChance { Id = 1, CostRatio = 100 } },
+            { 2, new ItemSocketChance { Id = 2, CostRatio = 80 } },
+            { 3, new ItemSocketChance { Id = 3, CostRatio = 60 } }
         };
         SetPrivateField(manager, "_socketChance", socketChance);
 
@@ -634,7 +634,7 @@ public class ItemManagerTests
     {
         // Arrange
         var manager = CreateItemManager();
-        var socketChance = new Dictionary<uint, uint>();
+        var socketChance = new Dictionary<uint, ItemSocketChance>();
         SetPrivateField(manager, "_socketChance", socketChance);
 
         // Act

@@ -10,7 +10,7 @@ public class SCSlaveCreatedPacket(
     bool hideSpawnEffect,
     long unkId,
     string creatorName)
-    : GamePacket(SCOffsets.SCSlaveCreatedPacket, 1)
+    : GamePacket(SCOffsets.SCSlaveCreatedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

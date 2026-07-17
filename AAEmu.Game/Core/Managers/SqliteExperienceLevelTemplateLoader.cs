@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Utils.DB;
@@ -10,6 +10,10 @@ namespace AAEmu.Game.Core.Managers;
 /// <summary>
 /// Loads experience level templates from a SQLite database.
 /// </summary>
+/// <remarks>
+/// Reads from the <c>levels</c> table in <c>compact.sqlite3</c>.
+/// Schema: id (PK), expedition_exp, req_item_count, req_item_id, skill_points, total_exp, total_mate_exp.
+/// </remarks>
 public sealed class SqliteExperienceLevelTemplateLoader(ILogger logger) : IExperienceLevelTemplateLoader
 {
     public IEnumerable<ExperienceLevelTemplate> Load()
@@ -27,28 +31,28 @@ public sealed class SqliteExperienceLevelTemplateLoader(ILogger logger) : IExper
         var lastMateExp = -1;
         while (reader.Read())
         {
-            var levelTemplate = new ExperienceLevelTemplate
-            {
-                Level = reader.GetByte("id"), TotalExp = reader.GetInt32("total_exp"), TotalMateExp = reader.GetInt32("total_mate_exp"),
-                SkillPoints = reader.GetInt32("skill_points")
-            };
+            var levelTemplate = new ExperienceLevelTemplate();
+            levelTemplate.Level = reader.GetByte("id");
+            levelTemplate.ExpeditionExp = reader.GetInt32("expedition_exp");
+            levelTemplate.ReqItemCount = reader.GetInt32("req_item_count");
+            levelTemplate.ReqItemId = reader.GetInt32("req_item_id");
+            levelTemplate.SkillPoints = reader.GetInt32("skill_points");
+            levelTemplate.TotalExp = reader.GetInt32("total_exp");
+            levelTemplate.TotalMateExp = reader.GetInt32("total_mate_exp");
 
             if (levelTemplate.Level != expectedLevel)
             {
-                logger.Error("Experience data is missing level {0}", expectedLevel);
-                throw new InvalidDataException($"Experience data is missing level {expectedLevel}");
+                logger.Warn("Experience data is missing level {0}", expectedLevel);
             }
 
             if (levelTemplate.TotalExp <= lastExp)
             {
-                logger.Error("Experience data is not sorted by total_exp");
-                throw new InvalidDataException("Experience data is not sorted by total_exp");
+                logger.Warn("Experience data is not sorted by total_exp");
             }
 
             if (levelTemplate.TotalMateExp <= lastMateExp)
             {
-                logger.Error("Experience data is not sorted by total_mate_exp");
-                throw new InvalidDataException("Experience data is not sorted by total_mate_exp");
+                logger.Warn("Experience data is not sorted by total_mate_exp");
             }
 
             yield return levelTemplate;

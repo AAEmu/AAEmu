@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCSendUserMusicPacket(uint playerObjId, string author, byte[] midiData)
-    : GamePacket(SCOffsets.SCSendUserMusicPacket, 1)
+    : GamePacket(SCOffsets.SCSendUserMusicPacket, 5)
 {
     // not sure yet it this is the actual author or the person playing the music
 

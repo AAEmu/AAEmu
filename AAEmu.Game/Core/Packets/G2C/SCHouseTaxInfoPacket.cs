@@ -12,7 +12,7 @@ public class SCHouseTaxInfoPacket(
     bool isAlreadyPaid,
     int weeksWithoutPay,
     bool isHeavyTaxHouse)
-    : GamePacket(SCOffsets.SCHouseTaxInfoPacket, 1)
+    : GamePacket(SCOffsets.SCHouseTaxInfoPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

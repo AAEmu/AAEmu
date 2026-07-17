@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCDoodadRemovedPacket(uint id) : GamePacket(SCOffsets.SCDoodadRemovedPacket, 1)
+public class SCDoodadRemovedPacket(uint id) : GamePacket(SCOffsets.SCDoodadRemovedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

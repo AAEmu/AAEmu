@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCSkillStoppedPacket(uint unitObjId, uint skillId) : GamePacket(SCOffsets.SCSkillStoppedPacket, 1)
+public class SCSkillStoppedPacket(uint unitObjId, uint skillId) : GamePacket(SCOffsets.SCSkillStoppedPacket, 5)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
 

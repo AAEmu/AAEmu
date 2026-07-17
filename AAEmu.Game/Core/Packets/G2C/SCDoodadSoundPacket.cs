@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCDoodadSoundPacket(Doodad doodad, uint soundId) : GamePacket(SCOffsets.SCDoodadSoundPacket, 1)
+public class SCDoodadSoundPacket(Doodad doodad, uint soundId) : GamePacket(SCOffsets.SCDoodadSoundPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

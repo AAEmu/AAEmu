@@ -17,7 +17,7 @@ public class GameConnection
     private readonly ISession _session;
 
     public uint Id => _session.SessionId;
-    public uint AccountId { get; set; }
+    public ulong AccountId { get; set; }
     public IPAddress Ip => _session.Ip;
     public PacketStream LastPacket { get; set; }
     public AccountPayment Payment { get; set; }

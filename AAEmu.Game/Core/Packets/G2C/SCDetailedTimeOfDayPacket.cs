@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCDetailedTimeOfDayPacket(float time) : GamePacket(SCOffsets.SCDetailedTimeOfDayPacket, 1)
+public class SCDetailedTimeOfDayPacket(float time) : GamePacket(SCOffsets.SCDetailedTimeOfDayPacket, 5)
 {
     private readonly float _speed = 0.0016666f;
     private readonly float _start = 0f;

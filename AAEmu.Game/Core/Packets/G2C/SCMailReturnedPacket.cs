@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Mails;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCMailReturnedPacket(long mailId, MailHeader mail) : GamePacket(SCOffsets.SCMailReturnedPacket, 1)
+public class SCMailReturnedPacket(long mailId, MailHeader mail) : GamePacket(SCOffsets.SCMailReturnedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

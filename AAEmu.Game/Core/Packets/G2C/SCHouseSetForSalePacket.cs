@@ -9,7 +9,7 @@ public class SCHouseSetForSalePacket(
     uint sellToPlayerId,
     string sellToName,
     string houseName)
-    : GamePacket(SCOffsets.SCHouseSetForSalePacket, 1)
+    : GamePacket(SCOffsets.SCHouseSetForSalePacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

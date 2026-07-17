@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCOtherTradeItemTookdownPacket(Item item) : GamePacket(SCOffsets.SCOtherTradeItemTookdownPacket, 1)
+public class SCOtherTradeItemTookdownPacket(Item item) : GamePacket(SCOffsets.SCOtherTradeItemTookdownPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

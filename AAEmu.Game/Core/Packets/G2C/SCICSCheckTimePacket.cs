@@ -5,4 +5,4 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// <summary>
 /// Forces the client to re-request the shop list, use it whenever the shop list needs refreshing
 /// </summary>
-public class SCICSCheckTimePacket() : GamePacket(SCOffsets.SCICSCheckTimePacket, 1);
+public class SCICSCheckTimePacket() : GamePacket(SCOffsets.SCICSCheckTimePacket, 5);

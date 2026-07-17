@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCSyncItemLifespanPacket(bool added, ulong itemId, uint itemTemplateId, DateTime expireTime)
-    : GamePacket(SCOffsets.SCSyncItemLifespanPacket, 1)
+    : GamePacket(SCOffsets.SCSyncItemLifespanPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

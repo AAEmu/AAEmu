@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCRecoverableExpPacket(uint objId, int recoverableExp, int penaltiedExp, int reason)
-    : GamePacket(SCOffsets.SCRecoverableExpPacket, 1)
+    : GamePacket(SCOffsets.SCRecoverableExpPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

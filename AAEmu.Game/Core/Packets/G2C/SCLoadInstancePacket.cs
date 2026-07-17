@@ -12,7 +12,7 @@ public class SCLoadInstancePacket(
     float angX,
     float angY,
     float angZ)
-    : GamePacket(SCOffsets.SCLoadInstancePacket, 1)
+    : GamePacket(SCOffsets.SCLoadInstancePacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

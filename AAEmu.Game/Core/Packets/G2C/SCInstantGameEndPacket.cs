@@ -11,7 +11,7 @@ public class SCInstantGameEndPacket(
     BattlefieldEndingReason battlefieldEndingReason,
     InstantGameTeamResult corps1Result,
     InstantGameTeamResult corps2Result)
-    : GamePacket(SCOffsets.SCInstantGameEndPacket, 1)
+    : GamePacket(SCOffsets.SCInstantGameEndPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCDominionDataPacket(DominionData dominionData, bool newlyDeclared, bool finalDataByRequest)
-    : GamePacket(SCOffsets.SCDominionDataPacket, 1)
+    : GamePacket(SCOffsets.SCDominionDataPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

@@ -851,7 +851,7 @@ public class PacketStream : ICloneable, IComparable
     /// </summary>
     /// <param name="count">The number of values to read.</param>
     /// <returns>An array of long values read from the stream.</returns>
-    private long[] ReadPisc(int count)
+    public long[] ReadPisc(int count)
     {
         var result = new long[count];
         try

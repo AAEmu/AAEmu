@@ -16,7 +16,7 @@ public class SCLootDiceNotifyPacket : GamePacket
     /// <param name="charName"></param>
     /// <param name="item"></param>
     /// <param name="dice"></param>
-    public SCLootDiceNotifyPacket(string charName, Item item, sbyte dice) : base(SCOffsets.SCLootDiceNotifyPacket, 1)
+    public SCLootDiceNotifyPacket(string charName, Item item, sbyte dice) : base(SCOffsets.SCLootDiceNotifyPacket, 5)
     {
         _charName = charName;
         _item = item;

@@ -11,7 +11,7 @@ public class SCICSMenuListPacket : GamePacket
     private readonly bool _enabled;
     private readonly Dictionary<byte, Dictionary<byte, bool>> _tabsEnabled;
 
-    public SCICSMenuListPacket(bool enabled) : base(SCOffsets.SCICSMenuListPacket, 1)
+    public SCICSMenuListPacket(bool enabled) : base(SCOffsets.SCICSMenuListPacket, 5)
     {
         _enabled = enabled;
 

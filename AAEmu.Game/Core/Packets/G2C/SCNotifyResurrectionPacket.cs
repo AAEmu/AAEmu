@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCNotifyResurrectionPacket(SkillCaster skillCaster) : GamePacket(SCOffsets.SCNotifyResurrectionPacket, 1)
+public class SCNotifyResurrectionPacket(SkillCaster skillCaster) : GamePacket(SCOffsets.SCNotifyResurrectionPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

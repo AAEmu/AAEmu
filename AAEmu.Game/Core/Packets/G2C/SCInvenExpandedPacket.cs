@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCInvenExpandedPacket(SlotType slotType, byte numSlots) : GamePacket(SCOffsets.SCInvenExpandedPacket, 1)
+public class SCInvenExpandedPacket(SlotType slotType, byte numSlots) : GamePacket(SCOffsets.SCInvenExpandedPacket, 5)
 {
     private readonly byte _slotType = (byte)slotType;
 

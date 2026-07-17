@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Team;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCTeamAckRiskyActionPacket(uint teamId, uint id, RiskyAction ra, int w, short errorMessage)
-    : GamePacket(SCOffsets.SCTeamAckRiskyActionPacket, 1)
+    : GamePacket(SCOffsets.SCTeamAckRiskyActionPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

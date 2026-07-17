@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -548,13 +548,12 @@ public class DoodadManagerTests
         var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
-        var consumeItems = new Dictionary<uint, DoodadFuncConsumeChangerItem>
+        var consumeItems = new Dictionary<uint, List<DoodadFuncConsumeChangerItem>>
         {
-            { 1, new DoodadFuncConsumeChangerItem { Id = 1, DoodadFuncConsumeChangerId = 10, ItemId = 100 } },
-            { 2, new DoodadFuncConsumeChangerItem { Id = 2, DoodadFuncConsumeChangerId = 10, ItemId = 200 } },
-            { 3, new DoodadFuncConsumeChangerItem { Id = 3, DoodadFuncConsumeChangerId = 20, ItemId = 300 } }
+            { 10, [new DoodadFuncConsumeChangerItem { Id = 1, DoodadFuncConsumeChangerId = 10, ItemId = 100 }, new DoodadFuncConsumeChangerItem { Id = 2, DoodadFuncConsumeChangerId = 10, ItemId = 200 }] },
+            { 20, [new DoodadFuncConsumeChangerItem { Id = 3, DoodadFuncConsumeChangerId = 20, ItemId = 300 }] }
         };
-        SetPrivateField(manager, "_doodadFuncConsumeChangerItem", consumeItems);
+        SetPrivateField(manager, "_doodadFuncConsumeChangerItems", consumeItems);
 
         // Act
         var result = manager.GetDoodadFuncConsumeChangerItemList(10);
@@ -577,8 +576,8 @@ public class DoodadManagerTests
         var mockSus = Mock.Of<ISusManager>();
         var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
-        var consumeItems = new Dictionary<uint, DoodadFuncConsumeChangerItem>();
-        SetPrivateField(manager, "_doodadFuncConsumeChangerItem", consumeItems);
+        var consumeItems = new Dictionary<uint, List<DoodadFuncConsumeChangerItem>>();
+        SetPrivateField(manager, "_doodadFuncConsumeChangerItems", consumeItems);
 
         // Act
         var result = manager.GetDoodadFuncConsumeChangerItemList(999);

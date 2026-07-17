@@ -6,7 +6,7 @@ using AAEmu.Game.Models.StaticValues;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCLeavedChatChannelPacket(ChatType type, short subType, FactionsEnum factionId)
-    : GamePacket(SCOffsets.SCLeavedChatChannelPacket, 1)
+    : GamePacket(SCOffsets.SCLeavedChatChannelPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

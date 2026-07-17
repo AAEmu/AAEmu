@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCGamePointChangedPacket(byte kind, int amount) : GamePacket(SCOffsets.SCGamePointChangedPacket, 1)
+public class SCGamePointChangedPacket(byte kind, int amount) : GamePacket(SCOffsets.SCGamePointChangedPacket, 5)
 {
     // TODO kind:
     // 0 - honor

@@ -14,7 +14,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         int totalCount,
         int thisCount,
         IEnumerable<CrimeEvent> evidenceEntries)
-        : GamePacket(SCOffsets.SCCrimeRecordsPacket, 1)
+        : GamePacket(SCOffsets.SCCrimeRecordsPacket, 5)
     {
         public override PacketStream Write(PacketStream stream)
         {

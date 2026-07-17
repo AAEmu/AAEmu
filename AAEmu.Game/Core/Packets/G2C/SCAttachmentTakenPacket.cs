@@ -10,12 +10,12 @@ public class SCAttachmentTakenPacket(
     bool aaPoint,
     bool takeSequentially,
     List<ItemIdAndLocation> itemsList)
-    : GamePacket(SCOffsets.SCAttachmentTakenPacket, 1)
+    : GamePacket(SCOffsets.SCAttachmentTakenPacket, 5)
 {
     // public readonly ulong[] _itemId;
     // public readonly (SlotType slotType, byte slot)[] _itemSlots;
 
-    // public SCAttachmentTakenPacket(long mailId, bool money, bool aaPoint, bool takeSequentially, ulong[] itemId, (SlotType slotType, byte slot)[] itemSlots) : base(SCOffsets.SCAttachmentTakenPacket, 1)
+    // public SCAttachmentTakenPacket(long mailId, bool money, bool aaPoint, bool takeSequentially, ulong[] itemId, (SlotType slotType, byte slot)[] itemSlots) : base(SCOffsets.SCAttachmentTakenPacket, 5)
     //_itemId = itemId;
     //_itemSlots = itemSlots;
 

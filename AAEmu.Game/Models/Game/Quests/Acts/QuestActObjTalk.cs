@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -8,6 +8,8 @@ public class QuestActObjTalk(QuestComponentTemplate parentComponent) : QuestActT
 {
     public override bool CountsAsAnObjective => true;
     public uint NpcId { get; set; }
+    public int HighlightDoodadPhase { get; set; }
+    public uint HighlightDoodadId { get; set; }
     public bool TeamShare { get; set; }
     /// <summary>
     /// Not sure how ItemId is supposed to work here

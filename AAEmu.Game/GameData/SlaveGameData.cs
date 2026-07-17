@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.IO;
+using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
@@ -15,6 +15,9 @@ using NLog;
 
 namespace AAEmu.Game.GameData;
 
+/// <summary>
+/// Loads slave templates and related data from the client SQLite database and JSON attachment point files.
+/// </summary>
 [GameData]
 public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
 {
@@ -23,10 +26,10 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
     private readonly Dictionary<uint, SlaveTemplate> _slaveTemplates = []; // TODO: Move to global/static
     private Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>> _attachPoints = [];
     private readonly Dictionary<uint, List<SlaveInitialItems>> _slaveInitialItems = []; // PackId and List<Slot/ItemData>
-    private readonly Dictionary<uint, SlaveMountSkills> _slaveMountSkills = [];
+    private readonly Dictionary<uint, List<SlaveMountSkills>> _slaveMountSkills = [];
     private readonly Dictionary<uint, uint> _repairableSlaves = []; // SlaveId, RepairEffectId
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         #region SQLLite
 
@@ -136,7 +139,7 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
                 {
                     var template = new SlaveInitialBuffs
                     {
-                        Id = reader.GetUInt32("id"),
+                        //Id = reader.GetUInt32("id"), // there is no such field in the database for version 3.0.3.0
                         SlaveId = reader.GetUInt32("slave_id"),
                         BuffId = reader.GetUInt32("buff_id")
                     };
@@ -159,7 +162,7 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
                 {
                     var template = new SlavePassiveBuffs
                     {
-                        Id = reader.GetUInt32("id"),
+                        //Id = reader.GetUInt32("id"), // there is no such field in the database for version 3.0.3.0
                         OwnerId = reader.GetUInt32("owner_id"),
                         OwnerType = reader.GetString("owner_type"),
                         PassiveBuffId = reader.GetUInt32("passive_buff_id")
@@ -183,7 +186,7 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
                 {
                     var template = new SlaveDoodadBindings
                     {
-                        Id = reader.GetUInt32("id"),
+                        //Id = reader.GetUInt32("id"), // there is no such field in the database for version 3.0.3.0
                         OwnerId = reader.GetUInt32("owner_id"),
                         OwnerType = reader.GetString("owner_type"),
                         AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id"),
@@ -210,7 +213,7 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
                 {
                     var template = new SlaveDoodadBindings
                     {
-                        Id = reader.GetUInt32("id"),
+                        //Id = reader.GetUInt32("id"), // there is no such field in the database for version 3.0.3.0
                         OwnerId = reader.GetUInt32("owner_id"),
                         OwnerType = reader.GetString("owner_type"),
                         AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id"),
@@ -237,7 +240,7 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
                 {
                     var template = new SlaveBindings
                     {
-                        Id = reader.GetUInt32("id"),
+                        //Id = reader.GetUInt32("id"), // there is no such field in the database for version 3.0.3.0
                         OwnerId = reader.GetUInt32("owner_id"),
                         OwnerType = reader.GetString("owner_type"),
                         AttachPointId = (AttachPointKind)reader.GetUInt32("attach_point_id"),
@@ -263,7 +266,7 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
                 {
                     var template = new SlaveDropDoodad
                     {
-                        Id = reader.GetUInt32("id"),
+                        //Id = reader.GetUInt32("id"), // there is no such field in the database for version 3.0.3.0
                         OwnerId = reader.GetUInt32("owner_id"),
                         OwnerType = reader.GetString("owner_type"),
                         DoodadId = reader.GetUInt32("doodad_id"),
@@ -295,20 +298,25 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
+                    var slaveId = reader.GetUInt32("slave_id");
                     var template = new SlaveMountSkills
                     {
-                        Id = reader.GetUInt32("id"),
-                        SlaveId = reader.GetUInt32("slave_id"),
+                        SlaveId = slaveId,
                         MountSkillId = reader.GetUInt32("mount_skill_id")
                     };
 
-                    if (!_slaveMountSkills.TryAdd(template.Id, template))
-                        Logger.Warn($"Duplicate entry for slave_mount_skills");
+                    if (!_slaveMountSkills.TryGetValue(slaveId, out var skills))
+                    {
+                        skills = [];
+                        _slaveMountSkills.Add(slaveId, skills);
+                    }
+
+                    skills.Add(template);
                 }
             }
         }
 
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM repairable_slaves";
             command.Prepare();
@@ -416,26 +424,15 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
     }
 
     /// <summary>
-    /// Get mount skill associated with slaveMountSkillId
+    /// Gets a list of all mount skills for a given slave type.
     /// </summary>
-    /// <param name="slaveMountSkillId"></param>
-    /// <returns></returns>
-    public uint GetSlaveMountSkillFromId(uint slaveMountSkillId)
-    {
-        return _slaveMountSkills.TryGetValue(slaveMountSkillId, out var res) ? res.MountSkillId : 0;
-    }
-
-    /// <summary>
-    /// Gets a list of all mount skills for a given slave type
-    /// </summary>
-    /// <param name="slaveTemplateId"></param>
-    /// <returns></returns>
+    /// <param name="slaveTemplateId">Slave template id.</param>
+    /// <returns>List of mount skill ids.</returns>
     public List<uint> GetSlaveMountSkillList(uint slaveTemplateId)
     {
-        var res = new List<uint>();
-        foreach (var q in _slaveMountSkills.Values.Where(q => q.SlaveId == slaveTemplateId))
-            res.Add(q.MountSkillId);
-        return res;
+        return _slaveMountSkills.TryGetValue(slaveTemplateId, out var skills)
+            ? skills.Select(s => s.MountSkillId).ToList()
+            : [];
     }
 
     public List<SlaveInitialItems> GetSlaveInitialItemPack(uint templateId)

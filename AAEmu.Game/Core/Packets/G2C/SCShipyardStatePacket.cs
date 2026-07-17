@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Shipyard;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCShipyardStatePacket(ShipyardData shipyardData) : GamePacket(SCOffsets.SCShipyardStatePacket, 1)
+public class SCShipyardStatePacket(ShipyardData shipyardData) : GamePacket(SCOffsets.SCShipyardStatePacket, 5)
 {
     private readonly int _step = shipyardData.Step;
 

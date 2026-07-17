@@ -7,7 +7,7 @@ using AAEmu.Game.Models.Game.World;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCInstantGameJoinedPacket(ZoneInstanceId zoneInstanceId, InstantCorps corps, GameRuleSet ruleSet)
-    : GamePacket(SCOffsets.SCInstantGameJoinedPacket, 1)
+    : GamePacket(SCOffsets.SCInstantGameJoinedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

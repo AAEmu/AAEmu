@@ -23,7 +23,7 @@ public class SCSlaveEquipmentChangedPacket : GamePacket
         bool bts,
         bool success,
         DateTime expireTime)
-        : base(SCOffsets.SCSlaveEquipmentChangedPacket, 1)
+        : base(SCOffsets.SCSlaveEquipmentChangedPacket, 5)
     {
         _itemOnSlave = itemOnSlave;
         _itemInBag = itemInBag;

@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCUnitAttachedPacket(uint childUnitObjId, AttachPointKind point, AttachUnitReason reason, uint id)
-    : GamePacket(SCOffsets.SCUnitAttachedPacket, 1)
+    : GamePacket(SCOffsets.SCUnitAttachedPacket, 5)
 {
     private readonly byte _point = (byte)point;
     private readonly byte _reason = (byte)reason;

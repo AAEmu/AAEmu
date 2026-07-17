@@ -14,7 +14,7 @@ public class SCMySlavePacket(
     float x,
     float y,
     float z)
-    : GamePacket(SCOffsets.SCMySlavePacket, 1)
+    : GamePacket(SCOffsets.SCMySlavePacket, 5)
 {
     // TODO slaveId
 

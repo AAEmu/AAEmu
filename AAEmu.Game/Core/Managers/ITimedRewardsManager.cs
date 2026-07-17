@@ -5,6 +5,6 @@ namespace AAEmu.Game.Core.Managers;
 public interface ITimedRewardsManager : IInitializable
 {
     void DoTick();
-    void DoDailyAccountLogin(uint accountId);
+    void DoDailyAccountLogin(ulong accountId);
     void AddOfflineLabor(GameConnection connection, DateTime lastLoginTime, short currentLabor);
 }

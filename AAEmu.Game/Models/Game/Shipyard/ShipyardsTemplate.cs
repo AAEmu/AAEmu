@@ -1,8 +1,12 @@
-﻿namespace AAEmu.Game.Models.Game.Shipyard;
+namespace AAEmu.Game.Models.Game.Shipyard;
 
 public class ShipyardsTemplate
 {
     public uint Id { get; set; }
+
+public uint CeremonyModelId { get; set; }
+
+public string CeremonyAnimKey { get; set; }
     public string Name { get; set; }
     public uint MainModelId { get; set; }
     public uint ItemId { get; set; }

@@ -14,7 +14,7 @@ public class SCNoticeMessagePacket : GamePacket
     private readonly string _colorhex = "80FF80";
     private readonly int _vistime = 1000;
 
-    public SCNoticeMessagePacket(byte type, Color ARGBColor, int vistime, string message) : base(SCOffsets.SCNoticeMessagePacket, 1)
+    public SCNoticeMessagePacket(byte type, Color ARGBColor, int vistime, string message) : base(SCOffsets.SCNoticeMessagePacket, 5)
     {
         // Set Opacity to max if none was provided
         if (ARGBColor.A <= 0)

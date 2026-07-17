@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCSlaveStatePacket(uint objId, ushort tlId, string creatorName, uint ownerId, uint dbId)
-    : GamePacket(SCOffsets.SCSlaveStatePacket, 1)
+    : GamePacket(SCOffsets.SCSlaveStatePacket, 5)
 {
     private readonly int _skillCount = 0;
     private readonly int _tagCount = 0;

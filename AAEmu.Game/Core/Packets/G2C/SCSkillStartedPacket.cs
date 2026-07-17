@@ -20,7 +20,7 @@ public class SCSkillStartedPacket(
     SkillCastTarget target,
     Skill skill,
     SkillObject skillObject)
-    : GamePacket(SCOffsets.SCSkillStartedPacket, 1)
+    : GamePacket(SCOffsets.SCSkillStartedPacket, 5)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
 

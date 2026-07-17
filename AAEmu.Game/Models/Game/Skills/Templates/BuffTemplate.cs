@@ -18,155 +18,301 @@ public class BuffTemplate
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    public uint Id { get; init; }
+    // -------------------------------------------------------------------------
+    // Идентификаторы
+    // -------------------------------------------------------------------------
+    public uint Id { get; set; }
     public uint BuffId => Id;
-    public uint AnimStartId { get; init; }
-    public uint AnimEndId { get; init; }
-    public int Duration { get; init; }
-    public double Tick { get; init; }
-    public bool Silence { get; init; }
-    public bool Root { get; init; }
-    public bool Sleep { get; init; }
-    public bool Stun { get; init; }
-    public bool Cripled { get; init; }
-    public bool Stealth { get; init; }
-    public bool RemoveOnSourceDead { get; init; }
-    public uint LinkBuffId { get; init; }
-    public int TickManaCost { get; init; }
-    public BuffStackRule StackRule { get; init; }
-    public int InitMinCharge { get; init; }
-    public int InitMaxCharge { get; init; }
-    public int MaxStack { get; init; }
-    public uint DamageAbsorptionTypeId { get; init; }
-    public int DamageAbsorptionPerHit { get; init; }
-    public int AuraRadius { get; init; }
-    public int ManaShieldRatio { get; init; }
-    public bool FrameHold { get; init; }
-    public bool Ragdoll { get; init; }
-    public bool OneTime { get; init; }
-    public int ReflectionChance { get; init; }
-    public uint ReflectionTypeId { get; init; }
-    public uint RequireBuffId { get; init; }
-    public bool Taunt { get; init; }
-    public bool TauntWithTopAggro { get; init; }
-    public bool RemoveOnUseSkill { get; init; }
-    public bool MeleeImmune { get; init; }
-    public bool SpellImmune { get; init; }
-    public bool RangedImmune { get; init; }
-    public bool SiegeImmune { get; init; }
-    public int ImmuneDamage { get; init; }
-    public uint SkillControllerId { get; init; }
-    public int ResurrectionHealth { get; init; }
-    public int ResurrectionMana { get; init; }
-    public bool ResurrectionPercent { get; init; }
-    public int LevelDuration { get; init; }
-    public int ReflectionRatio { get; init; }
-    public int ReflectionTargetRatio { get; init; }
-    public bool KnockbackImmune { get; init; }
-    public uint ImmuneBuffTagId { get; init; }
-    public uint AuraRelationId { get; init; }
-    public uint GroupId { get; init; }
-    public int GroupRank { get; init; }
-    public bool PerUnitCreation { get; init; }
-    public float TickAreaRadius { get; init; }
-    public uint TickAreaRelationId { get; init; }
-    public bool RemoveOnMove { get; init; }
-    public bool UseSourceFaction { get; init; }
-    public FactionsEnum FactionId { get; init; }
-    public bool Exempt { get; init; }
-    public int TickAreaFrontAngle { get; init; }
-    public int TickAreaAngle { get; init; }
-    public bool Psychokinesis { get; init; }
-    public bool NoCollide { get; init; }
-    public float PsychokinesisSpeed { get; init; }
-    public bool RemoveOnDeath { get; init; }
-    public uint TickAnimId { get; init; }
-    public uint TickActiveWeaponId { get; init; }
-    public bool ConditionalTick { get; init; }
-    public bool System { get; init; }
-    public uint AuraSlaveBuffId { get; init; }
-    public bool NonPushable { get; init; }
-    public uint ActiveWeaponId { get; init; }
-    public int MaxCharge { get; init; }
-    public bool DetectStealth { get; init; }
-    public bool RemoveOnExempt { get; init; }
-    public bool RemoveOnLand { get; init; }
-    public bool Gliding { get; init; }
-    public int GlidingRotateSpeed { get; init; }
-    public float GlidingLiftHeight { get; init; }
-    public float GlidingLiftSpeed { get; init; }
-    public float GlidingLiftDuration { get; init; }
-    public bool Knockdown { get; init; }
-    public bool TickAreaExcludeSource { get; init; }
-    public bool FallDamageImmune { get; init; }
-    public BuffKind Kind { get; init; }
-    public uint TransformBuffId { get; init; }
-    public bool BlankMinded { get; init; }
-    public bool Fastened { get; init; }
-    public bool SlaveApplicable { get; init; }
-    public bool Pacifist { get; init; }
-    public bool RemoveOnInteraction { get; init; }
-    public bool Crime { get; init; }
-    public bool RemoveOnUnmount { get; init; }
-    public bool AuraChildOnly { get; init; }
-    public bool RemoveOnMount { get; init; }
-    public bool RemoveOnStartSkill { get; init; }
-    public bool SprintMotion { get; init; }
-    public float TelescopeRange { get; init; }
-    public uint MainhandToolId { get; init; }
-    public uint OffhandToolId { get; init; }
-    public uint TickMainhandToolId { get; init; }
-    public uint TickOffhandToolId { get; init; }
-    public float TickLevelManaCost { get; init; }
-    public bool WalkOnly { get; init; }
-    public bool CannotJump { get; init; }
-    public uint CrowdBuffId { get; init; }
-    public float CrowdRadius { get; init; }
-    public int CrowdNumber { get; init; }
-    public bool EvadeTelescope { get; init; }
-    public float TransferTelescopeRange { get; init; }
-    public bool RemoveOnAttackSpellDot { get; init; }
-    public bool RemoveOnAttackEtcDot { get; init; }
-    public bool RemoveOnAttackBuffTrigger { get; init; }
-    public bool RemoveOnAttackEtc { get; init; }
-    public bool RemoveOnAttackedSpellDot { get; init; }
-    public bool RemoveOnAttackedEtcDot { get; init; }
-    public bool RemoveOnAttackedBuffTrigger { get; init; }
-    public bool RemoveOnAttackedEtc { get; init; }
-    public bool RemoveOnDamageSpellDot { get; init; }
-    public bool RemoveOnDamageEtcDot { get; init; }
-    public bool RemoveOnDamageBuffTrigger { get; init; }
-    public bool RemoveOnDamageEtc { get; init; }
-    public bool RemoveOnDamagedSpellDot { get; init; }
-    public bool RemoveOnDamagedEtcDot { get; init; }
-    public bool RemoveOnDamagedBuffTrigger { get; init; }
-    public bool RemoveOnDamagedEtc { get; init; }
-    public bool OwnerOnly { get; init; }
-    public bool RemoveOnAutoAttack { get; init; }
-    public BuffSaveRuleType SaveRuleId { get; init; }
-    public bool AntiStealth { get; init; }
-    public float Scale { get; init; }
-    public float ScaleDuration { get; init; }
-    public bool ImmuneExceptCreator { get; init; }
-    public uint ImmuneExceptSkillTagId { get; init; }
-    public float FindSchoolOfFishRange { get; init; }
-    public uint AnimActionId { get; init; }
-    public bool DeadApplicable { get; init; }
-    public bool TickAreaUseOriginSource { get; init; }
-    public bool RealTime { get; init; }
-    public bool DoNotRemoveByOtherSkillController { get; init; }
-    public uint CooldownSkillId { get; init; }
-    public int CooldownSkillTime { get; init; }
-    public bool ManaBurnImmune { get; init; }
-    public bool FreezeShip { get; init; }
-    public bool CrowdFriendly { get; init; }
-    public bool CrowdHostile { get; init; }
-    public bool OnActionTime => Tick > 0;
+    public string Name { get; set; }
+    public string Desc { get; set; }
+    public uint IconId { get; set; }
+    public uint GroupId { get; set; }
+    public uint GroupRank { get; set; }
+    public uint KindId { get; set; }
+    public BuffKind Kind { get; set; }
 
+    // -------------------------------------------------------------------------
+    // Тайминг
+    // -------------------------------------------------------------------------
+    public int Duration { get; set; }
+    public int LevelDuration { get; set; }
+    public uint MaxLifeTime { get; set; }
+
+    // -------------------------------------------------------------------------
+    // Стекинг и заряды
+    // -------------------------------------------------------------------------
+    public uint MaxStack { get; set; }
+    public uint StackRuleId { get; set; }
+    public BuffStackRule StackRule { get; set; }
+    public int InitMinCharge { get; set; }
+    public int InitMaxCharge { get; set; }
+    public int MaxCharge { get; set; }
+
+    // -------------------------------------------------------------------------
+    // Тики
+    // -------------------------------------------------------------------------
+    public double Tick { get; set; }
+    public bool OnActionTime => Tick > 0;
+    public uint TickAnimId { get; set; }
+    public uint TickActiveWeaponId { get; set; }
+    public uint TickMainhandToolId { get; set; }
+    public uint TickOffhandToolId { get; set; }
+    public uint TickManaCost { get; set; }
+    public float TickLevelManaCost { get; set; }
+    public uint TickAreaRelationId { get; set; }
+    public float TickAreaRadius { get; set; }
+    public uint TickAreaAngle { get; set; }
+    public uint TickAreaFrontAngle { get; set; }
+    public bool TickAreaExcludeSource { get; set; }
+    public bool TickAreaUseOriginSource { get; set; }
+    public bool ConditionalTick { get; set; }
+
+    // -------------------------------------------------------------------------
+    // Анимации
+    // -------------------------------------------------------------------------
+    public uint AnimStartId { get; set; }
+    public uint AnimEndId { get; set; }
+    public uint AnimActionId { get; set; }
+    public string IdleAnim { get; set; }
+    public string AgStance { get; set; }
+    public string ExtraEffects { get; set; }
+
+    // -------------------------------------------------------------------------
+    // Инструменты / оружие
+    // -------------------------------------------------------------------------
+    public uint ActiveWeaponId { get; set; }
+    public uint MainhandToolId { get; set; }
+    public uint OffhandToolId { get; set; }
+    public uint PercussionInstrumentStartAnimId { get; set; }
+    public uint PercussionInstrumentTickAnimId { get; set; }
+    public uint StringInstrumentStartAnimId { get; set; }
+    public uint StringInstrumentTickAnimId { get; set; }
+    public uint TubeInstrumentStartAnimId { get; set; }
+    public uint TubeInstrumentTickAnimId { get; set; }
+
+    // -------------------------------------------------------------------------
+    // Фракции и таргетинг
+    // -------------------------------------------------------------------------
+    public FactionsEnum FactionId { get; set; }
+    public bool UseSourceFaction { get; set; }
+    public uint TargetingRelationId { get; set; }
+    public bool TargetingUseOriginSource { get; set; }
+    public bool ImpossibleTargeting { get; set; }
+    public bool ImpossibleChangeTargeting { get; set; }
+    public uint AuraRelationId { get; set; }
+
+    // -------------------------------------------------------------------------
+    // Ауры и слейвы
+    // -------------------------------------------------------------------------
+    public bool AuraChildOnly { get; set; }
+    public bool AuraCreatorOnly { get; set; }
+    public uint AuraRadius { get; set; }
+    public uint AuraSlaveBuffId { get; set; }
+    public bool SlaveApplicable { get; set; }
+    public bool NotToSlaveRider { get; set; }
+    public bool OwnerOnly { get; set; }
+    public bool OnlyMyPet { get; set; }
+    public bool OnlyPetOwner { get; set; }
+    public bool PerUnitCreation { get; set; }
+
+    // -------------------------------------------------------------------------
+    // Taunt / Crowd
+    // -------------------------------------------------------------------------
+    public bool Taunt { get; set; }
+    public bool TauntWithTopAggro { get; set; }
+    public uint CrowdBuffId { get; set; }
+    public bool CrowdFriendly { get; set; }
+    public bool CrowdHostile { get; set; }
+    public uint CrowdNumber { get; set; }
+    public float CrowdRadius { get; set; }
+
+    // -------------------------------------------------------------------------
+    // Специальные свойства движения
+    // -------------------------------------------------------------------------
+    public bool Gliding { get; set; }
+    public float GlidingFallSpeedFast { get; set; }
+    public float GlidingFallSpeedNormal { get; set; }
+    public float GlidingFallSpeedSlow { get; set; }
+    public float GlidingLandHeight { get; set; }
+    public uint GlidingLiftCount { get; set; }
+    public float GlidingLiftDuration { get; set; }
+    public float GlidingLiftHeight { get; set; }
+    public float GlidingLiftSpeed { get; set; }
+    public float GlidingLiftValidTime { get; set; }
+    public float GlidingMoveSpeedFast { get; set; }
+    public float GlidingMoveSpeedNormal { get; set; }
+    public float GlidingMoveSpeedSlow { get; set; }
+    public uint GlidingRotateSpeed { get; set; }
+    public float GlidingSlidingTime { get; set; }
+    public float GlidingSmoothTime { get; set; }
+    public float GlidingStartupSpeed { get; set; }
+    public float GlidingStartupTime { get; set; }
+    public bool SprintMotion { get; set; }
+    public bool WalkOnly { get; set; }
+    public bool CannotJump { get; set; }
+
+    // -------------------------------------------------------------------------
+    // Телескоп / радар
+    // -------------------------------------------------------------------------
+    public float TelescopeRange { get; set; }
+    public float TransferTelescopeRange { get; set; }
+    public float BossTelescopeRange { get; set; }
+    public bool EvadeTelescope { get; set; }
+    public float FindSchoolOfFishRange { get; set; }
+
+    // -------------------------------------------------------------------------
+    // Иммунитеты
+    // -------------------------------------------------------------------------
+    public uint ImmuneBuffTagId { get; set; } // TODO: no DB column, stale
+    public uint ImmuneDamage { get; set; }
+    public bool ImmuneExceptCreator { get; set; }
+    public uint ImmuneExceptCreatorRelationId { get; set; }
+    public bool ImmuneExceptCreatorRelationCheck { get; set; }
+    public uint ImmuneExceptSkillTagId { get; set; }
+    public float ImmuneHealth { get; set; }
+    public bool MeleeImmune { get; set; }
+    public bool RangedImmune { get; set; }
+    public bool SpellImmune { get; set; }
+    public bool SiegeImmune { get; set; }
+    public bool ManaBurnImmune { get; set; }
+    public bool KnockbackImmune { get; set; }
+
+    // -------------------------------------------------------------------------
+    // Бессмертия
+    // -------------------------------------------------------------------------
+    public bool MeleeImmortality { get; set; }
+    public bool RangedImmortality { get; set; }
+    public bool SpellImmortality { get; set; }
+    public bool SiegeImmortality { get; set; }
+    public bool OneTimeImmortality { get; set; }
+    public bool FallDamageImmortality { get; set; }
+
+    // -------------------------------------------------------------------------
+    // CC эффекты
+    // -------------------------------------------------------------------------
+    public bool Stun { get; set; }
+    public bool Sleep { get; set; }
+    public bool Root { get; set; }
+    public bool Silence { get; set; }
+    public bool KnockDown { get; set; }
+    public bool Pacifist { get; set; }
+    public bool Crippled { get; set; }
+    public bool Cripled { get; set; } // 1.2 legacy alias (typo) used by CharacterCombat
+    public bool Knockdown { get; set; } // 1.2 CC mechanic; knock_down column absent in 3.5 DB, stays false
+    public bool Ragdoll { get; set; }
+    public bool Fastened { get; set; }
+    public bool BlankMinded { get; set; }
+    public bool Framehold { get; set; }
+    public bool Psychokinesis { get; set; }
+    public float PsychokinesisSpeed { get; set; }
+
+    // -------------------------------------------------------------------------
+    // Удаление при событиях
+    // -------------------------------------------------------------------------
+    public bool RemoveOnDeath { get; set; }
+    public bool RemoveOnMove { get; set; }
+    public bool RemoveOnLand { get; set; }
+    public bool RemoveOnMount { get; set; }
+    public bool RemoveOnUnmount { get; set; }
+    public uint RemoveOnUnmountAttachPointId { get; set; }
+    public bool RemoveOnInteraction { get; set; }
+    public bool RemoveOnStartSkill { get; set; }
+    public bool RemoveOnUseSkill { get; set; }
+    public bool RemoveOnAutoAttack { get; set; }
+    public bool RemoveOnSourceDead { get; set; }
+    public bool RemoveOnExempt { get; set; }
+    public bool RemoveOnUnbond { get; set; }
+    public bool RemoveOnAttackBuffTrigger { get; set; }
+    public bool RemoveOnAttackedBuffTrigger { get; set; }
+    public bool RemoveOnDamageBuffTrigger { get; set; }
+    public bool RemoveOnDamagedBuffTrigger { get; set; }
+    public bool RemoveOnAttackEtc { get; set; }
+    public bool RemoveOnAttackedEtc { get; set; }
+    public bool RemoveOnDamageEtc { get; set; }
+    public bool RemoveOnDamagedEtc { get; set; }
+    public bool RemoveOnAttackEtcDot { get; set; }
+    public bool RemoveOnAttackedEtcDot { get; set; }
+    public bool RemoveOnDamageEtcDot { get; set; }
+    public bool RemoveOnDamagedEtcDot { get; set; }
+    public bool RemoveOnAttackSpellDot { get; set; }
+    public bool RemoveOnAttackedSpellDot { get; set; }
+    public bool RemoveOnDamageSpellDot { get; set; }
+    public bool RemoveOnDamagedSpellDot { get; set; }
+
+    // -------------------------------------------------------------------------
+    // Прочие флаги
+    // -------------------------------------------------------------------------
+    public bool Stealth { get; set; }
+    public bool AntiStealth { get; set; }
+    public bool DetectStealth { get; set; }
+    public bool Exempt { get; set; }
+    public bool System { get; set; }
+    public bool RealTime { get; set; }
+    public bool OneTime { get; set; }
+    public bool Passive { get; set; }  // вычисляется снаружи, но хранится здесь
+    public bool OffPassive { get; set; }
+    public uint OffPassiveExectionTagId { get; set; }
+    public bool DeadApplicable { get; set; }
+    public bool NoExpPenalty { get; set; }
+    public bool NonPushable { get; set; }
+    public bool NoCollide { get; set; }
+    public bool NoCollideRigid { get; set; }
+    public bool FallDamageImmune { get; set; }
+    public bool FreezeShip { get; set; }
+    public bool StopOnlineLpRegen { get; set; }
+    public bool RestrictActionbar { get; set; }
+    public bool DoNotRemoveByOtherSkillController { get; set; }
+    public bool CombatTextStart { get; set; }
+    public bool CombatTextEnd { get; set; }
+    public bool FixAbilityLevelToOne { get; set; }
+    public float Scale { get; set; }
+    public float ScaleDuration { get; set; }
+    public uint FxGroupId { get; set; }
+    public uint TransformBuffId { get; set; }
+    public uint LinkBuffId { get; set; }
+    public uint RequireBuffId { get; set; }
+    public uint CooldownSkillId { get; set; }
+    public uint CooldownSkillTime { get; set; }
+    public uint SkillControllerId { get; set; }
+    public uint SaveRuleId { get; set; }
+    public uint BalanceLevel { get; set; }
+    public uint AddDurationBuffMul { get; set; }
+    public uint AddDurationBuffId { get; set; }
+    public uint CustomDualMaterialId { get; set; }
+    public float CustomDualMaterialFadeTime { get; set; }
+    public uint ManaShieldRatio { get; set; }
+    public uint DamageAbsorptionPerHit { get; set; }
+    public uint DamageAbsorptionTypeId { get; set; }
+    public uint ReflectionChance { get; set; }
+    public uint ReflectionRatio { get; set; }
+    public uint ReflectionTargetRatio { get; set; }
+    public uint ReflectionTypeId { get; set; }
+    public uint ResurrectionHealth { get; set; }
+    public uint ResurrectionMana { get; set; }
+    public bool ResurrectionPercent { get; set; }
+    public uint MinHighAbilityResource { get; set; }
+    public uint MaxHighAbilityResource { get; set; }
+    public bool DisarmamentMainHand { get; set; }
+    public bool DisarmamentOffHand { get; set; }
+    public bool DisarmamentRanged { get; set; }
+    public bool DisarmamentMusical { get; set; }
+    public bool Taunt2 { get; set; } // TODO: no DB column, stale (TauntWithTopAggro alias if needed)
+
+    // -------------------------------------------------------------------------
+    // Коллекции
+    // -------------------------------------------------------------------------
     public List<TickEffect> TickEffects { get; } = [];
     public List<BonusTemplate> Bonuses { get; } = [];
     public List<DynamicBonusTemplate> DynamicBonuses { get; } = [];
 
+
+    // =========================================================================
+    // Публичный API (фасад — делегирует обработчикам)
+    // =========================================================================
+
+    /// <summary>
+    /// Применяет бафф к цели. Делегирует <see cref="BuffApplyHandler"/>.
+    /// </summary>
     public void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
@@ -180,7 +326,7 @@ public class BuffTemplate
         if (target.Buffs.CheckBuffImmune(Id))
             return; //TODO  error of immune?
 
-        uint abLevel = 1;
+        ushort abLevel = 1;
 
         if (caster is Character character)
         {
@@ -189,12 +335,12 @@ public class BuffTemplate
                 var template = source.Skill.Template;
                 var abilityLevel = character.GetAbLevel(source.Skill.Template.AbilityId);
                 if (template.LevelStep != 0)
-                    abLevel = (uint)(abilityLevel / template.LevelStep * template.LevelStep);
+                    abLevel = (ushort)(abilityLevel / template.LevelStep * template.LevelStep);
                 else
-                    abLevel = (uint)template.AbilityLevel;
+                    abLevel = (ushort)template.AbilityLevel;
 
                 //Dont allow lower than minimum ablevel for skill or infinite debuffs can happen
-                abLevel = (uint)Math.Max(template.AbilityLevel, (int)abLevel);
+                abLevel = (ushort)Math.Max(template.AbilityLevel, (int)abLevel);
             }
             else if (source.Buff != null)
             {
@@ -205,7 +351,7 @@ public class BuffTemplate
         {
             if (source.Skill != null)
             {
-                abLevel = (uint)source.Skill.Template.AbilityLevel;
+                abLevel = (ushort)source.Skill.Template.AbilityLevel;
             }
         }
         target.Buffs.AddBuff(new Buff(target, caster, casterObj, this, source.Skill, time) { AbLevel = abLevel });
@@ -223,6 +369,10 @@ public class BuffTemplate
             owner.RemoveDynamicBonus(buff.Index, template.Attribute);
     }
 
+    /// <summary>
+    /// Запускает стартовые действия баффа (бонусы, пакет, специальные свойства).
+    /// Делегирует <see cref="BuffStartDispelHandler"/> и <see cref="BuffSpecialHandler"/>.
+    /// </summary>
     public void Start(BaseUnit caster, BaseUnit owner, Buff buff)
     {
         RemoveBonuses(owner, buff);
@@ -368,6 +518,10 @@ public class BuffTemplate
         }
     }
 
+    /// <summary>
+    /// Применяет тиковый эффект (разовый или по области).
+    /// Делегирует <see cref="BuffTickHandler"/>.
+    /// </summary>
     public void TimeToTimeApply(BaseUnit caster, BaseUnit owner, Buff buff)
     {
         if (TickAreaRadius > 0)
@@ -398,6 +552,9 @@ public class BuffTemplate
         }
     }
 
+    /// <summary>
+    /// Выполняет area-тик напрямую.
+    /// </summary>
     private void DoAreaTick(BaseUnit caster, BaseUnit owner, Buff buff)
     {
         var units = WorldManager.GetAround<Unit>(owner, TickAreaRadius);
@@ -442,6 +599,10 @@ public class BuffTemplate
         }
     }
 
+    /// <summary>
+    /// Завершает бафф: откатывает бонусы, снимает специальные свойства.
+    /// Делегирует <see cref="BuffStartDispelHandler"/> и <see cref="BuffSpecialHandler"/>.
+    /// </summary>
     public void Dispel(BaseUnit caster, BaseUnit owner, Buff buff, bool replaced = false)
     {
         // Stop the SkillController that this buff started. End() may keep
@@ -479,6 +640,10 @@ public class BuffTemplate
         }
     }
 
+    // =========================================================================
+    // Вспомогательные методы
+    // =========================================================================
+
     public void WriteData(PacketStream stream, uint abLevel)
     {
         stream.WritePisc(0, GetDuration(abLevel) / 10, 0, (long)(Tick / 10)); // unk, Duration, unk / 10, Tick
@@ -489,6 +654,9 @@ public class BuffTemplate
         return Math.Max(0, LevelDuration * (int)abLevel + Duration);
     }
 
+    /// <summary>
+    /// Возвращает интервал тика. Используется при инициализации <see cref="Buff"/>.
+    /// </summary>
     public double GetTick()
     {
         return Tick;

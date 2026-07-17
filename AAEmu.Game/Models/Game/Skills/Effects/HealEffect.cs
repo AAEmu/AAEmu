@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -12,6 +12,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects;
 public class HealEffect : EffectTemplate
 {
     public bool UseFixedHeal { get; set; }
+    public string ExtraEffects { get; set; }
     public int FixedMin { get; set; }
     public int FixedMax { get; set; }
     public bool UseLevelHeal { get; set; }

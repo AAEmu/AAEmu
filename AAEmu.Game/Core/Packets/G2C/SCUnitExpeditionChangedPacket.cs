@@ -11,7 +11,7 @@ public class SCUnitExpeditionChangedPacket(
     uint id,
     uint expeditionId,
     bool expel)
-    : GamePacket(SCOffsets.SCUnitExpeditionChangedPacket, 1)
+    : GamePacket(SCOffsets.SCUnitExpeditionChangedPacket, 5)
 {
     // TODO nation? faction?
 

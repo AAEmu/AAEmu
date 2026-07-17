@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Mails;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCMailDeletedPacket(bool isSent, long mailId, bool isUnreadMailCountModified, CountUnreadMail count)
-    : GamePacket(SCOffsets.SCMailDeletedPacket, 1)
+    : GamePacket(SCOffsets.SCMailDeletedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

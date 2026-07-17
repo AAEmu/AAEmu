@@ -1,4 +1,4 @@
-﻿namespace AAEmu.Game.Models.Game.Housing;
+namespace AAEmu.Game.Models.Game.Housing;
 
 public class HousingDecoration
 {
@@ -8,6 +8,7 @@ public class HousingDecoration
     public bool AllowOnWall { get; set; }
     public bool AllowOnCeiling { get; set; }
     public uint DoodadId { get; set; }
+    public bool VerticalAligned { get; set; }
     public bool AllowPivotOnGarden { get; set; }
     public uint ActabilityGroupId { get; set; }
     public uint ActabilityUp { get; set; }

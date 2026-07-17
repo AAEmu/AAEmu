@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Team;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTeamRemoteMembersExPacket(TeamMember[] members) : GamePacket(SCOffsets.SCTeamRemoteMembersExPacket, 1)
+public class SCTeamRemoteMembersExPacket(TeamMember[] members) : GamePacket(SCOffsets.SCTeamRemoteMembersExPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

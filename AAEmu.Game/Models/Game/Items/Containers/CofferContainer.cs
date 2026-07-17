@@ -16,7 +16,7 @@ public class CofferContainer(uint ownerId, bool createWithNewId)
         // All Chests will not accept timed items 
         if (itemTemplate.ExpAbsLifetime > 0 ||
             itemTemplate.ExpOnlineLifetime > 0 ||
-            itemTemplate.ExpDate > DateTime.MinValue)
+            itemTemplate.ExpDate > 0)
             return false;
 
         // Otherwordly Storage Chest will accept pretty much any other item

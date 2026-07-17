@@ -8,6 +8,22 @@ public class Holdable
     private const uint DefaultFistAnimId = 2;
 
     public uint Id { get; set; }
+
+public uint SoundMaterialId { get; set; }
+
+public uint PoseId { get; set; }
+
+public string Name { get; set; }
+
+public int GearScoreMultiplier { get; set; }
+
+public int AnimR2Ratio { get; set; }
+
+public int AnimR1Ratio { get; set; }
+
+public int AnimL2Ratio { get; set; }
+
+public int AnimL1Ratio { get; set; }
     public uint KindId { get; set; }
     public int Speed { get; set; }
     public int ExtraDamagePierceFactor { get; set; }

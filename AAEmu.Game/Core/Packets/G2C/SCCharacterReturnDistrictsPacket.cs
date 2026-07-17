@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCCharacterReturnDistrictsPacket(Portal[] portals, uint returnDistrictId)
-    : GamePacket(SCOffsets.SCCharacterReturnDistrictsPacket, 1)
+    : GamePacket(SCOffsets.SCCharacterReturnDistrictsPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

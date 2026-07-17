@@ -15,7 +15,7 @@ public class RecoverExpEffect : EffectTemplate
 
     public bool NeedPriest { get; init; }
     // TODO: 1.2 specific field Penaltied, not sure how this is used
-    // public bool Penaltied { get; set; }
+    public bool Penaltied { get; set; }
 
     public override bool OnActionTime => false;
 

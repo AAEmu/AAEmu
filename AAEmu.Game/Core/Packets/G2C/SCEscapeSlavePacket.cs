@@ -5,7 +5,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCEscapeSlavePacket(uint unitId, float x, float y, float z, float rot)
-    : GamePacket(SCOffsets.SCEscapeSlavePacket, 1)
+    : GamePacket(SCOffsets.SCEscapeSlavePacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

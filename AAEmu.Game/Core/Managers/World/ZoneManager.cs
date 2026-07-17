@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -10,6 +10,10 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
+/// <summary>
+/// Менеджер зон, загружающий данные из таблиц <c>zones</c>, <c>zone_groups</c>,
+/// <c>conflict_zones</c>, <c>zone_group_banned_tags</c> и <c>zone_climate_elems</c> БД <c>compact.sqlite3</c>.
+/// </summary>
 public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, IZoneManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
@@ -55,6 +59,19 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
         return zoneGroup?.TargetId ?? 0;
     }
 
+    /// <summary>
+    /// Загружает зоны, группы зон, конфликтные зоны, запрещённые теги и элементы климата.
+    /// </summary>
+    /// <remarks>
+    /// Схемы таблиц (проверены по compact.sqlite3):
+    /// <list type="bullet">
+    ///   <item><description><c>zones</c>: id (PK), name, zone_key, group_id, closed, faction_id, zone_climate_id, display_text</description></item>
+    ///   <item><description><c>zone_groups</c>: id (PK), name, x, y, w, h, target_id, faction_id, faction_chat_region_id, pirate_desperado, fishing_sea_loot_pack_id, fishing_land_loot_pack_id, buff_id, display_text, enable_physics_collision_damage, image_map, sound_id, sound_pack_id</description></item>
+    ///   <item><description><c>conflict_zones</c>: zone_group_id, num_kills_0..4, no_kill_min_0..4, conflict_min, war_min, peace_min, peace_protected_faction_id, nuia_return_point_id, harihara_return_point_id, war_tower_def_id, closed, auto_team, auto_team_dismiss, nation_return_point_id, pirate_return_point_id, war_chaos, war_st_hour_0..4, war_st_min_0..4, peace_tower_def_id, war_drop_mul, war_gold_mul, peace_drop_mul, peace_gold_mul, num_npc_kills_0..4, num_quest_completions_0..4, zone_damage_multiplier_kind_id</description></item>
+    ///   <item><description><c>zone_group_banned_tags</c>: id (PK), zone_group_id, tag_id, banned_periods_id, usage</description></item>
+    ///   <item><description><c>zone_climate_elems</c>: id (PK), zone_climate_id, climate_id</description></item>
+    /// </list>
+    /// </remarks>
     public void Load()
     {
         _zoneIdToKey = [];
@@ -76,11 +93,14 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
                     {
                         var template = new Zone
                         {
-                            Id = reader.GetUInt32("id"), Name = (string)reader.GetValue("name"), ZoneKey = reader.GetUInt32("zone_key"),
+                            Id = reader.GetUInt32("id"),
+                            Name = reader.GetString("name"),
+                            ZoneKey = reader.GetUInt32("zone_key"),
                             GroupId = reader.GetUInt32("group_id", 0),
                             Closed = reader.GetBoolean("closed", true),
                             FactionId = (FactionsEnum)reader.GetUInt32("faction_id", 0),
-                            ZoneClimateId = reader.GetUInt32("zone_climate_id", 0)
+                            ZoneClimateId = reader.GetUInt32("zone_climate_id", 0),
+                            DisplayText = reader.GetString("display_text")
                         };
                         _zoneIdToKey.Add(template.Id, template.ZoneKey);
                         _zones.Add(template.ZoneKey, template);
@@ -100,17 +120,24 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
                     {
                         var template = new ZoneGroup
                         {
-                            Id = reader.GetUInt32("id"), Name = (string)reader.GetValue("name"), X = reader.GetFloat("x"),
+                            Id = reader.GetUInt32("id"),
+                            Name = reader.GetString("name"),
+                            X = reader.GetFloat("x"),
                             Y = reader.GetFloat("y"),
                             Width = reader.GetFloat("w"),
-                            Hight = reader.GetFloat("h"),
+                            Height = reader.GetFloat("h"),
                             TargetId = reader.GetUInt32("target_id"),
+                            FactionId = reader.GetUInt32("faction_id", 0),
                             FactionChatRegionId = reader.GetUInt32("faction_chat_region_id"),
                             PirateDesperado = reader.GetBoolean("pirate_desperado", true),
                             FishingSeaLootPackId = reader.GetUInt32("fishing_sea_loot_pack_id", 0),
                             FishingLandLootPackId = reader.GetUInt32("fishing_land_loot_pack_id", 0),
-                            // 1.2 added BuffId
-                            BuffId = reader.GetUInt32("buff_id", 0)
+                            BuffId = reader.GetUInt32("buff_id", 0),
+                            DisplayText = reader.GetString("display_text"),
+                            EnablePhysicsCollisionDamage = reader.GetBoolean("enable_physics_collision_damage"),
+                            ImageMap = reader.GetUInt32("image_map"),
+                            SoundId = reader.GetUInt32("sound_id"),
+                            SoundPackId = reader.GetUInt32("sound_pack_id")
                         };
                         _groups.Add(template.Id, template);
                     }
@@ -136,6 +163,10 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
                             {
                                 template.NumKills[i] = reader.GetInt32($"num_kills_{i}");
                                 template.NoKillMin[i] = reader.GetInt32($"no_kill_min_{i}");
+                                template.WarStHour[i] = reader.GetInt32($"war_st_hour_{i}");
+                                template.WarStMin[i] = reader.GetInt32($"war_st_min_{i}");
+                                template.NumNpcKills[i] = reader.GetInt32($"num_npc_kills_{i}");
+                                template.NumQuestCompletions[i] = reader.GetInt32($"num_quest_completions_{i}");
                             }
 
                             template.ConflictMin = reader.GetInt32("conflict_min");
@@ -146,8 +177,18 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
                             template.NuiaReturnPointId = reader.GetUInt32("nuia_return_point_id", 0);
                             template.HariharaReturnPointId = reader.GetUInt32("harihara_return_point_id", 0);
                             template.WarTowerDefId = reader.GetUInt32("war_tower_def_id", 0);
-                            // TODO 1.2 // template.PeaceTowerDefId = reader.GetUInt32("peace_tower_def_id", 0);
+                            template.PeaceTowerDefId = reader.GetUInt32("peace_tower_def_id", 0);
                             template.Closed = reader.GetBoolean("closed", true);
+                            template.AutoTeam = reader.GetBoolean("auto_team");
+                            template.AutoTeamDismiss = reader.GetBoolean("auto_team_dismiss");
+                            template.NationReturnPointId = reader.GetUInt32("nation_return_point_id", 0);
+                            template.PirateReturnPointId = reader.GetUInt32("pirate_return_point_id", 0);
+                            template.WarChaos = reader.GetBoolean("war_chaos");
+                            template.WarDropMul = reader.GetFloat("war_drop_mul");
+                            template.WarGoldMul = reader.GetFloat("war_gold_mul");
+                            template.PeaceDropMul = reader.GetFloat("peace_drop_mul");
+                            template.PeaceGoldMul = reader.GetFloat("peace_gold_mul");
+                            template.ZoneDamageMultiplierKindId = reader.GetUInt32("zone_damage_multiplier_kind_id", 0);
 
                             _groups[zoneGroupId].Conflict = template;
                             _conflicts.Add(zoneGroupId, template);
@@ -175,9 +216,10 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
                         {
                             Id = reader.GetUInt32("id"),
                             ZoneGroupId = reader.GetUInt32("zone_group_id"),
-                            TagId = reader.GetUInt32("tag_id")
+                            TagId = reader.GetUInt32("tag_id"),
+                            BannedPeriodsId = reader.GetUInt32("banned_periods_id"),
+                            Usage = reader.GetString("usage")
                         };
-                        // TODO 1.2 // template.BannedPeriodsId = reader.GetUInt32("banned_periods_id");
                         _groupBannedTags.Add(template.Id, template);
                     }
                 }
@@ -264,6 +306,13 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
         }
         var zone = GetZoneByKey(doodad.Transform.ZoneId);
 
+        // If zone lookup failed, assume no matching climate
+        if (zone == null)
+        {
+            // Optionally: log debug about missing zone id
+            return false;
+        }
+
         // Get the climates list for this zone
         var zoneClimates = GetClimatesByZone(zone);
 
@@ -271,6 +320,7 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
         return zoneClimates.Contains(doodad.Template.ClimateId);
     }
 
+    // 1.2 death-penalty mechanics (kept from 1.2)
     public bool IsPirateDesperadoZone(uint zoneKey)
     {
         var zone = GetZoneByKey(zoneKey);

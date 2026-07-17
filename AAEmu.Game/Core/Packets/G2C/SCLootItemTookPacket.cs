@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Items.Loots;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCLootItemTookPacket(uint itemTemplateId, ushort itemIndex, LootOwnerType lootOwnerType, uint lootOwnerId, int count) : GamePacket(SCOffsets.SCLootItemTookPacket, 1)
+public class SCLootItemTookPacket(uint itemTemplateId, ushort itemIndex, LootOwnerType lootOwnerType, uint lootOwnerId, int count) : GamePacket(SCOffsets.SCLootItemTookPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

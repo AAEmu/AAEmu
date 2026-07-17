@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.World;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCInstantGameStartPacket(ZoneInstanceId zoneInstanceId, uint start, uint now)
-    : GamePacket(SCOffsets.SCInstantGameStartPacket, 1)
+    : GamePacket(SCOffsets.SCInstantGameStartPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

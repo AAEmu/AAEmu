@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Team;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCTeamMemberJoinedPacket(uint teamId, TeamMember member, int party)
-    : GamePacket(SCOffsets.SCTeamMemberJoinedPacket, 1)
+    : GamePacket(SCOffsets.SCTeamMemberJoinedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

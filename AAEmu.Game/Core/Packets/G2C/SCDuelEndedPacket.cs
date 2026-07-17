@@ -10,7 +10,7 @@ public class SCDuelEndedPacket(
     uint challengerObjId,
     uint challengedObjId,
     DuelDetType det)
-    : GamePacket(SCOffsets.SCDuelEndedPacket, 1)
+    : GamePacket(SCOffsets.SCDuelEndedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

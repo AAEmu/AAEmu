@@ -16,7 +16,7 @@ public class SCLootableStatePacket : GamePacket
     /// <param name="lootOwnerType">What type of object has the loot state set</param>
     /// <param name="lootOwnerObjId">ObjectId to set the state for</param>
     /// <param name="hasLoot"></param>
-    public SCLootableStatePacket(LootOwnerType lootOwnerType, uint lootOwnerObjId, bool hasLoot) : base(SCOffsets.SCLootableStatePacket, 1)
+    public SCLootableStatePacket(LootOwnerType lootOwnerType, uint lootOwnerObjId, bool hasLoot) : base(SCOffsets.SCLootableStatePacket, 5)
     {
         _lootOwnerType = lootOwnerType;
         _lootOwnerObjId = lootOwnerObjId;

@@ -54,6 +54,8 @@ public class IndunZone
     /// Does this dungeon have a channel select
     /// </summary>
     public bool SelectChannel { get; init; }
+    public bool ExpPenalty { get; init; }
+    public bool Duel { get; init; }
 
     /// <summary>
     /// Maximum number of times a player can entry this instance (0 = can't enter).

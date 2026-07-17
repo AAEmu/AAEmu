@@ -3,6 +3,10 @@ namespace AAEmu.Game.Models.Game.Skills.Templates;
 public class PassiveBuffTemplate
 {
     public uint Id { get; set; }
+
+public int SkillPoints { get; set; }
+
+public int HighAbilityId { get; set; }
     public AbilityType AbilityId { get; set; }
     public byte Level { get; set; }
     public uint BuffId { get; set; }

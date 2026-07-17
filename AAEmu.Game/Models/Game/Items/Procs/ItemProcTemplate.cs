@@ -8,6 +8,10 @@ namespace AAEmu.Game.Models.Game.Items.Procs;
 public class ItemProcTemplate
 {
     public uint Id { get; set; }
+public uint TriggerTagId { get; set; }
+public uint TriggerSkillId { get; set; }
+public bool OrUnitReqs { get; set; }
+public string Description { get; set; }
     public uint SkillId { get; set; }
     public ProcChanceKind ChanceKind { get; set; }
     public uint ChanceRate { get; set; }

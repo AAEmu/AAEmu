@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCLootBagDataPacket(List<Item> items, bool lootAll) : GamePacket(SCOffsets.SCLootBagDataPacket, 1)
+public class SCLootBagDataPacket(List<Item> items, bool lootAll) : GamePacket(SCOffsets.SCLootBagDataPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

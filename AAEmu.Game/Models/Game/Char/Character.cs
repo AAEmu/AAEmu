@@ -50,7 +50,7 @@ public partial class Character : Unit, ICharacter
     public List<IDisposable> Subscribers { get; set; }
     public override CharacterEvents Events { get; } = new();
     //public uint Id { get; set; } // moved to BaseUnit
-    public uint AccountId { get; set; }
+    public ulong AccountId { get; set; }
     public Race Race { get; set; }
     public Gender Gender { get; set; }
     /// <summary>
@@ -189,7 +189,7 @@ public partial class Character : Unit, ICharacter
 
     public CharacterVisualOptions VisualOptions { get; set; }
 
-    public const int MaxActionSlots = 85;
+    public const int MaxActionSlots = 133; // 85 in 1.2, 121 in 3.0.3.0, 133 in 3.5.0.3
     public ActionSlot[] Slots { get; set; }
     public Inventory Inventory { get; set; }
     public byte NumInventorySlots { get; set; }
@@ -1954,7 +1954,7 @@ public partial class Character : Unit, ICharacter
         SendPacket(new SCErrorMsgPacket(errorMsgType1, errorMsgType2, type, isNotify));
     }
 
-    public static Character Load(uint characterId, uint accountId)
+    public static Character Load(uint characterId, ulong accountId)
     {
         using (var connection = MySQL.CreateConnection())
             return Load(connection, characterId, accountId);
@@ -2196,7 +2196,7 @@ public partial class Character : Unit, ICharacter
 
     #region Database
 
-    public static Character Load(MySqlConnection connection, uint characterId, uint accountId)
+    public static Character Load(MySqlConnection connection, uint characterId, ulong accountId)
     {
         var accountDetails = AccountManager.Instance.GetAccountDetails(accountId);
         Character character = null;
@@ -2813,6 +2813,45 @@ public partial class Character : Unit, ICharacter
             character.SendPacket(new SCUnitsRemovedPacket([ObjId]));
     }
 
+    private void Inventory_Equip(PacketStream stream)
+    {
+        var index = 0;
+        var validFlags = 0;
+        // calculate validFlags
+        var items = Inventory.Equipment.GetSlottedItemsList();
+        foreach (var item in items)
+        {
+            if (item != null)
+            {
+                validFlags |= 1 << index;
+            }
+
+            index++;
+        }
+
+        stream.Write((uint)validFlags); // validFlags for 3.0.3.0+
+        foreach (var item in items)
+        {
+            if (item != null)
+            {
+                stream.Write(item);
+            }
+        }
+
+        index = 0;
+        validFlags = 0;
+
+        foreach (var item in Inventory.Equipment.GetSlottedItemsList())
+        {
+            if (item == null) { continue; }
+
+            var _tmp = (int)item.ItemFlags << index;
+            ++index;
+            validFlags |= _tmp;
+        }
+        stream.Write(validFlags); // ItemFlags flags for 3.0.3.0+
+    }
+
     public PacketStream Write(PacketStream stream)
     {
         stream.Write(Id);
@@ -2820,6 +2859,7 @@ public partial class Character : Unit, ICharacter
         stream.Write((byte)Race);
         stream.Write((byte)Gender);
         stream.Write(Level);
+        stream.Write(0u); // heirExp add for 3.5.0.3 (heir mechanics not ported)
         stream.Write(Hp);
         stream.Write(Mp);
         stream.Write(Transform.ZoneId);
@@ -2828,14 +2868,7 @@ public partial class Character : Unit, ICharacter
         stream.Write((uint)(Expedition?.Id ?? 0));
         stream.Write(Family);
 
-        var items = Inventory.Equipment.GetSlottedItemsList();
-        foreach (var item in items)
-        {
-            if (item == null)
-                stream.Write(0);
-            else
-                stream.Write(item);
-        }
+        Inventory_Equip(stream);
 
         stream.Write((byte)Ability1);
         stream.Write((byte)Ability2);
@@ -2848,6 +2881,7 @@ public partial class Character : Unit, ICharacter
         stream.Write(ModelParams);
         stream.Write(LaborPower);
         stream.Write(LaborPowerModified);
+        stream.Write((short)0); // localLaborPower add in 3.0.4.2 (not ported)
         stream.Write(DeadCount);
         stream.Write(DeadTime);
         stream.Write(RezWaitDuration);
@@ -2856,8 +2890,8 @@ public partial class Character : Unit, ICharacter
         stream.Write(LeaveTime); // lastWorldLeaveTime
         stream.Write(Money);
         stream.Write(0L); // moneyAmount ?
-        stream.Write(CrimePoint); // current crime points (/50)
-        stream.Write(InfamyPoint); // total infamy 
+        stream.Write(CrimePoint); // current crime points (/50) short in 3+, int in 1.2
+        stream.Write(InfamyPoint); // total infamy (crimeRecord)
         stream.Write((short)0); // crimeScore? trials served?
         stream.Write(DeleteRequestTime);
         stream.Write(TransferRequestTime);
@@ -2872,6 +2906,7 @@ public partial class Character : Unit, ICharacter
         stream.Write(Gift);
         stream.Write(Updated);
         stream.Write((byte)0); // forceNameChange ?
+        stream.Write(0); // highAbilityRsc for 3.0.3.0 (not ported)
         return stream;
     }
 

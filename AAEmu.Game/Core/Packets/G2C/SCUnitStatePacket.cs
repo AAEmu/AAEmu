@@ -24,7 +24,7 @@ public class SCUnitStatePacket : GamePacket
 
     // private byte _attachPoint;
 
-    public SCUnitStatePacket(Unit unit) : base(SCOffsets.SCUnitStatePacket, 1)
+    public SCUnitStatePacket(Unit unit) : base(SCOffsets.SCUnitStatePacket, 5)
     {
         _unit = unit;
         _modelPostureType = unit.ModelPostureType;

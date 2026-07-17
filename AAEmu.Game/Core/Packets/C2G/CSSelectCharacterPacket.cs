@@ -55,7 +55,7 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
 
             Connection.ActiveChar.Simulation = new Simulation(character);
 
-            Connection.SendPacket(new SCCharacterStatePacket(character));
+            Connection.SendPacket(new CharacterStatePacket(character));
             Connection.SendPacket(new SCCharacterGamePointsPacket(character));
             Connection.ActiveChar.Inventory.Send();
             Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));

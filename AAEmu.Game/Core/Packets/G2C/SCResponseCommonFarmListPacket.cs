@@ -6,7 +6,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCResponseCommonFarmListPacket(Dictionary<FarmType, List<Doodad>> allPlanted)
-    : GamePacket(SCOffsets.SCResponseCommonFarmListPacket, 1)
+    : GamePacket(SCOffsets.SCResponseCommonFarmListPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

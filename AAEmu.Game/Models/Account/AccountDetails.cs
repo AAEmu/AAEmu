@@ -2,7 +2,7 @@
 
 public struct AccountDetails
 {
-    public int AccountId { get; set; }
+    public ulong AccountId { get; set; }
     public int AccessLevel { get; set; }
     public short Labor { get; set; }
     public int Credits { get; set; }

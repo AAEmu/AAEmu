@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Items;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCUnlockCurrencySlotPacket(SlotType slotType, byte slot)
-    : GamePacket(SCOffsets.SCUnlockCurrencySlotPacket, 1)
+    : GamePacket(SCOffsets.SCUnlockCurrencySlotPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

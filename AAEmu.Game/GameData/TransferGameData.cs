@@ -1,4 +1,4 @@
-﻿using System.Xml;
+using System.Xml;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.XML;
@@ -31,7 +31,7 @@ public class TransferGameData : Singleton<TransferGameData>, IGameDataLoader
     /// </summary>
     private Dictionary<byte, Dictionary<uint, List<TransferRoads>>> _transferRoads = [];
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _templates = [];
 
@@ -69,7 +69,7 @@ public class TransferGameData : Singleton<TransferGameData>, IGameDataLoader
                 {
                     var template = new TransferBindings
                     {
-                        Id = reader.GetUInt32("id"),
+                        //Id = reader.GetUInt32("id"), // there is no such field in the database for version 3.0.3.0
                         OwnerId = reader.GetUInt32("owner_id"),
                         OwnerType = reader.GetString("owner_type"),
                         AttachPointId = (AttachPointKind)reader.GetInt16("attach_point_id"),
@@ -94,7 +94,7 @@ public class TransferGameData : Singleton<TransferGameData>, IGameDataLoader
                 {
                     var template = new TransferBindingDoodads
                     {
-                        Id = reader.GetUInt32("id"),
+                        //Id = reader.GetUInt32("id"), // there is no such field in the database for version 3.0.3.0
                         OwnerId = reader.GetUInt32("owner_id"),
                         OwnerType = reader.GetString("owner_type"),
                         AttachPointId = (AttachPointKind)reader.GetInt32("attach_point_id"),
@@ -119,7 +119,7 @@ public class TransferGameData : Singleton<TransferGameData>, IGameDataLoader
                 {
                     var template = new TransferPaths
                     {
-                        Id = reader.GetUInt32("id"),
+                        //Id = reader.GetUInt32("id"), // there is no such field in the database for version 3.0.3.0
                         OwnerId = reader.GetUInt32("owner_id"),
                         OwnerType = reader.GetString("owner_type"),
                         PathName = reader.GetString("path_name"),

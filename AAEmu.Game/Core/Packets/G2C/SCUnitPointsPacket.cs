@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCUnitPointsPacket(uint id, int health, int mana) : GamePacket(SCOffsets.SCUnitPointsPacket, 1)
+public class SCUnitPointsPacket(uint id, int health, int mana) : GamePacket(SCOffsets.SCUnitPointsPacket, 5)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
 

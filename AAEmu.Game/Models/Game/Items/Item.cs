@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
 using Newtonsoft.Json;
@@ -30,6 +30,7 @@ public class Item : PacketMarshaler, IComparable<Item>
 
     [JsonIgnore]
     public bool IsDirty { get => _isDirty; set => _isDirty = value; }
+    public ItemContainer HoldingContainer { get; set; }
 
     [JsonProperty]
     public byte WorldId { get => _worldId; set { _worldId = value; _isDirty = true; } }

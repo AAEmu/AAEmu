@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCAboxTeleportPacket(int x, int y) : GamePacket(SCOffsets.SCAboxTeleportPacket, 1)
+public class SCAboxTeleportPacket(int x, int y) : GamePacket(SCOffsets.SCAboxTeleportPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

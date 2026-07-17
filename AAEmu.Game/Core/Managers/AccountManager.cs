@@ -16,8 +16,8 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private readonly ConcurrentDictionary<uint, GameConnection> _accounts = new();
-    private readonly Dictionary<uint, object> _locks = [];
+    private readonly ConcurrentDictionary<ulong, GameConnection> _accounts = new();
+    private readonly Dictionary<ulong, object> _locks = [];
 
     public void Initialize()
     {
@@ -50,19 +50,19 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
         }
     }
 
-    public void Remove(uint id)
+    public void Remove(ulong id)
     {
         _accounts.TryRemove(id, out _);
     }
 
-    public bool Contains(uint id)
+    public bool Contains(ulong id)
     {
         return _accounts.ContainsKey(id);
     }
 
     public int Count() => _accounts.Count;
 
-    private AccountDetails GetAccountDetailsInternal(uint accountId)
+    public AccountDetails GetAccountDetailsInternal(ulong accountId)
     {
         var res = new AccountDetails();
         try
@@ -75,7 +75,7 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
             using var reader = command.ExecuteReader();
             if (reader.Read())
             {
-                res.AccountId = reader.GetInt32("account_id");
+                res.AccountId = reader.GetUInt64("account_id");
                 res.AccessLevel = reader.GetInt32("access_level");
                 res.Labor = reader.GetInt16("labor");
                 res.Credits = reader.GetInt32("credits");
@@ -109,7 +109,7 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
             command.Parameters.AddWithValue("@last_loyalty_tick", DateTime.UtcNow);
             command.Prepare();
             command.ExecuteNonQuery();
-            res.AccountId = (int)command.LastInsertedId;
+            res.AccountId = (ulong)command.LastInsertedId;
             res.LastLogin = DateTime.UtcNow;
             res.LastUpdated = DateTime.UtcNow;
             res.LastLaborTick = DateTime.UtcNow;
@@ -125,7 +125,7 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
 
     }
 
-    public AccountDetails GetAccountDetails(uint accountId)
+    public AccountDetails GetAccountDetails(ulong accountId)
     {
         object accLock;
         lock (_locks)
@@ -150,7 +150,7 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
         }
     }
 
-    public bool AddCredits(uint accountId, int creditsAmount)
+    public bool AddCredits(ulong accountId, int creditsAmount)
     {
         object accLock;
         lock (_locks)
@@ -181,9 +181,9 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
         }
     }
 
-    public bool RemoveCredits(uint accountId, int credits) => AddCredits(accountId, -credits);
+    public bool RemoveCredits(ulong accountId, int credits) => AddCredits(accountId, -credits);
 
-    public bool AddLoyalty(uint accountId, int loyaltyAmount)
+    public bool AddLoyalty(ulong accountId, int loyaltyAmount)
     {
         object accLock;
         lock (_locks)
@@ -214,7 +214,7 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
         }
     }
 
-    public void UpdateLabor(uint accountId, short laborPower)
+    public void UpdateLabor(ulong accountId, short laborPower)
     {
         object accLock;
         lock (_locks)
@@ -250,7 +250,7 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
     /// <param name="accountId"></param>
     /// <param name="newTime"></param>
     /// <returns>Previous value for LastLogin</returns>
-    public DateTime UpdateLoginTime(uint accountId, DateTime newTime)
+    public DateTime UpdateLoginTime(ulong accountId, DateTime newTime)
     {
         object accLock;
         lock (_locks)
@@ -294,7 +294,7 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
     /// <param name="updateLabor"></param>
     /// <param name="updateCredits"></param>
     /// <param name="updateLoyalty"></param>
-    public void UpdateTickTimes(uint accountId, DateTime newTime, bool updateLabor, bool updateCredits, bool updateLoyalty)
+    public void UpdateTickTimes(ulong accountId, DateTime newTime, bool updateLabor, bool updateCredits, bool updateLoyalty)
     {
         object accLock;
         lock (_locks)
@@ -338,7 +338,7 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
     /// <param name="accountId"></param>
     /// <param name="timeElapsed"></param>
     /// <param name="timesTaken"></param>
-    public void UpdateDivineClock(uint accountId, uint timeElapsed, uint timesTaken)
+    public void UpdateDivineClock(ulong accountId, uint timeElapsed, uint timesTaken)
     {
         object accLock;
         lock (_locks)
@@ -374,7 +374,7 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
     /// </summary>
     /// <param name="accountId"></param>
     /// <returns></returns>
-    public (uint, uint) GetDivineClock(uint accountId)
+    public (uint, uint) GetDivineClock(ulong accountId)
     {
         var timeElapsed = 0u;
         var timesTaken = 0u;

@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Reflection;
+using System.Text;
 
 namespace AAEmu.Commons.Utils;
 
@@ -279,5 +280,15 @@ public static class Helpers
         }
 
         return arrays;
+    }
+
+    public static string ByteArrayToString(byte[] bytes)
+    {
+        var hex = new StringBuilder(bytes.Length * 2);
+        foreach (var b in bytes)
+        {
+            hex.AppendFormat("{0:X2}", b);
+        }
+        return hex.ToString();
     }
 }

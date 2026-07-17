@@ -1,10 +1,11 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mails;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Trading;
 using AAEmu.Game.Models.Tasks.Specialty;
 using AAEmu.Game.Utils;
@@ -13,6 +14,10 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
+/// <summary>
+/// Менеджер специальной торговли, загружающий данные из таблиц
+/// <c>specialties</c>, <c>specialty_bundle_items</c> и <c>specialty_npcs</c> БД <c>compact.sqlite3</c>.
+/// </summary>
 public class SpecialtyManager : Singleton<SpecialtyManager>, ISpecialtyManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
@@ -59,7 +64,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>, ISpecialtyManager
                             ColZoneGroupId = reader.GetUInt32("col_zone_group_id"),
                             Ratio = reader.GetUInt32("ratio"),
                             Profit = reader.GetUInt32("profit"),
-                            VendorExist = reader.GetBoolean("id", true)
+                            VendorExist = reader.GetBoolean("vendor_exist", true)
                         };
                         _specialties.Add(template.Id, template);
                     }
@@ -102,13 +107,15 @@ public class SpecialtyManager : Singleton<SpecialtyManager>, ISpecialtyManager
                     {
                         var template = new SpecialtyNpc
                         {
-                            Id = reader.GetUInt32("id"),
-                            Name = reader.GetString("name"),
                             NpcId = reader.GetUInt32("npc_id"),
                             SpecialtyBundleId = reader.GetUInt32("specialty_bundle_id")
                         };
 
-                        _specialtyNpc.Add(template.NpcId, template);
+                        // TODO есть повторы
+                        // NpcId    SpecialtyBundleId
+                        // 15086	25
+                        // 15086	8000009
+                        _specialtyNpc.TryAdd(template.NpcId, template);
                     }
                 }
             }
@@ -190,8 +197,6 @@ public class SpecialtyManager : Singleton<SpecialtyManager>, ISpecialtyManager
             return 0;
         }
 
-        Logger.Info($"GetBasePriceForSpecialty - {player.Name} backpack:{backpack.TemplateId}, npcObjId:{npcId}, npc: {npc.TemplateId}");
-
         if (MathUtil.CalculateDistance(player.Transform.World.Position, npc.Transform.World.Position) > 2.5)
         {
             player.SendErrorMessage(ErrorMessageType.TooFarAway);
@@ -201,7 +206,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>, ISpecialtyManager
         if (!_specialtyNpc.TryGetValue(npc.TemplateId, out var specialtyNpc))
         {
             player.SendErrorMessage(ErrorMessageType.StoreCantSellSameZone);
-            return 0;
+            return 1;
         }
 
         var bundleIdAtNpc = specialtyNpc.SpecialtyBundleId;
@@ -224,9 +229,7 @@ public class SpecialtyManager : Singleton<SpecialtyManager>, ISpecialtyManager
             return 0;
         }
 
-        Logger.Info($"GetBasePriceForSpecialty - bundleIdAtNpc: {bundleIdAtNpc}, bundleMapping: {bundleMapping.Values.Count} items, bundleItem: Id {bundleItem.Id} - ItemId {bundleItem.ItemId} - SpecialtyBundleId {bundleItem.SpecialtyBundleId}");
-        var item = bundleItem.Item ?? ItemManager.Instance.GetTemplate(bundleItem.ItemId);
-        return (int)(Math.Floor(bundleItem.Profit * (bundleItem.Ratio / 1000f)) + (item?.Refund ?? 0));
+        return (int)(Math.Floor(bundleItem.Profit * (bundleItem.Ratio / 1000f)) + bundleItem.Item.Refund);
     }
 
     public int SellSpecialty(Character player, uint npcObjId)

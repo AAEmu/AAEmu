@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCWorldMessagePacket(byte source, byte messageType, string msg)
-    : GamePacket(SCOffsets.SCWorldMessagePacket, 1)
+    : GamePacket(SCOffsets.SCWorldMessagePacket, 5)
 {
     // SEENS RELATED TO PATRON TIME TO EXPIRE
 

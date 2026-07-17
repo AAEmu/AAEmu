@@ -4,21 +4,21 @@ using AAEmu.Game.Models.Game.Faction;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCFactionListPacket : GamePacket
+public class SCSystemFactionListPacket : GamePacket
 {
     private readonly SystemFaction[] _factions;
 
-    public SCFactionListPacket() : base(0x007, 1)
+    public SCSystemFactionListPacket() : base(SCOffsets.SCSystemFactionListPacket, 5)
     {
         _factions = [];
     }
 
-    public SCFactionListPacket(SystemFaction[] factions) : base(SCOffsets.SCFactionListPacket, 1)
+    public SCSystemFactionListPacket(SystemFaction[] factions) : base(SCOffsets.SCSystemFactionListPacket, 5)
     {
         _factions = factions;
     }
 
-    public SCFactionListPacket(SystemFaction faction) : base(SCOffsets.SCFactionListPacket, 1)
+    public SCSystemFactionListPacket(SystemFaction faction) : base(SCOffsets.SCSystemFactionListPacket, 5)
     {
         _factions = [faction];
     }

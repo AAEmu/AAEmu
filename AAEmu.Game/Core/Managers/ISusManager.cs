@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public interface ISusManager
 {
-    bool LogActivity(string category, uint accountId, uint playerId, uint zoneGroup, Vector3 position, string description);
+    bool LogActivity(string category, ulong accountId, uint playerId, uint zoneGroup, Vector3 position, string description);
     bool LogActivity(string category, Character player, string description);
     bool LogActivity(string category, string description);
     void AnalyzePlayerDeltaMovement(Character player, float deltaTime);
