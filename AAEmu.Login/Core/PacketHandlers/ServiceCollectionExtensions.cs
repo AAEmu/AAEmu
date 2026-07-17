@@ -30,6 +30,7 @@ public static class ServiceCollectionExtensions
             .AddLoginPacket<CAOtpNumberPacket, CAOtpNumberPacketHandler>()
             .AddLoginPacket<CAPcCertNumberPacket, CAPcCertNumberPacketHandler>()
             .AddLoginPacket<CARequestAuthGameOnPacket, CARequestAuthGameOnPacketHandler>()
+            .AddLoginPacket<CARequestAuthPacket_0x004, CARequestAuth_004_PacketHandler>()
             .AddLoginPacket<CARequestAuthMailRuPacket, CARequestAuthMailRuPacketHandler>()
             .AddLoginPacket<CARequestAuthPacket, CARequestAuthPacketHandler>()
             .AddLoginPacket<CARequestAuthTencentPacket, CARequestAuthTencentPacketHandler>()

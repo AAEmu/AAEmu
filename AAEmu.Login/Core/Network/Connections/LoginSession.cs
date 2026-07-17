@@ -1,4 +1,4 @@
-using AAEmu.Login.Core.Authentication;
+﻿using AAEmu.Login.Core.Authentication;
 using AAEmu.Login.Core.Controllers;
 using AAEmu.Login.Core.Network.Login;
 using AAEmu.Login.Core.PacketHandlers.C2L;
@@ -11,13 +11,7 @@ namespace AAEmu.Login.Core.Network.Connections;
 /// Manages the login flow state machine for a client connection.
 /// The instance members of this class are thread-safe.
 /// </summary>
-public sealed class LoginSession(
-    ILoginConnection connection,
-    IGameController gameController,
-    TimeProvider timeProvider,
-    IOptions<AppConfiguration> appConfig,
-    ILogger<LoginSession> logger)
-    : ILoginSession
+public sealed class LoginSession(ILoginConnection connection, IGameController gameController, TimeProvider timeProvider, IOptions<AppConfiguration> appConfig, ILogger<LoginSession> logger) : ILoginSession
 {
     private readonly TimeSpan _enterWorldTimeout = appConfig.Value.EnterWorldTimeout;
     private readonly Lock _lock = new();
@@ -68,9 +62,7 @@ public sealed class LoginSession(
         {
             if (_state != LoginState.Connected)
             {
-                logger.LogWarning(
-                    "Cannot authenticate: invalid state {State} for connection {ConnectionId}",
-                    _state, Connection.Id);
+                logger.LogWarning("Cannot authenticate: invalid state {State} for connection {ConnectionId}", _state, Connection.Id);
                 canProceed = false;
             }
             else
@@ -91,9 +83,7 @@ public sealed class LoginSession(
         await SendAuthResultAsync(result, cancellationToken);
     }
 
-    public async Task ContinueAuthAsync<TFlow>(Func<TFlow, Task<AuthFlowResult>> step,
-        CancellationToken cancellationToken)
-        where TFlow : class, IAuthenticationFlow
+    public async Task ContinueAuthAsync<TFlow>(Func<TFlow, Task<AuthFlowResult>> step, CancellationToken cancellationToken) where TFlow : class, IAuthenticationFlow
     {
         TFlow? flow;
         LoginDeniedReason? earlyDenial = null;
@@ -102,17 +92,13 @@ public sealed class LoginSession(
         {
             if (_state != LoginState.Authenticating)
             {
-                logger.LogWarning(
-                    "Cannot continue auth: invalid state {State} for connection {ConnectionId}",
-                    _state, Connection.Id);
+                logger.LogWarning("Cannot continue auth: invalid state {State} for connection {ConnectionId}", _state, Connection.Id);
                 flow = null;
                 earlyDenial = LoginDeniedReason.BadResponse;
             }
             else if (_currentAuthFlow is not TFlow typedFlow)
             {
-                logger.LogWarning(
-                    "Auth flow type mismatch: expected {Expected}, got {Actual} for connection {ConnectionId}",
-                    typeof(TFlow).Name, _currentAuthFlow?.GetType().Name ?? "null", Connection.Id);
+                logger.LogWarning("Auth flow type mismatch: expected {Expected}, got {Actual} for connection {ConnectionId}", typeof(TFlow).Name, _currentAuthFlow?.GetType().Name ?? "null", Connection.Id);
                 _currentAuthFlow = null;
                 _state = LoginState.Disconnected;
                 flow = null;
@@ -148,7 +134,7 @@ public sealed class LoginSession(
                 await Client.SendAuthDeniedAsync(denied.Reason, cancellationToken);
                 break;
 
-            // Pending: flow is managing itself, nothing to send
+                // Pending: flow is managing itself, nothing to send
         }
     }
 
@@ -185,39 +171,42 @@ public sealed class LoginSession(
     {
         CancellationTokenSource linkedCts;
         TaskCompletionSource<EnterWorldResult> tcs;
+        GameServerId expectedGsId;
 
         lock (_lock)
         {
             if (_state != LoginState.Authenticated)
             {
-                logger.LogWarning(
-                    "Cannot enter world: invalid state {State} for connection {ConnectionId}",
-                    _state, Connection.Id);
+                logger.LogWarning("Cannot enter world: invalid state {State} for connection {ConnectionId}", _state, Connection.Id);
                 return;
             }
 
             if (gameController.GetGameServer(gsId) is not { Active: true })
             {
-                logger.LogWarning(
-                    "Cannot enter world: game server {GsId} not available for connection {ConnectionId}",
-                    gsId, Connection.Id);
+                logger.LogWarning("Cannot enter world: game server {GsId} not available for connection {ConnectionId}", gsId, Connection.Id);
                 return;
             }
 
             _state = LoginState.EnteringWorld;
-            _pendingGsId = gsId;
 
-            _enterWorldCts = CancellationTokenSource.CreateLinkedTokenSource(
-                Connection.ConnectionClosed, cancellationToken);
-            _enterWorldTcs = new TaskCompletionSource<EnterWorldResult>(
-                TaskCreationOptions.RunContinuationsAsynchronously);
+            expectedGsId = gsId;
+            if (gameController.TryGetParentId(gsId, out var parentGsId))
+            {
+                logger.LogDebug("EnterWorld request for mirror game server {MirrorGsId} resolved to parent {ParentGsId} for connection {ConnectionId}", gsId, parentGsId, Connection.Id);
+                expectedGsId = parentGsId;
+            }
+
+            _pendingGsId = expectedGsId;
+
+            _enterWorldCts = CancellationTokenSource.CreateLinkedTokenSource(Connection.ConnectionClosed, cancellationToken);
+            _enterWorldTcs = new TaskCompletionSource<EnterWorldResult>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             linkedCts = _enterWorldCts;
             tcs = _enterWorldTcs;
         }
 
-        // Send request to game server (outside the lock)
-        gameController.RequestEnterWorld(Connection.AccountId, Connection.Id, gsId);
+        // Send request to the resolved (parent) game server (outside the lock)
+        gameController.RequestEnterWorld(Connection.AccountId, Connection.Id, expectedGsId);
 
         // Spawn background task to await response and send result
         _enterWorldBackgroundTask = RunEnterWorldBackgroundAsync(tcs, linkedCts);

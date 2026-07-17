@@ -30,8 +30,8 @@ public class CARequestReconnectPacket() : LoginPacket(TypeId), ILoginPacket
     {
         var pFrom = stream.ReadUInt32();
         var pTo = stream.ReadUInt32();
-        AccountId = new AccountId(stream.ReadUInt32());
-        GsId = new GameServerId(stream.ReadByte());
+        AccountId = new AccountId(stream.ReadUInt64());
+        GsId = new GameServerId(stream.ReadByte()); // wid
         Cookie = stream.ReadUInt32();
         var macLength = stream.ReadUInt16();
         var mac = stream.ReadBytes(macLength);

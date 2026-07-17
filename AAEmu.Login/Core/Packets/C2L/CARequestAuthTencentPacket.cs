@@ -4,21 +4,26 @@ using AAEmu.Login.Core.Network.Login;
 namespace AAEmu.Login.Core.Packets.C2L;
 
 /// <summary>
-/// A packet sent by the client to the login server to request authentication via Tencent's services.
+/// A packet sent by the client to the login server to request authentication (opcode 0x002).
 /// </summary>
 public class CARequestAuthTencentPacket() : LoginPacket(TypeId), ILoginPacket
 {
-    public new static ushort TypeId => CLOffsets.CARequestAuthTencentPacket;
-    
+    public new static ushort TypeId => CLOffsets.CARequestAuthPacket_0x002;
+
+    /// <summary>
+    /// Gets the account name provided by the client for authentication.
+    /// </summary>
+    public string? Account { get; private set; }
+
     public override void Read(PacketStream stream)
     {
         var pFrom = stream.ReadUInt32();
         var pTo = stream.ReadUInt32();
+        var svc = stream.ReadByte();
         var dev = stream.ReadBoolean();
-        var qqno = stream.ReadUInt32();
-        var len = stream.ReadUInt16();
-        var sig = stream.ReadBytes(128); // length 128 or len?
-        var key = stream.ReadBytes(16); // length 16
-        var mac = stream.ReadBytes(8);
+        Account = stream.ReadString();
+        var mac = stream.ReadBytes();
+        var mac2 = stream.ReadBytes();
+        var cpu = stream.ReadUInt64();
     }
 }

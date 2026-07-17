@@ -15,6 +15,6 @@ public class CAPcCertNumberPacket() : LoginPacket(TypeId), ILoginPacket
     public override void Read(PacketStream stream)
     {
         // Nexon Simple Authentication Number? https://easyprotect.nexon.com/
-        CertNumber = stream.ReadString(); // TODO but on old client length const 8
+        CertNumber = stream.ReadString(); // num
     }
 }

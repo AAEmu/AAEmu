@@ -15,26 +15,27 @@ public enum JoinResponseReason : ushort
 /// </summary>
 /// <param name="MaxCharactersPerAccount">The maximum number of characters per account.</param>
 /// <param name="AdditionalCharactersPerServer">The additional number of characters per server when using the slot increase item.</param>
+/// <param name="AdditionalData">Additional data for the AFS value.</param>
 /// <param name="IsPreSelectCharacterPeriod">Whether the server is in character pre-creation mode.</param>
-public readonly record struct AfsValue(
-    byte MaxCharactersPerAccount,
-    uint AdditionalCharactersPerServer,
-    bool IsPreSelectCharacterPeriod)
+public readonly record struct AfsValue(byte MaxCharactersPerAccount, byte AdditionalCharactersPerServer, ushort AdditionalData, bool IsPreSelectCharacterPeriod)
 {
     public static AfsValue FromULong(ulong afs)
     {
         var maxCharactersPerAccount = (byte)(afs & 0xFF);
-        var isPreSelectCharacterPeriod = (afs & 0x100) != 0;
-        var additionalSlotsPerServer = (uint)(afs >> 32);
+        var additionalSlotsPerServer = (byte)((afs >> 8) & 0xFF);
+        var additionalData = (ushort)((afs >> 16) & 0xFFFF);
+        var isPreSelectCharacterPeriod = (afs & 0x10000) != 0;
+        //var additionalSlotsPerServer = (uint)(afs >> 32);
 
-        return new AfsValue(maxCharactersPerAccount, additionalSlotsPerServer, isPreSelectCharacterPeriod);
+        return new AfsValue(maxCharactersPerAccount, additionalSlotsPerServer, additionalData, isPreSelectCharacterPeriod);
     }
 
     public ulong ToULong()
     {
-        var afs = ((ulong)AdditionalCharactersPerServer << 32)
-                  | (IsPreSelectCharacterPeriod ? 1UL << 8 : 0UL)
-                  | MaxCharactersPerAccount;
+        var afs = (IsPreSelectCharacterPeriod ? 1UL << 32 : 0UL)
+                  | ((ulong)AdditionalData << 16)
+                  | ((ulong)AdditionalCharactersPerServer << 8)
+                  | (ulong)MaxCharactersPerAccount;
         return afs;
     }
 }
@@ -44,14 +45,15 @@ public readonly record struct AfsValue(
 /// </summary>
 /// <param name="reason"></param>
 /// <param name="afs"></param>
-public class ACJoinResponsePacket(ushort reason, ulong afs) : LoginPacket(LCOffsets.ACJoinResponsePacket)
+public class ACJoinResponsePacket(byte authId, ushort reason, ulong afs) : LoginPacket(LCOffsets.ACJoinResponsePacket)
 {
-    public ACJoinResponsePacket(JoinResponseReason reason, AfsValue afs) : this((ushort)reason, afs.ToULong())
+    public ACJoinResponsePacket(byte authId, JoinResponseReason reason, AfsValue afs) : this((byte) authId, (ushort)reason, afs.ToULong())
     {
     }
 
     public override PacketStream Write(PacketStream stream)
     {
+        stream.Write(authId);
         stream.Write(reason);
         stream.Write(afs);
 

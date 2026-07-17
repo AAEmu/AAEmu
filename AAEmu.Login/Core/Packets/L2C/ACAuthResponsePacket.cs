@@ -1,7 +1,5 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
-using AAEmu.Login.Models;
-
 namespace AAEmu.Login.Core.Packets.L2C;
 
 /// <summary>
@@ -9,13 +7,13 @@ namespace AAEmu.Login.Core.Packets.L2C;
 /// </summary>
 /// <param name="accountId">The unique identifier of the account.</param>
 /// <param name="slotCount"></param>
-public class ACAuthResponsePacket(AccountId accountId, byte slotCount) : LoginPacket(LCOffsets.ACAuthResponsePacket)
+public class ACAuthResponsePacket(ulong accountId, byte slotCount) : LoginPacket(LCOffsets.ACAuthResponsePacket)
 {
-    private readonly byte[] _wsk = new byte[32];
+    private readonly string _wsk = "65CCBF5AF8DB8B633D3C03C5A8735601";
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(accountId.Value);
+        stream.Write(accountId);
         stream.Write(_wsk, true);
         stream.Write(slotCount);
 

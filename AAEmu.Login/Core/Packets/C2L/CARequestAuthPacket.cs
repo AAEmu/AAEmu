@@ -8,7 +8,7 @@ namespace AAEmu.Login.Core.Packets.C2L;
 /// </summary>
 public class CARequestAuthPacket() : LoginPacket(TypeId), ILoginPacket
 {
-    public new static ushort TypeId => CLOffsets.CARequestAuthPacket;
+    public new static ushort TypeId => CLOffsets.CARequestAuthPacket_0x001;
 
     /// <summary>
     /// Gets the account name provided by the client for authentication.

@@ -17,6 +17,6 @@ public class CACancelEnterWorldPacket() : LoginPacket(TypeId), ILoginPacket
     
     public override void Read(PacketStream stream)
     {
-        WorldId = stream.ReadByte(); // diw -> world id
+        WorldId = stream.ReadByte(); // wid -> world id
     }
 }
