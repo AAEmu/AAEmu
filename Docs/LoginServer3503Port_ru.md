@@ -1,5 +1,7 @@
 # Порт логин-сервера 1.2 → 3.5.0.3: что сделано и почему
 
+> English version: [LoginServer3503Port.md](LoginServer3503Port.md)
+
 Документ описывает перенос изменений логин-сервера (`AAEmu.Login`) из проекта 3.5.0.3 (`AAC3500`)
 в актуальную ветку 1.2. Источник изменений — материалы побайтового сравнения в
 `../diff-3503/` (см. `PORTING-1.2-to-3.5.md`, `files-modified-content.txt`, `files-added.txt`).
