@@ -305,7 +305,7 @@ public class Dungeon
         // we take the coordinates of the zone
         foreach (var wz in World.Template.XmlWorldZones.Values)
         {
-            if (wz.Id == _zoneInstanceId.ZoneId)
+            if (wz.ZoneKey == _zoneInstanceId.ZoneId)
             {
                 World.Template.SpawnPosition = wz.SpawnPosition;
                 break;
@@ -346,7 +346,7 @@ public class Dungeon
         // we take the coordinates of the zone
         foreach (var wz in World.Template.XmlWorldZones.Values)
         {
-            if (wz.Id == _zoneInstanceId.ZoneId)
+            if (wz.ZoneKey == _zoneInstanceId.ZoneId)
             {
                 World.Template.SpawnPosition = wz.SpawnPosition;
                 break;

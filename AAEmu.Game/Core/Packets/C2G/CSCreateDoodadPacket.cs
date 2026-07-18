@@ -33,7 +33,6 @@ public class CSCreateDoodadPacket() : GamePacket(CSOffsets.CSCreateDoodadPacket,
             if (!PublicFarmManager.Instance.CanPlace(Connection.ActiveChar, farmType, id))
             {
                 // Invalid public farm
-                Connection.ActiveChar.SendErrorMessage(ErrorMessageType.CommonFarmNotAllowedType);
                 Logger.Warn($"CreateDoodad, ItemId: {itemId}, FarmType: {farmType}");
                 return;
             }

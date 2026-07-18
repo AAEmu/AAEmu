@@ -77,10 +77,10 @@ public class XmlWorld
             {
                 var zone = new XmlWorldZone();
                 zone.ReadNode(zoneNodes[i], worldTemplate, this);
-                if (!Zones.TryAdd(zone.Id, zone))
+                if (!Zones.TryAdd(zone.ZoneKey, zone))
                     throw new GameException("Duplicate zoneKey while reading world.xml");
 
-                worldTemplate.XmlWorldZones.TryAdd(zone.Id, zone);
+                worldTemplate.XmlWorldZones.TryAdd(zone.ZoneKey, zone);
             }
         }
     }

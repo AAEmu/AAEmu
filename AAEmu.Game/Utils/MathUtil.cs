@@ -14,7 +14,7 @@ public class MathUtil
     private static readonly Vector3 UnitXAxis = new(1, 0, 0);
     private static readonly Vector3 UnitYAxis = new(0, 1, 0);
     private static readonly Vector3 UnitZAxis = new(0, 0, 1);
-    public static Point RotatePoint3D(Point point, float xRotation, float yRotation, float zRotation)
+    public static Vector3 RotatePoint3D(Vector3 point, float xRotation, float yRotation, float zRotation)
     {
         var xQ = new Quaternion(UnitXAxis, xRotation);
         var yQ = new Quaternion(UnitYAxis, yRotation);
@@ -24,7 +24,7 @@ public class MathUtil
         var xyzQc = new Quaternion(xyzQ.X, xyzQ.Y, xyzQ.Z, xyzQ.W);
         Quaternion.Conjugate(xyzQc);
         var q = xyzQ * pQ * xyzQc;
-        var rotatedPoint = new Point(q.X, q.Y, q.Z);
+        var rotatedPoint = new Vector3(q.X, q.Y, q.Z);
         return rotatedPoint;
     }
 
@@ -38,11 +38,6 @@ public class MathUtil
     {
         var angleToTarget = CalculateAngleFrom(obj1.Transform.World.Position.X, obj1.Transform.World.Position.Y, obj2.Transform.World.Position.X, obj2.Transform.World.Position.Y) - 90.0;
         return angleToTarget - obj1.Transform.World.Rotation.Z.RadToDeg();
-    }
-
-    public static double CalculateAngleFrom(Point p1, Point p2)
-    {
-        return CalculateAngleFrom(p1.X, p1.Y, p2.X, p2.Y);
     }
 
     public static double CalculateAngleFrom(Vector3 p1, Vector3 p2)
@@ -366,21 +361,6 @@ public class MathUtil
     public static float CalculateDistance(GameObject loc, GameObject loc2, bool includeZAxis = false)
     {
         return CalculateDistance(loc.Transform.World.Position, loc2.Transform.World.Position, includeZAxis);
-    }
-
-    [Obsolete("Please use the Vector3 variant")]
-    public static float CalculateDistance(Point loc, Point loc2, bool includeZAxis = false)
-    {
-        double dx = loc.X - loc2.X;
-        double dy = loc.Y - loc2.Y;
-
-        if (includeZAxis)
-        {
-            double dz = loc.Z - loc2.Z;
-            return (float)Math.Sqrt(dx * dx + dy * dy + dz * dz);
-        }
-
-        return (float)Math.Sqrt(dx * dx + dy * dy);
     }
 
     public static float GetDistance(Vector3 v1, Vector3 v2, bool point3d = false)
