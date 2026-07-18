@@ -39,6 +39,7 @@ public class TestWorldManager : IWorldManager
     public Character GetTargetOrSelf(Character character, string targetName, out int firstNonNameArgument) { firstNonNameArgument = 0; return character; }
     public bool TryRemoveCharacter(uint playerObjId) => false;
     public void Initialize() { }
+    public WorldTemplate[] GetAllWorldTemplates() => [];
     public void Load() { }
 }
 

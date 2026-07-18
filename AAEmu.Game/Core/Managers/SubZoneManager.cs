@@ -21,7 +21,12 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
     {
         #region LoadClientData
 
-        foreach (var worldTemplate in worldManager.GetAllWorldTemplates())
+        var worldTemplates = worldManager.GetAllWorldTemplates();
+        if (worldTemplates == null || worldTemplates.Length == 0)
+        {
+            return;
+        }
+        foreach (var worldTemplate in worldTemplates)
         {
             var zonesList = worldManager.GetZoneKeysByWorldId(worldTemplate.Id);
 
@@ -161,7 +166,7 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
 
                 #region housing_area
 
-                worldLevelDesignDir = Path.Combine("game", "worlds", worldTemplate.Name, "level_design", "zone", zone.Id.ToString(), "client");
+                worldLevelDesignDir = Path.Combine("game", "worlds", worldTemplate.Name, "level_design", "zone", zone.ZoneKey.ToString(), "client");
                 pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "housing_area.xml", true);
 
                 foreach (var pathFileName in pathFiles)
@@ -233,7 +238,7 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
                                         }
                                     }
 
-                                    var worldOrigins = ZoneManager.Instance.GetZoneOriginCell(zone.Id);
+                                    var worldOrigins = ZoneManager.Instance.GetZoneOriginCell(zone.ZoneKey);
 
                                     var cellOffset = new Vector3 { X = (worldOrigins.X + cellXOffset) * 1024f, Y = (worldOrigins.Y + cellYOffset) * 1024f };
 
