@@ -20,4 +20,5 @@ publish/
 /AAEmu.IntegrationTests/Config.json
 *.sqlite3
 .server_files
+.client_files
 .env
