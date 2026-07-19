@@ -294,6 +294,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSThisTimeUnpackItemPacket, 5, typeof(CSThisTimeUnpackItemPacket));
         RegisterPacket(CSOffsets.CSPremiumServiceBuyPacket, 5, typeof(CSPremiumServiceBuyPacket));
         RegisterPacket(CSOffsets.CSPremiumServiceListPacket, 5, typeof(CSPremiumServiceListPacket));
+        RegisterPacket(CSOffsets.CSSecurityReportPacket, 5, typeof(CSSecurityReportPacket));
         // 0x137 CSICSBuyAAPointPacket
         // 0x138 CSRequestTencentFatigueInfoPacket
         RegisterPacket(CSOffsets.CSTakeAllAttachmentItemPacket, 5, typeof(CSTakeAllAttachmentItemPacket));

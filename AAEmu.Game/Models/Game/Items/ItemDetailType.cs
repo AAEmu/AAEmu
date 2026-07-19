@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Items;
+﻿namespace AAEmu.Game.Models.Game.Items;
 
 public enum ItemDetailType
 {
@@ -14,5 +14,5 @@ public enum ItemDetailType
     Glider = 9,
     SlaveEquipment = 10,
     Location = 11,
-    TypeMax = 12,
+    ItemDetailType12 = 12,
 }

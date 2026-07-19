@@ -997,7 +997,7 @@ public class HousingManager(
                     // Just delete the doodad and attached item if no new owner
                     // Delete the attached item
                     if (f.ItemId != 0)
-                        thisDoodadsItem._holdingContainer?.ConsumeItem(ItemTaskType.Invalid,
+                        thisDoodadsItem.HoldingContainer?.ConsumeItem(ItemTaskType.Invalid,
                             thisDoodadsItem.TemplateId, thisDoodadsItem.Count, thisDoodadsItem);
 
                     // Is furniture, but doesn't restore, destroy it

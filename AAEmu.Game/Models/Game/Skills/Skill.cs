@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -716,7 +716,7 @@ public class Skill
                     return; // Item does not exists
                 }
 
-                if (useItem._holdingContainer.OwnerId != player.Id)
+                if (useItem.HoldingContainer.OwnerId != player.Id)
                 {
                     Logger.Warn("SkillItem {0} (itemId:{1}) is not owned by player {2} ({3})", useItem.Template.Name, useItem.Id, player.Name, player.Id);
                     return; // Item is not in the player's possessions
@@ -1354,9 +1354,9 @@ public class Skill
                 // Actually consume the to be consumed items
                 // Specific Items
                 foreach (var (item, amount) in consumedItems)
-                    if (item._holdingContainer != null)
+                    if (item.HoldingContainer != null)
                     {
-                        item._holdingContainer.ConsumeItem(ItemTaskType.SkillReagents, item.TemplateId, amount, item);
+                        item.HoldingContainer.ConsumeItem(ItemTaskType.SkillReagents, item.TemplateId, amount, item);
                     }
 
                 // Doesn't matter, but by Template

@@ -107,7 +107,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                 try
                 {
                     var item = mail.Body.Attachments[i];
-                    item._holdingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
+                    item.HoldingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
                 }
                 catch (Exception ex)
                 {

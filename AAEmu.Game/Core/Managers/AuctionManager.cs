@@ -462,9 +462,9 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
                 if (lot.Item.OwnerId <= 0)
                     continue;
 
-                if (lot.Item._holdingContainer != null)
+                if (lot.Item.HoldingContainer != null)
                 {
-                    lot.Item.SlotType = itemManager.GetContainerSlotTypeByContainerId(lot.Item._holdingContainer.ContainerId);
+                    lot.Item.SlotType = itemManager.GetContainerSlotTypeByContainerId(lot.Item.HoldingContainer.ContainerId);
                 }
 
                 if (lot.Item.SlotType != SlotType.None)

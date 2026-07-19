@@ -1,4 +1,4 @@
-using AAEmu.Commons.Exceptions;
+﻿using AAEmu.Commons.Exceptions;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -308,7 +308,7 @@ public class ItemContainer
             return false;
         }
 
-        var sourceContainer = item._holdingContainer;
+        var sourceContainer = item.HoldingContainer;
         var sourceSlot = (byte)item.Slot;
         var sourceSlotType = item.SlotType;
 
@@ -375,7 +375,7 @@ public class ItemContainer
         {
             item.SlotType = ContainerType;
             item.Slot = newSlot;
-            item._holdingContainer = this;
+            item.HoldingContainer = this;
             item.OwnerId = OwnerId;
 
             Items.Insert(0, item); // insert at front for easy buyback handling
@@ -473,15 +473,15 @@ public class ItemContainer
             Owner?.SendPacket(sync);
         }
 
-        var res = item._holdingContainer.Items.Remove(item);
+        var res = item.HoldingContainer.Items.Remove(item);
         if (res && task != ItemTaskType.Invalid)
         {
-            item._holdingContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(task, [new ItemRemoveSlot(item)], []));
+            item.HoldingContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(task, [new ItemRemoveSlot(item)], []));
         }
 
         if (res && releaseIdAsWell)
         {
-            item._holdingContainer = null;
+            item.HoldingContainer = null;
             ItemManager.Instance.ReleaseId(item.Id);
         }
 
