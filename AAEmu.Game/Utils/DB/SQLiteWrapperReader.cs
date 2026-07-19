@@ -166,4 +166,12 @@ public sealed class SQLiteWrapperReader(SqliteDataReader reader) : IDisposable
         _ordinal.Clear();
         reader.Dispose();
     }
+
+    public List<string> GetColumnNames()
+    {
+        var res = new List<string>();
+        for (var i = 0; i < reader.FieldCount; i++)
+            res.Add(reader.GetName(i));
+        return res;
+    }
 }

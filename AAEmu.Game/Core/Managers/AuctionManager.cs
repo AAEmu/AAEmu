@@ -574,75 +574,55 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
     {
         var searchedArticles = new List<AuctionLot>();
 
-        var detectedLanguage = LanguageDetector.DetectLanguage(search.Keyword);
-        Logger.Info($"Detected language for keyword '{search.Keyword}': {detectedLanguage}");
-
-        foreach (var (lotId, lot) in AuctionLots)
+        foreach (var (_, lot) in AuctionLots)
         {
             var template = lot.Item.Template;
             var settings = template.AuctionSettings;
 
             template.Name = GetLocalizedItemNameById(template.Id);
 
-            // Проверка по ClientId
+            // Check by ClientId
             if (search.ClientId != 0 && lot.ClientId != search.ClientId)
             {
                 continue;
             }
 
-            // Проверка по ключевому слову
-            if (!string.IsNullOrEmpty(search.Keyword))
+            // Check keyword
+            if (!string.IsNullOrWhiteSpace(search.Keyword))
             {
-                var itemName = template.Name.ToLower();
-                var keyword = search.Keyword.ToLower();
-
-                if (search.ExactMatch)
-                {
-                    if (itemName != keyword)
-                    {
-                        continue;
-                    }
-                }
-                else
-                {
-                    if (!itemName.Contains(keyword))
-                    {
-                        continue;
-                    }
-                }
+                if (!LocalizationManager.Instance.MatchItemName(template.Id, search.Keyword, search.ExactMatch))
+                    continue;
             }
-            else
+
+            // Check by category and other criteria
+            if (settings.CategoryA != search.CategoryA && search.CategoryA != 0)
             {
-                // Проверка по категориям и другим параметрам
-                if (settings.CategoryA != search.CategoryA && search.CategoryA != 0)
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                if (settings.CategoryB != search.CategoryB && search.CategoryB != 0)
-                {
-                    continue;
-                }
+            if (settings.CategoryB != search.CategoryB && search.CategoryB != 0)
+            {
+                continue;
+            }
 
-                if (settings.CategoryC != search.CategoryC && search.CategoryC != 0)
-                {
-                    continue;
-                }
+            if (settings.CategoryC != search.CategoryC && search.CategoryC != 0)
+            {
+                continue;
+            }
 
-                if (lot.Item.Grade != search.Grade && search.Grade != 0)
-                {
-                    continue;
-                }
+            if (lot.Item.Grade != search.Grade && search.Grade != 0)
+            {
+                continue;
+            }
 
-                if (template.Level > search.MaxItemLevel && search.MaxItemLevel != 0)
-                {
-                    continue;
-                }
+            if (template.Level > search.MaxItemLevel && search.MaxItemLevel != 0)
+            {
+                continue;
+            }
 
-                if (template.Level < search.MinItemLevel && search.MinItemLevel != 0)
-                {
-                    continue;
-                }
+            if (template.Level < search.MinItemLevel && search.MinItemLevel != 0)
+            {
+                continue;
             }
 
             searchedArticles.Add(lot);
@@ -698,43 +678,5 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
 
         AddAuctionLot(lot);
         player?.SendPacket(new SCAuctionPostedPacket(lot));
-    }
-
-    private class LanguageDetector
-    {
-        // private static readonly string[] CyrillicLanguages = ["ru", "uk", "bg", "sr", "mk"];
-        // private static readonly string[] LatinLanguages = ["en", "es", "fr", "de", "it"];
-
-        public static string DetectLanguage(string text)
-        {
-            if (string.IsNullOrEmpty(text))
-            {
-                return "unknown";
-            }
-
-            // Проверка на кириллицу
-            if (text.Any(c => IsCyrillic(c)))
-            {
-                return "ru"; // Предполагаем русский язык, если есть кириллические символы
-            }
-
-            // Проверка на латиницу
-            if (text.Any(c => IsLatin(c)))
-            {
-                return "en"; // Предполагаем английский язык, если есть латинские символы
-            }
-
-            return "unknown";
-        }
-
-        private static bool IsCyrillic(char c)
-        {
-            return (c >= '\u0400' && c <= '\u04FF') || (c >= '\u0500' && c <= '\u052F');
-        }
-
-        private static bool IsLatin(char c)
-        {
-            return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
-        }
     }
 }
