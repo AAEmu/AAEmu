@@ -1338,6 +1338,8 @@ public class HousingManager(
         {
             furniture.OwnerId = characterId;
             furniture.BroadcastPacket(new SCDoodadOriginatorPacket(furniture.ObjId, characterId, newFaction), true);
+            if (furniture.IsPersistent)
+                furniture.Save();
             res++;
         }
         return res;
