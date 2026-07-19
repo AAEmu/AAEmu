@@ -24,9 +24,9 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public ConcurrentDictionary<ulong, AuctionLot> AuctionLots { get; } = [];
-    public ConcurrentBag<long> _deletedAuctionItemIds { get; } = [];
+    private ConcurrentBag<long> DeletedAuctionItemIds { get; } = [];
 
-    private static readonly int MaxListingFee = 1000000; // 100g, 100 copper coins = 1 silver, 100 silver = 1 gold.
+    private static int MaxListingFee => 1000000; // 100g, 100 copper coins = 1 silver, 100 silver = 1 gold.
 
     private void RemoveAuctionLotSold(AuctionLot itemToRemove, string buyer, int soldAmount)
     {
@@ -35,16 +35,7 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
             var newItem = itemManager.GetItemByItemId(itemToRemove.Item.Id);
             if (newItem != null)
             {
-                /*
-                var itemList = new Item[10].ToList();
-                itemList[0] = newItem;
-                */
-
                 var moneyAfterFee = soldAmount * .9;
-                /*
-                var moneyToSend = new int[3];
-                moneyToSend[0] = (int)moneyAfterFee;
-                */
 
                 var recalculatedFee = itemToRemove.DirectMoney * .01 * ((int)itemToRemove.Duration + 1);
                 if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
@@ -81,9 +72,6 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
         var newItem = itemManager.GetItemByItemId(itemToRemove.Item.Id);
         if (newItem != null)
         {
-            // var itemList = new Item[10].ToList();
-            // itemList[0] = newItem;
-
             // TODO: Read this from saved data
             var recalculatedFee = itemToRemove.DirectMoney * .01 * ((int)itemToRemove.Duration + 1);
             if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
@@ -109,14 +97,12 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
             return;
         }
 
-        if (auctionLot.BidderName != "") // Someone has already bid on the item and we do not want to remove it
+        if (auctionLot.BidderName != "") // Someone has already bid on the item, and we do not want to remove it
         {
             Logger.Warn($"AuctionLot with ID {auctionId} has already been bid on.");
             return;
         }
 
-        var moneyToSubtract = auctionLot.DirectMoney * .1f;
-        // var itemList = new Item[10].ToList();
         var newItem = itemManager.Create(auctionLot.Item.TemplateId, auctionLot.Item.Count, auctionLot.Item.Grade);
         if (newItem != null)
         {
@@ -131,8 +117,6 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
             cancelMail.FinalizeForCancel();
             cancelMail.Send();
         }
-
-        //MailManager.Instance.SendMail(0, auctionItem.ClientName, "AuctionHouse", "Cancelled Listing", "See attached.", 1, new int[3], 0, itemList);
 
         RemoveAuctionLot(auctionLot);
         player.SendPacket(new SCAuctionCanceledPacket(auctionLot));
@@ -175,9 +159,6 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
         {
             if (auctionLot.BidderName != "" && auctionLot.BidderId != 0) // Send mail to old bidder.
             {
-                var moneyArray = new int[3];
-                moneyArray[0] = auctionLot.BidMoney;
-
                 // TODO: Read this from saved data
                 var recalculatedFee = auctionLot.DirectMoney * .01 * ((int)auctionLot.Duration + 1);
                 if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
@@ -201,7 +182,7 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
             player.SendPacket(new SCAuctionBidPacket(bid, false, auctionLot.Item.TemplateId));
             auctionLot.IsDirty = true;
 
-            // Обновление данных в списке AuctionLots
+            // Updating Data in the AuctionLots List
             UpdateAuctionLotInList(auctionLot);
         }
     }
@@ -241,9 +222,9 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
         }
 
         var articles = SortArticles(searchedArticles, AuctionSearchSortKind.Default, AuctionSearchSortOrder.Asc).ToArray();
-        var dividedLists = Helpers.SplitArray(articles, 9); // Разделяем массив на массивы по 9 значений
-           
-        if (page < 0 || page >= dividedLists.Length) //Stops client DC when requesting an out-of-bounds page
+        var dividedLists = Helpers.SplitArray(articles, 9); // We split the array into arrays of 9 values each
+
+        if (page < 0 || page >= dividedLists.Length) // Stops client DC when requesting an out-of-bounds page
         {
             Logger.Warn($"[AH-BIDS] {player.Name} requested an out-of-bounds page: {page}/{dividedLists.Length - 1}");
             player.SendPacket(new SCAuctionSearchedPacket(page, 0, [], (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
@@ -267,49 +248,28 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
 
     public void CheapestAuctionLot(Character player, uint templateId, byte itemGrade = 0)
     {
-        var DirectMoney = 0;
+        var directMoney = 0;
         var cheapestItem = GetCheapestAuctionLot(templateId);
         if (cheapestItem != null)
         {
-            DirectMoney = cheapestItem.DirectMoney;
+            directMoney = cheapestItem.DirectMoney;
         }
 
-        player.SendPacket(new SCAuctionLowestPricePacket(templateId, itemGrade, DirectMoney));
+        player.SendPacket(new SCAuctionLowestPricePacket(templateId, itemGrade, directMoney));
     }
-
-    private string GetLocalizedItemNameById(uint id)
-    {
-        return localizationManager.Get("items", "name", id, itemManager.GetTemplate(id).Name ?? "");
-    }
-
-    /* Unused
-
-    private ulong GetNextId()
-    {
-        if (AuctionLots.Count == 0)
-            return 1;
-
-        var maxId = AuctionLots.Max(item => item.Id);
-        if (maxId == ulong.MaxValue)
-            throw new OverflowException("No more IDs available.");
-
-        return maxId + 1;
-    }
-    */
 
     private void RemoveAuctionLot(AuctionLot itemToRemove)
     {
-        var copyOfLots = AuctionLots.ToList();
         if (!AuctionLots.ContainsKey(itemToRemove.Id))
         {
             return;
         }
 
         auctionIdManager.ReleaseId((uint)itemToRemove.Id);
-        _deletedAuctionItemIds.Add((long)itemToRemove.Id);
+        DeletedAuctionItemIds.Add((long)itemToRemove.Id);
         if (!AuctionLots.TryRemove(itemToRemove.Id, out _))
         {
-            Logger.Warn($"Unable to remove Auction Lot with Id {itemToRemove?.Id}");
+            Logger.Warn($"Unable to remove Auction Lot with Id {itemToRemove.Id}");
         }
     }
 
@@ -385,7 +345,7 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
         try
         {
             AuctionLots.Clear();
-            _deletedAuctionItemIds.Clear();
+            DeletedAuctionItemIds.Clear();
 
             using (var connection = MySQL.CreateConnection())
             {
@@ -438,20 +398,20 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
         var deletedCount = 0;
         var updatedCount = 0;
 
-        if (!_deletedAuctionItemIds.IsEmpty)
+        if (!DeletedAuctionItemIds.IsEmpty)
         {
             using (var command = connection.CreateCommand())
             {
                 command.Connection = connection;
                 command.Transaction = transaction;
-                command.CommandText = "DELETE FROM auction_house WHERE `id` IN(" + string.Join(",", _deletedAuctionItemIds) + ")";
+                command.CommandText = "DELETE FROM auction_house WHERE `id` IN(" + string.Join(",", DeletedAuctionItemIds) + ")";
                 command.Prepare();
                 deletedCount = command.ExecuteNonQuery();
             }
-            _deletedAuctionItemIds.Clear();
+            DeletedAuctionItemIds.Clear();
         }
 
-        var dirtyItems = AuctionLots.Values.Where(c => c.IsDirty == true);
+        var dirtyItems = AuctionLots.Values.Where(c => c.IsDirty);
         foreach (var lot in dirtyItems)
         {
             if (lot.Item == null)
@@ -485,22 +445,20 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
             var details = new Commons.Network.PacketStream();
             lot.Item.WriteDetails(details);
 
-            using (var command = connection.CreateCommand())
-            {
-                command.Connection = connection;
-                command.Transaction = transaction;
-                command.CommandText = BuildInsertQuery(lot);
-                AddParametersToCommand(command, lot);
-                command.Prepare();
-                updatedCount += command.ExecuteNonQuery();
-                lot.IsDirty = false;
-            }
+            using var command = connection.CreateCommand();
+            command.Connection = connection;
+            command.Transaction = transaction;
+            command.CommandText = BuildInsertQuery();
+            AddParametersToCommand(command, lot);
+            command.Prepare();
+            updatedCount += command.ExecuteNonQuery();
+            lot.IsDirty = false;
         }
 
         return (updatedCount, deletedCount);
     }
 
-    private string BuildInsertQuery(AuctionLot lot)
+    private string BuildInsertQuery()
     {
         var sb = new StringBuilder();
         sb.Append("REPLACE INTO auction_house(");
@@ -574,75 +532,53 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
     {
         var searchedArticles = new List<AuctionLot>();
 
-        var detectedLanguage = LanguageDetector.DetectLanguage(search.Keyword);
-        Logger.Info($"Detected language for keyword '{search.Keyword}': {detectedLanguage}");
-
-        foreach (var (lotId, lot) in AuctionLots)
+        foreach (var (_, lot) in AuctionLots)
         {
             var template = lot.Item.Template;
             var settings = template.AuctionSettings;
 
-            template.Name = GetLocalizedItemNameById(template.Id);
-
-            // Проверка по ClientId
+            // Check by ClientId
             if (search.ClientId != 0 && lot.ClientId != search.ClientId)
             {
                 continue;
             }
 
-            // Проверка по ключевому слову
-            if (!string.IsNullOrEmpty(search.Keyword))
+            // Check keyword
+            if (!string.IsNullOrWhiteSpace(search.Keyword))
             {
-                var itemName = template.Name.ToLower();
-                var keyword = search.Keyword.ToLower();
-
-                if (search.ExactMatch)
-                {
-                    if (itemName != keyword)
-                    {
-                        continue;
-                    }
-                }
-                else
-                {
-                    if (!itemName.Contains(keyword))
-                    {
-                        continue;
-                    }
-                }
+                if (!localizationManager.MatchItemName(template.Id, search.Keyword, search.ExactMatch))
+                    continue;
             }
-            else
+
+            // Check by category and other criteria
+            if (settings.CategoryA != search.CategoryA && search.CategoryA != 0)
             {
-                // Проверка по категориям и другим параметрам
-                if (settings.CategoryA != search.CategoryA && search.CategoryA != 0)
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                if (settings.CategoryB != search.CategoryB && search.CategoryB != 0)
-                {
-                    continue;
-                }
+            if (settings.CategoryB != search.CategoryB && search.CategoryB != 0)
+            {
+                continue;
+            }
 
-                if (settings.CategoryC != search.CategoryC && search.CategoryC != 0)
-                {
-                    continue;
-                }
+            if (settings.CategoryC != search.CategoryC && search.CategoryC != 0)
+            {
+                continue;
+            }
 
-                if (lot.Item.Grade != search.Grade && search.Grade != 0)
-                {
-                    continue;
-                }
+            if (lot.Item.Grade != search.Grade && search.Grade != 0)
+            {
+                continue;
+            }
 
-                if (template.Level > search.MaxItemLevel && search.MaxItemLevel != 0)
-                {
-                    continue;
-                }
+            if (template.Level > search.MaxItemLevel && search.MaxItemLevel != 0)
+            {
+                continue;
+            }
 
-                if (template.Level < search.MinItemLevel && search.MinItemLevel != 0)
-                {
-                    continue;
-                }
+            if (template.Level < search.MinItemLevel && search.MinItemLevel != 0)
+            {
+                continue;
             }
 
             searchedArticles.Add(lot);
@@ -687,54 +623,16 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
             auctionFee = MaxListingFee;
         }
 
-        // Deduct AH fee (but only if it's actually generated from an in-game player)
-        if (player != null && !player.ChangeMoney(SlotType.Inventory, -(int)auctionFee))
+        // Deduct AH fee
+        if (!player.ChangeMoney(SlotType.Inventory, -(int)auctionFee))
         {
             player.SendErrorMessage(ErrorMessageType.CanNotPutupMoney);
             return;
         }
 
-        player?.Inventory.AuctionAttachments.AddOrMoveExistingItem(ItemTaskType.Auction, item);
+        player.Inventory.AuctionAttachments.AddOrMoveExistingItem(ItemTaskType.Auction, item);
 
         AddAuctionLot(lot);
-        player?.SendPacket(new SCAuctionPostedPacket(lot));
-    }
-
-    private class LanguageDetector
-    {
-        // private static readonly string[] CyrillicLanguages = ["ru", "uk", "bg", "sr", "mk"];
-        // private static readonly string[] LatinLanguages = ["en", "es", "fr", "de", "it"];
-
-        public static string DetectLanguage(string text)
-        {
-            if (string.IsNullOrEmpty(text))
-            {
-                return "unknown";
-            }
-
-            // Проверка на кириллицу
-            if (text.Any(c => IsCyrillic(c)))
-            {
-                return "ru"; // Предполагаем русский язык, если есть кириллические символы
-            }
-
-            // Проверка на латиницу
-            if (text.Any(c => IsLatin(c)))
-            {
-                return "en"; // Предполагаем английский язык, если есть латинские символы
-            }
-
-            return "unknown";
-        }
-
-        private static bool IsCyrillic(char c)
-        {
-            return (c >= '\u0400' && c <= '\u04FF') || (c >= '\u0500' && c <= '\u052F');
-        }
-
-        private static bool IsLatin(char c)
-        {
-            return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
-        }
+        player.SendPacket(new SCAuctionPostedPacket(lot));
     }
 }
