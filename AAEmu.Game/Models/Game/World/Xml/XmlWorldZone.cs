@@ -9,7 +9,10 @@ namespace AAEmu.Game.Models.Game.World.Xml;
 public class XmlWorldZone
 {
     // <Zone name="w_gweonid_forest_1" id="129" originX="9" originY="14">
-    public uint Id { get; set; }
+    /// <summary>
+    /// This ZoneKey is stored in the XML as id
+    /// </summary>
+    public uint ZoneKey { get; set; }
     public string Name { get; set; }
     public int OriginX { get; set; }
     public int OriginY { get; set; }
@@ -22,15 +25,15 @@ public class XmlWorldZone
         Parent = xmlWorld;
         // Read XML
         var a = XmlH.ReadNodeAttributes(node);
-        Id = XmlH.ReadAttribute(a, "id", 0u);
+        ZoneKey = XmlH.ReadAttribute(a, "id", 0u);
         Name = XmlH.ReadAttribute(a, "name", "");
         OriginX = XmlH.ReadAttribute(a, "originX", 0);
         OriginY = XmlH.ReadAttribute(a, "originY", 0);
         var cellNodes = node.SelectNodes("cellList/cell");
 
         // Apply Data to world
-        if (!worldTemplate.ZoneKeys.Contains(Id))
-            worldTemplate.ZoneKeys.Add(Id);
+        if (!worldTemplate.ZoneKeys.Contains(ZoneKey))
+            worldTemplate.ZoneKeys.Add(ZoneKey);
 
         Cells = new ConcurrentDictionary<(int, int), XmlWorldCell>();
         if (cellNodes != null)
@@ -47,6 +50,6 @@ public class XmlWorldZone
 
     public override string ToString()
     {
-        return $"{Id} - {Name}";
+        return $"{ZoneKey} - {Name}";
     }
 }

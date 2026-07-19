@@ -82,9 +82,9 @@ public class WorldTemplate
     public XmlWorld XmlWorld { get; set; } = new();
 
     /// <summary>
-    /// XML Zone data
+    /// XML Zone data (zoneKey, data)
     /// </summary>
-    public ConcurrentDictionary<uint, XmlWorldZone> XmlWorldZones;
+    public ConcurrentDictionary<uint, XmlWorldZone> XmlWorldZones { get; set; } = [];
 
     /// <summary>
     /// List of SubZones in this world (zoneId, list)

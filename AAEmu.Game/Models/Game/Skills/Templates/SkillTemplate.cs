@@ -6,6 +6,7 @@ namespace AAEmu.Game.Models.Game.Skills.Templates;
 public class SkillTemplate
 {
     public uint Id { get; set; }
+    public SkillCategory Category { get; set; }
     public int Cost { get; set; }
     public bool Show { get; set; }
     public Anim FireAnim { get; set; }

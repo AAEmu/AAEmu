@@ -12,6 +12,7 @@ public enum ErrorMessageType : short
     NoPermissionToLoot = 6,												// "no_permission_to_loot";
     CannotHarvestYet = 7,												// "cannot_harvest_yet";
     WaterItemNeeded = 8,												// "water_item_needed";
+    /// <summary>Not enough labor</summary>
     LaborPowerNeeded = 9,												// "labor_power_needed";
     SeedItemNeeded = 10,												// "seed_item_needed";
     NeedToLearnInteraction = 11,										// "need_to_learn_interaction";
@@ -32,6 +33,7 @@ public enum ErrorMessageType : short
     NotEnoughMoney = 26,												// "not_enough_money";
     NotEnoughItem = 27,													// "not_enough_item";
     NotEnoughFriendship = 28,											// "not_enough_friendship";
+    /// <summary>Don't have any labor</summary>
     NotEnoughLaborPower = 29,											// "not_enough_labor_power";
     ItemUpdateFail = 30,												// "item_update_fail";
     FactionDuplicateName = 31,											// "faction_duplicate_name";

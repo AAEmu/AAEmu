@@ -7,7 +7,6 @@ using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World.Debug;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -365,6 +364,11 @@ public class WorldManager(
     {
         tickManager.OnTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(1));
         tickManager.OnTick.Subscribe(AutoWaterProbeTick, TimeSpan.FromSeconds(10));
+    }
+
+    public WorldTemplate[] GetAllWorldTemplates()
+    {
+        return WorldTemplates.Values.ToArray();
     }
 
     private static readonly Lock AutoWaterProbeLock = new();
@@ -889,11 +893,11 @@ public class WorldManager(
     }
 
     /// <summary>
-    /// Get a list of neighbouring Regions/Sectors as defined by REGION_NEIGHBORHOOD_SIZE
+    /// Get a list of neighboring Regions/Sectors as defined by REGION_NEIGHBORHOOD_SIZE and itself
     /// </summary>
     /// <param name="world"></param>
-    /// <param name="x"></param>
-    /// <param name="y"></param>
+    /// <param name="x">X-region</param>
+    /// <param name="y">Y-Region</param>
     /// <returns></returns>
     public Region[] GetNeighbors(WorldInstance world, int x, int y)
     {
@@ -987,7 +991,7 @@ public class WorldManager(
             obj.Region = region;
 
             // Make object visible in its region and all neighboring regions
-            region.AddToCharacters(obj);
+            // region.AddToCharacters(obj);
             foreach (var neighbor in region.GetNeighbors())
                 neighbor.AddToCharacters(obj);
         }

@@ -326,6 +326,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         var template = new SkillTemplate
                         {
                             Id = reader.GetUInt32("id"), Cost = reader.GetInt32("cost"), Show = reader.GetBoolean("show", true),
+                            Category = (SkillCategory)reader.GetInt32("category_id"),
                             FireAnim = animationManager.GetAnimation(reader.GetUInt32("fire_anim_id", 0)),
                             AbilityId = (AbilityType)reader.GetByte("ability_id"),
                             ManaCost = reader.GetInt32("mana_cost"),

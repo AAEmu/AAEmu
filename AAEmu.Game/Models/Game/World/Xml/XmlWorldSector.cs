@@ -21,7 +21,7 @@ public class XmlWorldSector
         Y = XmlH.ReadAttribute(a, "y", 0);
 
         // Apply Zone Data to world Template
-        worldTemplate.ZoneKeyByRegions[WorldSectorX(), WorldSectorY()] = Parent.Parent.Id;
+        worldTemplate.ZoneKeyByRegions[WorldSectorX(), WorldSectorY()] = Parent.Parent.ZoneKey;
     }
 
     private int WorldSectorX()
