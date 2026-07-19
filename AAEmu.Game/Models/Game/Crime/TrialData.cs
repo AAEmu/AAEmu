@@ -59,7 +59,7 @@ public class TrialData
                 defendant.Transform.World.Position.Y, defendant.Transform.World.Position.Z,
                 defendant.Transform.World.Rotation.Z), true);
         defendant.BroadcastPacket(
-            new SCUnitPointsPacket(defendant.ObjId, defendant.Hp, defendant.Mp), true);
+            new SCUnitPointsPacket(defendant.ObjId, defendant.Hp, defendant.Mp, defendant.HighAbilityRsc), true);
         defendant.PostUpdateCurrentHp(defendant, 0, defendant.Hp, KillReason.PvpEnemy);        
 
         // Teleport criminal to the local jail

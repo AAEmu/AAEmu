@@ -65,6 +65,10 @@ public class Unit : BaseUnit, IUnit
 
     public byte HeirLevel { get; set; } // heir level for 3.5.0.3 (data field; heir mechanics not ported)
 
+    public uint HeirExp { get; set; } // heirExp add for 3.5.0.3 : uint in 3.5, 4.5, long in 5.7
+
+    public int HighAbilityRsc { get; set; } // highAbilityRsc for 3.0.3.0
+
     public int Hp { get; set; }
 
     public int Hpp
@@ -352,7 +356,7 @@ public class Unit : BaseUnit, IUnit
 
         Hp = Math.Max(Hp - value, 0);
 
-        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
+        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0, HighAbilityRsc), true);
 
         PostUpdateCurrentHp(attacker, oldHp, Hp, killReason);
     }
@@ -441,7 +445,7 @@ public class Unit : BaseUnit, IUnit
 
         //else
         //StartRegen();
-        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
+        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc), true);
     }
 
     public virtual void DoDie(BaseUnit killer, KillReason killReason)

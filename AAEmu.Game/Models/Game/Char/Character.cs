@@ -74,6 +74,21 @@ public partial class Character : Unit, ICharacter
     }
 
     /// <summary>
+    /// Cached representation of Account Labor
+    /// </summary>
+    public short LocalLaborPower
+    {
+        get => _localLaborPower;
+        set
+        {
+            if (_localLaborPower == value)
+                return;
+            _localLaborPower = value;
+            AccountManager.Instance.UpdateLabor(AccountId, value);
+        }
+    }
+
+    /// <summary>
     /// Last time labor got updated
     /// </summary>
     public DateTime LaborPowerModified
@@ -162,6 +177,7 @@ public partial class Character : Unit, ICharacter
             }
         }
     }
+    public short CrimeScore { get; set; } // crimeScore for 1.2
     public DateTime DeleteRequestTime { get; set; }
     public DateTime TransferRequestTime { get; set; }
     public DateTime DeleteTime { get; set; }
@@ -180,6 +196,7 @@ public partial class Character : Unit, ICharacter
     public byte LastDurabilityLoss { get; set; }
     public DateTime Created { get; set; } // время создания персонажа
     public DateTime Updated { get; set; } // время внесения изменений
+    public byte ForceNameChange { get; set; }
 
     public uint ReturnDistrictId { get; set; }
     public uint ResurrectionDistrictId { get; set; }
@@ -202,6 +219,13 @@ public partial class Character : Unit, ICharacter
     public CharacterMails Mails { get; set; }
     public CharacterAppellations Appellations { get; set; }
     public CharacterAbilities Abilities { get; set; }
+    public AbilityType HighAbility1 { get; set; }
+    public AbilityType HighAbility2 { get; set; }
+    public AbilityType HighAbility3 { get; set; }
+    public List<AbilitySetInfo> AbilitySets { get; } = [];
+    public byte AbilitySetFreeActivationCount { get; set; }
+    public byte UsableAbilitySetSlotCount { get; set; } = 1;
+    public int ArenaDailyEntryCount { get; set; }
     public CharacterPortals Portals { get; set; }
     public CharacterFriends Friends { get; set; }
     public CharacterBlocked Blocked { get; set; }
@@ -255,6 +279,7 @@ public partial class Character : Unit, ICharacter
     }
 
     private short _laborPower;
+    private short _localLaborPower;
     private DateTime _laborPowerModified;
 
     /// <summary>
@@ -2796,7 +2821,7 @@ public partial class Character : Unit, ICharacter
     {
         if (this != character) // Never send to self, or the client crashes
             character.SendPacket(new SCUnitStatePacket(this));
-        character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+        character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc));
         /*
         // If player is hanging on something, also send a hung packet, this should work in theory, but doesn't
         if (this.Transform.StickyParent != null)
@@ -2859,7 +2884,7 @@ public partial class Character : Unit, ICharacter
         stream.Write((byte)Race);
         stream.Write((byte)Gender);
         stream.Write(Level);
-        stream.Write(0u); // heirExp add for 3.5.0.3 (heir mechanics not ported)
+        stream.Write(HeirExp); // heirExp add for 3.5.0.3 : uint in 3.5, long in 5.7
         stream.Write(Hp);
         stream.Write(Mp);
         stream.Write(Transform.ZoneId);
@@ -2881,7 +2906,7 @@ public partial class Character : Unit, ICharacter
         stream.Write(ModelParams);
         stream.Write(LaborPower);
         stream.Write(LaborPowerModified);
-        stream.Write((short)0); // localLaborPower add in 3.0.4.2 (not ported)
+        stream.Write(LocalLaborPower); // localLaborPower add in 3.0.4.2, moved in 5.0
         stream.Write(DeadCount);
         stream.Write(DeadTime);
         stream.Write(RezWaitDuration);
@@ -2892,7 +2917,7 @@ public partial class Character : Unit, ICharacter
         stream.Write(0L); // moneyAmount ?
         stream.Write(CrimePoint); // current crime points (/50) short in 3+, int in 1.2
         stream.Write(InfamyPoint); // total infamy (crimeRecord)
-        stream.Write((short)0); // crimeScore? trials served?
+        stream.Write(CrimeScore); // crimeScore for 1.2
         stream.Write(DeleteRequestTime);
         stream.Write(TransferRequestTime);
         stream.Write(DeleteTime); // deleteDelay
@@ -2905,8 +2930,8 @@ public partial class Character : Unit, ICharacter
         stream.Write(Point);
         stream.Write(Gift);
         stream.Write(Updated);
-        stream.Write((byte)0); // forceNameChange ?
-        stream.Write(0); // highAbilityRsc for 3.0.3.0 (not ported)
+        stream.Write(ForceNameChange); // forceNameChange
+        stream.Write(HighAbilityRsc); // highAbilityRsc for 3.0.3.0
         return stream;
     }
 
@@ -3033,7 +3058,7 @@ public partial class Character : Unit, ICharacter
 
         Hp = Math.Min(Hp, MaxHp);
         Mp = Math.Min(Mp, MaxMp);
-        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
+        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc), true);
         PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
 

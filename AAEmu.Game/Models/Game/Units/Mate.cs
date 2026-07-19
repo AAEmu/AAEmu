@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -576,7 +576,7 @@ public sealed class Mate : Unit
 
         character.SendPacket(new SCUnitStatePacket(this));
         character.SendPacket(new SCMateStatePacket(ObjId));
-        character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+        character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc));
         // TODO: Maybe let base handle this ?
         foreach (var ati in Passengers)
         {
@@ -652,7 +652,7 @@ public sealed class Mate : Unit
 
         Hp = Math.Min(Hp, MaxHp);
         Mp = Math.Min(Mp, MaxMp);
-        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), false);
+        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc), false);
         PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
 

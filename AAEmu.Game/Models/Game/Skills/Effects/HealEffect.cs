@@ -145,7 +145,7 @@ public class HealEffect : EffectTemplate
         var oldHp = trg.Hp;
         trg.Hp += value;
         trg.Hp = Math.Min(trg.Hp, trg.MaxHp);
-        trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp), true);
+        trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp, trg.HighAbilityRsc), true);
 
         // PvP assist tracking: a healer on the target's side earns assist credit
         // for the target's next PvP kill (within 30s window).

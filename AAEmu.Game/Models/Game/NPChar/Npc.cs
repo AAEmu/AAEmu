@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
@@ -1055,7 +1055,7 @@ public partial class Npc : Unit
     public override void AddVisibleObject(Character character)
     {
         character.SendPacket(new SCUnitStatePacket(this));
-        character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+        character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp, HighAbilityRsc));
 
         base.AddVisibleObject(character);
     }

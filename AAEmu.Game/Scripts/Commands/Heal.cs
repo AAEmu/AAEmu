@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -53,7 +53,7 @@ public class Heal : ICommand
                 targetPlayer.Hp = targetPlayer.MaxHp;
                 targetPlayer.Mp = targetPlayer.MaxMp;
                 targetPlayer.BroadcastPacket(
-                    new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp), true);
+                    new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp, targetPlayer.HighAbilityRsc), true);
                 targetPlayer.PostUpdateCurrentHp(targetPlayer, oldHp, targetPlayer.Hp, KillReason.Unknown);
             }
         }
@@ -69,7 +69,7 @@ public class Heal : ICommand
                 var oldHp = unit.Hp;
                 unit.Hp = unit.MaxHp;
                 unit.Mp = unit.MaxMp;
-                unit.BroadcastPacket(new SCUnitPointsPacket(unit.ObjId, unit.Hp, unit.Mp), true);
+                unit.BroadcastPacket(new SCUnitPointsPacket(unit.ObjId, unit.Hp, unit.Mp, unit.HighAbilityRsc), true);
                 character.SendMessage($"{unit.Name} => {unit.Hp}/{unit.MaxHp} HP, {unit.Mp}/{unit.MaxMp} MP");
                 unit.PostUpdateCurrentHp(unit, oldHp, unit.Hp, KillReason.Unknown);
             }
