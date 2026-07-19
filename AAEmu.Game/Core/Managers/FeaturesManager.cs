@@ -27,7 +27,7 @@ public class FeaturesManager(IExperienceManager experienceManager) : Singleton<F
         // Enables family invites
         Fsets.Set(Feature.allowFamilyChanges, true);
 
-        // Disables Dwarf/Warborn character creation (0.5 only)
+        // Enables Dwarf/Warborn character creation
         Fsets.Set(Feature.dwarfWarborn, true);
 
         // Debug convenience flags, disables most of the sensitive operation stuff to do easier testing

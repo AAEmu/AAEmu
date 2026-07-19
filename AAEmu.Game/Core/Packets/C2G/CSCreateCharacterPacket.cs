@@ -27,6 +27,7 @@ public class CSCreateCharacterPacket() : GamePacket(CSOffsets.CSCreateCharacterP
         var ability2 = (AbilityType)stream.ReadByte();
         var ability3 = (AbilityType)stream.ReadByte();
         var level = stream.ReadByte();
+        var introZoneId = stream.ReadInt32(); // for 3.x
 
         CharacterManager.Instance.Create(Connection, name, race, gender, items, customModel, ability1, ability2, ability3, level);
     }
