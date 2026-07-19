@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Shipyard;
 using AAEmu.Game.Models.Game.Skills;
@@ -145,8 +146,7 @@ public class SCUnitStatePacket : GamePacket
         stream.Write(_unit.ModelId); // modelRef
 
         #region Inventory_Equip
-        Inventory_Equip(stream, _unit, _baseUnitType); // Equip character
-        //Inventory_Equip(stream, _unit); // Equip character
+        Inventory_Equip3(stream, _unit); // Equip character
         #endregion Inventory_Equip
 
         stream.Write(_unit.ModelParams);
@@ -376,101 +376,131 @@ public class SCUnitStatePacket : GamePacket
     }
 
     #region Inventory_Equip
-    private void Inventory_Equip(PacketStream stream, Unit unit, BaseUnitType baseUnitType)
+    private static void Inventory_Equip3(PacketStream stream, Unit unit)
     {
-        if (unit == null)
+        switch (unit)
         {
-            return;
-        }
-        
+            case Character _:
+                {
+                    var items = unit.Equipment.GetSlottedItemsList();
+                    WriteEquip(stream, items, true);
+                    var itemFlags = CalculateItemFlags(items);
+                    stream.Write(itemFlags); // ItemFlags flags for 3.0.3.0
+                    break;
+                }
+            case House _:
+            case Mate _:
+            case Slave _:
+                {
+                    var items = unit.Equipment.GetSlottedItemsList();
+                    WriteEquip(stream, items);
+                    break;
+                }
+            case Npc _:
+                {
+                    var items = unit.Equipment.GetSlottedItemsList();
+                    var validFlags = CalculateValidFlags(items);
+                    stream.Write((uint)validFlags);
 
-        // calculate validFlags
+                    if (validFlags <= 0)
+                    {
+                        unit.ModelParams.SetType(UnitCustomModelType.Skin); // additional check that the NPC has no body and no face
+                        return;
+                    }
+
+                    for (var i = 0; i < items.Count; i++)
+                    {
+                        var item = unit.Equipment.GetItemBySlot(i);
+
+                        if (item is BodyPart)
+                        {
+                            stream.Write(item.TemplateId);
+                        }
+                        else if (item != null)
+                        {
+                            if (i == 27) // Cosplay
+                            {
+                                stream.Write(item);
+                            }
+                            else
+                            {
+                                stream.Write(item.TemplateId);
+                                stream.Write(0L);
+                                stream.Write((byte)0);
+                            }
+                        }
+                    }
+                    break;
+                }
+            // for Transfer and Shipyard
+            default:
+                {
+                    stream.Write(0u); // validFlags for 3.0.3.0
+                    break;
+                }
+        }
+    }
+
+    private static void WriteEquip(PacketStream stream, List<Item> items, bool bodyPartsAsTemplateId = false)
+    {
+        var validFlags = CalculateValidFlags(items);
+        stream.Write((uint)validFlags); // validFlags for 3.0.3.0
+        WriteItems(stream, items, bodyPartsAsTemplateId);
+    }
+
+    private static void WriteItems(PacketStream stream, List<Item> items, bool bodyPartsAsTemplateId = false)
+    {
         var index = 0;
+        foreach (var item in items)
+        {
+            if (item != null)
+            {
+                // body part slots (Face/Hair/Glasses/Horns/Tail/Body/Beard): client reads only templateId
+                if (bodyPartsAsTemplateId && index is >= 19 and <= 25)
+                    stream.Write(item.TemplateId);
+                else
+                    stream.Write(item);
+            }
+            index++;
+        }
+    }
+
+    private static int CalculateValidFlags(List<Item> items)
+    {
         var validFlags = 0;
-        var items = unit.Equipment.GetSlottedItemsList();
+        var index = 0;
         foreach (var item in items)
         {
             if (item != null)
             {
                 validFlags |= 1 << index;
             }
+
             index++;
         }
-        if (validFlags <= 0 && baseUnitType == BaseUnitType.Npc)
-        {
-            // ReSharper disable once GrammarMistakeInComment
-            unit.ModelParams.SetType(UnitCustomModelType.Skin); // additional check that the NPC has no body and no face
-        }
-        index = 0;
-        do
-        {
-            var item = unit.Equipment.GetItemBySlot(index);
-            if (index - 19 < 0 || index - 19 > 6)
-            {
-                if (index != 27) // not CosPlay
-                {
-                    switch (baseUnitType)
-                    {
-                        case BaseUnitType.Character: // Character
-                        case BaseUnitType.Housing:   // Housing
-                        case BaseUnitType.Mate:      // Mate
-                        case BaseUnitType.Slave:     // Slave
-                            if (item != null)
-                            {
-                                stream.Write(item);
-                            }
-                            else
-                            {
-                                stream.Write(0);
-                            }
-                            break;
-                        case BaseUnitType.Npc:       // Npc
-                            if (item != null)
-                            {
-                                stream.Write(item.TemplateId);
-                                stream.Write(item.Id);
-                                stream.Write(item.Grade);
-                            }
-                            else
-                            {
-                                stream.Write(0);
-                            }
-                            break;
-                        case BaseUnitType.Transfer:
-                        case BaseUnitType.Shipyard:
-                            break;
-                    }
-                }
-                else
-                {
-                    if (baseUnitType == BaseUnitType.Transfer || baseUnitType == BaseUnitType.Shipyard)
-                    {
-                        return;
-                    }
-                    if (item != null)
-                    {
-                        stream.Write(item); // Cosplay [27]
-                    }
-                    else
-                    {
-                        stream.Write(0);
-                    }
-                }
-            }
-            else
-            {
-                if (item != null)
-                {
-                    stream.Write(item.TemplateId); // BodyPart | somehow_special [19..26]
-                }
-                else
-                {
-                    stream.Write(0);
-                }
-            }
-            ++index;
-        } while (index < 28);
+
+        return validFlags;
     }
+
+    private static int CalculateItemFlags(List<Item> items)
+    {
+        var itemFlags = 0;
+        var index = 0;
+
+        foreach (var item in items)
+        {
+            if (item == null)
+            {
+                continue;
+            }
+
+            itemFlags |= (int)item.ItemFlags << index;
+            ++index;
+        }
+
+        return itemFlags;
+    }
+    #endregion Inventory_Equip
 
     /* Unused
     private static void Inventory_Equip(PacketStream stream, Unit unit0)
@@ -581,7 +611,6 @@ public class SCUnitStatePacket : GamePacket
         }
     }
     */
-    #endregion Inventory_Equip
 
     #region NetBuff
     private static void WriteBuff(PacketStream stream, Buff effect)

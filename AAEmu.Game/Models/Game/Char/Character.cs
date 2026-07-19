@@ -2855,12 +2855,18 @@ public partial class Character : Unit, ICharacter
         }
 
         stream.Write((uint)validFlags); // validFlags for 3.0.3.0+
+        index = 0;
         foreach (var item in items)
         {
             if (item != null)
             {
-                stream.Write(item);
+                // body part slots (Face/Hair/Glasses/Horns/Tail/Body/Beard): client reads only templateId
+                if (index is >= 19 and <= 25)
+                    stream.Write(item.TemplateId);
+                else
+                    stream.Write(item);
             }
+            index++;
         }
 
         index = 0;

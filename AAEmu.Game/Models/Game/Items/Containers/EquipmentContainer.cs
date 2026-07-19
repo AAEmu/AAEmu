@@ -99,7 +99,7 @@ public class EquipmentContainer : ItemContainer
             case EquipmentItemSlotType.Glasses:
                 allowedSlots.Add(EquipmentItemSlot.Glasses);
                 break;
-            case EquipmentItemSlotType.Reserved:
+            case EquipmentItemSlotType.Horns:
                 // maybe for Warborn horns or other race specifics ? I dunno
                 allowedSlots.Add(EquipmentItemSlot.Horns);
                 break;
@@ -119,6 +119,9 @@ public class EquipmentContainer : ItemContainer
                 break;
             case EquipmentItemSlotType.Cosplay:
                 allowedSlots.Add(EquipmentItemSlot.Cosplay);
+                break;
+            case EquipmentItemSlotType.Stabilizer:
+                allowedSlots.Add(EquipmentItemSlot.Stabilizer);
                 break;
         }
         return allowedSlots;

@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Items;
+﻿namespace AAEmu.Game.Models.Game.Items;
 
 public enum EquipmentItemSlot : byte
 {

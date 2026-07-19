@@ -1,6 +1,7 @@
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Models;
+using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
@@ -512,6 +513,27 @@ public class CharacterManager(
             Logger.Error($"User tried to make a new character that has 2nd and/or 3rd ability already set. Account {connection.AccountId}, Name {name}, Class {ability1}, {ability2}, {ability3}");
         }
 
+        // Reject unknown abilities (can happen with a corrupted client packet)
+        if (!_abilityItems.ContainsKey(ability1))
+        {
+            Logger.Warn($"Create character rejected: unknown ability {(byte)ability1}. Account {connection.AccountId}, Name {name}, Race {race}, Gender {gender}. Possible corrupted client packet.");
+            connection.SendPacket(new SCCharacterCreationFailedPacket(CharacterCreateError.Failed));
+            return;
+        }
+
+        // Reject unknown race/gender combination instead of throwing KeyNotFoundException
+        if (!_templates.TryGetValue((byte)(16 * (byte)gender + (byte)race), out var template))
+        {
+            Logger.Warn($"Create character rejected: no template for race {(byte)race} gender {(byte)gender}. Account {connection.AccountId}, Name {name}. Possible corrupted client packet.");
+            connection.SendPacket(new SCCharacterCreationFailedPacket(CharacterCreateError.Failed));
+            return;
+        }
+
+        // Client may send ModelId=0 (meaning "race default"); fill it in from the template,
+        // otherwise the lobby/world applies the face modifiers to a wrong base model
+        if (customModel.ModelId == 0)
+            customModel.SetModelId(template.ModelId);
+
         var accountDetails = accountManager.GetAccountDetails(connection.AccountId);
 
         // Get default access level for all users 
@@ -523,7 +545,6 @@ public class CharacterManager(
 
         var characterId = characterIdManager.GetNextId();
         nameManager.AddCharacter(characterId, name, connection.AccountId);
-        var template = GetTemplate(race, gender);
 
         var character = new Character(customModel)
         {
@@ -575,7 +596,10 @@ public class CharacterManager(
         SetEquipItemTemplate(character.Inventory, items.Items.Stabilizer, EquipmentItemSlot.Stabilizer, items.Items.StabilizerGrade);
         for (var i = 0; i < 7; i++)
         {
-            if (bodyItems[i] == 0 && template.Items[i] > 0)
+            // Apply template defaults only to essential body parts (0=Face, 1=Hair, 5=Body).
+            // Optional parts (Glasses/Horns/Tail/Beard) stay empty when the client sends 0,
+            // otherwise the client-side preview and the created character look different.
+            if (bodyItems[i] == 0 && template.Items[i] > 0 && i is 0 or 1 or 5)
                 bodyItems[i] = template.Items[i];
             SetEquipItemTemplate(character.Inventory, bodyItems[i], (EquipmentItemSlot)(i + 19), 0);
         }
@@ -642,6 +666,19 @@ public class CharacterManager(
         {
             connection.Characters.Add(character.Id, character);
             connection.SendPacket(new SCCreateCharacterResponsePacket(character));
+
+            if (Logger.IsDebugEnabled)
+            {
+                var bodyParts = new System.Text.StringBuilder();
+                for (var equipSlot = 19; equipSlot <= 25; equipSlot++)
+                {
+                    if (bodyParts.Length > 0)
+                        bodyParts.Append(", ");
+                    bodyParts.Append($"{equipSlot}:{character.Equipment.GetItemBySlot(equipSlot)?.TemplateId ?? 0}");
+                }
+                Logger.Debug($"CreateCharacter -> id={character.Id}, name='{character.Name}', race={character.Race}, gender={character.Gender}, bodyPartSlots=[{bodyParts}]");
+                Logger.Debug($"CreateCharacter -> modelParams hex: {Convert.ToHexString(character.ModelParams.Write(new PacketStream()).GetBytes())}");
+            }
         }
         else
         {
@@ -940,6 +977,11 @@ public class CharacterManager(
         if (templateId > 0)
         {
             item = itemManager.Create(templateId, 1, grade);
+            if (item == null)
+            {
+                Logger.Warn($"SetEquipItemTemplate: failed to create item with templateId {templateId} for slot {slot} (unknown template or bad client data)");
+                return;
+            }
             item.SlotType = SlotType.Equipment;
             item.Slot = (int)slot;
         }

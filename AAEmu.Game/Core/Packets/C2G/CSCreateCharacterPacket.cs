@@ -29,6 +29,12 @@ public class CSCreateCharacterPacket() : GamePacket(CSOffsets.CSCreateCharacterP
         var level = stream.ReadByte();
         var introZoneId = stream.ReadInt32(); // for 3.x
 
+        if (Logger.IsDebugEnabled)
+        {
+            Logger.Debug($"CreateCharacter <- name='{name}', race={race}, gender={gender}, bodyItems=[{string.Join(", ", items)}], abilities=({ability1}, {ability2}, {ability3}), level={level}, introZoneId={introZoneId}");
+            Logger.Debug($"CreateCharacter <- customModel hex: {Convert.ToHexString(customModel.Write(new PacketStream()).GetBytes())}");
+        }
+
         CharacterManager.Instance.Create(Connection, name, race, gender, items, customModel, ability1, ability2, ability3, level);
     }
 }

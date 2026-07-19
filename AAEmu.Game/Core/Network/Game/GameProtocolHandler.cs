@@ -172,6 +172,7 @@ public class GameProtocolHandler : BaseProtocolHandler
 
                     //byte crc = 0;
                     //byte counter = 0;
+                    byte[] encryptedInput = null;
                     if (level == 1)
                     {
                         _ = stream2.ReadByte(); // TODO: verify 1.2 crc
@@ -183,6 +184,7 @@ public class GameProtocolHandler : BaseProtocolHandler
                         //------------------------------
                         var input = new byte[stream2.Count - 2];
                         Buffer.BlockCopy(stream2, 2, input, 0, stream2.Count - 2);
+                        encryptedInput = input;
                         var output = EncryptionManager.Instance.Decode(input, connection.Id, connection.AccountId);
                         var OutBytes = new byte[output.Length + 5];
                         Buffer.BlockCopy(stream2, 0, OutBytes, 0, 5);
@@ -206,6 +208,13 @@ public class GameProtocolHandler : BaseProtocolHandler
                         var packet = (GamePacket)Activator.CreateInstance(classType);
                         packet!.Level = level;
                         packet.Connection = connection;
+                        if (Logger.IsDebugEnabled && type == Packets.C2G.CSOffsets.CSCreateCharacterPacket)
+                        {
+                            var raw = new PacketStream().Replace(stream2, stream2.Pos, stream2.Count - stream2.Pos).GetBytes();
+                            Logger.Debug($"Raw CSCreateCharacterPacket plaintext ({raw.Length} bytes): {Convert.ToHexString(raw)}");
+                            if (encryptedInput != null)
+                                Logger.Debug($"Raw CSCreateCharacterPacket ciphertext ({encryptedInput.Length} bytes): {Convert.ToHexString(encryptedInput)}");
+                        }
                         packet.Decode(stream2);
                     }
                 }
