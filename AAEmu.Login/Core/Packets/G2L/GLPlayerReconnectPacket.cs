@@ -29,7 +29,7 @@ public class GLPlayerReconnectPacket() : InternalPacket(TypeId), IInternalPacket
     public override void Read(PacketStream stream)
     {
         GsId = new GameServerId(stream.ReadByte());
-        AccountId = new AccountId(stream.ReadUInt32());
+        AccountId = new AccountId(stream.ReadUInt64());
         Token = stream.ReadUInt32();
     }
 }

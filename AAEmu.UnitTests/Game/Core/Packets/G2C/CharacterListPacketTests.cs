@@ -1,19 +1,19 @@
-﻿using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.UnitTests.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Tests for SCCharacterListPacket class
+/// Tests for CharacterListPacket class
 /// </summary>
-public class SCCharacterListPacketTests
+public class CharacterListPacketTests
 {
     [Test]
     public async Task Write_WithEmptyCharacterList_WritesCorrectData()
     {
         // Arrange
         var characters = new Character[0];
-        var packet = new SCCharacterListPacket(true, characters);
+        var packet = new CharacterListPacket(true, characters);
 
         // Act & Assert
         // Note: Full testing requires PacketStream implementation
@@ -25,7 +25,7 @@ public class SCCharacterListPacketTests
     {
         // Arrange
         var characters = new Character[3];
-        var packet = new SCCharacterListPacket(true, characters);
+        var packet = new CharacterListPacket(true, characters);
 
         // Assert
         await Assert.That(packet).IsNotNull();
@@ -35,8 +35,8 @@ public class SCCharacterListPacketTests
     public async Task Constructor_SetsLastFlag()
     {
         // Arrange & Act
-        var packetLast = new SCCharacterListPacket(true, []);
-        var packetNotLast = new SCCharacterListPacket(false, []);
+        var packetLast = new CharacterListPacket(true, []);
+        var packetNotLast = new CharacterListPacket(false, []);
 
         // Assert
         await Assert.That(packetLast).IsNotNull();

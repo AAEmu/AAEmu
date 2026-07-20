@@ -1,5 +1,6 @@
 using System.Diagnostics;
 
+using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Commons.Utils.Updater;
@@ -112,6 +113,9 @@ public sealed class GameService : IHostedService, IDisposable
 
         CharacterManager.Instance.CheckForDeletedCharacters();
         CharacterManager.Instance.StartOnlineTracking();
+
+        // Initialize encryption manager
+        EncryptionManager.Instance.Load();
 
         GameNetwork.Instance.Start();
         StreamNetwork.Instance.Start();

@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
@@ -7,6 +7,7 @@ public class QuestActObjMonsterHunt(QuestComponentTemplate parentComponent) : Qu
 {
     public override bool CountsAsAnObjective => true;
     public uint NpcId { get; set; }
+    public bool LongDist { get; set; }
     public bool UseAlias { get; set; }
     public uint QuestActObjAliasId { get; set; }
     public uint HighlightDoodadId { get; set; }

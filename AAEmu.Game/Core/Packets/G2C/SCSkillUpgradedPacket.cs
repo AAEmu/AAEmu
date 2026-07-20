@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Skills;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCSkillUpgradedPacket(Skill skill) : GamePacket(SCOffsets.SCSkillUpgradedPacket, 1)
+public class SCSkillUpgradedPacket(Skill skill) : GamePacket(SCOffsets.SCSkillUpgradedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

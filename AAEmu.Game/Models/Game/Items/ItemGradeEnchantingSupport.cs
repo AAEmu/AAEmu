@@ -3,6 +3,10 @@ namespace AAEmu.Game.Models.Game.Items;
 public class ItemGradeEnchantingSupport
 {
     public uint Id { get; set; }
+
+public int ImplFlags { get; set; }
+
+public int Icons { get; set; }
     public uint ItemId { get; set; }
     public int RequireGradeMax { get; set; }
     public int RequireGradeMin { get; set; }

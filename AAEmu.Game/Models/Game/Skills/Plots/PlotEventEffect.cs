@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
@@ -10,6 +10,10 @@ namespace AAEmu.Game.Models.Game.Skills.Plots;
 public class PlotEventEffect
 {
     public int Position { get; set; }
+
+public int Id { get; set; }
+
+public uint EventId { get; set; }
     public PlotEffectSource SourceId { get; set; }
     public PlotEffectTarget TargetId { get; set; }
     public uint ActualId { get; set; }

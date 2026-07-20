@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -20,7 +20,7 @@ public class ItemGameData : Singleton<ItemGameData>, IGameDataLoader
         return null;
     }
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _itemGradeBuffs = [];
 
@@ -48,6 +48,6 @@ public class ItemGameData : Singleton<ItemGameData>, IGameDataLoader
 
     public void PostLoad()
     {
-        //
+
     }
 }

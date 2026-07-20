@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCDoodadQuestAcceptPacket(uint doodadObjId, uint questContextId)
-    : GamePacket(SCOffsets.SCDoodadQuestAcceptPacket, 1)
+    : GamePacket(SCOffsets.SCDoodadQuestAcceptPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

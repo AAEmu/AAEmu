@@ -11,7 +11,7 @@ public class SCUnitDamagedPacket(
     uint targetId,
     int damage,
     int absorbed)
-    : GamePacket(SCOffsets.SCUnitDamagedPacket, 1)
+    : GamePacket(SCOffsets.SCUnitDamagedPacket, 5)
 {
     public int _manaBurn;
 

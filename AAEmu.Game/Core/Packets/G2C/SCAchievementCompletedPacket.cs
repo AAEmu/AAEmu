@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCAchievementCompletedPacket(uint id) : GamePacket(SCOffsets.SCAchievementCompletedPacket, 1)
+public class SCAchievementCompletedPacket(uint id) : GamePacket(SCOffsets.SCAchievementCompletedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

@@ -6,7 +6,7 @@ using AAEmu.Game.Models.Game.Units.Static;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCUnitDeathPacket(uint objId, KillReason killReason, int resurrectWaitTime, int lostExp, byte durabilityLossRate, Unit killer = null)
-    : GamePacket(SCOffsets.SCUnitDeathPacket, 1)
+    : GamePacket(SCOffsets.SCUnitDeathPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

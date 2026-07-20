@@ -11,7 +11,7 @@ public class SCConstructHouseTaxPacket(
     int baseTaxMoneyAmount,
     int depositTaxMoneyAmount,
     int totalTaxMoneyAmount)
-    : GamePacket(SCOffsets.SCConstructHouseTaxPacket, 1)
+    : GamePacket(SCOffsets.SCConstructHouseTaxPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

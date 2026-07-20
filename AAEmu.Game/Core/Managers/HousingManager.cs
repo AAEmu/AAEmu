@@ -65,7 +65,7 @@ public class HousingManager(
     /// <param name="values"></param>
     /// <param name="accountId"></param>
     /// <returns></returns>
-    public int GetByAccountId(Dictionary<uint, House> values, uint accountId)
+    public int GetByAccountId(Dictionary<uint, House> values, ulong accountId)
     {
         foreach (var (id, house) in _houses)
             if (house.AccountId == accountId)
@@ -723,7 +723,7 @@ public class HousingManager(
     /// <param name="hostileTaxRate"></param>
     /// <param name="oneWeekTaxCount"></param>
     /// <returns></returns>
-    public bool CalculateBuildingTaxInfo(uint accountId, HousingTemplate newHouseTemplate, bool buildingNewHouse, out int totalTaxToPay, out int heavyHouseCount, out int normalHouseCount, out int hostileTaxRate, out int oneWeekTaxCount)
+    public bool CalculateBuildingTaxInfo(ulong accountId, HousingTemplate newHouseTemplate, bool buildingNewHouse, out int totalTaxToPay, out int heavyHouseCount, out int normalHouseCount, out int hostileTaxRate, out int oneWeekTaxCount)
     {
         totalTaxToPay = 0;
         heavyHouseCount = 0;
@@ -997,7 +997,7 @@ public class HousingManager(
                     // Just delete the doodad and attached item if no new owner
                     // Delete the attached item
                     if (f.ItemId != 0)
-                        thisDoodadsItem._holdingContainer?.ConsumeItem(ItemTaskType.Invalid,
+                        thisDoodadsItem.HoldingContainer?.ConsumeItem(ItemTaskType.Invalid,
                             thisDoodadsItem.TemplateId, thisDoodadsItem.Count, thisDoodadsItem);
 
                     // Is furniture, but doesn't restore, destroy it

@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTradeMoneyPutupPacket(int moneyAmount) : GamePacket(SCOffsets.SCTradeMoneyPutupPacket, 1)
+public class SCTradeMoneyPutupPacket(int moneyAmount) : GamePacket(SCOffsets.SCTradeMoneyPutupPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

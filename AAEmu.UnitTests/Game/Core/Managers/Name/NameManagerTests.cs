@@ -48,7 +48,7 @@ public sealed class NameManagerTests
         var charAccount = 1000u;
         var sut = new NameManager();
         sut.Load([], [],
-            characterAccounts: new Dictionary<uint, uint>
+            characterAccounts: new Dictionary<uint, ulong>
             {
                 [charId] = charAccount
             });

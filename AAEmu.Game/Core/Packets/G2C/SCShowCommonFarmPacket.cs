@@ -6,7 +6,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCShowCommonFarmPacket(int farmType, int count, Vector3 pos)
-    : GamePacket(SCOffsets.SCShowCommonFarmPacket, 1)
+    : GamePacket(SCOffsets.SCShowCommonFarmPacket, 5)
 {
     private readonly float _x = pos.X;
     private readonly float _y = pos.Y;

@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Schedules;
@@ -18,7 +18,7 @@ public class SchedulesGameData : Singleton<SchedulesGameData>, IGameDataLoader
     private Dictionary<int, GameScheduleDoodads> _gameScheduleDoodads;
     private Dictionary<int, GameScheduleQuests> _gameScheduleQuests;
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _gameSchedules = [];
         _gameScheduleSpawners = [];

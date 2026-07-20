@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Items;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCTradeItemPutupPacket(SlotType slotType, byte slot, int amount)
-    : GamePacket(SCOffsets.SCTradeItemPutupPacket, 1)
+    : GamePacket(SCOffsets.SCTradeItemPutupPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

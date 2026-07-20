@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCHouseOwnerNameChangedPacket(ushort tl, string newName)
-    : GamePacket(SCOffsets.SCHouseOwnerNameChangedPacket, 1)
+    : GamePacket(SCOffsets.SCHouseOwnerNameChangedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

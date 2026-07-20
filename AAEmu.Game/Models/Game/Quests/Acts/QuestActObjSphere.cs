@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
@@ -8,6 +8,8 @@ public class QuestActObjSphere(QuestComponentTemplate parentComponent) : QuestAc
 {
     public override bool CountsAsAnObjective => true;
     public uint SphereId { get; set; }
+    public string Name { get; set; }
+    public uint Cinema { get; set; }
     public uint NpcId { get; set; }
     public uint HighlightDoodadId { get; set; }
     public int HighlightDoodadPhase { get; set; }

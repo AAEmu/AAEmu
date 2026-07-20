@@ -34,7 +34,7 @@ public class GameConnectionTable : Singleton<GameConnectionTable>
         return [.. _connections.Values];
     }
 
-    public GameConnection GetConnectionByAccount(uint accountId)
+    public GameConnection GetConnectionByAccount(ulong accountId)
     {
         var connectionInfo = _connections.Where(c => c.Value.AccountId == accountId).ToList();
         if (connectionInfo.Count >= 1)

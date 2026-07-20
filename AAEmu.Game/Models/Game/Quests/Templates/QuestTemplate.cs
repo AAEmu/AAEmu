@@ -1,10 +1,15 @@
-﻿using AAEmu.Game.Models.Game.Quests.Static;
+using AAEmu.Game.Models.Game.Quests.Static;
 
 namespace AAEmu.Game.Models.Game.Quests.Templates;
 
 public class QuestTemplate : IQuestTemplate
 {
     public uint Id { get; set; }
+    public byte Race { get; set; }
+    public int Priority { get; set; }
+    public string Name { get; set; }
+    public byte MinLevel { get; set; }
+    public byte MaxLevel { get; set; }
     public bool Repeatable { get; set; }
     public byte Level { get; set; }
     public bool Selective { get; set; }

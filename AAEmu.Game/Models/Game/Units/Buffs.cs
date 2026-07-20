@@ -865,7 +865,7 @@ public class Buffs : IBuffs
             return false;
 
         // Only save buffs with SaveRuleId > 0
-        if (buff.Template.SaveRuleId == BuffSaveRuleType.DontSave)
+        if (buff.Template.SaveRuleId == (uint)BuffSaveRuleType.DontSave)
             return false;
 
         // Passive buffs are restored via the skill system
@@ -888,12 +888,12 @@ public class Buffs : IBuffs
 
         // Rule 2: Premium/Crafting (Cash-Shop, Mastery, Proficiency) → always save
         // Rule 3: Special (Inn/Sleep, Battlefield, Cosmetics) → always save
-        if (buff.Template.SaveRuleId >= BuffSaveRuleType.CharacterPersistent)
+        if (buff.Template.SaveRuleId >= (uint)BuffSaveRuleType.CharacterPersistent)
             return true;
 
         // Rule 1: Standard buffs — only save beneficial buffs with ≥60s duration.
         // Filters out short combat debuffs (stuns, bleeds, knockdowns).
-        if (buff.Template.SaveRuleId == BuffSaveRuleType.Normal)
+        if (buff.Template.SaveRuleId == (uint)BuffSaveRuleType.Normal)
         {
             // Don't save debuffs (combat effects should not persist through logout)
             if (buff.Template.Kind == BuffKind.Bad)

@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -25,7 +25,7 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
             {
                 // Recoverable doodads, should be referencing an item in a System container, if this is not the case,
                 // that means that it was already picked up by somebody else
-                if (item._holdingContainer?.ContainerType != SlotType.System)
+                if (item.HoldingContainer?.ContainerType != SlotType.System)
                 {
                     owner.ToNextPhase = false;
                     character.SendErrorMessage(ErrorMessageType.InteractionRecoverParent); // TODO: Not sure what error I need to put here
@@ -86,7 +86,7 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
             addedItem = true; // fake it to get rid of the error state
         }
 
-        if (addedItem && item != null && item._holdingContainer.ContainerType == SlotType.Equipment)
+        if (addedItem && item != null && item.HoldingContainer.ContainerType == SlotType.Equipment)
             character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId, (byte)item.Slot, item), false);
 
         if (addedItem && owner != null)

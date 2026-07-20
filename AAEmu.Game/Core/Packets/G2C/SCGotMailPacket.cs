@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Mails;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCGotMailPacket(MailHeader mail, CountUnreadMail count, bool isCancel, MailBody body = null)
-    : GamePacket(SCOffsets.SCGotMailPacket, 1)
+    : GamePacket(SCOffsets.SCGotMailPacket, 5)
 {
     private readonly bool _hasBody = body != null;
 

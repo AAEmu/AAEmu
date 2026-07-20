@@ -16,7 +16,7 @@ public class CofferContainer(uint ownerId, bool createWithNewId)
         // All Chests will not accept timed items 
         if (itemTemplate.ExpAbsLifetime > 0 ||
             itemTemplate.ExpOnlineLifetime > 0 ||
-            itemTemplate.ExpDate > DateTime.MinValue)
+            itemTemplate.ExpDate > 0)
             return false;
 
         // Otherwordly Storage Chest will accept pretty much any other item
@@ -47,7 +47,7 @@ public class CofferContainer(uint ownerId, bool createWithNewId)
         {
             var item = Items[i];
             Logger.Warn($"Destroying item {item.Id} from coffer item_container {ContainerId} due to delete");
-            item._holdingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
+            item.HoldingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
         }
 
         // Delete container

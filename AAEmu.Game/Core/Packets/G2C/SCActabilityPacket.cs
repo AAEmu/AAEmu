@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCActabilityPacket(bool last, Actability[] actabilities) : GamePacket(SCOffsets.SCActabilityPacket, 1)
+public class SCActabilityPacket(bool last, Actability[] actabilities) : GamePacket(SCOffsets.SCActabilityPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

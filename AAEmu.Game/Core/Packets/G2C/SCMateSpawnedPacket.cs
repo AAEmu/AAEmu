@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCMateSpawnedPacket(Mate mate) : GamePacket(SCOffsets.SCMateSpawnedPacket, 1)
+public class SCMateSpawnedPacket(Mate mate) : GamePacket(SCOffsets.SCMateSpawnedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

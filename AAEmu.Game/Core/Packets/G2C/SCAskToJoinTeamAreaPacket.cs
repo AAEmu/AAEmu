@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCAskToJoinTeamAreaPacket(uint teamId, uint senderId, string senderName, bool isParty)
-    : GamePacket(SCOffsets.SCAskToJoinTeamAreaPacket, 1)
+    : GamePacket(SCOffsets.SCAskToJoinTeamAreaPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

@@ -8,7 +8,7 @@ public class SCFactionCreatedPacket(
     SystemFaction faction,
     uint ownerObjId,
     (uint memberObjId, uint memberId, string name)[] members)
-    : GamePacket(SCOffsets.SCFactionCreatedPacket, 1)
+    : GamePacket(SCOffsets.SCFactionCreatedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

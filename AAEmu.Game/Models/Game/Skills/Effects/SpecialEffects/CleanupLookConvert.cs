@@ -77,6 +77,6 @@ public class CleanupLookConvert : SpecialEffectAction
 
         itemWithImage.ImageItemTemplateId = 0;
         character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ConvertItemLook, [new ItemUpdate(itemWithImage)], []));
-        powderItem._holdingContainer.ConsumeItem(ItemTaskType.ConvertItemLook, powderItem.TemplateId, 1, powderItem);
+        powderItem.HoldingContainer.ConsumeItem(ItemTaskType.ConvertItemLook, powderItem.TemplateId, 1, powderItem);
     }
 }

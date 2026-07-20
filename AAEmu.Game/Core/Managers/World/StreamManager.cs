@@ -7,14 +7,14 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class StreamManager : Singleton<StreamManager>, IStreamManager
 {
-    private readonly Dictionary<uint, uint> _accounts = [];
+    private readonly Dictionary<uint, ulong> _accounts = [];
 
     public static void Load()
     {
         // TODO ...
     }
 
-    public void AddToken(uint accountId, uint connectionId)
+    public void AddToken(ulong accountId, uint connectionId)
     {
         _accounts.Add(connectionId, accountId);
     }
@@ -24,7 +24,7 @@ public class StreamManager : Singleton<StreamManager>, IStreamManager
         _accounts.Remove(token);
     }
 
-    public void Login(StreamConnection connection, uint accountId, uint token)
+    public void Login(StreamConnection connection, ulong accountId, uint token)
     {
         if (_accounts.ContainsKey(token))
         {

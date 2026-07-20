@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -956,9 +956,9 @@ public class Doodad : BaseUnit
         if (ItemId > 0)
         {
             var item = ItemManager.Instance.GetItemByItemId(ItemId);
-            if (item is { _holdingContainer.ContainerType: SlotType.None or SlotType.System })
+            if (item is { HoldingContainer.ContainerType: SlotType.None or SlotType.System })
             {
-                item._holdingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
+                item.HoldingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
             }
         }
 

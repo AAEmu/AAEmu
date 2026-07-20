@@ -15,7 +15,7 @@ public class SCTrialInfoPacket(
     int cur,
     int crimeRecordCount,
     int botReport)
-    : GamePacket(SCOffsets.SCTrialInfoPacket, 1)
+    : GamePacket(SCOffsets.SCTrialInfoPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

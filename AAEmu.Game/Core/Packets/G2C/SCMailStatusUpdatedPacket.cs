@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Mails;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCMailStatusUpdatedPacket(bool isSent, long mailId, MailStatus status)
-    : GamePacket(SCOffsets.SCMailStatusUpdatedPacket, 1)
+    : GamePacket(SCOffsets.SCMailStatusUpdatedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

@@ -6,7 +6,7 @@ using AAEmu.Game.Models.Game.Items;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCCharacterGenderAndModelModifiedPacket(Character character)
-    : GamePacket(SCOffsets.SCCharacterGenderAndModelModifiedPacket, 1)
+    : GamePacket(SCOffsets.SCCharacterGenderAndModelModifiedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

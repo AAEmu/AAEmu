@@ -111,7 +111,7 @@ public class Inventory
             {
                 if (!container.AddOrMoveExistingItem(ItemTaskType.Invalid, item, item.Slot))
                 {
-                    item._holdingContainer?.RemoveItem(ItemTaskType.Invalid, item, true);
+                    item.HoldingContainer?.RemoveItem(ItemTaskType.Invalid, item, true);
                     Logger.Error("LoadInventory found unused item type for item, Id {0} ({1}) at {2}:{3} for {4}",
                         item.Id, item.TemplateId, item.SlotType, item.Slot,
                         Owner?.Name ?? "Id:" + item.OwnerId);
@@ -289,8 +289,8 @@ public class Inventory
         }
 
         // Grab containers for easy manipulation
-        var sourceContainer = fromItem?._holdingContainer ?? _itemContainers.GetValueOrDefault(fromType);
-        var targetContainer = toItem?._holdingContainer ?? _itemContainers.GetValueOrDefault(toType);
+        var sourceContainer = fromItem?.HoldingContainer ?? _itemContainers.GetValueOrDefault(fromType);
+        var targetContainer = toItem?.HoldingContainer ?? _itemContainers.GetValueOrDefault(toType);
 
         return SplitOrMoveItemEx(taskType, sourceContainer, targetContainer, fromItemId, fromType, fromSlot, toItemId, toType, toSlot, count);
     }
@@ -535,7 +535,7 @@ public class Inventory
                 {
                     sourceContainer.Items.Add(itemInTargetSlot);
                     targetContainer.Items.Remove(itemInTargetSlot);
-                    itemInTargetSlot._holdingContainer = sourceContainer;
+                    itemInTargetSlot.HoldingContainer = sourceContainer;
                     sourceContainer.UpdateFreeSlotCount();
                     targetContainer.UpdateFreeSlotCount();
                 }
@@ -546,7 +546,7 @@ public class Inventory
                 var ni = ItemManager.Instance.Create(fromItem.TemplateId, count, fromItem.Grade, true);
                 ni.SlotType = toType;
                 ni.Slot = toSlot;
-                ni._holdingContainer = targetContainer;
+                ni.HoldingContainer = targetContainer;
                 targetContainer.Items.Add(ni);
                 itemTasks.Add(new ItemAdd(ni));
                 if (targetContainer != sourceContainer)
@@ -562,7 +562,7 @@ public class Inventory
                 {
                     sourceContainer.Items.Remove(fromItem);
                     targetContainer.Items.Add(fromItem);
-                    fromItem._holdingContainer = targetContainer;
+                    fromItem.HoldingContainer = targetContainer;
                     sourceContainer.UpdateFreeSlotCount();
                     targetContainer.UpdateFreeSlotCount();
                 }
@@ -595,7 +595,7 @@ public class Inventory
                 {
                     sourceContainer.Items.Remove(fromItem);
                     targetContainer.Items.Add(fromItem);
-                    fromItem._holdingContainer = targetContainer;
+                    fromItem.HoldingContainer = targetContainer;
                     targetContainer.UpdateFreeSlotCount();
                 }
                 itemInTargetSlot!.SlotType = sourceContainer!.ContainerType;
@@ -604,7 +604,7 @@ public class Inventory
                 {
                     targetContainer.Items.Remove(itemInTargetSlot);
                     sourceContainer.Items.Add(itemInTargetSlot);
-                    itemInTargetSlot._holdingContainer = sourceContainer;
+                    itemInTargetSlot.HoldingContainer = sourceContainer;
                     sourceContainer.UpdateFreeSlotCount();
                 }
                 break;

@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -10,6 +10,7 @@ public class DoodadFuncAttachment : DoodadFuncTemplate
 {
     // doodad_funcs
     public AttachPointKind AttachPointId { get; init; }
+    public uint AnimActionId { get; set; }
     public int Space { get; init; }
     public BondKind BondKindId { get; init; }
 

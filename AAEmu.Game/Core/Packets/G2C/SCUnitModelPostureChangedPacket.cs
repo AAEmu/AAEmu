@@ -6,7 +6,7 @@ using Unit = AAEmu.Game.Models.Game.Units.Unit;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCUnitModelPostureChangedPacket(Unit unit, uint animActionId, bool activateAnimation)
-    : GamePacket(SCOffsets.SCUnitModelPostureChangedPacket, 1)
+    : GamePacket(SCOffsets.SCUnitModelPostureChangedPacket, 5)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Off;
 

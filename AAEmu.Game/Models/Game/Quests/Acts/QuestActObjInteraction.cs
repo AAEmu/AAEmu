@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -9,6 +9,7 @@ public class QuestActObjInteraction(QuestComponentTemplate parentComponent) : Qu
 {
     public override bool CountsAsAnObjective => true;
     public WorldInteractionType WorldInteractionId { get; set; }
+    public uint QuestDoodadGroupId { get; set; }
     public uint DoodadId { get; set; }
     public bool UseAlias { get; set; }
     public bool TeamShare { get; set; }

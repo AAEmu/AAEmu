@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Crime;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCRulingStatusPacket(int count, int total, TrialSentenceResult sentenceType, int sentenceTime)
-    : GamePacket(SCOffsets.SCRulingStatusPacket, 1)
+    : GamePacket(SCOffsets.SCRulingStatusPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

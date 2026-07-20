@@ -8,28 +8,39 @@ public class SCFactionRelationListPacket : GamePacket
 {
     private readonly FactionRelation[] _relations;
 
-    public SCFactionRelationListPacket() : base(0x008, 1)
+    public SCFactionRelationListPacket() : base(SCOffsets.SCFactionRelationListPacket, 5)
     {
         _relations = [];
     }
 
-    public SCFactionRelationListPacket(FactionRelation[] relations) : base(SCOffsets.SCFactionRelationListPacket, 1)
+    public SCFactionRelationListPacket(FactionRelation[] relations) : base(SCOffsets.SCFactionRelationListPacket, 5)
     {
         _relations = relations;
     }
 
     public override PacketStream Write(PacketStream stream)
     {
+        var updaterName = "";
+        var memo = "";
+
         stream.Write(false); // uiRequest
+        stream.Write(false); // relationRequest
+        stream.Write(false); // relationVotePeriod
         stream.Write((byte)_relations.Length); // TODO max length 200
         foreach (var relation in _relations)
         {
-            stream.Write((uint)relation.Id);
-            stream.Write((uint)relation.Id2);
+            stream.Write((uint)relation.Faction1Id);
+            stream.Write((uint)relation.Faction2Id);
             stream.Write((byte)relation.State);
-            stream.Write(relation.ExpTime);
-            stream.Write(0L); // type(id)
             stream.Write((byte)0); // nState
+            stream.Write(0L); // type(id)
+            stream.Write(DateTime.MinValue); // updateTime
+            stream.Write(DateTime.MinValue); // changeTime
+            stream.Write((uint)relation.Faction1Id); // type
+            stream.Write(updaterName); // updaterName
+            stream.Write(0); // updaterItemCount
+            stream.Write(memo); // memo
+            stream.Write(false); // votePossible
         }
 
         return stream;

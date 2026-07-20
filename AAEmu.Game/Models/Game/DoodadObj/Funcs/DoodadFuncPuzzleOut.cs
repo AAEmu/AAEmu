@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -7,6 +7,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
 public class DoodadFuncPuzzleOut : DoodadPhaseFuncTemplate
 {
     public uint GroupId { get; set; }
+    public uint SoundId { get; set; }
     public float Ratio { get; set; }
     public string Anim { get; set; }
     public uint ProjectileId { get; set; }

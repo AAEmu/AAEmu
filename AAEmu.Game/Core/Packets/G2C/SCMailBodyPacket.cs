@@ -10,7 +10,7 @@ public class SCMailBodyPacket(
     MailBody body,
     bool isOpenDateModified,
     CountUnreadMail count)
-    : GamePacket(SCOffsets.SCMailBodyPacket, 1)
+    : GamePacket(SCOffsets.SCMailBodyPacket, 5)
 {
     //private readonly ulong _mailID;
 

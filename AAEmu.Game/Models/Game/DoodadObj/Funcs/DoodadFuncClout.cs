@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -14,6 +14,10 @@ public class DoodadFuncClout : DoodadPhaseFuncTemplate
 {
     // doodad_phase_funcs
     public int Duration { get; set; }
+    public uint FxGroupId { get; set; }
+    public bool CheckTargetTagSrc { get; set; }
+    public bool CheckProjectileHighPriority { get; set; }
+    public bool CheckNoTargetTagSrc { get; set; }
     public int Tick { get; set; }
     public SkillTargetRelation TargetRelation { get; set; }
     public uint BuffId { get; set; }

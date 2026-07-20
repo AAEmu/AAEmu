@@ -1,8 +1,9 @@
+using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Char.Templates;
 
 namespace AAEmu.Game.Models.Game.Char;
 
-public class Actability(ActabilityTemplate template)
+public class Actability(ActabilityTemplate template) : PacketMarshaler
 {
     public uint Id { get; init; } = template.Id;
     public ActabilityTemplate Template { get; set; } = template;
@@ -48,4 +49,11 @@ public class Actability(ActabilityTemplate template)
     /// </summary>
     /// <returns></returns>
     public float GetLootMultiplier() => GetExpMultiplier();
+
+    public override PacketStream Write(PacketStream stream)
+    {
+        stream.WritePisc(Id, Point);
+        stream.Write(Step);
+        return stream;
+    }
 }

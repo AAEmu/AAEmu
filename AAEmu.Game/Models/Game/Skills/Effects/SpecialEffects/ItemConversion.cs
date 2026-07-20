@@ -82,6 +82,6 @@ public class ItemConversion : SpecialEffectAction
         }
 
         // consumes target item from stack or if there is only 1, destroy item
-        targetItem._holdingContainer.ConsumeItem(ItemTaskType.Conversion, targetItem.TemplateId, 1, targetItem);
+        targetItem.HoldingContainer.ConsumeItem(ItemTaskType.Conversion, targetItem.TemplateId, 1, targetItem);
     }
 }

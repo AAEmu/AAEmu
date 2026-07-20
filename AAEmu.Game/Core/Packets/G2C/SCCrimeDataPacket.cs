@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Packets.G2C
         uint trialId,
         int sentenceTimeInMs,
         uint judgeId)
-        : GamePacket(SCOffsets.SCCrimeDataPacket, 1)
+        : GamePacket(SCOffsets.SCCrimeDataPacket, 5)
     {
         public override PacketStream Write(PacketStream stream)
         {

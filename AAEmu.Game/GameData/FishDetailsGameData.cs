@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.FishSchools;
@@ -14,7 +14,7 @@ public class FishDetailsGameData : Singleton<FishDetailsGameData>, IGameDataLoad
 {
     private Dictionary<uint, FishDetails> _fishDetails;
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _fishDetails = [];
 
@@ -26,7 +26,7 @@ public class FishDetailsGameData : Singleton<FishDetailsGameData>, IGameDataLoad
         while (reader.Read())
         {
             var template = new FishDetails { Id = reader.GetInt32("id") };
-            template.Name = LocalizationManager.Instance.Get("fish_details", "name", template.Id, reader.GetString("name"));
+            //template.Name = LocalizationManager.Instance.Get("fish_details", "name", template.Id, reader.GetString("name")); // there is no such field in the database for version 3.0.3.0
             template.ItemId = reader.GetUInt32("item_id");
             template.MinWeight = reader.GetInt32("min_weight");
             template.MaxWeight = reader.GetInt32("max_weight");

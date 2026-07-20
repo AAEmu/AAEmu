@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCUnitPortalUsedPacket(uint unitId) : GamePacket(SCOffsets.SCUnitPortalUsedPacket, 1)
+public class SCUnitPortalUsedPacket(uint unitId) : GamePacket(SCOffsets.SCUnitPortalUsedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCChargeMoneyPaidPacket(long mailId) : GamePacket(SCOffsets.SCChargeMoneyPaidPacket, 1)
+public class SCChargeMoneyPaidPacket(long mailId) : GamePacket(SCOffsets.SCChargeMoneyPaidPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

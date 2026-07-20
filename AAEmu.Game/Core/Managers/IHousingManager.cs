@@ -12,7 +12,7 @@ namespace AAEmu.Game.Core.Managers;
 
 public interface IHousingManager
 {
-    int GetByAccountId(Dictionary<uint, House> values, uint accountId);
+    int GetByAccountId(Dictionary<uint, House> values, ulong accountId);
     int GetByCharacterId(Dictionary<uint, House> values, uint characterId);
     void LoadPlayerHousing(WorldInstance worldInstance);
     void SpawnAll();
@@ -23,7 +23,7 @@ public interface IHousingManager
     void ChangeHouseName(GameConnection connection, ushort tlId, string name);
     void Demolish(GameConnection connection, House house, bool failedToPayTax, bool forceRestoreAllDecor);
     void RemoveDeadHouse(House house);
-    bool CalculateBuildingTaxInfo(uint accountId, HousingTemplate newHouseTemplate, bool buildingNewHouse, out int totalTaxToPay, out int heavyHouseCount, out int normalHouseCount, out int hostileTaxRate, out int oneWeekTaxCount);
+    bool CalculateBuildingTaxInfo(ulong accountId, HousingTemplate newHouseTemplate, bool buildingNewHouse, out int totalTaxToPay, out int heavyHouseCount, out int normalHouseCount, out int hostileTaxRate, out int oneWeekTaxCount);
     House GetHouseById(uint houseId);
     void UpdateOwnedHousingFaction(uint characterId, FactionsEnum factionId);
     bool SetForSale(ushort houseTlId, uint price, uint buyerId, Character seller);

@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Quests;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCQuestContextStartedPacket(Quest quest, uint componentId)
-    : GamePacket(SCOffsets.SCQuestContextStartedPacket, 1)
+    : GamePacket(SCOffsets.SCQuestContextStartedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

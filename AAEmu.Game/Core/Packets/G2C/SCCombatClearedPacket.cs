@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCCombatClearedPacket(uint objId) : GamePacket(SCOffsets.SCCombatClearedPacket, 1)
+public class SCCombatClearedPacket(uint objId) : GamePacket(SCOffsets.SCCombatClearedPacket, 5)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
 

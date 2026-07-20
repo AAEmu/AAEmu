@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCCharacterPortalsPacket(Portal[] portals) : GamePacket(SCOffsets.SCCharacterPortalsPacket, 1)
+public class SCCharacterPortalsPacket(Portal[] portals) : GamePacket(SCOffsets.SCCharacterPortalsPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

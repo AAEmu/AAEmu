@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -12,6 +12,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
 public class DoodadFuncBinding : DoodadFuncTemplate
 {
     public uint DistrictId { get; set; }
+    public uint ZoneId { get; set; }
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {

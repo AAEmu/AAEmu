@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Items;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCUnknownPacket(SlotType slotType, byte slot, SlotType slotType2, byte slot2, short errorMessage)
-    : GamePacket(SCOffsets.SCUnknownPacket, 1)
+    : GamePacket(SCOffsets.SCUnknownPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

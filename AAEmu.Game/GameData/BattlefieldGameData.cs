@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.IO;
+using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.InstantGame;
@@ -18,7 +18,7 @@ public class BattlefieldGameData : Singleton<BattlefieldGameData>, IGameDataLoad
         return _battlefields.GetValueOrDefault(id);
     }
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _battlefields = new Dictionary<uint, Battlefield>();
 

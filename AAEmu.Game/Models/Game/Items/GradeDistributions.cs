@@ -1,8 +1,10 @@
-﻿namespace AAEmu.Game.Models.Game.Items;
+namespace AAEmu.Game.Models.Game.Items;
 
 public class GradeDistributions
 {
     public int Id { get; set; }
+
+public int Weight12 { get; set; }
     public string Name { get; set; }
     public int Weight0 { get; set; }
     public int Weight1 { get; set; }

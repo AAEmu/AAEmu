@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Quests.Static;
+using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
@@ -6,6 +6,8 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 public class QuestActConAcceptDoodad(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint DoodadId { get; set; }
+    public bool UseAlias { get; set; }
+    public uint QuestActObjAliasId { get; set; }
 
     /// <summary>
     /// Checks if the Quest starter was indeed the specified doodad

@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 // TODO: Integrate this packet into CurrentTarget property of BaseUnit
-public class SCTargetChangedPacket(uint id, uint targetId) : GamePacket(SCOffsets.SCTargetChangedPacket, 1)
+public class SCTargetChangedPacket(uint id, uint targetId) : GamePacket(SCOffsets.SCTargetChangedPacket, 5)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
 

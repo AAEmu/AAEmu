@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -14,6 +14,9 @@ using Microsoft.Data.Sqlite;
 
 namespace AAEmu.Game.GameData;
 
+/// <summary>
+/// Loads sphere definitions and their related quest, skill, sound, buff and chat bubble data.
+/// </summary>
 [GameData]
 public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
 {
@@ -28,7 +31,7 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
     private Dictionary<uint, SphereAcceptQuests> _sphereAcceptQuests;
     private Dictionary<uint, SphereAcceptQuestQuests> _sphereAcceptQuestQuests;
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _spheres = [];
         _sphereQuests = [];
@@ -63,9 +66,9 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
                         CategoryId = reader.GetUInt32("category_id"),
                         OrUnitReqs = reader.GetBoolean("or_unit_reqs"),
                         IsPersonalMsg = reader.GetBoolean("is_personal_msg"),
-                        MilestoneId = reader.GetUInt32("milestone_id"),
-                        NameTr = reader.GetBoolean("name_tr"),
-                        TeamMsgTr = reader.GetBoolean("team_msg_tr")
+                        //MilestoneId = reader.GetUInt32("milestone_id"), // there is no such field in the database for version 3.0.3.0
+                        //NameTr = reader.GetBoolean("name_tr"), // there is no such field in the database for version 3.0.3.0
+                        //TeamMsgTr = reader.GetBoolean("team_msg_tr") // there is no such field in the database for version 3.0.3.0
                     };
 
                     _spheres.Add(template.Id, template);
@@ -201,8 +204,9 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
                     var template = new SphereBuffs
                     {
                         Id = reader.GetUInt32("id"),
-                        BuffId = reader.GetUInt32("buff_id")
-
+                        BuffId = reader.GetUInt32("buff_id"),
+                        AndPet = reader.GetBoolean("and_pet"),
+                        RemoveOnLeaveBuffId = reader.GetUInt32("remove_on_leave_buff_id")
                     };
 
                     _sphereBuffs.Add(template.Id, template);

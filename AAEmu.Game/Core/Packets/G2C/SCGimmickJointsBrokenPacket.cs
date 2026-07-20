@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Gimmicks;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCGimmickJointsBrokenPacket(Gimmick[] gimmicks) : GamePacket(SCOffsets.SCGimmickJointsBrokenPacket, 1)
+public class SCGimmickJointsBrokenPacket(Gimmick[] gimmicks) : GamePacket(SCOffsets.SCGimmickJointsBrokenPacket, 5)
 {
     private const int JointId = 0;
     private const int Epicenter = 0;

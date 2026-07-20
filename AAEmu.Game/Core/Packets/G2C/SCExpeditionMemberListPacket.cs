@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Expeditions;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCExpeditionMemberListPacket(uint total, uint id, List<ExpeditionMember> members)
-    : GamePacket(SCOffsets.SCExpeditionMemberListPacket, 1)
+    : GamePacket(SCOffsets.SCExpeditionMemberListPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

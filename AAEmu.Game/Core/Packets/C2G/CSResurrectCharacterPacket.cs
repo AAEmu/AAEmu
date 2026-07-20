@@ -124,7 +124,8 @@ public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectChar
             new SCUnitPointsPacket(
                 Connection.ActiveChar.ObjId,
                 Connection.ActiveChar.Hp,
-                Connection.ActiveChar.Mp
+                Connection.ActiveChar.Mp,
+                Connection.ActiveChar.HighAbilityRsc
             ),
             true
         );

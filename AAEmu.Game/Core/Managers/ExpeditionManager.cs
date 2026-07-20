@@ -267,7 +267,7 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             new SCFactionCreatedPacket(expedition, owner.ObjId, [(owner.ObjId, owner.Id, owner.Name)])
         );
 
-        worldManager.BroadcastPacketToServer(new SCFactionListPacket(expedition));
+        worldManager.BroadcastPacketToServer(new SCSystemFactionListPacket(expedition));
         owner.BroadcastPacket(
             new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, (uint)expedition.Id, false),
             true
@@ -554,11 +554,23 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             {
                 var temp = new SystemFaction[expeditions.Length - i <= 20 ? expeditions.Length - i : 20];
                 Array.Copy(expeditions, i, temp, 0, temp.Length);
-                character.SendPacket(new SCFactionListPacket(temp));
+                character.SendPacket(new SCSystemFactionListPacket(temp));
             }
         }
 
         character.SendPacket(new SCExpeditionRolePolicyListPacket([]));
+    }
+
+    public void SendExpeditionProtect(GameConnection connection)
+    {
+        if (connection.ActiveChar is { Expedition: not null })
+        {
+            connection.ActiveChar.SendPacket(new SCProtectFactionPacket(1, connection.ActiveChar.Expedition.ProtectTime));
+        }
+        else
+        {
+            connection.SendPacket(new SCProtectFactionPacket(1, DateTime.MinValue));
+        }
     }
 
     public FactionsEnum GetExpeditionOfCharacter(uint characterId)

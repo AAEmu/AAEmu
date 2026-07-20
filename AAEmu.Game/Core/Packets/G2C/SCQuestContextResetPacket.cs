@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCQuestContextResetPacket(uint questId, byte[] body, uint componentId)
-    : GamePacket(SCOffsets.SCQuestContextResetPacket, 1)
+    : GamePacket(SCOffsets.SCQuestContextResetPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

@@ -3,6 +3,8 @@ namespace AAEmu.Game.Models.Game.Items.Templates;
 public class AttributeModifiers
 {
     public uint Id { get; set; }
+
+public string Alias { get; set; }
     public int StrWeight { get; set; }
     public int DexWeight { get; set; }
     public int StaWeight { get; set; }

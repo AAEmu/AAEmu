@@ -24,13 +24,16 @@ public enum EquipmentItemSlotType : byte
     Shield = 20,
     Instrument = 21,
     Bag = 22,
+    // ---- somehow_special
     Face = 23,
     Hair = 24,
     Glasses = 25,
-    Reserved = 26,
+    Horns = 26,
     Tail = 27,
     Body = 28,
     Beard = 29,
+    // ---- somehow_special
     Backpack = 30,
-    Cosplay = 31
+    Cosplay = 31,
+    Stabilizer = 32
 }

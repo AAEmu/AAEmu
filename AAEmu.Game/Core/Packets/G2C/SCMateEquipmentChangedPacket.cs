@@ -15,7 +15,7 @@ public class SCMateEquipmentChangedPacket : GamePacket
     private readonly ItemAndLocation _itemOnPet;
     private readonly ItemAndLocation _itemInBag;
 
-    public SCMateEquipmentChangedPacket(ItemAndLocation itemOnPet, ItemAndLocation itemInBag, ushort mateTlId, uint characterId, uint passengerId, bool bts, bool success) : base(SCOffsets.SCMateEquipmentChangedPacket, 1)
+    public SCMateEquipmentChangedPacket(ItemAndLocation itemOnPet, ItemAndLocation itemInBag, ushort mateTlId, uint characterId, uint passengerId, bool bts, bool success) : base(SCOffsets.SCMateEquipmentChangedPacket, 5)
     {
         _itemOnPet = itemOnPet;
         _itemInBag = itemInBag;

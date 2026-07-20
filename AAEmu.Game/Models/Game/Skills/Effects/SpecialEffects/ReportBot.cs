@@ -43,7 +43,7 @@ public class ReportBot : SpecialEffectAction
                 return;
             }
 
-            var msg = (skillObject as SkillObjectText)?.Msg ?? string.Empty;
+            var msg = (skillObject as SkillObjectUnk3)?.Msg ?? string.Empty;
 
             if (!CrimeManager.Instance.ReportBot(targetPlayer, casterPlayer, msg))
             {

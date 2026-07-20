@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Cryptography;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Connections;
 
 namespace AAEmu.Game.Core.Network.Game;
@@ -16,24 +17,53 @@ public abstract class GamePacket(ushort typeId, byte level) : PacketBase<GameCon
     public override PacketStream Encode()
     {
         var ps = new PacketStream();
+        byte count = 0;
         try
         {
             var packet = new PacketStream()
                 .Write((byte)0xdd)
                 .Write(Level);
 
-            var body = new PacketStream()
-                .Write(TypeId)
-                .Write(this);
-
-            if (Level == 1)
+            switch (Level)
             {
-                packet
-                    .Write((byte)0) // hash
-                    .Write((byte)0); // count
-            }
+                case 1:
+                    {
+                        packet
+                            .Write((byte)0) // hash
+                            .Write((byte)0) // count
+                            .Write(TypeId)
+                            .Write(this);
+                        break;
+                    }
+                case 2:
+                    {
+                        packet
+                            .Write(TypeId)
+                            .Write(this);
+                        break;
+                    }
+                case 3:
+                case 4:
+                case 6:
+                    break;
+                case 5:
+                    {
+                        count = EncryptionManager.Instance.GetSCMessageCount(Connection.Id, Connection.AccountId);
+                        var bodyCrc = new PacketStream()
+                            .Write(count)
+                            .Write(TypeId)
+                            .Write(this);
 
-            packet.Write(body, false);
+                        EncryptionManager.Instance.IncSCMsgCount(Connection.Id, Connection.AccountId);
+                        var crc8 = EncryptionManager.Instance.Crc8(bodyCrc);
+                        var data = new PacketStream()
+                            .Write(crc8)
+                            .Write(bodyCrc, false);
+                        var encrypted = EncryptionManager.Instance.StoCEncrypt(data);
+                        packet.Write(encrypted, false);
+                        break;
+                    }
+            }
 
             ps.Write(packet);
         }
@@ -43,7 +73,7 @@ public abstract class GamePacket(ushort typeId, byte level) : PacketBase<GameCon
             throw;
         }
 
-        var logString = $"GamePacket: S->C type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
+        var logString = $"GamePacket: S->C type [{Level}:{TypeId:X3}] C:[{count}:{EncryptionManager.Instance.GetSCMessageCount(Connection.Id, Connection.AccountId)}] {ToString()?.Substring(23)}{Verbose()}";
         switch (LogLevel)
         {
             case PacketLogLevel.Trace:

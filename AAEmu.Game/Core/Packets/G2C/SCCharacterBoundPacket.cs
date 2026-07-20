@@ -15,7 +15,7 @@ public class SCCharacterBoundPacket(
     Vector3 pos,
     float zRot,
     bool isFavorite)
-    : GamePacket(SCOffsets.SCCharacterBoundPacket, 1)
+    : GamePacket(SCOffsets.SCCharacterBoundPacket, 5)
 {
     // Not sure what this should be
 

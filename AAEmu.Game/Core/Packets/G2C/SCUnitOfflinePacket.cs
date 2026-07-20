@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCUnitOfflinePacket(uint objId, bool isOffline) : GamePacket(SCOffsets.SCUnitOfflinePacket, 1)
+public class SCUnitOfflinePacket(uint objId, bool isOffline) : GamePacket(SCOffsets.SCUnitOfflinePacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

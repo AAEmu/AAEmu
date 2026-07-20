@@ -25,6 +25,8 @@ public class UnitReqs
     public UnitReqsKindType KindType { get; set; }
     public uint Value1 { get; set; }
     public uint Value2 { get; set; }
+    public int Value3 { get; set; }
+    public bool DisplayMsg { get; set; }
 
     public UnitReqsValidationResult Validate(BaseUnit owner, BaseUnit target)
     {

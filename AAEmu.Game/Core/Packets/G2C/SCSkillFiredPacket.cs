@@ -24,7 +24,7 @@ public class SCSkillFiredPacket : GamePacket
     /// </summary>
     public uint FireAnimId { get; set; }
 
-    public SCSkillFiredPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject) : base(SCOffsets.SCSkillFiredPacket, 1)
+    public SCSkillFiredPacket(uint id, ushort tl, SkillCaster caster, SkillCastTarget target, Skill skill, SkillObject skillObject) : base(SCOffsets.SCSkillFiredPacket, 5)
     {
         _id = id;
         _tl = tl;

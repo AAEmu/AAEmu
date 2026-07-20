@@ -6,16 +6,17 @@ namespace AAEmu.Game.Core.Managers;
 public interface IAccountManager : IInitializable
 {
     void Add(GameConnection connection);
-    void Remove(uint id);
-    bool Contains(uint id);
+    void Remove(ulong id);
+    bool Contains(ulong id);
     int Count();
-    AccountDetails GetAccountDetails(uint accountId);
-    bool AddCredits(uint accountId, int creditsAmount);
-    bool RemoveCredits(uint accountId, int credits);
-    bool AddLoyalty(uint accountId, int loyaltyAmount);
-    void UpdateLabor(uint accountId, short laborPower);
-    DateTime UpdateLoginTime(uint accountId, DateTime newTime);
-    void UpdateTickTimes(uint accountId, DateTime newTime, bool updateLabor, bool updateCredits, bool updateLoyalty);
-    void UpdateDivineClock(uint accountId, uint timeElapsed, uint timesTaken);
-    (uint, uint) GetDivineClock(uint accountId);
+    AccountDetails GetAccountDetailsInternal(ulong accountId);
+    AccountDetails GetAccountDetails(ulong accountId);
+    bool AddCredits(ulong accountId, int creditsAmount);
+    bool RemoveCredits(ulong accountId, int credits);
+    bool AddLoyalty(ulong accountId, int loyaltyAmount);
+    void UpdateLabor(ulong accountId, short laborPower);
+    DateTime UpdateLoginTime(ulong accountId, DateTime newTime);
+    void UpdateTickTimes(ulong accountId, DateTime newTime, bool updateLabor, bool updateCredits, bool updateLoyalty);
+    void UpdateDivineClock(ulong accountId, uint timeElapsed, uint timesTaken);
+    (uint, uint) GetDivineClock(ulong accountId);
 }

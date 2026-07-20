@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTradeCanceledPacket(int reason, bool causedByMe) : GamePacket(SCOffsets.SCTradeCanceledPacket, 1)
+public class SCTradeCanceledPacket(int reason, bool causedByMe) : GamePacket(SCOffsets.SCTradeCanceledPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

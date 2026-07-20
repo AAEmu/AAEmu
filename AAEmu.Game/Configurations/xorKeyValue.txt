@@ -1,0 +1,6 @@
+XorKeyConstant1:
+75A02452
+XorKeyConstant2:
+B27645B4
+AdjustCryptConstantEnable:
+false

@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -174,7 +174,7 @@ public partial class InstantGame
                 // Reset HP
                 character.Hp = character.MaxHp;
                 character.Mp = character.MaxMp;
-                character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
+                character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp, character.HighAbilityRsc), true);
                 // Reset Buffs
                 character.Buffs.RemoveAllEffects();
                 // Reset Cooldowns

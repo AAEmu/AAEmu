@@ -308,7 +308,7 @@ public class ItemContainer
             return false;
         }
 
-        var sourceContainer = item._holdingContainer;
+        var sourceContainer = item.HoldingContainer;
         var sourceSlot = (byte)item.Slot;
         var sourceSlotType = item.SlotType;
 
@@ -375,7 +375,7 @@ public class ItemContainer
         {
             item.SlotType = ContainerType;
             item.Slot = newSlot;
-            item._holdingContainer = this;
+            item.HoldingContainer = this;
             item.OwnerId = OwnerId;
 
             Items.Insert(0, item); // insert at front for easy buyback handling
@@ -473,15 +473,15 @@ public class ItemContainer
             Owner?.SendPacket(sync);
         }
 
-        var res = item._holdingContainer.Items.Remove(item);
+        var res = item.HoldingContainer.Items.Remove(item);
         if (res && task != ItemTaskType.Invalid)
         {
-            item._holdingContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(task, [new ItemRemoveSlot(item)], []));
+            item.HoldingContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(task, [new ItemRemoveSlot(item)], []));
         }
 
         if (res && releaseIdAsWell)
         {
-            item._holdingContainer = null;
+            item.HoldingContainer = null;
             ItemManager.Instance.ReleaseId(item.Id);
         }
 
@@ -702,6 +702,7 @@ public class ItemContainer
             }
 
             // Timers
+            var now = DateTime.UtcNow;
             if (newItem.Template.ExpAbsLifetime > 0)
             {
                 syncPackets.Add(ItemManager.SetItemExpirationTime(newItem, DateTime.UtcNow.AddMinutes(newItem.Template.ExpAbsLifetime)));
@@ -712,9 +713,9 @@ public class ItemContainer
                 syncPackets.Add(ItemManager.SetItemOnlineExpirationTime(newItem, newItem.Template.ExpOnlineLifetime));
             }
 
-            if (newItem.Template.ExpDate > DateTime.MinValue)
+            if (newItem.Template.ExpDate > 0)
             {
-                syncPackets.Add(ItemManager.SetItemExpirationTime(newItem, newItem.Template.ExpDate));
+                syncPackets.Add(ItemManager.SetItemExpirationTime(newItem, now.AddMinutes(newItem.Template.ExpDate)));
             }
 
             if (newItem is EquipItem equipItem && newItem.Template is EquipItemTemplate equipItemTemplate)

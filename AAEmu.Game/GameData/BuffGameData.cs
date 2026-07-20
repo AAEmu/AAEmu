@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
@@ -27,7 +27,7 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
         return _buffTolerances.TryGetValue(buffTag, out var tolerance) ? tolerance : null;
     }
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _buffModifiers = [];
         _buffTolerances = [];
@@ -42,18 +42,16 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
-                    var template = new BuffModifier
-                    {
-                        Id = reader.GetUInt32("id"),
-                        OwnerId = reader.GetUInt32("owner_id"),
-                        OwnerType = reader.GetString("owner_type"),
-                        TagId = reader.GetUInt32("tag_id", 0),
-                        BuffAttribute = (BuffAttribute)reader.GetUInt32("buff_attribute_id"),
-                        UnitModifierType = (UnitModifierType)reader.GetUInt32("unit_modifier_type_id"),
-                        Value = reader.GetInt32("value"),
-                        BuffId = reader.GetUInt32("buff_id", 0),
-                        Synergy = reader.GetBoolean("synergy"),
-                    };
+                    var template = new BuffModifier();
+                    //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                    template.OwnerId = reader.GetUInt32("owner_id");
+                    template.OwnerType = reader.GetString("owner_type");
+                    template.TagId = reader.GetUInt32("tag_id", 0);
+                    template.BuffAttribute = (BuffAttribute)reader.GetUInt32("buff_attribute_id");
+                    template.UnitModifierType = (UnitModifierType)reader.GetUInt32("unit_modifier_type_id");
+                    template.Value = reader.GetInt32("value");
+                    template.BuffId = reader.GetUInt32("buff_id", 0);
+                    template.Synergy = reader.GetBoolean("synergy");
 
                     if (!_buffModifiers.ContainsKey(template.OwnerId))
                         _buffModifiers.Add(template.OwnerId, []);
@@ -62,7 +60,7 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
             }
         }
 
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM buff_tolerances";
             command.Prepare();
@@ -87,7 +85,7 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
             }
         }
 
-        using (var command = connection.CreateCommand())
+        using (var command = connection2.CreateCommand())
         {
             command.CommandText = "SELECT * FROM buff_tolerance_steps";
             command.Prepare();

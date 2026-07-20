@@ -77,6 +77,6 @@ public class Skinize : SpecialEffectAction
 
         itemToImage.SetFlag(ItemFlag.Skinized);
         character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Skinize, [new ItemUpdateBits(itemToImage)], []));
-        powderItem._holdingContainer.ConsumeItem(ItemTaskType.Skinize, powderItem.TemplateId, 1, powderItem);
+        powderItem.HoldingContainer.ConsumeItem(ItemTaskType.Skinize, powderItem.TemplateId, 1, powderItem);
     }
 }

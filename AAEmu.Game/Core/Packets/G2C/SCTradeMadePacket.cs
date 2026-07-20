@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCTradeMadePacket(ItemTaskType action, List<ItemTask> tasks, List<ulong> forceRemove)
-    : GamePacket(SCOffsets.SCTradeMadePacket, 1)
+    : GamePacket(SCOffsets.SCTradeMadePacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

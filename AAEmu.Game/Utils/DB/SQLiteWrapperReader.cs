@@ -156,9 +156,47 @@ public sealed class SQLiteWrapperReader(SqliteDataReader reader) : IDisposable
         if (_ordinal.TryGetValue(column, out var ordinal1))
             return ordinal1;
 
-        var ordinal = reader.GetOrdinal(column);
-        _ordinal.Add(column, ordinal);
-        return ordinal;
+        try
+        {
+            var ordinal = reader.GetOrdinal(column);
+            _ordinal.Add(column, ordinal);
+            return ordinal;
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            var cols = new System.Text.StringBuilder();
+            for (int i = 0; i < reader.FieldCount; i++)
+            {
+                if (i > 0) cols.Append(", ");
+                try { cols.Append(reader.GetName(i)); } catch { cols.Append($"<#{i}>"); }
+            }
+            throw new InvalidOperationException($"Column '{column}' not found in query result. Available columns: {cols}", ex);
+        }
+    }
+
+    public bool HasColumn(string column)
+    {
+        if (string.IsNullOrEmpty(column))
+            return false;
+
+        if (_ordinal.ContainsKey(column))
+            return true;
+
+        for (int i = 0; i < reader.FieldCount; i++)
+        {
+            try
+            {
+                var name = reader.GetName(i);
+                if (string.Equals(name, column, StringComparison.OrdinalIgnoreCase))
+                {
+                    _ordinal[column] = i;
+                    return true;
+                }
+            }
+            catch { }
+        }
+
+        return false;
     }
 
     public void Dispose()
@@ -166,4 +204,5 @@ public sealed class SQLiteWrapperReader(SqliteDataReader reader) : IDisposable
         _ordinal.Clear();
         reader.Dispose();
     }
+
 }

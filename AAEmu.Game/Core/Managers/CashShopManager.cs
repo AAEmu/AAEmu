@@ -215,7 +215,7 @@ public class CashShopManager(IWorldManager worldManager, IAccountManager account
     /// <param name="characterId"></param>
     /// <param name="shopItemId"></param>
     /// <returns>Resulting list of sales</returns>
-    public List<AuditIcsSale> GetSalesForShopItem(uint accountId, uint characterId, uint shopItemId)
+    public List<AuditIcsSale> GetSalesForShopItem(ulong accountId, uint characterId, uint shopItemId)
     {
         var res = new List<AuditIcsSale>();
 
@@ -262,8 +262,8 @@ public class CashShopManager(IWorldManager worldManager, IAccountManager account
         return res;
     }
 
-    public bool LogSale(uint buyerAccount, uint buyerChar,
-        uint targetAccount, uint targetChar,
+    public bool LogSale(ulong buyerAccount, uint buyerChar,
+        ulong targetAccount, uint targetChar,
         DateTime saleDate,
         uint shopItemId, uint sku,
         uint saleCost, CashShopCurrencyType saleCurrency,

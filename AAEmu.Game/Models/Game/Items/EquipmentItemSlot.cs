@@ -21,13 +21,16 @@ public enum EquipmentItemSlot : byte
     Offhand = 16,
     Ranged = 17,
     Musical = 18,
+    // ---- somehow_special
     Face = 19,
     Hair = 20,
     Glasses = 21,
-    Reserved = 22,
+    Horns = 22,
     Tail = 23,
     Body = 24,
     Beard = 25,
+    // ---- somehow_special
     Backpack = 26,
-    Cosplay = 27
+    Cosplay = 27,
+    Stabilizer = 28
 }

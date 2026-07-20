@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCCannotStartTradePacket(uint objId, int reason) : GamePacket(SCOffsets.SCCannotStartTradePacket, 1)
+public class SCCannotStartTradePacket(uint objId, int reason) : GamePacket(SCOffsets.SCCannotStartTradePacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

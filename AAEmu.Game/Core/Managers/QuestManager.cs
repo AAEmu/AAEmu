@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
@@ -22,6 +22,9 @@ using QuestNpcAiName = AAEmu.Game.Models.Game.Quests.Static.QuestNpcAiName;
 
 namespace AAEmu.Game.Core.Managers;
 
+/// <summary>
+/// Manages quest templates, components, acts and runtime quest state.
+/// </summary>
 public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneManager) : Singleton<QuestManager>, IQuestManager
 {
     private static uint QuestCategoryTutorial => 45;
@@ -465,6 +468,9 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                 AiCommandSetId = reader.GetUInt32("ai_command_set_id", 0),
                 OrUnitReqs = reader.GetBoolean("or_unit_reqs", true),
                 CinemaId = reader.GetUInt32("cinema_id", 0),
+                SoundId = reader.GetUInt32("sound_id", 0),
+                SummaryVoiceId = reader.GetUInt32("summary_voice_id", 0),
+                HideQuestMarker = reader.GetBoolean("hide_quest_marker", true),
                 BuffId = reader.GetUInt32("buff_id", 0)
             };
             _componentTemplates.Add(template.Id, template);
@@ -487,13 +493,19 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
         {
             var template = new QuestTemplate
             {
-                Id = reader.GetUInt32("id"), Repeatable = reader.GetBoolean("repeatable", true), Level = reader.GetByte("level", 0),
+                Id = reader.GetUInt32("id"),
+                Name = reader.GetString("name", string.Empty),
+                Repeatable = reader.GetBoolean("repeatable", true), Level = reader.GetByte("level", 0),
+                MinLevel = reader.GetByte("min_level", 0),
+                MaxLevel = reader.GetByte("max_level", 0),
                 Selective = reader.GetBoolean("selective", true),
                 Successive = reader.GetBoolean("successive", true),
                 RestartOnFail = reader.GetBoolean("restart_on_fail", true),
                 ChapterIdx = reader.GetUInt32("chapter_idx", 0),
                 QuestIdx = reader.GetUInt32("quest_idx", 0),
-                MilestoneId = reader.GetUInt32("milestone_id", 0),
+                Priority = reader.GetInt32("priority", 0),
+                Race = reader.GetByte("race", 0),
+                //MilestoneId = reader.GetUInt32("milestone_id", 0), // there is no such field in the database for version 3.0.3.0
                 LetItDone = reader.GetBoolean("let_it_done", true),
                 DetailId = (QuestDetail)reader.GetUInt32("detail_id"),
                 ZoneId = reader.GetUInt32("zone_id"),
@@ -682,7 +694,12 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                     var parentComponent = GetComponentByActTemplate("QuestActConAcceptDoodad", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConAcceptDoodad(parentComponent) { DetailId = actId, DoodadId = reader.GetUInt32("doodad_id") };
+                    var template = new QuestActConAcceptDoodad(parentComponent)
+                    {
+                        DetailId = actId, DoodadId = reader.GetUInt32("doodad_id"),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -812,7 +829,12 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                     var parentComponent = GetComponentByActTemplate("QuestActConAcceptNpc", actId);
                     if (parentComponent == null)
                         continue;
-                    var template = new QuestActConAcceptNpc(parentComponent) { DetailId = actId, NpcId = reader.GetUInt32("npc_id") };
+                    var template = new QuestActConAcceptNpc(parentComponent)
+                    {
+                        DetailId = actId, NpcId = reader.GetUInt32("npc_id"),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
                     AddActTemplate(template);
                 }
             }
@@ -1233,6 +1255,7 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                         HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0),
                         HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1), // TODO phase = 0?
                         QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0),
+                        QuestDoodadGroupId = reader.GetUInt32("quest_doodad_group_id", 0),
                         Phase = reader.GetUInt32("phase", 0)
                     };
                     AddActTemplate(template);
@@ -1333,6 +1356,7 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                     var parentComponent = GetComponentByActTemplate("QuestActObjItemUse", actId);
                     if (parentComponent == null)
                         continue;
+                    _ = uint.TryParse(reader.GetString("cinema", string.Empty), out var cinema);
                     var template = new QuestActObjItemUse(parentComponent)
                     {
                         DetailId = actId, ItemId = reader.GetUInt32("item_id"), Count = reader.GetInt32("count"),
@@ -1340,6 +1364,7 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                         HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1), // TODO phase = 0?
                         UseAlias = reader.GetBoolean("use_alias", true),
                         QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0),
+                        Cinema = cinema,
                         DropWhenDestroy = reader.GetBoolean("drop_when_destroy", true)
                     };
                     AddActTemplate(template);
@@ -1409,7 +1434,8 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                         UseAlias = reader.GetBoolean("use_alias", true),
                         QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0),
                         HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0),
-                        HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1) // TODO phase = 0?
+                        HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1), // TODO phase = 0?
+                        LongDist = reader.GetBoolean("long_dist", true)
                     };
                     AddActTemplate(template);
                 }
@@ -1432,7 +1458,8 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                         DetailId = actId, NpcId = reader.GetUInt32("npc_id"), Count = reader.GetInt32("count"), UseAlias = reader.GetBoolean("use_alias", true),
                         QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0),
                         HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0),
-                        HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1) // TODO phase = 0?
+                        HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1), // TODO phase = 0?
+                        LongDist = reader.GetBoolean("long_dist", true)
                     };
                     AddActTemplate(template);
                 }
@@ -1478,13 +1505,16 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                     var parentComponent = GetComponentByActTemplate("QuestActObjSphere", actId);
                     if (parentComponent == null)
                         continue;
+                    _ = uint.TryParse(reader.GetString("cinema", string.Empty), out var cinema);
                     var template = new QuestActObjSphere(parentComponent)
                     {
                         DetailId = actId, SphereId = reader.GetUInt32("sphere_id"), NpcId = reader.GetUInt32("npc_id", 0),
                         HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0),
                         HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1), // TODO phase = 0?
                         UseAlias = reader.GetBoolean("use_alias", true),
-                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0),
+                        Cinema = cinema,
+                        Name = reader.GetString("name", string.Empty)
                     };
                     AddActTemplate(template);
                 }
@@ -1530,7 +1560,9 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                         DetailId = actId, NpcId = reader.GetUInt32("npc_id"), TeamShare = reader.GetBoolean("team_share", true),
                         ItemId = reader.GetUInt32("item_id", 0),
                         UseAlias = reader.GetBoolean("use_alias", true),
-                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0),
+                        HighlightDoodadId = reader.GetUInt32("highlight_doodad_id", 0),
+                        HighlightDoodadPhase = reader.GetInt32("highlight_doodad_phase", -1) // TODO phase = 0?
                     };
                     AddActTemplate(template);
                 }
@@ -1786,7 +1818,8 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                         ShowActionBar = reader.GetBoolean("show_action_bar", true),
                         Cleanup = reader.GetBoolean("cleanup", true),
                         DropWhenDestroy = reader.GetBoolean("drop_when_destroy", true),
-                        DestroyWhenDrop = reader.GetBoolean("destroy_when_drop", true)
+                        DestroyWhenDrop = reader.GetBoolean("destroy_when_drop", true),
+                        TryEquip = reader.GetBoolean("try_equip", true)
                     };
                     AddActTemplate(template);
                 }

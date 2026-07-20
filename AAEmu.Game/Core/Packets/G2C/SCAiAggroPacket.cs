@@ -10,7 +10,7 @@ public class SCAiAggroPacket(
     int summarizeDamage = 0,
     int val2 = 0,
     int val3 = 0)
-    : GamePacket(SCOffsets.SCAiAggroPacket, 1)
+    : GamePacket(SCOffsets.SCAiAggroPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.AI.Enums;
+using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 
@@ -12,6 +12,9 @@ namespace AAEmu.Game.Models.Game.Quests;
 public class QuestComponentTemplate(QuestTemplate parentTemplate)
 {
     public uint Id { get; set; }
+    public uint SummaryVoiceId { get; set; }
+    public uint SoundId { get; set; }
+    public bool HideQuestMarker { get; set; }
     public QuestComponentKind KindId { get; set; }
     /// <summary>
     /// NextComponent feels like it is a deprecated field in the compact.sqlite3, the only 3 references doesn't seem to make any sense

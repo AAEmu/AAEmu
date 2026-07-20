@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Items.Loots;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCLootItemFailedPacket(ErrorMessageType errorMessage, LootOwnerType lootOwnerType, uint lootOwnerObjId, ushort itemIndex, uint itemTemplateId) : GamePacket(SCOffsets.SCLootItemFailedPacket, 1)
+public class SCLootItemFailedPacket(ErrorMessageType errorMessage, LootOwnerType lootOwnerType, uint lootOwnerObjId, ushort itemIndex, uint itemTemplateId) : GamePacket(SCOffsets.SCLootItemFailedPacket, 5)
 {
     private readonly int _errorMessage = (int)errorMessage;
 

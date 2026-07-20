@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Skills.Effects.Enums;
+using AAEmu.Game.Models.Game.Skills.Effects.Enums;
 using AAEmu.Game.Models.Game.Skills.Templates;
 
 namespace AAEmu.Game.Models.Game.Skills;
@@ -6,6 +6,30 @@ namespace AAEmu.Game.Models.Game.Skills;
 public class SkillEffect
 {
     public uint EffectId { get; set; }
+
+public bool SynergyText { get; set; }
+
+public int StartHighAbilityResource { get; set; }
+
+public int StartCastingUseChance { get; set; }
+
+public uint SkillId { get; set; }
+
+public uint Id { get; set; }
+
+public int EndHighAbilityResource { get; set; }
+
+public int EndCastingUseChance { get; set; }
+
+public bool CheckTargetTagSrc { get; set; }
+
+public bool CheckSourceTagSrc { get; set; }
+
+public bool CheckNoTargetTagSrc { get; set; }
+
+public bool CheckNoSourceTagSrc { get; set; }
+
+public int ApplicationMethodId { get; set; }
     public EffectTemplate Template { get; set; }
     public int Weight { get; set; }
     public byte StartLevel { get; set; }

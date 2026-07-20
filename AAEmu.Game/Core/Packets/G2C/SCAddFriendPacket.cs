@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCAddFriendPacket(Friend friend, bool success, short errorMessage)
-    : GamePacket(SCOffsets.SCAddFriendPacket, 1)
+    : GamePacket(SCOffsets.SCAddFriendPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

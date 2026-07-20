@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Items;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCCharacterInvenContentsPacket(SlotType type, byte numChunks, byte startChunkIdx, Item[] items)
-    : GamePacket(SCOffsets.SCCharacterInvenContentsPacket, 1)
+    : GamePacket(SCOffsets.SCCharacterInvenContentsPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

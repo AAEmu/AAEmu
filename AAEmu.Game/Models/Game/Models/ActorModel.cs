@@ -1,8 +1,89 @@
-﻿namespace AAEmu.Game.Models.Game.Models;
+namespace AAEmu.Game.Models.Game.Models;
 
 public class ActorModel : Model
 {
     public float Radius { get; set; }
+    public bool UseRandomIdleControl { get; set; }
+    public bool UseRagdollKnockDown { get; set; }
+    public bool UseRagdollHit { get; set; }
+    public bool UseRagdoll { get; set; }
+    public string UpperbodyGraph { get; set; }
+    public bool UnderwaterCreature { get; set; }
+    public float TurnSpeed { get; set; }
+    public bool SlopeAlignment { get; set; }
+    public float SightRange { get; set; }
+    public float SightFov { get; set; }
+    public bool SharedDummyModel { get; set; }
+    public float RopeHangingHandOffsetZ { get; set; }
+    public float RopeHangingHandOffsetY { get; set; }
+    public float RopeHangingHandOffsetX { get; set; }
+    public float RopeBack { get; set; }
+    public bool RestrictClimb { get; set; }
+    public bool RestrictBoardingSlave { get; set; }
+    public bool RestrictBoardingMate { get; set; }
+    public bool PushRagdoll { get; set; }
+    public string Portrait { get; set; }
+    public int PhysicsStiffnessScale { get; set; }
+    public int PhysicsMass { get; set; }
+    public float PhysicsLivingTimeImpulseRecover { get; set; }
+    public float PhysicsLivingMinSlideAngle { get; set; }
+    public float PhysicsLivingMinFallAngle { get; set; }
+    public int PhysicsLivingMaxVelGround { get; set; }
+    public float PhysicsLivingMaxClimbAngle { get; set; }
+    public int PhysicsLivingMass { get; set; }
+    public float PhysicsLivingKAirControl { get; set; }
+    public float PhysicsLivingGravity { get; set; }
+    public string PhysicsLivingColliderMat { get; set; }
+    public float PhysicsLivingAirResistance { get; set; }
+    public int PhysicsFlags { get; set; }
+    public string ModelFile { get; set; }
+    public float HropeDown { get; set; }
+    public int HitPower { get; set; }
+    public float HandRate { get; set; }
+    public bool GroundTargetable { get; set; }
+    public float GameWalkStrafeMultiplier { get; set; }
+    public float GameWalkMultiplier { get; set; }
+    public float GameWalkForwardDiagonalMultiplier { get; set; }
+    public float GameWalkBackwardMultiplier { get; set; }
+    public float GameWalkBackwardDiagonalMultiplier { get; set; }
+    public float GameStrafeMultiplier { get; set; }
+    public float GameSprintMultiplier { get; set; }
+    public float GameMaxGrabVolume { get; set; }
+    public int GameMaxGrabMass { get; set; }
+    public float GameLookIkBlendSpine3 { get; set; }
+    public float GameLookIkBlendSpine2 { get; set; }
+    public float GameLookIkBlendSpine1 { get; set; }
+    public float GameLookIkBlendNeck { get; set; }
+    public float GameLookIkBlendHead { get; set; }
+    public float GameLeanShift { get; set; }
+    public int GameLeanAngle { get; set; }
+    public float GameJumpHeight { get; set; }
+    public float GameInertiaAccel { get; set; }
+    public float GameInertia { get; set; }
+    public float GameGrabMultiplier { get; set; }
+    public float GameForwardMultiplier { get; set; }
+    public float GameForwardDiagonalMultiplier { get; set; }
+    public float GameBowLookIkBlendSpine3 { get; set; }
+    public float GameBowLookIkBlendSpine2 { get; set; }
+    public float GameBowLookIkBlendSpine1 { get; set; }
+    public float GameBowLookIkBlendNeck { get; set; }
+    public float GameBowLookIkBlendHead { get; set; }
+    public float GameBackwardMultiplier { get; set; }
+    public float GameBackwardDiagonalMultiplier { get; set; }
+    public float FxScale { get; set; }
+    public bool FlyMode { get; set; }
+    public bool FaceTargetInstantly { get; set; }
+    public float CenterZ { get; set; }
+    public float CenterY { get; set; }
+    public float CenterX { get; set; }
+    public float BoxZ { get; set; }
+    public float BoxY { get; set; }
+    public float BoxX { get; set; }
+    public float BeanstalkBack { get; set; }
+    public float AttackStartRange { get; set; }
+    public string AnimationGraph { get; set; }
+    public bool AddBox { get; set; }
+    public float ActorHeight { get; set; }
     public float Height { get; set; }
     public int MovementId { get; set; } // 0 = normal, 1 = mounts, 2 = bird/fish (ignores gravity), 3 = sunk in the ground / hidden underground
 

@@ -51,6 +51,6 @@ public class CSConvertItemLookPacket() : GamePacket(CSOffsets.CSConvertItemLookP
         character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ConvertItemLook, [new ItemUpdate(toImage)], []));
 
         // Remove image item
-        imageItem._holdingContainer.RemoveItem(ItemTaskType.SkillReagents, imageItem, true);
+        imageItem.HoldingContainer.RemoveItem(ItemTaskType.SkillReagents, imageItem, true);
     }
 }

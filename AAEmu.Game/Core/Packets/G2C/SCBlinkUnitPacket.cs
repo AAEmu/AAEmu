@@ -5,7 +5,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCBlinkUnitPacket(uint objId, float distance, float degree, float x, float y, float z)
-    : GamePacket(SCOffsets.SCBlinkUnitPacket, 1)
+    : GamePacket(SCOffsets.SCBlinkUnitPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCFvFCombatRelationshipPacket(
     (long x, byte unitRelationshipCode, byte unitRelationshipReason)[] relationships)
-    : GamePacket(SCOffsets.SCFvFCombatRelationshipPacket, 1)
+    : GamePacket(SCOffsets.SCFvFCombatRelationshipPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

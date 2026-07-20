@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCDoodadsCreatedPacket(Doodad[] doodads) : GamePacket(SCOffsets.SCDoodadsCreatedPacket, 1)
+public class SCDoodadsCreatedPacket(Doodad[] doodads) : GamePacket(SCOffsets.SCDoodadsCreatedPacket, 5)
 {
     public const int MaxCountPerPacket = 30; // Suggested Maximum Size
 

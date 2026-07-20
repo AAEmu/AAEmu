@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTelescopeUnitsPacket(bool last, Slave[] slaves) : GamePacket(SCOffsets.SCTelescopeUnitsPacket, 1)
+public class SCTelescopeUnitsPacket(bool last, Slave[] slaves) : GamePacket(SCOffsets.SCTelescopeUnitsPacket, 5)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Off;
 

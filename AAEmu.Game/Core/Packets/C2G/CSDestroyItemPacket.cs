@@ -44,13 +44,13 @@ public class CSDestroyItemPacket() : GamePacket(CSOffsets.CSDestroyItemPacket, 1
         else
         {
             // Sanity check in case we're destroying something we're not actually holding?
-            if (item._holdingContainer == null)
+            if (item.HoldingContainer == null)
             {
                 ItemManager.Instance.ReleaseId(item.Id);
                 Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, [new ItemRemove(item)], []));
             }
             else
-            if (!item._holdingContainer.RemoveItem(ItemTaskType.Destroy, item, true))
+            if (!item.HoldingContainer.RemoveItem(ItemTaskType.Destroy, item, true))
             {
                 Logger.Warn("DestroyItem: Failed to destroy item...");
                 return;

@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCFriendsPacket(int total, Friend[] friends) : GamePacket(SCOffsets.SCFriendsPacket, 1)
+public class SCFriendsPacket(int total, Friend[] friends) : GamePacket(SCOffsets.SCFriendsPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

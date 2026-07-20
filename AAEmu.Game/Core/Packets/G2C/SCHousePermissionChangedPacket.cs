@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCHousePermissionChangedPacket(ushort tl, byte permission)
-    : GamePacket(SCOffsets.SCHousePermissionChangedPacket, 1)
+    : GamePacket(SCOffsets.SCHousePermissionChangedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Utils.DB;
 
@@ -32,7 +32,7 @@ public class TagsGameData : Singleton<TagsGameData>, IGameDataLoader
         return new HashSet<uint>();
     }
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _tags = [];
         #region Tag Tables

@@ -3,6 +3,14 @@ namespace AAEmu.Game.Models.Game.Items;
 public class EquipItemsTemplate
 {
     public uint Headgear { get; set; }
+
+public byte StabilizerGrade { get; set; }
+
+public uint Stabilizer { get; set; }
+
+public byte BackpackGrade { get; set; }
+
+public uint Backpack { get; set; }
     public byte HeadgearGrade { get; set; }
     public uint Necklace { get; set; }
     public byte NecklaceGrade { get; set; }

@@ -12,6 +12,8 @@ public enum UnitFormulaVariableType : byte
 public class UnitFormulaVariable
 {
     public uint FormulaId { get; set; }
+
+public uint Id { get; set; }
     public UnitFormulaVariableType Type { get; set; }
     public uint Key { get; set; }
     public float Value { get; set; }

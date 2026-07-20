@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTimeOfDayPacket(float time) : GamePacket(SCOffsets.SCTimeOfDayPacket, 1)
+public class SCTimeOfDayPacket(float time) : GamePacket(SCOffsets.SCTimeOfDayPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

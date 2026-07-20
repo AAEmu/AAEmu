@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -16,6 +16,13 @@ namespace AAEmu.Game.Models.Game.Skills.Effects;
 public class DamageEffect : EffectTemplate
 {
     public DamageType DamageType { get; set; }
+    public bool UseHighAbilityResource { get; set; }
+    public bool ManaDamage { get; set; }
+    public float HighAbilityResourceMd { get; set; }
+    public float HighAbilityResourceLevelMd { get; set; }
+    public float HighAbilityResourceDpsMd { get; set; }
+    public string ExtraEffects { get; set; }
+    public int DamageTypeId { get; set; }
     public int FixedMin { get; set; }
     public int FixedMax { get; set; }
     public float Multiplier { get; set; }
@@ -364,7 +371,7 @@ public class DamageEffect : EffectTemplate
         {
             ((Unit)caster).Hp = Math.Min(((Unit)caster).MaxHp, ((Unit)caster).Hp + healthStolen);
             ((Unit)caster).Mp = Math.Min(((Unit)caster).MaxMp, ((Unit)caster).Mp + manaStolen);
-            caster.BroadcastPacket(new SCUnitPointsPacket(caster.ObjId, ((Unit)caster).Hp, ((Unit)caster).Mp), true);
+            caster.BroadcastPacket(new SCUnitPointsPacket(caster.ObjId, ((Unit)caster).Hp, ((Unit)caster).Mp, ((Unit)caster).HighAbilityRsc), true);
         }
 
         if (Bonuses != null)

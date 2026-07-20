@@ -5,7 +5,7 @@ using AAEmu.Game.Core.Packets.Debug;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCSkillControllerStatePacket(uint objId, byte scType, float len, bool teared, bool cutouted)
-    : GamePacket(SCOffsets.SCSkillControllerStatePacket, 1)
+    : GamePacket(SCOffsets.SCSkillControllerStatePacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
@@ -19,9 +19,7 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
 
     public Plot GetPlot(uint id)
     {
-        if (_plots.TryGetValue(id, out var plot))
-            return plot;
-        return null;
+        return _plots.GetValueOrDefault(id);
     }
 
     public PlotEventTemplate GetEventByPlotId(uint plotId)
@@ -36,9 +34,9 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
         if (_loaded)
             return;
 
-        _plots = [];
-        _eventTemplates = [];
-        _conditions = [];
+        _plots = new Dictionary<uint, Plot>();
+        _eventTemplates = new Dictionary<uint, PlotEventTemplate>();
+        _conditions = new Dictionary<uint, PlotCondition>();
         //_aoeConditions = new Dictionary<uint, PlotAoeCondition>();
         using (var connection = SQLite.CreateConnection())
         {
@@ -51,7 +49,9 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                 {
                     while (reader.Read())
                     {
-                        var template = new Plot { Id = reader.GetUInt32("id"), TargetTypeId = reader.GetUInt32("target_type_id") };
+                        var template = new Plot();
+                        template.Id = reader.GetUInt32("id");
+                        template.TargetTypeId = reader.GetUInt32("target_type_id");
                         _plots.Add(template.Id, template);
                     }
                 }
@@ -68,23 +68,29 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                 {
                     while (reader.Read())
                     {
-                        var template = new PlotEventTemplate
-                        {
-                            Id = reader.GetUInt32("id"), PlotId = reader.GetUInt32("plot_id"), Position = reader.GetInt32("position"),
-                            SourceUpdateMethodId = reader.GetUInt32("source_update_method_id"),
-                            TargetUpdateMethodId = reader.GetUInt32("target_update_method_id"),
-                            TargetUpdateMethodParam1 = reader.GetInt32("target_update_method_param1"),
-                            TargetUpdateMethodParam2 = reader.GetInt32("target_update_method_param2"),
-                            TargetUpdateMethodParam3 = reader.GetInt32("target_update_method_param3"),
-                            TargetUpdateMethodParam4 = reader.GetInt32("target_update_method_param4"),
-                            TargetUpdateMethodParam5 = reader.GetInt32("target_update_method_param5"),
-                            TargetUpdateMethodParam6 = reader.GetInt32("target_update_method_param6"),
-                            TargetUpdateMethodParam7 = reader.GetInt32("target_update_method_param7"),
-                            TargetUpdateMethodParam8 = reader.GetInt32("target_update_method_param8"),
-                            TargetUpdateMethodParam9 = reader.GetInt32("target_update_method_param9"),
-                            Tickets = reader.GetInt32("tickets"),
-                            AoeDiminishing = reader.GetBoolean("aoe_diminishing", true)
-                        };
+                        var template = new PlotEventTemplate();
+                        template.Id = reader.GetUInt32("id");
+                        template.AoeDiminishing = reader.GetBoolean("aoe_diminishing", true);
+                        template.Name = reader.GetString("name");
+                        template.OnlyDieUnit = reader.GetBoolean("only_die_unit", true);
+                        template.OnlyMyPet = reader.GetBoolean("only_my_pet", true);
+                        template.OnlyMySlave = reader.GetBoolean("only_my_slave", true);
+                        template.OnlyPetOwner = reader.GetBoolean("only_pet_owner", true);
+                        template.PlotId = reader.GetUInt32("plot_id");
+                        template.Position = reader.GetInt32("position");
+                        template.SourceUpdateMethodId = reader.GetUInt32("source_update_method_id");
+                        template.TargetUpdateMethodId = reader.GetUInt32("target_update_method_id");
+                        template.TargetUpdateMethodParam1 = reader.GetInt32("target_update_method_param1");
+                        template.TargetUpdateMethodParam2 = reader.GetInt32("target_update_method_param2");
+                        template.TargetUpdateMethodParam3 = reader.GetInt32("target_update_method_param3");
+                        template.TargetUpdateMethodParam4 = reader.GetInt32("target_update_method_param4");
+                        template.TargetUpdateMethodParam5 = reader.GetInt32("target_update_method_param5");
+                        template.TargetUpdateMethodParam6 = reader.GetInt32("target_update_method_param6");
+                        template.TargetUpdateMethodParam7 = reader.GetInt32("target_update_method_param7");
+                        template.TargetUpdateMethodParam8 = reader.GetInt32("target_update_method_param8");
+                        template.TargetUpdateMethodParam9 = reader.GetInt32("target_update_method_param9");
+                        template.Tickets = reader.GetInt32("tickets");
+
                         _eventTemplates.Add(template.Id, template);
 
                         if (template.Position == 1 && _plots.TryGetValue(template.PlotId, out var plot))
@@ -101,15 +107,16 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                 {
                     while (reader.Read())
                     {
-                        var template = new PlotCondition
-                        {
-                            Id = reader.GetUInt32("id"),
-                            NotCondition = reader.GetBoolean("not_condition", true),
-                            Kind = (PlotConditionType)reader.GetInt32("kind_id"),
-                            Param1 = reader.GetInt32("param1"),
-                            Param2 = reader.GetInt32("param2"),
-                            Param3 = reader.GetInt32("param3")
-                        };
+                        var template = new PlotCondition();
+                        template.Id = reader.GetUInt32("id");
+                        template.Kind = (PlotConditionType)reader.GetInt32("kind_id");
+                        template.KindId = reader.GetInt32("kind_id");
+                        template.NotCondition = reader.GetBoolean("not_condition", true);
+                        template.OrUnitReqs = reader.GetBoolean("or_unit_reqs", true);
+                        template.Param1 = reader.GetInt32("param1");
+                        template.Param2 = reader.GetInt32("param2");
+                        template.Param3 = reader.GetInt32("param3");
+
                         _conditions.Add(template.Id, template);
                     }
                 }
@@ -125,13 +132,26 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                     {
                         var id = reader.GetUInt32("event_id");
                         var condId = reader.GetUInt32("condition_id");
-                        var template = new PlotEventCondition
+
+                        if (!_conditions.TryGetValue(condId, out var condition))
                         {
-                            Condition = _conditions[condId], Position = reader.GetInt32("position"), SourceId = (PlotEffectSource)reader.GetInt32("source_id"),
-                            TargetId = (PlotEffectTarget)reader.GetInt32("target_id")
-                        };
-                        // TODO 1.2 // template.NotifyFailure = reader.GetBoolean("notify_failure", true);
-                        var plotEvent = _eventTemplates[id];
+                            Logger.Warn($"Plot condition: {condId} not found");
+                            continue;
+                        }
+
+                        if (!_eventTemplates.TryGetValue(id, out var plotEvent))
+                        {
+                            Logger.Warn($"Plot event: {id} not found");
+                            continue;
+                        }
+
+                        var template = new PlotEventCondition();
+                        template.Condition = _conditions[condId];
+                        template.Position = reader.GetInt32("position");
+                        template.SourceId = (PlotEffectSource)reader.GetInt32("source_id");
+                        template.TargetId = (PlotEffectTarget)reader.GetInt32("target_id");
+                        template.NotifyFailure = reader.GetBoolean("notify_failure", true);
+
                         if (plotEvent.Conditions.Count > 0)
                         {
                             var res = false;
@@ -162,8 +182,23 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                     {
                         var id = reader.GetUInt32("event_id");
                         var condId = reader.GetUInt32("condition_id");
-                        var template = new PlotAoeCondition { Condition = _conditions[condId], Position = reader.GetInt32("position") };
-                        var plotEvent = _eventTemplates[id];
+
+                        if (!_conditions.TryGetValue(condId, out var condition))
+                        {
+                            Logger.Warn($"Plot condition: {condId} not found");
+                            continue;
+                        }
+
+                        if (!_eventTemplates.TryGetValue(id, out var plotEvent))
+                        {
+                            Logger.Warn($"Plot event: {id} not found");
+                            continue;
+                        }
+
+                        var template = new PlotAoeCondition();
+                        template.Condition = _conditions[condId];
+                        template.Position = reader.GetInt32("position");
+                        
                         if (plotEvent.AoeConditions.Count > 0)
                         {
                             var res = false;
@@ -193,31 +228,38 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                     while (reader.Read())
                     {
                         var id = reader.GetUInt32("event_id");
-                        var template = new PlotEventEffect
+
+                        if (!_eventTemplates.TryGetValue(id, out var plotEvent))
                         {
-                            Position = reader.GetInt32("position"),
-                            SourceId = (PlotEffectSource)reader.GetInt32("source_id"),
-                            TargetId = (PlotEffectTarget)reader.GetInt32("target_id"),
-                            ActualId = reader.GetUInt32("actual_id"),
-                            ActualType = reader.GetString("actual_type")
-                        };
-                        var evnt = _eventTemplates[id];
-                        if (evnt.Effects.Count > 0)
+                            Logger.Warn($"Plot event: {id} not found");
+                            continue;
+                        }
+
+                        var template = new PlotEventEffect();
+                        template.Id = reader.GetInt32("id");
+                        template.EventId = id;
+                        template.Position = reader.GetInt32("position");
+                        template.SourceId = (PlotEffectSource)reader.GetInt32("source_id");
+                        template.TargetId = (PlotEffectTarget)reader.GetInt32("target_id");
+                        template.ActualId = reader.GetUInt32("actual_id");
+                        template.ActualType = reader.GetString("actual_type");
+
+                        if (plotEvent.Effects.Count > 0)
                         {
                             var res = false;
-                            for (var node = evnt.Effects.First; node != null; node = node.Next)
+                            for (var node = plotEvent.Effects.First; node != null; node = node.Next)
                                 if (node.Value.Position > template.Position)
                                 {
-                                    evnt.Effects.AddBefore(node, template);
+                                    plotEvent.Effects.AddBefore(node, template);
                                     res = true;
                                     break;
                                 }
 
                             if (!res)
-                                evnt.Effects.AddLast(template);
+                                plotEvent.Effects.AddLast(template);
                         }
                         else
-                            evnt.Effects.AddFirst(template);
+                            plotEvent.Effects.AddFirst(template);
                     }
                 }
             }
@@ -230,9 +272,22 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                 {
                     while (reader.Read())
                     {
-                        var template = new PlotNextEvent();
                         var id = reader.GetUInt32("event_id");
                         var nextId = reader.GetUInt32("next_event_id");
+
+                        if (!_eventTemplates.TryGetValue(id, out var plotEvent))
+                        {
+                            Logger.Warn($"Plot event: {id} not found");
+                            continue;
+                        }
+
+                        if (!_eventTemplates.TryGetValue(nextId, out var nextEvent))
+                        {
+                            Logger.Warn($"Plot next event: {nextId} not found");
+                            continue;
+                        }
+
+                        var template = new PlotNextEvent();
                         template.Id = reader.GetUInt32("id");
                         template.Event = _eventTemplates[nextId];
                         template.Position = reader.GetInt32("position");
@@ -248,7 +303,7 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                         template.CancelOnBigHit = reader.GetBoolean("cancel_on_big_hit", true);
                         template.UseExeTime = reader.GetBoolean("use_exe_time", true);
                         template.Fail = reader.GetBoolean("fail", true);
-                        var plotEvent = _eventTemplates[id];
+
                         if (plotEvent.NextEvents.Count > 0)
                         {
                             var res = false;

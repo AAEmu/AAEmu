@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Units;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCTransferTelescopeUnitsPacket(bool last, Transfer[] transfers)
-    : GamePacket(SCOffsets.SCTransferTelescopeUnitsPacket, 1)
+    : GamePacket(SCOffsets.SCTransferTelescopeUnitsPacket, 5)
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Off;
 

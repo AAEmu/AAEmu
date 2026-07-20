@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Items;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCGradeEnchantResultPacket(byte result, Item item, byte type1, byte type2)
-    : GamePacket(SCOffsets.SCGradeEnchantResultPacket, 1)
+    : GamePacket(SCOffsets.SCGradeEnchantResultPacket, 5)
 {
     // result :
     //  0 = break, 1 = downgrade, 2 = fail, 3 = success, 4 = great success 

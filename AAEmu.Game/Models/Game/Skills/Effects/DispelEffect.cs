@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -8,6 +8,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects;
 public class DispelEffect : EffectTemplate
 {
     public int DispelCount { get; set; }
+    public int Stack { get; set; }
     public int CureCount { get; set; }
     public uint BuffTagId { get; set; }
 

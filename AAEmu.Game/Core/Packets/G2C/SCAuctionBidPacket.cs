@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Auction;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCAuctionBidPacket(AuctionBid bid, bool isBuyout, uint itemId)
-    : GamePacket(SCOffsets.SCAuctionBidPacket, 1)
+    : GamePacket(SCOffsets.SCAuctionBidPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

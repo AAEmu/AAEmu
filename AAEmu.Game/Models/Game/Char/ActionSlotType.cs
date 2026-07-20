@@ -7,5 +7,6 @@ public enum ActionSlotType : byte
     Spell = 2,
     Macro = 3,
     ItemId = 4,
-    RidePetSpell = 5
+    RidePetSpell = 5,
+    BattlePetSpell = 6
 }

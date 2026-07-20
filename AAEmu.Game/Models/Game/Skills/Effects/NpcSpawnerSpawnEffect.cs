@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.NPChar;
@@ -11,6 +11,7 @@ namespace AAEmu.Game.Models.Game.Skills.Effects;
 public class NpcSpawnerSpawnEffect : EffectTemplate
 {
     public uint SpawnerId { get; set; }
+    public bool UseSummonerFaction { get; set; }
     public float LifeTime { get; set; }
     public bool DespawnOnCreatorDeath { get; set; }
     public bool UseSummonerAggroTarget { get; set; }

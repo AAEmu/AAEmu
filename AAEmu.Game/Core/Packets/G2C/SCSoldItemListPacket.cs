@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCSoldItemListPacket(List<Item> items) : GamePacket(SCOffsets.SCSoldItemListPacket, 1)
+public class SCSoldItemListPacket(List<Item> items) : GamePacket(SCOffsets.SCSoldItemListPacket, 5)
 {
     private readonly List<Item> _items =
     [

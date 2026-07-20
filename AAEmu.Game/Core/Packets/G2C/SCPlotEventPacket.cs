@@ -15,7 +15,7 @@ public class SCPlotEventPacket(
     byte flag,
     ulong itemId = 0L,
     byte targetUnitCount = 1)
-    : GamePacket(SCOffsets.SCPlotEventPacket, 1)
+    : GamePacket(SCOffsets.SCPlotEventPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

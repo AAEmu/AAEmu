@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCDeleteFriendPacket(uint characterId, bool success, string friendName, short errorMessage)
-    : GamePacket(SCOffsets.SCDeleteFriendPacket, 1)
+    : GamePacket(SCOffsets.SCDeleteFriendPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

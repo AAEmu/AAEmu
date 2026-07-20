@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCBlockedUsersPacket(int total, Blocked[] blocked) : GamePacket(SCOffsets.SCBlockedUsersPacket, 1)
+public class SCBlockedUsersPacket(int total, Blocked[] blocked) : GamePacket(SCOffsets.SCBlockedUsersPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

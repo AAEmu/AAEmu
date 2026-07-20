@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCLevelChangedPacket(uint objId, byte level) : GamePacket(SCOffsets.SCLevelChangedPacket, 1)
+public class SCLevelChangedPacket(uint objId, byte level) : GamePacket(SCOffsets.SCLevelChangedPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

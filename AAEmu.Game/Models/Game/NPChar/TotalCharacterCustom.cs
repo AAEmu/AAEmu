@@ -1,8 +1,36 @@
-﻿namespace AAEmu.Game.Models.Game.NPChar;
+namespace AAEmu.Game.Models.Game.NPChar;
 
 public class TotalCharacterCustom
 {
     public uint Id { get; set; }
+
+public float TwoToneSecondWidth { get; set; }
+
+public uint TwoToneHairColor { get; set; }
+
+public float TwoToneFirstWidth { get; set; }
+
+public string IconPath { get; set; }
+
+public uint HornId { get; set; }
+
+public uint HornColorId { get; set; }
+
+public float FaceFixedDecalAsset5Weight { get; set; }
+
+public uint FaceFixedDecalAsset5Id { get; set; }
+
+public float FaceFixedDecalAsset4Weight { get; set; }
+
+public uint FaceFixedDecalAsset4Id { get; set; }
+
+public int DisplayOrder { get; set; }
+
+public uint DefaultHairColor { get; set; }
+
+public float BodyNormalMapWeight { get; set; }
+
+public uint BodyNormalMapId { get; set; }
     public uint ModelId { get; set; }
     public string Name { get; set; }
     public bool NpcOnly { get; set; }

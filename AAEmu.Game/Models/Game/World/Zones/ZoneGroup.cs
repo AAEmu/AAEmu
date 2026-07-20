@@ -1,8 +1,22 @@
-﻿namespace AAEmu.Game.Models.Game.World.Zones;
+namespace AAEmu.Game.Models.Game.World.Zones;
 
 public class ZoneGroup
 {
     public uint Id { get; set; }
+
+public uint SoundPackId { get; set; }
+
+public uint SoundId { get; set; }
+
+public uint ImageMap { get; set; }
+
+public float Height { get; set; }
+
+public uint FactionId { get; set; }
+
+public bool EnablePhysicsCollisionDamage { get; set; }
+
+public string DisplayText { get; set; }
     public string Name { get; set; }
     public float X { get; set; }
     public float Y { get; set; }

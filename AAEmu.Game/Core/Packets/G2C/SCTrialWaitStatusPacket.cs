@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTrialWaitStatusPacket(uint order, int sentenceTimeInMs) : GamePacket(SCOffsets.SCTrialWaitStatusPacket, 1)
+public class SCTrialWaitStatusPacket(uint order, int sentenceTimeInMs) : GamePacket(SCOffsets.SCTrialWaitStatusPacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {

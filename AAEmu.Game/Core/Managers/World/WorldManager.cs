@@ -316,9 +316,10 @@ public class WorldManager(
         #endregion
 
         #region LoadServerDB
+        using (var connection2 = SQLite.CreateConnection("Data", "compact.server.table.sqlite3"))
         using (var connection = SQLite.CreateConnection())
         {
-            using (var command = connection.CreateCommand())
+            using (var command = connection2.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM wi_group_wis";
                 command.Prepare();
@@ -347,7 +348,10 @@ public class WorldManager(
                             Type = (AreaShapeType)reader.GetUInt32("kind_id"),
                             Value1 = reader.GetFloat("value1"),
                             Value2 = reader.GetFloat("value2"),
-                            Value3 = reader.GetFloat("value3")
+                            Value3 = reader.GetFloat("value3"),
+                            AdjustAngle = reader.GetBoolean("adjust_angle", true),
+                            AreaTargetKindId = reader.GetUInt32("area_target_kind_id"),
+                            CalcDistance = reader.GetBoolean("calc_distance", true)
                         };
                         _areaShapes.TryAdd(shape.Id, shape);
                     }
@@ -1213,7 +1217,7 @@ public class WorldManager(
     public void OnPlayerJoin(Character character)
     {
         // Turn snow on off 
-        character.SendPacket(new SCOnOffSnowPacket(IsSnowing));
+        character.SendPacket(new SCSnowingEverywherePacket(IsSnowing));
 
         // Family stuff
         if (character.Family > 0)

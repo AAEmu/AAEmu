@@ -1,6 +1,7 @@
-﻿using AAEmu.Commons.Exceptions;
+using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Models;
+using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
@@ -11,6 +12,7 @@ using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Char.Templates;
+using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -27,6 +29,10 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers;
 
+/// <summary>
+/// Менеджер персонажей. Загружает стартовые шаблоны персонажей, экипировку,
+/// расходники, титулы, жизненные умения и лимиты экспертизы из БД <c>compact.sqlite3</c>.
+/// </summary>
 public class CharacterManager(
     IWorldManager worldManager,
     IAccountManager accountManager,
@@ -43,7 +49,7 @@ public class CharacterManager(
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private readonly Dictionary<byte, CharacterTemplate> _templates = [];
-    private readonly Dictionary<byte, AbilityItems> _abilityItems = [];
+    private readonly Dictionary<AbilityType, AbilityItems> _abilityItems = [];
     private readonly Dictionary<int, List<Expand>> _expands = [];
     private readonly Dictionary<uint, AppellationTemplate> _appellations = [];
     private readonly Dictionary<uint, ActabilityTemplate> _actabilities = [];
@@ -111,18 +117,33 @@ public class CharacterManager(
                 {
                     while (reader.Read())
                     {
-                        var template = new CharacterTemplate();
+                        var template = new CharacterTemplate
+                        {
+                            Race = (Race)reader.GetByte("char_race_id"),
+                            Gender = (Gender)reader.GetByte("char_gender_id"),
+                            ModelId = reader.GetUInt32("model_id"),
+                            FactionId = (FactionsEnum)reader.GetUInt32("faction_id"),
+                            ZoneId = reader.GetUInt32("starting_zone_id"),
+                            ReturnDistrictId = reader.GetUInt32("default_return_district_id"),
+                            ResurrectionDistrictId = reader.GetUInt32("default_resurrection_district_id"),
+                            Creatable = reader.GetBoolean("creatable", true),
+                            DefaultCustomId = reader.GetUInt32("default_custom_id", 0),
+                            DefaultFxVoiceSoundPackId = reader.GetUInt32("default_fx_voice_sound_pack_id", 0),
+                            DefaultSystemVoiceSoundPackId = reader.GetUInt32("default_system_voice_sound_pack_id", 0),
+                            FaceItemId = reader.GetUInt32("face_item_id", 0),
+                            FightPreviewClothPackId = reader.GetUInt32("fight_preview_cloth_pack_id", 0),
+                            FightPreviewWeaponPackId = reader.GetUInt32("fight_preview_weapon_pack_id", 0),
+                            LovePreviewClothPackId = reader.GetUInt32("love_preview_cloth_pack_id", 0),
+                            LovePreviewWeaponPackId = reader.GetUInt32("love_preview_weapon_pack_id", 0),
+                            MagicPreviewClothPackId = reader.GetUInt32("magic_preview_cloth_pack_id", 0),
+                            MagicPreviewWeaponPackId = reader.GetUInt32("magic_preview_weapon_pack_id", 0),
+                            PreviewClothPackId = reader.GetUInt32("preview_cloth_pack_id", 0),
+                            WildPreviewClothPackId = reader.GetUInt32("wild_preview_cloth_pack_id", 0)
+                        };
                         var id = reader.GetUInt32("id");
-                        template.Race = (Race)reader.GetByte("char_race_id");
-                        template.Gender = (Gender)reader.GetByte("char_gender_id");
-                        template.ModelId = reader.GetUInt32("model_id");
-                        template.FactionId = (FactionsEnum)reader.GetUInt32("faction_id");
-                        template.ZoneId = reader.GetUInt32("starting_zone_id");
-                        template.ReturnDistrictId = reader.GetUInt32("default_return_district_id");
-                        template.ResurrectionDistrictId = reader.GetUInt32("default_resurrection_district_id");
                         using (var command2 = connection.CreateCommand())
                         {
-                            command2.CommandText = "SELECT * FROM item_body_parts WHERE model_id=@model_id ORDER BY id";
+                            command2.CommandText = "SELECT * FROM item_body_parts WHERE model_id=@model_id";
                             command2.Parameters.AddWithValue("model_id", template.ModelId);
                             command2.Prepare();
                             using (var reader2 = new SQLiteWrapperReader(command2.ExecuteReader()))
@@ -131,14 +152,21 @@ public class CharacterManager(
                                 {
                                     var itemId = reader2.GetUInt32("item_id", 0);
                                     var slot = reader2.GetInt32("slot_type_id") - 23;
-                                    template.Items[slot] = itemId;
+                                    if (slot >= 0 && slot < template.Items.Length)
+                                    {
+                                        template.Items[slot] = itemId;
+                                    }
+                                    else
+                                    {
+                                        Logger.Warn($"Invalid slot {slot + 23} in item_body_parts for model_id {template.ModelId}");
+                                    }
                                 }
                             }
                         }
 
                         var templateId = (byte)(16 * (byte)template.Gender + (byte)template.Race);
-                        _templates.Add(templateId, template);
-                        temp.Add(id, templateId);
+                        _templates.TryAdd(templateId, template);
+                        temp.TryAdd(id, templateId);
                     }
                 }
             }
@@ -167,16 +195,18 @@ public class CharacterManager(
                 {
                     while (reader.Read())
                     {
-                        var ability = reader.GetByte("ability_id");
+                        var ability = (AbilityType)reader.GetByte("ability_id");
                         var item = new AbilitySupplyItem
                         {
-                            Id = reader.GetUInt32("item_id"),
+                            Id = reader.GetUInt32("id"),
+                            AbilityId = reader.GetUInt32("ability_id"),
+                            ItemId = reader.GetUInt32("item_id"),
                             Amount = reader.GetInt32("amount"),
                             Grade = reader.GetByte("grade_id")
                         };
 
                         if (!_abilityItems.ContainsKey(ability))
-                            _abilityItems.Add(ability, new AbilityItems());
+                            _abilityItems.Add(ability, new AbilityItems { Items = new EquipItemsTemplate() });
                         _abilityItems[ability].Supplies.Add(item);
                     }
                 }
@@ -190,7 +220,7 @@ public class CharacterManager(
                 {
                     while (reader.Read())
                     {
-                        var ability = reader.GetByte("ability_id");
+                        var ability = (AbilityType)reader.GetByte("ability_id");
                         var template = new AbilityItems { Ability = ability, Items = new EquipItemsTemplate() };
                         var clothPack = reader.GetUInt32("newbie_cloth_pack_id", 0);
                         var weaponPack = reader.GetUInt32("newbie_weapon_pack_id", 0);
@@ -223,6 +253,10 @@ public class CharacterManager(
                                         template.Items.BraceletGrade = reader2.GetByte("bracelet_grade_id");
                                         template.Items.Back = reader2.GetUInt32("back_id");
                                         template.Items.BackGrade = reader2.GetByte("back_grade_id");
+                                        template.Items.Backpack = reader2.GetUInt32("backpack_id");
+                                        template.Items.BackpackGrade = reader2.GetByte("backpack_grade_id");
+                                        template.Items.Stabilizer = reader2.GetUInt32("stabilizer_id");
+                                        template.Items.StabilizerGrade = reader2.GetByte("stabilizer_grade_id");
                                         template.Items.Cosplay = reader2.GetUInt32("cosplay_id");
                                         template.Items.CosplayGrade = reader2.GetByte("cosplay_grade_id");
                                         template.Items.Undershirts = reader2.GetUInt32("undershirt_id");
@@ -258,7 +292,16 @@ public class CharacterManager(
                             }
                         }
 
-                        _abilityItems.Add(template.Ability, template);
+                        if (_abilityItems.ContainsKey(template.Ability))
+                        {
+                            // Merge loaded equip template into existing entry (keep any previously loaded Supplies)
+                            var existing = _abilityItems[template.Ability];
+                            existing.Items = template.Items ?? new EquipItemsTemplate();
+                        }
+                        else
+                        {
+                            _abilityItems.Add(template.Ability, template);
+                        }
                     }
                 }
             }
@@ -289,13 +332,19 @@ public class CharacterManager(
 
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT id, buff_id FROM appellations";
+                command.CommandText = "SELECT * FROM appellations";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
                     while (reader.Read())
                     {
-                        var template = new AppellationTemplate { Id = reader.GetUInt32("id"), BuffId = reader.GetUInt32("buff_id", 0) };
+                        var template = new AppellationTemplate
+                        {
+                            Id = reader.GetUInt32("id"),
+                            BuffId = reader.GetUInt32("buff_id", 0),
+                            Name = reader.GetString("name"),
+                            ApplyAppellationAtOnce = reader.GetBoolean("apply_appellation_at_once", true)
+                        };
 
                         _appellations.Add(template.Id, template);
                     }
@@ -312,7 +361,12 @@ public class CharacterManager(
                     {
                         var template = new ActabilityTemplate
                         {
-                            Id = reader.GetUInt32("id"), Name = reader.GetString("name"), UnitAttributeId = reader.GetInt32("unit_attr_id")
+                            Id = reader.GetUInt32("id"),
+                            Name = reader.GetString("name"),
+                            UnitAttributeId = reader.GetInt32("unit_attr_id"),
+                            IconPath = reader.GetString("icon_path"),
+                            SkillPageVisible = reader.GetBoolean("skill_page_visible", true),
+                            Visible = reader.GetBoolean("visible", true)
                         };
                         _actabilities.Add(template.Id, template);
                     }
@@ -350,14 +404,20 @@ public class CharacterManager(
                         var template = new ExpertLimit
                         {
                             Id = reader.GetUInt32("id"),
+                            Name = reader.GetString("name"),
                             UpLimit = reader.GetInt32("up_limit"),
                             ExpertLimitCount = reader.GetByte("expert_limit"),
                             Advantage = reader.GetInt32("advantage"),
                             CastAdvantage = reader.GetInt32("cast_adv"),
+                            ColorArgb = reader.GetUInt32("color_argb", 0),
+                            GaugeColor = reader.GetUInt32("gauge_color", 0),
                             UpCurrencyId = reader.GetUInt32("up_currency_id", 0),
                             UpPrice = reader.GetInt32("up_price"),
                             DownCurrencyId = reader.GetUInt32("down_currency_id", 0),
-                            DownPrice = reader.GetInt32("down_price")
+                            DownPrice = reader.GetInt32("down_price"),
+                            Show = reader.GetBoolean("show", true),
+                            ExpMul = reader.GetInt32("exp_mul"),
+                            UseIntensified = reader.GetBoolean("use_intensified", true)
                         };
                         _expertLimits.Add(step++, template);
                     }
@@ -373,14 +433,12 @@ public class CharacterManager(
                     var step = 0;
                     while (reader.Read())
                     {
-                        var template = new ExpandExpertLimit
-                        {
-                            Id = reader.GetUInt32("id"),
-                            ExpandCount = reader.GetByte("expand_count"),
-                            LifePoint = reader.GetInt32("life_point"),
-                            ItemId = reader.GetUInt32("item_id", 0),
-                            ItemCount = reader.GetInt32("item_count")
-                        };
+                        var template = new ExpandExpertLimit();
+                        //template.Id = reader.GetUInt32("id"); // there is no such field in the database for version 3.0.3.0
+                        template.ExpandCount = reader.GetByte("expand_count");
+                        template.LifePoint = reader.GetInt32("life_point");
+                        template.ItemId = reader.GetUInt32("item_id", 0);
+                        template.ItemCount = reader.GetInt32("item_count");
                         _expandExpertLimits.Add(step++, template);
                     }
                 }
@@ -426,21 +484,10 @@ public class CharacterManager(
         Logger.Info("Loaded {0} character templates", _templates.Count);
     }
 
-    /// <summary>
-    /// Rolls a die for the player and broadcasts the result.
-    /// </summary>
-    /// <param name="player">The player making the roll.</param>
-    /// <param name="max">The highest possible value, inclusive.</param>
     public void PlayerRoll(Character player, int max)
     {
-        if (max < 1)
-        {
-            Logger.Warn("{0} attempted to roll a die with an invalid max of {1}", player.Name, max);
-            return;
-        }
-
-        var roll = Random.Shared.Next(0, max) + 1;
-        player.BroadcastPacket(new SCDiceValuePacket(player.Name, max, roll), true);
+        var roll = Random.Shared.Next(1, max);
+        player.BroadcastPacket(new SCChatMessagePacket(ChatType.System, $"{player.Name} rolled {roll}."), true);
     }
 
     public int GetEffectiveAccessLevel(Character character)
@@ -466,6 +513,27 @@ public class CharacterManager(
             Logger.Error($"User tried to make a new character that has 2nd and/or 3rd ability already set. Account {connection.AccountId}, Name {name}, Class {ability1}, {ability2}, {ability3}");
         }
 
+        // Reject unknown abilities (can happen with a corrupted client packet)
+        if (!_abilityItems.ContainsKey(ability1))
+        {
+            Logger.Warn($"Create character rejected: unknown ability {(byte)ability1}. Account {connection.AccountId}, Name {name}, Race {race}, Gender {gender}. Possible corrupted client packet.");
+            connection.SendPacket(new SCCharacterCreationFailedPacket(CharacterCreateError.Failed));
+            return;
+        }
+
+        // Reject unknown race/gender combination instead of throwing KeyNotFoundException
+        if (!_templates.TryGetValue((byte)(16 * (byte)gender + (byte)race), out var template))
+        {
+            Logger.Warn($"Create character rejected: no template for race {(byte)race} gender {(byte)gender}. Account {connection.AccountId}, Name {name}. Possible corrupted client packet.");
+            connection.SendPacket(new SCCharacterCreationFailedPacket(CharacterCreateError.Failed));
+            return;
+        }
+
+        // Client may send ModelId=0 (meaning "race default"); fill it in from the template,
+        // otherwise the lobby/world applies the face modifiers to a wrong base model
+        if (customModel.ModelId == 0)
+            customModel.SetModelId(template.ModelId);
+
         var accountDetails = accountManager.GetAccountDetails(connection.AccountId);
 
         // Get default access level for all users 
@@ -477,21 +545,22 @@ public class CharacterManager(
 
         var characterId = characterIdManager.GetNextId();
         nameManager.AddCharacter(characterId, name, connection.AccountId);
-        var template = GetTemplate(race, gender);
 
         var character = new Character(customModel)
         {
-            Id = characterId, TemplateId = characterId, AccountId = connection.AccountId, Name = name,
+            Id = characterId,
+            TemplateId = characterId,
+            AccountId = connection.AccountId,
+            Name = name,
             Race = race,
             Gender = gender
         };
         character.Transform.ApplyWorldSpawnPosition(template.SpawnPosition);
         character.Level = level;
+        character.HeirLevel = 0;
         character.Faction = factionManager.GetFaction(template.FactionId);
         character.FactionName = "";
         character.AccessLevel = useAccessLevel;
-        // character.LaborPower = (short)AppConfiguration.Instance.Labor.Default;
-        // character.LaborPowerModified = DateTime.UtcNow;
         character.InitializeLaborCache(accountDetails.Labor, accountDetails.LastUpdated); // Initialize Labor cache, so we don't need to query the DB every time we need to read it
         character.NumInventorySlots = template.NumInventorySlot;
         character.NumBankSlots = template.NumBankSlot;
@@ -507,7 +576,7 @@ public class CharacterManager(
         for (var i = 0; i < character.Slots.Length; i++)
             character.Slots[i] = new ActionSlot();
 
-        var items = _abilityItems[(byte)ability1];
+        var items = _abilityItems[ability1];
         SetEquipItemTemplate(character.Inventory, items.Items.Headgear, EquipmentItemSlot.Head, items.Items.HeadgearGrade);
         SetEquipItemTemplate(character.Inventory, items.Items.Necklace, EquipmentItemSlot.Neck, items.Items.NecklaceGrade);
         SetEquipItemTemplate(character.Inventory, items.Items.Shirt, EquipmentItemSlot.Chest, items.Items.ShirtGrade);
@@ -524,9 +593,13 @@ public class CharacterManager(
         SetEquipItemTemplate(character.Inventory, items.Items.Ranged, EquipmentItemSlot.Ranged, items.Items.RangedGrade);
         SetEquipItemTemplate(character.Inventory, items.Items.Musical, EquipmentItemSlot.Musical, items.Items.MusicalGrade);
         SetEquipItemTemplate(character.Inventory, items.Items.Cosplay, EquipmentItemSlot.Cosplay, items.Items.CosplayGrade);
+        SetEquipItemTemplate(character.Inventory, items.Items.Stabilizer, EquipmentItemSlot.Stabilizer, items.Items.StabilizerGrade);
         for (var i = 0; i < 7; i++)
         {
-            if (bodyItems[i] == 0 && template.Items[i] > 0)
+            // Apply template defaults only to essential body parts (0=Face, 1=Hair, 5=Body).
+            // Optional parts (Glasses/Horns/Tail/Beard) stay empty when the client sends 0,
+            // otherwise the client-side preview and the created character look different.
+            if (bodyItems[i] == 0 && template.Items[i] > 0 && i is 0 or 1 or 5)
                 bodyItems[i] = template.Items[i];
             SetEquipItemTemplate(character.Inventory, bodyItems[i], (EquipmentItemSlot)(i + 19), 0);
         }
@@ -534,11 +607,11 @@ public class CharacterManager(
         byte slot = 10;
         foreach (var item in items.Supplies)
         {
-            character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Invalid, item.Id, item.Amount, item.Grade);
-            //var createdItem = itemManager.Create(item.Id, item.Amount, item.Grade);
+            character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Invalid, item.ItemId, item.Amount, item.Grade);
+            //var createdItem = itemManager.Create(item.ItemId, item.Amount, item.Grade);
             //character.Inventory.AddItem(Models.Game.Items.Actions.ItemTaskType.Invalid, createdItem);
 
-            character.SetAction(slot, ActionSlotType.ItemType, item.Id);
+            character.SetAction(slot, ActionSlotType.ItemType, item.ItemId);
             slot++;
         }
 
@@ -546,11 +619,11 @@ public class CharacterManager(
         if (items != null)
             foreach (var item in items.Supplies)
             {
-                character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Invalid, item.Id, item.Amount, item.Grade);
-                //var createdItem = itemManager.Create(item.Id, item.Amount, item.Grade);
+                character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Invalid, item.ItemId, item.Amount, item.Grade);
+                //var createdItem = itemManager.Create(item.ItemId, item.Amount, item.Grade);
                 //character.Inventory.AddItem(ItemTaskType.Invalid, createdItem);
 
-                character.SetAction(slot, ActionSlotType.ItemType, item.Id);
+                character.SetAction(slot, ActionSlotType.ItemType, item.ItemId);
                 slot++;
             }
 
@@ -593,6 +666,19 @@ public class CharacterManager(
         {
             connection.Characters.Add(character.Id, character);
             connection.SendPacket(new SCCreateCharacterResponsePacket(character));
+
+            if (Logger.IsDebugEnabled)
+            {
+                var bodyParts = new System.Text.StringBuilder();
+                for (var equipSlot = 19; equipSlot <= 25; equipSlot++)
+                {
+                    if (bodyParts.Length > 0)
+                        bodyParts.Append(", ");
+                    bodyParts.Append($"{equipSlot}:{character.Equipment.GetItemBySlot(equipSlot)?.TemplateId ?? 0}");
+                }
+                Logger.Debug($"CreateCharacter -> id={character.Id}, name='{character.Name}', race={character.Race}, gender={character.Gender}, bodyPartSlots=[{bodyParts}]");
+                Logger.Debug($"CreateCharacter -> modelParams hex: {Convert.ToHexString(character.ModelParams.Write(new PacketStream()).GetBytes())}");
+            }
         }
         else
         {
@@ -891,6 +977,11 @@ public class CharacterManager(
         if (templateId > 0)
         {
             item = itemManager.Create(templateId, 1, grade);
+            if (item == null)
+            {
+                Logger.Warn($"SetEquipItemTemplate: failed to create item with templateId {templateId} for slot {slot} (unknown template or bad client data)");
+                return;
+            }
             item.SlotType = SlotType.Equipment;
             item.Slot = (int)slot;
         }
@@ -903,7 +994,7 @@ public class CharacterManager(
     {
         // TODO: Add support for future X-day Salon Certificate items
 
-        if (character.Inventory.GetItemsCount(SlotType.Inventory, Item.SalonCertificate) <= 0)
+        if (character.Inventory.GetItemsCount((uint)SlotType.Inventory, (int)Item.SalonCertificate) <= 0)
             return;
 
         var oldHair = character.Equipment.GetItemBySlot((byte)EquipmentItemSlot.Hair);
@@ -912,7 +1003,7 @@ public class CharacterManager(
         if (oldHair != null && oldHair.TemplateId != hairModel)
         {
             // Remove old hair item
-            oldHair._holdingContainer.RemoveItem(ItemTaskType.Invalid, oldHair, true);
+            oldHair.HoldingContainer.RemoveItem(ItemTaskType.Invalid, oldHair, true);
             // Create new hair item
             if (!character.Equipment.AcquireDefaultItemEx(ItemTaskType.Invalid, hairModel, 1, -1,
                     out var newItemsList, out var _, character.Id, (int)EquipmentItemSlot.Hair))
@@ -929,7 +1020,7 @@ public class CharacterManager(
 
         character.BroadcastPacket(new SCCharacterGenderAndModelModifiedPacket(character), true);
 
-        if (character.Inventory.Bag.ConsumeItem(ItemTaskType.EditCosmetic, Item.SalonCertificate, 1, null) <= 0)
+        if (character.Inventory.Bag.ConsumeItem(ItemTaskType.EditCosmetic, (uint)Item.SalonCertificate, 1, null) <= 0)
             Logger.Error($"Could not consume salon certificate for player {character.Name} ({character.Id})!");
 
         // The client will do a salon leave request after it gets the SCCharacterGenderAndModelModifiedPacket
@@ -978,7 +1069,6 @@ public class CharacterManager(
         command.CommandText = "UPDATE characters SET `crime_point` = `crime_point` + @crime_point , `crime_record` = `crime_record` + @crime_point WHERE `id` = @id";
         command.Parameters.AddWithValue("@crime_point", crimePointsToAdd);
         command.Parameters.AddWithValue("@id", playerId);
-        // TODO: Add offline EvidenceReportedCount
         command.Prepare();
         if (command.ExecuteNonQuery() != 1)
         {

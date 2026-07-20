@@ -1,6 +1,7 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Text;
 
+using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
@@ -26,6 +27,13 @@ public class GameProtocolHandler : BaseProtocolHandler
         // For 1.2 client we only have Level1 and Level2 packets
         _packets.TryAdd(1, new ConcurrentDictionary<uint, Type>());
         _packets.TryAdd(2, new ConcurrentDictionary<uint, Type>());
+        // Level 5/6 for encrypted packets (3.5)
+        _packets.TryAdd(3, new ConcurrentDictionary<uint, Type>());
+        _packets.TryAdd(4, new ConcurrentDictionary<uint, Type>());
+        _packets.TryAdd(5, new ConcurrentDictionary<uint, Type>());
+        _packets.TryAdd(6, new ConcurrentDictionary<uint, Type>());
+        EncryptionManager.needNewkey1 = false;
+        EncryptionManager.needNewkey2 = false;
     }
 
     /// <summary>
@@ -49,7 +57,7 @@ public class GameProtocolHandler : BaseProtocolHandler
     }
 
     /// <summary>
-    /// On disconnect event
+    /// On Disconnect event
     /// </summary>
     /// <param name="session"></param>
     public override void OnDisconnect(ISession session)
@@ -141,6 +149,7 @@ public class GameProtocolHandler : BaseProtocolHandler
                     stream.Rollback();
                     connection.LastPacket = stream;
                     stream = null;
+                    EncryptionManager.needNewkey1 = true;
                     continue;
                 }
                 var packetLen = len + stream.Pos;
@@ -163,10 +172,29 @@ public class GameProtocolHandler : BaseProtocolHandler
 
                     //byte crc = 0;
                     //byte counter = 0;
+                    byte[] encryptedInput = null;
                     if (level == 1)
                     {
                         _ = stream2.ReadByte(); // TODO: verify 1.2 crc
                         _ = stream2.ReadByte(); // TODO: verify 1.2 counter
+                    }
+                    if (level == 5)
+                    {
+                        // packet from the client, decrypt
+                        //------------------------------
+                        var input = new byte[stream2.Count - 2];
+                        Buffer.BlockCopy(stream2, 2, input, 0, stream2.Count - 2);
+                        encryptedInput = input;
+                        var output = EncryptionManager.Instance.Decode(input, connection.Id, connection.AccountId);
+                        var OutBytes = new byte[output.Length + 5];
+                        Buffer.BlockCopy(stream2, 0, OutBytes, 0, 5);
+                        // create a complete decrypted packet
+                        Buffer.BlockCopy(output, 1, OutBytes, 5, output.Length - 1);
+                        // replace encrypted data with decrypted ones
+                        var strm = new PacketStream();
+                        strm.Write(OutBytes);
+                        stream2.Replace(strm, 0, OutBytes.Length);
+                        stream2.ReadUInt16();
                     }
 
                     var type = stream2.ReadUInt16();
@@ -180,6 +208,13 @@ public class GameProtocolHandler : BaseProtocolHandler
                         var packet = (GamePacket)Activator.CreateInstance(classType);
                         packet!.Level = level;
                         packet.Connection = connection;
+                        if (Logger.IsDebugEnabled && type == Packets.C2G.CSOffsets.CSCreateCharacterPacket)
+                        {
+                            var raw = new PacketStream().Replace(stream2, stream2.Pos, stream2.Count - stream2.Pos).GetBytes();
+                            Logger.Debug($"Raw CSCreateCharacterPacket plaintext ({raw.Length} bytes): {Convert.ToHexString(raw)}");
+                            if (encryptedInput != null)
+                                Logger.Debug($"Raw CSCreateCharacterPacket ciphertext ({encryptedInput.Length} bytes): {Convert.ToHexString(encryptedInput)}");
+                        }
                         packet.Decode(stream2);
                     }
                 }
@@ -222,5 +257,9 @@ public class GameProtocolHandler : BaseProtocolHandler
         for (var i = stream.Pos; i < stream.Count; i++)
             dump.AppendFormat("{0:x2} ", stream.Buffer[i]);
         Logger.Error($"Unknown packet 0x{type:x2}({level}) from {connection.Ip}:\n{dump}");
+        if (type > 0x1ff)
+        {
+            EncryptionManager.needNewkey1 = true;
+        }
     }
 }

@@ -1,9 +1,12 @@
-﻿using AAEmu.Game.Utils;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.World;
 public class AreaShape
 {
     public uint Id { get; set; }
+public bool CalcDistance { get; set; }
+public uint AreaTargetKindId { get; set; }
+public bool AdjustAngle { get; set; }
     public AreaShapeType Type { get; set; }
     public float Value1 { get; set; }
     public float Value2 { get; set; }

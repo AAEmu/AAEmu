@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills;
@@ -6,10 +6,10 @@ namespace AAEmu.Game.Models.Game.Skills;
 public enum SkillObjectType
 {
     None = 0,
-    PortalInfo = 1,
-    SavePortalInfo = 2,
-    Text = 3,
-    Position = 4,
+    Unk1 = 1,
+    Unk2 = 2,
+    Unk3 = 3,
+    Unk4 = 4,
     Unk5 = 5,
     Unk6 = 6,
     ItemGradeEnchantingSupport = 7
@@ -30,17 +30,17 @@ public class SkillObject : PacketMarshaler
         SkillObject obj;
         switch (flag)
         {
-            case SkillObjectType.PortalInfo: // TODO - Skills bound to portals
-                obj = new SkillObjectPortalInfo();
+            case SkillObjectType.Unk1: // TODO - Skills bound to portals
+                obj = new SkillObjectUnk1();
                 break;
-            case SkillObjectType.SavePortalInfo: // TODO - Skills bound to home portals
-                obj = new SkillObjectSavePortalInfo();
+            case SkillObjectType.Unk2: // TODO - Skills bound to home portals
+                obj = new SkillObjectUnk2();
                 break;
-            case SkillObjectType.Text: // Used by BotReport
-                obj = new SkillObjectText();
+            case SkillObjectType.Unk3:
+                obj = new SkillObjectUnk3();
                 break;
-            case SkillObjectType.Position:
-                obj = new SkillObjectPosition();
+            case SkillObjectType.Unk4:
+                obj = new SkillObjectUnk4();
                 break;
             case SkillObjectType.Unk5:
                 obj = new SkillObjectUnk5();
@@ -62,7 +62,7 @@ public class SkillObject : PacketMarshaler
     }
 }
 
-public class SkillObjectPortalInfo : SkillObject
+public class SkillObjectUnk1 : SkillObject
 {
     public byte Type { get; set; }
     public int Id { get; set; }
@@ -91,7 +91,7 @@ public class SkillObjectPortalInfo : SkillObject
     }
 }
 
-public class SkillObjectSavePortalInfo : SkillObject
+public class SkillObjectUnk2 : SkillObject
 {
     public int Id { get; set; }
     public string Name { get; set; }
@@ -111,7 +111,7 @@ public class SkillObjectSavePortalInfo : SkillObject
     }
 }
 
-public class SkillObjectText : SkillObject
+public class SkillObjectUnk3 : SkillObject
 {
     public string Msg { get; set; }
 
@@ -128,7 +128,7 @@ public class SkillObjectText : SkillObject
     }
 }
 
-public class SkillObjectPosition : SkillObject
+public class SkillObjectUnk4 : SkillObject
 {
     public float X { get; set; }
     public float Y { get; set; }

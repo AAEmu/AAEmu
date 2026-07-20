@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Achievement;
 using AAEmu.Game.Models.Game.Achievement.Enums;
@@ -16,7 +16,7 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
     private Dictionary<uint, List<AchievementObjectives>> _achievementObjectives;
     private Dictionary<uint, List<PreCompletedAchievements>> _preCompletedAchievements;
 
-    public void Load(SqliteConnection connection)
+    public void Load(SqliteConnection connection, SqliteConnection connection2)
     {
         _charRecords = [];
         _achievements = [];

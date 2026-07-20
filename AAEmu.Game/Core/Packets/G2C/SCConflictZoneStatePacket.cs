@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.World.Zones;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCConflictZoneStatePacket(ushort zoneId, ZoneConflictType hpws, DateTime endTime)
-    : GamePacket(SCOffsets.SCConflictZoneStatePacket, 1)
+    : GamePacket(SCOffsets.SCConflictZoneStatePacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
     {
