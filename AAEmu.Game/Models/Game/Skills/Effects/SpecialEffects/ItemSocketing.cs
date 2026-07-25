@@ -76,6 +76,13 @@ public class ItemSocketing : SpecialEffectAction
                 }
             }
 
+            // Reject if the item has no free gem sockets (prevents GemIds[gemCount] out-of-range)
+            if (gemCount >= equipItem.GemIds.Length)
+            {
+                Logger.Warn($"Special effects: ItemSocketing target {equipItem.Id} has no free gem sockets");
+                return;
+            }
+
             // Roll for Success
             var gemRoll = Random.Shared.Next(0, 10000);
             var gemChance = ItemManager.Instance.GetSocketChance(gemCount); // fetches chances from sqlite3
