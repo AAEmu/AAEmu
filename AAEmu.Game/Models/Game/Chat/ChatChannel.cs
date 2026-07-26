@@ -37,6 +37,17 @@ public class ChatChannel
         }
     }
 
+    public bool TryRemoveIfEmpty(Func<bool> removeChannel)
+    {
+        lock (_membersLock)
+        {
+            if (Members.Count > 0)
+                return false;
+
+            return removeChannel();
+        }
+    }
+
     /// <summary>
     /// Internal Id
     /// </summary>
