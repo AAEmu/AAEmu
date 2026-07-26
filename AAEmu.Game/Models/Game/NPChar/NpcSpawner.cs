@@ -742,7 +742,8 @@ public class NpcSpawner : Spawner<Npc>
                     // Планируем респаун и обновляем _scheduledCount
                     IncrementCount(true);
                     //Logger.Info($"Scheduled respawn for NPC {UnitId}:{SpawnerId}:{npc.ObjId} in {RespawnTime} seconds.");
-                    npc.Respawn = DateTime.UtcNow.AddSeconds(RespawnTime);
+                    var deathTime = npc.DeadTime == DateTime.MinValue ? DateTime.UtcNow : npc.DeadTime;
+                    npc.Respawn = deathTime.AddSeconds(RespawnTime);
                     npc.ParentWorld.SpawnManager.AddRespawn(npc);
                 }
                 else
