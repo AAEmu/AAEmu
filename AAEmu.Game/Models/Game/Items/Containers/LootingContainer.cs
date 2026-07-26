@@ -69,6 +69,7 @@ public class LootingContainer(IBaseUnit owner)
     /// List of item entries (itemIndex, LootItemEntry)
     /// </summary>
     public Dictionary<ushort, LootingContainerItemEntry> Items { get; } = [];
+    private object ItemsLock { get; } = new();
     private bool AlreadyGenerated { get; set; }
     private HashSet<Character> EligiblePlayers { get; } = [];
     private HashSet<Character> OpenedBy { get; } = [];
@@ -311,21 +312,23 @@ public class LootingContainer(IBaseUnit owner)
     /// <param name="lootAll">True when the player opened the loot using (G) to loot all</param>
     public void OpenBag(Character player, BaseUnit object2, bool lootAll)
     {
-        OpenedBy.Add(player);
+        KeyValuePair<ushort, LootingContainerItemEntry>[] lootItems = [];
+        lock (ItemsLock)
+        {
+            OpenedBy.Add(player);
+
+            if (lootAll)
+                lootItems = Items.ToArray();
+        }
 
         // If LootAll is set, try to loot all items immediately
         if (lootAll)
         {
             // Try to loot all items
-            var lootedItems = new List<ushort>();
-            foreach (var (itemIndex, itemEntry) in Items)
+            foreach (var (itemIndex, itemEntry) in lootItems)
             {
-                if (TryTakeLoot(player, itemIndex, itemEntry, true))
-                    lootedItems.Add(itemIndex);
+                TryTakeLoot(player, itemIndex, itemEntry, true);
             }
-            // Remove actually looted items
-            foreach (var lootedItemIndex in lootedItems)
-                Items.Remove(lootedItemIndex);
         }
 
         // Send packet update of remaining items, or loot state if all has been looted already
@@ -334,14 +337,20 @@ public class LootingContainer(IBaseUnit owner)
         //     UpdateLootState();
         // }
         // else
-        if (Items.Count > 0)
+        var remainingItems = new List<Item>();
+        lock (ItemsLock)
         {
-            var remainingItems = new List<Item>();
-            foreach (var (_, itemEntry) in Items)
+            if (Items.Count > 0)
             {
-                remainingItems.Add(itemEntry.Item);
+                foreach (var (_, itemEntry) in Items)
+                {
+                    remainingItems.Add(itemEntry.Item);
+                }
             }
+        }
 
+        if (remainingItems.Count > 0)
+        {
             SendPacketToPlayers(OpenedBy, new SCLootBagDataPacket(remainingItems, lootAll));
         }
     }
@@ -355,6 +364,14 @@ public class LootingContainer(IBaseUnit owner)
     /// <param name="didLootAll"></param>
     /// <returns>Returns true if the item was granted to the player</returns>
     public bool TryTakeLoot(Character player, ushort itemIndex, LootingContainerItemEntry itemEntry, bool didLootAll)
+    {
+        lock (ItemsLock)
+        {
+            return TryTakeLootLocked(player, itemIndex, itemEntry, didLootAll);
+        }
+    }
+
+    private bool TryTakeLootLocked(Character player, ushort itemIndex, LootingContainerItemEntry itemEntry, bool didLootAll)
     {
         var lootTarget = player;
         // If itemEntry not specified, grab it from its index
@@ -496,6 +513,14 @@ public class LootingContainer(IBaseUnit owner)
     /// <param name="rollRequest"></param>
     public void DoPlayerRoll(Character player, ushort itemIndex, bool rollRequest)
     {
+        lock (ItemsLock)
+        {
+            DoPlayerRollLocked(player, itemIndex, rollRequest);
+        }
+    }
+
+    private void DoPlayerRollLocked(Character player, ushort itemIndex, bool rollRequest)
+    {
         var itemEntry = Items.GetValueOrDefault(itemIndex);
         if (itemEntry == null)
             return;
@@ -559,10 +584,13 @@ public class LootingContainer(IBaseUnit owner)
 
     private bool TryDistributeLootToPlayer(Character player, LootingContainerItemEntry itemEntry, bool didLootAll)
     {
+        if (!TryReserveLootItem(itemEntry))
+            return false;
+
         var freeSpace = player.Inventory.Bag.SpaceLeftForItem(itemEntry.Item, out _);
         if (freeSpace < itemEntry.Item.Count)
         {
-            // player.SendErrorMessage(ErrorMessageType.BagFull);
+            RestoreLootItem(itemEntry);
             player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
             return false;
         }
@@ -585,6 +613,7 @@ public class LootingContainer(IBaseUnit owner)
                 if (!player.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, itemEntry.Item, (int)EquipmentItemSlot.Backpack))
                 {
                     // If adding fails, release the item ID and restore original.
+                    RestoreLootItem(itemEntry);
                     ItemIdManager.Instance.ReleaseId((uint)itemEntry.Item.Id);
                     itemEntry.Item.Id = fullOldItemId;
                     player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
@@ -598,6 +627,7 @@ public class LootingContainer(IBaseUnit owner)
             else
             {
                 Logger.Warn("AutoEquipTradePack: Failed to take off backpack for auto-equip tradepack item TemplateId={0}.", itemEntry.Item.TemplateId);
+                RestoreLootItem(itemEntry);
                 player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
                 return false;
             }
@@ -609,6 +639,7 @@ public class LootingContainer(IBaseUnit owner)
             if (!player.Inventory.Bag.AcquireDefaultItem(didLootAll ? ItemTaskType.LootAll : ItemTaskType.Loot, itemEntry.Item.TemplateId, itemEntry.Item.Count, itemEntry.Item.Grade))
             {
                 // Free the Id again if failed
+                RestoreLootItem(itemEntry);
                 ItemIdManager.Instance.ReleaseId((uint)itemEntry.Item.Id);
                 // Re-assign the original loot bag id 
                 itemEntry.Item.Id = fullOldItemId;
@@ -620,11 +651,33 @@ public class LootingContainer(IBaseUnit owner)
         }
         // TODO: check what packet this sends to others
         player.SendPacket(new SCLootItemTookPacket(itemEntry.Item.TemplateId, itemEntry.ItemIndex, LootOwnerType, LootOwner.ObjId, itemEntry.Item.Count));
-        Items.Remove(itemEntry.ItemIndex);
 
         if (Items.Count <= 0)
             UpdateLootState();
         return true;
+    }
+
+    private bool TryReserveLootItem(LootingContainerItemEntry itemEntry)
+    {
+        lock (ItemsLock)
+        {
+            if (!Items.TryGetValue(itemEntry.ItemIndex, out var currentItemEntry))
+                return false;
+
+            if (currentItemEntry != itemEntry)
+                return false;
+
+            Items.Remove(itemEntry.ItemIndex);
+            return true;
+        }
+    }
+
+    private void RestoreLootItem(LootingContainerItemEntry itemEntry)
+    {
+        lock (ItemsLock)
+        {
+            Items.TryAdd(itemEntry.ItemIndex, itemEntry);
+        }
     }
 
     /// <summary>
