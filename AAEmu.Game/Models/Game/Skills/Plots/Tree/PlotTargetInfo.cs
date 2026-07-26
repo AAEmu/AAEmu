@@ -67,7 +67,7 @@ public class PlotTargetInfo
                 break;
             case PlotTargetUpdateMethodType.OriginalTarget:
                 Target = state.Target;
-                EffectedTargets.Add(Target);
+                AddEffectedTargetIfSkillRelationAllows(state, Target);
                 break;
             case PlotTargetUpdateMethodType.PreviousSource:
                 Target = PreviousSource;
@@ -75,7 +75,7 @@ public class PlotTargetInfo
                 break;
             case PlotTargetUpdateMethodType.PreviousTarget:
                 Target = PreviousTarget;
-                EffectedTargets.Add(Target);
+                AddEffectedTargetIfSkillRelationAllows(state, Target);
                 break;
             case PlotTargetUpdateMethodType.Area:
                 Target = UpdateAreaTarget(new PlotTargetAreaParams(template), state, template);
@@ -140,11 +140,10 @@ public class PlotTargetInfo
         if (args.HitOnce)
             filteredUnits = filteredUnits.Where(unit => unit.ObjId != PreviousTarget.ObjId);
 
-        var index = Random.Shared.Next(0, filteredUnits.Count());
-
         if (!filteredUnits.Any())
             return null;
 
+        var index = Random.Shared.Next(0, filteredUnits.Count());
         var randomUnit = filteredUnits.ElementAt(index);
 
         EffectedTargets.Add(randomUnit);
@@ -228,9 +227,21 @@ public class PlotTargetInfo
                 return true;
             });
 
+        filtered = SkillTargetingUtil.FilterWithRelation(template.TargetRelation, state.Caster, filtered);
         filtered = SkillTargetingUtil.FilterWithRelation(args.UnitRelationType, state.Caster, filtered);
         filtered = filtered.Where(o => ((byte)o.TypeFlag & args.UnitTypeFlag) != 0);
 
         return filtered;
+    }
+
+    private void AddEffectedTargetIfSkillRelationAllows(PlotState state, BaseUnit target)
+    {
+        if (target == null || state.Caster == null)
+            return;
+
+        if (SkillTargetingUtil.IsRelationValid(state.ActiveSkill.Template.TargetRelation, state.Caster, target))
+        {
+            EffectedTargets.Add(target);
+        }
     }
 }
