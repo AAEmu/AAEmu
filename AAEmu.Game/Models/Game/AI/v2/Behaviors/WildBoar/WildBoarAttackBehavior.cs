@@ -71,8 +71,10 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
             var startCombatSkillId = _aiParams.OnCombatStartSkills.FirstOrDefault();
             if (startCombatSkillId != 0)
             {
-                Ai.Owner.StopMovement();
                 var skillTemplate = SkillManager.Instance.GetSkillTemplate(startCombatSkillId);
+                if (skillTemplate == null)
+                    return;
+                Ai.Owner.StopMovement();
                 var skill = new Skill(skillTemplate);
                 UseSkill(skill, Ai.Owner.CurrentTarget);
                 _combatStartSkill = true;
@@ -99,6 +101,8 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
             if (_currHealth < skillData.HealthCondition/* && skillData.HealthCondition <= _prevHealth*/)
             {
                 var skillTemplate = SkillManager.Instance.GetSkillTemplate(skillData.SkillType);
+                if (skillTemplate == null)
+                    continue;
                 var skill = new Skill(skillTemplate);
                 if (targetDist >= skill.Template.MinRange && targetDist <= skill.Template.MaxRange)
                 {
