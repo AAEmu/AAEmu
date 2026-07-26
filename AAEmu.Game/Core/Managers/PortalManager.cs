@@ -408,8 +408,16 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
         // TODO - Maybe need unitState?
         if (portalInfo.TeleportPosition.InstanceId != character.Transform.InstanceId)
         {
+            var slaveManager = character.ParentWorld?.SlaveManager;
+            var activeSlave = slaveManager?.GetActiveSlaveByOwnerObjId(character.ObjId);
+            if (activeSlave?.AttachedDoodads.Any(doodad => doodad.ItemId != 0 || doodad.ItemTemplateId != 0) == true)
+            {
+                character.SendErrorMessage(ErrorMessageType.SlaveEquipmentLoadedItem);
+                return;
+            }
+
             character.ParentWorld?.MateManager?.RemoveAndDespawnAllActiveOwnedMates(character);
-            character.ParentWorld?.SlaveManager?.RemoveAndDespawnAllActiveOwnedSlaves(character, true);
+            slaveManager?.RemoveAndDespawnAllActiveOwnedSlaves(character);
 
             character.SendPacket(
                 new SCLoadInstancePacket(
