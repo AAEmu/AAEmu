@@ -3113,6 +3113,22 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
         return true;
     }
 
+    public void CloseCoffersOpenedBy(Character character)
+    {
+        if (character?.ParentWorld == null)
+        {
+            return;
+        }
+
+        foreach (var doodad in character.ParentWorld.GetAllDoodads())
+        {
+            if (doodad is DoodadCoffer { OpenedBy: not null } coffer && coffer.OpenedBy.Id == character.Id)
+            {
+                coffer.OpenedBy = null;
+            }
+        }
+    }
+
     public static bool ChangeDoodadData(Character player, Doodad doodad, int data)
     {
         // TODO: Can non-coffer doodads that use this packet only be changed by their owner ?

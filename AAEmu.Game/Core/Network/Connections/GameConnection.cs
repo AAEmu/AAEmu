@@ -90,6 +90,7 @@ public class GameConnection
 
             ActiveChar.Events?.OnDisconnect(this, new OnDisconnectArgs { Player = ActiveChar });
             ActiveChar.RemoveAndDespawnActiveOwnedMatesSlaves();
+            DoodadManager.Instance.CloseCoffersOpenedBy(ActiveChar);
         }
 
         foreach (var subscriber in Subscribers)
