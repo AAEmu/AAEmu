@@ -96,8 +96,14 @@ public class ItemSocketing : SpecialEffectAction
             }
             else
             {
-                // Failed: on this client version (r208022) a failed socket attempt
-                // does not remove the existing gems, so leave them intact.
+                // Failed: on retail for this client version (r208022) a failed socket
+                // attempt removes ALL currently socketed gems. This harsh behavior is
+                // what made early gear progression so punishing. (Guild gems, which
+                // cannot fail, only got the keep-on-fail behavior in later versions.)
+                for (var i = 0; i < equipItem.GemIds.Length; i++)
+                {
+                    equipItem.GemIds[i] = 0;
+                }
             }
             installed = true;
         }
