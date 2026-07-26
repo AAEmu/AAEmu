@@ -116,8 +116,11 @@ public class CSBuyItemsPacket() : GamePacket(CSOffsets.CSBuyItemsPacket, 1)
 
         var useAAPoint = stream.ReadBoolean();
 
-        if (money > Connection.ActiveChar.Money &&
-            honorPoints > Connection.ActiveChar.HonorPoint &&
+        // Abort if the player cannot afford ANY of the three currencies. This was
+        // previously an && chain, so a purchase only aborted when money AND honor
+        // AND vocation were all insufficient at once, letting players buy for free.
+        if (money > Connection.ActiveChar.Money ||
+            honorPoints > Connection.ActiveChar.HonorPoint ||
             vocationBadges > Connection.ActiveChar.VocationPoint)
             return;
 
