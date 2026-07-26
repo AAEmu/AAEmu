@@ -23,7 +23,10 @@ public class DoodadFuncFinal : DoodadPhaseFuncTemplate
         else
             Logger.Trace("DoodadFuncFinal: After {0}, Respawn {1}, MinTime {2}, MaxTime {3}, ShowTip {4}, ShowEndTime {5}, Tip {6}", After, Respawn, MinTime, MaxTime, ShowTip, ShowEndTime, Tip);
 
-        var delay = Random.Shared.Next(MinTime, MaxTime);
+        // Clamp the range: Random.Shared.Next throws when min > max, and a negative delay is meaningless for a timer
+        var minTime = Math.Max(0, MinTime);
+        var maxTime = Math.Max(minTime, MaxTime);
+        var delay = Random.Shared.Next(minTime, maxTime);
 
         if (After > 0)
         {
