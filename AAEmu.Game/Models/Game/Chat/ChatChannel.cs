@@ -29,6 +29,14 @@ public class ChatChannel
     /// </summary>
     public List<Character> Members { get; set; } = [];
 
+    public Character[] GetMembersSnapshot()
+    {
+        lock (_membersLock)
+        {
+            return Members.ToArray();
+        }
+    }
+
     /// <summary>
     /// Internal Id
     /// </summary>
@@ -99,11 +107,7 @@ public class ChatChannel
     public int SendMessage(Character origin, string msg, int ability = 0, byte languageType = 0)
     {
         var res = 0;
-        Character[] members;
-        lock (_membersLock)
-        {
-            members = Members.ToArray();
-        }
+        var members = GetMembersSnapshot();
 
         foreach (var m in members)
         {
@@ -121,11 +125,7 @@ public class ChatChannel
     public int SendPacket(GamePacket packet)
     {
         var res = 0;
-        Character[] members;
-        lock (_membersLock)
-        {
-            members = Members.ToArray();
-        }
+        var members = GetMembersSnapshot();
 
         foreach (var m in members)
         {
