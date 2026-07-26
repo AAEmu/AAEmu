@@ -1637,7 +1637,7 @@ public class Unit : BaseUnit, IUnit
                 {
                     if (!player.Quests.IsQuestComplete(npc.Template.EngageCombatGiveQuestId) &&
                         !player.Quests.HasQuest(npc.Template.EngageCombatGiveQuestId))
-                        player.Quests.AddQuest(npc.Template.EngageCombatGiveQuestId);
+                        player.Quests.AddQuestFromNpc(npc.Template.EngageCombatGiveQuestId, npc.ObjId);
                 }
             }
 
