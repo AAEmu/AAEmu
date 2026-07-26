@@ -98,6 +98,8 @@ public class Skill
         // Cast character for future reference
         var character = caster as Character;
         var cooldownOwner = character ?? caster.GetOwnerCharacter();
+        if (character != null)
+            character.SkillCancelled = false;
 
         unit.ConditionChance = true;
 
