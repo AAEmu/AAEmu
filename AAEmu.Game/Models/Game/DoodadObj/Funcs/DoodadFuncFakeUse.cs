@@ -45,7 +45,10 @@ public class DoodadFuncFakeUse : DoodadFuncTemplate
 
             var fakeUseTemplate = SkillManager.Instance.GetSkillTemplate(SkillId);
             if (fakeUseTemplate == null)
+            {
+                Logger.Warn($"DoodadFuncFakeUse: SkillId {SkillId} has no skill template (doodad {owner?.TemplateId}); doodad data is misconfigured.");
                 return;
+            }
             var skill = new Skill(fakeUseTemplate);
             skill.Use(caster, skillCaster, target, null, false, out _);
             owner.ToNextPhase = true;

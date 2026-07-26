@@ -73,7 +73,11 @@ public class WildBoarAttackBehavior : BaseCombatBehavior
             {
                 var skillTemplate = SkillManager.Instance.GetSkillTemplate(startCombatSkillId);
                 if (skillTemplate == null)
+                {
+                    Logger.Warn($"WildBoarAttackBehavior: OnCombatStart skill {startCombatSkillId} has no template (npc {Ai.Owner?.TemplateId}); skipping. Set flag so it only triggers once.");
+                    _combatStartSkill = true;
                     return;
+                }
                 Ai.Owner.StopMovement();
                 var skill = new Skill(skillTemplate);
                 UseSkill(skill, Ai.Owner.CurrentTarget);
