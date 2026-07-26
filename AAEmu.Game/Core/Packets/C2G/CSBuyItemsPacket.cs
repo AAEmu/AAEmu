@@ -122,11 +122,35 @@ public class CSBuyItemsPacket() : GamePacket(CSOffsets.CSBuyItemsPacket, 1)
             return;
 
         var tasks = new List<ItemTask>();
+
+        // Make sure every purchased item can actually be stored before charging
+        // the player. Trade-pack items (backpacks) must be equipped rather than
+        // stuffed into a bag slot; going through Bag.AcquireDefaultItem directly
+        // crashed on them (#1276). Reserve one bag slot per non-pack line so a
+        // full inventory aborts the purchase instead of partially applying it.
+        var neededBagSlots = 0;
         foreach (var (itemId, grade, count) in itemsBuy)
         {
-            // Omit grade when creating to prevent "cheating" when creating the grade
-            Connection.ActiveChar.Inventory.Bag.AcquireDefaultItem(ItemTaskType.StoreBuy, itemId, count, -1);
-            // Connection.ActiveChar.Inventory.Bag.AcquireDefaultItem(ItemTaskType.StoreBuy, itemId, count, grade);
+            if (!ItemManager.Instance.IsAutoEquipTradePack(itemId))
+                neededBagSlots++;
+        }
+
+        if (Connection.ActiveChar.Inventory.Bag.FreeSlotCount < neededBagSlots)
+        {
+            Connection.ActiveChar.SendErrorMessage(ErrorMessageType.BagFull);
+            return;
+        }
+
+        foreach (var (itemId, grade, count) in itemsBuy)
+        {
+            // Omit grade when creating to prevent "cheating" when creating the grade.
+            // TryAddNewItem routes trade-packs to the back slot instead of a bag slot.
+            if (!Connection.ActiveChar.Inventory.TryAddNewItem(ItemTaskType.StoreBuy, itemId, count, -1))
+            {
+                Logger.Warn($"StoreBuy: failed to add item {itemId} x{count} for {Connection.ActiveChar.Name}; aborting purchase.");
+                Connection.ActiveChar.SendErrorMessage(ErrorMessageType.BagFull);
+                return;
+            }
         }
 
         foreach (var (item, index) in itemsBuyBack)
