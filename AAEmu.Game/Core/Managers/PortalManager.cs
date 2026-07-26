@@ -408,6 +408,9 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
         // TODO - Maybe need unitState?
         if (portalInfo.TeleportPosition.InstanceId != character.Transform.InstanceId)
         {
+            character.ParentWorld?.MateManager?.RemoveAndDespawnAllActiveOwnedMates(character);
+            character.ParentWorld?.SlaveManager?.RemoveAndDespawnAllActiveOwnedSlaves(character);
+
             character.SendPacket(
                 new SCLoadInstancePacket(
                     portalInfo.TeleportPosition.WorldId,
