@@ -1035,11 +1035,21 @@ public class SlaveManager(WorldInstance parentWorldInstance)
     /// <param name="owner"></param>
     public void RemoveAndDespawnAllActiveOwnedSlaves(Character owner)
     {
+        RemoveAndDespawnAllActiveOwnedSlaves(owner, false);
+    }
+
+    /// <summary>
+    /// De-spawns all vehicles owned by the specified player
+    /// </summary>
+    /// <param name="owner"></param>
+    /// <param name="forceDelete">If true, will force delete attached items</param>
+    public void RemoveAndDespawnAllActiveOwnedSlaves(Character owner, bool forceDelete)
+    {
         var activeSlaveInfo = GetActiveSlaveByOwnerObjId(owner.ObjId);
         if (activeSlaveInfo != null)
         {
             activeSlaveInfo.Save();
-            Delete(owner, activeSlaveInfo.ObjId, false);
+            Delete(owner, activeSlaveInfo.ObjId, forceDelete);
         }
     }
 

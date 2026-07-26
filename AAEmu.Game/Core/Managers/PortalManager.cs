@@ -409,7 +409,7 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
         if (portalInfo.TeleportPosition.InstanceId != character.Transform.InstanceId)
         {
             character.ParentWorld?.MateManager?.RemoveAndDespawnAllActiveOwnedMates(character);
-            character.ParentWorld?.SlaveManager?.RemoveAndDespawnAllActiveOwnedSlaves(character);
+            character.ParentWorld?.SlaveManager?.RemoveAndDespawnAllActiveOwnedSlaves(character, true);
 
             character.SendPacket(
                 new SCLoadInstancePacket(
