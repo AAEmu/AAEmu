@@ -43,9 +43,14 @@ public class CSStopCastingPacket() : GamePacket(CSOffsets.CSStopCastingPacket, 1
             return;
         }
 
-        if (tlId != 0 && skillTask.Skill.TlId != tlId && skillTask.Skill.TlId != plotTlId)
+        var activeTlId = skillTask.Skill.TlId;
+        var matchesSkillTask = tlId != 0
+            ? activeTlId == tlId || activeTlId == plotTlId
+            : plotTlId != 0 && activeTlId == plotTlId;
+
+        if (!matchesSkillTask)
         {
-            Logger.Warn($"Stop requested for another skill? Tl: {tlId}, Pid: {plotTlId}, ActiveTl: {skillTask.Skill.TlId}, objId: {objId}, Character: {character.Name}");
+            Logger.Warn($"Stop requested for another skill? Tl: {tlId}, Pid: {plotTlId}, ActiveTl: {activeTlId}, objId: {objId}, Character: {character.Name}");
             return;
         }
 
