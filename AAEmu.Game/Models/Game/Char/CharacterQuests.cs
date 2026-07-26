@@ -36,6 +36,28 @@ public class CharacterQuests(Character owner)
         return CompletedQuests.TryGetValue(questBlockId, out var questBlock) && questBlock.Body.Get(questBlockIndex);
     }
 
+    private bool CanAcceptSupplyItems(QuestTemplate template)
+    {
+        foreach (var component in template.GetComponents(QuestComponentKind.Supply))
+        {
+            foreach (var actTemplate in component.ActTemplates)
+            {
+                if (actTemplate is not QuestActSupplyItem supplyItem)
+                    continue;
+
+                if (ItemManager.Instance.IsAutoEquipTradePack(supplyItem.ItemId) &&
+                    !Owner.Inventory.CanReplaceGliderInBackpackSlot())
+                {
+                    Logger.Trace($"User {Owner.Name} ({Owner.Id}) cannot accept Quest {template.Id}, backpack supply item {supplyItem.ItemId} cannot be equipped");
+                    Owner.SendErrorMessage(ErrorMessageType.BackpackOccupied);
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
     /// <summary>
     /// Starts a given quest from specific defined quest starter
     /// </summary>
@@ -66,6 +88,9 @@ public class CharacterQuests(Character owner)
             Logger.Error($"Failed to start new Quest {questId}, invalid Id");
             return false;
         }
+
+        if (!forcibly && !CanAcceptSupplyItems(template))
+            return false;
 
         // Check if start step components are active
         var startComponentTemplate = template.GetComponents(QuestComponentKind.Start);
