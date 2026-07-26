@@ -1099,7 +1099,14 @@ public class SpawnManager(WorldInstance parentWorld)
             {
                 foreach (var npc in makePublic)
                 {
-                    npc.LootingContainer.MakeLootPublic();
+                    try
+                    {
+                        npc.LootingContainer.MakeLootPublic();
+                    }
+                    catch (Exception e)
+                    {
+                        Logger.Warn(e, "Failed to make loot public for npc {0}", npc.ObjId);
+                    }
                 }
             }
 

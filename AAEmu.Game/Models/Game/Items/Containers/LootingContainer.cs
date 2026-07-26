@@ -601,6 +601,7 @@ public class LootingContainer(IBaseUnit owner)
             return false;
 
         var fullOldItemId = itemEntry.Item.Id;
+        ulong allocatedItemId = 0;
         var grantSucceeded = false;
         var restored = false;
         try
@@ -627,13 +628,15 @@ public class LootingContainer(IBaseUnit owner)
                 if (player.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
                 {
                     itemEntry.Item.Id = ItemIdManager.Instance.GetNextId();
+                    allocatedItemId = itemEntry.Item.Id;
                     // Try to add the new item to the Equipment container's Backpack slot.
                     if (!player.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, itemEntry.Item, (int)EquipmentItemSlot.Backpack))
                     {
                         // If adding fails, release the item ID and restore original.
                         RestoreLootItem(itemEntry);
                         restored = true;
-                        ItemIdManager.Instance.ReleaseId((uint)itemEntry.Item.Id);
+                        ItemIdManager.Instance.ReleaseId((uint)allocatedItemId);
+                        allocatedItemId = 0;
                         itemEntry.Item.Id = fullOldItemId;
                         player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
                         return false;
@@ -656,13 +659,15 @@ public class LootingContainer(IBaseUnit owner)
             else
             {
                 itemEntry.Item.Id = ItemIdManager.Instance.GetNextId();
+                allocatedItemId = itemEntry.Item.Id;
                 // Try to add the new item
                 if (!player.Inventory.Bag.AcquireDefaultItem(didLootAll ? ItemTaskType.LootAll : ItemTaskType.Loot, itemEntry.Item.TemplateId, itemEntry.Item.Count, itemEntry.Item.Grade))
                 {
                     // Free the Id again if failed
                     RestoreLootItem(itemEntry);
                     restored = true;
-                    ItemIdManager.Instance.ReleaseId((uint)itemEntry.Item.Id);
+                    ItemIdManager.Instance.ReleaseId((uint)allocatedItemId);
+                    allocatedItemId = 0;
                     // Re-assign the original loot bag id 
                     itemEntry.Item.Id = fullOldItemId;
                     // Send a bag full fail message
@@ -681,6 +686,12 @@ public class LootingContainer(IBaseUnit owner)
         }
         finally
         {
+            if (!grantSucceeded && allocatedItemId != 0)
+            {
+                ItemIdManager.Instance.ReleaseId((uint)allocatedItemId);
+                itemEntry.Item.Id = fullOldItemId;
+            }
+
             if (!grantSucceeded && !restored)
             {
                 itemEntry.Item.Id = fullOldItemId;
@@ -717,33 +728,48 @@ public class LootingContainer(IBaseUnit owner)
     /// </summary>
     private void ForceLootRollToFinish()
     {
-        foreach (var (_, itemEntry) in Items)
+        LootingContainerItemEntry[] itemEntries;
+        lock (ItemsLock)
         {
-            if (itemEntry.PlayerRolls.All(m => m.Value != 0))
-                continue;
+            itemEntries = Items.Values.ToArray();
+        }
 
-            foreach (var (player, roll) in itemEntry.PlayerRolls)
+        foreach (var itemEntry in itemEntries)
+        {
+            lock (ItemsLock)
             {
-                if (roll == 0)
-                {
-                    itemEntry.PlayerRolls[player] = -1;
-                    // Notify the others of this roll result (not sure if we should add this)
-                    // foreach (var targetPlayer in itemEntry.PlayerRolls.Keys)
-                    // {
-                    //     targetPlayer.SendPacket(new SCLootDiceNotifyPacket(player.Name, itemEntry.Item, -1));
-                    // }
-                }
-            }
+                if (!Items.TryGetValue(itemEntry.ItemIndex, out var currentItemEntry) || currentItemEntry != itemEntry)
+                    continue;
 
-            FinishRolling(itemEntry);
+                if (itemEntry.PlayerRolls.All(m => m.Value != 0))
+                    continue;
+
+                foreach (var (player, roll) in itemEntry.PlayerRolls)
+                {
+                    if (roll == 0)
+                    {
+                        itemEntry.PlayerRolls[player] = -1;
+                        // Notify the others of this roll result (not sure if we should add this)
+                        // foreach (var targetPlayer in itemEntry.PlayerRolls.Keys)
+                        // {
+                        //     targetPlayer.SendPacket(new SCLootDiceNotifyPacket(player.Name, itemEntry.Item, -1));
+                        // }
+                    }
+                }
+
+                FinishRolling(itemEntry);
+            }
         }
     }
 
     public void MakeLootPublic()
     {
         ForceLootRollToFinish();
-        if (Items.Count <= 0)
-            return;
+        lock (ItemsLock)
+        {
+            if (Items.Count <= 0)
+                return;
+        }
 
         // Force full public looting for all non-claimed items
         TeamLootingRule.LootMethod = LootingRuleMethod.Public;
@@ -756,10 +782,13 @@ public class LootingContainer(IBaseUnit owner)
 
     public bool CanMakePublic()
     {
-        return TeamLootingRule != null &&
-               TeamLootingRule.LootMethod != LootingRuleMethod.Public &&
-               Items.Count > 0 &&
-               CreationTime > DateTime.MinValue &&
-               CreationTime.AddSeconds(MakeLootPublicTime) <= DateTime.UtcNow;
+        lock (ItemsLock)
+        {
+            return TeamLootingRule != null &&
+                   TeamLootingRule.LootMethod != LootingRuleMethod.Public &&
+                   Items.Count > 0 &&
+                   CreationTime > DateTime.MinValue &&
+                   CreationTime.AddSeconds(MakeLootPublicTime) <= DateTime.UtcNow;
+        }
     }
 }
