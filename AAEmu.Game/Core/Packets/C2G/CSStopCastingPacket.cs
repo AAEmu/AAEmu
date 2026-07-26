@@ -12,18 +12,21 @@ public class CSStopCastingPacket() : GamePacket(CSOffsets.CSStopCastingPacket, 1
         var tlId = stream.ReadUInt16(); // sid
         var plotTlId = stream.ReadUInt16(); // tl; pid
         var objId = stream.ReadBc();
+        var character = Connection.ActiveChar;
 
-        if (Connection.ActiveChar.ObjId != objId)
+        if (character.ObjId != objId)
         {
-            Logger.Warn($"Player {Connection.ActiveChar.Name} (ObjId {Connection.ActiveChar.ObjId}) is trying to stop casting a skill on object {objId} using TlId {tlId} and plotTlId {plotTlId}");
+            Logger.Warn($"Player {character.Name} (ObjId {character.ObjId}) is trying to stop casting a skill on object {objId} using TlId {tlId} and plotTlId {plotTlId}");
             return;
         }
 
-        if (plotTlId != 0 && Connection.ActiveChar.ActivePlotState != null)
+        var plotCancellationRequested = false;
+        if (plotTlId != 0 && character.ActivePlotState != null)
         {
-            if (Connection.ActiveChar.ActivePlotState.ActiveSkill.TlId == plotTlId)
+            if (character.ActivePlotState.ActiveSkill.TlId == plotTlId)
             {
-                Connection.ActiveChar.ActivePlotState.RequestCancellation();
+                character.ActivePlotState.RequestCancellation();
+                plotCancellationRequested = true;
             }
             else
             {
@@ -32,21 +35,34 @@ public class CSStopCastingPacket() : GamePacket(CSOffsets.CSStopCastingPacket, 1
             }
         }
 
-        if (Connection.ActiveChar.SkillTask == null || Connection.ActiveChar.SkillTask.Skill.TlId != tlId)
+        var skillTask = character.SkillTask;
+        if (skillTask == null)
         {
-            Logger.Warn($"Stop requested, but no skill active? Tl: {tlId}, Pid: {plotTlId}, objId: {objId}, Character: {Connection.ActiveChar.Name}");
+            if (!plotCancellationRequested)
+                Logger.Warn($"Stop requested, but no skill active? Tl: {tlId}, Pid: {plotTlId}, objId: {objId}, Character: {character.Name}");
             return;
         }
 
-        Connection.ActiveChar.SkillTask.Cancel();
+        var activeTlId = skillTask.Skill.TlId;
+        var matchesSkillTask = tlId != 0
+            ? activeTlId == tlId || activeTlId == plotTlId
+            : plotTlId != 0 && activeTlId == plotTlId;
 
-        if (Connection.ActiveChar.SkillTask is EndChannelingTask ect)
+        if (!matchesSkillTask)
         {
-            Connection.ActiveChar.SkillTask.Skill.Stop(Connection.ActiveChar, ect._channelDoodad);
+            Logger.Warn($"Stop requested for another skill? Tl: {tlId}, Pid: {plotTlId}, ActiveTl: {activeTlId}, objId: {objId}, Character: {character.Name}");
+            return;
+        }
+
+        skillTask.Cancel();
+
+        if (skillTask is EndChannelingTask ect)
+        {
+            skillTask.Skill.Stop(character, ect._channelDoodad);
         }
         else
         {
-            Connection.ActiveChar.SkillTask.Skill.Stop(Connection.ActiveChar);
+            skillTask.Skill.Stop(character);
         }
     }
 }
