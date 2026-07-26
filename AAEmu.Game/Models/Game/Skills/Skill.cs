@@ -110,6 +110,12 @@ public class Skill
             return SkillResultHelper.SkillResultErrorKeyToId(requirementResult.ResultKey);
         }
 
+        if (character is { IgnoreSkillCooldowns: false } && Template.CooldownTime > 0 && unit.Cooldowns.CheckCooldown(Template.Id))
+        {
+            Logger.Trace($"Skill: CooldownTime [{Template.CooldownTime}]!");
+            return SkillResult.CooldownTime;
+        }
+
         _bypassGcd = bypassGcd;
         if (!_bypassGcd)
         {
