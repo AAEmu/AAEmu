@@ -349,9 +349,19 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
             return null;
 
         var pakDataSpheres = SphereQuestManager.GetSpheresForQuest(dbSphereQuest.QuestId);
+        var requiredComponent = requiredComponentId > 0
+            ? QuestManager.Instance.GetComponent(requiredComponentId)
+            : null;
+
         foreach (var pakDataSphere in pakDataSpheres)
         {
-            if (pakDataSphere.Contains(worldPosition) && (requiredComponentId == 0 || pakDataSphere.ComponentId == requiredComponentId))
+            var componentMatches = requiredComponentId == 0 || pakDataSphere.ComponentId == requiredComponentId;
+            if (!componentMatches &&
+                dbSphere.TriggerConditionId == AreaSphereTriggerCondition.TriggerEveryNTimeAfter &&
+                requiredComponent?.ParentQuestTemplate?.Id == dbSphereQuest.QuestId)
+                componentMatches = true;
+
+            if (pakDataSphere.Contains(worldPosition) && componentMatches)
                 return pakDataSphere;
         }
 

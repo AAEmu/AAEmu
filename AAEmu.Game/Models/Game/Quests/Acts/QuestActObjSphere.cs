@@ -1,6 +1,7 @@
 ﻿using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.GameData;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -58,6 +59,9 @@ public class QuestActObjSphere(QuestComponentTemplate parentComponent) : QuestAc
             return;
 
         Logger.Debug($"{QuestActTemplateName}({DetailId}).OnExitSphere: Quest: {questAct.QuestComponent.Parent.Parent.TemplateId}, Owner {questAct.QuestComponent.Parent.Parent.Owner.Name} ({questAct.QuestComponent.Parent.Parent.Owner.Id}), ComponentId {args.SphereQuest.ComponentId}");
+        if (SphereGameData.Instance.GetSphere(SphereId)?.TriggerConditionId == AreaSphereTriggerCondition.TriggerEveryNTimeAfter)
+            return;
+
         SetObjective(questAct, 0);
     }
 
