@@ -48,7 +48,7 @@ namespace AAEmu.Commons.Utils;
 
 public static class Helper
 {
-    private static Dictionary<Tuple<object, int>, DateTime> intervals = [];
+    private static ConcurrentDictionary<Tuple<object, int>, DateTime> intervals = new();
 
     /// <summary>
     /// Возвращает true если прошло не менее указанного интервала времени (после предыдущего срабатывания)
