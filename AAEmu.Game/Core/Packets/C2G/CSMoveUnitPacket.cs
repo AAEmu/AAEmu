@@ -212,7 +212,7 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                     }
 
                     // If ActorFlag 0x40 is no longer set, it means we're no longer climbing/holding onto something
-                    if (targetUnit.Transform.StickyParent != null && !isSticky)
+                    if (targetUnit.Transform.StickyParent != null && !isSticky && !IsBoardedOnTransfer(targetUnit))
                         targetUnit.Transform.StickyParent = null;
 
                     // Debug Climb Data
@@ -267,6 +267,13 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
     {
         if (moveType.VelX != 0 || moveType.VelY != 0 || moveType.VelZ != 0)
             unit.Buffs.TriggerRemoveOn(BuffRemoveOn.Move);
+    }
+
+    private static bool IsBoardedOnTransfer(BaseUnit unit)
+    {
+        return unit is Character character &&
+               unit.Transform.StickyParent?.GameObject is Transfer transfer &&
+               transfer.AttachedCharacters.Contains(character);
     }
 
     public override string Verbose()
