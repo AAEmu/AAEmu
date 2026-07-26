@@ -97,6 +97,7 @@ public class Skill
 
         // Cast character for future reference
         var character = caster as Character;
+        var cooldownOwner = character ?? caster.GetOwnerCharacter();
 
         unit.ConditionChance = true;
 
@@ -110,7 +111,7 @@ public class Skill
             return SkillResultHelper.SkillResultErrorKeyToId(requirementResult.ResultKey);
         }
 
-        if (character is { IgnoreSkillCooldowns: false } && Template.CooldownTime > 0 && unit.Cooldowns.CheckCooldown(Template.Id))
+        if (Template.CooldownTime > 0 && cooldownOwner is { IgnoreSkillCooldowns: false } && unit.Cooldowns.CheckCooldown(Template.Id))
         {
             Logger.Trace($"Skill: CooldownTime [{Template.CooldownTime}]!");
             return SkillResult.CooldownTime;
@@ -1415,8 +1416,11 @@ public class Skill
         SkillTlIdManager.ReleaseId(TlId);
         TlId = 0;
 
-        if (caster is Character character1 && character1.IgnoreSkillCooldowns)
-            character1.ResetSkillCooldown(Template.Id, false);
+        if (caster.GetOwnerCharacter() is { IgnoreSkillCooldowns: true } cooldownOwner)
+        {
+            cooldownOwner.ResetSkillCooldown(Template.Id, false);
+            unit.Cooldowns.RemoveCooldown(Template.Id);
+        }
     }
 
     /// <summary>
@@ -1445,8 +1449,11 @@ public class Skill
         SkillTlIdManager.ReleaseId(TlId);
         TlId = 0;
 
-        if (caster is Character character && character.IgnoreSkillCooldowns)
+        if (caster.GetOwnerCharacter() is { IgnoreSkillCooldowns: true } character)
+        {
             character.ResetSkillCooldown(Template.Id, false);
+            unit.Cooldowns.RemoveCooldown(Template.Id);
+        }
     }
 
     public SkillHitType RollCombatDice(BaseUnit attacker, BaseUnit target)

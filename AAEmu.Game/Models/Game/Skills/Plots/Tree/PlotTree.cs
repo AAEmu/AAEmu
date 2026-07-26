@@ -250,8 +250,11 @@ public class PlotTree(uint plotId)
 
         state.Caster?.Cooldowns.AddCooldown(state.ActiveSkill.Template.Id, (uint)state.ActiveSkill.Template.CooldownTime);
 
-        if (state.Caster is Character { IgnoreSkillCooldowns: true } character)
+        if (state.Caster?.GetOwnerCharacter() is { IgnoreSkillCooldowns: true } character)
+        {
             character.ResetSkillCooldown(state.ActiveSkill.Template.Id, false);
+            state.Caster.Cooldowns.RemoveCooldown(state.ActiveSkill.Template.Id);
+        }
 
         // Maybe always do this on end of plot?
         // Should we check if it was a channeled skill?
