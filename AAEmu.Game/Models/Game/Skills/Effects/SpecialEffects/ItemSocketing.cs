@@ -96,11 +96,8 @@ public class ItemSocketing : SpecialEffectAction
             }
             else
             {
-                // Failed!
-                for (var i = 0; i < equipItem.GemIds.Length; i++)
-                {
-                    equipItem.GemIds[i] = 0;
-                }
+                // Failed: on this client version (r208022) a failed socket attempt
+                // does not remove the existing gems, so leave them intact.
             }
             installed = true;
         }
