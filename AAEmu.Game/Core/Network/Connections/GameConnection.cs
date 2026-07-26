@@ -54,7 +54,7 @@ public class GameConnection
     {
         if (packet.TypeId == 0xFFF)
         {
-            Logger.Warn("Dropping invalid game packet with opcode 0xFFF.");
+            Logger.Error("Dropping invalid game packet with opcode 0xFFF.");
             return;
         }
 
