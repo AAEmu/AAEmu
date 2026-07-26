@@ -137,10 +137,8 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         var slave = GetSlaveByTlId(tlId);
         if (slave == null)
         {
-            character.Transform.Parent = null;
-            character.Transform.StickyParent = null;
+            ClearSlaveAttachmentState(character);
             character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
-            character.AttachedPoint = AttachPointKind.None;
             character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, reason), true);
             return;
         }
@@ -149,13 +147,12 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         if (attachPoint != default)
         {
             slave.AttachedCharacters.Remove(attachPoint);
-            character.Transform.Parent = null;
-            character.Transform.StickyParent = null;
+            ClearSlaveAttachmentState(character);
             ShipHarpoonRopeController.OnOperatorLeftSlave(slave, character);
         }
 
         character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
-        character.AttachedPoint = AttachPointKind.None;
+        ClearSlaveAttachmentState(character);
 
         character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, reason), true);
     }
@@ -1041,6 +1038,16 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             activeSlaveInfo.Save();
             Delete(owner, activeSlaveInfo.ObjId, false);
         }
+
+        ClearSlaveAttachmentState(owner);
+    }
+
+    private static void ClearSlaveAttachmentState(Character character)
+    {
+        character.Transform.Parent = null;
+        character.Transform.StickyParent = null;
+        character.IsRiding = false;
+        character.AttachedPoint = AttachPointKind.None;
     }
 
     /// <summary>
