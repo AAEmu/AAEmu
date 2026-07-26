@@ -536,8 +536,11 @@ public class Transform : IDisposable
             {
                 var child = _children[i];
                 if (child != null)
+                {
                     // ReSharper disable once ConditionIsAlwaysTrueOrFalse
                     child.FinalizeTransform(includeChildren);
+                    WorldManager.Instance.AddVisibleObject(child._owningObject);
+                }
             }
         }
 
