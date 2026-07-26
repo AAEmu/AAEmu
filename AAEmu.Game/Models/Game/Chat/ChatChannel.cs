@@ -7,6 +7,8 @@ namespace AAEmu.Game.Models.Game.Chat;
 
 public class ChatChannel
 {
+    private readonly object _membersLock = new();
+
     /// <summary>
     /// Chat channel type
     /// </summary>
@@ -26,6 +28,25 @@ public class ChatChannel
     /// Current members in this channel
     /// </summary>
     public List<Character> Members { get; set; } = [];
+
+    public Character[] GetMembersSnapshot()
+    {
+        lock (_membersLock)
+        {
+            return Members.ToArray();
+        }
+    }
+
+    public bool TryRemoveIfEmpty(Func<bool> removeChannel)
+    {
+        lock (_membersLock)
+        {
+            if (Members.Count > 0)
+                return false;
+
+            return removeChannel();
+        }
+    }
 
     /// <summary>
     /// Internal Id
@@ -47,11 +68,15 @@ public class ChatChannel
         if (character == null)
             return false;
 
-        if (Members.Contains(character))
-            return false;
+        lock (_membersLock)
+        {
+            if (Members.Contains(character))
+                return false;
+
+            Members.Add(character);
+        }
 
         // character.SendMessage(ChatType.System, "ChatManager.JoinChannel {0} - {1} - {2}", chatType, internalId, internalName);
-        Members.Add(character);
         character.SendPacket(new SCJoinedChatChannelPacket(ChatType, SubType, Faction));
 
         return true;
@@ -68,7 +93,13 @@ public class ChatChannel
             return false;
 
         // character.SendMessage(ChatType.System, "ChatManager.LeaveChannel {0} - {1} - {2}", chatType, internalId, internalName);
-        if (Members.Remove(character))
+        var removed = false;
+        lock (_membersLock)
+        {
+            removed = Members.Remove(character);
+        }
+
+        if (removed)
         {
             character.SendPacket(new SCLeavedChatChannelPacket(ChatType, SubType, Faction));
             return true;
@@ -87,7 +118,9 @@ public class ChatChannel
     public int SendMessage(Character origin, string msg, int ability = 0, byte languageType = 0)
     {
         var res = 0;
-        foreach (var m in Members)
+        var members = GetMembersSnapshot();
+
+        foreach (var m in members)
         {
             m.SendPacket(new SCChatMessagePacket(ChatType, origin ?? m, msg, ability, languageType));
             res++;
@@ -103,7 +136,9 @@ public class ChatChannel
     public int SendPacket(GamePacket packet)
     {
         var res = 0;
-        foreach (var m in Members)
+        var members = GetMembersSnapshot();
+
+        foreach (var m in members)
         {
             m.SendPacket(packet);
             res++;

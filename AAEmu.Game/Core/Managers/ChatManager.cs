@@ -104,42 +104,32 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
     /// </summary>
     public int CleanUpChannels()
     {
+        return CleanUpChannels(ZoneChannels)
+               + CleanUpChannels(PartyChannels)
+               + CleanUpChannels(RaidChannels)
+               + CleanUpChannels(GuildChannels)
+               + CleanUpChannels(FamilyChannels);
+    }
+
+    private static int CleanUpChannels<TKey>(ConcurrentDictionary<TKey, ChatChannel> channels)
+        where TKey : notnull
+    {
         var res = 0;
-        foreach (var c in ZoneChannels)
-            if (c.Value.Members.Count <= 0)
-            {
-                ChatIdManager.Instance.ReleaseId(c.Value.InternalId);
-                ZoneChannels.TryRemove(c.Key, out _);
-                res++;
-            }
-        foreach (var c in PartyChannels)
-            if (c.Value.Members.Count <= 0)
-            {
-                ChatIdManager.Instance.ReleaseId(c.Value.InternalId);
-                PartyChannels.TryRemove(c.Key, out _);
-                res++;
-            }
-        foreach (var c in RaidChannels)
-            if (c.Value.Members.Count <= 0)
-            {
-                ChatIdManager.Instance.ReleaseId(c.Value.InternalId);
-                RaidChannels.TryRemove(c.Key, out _);
-                res++;
-            }
-        foreach (var c in GuildChannels)
-            if (c.Value.Members.Count <= 0)
-            {
-                ChatIdManager.Instance.ReleaseId(c.Value.InternalId);
-                GuildChannels.TryRemove(c.Key, out _);
-                res++;
-            }
-        foreach (var c in FamilyChannels)
-            if (c.Value.Members.Count <= 0)
-            {
-                ChatIdManager.Instance.ReleaseId(c.Value.InternalId);
-                FamilyChannels.TryRemove(c.Key, out _);
-                res++;
-            }
+        foreach (var c in channels)
+        {
+            if (!c.Value.TryRemoveIfEmpty(() =>
+                {
+                    if (!((ICollection<KeyValuePair<TKey, ChatChannel>>)channels).Remove(c))
+                        return false;
+
+                    ChatIdManager.Instance.ReleaseId(c.Value.InternalId);
+                    return true;
+                }))
+                continue;
+
+            res++;
+        }
+
         return res;
     }
 

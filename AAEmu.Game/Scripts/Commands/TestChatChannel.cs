@@ -36,8 +36,9 @@ public class TestChatChannel : ICommand
             var channels = ChatManager.Instance.ListAllChannels();
             foreach (var c in channels)
             {
+                var memberCount = c.GetMembersSnapshot().Length;
                 CommandManager.SendNormalText(this, messageOutput,
-                    $"{c.InternalId} - T:{c.ChatType} ST:{c.SubType} F:{c.Faction} => {c.InternalName} ({c.Members.Count})");
+                    $"{c.InternalId} - T:{c.ChatType} ST:{c.SubType} F:{c.Faction} => {c.InternalName} ({memberCount})");
             }
 
             CommandManager.SendNormalText(this, messageOutput, $"End of list");
@@ -57,11 +58,12 @@ public class TestChatChannel : ICommand
                 CommandManager.SendErrorText(this, messageOutput, $"ChannelId {channelId} not found");
                 return;
             }
-            CommandManager.SendNormalText(this, messageOutput, $"List {thisChannel.Members.Count} members of {thisChannel.InternalName} ({thisChannel.InternalId})");
+            var members = thisChannel.GetMembersSnapshot();
+            CommandManager.SendNormalText(this, messageOutput, $"List {members.Length} members of {thisChannel.InternalName} ({thisChannel.InternalId})");
             var t = string.Empty;
             var c = 0;
             var first = true;
-            foreach (var m in thisChannel.Members)
+            foreach (var m in members)
             {
                 if (first)
                 {
