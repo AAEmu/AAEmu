@@ -94,7 +94,10 @@ public class LootingContainer(IBaseUnit owner)
         };
         Killer = killer;
         CreationTime = DateTime.UtcNow;
-        Items.Clear();
+        lock (ItemsLock)
+        {
+            Items.Clear();
+        }
 
         // NPC Loot handling
         if (LootOwnerType == LootOwnerType.Npc && LootOwner is Npc npc)
@@ -218,9 +221,10 @@ public class LootingContainer(IBaseUnit owner)
                 }
             }
 
-            if (Items.Count <= 0)
+            lock (ItemsLock)
             {
-                return;
+                if (Items.Count <= 0)
+                    return;
             }
 
             UpdateLootState();
@@ -244,21 +248,24 @@ public class LootingContainer(IBaseUnit owner)
     /// <param name="items">Loot</param>
     private void RegisterItems(List<Item> items)
     {
-        foreach (var item in items)
+        lock (ItemsLock)
         {
-            var newItem = new LootingContainerItemEntry
+            foreach (var item in items)
             {
-                Owner = this,
-                Item = item,
-                ItemIndex = (ushort)(Items.Count + 1),
-                HighestRoller = 0
-            };
-            // Update ItemId to what is expected to be used
-            // Note that the actual Item.Id needs to be updated upon actual looting
-            newItem.Item.Id = ((ulong)LootOwner.ObjId << 32) + ((ulong)LootOwnerType << 16) + newItem.ItemIndex;
+                var newItem = new LootingContainerItemEntry
+                {
+                    Owner = this,
+                    Item = item,
+                    ItemIndex = (ushort)(Items.Count + 1),
+                    HighestRoller = 0
+                };
+                // Update ItemId to what is expected to be used
+                // Note that the actual Item.Id needs to be updated upon actual looting
+                newItem.Item.Id = ((ulong)LootOwner.ObjId << 32) + ((ulong)LootOwnerType << 16) + newItem.ItemIndex;
 
-            // Add the actual entry
-            Items.Add(newItem.ItemIndex, newItem);
+                // Add the actual entry
+                Items.Add(newItem.ItemIndex, newItem);
+            }
         }
     }
 
@@ -280,9 +287,15 @@ public class LootingContainer(IBaseUnit owner)
     /// </summary>
     private void UpdateLootState()
     {
-        SendPacketToPlayers(EligiblePlayers, new SCLootableStatePacket(LootOwnerType, LootOwner.ObjId, Items.Count > 0));
+        bool hasItems;
+        lock (ItemsLock)
+        {
+            hasItems = Items.Count > 0;
+        }
+
+        SendPacketToPlayers(EligiblePlayers, new SCLootableStatePacket(LootOwnerType, LootOwner.ObjId, hasItems));
         // If no items left, then reduce the despawn timer if needed
-        if (Items.Count <= 0)
+        if (!hasItems)
         {
             var minimumDespawnTime = CreationTime;
             switch (LootOwnerType)
@@ -587,74 +600,93 @@ public class LootingContainer(IBaseUnit owner)
         if (!TryReserveLootItem(itemEntry))
             return false;
 
-        var freeSpace = player.Inventory.Bag.SpaceLeftForItem(itemEntry.Item, out _);
-        if (freeSpace < itemEntry.Item.Count)
-        {
-            RestoreLootItem(itemEntry);
-            player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
-            return false;
-        }
-
         var fullOldItemId = itemEntry.Item.Id;
-
-        // var objId = (uint)(lootDropItem.Id >> 32);
-        if (itemEntry.Item.TemplateId == Item.Coins)
+        var grantSucceeded = false;
+        var restored = false;
+        try
         {
-            player.AddMoney(SlotType.Inventory, itemEntry.Item.Count);
-        }
-        else if (ItemManager.Instance.IsAutoEquipTradePack(itemEntry.Item.TemplateId))
-        {
-            // Auto-equip tradepack item branch.
-            // Attempt to remove the current backpack item to free up the slot.
-            if (player.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
+            var freeSpace = player.Inventory.Bag.SpaceLeftForItem(itemEntry.Item, out _);
+            if (freeSpace < itemEntry.Item.Count)
             {
-                itemEntry.Item.Id = ItemIdManager.Instance.GetNextId();
-                // Try to add the new item to the Equipment container's Backpack slot.
-                if (!player.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, itemEntry.Item, (int)EquipmentItemSlot.Backpack))
+                RestoreLootItem(itemEntry);
+                restored = true;
+                player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
+                return false;
+            }
+
+            // var objId = (uint)(lootDropItem.Id >> 32);
+            if (itemEntry.Item.TemplateId == Item.Coins)
+            {
+                player.AddMoney(SlotType.Inventory, itemEntry.Item.Count);
+                grantSucceeded = true;
+            }
+            else if (ItemManager.Instance.IsAutoEquipTradePack(itemEntry.Item.TemplateId))
+            {
+                // Auto-equip tradepack item branch.
+                // Attempt to remove the current backpack item to free up the slot.
+                if (player.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
                 {
-                    // If adding fails, release the item ID and restore original.
-                    RestoreLootItem(itemEntry);
-                    ItemIdManager.Instance.ReleaseId((uint)itemEntry.Item.Id);
-                    itemEntry.Item.Id = fullOldItemId;
-                    player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
-                    return false;
+                    itemEntry.Item.Id = ItemIdManager.Instance.GetNextId();
+                    // Try to add the new item to the Equipment container's Backpack slot.
+                    if (!player.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, itemEntry.Item, (int)EquipmentItemSlot.Backpack))
+                    {
+                        // If adding fails, release the item ID and restore original.
+                        RestoreLootItem(itemEntry);
+                        restored = true;
+                        ItemIdManager.Instance.ReleaseId((uint)itemEntry.Item.Id);
+                        itemEntry.Item.Id = fullOldItemId;
+                        player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
+                        return false;
+                    }
+                    else
+                    {
+                        Logger.Trace("AutoEquipTradePack: Tradepack item added to Equipment container successfully.");
+                        grantSucceeded = true;
+                    }
                 }
                 else
                 {
-                    Logger.Trace("AutoEquipTradePack: Tradepack item added to Equipment container successfully.");
+                    Logger.Warn("AutoEquipTradePack: Failed to take off backpack for auto-equip tradepack item TemplateId={0}.", itemEntry.Item.TemplateId);
+                    RestoreLootItem(itemEntry);
+                    restored = true;
+                    player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
+                    return false;
                 }
             }
             else
             {
-                Logger.Warn("AutoEquipTradePack: Failed to take off backpack for auto-equip tradepack item TemplateId={0}.", itemEntry.Item.TemplateId);
-                RestoreLootItem(itemEntry);
-                player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
-                return false;
+                itemEntry.Item.Id = ItemIdManager.Instance.GetNextId();
+                // Try to add the new item
+                if (!player.Inventory.Bag.AcquireDefaultItem(didLootAll ? ItemTaskType.LootAll : ItemTaskType.Loot, itemEntry.Item.TemplateId, itemEntry.Item.Count, itemEntry.Item.Grade))
+                {
+                    // Free the Id again if failed
+                    RestoreLootItem(itemEntry);
+                    restored = true;
+                    ItemIdManager.Instance.ReleaseId((uint)itemEntry.Item.Id);
+                    // Re-assign the original loot bag id 
+                    itemEntry.Item.Id = fullOldItemId;
+                    // Send a bag full fail message
+                    // player.SendErrorMessage(ErrorMessageType.BagFull);
+                    player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
+                    return false;
+                }
+                grantSucceeded = true;
             }
-        }
-        else
-        {
-            itemEntry.Item.Id = ItemIdManager.Instance.GetNextId();
-            // Try to add the new item
-            if (!player.Inventory.Bag.AcquireDefaultItem(didLootAll ? ItemTaskType.LootAll : ItemTaskType.Loot, itemEntry.Item.TemplateId, itemEntry.Item.Count, itemEntry.Item.Grade))
-            {
-                // Free the Id again if failed
-                RestoreLootItem(itemEntry);
-                ItemIdManager.Instance.ReleaseId((uint)itemEntry.Item.Id);
-                // Re-assign the original loot bag id 
-                itemEntry.Item.Id = fullOldItemId;
-                // Send a bag full fail message
-                // player.SendErrorMessage(ErrorMessageType.BagFull);
-                player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
-                return false;
-            }
-        }
-        // TODO: check what packet this sends to others
-        player.SendPacket(new SCLootItemTookPacket(itemEntry.Item.TemplateId, itemEntry.ItemIndex, LootOwnerType, LootOwner.ObjId, itemEntry.Item.Count));
+            // TODO: check what packet this sends to others
+            player.SendPacket(new SCLootItemTookPacket(itemEntry.Item.TemplateId, itemEntry.ItemIndex, LootOwnerType, LootOwner.ObjId, itemEntry.Item.Count));
 
-        if (Items.Count <= 0)
-            UpdateLootState();
-        return true;
+            if (Items.Count <= 0)
+                UpdateLootState();
+            return true;
+        }
+        finally
+        {
+            if (!grantSucceeded && !restored)
+            {
+                itemEntry.Item.Id = fullOldItemId;
+                RestoreLootItem(itemEntry);
+            }
+        }
     }
 
     private bool TryReserveLootItem(LootingContainerItemEntry itemEntry)
