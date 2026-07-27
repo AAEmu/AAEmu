@@ -76,6 +76,13 @@ public class ItemSocketing : SpecialEffectAction
                 }
             }
 
+            // Reject if the item has no free gem sockets (prevents GemIds[gemCount] out-of-range)
+            if (gemCount >= equipItem.GemIds.Length)
+            {
+                Logger.Warn($"Special effects: ItemSocketing target {equipItem.Id} has no free gem sockets");
+                return;
+            }
+
             // Roll for Success
             var gemRoll = Random.Shared.Next(0, 10000);
             var gemChance = ItemManager.Instance.GetSocketChance(gemCount); // fetches chances from sqlite3
@@ -89,7 +96,10 @@ public class ItemSocketing : SpecialEffectAction
             }
             else
             {
-                // Failed!
+                // Failed: on retail for this client version (r208022) a failed socket
+                // attempt removes ALL currently socketed gems. This harsh behavior is
+                // what made early gear progression so punishing. (Guild gems, which
+                // cannot fail, only got the keep-on-fail behavior in later versions.)
                 for (var i = 0; i < equipItem.GemIds.Length; i++)
                 {
                     equipItem.GemIds[i] = 0;
