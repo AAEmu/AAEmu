@@ -93,7 +93,13 @@ public class UseAutoAttackSkillTask : SkillTask
             return null;
 
         var offhandItem = _caster.Equipment?.GetItemBySlot((int)EquipmentItemSlot.Offhand);
-        if (offhandItem?.Template is not WeaponTemplate)
+        if (offhandItem?.Template is not WeaponTemplate offhandWeapon)
+            return null;
+
+        // A shield is also a WeaponTemplate, but it must NOT produce an offhand
+        // auto-attack swing. Without this guard a sword+shield loadout swung the
+        // shield as if it were a dual-wield weapon (#1454).
+        if (offhandWeapon.HoldableTemplate?.SlotTypeId == (uint)EquipmentItemSlotType.Shield)
             return null;
 
         if (_offhandSkill != null)
