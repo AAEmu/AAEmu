@@ -28,4 +28,5 @@ public interface IDoodadManager : ILoadable
     List<uint> GetTreasureChestTemplateIds();
 
     Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId, FarmType farmType = FarmType.Invalid, uint itemTemplateId = 0, int customData = 0, bool ignoreHouses = false);
+    void CloseCoffersOpenedBy(Character character);
 }
