@@ -50,6 +50,14 @@ public class CSSellItemsPacket() : GamePacket(CSOffsets.CSSellItemsPacket, 1)
             {
                 Logger.Warn($"Failed to move sold itemId {item.Id} ({item.TemplateId}) to BuyBack ItemContainer for {Connection.ActiveChar.Name}");
             }
+            else
+            {
+                // BuyBack is a non-persisted (SlotType.None) container. Without this the
+                // item's existing persisted row would be reloaded and duplicated on
+                // relogin (#1189). Queue that row for deletion; buying the item back
+                // re-enters a persisted container and re-saves it.
+                ItemManager.Instance.MarkItemForDbDeletion(item.Id);
+            }
             money += (int)(item.Template.Refund * ItemManager.Instance.GetGradeTemplate(item.Grade).RefundMultiplier / 100f) *
                      item.Count;
         }
