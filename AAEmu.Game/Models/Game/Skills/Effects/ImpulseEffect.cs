@@ -2,6 +2,7 @@ using System.Numerics;
 
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -34,21 +35,29 @@ public class ImpulseEffect : EffectTemplate
         Logger.Debug("ImpulseEffect: caster={0}, target={1}, impulse=({2},{3},{4}), velImpulse=({5},{6},{7})",
             caster?.ObjId, target?.ObjId, ImpulseX, ImpulseY, ImpulseZ, VelImpulseX, VelImpulseY, VelImpulseZ);
 
-        if (caster == null || target == null)
+        var impulseTarget = ResolveImpulseTarget(caster, target);
+        if (impulseTarget == null || impulseTarget is Unit { IsDead: true })
             return;
 
-        if (target.Buffs.HasEffectsMatchingCondition(e => e.Template.KnockbackImmune || e.Template.NonPushable))
+        if (target?.Buffs.HasEffectsMatchingCondition(e => e.Template.KnockbackImmune || e.Template.NonPushable) == true)
             return;
 
         if (target is Npc npcTarget && npcTarget.Template.NonPushableByActor)
             return;
 
-        // Impulse vector is in caster→target local space.
-        // Use positional (Impulse) + velocity (VelImpulse) as combined displacement.
         var impulse = new Vector3(ImpulseX + VelImpulseX, ImpulseY + VelImpulseY, ImpulseZ + VelImpulseZ);
 
         if (impulse.LengthSquared() < 0.01f)
             return;
+
+        if (caster == null || target == null)
+            return;
+
+        impulseTarget.BroadcastPacket(new SCUnitImpulsePacket(impulseTarget.ObjId,
+            VelImpulseX, VelImpulseY, VelImpulseZ,
+            AngvelImpulseX, AngvelImpulseY, AngvelImpulseZ,
+            ImpulseX, ImpulseY, ImpulseZ,
+            AngImpulseX, AngImpulseY, AngImpulseZ), impulseTarget is Character);
 
         var casterPos = caster.Transform.World.Position;
         var targetPos = target.Transform.World.Position;
@@ -89,11 +98,37 @@ public class ImpulseEffect : EffectTemplate
         }
     }
 
+    private static BaseUnit ResolveImpulseTarget(BaseUnit caster, BaseUnit target)
+    {
+        if (target is Slave)
+            return target;
+
+        if (caster is Slave)
+            return caster;
+
+        if (target == caster && caster is Character character)
+        {
+            var slave = GetCharacterSlave(character);
+            if (slave != null)
+                return slave;
+        }
+
+        return target;
+    }
+
+    private static Slave GetCharacterSlave(Character character)
+    {
+        if (character.ParentWorld == null)
+            return null;
+
+        return character.ParentWorld.SlaveManager.GetIsMounted(character.ObjId, out _)
+               ?? character.ParentWorld.SlaveManager.GetActiveSlaveByOwnerObjId(character.ObjId);
+    }
+
     /// <summary>
     /// Converts a caster-target local impulse (X=right, Y=forward, Z=up, units = 1/1000 m)
-    /// into a world-space displacement vector. When the caster→target direction is
-    /// degenerate (caster on top of target) the impulse is returned unchanged in world
-    /// space; the small-impulse early-exit lives in the caller.
+    /// into a world-space displacement vector. When the caster-to-target direction is
+    /// degenerate, the impulse is returned unchanged in world space.
     /// </summary>
     internal static Vector3 LocalImpulseToWorldDisplacement(
         Vector3 localImpulse, Vector3 casterPos, Vector3 targetPos)
