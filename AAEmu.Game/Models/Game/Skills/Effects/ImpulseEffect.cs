@@ -45,15 +45,19 @@ public class ImpulseEffect : EffectTemplate
         if (target is Npc npcTarget && npcTarget.Template.NonPushableByActor)
             return;
 
-        BroadcastImpulsePacket(impulseTarget);
-
-        if (caster == null || target == null)
-            return;
-
         var impulse = new Vector3(ImpulseX + VelImpulseX, ImpulseY + VelImpulseY, ImpulseZ + VelImpulseZ);
 
         if (impulse.LengthSquared() < 0.01f)
             return;
+
+        if (caster == null || target == null)
+            return;
+
+        impulseTarget.BroadcastPacket(new SCUnitImpulsePacket(impulseTarget.ObjId,
+            VelImpulseX, VelImpulseY, VelImpulseZ,
+            AngvelImpulseX, AngvelImpulseY, AngvelImpulseZ,
+            ImpulseX, ImpulseY, ImpulseZ,
+            AngImpulseX, AngImpulseY, AngImpulseZ), impulseTarget is Character);
 
         var casterPos = caster.Transform.World.Position;
         var targetPos = target.Transform.World.Position;
@@ -92,26 +96,6 @@ public class ImpulseEffect : EffectTemplate
 
             npc.CheckMovedPosition(oldPosition);
         }
-    }
-
-    private void BroadcastImpulsePacket(BaseUnit impulseTarget)
-    {
-        var packet = new SCUnitImpulsePacket(
-            impulseTarget.ObjId,
-            VelImpulseX,
-            VelImpulseY,
-            VelImpulseZ,
-            AngvelImpulseX,
-            AngvelImpulseY,
-            AngvelImpulseZ,
-            ImpulseX,
-            ImpulseY,
-            ImpulseZ,
-            AngImpulseX,
-            AngImpulseY,
-            AngImpulseZ);
-
-        impulseTarget.BroadcastPacket(packet, impulseTarget is Character);
     }
 
     private static BaseUnit ResolveImpulseTarget(BaseUnit caster, BaseUnit target)
