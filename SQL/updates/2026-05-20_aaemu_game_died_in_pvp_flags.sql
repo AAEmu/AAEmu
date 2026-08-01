@@ -1,5 +1,3 @@
-USE aaemu_game;
-
 -- Persist the PvP-death flags across server restarts so post-revive debuffs
 -- routing in CSResurrectCharacterPacket can recover the correct death context
 -- when a player happens to be dead at restart time.
