@@ -11,7 +11,7 @@ public class CountUnreadMail : PacketMarshaler
 
     public override PacketStream Write(PacketStream stream)
     {
-        // the mail body/list packets): 8 u32 — the four total_* counts then the four unread_* counts. AAEmu
+        // Mail count payloads contain the four total counts followed by the four unread counts. AAEmu
         // tracks only the unread counts; totals go out as 0, matching the mail block in SCCharacterState.
         stream.Write(0);                  // total_sent
         stream.Write(0);                  // total_received

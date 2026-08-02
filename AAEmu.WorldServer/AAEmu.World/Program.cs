@@ -136,6 +136,28 @@ public static class Program
 
             movement.RelayClientMoveToZone(zone, bcId, moveBody);
         };
+        WorldIntegration.RelayCreateSkillControllerToZone = (objId, scType, fallDamageImmune) =>
+        {
+            var zone = PlayerEnterService.ForUnit(objId);
+            if (zone == null)
+            {
+                Logger.Warn("RelayCreateSkillControllerToZone: no ZoneLoaded (objId={0})", objId);
+                return;
+            }
+
+            zone.SendPacket(new WZCreateSkillControllerPacket(objId, scType, fallDamageImmune));
+        };
+        WorldIntegration.RelaySkillControllerStateToZone = (objId, scType, length, teared, cutouted) =>
+        {
+            var zone = PlayerEnterService.ForUnit(objId);
+            if (zone == null)
+            {
+                Logger.Warn("RelaySkillControllerStateToZone: no ZoneLoaded (objId={0})", objId);
+                return;
+            }
+
+            zone.SendPacket(new WZSkillControllerStatePacket(objId, scType, length, teared, cutouted));
+        };
         WorldIntegration.RelaySkillStartedToZone = (skillId, tl, caster, target, ct, skillObject) =>
         {
             if (Environment.GetEnvironmentVariable("AAEMU_DISABLE_ZONE_COMBAT_RELAY") == "1")
@@ -470,6 +492,8 @@ public static class Program
         };
         WorldIntegration.NotifyZoneReadyForHousing = zoneId =>
             AAEmu.Game.Core.Managers.HousingManager.Instance.RelayAllToZone(zoneId);
+        WorldIntegration.NotifyZoneReadyForGimmicks = zoneId =>
+            FlushWorldGimmicksToZone(zoneId);
         WorldIntegration.RelayEquipmentChangedToZone = (unitId, body) =>
         {
             // Opcode 0x01E. Empty EquipView type sentinel is 0 (not FFFFFFFF). Kill-switch: AAEMU_WZ_EQUIP=0.
@@ -818,22 +842,26 @@ public static class Program
                            ? PlayerEnterService.PrimaryZone() : null);
             zone?.SendPacket(new WZHouseBuildDonePacket(tl));
         };
-        WorldIntegration.RelayGimmickCreatedToZone = (id, type, ownerZoneId, model, x, y, z, scale) =>
+        WorldIntegration.RelayGimmickCreatedToZone = (data, ownerZoneId) =>
         {
-            var zone = PlayerEnterService.ForZoneId(ownerZoneId)
-                       ?? (Environment.GetEnvironmentVariable("AAEMU_ZONE_PRIMARY_FALLBACK") == "1"
-                           ? PlayerEnterService.PrimaryZone() ?? PlayerEnterService.AnyJoinedZone() : null);
+            var zone = ownerZoneId >= 0 ? ZoneSession.Instance.GetJoinedByZoneId((uint)ownerZoneId) : null;
+            zone ??= Environment.GetEnvironmentVariable("AAEMU_ZONE_PRIMARY_FALLBACK") == "1"
+                ? PlayerEnterService.PrimaryZone() ?? PlayerEnterService.AnyJoinedZone()
+                : null;
             if (zone == null)
                 return;
-            zone.SendPacket(new WZGimmickCreatedPacket(id, type, ownerZoneId, model, x, y, z, scale));
-            Logger.Debug("WZGimmickCreated → zone={0} id={1} type={2}", ownerZoneId, id, type);
+            zone.SendPacket(new WZGimmickCreatedPacket(data, ownerZoneId));
+            Logger.Debug(
+                "WZGimmickCreated → zone={0} id={1} type={2}",
+                ownerZoneId, data.Id, data.Type);
         };
-        WorldIntegration.OnZoneRequestStaticGimmick = (id, type, staticZoneId, model, x, y, z) =>
+        WorldIntegration.OnZoneRequestStaticGimmick = (requestZoneId, data) =>
         {
             // Retail: Zone found a level static → World authors and replies WZGimmickCreated.
-            ZoneStaticGimmickAuthority.Register(id, staticZoneId, x, y, z);
-            WorldIntegration.RelayGimmickCreatedToZone?.Invoke(
-                id, type, staticZoneId, model ?? "", x, y, z, 1f);
+            var x = AAEmu.Commons.Utils.Helpers.ConvertLongX(data.X);
+            var y = AAEmu.Commons.Utils.Helpers.ConvertLongY(data.Y);
+            ZoneStaticGimmickAuthority.Register(data.Id, data.StaticZoneId, x, y, data.Z);
+            WorldIntegration.RelayGimmickCreatedToZone?.Invoke(data, (int)requestZoneId);
         };
         WorldIntegration.RelayGimmickRemovedToZone = id =>
         {
@@ -949,6 +977,8 @@ public static class Program
             WorldIntegration.RelayUnitStateToZone = null;
             WorldIntegration.OnPlayerLeave = null;
             WorldIntegration.RelayMoveToZone = null;
+            WorldIntegration.RelayCreateSkillControllerToZone = null;
+            WorldIntegration.RelaySkillControllerStateToZone = null;
             WorldIntegration.RelaySkillStartedToZone = null;
             WorldIntegration.RelaySkillFiredToZone = null;
             WorldIntegration.RelaySkillEndedToZone = null;
@@ -986,6 +1016,7 @@ public static class Program
             WorldIntegration.RelayCreateDoodadToZone = null;
             WorldIntegration.NotifyZoneReadyForDoodads = null;
             WorldIntegration.NotifyZoneReadyForHousing = null;
+            WorldIntegration.NotifyZoneReadyForGimmicks = null;
             WorldIntegration.RelayCharacterZoneHandoff = null;
             WorldIntegration.RelayRemoveDoodadToZone = null;
             WorldIntegration.RelayDoodadPhaseToZone = null;
@@ -1025,6 +1056,41 @@ public static class Program
             try { GameBridgeNetwork.Instance.Stop(); } catch { /* ignore */ }
             LogManager.Shutdown();
         }
+    }
+
+    private static void FlushWorldGimmicksToZone(uint zoneId)
+    {
+        var zone = PlayerEnterService.ForZoneId(zoneId);
+        if (zone == null)
+        {
+            Logger.Warn("Gimmick flush skipped — no ZoneLoaded for zoneId={0}", zoneId);
+            return;
+        }
+
+        var world = WorldIntegration.ResolveWorldForZone(zoneId);
+        if (world == null)
+        {
+            Logger.Warn("Gimmick flush skipped — no world instance owns zoneId={0}", zoneId);
+            return;
+        }
+
+        var sent = 0;
+        var skippedOtherZone = 0;
+        foreach (var gimmick in world.GimmickManager.GetActiveGimmicks())
+        {
+            if (gimmick?.Transform?.ZoneId != zoneId)
+            {
+                skippedOtherZone++;
+                continue;
+            }
+
+            zone.SendPacket(new WZGimmickCreatedPacket(gimmick.ToSpawnData(), (int)zoneId));
+            sent++;
+        }
+
+        Logger.Info(
+            "Gimmick flush → zoneId={0} world={1} sent={2} skippedOtherZone={3}",
+            zoneId, world.Template?.Name, sent, skippedOtherZone);
     }
 
     /// <summary>

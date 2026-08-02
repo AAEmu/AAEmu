@@ -51,6 +51,22 @@ public class WZCreateSkillControllerPacket(uint unitId, byte scType, bool fallDa
     }
 }
 
+public class WZSkillControllerStatePacket(uint unitId, byte scType, float length, bool teared, bool cutouted)
+    : ZonePacket(WzOpcodes.SkillControllerState)
+{
+    protected override void WriteBody(PacketStream stream)
+    {
+        stream.WriteBc(unitId);
+        stream.Write(scType);
+        if (scType == 0)
+        {
+            stream.Write(length);
+            stream.Write(teared);
+            stream.Write(cutouted);
+        }
+    }
+}
+
 public class WZFactionCreatedPacket(int typeValue, int typeValue2, string name, ulong ownerId, string ownerName, byte unitOwnerType, byte politicalSystem, long createdTime, bool aggroLink, bool dTarget, byte allowChangeName, long renameTime, bool integrationFaction)
     : ZonePacket(WzOpcodes.FactionCreated)
 {

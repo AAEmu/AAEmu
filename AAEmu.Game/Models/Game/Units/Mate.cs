@@ -602,9 +602,9 @@ public sealed class Mate : Unit
         character.SendPacket(new SCUnitsRemovedPacket([ObjId]));
     }
 
-    public override int DoFallDamage(ushort fallVel)
+    public override int DoFallDamage(float impactSpeed)
     {
-        var fallDmg = base.DoFallDamage(fallVel);
+        var fallDmg = base.DoFallDamage(impactSpeed);
         if (Hp <= 0)
         {
             var riders = Passengers.ToList();
@@ -615,7 +615,7 @@ public sealed class Mate : Unit
                 var rider = WorldManager.Instance.GetCharacterByObjId(riders[i].Value._objId);
                 if (rider != null)
                 {
-                    rider.DoFallDamage(fallVel);
+                    rider.DoFallDamage(impactSpeed);
                     if (rider.Hp <= 0)
                         rider.ParentWorld.MateManager.UnMountMate(rider, TlId, pos, AttachUnitReason.SlaveBinding);
                 }

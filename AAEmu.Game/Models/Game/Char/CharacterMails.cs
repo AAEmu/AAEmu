@@ -106,7 +106,7 @@ public class CharacterMails
 
     public void SendUnreadMailCount()
     {
-        Self.SendPacket(new SCCountUnreadMailPacket(UnreadMailCount));
+        Self.SendPacket(new SCCountTotalMailPacket(UnreadMailCount));
     }
 
     /// <summary>
@@ -117,7 +117,7 @@ public class CharacterMails
     /// <c>CSSelectCharacter</c> runs <c>Character.Load</c> — and with it the mail load — at line 29, while the
     /// character is only assigned an ObjId at 51 and registered with <c>TryAddCharacter</c> at 55. The lookup
     /// therefore always missed, every count stayed zero, and both <c>SCCharacterState</c> and
-    /// <c>SCCountUnreadMail</c> reported an empty mailbox until the player opened it by hand.
+    /// <c>SCCountTotalMail</c> reported an empty mailbox until the player opened it by hand.
     ///
     /// Counting is restricted to mail addressed to this character: the sender-side rows
     /// <c>GetCurrentMailList</c> also selects are someone else's unread mail, and folding them in inflated the

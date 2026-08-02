@@ -3,7 +3,9 @@ using AAEmu.Game;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.World.Core.Network;
@@ -53,7 +55,7 @@ public class ZoneSimRelay
             ZwOpcodes.RayCastingResult => HandleRayCastingResult(stream),
             ZwOpcodes.RemoveHouse => HandleRemoveHouse(stream),
             ZwOpcodes.GimmickMovement => RelayGimmickMovement(body, bodyLen),
-            ZwOpcodes.RequestSpawnStaticGimmick => HandleRequestSpawnStaticGimmick(stream, bodyLen),
+            ZwOpcodes.RequestSpawnStaticGimmick => HandleRequestSpawnStaticGimmick(zoneId, stream, bodyLen),
             ZwOpcodes.GimmickJointBroken => HandleGimmickJointBroken(stream),
             ZwOpcodes.GimmickResetJoints => HandleGimmickResetJoints(stream),
             ZwOpcodes.GimmickRemoveParts => HandleGimmickRemoveParts(stream, bodyLen),
@@ -200,15 +202,37 @@ public class ZoneSimRelay
         return true;
     }
 
-    /// <summary>ZW 0x10: bc unit + f32 impactVel — fall impact from Zone phys.</summary>
+    /// <summary>
+    /// Zone sends the unchanged positive fall-impact speed magnitude;
+    /// produced by its fall detector; World owns HP, stun and environmental-damage presentation.
+    /// </summary>
     private static bool HandleUnitFell(PacketStream stream)
     {
         if (stream.Count < 7)
             return false;
+
         var unitId = stream.ReadBc();
         var impactVel = stream.ReadSingle();
-        Logger.Info("ZWUnitFell unit={0} impactVel={1:F2}", unitId, impactVel);
-        // No dedicated SCUnitFell in 10.0.2.13 — Zone will correct via movements; keep World informed.
+        if (!float.IsFinite(impactVel) || impactVel <= 0f)
+        {
+            Logger.Warn("Rejected ZWUnitFell unit={0} impactVel={1}", unitId, impactVel);
+            return true;
+        }
+
+        if (WorldIntegration.FindUnitAcrossWorlds(unitId) is not Unit unit || unit.Hp <= 0)
+            return true;
+
+        var damage = unit.DoFallDamage(impactVel);
+        if (damage <= 0)
+            return true;
+
+        ZoneAuthorityCombat.SyncUnitPoints(unit.ObjId, unit.Hp, unit.Mp);
+        if (unit.Hp <= 0 && unit is not Npc)
+            WorldIntegration.RelayUnitDeathToZone?.Invoke(unit.ObjId);
+
+        Logger.Info(
+            "ZWUnitFell unit={0} impactVel={1:F2}m/s damage={2} hp={3}/{4}",
+            unitId, impactVel, damage, unit.Hp, unit.MaxHp);
         return true;
     }
 
@@ -486,40 +510,32 @@ public class ZoneSimRelay
     }
 
     /// <summary>
-    /// ZW 0x026 body = GimmickSpawnData (same layout as WZGimmickCreated payload without ownerZoneId).
-    /// Zone asks World to author the static; we echo WZGimmickCreated (retail path, always on).
+    /// Zone asks World to author a static gimmick and broadcasts the resulting creation state.
     /// </summary>
-    private static bool HandleRequestSpawnStaticGimmick(PacketStream stream, int bodyLen)
+    private static bool HandleRequestSpawnStaticGimmick(uint ownerZoneId, PacketStream stream, int bodyLen)
     {
-        if (stream.Count < 32)
+        if (stream.LeftBytes < GimmickSpawnData.MinimumSerializedLength)
         {
-            Logger.Info("ZWRequestSpawnStaticGimmick len={0} (short)", bodyLen);
+            Logger.Warn("ZWRequestSpawnStaticGimmick rejected short body len={0}", bodyLen);
             return true;
         }
 
         try
         {
-            var id = stream.ReadUInt32();
-            var type = stream.ReadUInt32();
-            stream.ReadUInt64(); // entityGUID
-            stream.ReadUInt32(); // type2
-            stream.ReadUInt32(); // spawnerUnitId
-            stream.ReadUInt32(); // grasperUnitId
-            var staticZoneId = stream.ReadUInt32();
-            var modelPath = stream.ReadString() ?? "";
-            float x = 0, y = 0, z = 0;
-            if (stream.Count >= 20)
+            if (!GimmickSpawnData.TryRead(stream, out var data) || stream.LeftBytes != 0)
             {
-                x = AAEmu.Commons.Utils.Helpers.ConvertLongX(stream.ReadInt64());
-                y = AAEmu.Commons.Utils.Helpers.ConvertLongY(stream.ReadInt64());
-                z = stream.ReadSingle();
+                Logger.Warn(
+                    "ZWRequestSpawnStaticGimmick rejected malformed body len={0} trailing={1}",
+                    bodyLen, stream.LeftBytes);
+                return true;
             }
 
+            var x = AAEmu.Commons.Utils.Helpers.ConvertLongX(data.X);
+            var y = AAEmu.Commons.Utils.Helpers.ConvertLongY(data.Y);
             Logger.Info(
                 "ZWRequestSpawnStaticGimmick id={0} type={1} zone={2} model={3} pos=({4:F1},{5:F1},{6:F1})",
-                id, type, staticZoneId, modelPath, x, y, z);
-            WorldIntegration.OnZoneRequestStaticGimmick?.Invoke(
-                id, type, staticZoneId, modelPath, x, y, z);
+                data.Id, data.Type, data.StaticZoneId, data.ModelPath, x, y, data.Z);
+            WorldIntegration.OnZoneRequestStaticGimmick?.Invoke(ownerZoneId, data);
         }
         catch (Exception ex)
         {

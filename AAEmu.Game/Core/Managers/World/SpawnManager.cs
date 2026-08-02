@@ -834,12 +834,9 @@ public class SpawnManager(WorldInstance parentWorld)
                         if (gimmick == null)
                             continue;
 
-                        var pos = gimmick.Transform.World.Position;
                         var zoneId = gimmick.Transform.ZoneId;
                         WorldIntegration.RelayGimmickCreatedToZone?.Invoke(
-                            gimmick.ObjId, gimmick.TemplateId, zoneId,
-                            gimmick.ModelPath ?? gimmick.Template?.ModelPath ?? "",
-                            pos.X, pos.Y, pos.Z, gimmick.Scale);
+                            gimmick.ToSpawnData(), (int)zoneId);
                         count++;
                         if (count % 25 == 0)
                             Logger.Debug($"In world {World} Gimmicks spawned: {count}...");

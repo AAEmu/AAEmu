@@ -636,7 +636,7 @@ public class HousingManager(
         house.ProtectionEndDate = DateTime.UtcNow.AddDays(AppConfiguration.Instance.World.DaysForTaxPayment);
         _houses.Add(house.Id, house);
         _housesTl.Add(house.TlId, house);
-        connection.ActiveChar.SendPacket(new SCMyHousePacket(house));
+        connection.ActiveChar.SendPacket(new SCHouseDataPacket([house]));
         house.Spawn();
         if (WorldIntegration.ZoneAuthority)
             HousingZoneBridge.NotifyZoneHouseCreated(house);
@@ -724,7 +724,7 @@ public class HousingManager(
             house.Permission = HousingPermission.Public;
             house.BroadcastPacket(new SCHouseDemolishedPacket(house.TlId), false);
 
-            ownerChar?.SendPacket(new SCMyHouseRemovedPacket(house.TlId));
+            ownerChar?.SendPacket(new SCHouseRemovedPacket(house.TlId));
             // Make killable
             UpdateHouseFaction(house, FactionsEnum.Monstrosity);
 
@@ -1521,14 +1521,20 @@ public class HousingManager(
 
         // TODO: broadcast changes
         house.BroadcastPacket(
-            new SCHouseSoldPacket(house.TlId, previousOwner, character.Id, character.AccountId, character.Name), false);
+            new SCHouseSoldPacket(
+                house.TlId,
+                previousOwner,
+                character.Id,
+                character.AccountId,
+                character.Name,
+                house.Name), false);
 
         SetForSaleMarkers(house, false);
 
-        character.SendPacket(new SCMyHousePacket(house));
+        character.SendPacket(new SCHouseDataPacket([house]));
         var oldOwner = worldManager.GetCharacterById(previousOwner);
         if (oldOwner is { IsOnline: true })
-            oldOwner.SendPacket(new SCMyHouseRemovedPacket(house.TlId));
+            oldOwner.SendPacket(new SCHouseRemovedPacket(house.TlId));
 
         UpdateFurnitureOwner(house, character.Id);
 

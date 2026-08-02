@@ -110,9 +110,9 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
             Connection.SendPacket(new SCCharacterPrivacyStatusUpdatePacket(true, character.PrivacyStatus));
             Connection.SendPacket(new SCUpdateAdditionalSkillPointPacket());
 
-            foreach (var house in houses)
+            foreach (var houseBatch in houses.Chunk(SCHouseDataPacket.MaxEntries))
             {
-                Connection.SendPacket(new SCMyHousePacket(house));
+                Connection.SendPacket(new SCHouseDataPacket(houseBatch));
             }
 
             foreach (var conflict in ZoneManager.Instance.GetConflicts())

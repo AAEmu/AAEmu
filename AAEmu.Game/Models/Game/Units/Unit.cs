@@ -982,48 +982,65 @@ public class Unit : BaseUnit, IUnit
 
     }
 
-    /// <summary>
-    /// Does fall damage based on velocity 
-    /// </summary>
-    /// <param name="fallVel">Velocity value from MoveType</param>
-    /// <returns>The damage that was dealt</returns>
-    public virtual int DoFallDamage(ushort fallVel)
+    private const float LegacyFallVelocityUnitsPerMeterPerSecond = 1000f;
+    private const float FallDamageStartSpeed = 8.6f;
+    private const float LethalFallSpeed = 32f;
+    private const float FallDamageRampSpeed = 15f;
+
+    /// <summary>Compatibility entry point for the legacy client movement velocity field.</summary>
+    public int DoFallDamage(ushort fallVel) =>
+        DoFallDamage(fallVel / LegacyFallVelocityUnitsPerMeterPerSecond);
+
+    /// <summary>Applies fall damage from the Zone-authored positive impact speed in metres per second.</summary>
+    /// <returns>The HP actually removed after immunity, immortality and damage absorption.</returns>
+    public virtual int DoFallDamage(float impactSpeed)
     {
-        var fallDmg = Math.Min(MaxHp, (int)(MaxHp * ((fallVel - 8600) / 15000f)));
-        var multiplier = CalculateWithBonuses(0d, UnitAttribute.FallDamageMul) / 100d;
-        var minHpLeft = MaxHp / 20; //5% of hp 
-        var maxDmgLeft = Hp - minHpLeft; // Max damage one can take 
+        if (!float.IsFinite(impactSpeed) || impactSpeed <= FallDamageStartSpeed || Hp <= 0 || MaxHp <= 0)
+            return 0;
 
-        fallDmg = (int)(fallDmg + fallDmg * multiplier);
+        if (Buffs.HasEffectsMatchingCondition(buff => buff.Template.FallDamageImmune))
+            return 0;
 
-        if (fallVel >= 32000)
+        var fallDamageMultiplier = 1d + CalculateWithBonuses(0d, UnitAttribute.FallDamageMul) / 100d;
+        var computedDamage = (int)(MaxHp * ((impactSpeed - FallDamageStartSpeed) / FallDamageRampSpeed)
+                                       * fallDamageMultiplier);
+        computedDamage = Math.Clamp(computedDamage, 0, MaxHp);
+
+        var hpBefore = Hp;
+        var lethalImpact = impactSpeed >= LethalFallSpeed;
+        var fallImmortality = Buffs.HasEffectsMatchingCondition(
+            buff => buff.Template.FallDamageImmortality);
+
+        if (lethalImpact && !fallImmortality)
         {
-            ReduceCurrentHp(this, Hp); // This is instant death so should be first
-            // This will also kill anybody riding this if this is a mount
+            ReduceCurrentHp(this, Hp);
         }
         else
         {
-            if (fallDmg < maxDmgLeft)
-            {
-                ReduceCurrentHp(this, fallDmg); //If you can take the hit without reaching 5% hp left take it
-            }
-            else
-            {
-                var duration = 500 * (fallDmg / minHpLeft);
+            var minimumHp = lethalImpact && fallImmortality ? 1 : Math.Max(1, MaxHp / 20);
+            var maximumDamage = Math.Max(0, Hp - minimumHp);
+            var appliedRequest = Math.Min(computedDamage, maximumDamage);
 
+            if (computedDamage >= maximumDamage && computedDamage > 0)
+            {
+                var stunHpStep = Math.Max(1, MaxHp / 20);
+                var duration = 500 * Math.Max(1, computedDamage / stunHpStep);
                 var buff = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.FallStun);
-                var casterObj = new SkillCasterUnit(ObjId);
-                Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.UtcNow), 0, duration);
-
-                if (Hp > minHpLeft)
-                    ReduceCurrentHp(this, maxDmgLeft); // Leaves you at 5% hp no matter what
+                if (buff != null)
+                {
+                    var casterObj = new SkillCasterUnit(ObjId);
+                    Buffs.AddBuff(new Buff(this, this, casterObj, buff, null, DateTime.UtcNow), 0, duration);
+                }
             }
+
+            if (appliedRequest > 0)
+                ReduceCurrentHp(this, appliedRequest);
         }
 
-        BroadcastPacket(new SCEnvDamagePacket(EnvSource.Falling, ObjId, (uint)fallDmg), true);
-        //SendPacket(new SCEnvDamagePacket(EnvSource.Falling, ObjId, (uint)fallDmg));
-        // TODO: Maybe adjust formula & need to detect water landing?
-        return fallDmg;
+        var appliedDamage = Math.Max(0, hpBefore - Hp);
+        if (appliedDamage > 0)
+            BroadcastPacket(new SCEnvDamagePacket(EnvSource.Falling, ObjId, (uint)appliedDamage), true);
+        return appliedDamage;
     }
 
     /// <summary>

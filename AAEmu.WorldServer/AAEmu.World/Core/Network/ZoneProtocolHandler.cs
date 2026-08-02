@@ -160,6 +160,7 @@ public class ZoneProtocolHandler : BaseProtocolHandler
                 // have run before Zone connected — flush existing + keep live RelayCreateDoodad.
                 WorldIntegration.NotifyZoneReadyForDoodads?.Invoke(connection.ZoneId);
                 WorldIntegration.NotifyZoneReadyForHousing?.Invoke(connection.ZoneId);
+                WorldIntegration.NotifyZoneReadyForGimmicks?.Invoke(connection.ZoneId);
                 // A dedicate that connects mid-period never saw the Start edge; without this its
                 // schedule-linked spawners stay held back until the period next reopens.
                 GameScheduleRelay.OnZoneLoaded(connection);

@@ -189,8 +189,8 @@ public static class SCOffsets
     public const ushort SCHousePermissionChangedPacket = 0xF2; // 10.0.2.13
     public const ushort SCHouseBuildPayChangedPacket = 0xbf;
     public const ushort SCHouseDemolishedPacket = 0xF3; // 10.0.2.13
-    public const ushort SCMyHousePacket = 0xc1;
-    public const ushort SCMyHouseRemovedPacket = 0xc2;
+    public const ushort SCHouseDataPacket = 0xF4; // 10.0.2.13
+    public const ushort SCHouseRemovedPacket = 0xF5; // 10.0.2.13
     public const ushort SCHouseFarmPacket = 0xF6; // 10.0.2.13
     public const ushort SCHouseTaxInfoPacket = 0xF7; // 10.0.2.13
     public const ushort SCConstructHouseTaxPacket = 0xF8; // 10.0.2.13
@@ -272,7 +272,6 @@ public static class SCOffsets
     public const ushort SCDoodadsRemovedPacket = 0x155; // 10.0.2.13
     public const ushort SCDoodadOriginatorPacket = 0x156; // 10.0.2.13
     public const ushort SCMailFailedPacket = 0x15A; // 10.0.2.13
-    public const ushort SCCountUnreadMailPacket = 0x15B; // 10.0.2.13 SC_PACKET_COUNT_UNREAD_MAIL (347)
     public const ushort SCMailSentPacket = 0x15C; // 10.0.2.13
     public const ushort SCGotMailPacket = 0x15D; // 10.0.2.13
     public const ushort SCCountTotalMailPacket = 0x15B; // 10.0.2.13
@@ -661,7 +660,6 @@ public static class SCOffsets
     public const ushort SCHeroSeasonInfoPacket = 0x2A8;
     public const ushort SCHeroSeasonOffPacket = 0x2A9;
     public const ushort SCHeroVotingPacket = 0x2AF;
-    public const ushort SCHouseRemovedPacket = 0xF5;
     public const ushort SCHouseRotatedPacket = 0xFE;
     public const ushort SCHousingDecoLimitExpandedPacket = 0xFF;
     public const ushort SCIgnoreMinimumGameSizeNotifyPacket = 0x20E;

@@ -3,18 +3,14 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-/// <summary>
-/// TODO: nothing constructs this packet yet.
-/// </summary>
 /// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
+/// Removes the timeline id from housing-list containers without removing the spatial house unit.
 /// </remarks>
-public class SCHouseRemovedPacket(short tl) : GamePacket(SCOffsets.SCHouseRemovedPacket, 1)
+public class SCHouseRemovedPacket(ushort tl) : GamePacket(SCOffsets.SCHouseRemovedPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(tl);
+        stream.Write((short)tl);
         return stream;
     }
 }

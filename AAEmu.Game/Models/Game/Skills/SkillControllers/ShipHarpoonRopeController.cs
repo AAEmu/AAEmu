@@ -75,36 +75,55 @@ public static class ShipHarpoonRopeController
         BreakRopeForClients(harpoonSlave, cutouted: true);
     }
 
-    public static void TryApplySkillControllerState(Character character, uint objId, float len, bool teared, bool cutouted)
+    public static bool TryApplySkillControllerState(
+        Character character,
+        uint objId,
+        float len,
+        bool cutouted,
+        bool broadcastToClients,
+        out float appliedLength,
+        out bool appliedTeared,
+        out bool appliedCutouted)
     {
+        appliedLength = 0f;
+        appliedTeared = false;
+        appliedCutouted = false;
+
         if (character?.ParentWorld == null)
-            return;
+            return false;
 
         if (character.ParentWorld.GetUnit(objId) is not Slave slave)
-            return;
+            return false;
 
         if (!IsCharacterAttachedToSlave(character, slave))
-            return;
+            return false;
 
         if (!slave.HarpoonRope.IsEngaged)
-            return;
+            return false;
 
         var clampedLen = ClampClientReportedRopeLength(slave, len);
         slave.HarpoonRope.RopeLength = clampedLen;
         // Client-reported "teared" must not drive server break — server computes tear from tension/jerk.
         slave.HarpoonRope.LastTeared = false;
         slave.HarpoonRope.LastCutout = cutouted;
+        appliedLength = clampedLen;
+        appliedCutouted = cutouted;
 
-        if (TryBreakRopeIfHookOutOfRange(slave))
-            return;
+        if (TryBreakRopeIfHookOutOfRange(slave, broadcastToClients))
+        {
+            appliedTeared = true;
+            return true;
+        }
 
         if (cutouted)
         {
-            BreakRopeForClients(slave, cutouted);
-            return;
+            BreakRope(slave, cutouted, broadcastToClients);
+            return true;
         }
 
-        BroadcastSkillControllerRopeState(slave, clampedLen, teared: false, cutouted: false, except: character);
+        if (broadcastToClients)
+            BroadcastSkillControllerRopeState(slave, clampedLen, teared: false, cutouted: false, except: character);
+        return true;
     }
 
     /// <summary>When the operator leaves this slave seat (harpoon station), drop the line per game design.</summary>
@@ -169,6 +188,11 @@ public static class ShipHarpoonRopeController
     /// <summary>Clears server rope state and mirrors break to clients (skill controller UI). Sends only via the harpoon slave's broadcast (neighborhood).</summary>
     public static void BreakRopeForClients(Slave slave, bool cutouted)
     {
+        BreakRope(slave, cutouted, broadcastToClients: true);
+    }
+
+    private static void BreakRope(Slave slave, bool cutouted, bool broadcastToClients)
+    {
         if (slave is null || !slave.HarpoonRope.IsEngaged)
             return;
 
@@ -176,8 +200,11 @@ public static class ShipHarpoonRopeController
         var objId = slave.ObjId;
         slave.HarpoonRope.Clear();
 
-        var pkt = new SCSkillControllerStatePacket(objId, 0, len, teared: true, cutouted);
-        slave.BroadcastPacket(pkt, false);
+        if (broadcastToClients)
+        {
+            var pkt = new SCSkillControllerStatePacket(objId, 0, len, teared: true, cutouted);
+            slave.BroadcastPacket(pkt, false);
+        }
 
         if (HarpoonMechanicsDebug.EnableVerboseHarpoonMechanicsLogging)
             Log.Debug("Harpoon rope server break + SCSkillControllerState: slaveObjId={0} len={1:F2} cutouted={2}",
@@ -240,7 +267,7 @@ public static class ShipHarpoonRopeController
         return MathF.Min(len, generousCap);
     }
 
-    private static bool TryBreakRopeIfHookOutOfRange(Slave slave)
+    private static bool TryBreakRopeIfHookOutOfRange(Slave slave, bool broadcastToClients)
     {
         if (!slave.HarpoonRope.IsEngaged || slave.HarpoonRope.MaxLaunchRange <= 0f)
             return false;
@@ -254,7 +281,7 @@ public static class ShipHarpoonRopeController
         if (HarpoonMechanicsDebug.EnableVerboseHarpoonMechanicsLogging)
             Log.Debug("Harpoon rope auto-break (hook beyond range): slaveObjId={0} dist={1:F2} max={2:F2}",
                 slave.ObjId, dist, maxSaved);
-        BreakRopeForClients(slave, cutouted: false);
+        BreakRope(slave, cutouted: false, broadcastToClients);
         return true;
     }
 

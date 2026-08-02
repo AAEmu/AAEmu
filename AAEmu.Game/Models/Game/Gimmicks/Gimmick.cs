@@ -17,9 +17,9 @@ namespace AAEmu.Game.Models.Game.Gimmicks;
 
 public class Gimmick : Unit
 {
-    public override UnitTypeFlag TypeFlag => UnitTypeFlag.None; // TODO для Gimmick не понятно что выбрать
+    public override UnitTypeFlag TypeFlag => UnitTypeFlag.None;
     public ushort GimmickId { get; init; }
-    public long EntityGuid { get; set; } // TODO это не Guid в GameObject
+    public long EntityGuid { get; set; }
     public GimmickTemplate Template { get; init; }
     public uint SpawnerUnitId { get; set; }
     public uint GrasperUnitId { get; set; }
@@ -54,40 +54,29 @@ public class Gimmick : Unit
 
     public PacketStream Write(PacketStream stream)
     {
-        // stream.Write((uint)GimmickId);     // GimmickId
-        stream.Write(ObjId);            // same as ObjId in GameObject
-        stream.Write(TemplateId);       // GimmickTemplateId
-        stream.Write(EntityGuid);
-        stream.Write((uint)Faction.Id);       // Faction
-        stream.Write(SpawnerUnitId);    // spawnerUnitId
-        stream.Write(GrasperUnitId);    // grasperUnitId
-        stream.Write(Transform.ZoneId);
-        stream.Write(Template?.ModelPath ?? "");
-        //stream.Write("", true); // ModelPath
+        return ToSpawnData().Write(stream);
+    }
 
-        stream.Write(Helpers.ConvertLongX(Transform.World.Position.X)); // WorldPosition qx,qx,fz
-        stream.Write(Helpers.ConvertLongY(Transform.World.Position.Y));
-        stream.Write(Transform.World.Position.Z);
-
-        var rotation = Transform.World.ToQuaternion();
-        stream.Write(rotation.X); // Quaternion Rotation
-        stream.Write(rotation.Y);
-        stream.Write(rotation.Z);
-        stream.Write(rotation.W);
-
-        stream.Write(Scale);
-
-        stream.Write(Vel.X);    // vector3 vel
-        stream.Write(Vel.Y);
-        stream.Write(Vel.Z);
-
-        stream.Write(AngVel.X); // vector3 angVel
-        stream.Write(AngVel.Y);
-        stream.Write(AngVel.Z);
-
-        stream.Write(ScaleVel);
-
-        return stream;
+    public GimmickSpawnData ToSpawnData()
+    {
+        var position = Transform.World.Position;
+        return new GimmickSpawnData(
+            ObjId,
+            TemplateId,
+            unchecked((ulong)EntityGuid),
+            (uint)Faction.Id,
+            SpawnerUnitId,
+            GrasperUnitId,
+            Transform.ZoneId,
+            ModelPath ?? Template?.ModelPath ?? string.Empty,
+            Helpers.ConvertLongX(position.X),
+            Helpers.ConvertLongY(position.Y),
+            position.Z,
+            Transform.World.ToQuaternion(),
+            Scale,
+            Vel,
+            AngVel,
+            ScaleVel);
     }
 
     /// <summary>

@@ -1,44 +1,18 @@
 using AAEmu.Commons.Network;
-using AAEmu.Commons.Utils;
+using AAEmu.Game.Models.Game.Gimmicks;
 
 namespace AAEmu.World.Core.Packets.Wz;
 
 /// <summary>
-/// WZGimmickCreated (0x05A) — GimmickSpawnData + ownerZoneId (WZ_BRINGONLINE §1).
+/// GimmickSpawnData followed by ownerZoneId.
 /// </summary>
-public class WZGimmickCreatedPacket(
-    uint id,
-    uint type,
-    uint ownerZoneId,
-    string modelPath,
-    float x,
-    float y,
-    float z,
-    float scale) : ZonePacket(WzOpcodes.GimmickCreated)
+public class WZGimmickCreatedPacket(GimmickSpawnData data, int ownerZoneId)
+    : ZonePacket(WzOpcodes.GimmickCreated)
 {
     protected override void WriteBody(PacketStream stream)
     {
-        stream.Write(id);
-        stream.Write(type);
-        stream.Write(0ul); // entityGUID
-        stream.Write(0u); // type2
-        stream.Write(0u); // spawnerUnitId
-        stream.Write(0u); // grasperUnitId
-        stream.Write((int)ownerZoneId); // staticZoneId
-        stream.Write(modelPath ?? "");
-        stream.Write(Helpers.ConvertLongX(x));
-        stream.Write(Helpers.ConvertLongY(y));
-        stream.Write(z);
-        // rot quat identity
-        stream.Write(0f);
-        stream.Write(0f);
-        stream.Write(0f);
-        stream.Write(1f);
-        stream.Write(scale);
-        stream.Write(0f); stream.Write(0f); stream.Write(0f); // vel
-        stream.Write(0f); stream.Write(0f); stream.Write(0f); // angVel
-        stream.Write(0f); // scaleVel
-        stream.Write((int)ownerZoneId);
+        data.Write(stream);
+        stream.Write(ownerZoneId);
     }
 }
 

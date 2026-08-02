@@ -253,7 +253,7 @@ public class GimmickManager(WorldInstance parentWorld)
         }
     }
 
-    private Gimmick[] GetActiveGimmicks()
+    public Gimmick[] GetActiveGimmicks()
     {
         lock (_activeGimmicks)
         {

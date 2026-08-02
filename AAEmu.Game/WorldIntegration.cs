@@ -9,6 +9,7 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -120,6 +121,14 @@ public static class WorldIntegration
     /// <summary>Relay CS movement to zone as WZUnitMovement. Args: bcId, type+move body (no outer bc).</summary>
     public static Action<uint, byte[]> RelayMoveToZone { get; set; }
 
+    /// <summary>Relay skill-controller creation state to Zone.</summary>
+    public static Action<uint, byte, bool> RelayCreateSkillControllerToZone { get; set; }
+
+    /// <summary>
+    /// Relay authoritative skill-controller length and torn/cutout state to Zone.
+    /// </summary>
+    public static Action<uint, byte, float, bool, bool> RelaySkillControllerStateToZone { get; set; }
+
     /// <summary>
     /// Relay player cast to zone as WZSkillStarted (0x02B). True if a ZoneLoaded connection accepted it.
     /// Args: skillId, tl, caster, target, ct, skillObject. Under ZoneAuthority, Game must not Skill.Use.
@@ -209,6 +218,9 @@ public static class WorldIntegration
     /// Zone just reached ZoneLoaded — flush World-authored doodads for this zone key.
     /// </summary>
     public static Action<uint> NotifyZoneReadyForDoodads { get; set; }
+
+    /// <summary>Replay World-owned gimmicks for the Zone that just loaded or reconnected.</summary>
+    public static Action<uint> NotifyZoneReadyForGimmicks { get; set; }
 
     /// <summary>
     /// Character crossed zone keys under ZoneAuthority: hand off presence (old→remove, new→UnitState).
@@ -341,7 +353,7 @@ public static class WorldIntegration
     public static Action<uint, ushort> RelayHouseBuildDoneToZone { get; set; }
 
     /// <summary>WZGimmickCreated / Removed / Grasped.</summary>
-    public static Action<uint, uint, uint, string, float, float, float, float> RelayGimmickCreatedToZone { get; set; }
+    public static Action<GimmickSpawnData, int> RelayGimmickCreatedToZone { get; set; }
     public static Action<uint> RelayGimmickRemovedToZone { get; set; }
     public static Action<uint, uint, uint, bool> RelayGimmickGraspedToZone { get; set; }
 
@@ -379,10 +391,10 @@ public static class WorldIntegration
     public static Func<uint, bool> IsWorldOwnedGimmick { get; set; }
 
     /// <summary>
-    /// Zone found a level static gimmick and wants World to spawn it (ZW 0x026).
-    /// Args: id, type, staticZoneId, modelPath, x, y, z.
+    /// Zone found a level static gimmick and wants World to spawn it.
+    /// Carries the complete GimmickSpawnData record from Zone.
     /// </summary>
-    public static Action<uint, uint, uint, string, float, float, float> OnZoneRequestStaticGimmick { get; set; }
+    public static Action<uint, GimmickSpawnData> OnZoneRequestStaticGimmick { get; set; }
 
     /// <summary>Zone backpack drop notify (opaque body).</summary>
     public static Action<byte[]> OnZoneBackpackDropped { get; set; }

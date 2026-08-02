@@ -24,28 +24,44 @@ public class CSSkillControllerStatePacket() : GamePacket(CSOffsets.CSSkillContro
 
         SkillControllerPacketDebug.LogCsSkillControllerState(objId, scType, len, teared, cutouted);
 
-        if (Connection.ActiveChar != null && scType == 0 && len.HasValue && teared.HasValue && cutouted.HasValue)
-            ShipHarpoonRopeController.TryApplySkillControllerState(Connection.ActiveChar, objId, len.Value, teared.Value, cutouted.Value);
-    }
+        var character = Connection.ActiveChar;
+        if (character == null)
+            return;
 
-    // TODO 
-    /*
-     *
-          if ( a2->Reader->field_1C() )
-          {
-            a2->Reader->ReadByte("scType", &v7 + 3, 0);
-            v2[1] = HIBYTE(v7);
-          }
-          else
-          {
-            HIBYTE(v7) = *(v2 + 4);
-            a2->Reader->ReadByte("scType", &v7 + 3, 0);
-          }
-          if ( !v2[1] )
-          {
-            a2->Reader->ReadFloat("len", v2 + 2, 0);
-            a2->Reader->ReadBool("teared", (v2 + 3), 0);
-            a2->Reader->ReadBool("cutouted", v2 + 13, 0);
-          }
-     */
+        if (scType == 0)
+        {
+            if (!len.HasValue || !teared.HasValue || !cutouted.HasValue)
+                return;
+
+            if (!ShipHarpoonRopeController.TryApplySkillControllerState(
+                    character,
+                    objId,
+                    len.Value,
+                    cutouted.Value,
+                    !WorldIntegration.ZoneAuthority,
+                    out var appliedLength,
+                    out var appliedTeared,
+                    out var appliedCutouted))
+            {
+                Logger.Warn(
+                    "Rejected skill-controller state type {0} for object {1} from {2} ({3})",
+                    scType, objId, character.Name, character.ObjId);
+                return;
+            }
+
+            WorldIntegration.RelaySkillControllerStateToZone?.Invoke(
+                objId, scType, appliedLength, appliedTeared, appliedCutouted);
+            return;
+        }
+
+        if (!SkillControllerAuthority.CanControl(character, objId))
+        {
+            Logger.Warn(
+                "Rejected skill-controller state type {0} for object {1} from {2} ({3})",
+                scType, objId, character.Name, character.ObjId);
+            return;
+        }
+
+        WorldIntegration.RelaySkillControllerStateToZone?.Invoke(objId, scType, 0f, false, false);
+    }
 }
