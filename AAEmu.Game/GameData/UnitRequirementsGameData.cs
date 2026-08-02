@@ -14,12 +14,15 @@ using AAEmu.Game.Models.Spheres;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Data.Sqlite;
+using NLog;
 
 namespace AAEmu.Game.GameData;
 
 [GameData]
 public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGameDataLoader
 {
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
     /// <summary>
     /// Id, unit_reqs
     /// </summary>
@@ -44,6 +47,8 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
         using var reader = new SQLiteWrapperReader(sqliteReader);
         while (reader.Read())
         {
+            // enable/display_msg are text 't'/'f' — must go through SQLiteWrapperReader.GetBoolean
+            // (string-aware). Native Sqlite GetBoolean('t') == false and used to skip ALL rows.
             if (!reader.GetBoolean("enable"))
                 continue;
 
@@ -63,6 +68,10 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
             _unitReqsByOwnerType[t.OwnerType].Add(t);
         }
         #endregion
+
+        Logger.Info("Loaded {0} unit_reqs ({1} owner types)", _unitReqs.Count, _unitReqsByOwnerType.Count);
+        if (_unitReqs.Count == 0)
+            Logger.Error("unit_reqs loaded 0 rows — quest/sphere AcceptForce gates are inert (check GetBoolean on enable='t')");
     }
 
     public void PostLoad()

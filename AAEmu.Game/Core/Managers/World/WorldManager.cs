@@ -1213,7 +1213,14 @@ public class WorldManager(
             if (stuff is Doodad d)
                 doodads.Add(d);
             else
+            {
+                // Mirror SCUnitState often lands mid-intro cinema; the client drops those units, but
+                // MirrorNpcStatesSentIds still blocks a second send — so Resend was a no-op and
+                // Elf starters saw an empty world until they walked far enough for new AOI entries.
+                if (stuff is Npc npc && npc.IsZoneMirror)
+                    character.ReleaseMirrorNpcSlot(npc.ObjId);
                 stuff.AddVisibleObject(character);
+            }
         }
 
         for (var i = 0; i < doodads.Count; i += SCDoodadsCreatedPacket.MaxCountPerPacket)

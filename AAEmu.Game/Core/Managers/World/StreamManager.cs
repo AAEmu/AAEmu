@@ -27,11 +27,15 @@ public class StreamManager : Singleton<StreamManager>, IStreamManager
 
     public void Login(StreamConnection connection, long accountId, uint token)
     {
-        if (!_accounts.TryRemove(token, out var expectedAccountId)
+        // Keep the token for the life of the game session (removed in GameProtocolHandler.OnDisconnect).
+        // TryRemove here burned it on the first CTJoin, so return-to-character-select (client drops
+        // stream, reconnects, CTJoin again) always got Rejected(1) → OpenStream failed → Quit.
+        if (!_accounts.TryGetValue(token, out var expectedAccountId)
             || accountId <= 0
             || accountId > uint.MaxValue
             || expectedAccountId != (uint)accountId)
         {
+            Logger.Warn("Stream CTJoin rejected: bad token/account token={0} accountId={1}", token, accountId);
             connection.SendPacket(new TCJoinResponsePacket(StreamJoinResponse.Rejected));
             return;
         }
@@ -39,6 +43,7 @@ public class StreamManager : Singleton<StreamManager>, IStreamManager
         var gameConnection = GameConnectionTable.Instance.GetConnection(token);
         if (gameConnection is null || gameConnection.AccountId != expectedAccountId)
         {
+            Logger.Warn("Stream CTJoin rejected: no game session for token={0} accountId={1}", token, accountId);
             connection.SendPacket(new TCJoinResponsePacket(StreamJoinResponse.Rejected));
             return;
         }

@@ -13,20 +13,38 @@ public sealed class SQLiteWrapperReader(SqliteDataReader reader) : IDisposable
         return reader.GetValue(GetOrdinal(column));
     }
 
+    /// <summary>
+    /// Reads a bool from compact.sqlite3. AA columns are often postgres-style text ('t'/'f');
+    /// Microsoft.Data.Sqlite's GetBoolean maps any non-empty string to false for 't', which
+    /// silently dropped every unit_reqs row (enable='t' → false → continue) and broke sphere
+    /// AcceptForce gates (PC-bang badge quests auto-accepted on Elf spawn → level cascade).
+    /// </summary>
     public bool GetBoolean(string column)
     {
-        return reader.GetBoolean(GetOrdinal(column));
+        var ordinal = GetOrdinal(column);
+        if (reader.IsDBNull(ordinal))
+            return false;
+
+        var value = reader.GetValue(ordinal);
+        return value switch
+        {
+            bool b => b,
+            byte or sbyte or short or ushort or int or uint or long or ulong => Convert.ToInt64(value) != 0,
+            string s => s is "t" or "1" || s.Equals("true", StringComparison.OrdinalIgnoreCase),
+            _ => reader.GetBoolean(ordinal)
+        };
     }
 
     public bool GetBoolean(string column, bool fromString)
     {
+        // fromString kept for call-site clarity; both paths now accept 't'/'f' text.
         if (fromString)
         {
             if (IsDBNull(column))
                 return false;
 
             var value = GetString(column);
-            return value == "t" || value == "1";
+            return value is "t" or "1" || value.Equals("true", StringComparison.OrdinalIgnoreCase);
         }
 
         return GetBoolean(column);

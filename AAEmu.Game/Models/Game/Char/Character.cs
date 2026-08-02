@@ -1821,14 +1821,11 @@ public partial class Character : Unit, ICharacter
         {
             Expedition?.OnCharacterRefresh(this);
             BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
-        }
 
-        //Quests.OnLevelUp(); // TODO added for quest Id=5967
-        // инициируем событие
-        //Task.Run(() => QuestManager.Instance.DoOnLevelUpEvents(Connection.ActiveChar));
-        if (Connection != null)
-        {
-            QuestManager.Instance.DoOnLevelUpEvents(Connection.ActiveChar);
+            // AcceptLevelUp starters only make sense on an actual level change — firing on every
+            // AddExp re-scans the whole table and amplified the Elf-spawn badge-quest cascade.
+            if (Connection != null)
+                QuestManager.Instance.DoOnLevelUpEvents(Connection.ActiveChar);
         }
     }
 
