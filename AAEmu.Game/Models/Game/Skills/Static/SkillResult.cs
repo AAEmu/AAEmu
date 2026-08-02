@@ -4,7 +4,8 @@
 #pragma warning disable CA1069 // Enums should not be duplicated
 
 /// <summary>
-/// Extracted enum of skill results, might not be correct
+/// Skill result byte values used by the 10.0.2.13 client.
+/// Recovered from the client's SkillResult-to-symbol switch.
 /// </summary>
 public enum SkillResult : byte
 {
@@ -68,90 +69,146 @@ public enum SkillResult : byte
     NotCheckedSecondPass = 0x39,
     ZoneBanned = 0x3A,
     InvalidGradeEnchantSupportItem = 0x3B,
-    CheckCharacterPStatMin = 0x3C,
-    CheckCharacterPStatMax = 0x3D,
-    ItemSecured = 0x3E,
-    InvalidAccountAttribute = 0x3F,
-    FestivalZone = 0x40,
-    AlreadyOtherPlayerBound = 0x41,
-    MateDead = 0x42,
-    CannotUnsummonUnderStunSleepRoot = 0x43,
-    LackHighAbilityResource = 0x44,
-    LackSourceItemSet = 0x45,
-    LackActability = 0x46,
-    UrkStart = 0x46, // Start offset for UnitReqsKindType
-    UrkLevel = 0x47,
-    UrkAbility = 0x48,
-    UrkRace = 0x49,
-    UrkGender = 0x4A,
-    UrkEquipSlot = 0x4B,
-    UrkEquipItem = 0x4C,
-    UrkOwnItem = 0x4D,
-    UrkTrainedSkill = 0x4E,
-    UrkCombat = 0x4F,
-    UrkStealth = 0x50,
-    UrkHealth = 0x51,
-    UrkBuff = 0x52,
-    UrkTargetBuff = 0x53,
-    UrkTargetCombat = 0x54,
-    UrkCanLearnCraft = 0x55,
-    UrkDoodadRange = 0x56,
-    UrkEquipShield = 0x57,
-    UrkNobuff = 0x58,
-    UrkTargetBuffTag = 0x59,
-    UrkCorpseRange = 0x5A,
-    UrkEquipWeaponType = 0x5B,
-    UrkTargetHealthLessThan = 0x5C,
-    UrkTargetNpc = 0x5D,
-    UrkTargetDoodad = 0x5E,
-    UrkEquipRanged = 0x5F,
-    UrkNoBuffTag = 0x60,
-    UrkCompleteQuestContext = 0x61,
-    UrkProgressQuestContext = 0x62,
-    UrkReadyQuestContext = 0x63,
-    UrkTargetNpcGroup = 0x64,
-    UrkAreaSphere = 0x65,
-    UrkExceptCompleteQuestContext = 0x66,
-    UrkPrecompleteQuestContext = 0x67,
-    UrkTargetOwnerType = 0x68,
-    UrkNotUnderWater = 0x69,
-    UrkFactionMatch = 0x6A,
-    UrkTod = 0x6B,
-    UrkMotherFaction = 0x6C,
-    UrkActabilityPoint = 0x6D,
-    UrkCrimePoint = 0x6E,
-    UrkHonorPoint = 0x6F,
-    UrkLivingPoint = 0x70,
-    UrkCrimeRecord = 0x71,
-    UrkJuryPoint = 0x72,
-    UrkSourceOwnerType = 0x73,
-    UrkAppellation = 0x74,
-    UrkInZone = 0x75,
-    UrkOutZone = 0x76,
-    UrkDominionOwner = 0x77,
-    UrkVerdictOnly = 0x78,
-    UrkFactionMatchOnly = 0x79,
-    UrkMotherFactionOnly = 0x7A,
-    UrkNationOwner = 0x7B,
-    UrkFactionMatchOnlyNot = 0x7C,
-    UrkMotherFactionOnlyNot = 0x7D,
-    UrkNationMember = 0x7E,
-    UrkNationMemberNot = 0x7F,
-    UrkNationOwnerAtPos = 0x80,
-    UrkDominionOwnerAtPos = 0x81,
-    UrkHousing = 0x82,
-    UrkHealthMargin = 0x83,
-    UrkManaMargin = 0x84,
-    UrkLaborPowerMargin = 0x85,
-    UrkNotOnMovingPhysicalVehicle = 0x86,
-    UrkMaxLevel = 0x87,
-    UrkExpeditionOwner = 0x88,
-    UrkExpeditionMember = 0x89,
-    UrkExceptProgressQuestContext = 0x8A,
-    UrkExceptReadyQuestContext = 0x8B,
-    UrkOwnItemNot = 0x8C,
-    UrkLessActabilityPoint = 0x8D,
-    UrkOwnQuestItemGroup = 0x8E,
+    ItemSecured = 0x3C,
+    InvalidAccountAttribute = 0x3D,
+    FestivalZone = 0x3E,
+    AlreadyOtherPlayerBound = 0x3F,
+    UrkUnknown = 0x40, // First unassigned value; the client stringifier returns URK_UNKNOWN.
+    CannotUnsummonUnderStunSleepRoot = 0x41,
+    LackCombatResource = 0x42,
+    LackSourceItemSet = 0x43,
+    LackActability = 0x44,
+    OnlyDuringSwimming = 0x45,
+    UlcAlreadyActivated = 0x46,
+    HouseOwner = 0x47,
+    SourceCannotUseWhileJumping = 0x48,
+    SourceCannotUseWhileLevitating = 0x49,
+    UrkStart = 0x49,
+    UrkLevel = 0x4A,
+    UrkAbility = 0x4B,
+    UrkRace = 0x4C,
+    UrkGender = 0x4D,
+    UrkEquipSlot = 0x4E,
+    UrkEquipItem = 0x4F,
+    UrkOwnItem = 0x50,
+    UrkTrainedSkill = 0x51,
+    UrkCombat = 0x52,
+    UrkStealth = 0x53,
+    UrkHealth = 0x54,
+    UrkBuff = 0x55,
+    UrkTargetBuff = 0x56,
+    UrkTargetCombat = 0x57,
+    UrkCanLearnCraft = 0x58,
+    UrkDoodadRange = 0x59,
+    UrkEquipShield = 0x5A,
+    UrkNobuff = 0x5B,
+    UrkTargetBuffTag = 0x5C,
+    UrkCorpseRange = 0x5D,
+    UrkEquipWeaponType = 0x5E,
+    UrkTargetHealthLessThan = 0x5F,
+    UrkTargetNpc = 0x60,
+    UrkTargetDoodad = 0x61,
+    UrkEquipRanged = 0x62,
+    UrkNoBuffTag = 0x63,
+    UrkCompleteQuestContext = 0x64,
+    UrkProgressQuestContext = 0x65,
+    UrkReadyQuestContext = 0x66,
+    UrkTargetNpcGroup = 0x67,
+    UrkAreaSphere = 0x68,
+    UrkExceptCompleteQuestContext = 0x69,
+    UrkPrecompleteQuestContext = 0x6A,
+    UrkTargetOwnerType = 0x6B,
+    UrkNotUnderWater = 0x6C,
+    UrkFactionMatch = 0x6D,
+    UrkTod = 0x6E,
+    UrkMotherFaction = 0x6F,
+    UrkActabilityPoint = 0x70,
+    UrkCrimePoint = 0x71,
+    UrkHonorPoint = 0x72,
+    UrkLivingPoint = 0x73,
+    UrkCrimeRecord = 0x74,
+    UrkJuryPoint = 0x75,
+    UrkSourceOwnerType = 0x76,
+    UrkAppellation = 0x77,
+    UrkInZone = 0x78,
+    UrkOutZone = 0x79,
+    UrkVerdictOnly = 0x7A,
+    UrkFactionMatchOnly = 0x7B,
+    UrkMotherFactionOnly = 0x7C,
+    UrkFactionMatchOnlyNot = 0x7D,
+    UrkMotherFactionOnlyNot = 0x7E,
+    UrkNationMember = 0x7F,
+    UrkNationMemberNot = 0x80,
+    UrkDominionMemberAtPos = 0x81,
+    UrkDominionMemberAtPosNot = 0x82,
+    UrkHousing = 0x83,
+    UrkHealthMargin = 0x84,
+    UrkManaMargin = 0x85,
+    UrkLaborPowerMargin = 0x86,
+    UrkMaxLevel = 0x88,
+    UrkExpeditionOwner = 0x89,
+    UrkExpeditionMember = 0x8A,
+    UrkExceptProgressQuestContext = 0x8B,
+    UrkExceptReadyQuestContext = 0x8C,
+    UrkOwnItemNot = 0x8D,
+    UrkLessActabilityPoint = 0x8E,
+    UrkOwnQuestItemGroup = 0x8F,
+    UrkLeadershipTotal = 0x90,
+    UrkLeadershipCurrent = 0x91,
+    UrkHero = 0x92,
+    UrkNotHero = 0x93,
+    UrkOwnItemCount = 0x94,
+    UrkHouse = 0x96,
+    UrkHouseOnly = 0x97,
+    UrkDecoLimitExpanded = 0x98,
+    UrkNotExpandable = 0x99,
+    UrkDoodadTargetFriendly = 0x9A,
+    UrkDoodadTargetHostile = 0x9B,
+    UrkDominionMember = 0x9C,
+    UrkDominionMemberNot = 0x9D,
+    UrkCannotUseBuildingHouse = 0x9E,
+    UrkTargetNoBuffTag = 0x9F,
+    UrkTargetNoBuffTagNoTarget = 0xA0,
+    UrkTargetManaLessThan = 0xA4,
+    UrkTargetManaMoreThan = 0xA5,
+    UrkTargetHealthMoreThan = 0xA6,
+    UrkBuffTag = 0xA7,
+    UrkFamilyRole = 0xA8,
+    UrkLaborPowerMarginLocal = 0xA9,
+    UrkHeirLevel = 0xAA,
+    UrkInZoneGroup = 0xAB,
+    UrkSkillCooldown = 0xAC,
+    UrkUnderWater = 0xAD,
+    UrkOwnAppellation = 0xAE,
+    UrkEquipAppellation = 0xAF,
+    UrkEmptySlotInventory = 0xB0,
+    UrkFullRechargedLaborPower = 0xB1,
+    UrkExpeditionMemberNot = 0xB2,
+    UrkPirateMemberLimit = 0xB3,
+    UrkAchievementComplete = 0xB4,
+    UrkTargetItemTag = 0xB5,
+    UrkNoTargetItemTag = 0xB6,
+    UrkDual = 0xB7,
+    UrkNoDual = 0xB8,
+    UrkExpeditionBattle = 0xB9,
+    UrkNoExpeditionBattle = 0xBA,
+    UrkNotInHousingArea = 0xBB,
+    UrkDominionCountMore = 0xBC,
+    UrkDominionCountLess = 0xBD,
+    UrkPremiumArchePass = 0xBE,
+    UrkEnableArchePass = 0xBF,
+    UrkGearScore = 0xC0,
+    UrkConflictZoneState = 0xC1,
+    UrkItemElementEvolvingExp = 0xC2,
+    UrkNeedUlcActivate = 0xC3,
+    UrkCannotUseByUlcActivate = 0xC4,
+    UrkItemLookChangeMapping = 0xC5,
+    UrkEnableArchePassWithType = 0xC6,
+    UrkCombatResource = 0xC7,
+    UrkAddArchePassPoint = 0xC8,
+    UrkTowerDefStep = 0xC9,
+    UrkSourceHealthLessThan = 0xCA,
+    UrkSourceHealthMoreThan = 0xCB,
 }
 
 // ReSharper disable InconsistentNaming
@@ -254,6 +311,7 @@ public enum SkillResultKeys
     skill_urk_ready_quest_context,
     skill_urk_target_npc_group,
     skill_urk_area_sphere,
+    skill_urk_except_complete_quest_context,
     skill_urk_precomplete_quest_context,
     skill_urk_target_owner_type,
     skill_urk_not_under_water,
@@ -261,8 +319,13 @@ public enum SkillResultKeys
     skill_urk_tod,
     skill_urk_mother_faction,
     skill_urk_actability_point,
+    skill_urk_crime_point,
     skill_urk_honor_point,
     skill_urk_living_point,
+    skill_urk_crime_record,
+    skill_urk_jury_point,
+    skill_urk_source_owner_type,
+    skill_urk_appellation,
     skill_urk_in_zone,
     skill_urk_out_zone,
     skill_urk_dominion_owner,
@@ -276,8 +339,46 @@ public enum SkillResultKeys
     skill_urk_housing,
     skill_urk_mana_margin,
     skill_urk_labor_power_margin,
+    skill_urk_labor_power_margin_local,
     skill_urk_unknown,
     skill_urk_max_level,
+    skill_urk_expedition_owner,
+    skill_urk_expedition_member,
+    skill_urk_except_progress_quest_context,
+    skill_urk_except_ready_quest_context,
+    skill_urk_own_item_not,
+    skill_urk_less_actability_point,
+    skill_urk_own_quest_item_group,
+    skill_urk_house,
+    skill_urk_house_only,
+    skill_urk_doodad_target_hostile,
+    skill_urk_target_nobuff_tag,
+    skill_urk_target_nobuff_tag_no_target,
+    skill_urk_buff_tag,
+    skill_urk_under_water,
+    skill_urk_own_appellation,
+    skill_urk_equip_appellation,
+    skill_urk_empty_slot_inventory,
+    skill_urk_heir_level,
+    skill_urk_in_zone_group,
+    skill_urk_skill_cooldown,
+    skill_urk_full_recharged_labor_power,
+    skill_urk_expedition_member_not,
+    skill_urk_target_mana_less_than,
+    skill_urk_target_mana_more_than,
+    skill_urk_target_health_more_than,
+    skill_urk_source_health_less_than,
+    skill_urk_source_health_more_than,
+    skill_urk_family_role,
+    skill_urk_own_item_count,
+    skill_urk_not_in_housing_area,
+    skill_urk_dual,
+    skill_urk_no_dual,
+    skill_urk_combat_resource,
+    skill_urk_target_item_tag,
+    skill_urk_no_target_item_tag,
+    skill_urk_need_ulc_activate,
+    skill_urk_cannot_use_by_ulc_activate,
 }
 // ReSharper restore InconsistentNaming
 
@@ -289,154 +390,167 @@ public static class SkillResultHelper
 
     public static SkillResult SkillResultErrorKeyToId(SkillResultKeys key)
     {
-        // if (ClientVersion == r208022)
-        return SkillResultErrorKeyToIdFor_r208022(key.ToString());
+        return key switch
+        {
+            SkillResultKeys.ok => SkillResult.Success,
+            SkillResultKeys.skill_failure => SkillResult.Failure,
+            SkillResultKeys.skill_source_died => SkillResult.SourceDied,
+            SkillResultKeys.skill_source_alive => SkillResult.SourceAlive,
+            SkillResultKeys.skill_target_died => SkillResult.TargetDied,
+            SkillResultKeys.skill_target_destroyed => SkillResult.TargetDestroyed,
+            SkillResultKeys.skill_target_alive => SkillResult.TargetAlive,
+            SkillResultKeys.skill_on_casting => SkillResult.OnCasting,
+            SkillResultKeys.skill_cooldown_time => SkillResult.CooldownTime,
+            SkillResultKeys.skill_no_target => SkillResult.NoTarget,
+            SkillResultKeys.skill_lack_health => SkillResult.LackHealth,
+            SkillResultKeys.skill_lack_mana => SkillResult.LackMana,
+            SkillResultKeys.skill_obstacle => SkillResult.Obstacle,
+            SkillResultKeys.skill_outof_height => SkillResult.OutofHeight,
+            SkillResultKeys.skill_too_close_range => SkillResult.TooCloseRange,
+            SkillResultKeys.skill_too_far_range => SkillResult.TooFarRange,
+            SkillResultKeys.skill_outof_angle => SkillResult.OutofAngle,
+            SkillResultKeys.skill_cannot_cast_in_combat => SkillResult.CannotCastInCombat,
+            SkillResultKeys.skill_cannot_cast_while_moving => SkillResult.CannotCastWhileMoving,
+            SkillResultKeys.skill_cannot_cast_in_stun => SkillResult.CannotCastInStun,
+            SkillResultKeys.skill_cannot_cast_while_walking => SkillResult.CannotCastWhileWalking,
+            SkillResultKeys.skill_cannot_cast_in_swimming => SkillResult.CannotCastInSwimming,
+            SkillResultKeys.skill_blank_minded => SkillResult.BlankMinded,
+            SkillResultKeys.skill_silence => SkillResult.Silence,
+            SkillResultKeys.skill_crippled => SkillResult.Crippled,
+            SkillResultKeys.skill_cannot_cast_in_channeling => SkillResult.CannotCastInChanneling,
+            SkillResultKeys.skill_cannot_cast_in_prison => SkillResult.CannotCastInPrison,
+            SkillResultKeys.skill_need_stealth => SkillResult.NeedStealth,
+            SkillResultKeys.skill_need_nocombat_target => SkillResult.NeedNocombatTarget,
+            SkillResultKeys.skill_target_immune => SkillResult.TargetImmune,
+            SkillResultKeys.skill_invalid_skill => SkillResult.InvalidSkill,
+            SkillResultKeys.skill_inactive_ability => SkillResult.InactiveAbility,
+            SkillResultKeys.skill_not_enough_ability_level => SkillResult.NotEnoughAbilityLevel,
+            SkillResultKeys.skill_invalid_source => SkillResult.InvalidSource,
+            SkillResultKeys.skill_invalid_target => SkillResult.InvalidTarget,
+            SkillResultKeys.skill_invalid_location => SkillResult.InvalidLocation,
+            SkillResultKeys.skill_need_reagent => SkillResult.NeedReagent,
+            SkillResultKeys.skill_item_locked => SkillResult.ItemLocked,
+            SkillResultKeys.skill_need_money => SkillResult.NeedMoney,
+            SkillResultKeys.skill_need_labor_power => SkillResult.NeedLaborPower,
+            SkillResultKeys.skill_source_is_hanging => SkillResult.SourceIsHanging,
+            SkillResultKeys.skill_source_is_riding => SkillResult.SourceIsRiding,
+            SkillResultKeys.skill_higher_buff => SkillResult.HigherBuff,
+            SkillResultKeys.skill_not_pvp_area => SkillResult.NotPvpArea,
+            SkillResultKeys.skill_not_now => SkillResult.NotNow,
+            SkillResultKeys.skill_no_perm => SkillResult.NoPerm,
+            SkillResultKeys.skill_bag_full => SkillResult.BagFull,
+            SkillResultKeys.skill_protected_faction => SkillResult.ProtectedFaction,
+            SkillResultKeys.skill_protected_level => SkillResult.ProtectedLevel,
+            SkillResultKeys.skill_unit_reqs_or_fail => SkillResult.UnitReqsOrFail,
+            SkillResultKeys.backpack_occupied => SkillResult.BackpackOccupied,
+            SkillResultKeys.skill_obstacle_for_spawn_doodad => SkillResult.ObstacleForSpawnDoodad,
+            SkillResultKeys.skill_cannot_spawn_doodad_in_house => SkillResult.CannotSpawnDoodadInHouse,
+            SkillResultKeys.skill_cannot_use_for_self => SkillResult.CannotUseForSelf,
+            SkillResultKeys.skill_not_preoccupied => SkillResult.NotPreoccupied,
+            SkillResultKeys.skill_not_my_npc => SkillResult.NotMyNpc,
+            SkillResultKeys.skill_not_checked_second_pass => SkillResult.NotCheckedSecondPass,
+            SkillResultKeys.skill_invalid_grade_enchant_support_item => SkillResult.InvalidGradeEnchantSupportItem,
+            SkillResultKeys.skill_invalid_account_attribute => SkillResult.InvalidAccountAttribute,
+            SkillResultKeys.skill_urk_level => SkillResult.UrkLevel,
+            SkillResultKeys.skill_urk_ability => SkillResult.UrkAbility,
+            SkillResultKeys.skill_urk_race => SkillResult.UrkRace,
+            SkillResultKeys.skill_urk_gender => SkillResult.UrkGender,
+            SkillResultKeys.skill_urk_equip_slot => SkillResult.UrkEquipSlot,
+            SkillResultKeys.skill_urk_equip_item => SkillResult.UrkEquipItem,
+            SkillResultKeys.skill_urk_own_item => SkillResult.UrkOwnItem,
+            SkillResultKeys.skill_urk_trained_skill => SkillResult.UrkTrainedSkill,
+            SkillResultKeys.skill_urk_combat => SkillResult.UrkCombat,
+            SkillResultKeys.skill_urk_stealth => SkillResult.UrkStealth,
+            SkillResultKeys.skill_urk_health => SkillResult.UrkHealth,
+            SkillResultKeys.skill_urk_buff => SkillResult.UrkBuff,
+            SkillResultKeys.skill_urk_target_buff => SkillResult.UrkTargetBuff,
+            SkillResultKeys.skill_urk_target_combat => SkillResult.UrkTargetCombat,
+            SkillResultKeys.skill_urk_can_learn_craft => SkillResult.UrkCanLearnCraft,
+            SkillResultKeys.skill_urk_doodad_range => SkillResult.UrkDoodadRange,
+            SkillResultKeys.skill_urk_equip_shield => SkillResult.UrkEquipShield,
+            SkillResultKeys.skill_urk_nobuff => SkillResult.UrkNobuff,
+            SkillResultKeys.skill_urk_target_buff_tag => SkillResult.UrkTargetBuffTag,
+            SkillResultKeys.skill_urk_corpse_range => SkillResult.UrkCorpseRange,
+            SkillResultKeys.skill_urk_equip_weapon_type => SkillResult.UrkEquipWeaponType,
+            SkillResultKeys.skill_urk_target_health_less_than => SkillResult.UrkTargetHealthLessThan,
+            SkillResultKeys.skill_urk_target_npc => SkillResult.UrkTargetNpc,
+            SkillResultKeys.skill_urk_target_doodad => SkillResult.UrkTargetDoodad,
+            SkillResultKeys.skill_urk_equip_ranged => SkillResult.UrkEquipRanged,
+            SkillResultKeys.skill_urk_no_buff_tag => SkillResult.UrkNoBuffTag,
+            SkillResultKeys.skill_urk_complete_quest_context => SkillResult.UrkCompleteQuestContext,
+            SkillResultKeys.skill_urk_progress_quest_context => SkillResult.UrkProgressQuestContext,
+            SkillResultKeys.skill_urk_ready_quest_context => SkillResult.UrkReadyQuestContext,
+            SkillResultKeys.skill_urk_target_npc_group => SkillResult.UrkTargetNpcGroup,
+            SkillResultKeys.skill_urk_area_sphere => SkillResult.UrkAreaSphere,
+            SkillResultKeys.skill_urk_except_complete_quest_context => SkillResult.UrkExceptCompleteQuestContext,
+            SkillResultKeys.skill_urk_precomplete_quest_context => SkillResult.UrkPrecompleteQuestContext,
+            SkillResultKeys.skill_urk_target_owner_type => SkillResult.UrkTargetOwnerType,
+            SkillResultKeys.skill_urk_not_under_water => SkillResult.UrkNotUnderWater,
+            SkillResultKeys.skill_urk_faction_match => SkillResult.UrkFactionMatch,
+            SkillResultKeys.skill_urk_tod => SkillResult.UrkTod,
+            SkillResultKeys.skill_urk_mother_faction => SkillResult.UrkMotherFaction,
+            SkillResultKeys.skill_urk_actability_point => SkillResult.UrkActabilityPoint,
+            SkillResultKeys.skill_urk_crime_point => SkillResult.UrkCrimePoint,
+            SkillResultKeys.skill_urk_honor_point => SkillResult.UrkHonorPoint,
+            SkillResultKeys.skill_urk_living_point => SkillResult.UrkLivingPoint,
+            SkillResultKeys.skill_urk_crime_record => SkillResult.UrkCrimeRecord,
+            SkillResultKeys.skill_urk_jury_point => SkillResult.UrkJuryPoint,
+            SkillResultKeys.skill_urk_source_owner_type => SkillResult.UrkSourceOwnerType,
+            SkillResultKeys.skill_urk_appellation => SkillResult.UrkAppellation,
+            SkillResultKeys.skill_urk_in_zone => SkillResult.UrkInZone,
+            SkillResultKeys.skill_urk_out_zone => SkillResult.UrkOutZone,
+            SkillResultKeys.skill_urk_verdict_only => SkillResult.UrkVerdictOnly,
+            SkillResultKeys.skill_urk_faction_match_only => SkillResult.UrkFactionMatchOnly,
+            SkillResultKeys.skill_urk_mother_faction_only => SkillResult.UrkMotherFactionOnly,
+            SkillResultKeys.skill_urk_faction_match_only_not => SkillResult.UrkFactionMatchOnlyNot,
+            SkillResultKeys.skill_urk_mother_faction_only_not => SkillResult.UrkMotherFactionOnlyNot,
+            SkillResultKeys.skill_urk_nation_member => SkillResult.UrkNationMember,
+            SkillResultKeys.skill_urk_nation_member_not => SkillResult.UrkNationMemberNot,
+            SkillResultKeys.skill_urk_housing => SkillResult.UrkHousing,
+            SkillResultKeys.skill_urk_mana_margin => SkillResult.UrkManaMargin,
+            SkillResultKeys.skill_urk_labor_power_margin => SkillResult.UrkLaborPowerMargin,
+            SkillResultKeys.skill_urk_labor_power_margin_local => SkillResult.UrkLaborPowerMarginLocal,
+            SkillResultKeys.skill_urk_unknown => SkillResult.UrkUnknown,
+            SkillResultKeys.skill_urk_max_level => SkillResult.UrkMaxLevel,
+            SkillResultKeys.skill_urk_expedition_owner => SkillResult.UrkExpeditionOwner,
+            SkillResultKeys.skill_urk_expedition_member => SkillResult.UrkExpeditionMember,
+            SkillResultKeys.skill_urk_except_progress_quest_context => SkillResult.UrkExceptProgressQuestContext,
+            SkillResultKeys.skill_urk_except_ready_quest_context => SkillResult.UrkExceptReadyQuestContext,
+            SkillResultKeys.skill_urk_own_item_not => SkillResult.UrkOwnItemNot,
+            SkillResultKeys.skill_urk_less_actability_point => SkillResult.UrkLessActabilityPoint,
+            SkillResultKeys.skill_urk_own_quest_item_group => SkillResult.UrkOwnQuestItemGroup,
+            SkillResultKeys.skill_urk_house => SkillResult.UrkHouse,
+            SkillResultKeys.skill_urk_house_only => SkillResult.UrkHouseOnly,
+            SkillResultKeys.skill_urk_doodad_target_hostile => SkillResult.UrkDoodadTargetHostile,
+            SkillResultKeys.skill_urk_target_nobuff_tag => SkillResult.UrkTargetNoBuffTag,
+            SkillResultKeys.skill_urk_target_nobuff_tag_no_target => SkillResult.UrkTargetNoBuffTagNoTarget,
+            SkillResultKeys.skill_urk_buff_tag => SkillResult.UrkBuffTag,
+            SkillResultKeys.skill_urk_under_water => SkillResult.UrkUnderWater,
+            SkillResultKeys.skill_urk_own_appellation => SkillResult.UrkOwnAppellation,
+            SkillResultKeys.skill_urk_equip_appellation => SkillResult.UrkEquipAppellation,
+            SkillResultKeys.skill_urk_empty_slot_inventory => SkillResult.UrkEmptySlotInventory,
+            SkillResultKeys.skill_urk_heir_level => SkillResult.UrkHeirLevel,
+            SkillResultKeys.skill_urk_in_zone_group => SkillResult.UrkInZoneGroup,
+            SkillResultKeys.skill_urk_skill_cooldown => SkillResult.UrkSkillCooldown,
+            SkillResultKeys.skill_urk_full_recharged_labor_power => SkillResult.UrkFullRechargedLaborPower,
+            SkillResultKeys.skill_urk_expedition_member_not => SkillResult.UrkExpeditionMemberNot,
+            SkillResultKeys.skill_urk_target_mana_less_than => SkillResult.UrkTargetManaLessThan,
+            SkillResultKeys.skill_urk_target_mana_more_than => SkillResult.UrkTargetManaMoreThan,
+            SkillResultKeys.skill_urk_target_health_more_than => SkillResult.UrkTargetHealthMoreThan,
+            SkillResultKeys.skill_urk_source_health_less_than => SkillResult.UrkSourceHealthLessThan,
+            SkillResultKeys.skill_urk_source_health_more_than => SkillResult.UrkSourceHealthMoreThan,
+            SkillResultKeys.skill_urk_family_role => SkillResult.UrkFamilyRole,
+            SkillResultKeys.skill_urk_own_item_count => SkillResult.UrkOwnItemCount,
+            SkillResultKeys.skill_urk_not_in_housing_area => SkillResult.UrkNotInHousingArea,
+            SkillResultKeys.skill_urk_dual => SkillResult.UrkDual,
+            SkillResultKeys.skill_urk_no_dual => SkillResult.UrkNoDual,
+            SkillResultKeys.skill_urk_combat_resource => SkillResult.UrkCombatResource,
+            SkillResultKeys.skill_urk_target_item_tag => SkillResult.UrkTargetItemTag,
+            SkillResultKeys.skill_urk_no_target_item_tag => SkillResult.UrkNoTargetItemTag,
+            SkillResultKeys.skill_urk_need_ulc_activate => SkillResult.UrkNeedUlcActivate,
+            SkillResultKeys.skill_urk_cannot_use_by_ulc_activate => SkillResult.UrkCannotUseByUlcActivate,
+            _ => SkillResult.UrkUnknown
+        };
     }
 
-    /// <summary>
-    /// Lookup the SkillResult for Version 1.2 r208022
-    /// </summary>
-    /// <param name="key"></param>
-    /// <returns></returns>
-    private static SkillResult SkillResultErrorKeyToIdFor_r208022(string key)
-    {
-        switch (key)
-        {
-            case "": return SkillResult.Success;
-            case "skill_success": return SkillResult.Success;
-            case "skill_failure": return (SkillResult)1; //	Can't use this.
-            case "skill_source_died": return (SkillResult)2; //	Can't be used while dead.
-            case "skill_source_alive": return (SkillResult)3; //	Can only be used while dead.
-            case "skill_target_died": return (SkillResult)4; //	Can't be used on a dead target.
-            case "skill_target_destroyed": return (SkillResult)5; //	Target is already destroyed.
-            case "skill_target_alive": return (SkillResult)6; //	Can't be used on a living target.
-            case "skill_on_casting": return (SkillResult)7; //	Already performing an action.
-            case "skill_cooldown_time": return (SkillResult)8; //	Can't be used right now.
-            case "skill_no_target": return (SkillResult)9; //	Select a target.
-            case "skill_lack_health": return (SkillResult)10; //	Insufficient health to use this.
-            case "skill_lack_mana": return (SkillResult)11; //	Insufficient mana to use this.
-            case "skill_obstacle": return (SkillResult)12; //	No line of sight.
-            case "skill_outof_height": return (SkillResult)13; //	Target is on a different elevation.
-            case "skill_too_close_range": return (SkillResult)14; //	Target is too close.
-            case "skill_too_far_range": return (SkillResult)15; //	Target is too far.
-            case "skill_outof_angle": return (SkillResult)16; //	Invalid target direction.
-            case "skill_cannot_cast_in_combat": return (SkillResult)17; //	Can't be used in combat.
-            case "skill_cannot_cast_while_moving": return (SkillResult)18; //	Can't be used while moving.
-            case "skill_cannot_cast_in_stun": return (SkillResult)19; //	Can't be used while stunned.
-            case "skill_cannot_cast_while_walking": return (SkillResult)20; //	Can't use while walking.
-            case "skill_cannot_cast_in_swimming": return (SkillResult)21; //	Can't use this while swimming.
-            case "skill_blank_minded": return (SkillResult)22; //	Can't use in ($1) unknown.
-            case "skill_silence": return (SkillResult)23; //	Can't use magic skills while silenced.
-            case "skill_crippled": return (SkillResult)24; //	Can't use physical skills while restrained.
-            case "skill_cannot_cast_in_channeling": return (SkillResult)25; //	Can't use while busy.
-            case "skill_cannot_cast_in_prison": return (SkillResult)26; //	Stay away from trouble while imprisoned.
-            case "skill_need_stealth": return (SkillResult)27; //	Can only use while hidden.
-            case "skill_need_nocombat_target": return (SkillResult)28; //	Target is in combat.
-            case "skill_target_immune": return (SkillResult)29; //	Target is immune.
-            case "skill_invalid_skill": return (SkillResult)30; //	Can't use this skill.
-            case "skill_inactive_ability": return (SkillResult)31; //	Can't use this ability.
-            case "skill_not_enough_ability_level": return (SkillResult)32; //	Insufficient skill level.
-            case "skill_invalid_source": return (SkillResult)33; //	Can't be used in this state.
-            case "skill_invalid_target": return (SkillResult)34; //	Invalid target.
-            case "skill_invalid_location": return (SkillResult)35; //	Can't be used here.
-            case "skill_need_reagent": return (SkillResult)36; //	Not enough ($1) unknown.
-            case "skill_item_locked": return (SkillResult)37; //	Can't use this item.
-            case "skill_need_money": return (SkillResult)38; //	Insufficient coins.
-            case "skill_need_labor_power": return (SkillResult)39; //	Insufficient Labor Points.
-            case "skill_source_is_hanging": return (SkillResult)40; //	Can't be used while airborne.
-            case "skill_source_is_riding": return (SkillResult)41; //	Can't be used while riding.
-            case "skill_higher_buff": return (SkillResult)42; //	Can't be used while a stronger effect is active.
-            case "skill_not_pvp_area": return (SkillResult)43; //	PvP is not allowed in sanctuary zones.
-            case "skill_not_now": return (SkillResult)44; //	Can't be used right now.
-            case "skill_no_perm": return (SkillResult)45; //	You don't have permission.
-            case "skill_bag_full": return (SkillResult)46; //	Your bag is full.
-            case "skill_protected_faction": return (SkillResult)47; //	Can't instigate a raid against the ($1) unknown faction in this area.
-            case "skill_protected_level": return (SkillResult)48; //	Can't start battles with characters Lv10 and below in protected zones.
-            case "skill_unit_reqs_or_fail": return (SkillResult)49; //	Fails the requirements.
-            // case "": return (SkillResult)50; //	unknown
-            case "backpack_occupied": return (SkillResult)51; //	Already carrying a pack.
-            case "skill_obstacle_for_spawn_doodad": return (SkillResult)52; //	Blocked by an obstacle.
-            case "skill_cannot_spawn_doodad_in_house": return (SkillResult)53; //	Can't place that here.
-            case "skill_cannot_use_for_self": return (SkillResult)54; //	Can't use on yourself.
-            case "skill_not_preoccupied": return (SkillResult)55; //	Can only be used on selected targets.
-            case "skill_not_my_npc": return (SkillResult)56; //	You don't have permission.
-            case "skill_not_checked_second_pass": return (SkillResult)57; //	Failed to pass the second password.
-            case "SKILL_CANNOT_USE_HERE": return (SkillResult)58; //	Can't use this skill in this location.
-            case "skill_invalid_grade_enchant_support_item": return (SkillResult)59; //	Can't use a Regrade Charm.
-            case "skill_check_character_p_stat_min": return (SkillResult)60; //	You can downgrade this stat to ($1) unknown.
-            case "skill_check_character_p_stat_max": return (SkillResult)61; //	You can upgrade this stat to ($1) unknown.
-            case "skill_item_secured": return (SkillResult)62; //	89 ?? skill_item_secured
-            case "skill_invalid_account_attribute": return (SkillResult)63; //	Your account doesn't have the required permissions.
-            case "skill_urk_level": return (SkillResult)64; //	Your level is too low.
-            case "skill_urk_ability": return (SkillResult)65; //	Your stats are too low.
-            case "skill_urk_race": return (SkillResult)66; //	Does not apply to this race.
-            case "skill_urk_gender": return (SkillResult)67; //	Does not apply to this gender.
-            case "skill_urk_equip_slot": return (SkillResult)68; //	Must be equipped with the proper gear.
-            case "skill_urk_equip_item": return (SkillResult)69; //	Must be equipped with an item.
-            case "skill_urk_own_item": return (SkillResult)70; //	You need ($1) unknown(|r.)
-            case "skill_urk_trained_skill": return (SkillResult)71; //	You haven't learned this skill yet.
-            case "skill_urk_combat": return (SkillResult)72; //	Can't be used in combat.
-            case "skill_urk_stealth": return (SkillResult)73; //	Stealth status does not meet the requirements.
-            case "skill_urk_health": return (SkillResult)74; //	Health does not meet the requirements.
-            case "skill_urk_buff": return (SkillResult)75; //	Must be ($1) unknown.
-            case "skill_urk_target_buff": return (SkillResult)76; //	Target must be ($1) unknown.
-            case "skill_urk_target_combat": return (SkillResult)77; //	Target's combat status does not meet the requirements.
-            case "skill_urk_can_learn_craft": return (SkillResult)78; //	You already learned this crafting skill.
-            case "skill_urk_doodad_range": return (SkillResult)79; //	$1 is not in your immediate surroundings.
-            case "skill_urk_equip_shield": return (SkillResult)80; //	Must be equipped with a shield.
-            case "skill_urk_nobuff": return (SkillResult)81; //	Must not be under the effect of ($1) unknown.
-            case "skill_urk_target_buff_tag": return (SkillResult)82; //	Target must be ($1) unknown.
-            case "skill_urk_corpse_range": return (SkillResult)83; //	No corpses nearby.
-            case "skill_urk_equip_weapon_type": return (SkillResult)84; //	Must be equipped with the correct weapon.
-            case "skill_urk_target_health_less_than": return (SkillResult)85; //	Target's health must be low.
-            case "skill_urk_target_npc": return (SkillResult)86; //	Can only be used on ($1) unknown.
-            case "skill_urk_target_doodad": return (SkillResult)87; //	Invalid object.
-            case "skill_urk_equip_ranged": return (SkillResult)88; //	Must be equipped with a ranged weapon.
-            case "skill_urk_no_buff_tag": return (SkillResult)89; //	Can't do this now.
-            case "skill_urk_complete_quest_context": return (SkillResult)90; //	Quest: $1 must be completed.
-            case "skill_urk_progress_quest_context": return (SkillResult)91; //	Quest: $1 must be in-progress.
-            case "skill_urk_ready_quest_context": return (SkillResult)92; //	Quest: $1 must be completed.
-            case "skill_urk_target_npc_group": return (SkillResult)93; //	Invalid target.
-            case "skill_urk_area_sphere": return (SkillResult)94; //	Can't be used here.
-            case "skill_urk_except_complete_quest_context": return (SkillResult)95; //	89 ?? Skill_urk_except_complete_quest_context
-            case "skill_urk_precomplete_quest_context": return (SkillResult)96; //	Quest: $1 must be in-progress.
-            case "skill_urk_target_owner_type": return (SkillResult)97; //	Invalid target.
-            case "skill_urk_not_under_water": return (SkillResult)98; //	Can't use underwater.
-            case "skill_urk_faction_match": return (SkillResult)99; //	You are not a member of the $1 faction.
-            case "skill_urk_tod": return (SkillResult)100; //	Can't be used at this time.
-            case "skill_urk_mother_faction": return (SkillResult)101; //	Your faction can't use this.
-            case "skill_urk_actability_point": return (SkillResult)102; //	Insufficient $1 proficiency.
-            case "skill_urk_crime_point": return (SkillResult)103; //	89 ?? Skill_urk_crime_point
-            case "skill_urk_honor_point": return (SkillResult)104; //	You don't meet the Honor Point requirements.
-            case "skill_urk_living_point": return (SkillResult)105; //	You don't meet the Vocation Badge requirements.
-            case "skill_urk_crime_record": return (SkillResult)106; //	89 ?? Skill_urk_crime_record
-            case "skill_urk_jury_point": return (SkillResult)107; //	89 ?? Skill_urk_jury_point
-            case "skill_urk_source_owner_type": return (SkillResult)108; //	89 ?? Skill_urk_source_owner_type
-            case "skill_urk_appelation": return (SkillResult)109; //	89 ?? Skill_urk_appelation
-            case "skill_urk_in_zone": return (SkillResult)110; //	Can only be used in $1.
-            case "skill_urk_out_zone": return (SkillResult)111; //	Can't be used in $1.
-            case "skill_urk_dominion_owner": return (SkillResult)112; //	Only Lords can do this.
-            case "skill_urk_verdict_only": return (SkillResult)113; //	Your jury privileges have been revoked. You can no longer serve on juries.
-            case "skill_urk_faction_match_only": return (SkillResult)114; //	You are not a member of the $1 faction.
-            case "skill_urk_mother_faction_only": return (SkillResult)115; //	Your faction can't use this.
-            case "skill_urk_nation_owner": return (SkillResult)116; //	89 ?? Skill_urk_nation_owner
-            case "skill_urk_faction_match_only_not": return (SkillResult)117; //	$1+ HP must be drained first. // This translation seems wrong
-            case "skill_urk_mother_faction_only_not": return (SkillResult)118; //	The $1 sub faction can't do this.
-            case "skill_urk_nation_member": return (SkillResult)119; //	You must be in a nation.
-            case "skill_urk_nation_member_not": return (SkillResult)120; //	You can't be in a nation to do this.
-            case "skill_urk_nation_owner_at_pos": return (SkillResult)121; //	89 ?? Skill_urk_nation_owner_at_pos
-            case "skill_urk_dominion_owner_at_pos": return (SkillResult)122; //	89 ?? Skill_urk_dominion_owner_at_pos
-            case "skill_urk_housing": return (SkillResult)123; //	You do not have $1.
-            case "skill_urk_health_margin": return (SkillResult)124; //	89 ?? Skill_urk_health_margin
-            case "skill_urk_mana_margin": return (SkillResult)125; //	$1+ MP must be drained first.
-            case "skill_urk_labor_power_margin": return (SkillResult)126; //	$1+ Labor must be drained first.
-            case "skill_urk_unknown": return (SkillResult)127; //	Can't use this.
-            case "skill_urk_max_level": return (SkillResult)128; //	Your level is too high.
-            case "skill_urk_expedition_owner": return (SkillResult)129; //	89 ?? Skill_urk_expedition_owner
-            case "skill_urk_expedition_member": return (SkillResult)130; //	89 ?? Skill_urk_expedition_member
-            // case "skill_urk_progress_quest_context": return (SkillResult)131; //	89 ?? Skill_urk_progress_quest_context
-            // case "skill_urk_ready_quest_context": return (SkillResult)132; //	89 ?? Skill_urk_ready_quest_context
-            default: return SkillResult.Failure;
-        }
-    }
 }

@@ -22,7 +22,14 @@ public class SkillMapEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        // TODO: push the map marker (texture/radius/view_time) to the client. There is no AAEmu packet for the
-        // world-map skill overlay yet; the template data is loaded and ready once one exists.
+        if (caster is not Char.Character character)
+            return;
+
+        // The overlay's texture, radius and view time are read client-side out of skill_map_effects, so the
+        // marker only needs naming: which skill drew it and whose it is.
+        character.SendPacket(new Core.Packets.G2C.SCSkillMapEffectPacket(
+            (int)(source?.Skill?.Id ?? 0), (int)Id, character.ObjId));
+
+        Logger.Debug($"SkillMapEffect: marker for skill {source?.Skill?.Id} radius {Radius} viewTime {ViewTime} to {character.Name}");
     }
 }

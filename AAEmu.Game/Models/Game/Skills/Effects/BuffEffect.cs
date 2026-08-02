@@ -3,6 +3,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
@@ -82,11 +83,14 @@ public class BuffEffect : EffectTemplate
         //if (Buff.Kind == BuffKind.Bad && !caster.CanAttack(target) && caster != target)
         //    return;
 
+        SailFoldBuffs.ApplyAnimExclusivity(target, Buff.Id);
+
         target.Buffs.AddBuff(new Buff(target, caster, casterObj, Buff, source.Skill, time) { AbLevel = abLevel });
 
-        // Check if a bad buff was applied to a friendly faction (bloodlust)
+        // Check if a bad buff was applied to a friendly player (bloodlust / Felon).
+        // Sail fold "debuffs" are Kind=debuff but target the hull Slave — that is not PvP.
         var relationToTarget = caster?.GetRelationStateTo(target) ?? RelationState.Neutral;
-        if (Buff.Kind == BuffKind.Bad && target is not Npc && 
+        if (Buff.Kind == BuffKind.Bad && target is Character &&
             relationToTarget == RelationState.Friendly && caster != target &&
             !target.Buffs.CheckBuff((uint)BuffConstants.Retribution))
         {

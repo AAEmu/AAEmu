@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills;
@@ -90,6 +90,11 @@ public class SkillCastPositionTarget : SkillCastTarget
     public uint ObjId1 { get; set; }
     public uint ObjId2 { get; set; }
 
+    // 10.0.2.13 position targets carry three bc ids. The dedicate SkillCastTarget serializer
+    // at +9. The two-id form leaves the zone reading three bytes past the body, which it reports as
+    // "43 serializer error" and answers by closing the link.
+    public uint ObjId3 { get; set; }
+
     public override void Read(PacketStream stream)
     {
         PosX = Helpers.ConvertLongX(stream.ReadInt64());
@@ -98,6 +103,7 @@ public class SkillCastPositionTarget : SkillCastTarget
         PosRot = stream.ReadSingle();
         ObjId1 = stream.ReadBc();
         ObjId2 = stream.ReadBc();
+        ObjId3 = stream.ReadBc();
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -110,6 +116,7 @@ public class SkillCastPositionTarget : SkillCastTarget
         stream.Write(PosRot);
         stream.WriteBc(ObjId1);
         stream.WriteBc(ObjId2);
+        stream.WriteBc(ObjId3);
         return stream;
     }
 }

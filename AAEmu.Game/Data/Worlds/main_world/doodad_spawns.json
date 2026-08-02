@@ -388292,5 +388292,56 @@
       "Pitch": 0.0,
       "Yaw": 60.0
     }
+  },
+  // Gweonid Forest lake freshwater schools. The lake had a single school, at
+  // (11155, 16189, 266.8) by the falls, nothing in the lake itself. Surface height and
+  // extent taken from what already floats there: temp_plants_waterlily02 doodads sit at
+  // Z 202.3-202.5, and summoned boats floated at 202.15 and 202.55. Saltwater schools all
+  // sit at exactly the ocean level (100.0) and each lake's schools share one Z, so these
+  // take the waterlily height.
+  {
+    "UnitId": 6447,
+    "Title": "Freshwater Fish School",
+    "Position": {
+      "X": 10440.0,
+      "Y": 15215.0,
+      "Z": 202.4
+    }
+  },
+  {
+    "UnitId": 6447,
+    "Title": "Freshwater Fish School",
+    "Position": {
+      "X": 10420.0,
+      "Y": 15270.0,
+      "Z": 202.4
+    }
+  },
+  {
+    "UnitId": 6447,
+    "Title": "Freshwater Fish School",
+    "Position": {
+      "X": 10448.0,
+      "Y": 15306.0,
+      "Z": 202.4
+    }
+  },
+  {
+    "UnitId": 6447,
+    "Title": "Freshwater Fish School",
+    "Position": {
+      "X": 10678.6,
+      "Y": 15343.3,
+      "Z": 202.4
+    }
+  },
+  {
+    "UnitId": 6447,
+    "Title": "Freshwater Fish School",
+    "Position": {
+      "X": 10687.0,
+      "Y": 15299.2,
+      "Z": 202.4
+    }
   }
 ]

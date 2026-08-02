@@ -12,8 +12,7 @@ Example:
 ```json
 {
   "World": {
-    "MOTD": "Welcome to AAEmu!",
-    "TargetPhysicsTps": 25.0
+    "MOTD": "Welcome to AAEmu!"
   }
 }
 ```
@@ -80,42 +79,6 @@ Example:
 - **Type**: `number`
 - **Description**: Maximum number of instances (including system instances).
 
-### `TargetPhysicsTps`
-- **Type**: `number`
-- **Description**: Target physics TPS (tick rate for physics threads).
-
 ### `ActabilityRate`
 - **Type**: `number`
 - **Description**: Server-side actability points multiplier.
-
-## Ship wind
-
-### `WindModel`
-- **Type**: `string`
-- **Path**: `World.WindModel`
-- **Allowed values**:
-  - **`Official`**: retail-like wind model.
-    - wind does **not** change with time of day;
-    - a **+15%** max speed bonus applies only when sailing within **±15°** of the **North↔South** axis (both directions);
-    - outside the cone, the bonus is **0%**.
-  - **`Realistic`**: more realistic model.
-    - wind direction rotates smoothly over the day (and sail rig profile logic applies).
-
-Examples:
-
-```json
-{
-  "World": {
-    "WindModel": "Official"
-  }
-}
-```
-
-```json
-{
-  "World": {
-    "WindModel": "Realistic"
-  }
-}
-```
-

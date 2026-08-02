@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
@@ -8,10 +8,10 @@ public class CSInviteAreaToTeamPacket() : GamePacket(CSOffsets.CSInviteAreaToTea
 {
     public override void Read(PacketStream stream)
     {
-        var teamId = stream.ReadUInt32();
+        // i32 tid, bool isParty.
+        var teamId = stream.ReadInt32();
         var isParty = stream.ReadBoolean();
 
-        // Logger.Warn("InviteAreaToTeam, TeamId: {0}, IsParty: {1}", teamId, isParty);
         TeamManager.Instance.InviteAreaToTeam(Connection.ActiveChar, teamId, isParty);
     }
 }

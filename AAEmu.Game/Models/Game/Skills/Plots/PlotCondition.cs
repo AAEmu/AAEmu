@@ -47,7 +47,7 @@ public class PlotCondition
             PlotConditionType.CombatDiceResult => ConditionCombatDiceResult(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3, skill), // Every CombatDiceResult is a NotCondition -> false makes it true.
             PlotConditionType.InstrumentType => ConditionInstrumentType(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
             PlotConditionType.Range => ConditionRange(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
-            PlotConditionType.Variable => ConditionVariable(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
+            PlotConditionType.Variable => ConditionVariable(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3, skill),
             PlotConditionType.UnitAttrib => ConditionUnitAttrib(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
             PlotConditionType.Actability => ConditionActability(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
             PlotConditionType.Stealth => ConditionStealth(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
@@ -219,18 +219,21 @@ public class PlotCondition
 
     // 12
     private static bool ConditionVariable(BaseUnit caster, SkillCaster casterCaster, BaseUnit target,
-        SkillCastTarget targetCaster, SkillObject skillObject, int variableIndex, int operation, int compareValue)
+        SkillCastTarget targetCaster, SkillObject skillObject, int variableIndex, int operation, int compareValue,
+        Skill skill = null)
     {
-        if (caster is not Unit casterUnit)
+        // Prefer this skill's plot state — caster.ActivePlotState is overwritten by concurrent plot_only combos.
+        var plotState = skill?.ActivePlotState ?? (caster as Unit)?.ActivePlotState;
+        if (plotState == null)
         {
-            Logger.Warn($"PlotCondition Variable check without caster being a Unit");
+            Logger.Warn("PlotCondition Variable check without ActivePlotState");
             return false;
         }
 
-        var variableValue = casterUnit.ActivePlotState.Variables[variableIndex];
-        // There is a high chance this is not implemented correctly ...
-        // If refactoring. See SpecialEffect -> SetVariable as well
-        
+        if (variableIndex < 0 || variableIndex >= plotState.Variables.Length)
+            return false;
+
+        var variableValue = plotState.Variables[variableIndex];
         return CompareWithOperator(variableValue, operation, compareValue);
     }
 

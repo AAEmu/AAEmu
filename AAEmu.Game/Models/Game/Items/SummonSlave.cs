@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -9,9 +9,8 @@ public class SummonSlave : Item
 {
     private DateTime _repairStartTime;
     public override ItemDetailType DetailType => ItemDetailType.Slave;
-    // 10.0.2.13 Slave detail body is 33 bytes (Item_SerializeDetail case 2: total 34).
     // The body is an opaque blob on the client wire; only the leading fields below are interpreted.
-    // TODO(v10): decode the trailing bytes from a live capture.
+    // TODO(v10): decode the trailing bytes via server-side RE or a live capture.
     public override uint DetailBytesLength => 33;
 
     public byte SlaveType { get; set; } // Not sure about this, captures show 2 here

@@ -163,6 +163,14 @@ public class QuestAct(QuestComponent parentComponent, QuestActTemplate template)
     }
 
     /// <summary>
+    /// Forwards an authoritative doodad phase observation to this act.
+    /// </summary>
+    public virtual void OnDoodadPhaseCheck(object sender, OnDoodadPhaseCheckArgs args)
+    {
+        Template.OnDoodadPhaseCheck(this, sender, args);
+    }
+
+    /// <summary>
     /// OnCraft 
     /// </summary>
     /// <param name="sender"></param>

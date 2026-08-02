@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Char;
 
@@ -13,7 +13,6 @@ public class CharacterVisualOptions : PacketMarshaler
     public byte CosplayVisual;
     public bool Ipnir;
 
-    // Visual-option flags + conditional fields:
     // voptflag u8, then per set bit: 0x01 stp[6], 0x02 helmet, 0x04 back_holdable, 0x08 cosplay,
     // 0x10 cosplay_backpack, 0x20 cosplay_visual (u8), 0x40 ipnir. cosplay_visual is written before ipnir.
     public override void Read(PacketStream stream)
@@ -59,7 +58,6 @@ public class CharacterVisualOptions : PacketMarshaler
             stream.Write(Ipnir);
         return stream;
     }
-    // 10.0.2.13 PremiumVisual block (UnitState_SerializePremiumVisual): 6 stp bytes, one
     // bitpacked flags byte (bit0 helmet, bit1 back_holdable, bit2 cosplay, bit3 cosplay_backpack, bit4 ipnir),
     // then cosplay_visual. 8 bytes total — output inside SCUnitStatePacket's character tail.
     public PacketStream WriteOptions(PacketStream stream)

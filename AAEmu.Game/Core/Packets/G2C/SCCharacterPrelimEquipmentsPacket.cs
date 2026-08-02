@@ -3,16 +3,27 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-// SC_PACKET_CHARACTER_PRELIM_EQUIPMENTS (121). Body: size(u32) followed by, per entry,
-// EquipSlot(u8) + Item EquipView. The reference sends
-// this at world entry right after the inventory contents; without it the client's equipment view stays
-// uninitialized. The full equipped set is already carried by SCCharacterState (WriteLobby1013), so the prelim list
-// is emitted empty to initialize the client structure ahead of the player-frame render.
+/// <summary>
+/// SC_PACKET_CHARACTER_PRELIM_EQUIPMENTS (0x079).
+///   u32 size; then size × { s8 EquipSlot, EquipView }.
+/// CN sniff body <c>020000000f000000001000000000</c> = size=2, slots 15/16 with empty type=0.
+/// Emitting size=0 leaves the client's preliminary_equipments.lua <c>buttonStatus</c> nil and
+/// breaks the C (character info) window while inventory (I) still works.
+/// </summary>
 public class SCCharacterPrelimEquipmentsPacket() : GamePacket(SCOffsets.SCCharacterPrelimEquipmentsPacket, 1)
 {
+    // Slots observed on live CN enter-world (empty prelim set).
+    private static readonly sbyte[] DefaultEmptySlots = [0x0F, 0x10];
+
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(0u); // size (prelim equipment entry count)
+        stream.Write((uint)DefaultEmptySlots.Length);
+        foreach (var slot in DefaultEmptySlots)
+        {
+            stream.Write(slot); // EquipSlot s8
+            stream.Write(0u);   // EquipView type = empty sentinel (dword_3A6ABA14 == 0)
+        }
+
         return stream;
     }
 }

@@ -9,8 +9,6 @@ namespace AAEmu.Commons.Cryptography;
 
 /// <summary>
 /// Game (world) channel encryption for the 10.8.1.0 Kakao r651713 client.
-/// Channel spec:
-///  * S->C: keyless length-seeded stream cipher (StoCEncrypt). Applied to every
 ///    level-5 packet body, immediately (no key exchange needed for the S->C direction).
 ///  * Key exchange: X2EnterWorldResponse carries the RSA-1024 public key; the client returns its AES + XOR
 ///    keys RSA-encrypted in CSAesXorKey. Those keys are only needed for the C->S direction.
@@ -48,12 +46,20 @@ public class EncryptionManager : Singleton<EncryptionManager>
 
     /// <summary>
     /// Writes the 260-byte public-key blob the client expects in X2EnterWorldResponse.pubKey.
-    /// The client requires pubKeySize == 260; the blob layout is:
     ///   dwKeySize(int=1024) | Modulus(128) | 125 zero bytes | Exponent(3) == 260 bytes.
+    ///
+    /// Must NOT always regenerate the keychain: <see cref="GamePacket.Encode"/> allocates
+    /// <c>SCMessageCount</c> *before* calling packet.Write(), so a regenerate here resets the
+    /// (disconnect dialog + client often continues with movement input dead).
     /// </summary>
     public PacketStream WriteKeyParams(uint connectionId, ulong accountId, PacketStream stream)
     {
-        var keychain = GenerateRsaKeyPair(connectionId, accountId);
+        ConnectionKeychain keychain;
+        if (_connectionKeys.TryGetValue(accountId, out var existing) && existing.ConnectionId == connectionId)
+            keychain = existing;
+        else
+            keychain = GenerateRsaKeyPair(connectionId, accountId);
+
         var p = keychain.RsaKeyPair.ExportParameters(false);
         stream.Write(DwKeySize);      // dwKeySize (int) = 1024  (4)
         stream.Write(p.Modulus);      // RSA-1024 modulus       (128)
@@ -61,6 +67,13 @@ public class EncryptionManager : Singleton<EncryptionManager>
         stream.Write(p.Exponent);     // public exponent        (3, e.g. 01 00 01)
         return stream;
     }
+
+    /// <summary>
+    /// Create/replace the per-account RSA keychain *before* the first level-5 Encode so
+    /// WriteKeyParams does not need to regenerate mid-packet.
+    /// </summary>
+    public void PrepareEnterWorldKeys(uint connectionId, ulong accountId) =>
+        GenerateRsaKeyPair(connectionId, accountId);
 
     /// <summary>Public key blob length (pubKeySize) — must be exactly 260 for r651713.</summary>
     public const ushort PubKeySize = 260;
@@ -85,7 +98,6 @@ public class EncryptionManager : Singleton<EncryptionManager>
 
             var head = BitConverter.ToUInt32(xorRaw, 0);
             keys.Head = head;
-            // XOR key derivation from the head dword.
             keys.XorKey1 = unchecked(head * (head ^ 0x15A02403u) ^ 0x070F1F23u);
             keys.XorKey2 = unchecked(head * (head ^ 0xFF217A82u) ^ 0x1F23070Fu);
             keys.ReceivedKeys = true;
@@ -94,6 +106,21 @@ public class EncryptionManager : Singleton<EncryptionManager>
         catch (Exception e)
         {
             Logger.Error(e, "StoreClientKeys: RSA decrypt failed (acc={0})", accountId);
+        }
+    }
+
+    /// <summary>
+    /// Atomically allocate the next S->C level-5 sequence byte (0..255 wrap).
+    /// Must be paired with a per-connection send lock so TCP write order matches allocation order;
+    /// </summary>
+    public byte NextSCMessageCount(uint connectionId, ulong accountId)
+    {
+        var keys = GetConnectionKeys(connectionId, accountId);
+        lock (keys)
+        {
+            var count = keys.SCMessageCount;
+            keys.SCMessageCount++;
+            return count;
         }
     }
 
@@ -137,8 +164,7 @@ public class EncryptionManager : Singleton<EncryptionManager>
     }
     #endregion
 
-    #region C->S decryption (DecodeXor + AES-128-CBC) — 10.0.2.13
-    // PacketDecodeUniversal case 27. Frame: [len u16][unk=00][level=05][hash 1B][AES cipher N*16]. The decrypted
+    #region C->S decryption (DecodeXor + AES-128-CBC) — 10.0.2.13, ported from the verified
     // plaintext is [count 1B][type u16 LE][body...]; msgKey is the real plaintext length (rest is padding).
 
     private static readonly int[] HashMap = BuildHashMap();
@@ -157,7 +183,6 @@ public class EncryptionManager : Singleton<EncryptionManager>
         return n == 0 ? (byte)0xFE : n;
     }
 
-    // Sequence accumulator (MakeSeq). Advances per call; stored per-connection.
     private static byte MakeSeq(ConnectionKeychain k)
     {
         k.CsMSeq += 0x2FA245u;

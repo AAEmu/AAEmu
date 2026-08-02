@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Exceptions;
+using AAEmu.Commons.Exceptions;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
@@ -52,7 +52,7 @@ public class ItemContainer
     public uint OwnerId
     {
         get => _owner?.Id ?? _ownerId;
-        private init
+        protected set
         {
             if (value != _ownerId)
             {
@@ -105,6 +105,7 @@ public class ItemContainer
             SlotType.Mail => false,
             SlotType.System => false,
             SlotType.EquipmentMate => false,
+            SlotType.EquipmentSlave => false,
             SlotType.Auction => false,
             _ => throw new ArgumentOutOfRangeException()
         };
@@ -481,7 +482,10 @@ public class ItemContainer
         var res = item._holdingContainer.Items.Remove(item);
         if (res && task != ItemTaskType.Invalid)
         {
-            item._holdingContainer?.Owner?.SendPacket(new SCItemTaskSuccessPacket(task, [new ItemRemoveSlot(item)], []));
+            // ItemAction.Remove (7) shares Take's apply path and RE-SETS the item into the slot
+            // (live proof: server deleted purse 16777246, client ghost remained). Also forceRemove.
+            item._holdingContainer?.Owner?.SendPacket(
+                new SCItemTaskSuccessPacket(task, [new ItemRemoveSlot(item)], [item.Id]));
         }
 
         if (res && releaseIdAsWell)
@@ -576,8 +580,9 @@ public class ItemContainer
             }
         }
 
-        // We use Invalid when doing internals, don't send to client
-        if (taskType != ItemTaskType.Invalid)
+        // RemoveItem already sent its own SCItemTaskSuccess (Remove + forceRemoves).
+        // An empty follow-up packet is useless and can confuse client bag sync.
+        if (taskType != ItemTaskType.Invalid && itemTasks.Count > 0)
         {
             Owner?.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, []));
         }
@@ -781,7 +786,22 @@ public class ItemContainer
         }
 
         GetAllItemsByTemplate(templateId, -1, out var currentItems, out var currentTotalItemCount);
-        return currentItems.Count * template.MaxCount - currentTotalItemCount + FreeSlotCount * template.MaxCount;
+        return ClampedSpaceLeft(currentItems.Count, currentTotalItemCount, template.MaxCount);
+    }
+
+    /// <summary>
+    /// Slots-times-stack-size worked out in long and clamped back into int.
+    ///
+    /// items.max_stack_size reaches int.MaxValue — money (500), Lulu's leaflet (28586) and cash (28851) all
+    /// carry it, and only money is special-cased away from this path. Doing the two multiplications in int
+    /// overflows as soon as more than one slot is involved, and an unlimited container reports 9999 free
+    /// slots, so it wraps immediately. A wrapped negative reads as "no room" and silently refuses a valid
+    /// item; a wrapped positive promises room that is not there and fails later during the actual move.
+    /// </summary>
+    private int ClampedSpaceLeft(int matchingSlots, int currentTotalItemCount, int maxCount)
+    {
+        var space = (long)matchingSlots * maxCount - currentTotalItemCount + (long)FreeSlotCount * maxCount;
+        return (int)Math.Clamp(space, 0, int.MaxValue);
     }
 
     /// <summary>
@@ -804,7 +824,7 @@ public class ItemContainer
         }
 
         GetAllItemsByTemplate(itemToAdd.TemplateId, itemToAdd.Grade, out currentItems, out var currentTotalItemCount);
-        return currentItems.Count * itemToAdd.Template.MaxCount - currentTotalItemCount + FreeSlotCount * itemToAdd.Template.MaxCount;
+        return ClampedSpaceLeft(currentItems.Count, currentTotalItemCount, itemToAdd.Template.MaxCount);
     }
 
     private bool SpaceLeftForMoney(Item itemToAdd, out List<Item> currentItems, out int spaceLeftForItem)
@@ -887,23 +907,29 @@ public class ItemContainer
         var itemTasks = new List<ItemTask>();
         foreach (var item in Items)
         {
-            if (item.HasFlag(ItemFlag.SoulBound) == false)
+            if (item.HasFlag(ItemFlag.SoulBound))
+                continue;
+
+            var bound = false;
+            if (ContainerType == SlotType.Inventory && item.Template.BindType == ItemBindType.BindOnPickup)
             {
-                if (ContainerType == SlotType.Inventory && item.Template.BindType == ItemBindType.BindOnPickup)
-                {
-                    item.SetFlag(ItemFlag.SoulBound);
-                }
-
-                if (ContainerType == SlotType.Equipment && item.Template.BindType == ItemBindType.BindOnEquip)
-                {
-                    item.SetFlag(ItemFlag.SoulBound);
-                }
-
-                if (item.HasFlag(ItemFlag.SoulBound))
-                {
-                    itemTasks.Add(new ItemUpdateBits(item));
-                }
+                item.SetFlag(ItemFlag.SoulBound);
+                bound = true;
             }
+
+            // Character gear, mate gear, and ship parts all count as equipping for BindOnEquip.
+            // EquipmentSlave used to be skipped, so the client kept showing the bind confirm dialog
+            // (template is BoE, SoulBound never set) every time a part was put on the hull.
+            if (!bound &&
+                item.Template.BindType == ItemBindType.BindOnEquip &&
+                ContainerType is SlotType.Equipment or SlotType.EquipmentSlave or SlotType.EquipmentMate)
+            {
+                item.SetFlag(ItemFlag.SoulBound);
+                bound = true;
+            }
+
+            if (bound)
+                itemTasks.Add(new ItemUpdateBits(item));
         }
 
         if (itemTasks.Count > 0)
@@ -967,6 +993,11 @@ public class ItemContainer
             return new CofferContainer(ownerId, createWithNewId);
         }
 
+        if (containerTypeName.EndsWith("ItemBagContainer"))
+        {
+            return new ItemBagContainer(ownerId, createWithNewId);
+        }
+
         // Fall-back
         return new ItemContainer(ownerId, slotType, createWithNewId, parentUnit);
     }
@@ -989,7 +1020,8 @@ public class ItemContainer
 
     public virtual void OnEnterContainer(Item item, ItemContainer lastContainer, byte previousSlot)
     {
-        // Do nothing
+        if (item is ItemBag && ItemManager.Instance.GetItemBagContainer(item.Id) is { } itemBagContainer)
+            itemBagContainer.ReassignOwner(item.OwnerId);
     }
 
     public virtual void OnLeaveContainer(Item item, ItemContainer newContainer, byte previousSlot)

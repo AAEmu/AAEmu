@@ -25,7 +25,7 @@ public abstract class StreamPacket(ushort typeId) : PacketBase<StreamConnection>
         else
             logString = $"StreamPacket: S->C {ToString()?.Substring(23)}\n{ps}";
 
-        switch (LogLevel)
+        switch (EffectiveLogLevel)
         {
             case PacketLogLevel.Trace:
                 Logger.Trace(logString);
@@ -56,7 +56,7 @@ public abstract class StreamPacket(ushort typeId) : PacketBase<StreamConnection>
     public override PacketBase<StreamConnection> Decode(PacketStream ps)
     {
         var logString = $"StreamPacket: C->S type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}\n{ps}";
-        switch (LogLevel)
+        switch (EffectiveLogLevel)
         {
             case PacketLogLevel.Trace:
                 Logger.Trace(logString);

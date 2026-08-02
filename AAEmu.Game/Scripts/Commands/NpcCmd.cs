@@ -19,7 +19,6 @@ public class NpcCmd : SubCommandBase, ICommand, ICommandV2
 
         Register(new NpcInformationSubCommand(), "info");
         Register(new NpcPositionSubCommand(), "position", "pos");
-        Register(new NpcSaveSubCommand(), "save");
         Register(new NpcSpawnSubCommand(), "spawn");
         Register(new NpcRemoveSubCommand(), "remove");
     }

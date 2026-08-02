@@ -9,6 +9,8 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
+using WorldIntegration = AAEmu.Game.WorldIntegration;
+
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
 public class PutDownBackpackEffect : EffectTemplate
@@ -85,11 +87,23 @@ public class PutDownBackpackEffect : EffectTemplate
                 doodad.ParentObj = targetHouse;
                 doodad.ParentObjId = targetHouse.ObjId;
                 doodad.Transform.Parent = targetHouse.Transform; // Does not work as intended yet
+                DoodadManager.Instance.RefreshFaction(doodad, character, targetHouse);
             }
 
             doodad.InitDoodad();
             doodad.Spawn();
             doodad.Save();
+
+            if (WorldIntegration.ZoneAuthority)
+            {
+                var p = doodad.Transform.World.Position;
+                WorldIntegration.RelayDropBackpackToZone?.Invoke(
+                    character.ObjId,
+                    item.Id,
+                    BackpackDoodadId,
+                    character.Transform.ZoneId,
+                    p.X, p.Y, p.Z);
+            }
 
             character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId, (byte)EquipmentItemSlot.Backpack, null), false);
             if (previousGlider != null && character.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack) == null)

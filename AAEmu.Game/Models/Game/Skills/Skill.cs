@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -25,7 +25,6 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
-using AAEmu.Game.Physics;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
 
@@ -47,6 +46,11 @@ public class Skill
     public Dictionary<uint, SkillHitType> HitTypes { get; set; }
     public BaseUnit InitialTarget { get; set; }//Temp Hack Fix. Replace this with UnitsEffected
     private bool _bypassGcd;
+    /// <summary>ZoneAuthority: avoid double WZSkillStarted (cast-time relays at Use, instant at Cast).</summary>
+    private bool _zoneSkillStartedRelayed;
+    private bool _zoneSkillFiredRelayed;
+    private bool _zoneSkillEndedRelayed;
+    private SkillCaster _zoneSkillCaster;
     public bool Cancelled { get; set; } = false;
     public Action Callback { get; set; }
 
@@ -84,10 +88,26 @@ public class Skill
     /// <param name="targetCaster"></param>
     /// <param name="skillObject">null by default</param>
     /// <param name="bypassGcd">false by default</param>
-    /// <param name="skillResultValueUInt">Additional skill error data</param>
+    /// <param name="skillResultValueUInt">Additional 32-bit skill error data</param>
     /// <returns></returns>
     public SkillResult Use(BaseUnit caster, SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject, bool bypassGcd, out uint skillResultValueUInt)
     {
+        return Use(caster, casterCaster, targetCaster, skillObject, bypassGcd, out _, out skillResultValueUInt);
+    }
+
+    /// <summary>
+    /// Runs the skill and preserves both native SkillStarted failure-detail fields.
+    /// </summary>
+    public SkillResult Use(
+        BaseUnit caster,
+        SkillCaster casterCaster,
+        SkillCastTarget targetCaster,
+        SkillObject skillObject,
+        bool bypassGcd,
+        out ushort skillResultValueUShort,
+        out uint skillResultValueUInt)
+    {
+        skillResultValueUShort = 0;
         skillResultValueUInt = 0;
         // Check if the source is an actual Unit
         if (caster is not Unit unit)
@@ -98,30 +118,45 @@ public class Skill
         // Cast character for future reference
         var character = caster as Character;
 
+        // The dismount skill carries no effects of its own: const_skill_types names it "detached_unit"
+        // and the rider is expected to come off whatever it is attached to when the skill is used.
+        if (character != null && SkillManager.Instance.IsDetachSkill(Template.Id))
+        {
+            character.ForceDismount(AttachUnitReason.SlaveBinding);
+            Logger.Debug("Detach skill {0} used by {1}", Template.Id, character.Name);
+        }
+
         unit.ConditionChance = true;
 
-        var requirementResult = UnitRequirementsGameData.Instance.CanUseSkill(Template, caster, casterCaster);
+        var requirementResult = UnitRequirementsGameData.Instance.CanUseSkill(
+            Template,
+            caster,
+            casterCaster,
+            targetCaster);
         if (requirementResult.ResultKey != SkillResultKeys.ok)
         {
             if (character != null)
                 Logger.Warn($"{character.Name} ({character.Id}) failed requirements to use skill {Template?.Id} - {requirementResult.ResultKey}");
             Cancelled = true;
+            skillResultValueUShort = requirementResult.ResultUShort;
             skillResultValueUInt = requirementResult.ResultUInt;
             return SkillResultHelper.SkillResultErrorKeyToId(requirementResult.ResultKey);
         }
 
         _bypassGcd = bypassGcd;
+        _zoneSkillStartedRelayed = false;
+        _zoneSkillFiredRelayed = false;
+        _zoneSkillEndedRelayed = false;
+        _zoneSkillCaster = null;
         if (!_bypassGcd)
         {
             lock (unit.GcdLock)
             {
-                // Commented out the line to eliminate the hanging of the skill
-                // TODO: added for quest Id = 886 - скилл срабатывает часто, что не дает работать квесту - крысы не появляются
+                // Basic attacks: short anti-spam only. 500ms blocked the client auto-attack
+                // retry storm and made the hotbar feel unresponsive (CooldownTime).
                 var delay = 150;
                 if (Id == 2 || Id == 3 || Id == 4)
-                {
-                    delay = character != null ? 500 : 1500;
-                }
+                    delay = character != null ? 100 : 800;
 
                 if (unit.SkillLastUsed.AddMilliseconds(delay) > DateTime.UtcNow)
                 {
@@ -133,15 +168,13 @@ public class Skill
                     }
                 }
 
-                // Commented out the line to eliminate the hanging of the skill
-                if (unit.GlobalCooldown >= DateTime.UtcNow && !Template.IgnoreGlobalCooldown)
+                // Instant combo hits (e.g. Fireball 24894/24895 custom_gcd=10) must not be blocked by
+                // the parent's cast GCD — they fire at the same moment as plot cast-end.
+                var comboBypassGcd = Template.CastingTime <= 0 && Template.CustomGcd > 0 && Template.CustomGcd <= 50;
+                if (unit.GlobalCooldown >= DateTime.UtcNow && !Template.IgnoreGlobalCooldown && !comboBypassGcd)
                 {
-                    // Will delay for 50 Milliseconds to eliminate the hanging of the skill
-                    if (!caster.CheckInterval(delay))
-                    {
-                        Logger.Trace($"Skill: CooldownTime [{delay}]!");
-                        return SkillResult.CooldownTime;
-                    }
+                    Logger.Trace($"Skill: GlobalCooldown active for {Template.Id}");
+                    return SkillResult.CooldownTime;
                 }
 
                 unit.SkillLastUsed = DateTime.UtcNow;
@@ -164,10 +197,6 @@ public class Skill
         InitialTarget = target;
         if (target == null)
         {
-            if (caster is Npc npc)
-            {
-                npc.Ai?.OnNoAggroTarget();
-            }
             Logger.Trace($"Skill: SkillResult.NoTarget! - Skill {Template.Id}, Caster {caster.Name} ({caster.ObjId})");
             return SkillResult.NoTarget; // We should try to make sure this doesn't happen, but can happen with NPC skills
         }
@@ -196,9 +225,20 @@ public class Skill
         // If skill uses Plots, then start the plot
         if (Template.Plot != null)
         {
-            Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this));
             if (Template.PlotOnly)
+            {
+                // plot_only returns before Cast() — apply start costs here. GCD for cast-time plot_only
+                // is applied when the plot leaves its casting edge (PlotNode → ApplyPlotOnlyFireCosts).
+                // Zone needs WZSkillStarted now (Cast never runs).
+                RelayZoneSkillStartedIfNeeded(casterCaster, targetCaster, skillObject);
+                ConsumeMana(caster);
+                if (Template.CastingTime <= 0)
+                    ApplyPlotOnlyFireCosts(unit);
+                Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this));
                 return SkillResult.Success;
+            }
+
+            Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this));
         }
 
         // Check if target is within range
@@ -241,9 +281,19 @@ public class Skill
             return SkillResult.TooCloseRange;
         }
 
+        // A position-targeted skill is cast at a spot on the ground rather than at a unit, and its
+        // template carries max_range 0 because the client decides where the placement is legal.
+        // Measuring the distance to that spot and comparing it against 0 rejects every cast:
+        // summoning a boat (skill 15802, target type SummonPos) failed as TooFarRange at 3.4m with
+        // the client left holding the cooldown it had already started.
+        var placementTarget = targetCaster is SkillCastPositionTarget
+            or SkillCastPosition2Target
+            or SkillCastPosition3Target;
+        var unboundedPlacement = placementTarget && Template.MaxRange <= 0;
+
         // TODO: Remove exception for doodads
         // TODO: Remove exceptions for slave initiated by Doodads (needed to fix repair points on ships)
-        if (targetDist > maxRangeCheck && target is not Doodad && target is not Slave)
+        if (targetDist > maxRangeCheck && !unboundedPlacement && target is not Doodad && target is not Slave)
         {
             SkillTlIdManager.ReleaseId(TlId);
             TlId = 0;
@@ -321,7 +371,20 @@ public class Skill
 
         if (castTime > 0)
         {
+            // Abort any in-flight cast on this unit. Client often StopCastings first, but a second
+            // StartSkill without a matching stop (or a previously-ignored ZoneAuthority stop) would
+            // leave the old CastTask scheduled — SpawnSlave then fires for both timelines.
+            if (unit.SkillTask?.Skill != null && unit.SkillTask.Skill != this)
+            {
+                var previous = unit.SkillTask;
+                previous.Cancel();
+                previous.Skill.Cancelled = true;
+                previous.Skill.Stop(unit);
+            }
+
             // Has casting time, schedule a task for it
+            // ZoneAuthority: cast begins now — Started before cast-end Cast()/EndSkill.
+            RelayZoneSkillStartedIfNeeded(casterCaster, targetCaster, skillObject);
             caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
             {
                 BaseCastTimeDiv10 = (ushort)(castTime / 10),
@@ -334,6 +397,8 @@ public class Skill
         else
         {
             // Immediate skill
+            if (caster is Character ch && Template.Id is 2 or 3 or 4)
+                ch.IsAutoAttack = true;
             Cast(caster, casterCaster, target, targetCaster, skillObject);
         }
 
@@ -411,6 +476,8 @@ public class Skill
                     break;
                 }
             case SkillTargetType.AnyUnit:
+            case SkillTargetType.AnyUnitAlways:
+            case SkillTargetType.IgnoreProtected:
                 {
                     if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                     {
@@ -479,7 +546,9 @@ public class Skill
 
                     break;
                 }
-            case SkillTargetType.Building:
+            case SkillTargetType.GeneralUnit:
+            case SkillTargetType.ChildSlave:
+            case SkillTargetType.MySlave:
                 {
                     if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                     {
@@ -512,14 +581,17 @@ public class Skill
                     break;
                 }
             case SkillTargetType.Party:
-                break;
             case SkillTargetType.Raid:
-                break;
             case SkillTargetType.Line:
-                break;
             case SkillTargetType.Pet:
+                target = targetCaster.ObjId > 0
+                    ? caster.ParentWorld.GetBaseUnit(targetCaster.ObjId)
+                    : caster;
                 break;
             case SkillTargetType.SummonPos:
+            case SkillTargetType.CommanderPos:
+                if (targetCaster is SkillCastPositionTarget or SkillCastPosition2Target or SkillCastPosition3Target)
+                    target = SetInitialTarget(caster, targetCaster);
                 break;
             // Ship harpoon Launch Harpoon (13749) uses target_type_id 13 = RelativePos with a world Position from the client.
             case SkillTargetType.RelativePos:
@@ -534,6 +606,7 @@ public class Skill
                     break;
                 }
             case SkillTargetType.SourcePos:
+                target = caster;
                 break;
             case SkillTargetType.ArtilleryPos:
                 {
@@ -543,12 +616,32 @@ public class Skill
                     break;
                 }
             case SkillTargetType.CursorPos:
+                if (targetCaster is SkillCastPositionTarget or SkillCastPosition2Target or SkillCastPosition3Target)
+                    target = SetInitialTarget(caster, targetCaster);
+                break;
+            case SkillTargetType.Parent:
+            case SkillTargetType.PetOwner:
+                target = ResolveOwnerTarget(caster) ?? caster;
+                targetCaster.ObjId = target.ObjId;
                 break;
             default:
                 throw new NotSupportedException($"SkillTargetType not supported {Template.TargetType}");
         }
 
         return target;
+    }
+
+    private static BaseUnit ResolveOwnerTarget(BaseUnit caster)
+    {
+        uint ownerObjId = caster switch
+        {
+            global::AAEmu.Game.Models.Game.Units.Mate mate => mate.OwnerObjId,
+            Slave slave => slave.OwnerObjId,
+            Unit unit => unit.OwnerId,
+            _ => 0u
+        };
+
+        return ownerObjId > 0 ? caster.ParentWorld?.GetBaseUnit(ownerObjId) : null;
     }
 
     private static BaseUnit SetInitialTarget(BaseUnit caster, SkillCastTarget targetCaster)
@@ -606,15 +699,25 @@ public class Skill
     public void Cast(BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
     {
         if (caster is not Unit unit) { return; }
+        if (Cancelled)
+        {
+            if (TlId != 0)
+            {
+                RelayZoneSkillEndedIfNeeded();
+                SkillTlIdManager.ReleaseId(TlId);
+                TlId = 0;
+            }
+            return;
+        }
 
         if (!_bypassGcd)
         {
-            var gcd = Template.CustomGcd;
-            if (Template.DefaultGcd)
-                gcd = caster is Npc ? 1500 : 1000;
-
-            unit.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * (unit.GlobalCooldownMul / 100));
+            ApplyGlobalCooldown(unit);
         }
+
+        // Instant ZoneAuthority casts: WZSkillStarted before ScheduleEffects/EndSkill (melee 2
+        // clears TlId immediately). Cast-time / plot_only already relayed at Use() entry.
+        RelayZoneSkillStartedIfNeeded(casterCaster, targetCaster, skillObject);
 
         if (caster is Npc && Template.SkillControllerId != 0)
         {
@@ -756,8 +859,11 @@ public class Skill
         // await unit.AutoAttackTask.Cancel();
         caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
         caster.BroadcastPacket(new SCSkillStoppedPacket(unit.ObjId, Id), true);
+        if (WorldIntegration.ZoneAuthority)
+            WorldIntegration.RelaySkillStoppedToZone?.Invoke(unit.ObjId, (int)Id);
         //unit.AutoAttackTask = null;
         //unit.IsAutoAttack = false; // turned off auto attack
+        RelayZoneSkillEndedIfNeeded();
         SkillTlIdManager.ReleaseId(TlId);
         TlId = 0;
     }
@@ -787,6 +893,7 @@ public class Skill
         }
 
         caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
+        RelayZoneSkillFiredIfNeeded(casterCaster, targetCaster, skillObject);
         unit.SkillTask = new EndChannelingTask(this, caster, casterCaster, target, targetCaster, skillObject, doodad);
         TaskManager.Instance.Schedule(unit.SkillTask, TimeSpan.FromMilliseconds(Template.ChannelingTime));
     }
@@ -821,6 +928,16 @@ public class Skill
     public void ScheduleEffects(BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
     {
         if (caster is not Unit unit) { return; }
+        if (Cancelled)
+        {
+            if (TlId != 0)
+            {
+                RelayZoneSkillEndedIfNeeded();
+                SkillTlIdManager.ReleaseId(TlId);
+                TlId = 0;
+            }
+            return;
+        }
         if (Template.ToggleBuffId != 0)
         {
             var buff = SkillManager.Instance.GetBuffTemplate(Template.ToggleBuffId);
@@ -845,6 +962,9 @@ public class Skill
         if (weaponAnimId > 0)
             firedPacket.FireAnimId = weaponAnimId;
         caster.BroadcastPacket(firedPacket, true);
+
+        // ZoneAuthority: bridge fire to Zone at the same moment as SC SkillFired (not for plot_only — Use never reaches here).
+        RelayZoneSkillFiredIfNeeded(casterCaster, targetCaster, skillObject);
 
         if (totalDelay > 0)
         {
@@ -990,7 +1110,8 @@ public class Skill
             }
         }
 
-        var packets = new CompressedGamePackets();
+        // Never DD04 (L4 zip) — retail enter/in-world sniff had 0× level-4; send plain SC only.
+        CompressedGamePackets packets = null;
         var consumedItems = new List<(Item, int)>();
         var consumedItemTemplates = new List<(uint, int)>(); // itemTemplateId, amount
 
@@ -1011,11 +1132,13 @@ public class Skill
                     effectedTargets.Add(caster);//Diff between Source and SourceOnce?
                     break;
                 case SkillEffectApplicationMethod.SourceOnce:
-                    // TODO: HACKFIX for owner's mark
-                    if (casterCaster.Type == SkillCasterType.Mount && targetSelf is Units.Mate || targetSelf is Slave)
+                    // Owner's mark used to redirect Mount→Mate onto the mate target. That catch-all
+                    // also matched Sail→Hull fold casts (targetSelf is Slave), so SourceOnce anim
+                    // buffs landed on the hull instead of the equipment sail — fold never showed.
+                    if (casterCaster.Type == SkillCasterType.Mount && targetSelf is Units.Mate)
                         effectedTargets = possibleTargets;
                     else
-                        effectedTargets.Add(caster);//idk
+                        effectedTargets.Add(caster);
                     break;
                 case SkillEffectApplicationMethod.SourceToPos:
                     effectedTargets = possibleTargets;
@@ -1110,41 +1233,82 @@ public class Skill
             }
         }
 
-        // Handle consumption of items from effects
-        // Placed outside the loop to prevent multiple uses
-        if (lastAppliedEffect != null)
+        // Handle consumption of items from effects (once per cast — scan ALL queued effects).
+        // Using only lastAppliedEffect breaks multi-effect skills: farmer's pouch (23136) applies
+        // GainLootPack (consume_source_item=t) then a conditional BuffEffect (consume=f). With a
+        // life-skill buff active the buff is last → loot granted, purse never removed.
+        if (effectsToApply.Count > 0 && player != null)
         {
-            // Consume the item
-            if (casterCaster is SkillItem castItem && player != null)
+            var consumeSource = false;
+            var sourceConsumeCount = 0;
+            foreach (var (_, effect) in effectsToApply)
             {
-                var useItem = ItemManager.Instance.GetItemByItemId(castItem.ItemId);
-                if (lastAppliedEffect.ConsumeSourceItem)
-                    consumedItems.Add((useItem, lastAppliedEffect.ConsumeItemCount));
+                if (!effect.ConsumeSourceItem || effect.ConsumeItemCount <= 0)
+                    continue;
+                consumeSource = true;
+                sourceConsumeCount = Math.Max(sourceConsumeCount, effect.ConsumeItemCount);
+            }
+
+            if (casterCaster is SkillItem castItem)
+            {
+                var useItem = ItemManager.Instance.GetItemByItemId(castItem.ItemId)
+                              ?? player.Inventory.Bag.GetItemByItemId(castItem.ItemId);
+                if (consumeSource)
+                {
+                    // GainLootPackItemEffect already ConsumeItem's the SkillItem (stack-safe).
+                    // Queuing it here again burns a second unit from the same stack.
+                    var lootPackHandlesSource = effectsToApply.Any(e =>
+                        e.effect.Template is GainLootPackItemEffect);
+                    if (lootPackHandlesSource)
+                    {
+                        // Effect owns source consumption.
+                    }
+                    else if (useItem is { _holdingContainer: not null })
+                    {
+                        consumedItems.Add((useItem, sourceConsumeCount));
+                    }
+                    else if (useItem == null)
+                    {
+                        if (castItem.ItemTemplateId != 0)
+                        {
+                            // ItemId missing from world map — still burn a bag stack by template.
+                            consumedItemTemplates.Add((castItem.ItemTemplateId, Math.Max(1, sourceConsumeCount)));
+                            Logger.Warn(
+                                "Skill {0}: consume_source_item itemId={1} missing from ItemManager; consuming tpl {2} from bag",
+                                Template.Id, castItem.ItemId, castItem.ItemTemplateId);
+                        }
+                        else
+                        {
+                            Logger.Warn("Skill {0}: consume_source_item but item {1} not found", Template.Id, castItem.ItemId);
+                        }
+
+                        // Clear client bag ghost for this instance id (server object already gone).
+                        if (castItem.ItemId != 0)
+                            player.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.SkillReagents, [], [castItem.ItemId]));
+                    }
+                }
                 else
                 {
                     var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
-                    if (castItemTemplate.UseSkillAsReagent)
-                        consumedItems.Add((useItem, lastAppliedEffect.ConsumeItemCount));
+                    if (castItemTemplate is { UseSkillAsReagent: true } && useItem != null)
+                        consumedItems.Add((useItem, Math.Max(1, lastAppliedEffect?.ConsumeItemCount ?? 1)));
                 }
             }
 
-            if (player != null && lastAppliedEffect.ConsumeItemId != 0 && lastAppliedEffect.ConsumeItemCount > 0)
+            foreach (var (_, effect) in effectsToApply)
             {
-                if (lastAppliedEffect.ConsumeSourceItem)
+                if (effect.ConsumeItemId == 0 || effect.ConsumeItemCount <= 0)
+                    continue;
+                if (effect.ConsumeSourceItem)
                 {
-                    consumedItemTemplates.Add((lastAppliedEffect.ConsumeItemId, lastAppliedEffect.ConsumeItemCount));
+                    consumedItemTemplates.Add((effect.ConsumeItemId, effect.ConsumeItemCount));
+                    continue;
                 }
-                else
-                {
-                    var inventory = player.Inventory.CheckItems(SlotType.Inventory, lastAppliedEffect.ConsumeItemId,
-                        lastAppliedEffect.ConsumeItemCount);
-                    var equipment = player.Inventory.CheckItems(SlotType.Equipment, lastAppliedEffect.ConsumeItemId,
-                        lastAppliedEffect.ConsumeItemCount);
-                    if (inventory || equipment)
-                    {
-                        consumedItemTemplates.Add((lastAppliedEffect.ConsumeItemId, lastAppliedEffect.ConsumeItemCount));
-                    }
-                }
+
+                var inventory = player.Inventory.CheckItems(SlotType.Inventory, effect.ConsumeItemId, effect.ConsumeItemCount);
+                var equipment = player.Inventory.CheckItems(SlotType.Equipment, effect.ConsumeItemId, effect.ConsumeItemCount);
+                if (inventory || equipment)
+                    consumedItemTemplates.Add((effect.ConsumeItemId, effect.ConsumeItemCount));
             }
         }
 
@@ -1302,13 +1466,14 @@ public class Skill
         }
 
         // Quick Hack
-        if (packets.Packets.Count > 0)
+        if (packets is { Packets.Count: > 0 })
             caster.BroadcastPacket(packets, true);
 
         // Hack to consume TreasureMap items (don't know how else to add this)
         if (player != null && Template.Id == SkillsEnum.DigUpTreasureChestMarkedOnMap)
         {
-            var treasureMapToUse = UnitRequirementsGameData.Instance.GetTreasureMapWithCoordinatesNearbyItem(player, 5.0);
+            var treasureMapToUse = UnitRequirementsGameData.Instance.GetTreasureMapWithCoordinatesNearbyItem(
+                player, Template.MaxRange);
             if (treasureMapToUse != null)
             {
                 consumedItems.Add((treasureMapToUse, 1));
@@ -1326,7 +1491,7 @@ public class Skill
                 // Actually consume the to be consumed items
                 // Specific Items
                 foreach (var (item, amount) in consumedItems)
-                    if (item._holdingContainer != null)
+                    if (item?._holdingContainer != null)
                     {
                         item._holdingContainer.ConsumeItem(ItemTaskType.SkillReagents, item.TemplateId, amount, item);
                     }
@@ -1377,7 +1542,11 @@ public class Skill
 
         Callback?.Invoke();
         unit.OnSkillEnd(this);
-        caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
+        // Basic attacks (2/3/4): while auto-attacking, skip SCSkillEnded so a Started/Fired
+        // swing doesn't immediately clear client combat UI. Stop clears via SCSkillStopped.
+        if (Template.Id is not (2 or 3 or 4) || caster is not Character { IsAutoAttack: true })
+            caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
+        RelayZoneSkillEndedIfNeeded();
         SkillTlIdManager.ReleaseId(TlId);
         TlId = 0;
 
@@ -1404,10 +1573,13 @@ public class Skill
         }
         caster.BroadcastPacket(new SCCastingStoppedPacket(TlId, 0), true);
         caster.BroadcastPacket(new SCSkillEndedPacket(TlId), true);
+        if (WorldIntegration.ZoneAuthority)
+            WorldIntegration.RelayCastingStoppedToZone?.Invoke(unit.ObjId, (short)TlId, 0, 0);
         Callback?.Invoke();
         unit.OnSkillEnd(this);
         unit.SkillTask = null;
         Cancelled = true;
+        RelayZoneSkillEndedIfNeeded();
         SkillTlIdManager.ReleaseId(TlId);
         TlId = 0;
 
@@ -1519,6 +1691,89 @@ AlwaysHit:
         var cost2 = baseCost * Template.ManaLevelMd + Template.ManaCost;
         var manaCost = (int)caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.ManaCost, cost2);
         return manaCost;
+    }
+
+    /// <summary>
+    /// plot_only skips Cast(); call at cast-end (or immediately for instant plot_only) so GCD matches retail.
+    /// </summary>
+    public void ApplyPlotOnlyFireCosts(Unit unit)
+    {
+        if (unit == null || !Template.PlotOnly || _bypassGcd)
+            return;
+        ApplyGlobalCooldown(unit);
+        // Skill cooldown is also applied in DoPlotEnd; applying early matches Cast() and blocks re-cast spam.
+        if (Template.CooldownTime > 0)
+            unit.Cooldowns.AddCooldown(Template.Id, (uint)Template.CooldownTime);
+    }
+
+    /// <summary>
+    /// ZoneAuthority WZSkillStarted once per Use. Instant skills must call this from Cast()
+    /// before EndSkill zeroes TlId; cast-time/plot_only call it when the cast begins.
+    /// </summary>
+    private void RelayZoneSkillStartedIfNeeded(SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject)
+    {
+        if (_zoneSkillStartedRelayed || TlId == 0)
+            return;
+        if (!WorldIntegration.ZoneAuthority)
+            return;
+        if (Environment.GetEnvironmentVariable("AAEMU_FORCE_LOCAL_SKILLS") == "1")
+            return;
+        if (WorldIntegration.RelaySkillStartedToZone == null)
+            return;
+
+        if (WorldIntegration.RelaySkillStartedToZone(
+                Id, TlId, casterCaster, targetCaster, 0, skillObject ?? new SkillObject()))
+        {
+            _zoneSkillCaster = casterCaster;
+            _zoneSkillStartedRelayed = true;
+        }
+    }
+
+    private void RelayZoneSkillFiredIfNeeded(
+        SkillCaster casterCaster,
+        SkillCastTarget targetCaster,
+        SkillObject skillObject)
+    {
+        if (!_zoneSkillStartedRelayed || _zoneSkillFiredRelayed || TlId == 0)
+            return;
+        if (!WorldIntegration.ZoneAuthority ||
+            Environment.GetEnvironmentVariable("AAEMU_WZ_SKILL_FIRED") == "0" ||
+            WorldIntegration.RelaySkillFiredToZone == null)
+            return;
+
+        _zoneSkillFiredRelayed = WorldIntegration.RelaySkillFiredToZone(
+            Id, TlId, casterCaster, targetCaster, skillObject ?? new SkillObject());
+    }
+
+    /// <summary>
+    /// Complete a native Zone skill timeline exactly once before its managed timeline is released.
+    /// Plot-only skills call this directly because they do not use <see cref="EndSkill"/>.
+    /// </summary>
+    public void RelayZoneSkillEndedIfNeeded()
+    {
+        if (!_zoneSkillStartedRelayed || _zoneSkillEndedRelayed || TlId == 0 || _zoneSkillCaster == null)
+            return;
+        if (!WorldIntegration.ZoneAuthority || WorldIntegration.RelaySkillEndedToZone == null)
+            return;
+
+        _zoneSkillEndedRelayed = WorldIntegration.RelaySkillEndedToZone(TlId, _zoneSkillCaster);
+    }
+
+    private void ApplyGlobalCooldown(Unit unit)
+    {
+        // Basic attacks are weapon-speed paced (StartAutoSkill / UseAutoAttackSkillTask), not GCD.
+        // Skill 2 has default_gcd in DB; applying it made the hotbar feel dead and blocked the
+        // auto-attack loop (task ticks skip while GlobalCooldown is active). Skill 4 already
+        // ignore_global_cooldown in DB — match that for 2/3.
+        if (Template.Id is 2 or 3 or 4)
+            return;
+
+        var gcd = Template.CustomGcd;
+        if (Template.DefaultGcd)
+            gcd = unit is Npc ? 1500 : 1000;
+        if (gcd <= 0)
+            return;
+        unit.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * (unit.GlobalCooldownMul / 100));
     }
 
     public void ConsumeMana(BaseUnit caster)

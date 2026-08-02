@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.World;
@@ -11,9 +11,12 @@ public enum MoveTypeEnum
     Default = 0,
     Unit = 1,
     Vehicle = 2,
-    Ship = 3,
-    ShipRequest = 4,
-    Transfer = 5
+    // branch (wheelAngVel), 4 is the ship body (ship.angVel/steering/throttle/rpm/zoneId/stucked),
+    // 5 is the ship control request and 6 is transfer. Sending a ship body as 3 has the client parse
+    // it as a vehicle, so the hull moves on the server and never appears to move on screen.
+    Ship = 4,
+    ShipRequest = 5,
+    Transfer = 6,
 }
 
 public abstract class MoveType : PacketMarshaler
@@ -70,6 +73,7 @@ public abstract class MoveType : PacketMarshaler
                 mType = new UnitMoveType();
                 break;
             case MoveTypeEnum.Vehicle:
+            case (MoveTypeEnum)3:
                 mType = new VehicleMoveType();
                 break;
             case MoveTypeEnum.Ship:

@@ -73,21 +73,18 @@ public class CharacterAppellations(Character owner)
         // The client always expects SCAppellations at character entry to initialize its appellation list; the
         // reference server sends an empty one (count=0) even with no titles. Without it the player-frame event
         // window dereferences the uninitialized list on show and crashes. Emit the empty packet explicitly.
-        if (Appellations.Count == 0)
-        {
-            Owner.SendPacket(new SCAppellationsPacket([]));
-            return;
-        }
+        if (Appellations.Count > SCAppellationsPacket.MaximumEntries)
+            Logger.Warn(
+                "Character {0} owns {1} appellations; native packet capacity is {2}",
+                Owner.Id,
+                Appellations.Count,
+                SCAppellationsPacket.MaximumEntries);
 
-        for (var i = 0; i < Appellations.Count; i += 512)
-        {
-            var result = new (uint, bool)[Appellations.Count - i <= 512 ? Appellations.Count - i : 512];
-
-            for (var j = 0; j < result.Length; j++)
-                result[j] = (Appellations[i + j], Appellations[i + j] == ActiveAppellation);
-
-            Owner.SendPacket(new SCAppellationsPacket(result));
-        }
+        var entries = Appellations
+            .Take(SCAppellationsPacket.MaximumEntries)
+            .Select(id => (unchecked((int)id), id == ActiveAppellation ? (sbyte)1 : (sbyte)0))
+            .ToArray();
+        Owner.SendPacket(new SCAppellationsPacket(entries));
     }
 
     public void Load(MySqlConnection connection)

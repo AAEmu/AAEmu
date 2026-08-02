@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -12,5 +13,8 @@ public class CSInteractNPCEndPacket() : GamePacket(CSOffsets.CSInteractNPCEndPac
         Logger.Debug("InteractNPCEnd, BcId: {0}", objId);
 
         Connection.ActiveChar.CurrentInteractionObject = null;
+
+        if (WorldIntegration.ZoneAuthority && Connection.ActiveChar != null)
+            WorldIntegration.RelayInteractNpcToZone?.Invoke(Connection.ActiveChar.ObjId, objId, true);
     }
 }

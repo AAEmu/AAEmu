@@ -5,12 +5,12 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
 
-public class DoodadFuncCoffer : DoodadPhaseFuncTemplate
+public class DoodadFuncCoffer : DoodadFuncTemplate
 {
     // doodad_phase_funcs
     public int Capacity { get; set; }
 
-    public override bool Use(BaseUnit caster, Doodad owner)
+    public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
         Logger.Debug("DoodadFuncCoffer");
         owner.ToNextPhase = false;
@@ -20,6 +20,5 @@ public class DoodadFuncCoffer : DoodadPhaseFuncTemplate
             else
                 DoodadManager.Instance.OpenCofferDoodad(character, owner.ObjId);
         Logger.Trace("DoodadFuncCoffer");
-        return false;
     }
 }

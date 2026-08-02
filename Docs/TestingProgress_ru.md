@@ -80,7 +80,6 @@ ______________________________________________________________________
 | `TeamManager`              | 1      | ✅ Базовое          |
 | `TradeManager`             | 1      | ✅ Базовое          |
 | `EffectTaskManager`        | 2      | ✅ Базовое          |
-| `BoatPhysicsManager`      | 1      | ⚠️ Базовое         |
 | `FactionManager`           | 1      | ⚠️ Базовое         |
 | `NpcManager`               | 1      | ⚠️ Базовое         |
 
@@ -433,7 +432,6 @@ ______________________________________________________________________
 ### Game/Core/Managers/World
 | Файл | Описание |
 |------|----------|
-| `BoatPhysicsManagerTests.cs` | Тесты для физики лодок |
 | `ExampleTests.cs` | Примеры/заглушки для тестов |
 | `FactionManagerTests.cs` | Тесты для системы фракций |
 | `WorldManagerTests.cs` | Тесты для управления миром |

@@ -16,7 +16,6 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
     public List<AreasMissionReader> AreasMissionReaders { get; } = [];
     public List<NetMissionReader> NetMissionReaders { get; } = [];
     public List<VertexMissionReader> VertexMissionReaders { get; } = [];
-    public List<NetMissionReader> HideMissionReaders { get; } = [];
 
     /// <summary>
     /// Loads .bai files data from a given zone or path folder
@@ -154,40 +153,8 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
                 }
             }
 
-            // HideMission*.bai
-            var hideFiles = GetFiles("hidemission*.bai", zoneOrPathsFolder);
-            foreach (var hideFile in hideFiles)
-            {
-                // Try to get zone key from folder name
-                var hideFolderName = Path.GetFileName(Path.GetDirectoryName(hideFile)) ?? "";
-
-                if (string.IsNullOrWhiteSpace(hideFolderName))
-                    continue;
-
-                //LabelLoading.Text = $"Hide: {fileIndex}/{hideFiles.Length}";
-                //LabelLoading.Refresh();
-
-                var (zoneKey, pathBlockX, pathBlockY) = GetZoneAndOffsetsByName(hideFolderName);
-                var targetOffset = GetTargetOffsetByZoneOrPath(zoneKey, pathBlockX, pathBlockY);
-
-                // Logger.Debug($"Hide File: {hideFile}");
-
-                using var fs = ClientFileManager.GetFileStream(hideFile);
-                var hide = new NetMissionReader(fs, zoneKey);
-                try
-                {
-                    hide.ReaderPointOffset = targetOffset;
-                    hide.ReadFile();
-                    HideMissionReaders.Add(hide);
-                }
-                catch (Exception ex)
-                {
-                    Logger.Debug($"Hide File Exception: {ex}, in {hideFile}");
-                    // continue;
-                }
-            }
-
-            //LabelLoading.Text = "Done Loading .bai";
+            // hidemission*.bai holds AI concealment volumes: the Zone evaluates those against its
+            // own NPCs, so World does not read them.
         }
         catch (Exception ex)
         {
@@ -247,36 +214,5 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
         AreasMissionReaders.Clear();
         NetMissionReaders.Clear();
         VertexMissionReaders.Clear();
-        HideMissionReaders.Clear();
-    }
-
-    public NodeDescriptor FindClosestNetMissionNode(Vector3 pos)
-    {
-        NodeDescriptor nearestNode = null;
-        var nearestDistance = float.MaxValue;
-        foreach (var netMissionReader in NetMissionReaders)
-        {
-            foreach (var (index, nodeDescriptor) in netMissionReader.NodeDescriptorList)
-            {
-                if (nearestNode == null)
-                {
-                    nearestNode = nodeDescriptor;
-                    nearestDistance = (nearestNode.Pos - pos).Length();
-                    continue;
-                }
-                var thisDistance = (pos - nodeDescriptor.Pos).Length();
-                if (thisDistance < nearestDistance)
-                {
-                    nearestNode = nodeDescriptor;
-                    nearestDistance = thisDistance;
-                }
-
-                if (nearestDistance <= 0.0001f)
-                {
-                    return nearestNode;
-                }
-            }
-        }
-        return nearestNode;
     }
 }

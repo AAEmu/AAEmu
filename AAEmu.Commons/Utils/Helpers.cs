@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using System.Reflection;
 
 namespace AAEmu.Commons.Utils;
@@ -132,7 +132,6 @@ public static class Helpers
 
     // 10.0.2.13 quantized world position (11 bytes): x and y carry 4 bytes each (abs>>35,>>43,>>51,>>59),
     // z is 22-bit quantized over [-100, 4096] with base 4196.0, and the trailing byte packs the high z bits
-    // plus the x/y sign bits (z base 0x45832000 = 4196.0). v1.2 used 3 bytes for x/y (9-byte total).
     public static (float x, float y, float z) ConvertPosition(byte[] values)
     {
         var rawX = (long)values[0] | ((long)values[1] << 8) | ((long)values[2] << 16) | ((long)values[3] << 24);

@@ -1,10 +1,12 @@
 ﻿using AAEmu.Game.Core.Packets;
-using AAEmu.Game.GameData;
-using AAEmu.Game.Models.Game.AI.Enums;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
+
+using WorldIntegration = AAEmu.Game.WorldIntegration;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
@@ -14,13 +16,6 @@ public class NpcControlEffect : EffectTemplate
     public string ParamString { get; set; }
     public uint ParamInt { get; set; }
 
-    // ---
-    private string fileName { get; set; }
-    private string fileName2 { get; set; }
-    private uint skillId { get; set; }
-    private uint timeout { get; set; }
-    // ---
-
     public override bool OnActionTime => false;
 
     public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
@@ -29,19 +24,25 @@ public class NpcControlEffect : EffectTemplate
     {
         Logger.Info($"NpcControllEffect: CategoryId={CategoryId}, ParamString={ParamString}, ParamInt={ParamInt}, caster={caster.TemplateId}, target={target.TemplateId}");
 
-        fileName = string.Empty;
-        fileName2 = string.Empty;
-
         if (target is Npc targetNpc)
         {
+            var playerId = caster is Character ch ? ch.ObjId : 0u;
             switch (CategoryId)
             {
                 case NpcControlCategory.Signal:
                     break;
                 case NpcControlCategory.FollowUnit:
+                    if (WorldIntegration.ZoneAuthority && playerId != 0)
+                        WorldIntegration.RelayQuestNpcAiToZone?.Invoke(1, targetNpc.ObjId, playerId, null, 0, 0);
                     break;
                 case NpcControlCategory.FollowPath:
                     {
+                        if (WorldIntegration.ZoneAuthority)
+                        {
+                            WorldIntegration.RelayQuestNpcAiToZone?.Invoke(
+                                2, targetNpc.ObjId, playerId, ParamString ?? "", 0, 0);
+                            break;
+                        }
                         if (targetNpc.IsInPatrol) { break; }
                         targetNpc.IsInPatrol = true;
                         if (targetNpc.Simulation != null)
@@ -56,59 +57,21 @@ public class NpcControlEffect : EffectTemplate
                     }
                 case NpcControlCategory.AttackUnit:
                     targetNpc.SetFaction(FactionsEnum.Monstrosity);
+                    if (WorldIntegration.ZoneAuthority && playerId != 0)
+                        WorldIntegration.RelayQuestNpcAiToZone?.Invoke(0, targetNpc.ObjId, playerId, null, 0, 0);
                     break;
                 case NpcControlCategory.GoAway:
                     break;
                 case NpcControlCategory.RunCommandSet:
-                    {
-                        var cmds = AiGameData.Instance.GetAiCommands(ParamInt);
-                        if (cmds is { Count: > 0 })
-                        {
-                            targetNpc.Ai?.EnqueueAiCommands(cmds);
-
-                            foreach (var aiCommands in cmds)
-                            {
-                                switch (aiCommands.CmdId)
-                                {
-                                    case AiCommandCategory.FollowUnit:
-                                        break;
-                                    case AiCommandCategory.FollowPath:
-                                        if (string.IsNullOrEmpty(fileName))
-                                        {
-                                            fileName = aiCommands.Param2;
-                                        }
-                                        else
-                                        {
-                                            fileName2 = aiCommands.Param2;
-                                        }
-                                        break;
-                                    case AiCommandCategory.UseSkill:
-                                        skillId = uint.TryParse(aiCommands.Param1, out var parsedSkillId) ? parsedSkillId : 0u;
-                                        break;
-                                    case AiCommandCategory.Timeout:
-                                        timeout = uint.TryParse(aiCommands.Param1, out var parsedTimeout) ? parsedTimeout : 0u;
-                                        break;
-                                    default:
-                                        throw new NotSupportedException(nameof(aiCommands.CmdId));
-                                }
-                            }
-                            if (!string.IsNullOrEmpty(fileName))
-                            {
-                                if (targetNpc.IsInPatrol) { return; }
-                                targetNpc.IsInPatrol = true;
-                                if (targetNpc.Simulation != null)
-                                {
-                                    targetNpc.Simulation.RunningMode = false;
-                                    targetNpc.Simulation.Cycle = false;
-                                    targetNpc.Simulation.MoveToPathEnabled = false;
-                                    targetNpc.Simulation.MoveFileName = fileName;
-                                    targetNpc.Simulation.MoveFileName2 = fileName2;
-                                    targetNpc.Simulation.GoToPath(targetNpc, true, skillId, timeout);
-                                }
-                            }
-                        }
-                        break;
-                    }
+                    // ai_command_sets: Zone loads from compact.sqlite3 and runs against its NPC.
+                    if (WorldIntegration.ZoneAuthority)
+                        WorldIntegration.RelayQuestNpcAiToZone?.Invoke(
+                            3, targetNpc.ObjId, playerId, null, 0, (int)ParamInt);
+                    else
+                        Logger.Debug(
+                            "NpcControlEffect RunCommandSet {0} on npc {1} is driven by the Zone",
+                            ParamInt, targetNpc.ObjId);
+                    break;
                 default:
                     throw new NotSupportedException(nameof(CategoryId));
             }

@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Stream;
 
@@ -10,8 +10,8 @@ public class CTContinuePacket() : StreamPacket(CTOffsets.CTContinuePacket)
 
     public override void Read(PacketStream stream)
     {
-        var id = stream.ReadInt32();
-        var next = stream.ReadInt32();
+        var id = stream.ReadUInt32();
+        var next = stream.ReadUInt32();
         StreamManager.ContinueCell(Connection, id, next);
     }
 }

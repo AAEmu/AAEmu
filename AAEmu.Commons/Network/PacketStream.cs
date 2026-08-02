@@ -1,4 +1,4 @@
-﻿using System.Buffers;
+using System.Buffers;
 using System.Collections;
 using System.Numerics;
 using System.Text;
@@ -847,9 +847,7 @@ public class PacketStream : ICloneable, IComparable
     }
 
     /// <summary>
-    /// Reads <paramref name="count"/> unsigned values written as CryNetwork "pish/pisc" variable-length groups.
-    /// Values are packed in groups of up to 4, each preceded by a "pish" header byte holding
-    /// 2 bits per value (little-endian length 1..4),
+    /// to 4, each preceded by a "pish" header byte holding 2 bits per value (little-endian length 1..4),
     /// followed by the "pisc" value bytes.
     /// </summary>
     /// <param name="count">The number of values to read.</param>

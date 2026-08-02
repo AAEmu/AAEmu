@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using AAEmu.Commons.Exceptions;
@@ -20,7 +20,7 @@ public class AAPakFileInfo
     public long sizeDuplicate; // maybe compressed data size ? if used, observed always same as size
     public int paddingSize; // number of bytes of free space left until the next blocksize of 512 (or space until next file)
     public byte[] md5; // this should be 16 bytes
-    public uint dummy1; // looks like padding, mostly 0 or 0x80000000 observed, possible file flags ?
+    public uint dummy1;
     public long createTime;
     public long modifyTime;
     public ulong dummy2; // looks like padding to fill out the block, observed 0
@@ -508,7 +508,7 @@ public class AAPakFileHeader
                 pfi.sizeDuplicate = reader.ReadInt64();
                 pfi.paddingSize = reader.ReadInt32();
                 pfi.md5 = reader.ReadBytes(16);
-                pfi.dummy1 = reader.ReadUInt32(); // observed 0x00000000
+                pfi.dummy1 = reader.ReadUInt32();
                 pfi.createTime = reader.ReadInt64();
                 pfi.modifyTime = reader.ReadInt64();
                 pfi.dummy2 = reader.ReadUInt64(); // unused ?
@@ -518,7 +518,7 @@ public class AAPakFileHeader
             {
                 pfi.paddingSize = reader.ReadInt32();
                 pfi.md5 = reader.ReadBytes(16);
-                pfi.dummy1 = reader.ReadUInt32(); // 0x80000000
+                pfi.dummy1 = reader.ReadUInt32();
                 pfi.size = reader.ReadInt64();
                 // Manually read the string for filename
                 pfi.name = "";
@@ -558,7 +558,7 @@ public class AAPakFileHeader
                 pfi.sizeDuplicate = reader.ReadInt64();
                 pfi.paddingSize = reader.ReadInt32();
                 pfi.md5 = reader.ReadBytes(16);
-                pfi.dummy1 = reader.ReadUInt32(); // observed 0x00000000
+                pfi.dummy1 = reader.ReadUInt32();
                 pfi.createTime = reader.ReadInt64();
                 pfi.modifyTime = reader.ReadInt64(); // For TypeF this is typically zero
             }

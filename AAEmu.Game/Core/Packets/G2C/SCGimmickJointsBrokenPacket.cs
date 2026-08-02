@@ -1,22 +1,45 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.Gimmicks;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCGimmickJointsBrokenPacket(Gimmick[] gimmicks) : GamePacket(SCOffsets.SCGimmickJointsBrokenPacket, 1)
+/// <summary>
+/// One broken joint reported for a gimmick by the authoritative Zone simulation.
+/// </summary>
+public readonly record struct GimmickJointBreak(uint GimmickId, int JointId, int Epicenter);
+
+/// <summary>
+/// u32 gimmickId, i32 jointId, and i32 epicenter for each entry.
+/// </summary>
+public class SCGimmickJointsBrokenPacket : GamePacket
 {
-    private const int JointId = 0;
-    private const int Epicenter = 0;
+    public const int MaxCountPerPacket = 200;
+
+    private readonly GimmickJointBreak[] _joints;
+
+    public SCGimmickJointsBrokenPacket(GimmickJointBreak[] joints)
+        : base(SCOffsets.SCGimmickJointsBrokenPacket, 1)
+    {
+        ArgumentNullException.ThrowIfNull(joints);
+        if (joints.Length > MaxCountPerPacket)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(joints),
+                joints.Length,
+                $"The native client accepts at most {MaxCountPerPacket} broken joints per packet.");
+        }
+
+        _joints = joints;
+    }
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write((byte)gimmicks.Length); // TODO max length 200
-        foreach (var gimmick in gimmicks)
+        stream.Write((byte)_joints.Length);
+        foreach (var joint in _joints)
         {
-            stream.Write(gimmick.ObjId); // gimmickId
-            stream.Write(JointId);      // jointId
-            stream.Write(Epicenter);     // epicenter
+            stream.Write(joint.GimmickId);
+            stream.Write(joint.JointId);
+            stream.Write(joint.Epicenter);
         }
 
         return stream;

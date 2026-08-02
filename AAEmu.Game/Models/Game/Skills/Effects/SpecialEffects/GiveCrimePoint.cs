@@ -18,10 +18,13 @@ public class GiveCrimePoint : SpecialEffectAction
         int value3,
         int value4)
     {
-        // TODO ...
-        if (caster is Character player)
-        {
-            Logger.Debug($"Special effects: GiveCrimePoint value1 {value1}, value2 {value2}, value3 {value3}, value4 {value4}");
-        }
+        if (caster is not Character player)
+            return;
+
+        // special_effects.value1 is a signed i32 delta. The 10.0.2.13 content uses positive values
+        // to add crime/infamy and negative values for prison work and reduction skills; value2-4 are
+        // unused for every GiveCrimePoint row in the configured game-content database.
+        player.AddCrime(value1);
+        Logger.Debug($"Special effects: GiveCrimePoint applied {value1} to {player.Name} ({player.Id})");
     }
 }

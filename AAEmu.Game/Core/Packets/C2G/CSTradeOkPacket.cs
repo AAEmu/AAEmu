@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
@@ -8,7 +8,8 @@ public class CSTradeOkPacket() : GamePacket(CSOffsets.CSTradeOkPacket, 1)
 {
     public override void Read(PacketStream stream)
     {
-        //Logger.Warn("TradeOk");
-        TradeManager.Instance.OkTrade(Connection.ActiveChar);
+        var character = Connection.ActiveChar;
+        if (character != null)
+            TradeManager.Instance.OkTrade(character);
     }
 }

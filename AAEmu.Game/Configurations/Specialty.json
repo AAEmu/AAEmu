@@ -1,5 +1,9 @@
 {
 	"Specialty": {
+		"InteractionRange": 3.0,
+		"SellLaborCost": 60,
+		"InterestRate": 5,
+		"SellerShare": 0.8,
 		"MaxSpecialtyRatio": 130,
 		"MinSpecialtyRatio": 70,
 		"RatioDecreasePerPack": 0.5,

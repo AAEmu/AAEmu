@@ -1,6 +1,7 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
@@ -21,9 +22,23 @@ public class DispelEffect : EffectTemplate
 
         if (BuffTagId > 0 && !target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(BuffTagId)))
             return;
+
+        var count = Math.Max(DispelCount, CureCount);
+        if (count <= 0)
+            count = 1;
+
+        if (BuffTagId > 0)
+        {
+            // Tag remove ignores Good/Bad/Hidden and CanAttack — sail fold state is a "debuff"
+            // on a friendly hull; the old CanAttack branch never cured it reliably.
+            target.Buffs.RemoveBuffs(BuffTagId, count);
+            SailFoldBuffs.OnFoldStateDispelled(caster, BuffTagId);
+            return;
+        }
+
         if (DispelCount > 0 && caster.CanAttack(target))
-            target.Buffs.RemoveBuffs(BuffKind.Good, DispelCount, BuffTagId); //TODO ....
+            target.Buffs.RemoveBuffs(BuffKind.Good, DispelCount);
         if (CureCount > 0 && !caster.CanAttack(target))
-            target.Buffs.RemoveBuffs(BuffKind.Bad, CureCount, BuffTagId);
+            target.Buffs.RemoveBuffs(BuffKind.Bad, CureCount);
     }
 }

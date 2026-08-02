@@ -14,12 +14,15 @@ public interface ICharacter : IUnit
     Inventory Inventory { get; set; }
     long Money { get; set; }
     long Money2 { get; set; }
+    long AaPoint { get; set; }
+    long BankAaPoint { get; set; }
     int HonorPoint { get; set; }
     int VocationPoint { get; set; }
     short CrimePoint { get; set; }
     CharacterMates Mates { get; set; }
     CharacterAppellations Appellations { get; set; }
     CharacterAbilities Abilities { get; set; }
+    CharacterFavoriteCrafts FavoriteCrafts { get; set; }
     byte NumInventorySlots { get; set; }
     short NumBankSlots { get; set; }
     public UnitEvents Events { get; }
@@ -30,7 +33,8 @@ public interface ICharacter : IUnit
     void SendErrorMessage(ErrorMessageType errorMsgType, uint type = 0, bool isNotify = true);
     void ChangeLabor(short change, int actabilityId);
     void AddExp(int expDelta, bool shouldAddAbilityExp);
-    public bool ChangeMoney(SlotType typeFrom, SlotType typeTo, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney);
+    public bool ChangeMoney(SlotType typeFrom, SlotType typeTo, long amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney);
+    public bool ChangeAAPoint(SlotType typeFrom, SlotType typeTo, long amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney);
     public void ChangeGamePoints(GamePointKind kind, int change);
     public void SetGrowthRate(float value);
     public void SetLootRate(float value);

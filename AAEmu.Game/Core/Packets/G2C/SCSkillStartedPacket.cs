@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
@@ -11,8 +11,11 @@ public enum ExtraDataFlags
     HasByte = 1,
     HasUShort = 2,
     HasUInt = 4,
+    HasBool = 8,
 }
 
+/// <summary>
+/// </summary>
 public class SCSkillStartedPacket(
     uint id,
     ushort tl,
@@ -24,13 +27,31 @@ public class SCSkillStartedPacket(
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
 
-    public ushort RealCastTimeDiv10 { get; set; }
-    public ushort BaseCastTimeDiv10 { get; set; }
+    public int RealCastTimeMs { get; set; }
+
+    /// <summary>Base cast time in ms.</summary>
+    public int BaseCastTimeMs { get; set; }
+
     public byte CastSynergy { get; set; }
+
     private ExtraDataFlags ExtraDataFlag { get; set; }
     private byte ExtraDataByte { get; set; }
     private ushort ExtraDataUShort { get; set; }
     private uint ExtraDataUInt { get; set; }
+    private bool ExtraDataBool { get; set; } = true;
+
+    /// <summary>Legacy helper — sets div10 fields via ms.</summary>
+    public ushort RealCastTimeDiv10
+    {
+        get => (ushort)Math.Max(0, RealCastTimeMs / 10);
+        set => RealCastTimeMs = value * 10;
+    }
+
+    public ushort BaseCastTimeDiv10
+    {
+        get => (ushort)Math.Max(0, BaseCastTimeMs / 10);
+        set => BaseCastTimeMs = value * 10;
+    }
 
     public override PacketStream Write(PacketStream stream)
     {
@@ -38,18 +59,16 @@ public class SCSkillStartedPacket(
         stream.Write(tl);
         stream.Write(caster);
         stream.Write(target);
-        stream.Write(skillObject);
+        stream.WriteSkillCastExtra(skillObject);
+        stream.WriteSkillMsec(RealCastTimeMs);
+        stream.WriteSkillMsec(BaseCastTimeMs);
+        stream.Write(CastSynergy);
 
-        stream.Write(RealCastTimeDiv10);
-        stream.Write(BaseCastTimeDiv10);
-        stream.Write(CastSynergy); // castSynergy // (short)0
-        stream.Write((byte)ExtraDataFlag); // f
-        if (ExtraDataFlag.HasFlag(ExtraDataFlags.HasByte))
-            stream.Write(ExtraDataByte);
-        if (ExtraDataFlag.HasFlag(ExtraDataFlags.HasUShort))
-            stream.Write(ExtraDataUShort);
-        if (ExtraDataFlag.HasFlag(ExtraDataFlags.HasUInt))
-            stream.Write(ExtraDataUInt);
+        var tailByte = ExtraDataFlag.HasFlag(ExtraDataFlags.HasByte) ? ExtraDataByte : (byte)0;
+        var tailUShort = ExtraDataFlag.HasFlag(ExtraDataFlags.HasUShort) ? ExtraDataUShort : (ushort)0;
+        var tailUInt = ExtraDataFlag.HasFlag(ExtraDataFlags.HasUInt) ? ExtraDataUInt : 0u;
+        var tailBool = !ExtraDataFlag.HasFlag(ExtraDataFlags.HasBool) || ExtraDataBool;
+        stream.WriteSkillCastTail(tailByte, tailUShort, tailUInt, tailBool);
         return stream;
     }
 
@@ -60,7 +79,6 @@ public class SCSkillStartedPacket(
         else
             ExtraDataFlag &= ~ExtraDataFlags.HasByte;
         ExtraDataByte = (byte)skillResult;
-
         return this;
     }
 
@@ -71,7 +89,6 @@ public class SCSkillStartedPacket(
         else
             ExtraDataFlag &= ~ExtraDataFlags.HasUShort;
         ExtraDataUShort = val;
-
         return this;
     }
 
@@ -82,7 +99,16 @@ public class SCSkillStartedPacket(
         else
             ExtraDataFlag &= ~ExtraDataFlags.HasUInt;
         ExtraDataUInt = val;
+        return this;
+    }
 
+    public SCSkillStartedPacket SetResultBool(bool val)
+    {
+        if (!val)
+            ExtraDataFlag |= ExtraDataFlags.HasBool;
+        else
+            ExtraDataFlag &= ~ExtraDataFlags.HasBool;
+        ExtraDataBool = val;
         return this;
     }
 

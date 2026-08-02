@@ -5,6 +5,8 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
+
+using WorldIntegration = AAEmu.Game.WorldIntegration;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSChangeTargetPacket() : GamePacket(CSOffsets.CSChangeTargetPacket, 1)
@@ -16,11 +18,17 @@ public class CSChangeTargetPacket() : GamePacket(CSOffsets.CSChangeTargetPacket,
                 .ActiveChar
                 .CurrentTarget = targetId > 0 ? Connection.ActiveChar.ParentWorld.GetUnit(targetId) : null;
 
-        Connection
-            .ActiveChar
-            .BroadcastPacket(
-                new SCTargetChangedPacket(Connection.ActiveChar.ObjId,
-                    Connection.ActiveChar.CurrentTarget?.ObjId ?? 0), true);
+        Connection.ActiveChar.SendPacket(
+            new SCTargetChangedPacket(
+                Connection.ActiveChar.ObjId, Connection.ActiveChar.CurrentTarget?.ObjId ?? 0));
+
+        if (WorldIntegration.ZoneAuthority)
+        {
+            WorldIntegration.RelayTargetChangedToZone?.Invoke(
+                Connection.ActiveChar.ObjId,
+                Connection.ActiveChar.CurrentTarget?.ObjId ?? 0,
+                true);
+        }
 
         if (targetId == 0)
         {
@@ -44,8 +52,8 @@ public class CSChangeTargetPacket() : GamePacket(CSOffsets.CSChangeTargetPacket,
             Connection.ActiveChar.SendDebugMessage(string.Format("ObjId: {0}, TemplateId: {1}, Ai: {2}, @{3} SpawnerId: {4} Stance: {6}, Speed: {7:F1}\nPos: {5}",
                 targetId,
                 npc.TemplateId,
-                npc.Ai?.GetType().Name.Replace("AiCharacter", ""),
-                npc.Ai?.GetCurrentBehavior()?.GetType().Name.Replace("Behavior", ""), spawnerId,
+                npc.IsZoneMirror ? "zone" : "world",
+                npc.IsInBattle ? "combat" : "idle", spawnerId,
                 npc.Transform,
                 npc.CurrentGameStance, npc.BaseMoveSpeed));
         }

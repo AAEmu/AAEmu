@@ -1,10 +1,10 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Observers;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -12,22 +12,32 @@ public class CSSpawnCharacterPacket() : GamePacket(CSOffsets.CSSpawnCharacterPac
 {
     public override void Read(PacketStream stream)
     {
+        if (Connection.ActiveChar == null)
+        {
+            Logger.Warn("CSSpawnCharacterPacket: no ActiveChar (account {0}) — ignored", Connection.AccountId);
+            return;
+        }
+
         Connection.State = GameState.World;
 
+        Connection.ActiveChar.LastPacketActivityTime = DateTime.UtcNow;
         Connection.ActiveChar.VisualOptions = new CharacterVisualOptions();
         Connection.ActiveChar.VisualOptions.Read(stream);
 
-        // 10.0.2.13: bind the client's own player unit. The local unit pointer is written only by the client's
-        // BindMyUnit path ("client my unit is bound!"), whose sole caller is the SCUnitState handler — and only
-        // when the descriptor's charId equals the active character id. Without the player's own SCUnitState the
-        // unit stays null and the post-NotifyInGame delayed play logic null-derefs it. The charId here
-        // (ActiveChar.Id) matches the client's active slot, so the client recognizes it as MyUnit and binds it.
-        Connection.SendPacket(new SCUnitStatePacket(Connection.ActiveChar));
+        // 10.0.2.13: bind the client's own player unit. RUNTIME-VERIFIED via the crash dump
+        // charId equals the active character id. Without the player's own SCUnitState the unit stays null and the
+        // matches the client's active slot, so the client recognizes it as MyUnit and binds it.
+        var me = Connection.ActiveChar;
+        Connection.SendPacket(new SCUnitStatePacket(me));
+        Connection.SendPacket(new SCListSkillActiveTypePacket(me.SkillActiveTypes.BuildPacketEntries()));
+        Connection.SendPacket(new SCHeirSkillListPacket(me.HeirSkills.BuildPacketEntries()));
+        // If UnitState left the local unit at 0, (Id,Id) no-ops — send old=0 → new=real.
+        if (me.Faction != null && (uint)me.Faction.Id != 0)
+            Connection.SendPacket(new SCUnitFactionChangedPacket(
+                me.ObjId, me.Name ?? "", FactionsEnum.Invalid, me.Faction.Id, false));
 
-        Connection.ActiveChar.PushSubscriber(
-            TimeManager.Instance.Subscribe(Connection, new TimeOfDayObserver(Connection.ActiveChar))
-        );
+        Connection.SendPacket(new SCDetailedTimeOfDayPacket(TimeManager.Instance.GetTime));
 
-        Logger.Info("CSSpawnCharacterPacket");
+        Logger.Info("CSSpawnCharacterPacket faction={0}", me.Faction?.Id);
     }
 }

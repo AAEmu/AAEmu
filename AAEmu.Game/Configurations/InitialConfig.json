@@ -1,0 +1,25 @@
+{
+    "InitialConfig": {
+        "LobbyLevel": "w_hanuimaru_1",
+        "LobbyLevelChecksum": 0,
+        "LobbyImmersiveMode": true,
+        "Host": "aaemu.local",
+        "CashHost": "",
+        "SecurityHost": "",
+        "CandidateRetrieveCount": 0,
+        "CanPlaceHouse": true,
+        "CanPayTax": true,
+        "CanUseAuction": true,
+        "CanTrade": true,
+        "CanSendMail": true,
+        "CanUseBank": true,
+        "CanUseCopper": true,
+        "SecondPasswordMaxFailCount": 0,
+        "IdleKickTime": 600000,
+        "PremiumMaxCharacterSlots": 4,
+        "MemberType": 1,
+        "BigModelDistance": 256.0,
+        "MaxCharacterSlots": 4,
+        "IsDev": true
+    }
+}

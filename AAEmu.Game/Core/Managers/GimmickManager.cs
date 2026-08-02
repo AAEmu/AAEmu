@@ -1,7 +1,10 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.World;
@@ -21,6 +24,8 @@ public class GimmickManager(WorldInstance parentWorld)
     //private const double DelayInit = 1;
     private Task GimmickTickTask { get; set; }
     private DateTime LastCheck { get; set; } = DateTime.MinValue;
+
+    private const uint NoObjectId = 0;
 
     /// <summary>
     /// Create for spawning elevators
@@ -44,7 +49,7 @@ public class GimmickManager(WorldInstance parentWorld)
             Template = template,
             ModelPath = template?.ModelPath ?? Empty,
             EntityGuid = template == null ? spawner.EntityGuid : 0,
-            ObjId = objectId > 0 ? objectId : ObjectIdManager.Instance.GetNextId(),
+            ObjId = objectId > 0 ? objectId : NonUnitObjectIdManager.Instance.GetNextId(),
             GimmickId = (ushort)GimmickIdManager.Instance.GetNextId(),
             Spawner = spawner,
             TemplateId = templateId,
@@ -72,9 +77,11 @@ public class GimmickManager(WorldInstance parentWorld)
     public void AddActiveGimmick(Gimmick gimmick)
     {
         // Attach movement handlers based on settings
-        if (gimmick.TemplateId == 0 && gimmick.EntityGuid > 0)
+        if (gimmick.TemplateId == 0 && gimmick.EntityGuid > 0 &&
+            gimmick.Spawner?.TopZ > gimmick.Spawner?.BottomZ)
         {
-            // Elevators defined in gimmick_spawns.json
+            // Level entities with a real vertical span: lifts. Without the span check a
+            // physicalized prop would be handed the elevator handler and driven to Z 0.
             gimmick.MovementHandler = new GimmickMovementElevator(gimmick);
         }
         else
@@ -90,10 +97,116 @@ public class GimmickManager(WorldInstance parentWorld)
             _activeGimmicks.TryAdd(gimmick.ObjId, gimmick);
     }
 
-    public void RemoveActiveGimmick(Gimmick gimmick)
+    /// <summary>
+    /// Whether this world simulates the gimmick with the given object id.
+    /// </summary>
+    /// <remarks>
+    /// The World spawns the level's gimmicks and drives them itself, broadcasting their movement
+    /// from Gimmick.GimmickTick, while also announcing them to the zone. A zone movement report for
+    /// one of those would therefore be a second update for a gimmick already being driven here.
+    /// </remarks>
+    public bool OwnsGimmick(uint objId)
     {
         lock (_activeGimmicks)
+            return _activeGimmicks.ContainsKey(objId);
+    }
+
+    /// <summary>
+    /// Applies a client's grasp interaction to a visible, content-authorized gimmick.
+    /// Interacting with the held gimmick releases it; selecting another releases the prior hold
+    /// before assigning the new one. A gimmick already held by another unit remains authoritative.
+    /// </summary>
+    public bool Interact(Character character, uint gimmickObjId)
+    {
+        if (character?.ParentWorld != ParentWorld)
+            return false;
+
+        var visibleGimmick = WorldManager.GetAround<Gimmick>(character)
+            .FirstOrDefault(gimmick => gimmick.ObjId == gimmickObjId);
+        if (visibleGimmick?.Template?.Graspable != true)
+            return false;
+
+        List<(Gimmick Gimmick, uint GrasperUnitId, bool Grasped)> changes = [];
+        lock (_activeGimmicks)
+        {
+            if (!_activeGimmicks.TryGetValue(gimmickObjId, out var gimmick) ||
+                !ReferenceEquals(gimmick, visibleGimmick))
+                return false;
+
+            if (gimmick.GrasperUnitId == character.ObjId)
+            {
+                gimmick.GrasperUnitId = NoObjectId;
+                changes.Add((gimmick, character.ObjId, false));
+            }
+            else
+            {
+                if (gimmick.GrasperUnitId != NoObjectId)
+                    return false;
+
+                foreach (var heldGimmick in _activeGimmicks.Values
+                             .Where(candidate => candidate.GrasperUnitId == character.ObjId))
+                {
+                    heldGimmick.GrasperUnitId = NoObjectId;
+                    changes.Add((heldGimmick, character.ObjId, false));
+                }
+
+                gimmick.GrasperUnitId = character.ObjId;
+                changes.Add((gimmick, character.ObjId, true));
+            }
+        }
+
+        if (changes.Count > 0 && changes[^1].Grasped)
+            WorldIntegration.ReleaseZoneGimmickGrasps?.Invoke(character);
+
+        foreach (var change in changes)
+            PublishGraspState(change.Gimmick, change.GrasperUnitId, change.Grasped);
+        return true;
+    }
+
+    /// <summary>Releases every gimmick held by a unit that is leaving this world.</summary>
+    public void ReleaseGrasps(uint grasperUnitId)
+    {
+        if (grasperUnitId == NoObjectId)
+            return;
+
+        List<Gimmick> released = [];
+        lock (_activeGimmicks)
+        {
+            foreach (var gimmick in _activeGimmicks.Values
+                         .Where(candidate => candidate.GrasperUnitId == grasperUnitId))
+            {
+                gimmick.GrasperUnitId = NoObjectId;
+                released.Add(gimmick);
+            }
+        }
+
+        foreach (var gimmick in released)
+            PublishGraspState(gimmick, grasperUnitId, false);
+    }
+
+    public void RemoveActiveGimmick(Gimmick gimmick)
+    {
+        var grasperUnitId = NoObjectId;
+        lock (_activeGimmicks)
+        {
+            grasperUnitId = gimmick.GrasperUnitId;
+            gimmick.GrasperUnitId = NoObjectId;
             _activeGimmicks.Remove(gimmick.ObjId);
+        }
+
+        if (grasperUnitId != NoObjectId)
+            PublishGraspState(gimmick, grasperUnitId, false);
+    }
+
+    private static void PublishGraspState(Gimmick gimmick, uint grasperUnitId, bool grasped)
+    {
+        // Both object-id allocators used here are bounded to the client's signed i32 wire range.
+        gimmick.BroadcastPacket(
+            new SCGimmickGraspedPacket((int)gimmick.ObjId, (int)grasperUnitId, grasped), false);
+
+        if (WorldIntegration.ZoneAuthority)
+            WorldIntegration.RelayGimmickGraspedToZone?.Invoke(
+                gimmick.Transform.ZoneId, gimmick.ObjId, grasperUnitId, grasped);
     }
 
     /// <summary>
@@ -109,7 +222,7 @@ public class GimmickManager(WorldInstance parentWorld)
         var gimmick = new Gimmick
         {
             ParentWorld = ParentWorld,
-            ObjId = ObjectIdManager.Instance.GetNextId(),
+            ObjId = NonUnitObjectIdManager.Instance.GetNextId(),
             GimmickId = (ushort)GimmickIdManager.Instance.GetNextId(),
             Spawner = new GimmickSpawner(ParentWorld),
             Template = template,
@@ -148,4 +261,3 @@ public class GimmickManager(WorldInstance parentWorld)
         }
     }
 }
-

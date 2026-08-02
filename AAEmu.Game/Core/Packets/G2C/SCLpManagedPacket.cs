@@ -7,7 +7,6 @@ public class SCLpManagedPacket(uint characterId) : GamePacket(SCOffsets.SCLpMana
 {
     public override PacketStream Write(PacketStream stream)
     {
-        // 10.0.2.13: a single i64 "type" (charId).
         stream.Write((ulong)characterId);
         return stream;
     }

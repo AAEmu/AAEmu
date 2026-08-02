@@ -25,6 +25,18 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
     private readonly Dictionary<uint, List<SlaveInitialItems>> _slaveInitialItems = []; // PackId and List<Slot/ItemData>
     private readonly Dictionary<uint, SlaveMountSkills> _slaveMountSkills = [];
 
+    /// <summary>item_slave_equipments keyed by item_id.</summary>
+    private readonly Dictionary<uint, SlaveEquipVisual> _itemSlaveEquipments = [];
+
+    /// <summary>item_slave_equipment_grade_spawns keyed by (item_id, item_grade_id).</summary>
+    private readonly Dictionary<(uint itemId, byte grade), SlaveEquipVisual> _itemSlaveEquipmentGradeSpawns = [];
+
+    /// <summary>slave_equip_slots: slaveTemplateId → equipSlotId → attach point.</summary>
+    private readonly Dictionary<uint, Dictionary<byte, AttachPointKind>> _slaveEquipSlots = [];
+
+    /// <summary>slave_collision_damages keyed by id.</summary>
+    private readonly Dictionary<uint, SlaveCollisionDamageDesc> _slaveCollisionDamages = [];
+
     public void Load(SqliteConnection connection)
     {
         #region SQLLite
@@ -56,9 +68,13 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
                         SlaveCustomizingId = reader.GetUInt32("slave_customizing_id", 0),
                         Customizable = reader.GetBoolean("customizable", false),
                         PortalTime = reader.GetFloat("portal_time"),
+                        PortalSpawnFxId = reader.GetUInt32("portal_spawn_fx_id", 0),
+                        PortalDespawnFxId = reader.GetUInt32("portal_despawn_fx_id", 0),
+                        PortalScale = reader.GetFloat("portal_scale", 1f),
                         Hp25DoodadCount = reader.GetInt32("hp25_doodad_count"),
                         Hp50DoodadCount = reader.GetInt32("hp50_doodad_count"),
                         Hp75DoodadCount = reader.GetInt32("hp75_doodad_count"),
+                        SlaveCollisionDamageId = reader.GetUInt32("slave_collision_damage_id", 0),
                     };
                     _slaveTemplates.Add(template.Id, template);
                 }
@@ -85,6 +101,33 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
                         LinearLevelBonus = reader.GetInt32("linear_level_bonus")
                     };
                     slaveTemplate.Bonuses.Add(template);
+                }
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM slave_collision_damages";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var desc = new SlaveCollisionDamageDesc
+                    {
+                        Id = reader.GetUInt32("id"),
+                        FrontGain = reader.GetFloat("front_gain", 1f),
+                        SideGain = reader.GetFloat("side_gain", 1f),
+                        RearGain = reader.GetFloat("rear_gain", 1f),
+                        BottomGain = reader.GetFloat("bottom_gain", 1f),
+                        TopGain = reader.GetFloat("top_gain", 1f),
+                        FrontLimit = reader.GetInt32("front_limit", 0),
+                        SideLimit = reader.GetInt32("side_limit", 0),
+                        RearLimit = reader.GetInt32("rear_limit", 0),
+                        BottomLimit = reader.GetInt32("bottom_limit", 0),
+                        TopLimit = reader.GetInt32("top_limit", 0),
+                    };
+                    _slaveCollisionDamages[desc.Id] = desc;
                 }
             }
         }
@@ -310,6 +353,77 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
         // 10.0.2.13: the 'repairable_slaves' table (slave_id -> repair_slave_effect_id mapping) was removed.
         // Repair amounts now come solely from 'repair_slave_effects' (loaded as RepairSlaveEffect templates in
         // SkillManager); there is no longer a per-slave repair-effect gate.
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT item_id, slave_id, doodad_id, doodad_scale FROM item_slave_equipments";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var itemId = reader.GetUInt32("item_id");
+                    var visual = new SlaveEquipVisual(
+                        reader.GetUInt32("slave_id", 0),
+                        reader.GetUInt32("doodad_id", 0),
+                        reader.GetFloat("doodad_scale", 1f));
+                    if (visual.IsEmpty)
+                        continue;
+                    if (!_itemSlaveEquipments.TryAdd(itemId, visual))
+                        Logger.Warn("Duplicate item_slave_equipments row for item_id={0}", itemId);
+                }
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText =
+                "SELECT item_id, item_grade_id, slave_id, doodad_id FROM item_slave_equipment_grade_spawns";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var key = (reader.GetUInt32("item_id"), reader.GetByte("item_grade_id"));
+                    var visual = new SlaveEquipVisual(
+                        reader.GetUInt32("slave_id", 0),
+                        reader.GetUInt32("doodad_id", 0),
+                        1f);
+                    if (visual.IsEmpty)
+                        continue;
+                    if (!_itemSlaveEquipmentGradeSpawns.TryAdd(key, visual))
+                        Logger.Warn("Duplicate item_slave_equipment_grade_spawns for item={0} grade={1}", key.Item1, key.Item2);
+                }
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT slave_id, equip_slot_id, attach_point_id FROM slave_equip_slots";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var slaveId = reader.GetUInt32("slave_id");
+                    var equipSlotId = reader.GetByte("equip_slot_id");
+                    var attachPoint = (AttachPointKind)reader.GetByte("attach_point_id");
+                    if (!_slaveEquipSlots.TryGetValue(slaveId, out var slots))
+                    {
+                        slots = new Dictionary<byte, AttachPointKind>();
+                        _slaveEquipSlots[slaveId] = slots;
+                    }
+
+                    slots[equipSlotId] = attachPoint;
+                }
+            }
+        }
+
+        Logger.Info(
+            "Slave equip visuals: {0} item maps, {1} grade maps, {2} slave slot tables",
+            _itemSlaveEquipments.Count,
+            _itemSlaveEquipmentGradeSpawns.Count,
+            _slaveEquipSlots.Count);
         #endregion
 
         LoadSlaveAttachmentPointLocations();
@@ -329,6 +443,12 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
     public SlaveTemplate GetSlaveTemplate(uint id)
     {
         return _slaveTemplates.GetValueOrDefault(id);
+    }
+
+    /// <summary>Per-face collision gains/limits for a hull, or null when the slave defines none.</summary>
+    public SlaveCollisionDamageDesc GetCollisionDamageDesc(uint slaveCollisionDamageId)
+    {
+        return _slaveCollisionDamages.GetValueOrDefault(slaveCollisionDamageId);
     }
 
     /// <summary>
@@ -430,9 +550,68 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
         return _slaveInitialItems.GetValueOrDefault(templateId);
     }
 
+    /// <summary>
+    /// Attach point for a slave equipment slot (slave_equip_slots), or null if that slave/slot has none.
+    /// </summary>
+    public bool TryGetEquipAttachPoint(uint slaveTemplateId, byte equipSlotId, out AttachPointKind attachPoint)
+    {
+        attachPoint = AttachPointKind.None;
+        if (!_slaveEquipSlots.TryGetValue(slaveTemplateId, out var slots))
+            return false;
+        return slots.TryGetValue(equipSlotId, out attachPoint);
+    }
+
+    /// <summary>
+    /// Prefer grade-specific spawn, else base item_slave_equipments row.
+    /// </summary>
+    public bool TryResolveEquipVisual(uint itemId, byte grade, out SlaveEquipVisual visual)
+    {
+        if (_itemSlaveEquipmentGradeSpawns.TryGetValue((itemId, grade), out visual))
+            return !visual.IsEmpty;
+        if (_itemSlaveEquipments.TryGetValue(itemId, out visual))
+            return !visual.IsEmpty;
+        visual = default;
+        return false;
+    }
+
+    /// <summary>
+    /// True when this attach point is claimed by static doodad/slave bindings (not equipment-driven).
+    /// </summary>
+    public static bool IsBindingAttachPoint(SlaveTemplate template, AttachPointKind attachPoint)
+    {
+        if (template == null)
+            return false;
+        if (template.DoodadBindings.Any(b => b.AttachPointId == attachPoint))
+            return true;
+        if (template.SlaveBindings.Any(b => b.AttachPointId == attachPoint))
+            return true;
+        if (template.HealingPointDoodads.Any(b => b.AttachPointId == attachPoint))
+            return true;
+        return false;
+    }
+
+    /// <summary>
+    /// Attach points for a slave model. The client's own meshes are the source of record — the json table is
+    /// only consulted for models the pak could not be read for, and for the handful it covers that the meshes
+    /// do not.
+    /// </summary>
     public Dictionary<AttachPointKind, WorldSpawnPosition> GetAttachPointsForSlave(uint modelId)
     {
-        return _attachPoints.GetValueOrDefault(modelId);
+        var fromClient = ModelAttachPointGameData.Instance.GetAttachPoints(modelId);
+        var fromJson = _attachPoints.GetValueOrDefault(modelId);
+
+        if (fromClient == null)
+            return fromJson;
+        if (fromJson == null)
+            return fromClient;
+
+        // The json wins where it has a value. Its offsets are what the live server has been running on, and
+        // the two disagree on a handful of points for reasons not yet run down; the client data is here to
+        // fill the gaps, not to relitigate entries that already work.
+        var merged = new Dictionary<AttachPointKind, WorldSpawnPosition>(fromClient);
+        foreach (var (attachPoint, position) in fromJson)
+            merged[attachPoint] = position;
+        return merged;
     }
 
 }

@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Utils.DB;
@@ -55,7 +55,8 @@ public class FormulaManager : Singleton<FormulaManager>, IFormulaManager
     {
         if (_loaded)
             return;
-        // TODO Funcs: min, max, clamp, if_zero, if_positive, if_negative, floor, log, sqrt
+        // Jace supplies the content-used abs/floor/min/max/sqrt functions. Register the X2-specific
+        // conditionals and clamp below, plus native base-10 "log" (Jace exposes only log10/loge/logn).
         CalculationEngine = new(new JaceOptions
         {
             CacheEnabled = true,
@@ -68,8 +69,7 @@ public class FormulaManager : Singleton<FormulaManager>, IFormulaManager
         CalculationEngine.AddFunction("if_negative", (a, b, c) => a < 0 ? b : c);
         CalculationEngine.AddFunction("if_positive", (a, b, c) => a > 0 ? b : c);
         CalculationEngine.AddFunction("if_zero", (a, b, c) => a == 0 ? b : c);
-        // 'log' is base-10, not natural: the reference formula evaluator
-        // (the inlined kind-67 formula `(log((str+dex)/2)^2.65)*…`)
+        // 'log' is base-10, not natural: the dedicated server's formula evaluator
         // computes it via log10f. Jace ships loge/log10/logn but no bare 'log'.
         CalculationEngine.AddFunction("log", a => System.Math.Log10(a));
 

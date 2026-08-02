@@ -2,6 +2,10 @@ using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Units.Movements;
 
+/// <summary>
+/// position, vel.x/y/z u16, rot.x/y/z u16, ship.angVel vec3f, ship.steering u8,
+/// ship.throttle u8, ship.rpm u8, ship.zoneId i16, ship.stucked bool.
+/// </summary>
 public class ShipMoveType : MoveType
 {
     public new short RotationX { get; set; }
@@ -12,6 +16,8 @@ public class ShipMoveType : MoveType
     public float AngVelZ { get; set; }
     public sbyte Steering { get; set; }
     public sbyte Throttle { get; set; }
+    /// <summary>Engine rpm, stored at +0x122 between throttle and zoneId; absent in the v1.2 layout.</summary>
+    public byte Rpm { get; set; }
     public ushort ZoneId { get; set; }
     public bool Stuck { get; set; }
 
@@ -31,6 +37,7 @@ public class ShipMoveType : MoveType
         AngVelZ = stream.ReadSingle();
         Steering = stream.ReadSByte();
         Throttle = stream.ReadSByte();
+        Rpm = stream.ReadByte();
         ZoneId = stream.ReadUInt16();
         Stuck = stream.ReadBoolean();
     }
@@ -54,6 +61,7 @@ public class ShipMoveType : MoveType
 
         stream.Write(Steering);
         stream.Write(Throttle);
+        stream.Write(Rpm);
 
         stream.Write(ZoneId);
         stream.Write(Stuck);

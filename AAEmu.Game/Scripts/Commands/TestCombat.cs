@@ -40,8 +40,7 @@ public class TestCombat : ICommand
             case "engaged": // TODO Battle Start
                 if (character.CurrentTarget != null)
                 {
-                    character.SendPacket(new SCCombatEngagedPacket(character.ObjId));
-                    character.SendPacket(new SCCombatEngagedPacket(character.CurrentTarget.ObjId));
+                    character.SendPacket(new SCCombatEngagedPacket(character.ObjId, character.CurrentTarget.ObjId));
                 }
                 else
                 {

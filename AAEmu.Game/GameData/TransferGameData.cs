@@ -50,7 +50,8 @@ public class TransferGameData : Singleton<TransferGameData>, IGameDataLoader
                         ModelId = reader.GetUInt32("model_id"),
                         WaitTime = reader.GetFloat("wait_time"),
                         Cyclic = reader.GetBoolean("cyclic", true),
-                        PathSmoothing = reader.GetFloat("path_smoothing")
+                        PathSmoothing = reader.GetFloat("path_smoothing"),
+                        Velocity = reader.GetFloat("velocity")
                     };
 
                     _templates.Add(template.Id, template);

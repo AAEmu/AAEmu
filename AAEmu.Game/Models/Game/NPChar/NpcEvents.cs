@@ -146,7 +146,12 @@ public partial class Npc
             skillCaster.ObjId = npc.ObjId;
 
             var skillTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
-            skillTarget.ObjId = npc.ObjId;
+            // A hostile skill has to land on whatever pulled the NPC into combat, not on the NPC
+            // itself. The sport-fish 입질 (21608, TargetType Hostile) is what puts tag 1090 on the
+            // angler, and plot 821 reads that tag off its target before it will play the catch out.
+            skillTarget.ObjId = skill.Template.TargetType == SkillTargetType.Hostile && npc.CurrentTarget != null
+                ? npc.CurrentTarget.ObjId
+                : npc.ObjId;
 
             if (npc.Cooldowns.CheckCooldown(skill.Id)) { continue; }
 

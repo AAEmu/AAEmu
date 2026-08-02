@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Exceptions;
+using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 
@@ -17,8 +17,8 @@ public class IdManager
     private bool _initialized;
 
     private readonly string _name;
-    private readonly uint _firstId; // = 0x00000001;
-    private readonly uint _lastId; // = 0xFFFFFFFF;
+    private readonly uint _firstId;
+    private readonly uint _lastId;
     private readonly uint[] _exclude;
     private readonly int _freeIdSize;
     private readonly string[,] _objTables;
@@ -39,7 +39,7 @@ public class IdManager
     }
 
     /// <summary>Called by the ManagerOrchestrator in Stage 2, delegating to Initialize().</summary>
-    public void Load() => Initialize();
+    public virtual void Load() => Initialize();
 
     /// <summary>
     /// Initializes the IdManager for use by resetting the Ids and grabbing data from the database if needed
@@ -151,16 +151,26 @@ public class IdManager
     {
         lock (_lock)
         {
-            var objectId = (int)(usedObjectId - _firstId);
-            if (objectId > -1)
+            if (_freeIds == null)
             {
-                _freeIds.Clear(objectId);
-                if (_nextFreeId > objectId)
-                    _nextFreeId = objectId;
-                Interlocked.Increment(ref _freeIdCount);
+                // Nothing was ever handed out, so there is nothing to give back. Releasing an Id must never be
+                // fatal, it happens on teardown paths where throwing would take the caller (or process) down.
+                Logger.Warn($"{_name}: release objectId {usedObjectId} skipped, manager was never initialized");
+                return;
             }
-            else
-                Logger.Error($"{_name}: release objectId {usedObjectId} failed");
+
+            var objectId = (int)(usedObjectId - _firstId);
+            if (objectId < 0 || objectId >= _freeIds.Count)
+            {
+                // Zone mirror bcIds and other out-of-pool ids must not clear the BitSet.
+                Logger.Warn($"{_name}: release skipped for out-of-range id {usedObjectId} (idx={objectId}, size={_freeIds.Count})");
+                return;
+            }
+
+            _freeIds.Clear(objectId);
+            if (_nextFreeId > objectId)
+                _nextFreeId = objectId;
+            Interlocked.Increment(ref _freeIdCount);
         }
     }
 
@@ -168,6 +178,40 @@ public class IdManager
     {
         foreach (var id in usedObjectIds)
             ReleaseId(id);
+    }
+
+    /// <summary>
+    /// Mark [fromInclusive, toExclusive) as used so <see cref="GetNextId"/> skips them.
+    /// Used to reserve the dedicate unit-table band for Zone NPC mirrors.
+    /// </summary>
+    public void ReserveRange(uint fromInclusive, uint toExclusive)
+    {
+        if (toExclusive <= fromInclusive)
+            return;
+
+        lock (_lock)
+        {
+            for (var id = fromInclusive; id < toExclusive; id++)
+            {
+                if (id < _firstId || id > _lastId)
+                    continue;
+
+                var objectId = (int)(id - _firstId);
+                if (objectId >= _freeIds.Count)
+                    IncreaseBitSetCapacity(objectId + 1);
+
+                if (_freeIds.Get(objectId))
+                    continue;
+
+                _freeIds.Set(objectId);
+                Interlocked.Decrement(ref _freeIdCount);
+            }
+
+            if (_nextFreeId >= 0 && _freeIds.Get(_nextFreeId))
+                _nextFreeId = _freeIds.NextClear(_nextFreeId);
+
+            Logger.Info($"{_name}: reserved id band [{fromInclusive}, {toExclusive}) for zone mirrors");
+        }
     }
 
     public uint GetNextId()

@@ -18,6 +18,6 @@ public class CSRepairAllEquipmentsPacket() : GamePacket(CSOffsets.CSRepairAllEqu
             items.Add(item);
         }
 
-        Connection.ActiveChar.DoRepair(items);
+        Connection.ActiveChar.DoRepair(items, autoUseAAPoint);
     }
 }

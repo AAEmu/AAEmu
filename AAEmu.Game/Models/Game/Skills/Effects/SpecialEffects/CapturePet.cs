@@ -66,8 +66,15 @@ public class CapturePet : SpecialEffectAction
 
             // Capture (kill) the target
             targetNpc.ReduceCurrentHp(player, targetNpc.MaxHp, KillReason.Capture);
-            // Immediately despawn it
-            targetNpc.DoDespawn(targetNpc);
+            // Immediately despawn it on the side that owns simulation.
+            if (WorldIntegration.ZoneAuthority)
+            {
+                WorldIntegration.DeleteNpcMirror(targetNpc, true);
+            }
+            else
+            {
+                targetNpc.DoDespawn(targetNpc);
+            }
         }
         else
         {

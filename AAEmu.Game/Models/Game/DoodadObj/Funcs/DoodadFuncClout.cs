@@ -55,6 +55,8 @@ public class DoodadFuncClout : DoodadPhaseFuncTemplate
 
         areaTrigger.InsideBuffTemplate = SkillManager.Instance.GetBuffTemplate(BuffId);
         areaTrigger.TargetRelation = TargetRelation;
+        areaTrigger.TargetBuffTagId = TargetBuffTagId;
+        areaTrigger.TargetNoBuffTagId = TargetNoBuffTagId;
         areaTrigger.TickRate = Tick;
         areaTrigger.EffectsPerBuff = new Dictionary<uint, List<EffectTemplate>> { { BuffId, Effects.Select(eid => SkillManager.Instance.GetEffectTemplate(eid)).ToList() } };
 

@@ -1,5 +1,6 @@
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils.DB;
+using AAEmu.Game;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -152,7 +153,7 @@ public class Doodad : BaseUnit
                         continue;
                     }
 
-                    CurrentToDTriggers.TryAdd(doodadFuncTod.TodAsHours, doodadFuncTod.NextPhase);
+                    CurrentToDTriggers.Add(doodadFuncTod);
                 }
             }
         }
@@ -280,9 +281,9 @@ public class Doodad : BaseUnit
     public List<DoodadPhaseFunc> CurrentPhaseFuncs { get; private set; }
 
     /// <summary>
-    /// Time of Day, next_phase
+    /// Time-of-day triggers registered by the current phase.
     /// </summary>
-    public Dictionary<float, int> CurrentToDTriggers { get; set; }
+    public List<DoodadFuncTod> CurrentToDTriggers { get; set; }
 
     /// <summary>
     /// Time left to show on Doodads in milliseconds
@@ -481,10 +482,14 @@ public class Doodad : BaseUnit
             }
             else
             {
+                var completesFromClientPacket = funcWithSkill != null &&
+                    DoodadManager.Instance.GetFuncTemplate(funcWithSkill.FuncId, funcWithSkill.FuncType)
+                        ?.CompletesFromClientPacket == true;
                 if (DoFunc(caster, startedSkillId, funcWithSkill))
                 {
                     // FuncGroupId will be equal to either the current phase, func.NextPhase, or OverridePhase
-                    DoChangePhase(caster, (int)FuncGroupId);
+                    if (!completesFromClientPacket)
+                        DoChangePhase(caster, (int)FuncGroupId);
                     return;
                 }
             }
@@ -565,6 +570,41 @@ public class Doodad : BaseUnit
 
         // then perform the function
         func.Use(caster, this, skillId, func.NextPhase);
+        return CompleteFunc(caster, func, skillId);
+    }
+
+    /// <summary>
+    /// Completes a function whose authoritative result arrives in a dedicated client packet.
+    /// The function must still be in the doodad's current phase when this is called.
+    /// </summary>
+    public void CompleteDeferredFunc(BaseUnit caster, DoodadFunc func)
+    {
+        if (func == null ||
+            DoodadManager.Instance.GetFuncTemplate(func.FuncId, func.FuncType)?.CompletesFromClientPacket != true)
+            return;
+
+        ToNextPhase = true;
+        ListGroupId.Clear();
+
+        // A zero next phase means the successful interaction leaves the doodad in its current phase.
+        if (func.NextPhase == 0)
+        {
+            if (func.SoundId > 0)
+                BroadcastPacket(new SCDoodadSoundPacket(this, func.SoundId), true);
+            ToNextPhase = false;
+            return;
+        }
+
+        if (CompleteFunc(caster, func, 0))
+            return;
+
+        var stop = DoChangePhase(caster, (int)FuncGroupId);
+        if (!stop && ToNextPhase)
+            Use(caster, 0);
+    }
+
+    private bool CompleteFunc(BaseUnit caster, DoodadFunc func, uint skillId)
+    {
         if (func.SoundId > 0)
         {
             BroadcastPacket(new SCDoodadSoundPacket(this, func.SoundId), true);
@@ -645,6 +685,8 @@ public class Doodad : BaseUnit
 
         // Changing the phase.
         FuncGroupId = (uint)nextPhase;
+        if (WorldIntegration.ZoneAuthority)
+            WorldIntegration.RelayDoodadPhaseToZone?.Invoke(ObjId, FuncGroupId, Data);
 
         if (!ListGroupId.Contains((uint)nextPhase))
         {
@@ -875,18 +917,57 @@ public class Doodad : BaseUnit
     }
 
     /// <summary>
-    /// Doodad packet stream
+    /// models.id for Zone WZCreateDoodad. Prefer current phase model URI, else template.model.
+    /// 0 means Zone would fall back to pumpkin — callers should skip Create unless opted in.
     /// </summary>
-    /// <param name="stream"></param>
-    /// <returns></returns>
+    public uint GetZoneModelId()
+    {
+        var path = Template?.Model ?? "";
+        if (Template?.FuncGroups != null)
+        {
+            foreach (var fg in Template.FuncGroups)
+            {
+                if (fg.Id == FuncGroupId && !string.IsNullOrEmpty(fg.Model))
+                {
+                    path = fg.Model;
+                    break;
+                }
+            }
+        }
+
+        return DoodadManager.Instance.ResolveZoneModelId(path);
+    }
+
+    /// <summary>
+    /// Same layout as Zone <c>WZCreateDoodad</c>: bc + pish/pisc×4 + flag + owners + pose +
+    /// s64/s64/u32 phase/growing + FileTime plant + family/puzzle/owner/house/data/data2/updated + s64×2.
+    /// The old flat u32-template + bool hasLoot layout misaligned FuncGroupId so the client never
+    /// showed F/climb prompts (visuals still worked from Zone mesh / wrong field spill).
+    /// </summary>
     public PacketStream Write(PacketStream stream)
     {
-        stream.WriteBc(ObjId); //The object # in the list
-        stream.Write(TemplateId); //The template id needed for that object, the client then uses the template configurations, not the server
-        stream.WriteBc(OwnerObjId); //The creator of the object
-        stream.WriteBc(ParentObjId); //Things like boats or cars,
-        stream.Write((byte)AttachPoint); // attachPoint, relative to the parentObj (Door or window on a house, seats on carriage, etc.)
-        if (AttachPoint > 0 || ParentObjId > 0)
+        stream.WriteBc(ObjId);
+        // SC pisc: [templateId, funcGroupId → obj+68, backpackItemId → obj+96, ?].
+        // Retail capture matches FuncGroupId into pisc[1] (pumpkin 3078, chest 13212).
+        // pisc[2] keys optional freshness via ItemBackpackDesc (type goods/tradegoods); retail SC
+        // keeps 0 for normal props. Same gate on WZCreateDoodad — never ModelKindId.
+        stream.WritePisc(TemplateId, FuncGroupId, 0u, 0u);
+
+        // flag bit0 = hasLootItem (gear/loot UI). Exclusive loot-phase only — see CSLootOpenBagPacket.
+        var hasLootItem = CurrentFuncs.Count > 0 && CurrentFuncs.All(func => IsFuncDrivenLootFunc(func.FuncType));
+        byte flag = 0;
+        if (hasLootItem)
+            flag |= 0x01;
+        if (QuestGlow > 0)
+            flag |= 0x02; // best-effort; retail packs several bits here
+        stream.Write(flag);
+
+        stream.WriteBc(OwnerObjId);
+        stream.WriteBc(ParentObjId);
+        stream.Write((byte)AttachPoint);
+
+        var useLocal = AttachPoint > 0 || ParentObjId > 0;
+        if (useLocal)
         {
             stream.WritePosition(Transform.Local.Position.X, Transform.Local.Position.Y, Transform.Local.Position.Z);
             var (roll, pitch, yaw) = Transform.Local.ToRollPitchYawShorts();
@@ -903,29 +984,29 @@ public class Doodad : BaseUnit
             stream.Write(yaw);
         }
 
-        stream.Write(Scale); //The size of the object
-        // Mark doodad as lootable for client UI (gear icon) ONLY when its current phase is exclusively driven by
-        // loot/recover funcs. If the group also contains non-loot interaction funcs (CraftPack, StoreUi, Use, etc.),
-        // the doodad must keep the normal interaction wheel (F/G/H...). Otherwise the client would route every
-        // interaction through CSLootOpenBagPacket -> doodad.Use(skillId=0) and silently break workshops/shops while
-        // accidentally despawning them (RecoverItem with NextPhase=-1 deletes the doodad). This restriction keeps
-        // pickup working for trade packs, chests and crafting tables stored in the world (single-RecoverItem groups)
-        // while preserving multi-action doodads (workshops with CraftPack+StoreUi+RecoverItem).
-        var hasLootItem = CurrentFuncs.Count > 0 && CurrentFuncs.All(func => IsFuncDrivenLootFunc(func.FuncType));
-        stream.Write(hasLootItem); // hasLootItem
-        stream.Write(FuncGroupId); // doodad_func_group_id
-        stream.Write(OwnerId); // characterId (Database relative)
-        stream.Write(UccId);
-        stream.Write(ItemTemplateId);
-        stream.Write(Type2); //??type2
+        stream.Write(Scale);
+        stream.Write((long)OwnerId);
+        stream.Write((long)ItemTemplateId);
+        // Post-scale u32 (obj+100) is NOT funcGroup on SC — retail writes 0; phase lives in pisc[1].
+        stream.Write(0u);
         stream.Write(TimeLeft); // growing
-        stream.Write(PlantTime); //Time stamp of when it was planted
-        stream.Write(QuestGlow); //When this is higher than 0 it shows a blue orb over the doodad
-        stream.Write(0); // family TODO
-        stream.Write(PuzzleGroup); // puzzleGroup /for instances maybe?
-        stream.Write((byte)OwnerType); // ownerType
-        stream.Write(OwnerDbId); // dbHouseId
-        stream.Write(Data); // data
+        // plantTime: retail system/static props write 0 (not FILETIME). Create() always stamps
+        // PlantTime=UtcNow, so treat System owner as unplanted on the SC wire.
+        var plantTime = OwnerType == DoodadOwnerType.System
+                        || PlantTime == default
+                        || PlantTime <= DateTime.UnixEpoch
+            ? 0UL
+            : (ulong)new DateTimeOffset(PlantTime.ToUniversalTime()).ToUnixTimeSeconds();
+        stream.Write(plantTime);
+        stream.Write(0); // family
+        stream.Write(PuzzleGroup);
+        stream.Write((byte)OwnerType);
+        stream.Write(OwnerDbId);
+        stream.Write(Data);
+        stream.Write(0); // data2
+        stream.Write((ulong)DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        stream.Write(0L); // type6
+        stream.Write(0L); // type7
 
         return stream;
     }
@@ -949,6 +1030,9 @@ public class Doodad : BaseUnit
         }
 
         AttachAreaTriggers.Clear();
+
+        if (WorldIntegration.ZoneAuthority)
+            WorldIntegration.RelayRemoveDoodadToZone?.Invoke(ObjId);
 
         // Delete associated item if expired
         if (ItemId > 0)

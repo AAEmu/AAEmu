@@ -31,6 +31,6 @@ public class CSCreateShipyardPacket() : GamePacket(CSOffsets.CSCreateShipyardPac
         };
 
         Logger.Warn("CreateShipyard, Id: {0}, X: {1}, Y: {2}, Z: {3}, DesignItem: {4}", id, x, y, z, designItem);
-        ShipyardManager.Instance.Create(Connection.ActiveChar, shipyardData);
+        ShipyardManager.Instance.Create(Connection.ActiveChar, shipyardData, autoUseAAPoint);
     }
 }

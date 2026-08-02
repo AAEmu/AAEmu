@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
@@ -156,6 +157,70 @@ public class BuffTemplate
     public bool FreezeShip { get; init; }
     public bool CrowdFriendly { get; init; }
     public bool CrowdHostile { get; init; }
+    public bool NoExpPenalty { get; init; }
+    public bool AuraCreatorOnly { get; init; }
+    public bool NotToSlaveRider { get; init; }
+    public int RemoveOnUnmountAttachPointId { get; init; }
+    public bool StopOnlineLpRegen { get; init; }
+    public bool RemoveOnUnbond { get; init; }
+    public float BossTelescopeRange { get; init; }
+    public bool FixAbilityLevelToOne { get; init; }
+    public float ImmuneHealth { get; init; }
+    public int MaxLifeTime { get; init; }
+    public int BalanceLevel { get; init; }
+    public bool DisarmamentMainHand { get; init; }
+    public bool DisarmamentOffHand { get; init; }
+    public bool DisarmamentRanged { get; init; }
+    public bool DisarmamentMusical { get; init; }
+    public bool MeleeImmortality { get; init; }
+    public bool SpellImmortality { get; init; }
+    public bool RangedImmortality { get; init; }
+    public bool SiegeImmortality { get; init; }
+    public bool FallDamageImmortality { get; init; }
+    public bool OneTimeImmortality { get; init; }
+    public uint AddDurationBuffId { get; init; }
+    public int AddDurationBuffMul { get; init; }
+    public bool OffPassive { get; init; }
+    public uint OffPassiveExecutionTagId { get; init; }
+    public int MaxCombatResource { get; init; }
+    public int MinCombatResource { get; init; }
+    public bool RestrictActionbar { get; init; }
+    public bool ImmuneExceptCreatorRelationCheck { get; init; }
+    public uint ImmuneExceptCreatorRelationId { get; init; }
+    public bool ImpossibleTargeting { get; init; }
+    public bool ImpossibleChangeTargeting { get; init; }
+    public uint TargetingRelationId { get; init; }
+    public bool TargetingUseOriginSource { get; init; }
+    public bool OnlyMyPet { get; init; }
+    public bool OnlyPetOwner { get; init; }
+    public bool ImpossibleRotate { get; init; }
+    public bool SetHeadScale { get; init; }
+    public float HeadScale { get; init; }
+    public bool NotToMateRider { get; init; }
+    public bool DrowningImmortality { get; init; }
+    public bool CrowdCheckOwner { get; init; }
+    public uint CrowdCheckBuffTagId { get; init; }
+    public uint CrowdCheckBuffId { get; init; }
+    public bool RemoveBySummoned { get; init; }
+    public uint CooldownSkillTagId { get; init; }
+    public bool AliveNotApplicable { get; init; }
+    public int AuraMaxCount { get; init; }
+    public int TickAreaMaxCount { get; init; }
+    public uint MilestoneId { get; init; }
+    public string Comments { get; init; }
+    public bool ReflectionMelee { get; init; }
+    public bool ReflectionSpell { get; init; }
+    public bool ReflectionSiege { get; init; }
+    public bool ReflectionRanged { get; init; }
+    public bool ReflectionHeal { get; init; }
+    public bool ReflectionIgnoreAttacker { get; init; }
+    public bool ReflectionIgnoreDefender { get; init; }
+    public bool SavePos { get; init; }
+    public bool Transparent { get; init; }
+    public int CombatResourceId { get; init; }
+    public long RemoveOnChangeEquipments { get; init; }
+    public bool IpnirFx { get; init; }
+    public bool CollidePushable { get; init; }
     public bool OnActionTime => Tick > 0;
 
     public List<TickEffect> TickEffects { get; } = [];
@@ -268,7 +333,15 @@ public class BuffTemplate
             buff.Charge = Random.Shared.Next(InitMinCharge, InitMaxCharge);
 
         if (!buff.Passive)
+        {
             owner.BroadcastPacket(new SCBuffCreatedPacket(buff), true);
+            if (WorldIntegration.ZoneAuthority && !buff.ZoneAuthored)
+            {
+                var body = new PacketStream();
+                BuffCreatedWire.Write(body, buff);
+                WorldIntegration.RelayBuffCreatedToZone?.Invoke(owner.ObjId, body.GetBytes());
+            }
+        }
 
         // Special properties handling
         if (owner is Character character)
@@ -361,7 +434,7 @@ public class BuffTemplate
         }
     }
 
-    public void Dispel(BaseUnit caster, BaseUnit owner, Buff buff, bool replaced = false)
+    public void Dispel(BaseUnit caster, BaseUnit owner, Buff buff, bool replaced = false, bool notifyZone = true)
     {
         RemoveBonuses(owner, buff);
         var requiringBuffs = owner.Buffs.GetBuffsRequiring(buff.Template.Id);
@@ -369,7 +442,11 @@ public class BuffTemplate
             requiringBuff.Exit();
 
         if (!buff.Passive && !replaced)
+        {
             owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, buff.Index), true);
+            if (notifyZone && WorldIntegration.ZoneAuthority && !buff.ZoneAuthored)
+                WorldIntegration.RelayBuffRemovedToZone?.Invoke(owner.ObjId, buff.Index);
+        }
 
         // Special properties handling
         if (owner is Character character)

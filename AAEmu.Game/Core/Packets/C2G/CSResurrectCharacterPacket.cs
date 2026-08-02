@@ -11,6 +11,8 @@ using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Models.StaticValues;
 
+using WorldIntegration = AAEmu.Game.WorldIntegration;
+
 namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectCharacterPacket, 1)
@@ -128,6 +130,31 @@ public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectChar
             ),
             true
         );
+
+        if (WorldIntegration.ZoneAuthority)
+        {
+            float rx, ry, rz, rrot;
+            if (portal.X != 0)
+            {
+                rx = portal.X;
+                ry = portal.Y;
+                rz = portal.Z;
+                rrot = portal.ZRot;
+            }
+            else
+            {
+                var p = Connection.ActiveChar.Transform.World.Position;
+                rx = p.X;
+                ry = p.Y;
+                rz = p.Z;
+                rrot = Connection.ActiveChar.Transform.World.Rotation.Z;
+            }
+
+            WorldIntegration.RelayUnitResurrectionToZone?.Invoke(
+                Connection.ActiveChar.ObjId, rx, ry, rz, rrot);
+            WorldIntegration.RelayUnitPointsToZone?.Invoke(
+                Connection.ActiveChar.ObjId, Connection.ActiveChar.Hp, Connection.ActiveChar.Mp);
+        }
 
         // Route death-debuffs based on death context (set by Character.DoDie).
         ApplyRevivalDebuffs(Connection.ActiveChar, inPlace);

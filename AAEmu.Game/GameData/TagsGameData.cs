@@ -17,6 +17,9 @@ public class TagsGameData : Singleton<TagsGameData>, IGameDataLoader
         Skills
     }
     private Dictionary<TagType, Dictionary<uint, HashSet<uint>>> _tags;
+    private HashSet<uint> _validTagIds;
+
+    public bool Exists(uint tagId) => _validTagIds?.Contains(tagId) ?? false;
 
     //Use different type if we need to ICollection/HashSet/Etc
     public IReadOnlySet<uint> GetIdsByTagId(TagType type, uint tagId)
@@ -35,6 +38,18 @@ public class TagsGameData : Singleton<TagsGameData>, IGameDataLoader
     public void Load(SqliteConnection connection)
     {
         _tags = [];
+        _validTagIds = [];
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT id FROM tags";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+                _validTagIds.Add(reader.GetUInt32("id"));
+        }
+
         #region Tag Tables
         using (var command = connection.CreateCommand())
         {

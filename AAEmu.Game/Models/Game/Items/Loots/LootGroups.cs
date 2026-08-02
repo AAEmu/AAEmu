@@ -2,19 +2,16 @@
 
 public class LootGroups : IComparable<LootGroups>
 {
-    public uint Id { get; set; }
+    // 10.0.2.13 loot_groups has no surrogate id; key is (pack_id, group_no).
     public uint PackId { get; set; }
     public uint GroupNo { get; set; }
     public uint DropRate { get; set; }
     public byte ItemGradeDistributionId { get; set; }
+    public uint ZoneGroupId { get; set; }
 
-    /// <summary>
-    /// To sort an array 
-    /// </summary>
-    /// <param name="other"></param>
-    /// <returns></returns>
     public int CompareTo(LootGroups other)
     {
-        return Id.CompareTo(other.Id);
+        var pack = PackId.CompareTo(other.PackId);
+        return pack != 0 ? pack : GroupNo.CompareTo(other.GroupNo);
     }
 }

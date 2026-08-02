@@ -53,6 +53,26 @@ public class NpcSpawnSubCommand : SubCommandBase
         npcSpawner.Position.Pitch = 0;
         npcSpawner.Position.Roll = 0;
 
+        if (WorldIntegration.ZoneAuthority)
+        {
+            var npc = NpcManager.Instance.Create(selfCharacter.ParentWorld, 0, npcTemplateId);
+            if (npc == null)
+            {
+                SendColorMessage(messageOutput, Color.Red, $"NPC template {npcTemplateId} could not be created.");
+                return;
+            }
+
+            npc.Transform = charPos.CloneDetached(npc);
+            npc.IsZoneMirror = true;
+            npc.Spawn();
+            if (!WorldIntegration.PublishNpcSpawn(npc))
+            {
+                WorldIntegration.DeleteNpcMirror(npc, false);
+                SendColorMessage(messageOutput, Color.Red, "No loaded Zone owns this position.");
+            }
+            return;
+        }
+
         ((Character)character).ParentWorld.SpawnManager.AddNpcSpawner(npcSpawner);
 
         npcSpawner.Update();

@@ -4,6 +4,7 @@ using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -14,7 +15,6 @@ namespace AAEmu.Game.Core.Packets.C2G;
 /// since the C->S encryption it establishes is not active yet.
 ///
 /// NOTE: name is the emulator's descriptive placeholder — the real key reply is an inner packet (opcode
-/// 0x1AC) carried inside X2ClientToWorldPacket; the client exposes no distinct class name for it.
 /// </summary>
 public class CSAesXorKeyPacket() : GamePacket(CSOffsets.CSAesXorKeyPacket, 1)
 {
@@ -38,8 +38,9 @@ public class CSAesXorKeyPacket() : GamePacket(CSOffsets.CSAesXorKeyPacket, 1)
 
         // Key exchange done — push the lobby / character-select data (encrypted, level 5).
         // sc = creatable character-slot count. 0 made every slot show "캐릭터 생성 불가" (cannot create);
-        // send the max (4) so creation is allowed. TODO: derive from account/server config.
-        Connection.SendPacket(new SCGetSlotCountPacket(4));
+        // Keep this byte aligned with tmpMaxCharSlot from the verified SCInitialConfig body.
+        Connection.SendPacket(new SCGetSlotCountPacket(
+            AppConfiguration.Instance.InitialConfig.MaxCharacterSlots));
         Connection.SendPacket(new SCAccountInfoPacket(
             (int)Connection.Payment.Method,
             Connection.Payment.Location,

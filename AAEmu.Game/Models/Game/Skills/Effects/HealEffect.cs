@@ -7,6 +7,8 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
 
+using WorldIntegration = AAEmu.Game.WorldIntegration;
+
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
 public class HealEffect : EffectTemplate
@@ -145,6 +147,14 @@ public class HealEffect : EffectTemplate
         trg.Hp += value;
         trg.Hp = Math.Min(trg.Hp, trg.MaxHp);
         trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp), true);
+
+        if (WorldIntegration.ZoneAuthority && packetBuilder == null)
+        {
+            var inCharge = caster is Unit u && u.ObjId != 0 ? u.ObjId : trg.ObjId;
+            WorldIntegration.RelayUnitHealedToZone?.Invoke(
+                castObj, casterObj, trg.ObjId, HealType.Health, healHitType, value, inCharge, criticalHeal);
+            WorldIntegration.RelayUnitPointsToZone?.Invoke(trg.ObjId, trg.Hp, trg.Mp);
+        }
 
         // PvP assist tracking: a healer on the target's side earns assist credit
         // for the target's next PvP kill (within 30s window).

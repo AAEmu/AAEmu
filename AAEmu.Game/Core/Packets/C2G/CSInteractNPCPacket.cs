@@ -1,9 +1,14 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
+using AAEmu.Game;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.NPChar;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
+/// <remarks>
+/// <c>bool isTargetChanged</c>.
+/// </remarks>
 public class CSInteractNPCPacket() : GamePacket(CSOffsets.CSInteractNPCPacket, 1)
 {
     public override void Read(PacketStream stream)
@@ -13,15 +18,24 @@ public class CSInteractNPCPacket() : GamePacket(CSOffsets.CSInteractNPCPacket, 1
 
         Logger.Debug("InteractNPC, BcId: {0}, TargetChanged: {1}", objId, isTargetChanged);
 
-        var unit = objId > 0 ? Connection.ActiveChar.ParentWorld.GetUnit(objId) : null;
-
-        Connection.ActiveChar.CurrentInteractionObject = unit;
-
-        if (isTargetChanged)
+        var character = Connection.ActiveChar;
+        if (character == null || objId == 0 || character.ParentWorld.GetUnit(objId) is not Npc npc)
         {
-            Connection.ActiveChar.CurrentTarget = unit;
+            Logger.Warn(
+                "Rejected NPC interaction target {0} from {1} ({2})",
+                objId, character?.Name ?? "<disconnected>", character?.ObjId ?? 0);
+            return;
         }
 
-        Connection.SendPacket(new SCAiAggroPacket(objId, 0)); // TODO проверить count=1
+        character.CurrentInteractionObject = npc;
+
+        if (isTargetChanged)
+            character.CurrentTarget = npc;
+
+        // A zero-entry table is the native representation of no known aggro for this NPC.
+        Connection.SendPacket(new SCAiAggroPacket(objId));
+
+        if (WorldIntegration.ZoneAuthority)
+            WorldIntegration.RelayInteractNpcToZone?.Invoke(character.ObjId, objId, false);
     }
 }

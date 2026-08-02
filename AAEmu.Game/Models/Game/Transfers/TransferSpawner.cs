@@ -90,6 +90,20 @@ public class TransferSpawner : Spawner<Transfer>
                     transfer.Rot = new Quaternion(quat.X, quat.Z, quat.Y, quat.W);
                     transfer.Transform.ApplyWorldSpawnPosition(point, transfer.Transform.InstanceId, true);
 
+                    // The bounded child is this transfer's transform parent, and WorldManager.GetRegion
+                    // resolves visibility through GetRootObj — so the region comes from the child, not
+                    // from the transfer. Moving only the transfer to its route start left the child at
+                    // the spawn-file position, registering the whole rig in a region nowhere near where
+                    // it actually drives: simulating correctly and invisible to every client.
+                    if (transfer.Bounded is not null)
+                    {
+                        transfer.Bounded.Transform.ApplyWorldSpawnPosition(
+                            point, transfer.Bounded.Transform.InstanceId, true);
+                        transfer.Bounded.Transform.Local.AddDistanceToFront(
+                            Transfer.BoundedChildAlongFrontOffsetMeters);
+                        transfer.Bounded.Transform.ResetFinalizeTransform();
+                    }
+
                     //Logger.Warn("TransfersPath #" + transfer.TemplateId);
                     //Logger.Warn("New spawn Pos={0}", transfer.Transform.ToString());
                     //Logger.Warn("zoneId={0}", transfer.Transform.ZoneId);

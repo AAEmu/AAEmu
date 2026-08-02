@@ -12,7 +12,6 @@ public class JsonModelsConverter : JsonConverter
         AddConverter<JsonPositionConverter, JsonPosition>();
         AddConverter<JsonQuestSphereConverter, JsonQuestSphere>();
         AddConverter<JsonDoodadSpawnsConverter, JsonDoodadSpawns>();
-        AddConverter<JsonNpcSpawnsConverter, JsonNpcSpawns>();
     }
     public void AddConverter<T, Y>() where T : BaseJsonConverter<Y> where Y : class
     {

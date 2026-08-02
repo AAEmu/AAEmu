@@ -5,6 +5,7 @@ namespace AAEmu.Game.Models.Tasks.Characters;
 public class CharacterDeleteTask : Task
 {
     private static readonly object _lock = new();
+    private static NLog.Logger Logger { get; } = NLog.LogManager.GetCurrentClassLogger();
 
     public override void Execute()
     {
@@ -14,9 +15,9 @@ public class CharacterDeleteTask : Task
             {
                 CharacterManager.Instance.CheckForDeletedCharacters();
             }
-            catch
+            catch (Exception exception)
             {
-                // Do nothing
+                Logger.Error(exception, "Character deletion task failed");
             }
         }
     }

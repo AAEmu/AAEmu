@@ -3,18 +3,18 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCDetailedTimeOfDayPacket(float time) : GamePacket(SCOffsets.SCDetailedTimeOfDayPacket, 1)
+public class SCDetailedTimeOfDayPacket(
+    float time,
+    float speed = 0.0016666f,
+    float start = 0f,
+    float end = 24f) : GamePacket(SCOffsets.SCDetailedTimeOfDayPacket, 1)
 {
-    private readonly float _speed = 0.0016666f;
-    private readonly float _start = 0f;
-    private readonly float _end = 24f;
-
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(time);
-        stream.Write(_speed);
-        stream.Write(_start);
-        stream.Write(_end);
+        stream.Write(speed);
+        stream.Write(start);
+        stream.Write(end);
         return stream;
     }
 }

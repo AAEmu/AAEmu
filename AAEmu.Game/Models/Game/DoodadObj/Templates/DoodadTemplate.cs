@@ -13,6 +13,10 @@ public class DoodadTemplate
     public int MinTime { get; set; }
     public int MaxTime { get; set; }
     public uint ModelKindId { get; set; }
+    /// <summary>URI from doodad_almighties.model (cgf://, vegetation://, prefab://, …).</summary>
+    public string Model { get; set; } = "";
+    /// <summary>When true, Zone pulls mesh from world/level instead of packet modelId.</summary>
+    public bool LoadModelFromWorld { get; set; }
     public bool UseCreatorFaction { get; set; }
     public bool ForceTodTopPriority { get; set; }
     public uint MilestoneId { get; set; }

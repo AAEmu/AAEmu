@@ -54,8 +54,8 @@ public class HouseBindingMove : ICommand
 
                     character.CurrentTarget = house;
 
-                    character.BroadcastPacket(new SCTargetChangedPacket(character.ObjId, character.CurrentTarget.ObjId),
-                        true);
+                    character.SendPacket(
+                        new SCTargetChangedPacket(character.ObjId, character.CurrentTarget.ObjId));
                 }
                 else
                 {

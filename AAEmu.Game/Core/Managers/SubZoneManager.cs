@@ -284,7 +284,10 @@ public class SubZoneManager(IWorldManager worldManager, IZoneManager zoneManager
 
         var found = false;
 
-        foreach (var houseZoneTemplate in world.Template.HousingZones[zoneId])
+        if (!world.Template.HousingZones.TryGetValue(zoneId, out var housingZones))
+            return foundHousingZones;
+
+        foreach (var houseZoneTemplate in housingZones)
         {
             if (Point.IsInside(houseZoneTemplate._points, houseZoneTemplate._points.Count, new Point(x, y, 0)))
             {

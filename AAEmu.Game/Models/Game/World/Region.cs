@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers.World;
+﻿using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -27,6 +27,8 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
     {
         if (obj == null)
             return;
+
+        var characterAdded = false;
         lock (_objectsLock)
         {
             if (_objects == null)
@@ -34,7 +36,14 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
                 _objects = new GameObject[50];
                 _objectsSize = 0;
             }
-            else if (_objectsSize >= _objects.Length)
+
+            for (var i = 0; i < _objectsSize; i++)
+            {
+                if (_objects[i].ObjId == obj.ObjId)
+                    return;
+            }
+
+            if (_objectsSize >= _objects.Length)
             {
                 var temp = new GameObject[_objects.Length * 2];
                 Array.Copy(_objects, 0, temp, 0, _objectsSize);
@@ -43,6 +52,12 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
 
             _objects[_objectsSize] = obj;
             _objectsSize++;
+
+            if (obj is Character)
+            {
+                _charactersSize++;
+                characterAdded = true;
+            }
         }
 
         if (obj.Transform != null)
@@ -53,9 +68,8 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
                 obj.Transform.ZoneId = zoneId;
         }
 
-        if (obj is Character)
+        if (characterAdded)
         {
-            _charactersSize++;
             foreach (var region in GetNeighbors())
                 if (region != null)
                     Interlocked.Increment(ref region._playerCount);
@@ -66,47 +80,52 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
                 chr?.SendMessage($"[{DateTime.UtcNow:HH:mm:ss}] {obj.ObjId} entered region ({X} {Y})){(obj is BaseUnit bu ? " - " + bu.Name : "")}");
     }
 
-    public void RemoveObject(GameObject obj) // TODO Нужно доделать =_+
+    public void RemoveObject(GameObject obj)
     {
         if (obj == null)
             return;
+
+        var characterRemoved = false;
         lock (_objectsLock)
         {
             if (_objects == null || _objectsSize == 0)
                 return;
 
-            if (_objectsSize > 1)
+            var index = -1;
+            for (var i = 0; i < _objectsSize; i++)
             {
-                var index = -1;
-                for (var i = 0; i < _objects.Length; i++)
-                    if (_objects[i] == obj)
-                    {
-                        index = i;
-                        break;
-                    }
-
-                if (index > -1)
+                if (ReferenceEquals(_objects[i], obj))
                 {
-                    _objects[index] = _objects[_objectsSize - 1];
-                    _objects[_objectsSize - 1] = null;
-                    _objectsSize--;
+                    index = i;
+                    break;
                 }
             }
-            else if (_objectsSize == 1 && _objects[0] == obj)
-            {
-                _objects[0] = null;
+
+            if (index < 0)
+                return;
+
+            _objectsSize--;
+            if (index != _objectsSize)
+                _objects[index] = _objects[_objectsSize];
+            _objects[_objectsSize] = null;
+
+            if (_objectsSize == 0)
                 _objects = null;
-                _objectsSize = 0;
-            }
 
             if (obj is Character)
             {
                 _charactersSize--;
-                foreach (var region in GetNeighbors())
-                    if (region != null)
-                        Interlocked.Decrement(ref region._playerCount);
+                characterRemoved = true;
             }
         }
+
+        if (characterRemoved)
+        {
+            foreach (var region in GetNeighbors())
+                if (region != null)
+                    Interlocked.Decrement(ref region._playerCount);
+        }
+
         // Show debug info to subscribed players
         if (obj.Transform?._debugTrackers?.Count > 0)
             foreach (var chr in obj.Transform._debugTrackers)
@@ -130,10 +149,6 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
 
                 if (go is Gimmick)
                     continue;
-
-                // turn on the motion of the visible NPC
-                if (go is Npc { Ai: not null } npc)
-                    npc.Ai.ShouldTick = true;
 
                 go.AddVisibleObject(objectAsCharacter);
             }
@@ -161,7 +176,7 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
                 Array.Copy(gimmicks, i, temp, 0, temp.Length);
                 objectAsCharacter.SendPacket(new SCGimmicksCreatedPacket(temp));
             }
-            // Not sure why or if this is needed, but it's always sent after the creation packets with no reference to any of them
+            // The client applies this authoritative broken-joint snapshot after the create batch.
             if (gimmicks.Length > 0)
                 objectAsCharacter.SendPacket(new SCGimmickJointsBrokenPacket([]));
         }
@@ -184,10 +199,10 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
             var units = GetList(new List<Unit>(), character1.ObjId);
             foreach (var t in units)
             {
-                if (t is Npc { Ai: not null } npc)
-                {
-                    npc.Ai.ShouldTick = false;
-                }
+                // Region leave batches SCUnitsRemoved and does not call Npc.RemoveVisibleObject —
+                // still free mirror MAX slots / pending so walking recycles interest capacity.
+                if (t is Npc { IsZoneMirror: true } mirror)
+                    character1.ReleaseMirrorNpcSlot(mirror.ObjId);
             }
             for (var offset = 0; offset < unitIds.Length; offset += SCUnitsRemovedPacket.MaxCountPerPacket)
             {
@@ -297,12 +312,12 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
 
     private bool IsEmpty()
     {
-        return _charactersSize <= 0;
+        return Volatile.Read(ref _charactersSize) <= 0;
     }
 
     public bool HasPlayerActivity()
     {
-        return _playerCount > 0;
+        return Volatile.Read(ref _playerCount) > 0;
     }
 
     public List<uint> GetObjectIdsList(List<uint> result, uint exclude)

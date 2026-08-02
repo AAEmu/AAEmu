@@ -37,10 +37,12 @@ public class ShipyardManager(ITaskManager taskManager, IObjectIdManager objectId
         taskManager.Schedule(shipyardTickStartTask, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
     }
 
-    public Shipyard Create(Character owner, ShipyardData shipyardData)
+    public Shipyard Create(Character owner, ShipyardData shipyardData, bool useAaPoint)
     {
         if (!_shipyardsTemplate.TryGetValue(shipyardData.TemplateId, out var template))
             return null;
+
+        var designItemObjectId = shipyardData.Id;
 
         var pos = owner.Transform.CloneAsSpawnPosition();
         pos.X = shipyardData.X;
@@ -81,7 +83,7 @@ public class ShipyardManager(ITaskManager taskManager, IObjectIdManager objectId
 
         // we will make checks for the availability of money and items to create a shipyard
         // and remove from the inventory items and money necessary for the construction of the shipyard
-        if (!RemoveRequiredItems(shipyard))
+        if (!RemoveRequiredItems(shipyard, designItemObjectId, useAaPoint))
         {
             owner.SendErrorMessage(ErrorMessageType.NotEnoughItem);
             return null;
@@ -93,32 +95,34 @@ public class ShipyardManager(ITaskManager taskManager, IObjectIdManager objectId
         return shipyard;
     }
 
-    private bool RemoveRequiredItems(Shipyard shipyard)
+    private bool RemoveRequiredItems(Shipyard shipyard, ulong designItemObjectId, bool useAaPoint)
     {
         var character = worldManager.GetCharacter(shipyard.ShipyardData.OwnerName);
         var designId = shipyard.Template.OriginItemId;
         var moneyOwed = taxationsManager.Taxations[(uint)shipyard.Template.TaxationId].Tax;
+        var designItem = character.Inventory.GetItemById(designItemObjectId);
 
-        if (!character.Inventory.CheckItems(SlotType.Inventory, designId, 1))
+        if (designItem == null || designItem.OwnerId != character.Id ||
+            designItem.TemplateId != designId || designItem.SlotType != SlotType.Inventory)
         {
             character.SendErrorMessage(ErrorMessageType.NotEnoughItem);
-            Logger.Error("Not enough item Id={0}", designId);
+            Logger.Warn(
+                "Invalid shipyard design item {0} for character {1}; expected template {2}",
+                designItemObjectId, character.Id, designId);
             return false;
         }
 
-        if (character.Money < moneyOwed)
+        var paymentBalance = useAaPoint ? character.AaPoint : character.Money;
+        if (paymentBalance < moneyOwed)
         {
-            character.SendErrorMessage(ErrorMessageType.NotEnoughMoney);
+            character.SendErrorMessage(useAaPoint
+                ? ErrorMessageType.NotEnoughAaPoint
+                : ErrorMessageType.NotEnoughMoney);
             return false;
         }
 
-        var found = character.Inventory.Bag.GetAllItemsByTemplate(designId, -1, out var foundItems, out _);
-        if (!found)
-        {
-            return false;
-        }
-        var reagents = skillManager.GetSkillReagentsBySkillId(foundItems[0].Template.UseSkillId);
-        var skillProducts = skillManager.GetSkillProductsBySkillId(foundItems[0].Template.UseSkillId);
+        var reagents = skillManager.GetSkillReagentsBySkillId(designItem.Template.UseSkillId);
+        var skillProducts = skillManager.GetSkillProductsBySkillId(designItem.Template.UseSkillId);
         if (reagents != null && skillProducts != null)
         {
             if (reagents.Count > 0)
@@ -155,14 +159,16 @@ public class ShipyardManager(ITaskManager taskManager, IObjectIdManager objectId
         }
         else
         {
-            Logger.Error("Could not find Reagents/Products for Template[{0}]", foundItems[0].Template.UseSkillId);
+            Logger.Error("Could not find Reagents/Products for Template[{0}]", designItem.Template.UseSkillId);
             return false;
         }
 
-        character.Inventory.Bag.ConsumeItem(ItemTaskType.Shipyard, designId, 1, null);
-        character.SubtractMoney(SlotType.Inventory, (int)moneyOwed, ItemTaskType.Shipyard);
+        character.Inventory.Bag.ConsumeItem(ItemTaskType.Shipyard, designId, 1, designItem);
+        var paid = useAaPoint
+            ? character.SubtractAAPoint(SlotType.Inventory, moneyOwed, ItemTaskType.Shipyard)
+            : character.SubtractMoney(SlotType.Inventory, moneyOwed, ItemTaskType.Shipyard);
 
-        return true;
+        return paid;
     }
 
     public void RemoveShipyard(Shipyard shipyard)

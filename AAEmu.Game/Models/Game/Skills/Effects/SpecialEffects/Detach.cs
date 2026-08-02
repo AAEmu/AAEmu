@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
@@ -18,13 +19,16 @@ public class Detach : SpecialEffectAction
         int value3,
         int value4)
     {
-        if (caster is Character) { Logger.Debug("Special effects: Detach value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is not Character chara)
+            return;
 
-        if (caster is Character chara)
-        {
-            //maybe we should check what were attached to?
-            //MateManager.Instance.UnMountMate(chara, skill.TlId, ap, DetachUnitReason.UnmountMate);
-        }
+        Logger.Debug("Special effects: Detach value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
+
+        // The dismount skills name no target of their own, so the rider comes off whatever it is
+        // currently riding. ForceDismount covers both mates and slaves and clears the transform parent,
+        // sending SCUnitDetached and the matching zone relay for each.
+        if (!chara.ForceDismount(AttachUnitReason.SlaveBinding))
+            Logger.Debug("Detach: {0} was not riding anything", chara.Name);
     }
 }
 

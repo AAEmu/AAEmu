@@ -218,6 +218,19 @@ public class NpcGameData : Singleton<NpcGameData>, IGameDataLoader
     }
 
     /// <summary>
+    /// Spawner templates carrying an in-game day-night window (<c>startTime</c> / <c>endTime</c>),
+    /// which gates them independently of <c>game_schedules</c>.
+    /// </summary>
+    public IEnumerable<NpcSpawnerTemplate> GetSpawnerTemplatesWithTimeWindow()
+    {
+        foreach (var template in NpcSpawnerTemplates.Values)
+        {
+            if (template.StartTime > 0.0f || template.EndTime > 0.0f)
+                yield return template;
+        }
+    }
+
+    /// <summary>
     /// Rturns the first NpcSpawnerNpc from a given NpcSpawnerTemplateId
     /// </summary>
     /// <param name="spawnerId"></param>

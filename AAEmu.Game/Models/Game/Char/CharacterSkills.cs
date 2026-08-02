@@ -3,11 +3,16 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using MySql.Data.MySqlClient;
+using NLog;
+
+using AAEmu.Game.GameData;
 
 namespace AAEmu.Game.Models.Game.Char;
 
 public class CharacterSkills(Character owner)
 {
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
     private enum SkillType : byte
     {
         Skill = 1,
@@ -25,6 +30,14 @@ public class CharacterSkills(Character owner)
     /// <param name="skillId"></param>
     public void AddSkill(uint skillId)
     {
+        // Successors are selected through CSActivateHeirSkill and remain separate from the learned
+        // base-skill table. Accepting one here would persist it as an ordinary learned skill.
+        if (HeirGameData.Instance.TryGetHeirSkillForSuccessor(skillId, out _, out _))
+        {
+            Logger.Warn("LearnSkill reject {0}: {1} is a Heir successor", Owner.Name, skillId);
+            return;
+        }
+
         // Check if what we want to learn is part of an active skill tree (or not part of one)
         var template = SkillManager.Instance.GetSkillTemplate(skillId);
         if (template.AbilityId > 0 &&
@@ -41,7 +54,13 @@ public class CharacterSkills(Character owner)
 
         // Check if we have enough remaining to learn this Skill
         if (template.SkillPoints > points)
+        {
+            Logger.Info(
+                "LearnSkill reject {0}: skill={1} cost={2} remaining={3} (levelBudget={4})",
+                Owner.Name, skillId, template.SkillPoints, points,
+                ExperienceManager.Instance.GetSkillPointsForLevel(Owner.Level));
             return;
+        }
 
         // Check if we already learned it
         if (Skills.TryGetValue(skillId, out var skill))
@@ -90,8 +109,8 @@ public class CharacterSkills(Character owner)
         // Deduct the amount of skill points already used
         points -= GetUsedSkillPoints(AbilityType.General);
 
-        // Check if we have enough remaining to learn this Skill
-        if (points < 1)
+        // Check if we have enough remaining (passive_buffs.skill_points — often 0 for early passives)
+        if (template.SkillPoints > points)
             return;
 
         // Check if there are enough points already invested in this tree to allow learning this Passive
@@ -107,6 +126,19 @@ public class CharacterSkills(Character owner)
         PassiveBuffs.Add(buff.Id, buff);
         Owner.BroadcastPacket(new SCBuffLearnedPacket(Owner.ObjId, buff.Id), true);
         buff.Apply(Owner);
+    }
+
+    /// <summary>
+    /// Re-send every learned skill/passive to this character. Needed after SCAbilitySwapped:
+    /// the client clears skills for each pair's <c>old</c> ability id — including unchanged
+    /// slots — so without a resync Ability1 looks wiped even though the server still has them.
+    /// </summary>
+    public void ResendLearnedToOwner()
+    {
+        foreach (var skill in Skills.Values)
+            Owner.SendPacket(new SCSkillLearnedPacket(skill));
+        foreach (var buff in PassiveBuffs.Values)
+            Owner.SendPacket(new SCBuffLearnedPacket(Owner.ObjId, buff.Id));
     }
 
     /// <summary>
@@ -133,6 +165,7 @@ public class CharacterSkills(Character owner)
             _removed.Add(buff.Id);
         }
 
+        Owner.HeirSkills?.RemoveByAbility(abilityId, notifyClient: true);
         Owner.BroadcastPacket(new SCSkillsResetPacket(Owner.ObjId, abilityId), true);
     }
 
@@ -150,23 +183,20 @@ public class CharacterSkills(Character owner)
             if (ability == AbilityType.General || skill.Template.AbilityId == ability)
                 points += skill.Template.SkillPoints;
 
-        // Count points for Passive Skills (for Version 1.2)
+        // Passives use their own skill_points column (client-matching); many early ones cost 0.
         foreach (var buff in PassiveBuffs.Values)
             if (ability == AbilityType.General || buff.Template.AbilityId == ability)
-                points += 1; // buff.Template?.ReqPoints ?? 1;
+                points += buff.Template?.SkillPoints ?? 0;
 
         return points;
     }
 
-    // TODO : Optimize this by storing a map of derivative skills and their matches
-    public bool IsVariantOfSkill(uint skillId)
-    {
-        var skillTemplate = SkillManager.Instance.GetSkillTemplate(skillId);
-
-        return Skills.Values.Any(skill =>
-            skill.Template.AbilityId == skillTemplate.AbilityId &&
-            skill.Template.AbilityLevel == skillTemplate.AbilityLevel);
-    }
+    /// <summary>
+    /// A successor is castable only when the character selected that exact content-defined Heir
+    /// replacement. Matching only ability and ability-level allowed unrelated skills to bypass the
+    /// authoritative selection map.
+    /// </summary>
+    public bool IsActiveHeirSuccessor(uint skillId) => Owner.HeirSkills?.IsActiveSuccessor(skillId) == true;
 
     #region database
     public void Load(MySqlConnection connection)

@@ -122,4 +122,9 @@ public class CraftManager : Singleton<CraftManager>, ICraftManager
     {
         return _crafts[craftId];
     }
+
+    public bool HasCraft(uint craftId)
+    {
+        return _crafts.ContainsKey(craftId);
+    }
 }

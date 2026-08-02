@@ -1,108 +1,74 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.GameData;
+using AAEmu.Game.Models;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
+// confirmed field-by-field; no need to re-derive.
 public class SCInitialConfigPacket() : GamePacket(SCOffsets.SCInitialConfigPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write("aaemu.local"); // host
+        var config = AppConfiguration.Instance.InitialConfig;
 
-        // siege -> (byte)fset[0] & 1 == 1
-        // premium -> (byte)fset[0] & 0x10 == 0x10
-        // levelLimit -> (byte)fset[1]
-        // ranking -> (uint)fset[4] & 0x10 == 0x10
-        // ingamecashshop -> (uint)fset[4] & 0x40 == 0x40
-        // customsaveload -> (uint)fset[4] & 0x100 == 0x100
-        // bm_mileage -> (uint)fset[4] & 0x800 == 0x800
-        // itemSecure -> (uint)fset[4] & 0x2000 == 0x2000
-        // secondpass -> (uint)fset[4] & 0x4000 == 0x4000
-        // beautyshopBypass -> (uint)fset[4] & 0x100000 == 0x100000
-        // ingameshopSecondpass -> (uint)fset[4] & 0x800000 == 0x800000
-        // sensitiveOpeartion -> (uint)fset[4] & 0x4000000 == 0x4000000
-        // taxItem -> (uint)fset[4] & 0x8000000 == 0x8000000
-        // achievement -> (uint)fset[4] & 0x80000000 == 0x80000000
-        // slave_customize -> (uint)fset[6] & 1 == 1
-        // backpackProfitShare -> (byte)fset[7] & 1 == 1
-        // mateLevelLimit -> (byte)fset[8]
-        // dwarfWarborn -> (uint)fset[8] & 0x400 == 0x400
-        // mailCoolTime -> (uint)fset[8] & 0x800 == 0x800
-        // hudAuctionButton -> (uint)fset[8] & 0x20000 == 0x20000
-        // auctionPostBuff -> (uint)fset[8] & 0x80000 == 0x80000
-        // houseTaxPrepay -> (uint)fset[8] & 0x100000 == 0x100000
+        stream.Write(config.Host);   // host (zstring, cap 259)
+        FeaturesManager.Fsets.Write(stream); // fset (31-byte bitmap; catalog in Features/Feature.cs)
 
-        // 0x11, 0x37, 0x0F, 0x0F, 0x79, 0x69, 0xb3, 0x8d, 0x32, 0x0c, 0x1a
-        // stream.Write(new byte[] {0x11, 0x37, 0x0F, 0x0F, 0x79, 0x69, 0xb3, 0x8d, 0x32, 0x0c, 0x1a}, true); // fset
-        FeaturesManager.Fsets.Write(stream);
+        // Characters per page of the character list, read through X2:GetCandidateOnceRetrieveCount().
+        // Only consulted while the useCharacterListPage feature is enabled.
+        stream.Write(config.CandidateRetrieveCount); // count (u32)
 
-        /*
-            {
-              [backpackProfitShare] => true
-              [levelLimit] => 55
-              [secondpass] => true
-              [itemSecure] => true
-              [customsaveload] => true
-              [sensitiveOpeartion] => true
-              [premium] => true
-              [siege] => true
-              [mateLevelLimit] => 50
-              [houseTaxPrepay] => true
-              [auctionPostBuff] => true
-              [hudAuctionButton] => true
-              [taxItem] => true
-              [dwarfWarborn] => true
-              [achievement] => true
-              [bm_mileage] => true
-              [mailCoolTime] => true
-              [slave_customize] => true
-              [beautyshopBypass] => true
-              [ingamecashshop] => true
-              [ingameshopSecondpass] => true
-              [ranking] => true
-            }
-         */
+        // Labor shown for a fresh character - the pool AccountManager seeds a new account with.
+        stream.Write(AppConfiguration.Instance.Labor.Default); // initLp (u32)
 
-        // TODO 0x3E, 0x32, 0x0F, 0x0F, 0x79, 0x00, 0x33
-        // TODO 0x7F, 0x37, 0x34, 0x0F, 0x79, 0x08, 0x7D, 0xCB, 0x37, 0x65, 0x03, 0xDE, 0xAE, 0x86, 0x3C, 0x0E, 0x02, 0xE6, 0x6F, 0xC7, 0xBB, 0x9B, 0x5D, 0x01, 0x00, 0x01
+        stream.Write(config.CanPlaceHouse);
+        stream.Write(config.CanPayTax);
+        stream.Write(config.CanUseAuction);
+        stream.Write(config.CanTrade);
+        stream.Write(config.CanSendMail);
+        stream.Write(config.CanUseBank);
+        stream.Write(config.CanUseCopper);
 
-        stream.Write(0); // count // candidatelist.lua
-        /*
-         * local retrieveCount = X2:GetCandidateOnceRetrieveCount()
-         * x2ui\baselib
-        */
+        stream.Write(config.SecondPasswordMaxFailCount); // secondPasswordMaxFailCount (i8)
+        stream.Write(config.IdleKickTime);               // idleKickTime (i32)
 
-        stream.Write(50); // initLp
-        stream.Write(true); // canPlaceHouse
-        stream.Write(true); // canPayTax
-        stream.Write(true); // canUseAuction
-        stream.Write(true); // canTrade
-        stream.Write(true); // canSendMail
-        stream.Write(true); // canUseBank
-        stream.Write(true); // canUseCopper
+        // enable/pcbang/premium/maxCh. The server runs no premium subscription window, so all three
+        // flags go out false. Publishing enable and premium true puts the lobby into its character
+        // reservation gate: the client stops sending CSSelectCharacter for an existing character and
+        // routes to character create instead.
+        stream.Write(false);                           // enable
+        stream.Write(false);                           // pcbang
+        stream.Write(false);                           // premium
+        stream.Write(config.PremiumMaxCharacterSlots); // maxCh (i8)
 
-        // --- 10.0.2.13 layout (no secondPriceType; idleKickTime is i32) ---
-        stream.Write((byte)0);    // secondPasswordMaxFailCount (u8)
-        stream.Write(600000);     // idleKickTime (i32, 10 min)
+        // Honor percentage the client shows for War-zone kills, from the multiplier CharacterCombat
+        // applies to each one.
+        var warHonorPercent = AppConfiguration.Instance.World.PvpHonorRate * 100.0;
+        stream.Write((short)Math.Clamp(warHonorPercent, 0.0, short.MaxValue)); // honorPointDuringWarPercent (i16)
 
-        // premium config block: 3 bools + maxCh(u8)
-        stream.Write(false);      // enable
-        stream.Write(false);      // pcbang
-        stream.Write(false);      // premium
-        stream.Write((byte)4);    // maxCh
+        // when the wire value is zero. Publish that effective revision explicitly.
+        stream.Write(AppConfiguration.Instance.Ucc.CacheVersion); // uccVer (i8)
 
-        stream.Write((ushort)0);  // honorPointDuringWarPercent (u16)
-        stream.Write((byte)0);    // uccVer (u8)
-        stream.Write((byte)0);    // memberType (u8)
-        stream.Write((uint)0);    // bigModel (+240, 4 bytes)
-        stream.Write((byte)4);    // tmpMaxCharSlot (u8)
+        // account payment method. The native ClientPlayer constructor defaults it to 1.
+        stream.Write(config.MemberType); // memberType (i8)
 
-        stream.Write("");         // cashHost (zstring, empty)
-        stream.Write("");         // securityHost (zstring, empty)
-        stream.Write(false);      // isDev (bool)
-        stream.Write(0);          // premiumConfigType (i32)
-        stream.Write((uint)0);    // specificWorldDivisionIds: Size = 0
+        // UnitDistance over_distance threshold, copied to ClientPlayer+0x3DFC; target.lua shows "???"
+        // beyond it, so 0 blanks every target.
+        stream.Write(config.BigModelDistance);  // bigModel (f32)
+        stream.Write(config.MaxCharacterSlots); // tmpMaxCharSlot (i8)
+
+        stream.Write(config.CashHost);     // cashHost (zstring, cap 259)
+        stream.Write(config.SecurityHost); // securityHost (zstring, cap 259)
+        stream.Write(config.IsDev);        // isDev
+
+        // Client consumers use this as the premium_configs descriptor key. Source the exact content
+        // row already loaded by PremiumGameData rather than coupling it to PaymentMethodType.
+        stream.Write(checked((int)(PremiumGameData.Instance.Config?.Id ?? 0))); // premiumConfigType (i32)
+
+        // The server publishes no world divisions, so the list is genuinely empty.
+        stream.Write(0); // specificWorldDivisionIds: Size (i32)
 
         return stream;
     }

@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData;
 using AAEmu.Game.GameData.Framework;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Schedules;
 
 using NCrontab;
@@ -190,6 +191,90 @@ public class GameScheduleManager(
         if (hasEnded)
             return PeriodStatus.Ended;
         return PeriodStatus.NotStarted;
+    }
+
+    /// <summary>
+    /// Resolves whether an <c>npc_spawners</c> placement may hold live NPCs right now, combining
+    /// its <c>game_schedules</c> period with the day-night window on the spawner row.
+    /// </summary>
+    public NpcSpawnerWindowState GetSpawnerWindowState(uint spawnerTemplateId)
+    {
+        var status = GetPeriodStatusNpc((int)spawnerTemplateId);
+        var template = NpcGameData.Instance.GetNpcSpawnerTemplate(spawnerTemplateId);
+
+        // A placement whose desc row is absent has no window to test; the schedule still applies.
+        var startTime = template?.StartTime ?? 0f;
+        var endTime = template?.EndTime ?? 0f;
+
+        return NpcSpawnerWindow.Evaluate(status, startTime, endTime, TimeManager.Instance.GetTime);
+    }
+
+    /// <summary>
+    /// Ids of the <c>game_schedules</c> rows whose period is running right now. This is what the
+    /// zone needs told: it holds every schedule-linked spawner off until World turns the schedule
+    /// on, so the running set drives <c>WZGameScheduleStart</c> / <c>Continue</c> / <c>End</c>.
+    /// </summary>
+    public HashSet<int> GetRunningGameScheduleIds()
+    {
+        var running = new HashSet<int>();
+        foreach (var (id, gs) in _gameSchedules)
+        {
+            var (started, ended) = CheckData(gs);
+            if (started && !ended)
+                running.Add(id);
+        }
+
+        return running;
+    }
+
+    /// <summary>Spawner template ids bound to a given <c>game_schedules</c> row.</summary>
+    public IReadOnlyList<uint> GetSpawnerIdsForSchedule(int gameScheduleId)
+    {
+        var ids = new List<uint>();
+        foreach (var gss in _gameScheduleSpawners.Values)
+        {
+            if (gss.GameScheduleId == gameScheduleId)
+                ids.Add((uint)gss.SpawnerId);
+        }
+
+        return ids;
+    }
+
+    /// <summary>
+    /// Every spawner template id that answers to a <c>game_schedule_spawners</c> row, whatever its
+    /// period status. Used to tell "no scheduled spawner is present" apart from "the gate is not
+    /// matching the ids the zone announces".
+    /// </summary>
+    public HashSet<uint> GetScheduledSpawnerTemplateIds()
+    {
+        var ids = new HashSet<uint>();
+        foreach (var spawnerId in _gameScheduleSpawnerIds.Keys)
+            ids.Add((uint)spawnerId);
+        return ids;
+    }
+
+    /// <summary>
+    /// Every spawner template id currently outside its window. The union of the scheduled ids and
+    /// the ids carrying a day-night window is ~1100 of 22982 rows, so a full pass is cheap enough
+    /// to run on a timer and diff for window transitions.
+    /// </summary>
+    public HashSet<uint> GetClosedSpawnerTemplateIds()
+    {
+        var closed = new HashSet<uint>();
+
+        foreach (var spawnerId in _gameScheduleSpawnerIds.Keys)
+        {
+            if (GetSpawnerWindowState((uint)spawnerId) == NpcSpawnerWindowState.Closed)
+                closed.Add((uint)spawnerId);
+        }
+
+        foreach (var template in NpcGameData.Instance.GetSpawnerTemplatesWithTimeWindow())
+        {
+            if (GetSpawnerWindowState(template.Id) == NpcSpawnerWindowState.Closed)
+                closed.Add(template.Id);
+        }
+
+        return closed;
     }
 
     public string GetCronRemainingTime(int spawnerId, bool start = true)

@@ -31,6 +31,12 @@ public sealed class Mate : Unit
     /// The item that this summon is from
     /// </summary>
     public ulong ItemId { get; set; }
+
+    /// <summary>
+    /// enum_mate_types: 1 ride, 2 battle. Resolved from the npc's mate_equip_slot_pack.
+    /// </summary>
+    public byte MateType { get; set; }
+
     public byte UserState { get; set; }
     public int Experience { get; set; }
     public int Mileage { get; set; }

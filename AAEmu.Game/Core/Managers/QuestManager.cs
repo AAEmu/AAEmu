@@ -2,7 +2,6 @@
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.AI.Enums;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Acts;
@@ -122,14 +121,14 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
     }
 
     /// <summary>
-    /// 
+    /// Checks whether an NPC template belongs to a <c>quest_monster_groups</c> entry.
     /// </summary>
-    /// <param name="groupId"></param>
-    /// <param name="npcId"></param>
-    /// <returns></returns>
+    /// <param name="groupId">The quest monster group id.</param>
+    /// <param name="npcId">The NPC template id.</param>
+    /// <returns><see langword="true"/> when <paramref name="npcId"/> is a member.</returns>
     public bool CheckGroupNpc(uint groupId, uint npcId)
     {
-        return _groupNpcs.ContainsKey(groupId) && _groupNpcs[groupId].Contains(npcId);
+        return _groupNpcs.TryGetValue(groupId, out var npcIds) && npcIds.Contains(npcId);
     }
 
     /// <summary>

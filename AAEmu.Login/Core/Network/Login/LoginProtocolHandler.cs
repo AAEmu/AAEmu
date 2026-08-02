@@ -24,7 +24,10 @@ public class LoginProtocolHandler : ILoginProtocolHandler
                 break;
             }
 
-            // TODO: Could enforce maximum packet size here (if smaller than ushort.MaxValue).
+            // packetLength is the protocol's u16 frame-size field, so ushort.MaxValue is the wire maximum.
+            // It includes the u16 packet type and therefore cannot legally be smaller than PacketTypeSize.
+            if (packetLength < PacketTypeSize)
+                throw new InvalidDataException($"Invalid login packet length {packetLength}");
 
             // Check if we have enough data to read the full packet (packetLength includes packet type + packet data).
             if (reader.Remaining < packetLength)
@@ -39,7 +42,7 @@ public class LoginProtocolHandler : ILoginProtocolHandler
             }
 
             var dataLength = packetLength - PacketTypeSize; // Subtract the size of the packet type.
-            // TODO: Improve this constructor as it makes an unnecessary copy of the data.
+            // PacketStream owns mutable storage, so copy the exact payload slice before advancing the PipeReader.
             packet = new PacketStream(reader.UnreadSequence.Slice(0, dataLength));
             reader.Advance(dataLength);
 

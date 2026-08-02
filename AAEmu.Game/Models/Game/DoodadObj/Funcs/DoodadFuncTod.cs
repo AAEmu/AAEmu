@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -6,61 +6,84 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
 
 public class DoodadFuncTod : DoodadPhaseFuncTemplate
 {
-    /// <summary>
-    /// Time of Day as HH:MM represented by a uint
-    /// </summary>
-    public uint Tod { get; set; }
+    private const int MinutesPerHour = 60;
+    private const int HoursPerDay = 24;
+
+    /// <summary>Start time encoded as HHMM.</summary>
+    public int Tod { get; set; }
     public int NextPhase { get; set; }
-    /// <summary>
-    /// Helper property for ToD
-    /// </summary>
+
+    /// <summary>Optional inclusive end time encoded as HHMM, or -1 for a point-in-time trigger.</summary>
+    public int TodEnd { get; set; } = -1;
+
+    /// <summary>Whether this trigger follows the server's wall clock instead of Zone game time.</summary>
+    public bool IsRealtime { get; set; }
+
+    /// <summary>Normalized start time in hours.</summary>
     public float TodAsHours { get; set; }
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        // I think this is used to reschedule anything that needs triggered at a specific gametime
-        // По моему, здесь должна быть проверка на время дня.
-        // Например: уличные светильники должны гореть ночью, а не днем.
-        // если текущее время более 4:00 (tod=400), то переключим на 4024 - выкл, а после 20:00 (tod=2000) на 4023 - вкл.
-        /*
-           [Doodad] Chain: TemplateId 2322 - светильник (4623|4718-вкл, 4624|4717-выкл)
-           [Doodad] FuncGroupId : 4623
-           [Doodad] PhaseFunc: GroupId 4623, FuncId 132, FuncType DoodadFuncTod : tod=400, nextPhase=4624
-           [Doodad] Func: GroupId 4623, FuncId 533, FuncType DoodadFuncFakeUse, NextPhase 4717, Skill 0 : skillId=0, fakeSkillId=13167
+        if (NextPhase <= 0)
+            return false;
 
-           [Doodad] FuncGroupId : 4624
-           [Doodad] PhaseFunc: GroupId 4624, FuncId 133, FuncType DoodadFuncTod : tod=2000, nextPhase=4623
-           [Doodad] PhaseFunc: GroupId 4624, FuncId 301, FuncType DoodadFuncTod : tod=930, nextPhase=-1
-           [Doodad] Func: GroupId 4624, FuncId 534, FuncType DoodadFuncFakeUse, NextPhase 4718, Skill 0 : skillId=0, fakeSkillId=13166
+        var currentTime = IsRealtime
+            ? (float)DateTime.Now.TimeOfDay.TotalHours
+            : TimeManager.Instance.GetTime;
 
-           [Doodad] FuncGroupId : 4717
-           [Doodad] PhaseFunc: GroupId 4717, FuncId 833, FuncType DoodadFuncTimer : Delay 60000, NextPhase 4623
-           [Doodad] PhaseFunc: GroupId 4717, FuncId 138, FuncType DoodadFuncTod : tod=400, nextPhase=4624
-           [Doodad] Func: GroupId 4717, FuncId 596, FuncType DoodadFuncFakeUse, NextPhase 4623, Skill 0 : skillId=0, fakeSkillId=13166
+        // Ranged descriptors are entry conditions. Point triggers normally wait for the next
+        // crossing; templates marked force_tod_top_priority (for example lamps) resolve their
+        // current phase immediately when initialized.
+        var shouldChange = TodEnd >= 0
+            ? IsWithinWindow(currentTime)
+            : owner.Template.ForceTodTopPriority && currentTime >= TodAsHours;
+        if (!shouldChange)
+            return false;
 
-           [Doodad] FuncGroupId : 4718
-           [Doodad] PhaseFunc: GroupId 4718, FuncId 834, FuncType DoodadFuncTimer : Delay 60000, NextPhase 4624
-           [Doodad] PhaseFunc: GroupId 4718, FuncId 139, FuncType DoodadFuncTod : tod=2000, nextPhase=4623
-           [Doodad] Func: GroupId 4718, FuncId 597, FuncType DoodadFuncFakeUse, NextPhase 4624, Skill 0 : skillId=0, fakeSkillId=13167
-        */
-        //var curTime = TimeManager.Instance.GetTime();
-        //if (owner.FuncTask != null)
-        //{
-        //    _ = owner.FuncTask.Cancel();
-        //    _ = owner.FuncTask = null;
-        //    Logger.Trace("DoodadFuncTimerTask: The current timer has been canceled by the TOD {0}", curTime);
-        //}
+        Logger.Trace(
+            "DoodadFuncTod: currentTime {0}, Tod {1}, TodEnd {2}, IsRealtime {3}, OverridePhase {4}",
+            currentTime, Tod, TodEnd, IsRealtime, NextPhase);
+        owner.OverridePhase = NextPhase;
+        return true;
+    }
 
-        // return false; // Temporary ignore for now
+    public bool IsWithinWindow(float hours)
+    {
+        if (TodEnd < 0)
+            return false;
 
-        var curTime = TimeManager.Instance.GetTime;
-        if (curTime >= TodAsHours)
-        {
-            Logger.Trace($"DoodadFuncTod: curTime {curTime}, Tod {Tod}, OverridePhase {NextPhase}");
-            owner.OverridePhase = NextPhase;
-            return true; // it is necessary to interrupt the phase functions and switch to NextPhase
-        }
+        var currentMinute = (int)Math.Floor(NormalizeHours(hours) * MinutesPerHour);
+        var startMinute = ToMinuteOfDay(Tod);
+        var endMinute = ToMinuteOfDay(TodEnd);
+        return startMinute <= endMinute
+            ? currentMinute >= startMinute && currentMinute <= endMinute
+            : currentMinute >= startMinute || currentMinute <= endMinute;
+    }
 
-        return false;
+    public static float ToHours(int encodedTime)
+    {
+        var normalized = NormalizeEncodedTime(encodedTime);
+        var hours = normalized / 100;
+        var minutes = normalized % 100;
+        return hours + minutes / (float)MinutesPerHour;
+    }
+
+    private static int ToMinuteOfDay(int encodedTime)
+    {
+        var normalized = NormalizeEncodedTime(encodedTime);
+        return normalized / 100 * MinutesPerHour + normalized % 100;
+    }
+
+    private static int NormalizeEncodedTime(int encodedTime)
+    {
+        while (encodedTime >= HoursPerDay * 100)
+            encodedTime /= 10;
+        return encodedTime;
+    }
+
+    private static float NormalizeHours(float hours)
+    {
+        var normalized = hours % HoursPerDay;
+        return normalized < 0 ? normalized + HoursPerDay : normalized;
     }
 }

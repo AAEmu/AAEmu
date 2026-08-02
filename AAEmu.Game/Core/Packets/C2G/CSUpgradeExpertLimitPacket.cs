@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -12,6 +12,6 @@ public class CSUpgradeExpertLimitPacket() : GamePacket(CSOffsets.CSUpgradeExpert
 
         Logger.Debug("UpgradeExpertLimit, id -> {0}, autoUseAAPoint -> {1}", id, autoUseAAPoint);
 
-        Connection.ActiveChar.Actability.Regrade(id, true);
+        Connection.ActiveChar.Actability.Regrade(id, true, autoUseAAPoint);
     }
 }

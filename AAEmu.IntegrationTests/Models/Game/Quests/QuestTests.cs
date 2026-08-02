@@ -85,7 +85,6 @@ public class QuestTests
         ModelManager.Instance.Load();
         HousingTldManager.Instance.Initialize();
 
-        AIManager.Instance.Initialize();
         GameDataManager.Instance.LoadGameData();
         GameScheduleManager.Instance.Load();
         TaxationsManager.Instance.Load();

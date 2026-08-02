@@ -83,7 +83,6 @@ Created base classes for tests:
 | `TeamManager`              | 1     | ✅ Basic           |
 | `TradeManager`             | 1     | ✅ Basic           |
 | `EffectTaskManager`        | 2     | ✅ Basic           |
-| `BoatPhysicsManager`       | 1     | ⚠️ Basic          |
 | `FactionManager`           | 1     | ⚠️ Basic          |
 | `NpcManager`               | 1     | ⚠️ Basic          |
 
@@ -466,7 +465,6 @@ The AAEmu.UnitTests project contains **73 test files** organized into the follow
 ### Game/Core/Managers/World
 | File | Description |
 |------|-------------|
-| `BoatPhysicsManagerTests.cs` | Tests for boat physics |
 | `ExampleTests.cs` | Example/test placeholder |
 | `FactionManagerTests.cs` | Tests for faction system |
 | `WorldManagerTests.cs` | Tests for world management |

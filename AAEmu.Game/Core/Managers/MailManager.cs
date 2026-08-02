@@ -75,8 +75,87 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             Logger.Trace("Send() - Assign new mail Id");
             mail.Id = GetNewMailId();
         }
-        _allPlayerMails.Add(mail.Id, mail);
+        lock (_allPlayerMails)
+        {
+            if (_allPlayerMails.ContainsKey(mail.Id))
+            {
+                Logger.Error("Send() - Refusing to replace existing mail {0}", mail.Id);
+                return false;
+            }
+
+            _allPlayerMails.Add(mail.Id, mail);
+        }
         NotifyNewMailByNameIfOnline(mail, targetName);
+        return true;
+    }
+
+    public bool TryReturnToSender(BaseMail mail)
+    {
+        return TryReturnToSenderCore(mail, null);
+    }
+
+    public bool TryReturnToSenderFor(BaseMail mail, uint characterId)
+    {
+        return TryReturnToSenderCore(mail, characterId);
+    }
+
+    /// <summary>
+    /// Turns a tracked mail around without moving its attachments or removing/re-adding its dictionary entry.
+    /// Eligibility, destination identity, and the tracked object reference are all validated under the same
+    /// lock as the mutation so deletion and mail-id reuse cannot race the return.
+    /// </summary>
+    private bool TryReturnToSenderCore(BaseMail mail, uint? authorizedReceiverId)
+    {
+        if (mail == null)
+            return false;
+
+        uint originalReceiverId;
+        string destinationName;
+        lock (_allPlayerMails)
+        {
+            if (!_allPlayerMails.TryGetValue(mail.Id, out var trackedMail) ||
+                !ReferenceEquals(trackedMail, mail))
+            {
+                Logger.Warn("TryReturnToSender - Mail {0} is no longer the tracked instance", mail.Id);
+                return false;
+            }
+
+            var eligible = authorizedReceiverId.HasValue
+                ? mail.CanBeReturnedBy(authorizedReceiverId.Value)
+                : mail.CanReturnMail();
+            if (!eligible)
+                return false;
+
+            var destinationId = mail.Header.SenderId;
+            destinationName = mail.Header.SenderName;
+            var registeredName = nameManager.GetCharacterName(destinationId);
+            var registeredId = nameManager.GetCharacterId(destinationName);
+            if (!string.Equals(registeredName, destinationName, StringComparison.InvariantCultureIgnoreCase) ||
+                registeredId != destinationId)
+            {
+                Logger.Warn(
+                    "TryReturnToSender - Destination identity mismatch for mail {0}: {1}({2}) resolved as {3}({4})",
+                    mail.Id, destinationName, destinationId, registeredName, registeredId);
+                return false;
+            }
+
+            originalReceiverId = mail.Header.ReceiverId;
+            var originalReceiverName = mail.Header.ReceiverName;
+
+            mail.Header.ReceiverId = destinationId;
+            mail.ReceiverName = destinationName;
+            mail.Header.SenderId = originalReceiverId;
+            mail.Header.SenderName = originalReceiverName;
+            mail.Header.Returned = true;
+            mail.Header.Status = MailStatus.Unread;
+            mail.IsDelivered = false;
+        }
+
+        var originalReceiver = worldManager.GetCharacterById(originalReceiverId);
+        if (originalReceiver is { IsOnline: true })
+            originalReceiver.SendPacket(new SCMailReturnedPacket(mail.Id, mail.Header));
+
+        NotifyNewMailByNameIfOnline(mail, destinationName);
         return true;
     }
 
@@ -95,7 +174,8 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                 _deletedMailIds.Add(id);
             mailIdManager.ReleaseId((uint)id);
         }
-        return _allPlayerMails.Remove(id);
+        lock (_allPlayerMails)
+            return _allPlayerMails.Remove(id);
     }
 
     public bool DeleteMail(BaseMail mail, bool trashItems = false)
@@ -314,7 +394,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                 character?.Mails.UnreadMailCount.UpdateReceived(mail.Value.MailType, 1);
                 var addBody = mail.Value.MailType == MailType.Charged;
 
-                character?.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.UnreadMailCount, false, addBody ? mail.Value.Body : null));
+                character?.SendPacket(new SCGotMailPacket(mail.Value.Header, character.Mails.UnreadMailCount, addBody ? mail.Value.Body : null));
                 mail.Value.IsDelivered = true;
             }
         }
@@ -334,7 +414,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                 var addBody = m.MailType == MailType.Charged;
                 player.Mails.UnreadMailCount.UpdateReceived(m.MailType, 1);
 
-                player.SendPacket(new SCGotMailPacket(m.Header, player.Mails.UnreadMailCount, false, addBody ? m.Body : null));
+                player.SendPacket(new SCGotMailPacket(m.Header, player.Mails.UnreadMailCount, addBody ? m.Body : null));
                 m.IsDelivered = true;
                 return true;
             }
@@ -380,6 +460,14 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             return false;
         }
 
+        // mailId arrives from the client, so confirm the bill is actually addressed to the payer.
+        if (mail.Header.ReceiverId != character.Id)
+        {
+            Logger.Warn($"{character.Name} ({character.Id}) tried to settle mail {mailId}, addressed to {mail.Header.ReceiverId}");
+            character.SendErrorMessage(ErrorMessageType.MailInvalid);
+            return false;
+        }
+
         // Only tax mail supported
         if (mail.MailType != MailType.Billing)
         {
@@ -397,7 +485,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             return false;
         }
 
-        if (FeaturesManager.Fsets.Check(Feature.taxItem))
+        if (FeaturesManager.Fsets.TaxItem)
         {
             // use Tax Certificates as payment
             // TODO: grab these values from DB somewhere ?
@@ -441,17 +529,18 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
         }
         else
         {
-            // use gold as payment
-            if (mail.Body.BillingAmount > character.Money)
+            var billingBalance = autoUseAAPoint ? character.AaPoint : character.Money;
+            if (mail.Body.BillingAmount > billingBalance)
             {
-                // Not enough gold
                 character.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
                 return false;
             }
-            else
-            {
-                character.SubtractMoney(SlotType.Inventory, mail.Body.BillingAmount);
-            }
+
+            var paid = autoUseAAPoint
+                ? character.SubtractAAPoint(SlotType.Inventory, mail.Body.BillingAmount, ItemTaskType.Mail)
+                : character.SubtractMoney(SlotType.Inventory, mail.Body.BillingAmount, ItemTaskType.Mail);
+            if (!paid)
+                return false;
         }
 
         if (!housingManager.Value.PayWeeklyTax(house))

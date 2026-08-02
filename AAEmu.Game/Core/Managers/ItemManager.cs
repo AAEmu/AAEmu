@@ -34,11 +34,15 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
     private Dictionary<int, GradeTemplate> _grades;
     private Dictionary<uint, Holdable> _holdables;
+    private Dictionary<string, uint> _constHoldableTypes;
+    private HashSet<uint> _itemInstrumentSounds;
+    private Dictionary<uint, HashSet<uint>> _itemTags;
     private Dictionary<uint, Wearable> _wearables;
     private Dictionary<uint, WearableKind> _wearableKinds;
     private Dictionary<uint, WearableSlot> _wearableSlots;
     private Dictionary<uint, AttributeModifiers> _modifiers;
     private Dictionary<uint, ItemTemplate> _templates;
+    private Dictionary<(uint ItemId, ShopCurrencyType Currency), int> _shopPrices;
     private Dictionary<uint, ItemDoodadTemplate> _itemDoodadTemplates;
     private ItemConfig _config;
 
@@ -53,7 +57,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
     // Loot related
     private Dictionary<uint, List<LootPackDroppingNpc>> _lootPackDroppingNpc;
-    private Dictionary<uint, List<LootPackConvertFish>> _lootPackConvertFish;
+    private Dictionary<(uint FunctionId, uint SourceItemId), uint> _fishConversions;
     private Dictionary<int, GradeDistributions> _itemGradeDistributions;
 
     // ItemLookConvert
@@ -74,6 +78,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     private Dictionary<ulong, Item> _allItems;
     private List<ulong> _removedItems;
     private Dictionary<ulong, ItemContainer> _allPersistentContainers;
+    private Dictionary<ulong, ItemBagContainer> _itemBagContainers;
     private bool _loadedUserItems;
     // private Dictionary<ulong, Item> _timerSubscriptionsItems;
 
@@ -83,6 +88,11 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     public ItemTemplate GetTemplate(uint id)
     {
         return _templates.GetValueOrDefault(id);
+    }
+
+    public int? GetShopPrice(uint itemId, ShopCurrencyType currency)
+    {
+        return _shopPrices.TryGetValue((itemId, currency), out var price) ? price : null;
     }
 
     public EquipItemSet GetEquippedItemSet(uint id)
@@ -98,6 +108,23 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     public Holdable GetHoldable(uint id)
     {
         return _holdables.GetValueOrDefault(id);
+    }
+
+    /// <summary>Holdable id behind a <c>const_holdable_types</c> name, or 0 when absent.</summary>
+    public uint GetConstHoldableId(string name)
+    {
+        return _constHoldableTypes.GetValueOrDefault(name, 0u);
+    }
+
+    /// <summary>Whether an item has an item-kind entry in <c>instrument_sounds</c>.</summary>
+    public bool HasItemInstrumentSound(uint itemId)
+    {
+        return _itemInstrumentSounds.Contains(itemId);
+    }
+
+    public bool HasItemTag(uint itemId, uint tagId)
+    {
+        return _itemTags.TryGetValue(itemId, out var tags) && tags.Contains(tagId);
     }
 
     public EquipSlotEnchantingCost GetEquipSlotEnchantingCost(uint slotTypeId)
@@ -120,45 +147,14 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         return _lootPackDroppingNpc.TryGetValue(npcId, out var value) ? value : [];
     }
 
-    /// <summary>
-    /// GetLootPackIdByItemId - designed to transform fish into trophies
-    /// </summary>
-    /// <param name="itemId"></param>
-    /// <returns></returns>
-    private List<LootPackConvertFish> GetLootPackIdByItemId(uint itemId)
-    {
-        return _lootPackConvertFish.TryGetValue(itemId, out var value) ? value : [];
-    }
-
     public List<ItemTemplate> GetAllItems()
     {
         return _templates.Values.ToList();
     }
 
-    public List<Item> GetLootConvertFish(uint templateId)
+    public bool TryGetFishConversion(uint functionId, uint sourceItemId, out uint outputItemId)
     {
-        var items = new List<Item>();
-        var convertFishes = GetLootPackIdByItemId(templateId);
-
-        // 10.0.2.13: doodad_func_convert_fish_items now maps the source fish (item_id) directly to an output
-        // item (convert_item_id) — there is no loot pack to roll. Create the converted item directly.
-        foreach (var convertFish in convertFishes)
-        {
-            if (convertFish.ConvertItemId == 0)
-                continue;
-
-            items.Add(new Item
-            {
-                TemplateId = convertFish.ConvertItemId,
-                CreateTime = DateTime.UtcNow,
-                Id = Instance.GetNewId(),
-                MadeUnitId = templateId,
-                Count = 1
-            });
-            break; // preserve prior behaviour: yield only the first converted item
-        }
-
-        return items;
+        return _fishConversions.TryGetValue((functionId, sourceItemId), out outputItemId);
     }
 
     public GradeDistributions GetGradeDistributions(byte id)
@@ -311,20 +307,43 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
     public Item Create(uint templateId, int count, byte grade, bool generateId = true)
     {
-        var id = generateId ? Instance.GetNewId() : 0u;
         var template = GetTemplate(templateId);
         if (template == null)
             return null;
 
+        var isCaughtFish = FishDetailsGameData.Instance.HasFishDetails(templateId);
+        var item = Create(template, isCaughtFish ? typeof(BigFish) : template.ClassType, count, grade, generateId, true);
+        if (isCaughtFish && item is BigFish fish)
+            FishDetailsGameData.Instance.InitializeCaughtFish(fish);
+        return item;
+    }
+
+    public TItem Create<TItem>(uint templateId, int count, byte grade, bool generateId = true) where TItem : Item
+    {
+        var template = GetTemplate(templateId);
+        return template == null ? null : Create(template, typeof(TItem), count, grade, generateId, false) as TItem;
+    }
+
+    private Item Create(ItemTemplate template, Type itemType, int count, byte grade, bool generateId, bool allowFallback)
+    {
+        var id = generateId ? Instance.GetNewId() : 0u;
+
         Item item;
         try
         {
-            item = (Item)Activator.CreateInstance(template.ClassType, id, template, count);
+            item = (Item)Activator.CreateInstance(itemType, id, template, count);
         }
         catch (Exception ex)
         {
             Logger.Error(ex);
             Logger.Error(ex.InnerException);
+            if (!allowFallback)
+            {
+                if (generateId)
+                    ReleaseId(id);
+                return null;
+            }
+
             item = new Item(id, template, count);
         }
 
@@ -372,11 +391,15 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
         _grades = [];
         _holdables = [];
+        _constHoldableTypes = new Dictionary<string, uint>(StringComparer.Ordinal);
+        _itemInstrumentSounds = [];
+        _itemTags = [];
         _wearables = [];
         _wearableKinds = [];
         _wearableSlots = [];
         _modifiers = [];
         _templates = [];
+        _shopPrices = [];
         _enchantingCosts = [];
         _gradesOrdered = [];
         _enchantingSupports = [];
@@ -385,7 +408,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         _holdableItemLookConverts = [];
         _wearableItemLookConverts = [];
         _lootPackDroppingNpc = [];
-        _lootPackConvertFish = [];
+        _fishConversions = [];
         _itemGradeDistributions = [];
         /*
         _lootPacks = new Dictionary<uint, List<Loot>>();
@@ -560,6 +583,64 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                 }
             }
 
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT name, holdable_id FROM const_holdable_types";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        var name = reader.GetString("name", string.Empty);
+                        if (!string.IsNullOrEmpty(name))
+                            _constHoldableTypes[name] = reader.GetUInt32("holdable_id");
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                // The native EquipRanged instrument predicate rejects musical-slot items that
+                // have an item-kind instrument sound descriptor. Resolve the kind relationally
+                // so its numeric enum id is not baked into server code.
+                command.CommandText = """
+                                      SELECT DISTINCT instrument_sounds.item_id
+                                      FROM instrument_sounds
+                                      JOIN enum_instrument_sound_kinds
+                                        ON enum_instrument_sound_kinds.id = instrument_sounds.kind_id
+                                      WHERE enum_instrument_sound_kinds.name = 'item'
+                                      """;
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                        _itemInstrumentSounds.Add(reader.GetUInt32("item_id"));
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT item_id, tag_id FROM tagged_items";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        var itemId = reader.GetUInt32("item_id");
+                        if (!_itemTags.TryGetValue(itemId, out var tags))
+                        {
+                            tags = [];
+                            _itemTags[itemId] = tags;
+                        }
+
+                        tags.Add(reader.GetUInt32("tag_id"));
+                    }
+                }
+            }
+
             // Armor rating for armor types per slot ?
             using (var command = connection.CreateCommand())
             {
@@ -625,8 +706,28 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                 }
             }
 
-            // 10.0.2.13: dyeable_items.default_dyeing_item_id removed (table now stores a raw ARGB `color`);
-            // the default-dye loader, _defaultDyeIds map and ArmorTemplate.DefaultDyeItemId were dropped.
+            // 10.0.2.13 stores the default packed ARGB color directly on each dyeable item template.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT item_id, color FROM dyeable_items";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var itemId = reader.GetUInt32("item_id");
+                        if (_templates.TryGetValue(itemId, out var itemTemplate) &&
+                            itemTemplate is EquipItemTemplate equipItemTemplate)
+                        {
+                            equipItemTemplate.DyeingColor = reader.GetUInt32("color");
+                        }
+                        else
+                        {
+                            Logger.Warn($"Ignoring dye color for missing equipment item template {itemId}");
+                        }
+                    }
+                }
+            }
 
             // Item stat bonuses (when equipped)
             using (var command = connection.CreateCommand())
@@ -729,6 +830,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
                             ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
                             ChargeCount = reader.GetInt32("charge_count", 0),
+                            RechargeRestrictItemId = reader.GetUInt32("recharge_restrict_item_id", 0),
                             ItemLookConvert = GetWearableItemLookConvert(slotTypeId),
                             EquipItemSetId = reader.GetUInt32("eiset_id", 0)
                         };
@@ -739,7 +841,12 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM item_weapons";
+                command.CommandText =
+                    "SELECT item_weapons.* FROM item_weapons " +
+                    "INNER JOIN items ON items.id = item_weapons.item_id " +
+                    "INNER JOIN enum_item_impls ON enum_item_impls.id = items.impl_id " +
+                    "WHERE enum_item_impls.name = $implName";
+                command.Parameters.AddWithValue("$implName", "weapon");
                 command.Prepare();
                 using (var sqliteReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteReader))
@@ -759,6 +866,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
                             ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
                             ChargeCount = reader.GetInt32("charge_count", 0),
+                            RechargeRestrictItemId = reader.GetUInt32("recharge_restrict_item_id", 0),
                             ItemLookConvert = GetHoldableItemLookConvert(holdableId),
                             EquipItemSetId = reader.GetUInt32("eiset_id", 0)
                         };
@@ -791,6 +899,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             RechargeBuffId = reader.GetUInt32("recharge_buff_id", 0),
                             ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
                             ChargeCount = reader.GetInt32("charge_count", 0),
+                            RechargeRestrictItemId = reader.GetUInt32("recharge_restrict_item_id", 0),
                             EquipItemSetId = reader.GetUInt32("eiset_id", 0)
                         };
                         _templates.Add(template.Id, template);
@@ -908,6 +1017,52 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                 }
             }
 
+            var itemBagTemplatesByContentId = new Dictionary<uint, ItemBagTemplate>();
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM item_bags";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new ItemBagTemplate
+                        {
+                            ItemBagId = reader.GetUInt32("id"),
+                            Id = reader.GetUInt32("item_id"),
+                            Capacity = reader.GetInt32("capacity"),
+                            OrUnitReqs = reader.GetBoolean("or_unit_reqs")
+                        };
+                        if (template.Capacity is <= 0 or > byte.MaxValue + 1)
+                            throw new InvalidDataException(
+                                $"Item bag {template.ItemBagId} has protocol-invalid capacity {template.Capacity}");
+                        _templates.Add(template.Id, template);
+                        itemBagTemplatesByContentId.Add(template.ItemBagId, template);
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "SELECT owner_id, item_category_id FROM coffer_item_categories WHERE owner_type = $ownerType";
+                command.Parameters.AddWithValue("$ownerType", nameof(ItemBag));
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        var ownerId = reader.GetUInt32("owner_id");
+                        if (itemBagTemplatesByContentId.TryGetValue(ownerId, out var template))
+                            template.AllowedItemCategoryIds.Add(reader.GetInt32("item_category_id"));
+                        else
+                            Logger.Warn($"Ignoring item-category restriction for missing item bag {ownerId}");
+                    }
+                }
+            }
+
             // TODO: HACK-FIX FOR CREST INK/STAMP/MUSIC
             var crestInkItemTemplate = new UccTemplate { Id = Item.CrestInk };
             _templates.Add(crestInkItemTemplate.Id, crestInkItemTemplate);
@@ -966,9 +1121,12 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                         template.AuctionSettings = new AuctionSettings(
                             template.AuctionCategoryA,
                             template.AuctionCategoryB,
-                            template.AuctionCategoryC
-                        //reader.GetUInt32("auction_charge"), // added in 3+
-                        //reader.GetBoolean("auction_charge_default") // added in 3+
+                            template.AuctionCategoryC,
+                            // Present in the 10.0.2.13 schema; these were left commented out from a build that
+                            // predated them. auction_charge_default is a boolean, and auction_charge is the
+                            // per-item commission in basis points used when it is false.
+                            reader.GetInt32("auction_charge"),
+                            reader.GetBoolean("auction_charge_default", true)
                         );
 
                         _templates.TryAdd(template.Id, template);
@@ -1027,18 +1185,23 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                 }
             }
 
-            // 10.0.2.13: vendor buy/sell pricing moved from items.price/refund to the new item_prices table.
-            // Apply the gold (currency_id = 0) price/refund onto each item template so vendor logic works again.
+            // 10.0.2.13: vendor pricing moved from items to item_prices and is keyed by wire currency.
+            // Keep the complete table for authoritative shop validation. Gold refund remains mirrored on the
+            // template because selling and several older item paths consume that field directly.
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT item_id, price, refund FROM item_prices WHERE currency_id = 0";
+                command.CommandText = "SELECT item_id, currency_id, price, refund FROM item_prices";
                 command.Prepare();
                 using (var sqliteReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteReader))
                 {
                     while (reader.Read())
                     {
-                        if (_templates.TryGetValue(reader.GetUInt32("item_id"), out var itemTemplate))
+                        var itemId = reader.GetUInt32("item_id");
+                        var currency = (ShopCurrencyType)reader.GetByte("currency_id");
+                        _shopPrices[(itemId, currency)] = reader.GetInt32("price");
+
+                        if (currency == ShopCurrencyType.Money && _templates.TryGetValue(itemId, out var itemTemplate))
                         {
                             itemTemplate.Price = reader.GetInt32("price");
                             itemTemplate.Refund = reader.GetInt32("refund");
@@ -1201,24 +1364,12 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                 {
                     while (reader.Read())
                     {
-                        var template = new LootPackConvertFish
-                        {
-                            Id = reader.GetUInt32("id"),
-                            ItemId = reader.GetUInt32("item_id"),
-                            // 10.0.2.13: loot_pack_id removed; conversion points directly to convert_item_id.
-                            ConvertItemId = reader.GetUInt32("convert_item_id", 0),
-                            DoodadFuncConvertFishId = reader.GetUInt32("doodad_func_convert_fish_id")
-                        };
-                        List<LootPackConvertFish> lootPackConvertFish;
-                        if (_lootPackConvertFish.TryGetValue(template.ItemId, out var value))
-                            lootPackConvertFish = value;
-                        else
-                        {
-                            lootPackConvertFish = [];
-                            _lootPackConvertFish.Add(template.ItemId, lootPackConvertFish);
-                        }
-
-                        lootPackConvertFish.Add(template);
+                        var functionId = reader.GetUInt32("doodad_func_convert_fish_id");
+                        var sourceItemId = reader.GetUInt32("item_id");
+                        var outputItemId = reader.GetUInt32("convert_item_id");
+                        if (!_fishConversions.TryAdd((functionId, sourceItemId), outputItemId))
+                            throw new InvalidDataException(
+                                $"Duplicate fish conversion for function {functionId} and item {sourceItemId}");
                     }
                 }
             }
@@ -1425,9 +1576,9 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                         continue;
 
                     command.CommandText = "REPLACE INTO item_containers (" +
-                                          "`container_id`,`container_type`,`slot_type`,`container_size`,`owner_id`,`mate_id`" +
+                                          "`container_id`,`container_type`,`slot_type`,`container_size`,`owner_id`,`mate_id`,`parent_item_id`" +
                                           ") VALUES ( " +
-                                          "@container_id, @container_type, @slot_type, @container_size, @owner_id, @mate_id" +
+                                          "@container_id, @container_type, @slot_type, @container_size, @owner_id, @mate_id, @parent_item_id" +
                                           ")";
 
                     command.Parameters.Clear();
@@ -1437,6 +1588,9 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                     command.Parameters.AddWithValue("@container_size", c.ContainerSize);
                     command.Parameters.AddWithValue("@owner_id", c.OwnerId);
                     command.Parameters.AddWithValue("@mate_id", c.MateId);
+                    command.Parameters.AddWithValue("@parent_item_id", c is ItemBagContainer itemBagContainer
+                        ? itemBagContainer.ParentItemId
+                        : 0);
                     try
                     {
                         var res = command.ExecuteNonQuery();
@@ -1570,6 +1724,24 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     }
 
     /// <summary>
+    /// Looks up a persistent container of a player without creating one when it's missing.
+    /// </summary>
+    /// <param name="characterId">Player Id</param>
+    /// <param name="slotType">Container Type to look for</param>
+    /// <param name="mateId">Mate Id, or slave DB Id for SlotType.EquipmentSlave</param>
+    /// <returns>The container, or null when the player has none of this kind</returns>
+    public ItemContainer FindItemContainerFor(uint characterId, SlotType slotType, uint mateId)
+    {
+        foreach (var c in _allPersistentContainers.Values)
+        {
+            if (c.OwnerId == characterId && c.ContainerType == slotType && c.MateId == mateId)
+                return c;
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Grabs an existing container owned by a player
     /// </summary>
     /// <param name="characterId">Player Id</param>
@@ -1579,20 +1751,19 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     /// <returns></returns>
     public ItemContainer GetItemContainerForCharacter(uint characterId, SlotType slotType, Unit parentUnit, uint mateId)
     {
-        foreach (var c in _allPersistentContainers.Values)
+        var existing = FindItemContainerFor(characterId, slotType, mateId);
+        if (existing != null)
         {
-            if (c.OwnerId == characterId && c.ContainerType == slotType && c.MateId == mateId)
-            {
-                if (parentUnit != null)
-                    c.ParentUnit = parentUnit;
-                return c;
-            }
+            if (parentUnit != null)
+                existing.ParentUnit = parentUnit;
+            return existing;
         }
 
         var newContainerType = slotType switch
         {
             SlotType.Equipment => "EquipmentContainer",
             SlotType.EquipmentMate => "MateEquipmentContainer",
+            SlotType.EquipmentSlave => "EquipmentContainer",
             _ => "ItemContainer"
         };
 
@@ -1614,6 +1785,34 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         return coffer;
     }
 
+    public ItemBagContainer GetOrCreateItemBagContainer(ItemBag itemBag)
+    {
+        ArgumentNullException.ThrowIfNull(itemBag);
+        if (itemBag.Template is not ItemBagTemplate template)
+            throw new ArgumentException("The item does not have an ItemBag template", nameof(itemBag));
+
+        if (_itemBagContainers.TryGetValue(itemBag.Id, out var existing))
+        {
+            existing.Configure(template);
+            existing.ReassignOwner(itemBag.OwnerId);
+            return existing;
+        }
+
+        var container = new ItemBagContainer((uint)itemBag.OwnerId, true)
+        {
+            ParentItemId = itemBag.Id
+        };
+        container.Configure(template);
+        _allPersistentContainers.Add(container.ContainerId, container);
+        _itemBagContainers.Add(itemBag.Id, container);
+        return container;
+    }
+
+    public ItemBagContainer GetItemBagContainer(ulong itemId)
+    {
+        return _itemBagContainers?.GetValueOrDefault(itemId);
+    }
+
     public ItemContainer GetItemContainerByDbId(ulong dbId)
     {
         return _allPersistentContainers.GetValueOrDefault(dbId);
@@ -1631,6 +1830,9 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
         if (container.Items.Count > 0)
             return false;
+
+        if (container is ItemBagContainer itemBagContainer)
+            _itemBagContainers.Remove(itemBagContainer.ParentItemId);
 
         var idToRemove = (uint)container.ContainerId;
         container.ContainerId = 0;
@@ -1657,6 +1859,69 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         return res;
     }
 
+    /// <summary>
+    /// Releases item and container allocations made while constructing a character whose creation transaction
+    /// was rolled back. These objects were never committed, so they must not enter the normal DB deletion queue.
+    /// </summary>
+    public void DiscardUnsavedCharacterState(uint characterId)
+    {
+        List<ulong> itemIds;
+        lock (_allItems)
+        {
+            itemIds = _allItems
+                .Where(entry => entry.Value.OwnerId == characterId)
+                .Select(entry => entry.Key)
+                .ToList();
+
+            foreach (var itemId in itemIds)
+            {
+                var item = _allItems[itemId];
+                item._holdingContainer?.Items.Remove(item);
+                item._holdingContainer = null;
+                _allItems.Remove(itemId);
+            }
+        }
+
+        List<ItemContainer> containers;
+        lock (_allPersistentContainers)
+        {
+            containers = _allPersistentContainers.Values
+                .Where(container => container.OwnerId == characterId)
+                .ToList();
+
+            foreach (var container in containers)
+                _allPersistentContainers.Remove(container.ContainerId);
+        }
+
+        lock (_itemBagContainers)
+        {
+            var itemIdSet = itemIds.ToHashSet();
+            foreach (var parentItemId in _itemBagContainers
+                         .Where(entry => entry.Value.OwnerId == characterId || itemIdSet.Contains(entry.Key))
+                         .Select(entry => entry.Key)
+                         .ToArray())
+                _itemBagContainers.Remove(parentItemId);
+        }
+
+        lock (_removedItems)
+        {
+            foreach (var itemId in itemIds)
+                _removedItems.Remove(itemId);
+        }
+
+        foreach (var itemId in itemIds)
+            itemIdManager.ReleaseId(checked((uint)itemId));
+
+        foreach (var container in containers)
+        {
+            container.Items.Clear();
+            var containerId = checked((uint)container.ContainerId);
+            container.ContainerId = 0;
+            containerIdManager.ReleaseId(containerId);
+        }
+    }
+
+
     public void LoadUserItems()
     {
         if (_loadedUserItems)
@@ -1665,6 +1930,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         Logger.Info("Loading user items ...");
         _allItems = [];
         _allPersistentContainers = [];
+        _itemBagContainers = [];
 
         // No lock needed here since this is the first and only time it gets assigned a new list
         // ReSharper disable once InconsistentlySynchronizedField
@@ -1673,7 +1939,9 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         using (var connection = MySQL.CreateConnection())
         using (var command = connection.CreateCommand())
         {
-            command.CommandText = "SELECT * FROM item_containers ;";
+            command.CommandText =
+                "SELECT item_containers.*, parent.template_id AS parent_template_id " +
+                "FROM item_containers LEFT JOIN items parent ON parent.id = item_containers.parent_item_id;";
 
             using (var reader = command.ExecuteReader())
             {
@@ -1685,10 +1953,22 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                     var containerSize = reader.GetInt32("container_size");
                     var containerOwnerId = reader.GetUInt32("owner_id");
                     var containerMateId = reader.GetUInt32("mate_id");
+                    var parentItemId = reader.GetUInt64("parent_item_id");
                     var container = ItemContainer.CreateByTypeName(containerType, containerOwnerId, slotType, false, null);
                     container.ContainerId = containerId;
                     container.ContainerSize = containerSize;
                     container.MateId = containerMateId;
+
+                    if (container is ItemBagContainer itemBagContainer)
+                    {
+                        itemBagContainer.ParentItemId = parentItemId;
+                        if (!reader.IsDBNull("parent_template_id") &&
+                            GetTemplate(reader.GetUInt32("parent_template_id")) is ItemBagTemplate itemBagTemplate)
+                        {
+                            itemBagContainer.Configure(itemBagTemplate);
+                        }
+                        _itemBagContainers[parentItemId] = itemBagContainer;
+                    }
 
                     _allPersistentContainers.Add(container.ContainerId, container);
                     container.IsDirty = false;
@@ -1727,6 +2007,10 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                         nClass = itemTemplate.ClassType;
                     }
 
+                    var loadedTemplate = GetTemplate(itemTemplateId);
+                    if (loadedTemplate is ItemBagTemplate && nClass != typeof(ItemBag))
+                        nClass = typeof(ItemBag);
+
                     Item item;
                     try
                     {
@@ -1748,7 +2032,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                     item.Id = itemId;
                     item.OwnerId = reader.GetUInt64("owner");
                     item.TemplateId = itemTemplateId;
-                    item.Template = GetTemplate(item.TemplateId);
+                    item.Template = loadedTemplate;
                     var containerId = reader.GetUInt64("container_id");
                     item.SlotType = (SlotType)reader.GetInt32("slot_type");
                     var thisItemSlot = reader.GetInt32("slot");
@@ -1761,7 +2045,11 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                     item.CreateTime = reader.GetDateTime("created_at");
                     item.ItemFlags = (ItemFlag)reader.GetByte("flags");
                     item.UccId = reader.GetUInt32("ucc"); // Make sure this UCC is set BEFORE reading details as UccItem needs to be able to override it
-                    var details = (Commons.Network.PacketStream)(byte[])reader.GetValue("details");
+                    // details can be NULL (e.g. manually inserted rows) — casting DBNull→byte[] crashes host startup.
+                    var detailsBytes = reader.IsDBNull(reader.GetOrdinal("details"))
+                        ? []
+                        : (byte[])reader.GetValue("details");
+                    var details = (Commons.Network.PacketStream)detailsBytes;
                     item.ReadDetails(details);
 
                     // Overwrite Fixed-grade items, just to make sure. Retail does not do this, but it just feels better if we do
@@ -1850,6 +2138,12 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     /// <param name="itemId">itemId of the item to be freed up</param>
     public void ReleaseId(ulong itemId)
     {
+        if (_allItems.TryGetValue(itemId, out var item) && item is ItemBag &&
+            GetItemBagContainer(itemId) is { Items.Count: 0 } itemBagContainer)
+        {
+            itemBagContainer.Delete();
+        }
+
         lock (_removedItems)
         {
             if (itemId != 0 && !_removedItems.Contains(itemId))
@@ -2027,11 +2321,13 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
             Logger.Warn($"UnwrapItem: Requested item position does not match up for {itemId} of user {character.Name}");
             return false;
         }
+        var previousFlags = (byte)item.ItemFlags;
         item.UnpackTime = DateTime.UtcNow;//.AddDays(-30).AddSeconds(15);
         item.SetFlag(ItemFlag.Unpacked);
         if (item.Template.BindType == ItemBindType.BindOnUnpack)
             item.SetFlag(ItemFlag.SoulBound);
-        var updateItemTask = new ItemUpdateSecurity(item, (byte)item.ItemFlags, item.HasFlag(ItemFlag.Secure), item.HasFlag(ItemFlag.Secure), item.ItemFlags.HasFlag(ItemFlag.Unpacked));
+        var updateItemTask = new ItemUpdateSecurity(item, (byte)item.ItemFlags, item.HasFlag(ItemFlag.Secure),
+            item.HasFlag(ItemFlag.Secure), item.ItemFlags.HasFlag(ItemFlag.Unpacked), previousFlags);
         character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ItemTaskThistimeUnpack, updateItemTask, []));
         if (item.Template is EquipItemTemplate { ChargeLifetime: > 0 })
             character.SendPacket(new SCSyncItemLifespanPacket(true, item.Id, item.TemplateId, item.UnpackTime));

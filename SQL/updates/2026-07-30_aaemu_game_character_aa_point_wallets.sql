@@ -1,0 +1,3 @@
+ALTER TABLE `characters`
+  ADD COLUMN `aa_point` BIGINT NOT NULL DEFAULT 0 AFTER `money`,
+  ADD COLUMN `bank_aa_point` BIGINT NOT NULL DEFAULT 0 AFTER `money2`;

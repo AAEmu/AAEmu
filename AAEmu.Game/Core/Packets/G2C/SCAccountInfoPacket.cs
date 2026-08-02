@@ -13,7 +13,7 @@ public class SCAccountInfoPacket(int payMethod, int payLocation, DateTime paySta
         stream.Write(payStart);
         stream.Write(payEnd);
         stream.Write((long)0); // realPayTime (+152, 8 bytes)
-        stream.Write((uint)0); // buyPremiumCount (u32) — added in 10.0.2.13
+        stream.Write((uint)0);
         return stream;
     }
 }

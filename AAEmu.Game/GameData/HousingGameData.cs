@@ -1,4 +1,6 @@
-﻿using AAEmu.Commons.IO;
+using AAEmu.Commons.IO;
+using System.Numerics;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
@@ -28,10 +30,43 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
         _housingDecorations = [];
         _housingItemHousingDecorations = [];
 
-        // var housingAreas = new Dictionary<uint, HousingAreas>();
         // var houseTaxes = new Dictionary<uint, HouseTax>();
 
         Logger.Info("Loading Housing Information ...");
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM housing_areas WHERE activated = 't'";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var zoneName = reader.GetString("name", string.Empty);
+                    if (string.IsNullOrEmpty(zoneName))
+                        continue;
+                    if (!_zoneHousingGroups.TryGetValue(zoneName, out var groups))
+                        _zoneHousingGroups[zoneName] = groups = [];
+                    groups.Add(reader.GetUInt32("housing_group_id", 0));
+                }
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM housing_group_categories";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var group = reader.GetUInt32("housing_group_id", 0);
+                    if (!_groupCategories.TryGetValue(group, out var categories))
+                        _groupCategories[group] = categories = [];
+                    categories.Add(reader.GetUInt32("category_id", 0));
+                }
+            }
+        }
 
         using (var command = connection.CreateCommand())
         {
@@ -233,6 +268,55 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
             template.Name = LocalizationManager.Instance.Get("housings", "name", template.Id, template.Name);
             template.Taxation = TaxationsManager.Instance.taxations.GetValueOrDefault(template.TaxationId);
         }
+
+        ResolveBindingPositionsFromClientData();
+    }
+
+    /// <summary>
+    /// Replaces the binding offsets taken from housing_bindings.json with the ones held in the model the house
+    /// actually uses. Runs in PostLoad because the attach point table is built by another loader and the
+    /// loaders' Load() order is reflection order.
+    ///
+    /// The json only ever covered 104 of the 631 templates that have bindings, keyed by template id; everything
+    /// else fell back to (0,0,0) and stacked its doodads on the house origin. Attach point geometry belongs to
+    /// the model, not the template, so templates sharing a model now resolve from the same place.
+    /// </summary>
+    private void ResolveBindingPositionsFromClientData()
+    {
+        if (!ModelAttachPointGameData.Instance.HasData)
+            return;
+
+        var resolved = 0;
+        var unresolved = 0;
+
+        foreach (var (_, template) in _housingTemplates)
+        {
+            if (template.HousingBindingDoodad == null)
+                continue;
+
+            foreach (var bindingDoodad in template.HousingBindingDoodad)
+            {
+                // Only fill the gaps. Where housing_bindings.json has an offset it stays — the two sources
+                // disagree on a handful of points and the json is what the server has been running on.
+                if (bindingDoodad.Position != null && bindingDoodad.Position.AsPositionVector() != Vector3.Zero)
+                    continue;
+
+                var pos = ModelAttachPointGameData.Instance
+                    .GetAttachPoint(template.MainModelId, bindingDoodad.AttachPointId);
+
+                if (pos != null)
+                {
+                    bindingDoodad.Position = pos.Clone();
+                    resolved++;
+                }
+                else
+                {
+                    unresolved++;
+                }
+            }
+        }
+
+        Logger.Info($"Housing binding offsets: {resolved} from client models, {unresolved} still without a position");
     }
 
     private List<HousingBindingTemplate> LoadHousingBindings(string dataFolder)
@@ -286,6 +370,37 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
     /// </summary>
     /// <param name="designId"></param>
     /// <returns></returns>
+    /// <summary>zone name -> housing groups whose areas are activated there (housing_areas).</summary>
+    private readonly Dictionary<string, HashSet<uint>> _zoneHousingGroups = [];
+
+    /// <summary>housing group -> house categories it permits (housing_group_categories).</summary>
+    private readonly Dictionary<uint, HashSet<uint>> _groupCategories = [];
+
+    /// <summary>
+    /// True when a house of <paramref name="categoryId"/> may be built in the named zone.
+    /// </summary>
+    /// <remarks>
+    /// housing_areas names the zone a group's areas sit in, and housing_group_categories says which
+    /// house categories each group permits, so a zone with no activated area rejects everything and a
+    /// zone that only hosts farm groups rejects a manor. This is the coarse half of the rule: the
+    /// exact buildable outlines are LevelDesignShape objects in packed level data, which only the
+    /// zone loads, so a position inside the right zone but outside a shape still passes here.
+    ///
+    /// going away. Nothing in the zone judges a placement, so a shape-accurate test has to read the
+    /// LevelDesignShape geometry rather than wait for the zone to object.
+    /// </remarks>
+    public bool IsCategoryAllowedInZone(string zoneName, uint categoryId)
+    {
+        if (string.IsNullOrEmpty(zoneName) || !_zoneHousingGroups.TryGetValue(zoneName, out var groups))
+            return false;
+
+        foreach (var group in groups)
+            if (_groupCategories.TryGetValue(group, out var categories) && categories.Contains(categoryId))
+                return true;
+
+        return false;
+    }
+
     public HousingTemplate GetTemplate(uint designId)
     {
         return _housingTemplates.GetValueOrDefault(designId);

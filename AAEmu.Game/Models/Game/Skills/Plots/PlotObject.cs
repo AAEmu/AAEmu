@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Transform;
 
@@ -44,14 +44,24 @@ public class PlotObject : PacketMarshaler
                 stream.WriteBc(UnitId);
                 break;
             case PlotObjectType.POSITION:
-                stream.WritePosition(Position.Local.Position);
-                var ypr = Position.Local.ToRollPitchYawSBytes();
-                stream.Write(ypr.Item1);
-                stream.Write(ypr.Item2);
-                stream.Write(ypr.Item3);
+                // Truncating after rot made Zone fail WZPlotEvent with "not enough buffer for item".
+                WritePositionPose(stream, Position);
+                WritePositionPose(stream, Position); // line endpoint (same when no separate line)
+                stream.WriteBc(UnitId);
+                stream.WriteBc(0u);
+                stream.WriteBc(0u);
                 break;
         }
 
         return stream;
+    }
+
+    private static void WritePositionPose(PacketStream stream, Transform position)
+    {
+        stream.WritePosition(position.Local.Position);
+        var ypr = position.Local.ToRollPitchYawSBytes();
+        stream.Write(ypr.Item1);
+        stream.Write(ypr.Item2);
+        stream.Write(ypr.Item3);
     }
 }

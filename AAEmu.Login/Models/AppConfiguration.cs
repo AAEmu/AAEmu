@@ -28,8 +28,38 @@ public class AppConfiguration
     /// </summary>
     public TimeSpan EnterWorldTimeout { get; set; } = TimeSpan.FromSeconds(10);
 
+    /// <summary>Maximum time to wait for game servers to return character summaries for the world list.</summary>
+    public TimeSpan WorldListRequestTimeout { get; set; } = TimeSpan.FromSeconds(20);
+
+    /// <summary>
+    /// Character-slot values published by the login protocol after authentication.
+    /// </summary>
+    public CharacterSlotConfig CharacterSlots { get; set; } = new();
+
     [Required]
     public required List<GameServerConfig> GameServers { get; set; }
+
+    /// <summary>
+    /// Login-protocol character slot settings. All four values are independent unsigned bytes on the wire.
+    /// </summary>
+    public class CharacterSlotConfig
+    {
+        /// <summary>Slots available to the account in ACAuthResponse.</summary>
+        [Range(1, byte.MaxValue)]
+        public byte AvailableSlots { get; set; } = 6;
+
+        /// <summary>Base creatable character count in ACJoinResponse AFS byte 0.</summary>
+        [Range(1, byte.MaxValue)]
+        public byte CountLimit { get; set; } = 6;
+
+        /// <summary>Maximum characters per account in ACJoinResponse AFS byte 1.</summary>
+        [Range(1, byte.MaxValue)]
+        public byte MaxCountLimit { get; set; } = 6;
+
+        /// <summary>Maximum characters per world in ACJoinResponse AFS byte 2.</summary>
+        [Range(1, byte.MaxValue)]
+        public byte WorldLimit { get; set; } = 6;
+    }
 
     /// <summary>
     /// Contains configuration settings for a single game server.

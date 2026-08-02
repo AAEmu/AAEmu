@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -21,10 +22,13 @@ public class AreaTrigger
     /// Units currently inside the Shape
     /// </summary>
     private List<Unit> Units { get; set; } = [];
+    private HashSet<Unit> TriggeredUnits { get; } = [];
 
     public uint SkillId { get; set; }
     public uint TlId { get; set; }
     public SkillTargetRelation TargetRelation { get; set; }
+    public uint TargetBuffTagId { get; set; }
+    public uint TargetNoBuffTagId { get; set; }
     public BuffTemplate InsideBuffTemplate { get; set; }
     public Dictionary<uint, List<EffectTemplate>> EffectsPerBuff { get; set; } = new();
     public int TickRate { get; set; }
@@ -64,6 +68,16 @@ public class AreaTrigger
             Logger.Debug($"AreaShape Leave {Shape.Id} {Shape.Type} with count {currentUnitsInShape.Count} unit in shape arround {Owner.Transform}");
         }
 
+        // Buff tags can change while a unit remains inside the shape. Re-evaluate the content
+        // gates so a newly valid unit can enter and a newly excluded unit stops participating.
+        foreach (var unit in currentUnitsInShape.Where(unit => Units.Any(old => old.ObjId == unit.ObjId)))
+        {
+            if (IsValidTarget(unit))
+                OnEnter(unit);
+            else
+                OnLeave(unit);
+        }
+
         // Save new units list
         Units = currentUnitsInShape;
     }
@@ -75,7 +89,7 @@ public class AreaTrigger
             return;
         }
 
-        if (SkillTargetingUtil.IsRelationValid(TargetRelation, Caster, unit))
+        if (IsValidTarget(unit) && TriggeredUnits.Add(unit))
         {
             unit.IncrementTriggerCount(InsideBuffTemplate.BuffId);
             if (unit.GetTriggerCount(InsideBuffTemplate.BuffId) == 1)
@@ -87,7 +101,7 @@ public class AreaTrigger
 
     private void OnLeave(Unit unit)
     {
-        if (InsideBuffTemplate != null)
+        if (InsideBuffTemplate != null && unit != null && TriggeredUnits.Remove(unit))
         {
             unit.DecrementTriggerCount(InsideBuffTemplate.BuffId);
             if (unit.GetTriggerCount(InsideBuffTemplate.BuffId) == 0)
@@ -99,17 +113,19 @@ public class AreaTrigger
 
     public void OnDelete()
     {
-        if (InsideBuffTemplate != null)
-        {
-            foreach (var unit in Units)
-            {
-                unit.DecrementTriggerCount(InsideBuffTemplate.BuffId);
-                if (unit.GetTriggerCount(InsideBuffTemplate.BuffId) == 0)
-                {
-                    unit.Buffs.RemoveBuff(InsideBuffTemplate.BuffId);
-                }
-            }
-        }
+        foreach (var unit in TriggeredUnits.ToList())
+            OnLeave(unit);
+    }
+
+    private bool IsValidTarget(Unit unit)
+    {
+        if (Caster == null || unit == null || !SkillTargetingUtil.IsRelationValid(TargetRelation, Caster, unit))
+            return false;
+
+        if (TargetBuffTagId > 0 && !unit.Buffs.CheckBuffTag(TargetBuffTagId))
+            return false;
+
+        return TargetNoBuffTagId == 0 || !unit.Buffs.CheckBuffTag(TargetNoBuffTagId);
     }
 
     private void ApplyEffects()
@@ -124,8 +140,7 @@ public class AreaTrigger
             return;
         }
 
-        var unitsToApply = SkillTargetingUtil.FilterWithRelation(TargetRelation, Caster, Units);
-        foreach (var unit in unitsToApply)
+        foreach (var unit in TriggeredUnits)
         {
             foreach (var effect in EffectsPerBuff[InsideBuffTemplate.BuffId])
             {

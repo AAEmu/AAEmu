@@ -16,4 +16,39 @@ internal class WorldController : BaseController
             .Select(x => new CharacterModel(x.Id, x.Name, x.Level, x.Created, x.IsOnline));
         return OkJson(loggedCharacters);
     }
+
+    [WebApiGet("/api/world/zone-manager-status")]
+    public HttpResponse GetZoneManagerStatus(HttpRequest request)
+    {
+        var players = WorldManager.Instance.GetAllCharacters()
+            .Where(character => character.IsOnline)
+            .Select(character =>
+            {
+                var zoneKey = character.Transform?.ZoneId ?? 0;
+                var zone = ZoneManager.Instance.GetZoneByKey(zoneKey);
+                // World position drives the Zone Manager's proximity pre-start: a zone is brought
+                // up while the nearest player is still short of its border, not on arrival.
+                var position = character.Transform?.World.Position ?? default;
+                return new WorldPlayerStatusModel(
+                    character.Id,
+                    character.ObjId,
+                    character.Name,
+                    character.Level,
+                    zoneKey,
+                    zone?.Name ?? "Unknown",
+                    character.Transform?.InstanceId ?? 0,
+                    position.X,
+                    position.Y);
+            })
+            .OrderBy(character => character.Name)
+            .ToArray();
+
+        var zones = WorldIntegration.GetZoneConnectionStatus?.Invoke() ?? [];
+        return OkJson(new WorldStatusModel(
+            DateTime.UtcNow,
+            Program.UpTime,
+            players.Length,
+            players,
+            zones));
+    }
 }

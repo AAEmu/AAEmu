@@ -67,6 +67,7 @@ public interface IQuestAct
     void OnItemUse(object sender, OnItemUseArgs args);
     void OnItemGroupUse(object sender, OnItemGroupUseArgs args);
     void OnInteraction(object sender, OnInteractionArgs args);
+    void OnDoodadPhaseCheck(object sender, OnDoodadPhaseCheckArgs args);
     void OnCraft(object sender, OnCraftArgs args);
     void OnExpressFire(object sender, OnExpressFireArgs args);
     void OnLevelUp(object sender, OnLevelUpArgs args);

@@ -1,7 +1,8 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Data;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Items;
@@ -9,6 +10,9 @@ using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 using MySql.Data.MySqlClient;
 
 using NLog;
@@ -142,6 +146,11 @@ public class CharacterQuests(Character owner)
     public bool AddQuestFromNpc(uint questId, uint npcObjId)
     {
         var npc = Owner.ParentWorld.GetNpc(npcObjId);
+        if (npc == null)
+        {
+            Logger.Warn("AddQuestFromNpc: NPC objId {0} not found for quest {1}", npcObjId, questId);
+            return false;
+        }
         Owner.CurrentTarget = npc;
         return AddQuest(questId, false, QuestAcceptorType.Npc, npc.TemplateId);
     }
@@ -155,6 +164,11 @@ public class CharacterQuests(Character owner)
     public bool AddQuestFromDoodad(uint questId, uint doodadObjId)
     {
         var doodad = Owner.ParentWorld.GetDoodad(doodadObjId);
+        if (doodad == null)
+        {
+            Logger.Warn("AddQuestFromDoodad: doodad objId {0} not found for quest {1}", doodadObjId, questId);
+            return false;
+        }
         return AddQuest(questId, false, QuestAcceptorType.Doodad, doodad.TemplateId);
     }
 
@@ -458,7 +472,7 @@ public class CharacterQuests(Character owner)
                         {
                             var body = new byte[8];
                             completeBlock.Body.CopyTo(body, 0);
-                            Owner.SendPacket(new SCQuestContextResetPacket(questId, body, completeBlockId));
+                            Owner.SendPacket(new SCQuestContextResetPacket(questId));
                         }
                     }
                 }
@@ -656,5 +670,428 @@ public class CharacterQuests(Character owner)
             }
         }
         return res;
+    }
+
+    /// <summary>
+    /// Zone reported player entered a quest_area / district (ZWEnterArea).
+    /// Wire areaId is Cry groupId (16=quest_area, 22=district), not spheres.id.
+    /// On quest-ish groups: reconcile quest_area_sphere.g (stype→spheres.id) by player
+    /// position, and re-fire active SphereQuestManager triggers (interim).
+    /// </summary>
+    public void OnZoneAreaEnter(uint areaId)
+    {
+        Logger.Debug("OnZoneAreaEnter {0} area={1} activeQuests={2}", Owner.Name, areaId, ActiveQuests.Count);
+
+        if (areaId is 16 or 19 or 20 or 21)
+        {
+            ReconcileQuestAreaSpheres();
+            TryRefireSphereTriggersAtPlayer();
+        }
+
+        foreach (var quest in ActiveQuests.Values)
+        {
+            try
+            {
+                quest.OnZoneAreaEnter(areaId);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, "Quest {0} OnZoneAreaEnter failed", quest.TemplateId);
+            }
+        }
+    }
+
+    /// <summary>Zone reported player left a quest_area / district (ZWLeaveArea).</summary>
+    public void OnZoneAreaLeave(uint areaId)
+    {
+        Logger.Debug("OnZoneAreaLeave {0} area={1}", Owner.Name, areaId);
+
+        if (areaId is 16 or 19 or 20 or 21)
+        {
+            ReconcileQuestAreaSpheres();
+            TryRefireSphereExitsAtPlayer();
+        }
+
+        foreach (var quest in ActiveQuests.Values)
+        {
+            try
+            {
+                quest.OnZoneAreaLeave(areaId);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, "Quest {0} OnZoneAreaLeave failed", quest.TemplateId);
+            }
+        }
+    }
+
+    /// <summary>spheres.id currently inside via quest_area_sphere.g (Zone group-16 path).</summary>
+    private readonly HashSet<uint> _insideQuestAreaSphereIds = [];
+
+    /// <summary>
+    /// Diff player position against loaded quest_area_sphere.g; fire enter/exit sphere acts
+    /// and sphere-accept quests. Zone wire only carries groupId, so World owns sphere id map.
+    /// Also used on a movement tick so SphereBuff areas (Ezi dock / slave customize) apply
+    /// without waiting for another ZWEnterArea edge.
+    /// </summary>
+    public void ReconcileQuestAreaSpheres()
+    {
+        var world = Owner.ParentWorld;
+        var sqm = world?.SphereQuestManager;
+        if (sqm == null)
+            return;
+
+        var zoneId = Owner.Transform.ZoneId;
+        var pos = Owner.Transform.World.Position;
+        var nowInside = sqm.GetContainingQuestAreaSpheres(zoneId, pos);
+        var nowIds = new HashSet<uint>();
+        foreach (var geo in nowInside)
+        {
+            if (geo.SphereId == 0)
+                continue;
+            nowIds.Add(geo.SphereId);
+            if (_insideQuestAreaSphereIds.Contains(geo.SphereId))
+            {
+                // Still inside: re-push SphereBuffs if a skill/impulse stripped them from the hull
+                // while the character (and Ezi VFX) stayed in the area. Enter-only apply left
+                // ships with no Moored heal until leave/re-enter.
+                try
+                {
+                    EnsureSphereBuffWhileInside(geo.SphereId);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(ex, "QuestAreaSphere ensure-buff failed sphere={0} for {1}", geo.SphereId, Owner.Name);
+                }
+                continue;
+            }
+            try
+            {
+                ProcessQuestAreaSphereEnter(geo, pos);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, "QuestAreaSphere enter failed sphere={0} for {1}", geo.SphereId, Owner.Name);
+            }
+        }
+
+        foreach (var leftId in _insideQuestAreaSphereIds)
+        {
+            if (nowIds.Contains(leftId))
+                continue;
+            try
+            {
+                ProcessQuestAreaSphereExit(leftId, pos);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, "QuestAreaSphere exit failed sphere={0} for {1}", leftId, Owner.Name);
+            }
+        }
+
+        _insideQuestAreaSphereIds.Clear();
+        foreach (var id in nowIds)
+            _insideQuestAreaSphereIds.Add(id);
+    }
+
+    /// <summary>
+    /// While still inside a SphereBuff volume, ensure char + slave_applicable mounts still have the buff.
+    /// </summary>
+    private void EnsureSphereBuffWhileInside(uint sphereId)
+    {
+        var db = SphereGameData.Instance.GetSphere(sphereId);
+        if (db?.SphereDetailType != "SphereBuff")
+            return;
+        ApplySphereBuff(db.SphereDetailId, enter: true);
+    }
+
+    private void ProcessQuestAreaSphereEnter(SphereQuest geo, System.Numerics.Vector3 pos)
+    {
+        var sphereId = geo.SphereId;
+        var db = SphereGameData.Instance.GetSphere(sphereId);
+        if (db != null &&
+            !UnitRequirementsGameData.Instance.CanTriggerSphere(db, Owner))
+            return;
+
+        Logger.Info("QuestAreaSphere ENTER char={0} sphere={1} zone={2}", Owner.Name, sphereId, geo.ZoneId);
+
+        // SphereBuff: 13817 Moored (Docked, HealthRegen+200) and/or 13816 Ezi (collision/speed).
+        if (db?.SphereDetailType == "SphereBuff")
+            ApplySphereBuff(db.SphereDetailId, enter: true);
+
+        // SphereAcceptQuest detail → auto-add listed quests
+        if (db?.SphereDetailType == "SphereAcceptQuest")
+        {
+            foreach (var questId in SphereGameData.Instance.GetAcceptQuestIdsForSphereDetail(db.SphereDetailId))
+            {
+                if (!HasQuest(questId) && !HasQuestCompleted(questId))
+                    AddQuestFromSphere(questId, sphereId);
+            }
+        }
+
+        SphereGameData.Instance.TryResolveSphereQuestLink(sphereId, out var questIdLink, out var componentId);
+
+        // SphereQuest detail: AcceptForce / AcceptConditional
+        if (db?.SphereDetailType == "SphereQuest")
+        {
+            var detail = SphereGameData.Instance.GetSphereQuestDetail(db.SphereDetailId);
+            if (detail != null)
+            {
+                questIdLink = detail.QuestId != 0 ? detail.QuestId : questIdLink;
+                if (detail.QuestTriggerId is QuestTrigger.AcceptForce or QuestTrigger.AcceptConditional)
+                {
+                    if (!HasQuest(detail.QuestId) && !HasQuestCompleted(detail.QuestId))
+                        AddQuestFromSphere(detail.QuestId, sphereId);
+                }
+            }
+        }
+
+        // QuestActConAcceptSphere keyed by this spheres.id
+        if (questIdLink != 0 && componentId != 0)
+        {
+            var acts = QuestManager.Instance.GetActsInComponent(componentId);
+            foreach (var act in acts)
+            {
+                if (act is QuestActConAcceptSphere accept && accept.SphereId == sphereId &&
+                    !HasQuest(questIdLink) && !HasQuestCompleted(questIdLink))
+                {
+                    AddQuestFromSphere(questIdLink, sphereId);
+                }
+            }
+        }
+
+        // Prefer quest_sign_sphere geometry for the same quest (has ComponentId for ObjSphere).
+        var fired = false;
+        if (questIdLink != 0)
+        {
+            foreach (var sign in SphereQuestManager.GetSpheresForQuest(questIdLink))
+            {
+                if (!sign.Contains(pos))
+                    continue;
+                QuestManager.Instance.DoOnEnterSphereEvents(Owner, sign, pos);
+                fired = true;
+            }
+        }
+
+        if (!fired)
+        {
+            var eventSphere = new SphereQuest
+            {
+                WorldId = geo.WorldId,
+                ZoneId = geo.ZoneId,
+                SphereId = sphereId,
+                QuestId = questIdLink,
+                ComponentId = componentId,
+                Xyz = geo.Xyz,
+                Radius = geo.Radius
+            };
+            QuestManager.Instance.DoOnEnterSphereEvents(Owner, eventSphere, pos);
+        }
+    }
+
+    private void ProcessQuestAreaSphereExit(uint sphereId, System.Numerics.Vector3 pos)
+    {
+        Logger.Info("QuestAreaSphere LEAVE char={0} sphere={1}", Owner.Name, sphereId);
+
+        SphereGameData.Instance.TryResolveSphereQuestLink(sphereId, out var questIdLink, out var componentId);
+        var db = SphereGameData.Instance.GetSphere(sphereId);
+        if (db?.SphereDetailType == "SphereBuff")
+            ApplySphereBuff(db.SphereDetailId, enter: false);
+
+        if (db?.SphereDetailType == "SphereQuest")
+        {
+            var detail = SphereGameData.Instance.GetSphereQuestDetail(db.SphereDetailId);
+            if (detail != null && detail.QuestId != 0)
+                questIdLink = detail.QuestId;
+        }
+
+        var fired = false;
+        if (questIdLink != 0)
+        {
+            foreach (var sign in SphereQuestManager.GetSpheresForQuest(questIdLink))
+            {
+                QuestManager.Instance.DoOnExitSphereEvents(Owner, sign, pos);
+                fired = true;
+            }
+        }
+
+        if (!fired)
+        {
+            var eventSphere = new SphereQuest
+            {
+                SphereId = sphereId,
+                QuestId = questIdLink,
+                ComponentId = componentId,
+                ZoneId = Owner.Transform.ZoneId
+            };
+            QuestManager.Instance.DoOnExitSphereEvents(Owner, eventSphere, pos);
+        }
+    }
+
+    private void ApplySphereBuff(uint sphereBuffDetailId, bool enter)
+    {
+        var detail = SphereGameData.Instance.GetSphereBuff(sphereBuffDetailId);
+        if (detail == null)
+            return;
+
+        if (enter)
+        {
+            if (detail.BuffId == 0)
+                return;
+
+            if (!Owner.Buffs.CheckBuff(detail.BuffId))
+            {
+                Owner.Buffs.AddBuff(detail.BuffId, Owner);
+                Logger.Info("SphereBuff APPLY char={0} buff={1} detail={2}", Owner.Name, detail.BuffId, sphereBuffDetailId);
+            }
+
+            // slave_applicable: Moored (13817) HealthRegen+200 and Ezi (13816) collision/speed mods
+            // belong on the hull. Character-only application left ships with formula regen ~0.
+            ApplySphereBuffToOwnedMounts(detail.BuffId, detail.AndPet, add: true, sphereBuffDetailId);
+            return;
+        }
+
+        var removeId = detail.RemoveOnLeaveBuffId != 0 ? detail.RemoveOnLeaveBuffId : detail.BuffId;
+        if (removeId == 0)
+            return;
+
+        if (Owner.Buffs.CheckBuff(removeId))
+        {
+            Owner.Buffs.RemoveBuff(removeId);
+            Logger.Info("SphereBuff REMOVE char={0} buff={1} detail={2}", Owner.Name, removeId, sphereBuffDetailId);
+        }
+
+        ApplySphereBuffToOwnedMounts(removeId, detail.AndPet, add: false, sphereBuffDetailId);
+    }
+
+    /// <summary>
+    /// Re-push currently-active SphereBuffs onto owned mounts (e.g. after summoning a ship while
+    /// already standing in the Two Crowns dock sphere — char already has Moored, so enter won't fire).
+    /// </summary>
+    public void SyncSphereBuffsToOwnedMounts()
+    {
+        foreach (var sphereId in _insideQuestAreaSphereIds)
+        {
+            var db = SphereGameData.Instance.GetSphere(sphereId);
+            if (db?.SphereDetailType != "SphereBuff")
+                continue;
+            var detail = SphereGameData.Instance.GetSphereBuff(db.SphereDetailId);
+            if (detail == null || detail.BuffId == 0)
+                continue;
+            ApplySphereBuffToOwnedMounts(detail.BuffId, detail.AndPet, add: true, db.SphereDetailId);
+        }
+    }
+
+    /// <summary>
+    /// Push or clear a sphere buff on the owner's active slaves (and mates when <paramref name="andPet"/>).
+    /// Only buffs flagged <c>slave_applicable</c> are mirrored onto hulls.
+    /// </summary>
+    private void ApplySphereBuffToOwnedMounts(uint buffId, bool andPet, bool add, uint sphereBuffDetailId)
+    {
+        var buffTemplate = SkillManager.Instance.GetBuffTemplate(buffId);
+        if (buffTemplate == null)
+            return;
+
+        var world = Owner.ParentWorld;
+        if (world == null)
+            return;
+
+        if (buffTemplate.SlaveApplicable)
+        {
+            foreach (var slave in world.GetAllSlaves())
+            {
+                if (slave?.Summoner?.ObjId != Owner.ObjId && slave?.OwnerObjId != Owner.ObjId)
+                    continue;
+
+                if (add)
+                {
+                    if (!slave.Buffs.CheckBuff(buffId))
+                    {
+                        slave.Buffs.AddBuff(buffId, Owner);
+                        Logger.Info("SphereBuff APPLY slave={0} buff={1} detail={2}", slave.Name, buffId, sphereBuffDetailId);
+
+                        // Ezi (13816) raises MaxHp by 10%, so the hull now sits below its cap and
+                        // Moored's HealthRegen (+200/tick) repairs it back up — Slave.RegenTick pushes
+                        // the points as it climbs. Nothing to snap here.
+                    }
+                }
+                else if (slave.Buffs.CheckBuff(buffId))
+                {
+                    slave.Buffs.RemoveBuff(buffId);
+                    Logger.Info("SphereBuff REMOVE slave={0} buff={1} detail={2}", slave.Name, buffId, sphereBuffDetailId);
+                }
+            }
+        }
+
+        if (!andPet)
+            return;
+
+        foreach (var mate in world.MateManager.GetActiveMates(Owner.Id) ?? [])
+        {
+            if (mate == null)
+                continue;
+
+            if (add)
+            {
+                if (mate.Buffs.CheckBuff(buffId))
+                    continue;
+                mate.Buffs.AddBuff(buffId, Owner);
+                Logger.Info("SphereBuff APPLY mate={0} buff={1} detail={2}", mate.Name, buffId, sphereBuffDetailId);
+            }
+            else if (mate.Buffs.CheckBuff(buffId))
+            {
+                mate.Buffs.RemoveBuff(buffId);
+                Logger.Info("SphereBuff REMOVE mate={0} buff={1} detail={2}", mate.Name, buffId, sphereBuffDetailId);
+            }
+        }
+    }
+
+    private void TryRefireSphereTriggersAtPlayer()
+    {
+        var world = Owner.ParentWorld;
+        var sqm = world?.SphereQuestManager;
+        if (sqm == null)
+            return;
+
+        var pos = Owner.Transform.World.Position;
+        foreach (var trigger in sqm.GetSphereQuestTriggers())
+        {
+            if (trigger.Owner?.Id != Owner.Id || trigger.Sphere == null)
+                continue;
+            if (!trigger.Sphere.Contains(pos))
+                continue;
+            try
+            {
+                QuestManager.Instance.DoOnEnterSphereEvents(Owner, trigger.Sphere, pos);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, "Zone-area sphere re-fire failed for {0}", Owner.Name);
+            }
+        }
+    }
+
+    private void TryRefireSphereExitsAtPlayer()
+    {
+        var world = Owner.ParentWorld;
+        var sqm = world?.SphereQuestManager;
+        if (sqm == null)
+            return;
+
+        var pos = Owner.Transform.World.Position;
+        foreach (var trigger in sqm.GetSphereQuestTriggers())
+        {
+            if (trigger.Owner?.Id != Owner.Id || trigger.Sphere == null)
+                continue;
+            // On leave of quest_area, notify exit for spheres the player was tracking.
+            try
+            {
+                QuestManager.Instance.DoOnExitSphereEvents(Owner, trigger.Sphere, pos);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, "Zone-area sphere exit re-fire failed for {0}", Owner.Name);
+            }
+        }
     }
 }

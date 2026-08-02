@@ -15,6 +15,9 @@ public class PlayLogEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        Logger.Trace($"PlayLogEffect: {Message}");
+        // A play-log marker is exactly this: a record that a skill reached this point. There is no server
+        // state behind it and nothing goes to the client, so emitting the line is the whole behaviour.
+        var who = (caster as Char.Character)?.Name ?? caster?.ObjId.ToString() ?? "unknown";
+        Logger.Info($"PlayLog: {Message} (skill {source?.Skill?.Id}, caster {who})");
     }
 }

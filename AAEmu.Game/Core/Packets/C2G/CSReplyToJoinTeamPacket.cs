@@ -1,6 +1,7 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Team;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -8,14 +9,18 @@ public class CSReplyToJoinTeamPacket() : GamePacket(CSOffsets.CSReplyToJoinTeamP
 {
     public override void Read(PacketStream stream)
     {
-        var teamId = stream.ReadUInt32();
+        // i32 team, bool party, u64 type, bool isReject, string char (cap 0x80),
+        // bool isArea, i8 teamRole, i64 logEventId.
+        var teamId = stream.ReadInt32();
         var isParty = stream.ReadBoolean();
-        var ownerId = stream.ReadUInt32();
+        var ownerId = stream.ReadUInt64();
         var isReject = stream.ReadBoolean();
         var charName = stream.ReadString();
         var isArea = stream.ReadBoolean();
+        var teamRole = (TeamRoleType)stream.ReadSByte();
+        var logEventId = stream.ReadInt64();
 
-        // Logger.Warn("ReplyToJoinTeam, TeamId: {0}, Party: {1}, CharName: {2}, unkId: {3}, isReject: {4}, isArea: {5}", teamId, isParty, charName, ownerId, isReject, isArea);
-        TeamManager.Instance.ReplyToJoinTeam(Connection.ActiveChar, teamId, isParty, ownerId, isReject, charName, isArea);
+        TeamManager.Instance.ReplyToJoinTeam(
+            Connection.ActiveChar, teamId, isParty, ownerId, isReject, charName, isArea, teamRole, logEventId);
     }
 }

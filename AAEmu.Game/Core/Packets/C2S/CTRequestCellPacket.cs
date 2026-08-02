@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Stream;
 
@@ -10,9 +10,10 @@ public class CTRequestCellPacket() : StreamPacket(CTOffsets.CTRequestCellPacket)
 
     public override void Read(PacketStream stream)
     {
-        var instanceId = stream.ReadUInt32();
-        var x = stream.ReadInt32();
-        var y = stream.ReadInt32();
+        // i(i32), x(u32), y(u32).
+        var instanceId = stream.ReadInt32();
+        var x = stream.ReadUInt32();
+        var y = stream.ReadUInt32();
 
         Logger.Debug($"CTRequestCellPacket #.{instanceId} ({x},{y})");
         StreamManager.RequestCell(Connection, instanceId, x, y);

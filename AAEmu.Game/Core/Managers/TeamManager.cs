@@ -1,9 +1,13 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
+using System.Collections.Concurrent;
+
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Faction;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Team;
@@ -11,16 +15,14 @@ using AAEmu.Game.Models.Game.World.Transform;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class TeamManager(IWorldManager worldManager, IChatManager chatManager, ITeamIdManager teamIdManager) : Singleton<TeamManager>, ITeamManager
+public class TeamManager(IWorldManager worldManager, IChatManager chatManager, ITeamIdManager teamIdManager, ITickManager tickManager) : Singleton<TeamManager>, ITeamManager
 {
-    /*
-     * TODO:
-     *
-     * RE-DO LEAVE / KICK / DISMISS
-     */
-
-    private readonly Dictionary<uint, Team> _activeTeams = []; // teamId, Team
+    private readonly ConcurrentDictionary<uint, Team> _activeTeams = []; // teamId, Team
     private readonly Dictionary<uint, InvitationTemplate> _activeInvitations = []; // targetId, InvitationTemplate
+    private readonly Dictionary<uint, OwnerHandoverOffer> _ownerHandoverOffers = []; // teamId, offer
+    private long _lastInvitationLogEventId = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+    private static readonly TimeSpan InvitationLifetime = TimeSpan.FromMinutes(1);
 
     public Team GetActiveTeamByUnit(uint unitId)
     {
@@ -71,90 +73,181 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         return _activeInvitations.TryGetValue(targetId, out var invitation) ? invitation : null;
     }
 
-    public void InviteAreaToTeam(Character owner, uint teamId, bool isParty)
+    public void InviteAreaToTeam(Character owner, int teamId, bool isParty)
     {
-        var characters = WorldManager.GetAround<Character>(owner, 100.0f); // CHECK IF 100m
-        if (characters.Count <= 0) return;
+        if (owner == null || teamId < 0)
+            return;
 
-        foreach (var character in characters)
+        RemoveExpiredInvitations();
+
+        var activeTeam = teamId == 0 ? null : GetActiveTeam((uint)teamId);
+        if (teamId != 0 && activeTeam == null)
+            return;
+
+        var ownerTeam = GetActiveTeamByUnit(owner.Id);
+        if (ownerTeam != activeTeam || (activeTeam != null && activeTeam.IsParty != isParty) ||
+            (activeTeam != null && !CanInvite(activeTeam, owner)))
+            return;
+
+        var teamRole = activeTeam?.RoleType ?? (isParty ? TeamRoleType.Party : TeamRoleType.Raid);
+        var memberCount = activeTeam?.MembersCount() ?? 1;
+        var pendingCount = CountPendingInvitations(owner.Id, activeTeam?.Id ?? 0u, teamRole);
+        var memberLimit = activeTeam?.MemberLimit ?? GetMemberLimit(teamRole);
+        var availableSlots = Math.Max(0, memberLimit - memberCount - pendingCount);
+        var invited = 0;
+
+        // Area invitation follows the Zone's authoritative AOI/neighbor set. There is no team-invite
+        // radius in game.compact, and using the same visible region set avoids a guessed distance.
+        foreach (var character in WorldManager.GetAround<Character>(owner))
         {
-            // Skip hostile players (friendly and neutral can be invited, supports custom nations)
-            var relation = owner.GetRelationStateTo(character);
-            if (!character.InParty && relation is RelationState.Friendly or RelationState.Neutral)
-                AskToJoin(owner, "", teamId, false, character);
+            if (invited >= availableSlots)
+                break;
+            if (character.Id == owner.Id || !character.IsOnline || GetActiveTeamByUnit(character.Id) != null ||
+                GetActiveInvitation(character.Id) != null ||
+                owner.GetRelationStateTo(character) == RelationState.Hostile)
+                continue;
+
+            if (AskToJoin(owner, character.Name, teamId, teamRole, CharacterBlocked.LocalWorldId, character, true))
+                invited++;
         }
+
+        owner.SendPacket(new SCTeamAreaInvitedPacket(
+            availableSlots - invited, invited > 0));
     }
 
-    public void AskToJoin(Character owner, string targetName, uint teamId, bool isParty, Character targetObj = null)
+    public bool AskToJoin(
+        Character owner,
+        string targetName,
+        int teamId,
+        TeamRoleType teamRole,
+        sbyte worldId,
+        Character targetObj = null,
+        bool isArea = false)
     {
+        if (owner == null || teamId < 0 || teamRole is not (TeamRoleType.Party or TeamRoleType.Raid))
+            return false;
+
+        RemoveExpiredInvitations();
+
+        // 0xFF is the native local-world sentinel. An explicit local shard id is also accepted;
+        // remote shards require inter-world routing that this World process does not own.
+        if (worldId != CharacterBlocked.LocalWorldId && unchecked((byte)worldId) != AppConfiguration.Instance.Id)
+        {
+            owner.SendErrorMessage(ErrorMessageType.TeamInviteeOffline);
+            return false;
+        }
+
         var target = targetObj ?? worldManager.GetCharacter(targetName);
-        if (target == null) return;
-        // TODO - CONFIG INVITE DISABLED
+        if (target == null || !target.IsOnline)
+        {
+            owner.SendErrorMessage(ErrorMessageType.TeamInviteeOffline);
+            return false;
+        }
+
+        if (target.Id == owner.Id)
+        {
+            owner.SendErrorMessage(ErrorMessageType.TeamInviteeMember);
+            return false;
+        }
 
         // Only hostile players cannot be invited (friendly and neutral are allowed, supports custom nations)
         if (owner.GetRelationStateTo(target) == RelationState.Hostile)
         {
             owner.SendErrorMessage(ErrorMessageType.TeamInviteRefused);
-            return;
+            return false;
         }
 
+        var activeTeam = teamId == 0 ? null : GetActiveTeam((uint)teamId);
+        var ownerTeam = GetActiveTeamByUnit(owner.Id);
+        if ((teamId != 0 && activeTeam == null) || ownerTeam != activeTeam)
+            return false;
 
-        var activeTeam = GetActiveTeam(teamId);
+        if (activeTeam != null && (activeTeam.RoleType != teamRole || !CanInvite(activeTeam, owner)))
+            return false;
+
+        if (GetActiveTeamByUnit(target.Id) != null)
+        {
+            owner.SendErrorMessage(ErrorMessageType.TeamInviteeInTeam);
+            return false;
+        }
+
         if (GetActiveInvitation(target.Id) != null)
         {
-            owner.SendPacket(new SCRejectedTeamPacket(targetName, isParty));
-            return;
+            owner.SendPacket(new SCRejectedTeamPacket(target.Name, teamRole == TeamRoleType.Party));
+            return false;
         }
 
-        var isAllowed = false;
-        if (activeTeam != null)
+        var effectiveTeamId = activeTeam?.Id ?? 0u;
+        var memberCount = activeTeam?.MembersCount() ?? 1;
+        var pendingCount = CountPendingInvitations(owner.Id, effectiveTeamId, teamRole);
+        var memberLimit = activeTeam?.MemberLimit ?? GetMemberLimit(teamRole);
+        if (memberCount + pendingCount >= memberLimit)
         {
-            var isOwner = activeTeam.OwnerId == owner.Id;
-            if (isOwner) isAllowed = true;
-
-            if (!activeTeam.IsParty && !isAllowed)
-            {
-                var isMarked = activeTeam.IsMarked(owner.Id);
-                if (isMarked) isAllowed = true;
-            }
-
-            if (!isAllowed)
-            {
-                // TODO - ERROR NOT ALLOWED TO INVITE
-                return;
-            }
+            owner.SendErrorMessage(ErrorMessageType.TeamFull);
+            return false;
         }
 
+        var logEventId = isArea ? 0L : Interlocked.Increment(ref _lastInvitationLogEventId);
         _activeInvitations.Add(target.Id, new InvitationTemplate
         {
             Owner = owner,
             Target = target,
-            IsParty = activeTeam?.IsParty ?? isParty,
+            IsArea = isArea,
+            TeamRole = teamRole,
+            LogEventId = logEventId,
             Time = DateTime.UtcNow,
-            TeamId = activeTeam?.Id ?? 0u,
+            TeamId = effectiveTeamId
         });
-        target.SendPacket(new SCAskToJoinTeamPacket(activeTeam?.Id ?? 0u, owner.Id, owner.Name, isParty));
+
+        if (isArea)
+            target.SendPacket(new SCAskToJoinTeamAreaPacket((int)effectiveTeamId, owner.Id, owner.Name, teamRole));
+        else
+            target.SendPacket(new SCAskToJoinTeamPacket((int)effectiveTeamId, owner.Id, owner.Name, teamRole, logEventId));
+        return true;
     }
 
-    public void ReplyToJoinTeam(Character target, uint teamId, bool isParty, uint ownerId, bool isReject, string charName, bool isArea)
+    public void ReplyToJoinTeam(
+        Character target,
+        int teamId,
+        bool isParty,
+        ulong ownerId,
+        bool isReject,
+        string charName,
+        bool isArea,
+        TeamRoleType teamRole,
+        long logEventId)
     {
+        if (target == null)
+            return;
+
         var activeInvitation = GetActiveInvitation(target.Id);
         if (activeInvitation == null)
-        {
-            // TODO - ERROR NO INVITATION
             return;
-        }
 
-        if (isReject || activeInvitation.Time.AddSeconds(60) < DateTime.UtcNow) // 60 seconds for timeout
+        var replyMatchesInvitation = teamId >= 0 && (uint)teamId == activeInvitation.TeamId &&
+                                     ownerId == activeInvitation.Owner.Id &&
+                                     string.Equals(charName, target.Name, StringComparison.Ordinal) &&
+                                     isArea == activeInvitation.IsArea &&
+                                     teamRole == activeInvitation.TeamRole &&
+                                     isParty == (activeInvitation.TeamRole == TeamRoleType.Party) &&
+                                     logEventId == activeInvitation.LogEventId;
+        if (!replyMatchesInvitation)
         {
-            activeInvitation.Owner.SendPacket(new SCRejectedTeamPacket(activeInvitation.Target.Name, activeInvitation.IsParty));
             _activeInvitations.Remove(target.Id);
             return;
         }
 
-        if (isArea)
+        if (isReject || activeInvitation.Time + InvitationLifetime < DateTime.UtcNow)
         {
-            // TODO
+            activeInvitation.Owner.SendPacket(new SCRejectedTeamPacket(
+                activeInvitation.Target.Name, activeInvitation.TeamRole == TeamRoleType.Party));
+            _activeInvitations.Remove(target.Id);
+            return;
+        }
+
+        if (GetActiveTeamByUnit(target.Id) != null)
+        {
+            target.SendErrorMessage(ErrorMessageType.TeamInviteeInTeam);
             _activeInvitations.Remove(target.Id);
             return;
         }
@@ -169,15 +262,21 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
             else
             {
                 _activeInvitations.Remove(target.Id);
-                // TODO - ERROR TEAM DO NOT EXISTS ANYMORE
                 return;
             }
         }
         else
         {
-            if (activeTeam.MembersCount() >= (activeTeam.IsParty ? 5 : 50)) // TODO - NEED TESTS
+            if ((activeInvitation.TeamId != 0 && activeInvitation.TeamId != activeTeam.Id) ||
+                activeTeam.RoleType != activeInvitation.TeamRole ||
+                !CanInvite(activeTeam, activeInvitation.Owner))
             {
-                // ERROR TEAM IS FULL
+                _activeInvitations.Remove(target.Id);
+                return;
+            }
+
+            if (activeTeam.MembersCount() >= activeTeam.MemberLimit)
+            {
                 target.SendErrorMessage(ErrorMessageType.TeamFull);
                 _activeInvitations.Remove(activeInvitation.Target.Id);
                 return;
@@ -187,30 +286,93 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
             if (newTeamMember != null)
             {
                 target.SendPacket(new SCJoinedTeamPacket(activeTeam));
+                if (activeTeam.OfficerId != 0)
+                    target.SendPacket(new SCTeamOfficerChangedPacket((int)activeTeam.Id, activeTeam.OfficerId));
                 target.InParty = true;
                 target.SendPacket(new SCTeamPingPosPacket(true, activeTeam.PingPosition, 0));
                 activeTeam.BroadcastPacket(new SCTeamMemberJoinedPacket(activeTeam.Id, newTeamMember, party), target.Id);
+                if (!activeTeam.IsParty)
+                    chatManager.GetRaidChat(activeTeam).JoinChannel(target);
+                chatManager.GetPartyChat(activeTeam, target).JoinChannel(target);
+                target.Events?.OnTeamJoin(
+                    activeInvitation,
+                    new OnTeamJoinArgs { Team = activeTeam, Player = target });
             }
         }
 
         _activeInvitations.Remove(activeInvitation.Target.Id);
     }
 
-    public void MoveTeamMember(Character owner, uint teamId, uint targetId, uint target2Id, byte fromIndex, byte toIndex)
+    private static bool CanInvite(Team team, Character character)
     {
-        var activeTeam = GetActiveTeam(teamId);
-        if (activeTeam == null || activeTeam.OwnerId != owner.Id) return;
+        return team.IsMember(character.Id) &&
+               (team.OwnerId == character.Id || !team.IsParty && team.IsOfficer(character.Id));
+    }
 
-        var t1 = worldManager.GetCharacterById(targetId);
-        var t2 = worldManager.GetCharacterById(target2Id);
+    private int CountPendingInvitations(uint ownerId, uint teamId, TeamRoleType teamRole)
+    {
+        return _activeInvitations.Values.Count(invitation =>
+            invitation.Owner.Id == ownerId && invitation.TeamId == teamId && invitation.TeamRole == teamRole);
+    }
+
+    private void RemoveExpiredInvitations()
+    {
+        var now = DateTime.UtcNow;
+        var expired = _activeInvitations
+            .Where(pair => pair.Value.Time + InvitationLifetime < now)
+            .ToArray();
+        foreach (var (targetId, invitation) in expired)
+        {
+            _activeInvitations.Remove(targetId);
+            if (invitation.Owner.IsOnline)
+                invitation.Owner.SendPacket(new SCRejectedTeamPacket(
+                    invitation.Target.Name, invitation.TeamRole == TeamRoleType.Party));
+        }
+    }
+
+    private static int GetMemberLimit(TeamRoleType teamRole)
+    {
+        return teamRole == TeamRoleType.Party ? Team.PartyMemberLimit : Team.RaidMemberLimit;
+    }
+
+    public void MoveTeamMember(
+        Character owner,
+        int teamId,
+        ulong memberId,
+        ulong otherMemberId,
+        sbyte memberIndex,
+        sbyte otherIndex,
+        bool ghostSwap)
+    {
+        if (owner == null || teamId <= 0)
+            return;
+
+        var activeTeam = GetActiveTeam((uint)teamId);
+        if (activeTeam == null || activeTeam.OwnerId != owner.Id)
+            return;
+
+        if (ghostSwap && (memberId == 0) == (otherMemberId == 0))
+            return;
+
+        var slotCount = activeTeam.MemberLimit;
+        if (memberIndex < 0 || memberIndex >= slotCount || otherIndex < 0 || otherIndex >= slotCount || memberIndex == otherIndex)
+            return;
+
+        var t1 = activeTeam.Members[memberIndex]?.Character;
+        var t2 = activeTeam.Members[otherIndex]?.Character;
+        var currentMemberId = (ulong)(t1?.Id ?? 0u);
+        var currentOtherMemberId = (ulong)(t2?.Id ?? 0u);
+        if (currentMemberId != memberId || currentOtherMemberId != otherMemberId || memberId == 0 && otherMemberId == 0)
+            return;
+
         if (t1 != null)
             chatManager.GetPartyChat(activeTeam, t1).LeaveChannel(t1);
         if (t2 != null)
             chatManager.GetPartyChat(activeTeam, t2).LeaveChannel(t2);
 
-        if (activeTeam.MoveMember(targetId, target2Id, fromIndex, toIndex))
+        if (activeTeam.MoveMember(memberId, otherMemberId, memberIndex, otherIndex))
         {
-            activeTeam.BroadcastPacket(new SCTeamMemberMovedPacket(teamId, targetId, target2Id, fromIndex, toIndex));
+            activeTeam.BroadcastPacket(new SCTeamMemberMovedPacket(teamId, memberId, otherMemberId, memberIndex, otherIndex, ghostSwap));
             if (t1 != null)
                 chatManager.GetPartyChat(activeTeam, t1).JoinChannel(t1);
             if (t2 != null)
@@ -257,21 +419,37 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
     public void CreateNewTeam(InvitationTemplate activeInvitation)
     {
-        if (GetActiveTeamByUnit(activeInvitation.Owner.Id) != null || GetActiveTeamByUnit(activeInvitation.Target.Id) != null)
+        if (GetActiveTeamByUnit(activeInvitation.Owner.Id) != null)
         {
-            // TODO - ERROR MESSAGE ALREADY HAVE TEAM
+            activeInvitation.Target.SendErrorMessage(ErrorMessageType.TeamInvitorMoved);
             return;
         }
 
+        if (GetActiveTeamByUnit(activeInvitation.Target.Id) != null)
+        {
+            activeInvitation.Owner.SendErrorMessage(ErrorMessageType.TeamInviteeInTeam);
+            return;
+        }
+
+        var teamId = teamIdManager.GetNextId();
         var newTeam = new Team
         {
-            Id = teamIdManager.GetNextId(),
+            Id = teamId,
             OwnerId = activeInvitation.Owner.Id,
-            IsParty = activeInvitation.IsParty
+            IsParty = activeInvitation.TeamRole == TeamRoleType.Party
         };
-        if (newTeam.AddMember(activeInvitation.Owner).Item1 == null || newTeam.AddMember(activeInvitation.Target).Item1 == null) return;
+        if (newTeam.AddMember(activeInvitation.Owner).Item1 == null ||
+            newTeam.AddMember(activeInvitation.Target).Item1 == null)
+        {
+            teamIdManager.ReleaseId(teamId);
+            return;
+        }
 
-        _activeTeams.Add(newTeam.Id, newTeam);
+        if (!_activeTeams.TryAdd(newTeam.Id, newTeam))
+        {
+            teamIdManager.ReleaseId(teamId);
+            return;
+        }
 
         activeInvitation.Owner.SendPacket(new SCJoinedTeamPacket(newTeam));
         activeInvitation.Owner.InParty = true;
@@ -294,22 +472,31 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
     {
         if (GetActiveTeamByUnit(character.Id) != null)
         {
-            // TODO - ERROR MESSAGE ALREADY HAVE TEAM
+            character.SendErrorMessage(ErrorMessageType.TeamInviteeInTeam);
             return;
         }
 
+        var teamId = teamIdManager.GetNextId();
         var newTeam = new Team
         {
-            Id = teamIdManager.GetNextId(),
+            Id = teamId,
             OwnerId = character.Id,
-            IsParty = true
+            IsParty = asParty
         };
-        if (newTeam.AddMember(character).Item1 == null) return;
+        if (newTeam.AddMember(character).Item1 == null)
+        {
+            teamIdManager.ReleaseId(teamId);
+            return;
+        }
 
-        _activeTeams.Add(newTeam.Id, newTeam);
+        if (!_activeTeams.TryAdd(newTeam.Id, newTeam))
+        {
+            teamIdManager.ReleaseId(teamId);
+            return;
+        }
 
         character.SendPacket(new SCJoinedTeamPacket(newTeam));
-        character.InParty = asParty;
+        character.InParty = true;
         newTeam.BroadcastPacket(new SCTeamPingPosPacket(true, character.LocalPingPosition, 0));
 
         if (!newTeam.IsParty)
@@ -319,112 +506,292 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         character.Events?.OnTeamJoin(character, new OnTeamJoinArgs { Team = newTeam, Player = character });
     }
 
-    public void AskRiskyTeam(Character unit, uint teamId, uint targetId, RiskyAction riskyAction)
+    public void AskRiskyTeam(Character requester, int teamId, ulong targetId, RiskyAction riskyAction)
     {
-        // Get Team data
-        var activeTeam = GetActiveTeam(teamId);
-        if (activeTeam == null) return;
-        var isAutoDisband = false;
+        if (requester == null || teamId <= 0 || !Enum.IsDefined(riskyAction))
+            return;
 
-        // Check if action is allowed; Kick only by raid leader ; Leave only by self
-        if (riskyAction == RiskyAction.Kick && activeTeam.OwnerId != unit.Id ||
-            riskyAction == RiskyAction.Leave && unit.Id != targetId) return;
+        var activeTeam = GetActiveTeam((uint)teamId);
+        var error = ValidateRiskyAction(activeTeam, requester, targetId, riskyAction);
 
-        // Remove from ChatManager channels
-        if (!activeTeam.IsParty)
-            chatManager.GetRaidChat(activeTeam).LeaveChannel(unit);
-        chatManager.GetPartyChat(activeTeam, unit).LeaveChannel(unit);
+        // the client emits CSLeaveTeam/CSKickTeamMember/CSDismissTeam immediately; those packets
+        // are independently validated again by the Zone.
+        requester.SendPacket(new SCTeamAckRiskyActionPacket(
+            teamId, targetId, riskyAction, TeamRiskyWarningFlags.None, error));
+    }
 
-        if ((riskyAction == RiskyAction.Leave || riskyAction == RiskyAction.Kick) && activeTeam.RemoveMember(targetId))
-        {
-            // Check if person leaving is the leader, if so, find a new leader
-            if (targetId == activeTeam.OwnerId)
-            {
-                var newOwner = activeTeam.GetNewOwner();
-                if (newOwner != 0)
-                {
-                    activeTeam.OwnerId = newOwner;
-                    activeTeam.BroadcastPacket(new SCTeamOwnerChangedPacket(teamId, newOwner));
-                }
-                else
-                {
-                    // couldn't find a new leader, only party will auto-disband, raids will keep the one remaining person in it
-                    if (activeTeam.IsParty)
-                        isAutoDisband = true;
-                }
-            }
+    public void LeaveTeam(Character requester, int teamId)
+    {
+        if (requester == null || teamId <= 0)
+            return;
 
-            // Send Leave info the team
-            activeTeam.BroadcastPacket(new SCTeamMemberLeavedPacket(teamId, targetId, riskyAction == RiskyAction.Kick));
-            // Find the target, and send its leave info
-            var target = worldManager.GetCharacterById(targetId);
-            if (target != null)
-            {
-                target.InParty = false;
-                target.SendPacket(new SCLeavedTeamPacket(teamId, riskyAction == RiskyAction.Kick, false));
-                target.Events?.OnTeamLeave(target, new OnTeamLeaveArgs { Id = activeTeam.Id, Team = activeTeam, Player = target });
-            }
-        }
+        var activeTeam = GetActiveTeam((uint)teamId);
+        if (ValidateRiskyAction(activeTeam, requester, requester.Id, RiskyAction.Leave) !=
+            ErrorMessageType.NoErrorMessage)
+            return;
 
-        // Disband if only one member left in Party (not raid)
-        if (activeTeam.IsParty && activeTeam.MembersCount() <= 1)
-            isAutoDisband = true;
+        RemoveTeamMember(activeTeam, requester, false);
+    }
 
-        // If everybody is offline, also disband regardless of raid or party status
-        if (activeTeam.MembersOnlineCount() <= 0)
-            isAutoDisband = true;
+    public void KickTeamMember(Character requester, int teamId, ulong targetId)
+    {
+        if (requester == null || teamId <= 0)
+            return;
 
-        // TODO - Need to find why we need this
-        activeTeam.BroadcastPacket(new SCTeamAckRiskyActionPacket(teamId, targetId, riskyAction, 0, 0));
+        var activeTeam = GetActiveTeam((uint)teamId);
+        if (ValidateRiskyAction(activeTeam, requester, targetId, RiskyAction.Kick) !=
+            ErrorMessageType.NoErrorMessage)
+            return;
 
-        if (isAutoDisband || riskyAction == RiskyAction.Dismiss)
-        {
-            activeTeam.BroadcastPacket(new SCTeamDismissedPacket(teamId));
-            foreach (var member in activeTeam.Members)
-            {
-                if (member?.Character != null)
-                {
-                    if (!activeTeam.IsParty)
-                        chatManager.GetRaidChat(activeTeam).LeaveChannel(member.Character);
-                    chatManager.GetPartyChat(activeTeam, member.Character).LeaveChannel(member.Character);
+        var target = activeTeam.Members[activeTeam.GetIndex((uint)targetId)].Character;
+        RemoveTeamMember(activeTeam, target, true);
+    }
 
-                    if (member.Character.IsOnline)
-                    {
-                        member.Character.SendPacket(new SCLeavedTeamPacket(teamId, false, true));
-                        member.Character.InParty = false;
-                        // trigger event
-                        member.Character.Events?.OnTeamLeave(member.Character, new OnTeamLeaveArgs { Id = activeTeam.Id, Team = activeTeam, Player = member.Character });
-                    }
-                }
-            }
+    public void DismissTeam(Character requester, int teamId)
+    {
+        if (requester == null || teamId <= 0)
+            return;
 
-            _activeTeams.Remove(teamId);
-        }
-        // TODO: Add this to a timer or trigger instead of calling on a party/raid disband. But is good enough and functional for now
+        var activeTeam = GetActiveTeam((uint)teamId);
+        if (ValidateRiskyAction(activeTeam, requester, requester.Id, RiskyAction.Dismiss) !=
+            ErrorMessageType.NoErrorMessage)
+            return;
+
+        DisbandTeam(activeTeam);
         chatManager.CleanUpChannels();
     }
 
-    public void MakeTeamOwner(Character unit, uint teamId, uint memberId)
+    private static ErrorMessageType ValidateRiskyAction(
+        Team activeTeam,
+        Character requester,
+        ulong targetId,
+        RiskyAction riskyAction)
     {
-        var activeTeam = GetActiveTeam(teamId);
-        if (activeTeam?.OwnerId != unit.Id || activeTeam.OwnerId == memberId) return;
+        if (activeTeam == null || !activeTeam.IsMember(requester.Id))
+            return ErrorMessageType.TeamNoSuchMember;
 
-        if (activeTeam.IsMember(memberId)) activeTeam.OwnerId = memberId;
-        activeTeam.BroadcastPacket(new SCTeamOwnerChangedPacket(activeTeam.Id, activeTeam.OwnerId));
+        return riskyAction switch
+        {
+            RiskyAction.Leave when targetId != requester.Id => ErrorMessageType.TeamYourself,
+            RiskyAction.Leave => ErrorMessageType.NoErrorMessage,
+            RiskyAction.Kick when activeTeam.OwnerId != requester.Id => ErrorMessageType.TeamNoRights,
+            RiskyAction.Kick when targetId == requester.Id => ErrorMessageType.TeamYourself,
+            RiskyAction.Kick when targetId > uint.MaxValue || !activeTeam.IsMember((uint)targetId) =>
+                ErrorMessageType.TeamNoSuchMember,
+            RiskyAction.Kick => ErrorMessageType.NoErrorMessage,
+            RiskyAction.Dismiss when activeTeam.OwnerId != requester.Id => ErrorMessageType.TeamNoRights,
+            RiskyAction.Dismiss when targetId != requester.Id => ErrorMessageType.TeamYourself,
+            RiskyAction.Dismiss => ErrorMessageType.NoErrorMessage,
+            _ => ErrorMessageType.Invalid
+        };
     }
 
-    public void ConvertToRaid(Character owner, uint teamId)
+    private void RemoveTeamMember(Team activeTeam, Character target, bool kicked)
     {
-        var activeTeam = GetActiveTeam(teamId);
-        if (activeTeam?.OwnerId != owner.Id)
+        _ownerHandoverOffers.Remove(activeTeam.Id);
+        var wasOwner = activeTeam.OwnerId == target.Id;
+        if (!activeTeam.RemoveMember(target.Id))
+            return;
+
+        if (!activeTeam.IsParty)
+            chatManager.GetRaidChat(activeTeam).LeaveChannel(target);
+        chatManager.GetPartyChat(activeTeam, target).LeaveChannel(target);
+
+        target.InParty = false;
+        if (target.IsOnline)
+            target.SendPacket(new SCLeavedTeamPacket((int)activeTeam.Id, kicked, false));
+        activeTeam.BroadcastPacket(new SCTeamMemberLeavedPacket((int)activeTeam.Id, target.Id, kicked));
+        target.Events?.OnTeamLeave(
+            target,
+            new OnTeamLeaveArgs { Id = activeTeam.Id, Team = activeTeam, Player = target });
+
+        var shouldDisband = (activeTeam.IsParty && activeTeam.MembersCount() <= 1) ||
+                            activeTeam.MembersOnlineCount() <= 0;
+        if (!shouldDisband && wasOwner)
+        {
+            var newOwner = activeTeam.GetNewOwner();
+            if (newOwner == 0)
+                shouldDisband = true;
+            else
+            {
+                activeTeam.OwnerId = newOwner;
+                if (activeTeam.OfficerId == newOwner)
+                    activeTeam.OfficerId = 0;
+                activeTeam.BroadcastPacket(new SCTeamOwnerChangedPacket(checked((int)activeTeam.Id), newOwner));
+            }
+        }
+
+        if (shouldDisband)
+            DisbandTeam(activeTeam);
+        chatManager.CleanUpChannels();
+    }
+
+    private void DisbandTeam(Team activeTeam)
+    {
+        _ownerHandoverOffers.Remove(activeTeam.Id);
+        activeTeam.BroadcastPacket(new SCTeamDismissedPacket((int)activeTeam.Id));
+        foreach (var member in activeTeam.Members)
+        {
+            var character = member?.Character;
+            if (character == null)
+                continue;
+
+            if (!activeTeam.IsParty)
+                chatManager.GetRaidChat(activeTeam).LeaveChannel(character);
+            chatManager.GetPartyChat(activeTeam, character).LeaveChannel(character);
+
+            character.InParty = false;
+            if (character.IsOnline)
+                character.SendPacket(new SCLeavedTeamPacket((int)activeTeam.Id, false, true));
+            character.Events?.OnTeamLeave(
+                character,
+                new OnTeamLeaveArgs { Id = activeTeam.Id, Team = activeTeam, Player = character });
+        }
+
+        if (_activeTeams.TryRemove(activeTeam.Id, out _))
+            teamIdManager.ReleaseId(activeTeam.Id);
+    }
+
+    public void MakeTeamOwner(Character unit, int teamId, ulong memberId)
+    {
+        if (unit == null || teamId <= 0 || memberId > uint.MaxValue || memberId == unit.Id)
+            return;
+
+        var activeTeam = GetActiveTeam((uint)teamId);
+        if (activeTeam?.OwnerId != unit.Id || !activeTeam.IsMember((uint)memberId))
+            return;
+
+        _ownerHandoverOffers.Remove(activeTeam.Id);
+        activeTeam.OwnerId = (uint)memberId;
+        if (activeTeam.OfficerId == memberId)
+            activeTeam.OfficerId = 0;
+        activeTeam.BroadcastPacket(new SCTeamOwnerChangedPacket(teamId, memberId));
+    }
+
+    public bool BeginOwnerHandover(int teamId, ulong candidateId, TeamOwnerHandoverDetails details)
+    {
+        if (teamId <= 0 || candidateId > uint.MaxValue ||
+            details.Reason is < TeamOwnerHandoverReason.HigherHeroGrade or > TeamOwnerHandoverReason.GearScore)
+            return false;
+
+        var activeTeam = GetActiveTeam((uint)teamId);
+        if (activeTeam == null || activeTeam.IsParty || activeTeam.OwnerId == candidateId ||
+            !activeTeam.IsMember((uint)candidateId) || _ownerHandoverOffers.ContainsKey(activeTeam.Id))
+            return false;
+
+        var owner = GetTeamCharacter(activeTeam, activeTeam.OwnerId);
+        var candidate = GetTeamCharacter(activeTeam, (uint)candidateId);
+        if (owner is not { IsOnline: true } || candidate is not { IsOnline: true })
+            return false;
+
+        var offer = new OwnerHandoverOffer(activeTeam.OwnerId, (uint)candidateId, details);
+        _ownerHandoverOffers.Add(activeTeam.Id, offer);
+        owner.SendPacket(new SCTeamAskHandOverOwnerPacket(teamId, candidateId, details));
+        return true;
+    }
+
+    public void RespondToOwnerHandover(
+        Character responder,
+        int teamId,
+        ulong ownerId,
+        ulong candidateId,
+        sbyte reason,
+        bool accept,
+        bool ownerResponse)
+    {
+        if (responder == null || teamId <= 0 || ownerId > uint.MaxValue || candidateId > uint.MaxValue ||
+            !_ownerHandoverOffers.TryGetValue((uint)teamId, out var offer))
+            return;
+
+        var activeTeam = GetActiveTeam((uint)teamId);
+        var offerStillValid = activeTeam != null && activeTeam.OwnerId == offer.OwnerId &&
+                              activeTeam.IsMember(offer.OwnerId) && activeTeam.IsMember(offer.CandidateId);
+        if (!offerStillValid)
+        {
+            _ownerHandoverOffers.Remove((uint)teamId);
+            return;
+        }
+
+        if (ownerId != offer.OwnerId || candidateId != offer.CandidateId ||
+            reason != (sbyte)offer.Details.Reason)
+            return;
+
+        var owner = GetTeamCharacter(activeTeam, offer.OwnerId);
+        var candidate = GetTeamCharacter(activeTeam, offer.CandidateId);
+        if (ownerResponse)
+        {
+            if (offer.Stage != OwnerHandoverStage.AwaitingOwner || responder.Id != offer.OwnerId)
+                return;
+
+            if (!accept || candidate is not { IsOnline: true })
+            {
+                _ownerHandoverOffers.Remove(activeTeam.Id);
+                return;
+            }
+
+            offer.Stage = OwnerHandoverStage.AwaitingCandidate;
+            candidate.SendPacket(new SCTeamAskAcceptOwnerOfferPacket(teamId, candidateId, offer.Details));
+            return;
+        }
+
+        if (offer.Stage != OwnerHandoverStage.AwaitingCandidate || responder.Id != offer.CandidateId)
+            return;
+
+        _ownerHandoverOffers.Remove(activeTeam.Id);
+        var result = new SCTeamHandOverOwnerOfferResultPacket(teamId, candidateId, accept);
+        if (owner is { IsOnline: true })
+            owner.SendPacket(result);
+        if (candidate is { IsOnline: true })
+            candidate.SendPacket(result);
+
+        if (!accept)
+            return;
+
+        activeTeam.OwnerId = offer.CandidateId;
+        if (activeTeam.OfficerId == offer.CandidateId)
+            activeTeam.OfficerId = 0;
+        activeTeam.BroadcastPacket(new SCTeamOwnerChangedPacket(teamId, candidateId));
+    }
+
+    private static Character GetTeamCharacter(Team team, uint characterId)
+    {
+        var index = team.GetIndex(characterId);
+        return index < 0 ? null : team.Members[index]?.Character;
+    }
+
+    public void MakeTeamOfficer(Character unit, int teamId, ulong memberId)
+    {
+        if (unit == null || teamId <= 0 || memberId > uint.MaxValue || memberId == unit.Id)
+            return;
+
+        var activeTeam = GetActiveTeam((uint)teamId);
+        if (activeTeam == null || activeTeam.IsParty || activeTeam.OwnerId != unit.Id)
+            return;
+
+        if (!activeTeam.IsMember((uint)memberId))
+            return;
+
+        activeTeam.OfficerId = memberId;
+        activeTeam.BroadcastPacket(new SCTeamOfficerChangedPacket(teamId, memberId));
+    }
+
+    public void ConvertToRaid(Character owner, int teamId)
+    {
+        if (owner == null || teamId <= 0)
+            return;
+
+        var activeTeam = GetActiveTeam((uint)teamId);
+        if (activeTeam == null || !activeTeam.IsParty || activeTeam.OwnerId != owner.Id)
             return;
 
         activeTeam.IsParty = false;
-        activeTeam.BroadcastPacket(new SCTeamBecameRaidTeamPacket(activeTeam.Id));
+        activeTeam.BroadcastPacket(new SCTeamBecameRaidTeamPacket(teamId));
         foreach (var m in activeTeam.Members)
-            if (m != null && m.Character != null)
+            if (m?.Character != null)
                 chatManager.GetRaidChat(activeTeam).JoinChannel(m.Character);
-        // TODO: Handle raids in dungeons
+
+        // Dungeons retain the Team object and compare its stable Id, so in-place role conversion
+        // preserves the owning team and every member's existing instance access.
     }
 
     public void SetTeamMemberRole(Character unit, uint teamId, uint memberId, MemberRole role)
@@ -442,7 +809,7 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
     public void SetOverHeadMarker(Character unit, uint teamId, OverHeadMark index, byte type, uint targetId)
     {
         var activeTeam = GetActiveTeam(teamId);
-        if (activeTeam == null || activeTeam.OwnerId != unit.Id && !activeTeam.IsParty) return;
+        if (activeTeam == null || !activeTeam.IsParty && activeTeam.OwnerId != unit.Id && !activeTeam.IsOfficer(unit.Id)) return;
 
         if (Enum.IsDefined(typeof(OverHeadMark), index) && index != OverHeadMark.ResetAll && type <= 2)
         {
@@ -460,42 +827,81 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         activeTeam.BroadcastPacket(new SCOverHeadMarkerSetPacket(teamId, index, type == 2, targetId));
     }
 
-    public void ChangeLootingRule(Character owner, uint teamId, byte flags, LootingRuleMethod lootingRuleMethod, byte minimumGrade, uint lootMaster, bool rollForBindOnPickup)
+    public void ChangeLootingRule(
+        Character owner,
+        int teamId,
+        LootingRuleChangeFlags flags,
+        LootingRuleMethod lootingRuleMethod,
+        sbyte minimumGrade,
+        ulong lootMaster,
+        bool rollForBindOnPickup)
     {
-        var activeTeam = GetActiveTeam(teamId);
-        if (activeTeam?.OwnerId != owner.Id) return;
+        if (owner == null || teamId <= 0 || flags == LootingRuleChangeFlags.None ||
+            (flags & ~LootingRuleChangeFlags.All) != 0)
+            return;
 
-        // Flags:
-        // 1: Method
-        // 2: Grade
-        // 4: LootMaster
-        // 8: BindOnPickup
-        if ((flags & 0x08) != 0)
-        {
+        var activeTeam = GetActiveTeam((uint)teamId);
+        if (activeTeam?.OwnerId != owner.Id)
+            return;
+
+        if (flags.HasFlag(LootingRuleChangeFlags.Method) &&
+            lootingRuleMethod is < LootingRuleMethod.FreeForAll or > LootingRuleMethod.LootMaster)
+            return;
+        if (flags.HasFlag(LootingRuleChangeFlags.MinimumGrade) &&
+            minimumGrade is < (sbyte)ItemGrade.Crude or > (sbyte)ItemGrade.Mythic)
+            return;
+        if (flags.HasFlag(LootingRuleChangeFlags.LootMaster) &&
+            (lootMaster == 0 || lootMaster > uint.MaxValue || !activeTeam.IsMember((uint)lootMaster)))
+            return;
+
+        var finalMethod = flags.HasFlag(LootingRuleChangeFlags.Method)
+            ? lootingRuleMethod
+            : activeTeam.LootingRule.LootMethod;
+        var finalLootMaster = flags.HasFlag(LootingRuleChangeFlags.LootMaster)
+            ? lootMaster
+            : activeTeam.LootingRule.LootMaster;
+        if (finalMethod == LootingRuleMethod.LootMaster &&
+            (finalLootMaster == 0 || finalLootMaster > uint.MaxValue || !activeTeam.IsMember((uint)finalLootMaster)))
+            return;
+
+        if (flags.HasFlag(LootingRuleChangeFlags.RollForBindOnPickup))
             activeTeam.LootingRule.RollForBindOnPickup = rollForBindOnPickup;
-        }
-        if ((flags & 0x04) != 0)
-        {
-            activeTeam.LootingRule.LootMaster = lootMaster;
-        }
-        if ((flags & 0x02) != 0)
-        {
+        if (flags.HasFlag(LootingRuleChangeFlags.MinimumGrade))
             activeTeam.LootingRule.MinimumGrade = minimumGrade;
-        }
-        if ((flags & 0x01) != 0)
-        {
+        if (flags.HasFlag(LootingRuleChangeFlags.Method))
             activeTeam.LootingRule.LootMethod = lootingRuleMethod;
-            if (activeTeam.LootingRule.LootMethod != LootingRuleMethod.LootMaster)
-                activeTeam.LootingRule.LootMaster = 0;
-        }
+        activeTeam.LootingRule.LootMaster = finalMethod == LootingRuleMethod.LootMaster ? finalLootMaster : 0;
 
         activeTeam.BroadcastPacket(new SCTeamLootingRuleChangedPacket(teamId, activeTeam.LootingRule, flags));
+    }
+
+    public void ChangeDiceBidRule(Character unit, int teamId, ulong memberId, DiceBidRuleKind rule, bool byIdleState)
+    {
+        if (unit == null || teamId <= 0 || memberId != unit.Id)
+            return;
+
+        if (rule is < DiceBidRuleKind.Default or > DiceBidRuleKind.AutoGiveUp)
+            return;
+
+        // The native idle transition only sends Default when activity resumes and AutoGiveUp when idle starts.
+        if (byIdleState && rule == DiceBidRuleKind.AutoAccept)
+            return;
+
+        var activeTeam = GetActiveTeam((uint)teamId);
+        var memberIndex = activeTeam?.GetIndex(unit.Id) ?? -1;
+        if (memberIndex < 0)
+            return;
+
+        var member = activeTeam.Members[memberIndex];
+        member.DiceBidRule = rule;
+        member.DiceBidRuleChangedByIdleState = byIdleState;
+        activeTeam.BroadcastPacket(new SCDiceBidRuleChangedPacket(teamId, memberId, rule));
     }
 
     public void SetPingPos(Character unit, uint teamId, bool hasPing, WorldSpawnPosition position, uint insId)
     {
         var activeTeam = GetActiveTeam(teamId);
-        if (activeTeam == null || (activeTeam.OwnerId != unit.Id && !activeTeam.IsMarked(unit.Id)))
+        if (activeTeam == null || (activeTeam.OwnerId != unit.Id && !activeTeam.IsOfficer(unit.Id)))
             return;
 
         activeTeam.PingPosition = position;
@@ -508,13 +914,19 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         var memberInfo = activeTeam?.ChangeStatus(unit);
         if (memberInfo == null) return;
 
+        if (_ownerHandoverOffers.TryGetValue(activeTeam.Id, out var offer) &&
+            (offer.OwnerId == unit.Id || offer.CandidateId == unit.Id))
+            _ownerHandoverOffers.Remove(activeTeam.Id);
+
         if (activeTeam.OwnerId == unit.Id)
         {
             var newOwner = activeTeam.GetNewOwner();
             if (newOwner != 0)
             {
                 activeTeam.OwnerId = newOwner;
-                activeTeam.BroadcastPacket(new SCTeamOwnerChangedPacket(activeTeam.Id, newOwner), unit.Id);
+                if (activeTeam.OfficerId == newOwner)
+                    activeTeam.OfficerId = 0;
+                activeTeam.BroadcastPacket(new SCTeamOwnerChangedPacket(checked((int)activeTeam.Id), newOwner), unit.Id);
             }
         }
 
@@ -523,33 +935,40 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
     public void MemberRemoveFromTeam(Character unit, Character source, RiskyAction leaveType)
     {
-        var activeTeam = GetActiveTeamByUnit(unit.Id);
-        var memberInfo = activeTeam?.ChangeStatus(unit);
-        if (memberInfo == null) return;
-        var sourceTeam = GetActiveTeamByUnit(source.Id);
-        var sourceInfo = activeTeam?.ChangeStatus(source);
-        if (sourceInfo == null) return;
-        if (activeTeam.Id != sourceTeam.Id)
-        {
-            // Can only remove member from the same team
+        if (unit == null || source == null || leaveType is not (RiskyAction.Leave or RiskyAction.Kick))
             return;
-        }
-        if (!activeTeam.IsParty)
-            chatManager.GetRaidChat(activeTeam).LeaveChannel(unit);
-        chatManager.GetPartyChat(activeTeam, unit).LeaveChannel(unit);
-        AskRiskyTeam(source, activeTeam.Id, unit.Id, leaveType);
+
+        var activeTeam = GetActiveTeamByUnit(unit.Id);
+        var sourceTeam = GetActiveTeamByUnit(source.Id);
+        if (activeTeam == null || sourceTeam != activeTeam ||
+            (unit.Id != source.Id && source.Id != activeTeam.OwnerId))
+            return;
+
+        RemoveTeamMember(activeTeam, unit, leaveType == RiskyAction.Kick);
     }
 
-    public void UpdatePosition(uint id)
+    private void SendRemoteMemberUpdates(TimeSpan _)
     {
-        var activeTeam = GetActiveTeamByUnit(id);
-        if (activeTeam == null) return;
+        foreach (var activeTeam in _activeTeams.Values)
+        {
+            var members = activeTeam.Members
+                .Where(member => member?.Character != null)
+                .ToArray();
+            if (members.Length <= 1)
+                continue;
 
-        var index = activeTeam.GetIndex(id);
-        if (index < 0) return;
+            foreach (var recipient in members)
+            {
+                if (!recipient.Character.IsOnline)
+                    continue;
 
-        // TODO - MAYBE USE TASK FOR BETTER PERFORMANCE
-        activeTeam.BroadcastPacket(new SCTeamRemoteMembersExPacket([activeTeam.Members[index]]), id);
+                var remoteMembers = members
+                    .Where(member => member.Character.Id != recipient.Character.Id)
+                    .ToArray();
+                recipient.Character.SendPacket(new SCTeamRemoteMembersExPacket(
+                    checked((int)activeTeam.Id), remoteMembers));
+            }
+        }
     }
 
     public void UpdateAtLogin(Character unit)
@@ -559,6 +978,8 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
         var newInfo = activeTeam.ChangeStatus(unit);
         unit.SendPacket(new SCJoinedTeamPacket(activeTeam));
+        if (activeTeam.OfficerId != 0)
+            unit.SendPacket(new SCTeamOfficerChangedPacket((int)activeTeam.Id, activeTeam.OfficerId));
         unit.InParty = true;
         activeTeam.BroadcastPacket(new SCTeamMemberJoinedPacket(activeTeam.Id, newInfo, Team.GetParty(activeTeam.GetIndex(unit.Id))));
         //activeTeam.BroadcastPacket(new SCRefreshTeamMemberPacket(activeTeam.Id, unit.Id, unit.ObjId));
@@ -569,7 +990,10 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
     public void Load()
     {
-        // Nothing special to do here
+        LootingRule.ValidateDefaults(AppConfiguration.Instance.World);
+        tickManager.OnTick.Subscribe(
+            SendRemoteMemberUpdates,
+            TimeSpan.FromMilliseconds(AppConfiguration.Instance.World.TeamRemoteMemberUpdateIntervalMilliseconds));
     }
 }
 
@@ -579,5 +1003,24 @@ public class InvitationTemplate
     public Character Owner { get; set; }
     public Character Target { get; set; }
     public DateTime Time { get; set; }
-    public bool IsParty { get; set; }
+    public bool IsArea { get; set; }
+    public TeamRoleType TeamRole { get; set; }
+    public long LogEventId { get; set; }
+}
+
+internal enum OwnerHandoverStage
+{
+    AwaitingOwner,
+    AwaitingCandidate
+}
+
+internal sealed class OwnerHandoverOffer(
+    uint ownerId,
+    uint candidateId,
+    TeamOwnerHandoverDetails details)
+{
+    public uint OwnerId { get; } = ownerId;
+    public uint CandidateId { get; } = candidateId;
+    public TeamOwnerHandoverDetails Details { get; } = details;
+    public OwnerHandoverStage Stage { get; set; } = OwnerHandoverStage.AwaitingOwner;
 }

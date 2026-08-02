@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Items.Actions;
 
@@ -8,7 +8,8 @@ public class ItemAdd : ItemTask
 
     public ItemAdd(Item item)
     {
-        _type = ItemAction.Create;
+        // Case 5 (Create) is compact id+amount+template only — do not use with WriteDetails.
+        _type = ItemAction.Take;
         _item = item;
     }
 

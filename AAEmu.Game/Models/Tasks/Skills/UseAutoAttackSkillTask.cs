@@ -1,4 +1,5 @@
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -109,10 +110,15 @@ public class UseAutoAttackSkillTask : SkillTask
 
     private void StopAutoAttack()
     {
+        var skillId = _mainhandSkill.Template?.Id ?? 0;
         Cancelled = true;
+        _mainhandSkill.Cancelled = true;
         _caster.IsAutoAttack = false;
         _caster.AutoAttackTask = null;
         Cancel();
+        // Client hotbar auto_attack circle clears on SkillStopped (not SkillEnded).
+        if (skillId != 0)
+            _caster.BroadcastPacket(new SCSkillStoppedPacket(_caster.ObjId, skillId), true);
     }
 
     /// <summary>Get max attack range from equipped weapon or fall back to skill template.</summary>

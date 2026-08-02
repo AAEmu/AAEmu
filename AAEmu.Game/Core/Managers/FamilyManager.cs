@@ -340,7 +340,7 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
         member.Role = 1;
         previousOwnerMember.Role = 0;
 
-        family.SendPacket(new SCFamilyOwnerChangedPacket(family.Id, memberId));
+        family.SendPacket(new SCFamilyOwnerChangedPacket(family.Id, memberId, previousOwner.Id));
         family.SendPacket(new SCFamilyDescPacket(family));
     }
 

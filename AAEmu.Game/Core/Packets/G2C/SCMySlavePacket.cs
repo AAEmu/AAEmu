@@ -4,6 +4,10 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
+/// <summary>
+/// bc(unitId), tl s16, slaveName[1024], type s32, hp u64, maxHp u64, pos(s64 x, s64 y, f32 z).
+/// hp/maxHp are 64-bit here — the packet class holds them at +0x420 and +0x428.
+/// </summary>
 public class SCMySlavePacket(
     uint unitId,
     ushort tl,
@@ -24,8 +28,8 @@ public class SCMySlavePacket(
         stream.Write(tl);
         stream.Write(slaveName);
         stream.Write(templateId);
-        stream.Write(hp);
-        stream.Write(maxHp);
+        stream.Write((ulong)hp);
+        stream.Write((ulong)maxHp);
         stream.Write(Helpers.ConvertLongX(x));
         stream.Write(Helpers.ConvertLongY(y));
         stream.Write(z);

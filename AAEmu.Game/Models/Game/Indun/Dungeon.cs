@@ -242,12 +242,10 @@ public class Dungeon
             //ObjectIdManager.Instance.ReleaseId(npc.ObjId);
         }
 
-        // Despawn everything
-        World.SpawnManager.DeSpawnAll();
-
         WorldManager.Instance.RemoveWorld(World.Id);
-        WorldIdManager.Instance.ReleaseId(World.Id);
-        
+        // Despawns everything and returns the instance Id to the pool
+        World.Dispose();
+
         World = null;
     }
 
@@ -279,10 +277,9 @@ public class Dungeon
         TickManager.Instance.OnTick.UnSubscribe(LeaveDungeonTick);
         TickManager.Instance.OnTick.UnSubscribe(AreaClearTick);
 
-        World.CleanupInstance();
-
         WorldManager.Instance.RemoveWorld(World.Id);
-        WorldIdManager.Instance.ReleaseId(World.Id);
+        // Cleans the instance up and returns the instance Id to the pool
+        World.Dispose();
 
         World.DungeonInstance = null;
         World = null;

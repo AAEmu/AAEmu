@@ -1,7 +1,6 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -9,9 +8,9 @@ public class CSSpecialtyRatioPacket() : GamePacket(CSOffsets.CSSpecialtyRatioPac
 {
     public override void Read(PacketStream stream)
     {
-        var id = stream.ReadUInt32();
+        var zoneGroupId = stream.ReadUInt16();
+        var npcTemplateId = stream.ReadUInt32();
 
-        var ratio = SpecialtyManager.Instance.GetRatioForSpecialty(Connection.ActiveChar);
-        Connection.ActiveChar.SendPacket(new SCSpecialtyRatioPacket(ratio));
+        SpecialtyManager.Instance.SendBuyList(Connection.ActiveChar, zoneGroupId, npcTemplateId);
     }
 }

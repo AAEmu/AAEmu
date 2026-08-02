@@ -121,15 +121,11 @@ public static class Program
                 services.AddSingleton<AccountManager>();
                 services.AddSingleton<IAccountManager>(sp => sp.GetRequiredService<AccountManager>());
 
-                services.AddSingleton<AIManager>();
-                services.AddSingleton<IAIManager>(sp => sp.GetRequiredService<AIManager>());
-
-                services.AddSingleton<AiPathsManager>();
-                services.AddSingleton<IAiPathsManager>(sp => sp.GetRequiredService<AiPathsManager>());
-
                 services.AddSingleton<AnimationManager>();
                 services.AddSingleton<IAnimationManager>(sp => sp.GetRequiredService<AnimationManager>());
 
+                services.AddSingleton<AccountAttributeManager>();
+                services.AddSingleton<IAccountAttributeManager>(sp => sp.GetRequiredService<AccountAttributeManager>());
                 services.AddSingleton<AuctionManager>();
                 services.AddSingleton<IAuctionManager>(sp => sp.GetRequiredService<AuctionManager>());
 
@@ -351,6 +347,9 @@ public static class Program
                 services.AddSingleton<ObjectIdManager>();
                 services.AddSingleton<IObjectIdManager>(sp => sp.GetRequiredService<ObjectIdManager>());
 
+                services.AddSingleton<NonUnitObjectIdManager>();
+                services.AddSingleton<INonUnitObjectIdManager>(sp => sp.GetRequiredService<NonUnitObjectIdManager>());
+
                 services.AddSingleton<PrivateBookIdManager>();
                 services.AddSingleton<IPrivateBookIdManager>(sp => sp.GetRequiredService<PrivateBookIdManager>());
 
@@ -400,11 +399,22 @@ public static class Program
 
         try
         {
-            await builder.RunConsoleAsync();
+            // Proven launch: ./AAEmu.World.exe > /tmp/aaemu_world.log 2>&1 &
+            // RunConsoleAsync ties lifetime to the console; with redirected stdin it cancels mid-startup
+            // (we die at "Loading user items" → Disposing). Use RunAsync when stdin is redirected.
+            if (Console.IsInputRedirected)
+            {
+                Logger.Warn("stdin redirected — hosting without ConsoleLifetime (stop via taskkill)");
+                await builder.Build().RunAsync();
+            }
+            else
+            {
+                await builder.RunConsoleAsync();
+            }
         }
         catch (OperationCanceledException ocex)
         {
-            Logger.Fatal(ocex.Message);
+            Logger.Fatal(ocex, "Host cancelled");
         }
         return 0;
     }
@@ -453,6 +463,9 @@ public static class Program
         // Load Game server configuration
         List<string> configFiles =
         [
+            // Integrated hosts can preserve the Game defaults under a unique name before
+            // applying their own Config.json and the shared local overrides.
+            Path.Combine(FileManager.AppPath, "Game.Config.json"),
             // Add the old main Config.json file
             Path.Combine(FileManager.AppPath, "Config.json"),
             // Get files inside the Configurations folder

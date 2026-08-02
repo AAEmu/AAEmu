@@ -8,9 +8,8 @@ public abstract class LoginPacket(ushort typeId) : PacketBase<ILoginConnection>(
 {
     public void EncodeTo(IBufferWriter<byte> bufferWriter)
     {
-        // TODO: Optimize to avoid unnecessary allocations
-        byte[] packetStream = Encode();
-        bufferWriter.Write(packetStream);
+        var packetStream = Encode();
+        bufferWriter.Write(packetStream.Buffer.AsSpan(0, packetStream.Count));
     }
 
     public override PacketStream Encode()

@@ -21,7 +21,7 @@ public class DoodadFuncSkillHit : DoodadFuncTemplate
             if (SkillId > 0)
             {
                 var skillCaster = SkillCaster.GetByType(SkillCasterType.Item);
-                skillCaster.ObjId = ObjectIdManager.Instance.GetNextId();
+                skillCaster.ObjId = NonUnitObjectIdManager.Instance.GetNextId();
 
                 var target = SkillCastTarget.GetByType(SkillCastTargetType.Doodad);
                 target.ObjId = owner.ObjId;

@@ -23,7 +23,14 @@ public class CharacterPortals(Character owner)
     {
         if (DistrictPortals.TryGetValue(id, out var info))
             return info;
-        return PrivatePortals.TryGetValue(id, out var portal) ? portal : null;
+        // Client may pass either wire id (district) or the return-point id stored in Type.
+        foreach (var portal in DistrictPortals.Values)
+        {
+            if (portal.Type == id)
+                return portal;
+        }
+
+        return PrivatePortals.TryGetValue(id, out var privatePortal) ? privatePortal : null;
     }
 
     public void RemoveFromBookPortal(Portal portal, bool isPrivate)
@@ -111,8 +118,8 @@ public class CharacterPortals(Character owner)
         if (DistrictPortals.Count > 0)
         {
             var portals = DistrictPortals.Values.ToArray();
-            var ReturnPointId = PortalManager.Instance.GetDistrictReturnPoint(Owner.ReturnDistrictId, Owner.Faction.Id);
-            Owner.SendPacket(new SCCharacterReturnDistrictsPacket(portals, ReturnPointId)); // INFO - What is returnDistrictId? Table district_return_point, field district_id => return_point_id
+            // Trailing field is the bound district id (client name returnDistrictId), not the return-point id.
+            Owner.SendPacket(new SCCharacterReturnDistrictsPacket(portals, Owner.ReturnDistrictId));
         }
     }
 
@@ -244,16 +251,30 @@ public class CharacterPortals(Character owner)
         foreach (var subZone in VisitedDistricts)
         {
             var portals = PortalManager.Instance.GetRecallBySubZoneId(subZone.Key);
-
-            //var returnPointsId = PortalManager.Instance.GetDistrictReturnPoint(subZone.Value.Id, Owner.Faction.Id);
-
             if (portals == null || portals.Count == 0) { continue; }
 
             foreach (var portal in portals)
             {
-                //if (portal.Id != returnPointsId) { continue; }
+                // recalls.json Id == return_point_id. The client book entry uses district_id as
+                // wire id and return_point_id as wire type (SC 0x089 capture: id=district, type=240).
+                var districtId = PortalManager.Instance.GetDistrictIdByReturnPoint(portal.Id, Owner.Faction.Id);
+                if (districtId == 0)
+                    districtId = portal.Id;
 
-                DistrictPortals.TryAdd(portal.Id, portal);
+                var entry = new Portal
+                {
+                    Id = districtId,
+                    Type = portal.Id,
+                    Name = portal.Name,
+                    X = portal.X,
+                    Y = portal.Y,
+                    Z = portal.Z,
+                    ZoneId = portal.ZoneId,
+                    ZRot = portal.ZRot,
+                    SubZoneId = portal.SubZoneId,
+                    Owner = Owner.Id
+                };
+                DistrictPortals.TryAdd(entry.Id, entry);
             }
         }
     }

@@ -24,7 +24,7 @@ public class PassiveBuff
         // owner.Modifiers.AddModifiers(Template.BuffId);
         var template = SkillManager.Instance.GetBuffTemplate(Template.BuffId);
         var newEffect =
-            new Buff(owner, owner, new SkillCasterUnit(), template, null, DateTime.UtcNow)
+            new Buff(owner, owner, new SkillCasterUnit(owner.ObjId), template, null, DateTime.UtcNow)
             {
                 Passive = true
             };

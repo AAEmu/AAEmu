@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
@@ -8,10 +8,9 @@ public class CSMakeTeamOwnerPacket() : GamePacket(CSOffsets.CSMakeTeamOwnerPacke
 {
     public override void Read(PacketStream stream)
     {
-        var teamId = stream.ReadUInt32();
-        var memberId = stream.ReadUInt32();
+        var teamId = stream.ReadInt32();
+        var memberId = stream.ReadUInt64();
 
-        // Logger.Warn("MakeTeamOwner, TeamId: {0}, MemberId: {1}", teamId, memberId);
         TeamManager.Instance.MakeTeamOwner(Connection.ActiveChar, teamId, memberId);
     }
 }

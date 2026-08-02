@@ -65,7 +65,15 @@ public class AggroEffect : EffectTemplate
         }
 
         var value = (int)Random.Shared.Next(min, max);
-        npc.SendPacketToPlayers([caster, npc], new SCAiAggroPacket(npc.ObjId, 1, caster.ObjId, value, 0, 0));
-        npc.AddUnitAggro(AggroKind.Damage, character, value);
+        if (WorldIntegration.ZoneAuthority)
+        {
+            WorldIntegration.PublishAggro(npc, character, (uint)Math.Max(0, value), castObj);
+            return;
+        }
+
+        npc.SendPacketToPlayers(
+            [caster, npc],
+            new SCAiAggroPacket(npc.ObjId, AiAggroEntry.FromDirectValue(caster.ObjId, value)));
+        npc.AddUnitAggro(AggroKind.Etc, character, value);
     }
 }

@@ -20,7 +20,6 @@ public class SCFactionRelationListPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        // 10.0.2.13 body: count(u8, capped at 200) then per relation:
         // id(u32) | id2(u32) | state(u8) | nState(u8) | updateTime(i64) | changeTime(i64) |
         // updaterId(i64) | updaterName(str) | confirmerId(i64) | confirmerName(str).
         stream.Write((byte)_relations.Length);

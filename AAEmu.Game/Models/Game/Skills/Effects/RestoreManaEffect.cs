@@ -4,6 +4,8 @@ using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
+using WorldIntegration = AAEmu.Game.WorldIntegration;
+
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
 public class RestoreManaEffect : EffectTemplate
@@ -64,5 +66,13 @@ public class RestoreManaEffect : EffectTemplate
         trg.Mp += value;
         trg.Mp = Math.Min(trg.Mp, trg.MaxMp);
         trg.BroadcastPacket(new SCUnitPointsPacket(trg.ObjId, trg.Hp, trg.Mp), true);
+
+        if (WorldIntegration.ZoneAuthority && packetBuilder == null)
+        {
+            var inCharge = caster is Unit u && u.ObjId != 0 ? u.ObjId : trg.ObjId;
+            WorldIntegration.RelayUnitHealedToZone?.Invoke(
+                castObj, casterObj, trg.ObjId, HealType.Mana, HealHitType.HealHit, value, inCharge, false);
+            WorldIntegration.RelayUnitPointsToZone?.Invoke(trg.ObjId, trg.Hp, trg.Mp);
+        }
     }
 }

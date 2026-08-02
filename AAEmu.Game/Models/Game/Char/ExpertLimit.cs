@@ -11,4 +11,6 @@ public class ExpertLimit
     public int UpPrice { get; set; }
     public uint DownCurrencyId { get; set; }
     public int DownPrice { get; set; }
+    public bool UseIntensified { get; set; }
+    public Dictionary<uint, byte> IntensifiedViewGroupLimits { get; } = [];
 }

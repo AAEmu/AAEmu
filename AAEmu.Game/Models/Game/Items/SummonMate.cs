@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Items;
@@ -9,9 +9,8 @@ public class SummonMate : Item
     public byte DetailLevel { get; set; }
 
     public override ItemDetailType DetailType => ItemDetailType.Mate;
-    // 10.0.2.13 Mate detail body is 20 bytes (Item_SerializeDetail case 3: total 21).
     // The body is an opaque blob on the client wire; only exp + level below are interpreted.
-    // TODO(v10): decode the trailing bytes from a live capture.
+    // TODO(v10): decode the trailing bytes via server-side RE or a live capture.
     public override uint DetailBytesLength => 20;
 
     public SummonMate()

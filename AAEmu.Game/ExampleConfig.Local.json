@@ -9,6 +9,7 @@
             "Host": "127.0.0.1",
             "Password": "password",
             "Port": "3306",
+            "SslMode": "None",
             "User": "root"
         }
     },

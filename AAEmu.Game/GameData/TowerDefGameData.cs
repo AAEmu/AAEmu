@@ -28,6 +28,10 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                     var template = new TowerDef
                     {
                         Id = reader.GetUInt32("id"),
+                        Name = reader.GetString("name", ""),
+                        StartMsg = reader.GetString("start_msg", ""),
+                        EndMsg = reader.GetString("end_msg", ""),
+                        TitleMsg = reader.GetString("title_msg", ""),
                         TimeOfDay = reader.GetFloat("tod"),
                         FirstWaveAfter = reader.GetFloat("first_wave_after"),
                         TargetNpcSpawnId = reader.GetUInt32("target_npc_spawner_id", 0),
@@ -35,8 +39,27 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                         KillNpcCount = reader.GetUInt32("kill_npc_count", 0),
                         ForceEndTime = reader.GetFloat("force_end_time"),
                         TimeOfDayDayInterval = reader.GetUInt32("tod_day_interval"),
+                        MilestoneId = reader.GetUInt32("milestone_id", 0),
+                        BroadcastToWholeWorld = reader.GetBoolean("broadcast_event_to_whole_seamless_world", true),
+                        StartDayOfWeekBit = reader.GetUInt32("start_day_of_week_bit", 0),
                         Progs = []
                     };
+
+                    // start_hour/start_minute is the Sunday slot; start_hourN is day N. A 00:00
+                    // pair means the event does not run that day — every row that genuinely wants
+                    // a midnight start uses 00:01 (망자 시스템 runs 00:01 on all seven days).
+                    for (var day = 0; day < 7; day++)
+                    {
+                        var suffix = day == 0 ? "" : day.ToString();
+                        var hour = reader.GetInt32($"start_hour{suffix}", 0);
+                        var minute = reader.GetInt32($"start_minute{suffix}", 0);
+                        if (hour == 0 && minute == 0)
+                            continue;
+                        if (hour is < 0 or > 23 || minute is < 0 or > 59)
+                            continue;
+
+                        template.StartTimes[day] = new TimeSpan(hour, minute, 0);
+                    }
 
                     _towerDefs.Add(template.Id, template);
                 }
@@ -126,5 +149,23 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
 
     public void PostLoad()
     {
+    }
+
+    public TowerDef GetTowerDef(uint id) => _towerDefs.GetValueOrDefault(id);
+
+    public IReadOnlyCollection<TowerDef> GetAllTowerDefs() => _towerDefs.Values;
+
+    /// <summary>
+    /// The events that carry a wall-clock start slot on at least one weekday — the timed world
+    /// events (world bosses, ghost ship, dragon invasions) as opposed to the rows driven purely by
+    /// kill counts or quest triggers.
+    /// </summary>
+    public IEnumerable<TowerDef> GetScheduledTowerDefs()
+    {
+        foreach (var towerDef in _towerDefs.Values)
+        {
+            if (towerDef.IsScheduled)
+                yield return towerDef;
+        }
     }
 }

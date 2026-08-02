@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
@@ -57,7 +57,7 @@ public class Gimmick : Unit
         // stream.Write((uint)GimmickId);     // GimmickId
         stream.Write(ObjId);            // same as ObjId in GameObject
         stream.Write(TemplateId);       // GimmickTemplateId
-        stream.Write(EntityGuid);       // entityGUID = 0x4227234CE506AFDB box
+        stream.Write(EntityGuid);
         stream.Write((uint)Faction.Id);       // Faction
         stream.Write(SpawnerUnitId);    // spawnerUnitId
         stream.Write(GrasperUnitId);    // grasperUnitId
@@ -204,7 +204,11 @@ public class Gimmick : Unit
 
         var deltaTime = (float)delta.TotalSeconds;
         var deltaPosition = Transform.World.Position - LastPos;
-        Vel = deltaPosition * deltaTime;
+        // Velocity is distance over time. SCGimmickMovementPacket feeds this straight to the
+        // client's rigid body, so scaling by the tick instead of dividing reported ~0.011 m/s for
+        // a 4.5 m/s lift - the platform then neither carries a standing player nor interpolates,
+        // and snaps to the server position once the player steps off.
+        Vel = deltaTime > 0f ? deltaPosition / deltaTime : Vector3.Zero;
         AngVel = new Vector3(0f, 0f, 0f);
 
         // Time += (uint)delta.Milliseconds;

@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
@@ -20,11 +21,26 @@ public class SpawnSlave : SpecialEffectAction
         int value3,
         int value4)
     {
-        // TODO ...
-        if (caster is Character) { Logger.Debug($"Special effects: SpawnSlave value1 {value1}, value2 {value2}, value3 {value3}, value4 {value4}"); }
+        // Effects run at cast-end (after SCSkillFired). A cancelled cast must never create a hull —
+        // that is what produced overlapping yawls when StopCasting was ignored under ZoneAuthority.
+        if (skill is { Cancelled: true })
+        {
+            Logger.Info("SpawnSlave skipped: skill cancelled tl={0} id={1}", skill.TlId, skill.Id);
+            return;
+        }
 
-        var owner = (Character)caster;
-        var skillData = (SkillItem)casterObj;
+        if (caster is not Character owner)
+            return;
+
+        if (casterObj is not SkillItem skillData)
+        {
+            Logger.Warn("SpawnSlave: caster is not SkillItem for {0}", owner.Name);
+            return;
+        }
+
+        Logger.Debug(
+            "SpawnSlave char={0} item={1} tpl={2} skill={3}",
+            owner.Name, skillData.ItemId, skillData.ItemTemplateId, skill?.Id ?? 0);
 
         owner.ParentWorld.SlaveManager.Create(owner, skillData);
     }

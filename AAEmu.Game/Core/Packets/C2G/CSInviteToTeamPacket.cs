@@ -1,6 +1,7 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Team;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -8,11 +9,12 @@ public class CSInviteToTeamPacket() : GamePacket(CSOffsets.CSInviteToTeamPacket,
 {
     public override void Read(PacketStream stream)
     {
-        var teamId = stream.ReadUInt32();
-        var isParty = stream.ReadBoolean();
+        // i32 tid, i8 teamRole, string char (cap 0x80), i8 worldId.
+        var teamId = stream.ReadInt32();
+        var teamRole = (TeamRoleType)stream.ReadSByte();
         var targetName = stream.ReadString();
+        var worldId = stream.ReadSByte();
 
-        // Logger.Warn("CSInviteToTeam, TeamId: {0}, IsParty: {1}, Char: {2}", teamId, isParty, targetName);
-        TeamManager.Instance.AskToJoin(Connection.ActiveChar, targetName, teamId, isParty);
+        TeamManager.Instance.AskToJoin(Connection.ActiveChar, targetName, teamId, teamRole, worldId);
     }
 }

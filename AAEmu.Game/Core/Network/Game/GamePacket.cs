@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Cryptography;
+using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Connections;
 
@@ -25,11 +25,9 @@ public abstract class GamePacket(ushort typeId, byte level) : PacketBase<GameCon
             if (level == 1 && Connection.EncryptionActive)
                 level = 5;
 
-            // S->C frame = [u16 len][sig=0xDD][level][body]. The client's framing consumes the sig byte after
-            // the length and feeds [level][body] to the dispatcher, which resolves the leading level byte
-            // through its level table. The sig value itself is never looked up, but it must be present:
-            // without it the client takes the level byte as the sig and the encrypted body's first byte as
-            // the level, which misses the level table and drops the packet.
+            // a2=[level][body] to the dispatcher, which reads a2[0]=level via byte_395CF090[level]. The sig
+            // value itself is never looked up — dropping it (earlier mistake) made the client eat the level
+            // byte as the sig and treat the encrypted body's first byte as the level → byte_395CF090[x]=0 → drop.
             var packet = new PacketStream()
                 .Write((byte)0xdd)
                 .Write(level);
@@ -38,13 +36,11 @@ public abstract class GamePacket(ushort typeId, byte level) : PacketBase<GameCon
             {
                 case 5:
                     // Encrypted message: StoCEncrypt( crc8 | SCMessageCount | TypeId | body ).
-                    // StoC is the keyless length-seeded stream cipher.
-                    var count = EncryptionManager.Instance.GetSCMessageCount(Connection.Id, Connection.AccountId);
+                    var count = EncryptionManager.Instance.NextSCMessageCount(Connection.Id, Connection.AccountId);
                     var bodyCrc = new PacketStream()
                         .Write(count)
                         .Write(TypeId)
                         .Write(this);
-                    EncryptionManager.Instance.IncSCMsgCount(Connection.Id, Connection.AccountId);
                     var crc8 = EncryptionManager.Instance.Crc8(bodyCrc);
                     var data = new PacketStream()
                         .Write(crc8)
@@ -74,7 +70,7 @@ public abstract class GamePacket(ushort typeId, byte level) : PacketBase<GameCon
         }
 
         var logString = $"GamePacket: S->C type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
-        switch (LogLevel)
+        switch (EffectiveLogLevel)
         {
             case PacketLogLevel.Trace:
                 Logger.Trace(logString);
@@ -109,7 +105,7 @@ public abstract class GamePacket(ushort typeId, byte level) : PacketBase<GameCon
             Read(ps);
 
             var logString = $"GamePacket: C->S type {TypeId:X3} {ToString()?.Substring(23)}{Verbose()}";
-            switch (LogLevel)
+            switch (EffectiveLogLevel)
             {
                 case PacketLogLevel.Trace:
                     Logger.Trace(logString);

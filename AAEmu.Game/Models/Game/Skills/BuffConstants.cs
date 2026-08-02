@@ -8,6 +8,8 @@ public enum BuffConstants : uint
     ArmorBuffTag = 145,
     EquipmentBuffTag = 156,
     Untouchable = 545,
+    // Native NPC spawn-state guard. Zone removes this when spawning.lua is ready to leave spawn.
+    ZoneNpcSpawnProtection = 815,
     NpcReturn = 550, // NPC returning home
     WeakenedBody = 1128, // PvE death penalty
     RespawnCooldown = 2385, // 5 min cooldown after temple-revive

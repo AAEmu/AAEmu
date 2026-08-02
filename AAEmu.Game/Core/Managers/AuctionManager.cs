@@ -26,7 +26,8 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
     public ConcurrentDictionary<ulong, AuctionLot> AuctionLots { get; } = [];
     public ConcurrentBag<long> _deletedAuctionItemIds { get; } = [];
 
-    private static readonly int MaxListingFee = 1000000; // 100g, 100 copper coins = 1 silver, 100 silver = 1 gold.
+    /// <summary>Listing deposit and sale commission, read from content_configs. See <see cref="AuctionFeeSchedule"/>.</summary>
+    public AuctionFeeSchedule Fees { get; } = new();
 
     private void RemoveAuctionLotSold(AuctionLot itemToRemove, string buyer, int soldAmount)
     {
@@ -40,23 +41,20 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
                 itemList[0] = newItem;
                 */
 
-                var moneyAfterFee = soldAmount * .9;
-                /*
-                var moneyToSend = new int[3];
-                moneyToSend[0] = (int)moneyAfterFee;
-                */
+                // A handful of items bill a commission of their own instead of the house rate.
+                var saleCharge = Fees.GetSaleCharge(soldAmount, newItem.Template?.AuctionSettings?.EffectiveChargeRate ?? 0);
+                var moneyAfterFee = soldAmount - saleCharge;
 
-                var recalculatedFee = itemToRemove.DirectMoney * .01 * ((int)itemToRemove.Duration + 1);
-                if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
+                var recalculatedFee = Fees.GetListingDeposit(itemToRemove.DirectMoney, itemToRemove.Duration);
 
                 if (itemToRemove.ClientName != "")
                 {
-                    var sellMail = new MailForAuction(newItem, itemToRemove.ClientId, soldAmount, (int)recalculatedFee);
-                    sellMail.FinalizeForSaleSeller((int)moneyAfterFee, (int)(soldAmount - moneyAfterFee));
+                    var sellMail = new MailForAuction(newItem, itemToRemove.ClientId, soldAmount, recalculatedFee);
+                    sellMail.FinalizeForSaleSeller(moneyAfterFee, saleCharge);
                     sellMail.Send();
                 }
 
-                var buyMail = new MailForAuction(newItem, itemToRemove.ClientId, soldAmount, (int)recalculatedFee);
+                var buyMail = new MailForAuction(newItem, itemToRemove.ClientId, soldAmount, recalculatedFee);
                 var buyerId = nameManager.GetCharacterId(buyer);
                 buyMail.FinalizeForSaleBuyer(buyerId);
                 buyMail.Send();
@@ -84,14 +82,12 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
             // var itemList = new Item[10].ToList();
             // itemList[0] = newItem;
 
-            // TODO: Read this from saved data
-            var recalculatedFee = itemToRemove.DirectMoney * .01 * ((int)itemToRemove.Duration + 1);
-            if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
+            var recalculatedFee = Fees.GetListingDeposit(itemToRemove.DirectMoney, itemToRemove.Duration);
 
             if (itemToRemove.ClientName != "")
             {
                 var failMail = new MailForAuction(newItem, itemToRemove.ClientId, itemToRemove.DirectMoney,
-                    (int)recalculatedFee);
+                    recalculatedFee);
                 failMail.FinalizeForFail();
                 failMail.Send();
             }
@@ -109,25 +105,38 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
             return;
         }
 
+        // auctionId arrives from the client and was only ever looked up, never checked against the caller,
+        // so any player could cancel any listing on the server by walking the id space.
+        if (auctionLot.ClientId != player.Id)
+        {
+            Logger.Warn($"{player.Name} ({player.Id}) tried to cancel auction {auctionId}, listed by {auctionLot.ClientId}");
+            return;
+        }
+
         if (auctionLot.BidderName != "") // Someone has already bid on the item and we do not want to remove it
         {
             Logger.Warn($"AuctionLot with ID {auctionId} has already been bid on.");
             return;
         }
 
-        var moneyToSubtract = auctionLot.DirectMoney * .1f;
-        // var itemList = new Item[10].ToList();
-        var newItem = itemManager.Create(auctionLot.Item.TemplateId, auctionLot.Item.Count, auctionLot.Item.Grade);
-        if (newItem != null)
+        // Hand back the item that was listed, not a fresh copy of its template.
+        //
+        // itemManager.Create minted a new item from templateId/count/grade alone, so everything else the
+        // player owned was destroyed on cancel: enchantment level, gems, dye, lifespan, crafter, the item id
+        // itself. It also stranded the original, which is still sitting in the seller's AuctionAttachments
+        // container from when the lot was posted, so each cancellation leaked one item and handed back a
+        // duplicate id. RemoveAuctionLotSold already resolves the real item this way.
+        var listedItem = itemManager.GetItemByItemId(auctionLot.Item.Id);
+        if (listedItem != null)
         {
-            // itemList[0] = newItem;
+            var recalculatedFee = Fees.GetListingDeposit(auctionLot.DirectMoney, auctionLot.Duration);
 
-            // TODO: Read this from saved data
-            var recalculatedFee = auctionLot.DirectMoney * .01 * ((int)auctionLot.Duration + 1);
-            if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
+            // Move it out of the auction hold and into the mail container it is about to be attached to, so
+            // the item's container membership matches where the mail says it is.
+            player.Inventory.MailAttachments.AddOrMoveExistingItem(ItemTaskType.Auction, listedItem);
 
-            var cancelMail = new MailForAuction(newItem, auctionLot.ClientId, auctionLot.DirectMoney,
-                (int)recalculatedFee);
+            var cancelMail = new MailForAuction(listedItem, auctionLot.ClientId, auctionLot.DirectMoney,
+                recalculatedFee);
             cancelMail.FinalizeForCancel();
             cancelMail.Send();
         }
@@ -161,6 +170,16 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
 
         if (bid.Money >= auctionLot.DirectMoney && auctionLot.DirectMoney != 0) // Buy now
         {
+            // Take payment before anything else. SubtractMoney reports whether it actually took the coin, and
+            // that result used to be discarded: a buyer who could not afford the lot still had it handed over
+            // and any standing bidder was still refunded, so the sale both gave away the item and minted the
+            // refund. Order matters too - the outbid mail below must not go out on a purchase that fails.
+            if (!player.SubtractMoney(SlotType.Inventory, auctionLot.DirectMoney, ItemTaskType.Auction))
+            {
+                player.SendErrorMessage(ErrorMessageType.NotEnoughMoney);
+                return;
+            }
+
             if (auctionLot.BidderId != 0) // send mail to person who bid if item was bought at full price.
             {
                 var newMail = new MailForAuction(auctionLot.Item.TemplateId, auctionLot.ClientId, auctionLot.DirectMoney, 0);
@@ -168,21 +187,31 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
                 newMail.Send();
             }
 
-            player.SubtractMoney(SlotType.Inventory, auctionLot.DirectMoney);
             RemoveAuctionLotSold(auctionLot, player.Name, auctionLot.DirectMoney);
         }
         else if (bid.Money > auctionLot.BidMoney) // Bid
         {
+            // bid.Money is client supplied; a bid at or below zero can never outrank a standing bid, but guard
+            // it anyway so a malformed packet cannot reach SubtractMoney's own negative check.
+            if (bid.Money <= 0)
+            {
+                return;
+            }
+
+            // Same discarded-result bug as buy-now, and worse here: the old bidder's refund went out first, so
+            // a bid the player could not pay for still returned the previous bidder's coin and left the lot
+            // held by someone who paid nothing.
+            if (!player.SubtractMoney(SlotType.Inventory, bid.Money, ItemTaskType.Auction))
+            {
+                player.SendErrorMessage(ErrorMessageType.NotEnoughMoney);
+                return;
+            }
+
             if (auctionLot.BidderName != "" && auctionLot.BidderId != 0) // Send mail to old bidder.
             {
-                var moneyArray = new int[3];
-                moneyArray[0] = auctionLot.BidMoney;
+                var recalculatedFee = Fees.GetListingDeposit(auctionLot.DirectMoney, auctionLot.Duration);
 
-                // TODO: Read this from saved data
-                var recalculatedFee = auctionLot.DirectMoney * .01 * ((int)auctionLot.Duration + 1);
-                if (recalculatedFee > MaxListingFee) recalculatedFee = MaxListingFee;
-
-                var cancelMail = new MailForAuction(auctionLot.Item.TemplateId, auctionLot.ClientId, auctionLot.DirectMoney, (int)recalculatedFee);
+                var cancelMail = new MailForAuction(auctionLot.Item.TemplateId, auctionLot.ClientId, auctionLot.DirectMoney, recalculatedFee);
                 cancelMail.FinalizeForBidFail(auctionLot.BidderId, auctionLot.BidMoney);
                 cancelMail.Send();
             }
@@ -197,7 +226,6 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
             bid.BidderId = player.Id;
             bid.WorldId = (byte)player.Transform.WorldId;
 
-            player.SubtractMoney(SlotType.Inventory, bid.Money, ItemTaskType.Auction);
             player.SendPacket(new SCAuctionBidPacket(bid, false, auctionLot.Item.TemplateId));
             auctionLot.IsDirty = true;
 
@@ -386,6 +414,8 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
         {
             AuctionLots.Clear();
             _deletedAuctionItemIds.Clear();
+
+            Fees.Load();
 
             using (var connection = MySQL.CreateConnection())
             {
@@ -674,21 +704,35 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
             return;
         }
 
+        // itemId comes off the wire and was resolved straight out of the global item store, so a crafted
+        // packet could list an item belonging to somebody else - the lot, and the proceeds, went to whoever
+        // sent the packet. Require the item to actually be sitting in this player's own bag.
+        if (player == null || item.OwnerId != player.Id || item.SlotType != SlotType.Inventory)
+        {
+            Logger.Warn($"{player?.Name} ({player?.Id}) tried to list item {itemId} owned by {item.OwnerId} in {item.SlotType}");
+            player?.SendErrorMessage(ErrorMessageType.CanNotPutupItem);
+            return;
+        }
+
+        // Prices are client supplied ints. A negative buyout produced a negative deposit, and the fee was
+        // charged as ChangeMoney(-fee) - negating a negative added the money to the seller's purse instead of
+        // taking it, so listing at a negative price minted currency.
+        if (startPrice < 0 || buyoutPrice < 0 || (startPrice == 0 && buyoutPrice == 0))
+        {
+            player.SendErrorMessage(ErrorMessageType.CanNotPutupMoney);
+            return;
+        }
+
         var lot = CreateAuctionLot(player.Id, player.Name, item, startPrice, buyoutPrice, duration);
         if (lot == null)
         {
             return;
         }
 
-        var auctionFee = lot.DirectMoney * .01 * ((int)duration + 1);
+        var auctionFee = Fees.GetListingDeposit(lot.DirectMoney, duration);
 
-        if (auctionFee > MaxListingFee)
-        {
-            auctionFee = MaxListingFee;
-        }
-
-        // Deduct AH fee (but only if it's actually generated from an in-game player)
-        if (player != null && !player.ChangeMoney(SlotType.Inventory, -(int)auctionFee))
+        // Deduct AH fee
+        if (!player.SubtractMoney(SlotType.Inventory, auctionFee, ItemTaskType.Auction))
         {
             player.SendErrorMessage(ErrorMessageType.CanNotPutupMoney);
             return;

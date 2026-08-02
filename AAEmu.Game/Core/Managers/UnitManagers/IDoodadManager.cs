@@ -2,7 +2,11 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Faction;
+using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.StaticValues;
 
 using MySql.Data.MySqlClient;
 
@@ -13,6 +17,9 @@ public interface IDoodadManager : ILoadable
     bool Exist(uint templateId);
     DoodadTemplate GetTemplate(uint id);
     Doodad Create(WorldInstance parentWorld, uint bcId, uint templateId, GameObject ownerObject = null, bool skipPhaseInitialization = false);
+    void RefreshFaction(Doodad doodad, BaseUnit creator = null, House owningHouse = null,
+        FactionsEnum creatorFactionId = FactionsEnum.Invalid);
+    SystemFaction GetEffectiveFaction(Doodad doodad);
     DoodadFunc GetFunc(uint funcId);
     DoodadFunc GetFunc(uint funcGroupId, uint skillId);
     List<DoodadFunc> GetFuncsForGroup(uint funcGroupId);

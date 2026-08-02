@@ -6,4 +6,5 @@ public class SpecialtyNpc
     public string Name { get; set; }
     public uint NpcId { get; set; }
     public uint SpecialtyBundleId { get; set; }
+    public uint ZoneGroupId { get; set; }
 }

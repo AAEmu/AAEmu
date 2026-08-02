@@ -58,6 +58,43 @@ public class Unit : BaseUnit, IUnit
 
     public byte Level { get; set; }
 
+    /// <summary>
+    /// Signed world selector carried by UnitState. A value of -1 selects the client's current local world.
+    /// This is a server-world selector, not the transform's world-template id.
+    /// </summary>
+    public sbyte UnitStateWorldId { get; set; } = -1;
+
+    /// <summary>
+    /// Signed UnitState region selector. A value of -1 asks the client to derive the region from position.
+    /// </summary>
+    public sbyte UnitStateRegionId { get; set; } = -1;
+
+    /// <summary>Whether this unit belongs to the cross-server global world.</summary>
+    public bool IsInGlobalWorld { get; set; }
+
+    /// <summary>
+    /// makes actor selection fall back to the unit template or character race and gender.
+    /// </summary>
+    public int UnitStateType { get; set; }
+
+    /// <summary>
+    /// Signed 64-bit <c>v</c> member of the character identity union. Zero is the native local-identity
+    /// value; federated identity providers may supply a nonzero value with the matching world selector.
+    /// </summary>
+    public long UnitStateIdentityValue { get; set; }
+
+    /// <summary>UnitState heirLevel. Character values are derived from cumulative heir experience.</summary>
+    public virtual byte HeirLevel { get; set; }
+
+    /// <summary>UnitState vechicleDyeing (the client's spelling) — signed packed colour applied to a slave.</summary>
+    public int VehicleDyeing { get; set; }
+
+    /// <summary>UnitState isTempFaction — set while a unit carries an event or quest faction.</summary>
+    public bool IsTempFaction { get; set; }
+
+    /// <summary>Signed attack-faction flags copied by UnitState and later updates.</summary>
+    public sbyte AttackFactionFlags { get; set; }
+
     public int Hp { get; set; }
 
     public int Hpp
@@ -98,6 +135,16 @@ public class Unit : BaseUnit, IUnit
     [UnitAttribute(UnitAttribute.PersistentHealthRegen)]
     public virtual int PersistentHpRegen { get; set; } = 30;
     public int Mp { get; set; }
+    public int Mpp
+    {
+        get
+        {
+            if (MaxMp <= 0)
+                return 0;
+            return Math.Clamp((int)Math.Ceiling(Mp * 100f / MaxMp), 0, 100);
+        }
+    }
+
     [UnitAttribute(UnitAttribute.MaxMana)]
     public virtual int MaxMp { get; set; }
     [UnitAttribute(UnitAttribute.ManaRegen)]
@@ -232,16 +279,63 @@ public class Unit : BaseUnit, IUnit
     public UnitCooldowns Cooldowns { get; set; }
     public virtual Expedition Expedition { get; set; }
 
+    /// <summary>
+    /// Accumulated combat resources by combat_resources id — the combo-point style pools an ability builds up
+    /// (광란, 착취, 근성 …). Plot flow already gates on these through plot_next_events'
+    /// start_combat_resource / end_combat_resource and skill_effects' target_combat_resource_id.
+    /// </summary>
+    public Dictionary<int, int> CombatResources { get; } = [];
+
+    public int GetCombatResource(int combatResourceId) => CombatResources.GetValueOrDefault(combatResourceId, 0);
+
+    /// <summary>
+    /// Adds to a combat resource, clamped to that resource's own ceiling from combat_resources.max and never
+    /// below zero. Returns the amount actually held afterwards.
+    /// </summary>
+    public int AddCombatResource(int combatResourceId, int amount)
+    {
+        var max = CombatResourceGameData.Instance.GetMax(combatResourceId);
+        var current = GetCombatResource(combatResourceId);
+
+        // An unknown id has no ceiling to clamp against; keep it non-negative rather than inventing one.
+        var updated = max > 0
+            ? Math.Clamp(current + amount, 0, max)
+            : Math.Max(0, current + amount);
+
+        CombatResources[combatResourceId] = updated;
+        return updated;
+    }
+
+    private bool _isInBattle;
+
     public bool IsInBattle
     {
-        get;
-        set
+        get => _isInBattle;
+        set => SetBattleState(value, broadcastToClients: true, relayToZone: true);
+    }
+
+    /// <summary>Mirror a Zone-authored battle transition without reflecting it back over WZ.</summary>
+    internal void SetBattleStateFromZone(bool value) =>
+        SetBattleState(value, broadcastToClients: false, relayToZone: false);
+
+    private void SetBattleState(bool value, bool broadcastToClients, bool relayToZone)
+    {
+        if (value == _isInBattle)
+            return;
+
+        _isInBattle = value;
+        if (!_isInBattle)
         {
-            if (value == field)
-                return;
-            field = value;
-            if (!field)
+            if (broadcastToClients)
                 BroadcastPacket(new SCCombatClearedPacket(ObjId), true);
+            if (relayToZone && WorldIntegration.ZoneAuthority)
+                WorldIntegration.RelayCombatClearedToZone?.Invoke(ObjId);
+        }
+        else if (relayToZone && WorldIntegration.ZoneAuthority)
+        {
+            WorldIntegration.RelayCombatEngagedToZone?.Invoke(ObjId);
+            if (this is Character ch && ch.CurrentTarget != null)
+                WorldIntegration.RelayRequestCombatUnitsToZone?.Invoke(ObjId, ch.CurrentTarget.ObjId);
         }
     }
 
@@ -469,7 +563,9 @@ public class Unit : BaseUnit, IUnit
         // Cleanup targeting and aggro packets
         if (CurrentTarget != null)
         {
-            killer.SendPacketToPlayers([this, killer], new SCAiAggroPacket(killer.ObjId, 0));
+            var aggroNpcId = this is Npc ? ObjId : killer is Npc killerNpc ? killerNpc.ObjId : 0;
+            if (aggroNpcId != 0)
+                killer.SendPacketToPlayers([this, killer], new SCAiAggroPacket(aggroNpcId));
 
             if (killer is Unit killerUnit)
             {
@@ -482,7 +578,10 @@ public class Unit : BaseUnit, IUnit
                 killerUnit.IsInBattle = false;
             }
             //killer.StartRegen();
-            killer.BroadcastPacket(new SCTargetChangedPacket(killer.ObjId, 0), true);
+            if (killer is Character targetingCharacter)
+                targetingCharacter.SendPacket(new SCTargetChangedPacket(targetingCharacter.ObjId, 0));
+            else
+                killer.BroadcastPacket(new SCTargetChangedPacket(killer.ObjId, 0), true);
 
             if (killer is Character character)
             {
@@ -517,42 +616,47 @@ public class Unit : BaseUnit, IUnit
     public void StopAutoSkill(Unit unit)
     {
         if (unit.AutoAttackTask is null || unit is not Character character)
-        {
             return;
-        }
 
+        var aaSkill = character.AutoAttackTask.Skill;
+        var skillId = aaSkill?.Template?.Id ?? 0;
+        // Abort in-flight basic-attack Use/Apply so its SC packets cannot land after a
+        // stop_autoattack cast has already sent SCSkillStarted (cancels cast anim).
+        if (aaSkill != null)
+            aaSkill.Cancelled = true;
         character.AutoAttackTask.Cancelled = true;
-        // await character.AutoAttackTask.Cancel();
-        /*
+        character.AutoAttackTask.Cancel();
         character.AutoAttackTask = null;
-        character.IsAutoAttack = false; // turned off auto attack
-        character.BroadcastPacket(new SCSkillEndedPacket(character.TlId), true);
-        character.BroadcastPacket(new SCSkillStoppedPacket(character.ObjId, character.SkillId), true);
-        TlIdManager.Instance.ReleaseId(character.TlId);
-        */
+        character.IsAutoAttack = false;
+        // Clears client action_slot.auto_attack when the unit flag was latched.
+        if (skillId != 0)
+            character.BroadcastPacket(new SCSkillStoppedPacket(character.ObjId, skillId), true);
     }
 
     public void StartAutoSkill(Skill skill)
     {
-        if (this is not Character character || AutoAttackTask is not null)
-        {
+        if (this is not Character character)
             return;
+
+        // Replace a dead/cancelled task — old StopAutoSkill only set Cancelled and left
+        // AutoAttackTask non-null, so StartAutoSkill silently no-op'd forever.
+        if (character.AutoAttackTask != null)
+        {
+            if (!character.AutoAttackTask.Cancelled &&
+                character.AutoAttackTask.Skill?.Template?.Id == skill.Template?.Id)
+                return; // already running this attack
+            StopAutoSkill(character);
         }
 
         var newTask = new UseAutoAttackSkillTask(skill, character);
+        character.IsAutoAttack = true;
         character.AutoAttackTask = newTask;
         var attackDelayTimes = SkillManager.GetAttackDelay(skill.Template, character);
 
         TaskManager.Instance.Schedule(character.AutoAttackTask, TimeSpan.FromMilliseconds(attackDelayTimes),
             TimeSpan.FromMilliseconds(attackDelayTimes), -1);
-        /*
-        await character.AutoAttackTask.Cancel();
-        character.AutoAttackTask = null;
-        character.IsAutoAttack = false; // turned off auto attack
-        character.BroadcastPacket(new SCSkillEndedPacket(character.TlId), true);
-        character.BroadcastPacket(new SCSkillStoppedPacket(character.ObjId, character.SkillId), true);
-        TlIdManager.Instance.ReleaseId(character.TlId);
-        */
+        Logger.Info("StartAutoSkill char={0} skill={1} delayMs={2:F0}",
+            character.ObjId, skill.Template?.Id, attackDelayTimes);
     }
 
     public void SetInvisible(bool value)
@@ -605,8 +709,10 @@ public class Unit : BaseUnit, IUnit
     {
         if (criminalState)
         {
-            // Don't trigger Retribution (purple) when target is a Npc (except for player portals)
-            if (attackedTarget is Npc && attackedTarget is not Portal)
+            // Retribution (Felon) is for attacking players — not NPCs, ships, or mounts.
+            if (attackedTarget is Npc and not Portal)
+                return;
+            if (attackedTarget is Slave or Mate)
                 return;
 
             var buff = SkillManager.Instance.GetBuffTemplate((uint)BuffConstants.Retribution);
@@ -633,6 +739,8 @@ public class Unit : BaseUnit, IUnit
             Buffs.RemoveBuff((uint)BuffConstants.Bloodlust);
         }
         BroadcastPacket(new SCForceAttackSetPacket(ObjId, ForceAttack), true);
+        if (WorldIntegration.ZoneAuthority)
+            WorldIntegration.RelayForceAttackToZone?.Invoke(ObjId, ForceAttack);
     }
 
     public override void AddBonus(uint bonusIndex, Bonus bonus)
@@ -943,19 +1051,19 @@ public class Unit : BaseUnit, IUnit
             // BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction?.Id ?? 0, factionId, false), true);
             Faction = FactionManager.Instance.GetFaction(factionId);
             BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, oldFactionId, Faction.Id, false), true);
+            if (WorldIntegration.ZoneAuthority)
+                WorldIntegration.RelayUnitFactionChangedToZone?.Invoke(ObjId, (int)oldFactionId, (int)Faction.Id, false);
         }
 
-        // TODO added for quest Id=2486
-        if (this is not Npc npc) { return; }
+        // A faction flip makes nearby players valid targets (quest 2486). Seed the aggro table so
+        // kill credit and loot rights resolve; the Zone decides whether the NPC actually engages.
+        if (this is not Npc npc)
+            return;
 
-        // Npc attacks the character
-        var characters = WorldManager.GetAround<Character>(npc, 5.0f);
-        foreach (var character in characters.Where(CanAttack))
+        foreach (var character in WorldManager.GetAround<Character>(npc, 5.0f).Where(CanAttack))
         {
-            Logger.Info($"SetFaction: npc={TemplateId}:{ObjId} attack the character={character.Name}:{character.TemplateId}:{character.ObjId}");
-            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, character, 1);
-            npc.Ai.OnAggroTargetChanged();
-            //npc.Ai.GoToCombat();
+            Logger.Info($"SetFaction: npc={TemplateId}:{ObjId} is now hostile to {character.Name}:{character.ObjId}");
+            npc.AddUnitAggro(AggroKind.Damage, character, 1);
         }
     }
 
@@ -982,16 +1090,9 @@ public class Unit : BaseUnit, IUnit
         switch (unit.ModelPostureType)
         {
             case ModelPostureType.HouseState: // build
-                for (var i = 0; i < 2; i++)
-                {
-                    stream.Write(true); // door
-                }
-
-                for (var i = 0; i < 6; i++)
-                {
-                    stream.Write(true); // window
-                }
-
+                // states as one packed flags byte. Writing eight bools shifts the rest of
+                // UnitState by seven bytes and makes Zone reject/crash on housing replay.
+                stream.Write((byte)0xFF);
                 break;
             case ModelPostureType.ActorModelState: // npc
                 // Logger.Debug($"Using AnimActionId={animActionId} for NPC TemplateId: {npc?.TemplateId}, ObjId:{npc?.ObjId}");
@@ -999,11 +1100,13 @@ public class Unit : BaseUnit, IUnit
                 stream.Write(activateAnimation); // activate
                 break;
             case ModelPostureType.FarmfieldState:
+                // isHarvested packed into a single flags byte (bit 0 and bit 1). Writing them as two
+                // bools put an extra byte on the wire and shifted everything after modelPosture —
+                // the same fault the HouseState case above already accounts for.
                 stream.Write(0u); // type(id)
                 stream.Write(0f); // growRate
-                stream.Write(0); // randomSeed
-                stream.Write(false); // isWithered
-                stream.Write(false); // isHarvested
+                stream.Write(0u); // randomSeed
+                stream.Write((byte)0); // flags: isWithered | isHarvested << 1
                 break;
             case ModelPostureType.TurretState: // slave
                 stream.Write(0f); // pitch
@@ -1645,19 +1748,86 @@ public class Unit : BaseUnit, IUnit
         ClearAggroOfUnit(args.Victim);
     }
 
+    /// <summary>
+    /// Applies native AggroReset component selectors to every hostile entry. The three selectors
+    /// address damage, heal, and direct/script aggro respectively; any non-zero selector replaces
+    /// that component with <paramref name="applyValue"/>. A completely zero request is the native
+    /// </summary>
+    public void ApplyAggroReset(
+        int damageSelector,
+        int healSelector,
+        int directSelector,
+        int applyValue)
+    {
+        if (damageSelector == 0 && healSelector == 0 && directSelector == 0 && applyValue == 0)
+        {
+            ClearAllAggro();
+            return;
+        }
+
+        foreach (var aggro in AggroTable.Values.ToArray())
+        {
+            aggro.ApplyComponentSelectors(
+                damageSelector != 0,
+                healSelector != 0,
+                directSelector != 0,
+                applyValue);
+
+            // Native Zone retains a dormant zero-valued row. Standalone AAEmu uses table
+            // IsEmpty/Count as a combat-state invariant and has no dormant-entry state, so the
+            // equivalent zero-hostility result must remove the row and its reverse index here.
+            if (aggro.TotalAggro <= 0)
+                ClearAggroOfUnit(aggro.Owner);
+        }
+    }
+
+    /// <summary>
+    /// Replaces this unit's aggro table with an exact component snapshot of
+    /// without applying aggro multipliers, first-hit events, quest triggers, or heal scaling.
+    /// </summary>
+    public void CopyAggroFrom(Unit source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+        if (ReferenceEquals(this, source))
+            return;
+
+        var sourceEntries = source.AggroTable.Values
+            .Select(aggro => (aggro.Owner, Components: aggro.GetComponents()))
+            .ToArray();
+
+        ClearAllAggro();
+
+        foreach (var (owner, components) in sourceEntries)
+        {
+            // A zero/negative entry is not a live hostility relationship and must not leave a
+            // stale event subscription or Character.IsInAggroListOf reverse entry.
+            if (components.Total <= 0)
+                continue;
+
+            var copiedAggro = new Aggro(owner, components);
+            if (!AggroTable.TryAdd(owner.ObjId, copiedAggro))
+                continue;
+
+            owner.Events.OnHealed += OnAbuserHealed;
+            owner.Events.OnDeath += OnAbuserDied;
+
+            if (owner is Character player && !IsDead && Hp > 0 &&
+                !player.IsInAggroListOf.ContainsKey(ObjId))
+            {
+                player.IsInAggroListOf.Add(ObjId, this);
+            }
+        }
+    }
+
     public virtual void ClearAllAggro()
     {
         // Adding for tagging
         CharacterTagging.ClearAllTaggers();
 
-        foreach (var table in AggroTable)
-        {
-            var unit = table.Value.Owner?.ParentWorld.GetUnit(table.Key);
-            if (unit != null)
-            {
-                unit.Events.OnHealed -= OnAbuserHealed;
-                unit.Events.OnDeath -= OnAbuserDied;
-            }
-        }
+        // Remove while the table is still populated so ClearAggroOfUnit can also maintain event
+        // subscriptions and Character.IsInAggroListOf. Clearing first leaves that reverse index
+        // stale and keeps characters stuck in combat.
+        foreach (var aggro in AggroTable.Values.ToArray())
+            ClearAggroOfUnit(aggro.Owner);
     }
 }

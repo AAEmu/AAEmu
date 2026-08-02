@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
@@ -18,6 +19,24 @@ public class Use : IWorldInteraction
         if (target is Doodad doodad)
         {
             doodad.Use(caster, skillId);
+            return;
+        }
+
+        // Sail fold/unfold (InteractionEffect Use) is cast on the hull (target_type self).
+        // The funcs live on attached sail/mast doodads — drive those from the parent slave.
+        if (target is Slave slave)
+        {
+            foreach (var attached in slave.AttachedDoodads)
+            {
+                if (attached == null)
+                    continue;
+                var ap = attached.AttachPoint;
+                if (ap is AttachPointKind.Sail0 or AttachPointKind.Sail1 or AttachPointKind.Sail2
+                    or AttachPointKind.Mast0 or AttachPointKind.Mast1 or AttachPointKind.Mast2)
+                {
+                    attached.Use(caster, skillId);
+                }
+            }
         }
 
         /*

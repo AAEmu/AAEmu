@@ -37,7 +37,7 @@ public class KillNpcWithoutCorpseEffect : EffectTemplate
             if (npcs == null) { return; }
             foreach (var npc in npcs.Where(npc => npc.TemplateId == NpcId))
             {
-                RemoveEffectsAndDelete((Unit)caster);
+                RemoveEffectsAndDelete(npc);
             }
         }
     }
@@ -45,7 +45,14 @@ public class KillNpcWithoutCorpseEffect : EffectTemplate
     private static void RemoveEffectsAndDelete(Unit unit)
     {
         unit.Buffs.RemoveAllEffects();
-        if (unit is Npc npc && npc.Spawner != null)
+        if (unit is not Npc npc)
+            return;
+
+        if (WorldIntegration.ZoneAuthority)
+        {
+            WorldIntegration.DeleteNpcMirror(npc, true);
+        }
+        else if (npc.Spawner != null)
         {
             npc.DoDespawn(npc);
             npc.Spawner.DespawnWithRespawn(npc);

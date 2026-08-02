@@ -1,7 +1,9 @@
 ﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
@@ -39,7 +41,8 @@ public class Inventory
         var slotTypes = Enum.GetValues<SlotType>();
         foreach (var stv in slotTypes)
         {
-            if (stv == SlotType.EquipmentMate)
+            // Mate/slave gear lives on the mount/ship, not on the character inventory map.
+            if (stv is SlotType.EquipmentMate or SlotType.EquipmentSlave)
                 continue;
 
             // Take Equipment Container from Parent Unit's Equipment
@@ -332,19 +335,26 @@ public class Inventory
         }
 
         // Are we equipping into an empty slot ? For whatever reason the client will send FROM empty equipment slot => TO item to equip
-        if (fromItemId == 0 && fromType == SlotType.Equipment && toType != SlotType.Equipment && itemInTargetSlot != null)
+        // Require fromItem == null so Id=0 gear parts (legacy) are not treated as empty-slot equips.
+        if (fromItem == null && fromItemId == 0 && fromType == SlotType.Equipment && toType != SlotType.Equipment && itemInTargetSlot != null)
         {
             action = SwapAction.doEquipInEmptySlot;
             // sourceContainer = Equipment;
         }
 
         // Are we equipping it into an empty mount gear slot?
-        if (fromItemId == 0 && fromType == SlotType.EquipmentMate && toType != SlotType.EquipmentMate && itemInTargetSlot != null)
+        if (fromItem == null && fromItemId == 0 && fromType == SlotType.EquipmentMate && toType != SlotType.EquipmentMate && itemInTargetSlot != null)
         {
             action = SwapAction.doEquipInEmptySlot;
             // In case of MateEquipment the source container is always sent as the pet's container,
             // and targetContainer is always the player inventory. It does not need to be overriden.
             // sourceContainer = Equipment;
+        }
+
+        // Empty ship/slave gear slot ← bag item (same CS swap pattern as mate/player equip).
+        if (fromItem == null && fromItemId == 0 && fromType == SlotType.EquipmentSlave && toType != SlotType.EquipmentSlave && itemInTargetSlot != null)
+        {
+            action = SwapAction.doEquipInEmptySlot;
         }
 
         // Check some conditions when we are not equipping into an empty slot
@@ -852,7 +862,7 @@ public class Inventory
     /// Try to increases the amount of total slots for specified container
     /// </summary>
     /// <param name="slotType"></param>
-    public void ExpandSlot(SlotType slotType)
+    public void ExpandSlot(SlotType slotType, bool useAaPoint)
     {
         var isBank = slotType == SlotType.Bank;
         var step = ((isBank ? Owner.NumBankSlots : Owner.NumInventorySlots) - 50) / 10;
@@ -863,9 +873,10 @@ public class Inventory
         if (index == -1)
             return;
         var expand = expands[index];
-        if (expand.Price != 0 && Owner.Money < expand.Price)
+        var paymentBalance = useAaPoint ? Owner.AaPoint : Owner.Money;
+        if (expand.Price != 0 && paymentBalance < expand.Price)
         {
-            Logger.Warn("No Money for expand!");
+            Owner.SendErrorMessage(ErrorMessageType.NotEnoughExpandItemAndMoney);
             return;
         }
 
@@ -875,11 +886,13 @@ public class Inventory
             return;
         }
 
-        var tasks = new List<ItemTask>();
         if (expand.Price != 0)
         {
-            Owner.Money -= expand.Price;
-            tasks.Add(new MoneyChange(-expand.Price));
+            var paid = useAaPoint
+                ? Owner.ChangeAAPoint(SlotType.Inventory, SlotType.None, expand.Price, isBank ? ItemTaskType.ExpandBank : ItemTaskType.ExpandBag)
+                : Owner.ChangeMoney(SlotType.Inventory, SlotType.None, expand.Price, isBank ? ItemTaskType.ExpandBank : ItemTaskType.ExpandBag);
+            if (!paid)
+                return;
         }
 
         if (expand.ItemId != 0 && expand.ItemCount != 0)
@@ -948,22 +961,22 @@ public class Inventory
                 Owner.Quests.OnQuestItemManuallyDestroyed(item);
     }
 
-    public bool SwapCofferItems(ulong fromItemId, ulong toItemId, SlotType fromSlotType, byte fromSlot, SlotType toSlotType, byte toSlot, ulong dbId)
+    public bool SwapCofferItems(ulong fromItemId, ulong toItemId, SlotType fromSlotType, byte fromSlot,
+        SlotType toSlotType, byte toSlot, CofferOwnerType ownerType, ulong ownerId)
     {
-        // TODO: Verify if you have access to the coffer
-
-        var relatedCoffer = ItemManager.Instance.GetItemContainerByDbId(dbId);
+        if (!TryGetAccessibleCoffer(ownerType, ownerId, out var outerCoffer, out var relatedContainer))
+            return false;
 
         ItemContainer sourceContainer = null;
         ItemContainer targetContainer = null;
 
         if (fromSlotType == SlotType.Trade)
-            sourceContainer = relatedCoffer;
+            sourceContainer = relatedContainer;
         else if (_itemContainers.TryGetValue(fromSlotType, out var sC))
             sourceContainer = sC;
 
         if (toSlotType == SlotType.Trade)
-            targetContainer = relatedCoffer;
+            targetContainer = relatedContainer;
         else if (_itemContainers.TryGetValue(toSlotType, out var tC))
             targetContainer = tC;
 
@@ -973,26 +986,39 @@ public class Inventory
             return false;
         }
 
-        return SplitOrMoveItemEx(ItemTaskType.SwapCofferItems, sourceContainer, targetContainer, fromItemId, fromSlotType, fromSlot,
+        var changed = SplitOrMoveItemEx(ItemTaskType.SwapCofferItems, sourceContainer, targetContainer, fromItemId, fromSlotType, fromSlot,
             toItemId, toSlotType, toSlot);
+        if (changed)
+        {
+            SynchronizeItemBagOwner(fromItemId);
+            SynchronizeItemBagOwner(toItemId);
+        }
+        if (changed && ReferenceEquals(relatedContainer, outerCoffer.ItemContainer) && outerCoffer.IsManikin &&
+            ((fromSlotType == SlotType.Trade && fromSlot == DoodadCoffer.ManikinDisplaySlot) ||
+             (toSlotType == SlotType.Trade && toSlot == DoodadCoffer.ManikinDisplaySlot)))
+        {
+            outerCoffer.BroadcastPacket(new SCSetDoodadManikinSkinPacket(outerCoffer), false);
+        }
+
+        return changed;
     }
 
-    public bool SplitCofferItems(int count, ulong fromItemId, ulong toItemId, SlotType fromSlotType, byte fromSlot, SlotType toSlotType, byte toSlot, ulong dbId)
+    public bool SplitCofferItems(int count, ulong fromItemId, ulong toItemId, SlotType fromSlotType, byte fromSlot,
+        SlotType toSlotType, byte toSlot, CofferOwnerType ownerType, ulong ownerId)
     {
-        // TODO: Verify if you have access to the coffer
-
-        var relatedCoffer = ItemManager.Instance.GetItemContainerByDbId(dbId);
+        if (!TryGetAccessibleCoffer(ownerType, ownerId, out var outerCoffer, out var relatedContainer))
+            return false;
 
         ItemContainer sourceContainer = null;
         ItemContainer targetContainer = null;
 
         if (fromSlotType == SlotType.Trade)
-            sourceContainer = relatedCoffer;
+            sourceContainer = relatedContainer;
         else if (_itemContainers.TryGetValue(fromSlotType, out var sC))
             sourceContainer = sC;
 
         if (toSlotType == SlotType.Trade)
-            targetContainer = relatedCoffer;
+            targetContainer = relatedContainer;
         else if (_itemContainers.TryGetValue(toSlotType, out var tC))
             targetContainer = tC;
 
@@ -1002,7 +1028,68 @@ public class Inventory
             return false;
         }
 
-        return SplitOrMoveItemEx(ItemTaskType.SplitCofferItems, sourceContainer, targetContainer, fromItemId, fromSlotType, fromSlot,
+        var changed = SplitOrMoveItemEx(ItemTaskType.SplitCofferItems, sourceContainer, targetContainer, fromItemId, fromSlotType, fromSlot,
             toItemId, toSlotType, toSlot, count);
+        if (changed)
+        {
+            SynchronizeItemBagOwner(fromItemId);
+            SynchronizeItemBagOwner(toItemId);
+        }
+        if (changed && ReferenceEquals(relatedContainer, outerCoffer.ItemContainer) && outerCoffer.IsManikin &&
+            ((fromSlotType == SlotType.Trade && fromSlot == DoodadCoffer.ManikinDisplaySlot) ||
+             (toSlotType == SlotType.Trade && toSlot == DoodadCoffer.ManikinDisplaySlot)))
+        {
+            outerCoffer.BroadcastPacket(new SCSetDoodadManikinSkinPacket(outerCoffer), false);
+        }
+
+        return changed;
+    }
+
+    private static void SynchronizeItemBagOwner(ulong itemId)
+    {
+        if (ItemManager.Instance.GetItemByItemId(itemId) is not ItemBag itemBag || itemBag._holdingContainer == null)
+            return;
+
+        itemBag.OwnerId = itemBag._holdingContainer.OwnerId;
+        ItemManager.Instance.GetItemBagContainer(itemId)?.ReassignOwner(itemBag.OwnerId);
+    }
+
+    private bool TryGetAccessibleCoffer(CofferOwnerType ownerType, ulong ownerId,
+        out DoodadCoffer cofferDoodad, out CofferContainer cofferContainer)
+    {
+        cofferDoodad = null;
+        cofferContainer = null;
+        if (Owner is not Character character)
+            return false;
+
+        switch (ownerType)
+        {
+            case CofferOwnerType.Coffer:
+                cofferContainer = ItemManager.Instance.GetItemContainerByDbId(ownerId) as CofferContainer;
+                cofferDoodad = cofferContainer?.Doodad;
+                break;
+            case CofferOwnerType.ItemBag:
+                cofferDoodad = WorldManager.GetAround<Doodad>(character)
+                    .OfType<DoodadCoffer>()
+                    .FirstOrDefault(doodad => doodad.OpenedBy?.Id == character.Id &&
+                                              doodad.OpenedItemBagId == ownerId);
+                if (cofferDoodad?.ItemContainer.GetItemByItemId(ownerId) is not ItemBag)
+                    return false;
+                cofferContainer = ItemManager.Instance.GetItemBagContainer(ownerId);
+                if (cofferContainer is not ItemBagContainer { ParentItemId: var parentItemId } ||
+                    parentItemId != ownerId)
+                    return false;
+                break;
+            default:
+                return false;
+        }
+
+        var resolvedDoodad = cofferDoodad;
+        return resolvedDoodad != null && cofferContainer != null &&
+               resolvedDoodad.OpenedBy?.Id == character.Id &&
+               resolvedDoodad.ParentWorld == character.ParentWorld &&
+               resolvedDoodad.IsVisible &&
+               resolvedDoodad.AllowedToInteract(character) &&
+               WorldManager.GetAround<Doodad>(character).Any(candidate => candidate.ObjId == resolvedDoodad.ObjId);
     }
 }

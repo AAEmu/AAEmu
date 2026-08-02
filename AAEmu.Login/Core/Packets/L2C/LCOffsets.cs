@@ -2,7 +2,6 @@ namespace AAEmu.Login.Core.Packets.L2C;
 
 public static class LCOffsets
 {
-    // AuthToClient opcodes — verified against client version v10.0.3_r575.
     // Opcode 0x001 is unused in this client (no registered functor).
     public const ushort ACJoinResponsePacket = 0x000;
     public const ushort ACChallengePacket = 0x002;

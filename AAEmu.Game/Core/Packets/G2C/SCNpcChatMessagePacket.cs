@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
@@ -27,9 +27,9 @@ public class SCNpcChatMessagePacket(
         stream.Write(npc.Name);                // name
         stream.WriteBc(character?.ObjId ?? 0); // bc
         stream.Write(kind);                    // kind
-        if (kind == 1)
+        if (kind is 1 or 2)
             stream.Write(type);
-        else
+        else if (kind == 0)
             stream.Write(message);
 
         return stream;

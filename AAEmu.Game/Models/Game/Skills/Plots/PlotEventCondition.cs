@@ -1,6 +1,7 @@
-﻿using AAEmu.Game.Models.Game.Skills.Plots.Tree;
+using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots;
 
@@ -17,8 +18,11 @@ public class PlotEventCondition
         if (GetConditionResult(state, targetInfo, this))
             return true;
 
-        //if (NotifyFailure)
-        ;//Maybe do something here?
+        // notify_failure marks the conditions whose failure the player is meant to see — the "you cannot do
+        // that here" line rather than a silent no-op. The column is present in 10.0.2.13 and the loader now
+        // binds it, so honour it: anything else leaves a skill that simply does nothing with no reason given.
+        if (NotifyFailure && state?.Caster is Char.Character character)
+            character.SendErrorMessage(ErrorMessageType.SkillCannotUseHere);
 
         return false;
 

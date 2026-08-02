@@ -3,7 +3,6 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Items;
 
-// 10.0.2.13 equipment block (LobbyChar_WriteEquipment). Shared by SC_PACKET_UNIT_STATE
 // (called with the unit's idType) and the character-list lobby record (called with mode 0 = Character).
 // Wire: validFlags u64 (bit i set iff slot i is occupied, over 34 slots) + each occupied slot in order
 // (empty slots emit nothing) + — for a Character — a trailing per-slot flags u64. Per-slot form depends on
@@ -11,7 +10,7 @@ namespace AAEmu.Game.Models.Game.Items;
 // compact {templateId, id, grade} for normal slots and a full item for 27/31-33; everything else writes a full item.
 public static class EquipmentSerializer
 {
-    private const int SlotCount = 34; // 10.0.2.13 equip-slot count (AAEmu fills 0..27; 28..33 stay empty)
+    internal const int SlotCount = 34; // 10.0.2.13 equip-slot count (AAEmu fills 0..27; 28..33 stay empty)
 
     public static void Write(PacketStream stream, Unit unit, BaseUnitType baseUnitType)
     {
@@ -24,7 +23,12 @@ public static class EquipmentSerializer
         stream.Write(validFlags);
 
         if (validFlags == 0 && baseUnitType == BaseUnitType.Npc)
+        {
             unit.ModelParams.SetType(UnitCustomModelType.Skin); // NPC with no body and no face
+            // Commercial compact NPCs write BodyWeight=1.0; default 0 left ModelParams 4B short of capture.
+            if (unit.ModelParams.BodyWeight == 0f)
+                unit.ModelParams.BodyWeight = 1f;
+        }
 
         for (var i = 0; i < SlotCount; i++)
         {

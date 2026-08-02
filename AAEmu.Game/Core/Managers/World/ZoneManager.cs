@@ -233,6 +233,18 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
         return new Vector3(newX, newY, point.Z);
     }
 
+    /// <summary>
+    /// Inverse of <see cref="ConvertToWorldCoordinates"/>. The dedicate keeps spawner and level
+    /// geometry in the zone-local space of npc_spawners.g, so anything compared against it
+    /// (WZActivateNpcSpawnersInArea) has to be translated back out of world space first.
+    /// </summary>
+    public Vector3 ConvertToLocalCoordinates(uint zoneId, Vector3 point)
+    {
+        var origin = GetZoneOriginCell(zoneId);
+
+        return new Vector3(point.X - origin.X * 1024f, point.Y - origin.Y * 1024f, point.Z);
+    }
+
     public List<Climate> GetClimatesByZone(Zone zone)
     {
         var res = new List<Climate>();

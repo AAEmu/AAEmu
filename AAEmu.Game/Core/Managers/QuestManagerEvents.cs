@@ -1,4 +1,5 @@
 ﻿using System.Numerics;
+using AAEmu.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Acts;
@@ -25,9 +26,13 @@ public partial class QuestManager
         {
             // Turning in at a NPC?
             var npc = ((Character)owner).ParentWorld.GetNpc(npcObjId);
-            // Is it a valid NPC?
+            // Is it a valid NPC? (Zone mirrors are registered via WorldIntegration.CreateMirrorNpc)
             if (npc == null)
+            {
+                Logger.Warn("DoReportEvents: NPC objId {0} not found for quest {1} (ZoneAuthority={2})",
+                    npcObjId, questContextId, WorldIntegration.ZoneAuthority);
                 return;
+            }
 
             //Connection.ActiveChar.Quests.OnReportToNpc(_npcObjId, _questContextId, _selected);
             // Initiate the event of Npc report on task completion
@@ -119,6 +124,18 @@ public partial class QuestManager
     }
 
     /// <summary>
+    /// Triggers quest checks using a doodad template and phase already validated by the Zone-owned object.
+    /// </summary>
+    public void DoDoodadPhaseCheckEvents(ICharacter owner, uint doodadTemplateId, uint doodadFuncGroupId)
+    {
+        owner?.Events?.OnDoodadPhaseCheck(owner, new OnDoodadPhaseCheckArgs
+        {
+            DoodadId = doodadTemplateId,
+            DoodadFuncGroupId = doodadFuncGroupId
+        });
+    }
+
+    /// <summary>
     /// Triggers the events for talking to a NPC
     /// </summary>
     /// <param name="sourcePlayer">Player that is talking to the Npc</param>
@@ -172,6 +189,9 @@ public partial class QuestManager
             return;
 
         var npcZoneGroupId = zoneManager.GetZoneByKey(npc.Transform.ZoneId)?.GroupId ?? 0;
+
+        if (npc.IsZoneMirror)
+            Logger.Debug("MonsterHunt (ZoneMirror) owner={0} npcTpl={1} obj={2}", owner.Name, npc.TemplateId, npc.ObjId);
 
         // Individual monster kill
         owner.Events?.OnMonsterHunt(owner, new OnMonsterHuntArgs

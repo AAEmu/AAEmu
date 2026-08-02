@@ -1,4 +1,4 @@
-﻿using System.Net;
+using System.Net;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils.DB;
@@ -14,6 +14,10 @@ namespace AAEmu.Game.Core.Network.Connections;
 public class GameConnection
 {
     private readonly ISession _session;
+    /// <summary>
+    /// Serializes Encode+send for level-5 packets so SCMessageCount order matches TCP write order.
+    /// </summary>
+    private readonly object _sendLock = new();
 
     public uint Id => _session.SessionId;
     public uint AccountId { get; set; }
@@ -56,7 +60,9 @@ public class GameConnection
     public void SendPacket(GamePacket packet)
     {
         packet.Connection = this;
-        SendPacket(packet.Encode());
+        // Lock covers count allocation inside Encode and the socket write.
+        lock (_sendLock)
+            SendPacket(packet.Encode());
     }
 
     /// <summary>
@@ -85,6 +91,10 @@ public class GameConnection
 
         if (ActiveChar != null)
         {
+            ActiveChar.ParentWorld?.GimmickManager?.ReleaseGrasps(ActiveChar.ObjId);
+            AAEmu.Game.WorldIntegration.ReleaseZoneGimmickGrasps?.Invoke(ActiveChar);
+            AAEmu.Game.WorldIntegration.OnPlayerLeave?.Invoke(ActiveChar.ObjId);
+
             foreach (var subscriber in ActiveChar.Subscribers)
                 subscriber.Dispose();
 

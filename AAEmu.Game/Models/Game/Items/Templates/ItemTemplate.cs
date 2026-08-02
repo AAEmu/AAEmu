@@ -40,7 +40,8 @@ public class ItemTemplate
     public int LivingPointPrice { get; set; }
     public byte CharGender { get; set; }
     public uint SpecialtyZoneId { get; set; }
-    public AuctionSettings AuctionSettings { get; set; } = new(0, 0, 0/*, 0, true*/); // Инициализация AuctionSettings
+    // Defaults to the house commission rate until the template is loaded from items.
+    public AuctionSettings AuctionSettings { get; set; } = new(0, 0, 0, 0, true);
 
     // Helpers
     public string searchString { get; set; }

@@ -8,13 +8,12 @@ namespace AAEmu.Login.Core.Services;
 /// Pure-static AES-based challenge-response verifier for the Korea login protocol.
 /// </summary>
 /// <remarks>
-/// The client performs the following computation (from binary analysis of x2game-dev.dll,
-/// function sub_393C51F0 / AES CBC wrapper sub_395C4F20):
+/// The challenge response uses the following computation:
 /// <code>
 /// K              = sha256_crypt(password, "$5$rounds=N$salt")  // 32-byte raw hash = AES-256 key
-/// t              = AES_CBC_decrypt(K, IV=zeros, hc_bytes)      // mode=0 in sub_395C4F20
+/// t              = AES_CBC_decrypt(K, IV=zeros, hc_bytes)
 /// t_uint32[i]   += 1                                           // increment each DWORD
-/// ch_response[:] = AES_CBC_encrypt(K, IV=zeros, t)             // mode=1 in sub_395C4F20
+/// ch_response[:] = AES_CBC_encrypt(K, IV=zeros, t)
 /// </code>
 /// The server recomputes <c>ch_response</c> using the stored key material and the
 /// received <c>hc</c> values, then compares with the received <c>ch</c>.

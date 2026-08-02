@@ -21,6 +21,14 @@ public class FactionManager(ILocalizationManager localizationManager) : Singleto
         return _systemFactions.GetValueOrDefault(id);
     }
 
+    /// <summary>All loaded system factions (Zone bring-online WZFactionList).</summary>
+    public IReadOnlyList<SystemFaction> GetSystemFactions() =>
+        _systemFactions?.Values.ToList() ?? [];
+
+    /// <summary>Faction relations with both ids ≥ 100 (Zone WZFactionRelationList filter).</summary>
+    public IReadOnlyList<FactionRelation> GetZoneRelations() =>
+        _relations?.Where(r => (uint)r.Id >= 100 && (uint)r.Id2 >= 100).ToList() ?? [];
+
     public void AddFaction(SystemFaction faction)
     {
         _systemFactions.TryAdd(faction.Id, faction);

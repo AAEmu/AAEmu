@@ -18,6 +18,7 @@ public class GameController(
 {
     private readonly ConcurrentDictionary<GameServerId, GameServer> _gameServers = [];
     private readonly Dictionary<GameServerId, GameServerId> _mirrorsId = [];
+    private readonly TimeSpan _worldListRequestTimeout = appConfig.Value.WorldListRequestTimeout;
 
     public bool TryGetParentId(GameServerId gsId, out GameServerId id) => _mirrorsId.TryGetValue(gsId, out id);
 
@@ -132,7 +133,7 @@ public class GameController(
         if (_gameServers.Values.Any(x => x.Active))
         {
             var (requestIds, creationTask) =
-                requestController.Create(gameServers.Count, 20000); // TODO Request 20s
+                requestController.Create(gameServers.Count, _worldListRequestTimeout);
             for (var i = 0; i < gameServers.Count; i++)
             {
                 var value = gameServers[i];

@@ -3,7 +3,9 @@ using System.Reflection;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.Creatures;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.CommonFarm.Static;
@@ -12,9 +14,11 @@ using AAEmu.Game.Models.Game.DoodadObj.Details;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -22,6 +26,7 @@ using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
 
+using Microsoft.Data.Sqlite;
 using MySql.Data.MySqlClient;
 
 using NLog;
@@ -32,7 +37,7 @@ using NLog;
 namespace AAEmu.Game.Core.Managers.UnitManagers;
 
 // ReSharper disable once ClassNeverInstantiated.Global
-public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager doodadIdManager, IItemManager itemManager, Lazy<IHousingManager> housingManager, ISusManager susManager) : Singleton<DoodadManager>, IDoodadManager
+public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdManager doodadIdManager, IItemManager itemManager, Lazy<IHousingManager> housingManager, ISusManager susManager, IFactionManager factionManager) : Singleton<DoodadManager>, IDoodadManager
 {
     private Dictionary<uint, DoodadFuncGroups> _allFuncGroups;
 
@@ -46,6 +51,9 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
     private Dictionary<string, Dictionary<uint, DoodadPhaseFuncTemplate>> _phaseFuncTemplates;
 
     private Dictionary<uint, DoodadTemplate> _templates;
+    /// <summary>prefab_elements.file_path → models.id (PrefabModel) for Zone WZCreateDoodad.</summary>
+    private Dictionary<string, uint> _zoneModelPathToId;
+    private Dictionary<string, uint> _zoneModelBasenameToId;
 
     // ReSharper disable once FieldCanBeMadeReadOnly.Local
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
@@ -83,11 +91,11 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
         foreach (var type in Helpers.GetTypesInNamespace(Assembly.GetAssembly(GetType()),
                      "AAEmu.Game.Models.Game.DoodadObj.Funcs"))
         {
-            if (type.BaseType == typeof(DoodadFuncTemplate))
+            if (!type.IsAbstract && typeof(DoodadFuncTemplate).IsAssignableFrom(type))
             {
                 _funcTemplates.Add(type.Name, []);
             }
-            else if (type.BaseType == typeof(DoodadPhaseFuncTemplate))
+            else if (!type.IsAbstract && typeof(DoodadPhaseFuncTemplate).IsAssignableFrom(type))
             {
                 _phaseFuncTemplates.Add(type.Name, []);
             }
@@ -371,10 +379,20 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 {
                     while (reader.Read())
                     {
+                        var itemId = reader.GetUInt32("item_id", 0);
+                        var functionId = reader.GetUInt32("id");
+                        var allowedItemIds = _phaseFuncTemplates["DoodadFuncBuyFishItem"].Values
+                            .OfType<DoodadFuncBuyFishItem>()
+                            .Where(x => x.DoodadFuncBuyFishId == functionId)
+                            .Select(x => x.ItemId)
+                            .ToHashSet();
+                        if (itemId != 0)
+                            allowedItemIds.Add(itemId);
+
                         var func = new DoodadFuncBuyFish
                         {
-                            Id = reader.GetUInt32("id"),
-                            ItemId = reader.GetUInt32("item_id", 0)
+                            Id = functionId,
+                            AllowedItemIds = allowedItemIds
                         };
                         _funcTemplates["DoodadFuncBuyFish"].Add(func.Id, func);
                     }
@@ -518,7 +536,52 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                             Id = reader.GetUInt32("id"),
                             Capacity = reader.GetInt32("capacity")
                         };
-                        _phaseFuncTemplates["DoodadFuncCoffer"].Add(func.Id, func);
+                        _funcTemplates[nameof(DoodadFuncCoffer)].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // doodad_func_private_coffers (native actual doodad function type 0x35)
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_private_coffers";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncPrivateCoffer
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Capacity = reader.GetInt32("capacity"),
+                            IsManikin = reader.GetBoolean("is_manikin")
+                        };
+                        _funcTemplates[nameof(DoodadFuncPrivateCoffer)].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // Private coffer item restrictions are polymorphic content rows keyed by function id.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "SELECT owner_id, item_category_id FROM coffer_item_categories WHERE owner_type = $ownerType";
+                command.Parameters.AddWithValue("$ownerType", nameof(DoodadFuncPrivateCoffer));
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var ownerId = reader.GetUInt32("owner_id");
+                        if (_funcTemplates[nameof(DoodadFuncPrivateCoffer)]
+                            .TryGetValue(ownerId, out var funcTemplate) && funcTemplate is DoodadFuncPrivateCoffer coffer)
+                        {
+                            coffer.AllowedItemCategoryIds.Add(reader.GetInt32("item_category_id"));
+                        }
+                        else
+                        {
+                            Logger.Warn($"Ignoring item-category restriction for missing private coffer function {ownerId}");
+                        }
                     }
                 }
             }
@@ -1112,6 +1175,29 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                             ItemCount = reader.GetInt32("item_count")
                         };
                         _funcTemplates["DoodadFuncInsertCounter"].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // doodad_func_item_changers — the sowable options on a farm plot, ordered within their phase.
+            // DoodadItemChangeEffect selects between them by position, so preserve the DB order.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_item_changers ORDER BY id";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncItemChanger
+                        {
+                            Id = reader.GetUInt32("id"),
+                            NextPhase = reader.GetInt32("next_phase"),
+                            ItemId = reader.GetUInt32("item_id"),
+                            ItemCount = reader.GetInt32("item_count"),
+                            SkillId = reader.GetUInt32("skill_id")
+                        };
+                        _phaseFuncTemplates["DoodadFuncItemChanger"].Add(func.Id, func);
                     }
                 }
             }
@@ -1897,7 +1983,6 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // TODO 1.2
             // doodad_func_store_uis
             using (var command = connection.CreateCommand())
             {
@@ -1957,22 +2042,19 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                         var func = new DoodadFuncTod
                         {
                             Id = reader.GetUInt32("id"),
-                            Tod = reader.GetUInt32("tod"),
-                            NextPhase = reader.GetInt32("next_phase", -1) >= 0 ? reader.GetInt32("next_phase") : -1
+                            Tod = reader.GetInt32("tod"),
+                            NextPhase = reader.GetInt32("next_phase", -1),
+                            TodEnd = reader.GetInt32("tod_end", -1),
+                            IsRealtime = reader.GetBoolean("is_realtime", false)
                         };
 
-                        // Calculate the ToD value as a float in hours
-                        var tod = func.Tod;
-                        // Correction for typos in the compact DB
-                        while (tod >= 2400)
-                            tod /= 10;
-                        // Conversion from int to float
-                        var hh = tod / 100;
-                        var mm = tod % 100;
-                        if (mm >= 60)
+                        // Preserve the native HHMM field while normalizing the known extra-zero content typos.
+                        var normalizedTod = func.Tod;
+                        while (normalizedTod >= 2400)
+                            normalizedTod /= 10;
+                        if (normalizedTod % 100 >= 60)
                             Logger.Warn($"DoodadFuncToD has invalid value for minutes, Id {func.Id}, ToD {func.Tod}");
-                        mm %= 60;
-                        func.TodAsHours = hh * 1f + mm / 60f;
+                        func.TodAsHours = DoodadFuncTod.ToHours(func.Tod);
 
                         _phaseFuncTemplates["DoodadFuncTod"].Add(func.Id, func);
                     }
@@ -2037,7 +2119,6 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 }
             }
 
-            // TODO 1.2
             // doodad_func_zone_reacts
             using (var command = connection.CreateCommand())
             {
@@ -2106,11 +2187,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                     {
                         var templateId = reader.GetUInt32("id");
 
-                        var cofferCapacity = IsCofferTemplate(templateId);
-
-                        var template = cofferCapacity > 0
-                            ? new DoodadCofferTemplate { Capacity = cofferCapacity }
-                            : new DoodadTemplate();
+                        var template = GetCofferTemplate(templateId) ?? new DoodadTemplate();
 
                         template.Id = templateId;
                         template.OnceOneMan = reader.GetBoolean("once_one_man", true);
@@ -2120,6 +2197,8 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                         template.MinTime = reader.GetInt32("min_time", 0);
                         template.MaxTime = reader.GetInt32("max_time", 0);
                         template.ModelKindId = reader.GetUInt32("model_kind_id");
+                        template.Model = reader.GetString("model", "") ?? "";
+                        template.LoadModelFromWorld = reader.GetBoolean("load_model_from_world", false);
                         template.UseCreatorFaction = reader.GetBoolean("use_creator_faction", true);
                         template.ForceTodTopPriority = reader.GetBoolean("force_tod_top_priority", true);
                         template.MilestoneId = reader.GetUInt32("milestone_id", 0);
@@ -2158,11 +2237,106 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
 
             Logger.Info($"Loaded {_templates.Count} doodad templates");
 
+            LoadZoneModelIdMap(connection);
+
             #endregion
         }
 
         CreateTemplateCaches();
         _loaded = true;
+    }
+
+    /// <summary>
+    /// Zone WZCreateDoodad looks up modelId in the models registry; path comes from PrefabModel
+    /// (prefab_elements.file_path). modelId=0 → dedicate loads pumpkin CGF for every create.
+    /// </summary>
+    private void LoadZoneModelIdMap(SqliteConnection connection)
+    {
+        _zoneModelPathToId = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
+        _zoneModelBasenameToId = new Dictionary<string, uint>(StringComparer.OrdinalIgnoreCase);
+
+        try
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                """
+                SELECT m.id, pe.file_path, pe.state_id
+                FROM prefab_elements pe
+                JOIN models m ON m.sub_type = 'PrefabModel' AND m.sub_id = pe.prefab_model_id
+                """;
+            command.Prepare();
+            using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+            while (reader.Read())
+            {
+                var modelId = reader.GetUInt32("id");
+                var path = (reader.GetString("file_path", "") ?? "").Trim();
+                if (path.Length == 0)
+                    continue;
+                var stateId = reader.GetInt32("state_id", 0);
+                _zoneModelPathToId.TryAdd(path, modelId);
+                var basename = path;
+                var slash = path.LastIndexOf('/');
+                if (slash >= 0 && slash + 1 < path.Length)
+                    basename = path[(slash + 1)..];
+                // Prefer idle/normal state (1) for basename collisions.
+                if (stateId == 1 || !_zoneModelBasenameToId.ContainsKey(basename))
+                    _zoneModelBasenameToId[basename] = modelId;
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.Warn(e, "Failed loading prefab_elements→models map for Zone doodad modelId");
+        }
+
+        Logger.Info(
+            "Zone doodad modelId map: {0} paths, {1} basenames",
+            _zoneModelPathToId.Count,
+            _zoneModelBasenameToId.Count);
+    }
+
+    /// <summary>
+    /// Resolve a doodad model URI to models.id for WZCreateDoodad pisc[1].
+    /// Exact path first, then basename (e.g. vegetation pinetree_a02.cgf → pine_tree PrefabModel).
+    /// </summary>
+    public uint ResolveZoneModelId(string modelPath)
+    {
+        if (string.IsNullOrWhiteSpace(modelPath) || _zoneModelPathToId == null)
+            return 0;
+
+        var path = modelPath.Trim();
+        foreach (var candidate in ZoneModelPathVariants(path))
+        {
+            if (_zoneModelPathToId.TryGetValue(candidate, out var id))
+                return id;
+        }
+
+        var basename = path;
+        var slash = path.LastIndexOf('/');
+        if (slash >= 0 && slash + 1 < path.Length)
+            basename = path[(slash + 1)..];
+        if (_zoneModelBasenameToId != null &&
+            _zoneModelBasenameToId.TryGetValue(basename, out var byBase))
+            return byBase;
+
+        return 0;
+    }
+
+    private static IEnumerable<string> ZoneModelPathVariants(string path)
+    {
+        yield return path;
+        // Strip / add game/ segment — DB paths are inconsistent across doodad vs prefab_elements.
+        if (path.Contains("://game/", StringComparison.OrdinalIgnoreCase))
+            yield return path.Replace("://game/", "://", StringComparison.OrdinalIgnoreCase);
+        else if (path.Contains("://objects/", StringComparison.OrdinalIgnoreCase))
+            yield return path.Replace("://objects/", "://game/objects/", StringComparison.OrdinalIgnoreCase);
+        else if (path.Contains("://Objects/", StringComparison.Ordinal))
+            yield return path.Replace("://Objects/", "://Game/objects/", StringComparison.Ordinal);
+        if (path.StartsWith("vegetation://", StringComparison.OrdinalIgnoreCase))
+        {
+            var rest = path["vegetation://".Length..];
+            yield return "cgf://" + rest;
+            yield return "cgf://game/" + rest;
+        }
     }
 
     /// <summary>
@@ -2196,15 +2370,14 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
     }
 
     /// <summary>
-    /// Checks if a DoodadTemplateId has a doodad_func_coffer attached to it
+    /// Builds the coffer specialization attached to a doodad template, if any.
     /// </summary>
     /// <param name="templateId"></param>
-    /// <returns>Returns the Coffer Capacity if true, otherwise returns -1</returns>
-    private int IsCofferTemplate(uint templateId)
+    private DoodadCofferTemplate GetCofferTemplate(uint templateId)
     {
         if (templateId == 0)
         {
-            return -1;
+            return null;
         }
 
         // Check if template is a Coffer
@@ -2222,24 +2395,35 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
 
             foreach (var func in funcList)
             {
-                if (!_phaseFuncTemplates.TryGetValue(func.FuncType, out var phaseFuncTemplates))
+                if (!_funcTemplates.TryGetValue(func.FuncType, out var funcTemplates))
                 {
                     continue;
                 }
 
-                if (!phaseFuncTemplates.TryGetValue(func.FuncId, out var phaseFuncTemplate))
+                if (!funcTemplates.TryGetValue(func.FuncId, out var funcTemplate))
                 {
                     continue;
                 }
 
-                if (phaseFuncTemplate is DoodadFuncCoffer funcCoffer)
+                if (funcTemplate is DoodadFuncPrivateCoffer privateCoffer)
                 {
-                    return funcCoffer.Capacity;
+                    return new DoodadCofferTemplate
+                    {
+                        Capacity = privateCoffer.Capacity,
+                        IsPrivate = true,
+                        IsManikin = privateCoffer.IsManikin,
+                        AllowedItemCategoryIds = [.. privateCoffer.AllowedItemCategoryIds]
+                    };
+                }
+
+                if (funcTemplate is DoodadFuncCoffer coffer)
+                {
+                    return new DoodadCofferTemplate { Capacity = coffer.Capacity };
                 }
             }
         }
 
-        return -1;
+        return null;
     }
 
     public Doodad Create(WorldInstance parentWorld, uint bcId, uint templateId, GameObject ownerObject = null, bool skipPhaseInitialization = false)
@@ -2254,7 +2438,13 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
         // Check if template is a Coffer
         if (template is DoodadCofferTemplate doodadCofferTemplate)
         {
-            doodad = new DoodadCoffer { Capacity = doodadCofferTemplate.Capacity };
+            doodad = new DoodadCoffer
+            {
+                Capacity = doodadCofferTemplate.Capacity,
+                IsPrivate = doodadCofferTemplate.IsPrivate,
+                IsManikin = doodadCofferTemplate.IsManikin,
+                AllowedItemCategoryIds = [.. doodadCofferTemplate.AllowedItemCategoryIds]
+            };
         }
 
         doodad ??= new Doodad();
@@ -2294,6 +2484,8 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                 break;
         }
 
+        RefreshFaction(doodad, ownerObject as BaseUnit, ownerObject as House);
+
         if (!skipPhaseInitialization)
         {
             Task.Run(() => doodad.InitDoodad());
@@ -2302,6 +2494,103 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
         //Logger.Debug($"Create: TemplateId {doodad.TemplateId}, ObjId {doodad.ObjId}, FuncGroupId {doodad.FuncGroupId}");
 
         return doodad;
+    }
+
+    /// <summary>
+    /// Applies the server's fail-closed doodad faction policy. A non-zero static template faction
+    /// is used unless the template explicitly uses its creator. Faction-less non-creator housing
+    /// children inherit their owning House; unrelated faction-less world props remain unresolved.
+    /// </summary>
+    public void RefreshFaction(Doodad doodad, BaseUnit creator = null, House owningHouse = null,
+        FactionsEnum creatorFactionId = FactionsEnum.Invalid)
+    {
+        if (doodad?.Template == null)
+            return;
+
+        var template = doodad.Template;
+        if (!template.UseCreatorFaction && template.FactionId != FactionsEnum.Invalid)
+        {
+            doodad.Faction = factionManager.GetFaction(template.FactionId);
+            return;
+        }
+
+        if (!template.UseCreatorFaction)
+        {
+            owningHouse ??= doodad.ParentObj as House;
+            if (owningHouse == null && doodad.OwnerDbId > 0)
+                owningHouse = housingManager.Value.GetHouseById(doodad.OwnerDbId);
+            doodad.Faction = owningHouse?.Faction;
+            return;
+        }
+
+        creator ??= doodad.OwnerObjId > 0
+            ? doodad.ParentWorld?.GetBaseUnit(doodad.OwnerObjId)
+            : null;
+        if (creator == null && doodad.OwnerId > 0 &&
+            doodad.OwnerType is DoodadOwnerType.Character or DoodadOwnerType.Housing)
+            creator = WorldManager.Instance.GetCharacterById(doodad.OwnerId);
+        doodad.Faction = creator?.Faction;
+        if (doodad.Faction == null && creatorFactionId != FactionsEnum.Invalid)
+            doodad.Faction = factionManager.GetFaction(creatorFactionId);
+    }
+
+    /// <summary>
+    /// Returns the current effective faction under the fail-closed server policy. Live creator and
+    /// House relations are resolved dynamically so ownership changes do not leave stale authority.
+    /// </summary>
+    public SystemFaction GetEffectiveFaction(Doodad doodad)
+    {
+        if (doodad?.Template == null)
+            return null;
+
+        var template = doodad.Template;
+        if (!template.UseCreatorFaction && template.FactionId != FactionsEnum.Invalid)
+            return factionManager.GetFaction(template.FactionId);
+
+        if (!template.UseCreatorFaction)
+        {
+            var owningHouse = doodad.ParentObj as House;
+            if (owningHouse == null && doodad.OwnerDbId > 0)
+                owningHouse = housingManager.Value.GetHouseById(doodad.OwnerDbId);
+            return owningHouse?.Faction;
+        }
+
+        if (doodad.OwnerObjId > 0)
+        {
+            var creator = doodad.ParentWorld?.GetBaseUnit(doodad.OwnerObjId);
+            if (creator != null)
+                return creator.Faction;
+        }
+        if (doodad.OwnerId > 0 &&
+            doodad.OwnerType is DoodadOwnerType.Character or DoodadOwnerType.Housing)
+        {
+            var creator = WorldManager.Instance.GetCharacterById(doodad.OwnerId);
+            if (creator != null)
+                return creator.Faction;
+        }
+
+        return doodad.Faction;
+    }
+
+    /// <summary>
+    /// Merchant pack a doodad sells from, 0 when it is not a shop. Reads the DoodadFuncStoreUi on the
+    /// doodad's current phase, which is where doodad_func_store_uis hangs its merchant_pack_id.
+    /// </summary>
+    public uint GetStoreMerchantPackId(Models.Game.DoodadObj.Doodad doodad)
+    {
+        if (doodad?.CurrentFuncs == null)
+            return 0;
+
+        foreach (var func in doodad.CurrentFuncs)
+        {
+            if (func.FuncType != nameof(Models.Game.DoodadObj.Funcs.DoodadFuncStoreUi))
+                continue;
+
+            if (GetFuncTemplate(func.FuncId, func.FuncType) is Models.Game.DoodadObj.Funcs.DoodadFuncStoreUi storeUi)
+                return storeUi.MerchantPackId;
+        }
+
+        return 0;
     }
 
     public DoodadFunc GetFunc(uint funcId)
@@ -2476,6 +2765,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
             doodad.ParentObj = targetHouse;
             doodad.ParentObjId = targetHouse.ObjId;
             doodad.Transform.Parent = targetHouse.Transform;
+            RefreshFaction(doodad, character, targetHouse);
         }
         else
         {
@@ -2530,10 +2820,19 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
 
     public bool OpenCofferDoodad(Character character, uint objId)
     {
-        var doodad = character.ParentWorld.GetDoodad(objId);
+        var doodad = character?.ParentWorld?.GetDoodad(objId);
         if (doodad is not DoodadCoffer coffer)
         {
             susManager.LogActivity(SusManager.CategoryCheating, character, $"{character.Name} tried to open doodad {objId} as a Coffer");
+            return false;
+        }
+
+        if (!coffer.IsVisible ||
+            !WorldManager.GetAround<Doodad>(character).Any(candidate => candidate.ObjId == objId) ||
+            !coffer.AllowedToInteract(character))
+        {
+            susManager.LogActivity(SusManager.CategoryCheating, character,
+                $"{character.Name} tried to open inaccessible coffer doodad {objId}");
             return false;
         }
 
@@ -2543,14 +2842,13 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
             return false;
         }
 
-        // TODO: Check permissions
-
         coffer.OpenedBy = character;
+        coffer.OpenedItemBagId = 0;
 
-        byte firstSlot = 0;
+        var firstSlot = 0;
         while (firstSlot < coffer.Capacity)
         {
-            character.SendPacket(new SCCofferContentsUpdatePacket(coffer, firstSlot));
+            character.SendPacket(new SCCofferContentsUpdatePacket(coffer, checked((byte)firstSlot)));
             firstSlot += SCCofferContentsUpdatePacket.MaxSlotsToSend;
         }
 
@@ -2571,7 +2869,58 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
             return false;
         }
 
+        coffer.OpenedItemBagId = 0;
         coffer.OpenedBy = null;
+
+        return true;
+    }
+
+    public bool SetCofferSubbagOpen(Character character, ulong itemId, bool opening)
+    {
+        if (character == null || itemId == 0)
+            return false;
+
+        var coffer = WorldManager.GetAround<Doodad>(character)
+            .OfType<DoodadCoffer>()
+            .FirstOrDefault(candidate => candidate.OpenedBy?.Id == character.Id);
+        if (coffer == null || coffer.ParentWorld != character.ParentWorld || !coffer.IsVisible ||
+            !coffer.AllowedToInteract(character))
+        {
+            susManager.LogActivity(SusManager.CategoryCheating, character,
+                $"{character.Name} tried to change subbag {itemId} without an accessible open coffer");
+            return false;
+        }
+
+        if (!opening)
+        {
+            if (coffer.OpenedItemBagId != itemId)
+                return false;
+
+            coffer.OpenedItemBagId = 0;
+            return true;
+        }
+
+        if (coffer.ItemContainer.GetItemByItemId(itemId) is not ItemBag itemBag ||
+            itemBag.Template is not ItemBagTemplate itemBagTemplate)
+        {
+            susManager.LogActivity(SusManager.CategoryCheating, character,
+                $"{character.Name} tried to open non-bag coffer item {itemId} as a subbag");
+            return false;
+        }
+
+        if (!UnitRequirementsGameData.Instance.CanUseItemBag(itemBagTemplate, character))
+            return false;
+
+        var itemContainer = ItemManager.Instance.GetOrCreateItemBagContainer(itemBag);
+        coffer.OpenedItemBagId = itemBag.Id;
+
+        var firstSlot = 0;
+        while (firstSlot < itemContainer.ContainerSize)
+        {
+            character.SendPacket(new SCCofferContentsUpdatePacket(coffer, itemBag, itemContainer,
+                checked((byte)firstSlot)));
+            firstSlot += SCCofferContentsUpdatePacket.MaxSlotsToSend;
+        }
 
         return true;
     }

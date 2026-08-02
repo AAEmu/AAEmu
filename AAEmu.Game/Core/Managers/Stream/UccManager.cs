@@ -6,6 +6,8 @@ using AAEmu.Game.Core.Packets.S2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Stream;
 using NLog;
 
@@ -315,10 +317,50 @@ public class UccManager(IUccIdManager uccIdManager) : Singleton<UccManager>, IUc
 
     public void ConfirmDefaultUcc(StreamConnection connection)
     {
-        var ucc = _uploadQueue[connection.Id];
+        if (!_uploadQueue.TryGetValue(connection.Id, out var ucc))
+            return;
+
+        var character = connection.GameConnection.ActiveChar;
+        if (character.Inventory.Bag.SpaceLeftForItem(Item.CrestInk) < 1)
+        {
+            character.SendErrorMessage(ErrorMessageType.BagFull);
+            return;
+        }
+
+        var creationCost = AppConfiguration.Instance.Ucc.CrestInkCreationCost;
+        if (creationCost < 0)
+        {
+            Logger.Error("Ucc.CrestInkCreationCost cannot be negative");
+            return;
+        }
+
+        if (creationCost > 0 && !character.SubtractMoney(SlotType.Inventory, creationCost, ItemTaskType.GainItemWithUcc))
+            return;
+
         var id = uccIdManager.GetNextId();
 
         ucc.Id = id;
+        var newItem = ItemManager.Instance.Create(Item.CrestInk, 1, 0, true) as UccItem;
+        if (newItem == null)
+        {
+            uccIdManager.ReleaseId((uint)id);
+            if (creationCost > 0)
+                character.AddMoney(SlotType.Inventory, creationCost, ItemTaskType.GainItemWithUcc);
+            Logger.Error("Failed to create Crest Ink for completed UCC upload {0}", id);
+            return;
+        }
+
+        newItem.UccId = id;
+        if (!character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.GainItemWithUcc, newItem))
+        {
+            ItemManager.Instance.ReleaseId(newItem.Id);
+            uccIdManager.ReleaseId((uint)id);
+            if (creationCost > 0)
+                character.AddMoney(SlotType.Inventory, creationCost, ItemTaskType.GainItemWithUcc);
+            Logger.Error("Failed to add Crest Ink for completed UCC upload {0} after bag preflight", id);
+            return;
+        }
+
         _uccs.Add(id, ucc);
         _uploadQueue.Remove(connection.Id);
 
@@ -334,15 +376,7 @@ public class UccManager(IUccIdManager uccIdManager) : Singleton<UccManager>, IUc
 #endif
 
         connection.SendPacket(new TCEmblemStreamRecvStatusPacket(EmblemStreamStatus.End));
-
-        var character = connection.GameConnection.ActiveChar;
-
-        connection.GameConnection.ActiveChar.ChangeMoney(SlotType.Inventory, -50000);
-
-        var newItem = (UccItem)ItemManager.Instance.Create(Item.CrestInk, 1, 0, true); // Crest Ink
-        newItem.UccId = id;
         Save(ucc);
-        character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.GainItemWithUcc, newItem);
     }
 
     public static void CreateStamp(Character player, Item sourceInk)

@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Numerics;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.CryEngine.Objects;
@@ -359,31 +359,45 @@ public class WaterBodies
             var cx = (int)MathF.Floor(px / SpatialCellSize);
             var cy = (int)MathF.Floor(py / SpatialCellSize);
 
-            if (_areaIndexByCell != null && _areaIndexByCell.TryGetValue((cx, cy), out var inCell))
+            var chosenFlow = Vector3.Zero;
+
+            bool Consider(WaterBodyArea area)
             {
-                foreach (var areaId in inCell)
-                {
-                    var area = Areas[(int)areaId];
-                    if (!area.BoundingBox.Contains(px, py))
-                        continue;
+                if (!area.BoundingBox.Contains(px, py))
+                    return false;
+                if (!area.GetSurface(point, out var surfacePoint, out var f))
+                    return false;
+                if (point.Z < surfacePoint.Z - area.Depth)
+                    return false;
 
-                    if (!area.GetSurface(point, out var surfacePoint, out var f))
-                        continue;
-                    if (point.Z < surfacePoint.Z - area.Depth)
-                        continue;
+                var surfaceDistance = MathF.Abs(surfacePoint.Z - point.Z);
+                if (surfaceDistance >= closestSurfaceDist)
+                    return false;
 
-                    var surfaceDistance = MathF.Abs(surfacePoint.Z - point.Z);
-                    if (surfaceDistance < closestSurfaceDist)
-                    {
-                        closestSurfaceDist = surfaceDistance;
-                        chosenZ = surfacePoint.Z;
-                        flowDirection = f;
-                    }
-                }
+                closestSurfaceDist = surfaceDistance;
+                chosenZ = surfacePoint.Z;
+                chosenFlow = f;
+                return true;
             }
 
+            if (_areaIndexByCell != null && _areaIndexByCell.TryGetValue((cx, cy), out var inCell))
+                foreach (var areaId in inCell)
+                    if (areaId < Areas.Count)
+                        Consider(Areas[(int)areaId]);
+
+            // The cell index is an accelerator, not the source of truth: a point can sit inside a body
+            // whose id never reached the queried cell, and answering "ocean" there drops a lake or river
+            // surface to sea level - which put a summoned boat a hundred metres underground at Gweonid.
+            // Falling back to the full list keeps the result correct; it only runs when the index misses.
+            if (closestSurfaceDist >= float.PositiveInfinity)
+                foreach (var area in Areas)
+                    Consider(area);
+
             if (closestSurfaceDist < float.PositiveInfinity)
+            {
+                flowDirection = chosenFlow;
                 return chosenZ;
+            }
         }
 
         return OceanLevel;

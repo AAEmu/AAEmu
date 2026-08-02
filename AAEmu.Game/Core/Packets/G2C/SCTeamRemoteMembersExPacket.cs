@@ -4,13 +4,18 @@ using AAEmu.Game.Models.Game.Team;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTeamRemoteMembersExPacket(TeamMember[] members) : GamePacket(SCOffsets.SCTeamRemoteMembersExPacket, 1)
+public class SCTeamRemoteMembersExPacket(int teamId, IReadOnlyList<TeamMember> members) : GamePacket(SCOffsets.SCTeamRemoteMembersExPacket, 1)
 {
+    private const int NativeMemberLimit = 50;
+
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(members.Length); // TODO max length 50
-        foreach (var member in members)
-            member.WritePerson(stream);
+        // i32 teamId, i32 count (clamped to 50), RemoteMember[count].
+        stream.Write(teamId);
+        var count = Math.Min(members.Count, NativeMemberLimit);
+        stream.Write(count);
+        for (var i = 0; i < count; i++)
+            members[i].WritePerson(stream);
         return stream;
     }
 }

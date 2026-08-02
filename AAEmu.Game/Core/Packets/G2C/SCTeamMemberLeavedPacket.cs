@@ -3,13 +3,15 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTeamMemberLeavedPacket(uint teamId, uint id, bool e) : GamePacket(SCOffsets.SCTeamMemberLeavedPacket, 1)
+public class SCTeamMemberLeavedPacket(int teamId, ulong memberId, bool kicked)
+    : GamePacket(SCOffsets.SCTeamMemberLeavedPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
+        // i32 team, u64 type, bool e.
         stream.Write(teamId);
-        stream.Write(id);
-        stream.Write(e);
+        stream.Write(memberId);
+        stream.Write(kicked);
         return stream;
     }
 }

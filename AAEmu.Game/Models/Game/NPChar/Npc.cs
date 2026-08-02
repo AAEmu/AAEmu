@@ -1,14 +1,14 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Numerics;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
-using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -31,6 +31,12 @@ public partial class Npc : Unit
     public NpcTemplate Template { get; set; }
     //public Item[] Equip { get; set; }
     public NpcSpawner Spawner { get; set; }
+
+    /// <summary>
+    /// Created by WorldIntegration.MirrorZoneNpcSpawn — zone owns AI; Game invents thin SCUnitState.
+    /// Jul 18: full Face+equip UnitState on visibility worked (Nuian 警备兵). Later Soft gates/Skin rewrite broke it.
+    /// </summary>
+    public bool IsZoneMirror { get; set; }
 
     /// <summary>
     /// This is the "Idle Animation Id" that is used in UnitModelChangePosture, it can change depending on the time of the day
@@ -61,8 +67,6 @@ public partial class Npc : Unit
 
     public override byte RaceGender => (byte)(16 * Template.Gender + Template.Race);
 
-    public NpcAi Ai { get; set; } // New framework
-
     public BaseUnit CurrentAggroTarget
     {
         get => _currentAggroTarget;
@@ -72,14 +76,20 @@ public partial class Npc : Unit
                 return;
 
             if (value != null)
-                SendPacketToPlayers([value], new SCAggroTargetChangedPacket(ObjId, value.ObjId));
-            // BroadcastPacket(new SCAggroTargetChangedPacket(ObjId, value.ObjId), false);
+                SendPacketToPlayers([value], new SCTargetChangedPacket(ObjId, value.ObjId));
 
             _currentAggroTarget = value;
         }
     }
 
-    public bool CanFly { get; set; } // TODO: mark NPCs that can fly so that they don't land on the ground when calculating the Z height
+    /// <summary>Set from the actor model (fly_mode or MovementId 2): keeps the spawner's Z instead of terrain height.</summary>
+    public bool CanFly { get; set; }
+
+    /// <summary>
+    /// The <c>flag</c> byte of the NPC id-type block in SCUnitState (0x097).
+    /// destination name. Template 5476 is treated as bit 1 regardless of this byte.
+    /// </summary>
+    public virtual byte UnitStateFlag => 0;
 
     public override float BaseMoveSpeed
     {
@@ -91,10 +101,6 @@ public partial class Npc : Unit
             // TODO: Implement stance switching mechanic
             if (!model.Stances.TryGetValue(CurrentGameStance, out var stance))
                 return 1f;
-
-            // Returning? Use sprint speed
-            if (Ai?.GetCurrentBehavior() is ReturnStateBehavior _)
-                return stance.AiMoveSpeedSprint;
 
             // In combat, use running speed
             if (IsInBattle)
@@ -1008,26 +1014,37 @@ public partial class Npc : Unit
         CurrentAggroTarget = null;
 
         Spawner?.DoDespawn(this);
-        Ai?.GoToDead();
+        // Zone mirrors have no Spawner — World schedules corpse cleanup, but Zone owns respawn.
+        // Tell Zone the unit died (WZUnitDeath) so it enters corpse state; on timeout World sends
+        // WZNpcStartDespawn so Zone GO_TO_DESPAWN → ZWRemoveNpc → NpcSpawner respawn.
+        if (Spawner == null && IsZoneMirror && ParentWorld?.SpawnManager != null)
+        {
+            WorldIntegration.RelayUnitDeathToZone?.Invoke(ObjId);
+            // Unlooted corpses: ~20s base + loot hold (match LootingContainer extension).
+            // Zone also times out; World cleanup must notify Zone or liveCount never drops.
+            var delay = TimeSpan.FromSeconds(20);
+            if (LootingContainer != null && LootingContainer.Items.Count > 0)
+                delay += TimeSpan.FromSeconds(LootingContainer.LootDespawnExtensionTime);
+            Despawn = DateTime.UtcNow.Add(delay);
+            ParentWorld.SpawnManager.AddDespawn(this);
+        }
     }
 
     private void ClearAllAggroTargetsAndCheckCombatState()
     {
-        List<Character> playerAggroList = [];
-        // Generate a list of all player that we had aggro on
-        foreach (var (objId, aggro) in AggroTable)
-        {
-            var unit = aggro.Owner.ParentWorld.GetGameObject(objId);
-            if (unit is Character player)
-                playerAggroList.Add(player);
-        }
-        // Clear the aggro table
-        AggroTable.Clear();
+        // Snapshot before the base clear removes the entries. Clearing the dictionary first made
+        // ClearAggroOfUnit return early and left Character.IsInAggroListOf permanently stale.
+        var playerAggroList = AggroTable.Values
+            .Select(aggro => aggro.Owner)
+            .OfType<Character>()
+            .Distinct()
+            .ToArray();
+
+        base.ClearAllAggro();
 
         // Check if those target players still have aggro on something else, if not, clear their combat timers
         foreach (var player in playerAggroList)
         {
-            ClearAggroOfUnit(player);
             if (player.IsInAggroListOf.Count <= 0)
             {
                 // Cancel combat
@@ -1036,16 +1053,112 @@ public partial class Npc : Unit
         }
     }
 
+    /// <summary>
+    /// Zone mirrors: retail interest — soft AOI SCUnitState (L5, never DD04 zip).
+    /// Region neighborhood (~320m) is only the candidate pool; create/remove follow
+    /// AAEMU_MIRROR_NPC_AOI (default 100m). Capture: individual 0x097, proximity-timed;
+    /// flood (~150 at once) Quit'd — AOI+MAX prevent that, not artificial 1/s drip.
+    /// AAEMU_DISABLE_MIRROR_NPC=1 | AAEMU_MIRROR_NPC_MAX=N (default 50; 0=unlimited) |
+    /// AAEMU_MIRROR_NPC_BURST=N (0=flush all/tick) | AAEMU_MIRROR_NPC_INTERVAL_MS (0=off) |
+    /// AAEMU_MIRROR_NPC_AOI=metres | AAEMU_MIRROR_NPC_GRACE_MS.
+    /// </summary>
+    public static readonly bool DisableMirrorNpcStreaming =
+        System.Environment.GetEnvironmentVariable("AAEMU_DISABLE_MIRROR_NPC") == "1";
+
+    public static readonly int MirrorNpcMaxPerCharacter = ParseMirrorNpcMax();
+    public static readonly int MirrorNpcImmediateBurst = ParseMirrorNpcBurst();
+
+    /// <summary>Squared soft interest radius for mirror SC (commercial AOI, not sticky region set).</summary>
+    public static readonly float MirrorNpcAoiRadiusSq = ParseMirrorNpcAoiRadiusSq();
+
+    private static int ParseMirrorNpcMax()
+    {
+        var raw = System.Environment.GetEnvironmentVariable("AAEMU_MIRROR_NPC_MAX");
+        if (string.IsNullOrEmpty(raw))
+            return 50;
+        return int.TryParse(raw, out var n) && n >= 0 ? n : 50;
+    }
+
+    /// <summary>Per drain-tick cap. 0 = flush all pending in AOI up to MAX (retail default).</summary>
+    private static int ParseMirrorNpcBurst()
+    {
+        var raw = System.Environment.GetEnvironmentVariable("AAEMU_MIRROR_NPC_BURST");
+        if (string.IsNullOrEmpty(raw))
+            return 0;
+        return int.TryParse(raw, out var n) && n >= 0 ? n : 0;
+    }
+
+    private static float ParseMirrorNpcAoiRadiusSq()
+    {
+        var raw = System.Environment.GetEnvironmentVariable("AAEMU_MIRROR_NPC_AOI");
+        // Default 100m — inside region neighborhood (5×64) so walking recycles view like retail interest.
+        var metres = 100f;
+        if (float.TryParse(raw, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var n) && n >= 20f)
+            metres = n;
+        return metres * metres;
+    }
+
     public override void AddVisibleObject(Character character)
     {
-        character.SendPacket(new SCUnitStatePacket(this));
-        character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+        if (DisableMirrorNpcStreaming && IsZoneMirror && WorldIntegration.ZoneAuthority)
+        {
+            base.AddVisibleObject(character);
+            return;
+        }
+
+        if (IsZoneMirror && WorldIntegration.ZoneAuthority)
+        {
+            // Retail: UnitState when interest is live and unit is in soft AOI — not a timed trickle.
+            // Queue only while loading / outside AOI / at MAX (drain + cull recycle slots).
+            if (character.CanStreamMirrorNow(this))
+                SendUnitStateTo(character);
+            else
+                character.EnqueuePendingMirrorSpawn(this);
+        }
+        else
+            SendUnitStateTo(character);
 
         base.AddVisibleObject(character);
     }
 
+    public void SendUnitStateTo(Character character)
+    {
+        if (DisableMirrorNpcStreaming && IsZoneMirror && WorldIntegration.ZoneAuthority)
+            return;
+
+        if (IsZoneMirror && WorldIntegration.ZoneAuthority)
+        {
+            if (character.MirrorNpcStatesSentIds.ContainsKey(ObjId))
+                return;
+
+            if (MirrorNpcMaxPerCharacter > 0 &&
+                character.MirrorNpcStatesSentCount >= MirrorNpcMaxPerCharacter)
+                return;
+
+            if (!character.MirrorNpcStatesSentIds.TryAdd(ObjId, 0))
+                return;
+        }
+
+        character.SendPacket(new SCUnitStatePacket(this));
+        character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+
+        // Commercial: NPC faction is NOT in SCUnitState (idType 1). Retail capture often never sends
+        // 0x02E (client may fill from local template), but when we do send it the client gate in
+        // Fresh NPCs start at faction 0; sending (Faction.Id, Faction.Id) no-ops and leaves them
+        // neutral (Zeromus: "faction 0 … same visuals"). Must send old=0 → new=real.
+        // AAEMU_DISABLE_NPC_FACTION=1 to mute.
+        if (Faction != null &&
+            System.Environment.GetEnvironmentVariable("AAEMU_DISABLE_NPC_FACTION") != "1")
+            character.SendPacket(new SCUnitFactionChangedPacket(
+                ObjId, Name ?? "", FactionsEnum.Invalid, Faction.Id, false));
+    }
+
     public override void RemoveVisibleObject(Character character)
     {
+        if (IsZoneMirror && WorldIntegration.ZoneAuthority)
+            character.ReleaseMirrorNpcSlot(ObjId);
+
         base.RemoveVisibleObject(character);
 
         character.SendPacket(new SCUnitsRemovedPacket([ObjId]));
@@ -1053,78 +1166,39 @@ public partial class Npc : Unit
 
     //Tagging!
 
+    /// <summary>
+    /// Drops the combat flag once nothing is on the aggro table. Leashing back to spawn is the
+    /// Zone's call and arrives as ZWClearCombat / the 11503 reset skill.
+    /// </summary>
     public void CheckIfEmptyAggroToReturn(IBaseUnit unit)
     {
-        if (unit is not Npc npc)
+        if (unit is not Npc npc || !npc.AggroTable.IsEmpty)
             return;
-
-        // If aggro table is empty, and too far from spawn, trigger a return to spawn effect.
-        if (!npc.AggroTable.IsEmpty)
-            return;
-
-        if (npc.Ai != null)
-        {
-            var distanceToIdle = MathUtil.CalculateDistance(npc.Ai.IdlePosition, npc.Transform.World.Position, true);
-            if (distanceToIdle > 4)
-                npc.Ai.GoToReturn();
-        }
 
         npc.IsInBattle = false;
     }
 
     private void CheckIfEmptyAggroToReturn()
     {
-        // If aggro table is empty, and too far from spawn, trigger a return to spawn effect.
         if (AggroTable.IsEmpty)
-        {
-            if (Ai != null)
-            {
-                var distanceToIdle = MathUtil.CalculateDistance(Ai.IdlePosition, Ai.Owner.Transform.World.Position, true);
-                if (distanceToIdle > 4)
-                    Ai.GoToReturn();
-            }
-
             IsInBattle = false;
-        }
     }
 
     public override void ClearAllAggro()
     {
-        base.ClearAllAggro();
-
         var lastAggroCount = AggroTable.Count;
         ClearAllAggroTargetsAndCheckCombatState();
         if (lastAggroCount > 0)
             CheckIfEmptyAggroToReturn();
     }
 
+    /// <summary>
+    /// Records damage on the aggro table for kill credit and loot rights. Target selection and the
+    /// response to it belong to the Zone.
+    /// </summary>
     public void OnDamageReceived(Unit attacker, int amount)
     {
-        // 25 means "dummy" AI -> should not respond!
-        // if (Template.AiFileId != 25 && (Patrol == null || Patrol.PauseAuto(this)))
-        // {
-        //     CurrentTarget = attacker;
-        //     BroadcastPacket(new SCCombatEngagedPacket(attacker.ObjId), true); // caster
-        //     BroadcastPacket(new SCCombatEngagedPacket(ObjId), true);    // target
-        //     BroadcastPacket(new SCCombatFirstHitPacket(ObjId, attacker.ObjId, 0), true);
-        //     BroadcastPacket(new SCAggroTargetChangedPacket(ObjId, attacker.ObjId), true);
-        //     BroadcastPacket(new SCTargetChangedPacket(ObjId, attacker.ObjId), true);
-        //
-        //     // TaskManager.Instance.Schedule(new UnitMove(new Track(), this), TimeSpan.FromMilliseconds(100));
-        // }
         AddUnitAggro(AggroKind.Damage, attacker, amount);
-        Ai.OnAggroTargetChanged();
-
-        /*
-        var topAbuser = AggroTable.GetTopTotalAggroAbuserObjId();
-        if ((CurrentTarget?.ObjId ?? 0) != topAbuser)
-        {
-            CurrentAggroTarget = topAbuser; 
-            var unit = WorldManager.Instance.GetUnit(topAbuser);
-            SetTarget(unit);
-            Ai?.OnAggroTargetChanged();
-        }
-        */
     }
 
     /// <summary>
@@ -1137,7 +1211,7 @@ public partial class Npc : Unit
     /// <returns>True if withing rangeTolerance of other</returns>
     public bool MoveTowards(Vector3 other, float distance, byte actorFlags = 4, float rangeTolerance = 1f)
     {
-        distance *= Ai.Owner.MoveSpeedMul; // Apply speed modifier
+        distance *= MoveSpeedMul; // Apply speed modifier
         if (distance < 0.01f)
             return false;
 
@@ -1147,14 +1221,14 @@ public partial class Npc : Unit
                 || e.Template.Root
                 || e.Template.Knockdown
                 || e.Template.Fastened)
-            || Ai.Owner.IsDead)
+            || IsDead)
         {
             //Logger.Debug($"{ObjId} @NPC_NAME({TemplateId}); is stuck in place");
             return false;
         }
 
-        if (Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle)) ||
-            Ai.Owner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Snare)))
+        if (Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Shackle)) ||
+            Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)SkillConstants.Snare)))
         {
             return false;
         }
@@ -1174,7 +1248,7 @@ public partial class Npc : Unit
 
         // TODO: Implement proper use for Transform.World.AddDistanceToFront
         var (newX, newY, newZ) = World.Transform.PositionAndRotation.AddDistanceToFront(travelDist, targetDist, Transform.Local.Position, other);
-        var targetPositionZ = WorldManager.Instance.GetReferenceHeight(Ai, newX, newY, newZ, Transform.ZoneId);
+        var targetPositionZ = WorldManager.Instance.GetReferenceHeight(this, newX, newY, newZ, Transform.ZoneId);
         Transform.Local.SetPosition(newX, newY, targetPositionZ);
 
         var angle = MathUtil.CalculateAngleFrom(Transform.Local.Position, other);
@@ -1275,6 +1349,34 @@ public partial class Npc : Unit
         BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
     }
 
+    /// <summary>
+    /// Builds a stand-still movement body for this NPC at its current position, stamped with the given
+    /// physics time. Used by MirrorMovementStreamTask to keep the client's world clock advancing: the
+    /// commercial server streams constant SCUnitMovements, but our native zone only emits movement for units
+    /// that actually move, and mirrored NPCs stand idle. Byte-identical to a real idle stand (VelZero,
+    /// Stopping, no actor sub-blocks), so the client processes it exactly as it would a commercial one.
+    /// Real zone movement (relayed 0x08) supersedes these whenever the unit truly moves.
+    /// </summary>
+    public UnitMoveType BuildIdleMoveType(uint time)
+    {
+        var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
+        moveType.X = Transform.Local.Position.X;
+        moveType.Y = Transform.Local.Position.Y;
+        moveType.Z = Transform.Local.Position.Z;
+        moveType.VelX = 0;
+        moveType.VelY = 0;
+        moveType.VelZ = 0;
+        moveType.RotationX = 0;
+        moveType.RotationY = 0;
+        moveType.RotationZ = Transform.Local.ToRollPitchYawSBytesMovement().Item3;
+        moveType.Flags = MoveTypeFlags.Stopping | (IsInBattle ? MoveTypeFlags.InCombat : 0);
+        moveType.DeltaMovement = new sbyte[3];
+        moveType.Stance = CurrentGameStance;
+        moveType.Alertness = CurrentAlertness;
+        moveType.Time = time;
+        return moveType;
+    }
+
     public override void OnSkillEnd(Skill skill)
     {
         // AI?.OnSkillEnd(skill);
@@ -1284,27 +1386,6 @@ public partial class Npc : Unit
     {
         CurrentTarget = other;
         BroadcastPacket(new SCTargetChangedPacket(ObjId, other?.ObjId ?? 0), true);
-        Ai.AlreadyTargeted = other != null;
-    }
-
-    public void FindPath(Unit abuser)
-    {
-        Ai.PathNode.StartPointPos = new Vector3(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z);
-        Ai.PathNode.EndPointPos = new Vector3(abuser.Transform.World.Position.X, abuser.Transform.World.Position.Y, abuser.Transform.World.Position.Z);
-
-        Ai.PathNode.ZoneKey = Ai.Owner.Transform.ZoneId;
-        var resList = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, Ai.PathNode.StartPointPos, Ai.PathNode.EndPointPos);
-        resList.Add(abuser.Transform.World.Position);
-        var reducedPath = ParentWorld.Template.GeoData.ReducePath(resList, 10);
-        Ai.PathNode.FoundPath = reducedPath;
-        if (abuser is Character player)
-        {
-            player.SendMessage($"Aggro from {Ai.Owner.ObjId}, getting attack path in {Ai.PathNode.FoundPath.Count}/{resList.Count} steps");
-            foreach (var v3 in Ai.PathNode.FoundPath)
-            {
-                player.SendMessage($"Path step -> {v3}");
-            }
-        }
     }
 
     /// <summary>
@@ -1382,14 +1463,6 @@ public partial class Npc : Unit
 
     public override void Delete()
     {
-        // Detach AI
-        if (Ai != null)
-        {
-            Ai.ShouldTick = false;
-            Ai.Owner = null;
-            Ai = null;
-        }
-
         base.Delete();
     }
 

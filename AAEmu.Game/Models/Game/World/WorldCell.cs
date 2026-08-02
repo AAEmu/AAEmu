@@ -4,7 +4,6 @@ using AAEmu.Game.IO;
 using AAEmu.Game.Models.ClientData;
 using AAEmu.Game.Models.CryEngine.Loaders;
 using AAEmu.Game.Models.CryEngine.Objects;
-using Jitter2.LinearMath;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.World;
@@ -20,18 +19,11 @@ public class WorldCell
     private readonly Lock _loadLock = new();
     private Vector3 CellOffset { get; set; }
     internal ushort[,] HeightMap { get; private set; }
-    private float MinHeight { get; set; }
-    private float MaxHeight { get; set; }
 
     /// <summary>
     /// Bai files data to use in this cell
     /// </summary>
     public BaseBaiLoader[,] BaiLoader { get; set; }
-
-    /// <summary>
-    /// Bounding box for use in Jitter
-    /// </summary>
-    public JBoundingBox BoundingBox { get; private set; }
 
     /// <summary>Prefab tree from cell <c>client/object.dat</c> (CryEngine).</summary>
     public ObjectsFile LoadedObjectDat { get; set; }
@@ -42,11 +34,6 @@ public class WorldCell
         CellY = cellY;
         Template = template;
         CellOffset = new Vector3(CellX * WorldManager.CELL_SIZE, CellY * WorldManager.CELL_SIZE, 0f);
-        // Default bounding box
-        BoundingBox = new JBoundingBox(
-            new JVector(CellOffset.X, 0f, CellOffset.Y), 
-            new JVector(CellOffset.X + WorldManager.CELL_SIZE, 0f, CellOffset.Y + WorldManager.CELL_SIZE)
-            );
         BaiLoader = new BaseBaiLoader[4, 4]
         {
             { null, null, null, null },
@@ -63,6 +50,9 @@ public class WorldCell
     {
         if (!AppConfiguration.Instance.World.GeoDataMode)
             return; // Don't load navmesh if GeoDataMode is disabled
+
+        // Cells load on demand, so this is where a lazily-loaded world pays for its navmesh.
+        Template.EnsureZoneBaiFilesLoaded();
 
         // If we already loaded zone bai data for this world template, then don't try to load the cell one
         // Instead reference the zone bai directly
@@ -169,8 +159,6 @@ public class WorldCell
         // Read nodes into heightmap array
         #region ReadNodes
 
-        MinHeight = float.MaxValue;
-        MaxHeight = 0f;
         for (ushort sectorX = 0; sectorX < WorldManager.SECTORS_PER_CELL; sectorX++) // 16x16 sectors / cell
         for (ushort sectorY = 0; sectorY < WorldManager.SECTORS_PER_CELL; sectorY++)
         for (ushort unitX = 0; unitX < WorldManager.SECTOR_HMAP_RESOLUTION; unitX++) // sector = 32x32 unit size
@@ -184,16 +172,8 @@ public class WorldCell
             var value = (ushort)(height * Template.HeightMaxCoefficient);
 
             HeightMap[oX, oY] = value;
-            MinHeight = MathF.Min((float)(value / Template.HeightMaxCoefficient), MinHeight);
-            MaxHeight = MathF.Max((float)(value / Template.HeightMaxCoefficient), MaxHeight);
         }
         #endregion
-
-        // Update bounding box
-        BoundingBox = new JBoundingBox(
-            new JVector(CellOffset.X, MinHeight, CellOffset.Y), 
-            new JVector(CellOffset.X + WorldManager.CELL_SIZE, MaxHeight, CellOffset.Y + WorldManager.CELL_SIZE)
-        );
 
         var cellFolder = Path.Combine("game", "worlds", Template.Name, "cells", cellFileName);
 
@@ -211,16 +191,10 @@ public class WorldCell
             }
         }
 
-        #region update_physics_hmap
-
-        // Update Physics world's heightmaps
-        // TODO: Merge local heightmap into physics engine
+        // Feed this cell's water volumes to every instance running on this template
         foreach (var worldInstance in WorldManager.Instance.GetWorldsByTemplate(Template.Id))
-        {
-            worldInstance.Physics?.UpdateHeightMapFromCellBody(this);
             worldInstance.Water.AddFromCellData(this);
-        }
-        #endregion
+
         return true;
     }
 

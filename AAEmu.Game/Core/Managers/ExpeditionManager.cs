@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -90,7 +91,10 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             {
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "SELECT * FROM expedition_members WHERE expedition_id = @expedition_id";
+                    command.CommandText =
+                        "SELECT em.*, c.faction_id, c.heir_exp FROM expedition_members em " +
+                        "INNER JOIN characters c ON c.id = em.character_id " +
+                        "WHERE em.expedition_id = @expedition_id";
                     command.Parameters.AddWithValue("@expedition_id", expedition.Id);
                     command.Prepare();
                     using (var reader = command.ExecuteReader())
@@ -106,6 +110,10 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
                                 LastWorldLeaveTime = reader.GetDateTime("last_leave_time"),
                                 Name = reader.GetString("name"),
                                 Level = reader.GetByte("level"),
+                                HeirLevel = HeirGameData.Instance.GetLevelForExp(reader.GetInt64("heir_exp")),
+                                FactionId = (FactionsEnum)reader.GetUInt32("faction_id"),
+                                ContributionPoint = reader.GetUInt32("contribution_point"),
+                                WeeklyContributionPoint = reader.GetUInt32("weekly_contribution_point"),
                                 Abilities =
                                 [
                                     reader.GetByte("ability1"), reader.GetByte("ability2"), reader.GetByte("ability3")
@@ -162,6 +170,44 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         }
 
         return res;
+    }
+
+    public bool TryChangeContributionPoints(Character character, int amount, bool addToWeeklyTotal)
+    {
+        var expedition = character.Expedition;
+        var member = expedition?.GetMember(character);
+        if (member == null)
+            return false;
+
+        if (amount == 0)
+            return true;
+
+        lock (member)
+        {
+            var newTotal = (long)member.ContributionPoint + amount;
+            var weeklyDelta = addToWeeklyTotal && amount > 0 ? amount : 0;
+            var newWeeklyTotal = (long)member.WeeklyContributionPoint + weeklyDelta;
+            if (newTotal is < 0 or > uint.MaxValue || newWeeklyTotal > uint.MaxValue)
+                return false;
+
+            using var connection = MySQL.CreateConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                "UPDATE expedition_members SET contribution_point = @contribution_point, weekly_contribution_point = @weekly_contribution_point WHERE character_id = @character_id AND expedition_id = @expedition_id";
+            command.Parameters.AddWithValue("@contribution_point", (uint)newTotal);
+            command.Parameters.AddWithValue("@weekly_contribution_point", (uint)newWeeklyTotal);
+            command.Parameters.AddWithValue("@character_id", member.CharacterId);
+            command.Parameters.AddWithValue("@expedition_id", member.ExpeditionId);
+            if (command.ExecuteNonQuery() != 1)
+                return false;
+
+            member.ContributionPoint = (uint)newTotal;
+            member.WeeklyContributionPoint = (uint)newWeeklyTotal;
+        }
+
+        character.SendPacket(new SCAddContributionPointPacket(unchecked((uint)amount), member.ContributionPoint));
+        expedition.SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0));
+        return true;
     }
 
     public Expedition GetExpedition(FactionsEnum id)
@@ -512,8 +558,10 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         for (var i = 0; i < members.Count; i += 20)
         {
             var block = members.Skip(i).Take(20).ToList();
-            character.SendPacket(new SCExpeditionMemberListPacket(total, (uint)id, block));
+            character.SendPacket(new SCExpeditionMemberListPacket((uint)id, block));
         }
+
+        character.SendPacket(new SCExpeditionMemberListEndPacket((int)total, (int)id));
     }
 
     public static void Save(Expedition expedition)
@@ -533,10 +581,12 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             IsOnline = true,
             Name = character.Name,
             Level = character.Level,
+            HeirLevel = character.HeirLevel,
             Role = (byte)(owner ? 255 : 0),
             Memo = "",
             Position = new Vector3(character.Transform.World.Position.X, character.Transform.World.Position.Y, character.Transform.World.Position.Z),
             ZoneId = character.Transform.ZoneId,
+            FactionId = character.Faction.Id,
             Abilities = [(byte)character.Ability1, (byte)character.Ability2, (byte)character.Ability3],
             ExpeditionId = expedition.Id,
             CharacterId = character.Id,

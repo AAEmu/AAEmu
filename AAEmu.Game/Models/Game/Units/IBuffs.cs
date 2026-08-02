@@ -25,11 +25,11 @@ public interface IBuffs
     List<Buff> GetEffectsByType(Type effectType);
     bool HasEffectsMatchingCondition(Func<Buff, bool> predicate);
     void RemoveAllEffects();
-    void RemoveBuff(uint buffId);
+    void RemoveBuff(uint buffId, bool notifyZone = true);
     void RemoveBuffs(BuffKind kind, int count, uint buffTagId = 0);
     void RemoveBuffs(uint buffTagId, int count);
     void RemoveEffect(Buff buff);
-    void RemoveEffect(uint index);
+    void RemoveEffect(uint index, bool notifyZone = true);
     void RemoveEffect(uint templateId, uint skillId);
     void RemoveEffectsOnDeath();
     void RemoveStealth();

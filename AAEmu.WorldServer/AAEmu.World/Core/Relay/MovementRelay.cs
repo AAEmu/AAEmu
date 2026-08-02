@@ -1,0 +1,369 @@
+using System.Collections.Concurrent;
+
+using AAEmu.Commons.Network;
+using AAEmu.Game;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
+using AAEmu.Game.Utils;
+using AAEmu.World.Core.Network;
+using AAEmu.World.Core.Packets.Wz;
+
+using NLog;
+
+namespace AAEmu.World.Core.Relay;
+
+/// <summary>
+/// CSMoveUnit → WZUnitMovement and ZWUnitMovements → SCUnitMovements.
+/// </summary>
+public class MovementRelay
+{
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    private const int ScMaxUnits = 400;
+
+    /// <summary>
+    /// AAEMU_LOG_ZONE_MOVE_POS=1 traces the Z the Zone streams for flying NPCs, so a hawk that
+    /// drops out of the sky can be blamed on (or cleared of) the dedicate. Also dumps the first
+    /// batch's raw positions: that is what proved the Zone simulates in WORLD space, not zone-local
+    /// (Falcony bc 15728641 streamed (24478,8357), its world mirror, never local (926,1189)).
+    /// </summary>
+    private static readonly bool LogMovePositions =
+        System.Environment.GetEnvironmentVariable("AAEMU_LOG_ZONE_MOVE_POS") == "1";
+
+    /// <summary>AAEMU_DISABLE_ZONE_SLAVE_POS=1 stops World from tracking dedicate-simulated hulls.</summary>
+    private static readonly bool DisableHullPositionSync =
+        System.Environment.GetEnvironmentVariable("AAEMU_DISABLE_ZONE_SLAVE_POS") == "1";
+
+    /// <summary>bcId → how many hull position applications have been logged, to keep the trace short.</summary>
+    private static readonly ConcurrentDictionary<uint, int> HullSyncLogged = new();
+
+    /// <summary>bcId → template of a CanFly mirror; 0 marks a known non-flier so we look up once.</summary>
+    private static readonly ConcurrentDictionary<uint, uint> FlierTemplates = new();
+    private static readonly ConcurrentDictionary<uint, float> LastFlierZ = new();
+
+    /// <summary>
+    /// Per-unit travel record. Zone streams every unit every tick regardless of whether it moved, so
+    /// batch counts say nothing about who is actually walking — only accumulated displacement does.
+    /// Drift is first→last distance (a unit that patrols back home ends with drift 0) and Travelled is
+    /// the summed step length (which patrol does show), so the pair separates "still" from "wandering".
+    /// </summary>
+    private sealed class Travel
+    {
+        public float FirstX, FirstY, LastX, LastY, LastZ;
+        public double Travelled;
+        public int Samples;
+        public uint TemplateId;
+        public bool Flier;
+    }
+
+    private static readonly ConcurrentDictionary<uint, Travel> Travels = new();
+    private static long _nextCensusReport;
+
+    private int _relayLog;
+
+    /// <summary>Accumulates horizontal travel per unit and reports a census every 30s.</summary>
+    private static void Census(uint bcId, MoveType mt)
+    {
+        var travel = Travels.GetOrAdd(bcId, _ =>
+        {
+            var record = new Travel { FirstX = mt.X, FirstY = mt.Y };
+            if (WorldIntegration.FindUnitAcrossWorlds(bcId) is Npc npc)
+            {
+                record.TemplateId = npc.TemplateId;
+                record.Flier = npc.CanFly;
+            }
+
+            return record;
+        });
+
+        if (travel.Samples > 0)
+            travel.Travelled += MathF.Sqrt(((mt.X - travel.LastX) * (mt.X - travel.LastX)) + ((mt.Y - travel.LastY) * (mt.Y - travel.LastY)));
+
+        travel.LastX = mt.X;
+        travel.LastY = mt.Y;
+        travel.LastZ = mt.Z;
+        travel.Samples++;
+
+        var now = System.Environment.TickCount64;
+        if (now < _nextCensusReport)
+            return;
+
+        _nextCensusReport = now + 30_000;
+        ReportCensus();
+    }
+
+    private static void ReportCensus()
+    {
+        var all = Travels.ToArray();
+        static float Drift(Travel t) =>
+            MathF.Sqrt(((t.LastX - t.FirstX) * (t.LastX - t.FirstX)) + ((t.LastY - t.FirstY) * (t.LastY - t.FirstY)));
+
+        var fliers = all.Where(kv => kv.Value.Flier).ToList();
+        Logger.Info(
+            "ZWUnitMovements census units={0} driftGt2m={1} travelledGt5m={2} still={3} fliers={4} fliersTravelledGt5m={5}",
+            all.Length,
+            all.Count(kv => Drift(kv.Value) > 2f),
+            all.Count(kv => kv.Value.Travelled > 5),
+            all.Count(kv => kv.Value.Travelled <= 1),
+            fliers.Count,
+            fliers.Count(kv => kv.Value.Travelled > 5));
+
+        foreach (var kv in all.OrderByDescending(kv => kv.Value.Travelled).Take(5))
+        {
+            Logger.Info(
+                "  census top bc={0} tpl={1} fly={2} drift={3:F1}m travelled={4:F1}m samples={5} pos=({6:F1},{7:F1},{8:F1})",
+                kv.Key, kv.Value.TemplateId, kv.Value.Flier, Drift(kv.Value), kv.Value.Travelled,
+                kv.Value.Samples, kv.Value.LastX, kv.Value.LastY, kv.Value.LastZ);
+        }
+
+        foreach (var kv in fliers.OrderByDescending(kv => kv.Value.Travelled).Take(3))
+        {
+            Logger.Info(
+                "  census flier bc={0} tpl={1} drift={2:F1}m travelled={3:F1}m pos=({4:F1},{5:F1},{6:F1})",
+                kv.Key, kv.Value.TemplateId, Drift(kv.Value), kv.Value.Travelled,
+                kv.Value.LastX, kv.Value.LastY, kv.Value.LastZ);
+        }
+    }
+
+    /// <summary>
+    /// Logs a flier only when its altitude actually changed, so a stable hawk stays silent and a
+    /// falling one prints a descending trail.
+    /// </summary>
+    private static void LogFlierPosition(uint bcId, MoveTypeEnum type, MoveType mt)
+    {
+        if (!FlierTemplates.TryGetValue(bcId, out var templateId))
+        {
+            // Not mirrored yet — leave it uncached so the next batch retries.
+            if (WorldIntegration.FindUnitAcrossWorlds(bcId) is not Npc npc)
+                return;
+
+            templateId = npc.CanFly ? npc.TemplateId : 0u;
+            FlierTemplates[bcId] = templateId;
+        }
+
+        if (templateId == 0)
+            return;
+
+        var dz = LastFlierZ.TryGetValue(bcId, out var lastZ) ? mt.Z - lastZ : 0f;
+        if (dz != 0f && MathF.Abs(dz) < 0.5f)
+            return;
+
+        LastFlierZ[bcId] = mt.Z;
+        Logger.Info(
+            "ZWUnitMovements flier bc={0} tpl={1} type={2} pos=({3:F1},{4:F1},{5:F1}) dz={6:F1}",
+            bcId, templateId, type, mt.X, mt.Y, mt.Z, dz);
+    }
+
+    /// <summary>
+    /// Move types whose body carries a position the driving client authored itself. The client reader
+    /// which the server authors, and type 5 is the helm request the client sends up.
+    /// </summary>
+    private static bool IsClientAuthoredVehicleMove(MoveTypeEnum type) =>
+        type is MoveTypeEnum.Vehicle or (MoveTypeEnum)3;
+
+    /// <summary>
+    /// ObjId of the slave this character is steering, or 0 when it holds no driver seat. Only the
+    /// driver's client owns the hull's motion; passengers ride the attachment and still need the
+    /// streamed state.
+    /// </summary>
+    private static uint DrivenSlaveObjId(Character character)
+    {
+        if (character?.Transform?.Parent?.GameObject is not Slave slave)
+            return 0;
+
+        return slave.AttachedCharacters.TryGetValue(AttachPointKind.Driver, out var driver) &&
+               driver?.ObjId == character.ObjId
+            ? slave.ObjId
+            : 0;
+    }
+
+    /// <summary>
+    /// True when this connection is the dedicate the hull was handed to (or ownership is unknown).
+    /// </summary>
+    private static bool OwnsHull(ZoneConnection source, uint bcId)
+    {
+        if (source == null)
+            return true;
+
+        if (WorldIntegration.FindUnitAcrossWorlds(bcId) is not Slave slave || slave.ZoneAnnouncedTo == 0)
+            return true;
+
+        return source.ZoneId == slave.ZoneAnnouncedTo;
+    }
+
+    /// <summary>
+    /// Copies a dedicate-simulated hull position onto the World mirror. CSMoveUnit for a ship only
+    /// carries throttle and steering, and nothing else writes a Slave transform under ZoneAuthority,
+    /// so without this the hull stays at its summon point for the whole voyage — and so does every
+    /// character parented to it, because their local offset is 0. Everything World owns off the
+    /// player's position then reads the dock: sphere areas (Ezi's Divine Protection never expires),
+    /// region interest, quest areas, and the logout position.
+    /// </summary>
+    private static void ApplyHullPosition(uint bcId, ShipMoveType ship, ZoneConnection source)
+    {
+        if (DisableHullPositionSync)
+            return;
+
+        if (WorldIntegration.FindUnitAcrossWorlds(bcId) is not Slave slave)
+            return;
+
+        // A hull belongs to exactly one dedicate. A stale one that was never told to drop it keeps
+        // simulating the ship, and letting both write here made the mirror alternate between two
+        // positions and headings every tick.
+        if (source != null && slave.ZoneAnnouncedTo != 0 && source.ZoneId != slave.ZoneAnnouncedTo)
+            return;
+
+        var (rotX, rotY, rotZ) = MathUtil.GetSlaveRotationInDegrees(ship.RotationX, ship.RotationY, ship.RotationZ);
+        var before = slave.Transform.World.ClonePosition();
+        slave.Transform.Local.SetPosition(ship.X, ship.Y, ship.Z, rotX, rotY, rotZ);
+        slave.Transform.FinalizeTransform();
+        slave.Throttle = ship.Throttle;
+        slave.Steering = ship.Steering;
+
+        var logged = HullSyncLogged.AddOrUpdate(bcId, 1, (_, count) => count + 1);
+        if (logged <= 3 || logged % 600 == 0)
+        {
+            Logger.Info(
+                "Hull position from zone bc={0} {1} ({2:F1},{3:F1},{4:F1}) → ({5:F1},{6:F1},{7:F1}) zone={8}",
+                bcId, slave.Name, before.X, before.Y, before.Z, ship.X, ship.Y, ship.Z, slave.Transform.ZoneId);
+        }
+    }
+
+    public void RelayClientMoveToZone(ZoneConnection zone, uint bcId, byte[] payload)
+    {
+        if (zone == null || payload == null || payload.Length == 0)
+            return;
+
+        Logger.Debug("RelayClientMoveToZone bcId={0} len={1}", bcId, payload.Length);
+        zone.SendPacket(new WZUnitMovementPacket(bcId, payload));
+    }
+
+    public void RelayZoneMoveToClient(ZoneConnection source, byte[] payload)
+    {
+        if (payload == null || payload.Length < 4)
+            return;
+
+        // Zone→client movement relay. Commercial path: ZWUnitMovements (0x08) for units that actually move.
+        // Set AAEMU_DISABLE_ZONE_MOVE_RELAY=1 to suppress while validating NPC SCUnitState alone.
+        // Never synthesize idle stands (MirrorMovementStream) — those quit the client.
+        if (System.Environment.GetEnvironmentVariable("AAEMU_DISABLE_ZONE_MOVE_RELAY") == "1")
+            return;
+
+        try
+        {
+            var stream = new PacketStream();
+            stream.Insert(0, payload);
+            stream.Pos = 0;
+            var count = stream.ReadInt32();
+            if (count <= 0)
+                return;
+
+            // Parse each entry once; filter it against each client's streamed-unit set below.
+            var entries = new List<(uint BcId, MoveTypeEnum Type, byte[] Body)>(Math.Min(count, ScMaxUnits));
+            for (var i = 0; i < count; i++)
+            {
+                var start = stream.Pos;
+                var bcId = stream.ReadBc();
+                var typeByte = stream.ReadByte();
+                var mt = MoveType.GetType((MoveTypeEnum)typeByte);
+                mt.Read(stream);
+                var len = stream.Pos - start;
+                if (len <= 0 || start + len > payload.Length)
+                {
+                    Logger.Warn("ZWUnitMovements parse failed at entry {0}/{1} pos={2}", i, count, start);
+                    break;
+                }
+
+                if (mt is ShipMoveType hull)
+                {
+                    // Foreign copy of somebody else's hull: neither the mirror nor the clients may
+                    // see it, or the ship visibly fights itself.
+                    if (!OwnsHull(source, bcId))
+                        continue;
+
+                    ApplyHullPosition(bcId, hull, source);
+                }
+
+                if (LogMovePositions)
+                {
+                    if (_relayLog == 0 && i < 3)
+                    {
+                        Logger.Info(
+                            "ZWUnitMovements pos bc={0} type={1} pos=({2:F1},{3:F1},{4:F1})",
+                            bcId, (MoveTypeEnum)typeByte, mt.X, mt.Y, mt.Z);
+                    }
+
+                    LogFlierPosition(bcId, (MoveTypeEnum)typeByte, mt);
+                    Census(bcId, mt);
+                }
+
+                var entry = new byte[len];
+                Buffer.BlockCopy(payload, start, entry, 0, len);
+                entries.Add((bcId, (MoveTypeEnum)typeByte, entry));
+            }
+
+            if (entries.Count == 0)
+                return;
+
+            // SCUnitMovements max 400 — split if needed (zone buffer holds up to 1000).
+            var sentClients = 0;
+            WorldIntegration.ForEachReadyConnection((connection, character) =>
+            {
+                try
+                {
+                    // A client integrates its own character locally and reports the finished state
+                    // through CSMoveUnit, so the zone's copy of it is not streamed back.
+                    //
+                    // The vehicle it steers is only suppressed for the wheeled types (2 and 3), where
+                    // VehicleMoveType carries the position the client itself authored and echoing the
+                    // zone's copy would fight it. A ship is the opposite: ShipRequestMoveType holds
+                    // nothing but throttle and steering, so the driver has asked the server where the
+                    // hull goes and has no answer until the Ship body comes back. Filtering type 4
+                    // here leaves the helm live and the boat motionless for whoever is steering it.
+                    var ownObjId = character.ObjId;
+                    var drivenObjId = DrivenSlaveObjId(character);
+
+                    var visible = entries
+                        .Where(entry => entry.BcId != ownObjId)
+                        .Where(entry => entry.BcId != drivenObjId || !IsClientAuthoredVehicleMove(entry.Type))
+                        .Where(entry => WorldIntegration.IsStreamedUnitForClient(character, entry.BcId))
+                        .ToList();
+                    if (visible.Count == 0)
+                        return;
+
+                    for (var offset = 0; offset < visible.Count; offset += ScMaxUnits)
+                    {
+                        var n = Math.Min(ScMaxUnits, visible.Count - offset);
+                        var sc = new PacketStream();
+                        sc.Write((ushort)n);
+                        for (var j = 0; j < n; j++)
+                            sc.Write(visible[offset + j].Body, false);
+                        connection.SendPacket(new SCOpaquePacket(SCOffsets.SCUnitMovementsPacket, sc.GetBytes()));
+                    }
+
+                    sentClients++;
+                }
+                catch (Exception ex)
+                {
+                    Logger.Warn(ex, "ZWUnitMovements relay failed for connection {0}", connection.Id);
+                }
+            });
+
+            if (_relayLog < 5 || _relayLog % 200 == 0)
+            {
+                Logger.Info(
+                    "ZWUnitMovements → SCUnitMovements zoneCount={0} parsed={1} clients={2} (per-client AOI)",
+                    count, entries.Count, sentClients);
+            }
+
+            _relayLog++;
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, "RelayZoneMoveToClient failed len={0}", payload.Length);
+        }
+    }
+}

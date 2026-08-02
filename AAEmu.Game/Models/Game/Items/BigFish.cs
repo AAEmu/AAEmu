@@ -5,11 +5,16 @@ namespace AAEmu.Game.Models.Game.Items;
 
 public class BigFish : Item
 {
+    private float _weight;
+    private float _length;
+    private long _detailQword;
+
     public override ItemDetailType DetailType => ItemDetailType.BigFish;
     public override uint DetailBytesLength => 16;
 
-    public float Weight { get; set; }
-    public float Length { get; set; }
+    public float Weight { get => _weight; set { _weight = value; IsDirty = true; } }
+    public float Length { get => _length; set { _length = value; IsDirty = true; } }
+    public long DetailQword { get => _detailQword; set { _detailQword = value; IsDirty = true; } }
 
     public BigFish()
     {
@@ -26,17 +31,17 @@ public class BigFish : Item
         /*
          Length = 4
          Weight = 4
-         Capture Date = 8
+         Opaque qword = 8
          */
-        stream.ReadSingle();    // Weight
-        stream.ReadSingle();    // Length
-        stream.ReadDateTime(); // Capture Date
+        Weight = stream.ReadSingle();
+        Length = stream.ReadSingle();
+        DetailQword = stream.ReadInt64();
     }
 
     public override void WriteDetails(PacketStream stream)
     {
         stream.Write(Weight);     // Weight
         stream.Write(Length);     // Length
-        stream.Write(CreateTime); // Capture Date
+        stream.Write(DetailQword);
     }
 }

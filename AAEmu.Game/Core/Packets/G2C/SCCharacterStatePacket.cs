@@ -1,22 +1,20 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
 // SC_PACKET_CHARACTER_STATE (opcode 108) — sent on SelectCharacter to bridge the lobby into the world.
-// Wire layout mirrors CharacterStatePacket::SerializeBody:
-//   iid u32, guid str(16 raw), rwd u32, srwd u32, then the character body, which is the SAME
-//   lobby-char record as SC_PACKET_CHARACTER_LIST (Character.WriteLobby1013) followed by the
-//   in-world "state" tail.
+//   Character.WriteLobby1013) followed by the in-world "state" tail.
+//   +120 i64, +128 u32, +144 u8, +152 i64, +160 u32, +168 i16, +248 bool, +464 = length-prefixed bytes.
 public class SCCharacterStatePacket(Character character) : GamePacket(SCOffsets.SCCharacterStatePacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
-        // Wrapper
         stream.Write((uint)character.Transform.InstanceId); // iid
-        // guid: serialized with the same length-prefixed byte-string writer used for the faction-relation
-        // name fields, so the 16 bytes go out behind a u16 length. A live 10.0.2.13 capture
+        // guid: serialized via ISerialize slot +464 (the same length-prefixed byte-string writer used for the
+        // faction-relation name fields), so the 16 bytes go out behind a u16 length. A live 10.0.2.13 capture
         // shows `10 00` (len=16) then a non-zero 16-byte guid. Derive a stable per-character guid from the id so
         // the client's identity keying is non-degenerate (the reference never sends an all-zero guid here).
         var guid = new byte[16];
@@ -26,16 +24,14 @@ public class SCCharacterStatePacket(Character character) : GamePacket(SCOffsets.
         stream.Write(0u);                                   // rwd
         stream.Write(0u);                                   // srwd
 
-        // Character body — lobby record (Character.WriteLobby1013)
         character.WriteLobby1013(stream);
 
-        // State tail
         stream.Write(0f);                                   // angles.x
         stream.Write(0f);                                   // angles.y
-        stream.Write(0f);                                   // angles.z (12-byte "angles" block)
+        stream.Write(0f);                                   // angles.z (12-byte "angles" block, vtbl+184)
 
         stream.Write((uint)character.Experience);           // exp
-        stream.Write(0L);                                   // heirExp
+        stream.Write(character.HeirExp);                    // heirExp (i64)
         stream.Write((uint)character.RecoverableExp);       // recoverableExp
         stream.Write(0u);                                   // penaltiedExp
         stream.Write(0u);                                   // returnDistrictId
@@ -63,7 +59,7 @@ public class SCCharacterStatePacket(Character character) : GamePacket(SCOffsets.
 
         stream.Write((byte)(character.AutoUseAAPoint ? 1 : 0)); // autoUseAAPoint (u8)
 
-        stream.Write(0u);                                   // expandSlotInfos size=0 (empty list)
+        stream.Write(0u);
 
         stream.Write((uint)character.JuryPoint);            // juryPoint
         stream.Write(0u);                                   // jailSeconds
@@ -94,12 +90,19 @@ public class SCCharacterStatePacket(Character character) : GamePacket(SCOffsets.
         stream.Write(0u);                                   // appellationStamp
 
         // equipSlotReinforces (optional group, always present): slotInfoList + levelEffectList, both empty
-        stream.Write(0u);                                   // slotInfoList size=0
-        stream.Write(0u);                                   // levelEffectList size=0
+        stream.Write(0u);
+        stream.Write(0u);
 
         stream.Write(false);                                // reservedQuestDropTarget (bool)
-        stream.Write(0u);                                   // merchantGoodsLimitPurchaseMap size=0
-        stream.Write(0u);                                   // actSanctionMap size=0
+        var merchantPurchases = NpcManager.Instance.GetMerchantPurchaseStates(character.Id);
+        stream.Write((uint)merchantPurchases.Count);         // merchantGoodsLimitPurchaseMap size
+        foreach (var (itemTemplateId, state) in merchantPurchases.OrderBy(entry => entry.Key))
+        {
+            stream.Write(itemTemplateId);                   // k: item template type (u32)
+            stream.Write(state.BuyCount);                   // v.buyCount (i32)
+            stream.Write((byte)state.PurchaseType);         // v.purchaseType (u8)
+        }
+        stream.Write(0u);
         stream.Write(0u);                                   // additionalSkillPoint
 
         return stream;

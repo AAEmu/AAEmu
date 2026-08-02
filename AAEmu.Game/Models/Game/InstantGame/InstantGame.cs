@@ -211,6 +211,8 @@ public partial class InstantGame
 
         // TODO: Unbind all events from characters
         WorldManager.Instance.RemoveWorld(_world.Id);
+        // Cleans the instance up and returns the instance Id to the pool
+        _world.Dispose();
         InstantGameManager.Instance.RemoveGame(this);
     }
 

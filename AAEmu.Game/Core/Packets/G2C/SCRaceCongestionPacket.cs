@@ -5,12 +5,14 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCRaceCongestionPacket() : GamePacket(SCOffsets.SCRaceCongestionPacket, 5)
 {
+    private const int NativeRaceCount = 10;
+    private const byte LowCongestion = 0;
+
     public override PacketStream Write(PacketStream stream)
     {
-        // 10.0.2.13: con[10] (u8) + forbidCharCreating (bool).
-        for (var i = 0; i < 10; i++)
-            stream.Write((byte)0); // con — 0 = LOW (race selectable)
-        stream.Write(false);       // forbidCharCreating
+        for (var i = 0; i < NativeRaceCount; i++)
+            stream.Write(LowCongestion);
+        stream.Write(false);
         return stream;
     }
 }

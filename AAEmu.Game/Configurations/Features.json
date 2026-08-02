@@ -1,0 +1,62 @@
+{
+    "Features": {
+        // Server-only switches. 10.0.2.13 dropped both bits from the fset blob; the server logic
+        // behind them is still live and never needed the client to know about it.
+        "TaxItem": true,
+        "BackpackProfitShare": true,
+
+        // fset feature bits, keyed by Feature enum name. Anything not listed here stays off:
+        // an enabled bit opens client UI and lets the client send packets, so only enable what the
+        // server answers. Bit positions live in Models/Game/Features/Feature.cs.
+        "Flags": {
+            // Backed by server systems.
+            "siege": true,
+            "premium": true,
+            "ingamecashshop": true,
+            "bm_mileage": true,
+            "houseTaxPrepay": true,
+            "mailCoolTime": true,
+            "hud_mail_box_button": true,
+            "slave_customize": true,
+            "ranking": true,
+            "freeLpRaise": true,
+            "auctionPostBuff": true,
+            "shopOnUI": true,
+
+            // Enables Dwarf/Warborn character creation. One bit gates both races; the client tests it
+            // as (uint)fset[8] & 0x400, i.e. byte 9 bit 2. Lua exports this bit as itemChangeMapping.
+            "dwarfWarborn": true,
+
+            // Family invites / family title. Native-only bit in 10.0.2.13 (1.2 called it allowFamilyChanges).
+            "fset_0_1_unknown": true,
+
+            // Custom UI (addon) Lua loading. Native-only bit in 10.0.2.13 (1.2 called it customUiButton).
+            "fset_4_7_unknown": true,
+
+            // Client-side or data-driven; no server system to back.
+            "customsaveload": true,
+            "hairTwoTone": true,
+            "chatRace": true,
+            "show_instance_in_hud": true,
+
+            // Web content. These open URLs built from InitialConfig.Host, which must serve them.
+            "eventWebLink": true,
+            "use_web_help": true,
+            "use_web_diary": true,
+            "use_web_messenger": true,
+            "use_web_wiki": true,
+
+            // No server implementation yet — the client opens the UI and gets no data back.
+            // Set to false to hide them until the systems land.
+            "event_center_event_info": true,
+            "event_center_content_schedule": true,
+            "event_center_today_assignment": true,
+            "use_palos_shop": true,
+
+            // Account-security gates, off for development logins.
+            "sensitiveOpeartion": false,
+            "secondpass": false,
+            "itemSecure": false
+        }
+    }
+}

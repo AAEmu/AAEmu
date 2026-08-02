@@ -33,7 +33,7 @@ public sealed class LoginSession(
 
     public ILoginConnection Connection { get; } = connection;
 
-    public ILoginClient Client { get; } = new LoginClient(connection);
+    public ILoginClient Client { get; } = new LoginClient(connection, appConfig);
 
     public LoginState State
     {

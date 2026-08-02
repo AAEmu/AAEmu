@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models;
@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Housing;
@@ -113,11 +114,11 @@ public sealed class House : Unit
                     if (doodad.IsPersistent)
                     {
                         if (doodad.ObjId > 0)
-                            ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+                            NonUnitObjectIdManager.Instance.ReleaseId(doodad.ObjId);
                         doodad.Delete();
                     }
                     else if (doodad.ObjId > 0)
-                        ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+                        NonUnitObjectIdManager.Instance.ReleaseId(doodad.ObjId);
                 }
                 AttachedDoodads.Clear();
             }
@@ -208,7 +209,7 @@ public sealed class House : Unit
             if (doodad.IsPersistent)
             {
                 if (doodad.ObjId > 0)
-                    ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+                    NonUnitObjectIdManager.Instance.ReleaseId(doodad.ObjId);
                 doodad.Delete(); // removes from DB and PlayerDoodads
             }
             else
@@ -216,7 +217,7 @@ public sealed class House : Unit
                 if (doodad.AttachPoint == AttachPointKind.None)
                     doodad.Transform.Parent = null; // detach furniture from transform hierarchy
                 if (doodad.ObjId > 0)
-                    ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+                    NonUnitObjectIdManager.Instance.ReleaseId(doodad.ObjId);
             }
         }
         base.Delete();
@@ -240,6 +241,13 @@ public sealed class House : Unit
     {
         character.SendPacket(new SCUnitStatePacket(this));
         character.SendPacket(new SCHouseStatePacket(this));
+
+        // UnitState carries a faction only for idType 0, so a house arrives unfactioned and reads as
+        // the unit's current faction equals the packet's oldId, and a freshly created unit sits at 0,
+        // so this has to be sent as Invalid → real exactly as Npc.AddVisibleObject does.
+        if (Faction != null)
+            character.SendPacket(new SCUnitFactionChangedPacket(
+                ObjId, Name ?? "", FactionsEnum.Invalid, Faction.Id, false));
 
         // TODO: This should be handled in the base.AddVisibleObject
         var doodads = AttachedDoodads.ToArray();
@@ -325,43 +333,68 @@ public sealed class House : Unit
         return true;
     }
 
+    private const int UccSlotCount = 5;
+
     public PacketStream Write(PacketStream stream)
     {
         var ownerName = NameManager.Instance.GetCharacterName(OwnerId);
         var sellToPlayerName = NameManager.Instance.GetCharacterName(SellToPlayerId);
 
-        stream.Write(TlId);
-        stream.Write(Id); // dbId
+        // single pisc of three values rather than a plain templateId followed by a two-value pisc
+        // (the write branch pushes struct +3, +0x2F and +0x30, and the read branch primes the
+        // decoder with a count of 3); payMoneyAmount moved ahead of the owner pair and widened,
+        // as did the owner ids and accountId; and the tail gained isPublic, isBoundButler, five
+        // ucc slots and two positions.
+        //
+        // passes struct +3 to its housing template lookup, and copies +0x2F and +0x30 into the House
+        // object it builds. Those two sit immediately after permission (+0x2E) — the same place v1.2
+        // wrote allstep/curstep as plain i32s — so 10.0.2.13 only moved the pair into the pisc group,
+        // it did not remove it. A finished house reports 0/0, as it did in v1.2; that is what stops the
+        // client treating the building as a construction site and re-enables its interactions.
+        var allStep = CurrentStep == -1 ? 0u : (uint)AllAction;
+        var curStep = CurrentStep == -1 ? 0u : (uint)CurrentAction;
+
+        stream.Write(TlId);                                     // tl (i16)
+        stream.Write(Id);                                       // dbId (i32)
         stream.WriteBc(ObjId);
-        stream.Write(TemplateId);
-        stream.WritePisc(ModelId, 0);
-        //stream.Write(ModelId); // ht
-        stream.Write(CoOwnerId); // original owner who placed the building
-        stream.Write(OwnerId); // current owner
-        stream.Write(ownerName ?? "");
-        stream.Write(AccountId);
-        stream.Write((byte)Permission);
-
-        if (CurrentStep == -1)
-        {
-            stream.Write(0);
-            stream.Write(0);
-        }
-        else
-        {
-            stream.Write(AllAction); // allstep
-            stream.Write(CurrentAction); // curstep
-        }
-
-        stream.Write(Template?.Taxation?.Tax ?? 0); // payMoneyAmount
+        stream.WritePisc(TemplateId, allStep, curStep);         // templateId, allstep, curstep
+        stream.Write((ulong)(Template?.Taxation?.Tax ?? 0));    // moneyAmount (u64)
+        stream.Write(ModelId);                                  // ht (u32)
+        stream.Write((ulong)CoOwnerId);                         // original owner who placed it (u64)
+        stream.Write((ulong)OwnerId);                           // current owner (u64)
+        stream.Write(ownerName ?? "");                          // owner (string, cap 0x80)
+        stream.Write((long)AccountId);                          // accountId (i64)
+        stream.Write((byte)Permission);                         // permission (i8)
         stream.Write(Helpers.ConvertLongX(Transform.World.Position.X));
         stream.Write(Helpers.ConvertLongY(Transform.World.Position.Y));
         stream.Write(Transform.World.Position.Z);
-        stream.Write(Name); // house // TODO max length 128
-        stream.Write(AllowRecover); // allowRecover
-        stream.Write(SellPrice); // Sale moneyAmount
-        stream.Write(SellToPlayerId); // type(id)
-        stream.Write(sellToPlayerName ?? ""); // sellToName
+        stream.Write(Name);                                     // house (string, cap 0x80)
+        stream.Write(AllowRecover);                             // allowRecover (bool)
+        stream.Write((ulong)SellPrice);                         // sale moneyAmount (u64)
+        stream.Write(sellToPlayerName ?? "");                   // sellToName (string, cap 0x80)
+        stream.Write(0u);                                       // TODO(v10): expandedDecoLimit — no server-side source yet
+        stream.Write(0);                                        // unnamed i32 at struct +0x80
+        stream.Write(Permission == HousingPermission.Public);   // isPublic (bool)
+        stream.Write(false);                                    // TODO(v10): isBoundButler — butlers are not modelled yet
+        stream.Write(0);                                        // unnamed i32 at struct +0x82
+
+        // Five ucc slots, each houseId + u64 + kind + position. Empty until user-created content
+        // is modelled; the client reads all five unconditionally.
+        for (var i = 0; i < UccSlotCount; i++)
+        {
+            stream.Write(0);   // houseId (i32)
+            stream.Write(0ul); // u64
+            stream.Write(0u);  // ucc_kind
+            stream.Write(0u);  // ucc_positon
+        }
+
+        for (var i = 0; i < 2; i++)
+        {
+            stream.Write(0ul);
+            stream.Write(0ul);
+            stream.Write(0f);
+        }
+
         return stream;
     }
 

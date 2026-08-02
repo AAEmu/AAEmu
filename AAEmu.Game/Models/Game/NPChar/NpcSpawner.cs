@@ -1364,7 +1364,13 @@ public class NpcSpawner : Spawner<Npc>
         var templateNsnTask2 = template.Npcs.FirstOrDefault(nsn => nsn != null && nsn.MemberId == UnitId);
         if (templateNsnTask2 != null)
         {
-            n = templateNsnTask2.Spawn(this);
+            var ownerId = caster switch
+            {
+                Character character => character.Id,
+                Npc creatorNpc => creatorNpc.OwnerId,
+                _ => default
+            };
+            n = templateNsnTask2.Spawn(this, ownerId);
         }
 
         try
@@ -1385,16 +1391,7 @@ public class NpcSpawner : Spawner<Npc>
 
                 if (effect.UseSummonerAggroTarget && !effect.UseSummonerFaction)
                 {
-                    if (target is Npc)
-                    {
-                        npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, (Unit)target, 1);
-                    }
-                    else
-                    {
-                        npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, (Unit)caster, 1);
-                    }
-
-                    npc.Ai.OnAggroTargetChanged();
+                    npc.AddUnitAggro(AggroKind.Damage, target is Npc ? (Unit)target : (Unit)caster, 1);
                 }
 
                 if (effect.LifeTime > 0)

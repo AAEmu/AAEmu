@@ -1,17 +1,22 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCDeleteBlockedUserPacket(uint characterId, bool success, string blockedName, short errorMessage)
+/// <summary>
+/// </summary>
+public class SCDeleteBlockedUserPacket(
+    ulong characterId,
+    bool success,
+    ErrorMessageType errorMessage)
     : GamePacket(SCOffsets.SCDeleteBlockedUserPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(characterId);
         stream.Write(success);
-        stream.Write(blockedName);
-        stream.Write(errorMessage);
+        stream.Write((short)errorMessage);
         return stream;
     }
 }

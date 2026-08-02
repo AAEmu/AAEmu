@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -7,8 +8,9 @@ public class CSListSpecialtyGoodsPacket() : GamePacket(CSOffsets.CSListSpecialty
 {
     public override void Read(PacketStream stream)
     {
-        var objId = stream.ReadBc();
+        var npcObjId = stream.ReadBc();
+        var characterObjId = stream.ReadBc();
 
-        Logger.Warn("ListSpecialtyGoods, ObjId: {0}", objId);
+        SpecialtyManager.Instance.SendSellList(Connection.ActiveChar, npcObjId, characterObjId);
     }
 }

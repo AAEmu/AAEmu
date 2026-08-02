@@ -11,6 +11,9 @@ public class SpecialEffect : EffectTemplate
     public int Value2 { get; set; }
     public int Value3 { get; set; }
     public int Value4 { get; set; }
+    public int Value5 { get; set; }
+    public int Value6 { get; set; }
+    public int Value7 { get; set; }
 
     public override bool OnActionTime => false;
 
@@ -20,7 +23,9 @@ public class SpecialEffect : EffectTemplate
     {
         if (source == null) return;
 
-        Logger.ConditionalTrace("SpecialEffect, Special: {0}, Value1: {1}, Value2: {2}, Value3: {3}, Value4: {4}", SpecialEffectTypeId, Value1, Value2, Value3, Value4);
+        Logger.ConditionalTrace(
+            "SpecialEffect, Special: {0}, Values: [{1}, {2}, {3}, {4}, {5}, {6}, {7}]",
+            SpecialEffectTypeId, Value1, Value2, Value3, Value4, Value5, Value6, Value7);
 
         var classType = Type.GetType("AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects." + SpecialEffectTypeId);
         if (classType == null)
@@ -33,17 +38,21 @@ public class SpecialEffect : EffectTemplate
         }
 
         var action = (SpecialEffectAction)Activator.CreateInstance(classType);
-        if (source.Skill?.Template.EffectRepeatCount > 1)
+        void ExecuteAction() => action?.Execute(caster, casterObj, target, targetObj, castObj, source.Skill,
+            skillObject, time, Value1, Value2, Value3, Value4, Value5, Value6, Value7);
+
+        var repeatCount = source.Skill?.Template.EffectRepeatCount ?? 0;
+        if (repeatCount > 1)
         {
-            for (var i = 0; i < source.Skill.Template.EffectRepeatCount; i++)
-            {
-                action?.Execute(caster, casterObj, target, targetObj, castObj, source.Skill, skillObject, time, Value1, Value2, Value3, Value4);
-                Thread.Sleep(TimeSpan.FromMilliseconds(source.Skill.Template.EffectRepeatTick));
-            }
+            ExecuteAction();
+            var tick = TimeSpan.FromMilliseconds(Math.Max(1, source.Skill.Template.EffectRepeatTick));
+            global::AAEmu.Game.Core.Managers.TaskManager.Instance.Schedule(
+                new global::AAEmu.Game.Models.Tasks.Skills.SpecialEffectRepeatTask(ExecuteAction), tick, tick,
+                repeatCount - 1);
         }
         else
         {
-            action?.Execute(caster, casterObj, target, targetObj, castObj, source.Skill, skillObject, time, Value1, Value2, Value3, Value4);
+            ExecuteAction();
         }
     }
 }

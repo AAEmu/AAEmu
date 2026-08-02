@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 
@@ -8,7 +8,6 @@ public class SCActabilityPacket(bool last, Actability[] actabilities) : GamePack
 {
     public override PacketStream Write(PacketStream stream)
     {
-        // 10.0.2.13 body:
         // last(bool) | count(u8, max 100) | per entry: pish/pisc(id, point) then step(u8). The old fixed
         // id(u32)+point(u32)+step layout is ~4 bytes too long per entry and trips the client size check.
         stream.Write(last);

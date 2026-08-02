@@ -134,11 +134,13 @@ public class GimmickSpawner : Spawner<Gimmick>
     public override void Despawn(Gimmick gimmick)
     {
         ParentWorld.GimmickManager.RemoveActiveGimmick(gimmick);
+        if (WorldIntegration.ZoneAuthority)
+            WorldIntegration.RelayGimmickRemovedToZone?.Invoke(gimmick.ObjId);
         gimmick.Delete();
         if (gimmick.Respawn == DateTime.MinValue)
         {
             if (gimmick.ObjId > 0)
-                ObjectIdManager.Instance.ReleaseId(gimmick.ObjId);
+                NonUnitObjectIdManager.Instance.ReleaseId(gimmick.ObjId);
             if (gimmick.GimmickId > 0)
                 GimmickIdManager.Instance.ReleaseId(gimmick.GimmickId);
         }

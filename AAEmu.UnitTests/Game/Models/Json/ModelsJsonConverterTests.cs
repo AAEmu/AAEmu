@@ -26,7 +26,6 @@ public class ModelsJsonConverterTests
     [Arguments(typeof(JsonPosition), true)]
     [Arguments(typeof(JsonQuestSphere), true)]
     [Arguments(typeof(JsonDoodadSpawns), true)]
-    [Arguments(typeof(JsonNpcSpawns), true)]
     [Arguments(typeof(string), false)]
     [Arguments(typeof(int), false)]
     [Arguments(typeof(object), false)]
@@ -224,76 +223,23 @@ public class ModelsJsonConverterTests
 
     #endregion
 
-    #region JsonNpcSpawns Tests
-
-    [Test]
-    public async Task SerializeNpcSpawns_WithAllFields_WritesCorrectJson()
-    {
-        // Arrange
-        var converter = new JsonModelsConverter();
-        var npcSpawns = new JsonNpcSpawns
-        {
-            Id = 1,
-            UnitId = 100,
-            Title = "Test NPC",
-            FollowPath = "/path/to/follow",
-            Position = new JsonPosition
-            {
-                X = 1000f,
-                Y = 2000f,
-                Z = 3000f,
-                Yaw = 90,
-                Pitch = 0,
-                Roll = 0
-            },
-            Scale = 1.5f
-        };
-
-        // Act
-        var json = JsonConvert.SerializeObject(npcSpawns, converter);
-
-        // Assert
-        await Assert.That(json).Contains("1");
-        await Assert.That(json).Contains("100");
-        await Assert.That(json).Contains("Test NPC");
-        await Assert.That(json).Contains("1.5");
-    }
-
-    [Test]
-    public async Task SerializeNpcSpawns_WithZeroPosition_OmitsRotation()
-    {
-        // Arrange
-        var converter = new JsonModelsConverter();
-        var npcSpawns = new JsonNpcSpawns
-        {
-            Id = 1,
-            UnitId = 1,
-            Title = "test",
-            FollowPath = "test",
-            Position = new JsonPosition
-            {
-                X = 1,
-                Y = 1,
-                Z = 1,
-                Yaw = 0,
-                Pitch = 0,
-                Roll = 0
-            },
-            Scale = 1f
-        };
-
-        // Act
-        var json = JsonConvert.SerializeObject(npcSpawns, converter);
-
-        // Assert
-        await Assert.That(json).DoesNotContain("Yaw");
-        await Assert.That(json).DoesNotContain("Pitch");
-        await Assert.That(json).DoesNotContain("Roll");
-    }
-
-    #endregion
-
     #region JsonDoodadSpawns Tests
+
+    [Test]
+    public async Task DeserializeQuestSphere_ReadsAllFields()
+    {
+        var converter = new JsonModelsConverter();
+        const string json = "{\"Id\":5,\"QuestId\":17,\"SphereId\":23,\"Radius\":8.5,\"Position\":{\"X\":1,\"Y\":2,\"Z\":3}}";
+
+        var sphere = JsonConvert.DeserializeObject<JsonQuestSphere>(json, converter);
+
+        await Assert.That(sphere).IsNotNull();
+        await Assert.That(sphere.Id).IsEqualTo(5u);
+        await Assert.That(sphere.QuestId).IsEqualTo(17u);
+        await Assert.That(sphere.SphereId).IsEqualTo(23u);
+        await Assert.That(sphere.Radius).IsEqualTo(8.5f);
+        await Assert.That(sphere.Position.Z).IsEqualTo(3f);
+    }
 
     [Test]
     public async Task SerializeDoodadSpawns_WritesCorrectJson()
@@ -313,6 +259,31 @@ public class ModelsJsonConverterTests
         // Assert
         await Assert.That(json).Contains("42");
         await Assert.That(json).Contains("100");
+    }
+
+    [Test]
+    public async Task DoodadSpawns_RoundTripPreservesRelatedIdsAndPosition()
+    {
+        var converter = new JsonModelsConverter();
+        var source = new JsonDoodadSpawns
+        {
+            Id = 42,
+            UnitId = 100,
+            Title = "Pulse trigger",
+            RelatedIds = [7, 9],
+            Position = new JsonPosition { X = 5, Y = 6, Z = 7 },
+            FuncGroupId = 11,
+            Scale = 1.25f
+        };
+
+        var json = JsonConvert.SerializeObject(source, converter);
+        var result = JsonConvert.DeserializeObject<JsonDoodadSpawns>(json, converter);
+
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.RelatedIds).IsEquivalentTo(new uint[] { 7, 9 });
+        await Assert.That(result.Position.Y).IsEqualTo(6f);
+        await Assert.That(result.FuncGroupId).IsEqualTo(11u);
+        await Assert.That(result.Scale).IsEqualTo(1.25f);
     }
 
     #endregion

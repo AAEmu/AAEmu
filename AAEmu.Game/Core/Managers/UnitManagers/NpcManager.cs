@@ -1,10 +1,10 @@
 ﻿using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.Creatures;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
-using AAEmu.Game.Models.Game.AI.Enums;
-using AAEmu.Game.Models.Game.AI.Utils;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Tasks.Merchant;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
 
@@ -20,7 +21,12 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.UnitManagers;
 
-public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelManager, IFactionManager factionManager, IItemManager itemManager, IAIManager aiManager) : Singleton<NpcManager>, INpcManager
+public class NpcManager(
+    IObjectIdManager objectIdManager,
+    IModelManager modelManager,
+    IFactionManager factionManager,
+    IItemManager itemManager,
+    ITaskManager taskManager) : Singleton<NpcManager>, INpcManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool Loaded { get; set; }
@@ -38,6 +44,8 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
     /// List of goods a merchant sells
     /// </summary>
     private Dictionary<uint, MerchantGoods> Goods { get; } = [];
+    private readonly object _merchantPurchaseLock = new();
+    private readonly Dictionary<(uint CharacterId, uint ItemTemplateId), MerchantPurchaseState> _merchantPurchases = [];
     /// <summary>
     /// Definitions for custom looks of humanoid NPCs
     /// </summary>
@@ -103,6 +111,214 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
     public MerchantGoods GetGoods(uint id)
     {
         return Goods.GetValueOrDefault(id);
+    }
+
+    public IReadOnlyDictionary<uint, MerchantPurchaseState> GetMerchantPurchaseStates(uint characterId)
+    {
+        var now = DateTime.UtcNow;
+        lock (_merchantPurchaseLock)
+        {
+            return _merchantPurchases.Values
+                .Where(state => state.CharacterId == characterId && state.BuyCount > 0 &&
+                                state.PeriodStart == GetPeriodStart(state.PurchaseType, now))
+                .ToDictionary(state => state.ItemTemplateId, state => state);
+        }
+    }
+
+    public bool TryReserveMerchantPurchases(
+        uint characterId,
+        IEnumerable<(MerchantGoodsItem Good, int Count)> purchases,
+        out MerchantGoodsItem failedGood,
+        out IReadOnlyDictionary<uint, MerchantPurchaseState> updatedStates)
+    {
+        failedGood = null;
+        updatedStates = new Dictionary<uint, MerchantPurchaseState>();
+        var limited = purchases
+            .Where(purchase => purchase.Good.PurchaseLimit > 0 && purchase.Count > 0)
+            .GroupBy(purchase => purchase.Good.ItemTemplateId)
+            .Select(group => (Good: group.First().Good, Count: group.Sum(entry => (long)entry.Count)))
+            .ToList();
+        if (limited.Count == 0)
+            return true;
+
+        var now = DateTime.UtcNow;
+        lock (_merchantPurchaseLock)
+        {
+            var proposed = new Dictionary<(uint CharacterId, uint ItemTemplateId), MerchantPurchaseState>();
+            foreach (var purchase in limited)
+            {
+                var good = purchase.Good;
+                var key = (characterId, good.ItemTemplateId);
+                var periodStart = GetPeriodStart(good.PurchaseType, now);
+                var buyCount = 0;
+                if (_merchantPurchases.TryGetValue(key, out var current) &&
+                    current.PurchaseType == good.PurchaseType && current.PeriodStart == periodStart)
+                {
+                    buyCount = current.BuyCount;
+                }
+
+                if (purchase.Count > good.PurchaseLimit - (long)buyCount)
+                {
+                    failedGood = good;
+                    return false;
+                }
+
+                proposed[key] = new MerchantPurchaseState
+                {
+                    CharacterId = characterId,
+                    ItemTemplateId = good.ItemTemplateId,
+                    BuyCount = buyCount + (int)purchase.Count,
+                    PurchaseType = good.PurchaseType,
+                    PeriodStart = periodStart
+                };
+            }
+
+            try
+            {
+                SaveMerchantPurchases(proposed.Values);
+            }
+            catch (Exception exception)
+            {
+                Logger.Error(exception, "Failed to reserve limited merchant purchases for character {0}", characterId);
+                return false;
+            }
+
+            foreach (var (key, state) in proposed)
+                _merchantPurchases[key] = state;
+            updatedStates = proposed.Values.ToDictionary(state => state.ItemTemplateId, state => state);
+            return true;
+        }
+    }
+
+    public bool TryRollbackMerchantPurchases(
+        uint characterId,
+        IEnumerable<(MerchantGoodsItem Good, int Count)> purchases)
+    {
+        var limited = purchases
+            .Where(purchase => purchase.Good.PurchaseLimit > 0 && purchase.Count > 0)
+            .GroupBy(purchase => purchase.Good.ItemTemplateId)
+            .Select(group => (Good: group.First().Good, Count: group.Sum(entry => (long)entry.Count)))
+            .ToList();
+        if (limited.Count == 0)
+            return true;
+
+        lock (_merchantPurchaseLock)
+        {
+            var rolledBack = new Dictionary<(uint CharacterId, uint ItemTemplateId), MerchantPurchaseState>();
+            foreach (var purchase in limited)
+            {
+                var key = (characterId, purchase.Good.ItemTemplateId);
+                if (!_merchantPurchases.TryGetValue(key, out var current) ||
+                    current.PurchaseType != purchase.Good.PurchaseType || current.BuyCount < purchase.Count)
+                {
+                    return false;
+                }
+
+                rolledBack[key] = new MerchantPurchaseState
+                {
+                    CharacterId = current.CharacterId,
+                    ItemTemplateId = current.ItemTemplateId,
+                    BuyCount = current.BuyCount - (int)purchase.Count,
+                    PurchaseType = current.PurchaseType,
+                    PeriodStart = current.PeriodStart
+                };
+            }
+
+            try
+            {
+                SaveMerchantPurchases(rolledBack.Values);
+            }
+            catch (Exception exception)
+            {
+                Logger.Error(exception, "Failed to roll back limited merchant purchases for character {0}", characterId);
+                return false;
+            }
+
+            foreach (var (key, state) in rolledBack)
+            {
+                if (state.BuyCount == 0)
+                    _merchantPurchases.Remove(key);
+                else
+                    _merchantPurchases[key] = state;
+            }
+            return true;
+        }
+    }
+
+    public void ResetMerchantPurchases(MerchantPurchaseType purchaseType)
+    {
+        lock (_merchantPurchaseLock)
+        {
+            using var connection = MySQL.CreateConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText = "DELETE FROM character_merchant_purchases WHERE purchase_type = @purchase_type";
+            command.Parameters.AddWithValue("@purchase_type", (byte)purchaseType);
+            command.Prepare();
+            command.ExecuteNonQuery();
+
+            foreach (var key in _merchantPurchases
+                         .Where(entry => entry.Value.PurchaseType == purchaseType)
+                         .Select(entry => entry.Key)
+                         .ToList())
+            {
+                _merchantPurchases.Remove(key);
+            }
+        }
+
+        var resetMask = (sbyte)(2 << (byte)purchaseType);
+        foreach (var character in WorldManager.Instance.GetAllCharacters())
+            character.SendPacket(new SCResetMerchantGoodLimitPurchasePacket(resetMask));
+    }
+
+    public void Initialize()
+    {
+        taskManager.CronSchedule(
+            new MerchantPurchaseResetTask(MerchantPurchaseType.Daily),
+            "0 0 0 */1 * *");
+        taskManager.CronSchedule(
+            new MerchantPurchaseResetTask(MerchantPurchaseType.Weekly),
+            "0 0 0 * * 1");
+        taskManager.CronSchedule(
+            new MerchantPurchaseResetTask(MerchantPurchaseType.Monthly),
+            "0 0 0 1 * *");
+    }
+
+    private static DateTime GetPeriodStart(MerchantPurchaseType purchaseType, DateTime now)
+    {
+        var utc = now.Kind == DateTimeKind.Utc ? now : now.ToUniversalTime();
+        return purchaseType switch
+        {
+            MerchantPurchaseType.Always => DateTime.UnixEpoch,
+            MerchantPurchaseType.Daily => utc.Date,
+            MerchantPurchaseType.Weekly => utc.Date.AddDays(-((7 + (int)utc.DayOfWeek - (int)DayOfWeek.Monday) % 7)),
+            MerchantPurchaseType.Monthly => new DateTime(utc.Year, utc.Month, 1, 0, 0, 0, DateTimeKind.Utc),
+            _ => DateTime.MaxValue
+        };
+    }
+
+    private static void SaveMerchantPurchases(IEnumerable<MerchantPurchaseState> states)
+    {
+        using var connection = MySQL.CreateConnection();
+        using var transaction = connection.BeginTransaction();
+        foreach (var state in states)
+        {
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText =
+                "INSERT INTO character_merchant_purchases " +
+                "(character_id, item_id, buy_count, purchase_type, period_start) " +
+                "VALUES (@character_id, @item_id, @buy_count, @purchase_type, @period_start) " +
+                "ON DUPLICATE KEY UPDATE buy_count = VALUES(buy_count), " +
+                "purchase_type = VALUES(purchase_type), period_start = VALUES(period_start)";
+            command.Parameters.AddWithValue("@character_id", state.CharacterId);
+            command.Parameters.AddWithValue("@item_id", state.ItemTemplateId);
+            command.Parameters.AddWithValue("@buy_count", state.BuyCount);
+            command.Parameters.AddWithValue("@purchase_type", (byte)state.PurchaseType);
+            command.Parameters.AddWithValue("@period_start", state.PeriodStart);
+            command.Prepare();
+            command.ExecuteNonQuery();
+        }
+        transaction.Commit();
     }
 
     /// <summary>
@@ -176,17 +392,6 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
 
         npc.Hp = npc.MaxHp;
         npc.Mp = npc.MaxMp;
-
-        if (npc.Template.AiFileId > 0)
-        {
-            var ai = AiUtils.GetAiByType((AiParamType)npc.Template.AiFileId, npc);
-            if (ai == null)
-                return npc;
-
-            npc.Ai = ai;
-            aiManager.AddAi(ai);
-            npc.Ai.Start();
-        }
 
         return npc;
     }
@@ -498,7 +703,6 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                             ModelId = reader.GetUInt32("model_id"),
                             FactionId = (FactionsEnum)reader.GetUInt32("faction_id"),
                             SkillTrainer = reader.GetBoolean("skill_trainer", true),
-                            AiFileId = reader.GetInt32("ai_file_id"),
                             Merchant = reader.GetBoolean("merchant", true),
                             NpcNicknameId = reader.GetInt32("npc_nickname_id"),
                             Auctioneer = reader.GetBoolean("auctioneer", true),
@@ -526,7 +730,6 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
                             AcceptAggroLink = reader.GetBoolean("accept_aggro_link", true),
                             // recruiting_battle_field_id column removed in 10.0.2.13 schema
                             ReturnDistance = reader.GetFloat("return_distance"),
-                            NpcAiParamId = reader.GetInt32("npc_ai_param_id"),
                             NonPushableByActor = reader.GetBoolean("non_pushable_by_actor", true),
                             Banker = reader.GetBoolean("banker", true),
                             AggroLinkSpecialRuleId = (AggroLinkSpecialRuleKind)reader.GetInt32("aggro_link_special_rule_id"),
@@ -819,20 +1022,70 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
             Logger.Info("Loading merchant packs...");
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM merchant_goods";
+                command.CommandText = "SELECT id, kind_id, item_point_id FROM merchant_packs";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
                     while (reader.Read())
                     {
-                        var id = reader.GetUInt32("merchant_pack_id");
-                        if (!Goods.ContainsKey(id))
-                            Goods.Add(id, new MerchantGoods(id));
+                        var id = reader.GetUInt32("id");
+                        Goods[id] = new MerchantGoods(
+                            id,
+                            (MerchantPackKind)reader.GetByte("kind_id"),
+                            reader.GetUInt32("item_point_id"));
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM merchant_goods WHERE enable = 't'";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var packId = reader.GetUInt32("merchant_pack_id");
+                        if (!Goods.TryGetValue(packId, out var pack))
+                            continue;
 
                         var itemId = reader.GetUInt32("item_id");
                         var grade = reader.GetByte("grade_id");
+                        var currency = pack.Kind switch
+                        {
+                            MerchantPackKind.Money => ShopCurrencyType.Money,
+                            MerchantPackKind.Honor => ShopCurrencyType.Honor,
+                            MerchantPackKind.Vocation => ShopCurrencyType.VocationBadges,
+                            MerchantPackKind.ItemPoint or MerchantPackKind.CustomItemPoint => ShopCurrencyType.ItemPoint,
+                            _ => (ShopCurrencyType)byte.MaxValue
+                        };
+                        if (currency == (ShopCurrencyType)byte.MaxValue)
+                            continue;
 
-                        Goods[id].AddItemToStock(itemId, grade);
+                        var overrideCost = reader.GetInt32("cost");
+                        int? price = pack.Kind == MerchantPackKind.CustomItemPoint
+                            ? overrideCost
+                            : overrideCost > 0
+                                ? overrideCost
+                                : itemManager.GetShopPrice(itemId, currency);
+                        if (price is null || price < 0)
+                        {
+                            Logger.Warn(
+                                "Skipping merchant good {0} in pack {1}: item {2} has no non-negative price for currency {3}",
+                                reader.GetUInt32("id"), packId, itemId, currency);
+                            continue;
+                        }
+
+                        pack.AddItemToStock(new MerchantGoodsItem
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ItemTemplateId = itemId,
+                            Grade = grade,
+                            Cost = price.Value,
+                            Currency = currency,
+                            PurchaseType = (MerchantPurchaseType)reader.GetByte("purchase_type_id"),
+                            PurchaseLimit = reader.GetInt32("purchase_limit")
+                        });
                     }
                 }
             }
@@ -840,20 +1093,42 @@ public class NpcManager(IObjectIdManager objectIdManager, IModelManager modelMan
             Logger.Info($"Loaded {Goods.Count} merchant packs");
         }
 
+        LoadMerchantPurchases();
+
         // NpcGameData.Instance.LoadMemberAndSpawnerTemplateIds();
 
         Loaded = true;
     }
 
-    /// <summary>
-    /// Load AI settings from AiGameData into the Npc templates
-    /// </summary>
-    public void LoadAiParams()
+    private void LoadMerchantPurchases()
     {
-        foreach (var npc in Templates.Values)
+        lock (_merchantPurchaseLock)
         {
-            npc.AiParams = AiGameData.Instance.GetAiParamsForId((uint)npc.NpcAiParamId);
+            _merchantPurchases.Clear();
+            using var connection = MySQL.CreateConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT * FROM character_merchant_purchases";
+            command.Prepare();
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                var periodStart = DateTime.SpecifyKind(reader.GetDateTime("period_start"), DateTimeKind.Utc);
+                var state = new MerchantPurchaseState
+                {
+                    CharacterId = reader.GetUInt32("character_id"),
+                    ItemTemplateId = reader.GetUInt32("item_id"),
+                    BuyCount = reader.GetInt32("buy_count"),
+                    PurchaseType = (MerchantPurchaseType)reader.GetByte("purchase_type"),
+                    PeriodStart = periodStart
+                };
+                if (state.BuyCount <= 0 || GetPeriodStart(state.PurchaseType, DateTime.UtcNow) == DateTime.MaxValue)
+                    continue;
+
+                _merchantPurchases[(state.CharacterId, state.ItemTemplateId)] = state;
+            }
         }
+
+        Logger.Info("Loaded {0} character merchant purchase limits", _merchantPurchases.Count);
     }
 
     /// <summary>

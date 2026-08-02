@@ -14,6 +14,20 @@
         "NumBankSlot": 50
     },
     {
+        "Id": 3,
+        "Name": "Dwarf",
+        "Pos": {
+            "X": 7664.0,
+            "Y": 12957.0,
+            "Z": 400.0,
+            "Roll": 0,
+            "Pitch": 0,
+            "Yaw": 0
+        },
+        "NumInventorySlot": 50,
+        "NumBankSlot": 50
+    },
+    {
         "Id": 4,
         "Name": "Elf",
         "Pos": {
@@ -51,6 +65,20 @@
             "Roll": 0,
             "Pitch": 0,
             "Yaw": 200
+        },
+        "NumInventorySlot": 50,
+        "NumBankSlot": 50
+    },
+    {
+        "Id": 8,
+        "Name": "Warborn",
+        "Pos": {
+            "X": 20988.0,
+            "Y": 5628.0,
+            "Z": 200.0,
+            "Roll": 0,
+            "Pitch": 0,
+            "Yaw": 0
         },
         "NumInventorySlot": 50,
         "NumBankSlot": 50

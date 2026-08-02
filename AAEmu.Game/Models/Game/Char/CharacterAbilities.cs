@@ -1,12 +1,15 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
 using MySql.Data.MySqlClient;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Char;
 
 public class CharacterAbilities
 {
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
     public Dictionary<AbilityType, Ability> Abilities { get; set; }
     public Character Owner { get; set; }
 
@@ -44,26 +47,57 @@ public class CharacterAbilities
 
     public void AddExp(AbilityType type, int exp)
     {
-        // TODO SCAbilityExpChangedPacket
-        if (type != AbilityType.None)
-            Abilities[type].Exp += exp;
+        if (exp == 0 || !Abilities.TryGetValue(type, out var ability))
+            return;
+
+        ApplyExpDelta(ability, exp);
+
+        // server mirror first, then notify the client so reconnect/save paths observe the same state.
+        Owner.SendPacket(new SCAbilityExpChangedPacket(Owner.ObjId, type, exp));
     }
 
     public void AddActiveExp(int exp)
     {
-        // TODO SCExpChangedPacket
-        var maxLevelExp = ExperienceManager.Instance.GetExpForLevel(ExperienceManager.Instance.MaxPlayerLevel);
         if (Owner.Ability1 != AbilityType.None)
-            Abilities[Owner.Ability1].Exp = Math.Min(Abilities[Owner.Ability1].Exp + exp, maxLevelExp);
+            ApplyExpDelta(Abilities[Owner.Ability1], exp);
         if (Owner.Ability2 != AbilityType.None)
-            Abilities[Owner.Ability2].Exp = Math.Min(Abilities[Owner.Ability2].Exp + exp, maxLevelExp);
+            ApplyExpDelta(Abilities[Owner.Ability2], exp);
         if (Owner.Ability3 != AbilityType.None)
-            Abilities[Owner.Ability3].Exp = Math.Min(Abilities[Owner.Ability3].Exp + exp, maxLevelExp);
+            ApplyExpDelta(Abilities[Owner.Ability3], exp);
+    }
+
+    /// <summary>
+    /// de-level the ability, and cannot advance beyond the owner's current character level.
+    /// </summary>
+    private void ApplyExpDelta(Ability ability, int exp)
+    {
+        var experienceManager = ExperienceManager.Instance;
+        var abilityLevel = experienceManager.GetLevelFromExp(Math.Max(0, ability.Exp), out _);
+        if (abilityLevel > Owner.Level)
+            return;
+
+        var levelFloor = experienceManager.GetExpForLevel(abilityLevel);
+        var nextOwnerLevelExp = experienceManager.GetExpForLevel((byte)(Owner.Level + 1));
+        var ownerLevelCeiling = nextOwnerLevelExp > 0
+            ? nextOwnerLevelExp - 1
+            : experienceManager.GetExpForLevel(Owner.Level);
+        var globalLevelCeiling = experienceManager.GetExpForLevel(experienceManager.MaxPlayerLevel);
+        var levelCeiling = Math.Min(ownerLevelCeiling, globalLevelCeiling);
+
+        var updatedExp = (long)ability.Exp + exp;
+        ability.Exp = (int)Math.Clamp(updatedExp, levelFloor, levelCeiling);
     }
 
     public void Swap(AbilityType oldAbilityId, AbilityType abilityId)
     {
-        Owner.Skills.Reset(oldAbilityId);
+        // Adding into an empty slot sends oldAbilityId = None (30). There is nothing to wipe, and
+        // SCSkillsReset(None) makes the client look up ability name 30 → "invalid ability".
+        var isAdding = oldAbilityId is AbilityType.None or AbilityType.General;
+        if (!isAdding)
+            Owner.Skills.Reset(oldAbilityId);
+
+        // 0x147 reports every slot's before/after pair, so snapshot all three before mutating.
+        AbilityType[] before = [Owner.Ability1, Owner.Ability2, Owner.Ability3];
         if (Owner.Ability1 == oldAbilityId)
         {
             Owner.Ability1 = abilityId;
@@ -74,37 +108,62 @@ public class CharacterAbilities
             Owner.Ability2 = abilityId;
             Abilities[abilityId].Order = 1;
 
-            //This sets are current ability level to match ability1 since its suppost to be in sync
-            if (oldAbilityId == AbilityType.None)
-            {
+            // Keep ability level in sync with ability1 when filling an empty slot.
+            if (isAdding)
                 Abilities[Owner.Ability2].Exp = Abilities[Owner.Ability1].Exp;
-            }
         }
         else if (Owner.Ability3 == oldAbilityId)
         {
             Owner.Ability3 = abilityId;
             Abilities[abilityId].Order = 2;
 
-            if (oldAbilityId == AbilityType.None)
+            if (isAdding)
             {
                 Abilities[Owner.Ability3].Exp = Abilities[Owner.Ability1].Exp;
 
-                //every unchosen ability is default level 10 besides are selected ones since spillover exp can unsync character exp with skill exp
+                // Unchosen trees default to level 10 so spillover exp cannot desync them.
                 var c = GetActiveAbilities();
                 for (var i = 1; i < Abilities.Count; i++)
                 {
                     var id = (AbilityType)i;
                     if (!c.Contains(Abilities[id].Id))
-                    {
                         Abilities[id].Exp = 42000;
-                    }
                 }
             }
         }
+        else
+        {
+            Logger.Warn(
+                "SwapAbility: no slot matched old={0} new={1} (slots {2}/{3}/{4})",
+                oldAbilityId, abilityId, Owner.Ability1, Owner.Ability2, Owner.Ability3);
+            return;
+        }
 
-        if (oldAbilityId != AbilityType.None)
+        if (!isAdding)
             Abilities[oldAbilityId].Order = 255;
-        Owner.BroadcastPacket(new SCAbilitySwappedPacket(Owner.ObjId, oldAbilityId, abilityId), true);
+
+        Logger.Info(
+            "SwapAbility {0}: {1}/{2}/{3} → {4}/{5}/{6} (old={7} new={8} adding={9})",
+            Owner.Name,
+            before[0], before[1], before[2],
+            Owner.Ability1, Owner.Ability2, Owner.Ability3,
+            oldAbilityId, abilityId, isAdding);
+
+        Owner.BroadcastPacket(
+            new SCAbilitySwappedPacket(
+                Owner.ObjId, before, [Owner.Ability1, Owner.Ability2, Owner.Ability3]),
+            true);
+
+        // Client 0x147 handler clears skills for every pair's "old" id — including unchanged
+        // Ability1 — so re-push what the server still has or the tree looks empty in the UI.
+        Owner.Skills.ResendLearnedToOwner();
+
+        // Free starters, same as character-create for Ability1.
+        if (isAdding && abilityId is not AbilityType.None and not AbilityType.General)
+        {
+            foreach (var template in SkillManager.Instance.GetStartAbilitySkills(abilityId))
+                Owner.Skills.AddSkill(template, 1, true);
+        }
     }
 
     public void Load(MySqlConnection connection)

@@ -13,6 +13,6 @@ public class CSExpandSlotsPacket() : GamePacket(CSOffsets.CSExpandSlotsPacket, 1
 
         Logger.Debug("ExpandSlots, slotType -> {0}, autoUseAAPoint -> {1}", slotType, autoUseAAPoint);
 
-        Connection.ActiveChar.Inventory.ExpandSlot((SlotType)slotType);
+        Connection.ActiveChar.Inventory.ExpandSlot((SlotType)slotType, autoUseAAPoint);
     }
 }

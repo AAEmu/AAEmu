@@ -1,15 +1,18 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCCharacterPrivacyStatusUpdatePacket() : GamePacket(SCOffsets.SCCharacterPrivacyStatusUpdatePacket, 1)
+/// <remarks>
+/// </remarks>
+public class SCCharacterPrivacyStatusUpdatePacket(bool result, CharacterPrivacyStatus status)
+    : GamePacket(SCOffsets.SCCharacterPrivacyStatusUpdatePacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
-        // Reference world-entry body is 2 bytes: privacy visibility level (1) and a reserved/flag byte (0).
-        stream.Write((byte)1);
-        stream.Write((byte)0);
+        stream.Write(result);
+        stream.Write((sbyte)status);
 
         return stream;
     }

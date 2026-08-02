@@ -15,7 +15,7 @@ public class Hang : IWorldInteraction
         if (target == null || caster is not Character character) { return; }
 
         character.Transform.StickyParent = target.Transform;
-        character.BroadcastPacket(new SCHungPacket(caster.ObjId, target.ObjId), false);
+        character.BroadcastPacket(new SCHungPacket(caster.ObjId, target.ObjId), true);
         if (target is Doodad doodad)
         {
             doodad.Use(caster, skillId);

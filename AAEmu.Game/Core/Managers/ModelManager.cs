@@ -55,13 +55,19 @@ public class ModelManager : Singleton<ModelManager>, IModelManager
         return null;
     }
 
+    /// <summary>
+    /// Holds an altitude rather than resting on terrain. MovementId 2 covers the birds and fish that
+    /// move in 3D, but fly_mode is set independently on 8 further models — kestrels, watchers,
+    /// wraiths, wisps and ghost ships fly with MovementId 0, and treating them as grounded snapped
+    /// them to terrain and let the client drop them out of the air.
+    /// </summary>
     public bool IsFlyOrSwim(uint modelId)
     {
         if (!_modelTypes.TryGetValue(modelId, out var modelType))
             return false;
         if (!_models.TryGetValue(modelType.SubType, out var value) || !value.TryGetValue(modelType.SubId, out var model))
             return false;
-        return model is ActorModel { MovementId: 2 };
+        return model is ActorModel { MovementId: 2 } or ActorModel { FlyMode: true };
     }
 
     public void Load()
@@ -95,7 +101,9 @@ public class ModelManager : Singleton<ModelManager>, IModelManager
                             Id = reader.GetUInt32("id"),
                             Radius = reader.GetFloat("radius"),
                             Height = reader.GetFloat("height"),
-                            MovementId = reader.GetInt32("movement_id")
+                            MovementId = reader.GetInt32("movement_id"),
+                            FlyMode = reader.GetBoolean("fly_mode", true),
+                            UnderwaterCreature = reader.GetBoolean("underwater_creature", true)
                         };
 
                         _models["ActorModel"].TryAdd(model.Id, model);

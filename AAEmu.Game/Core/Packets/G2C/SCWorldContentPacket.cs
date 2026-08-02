@@ -6,8 +6,6 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCWorldContentPacket : GamePacket
 {
-    // Body: "filterBufferSize" u32 + raw "filterBuffer" bytes.
-    // The buffer is the server's content-filter table —
     // the enabled/blocked content groups and zone gates the client parses into its world-content data on entering
     // the world. Sending it empty leaves that data uninitialized, which nulls the downstream per-feature data the
     // HUD reads (e.g. the world-level exp modifier). The table is the live 10.0.2.13 server's SC_PACKET_WORLD_CONTENT

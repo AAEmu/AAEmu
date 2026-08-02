@@ -110,6 +110,43 @@ CREATE TABLE IF NOT EXISTS `character_active_buffs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Stores active buffs across player sessions';
 
 
+CREATE TABLE IF NOT EXISTS `character_favorite_crafts` (
+  `owner` int unsigned NOT NULL COMMENT 'Character id',
+  `craft_type` int unsigned NOT NULL COMMENT 'Craft recipe id from game content',
+  PRIMARY KEY (`owner`,`craft_type`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Per-character favorite crafting recipes';
+
+
+CREATE TABLE IF NOT EXISTS `character_skill_active_types` (
+  `owner` int unsigned NOT NULL COMMENT 'Character id',
+  `heir_skill_type` int unsigned NOT NULL COMMENT 'Client Heir-skill category key',
+  `skill_type` int unsigned NOT NULL COMMENT 'Client skill entry key',
+  `active_type` tinyint unsigned NOT NULL COMMENT 'SkillActiveType value',
+  PRIMARY KEY (`owner`,`heir_skill_type`,`skill_type`) USING BTREE,
+  KEY `idx_character_skill_active_types_owner` (`owner`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Per-character skill visibility and activation state';
+
+
+CREATE TABLE IF NOT EXISTS `heir_skill_activations` (
+  `owner` int unsigned NOT NULL COMMENT 'Character id',
+  `heir_skill_id` int unsigned NOT NULL COMMENT 'Selected heir_skills content row',
+  `successor_skill_id` int unsigned NOT NULL COMMENT 'Selected heir_skill_details skill_id',
+  PRIMARY KEY (`owner`,`heir_skill_id`) USING BTREE,
+  KEY `idx_heir_skill_activations_owner` (`owner`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Active Heir-skill successor selections';
+
+
+CREATE TABLE IF NOT EXISTS `character_merchant_purchases` (
+  `character_id` INT UNSIGNED NOT NULL,
+  `item_id` INT UNSIGNED NOT NULL COMMENT 'Item template type used as the native client map key',
+  `buy_count` INT UNSIGNED NOT NULL DEFAULT 0,
+  `purchase_type` TINYINT UNSIGNED NOT NULL COMMENT '1 always, 2 daily, 3 weekly, 4 monthly',
+  `period_start` DATETIME NOT NULL COMMENT 'UTC start of the active limit period',
+  PRIMARY KEY (`character_id`, `item_id`),
+  INDEX `idx_merchant_purchase_type` (`purchase_type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Persistent per-character merchant purchase limits';
+
+
 CREATE TABLE IF NOT EXISTS `characters` (
   `id` int unsigned NOT NULL,
   `account_id` int unsigned NOT NULL,
@@ -121,9 +158,11 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `level` tinyint NOT NULL,
   `experience` int NOT NULL,
   `recoverable_exp` int NOT NULL,
+  `heir_exp` bigint(20) unsigned NOT NULL DEFAULT '0',
   `hp` int NOT NULL,
   `mp` int NOT NULL,
   `consumed_lp` int NOT NULL,
+  `local_lp` int unsigned NOT NULL DEFAULT '0',
   `ability1` tinyint NOT NULL,
   `ability2` tinyint NOT NULL,
   `ability3` tinyint NOT NULL,
@@ -146,7 +185,9 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `rez_penalty_duration` int NOT NULL,
   `leave_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `money` bigint NOT NULL DEFAULT '0',
+  `aa_point` bigint NOT NULL DEFAULT '0',
   `money2` bigint NOT NULL DEFAULT '0',
+  `bank_aa_point` bigint NOT NULL DEFAULT '0',
   `honor_point` int NOT NULL DEFAULT '0',
   `vocation_point` int NOT NULL DEFAULT '0',
   `crime_point` int NOT NULL DEFAULT '0',
@@ -172,6 +213,8 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `deleted` int(11) NOT NULL DEFAULT 0,
   `return_district` int(11) NOT NULL DEFAULT 0,
   `online_time` INT(11) NOT NULL DEFAULT 0 COMMENT 'Time that the character has been online',
+  `total_play_time` int unsigned NOT NULL DEFAULT '0',
+  `privacy_status` tinyint NOT NULL DEFAULT '0',
   PRIMARY KEY (`id`, `account_id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = 'Basic player character data' ROW_FORMAT = DYNAMIC;
 
@@ -223,6 +266,8 @@ CREATE TABLE IF NOT EXISTS `expedition_members` (
   `ability2` tinyint unsigned NOT NULL,
   `ability3` tinyint unsigned NOT NULL,
   `memo` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
+  `contribution_point` int unsigned NOT NULL DEFAULT '0',
+  `weekly_contribution_point` int unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`character_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Guild members';
 
@@ -269,7 +314,10 @@ CREATE TABLE IF NOT EXISTS `friends` (
   `id` int NOT NULL,
   `friend_id` int NOT NULL,
   `owner` int NOT NULL,
-  PRIMARY KEY (`id`,`owner`) USING BTREE
+  `status` tinyint unsigned NOT NULL DEFAULT '0',
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`,`owner`) USING BTREE,
+  UNIQUE KEY `uk_friends_owner_friend` (`owner`,`friend_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Friendslist';
 
 
@@ -475,8 +523,10 @@ CREATE TABLE IF NOT EXISTS `item_containers` (
   `slot_type` int NOT NULL DEFAULT 0 COMMENT 'Internal Container Type',
   `container_size` int NOT NULL DEFAULT '50' COMMENT 'Maximum Container Size',
   `owner_id` int unsigned NOT NULL COMMENT 'Owning Character Id',
-  `mate_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'Owning Mate Id', 
-  PRIMARY KEY (`container_id`) 
+  `mate_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'Owning Mate Id',
+  `parent_item_id` bigint unsigned NOT NULL DEFAULT '0' COMMENT 'Owning ItemBag instance Id',
+  PRIMARY KEY (`container_id`),
+  KEY `idx_item_containers_parent_item_id` (`parent_item_id`)
 ) COLLATE 'utf8mb4_general_ci';
 
 

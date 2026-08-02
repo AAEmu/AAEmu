@@ -1,18 +1,16 @@
 #nullable enable
 
 using System;
-using System.Collections.Concurrent;
 using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.Debug;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Physics;
-using AAEmu.Game.Physics.Debug;
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Skills.SkillControllers;
@@ -23,46 +21,13 @@ public static class ShipHarpoonRopeController
     private static readonly Logger Log = LogManager.GetCurrentClassLogger();
 
     /// <summary>
-    /// Rope tear threshold (meters) based on steady tension: tear when \(stretch = chord - paid\) reaches this value.
-    /// Lower = easier to tear under sustained pull.
+    /// Added to <c>RopeLength</c> (client / initial stored value) when bounding a client-reported length against
+    /// the server chord — the client pays out slightly more line than the straight cannon-to-hook distance.
     /// </summary>
-    private const float TearStretchMeters = 3f;
+    private const float ServerRopePaidLengthAdditiveMeters = 12.5f;
 
-    /// <summary>
-    /// Rope tear threshold (m/s) based on sudden tension spike: tear when \(jerk = Δstretch / dt\) reaches this value.
-    /// Lower = easier to tear on quick yanks.
-    /// </summary>
-    private const float TearJerkMetersPerSec = 9f;
-
-    /// <summary>
-    /// Minimum stretch (meters) required to allow jerk-based tearing. Prevents tearing from noise while the rope is mostly slack.
-    /// Lower = jerk-tear can trigger earlier (even with little tension).
-    /// </summary>
-    private const float TearJerkMinStretchMeters = 1f;
-
-    /// <summary>
-    /// Recoil scale: delta-V added to the shooter's hull (m/s) per meter of stretch at the moment of tear.
-    /// Higher = stronger kickback on tear.
-    /// </summary>
-    private const float RecoilDvPerStretch = 0.12f;
-
-    /// <summary>
-    /// Recoil scale: delta-V added to the shooter's hull (m/s) per (m/s) of jerk above <see cref="TearJerkMetersPerSec"/>.
-    /// Higher = extra kickback for very sharp yanks.
-    /// </summary>
-    private const float RecoilDvPerJerk = 0.02f;
-
-    /// <summary>
-    /// Maximum recoil delta-V applied to the shooter's hull (m/s) when the rope tears.
-    /// </summary>
-    private const float RecoilMaxDeltaV = 1.6f;
-
-    private struct RopeTensionHistory
-    {
-        public float Stretch;
-    }
-
-    private static readonly ConcurrentDictionary<uint, RopeTensionHistory> _tensionHistoryByHarpoonObjId = new();
+    /// <summary>Slack allowance (meters) folded into the upper bound when the launch skill declares no max range.</summary>
+    private const float SlackMarginMeters = 0.5f;
 
     public static void OnLaunchSucceeded(Slave harpoonSlave, SkillCastTarget target, Character? operatorChar)
     {
@@ -149,9 +114,10 @@ public static class ShipHarpoonRopeController
     }
 
     /// <summary>
-    /// Per physics tick on the parent hull: if a child harpoon stayed <see cref="ShipHarpoonRopeState.IsEngaged"/> past
-    /// <see cref="ShipHarpoonRopeState.ControllerExpireAtUtc"/>, break server-side so tow does not continue after the client drops the rope.
+    /// If a harpoon stayed <see cref="ShipHarpoonRopeState.IsEngaged"/> past <see cref="ShipHarpoonRopeState.ControllerExpireAtUtc"/>,
+    /// break it server-side so our rope state does not outlive the one the client already dropped.
     /// Walks the whole <see cref="Slave.AttachedSlaves"/> tree (harpoon may be nested under another mount).
+    /// Driven by <see cref="AAEmu.Game.Core.Managers.SlaveManager"/>'s periodic slave sweep.
     /// </summary>
     public static void TickHarpoonRopeControllerLifetime(Slave hull)
     {
@@ -219,71 +185,6 @@ public static class ShipHarpoonRopeController
     }
 
     /// <summary>
-    /// Per physics tick on a ship hull: breaks engaged harpoon ropes when tension exceeds threshold or stretch spikes (jerk).
-    /// Returns a recoil delta-V to apply to the shooter hull (horizontal plane, world X/Y).
-    /// </summary>
-    public static Vector3 TickTensionTearAndGetHullRecoilDeltaV(Slave hull, float dtSec)
-    {
-        if (hull.AttachedSlaves.Count == 0 || dtSec <= 0f)
-            return default;
-
-        var recoilSum = Vector3.Zero;
-        foreach (var child in ShipHarpoonTowPhysics.EnumerateAttachedSlaveDescendants(hull))
-        {
-            var st = child.HarpoonRope;
-            if (!st.IsEngaged)
-            {
-                _tensionHistoryByHarpoonObjId.TryRemove(child.ObjId, out _);
-                continue;
-            }
-
-            var cannonPos = child.Transform.World.Position;
-            var hook = GetHookWorldPosition(child);
-            var dist = Vector3.Distance(cannonPos, hook);
-            var paid = st.RopeLength + ShipHarpoonTowPhysics.ServerRopePaidLengthAdditiveMeters;
-            var stretch = dist - paid;
-            if (stretch <= 0f)
-            {
-                _tensionHistoryByHarpoonObjId[child.ObjId] = new RopeTensionHistory { Stretch = 0f };
-                continue;
-            }
-
-            var hadHistory = _tensionHistoryByHarpoonObjId.TryGetValue(child.ObjId, out var hist);
-            var jerk = hadHistory ? (stretch - hist.Stretch) / dtSec : 0f;
-            _tensionHistoryByHarpoonObjId[child.ObjId] = new RopeTensionHistory { Stretch = stretch };
-
-            var tearByStretch = stretch >= TearStretchMeters;
-            var tearByJerk = jerk >= TearJerkMetersPerSec && stretch >= TearJerkMinStretchMeters;
-            if (!tearByStretch && !tearByJerk)
-                continue;
-
-            if (HarpoonMechanicsDebug.EnableVerboseHarpoonMechanicsLogging)
-                Log.Debug("Harpoon rope auto-tear (tension/jerk): hullObjId={0} harpoonObjId={1} dist={2:F2} paid={3:F2} stretch={4:F2} jerk={5:F2}",
-                    hull.ObjId, child.ObjId, dist, paid, stretch, jerk);
-
-            // Break first (clears IsEngaged and broadcasts SCSkillControllerState teared=true).
-            BreakRopeForClients(child, cutouted: false);
-
-            // Recoil: opposite the tension direction, horizontal (world X/Y) only.
-            var dx = hook.X - cannonPos.X;
-            var dy = hook.Y - cannonPos.Y;
-            var d2 = dx * dx + dy * dy;
-            if (d2 < 1e-6f)
-                continue;
-
-            var invLen = 1f / MathF.Sqrt(d2);
-            var ux = dx * invLen;
-            var uy = dy * invLen;
-            var jerkExcess = MathF.Max(0f, jerk - TearJerkMetersPerSec);
-            var dvMag = MathF.Min(RecoilMaxDeltaV, stretch * RecoilDvPerStretch + jerkExcess * RecoilDvPerJerk);
-            recoilSum.X += -ux * dvMag;
-            recoilSum.Y += -uy * dvMag;
-        }
-
-        return recoilSum;
-    }
-
-    /// <summary>
     /// Syncs rope / skill-controller visuals to characters near the harpoon slave (same AOI as <see cref="GameObject.BroadcastPacket"/>).
     /// Uses an explicit <c>GetAround</c> loop instead of <c>BroadcastPacket</c> so <paramref name="except"/> (operator) is skipped —
     /// their client already applied state from CS and must not receive a duplicate SC.
@@ -322,8 +223,8 @@ public static class ShipHarpoonRopeController
     }
 
     /// <summary>
-    /// <see cref="AAEmu.Game.Core.Packets.C2G.CSSkillControllerStatePacket"/> supplies <paramref name="len"/> from the client; clamp before physics
-    /// taut/slack so spoofed values cannot force or suppress tow (see PR review / Greptile P1).
+    /// <see cref="AAEmu.Game.Core.Packets.C2G.CSSkillControllerStatePacket"/> supplies <paramref name="len"/> from the client; clamp it so a
+    /// spoofed length cannot drive the rope state we mirror to everyone else (see PR review / Greptile P1).
     /// </summary>
     private static float ClampClientReportedRopeLength(Slave slave, float len)
     {
@@ -331,12 +232,11 @@ public static class ShipHarpoonRopeController
             return slave.HarpoonRope.RopeLength;
 
         len = MathF.Max(0f, len);
-        var additive = ShipHarpoonTowPhysics.ServerRopePaidLengthAdditiveMeters;
         if (slave.HarpoonRope.MaxLaunchRange > 0f)
-            return MathF.Min(len, slave.HarpoonRope.MaxLaunchRange + additive);
+            return MathF.Min(len, slave.HarpoonRope.MaxLaunchRange + ServerRopePaidLengthAdditiveMeters);
 
         var chord = Vector3.Distance(slave.Transform.World.Position, GetHookWorldPosition(slave));
-        var generousCap = chord + additive + ShipHarpoonTowPhysics.SlackMarginMeters + 40f;
+        var generousCap = chord + ServerRopePaidLengthAdditiveMeters + SlackMarginMeters + 40f;
         return MathF.Min(len, generousCap);
     }
 

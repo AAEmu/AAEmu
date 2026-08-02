@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
@@ -9,8 +9,10 @@ public class CSCancelTradePacket() : GamePacket(CSOffsets.CSCancelTradePacket, 1
     public override void Read(PacketStream stream)
     {
         var reason = stream.ReadInt32();
+        var character = Connection.ActiveChar;
+        if (character == null)
+            return;
 
-        Logger.Warn("CancelTrade, Reason: {0}", reason);
-        TradeManager.Instance.CancelTrade(Connection.ActiveChar.ObjId, reason);
+        TradeManager.Instance.CancelTrade(character.ObjId, reason);
     }
 }

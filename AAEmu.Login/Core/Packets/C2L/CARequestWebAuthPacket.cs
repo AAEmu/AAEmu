@@ -21,9 +21,10 @@ public class CARequestWebAuthPacket() : LoginPacket(TypeId), ILoginPacket
         var pTo = stream.ReadUInt32();
         var svc = stream.ReadByte();
         var dev = stream.ReadBoolean();
+        // (same layout as CARequestAuthPacket — not u16-length-prefixed byte blobs).
         Auth = stream.ReadString();
-        var mac = stream.ReadBytes();   // u16 length-prefixed (8 bytes on the wire)
-        var mac2 = stream.ReadBytes();  // u16 length-prefixed (8 bytes on the wire)
+        var mac = stream.ReadBytes(8);
+        var mac2 = stream.ReadBytes(8);
         var cpu = stream.ReadUInt64();
         var is64Bit = stream.ReadBoolean();
         var isMultiClient = stream.ReadBoolean();

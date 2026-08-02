@@ -12,6 +12,7 @@ namespace AAEmu.Game.Core.Managers.UnitManagers;
 public interface ICharacterManager : ILoadable
 {
     CharacterTemplate GetTemplate(Race race, Gender gender);
+    bool IsCreatable(Race race, Gender gender);
     AppellationTemplate GetAppellationsTemplate(uint id);
     List<Expand> GetExpands(int step);
     ActabilityTemplate GetActability(uint id);
@@ -23,7 +24,7 @@ public interface ICharacterManager : ILoadable
     bool IsCharacterPendingDeletion(string name);
     void StartOnlineTracking();
     void PlayerRoll(Character player, int max);
-    void DeleteCharacterAssets(Character character, bool fullWipe);
+    void DeleteCharacterAssets(Character character);
     bool CheckForDeletedCharactersDeletion(Character character, GameConnection gameConnection, MySqlConnection dbConnection);
     void CheckForDeletedCharacters();
     void SetDeleteCharacter(GameConnection gameConnection, uint characterId);

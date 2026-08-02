@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
@@ -12,7 +13,11 @@ public class CSSendMailPacket() : GamePacket(CSOffsets.CSSendMailPacket, 1)
 {
     public override void Read(PacketStream stream)
     {
-        Logger.Debug($"SendMail by {Connection.ActiveChar.Name}");
+        var character = Connection.ActiveChar;
+        if (character == null)
+            return;
+
+        Logger.Debug($"SendMail by {character.Name}");
 
         var type = (MailType)stream.ReadByte();
         var receiverCharName = stream.ReadString();
@@ -36,7 +41,13 @@ public class CSSendMailPacket() : GamePacket(CSOffsets.CSSendMailPacket, 1)
         }
 
         var doodadObjId = stream.ReadBc();
-        var doodad = Connection.ActiveChar.ParentWorld.GetDoodad(doodadObjId);
+        if (character.Level + character.HeirLevel < AppConfiguration.Instance.LevelRestrictions.MailLevel)
+        {
+            character.SendErrorMessage(ErrorMessageType.MailCannotSendSinceLevelLow);
+            return;
+        }
+
+        var doodad = character.ParentWorld.GetDoodad(doodadObjId);
 
         // Validate if we are near a MailBox
         bool mailCheckOK;
@@ -47,12 +58,12 @@ public class CSSendMailPacket() : GamePacket(CSOffsets.CSSendMailPacket, 1)
             // Instead, ensure the doodad in its current state supports opening of the mailbox.
             if (doodad.CurrentFuncs?.Any(func => func.FuncType == "DoodadFuncNaviOpenMailbox") == true)
             {
-                var dist = MathUtil.CalculateDistance(Connection.ActiveChar.Transform.World.Position, doodad.Transform.World.Position);
+                var dist = MathUtil.CalculateDistance(character.Transform.World.Position, doodad.Transform.World.Position);
                 mailCheckOK = dist <= 5f; // 5m is kinda generous I guess
             }
             else
             {
-                Logger.Warn($"SendMail by {Connection.ActiveChar.Name} invalid - doodad ObjId {doodad.Id} ({doodad.TemplateId}) does not have DoodadFuncNaviOpenMailbox func");
+                Logger.Warn($"SendMail by {character.Name} invalid - doodad ObjId {doodad.Id} ({doodad.TemplateId}) does not have DoodadFuncNaviOpenMailbox func");
                 mailCheckOK = false;
             }
         }
@@ -61,10 +72,10 @@ public class CSSendMailPacket() : GamePacket(CSOffsets.CSSendMailPacket, 1)
 
         if (mailCheckOK)
         {
-            var mailResult = Connection.ActiveChar.Mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, extra, itemSlots);
+            var mailResult = character.Mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, extra, itemSlots);
             if (mailResult == MailResult.Success)
             {
-                Connection.ActiveChar.SendErrorMessage(ErrorMessageType.MailSuccess);
+                character.SendErrorMessage(ErrorMessageType.MailSuccess);
             }
             else
             {
@@ -72,6 +83,6 @@ public class CSSendMailPacket() : GamePacket(CSOffsets.CSSendMailPacket, 1)
             }
         }
         else
-            Connection.ActiveChar.SendErrorMessage(ErrorMessageType.MailFailMailboxNotFound);
+            character.SendErrorMessage(ErrorMessageType.MailFailMailboxNotFound);
     }
 }

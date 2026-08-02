@@ -19,7 +19,7 @@ namespace AAEmu.Game.Models.Game.World;
 /// <summary>
 /// Instance of a World
 /// </summary>
-public partial class WorldInstance(WorldTemplate template, uint channelId, bool dontFreeInstanceId, uint instanceId)
+public partial class WorldInstance(WorldTemplate template, uint channelId, bool dontFreeInstanceId, uint instanceId) : IDisposable
 {
     // ReSharper disable once FieldCanBeMadeReadOnly.Local
     // ReSharper disable once InconsistentNaming
@@ -59,28 +59,9 @@ public partial class WorldInstance(WorldTemplate template, uint channelId, bool 
     public Region[,] Regions { get; set; }
 
     /// <summary>
-    /// Physics handler
-    /// </summary>
-    public PhysicsManager Physics { get; private set; }
-
-    /// <summary>
     /// Water definitions
     /// </summary>
     public WaterBodies Water { get; set; } = new();
-
-    /// <summary>
-    /// BAI-derived ship collision polylines (non-null when <see cref="WorldConfig.GeoDataMode"/> was on at init).
-    /// </summary>
-    public ShipStaticBarrierZones ShipStaticBarriers { get; set; }
-
-    /// <summary>Serial for BAI-derived barrier names (per instance).</summary>
-    internal int ShipBarrierBaiNameSerial;
-
-    /// <summary>World cells whose <c>areasmission</c> polygons were already ingested for ship barriers.</summary>
-    internal readonly HashSet<(int CellX, int CellY)> ShipBarrierBaiIngestedCells = [];
-
-    /// <summary>Protects <see cref="ShipStaticBarriers"/> mutations and BAI ingest bookkeeping.</summary>
-    internal readonly object ShipStaticBarriersMutationLock = new();
 
     /// <summary>
     /// Event handlers
@@ -180,12 +161,28 @@ public partial class WorldInstance(WorldTemplate template, uint channelId, bool 
     private readonly ConcurrentDictionary<uint, Character> _characters = new();
     #endregion GameObjectLists
 
-    ~WorldInstance()
+    /// <summary>
+    /// 0 while alive, 1 once <see cref="Dispose"/> has run
+    /// </summary>
+    private int _disposed;
+
+    /// <summary>
+    /// Tears the instance down and returns its Id to the pool.
+    /// This has to be called explicitly whenever an instance is dropped; it is deliberately not done from a
+    /// finalizer, as the finalizer thread must not touch other managed objects (the Id manager may already be
+    /// gone or was never initialized), and an exception thrown there kills the entire process.
+    /// </summary>
+    public virtual void Dispose()
     {
+        // Teardown and Id release must happen exactly once, even if several shutdown paths dispose the same world
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+            return;
+
         CleanupInstance();
         if (!IsFixedInstanceId)
             WorldIdManager.Instance.ReleaseId(Id);
         Logger.Info($"WorldInstance {this} removed");
+        GC.SuppressFinalize(this);
     }
 
     /// <summary>
@@ -348,18 +345,6 @@ public partial class WorldInstance(WorldTemplate template, uint channelId, bool 
         return result;
     }
 
-    /// <summary>
-    /// Creates and starts the physics engine for this world instance
-    /// </summary>
-    public void StartPhysics()
-    {
-        Logger.Debug($"Starting physics engine for instance {this}");
-        Physics = new PhysicsManager { SimulationWorld = this };
-        Physics.Initialize();
-        Physics.InitializeTerrain();
-        Physics.StartPhysics();
-    }
-
     /// <summary>Syncs <see cref="WaterBodies.OceanLevel"/> from the world template (river/lake zones come from client cell object.dat).</summary>
     public void InitWaterFromTemplate()
     {
@@ -385,14 +370,6 @@ public partial class WorldInstance(WorldTemplate template, uint channelId, bool 
         }
     }
 
-    /// <summary>
-    /// Allocates ship static barrier storage when geodata is enabled (BAI ingest fills it from physics).
-    /// </summary>
-    public void InitShipStaticBarriers()
-    {
-        if (AppConfiguration.Instance.World.GeoDataMode)
-            ShipStaticBarriers = new ShipStaticBarrierZones();
-    }
     #endregion PhysicalProperties
     
     #region GetGameObjects

@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
@@ -110,6 +111,19 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
             where point.Value.DistrictId == districtId
             where point.Value.FactionId == factionId
             select point.Value.ReturnPointId).FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Inverse of <see cref="GetDistrictReturnPoint"/> — the portal-book wire <c>id</c> is the
+    /// district, while <c>type</c> carries the return-point id (live SC 0x089 capture).
+    /// </summary>
+    public uint GetDistrictIdByReturnPoint(uint returnPointId, FactionsEnum factionId)
+    {
+        return (
+            from point in _districtReturnPoints
+            where point.Value.ReturnPointId == returnPointId
+            where point.Value.FactionId == factionId
+            select point.Value.DistrictId).FirstOrDefault();
     }
 
     public void Load()
@@ -311,6 +325,11 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
         return false; // Not enough items
     }
 
+    /// <summary>open_portal_effects id 1: enter_portal_npc_id — the green portal you walk into.</summary>
+    private const uint EntrancePortalNpcId = 3891;
+    /// <summary>open_portal_effects id 1: exit_portal_npc_id — the yellow portal at the destination.</summary>
+    private const uint ExitPortalNpcId = 6629;
+
     /// <summary>
     /// Create a portal Npc object and returns it
     /// </summary>
@@ -321,8 +340,6 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
     /// <returns></returns>
     private Models.Game.Units.Portal MakePortal(Unit owner, bool isExit, Portal portalInfo, SkillObjectUnk1 portalEffectObj)
     {
-        // 3891 - Portal Entrance
-        // 6949 - Portal Exit
         var portalPointDestination = new Transform(null, null, 
             portalInfo.ZoneId,
             owner.Transform.InstanceId,
@@ -330,7 +347,7 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
             0f, 0f, portalInfo.ZRot);
 
         // TODO: Add support for different types of teleport books
-        var templateId = isExit ? 6949u : 3891u;
+        var templateId = isExit ? ExitPortalNpcId : EntrancePortalNpcId;
         var template = npcManager.GetTemplate(templateId);
         var portalNpc = new Models.Game.Units.Portal
         {
@@ -344,6 +361,7 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
             Level = template.Level,
             Name = portalInfo.Name,
             TeleportPosition = portalPointDestination,
+            IsExit = isExit,
             Transform = { ZoneId = portalInfo.ZoneId }
         };
 
@@ -387,8 +405,7 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
     public static void UsePortal(Character character, uint objId)
     {
         // TODO - Cooldown between portals
-        var portalInfo = (Models.Game.Units.Portal)character.ParentWorld.GetNpc(objId);
-        if (portalInfo == null) return;
+        if (character.ParentWorld.GetNpc(objId) is not Models.Game.Units.Portal portal) return;
 
         //have Overburdened buff cannot UsePortal
         if (character.Buffs.CheckBuffTag((uint)BuffConstants.TagOverburdened))
@@ -397,31 +414,48 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
             return;
         }
 
-        character.DisabledSetPosition = true;
-        // TODO - UnitPortalUsed
-        // TODO - Maybe need unitState?
-        if (portalInfo.TeleportPosition.InstanceId != character.Transform.InstanceId)
+        var destination = portal.TeleportPosition;
+        var position = destination.World.Position;
+        var yaw = destination.World.Rotation.Z.DegToRad();
+
+        Logger.Info("UsePortal: {0} -> {1} zone {2} ({3:0.0}, {4:0.0}, {5:0.0})",
+            character.Name, portal.Name, destination.ZoneId, position.X, position.Y, position.Z);
+
+        character.SendPacket(new SCUnitPortalUsedPacket(portal.ObjId));
+
+        if (destination.InstanceId != character.Transform.InstanceId)
         {
+            // Crossing instances means a loading screen, and the client answers it with
+            // CSInstanceLoaded — which is the only thing that clears DisabledSetPosition.
+            character.DisabledSetPosition = true;
             character.SendPacket(
                 new SCLoadInstancePacket(
-                    portalInfo.TeleportPosition.WorldId,
-                    portalInfo.TeleportPosition.ZoneId,
-                    portalInfo.TeleportPosition.World.Position.X,
-                    portalInfo.TeleportPosition.World.Position.Y,
-                    portalInfo.TeleportPosition.World.Position.Z,
-                    portalInfo.TeleportPosition.World.Rotation.X.DegToRad(),
-                    portalInfo.TeleportPosition.World.Rotation.Y.DegToRad(),
-                    portalInfo.TeleportPosition.World.Rotation.Z.DegToRad()
+                    destination.WorldId,
+                    destination.ZoneId,
+                    position.X,
+                    position.Y,
+                    position.Z,
+                    destination.World.Rotation.X.DegToRad(),
+                    destination.World.Rotation.Y.DegToRad(),
+                    yaw
                 )
             );
 
-            character.Transform = portalInfo.TeleportPosition.Clone(character);
-            character.Transform.InstanceId = portalInfo.TeleportPosition.WorldId;
+            character.Transform = destination.Clone(character);
         }
-        // TODO - Reason, ErrorMessage
-        character.SendPacket(new SCTeleportUnitPacket(0, 0, portalInfo.TeleportPosition.World.Position.X,
-            portalInfo.TeleportPosition.World.Position.Y, portalInfo.TeleportPosition.World.Position.Z,
-            portalInfo.TeleportPosition.World.Rotation.Z.DegToRad()));
+        else
+        {
+            // Same level: the client streams the new area seamlessly and never sends
+            // CSInstanceLoaded, so blocking movement here would freeze the player server-side.
+            // Move first — SetPosition is a no-op while DisabledSetPosition is set — so the region
+            // change updates Transform.ZoneId and hands the unit over to the destination Zone.
+            character.SetPosition(position.X, position.Y, position.Z, 0f, 0f, yaw);
+            character.Transform.FinalizeTransform();
+        }
+
+        // TODO - ErrorMessage
+        character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Portal, 0,
+            position.X, position.Y, position.Z, yaw));
     }
 
     public static void DeletePortal(Character owner, byte type, uint id)

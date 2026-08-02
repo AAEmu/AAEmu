@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -28,6 +28,7 @@ public sealed class GameService : IHostedService, IDisposable
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private static TimeProvider s_timeProvider = TimeProvider.System;
+    private Timer _gameKeepaliveTimer;
     public static DateTime StartTime { get; private set; } = DateTime.UtcNow;
     public static TimeSpan TimeSinceStart => s_timeProvider.GetUtcNow().UtcDateTime.Subtract(StartTime);
 
@@ -97,7 +98,6 @@ public sealed class GameService : IHostedService, IDisposable
             ScriptReflector.Reflect();
         }
 
-        TimeManager.Instance.Start();
         TaskManager.Instance.Start();
 
         // --- Stage 4: Orchestrated parallel Initialize() ---
@@ -115,11 +115,33 @@ public sealed class GameService : IHostedService, IDisposable
         StreamNetwork.Instance.Start();
         LoginNetwork.Instance.Start();
 
-        // Server-initiated game-channel keepalive. The 10.0.2.13 client drops conn 1239 ~2s after the
-        // char-list (recv exception internal 4 wsa 258) unless it keeps receiving server data, exactly
-        // like the reference server's periodic ping scheduler. 1s interval
-        // is well within the client's watchdog window (real server steps its ping counter by 1000ms).
-        TaskManager.Instance.Schedule(new GamePingTask(), TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        // Keep this independent from TaskManager: initial world/doodad work can saturate its queue long
+        // enough for the 10.0.2.13 client's game-channel receive watchdog to expire. The native server's
+        // ping scheduler is likewise a network timer, and advances every 1000 ms.
+        var gamePingTask = new GamePingTask();
+        _gameKeepaliveTimer = new Timer(
+            _ =>
+            {
+                try
+                {
+                    gamePingTask.Execute();
+                }
+                catch (Exception exception)
+                {
+                    Logger.Error(exception, "Game-channel keepalive tick failed");
+                }
+            },
+            null,
+            TimeSpan.Zero,
+            TimeSpan.FromSeconds(1));
+
+        // Mirror interest: AOI cull + flush pending UnitStates (retail; not 1/s drip).
+        TaskManager.Instance.Schedule(new MirrorSpawnStreamTask(), TimeSpan.FromSeconds(1), TimeSpan.FromMilliseconds(250));
+
+        // MirrorMovementStreamTask (synthetic idle SCUnitMovements self-stands) is INTENTIONALLY NOT scheduled.
+        // Verified 2026-07-19: those stands cause clean System:Quit; Ping/Pong alone keeps the channel alive.
+        // Commercial movement comes from real ZWUnitMovements (0x08) for units that actually move — re-enable
+        // that relay separately (see MovementRelay / AAEMU_DISABLE_ZONE_MOVE_RELAY).
 
         stopWatch.Stop();
         Logger.Info($"Server started! Took {stopWatch.Elapsed}");
@@ -131,8 +153,14 @@ public sealed class GameService : IHostedService, IDisposable
 
         await SaveManager.Instance.StopAsync();
 
+        if (_gameKeepaliveTimer != null)
+        {
+            await _gameKeepaliveTimer.DisposeAsync();
+            _gameKeepaliveTimer = null;
+        }
+
         // SpawnManager.Instance.Stop(); Moved to World Instance
-        TaskManager.Instance.Stop();
+        await TaskManager.Instance.StopAsync(cancellationToken);
         GameNetwork.Instance.Stop();
         StreamNetwork.Instance.Stop();
         LoginNetwork.Instance.Stop();
@@ -142,12 +170,9 @@ public sealed class GameService : IHostedService, IDisposable
         MailManager.Instance.Save();
         ItemManager.Instance.Save();
         */
-        AIManager.Instance.Stop();
         WorldManager.Instance.Stop();
 
         TickManager.Instance.Stop();
-        TimeManager.Instance.Stop();
-
         ClientFileManager.ClearSources();
     }
 

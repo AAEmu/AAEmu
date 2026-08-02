@@ -1,5 +1,4 @@
-﻿using AAEmu.Game.Models.Game.AI.v2.Params;
-using AAEmu.Game.Models.Game.Items;
+﻿using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -19,7 +18,6 @@ public class NpcTemplate
     public uint ModelId { get; set; }
     public FactionsEnum FactionId { get; set; }
     public bool SkillTrainer { get; set; }
-    public int AiFileId { get; set; }
     public bool Merchant { get; set; }
     public int NpcNicknameId { get; set; }
     public bool Auctioneer { get; set; }
@@ -47,7 +45,6 @@ public class NpcTemplate
     public bool AcceptAggroLink { get; set; }
     public int RecrutingBattlefieldId { get; set; }
     public float ReturnDistance { get; set; }
-    public int NpcAiParamId { get; set; }
     public bool NonPushableByActor { get; set; }
     public bool Banker { get; set; }
     public AggroLinkSpecialRuleKind AggroLinkSpecialRuleId { get; set; }
@@ -90,7 +87,6 @@ public class NpcTemplate
     public (uint ItemId, bool NpcOnly)[] BodyItems { get; set; } = new (uint, bool)[7];
     public List<uint> Buffs { get; set; } = [];
     public List<BonusTemplate> Bonuses { get; set; } = [];
-    public AiParams AiParams { get; set; }
     public Dictionary<SkillUseConditionKind, List<NpcSkill>> Skills { get; set; } = [];
     public List<NpcPassiveBuff> PassiveBuffs { get; set; } = [];
     public uint TotalCustomId { get; set; }

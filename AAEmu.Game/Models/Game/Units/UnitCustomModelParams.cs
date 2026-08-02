@@ -19,8 +19,6 @@ public class FixedDecalAsset(uint assetId = 0, float assetWeight = 0)
     public float AssetWeight { get; set; } = assetWeight;
 }
 
-// 10.0.2.13 face customization tier (LobbyChar_WriteAppearance T3 block).
-// Wire order: movable face-decal transform, then a pish/pisc group of the 6
 // fixed-decal asset ids, then a pish/pisc group of {diffuse, normal, eyelash} map ids, then the 6 fixed-decal
 // weights, then the normal-map weight, then the 5 colors, then the 128-byte face-maker blob.
 public class FaceModel : PacketMarshaler
@@ -98,7 +96,6 @@ public class FaceModel : PacketMarshaler
 
     public override PacketStream Write(PacketStream stream)
     {
-        // movable face-decal transform
         stream.Write(MovableDecalAssetId);
         stream.Write(MovableDecalWeight);
         stream.Write(MovableDecalScale);
@@ -129,7 +126,6 @@ public class FaceModel : PacketMarshaler
     }
 }
 
-// 10.0.2.13 appearance block (LobbyChar_WriteAppearance). A leading `ext` byte
 // (UnitCustomModelType) is a cumulative LOD gate: 0 = nothing, 1 = +hair (T1), 2 = +body (T2), >=3 = +face (T3).
 // Shared by SC_PACKET_UNIT_STATE, the character list, and the CSCreateCharacter body.
 public class UnitCustomModelParams : PacketMarshaler

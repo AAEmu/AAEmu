@@ -99,7 +99,15 @@ public static class Program
         builder.Services.AddOptions();
         builder.Services.AddOptionsWithValidateOnStart<AppConfiguration>()
             .BindConfiguration("")
-            .ValidateDataAnnotations();
+            .ValidateDataAnnotations()
+            .Validate(
+                config => config.CharacterSlots.AvailableSlots <= config.CharacterSlots.MaxCountLimit &&
+                          config.CharacterSlots.CountLimit <= config.CharacterSlots.MaxCountLimit &&
+                          config.CharacterSlots.WorldLimit <= config.CharacterSlots.MaxCountLimit,
+                "CharacterSlots.AvailableSlots, CountLimit, and WorldLimit must not exceed MaxCountLimit.")
+            .Validate(
+                config => config.WorldListRequestTimeout > TimeSpan.Zero,
+                "WorldListRequestTimeout must be greater than zero.");
         builder.Services.AddOptionsWithValidateOnStart<DBConnectionsConfig>()
             .BindConfiguration(DBConnectionsConfig.ConfigurationSectionName)
             .ValidateDataAnnotations();

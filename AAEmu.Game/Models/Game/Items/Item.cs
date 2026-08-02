@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
 using Newtonsoft.Json;
@@ -27,6 +27,8 @@ public class Item : PacketMarshaler, IComparable<Item>
     private ulong _uccId;
     private DateTime _expirationTime;
     private double _expirationOnlineMinutesLeft;
+    private DateTime _chargeStartTime = DateTime.MinValue;
+    private int _chargeCount;
 
     [JsonIgnore]
     public bool IsDirty { get => _isDirty; set => _isDirty = value; }
@@ -69,7 +71,7 @@ public class Item : PacketMarshaler, IComparable<Item>
 
     [JsonProperty]
     public uint MadeUnitId { get => _madeUnitId; set { _madeUnitId = value; _isDirty = true; } }
-    public DateTime ChargeUseSkillTime { get; set; } // v10 common item-header trailing field (u64)
+    public DateTime ChargeUseSkillTime { get; set; }
 
     [JsonProperty]
     public DateTime CreateTime { get => _createTime; set { _createTime = value; _isDirty = true; } }
@@ -130,13 +132,33 @@ public class Item : PacketMarshaler, IComparable<Item>
     }
 
     [JsonProperty]
-    public DateTime ChargeStartTime { get; set; } = DateTime.MinValue;
+    public DateTime ChargeStartTime
+    {
+        get => _chargeStartTime;
+        set
+        {
+            if (_chargeStartTime == value)
+                return;
+            _chargeStartTime = value;
+            _isDirty = true;
+        }
+    }
 
     [JsonProperty]
-    public int ChargeCount { get; set; }
+    public int ChargeCount
+    {
+        get => _chargeCount;
+        set
+        {
+            if (_chargeCount == value)
+                return;
+            _chargeCount = value;
+            _isDirty = true;
+        }
+    }
 
     [JsonProperty]
-    public virtual ItemDetailType DetailType { get; set; } // TODO 1.0 max type: 8, at 1.2 max type 9 (size: 9 bytes)
+    public virtual ItemDetailType DetailType { get; set; }
 
     [JsonProperty]
     public byte[] Detail { get; set; }
@@ -235,14 +257,22 @@ public class Item : PacketMarshaler, IComparable<Item>
 
     public override PacketStream Write(PacketStream stream)
     {
+        return Write(stream, Count);
+    }
+
+    /// <summary>
+    /// Writes the canonical item body while publishing a caller-selected stack count.
+    /// This is used by trade offer packets, whose item snapshot represents only the offered units.
+    /// </summary>
+    public PacketStream Write(PacketStream stream, int count)
+    {
         stream.Write(TemplateId);
-        // TODO ...
         if (TemplateId == 0)
             return stream;
         stream.Write(Id);
         stream.Write(Grade);
         stream.Write((byte)ItemFlags); //bounded
-        stream.Write(Count);
+        stream.Write(count);
         stream.Write((byte)DetailType);
         WriteDetails(stream);
         stream.Write(CreateTime);
@@ -257,7 +287,6 @@ public class Item : PacketMarshaler, IComparable<Item>
 
     // Detail-blob body length (the bytes after the leading detailType byte, which Item.Read/Write emits)
     // for items handled by the base Item serializer. Per the 10.0.2.13 item-detail serializer
-    // (Item_SerializeDetail) every type except Equipment writes an opaque (total-1)-byte
     // blob keyed on the detailType byte. Equipment is structured (EquipItem); Slave/Mate/Ucc/Treasure/
     // BigFish/MusicSheet have dedicated subclasses; the rest round-trip through this base path.
     private static int GetDetailBodyLength(ItemDetailType detailType) => (byte)detailType switch

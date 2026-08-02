@@ -89,8 +89,16 @@ public class Transform : IDisposable
         {
             if (_zoneId == value)
                 return;
-            GameObject?.OnZoneChange(_zoneId, value);
+
+            // Commit before notifying. OnZoneChange applies zone-group buffs, whose triggers can
+            // reach back into code that lazily resolves a unit's zone (PlayerEnterService
+            // ResolveUnitZoneId) and assigns this property again. Notifying first left the field
+            // holding the old value for the whole callback, so the re-entrant assignment never hit
+            // the equality guard above and recursed until the stack overflowed — which kills the
+            // process outright, since a StackOverflowException cannot be caught.
+            var lastZoneId = _zoneId;
             _zoneId = value;
+            GameObject?.OnZoneChange(lastZoneId, value);
         }
     }
 

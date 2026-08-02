@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.World.Zones;
 
@@ -9,7 +9,6 @@ public class SCConflictZoneStatePacket(ushort zoneId, ZoneConflictType hpws, Dat
 {
     public override PacketStream Write(PacketStream stream)
     {
-        // 10.0.2.13 body:
         // type(zoneId u16) | hpws(u8) | end(i64) | lock(i64).
         stream.Write(zoneId);       // "type"
         stream.Write((byte)hpws);   // "hpws"

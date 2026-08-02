@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Text;
 
 using AAEmu.Commons.Cryptography;
@@ -205,15 +205,11 @@ public class GameProtocolHandler : BaseProtocolHandler
                     if (_packets.TryGetValue(lookupLevel, out var levelMap))
                         levelMap.TryGetValue(type, out classType);
                     // Unmapped C2S opcodes still warrant a Warn (they need CSOffsets entries); opcodes that
-                    // already resolve to a handler drop to Trace now that the 10.0.2.13 map is in place. The
-                    // level-2 keepalive ids are skipped entirely.
-                    if (level != 2 || (type != 0x012 && type != 0x013 && type != 0x015 && type != 0x016))
-                    {
-                        if (classType == null)
-                            Logger.Warn("C2S RAW opcode=0x{0:X3} level={1} -> UNKNOWN", type, level);
-                        else
-                            Logger.Trace("C2S RAW opcode=0x{0:X3} level={1} -> {2}", type, level, classType.Name);
-                    }
+                    // already resolve to a handler drop to Trace now that the 10.0.2.13 map is in place.
+                    if (classType == null)
+                        Logger.Warn("C2S RAW opcode=0x{0:X3} level={1} -> UNKNOWN", type, level);
+                    else
+                        Logger.Trace("C2S RAW opcode=0x{0:X3} level={1} -> {2}", type, level, classType.Name);
                     if (classType == null)
                     {
                         HandleUnknownPacket(connection, type, level, bodyStream);
@@ -259,21 +255,32 @@ public class GameProtocolHandler : BaseProtocolHandler
     /// <param name="classType"></param>
     public void RegisterPacket(uint type, byte level, Type classType)
     {
+        // Two packets on one opcode is a mapping error: the second registration used to overwrite the
+        // first silently, so the losing handler never ran and nothing said so. Keep the first and name
+        // both, since which one is wrong is a question for the opcode audit, not for startup.
+        if (_packets[level].TryGetValue(type, out var existing))
+        {
+            Logger.Error("Opcode collision: level {0} 0x{1:X3} is already mapped to {2}; ignoring {3}",
+                level, type, existing.Name, classType.Name);
+            return;
+        }
+
         _packets[level][type] = classType;
     }
 
     /// <summary>
-    /// Handle and Log unknown packet data
+    /// Handle and Log unknown packet data. Short bodies dump fully; large payloads truncate with size.
     /// </summary>
-    /// <param name="connection"></param>
-    /// <param name="type"></param>
-    /// <param name="level"></param>
-    /// <param name="stream"></param>
     private static void HandleUnknownPacket(GameConnection connection, uint type, byte level, PacketStream stream)
     {
-        var dump = new StringBuilder();
-        for (var i = stream.Pos; i < stream.Count; i++)
-            dump.AppendFormat("{0:x2} ", stream.Buffer[i]);
-        Logger.Error($"Unknown packet 0x{type:x2}({level}) from {connection.Ip}:\n{dump}");
+        const int MaxDumpBytes = 128;
+        var remaining = stream.Count - stream.Pos;
+        var dumpLen = Math.Min(remaining, MaxDumpBytes);
+        var dump = new StringBuilder(dumpLen * 3 + 32);
+        for (var i = 0; i < dumpLen; i++)
+            dump.AppendFormat("{0:x2} ", stream.Buffer[stream.Pos + i]);
+        if (remaining > MaxDumpBytes)
+            dump.AppendFormat("...(+{0}B total={1})", remaining - MaxDumpBytes, remaining);
+        Logger.Error("Unknown packet 0x{0:X3}({1}) from {2} len={3}:\n{4}", type, level, connection.Ip, remaining, dump);
     }
 }

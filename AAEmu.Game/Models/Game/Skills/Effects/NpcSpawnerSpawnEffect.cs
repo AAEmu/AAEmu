@@ -24,6 +24,27 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
     {
         Logger.Info($"NpcSpawnerSpawnEffect: SpawnerId={SpawnerId}, LifeTime={LifeTime}, UseSummonerAggroTarget={UseSummonerAggroTarget}, ActivationState={ActivationState}");
 
+        if (WorldIntegration.ZoneAuthority)
+        {
+            // A spawner left active may keep producing its normal population. The one-shot form
+            // tells Zone to stand it down after this skill-authored spawn.
+            var spawnerEvent = ActivationState
+                ? NpcSpawnerEvent.SpawnAllOnce
+                : NpcSpawnerEvent.SpawnAllOnceAndDeactivate;
+
+            if (!WorldIntegration.PublishNpcSpawnerEvent(
+                    caster,
+                    SpawnerId,
+                    spawnerEvent,
+                    LifeTime,
+                    DespawnOnCreatorDeath,
+                    UseSummonerAggroTarget))
+            {
+                Logger.Warn($"NpcSpawnerSpawnEffect: no loaded Zone accepted spawner {SpawnerId}.");
+            }
+            return;
+        }
+
         var spawners = caster.ParentWorld.SpawnManager.GetNpcSpawner(SpawnerId);
         if (spawners is not { Count: not 0 })
             Logger.Info($"NpcSpawnerSpawnEffect: SpawnerId={SpawnerId} not found in spawners.");
@@ -44,35 +65,21 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
                 {
                     if (LifeTime == 0)
                     {
-                        // Npc attacks Npc for Q3886 & Q3887
-                        var units = WorldManager.GetAround<Npc>(npc, npc.Ai.Owner.Template.SightRangeScale * 30f);
+                        // Mutual aggro between the summon and everything hostile around it (Q3886 / Q3887).
+                        var units = WorldManager.GetAround<Npc>(npc, npc.Template.SightRangeScale * 30f);
                         if (units is not { Count: not 0 })
                             continue;
 
-                        foreach (var n in units.Where(n => npc.Ai.Owner.CanAttack(n)))
+                        foreach (var n in units.Where(npc.CanAttack))
                         {
-                            Logger.Info($"NpcSpawnerSpawnEffect: npc={n.TemplateId}:{npc.ObjId} attack the npc={npc.TemplateId}:{npc.ObjId}");
-                            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, n, 1);
-                            npc.Ai.OnAggroTargetChanged();
-
-                            n.Ai.Owner.AddUnitAggro(AggroKind.Damage, npc, 1);
+                            Logger.Info($"NpcSpawnerSpawnEffect: npc={n.TemplateId}:{n.ObjId} is hostile to npc={npc.TemplateId}:{npc.ObjId}");
+                            npc.AddUnitAggro(AggroKind.Damage, n, 1);
+                            n.AddUnitAggro(AggroKind.Damage, npc, 1);
                         }
-                        //npc.Ai.GoToCombat();
                     }
                     else
                     {
-                        // Npc attacks the character
-                        if (target is Npc targetNpc)
-                        {
-                            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, targetNpc, 1);
-                        }
-                        else
-                        {
-                            npc.Ai.Owner.AddUnitAggro(AggroKind.Damage, (Unit)caster, 1);
-                        }
-
-                        npc.Ai.OnAggroTargetChanged();
-                        //npc.Ai.GoToCombat();
+                        npc.AddUnitAggro(AggroKind.Damage, target is Npc targetNpc ? targetNpc : (Unit)caster, 1);
                     }
                 }
 

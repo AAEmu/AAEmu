@@ -1,15 +1,20 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCAccountAttributeConfigPacket(bool[] used) : GamePacket(SCOffsets.SCAccountAttributeConfigPacket, 1)
+/// <summary>Declares the account-attribute domains implemented by the server.</summary>
+/// <remarks>
+/// <c>account_buff</c>, and <c>ulc</c>. Index 0 has no game-content kind and is reserved.
+/// </remarks>
+public class SCAccountAttributeConfigPacket() : GamePacket(SCOffsets.SCAccountAttributeConfigPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
-        // 10.0.2.13: used[4] (bool).
-        for (var i = 0; i < 4; i++)
-            stream.Write(i < used.Length && used[i]);
+        stream.Write(false); // Native account-attribute kind 0 is reserved.
+        stream.Write(true);  // auction_post
+        stream.Write(true);  // account_buff
+        stream.Write(true);  // ulc
         return stream;
     }
 }

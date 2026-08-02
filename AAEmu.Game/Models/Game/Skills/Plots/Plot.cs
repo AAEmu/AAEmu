@@ -21,6 +21,15 @@ public class Plot
         if (caster is not Unit casterUnit)
             return;
 
+        // New cast-time plot while still casting: cancel the previous cast bar/plot so anims don't stack.
+        // In-flight (post-cast) plots keep running for projectile/damage; only casting ones are interrupted.
+        var prev = casterUnit.ActivePlotState;
+        if (prev != null && !ReferenceEquals(prev.ActiveSkill, skill) && prev.IsCasting &&
+            skill.Template.CastingTime > 0)
+        {
+            prev.RequestCancellation();
+        }
+
         var state = new PlotState(caster, casterCaster, target, targetCaster, skillObject, skill);
         casterUnit.ActivePlotState = state;
         skill.ActivePlotState = state;

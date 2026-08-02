@@ -10,6 +10,8 @@ namespace AAEmu.Game.Models;
 
 public partial class AppConfiguration
 {
+    public const string DefaultCharacterNameRegexPattern = "^[a-zA-Z0-9а-яА-Я]{1,18}$";
+
     private static readonly AppConfiguration s_default = new();
 
     public static AppConfiguration Instance
@@ -42,12 +44,12 @@ public partial class AppConfiguration
     public NetworkConfig StreamNetwork { get; set; }
     public NetworkConfig LoginNetwork { get; set; }
     public NetworkConfig WebApiNetwork { get; set; }
-    public string CharacterNameRegex { get; set; }
+    public string CharacterNameRegex { get; set; } = DefaultCharacterNameRegexPattern;
     public int MaxConcurencyThreadPool { get; set; }
     public bool HeightMapsEnable { get; set; }
     public string DiscordToken { get; set; }
     public ExpeditionConfig Expedition { get; set; }
-    public WorldConfig World { get; set; }
+    public WorldConfig World { get; set; } = new();
     public DungeonsConfig Dungeons { get; set; }
     public Dictionary<string, int> AccessLevel { get; set; } = [];
     public AccountConfig Account { get; set; }
@@ -57,6 +59,10 @@ public partial class AppConfiguration
     public CurrencyValuesConfig Loyalty { get; set; }
     public ClientDataConfig ClientData { get; set; } = new();
     public SpecialtyConfig Specialty { get; set; } = new();
+    public UccConfig Ucc { get; set; } = new();
+    public FeaturesConfig Features { get; set; } = new();
+    public InitialConfig InitialConfig { get; set; } = new();
+    public LevelRestrictionConfig LevelRestrictions { get; set; } = new();
     public ScriptsConfig Scripts { get; set; } = new();
     public string DefaultLanguage { get; set; } = "en_us";
     public bool DebugInfo { get; set; } = true;

@@ -11,4 +11,5 @@ public enum DoodadFuncPermission : byte
     OwnerRaidMembers = 5,
     SameAccount = 6,
     ZoneResidents = 8,
+    Expedition = 9,
 }

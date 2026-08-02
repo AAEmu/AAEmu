@@ -6,14 +6,15 @@ using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
+using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
@@ -21,6 +22,7 @@ using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
+using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -42,6 +44,267 @@ public partial class Character : Unit, ICharacter
     public override BaseUnitType BaseUnitType => BaseUnitType.Character;
 
     public static Dictionary<uint, uint> UsedCharacterObjIds { get; } = [];
+
+    /// <summary>
+    /// Zone-mirror NPCs waiting for SCUnitState — queued while loading, outside soft AOI, or at MAX.
+    /// Retail: UnitState is interest-driven (L5, not DD04); region neighborhood is only the candidate pool.
+    /// </summary>
+    private readonly ConcurrentDictionary<uint, Npc> _pendingMirrorSpawns = new();
+
+    /// <summary>
+    /// ObjIds that already received SCUnitState and still count toward AAEMU_MIRROR_NPC_MAX.
+    /// Freed on leave-view so walking recycles slots (lifetime counter Quit'd after first N).
+    /// </summary>
+    public ConcurrentDictionary<uint, byte> MirrorNpcStatesSentIds { get; } = new();
+
+    /// <summary>In-view streamed mirror count (for cap checks).</summary>
+    public int MirrorNpcStatesSentCount => MirrorNpcStatesSentIds.Count;
+
+    /// <summary>True after NotifyInGameCompleted — never send mirror UnitState during select/load.</summary>
+    public bool MirrorNpcStreamReady { get; set; }
+
+    /// <summary>
+    /// Optional delay after Completed before first mirror UnitState (AAEMU_MIRROR_NPC_GRACE_MS).
+    /// Default 0 — retail arms interest as soon as load finishes.
+    /// </summary>
+    public long MirrorNpcStreamNotBeforeTick { get; set; }
+
+    public void ResetMirrorNpcStreaming()
+    {
+        MirrorNpcStreamReady = false;
+        MirrorNpcStreamNotBeforeTick = 0;
+        MirrorNpcStatesSentIds.Clear();
+        _pendingMirrorSpawns.Clear();
+    }
+
+    /// <summary>Arm mirror interest after load complete (+ optional grace ms).</summary>
+    public void ArmMirrorNpcStream(int graceMs = 0)
+    {
+        MirrorNpcStreamReady = true;
+        MirrorNpcStreamNotBeforeTick = Environment.TickCount64 + Math.Max(0, graceMs);
+    }
+
+    /// <summary>
+    /// Retail gate: stream ready, grace elapsed, inside soft AOI, under MAX, not already sent.
+    /// </summary>
+    public bool CanStreamMirrorNow(Npc npc)
+    {
+        if (npc == null || npc.ObjId == 0)
+            return false;
+        if (!MirrorNpcStreamReady)
+            return false;
+        if (MirrorNpcStreamNotBeforeTick != 0 &&
+            Environment.TickCount64 < MirrorNpcStreamNotBeforeTick)
+            return false;
+        if (MirrorNpcStatesSentIds.ContainsKey(npc.ObjId))
+            return false;
+        if (Npc.MirrorNpcMaxPerCharacter > 0 &&
+            MirrorNpcStatesSentCount >= Npc.MirrorNpcMaxPerCharacter)
+            return false;
+        var d2 = DistanceSq(Transform.World.Position, npc.Transform.World.Position);
+        return d2 <= Npc.MirrorNpcAoiRadiusSq;
+    }
+
+    /// <summary>Queue a zone mirror for later AOI enter / post-load flush.</summary>
+    public void EnqueuePendingMirrorSpawn(Npc npc)
+    {
+        if (npc == null || npc.ObjId == 0)
+            return;
+        if (MirrorNpcStatesSentIds.ContainsKey(npc.ObjId))
+            return;
+        _pendingMirrorSpawns.TryAdd(npc.ObjId, npc);
+    }
+
+    public void ReleaseMirrorNpcSlot(uint objId)
+    {
+        MirrorNpcStatesSentIds.TryRemove(objId, out _);
+        _pendingMirrorSpawns.TryRemove(objId, out _);
+    }
+
+    public bool HasPendingMirrorSpawns => !_pendingMirrorSpawns.IsEmpty;
+
+    /// <summary>Remove and return the nearest pending valid mirror, or null.</summary>
+    public Npc TryTakeNearestPendingMirror()
+    {
+        if (!TryPeekNearestPendingMirror(out var best, out _, out var bestId) || best == null)
+            return null;
+
+        _pendingMirrorSpawns.TryRemove(bestId, out _);
+        return best;
+    }
+
+    /// <summary>Peek nearest pending inside soft AOI without removing. Drops dead pending entries.</summary>
+    public bool TryPeekNearestPendingMirror(out Npc best, out float bestD2, out uint bestId)
+    {
+        best = null;
+        bestD2 = float.MaxValue;
+        bestId = 0;
+        var origin = Transform.World.Position;
+
+        foreach (var kv in _pendingMirrorSpawns)
+        {
+            var npc = kv.Value;
+            if (npc == null || npc.ObjId == 0 || npc.Region == null || !npc.IsVisible)
+            {
+                _pendingMirrorSpawns.TryRemove(kv.Key, out _);
+                continue;
+            }
+
+            if (MirrorNpcStatesSentIds.ContainsKey(npc.ObjId))
+            {
+                _pendingMirrorSpawns.TryRemove(kv.Key, out _);
+                continue;
+            }
+
+            var d2 = DistanceSq(origin, npc.Transform.World.Position);
+            // Outside soft AOI: skip for send (still pending for when player walks closer).
+            if (d2 > Npc.MirrorNpcAoiRadiusSq)
+                continue;
+
+            if (d2 < bestD2)
+            {
+                bestD2 = d2;
+                best = npc;
+                bestId = kv.Key;
+            }
+        }
+
+        return best != null;
+    }
+
+    private static float DistanceSq(System.Numerics.Vector3 a, System.Numerics.Vector3 b)
+    {
+        var dx = a.X - b.X;
+        var dy = a.Y - b.Y;
+        var dz = a.Z - b.Z;
+        return dx * dx + dy * dy + dz * dz;
+    }
+
+    private bool IsStillInRegionInterest(Npc npc)
+    {
+        if (npc?.Region == null || Region == null)
+            return false;
+        if (ReferenceEquals(npc.Region, Region))
+            return true;
+        foreach (var n in Region.GetNeighbors())
+        {
+            if (ReferenceEquals(n, npc.Region))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Commercial interest leave: despawn streamed mirrors beyond soft AOI even if still in
+    /// coarse region neighborhood. Re-queues those still in the region pool as pending.
+    /// </summary>
+    public int CullStreamedMirrorsBeyondAoi()
+    {
+        if (MirrorNpcStatesSentIds.IsEmpty)
+            return 0;
+
+        var origin = Transform.World.Position;
+        var aoiSq = Npc.MirrorNpcAoiRadiusSq;
+        List<uint> remove = null;
+
+        foreach (var objId in MirrorNpcStatesSentIds.Keys)
+        {
+            var npc = ParentWorld?.GetNpc(objId);
+            if (npc == null || npc.ObjId == 0)
+            {
+                (remove ??= []).Add(objId);
+                continue;
+            }
+
+            if (DistanceSq(origin, npc.Transform.World.Position) > aoiSq)
+                (remove ??= []).Add(objId);
+        }
+
+        if (remove == null || remove.Count == 0)
+            return 0;
+
+        foreach (var objId in remove)
+        {
+            var npc = ParentWorld?.GetNpc(objId);
+            ReleaseMirrorNpcSlot(objId);
+            if (npc != null && IsStillInRegionInterest(npc))
+                EnqueuePendingMirrorSpawn(npc);
+        }
+
+        for (var offset = 0; offset < remove.Count; offset += SCUnitsRemovedPacket.MaxCountPerPacket)
+        {
+            var length = Math.Min(SCUnitsRemovedPacket.MaxCountPerPacket, remove.Count - offset);
+            var batch = new uint[length];
+            remove.CopyTo(offset, batch, 0, length);
+            SendPacket(new SCUnitsRemovedPacket(batch));
+        }
+
+        return remove.Count;
+    }
+
+    /// <summary>
+    /// At MAX: if a nearer pending exists inside AOI, despawn farthest streamed and free a slot
+    /// (retail interest replace — not sticky first-N).
+    /// </summary>
+    public bool TryEvictFarthestStreamedForNearerPending()
+    {
+        if (Npc.MirrorNpcMaxPerCharacter <= 0)
+            return false;
+        if (MirrorNpcStatesSentCount < Npc.MirrorNpcMaxPerCharacter)
+            return false;
+        if (!TryPeekNearestPendingMirror(out _, out var nearerD2, out _))
+            return false;
+
+        var origin = Transform.World.Position;
+        uint farthestId = 0;
+        var farthestD2 = -1f;
+        Npc farthestNpc = null;
+
+        foreach (var objId in MirrorNpcStatesSentIds.Keys)
+        {
+            var npc = ParentWorld?.GetNpc(objId);
+            if (npc == null)
+            {
+                ReleaseMirrorNpcSlot(objId);
+                continue;
+            }
+
+            var d2 = DistanceSq(origin, npc.Transform.World.Position);
+            if (d2 > farthestD2)
+            {
+                farthestD2 = d2;
+                farthestId = objId;
+                farthestNpc = npc;
+            }
+        }
+
+        if (farthestId == 0 || nearerD2 >= farthestD2)
+            return false;
+
+        // Require meaningful improvement (~15m closer) to avoid thrash.
+        const float minImproveSq = 15f * 15f;
+        if (farthestD2 - nearerD2 < minImproveSq)
+            return false;
+
+        ReleaseMirrorNpcSlot(farthestId);
+        if (farthestNpc != null && IsStillInRegionInterest(farthestNpc))
+            EnqueuePendingMirrorSpawn(farthestNpc);
+        SendPacket(new SCUnitsRemovedPacket([farthestId]));
+        return true;
+    }
+
+    /// <summary>
+    /// Physics-time (tPhy) anchor reconstructed from the client's own CSMoveUnit.Time. The 10.0.2.13 client
+    /// binds and interpolates world objects against the server physics clock carried in movement packets, so
+    /// the synthesized NPC keepalive movements (MirrorMovementStreamTask) MUST carry a tPhy in the client's
+    /// exact clock domain or the client rejects/mis-times them. We capture the client's last reported movement
+    /// Time plus the wall-clock tick at capture, then advance it at real time. Tick 0 => no anchor yet.
+    /// </summary>
+    public uint PhysTimeAnchor { get; set; }
+    public long PhysTimeAnchorTick { get; set; }
+    public bool HasPhysTimeAnchor => PhysTimeAnchorTick != 0;
+    public uint CurrentPhysTime => PhysTimeAnchor + (uint)(Environment.TickCount64 - PhysTimeAnchorTick);
 
     private readonly Dictionary<ushort, string> _options;
 
@@ -70,6 +333,15 @@ public partial class Character : Unit, ICharacter
             AccountManager.Instance.UpdateLabor(AccountId, value);
         }
     }
+
+    /// <summary>
+    /// Character-local labor pool. The native character block keeps this separate from account labor.
+    /// </summary>
+    public int LocalLaborPower { get; set; }
+
+    public int MaxLocalLaborPower => Math.Max(
+        0,
+        PremiumGameData.Instance.GetGrade(PremiumGrade)?.MaxLocalLabor ?? 0);
 
     /// <summary>
     /// Last time labor got updated
@@ -106,8 +378,17 @@ public partial class Character : Unit, ICharacter
     public DateTime LeaveTime { get; set; }
     public long Money { get; set; }
     public long Money2 { get; set; }
+    public long AaPoint { get; set; }
+    public long BankAaPoint { get; set; }
     public int HonorPoint { get; set; }
     public int VocationPoint { get; set; }
+
+    /// <summary>
+    /// Body to restore when a CharTransformEffect polymorph ends. Set on the first transform only, so a
+    /// second one applied on top cannot overwrite the original and leave the player stuck in a borrowed model.
+    /// Deliberately not persisted — a transform does not survive a relog.
+    /// </summary>
+    public uint? PreTransformModelId { get; set; }
 
     /// <summary>
     /// Current crime points (/50)
@@ -148,12 +429,68 @@ public partial class Character : Unit, ICharacter
     /// </summary>
     public long BmPoint { get; set; }
     public bool AutoUseAAPoint { get; set; }
+    public CharacterPrivacyStatus PrivacyStatus { get; set; }
     public int PrevPoint { get; set; }
     public int Point { get; set; }
+
+    /// <summary>UnitState duelTeamType. 0xFF is the client's "not duelling" value; duels are not implemented.</summary>
+    public byte DuelTeamType { get; set; } = 0xFF;
+
+    /// <summary>UnitState camp — faction-war camp assignment, not implemented.</summary>
+    public byte Camp { get; set; }
+
+    /// <summary>
+    /// Premium grade resolved from <see cref="Point"/> against premium_grades. 0 is no premium.
+    /// </summary>
+    public uint PremiumGrade => PremiumGameData.Instance.GetGradeForPoint(Point);
+
+    /// <summary>Cumulative heir exp (characters.heir_exp). heir_levels measures against the total.</summary>
+    public long HeirExp { get; set; }
+
+    /// <summary>
+    /// Resolved from <see cref="HeirExp"/>, so the level and the total can never disagree.
+    /// </summary>
+    public override byte HeirLevel
+    {
+        get => HeirGameData.Instance.GetLevelForExp(HeirExp);
+        set { /* derived from HeirExp */ }
+    }
+
+    /// <summary>Heir step for the current level; heir_skills is keyed on it.</summary>
+    public byte HeirStep => HeirGameData.Instance.GetStepForLevel(HeirLevel);
     public int Gift { get; set; }
     public int Experience { get; private set; }
     public int RecoverableExp { get; set; }
     public DateTime Created { get; set; } // время создания персонажа
+
+    /// <summary>
+    /// Seconds this character has been played, across every session. Reported by SCPlayerGameData, whose
+    /// 10.0.2.13 serializer names the field totalPlayTime.
+    /// </summary>
+    public uint TotalPlayTime { get; set; }
+
+    /// <summary>When the current session began, so the running total includes time not yet persisted.</summary>
+    private DateTime _sessionStartedAt = DateTime.UtcNow;
+
+    /// <summary>Serializes empty-body heir level-up requests for this character.</summary>
+    private readonly object _heirLevelUpLock = new();
+
+    /// <summary>Persisted total plus the time accumulated since this session started.</summary>
+    public uint GetTotalPlayTimeSeconds()
+    {
+        var elapsed = (DateTime.UtcNow - _sessionStartedAt).TotalSeconds;
+        return TotalPlayTime + (uint)Math.Max(0, elapsed);
+    }
+
+    /// <summary>
+    /// Folds the current session into the stored total and restarts the session clock, so a save part-way
+    /// through a session cannot count the same seconds twice on the next one.
+    /// </summary>
+    public void AccumulatePlayTime()
+    {
+        TotalPlayTime = GetTotalPlayTimeSeconds();
+        _sessionStartedAt = DateTime.UtcNow;
+    }
     public DateTime Updated { get; set; } // время внесения изменений
 
     public uint ReturnDistrictId { get; set; }
@@ -180,12 +517,15 @@ public partial class Character : Unit, ICharacter
     public CharacterPortals Portals { get; set; }
     public CharacterFriends Friends { get; set; }
     public CharacterBlocked Blocked { get; set; }
+    public CharacterFavoriteCrafts FavoriteCrafts { get; set; }
     public CharacterMates Mates { get; set; }
 
     public byte ExpandedExpert { get; set; }
     public CharacterActability Actability { get; set; }
 
     public CharacterSkills Skills { get; set; }
+    public CharacterHeirSkills HeirSkills { get; set; }
+    public CharacterSkillActiveTypes SkillActiveTypes { get; set; }
     public CharacterCraft Craft { get; set; }
     public uint SubZoneId { get; set; } // понадобилось хранить для составления точек Memory Tome (Recall)
     public int AccessLevel { get; set; }
@@ -851,6 +1191,8 @@ public partial class Character : Unit, ICharacter
                 FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.MeleeAntiMiss);
             var parameters = new Dictionary<string, double>
             {
+                ["level"] = Level,
+                ["heir_level"] = HeirLevel,
                 ["str"] = Str, //Str not needed, but maybe we use later
                 ["spi"] = Spi
             };
@@ -872,6 +1214,8 @@ public partial class Character : Unit, ICharacter
                 FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.MeleeCritical);
             var parameters = new Dictionary<string, double>
             {
+                ["level"] = Level,
+                ["heir_level"] = HeirLevel,
                 ["str"] = Str, //Str not needed, but maybe we use later
                 ["dex"] = Dex
             };
@@ -914,6 +1258,8 @@ public partial class Character : Unit, ICharacter
                 FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.RangedAntiMiss);
             var parameters = new Dictionary<string, double>
             {
+                ["level"] = Level,
+                ["heir_level"] = HeirLevel,
                 ["dex"] = Dex, //Str not needed, but maybe we use later
                 ["spi"] = Spi
             };
@@ -935,6 +1281,8 @@ public partial class Character : Unit, ICharacter
                 FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.RangedCritical);
             var parameters = new Dictionary<string, double>
             {
+                ["level"] = Level,
+                ["heir_level"] = HeirLevel,
                 ["dex"] = Dex, //Str not needed, but maybe we use later
                 ["int"] = Int
             };
@@ -977,6 +1325,8 @@ public partial class Character : Unit, ICharacter
                 FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.SpellAntiMiss);
             var parameters = new Dictionary<string, double>
             {
+                ["level"] = Level,
+                ["heir_level"] = HeirLevel,
                 ["int"] = Int,
                 ["spi"] = Spi
             };
@@ -998,6 +1348,8 @@ public partial class Character : Unit, ICharacter
                 FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.SpellCritical);
             var parameters = new Dictionary<string, double>
             {
+                ["level"] = Level,
+                ["heir_level"] = HeirLevel,
                 ["int"] = Int //Str not needed, but maybe we use later
             };
             var res = formula.Evaluate(parameters);
@@ -1246,6 +1598,8 @@ public partial class Character : Unit, ICharacter
                 FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.MeleeParry);
             var parameters = new Dictionary<string, double>
             {
+                ["level"] = Level,
+                ["heir_level"] = HeirLevel,
                 ["str"] = Str,
                 ["sta"] = Sta
             };
@@ -1393,6 +1747,40 @@ public partial class Character : Unit, ICharacter
         return false;
     }
 
+    /// <summary>
+    /// Performs the native heir-level boundary transition. The client only sends the request when
+    /// cumulative heir experience is exactly one below the current row's threshold; the server
+    /// repeats every eligibility check because the request has no fields and cannot be trusted.
+    /// </summary>
+    public bool TryLevelUpHeir()
+    {
+        lock (_heirLevelUpLock)
+        {
+            var gameData = HeirGameData.Instance;
+            if (!gameData.TryGetLevelUpRequirement(Level, HeirExp, out var requirement))
+                return false;
+
+            if (requirement.ReqItemId != 0)
+            {
+                if (!Inventory.CheckItems(SlotType.Inventory, requirement.ReqItemId, requirement.ReqItemCount))
+                    return false;
+
+                var consumed = Inventory.Bag.ConsumeItem(
+                    ItemTaskType.UpgradeSkill,
+                    requirement.ReqItemId,
+                    requirement.ReqItemCount,
+                    null);
+                if (consumed != requirement.ReqItemCount)
+                    return false;
+            }
+
+            // Crossing this content-supplied threshold makes the upper-bound lookup advance by one.
+            HeirExp = requirement.ReqTotalExp;
+            BroadcastPacket(new SCHeirLevelUpPacket(ObjId), true);
+            return true;
+        }
+    }
+
     public void AddExp(int expDelta, bool shouldAddAbilityExp)
     {
         if (expDelta == 0)
@@ -1402,7 +1790,14 @@ public partial class Character : Unit, ICharacter
         {
             expDelta = (int)(expDelta * AppConfiguration.Instance.World.ExpRate);
         }
-        
+
+        // SCExpChanged drives both client accumulators. Its native heir branch tests the character's
+        // level before SCLevelChanged arrives, accepts positive deltas only, and clamps at the current
+        // heir threshold minus one until CSHeirLevlUp explicitly crosses it.
+        var wasHeirEligible = Level >= HeirGameData.Instance.StartLevel;
+        if (wasHeirEligible)
+            HeirExp = HeirGameData.Instance.ApplyExpGain(HeirExp, expDelta);
+
         var newExperience = Experience + expDelta;
         var newLevel = ExperienceManager.Instance.GetLevelFromExp(newExperience, Level, out var overflow);
         var leveledUp = newLevel > Level;
@@ -1416,8 +1811,9 @@ public partial class Character : Unit, ICharacter
         Experience = newExperience;
         Level = newLevel;
         
+        // to the equipped abilities. Mirror that ordering before SCExpChanged reaches the client.
         if (shouldAddAbilityExp)
-            Abilities.AddActiveExp(expDelta); // TODO ... or all?
+            Abilities.AddActiveExp(expDelta);
         
         SendPacket(new SCExpChangedPacket(ObjId, expDelta, shouldAddAbilityExp));
 
@@ -1464,59 +1860,165 @@ public partial class Character : Unit, ICharacter
         }
     }
 
-    public bool ChangeMoney(SlotType moneyLocation, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney) => ChangeMoney(SlotType.None, moneyLocation, amount, itemTaskType);
-
-    public bool ChangeMoney(SlotType typeFrom, SlotType typeTo, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
+    public bool ChangeMoney(SlotType moneyLocation, long amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
     {
+        if (amount > 0)
+            return AddMoney(moneyLocation, amount, itemTaskType);
+        if (amount < 0)
+        {
+            if (amount == long.MinValue)
+                return false;
+            return SubtractMoney(moneyLocation, -amount, itemTaskType);
+        }
+        return true;
+    }
+
+    public bool ChangeMoney(SlotType typeFrom, SlotType typeTo, long amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
+    {
+        return ChangeWallets(typeFrom, typeTo, amount, 0, itemTaskType);
+    }
+
+    public bool ChangeAAPoint(SlotType typeFrom, SlotType typeTo, long amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
+    {
+        return ChangeWallets(typeFrom, typeTo, 0, amount, itemTaskType);
+    }
+
+    public bool ChangeWallets(
+        SlotType typeFrom,
+        SlotType typeTo,
+        long moneyAmount,
+        long aaPointAmount,
+        ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
+    {
+        if (moneyAmount == 0 && aaPointAmount == 0)
+            return true;
+
+        if (moneyAmount < 0 || aaPointAmount < 0 ||
+            (typeFrom == SlotType.None && typeTo == SlotType.None) || typeFrom == typeTo)
+            return false;
+
+        var sourceMoney = typeFrom switch
+        {
+            SlotType.None => long.MaxValue,
+            SlotType.Inventory => Money,
+            SlotType.Bank => Money2,
+            _ => -1
+        };
+        var sourceAaPoint = typeFrom switch
+        {
+            SlotType.None => long.MaxValue,
+            SlotType.Inventory => AaPoint,
+            SlotType.Bank => BankAaPoint,
+            _ => -1
+        };
+        if (sourceMoney < 0 || sourceAaPoint < 0)
+            return false;
+        if (sourceMoney < moneyAmount)
+        {
+            SendErrorMessage(typeFrom == SlotType.Bank
+                ? ErrorMessageType.NotEnoughBankMoney
+                : ErrorMessageType.NotEnoughMoney);
+            return false;
+        }
+        if (sourceAaPoint < aaPointAmount)
+        {
+            SendErrorMessage(typeFrom == SlotType.Bank
+                ? ErrorMessageType.NotEnoughBankAaPoint
+                : ErrorMessageType.NotEnoughAaPoint);
+            return false;
+        }
+
+        var targetMoney = typeTo switch
+        {
+            SlotType.None => 0,
+            SlotType.Inventory => Money,
+            SlotType.Bank => Money2,
+            _ => -1
+        };
+        var targetAaPoint = typeTo switch
+        {
+            SlotType.None => 0,
+            SlotType.Inventory => AaPoint,
+            SlotType.Bank => BankAaPoint,
+            _ => -1
+        };
+        if (targetMoney < 0 || targetAaPoint < 0 ||
+            targetMoney > long.MaxValue - moneyAmount ||
+            targetAaPoint > long.MaxValue - aaPointAmount)
+        {
+            SendErrorMessage(ErrorMessageType.Invalid);
+            return false;
+        }
+
         var itemTasks = new List<ItemTask>();
         switch (typeFrom)
         {
             case SlotType.Inventory:
-                if (amount > Money)
-                {
-                    SendErrorMessage(ErrorMessageType.NotEnoughMoney);
-                    return false;
-                }
-                Money -= amount;
-                itemTasks.Add(new MoneyChange(-amount));
+                Money -= moneyAmount;
+                AaPoint -= aaPointAmount;
+                if (moneyAmount != 0)
+                    itemTasks.Add(new MoneyChange(-moneyAmount));
+                if (aaPointAmount != 0)
+                    itemTasks.Add(new AAPointUpdate(-aaPointAmount));
                 break;
             case SlotType.Bank:
-                if (amount > Money2)
-                {
-                    SendErrorMessage(ErrorMessageType.NotEnoughMoney);
-                    return false;
-                }
-                Money2 -= amount;
-                itemTasks.Add(new MoneyChangeBank(-amount));
+                Money2 -= moneyAmount;
+                BankAaPoint -= aaPointAmount;
+                if (moneyAmount != 0)
+                    itemTasks.Add(new MoneyChangeBank(-moneyAmount));
+                if (aaPointAmount != 0)
+                    itemTasks.Add(new ChangeBankAAPoint(-aaPointAmount));
                 break;
         }
         switch (typeTo)
         {
             case SlotType.Inventory:
-                Money += amount;
-                itemTasks.Add(new MoneyChange(amount));
+                Money += moneyAmount;
+                AaPoint += aaPointAmount;
+                if (moneyAmount != 0)
+                    itemTasks.Add(new MoneyChange(moneyAmount));
+                if (aaPointAmount != 0)
+                    itemTasks.Add(new AAPointUpdate(aaPointAmount));
                 break;
             case SlotType.Bank:
-                Money2 += amount;
-                itemTasks.Add(new MoneyChangeBank(amount));
+                Money2 += moneyAmount;
+                BankAaPoint += aaPointAmount;
+                if (moneyAmount != 0)
+                    itemTasks.Add(new MoneyChangeBank(moneyAmount));
+                if (aaPointAmount != 0)
+                    itemTasks.Add(new ChangeBankAAPoint(aaPointAmount));
                 break;
         }
         SendPacket(new SCItemTaskSuccessPacket(itemTaskType, itemTasks, []));
         return true;
     }
 
-    public bool AddMoney(SlotType moneyLocation, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
+    public bool AddMoney(SlotType moneyLocation, long amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
     {
         if (amount < 0)
             return false;
         return ChangeMoney(SlotType.None, moneyLocation, amount, itemTaskType);
     }
 
-    public bool SubtractMoney(SlotType moneyLocation, int amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
+    public bool SubtractMoney(SlotType moneyLocation, long amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
     {
         if (amount < 0)
             return false;
-        return ChangeMoney(SlotType.None, moneyLocation, -amount, itemTaskType);
+        return ChangeMoney(moneyLocation, SlotType.None, amount, itemTaskType);
+    }
+
+    public bool AddAAPoint(SlotType aaPointLocation, long amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
+    {
+        if (amount < 0)
+            return false;
+        return ChangeAAPoint(SlotType.None, aaPointLocation, amount, itemTaskType);
+    }
+
+    public bool SubtractAAPoint(SlotType aaPointLocation, long amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
+    {
+        if (amount < 0)
+            return false;
+        return ChangeAAPoint(aaPointLocation, SlotType.None, amount, itemTaskType);
     }
 
     public void ChangeLabor(short change, int actabilityId)
@@ -1547,22 +2049,58 @@ public partial class Character : Unit, ICharacter
         }
 
         LaborPower += change;
-        SendPacket(new SCCharacterLaborPowerChangedPacket(change, actabilityId, actabilityChange, actabilityStep));
+        // amount = primary labor delta; local/recharged pools unused on our single-pool account labor.
+        SendPacket(new SCCharacterLaborPowerChangedPacket(
+            change, 0, 0, (uint)actabilityId, actabilityChange, actabilityStep));
+    }
+
+    /// <summary>
+    /// Adds labor to the character-local pool and returns the amount that fit below the native
+    /// premium-grade cap.
+    /// </summary>
+    public int AddLocalLaborPower(int amount)
+    {
+        if (amount <= 0)
+            return 0;
+
+        var newAmount = (int)Math.Clamp(
+            (long)LocalLaborPower + amount,
+            0,
+            MaxLocalLaborPower);
+        var applied = newAmount - LocalLaborPower;
+        if (applied <= 0)
+            return 0;
+
+        LocalLaborPower = newAmount;
+        SendPacket(new SCCharacterLaborPowerChangedPacket(0, applied, 0, 0, 0, 0));
+        return applied;
     }
 
     public void ChangeGamePoints(GamePointKind kind, int change)
     {
+        ChangeGamePoints(kind, change, true);
+    }
+
+    public void ChangeGamePoints(GamePointKind kind, int change, bool applyGainModifiers)
+    {
         switch (kind)
         {
             case GamePointKind.Honor:
-                HonorPoint += change;
+                var newHonor = Math.Clamp((long)HonorPoint + change, 0L, int.MaxValue);
+                change = (int)(newHonor - HonorPoint);
+                HonorPoint = (int)newHonor;
                 break;
             case GamePointKind.Vocation:
-                var vocAdd = GetAttribute(UnitAttribute.LivingPointGain, 0f);
-                change = (int)Math.Round(change + vocAdd);
-                var vocMul = GetAttribute(UnitAttribute.LivingPointGainMul, 0f) + 100f;
-                change = (int)Math.Round(change * (vocMul / 100f));
-                VocationPoint += change;
+                if (change > 0 && applyGainModifiers)
+                {
+                    var vocAdd = GetAttribute(UnitAttribute.LivingPointGain, 0f);
+                    change = (int)Math.Clamp(Math.Round(change + vocAdd), 0, int.MaxValue);
+                    var vocMul = GetAttribute(UnitAttribute.LivingPointGainMul, 0f) + 100f;
+                    change = (int)Math.Clamp(Math.Round(change * (vocMul / 100f)), 0, int.MaxValue);
+                }
+                var newVocation = Math.Clamp((long)VocationPoint + change, 0L, int.MaxValue);
+                change = (int)(newVocation - VocationPoint);
+                VocationPoint = (int)newVocation;
                 break;
             default:
                 Logger.Error($"ChangeGamePoints - Unknown Game Point Type {kind}");
@@ -1579,20 +2117,20 @@ public partial class Character : Unit, ICharacter
 
     public void ResetSkillCooldown(uint skillId, bool gcd)
     {
+        Cooldowns.RemoveCooldown(skillId);
         SendPacket(new SCSkillCooldownResetPacket(this, skillId, 0, gcd));
     }
 
     public void ResetAllSkillCooldowns(bool triggerGcd)
     {
+        // Retail sniff: 0× DD04 (L4 zip). Send each reset as normal L5 SC.
         const uint playerSkillsTag = 378;
         var skillIds = SkillManager.Instance.GetSkillsByTag(playerSkillsTag);
-
-        var packets = new CompressedGamePackets();
         foreach (var skillId in skillIds)
         {
-            packets.AddPacket(new SCSkillCooldownResetPacket(this, skillId, 0, triggerGcd));
+            Cooldowns.RemoveCooldown(skillId);
+            SendPacket(new SCSkillCooldownResetPacket(this, skillId, 0, triggerGcd));
         }
-        SendPacket(packets);
     }
 
     public void SetPirate(bool pirate)
@@ -1601,9 +2139,14 @@ public partial class Character : Unit, ICharacter
         var defaultFactionId = CharacterManager.Instance.GetTemplate(Race, Gender).FactionId;
 
         var newFaction = pirate ? FactionsEnum.Pirate : defaultFactionId;
-        BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, Faction.Id, newFaction, false), true);
+        var oldFaction = Faction.Id;
+        BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, oldFaction, newFaction, false), true);
         Faction = FactionManager.Instance.GetFaction(newFaction);
+        if (WorldIntegration.ZoneAuthority)
+            WorldIntegration.RelayUnitFactionChangedToZone?.Invoke(ObjId, (int)oldFaction, (int)newFaction, false);
         HousingManager.Instance.UpdateOwnedHousingFaction(Id, newFaction);
+        foreach (var doodad in ParentWorld?.SpawnManager?.GetPlayerDoodads(Id) ?? [])
+            DoodadManager.Instance.RefreshFaction(doodad, this, doodad.ParentObj as House);
         // TODO : Teleport to Growlgate
         // TODO : Leave guild
     }
@@ -1616,6 +2159,33 @@ public partial class Character : Unit, ICharacter
 
         base.SetPosition(x, y, z, rotationX, rotationY, rotationZ);
 
+        UpdateUnderWaterState();
+
+        // Connection.ActiveChar.SendMessage("Move New Pos: {0}", Transform.ToString());
+
+        if (!moved)
+            return;
+
+        Buffs.TriggerRemoveOn(BuffRemoveOn.Move);
+
+        // Check if zone changed
+        if (Transform.ZoneId == lastZoneKey)
+            return;
+        OnZoneChange(lastZoneKey, Transform.ZoneId);
+    }
+
+    /// <summary>
+    /// Recomputes <see cref="IsUnderWater"/> from the character's current transform.
+    /// </summary>
+    /// <remarks>
+    /// The client movement path writes straight to <c>Transform.Local</c> and never routes through
+    /// <see cref="SetPosition"/>, so this has to be driven from the breath tick as well. Evaluating
+    /// it only on <see cref="SetPosition"/> left the flag latched at whatever it was when the
+    /// character still sat at the world origin, which is below <c>OceanLevel</c> and therefore
+    /// counts as submerged.
+    /// </remarks>
+    public void UpdateUnderWaterState()
+    {
         var world = WorldManager.Instance.GetWorld(Transform.InstanceId);
 
         // Probe slightly above the character "feet" position to avoid false drowning
@@ -1638,7 +2208,7 @@ public partial class Character : Unit, ICharacter
 
         if (attachedSlave != null)
         {
-            var shipModel = attachedSlave.ShipController?.ShipModel ?? ModelManager.Instance.GetShipModel(attachedSlave.ModelId);
+            var shipModel = ModelManager.Instance.GetShipModel(attachedSlave.ModelId);
             if (shipModel != null)
             {
                 // Use a fraction of the ship's vertical bounds as a proxy for deck/head level.
@@ -1671,24 +2241,6 @@ public partial class Character : Unit, ICharacter
             else if (IsUnderWater && probePos.Z > exitThreshold)
                 IsUnderWater = false;
         }
-
-        // Connection.ActiveChar.SendMessage("Move New Pos: {0}", Transform.ToString());
-
-        if (!moved)
-            return;
-
-        Buffs.TriggerRemoveOn(BuffRemoveOn.Move);
-
-        // Update the party member position on the map
-        // TODO: Check the format of the send packet, as it doesn't seem to be correct
-        // TODO: Somehow make sure that players in instances don't show on the main world map 
-        if (InParty)
-            TeamManager.Instance.UpdatePosition(Id);
-
-        // Check if zone changed
-        if (Transform.ZoneId == lastZoneKey)
-            return;
-        OnZoneChange(lastZoneKey, Transform.ZoneId);
     }
 
     private CancellationTokenSource _unreleasedZoneTransportedOut;
@@ -1707,6 +2259,31 @@ public partial class Character : Unit, ICharacter
             ChatManager.Instance.GetZoneChat(lastZoneKey).LeaveChannel(this);
         if (newZoneGroupId != 0)
             ChatManager.Instance.GetZoneChat(newZoneKey).JoinChannel(this);
+
+        // ZoneAuthority: sim presence follows zone key (WZUnitRemoved old + WZUnitState new).
+        if (WorldIntegration.ZoneAuthority && lastZoneKey != 0 && newZoneKey != 0 && lastZoneKey != newZoneKey)
+        {
+            var body = WorldIntegration.BuildWzUnitStateBody(this);
+            var accepted = WorldIntegration.RelayCharacterZoneHandoff?.Invoke(
+                ObjId, lastZoneKey, newZoneKey, body) ?? false;
+            if (!accepted)
+            {
+                Logger.Error(
+                    "Zone handoff refused for {0} (ObjId={1}) from zone {2} to {3}; returning to character select",
+                    Name, ObjId, lastZoneKey, newZoneKey);
+
+                // Leave the Transform.ZoneId callback before world cleanup detaches the character hierarchy.
+                var failedConnection = Connection;
+                if (failedConnection != null)
+                {
+                    _ = Task.Run(() => EnterWorldManager.Instance.ReturnToCharacterSelect(
+                        failedConnection,
+                        $"zone {newZoneKey} is not available"));
+                }
+
+                return;
+            }
+        }
 
         if (newZone != null)
         {
@@ -1952,10 +2529,11 @@ public partial class Character : Unit, ICharacter
         base.ReduceCurrentHp(attacker, value, killReason);
     }
 
-    public void DoRepair(List<Item> items)
+    public void DoRepair(List<Item> items, bool useAaPoint)
     {
         var tasks = new List<ItemTask>();
-        var repairCost = 0;
+        var repairs = new List<(EquipItem EquipItem, Item Item)>();
+        long repairCost = 0;
 
         foreach (var item in items)
         {
@@ -2001,22 +2579,38 @@ public partial class Character : Unit, ICharacter
 
             var currentRepairCost = equipItem.RepairCost;
 
-            if (Money < currentRepairCost)
+            var repairBalance = useAaPoint ? AaPoint : Money;
+            if (currentRepairCost < 0 || repairCost > long.MaxValue - currentRepairCost ||
+                repairCost + currentRepairCost > repairBalance)
             {
-                Logger.Warn($"Not enough money to repair, Item: {item.Id}, Money: {Money}, RepairCost: {currentRepairCost}");
+                Logger.Warn(
+                    $"Not enough {(useAaPoint ? "AA points" : "money")} to repair, Item: {item.Id}, " +
+                    $"Balance: {repairBalance}, " +
+                    $"SelectedRepairCost: {repairCost + currentRepairCost}");
                 continue;
             }
 
-            equipItem.Durability = equipItem.MaxDurability;
-            equipItem.IsDirty = true;
             repairCost += currentRepairCost;
-
-            tasks.Add(new ItemUpdate(item));
+            repairs.Add((equipItem, item));
         }
+
+        if (repairs.Count == 0)
+            return;
 
         if (repairCost > 0)
         {
-            ChangeMoney(SlotType.Inventory, -repairCost);
+            var paid = useAaPoint
+                ? SubtractAAPoint(SlotType.Inventory, repairCost, ItemTaskType.Repair)
+                : SubtractMoney(SlotType.Inventory, repairCost, ItemTaskType.Repair);
+            if (!paid)
+                return;
+        }
+
+        foreach (var (equipItem, item) in repairs)
+        {
+            equipItem.Durability = equipItem.MaxDurability;
+            equipItem.IsDirty = true;
+            tasks.Add(new ItemUpdate(item));
         }
 
         Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Repair, tasks, []));
@@ -2044,6 +2638,21 @@ public partial class Character : Unit, ICharacter
             ParentWorld.SlaveManager.UnbindSlave(this, isOnSlave.TlId, reason);
             res = true;
         }
+        // Mast/ladder hang: DetachAll alone leaves the client in Hung state — must SCUnhung to self.
+        // Also re-notify after sail BindSlave: client hang often survives CSUnhang (was self=false).
+        var hangTargetObjId = Transform.StickyParent?.GameObject?.ObjId ?? 0;
+        var stickySlave = Transform.StickyParent?.GameObject as Slave;
+        var wasHanging = Transform.StickyParent != null;
+        if (wasHanging)
+        {
+            Transform.StickyParent = null;
+            if (stickySlave != null)
+                ShipHarpoonRopeController.BreakRopeForClients(stickySlave, cutouted: false);
+            res = true;
+        }
+
+        if (wasHanging || isOnSlave != null)
+            BroadcastPacket(new SCUnhungPacket(ObjId, hangTargetObjId, 0), true);
         // Unbind from any parent
         Transform.DetachAll();
         return res;
@@ -2135,6 +2744,7 @@ public partial class Character : Unit, ICharacter
                         Level = reader.GetByte("level"),
                         Experience = reader.GetInt32("experience"),
                         RecoverableExp = reader.GetInt32("recoverable_exp"),
+                        HeirExp = reader.GetInt64("heir_exp"),
                         Hp = reader.GetInt32("hp"),
                         Mp = reader.GetInt32("mp")
                     };
@@ -2144,6 +2754,7 @@ public partial class Character : Unit, ICharacter
                     // character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
                     character.InitializeLaborCache(accountDetails.Labor, accountDetails.LastUpdated);
                     character.ConsumedLaborPower = reader.GetInt32("consumed_lp");
+                    character.LocalLaborPower = reader.GetInt32("local_lp");
                     character.Ability1 = (AbilityType)reader.GetByte("ability1");
                     character.Ability2 = (AbilityType)reader.GetByte("ability2");
                     character.Ability3 = (AbilityType)reader.GetByte("ability3");
@@ -2165,9 +2776,12 @@ public partial class Character : Unit, ICharacter
                     character.LeaveTime = reader.GetDateTime("leave_time");
                     character.Money = reader.GetInt64("money");
                     character.Money2 = reader.GetInt64("money2");
+                    character.AaPoint = reader.GetInt64("aa_point");
+                    character.BankAaPoint = reader.GetInt64("bank_aa_point");
                     character.HonorPoint = reader.GetInt32("honor_point");
                     character.VocationPoint = reader.GetInt32("vocation_point");
                     character.CrimePoint = reader.GetInt16("crime_point");
+                    character.TotalPlayTime = reader.GetUInt32("total_play_time");
                     character.CrimeRecord = reader.GetInt32("crime_record");
                     character.JuryPoint = reader.GetInt32("jury_point");
                     character.HostileFactionKills = reader.GetUInt32("hostile_faction_kills");
@@ -2178,6 +2792,7 @@ public partial class Character : Unit, ICharacter
                     character.DeleteRequestTime = reader.GetDateTime("delete_request_time");
                     character.DeleteTime = reader.GetDateTime("delete_time");
                     character.AutoUseAAPoint = reader.GetBoolean("auto_use_aapoint");
+                    character.PrivacyStatus = (CharacterPrivacyStatus)reader.GetSByte("privacy_status");
                     character.PrevPoint = reader.GetInt32("prev_point");
                     character.Point = reader.GetInt32("point");
                     character.Gift = reader.GetInt32("gift");
@@ -2255,6 +2870,7 @@ public partial class Character : Unit, ICharacter
                     character.Level = reader.GetByte("level");
                     character.Experience = reader.GetInt32("experience");
                     character.RecoverableExp = reader.GetInt32("recoverable_exp");
+                    character.HeirExp = reader.GetInt64("heir_exp");
                     character.Hp = reader.GetInt32("hp");
                     character.Mp = reader.GetInt32("mp");
                     character._savedHp = character.Hp; // save for later
@@ -2263,6 +2879,7 @@ public partial class Character : Unit, ICharacter
                     // character.LaborPower = reader.GetInt16("labor_power");
                     // character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
                     character.ConsumedLaborPower = reader.GetInt32("consumed_lp");
+                    character.LocalLaborPower = reader.GetInt32("local_lp");
                     character.Ability1 = (AbilityType)reader.GetByte("ability1");
                     character.Ability2 = (AbilityType)reader.GetByte("ability2");
                     character.Ability3 = (AbilityType)reader.GetByte("ability3");
@@ -2284,9 +2901,12 @@ public partial class Character : Unit, ICharacter
                     character.LeaveTime = reader.GetDateTime("leave_time");
                     character.Money = reader.GetInt64("money");
                     character.Money2 = reader.GetInt64("money2");
+                    character.AaPoint = reader.GetInt64("aa_point");
+                    character.BankAaPoint = reader.GetInt64("bank_aa_point");
                     character.HonorPoint = reader.GetInt32("honor_point");
                     character.VocationPoint = reader.GetInt32("vocation_point");
                     character.CrimePoint = reader.GetInt16("crime_point");
+                    character.TotalPlayTime = reader.GetUInt32("total_play_time");
                     character.CrimeRecord = reader.GetInt32("crime_record");
                     character.JuryPoint = reader.GetInt16("jury_point");
                     character.HostileFactionKills = reader.GetUInt32("hostile_faction_kills");
@@ -2298,6 +2918,7 @@ public partial class Character : Unit, ICharacter
                     character.DeleteTime = reader.GetDateTime("delete_time");
                     // character.BmPoint = reader.GetInt32("bm_point");
                     character.AutoUseAAPoint = reader.GetBoolean("auto_use_aapoint");
+                    character.PrivacyStatus = (CharacterPrivacyStatus)reader.GetSByte("privacy_status");
                     character.PrevPoint = reader.GetInt32("prev_point");
                     character.Point = reader.GetInt32("point");
                     character.Gift = reader.GetInt32("gift");
@@ -2454,6 +3075,10 @@ public partial class Character : Unit, ICharacter
             Actability.Load(connection);
             Skills = new CharacterSkills(this);
             Skills.Load(connection);
+            SkillActiveTypes = new CharacterSkillActiveTypes(this);
+            SkillActiveTypes.Load(connection);
+            HeirSkills = new CharacterHeirSkills(this);
+            HeirSkills.Load(connection);
             Appellations = new CharacterAppellations(this);
             Appellations.Load(connection);
             Portals = new CharacterPortals(this);
@@ -2462,6 +3087,8 @@ public partial class Character : Unit, ICharacter
             Friends.Load(connection);
             Blocked = new CharacterBlocked(this);
             Blocked.Load(connection);
+            FavoriteCrafts = new CharacterFavoriteCrafts(this);
+            FavoriteCrafts.Load(connection);
             Quests = new CharacterQuests(this);
             Quests.Load(connection);
             Quests.CheckDailyResetAtLogin();
@@ -2472,7 +3099,9 @@ public partial class Character : Unit, ICharacter
         }
 
         Mails = new CharacterMails(this);
-        MailManager.Instance.GetCurrentMailList(Id); //Doesn't need a connection, but does need to load after the inventory
+        // Counts only — the character is not in the world list yet, and the delivery notifications
+        // GetCurrentMailList sends belong to an in-world client, not to character load.
+        Mails.RefreshUnreadCount();
         // Update sync housing factions on login
         HousingManager.Instance.UpdateOwnedHousingFaction(Id, Faction.Id);
     }
@@ -2488,11 +3117,16 @@ public partial class Character : Unit, ICharacter
                 try
                 {
                     saved = Save(sqlConnection, transaction);
+                    if (!saved)
+                    {
+                        transaction.Rollback();
+                        return false;
+                    }
+
                     // Persist the character's items in the same transaction. The lobby/character list reloads
                     // everything from the DB (GameConnection.LoadAccount), so freshly-created gear — including the
                     // face/hair/body appearance parts — must be written now, not left for the periodic SaveManager.
-                    if (saved)
-                        ItemManager.Instance.Save(sqlConnection, transaction);
+                    ItemManager.Instance.Save(sqlConnection, transaction);
                     transaction.Commit();
                 }
                 catch (Exception e)
@@ -2531,23 +3165,23 @@ public partial class Character : Unit, ICharacter
                 // ----
                 command.CommandText =
                     "REPLACE INTO `characters` " +
-                    "(`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`experience`,`recoverable_exp`," +
-                    "`hp`,`mp`,`consumed_lp`,`ability1`,`ability2`,`ability3`," +
+                    "(`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`experience`,`recoverable_exp`,`heir_exp`," +
+                    "`hp`,`mp`,`consumed_lp`,`local_lp`,`ability1`,`ability2`,`ability3`," +
                     "`world_id`,`zone_id`,`x`,`y`,`z`,`roll`,`pitch`,`yaw`," +
                     "`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`," +
-                    "`money`,`money2`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`jury_point`," +
+                    "`money`,`money2`,`aa_point`,`bank_aa_point`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`jury_point`," +
                     "`hostile_faction_kills`,`pvp_honor`,`died_in_pvp`,`died_in_pvp_war_zone`," +
                     "`delete_request_time`,`transfer_request_time`,`delete_time`,`auto_use_aapoint`,`prev_point`,`point`,`gift`," +
-                    "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`created_at`,`updated_at`,`return_district`,`online_time`" +
+                    "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`created_at`,`updated_at`,`return_district`,`online_time`,`total_play_time`,`privacy_status`" +
                     ") VALUES (" +
-                    "@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@experience,@recoverable_exp," +
-                    "@hp,@mp,@consumed_lp,@ability1,@ability2,@ability3," +
+                    "@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@experience,@recoverable_exp,@heir_exp," +
+                    "@hp,@mp,@consumed_lp,@local_lp,@ability1,@ability2,@ability3," +
                     "@world_id,@zone_id,@x,@y,@z,@yaw,@pitch,@roll," +
                     "@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time," +
-                    "@money,@money2,@honor_point,@vocation_point,@crime_point,@crime_record,@jury_point," +
+                    "@money,@money2,@aa_point,@bank_aa_point,@honor_point,@vocation_point,@crime_point,@crime_record,@jury_point," +
                     "@hostile_faction_kills,@pvp_honor,@died_in_pvp,@died_in_pvp_war_zone," +
                     "@delete_request_time,@transfer_request_time,@delete_time,@auto_use_aapoint,@prev_point,@point,@gift," +
-                    "@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@created_at,@updated_at,@return_district,@online_time)";
+                    "@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@created_at,@updated_at,@return_district,@online_time,@total_play_time,@privacy_status)";
 
                 command.Parameters.AddWithValue("@id", Id);
                 command.Parameters.AddWithValue("@account_id", AccountId);
@@ -2559,9 +3193,11 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@level", Level);
                 command.Parameters.AddWithValue("@experience", Experience);
                 command.Parameters.AddWithValue("@recoverable_exp", RecoverableExp);
+                command.Parameters.AddWithValue("@heir_exp", HeirExp);
                 command.Parameters.AddWithValue("@hp", Hp);
                 command.Parameters.AddWithValue("@mp", Mp);
                 command.Parameters.AddWithValue("@consumed_lp", ConsumedLaborPower);
+                command.Parameters.AddWithValue("@local_lp", LocalLaborPower);
                 command.Parameters.AddWithValue("@ability1", (byte)Ability1);
                 command.Parameters.AddWithValue("@ability2", (byte)Ability2);
                 command.Parameters.AddWithValue("@ability3", (byte)Ability3);
@@ -2600,8 +3236,12 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@leave_time", LeaveTime);
                 command.Parameters.AddWithValue("@money", Money);
                 command.Parameters.AddWithValue("@money2", Money2);
+                command.Parameters.AddWithValue("@aa_point", AaPoint);
+                command.Parameters.AddWithValue("@bank_aa_point", BankAaPoint);
                 command.Parameters.AddWithValue("@honor_point", HonorPoint);
                 command.Parameters.AddWithValue("@vocation_point", VocationPoint);
+                AccumulatePlayTime();
+                command.Parameters.AddWithValue("@total_play_time", TotalPlayTime);
                 command.Parameters.AddWithValue("@crime_point", CrimePoint);
                 command.Parameters.AddWithValue("@crime_record", CrimeRecord);
                 command.Parameters.AddWithValue("@jury_point", JuryPoint);
@@ -2613,6 +3253,7 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@transfer_request_time", TransferRequestTime);
                 command.Parameters.AddWithValue("@delete_time", DeleteTime);
                 command.Parameters.AddWithValue("@auto_use_aapoint", AutoUseAAPoint);
+                command.Parameters.AddWithValue("@privacy_status", (sbyte)PrivacyStatus);
                 command.Parameters.AddWithValue("@prev_point", PrevPoint);
                 command.Parameters.AddWithValue("@point", Point);
                 command.Parameters.AddWithValue("@gift", Gift);
@@ -2733,7 +3374,7 @@ public partial class Character : Unit, ICharacter
         stream.Write(RezPenaltyDuration);
         stream.Write(LeaveTime); // lastWorldLeaveTime
         stream.Write(Money);
-        stream.Write(0L); // moneyAmount ?
+        stream.Write(AaPoint);
         stream.Write(CrimePoint); // current crime points (/50)
         stream.Write(CrimeRecord); // total infamy 
         stream.Write((short)0); // crimeScore? trials served?
@@ -2743,7 +3384,7 @@ public partial class Character : Unit, ICharacter
         stream.Write(ConsumedLaborPower);
         stream.Write(BmPoint); // loyalty tokens
         stream.Write(Money2); // moneyAmount
-        stream.Write(0L); // moneyAmount ?
+        stream.Write(BankAaPoint);
         stream.Write(AutoUseAAPoint);
         stream.Write(PrevPoint);
         stream.Write(Point);
@@ -2753,23 +3394,18 @@ public partial class Character : Unit, ICharacter
         return stream;
     }
 
-    // 10.0.2.13 lobby character serialization — byte-exact mirror of the client deserializer.
-    // Differs from the 1.2 Write above: heirExp(i64) after level; abilities BEFORE equipment; equipment =
-    // validFlags(u64) + per-set-bit item structs + a SECOND "flags" u64; appearance = ext(byte)
-    // + (if ext!=0) full CustomModel; then autoUseAApoint(u8) + guid(string,16) + labor block (40B).
-    // Slot widths cross-checked vs the captured CSCreateCharacter body: u8 / u32 / i64 / float / length-prefixed
-    // string. Equipment and appearance are sent empty/default for now (validFlags=flags=0, ext=0).
+    // Empty equipment (validFlags=0) leaves char-select with "invalid dressing id" and no 3D preview —
+    // LoadAccount already fills Inventory; write real gear via EquipmentSerializer (body slots 19-25 are
+    // templateId-only). Earlier cause=20 at list build was from money/labor misalignment, not gear itself.
     public PacketStream WriteLobby1013(PacketStream stream)
     {
-        // Lobby character record for SC_PACKET_CHARACTER_LIST (opcode 105). Layout matches the
-        // per-character writer invoked from CharacterListPacket::SerializeBody; field names, order
-        // and types follow its serializer calls.
+        // Lobby character record for SC_PACKET_CHARACTER_LIST (opcode 105). Layout matches
         stream.Write((long)Id);                                          // id (i64)
         stream.Write(Name);                                             // name (string)
         stream.Write((byte)Race);                                       // CharRace
         stream.Write((byte)Gender);                                     // CharGender
         stream.Write((byte)Level);                                      // level
-        stream.Write(0L);                                              // heirExp (i64)
+        stream.Write(HeirExp);                                         // heirExp (i64)
         stream.Write((uint)Hp);                                        // health
         stream.Write((uint)Mp);                                        // mana
         stream.Write(Transform.ZoneId);                               // zoneId (u32)
@@ -2777,17 +3413,15 @@ public partial class Character : Unit, ICharacter
         stream.Write(FactionName ?? "");                              // factionName (string)
         stream.Write((uint)(Expedition?.Id ?? 0));                    // expeditionId (u32)
         stream.Write((uint)Family);                                   // family (u32)
-        // equipment (LobbyChar_WriteEquipment) comes BEFORE abilities: validFlags(u64) + occupied
-        // items + trailing flags(u64). Same serializer as the unit-state equipment block.
         EquipmentSerializer.Write(stream, this, BaseUnitType.Character);
         stream.Write((byte)Ability1);                                 // ability1
         stream.Write((byte)Ability2);                                 // ability2
         stream.Write((byte)Ability3);                                 // ability3
-        // position record (the "pos" framing carries no extra bytes on the wire)
+        // position record
         stream.Write(Helpers.ConvertLongX(Transform.Local.Position.X)); // x (i64)
         stream.Write(Helpers.ConvertLongY(Transform.Local.Position.Y)); // y (i64)
         stream.Write(Transform.Local.Position.Z);                     // z (float)
-        // appearance (LobbyChar_WriteAppearance): ext-gated block carrying race/gender + customization
+        // appearance
         ModelParams.Race = (byte)Race;
         ModelParams.Gender = (byte)Gender;
         ModelParams.VisualRace = (byte)Race;
@@ -2800,36 +3434,32 @@ public partial class Character : Unit, ICharacter
         stream.Write(0L);                                            // rezTime
         stream.Write((uint)0);                                        // rezPenaltyDuration
         stream.Write(0L);                                            // lastWorldLeaveTime
-        stream.Write(0L);                                            // moneyAmount
-        stream.Write(0L);                                            // moneyAmount
-        stream.Write((short)0);                                       // crimePoint (i16)
-        stream.Write((uint)0);                                        // crimeRecord (i32)
+        stream.Write(Money);                                         // moneyAmount (inventory)
+        stream.Write(AaPoint);                                       // AA point amount (inventory)
+        stream.Write(CrimePoint);                                     // crimePoint (i16)
+        stream.Write((int)CrimeRecord);                               // crimeRecord (i32)
         stream.Write((short)0);                                       // crimeScore (i16)
         stream.Write(0L);                                            // deleteRequestedTime
         stream.Write(0L);                                            // transferRequestedTime
-        stream.Write(0L);                                            // createdTime
+        stream.Write(Created);                                       // createdTime
         stream.Write(0L);                                            // deleteDelay
-        stream.Write(0L);                                            // moneyAmount
-        stream.Write(0L);                                            // moneyAmount
-        stream.Write((byte)0);                                        // autoUseAApoint (u8)
+        stream.Write(Money2);                                        // moneyAmount (bank)
+        stream.Write(BankAaPoint);                                   // AA point amount (bank)
+        stream.Write((byte)(AutoUseAAPoint ? 1 : 0));                 // autoUseAApoint (u8)
         stream.Write((uint)0);                                        // prevPoint
         stream.Write((uint)0);                                        // point
         stream.Write((uint)0);                                        // gift
         stream.Write(0L);                                            // updated
         stream.Write((byte)0);                                        // forceNameChange
-        // guid: length-prefixed byte string, NOT raw. The lobby-char writer emits it through the same
-        // writer as the name fields, so the 16 bytes go out behind a u16
-        // length. Writing 16 raw bytes leaves the record 2 B short, desyncing the labor block/tail — tolerated
-        // by the char-list screen but fatal to the strict in-world character build (StartWorld/InitCharacter).
-        stream.Write(new byte[16], true);                            // guid (u16 length + 16 bytes)
-        // labor block — 40 bytes: lp/localLp/consumed(u32) + updated/bmPoint(u64) + rechargedLp(u32) + rechargeResetTime(u64)
-        stream.Write((uint)0);                                        // lp
-        stream.Write((uint)0);                                        // localLp
-        stream.Write((uint)0);                                        // consumed
-        stream.Write(0L);                                            // updated
-        stream.Write(0L);                                            // bmPoint
-        stream.Write((uint)0);                                        // rechargedLp
-        stream.Write(0L);                                            // rechargeResetTime
+        // guid: length-prefixed 16 bytes
+        stream.Write(new byte[16], true);
+        stream.Write((uint)Math.Max(0, (int)LaborPower));             // lp (account labor cache)
+        stream.Write((uint)Math.Max(0, LocalLaborPower));             // localLp
+        stream.Write((uint)Math.Max(0, ConsumedLaborPower));          // consumed
+        stream.Write(LaborPowerModified);                             // updated (unix DateTime)
+        stream.Write(0L);                                             // bmPoint
+        stream.Write(0u);                                             // rechargedLp
+        stream.Write(0L);                                             // rechargeResetTime
         return stream;
     }
 
@@ -2839,24 +3469,12 @@ public partial class Character : Unit, ICharacter
     /// <param name="amount"></param>
     public void AddCrime(int amount)
     {
-        var newAmount = CrimePoint + amount;
-        if (newAmount > short.MaxValue)
-        {
-            CrimePoint = short.MaxValue; // current crime point can't go over short MaxValue
-        }
-        if (newAmount < 0)
-        {
-            CrimePoint = 0;
-        }
-        else
-        {
-            CrimePoint = (short)newAmount;
-        }
-        CrimeRecord += amount; // total amount
-        if (CrimeRecord < 0)
-            CrimeRecord = 0;
-        
-        SendPacket(new SCCrimeChangedPacket(amount, CrimePoint, CrimeRecord, 0));
+        CrimePoint = (short)Math.Clamp((long)CrimePoint + amount, 0L, short.MaxValue);
+        CrimeRecord = (int)Math.Clamp((long)CrimeRecord + amount, 0L, int.MaxValue);
+
+        // The 10.0.2.13 character data model has no persisted crime-score value. Its native packet
+        // constructor initializes this reserved i16 field to zero as well.
+        SendPacket(new SCCrimeChangedPacket(amount, CrimePoint, CrimeRecord, crimeScore: 0));
     }
 
     /// <summary>
@@ -2868,7 +3486,11 @@ public partial class Character : Unit, ICharacter
         if (FinishedLoading)
             return;
         FinishedLoading = true;
-        SendMessage(ChatType.System, AppConfiguration.Instance.World.MOTD);
+        // Skip MOTD SCChatMessage until 10.0.2.13 chat is fully trusted end-to-end.
+        // (Saw world + "Welcome to AAEmu!" then DC — A/B: no system chat on first move.)
+        var motd = AppConfiguration.Instance.World.MOTD;
+        if (!string.IsNullOrWhiteSpace(motd))
+            SendMessage(ChatType.System, motd);
     }
 
     /// <summary>
@@ -2902,6 +3524,10 @@ public partial class Character : Unit, ICharacter
     /// <param name="delta"></param>
     private void BreathTick(TimeSpan delta)
     {
+        // The client movement path writes directly to Transform.Local, so the water state has to be
+        // refreshed here rather than relying on SetPosition having run.
+        UpdateUnderWaterState();
+
         if (IsDead || !IsUnderWater)
         {
             return;

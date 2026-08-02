@@ -13,6 +13,7 @@ public class CSSwapAbilityPacket() : GamePacket(CSOffsets.CSSwapAbilityPacket, 1
         var abilityId = stream.ReadByte();
         var auap = stream.ReadBoolean();
 
+        Logger.Info("CSSwapAbility obj={0} old={1} new={2} auap={3}", objId, oldAbilityId, abilityId, auap);
         Connection.ActiveChar.Abilities.Swap((AbilityType)oldAbilityId, (AbilityType)abilityId);
     }
 }

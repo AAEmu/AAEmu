@@ -17,7 +17,29 @@ public class CharTransformEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        // TODO: swap the target's visual model to CharRaceId/CharGenderId when IsTransform, and restore it
-        // otherwise, broadcasting the appearance change. Runtime model transforms are not wired yet.
+        if (target is not Char.Character character)
+            return;
+
+        if (IsTransform)
+        {
+            // Remember what to come back to the first time a transform is applied, so a second one stacking on
+            // top cannot make the original body unrecoverable.
+            character.PreTransformModelId ??= character.ModelId;
+
+            var form = Core.Managers.UnitManagers.CharacterManager.Instance
+                .GetTemplate((Char.Race)CharRaceId, (Char.Gender)CharGenderId);
+            if (form != null)
+                character.ModelId = form.ModelId;
+        }
+        else if (character.PreTransformModelId.HasValue)
+        {
+            character.ModelId = character.PreTransformModelId.Value;
+            character.PreTransformModelId = null;
+        }
+
+        Logger.Debug($"CharTransformEffect: {character.Name} transform {IsTransform} race {CharRaceId} gender {CharGenderId} -> model {character.ModelId}");
+
+        // SCUnitState carries the model, so re-sending the unit is what makes onlookers see the new body.
+        character.BroadcastPacket(new Core.Packets.G2C.SCUnitStatePacket(character), true);
     }
 }

@@ -6,5 +6,5 @@ public interface IStreamManager
 {
     void AddToken(uint accountId, uint connectionId);
     void RemoveToken(uint token);
-    void Login(StreamConnection connection, uint accountId, uint token);
+    void Login(StreamConnection connection, long accountId, uint token);
 }

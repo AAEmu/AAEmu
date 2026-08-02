@@ -9,7 +9,7 @@ public class ChangeAutoUseAAPoint : ItemTask
     public ChangeAutoUseAAPoint(byte change)
     {
         _change = change;
-        _type = ItemAction.ChangeAutoUseAaPoint; // 18
+        _type = ItemAction.ChangeAutoUseAaPoint;
     }
 
     public override PacketStream Write(PacketStream stream)

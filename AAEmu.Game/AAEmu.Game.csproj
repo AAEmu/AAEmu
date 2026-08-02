@@ -49,6 +49,15 @@
     <None Update="Configurations\CharacterSettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Update="Configurations\Features.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Configurations\InitialConfig.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Configurations\LevelRestrictions.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>
@@ -59,9 +68,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="Models\Tasks\Telescopes\**" />
-    <EmbeddedResource Remove="Models\Tasks\Telescopes\**" />
-    <None Remove="Models\Tasks\Telescopes\**" />
     <Compile Update="Scripts\Commands\DeSpawnAll.cs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Compile>
@@ -80,7 +86,6 @@
   <ItemGroup>
     <PackageReference Include="Discord.Net" />
     <PackageReference Include="Jace" />
-    <PackageReference Include="Jitter2" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Scripting" />
     <PackageReference Include="Microsoft.Data.Sqlite" />
     <PackageReference Include="Microsoft.Extensions.Configuration" />

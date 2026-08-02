@@ -8,18 +8,22 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Containers;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.StaticValues;
-using AAEmu.Game.Physics;
-using Jitter2.Dynamics;
 
 using MySql.Data.MySqlClient;
+
+using static AAEmu.Game.Models.Game.Units.Buffs;
 
 namespace AAEmu.Game.Models.Game.Units;
 
@@ -37,6 +41,13 @@ public class Slave : Unit
     public Character Summoner { get; set; }
     public BaseUnitType OwnerType { get; init; }
 
+    /// <summary>
+    /// When true, SCUnitState writes flags bit 11 (0x0800). Client maps that bit to unit+0x6E5C
+    /// Set for the initial Spawn broadcast when CS/skill did not request hideSpawnEffect; clear
+    /// immediately after so AOI re-streams do not replay the portal.
+    /// </summary>
+    public bool PendingSpawnPortal { get; set; }
+
     public Item SummoningItem { get; init; }
     public List<Doodad> AttachedDoodads { get; set; }
     public List<Slave> AttachedSlaves { get; set; }
@@ -44,75 +55,41 @@ public class Slave : Unit
     public DateTime SpawnTime { get; init; }
     public sbyte ThrottleRequest { get; set; }
     public sbyte Throttle { get; set; }
-    /// <summary>Sub-sbyte smoothing so rudder/throttle do not stair-step when quantized for physics and packets.</summary>
-    public float ThrottleSmoothed { get; set; }
     public float Speed { get; set; }
-    /// <summary>
-    /// Last non-zero movement direction sign for ship handling (-1 backward, +1 forward).
-    /// Used to keep steering behavior stable when speed hovers around zero.
-    /// </summary>
-    public sbyte LastMoveDirSign { get; set; } = 1;
     public sbyte SteeringRequest { get; set; }
     public sbyte Steering { get; set; }
-    public float SteeringSmoothed { get; set; }
     public float RotSpeed { get; set; }
-    /// <summary>Smoothed 0.9..1 multiplier: forward speed loss while turning (see <see cref="ShipController"/>).</summary>
-    public float TurnSpeedVelocityMul { get; set; } = 1f;
-    /// <summary>Visual-only bank angle (radians) applied to ship movement replication.</summary>
-    public float BankAngle { get; set; }
-    /// <summary>Visual-only ground pitch angle (radians) for ships beached on terrain.</summary>
-    public float GroundPitchAngle { get; set; }
-    /// <summary>Grounded contact side hint: true when grounding happened while moving backward (stern-side).</summary>
-    public bool GroundedByStern { get; set; }
-    /// <summary>Grounded state from previous physics tick (used to detect water->ground transition).</summary>
-    public bool GroundedLastTick { get; set; }
-    /// <summary>How long ship stays grounded with near-zero speed while player keeps throttle input.</summary>
-    public float GroundStuckTime { get; set; }
-    /// <summary>Smoothed 0..1 assist strength used to help unstuck from shoal.</summary>
-    public float GroundEscapeAssist { get; set; }
-    /// <summary>Latched "ground contact" state to avoid shoreline jitter.</summary>
-    public bool GroundContactLatched { get; set; }
-    /// <summary>Smoothed terrain height at the active hull probe point.</summary>
-    public float GroundContactFloorSmoothed { get; set; }
-    /// <summary>Smoothed terrain height sampled in front of the hull (for visual pitch).</summary>
-    public float GroundPitchFrontFloorSmoothed { get; set; }
-    /// <summary>Smoothed terrain height sampled behind the hull (for visual pitch).</summary>
-    public float GroundPitchBackFloorSmoothed { get; set; }
-    /// <summary>True after first pitch floor samples; cleared when leaving shoal/latched-ground pitch path.</summary>
-    public bool GroundPitchFloorSmoothingSeeded { get; set; }
-    /// <summary>Phase (rad) for visual wave pitch on water; not replicated as state, only drives local sine.</summary>
-    public float WavePitchPhase { get; set; }
-    /// <summary>True after first contact-floor sample while not latched (unrelated to height being zero).</summary>
-    public bool GroundContactFloorSmoothingSeeded { get; set; }
-    /// <summary>Time (seconds) since ground contact was latched.</summary>
-    public float GroundContactLatchedTime { get; set; }
-    /// <summary>Seconds accumulated toward periodic hull damage while beached (see <see cref="TickBeachedHullDamage(System.TimeSpan)"/>).</summary>
-    public float ShoreGroundDamageSecondsAccumulator { get; set; }
-    /// <summary>Set during ship vs cliff/doodad/barrier resolve when hull overlap was actively corrected this tick.</summary>
-    public bool StaticObstacleHullDamageContactActive { get; set; }
-    /// <summary>Seconds accumulated toward periodic hull damage while against static obstacles (see <see cref="TickStaticObstacleHullDamage(System.TimeSpan)"/>).</summary>
-    public float StaticObstacleHullDamageSecondsAccumulator { get; set; }
-    /// <summary>Continuous time without static-obstacle contact; used to reset <see cref="StaticObstacleHullDamageSecondsAccumulator"/> after a gap.</summary>
-    public float StaticObstacleHullDamageNoContactSeconds { get; set; }
-    /// <summary>Per other-ship cooldown (seconds) for hull-collision %HP (see <see cref="Physics.ShipShipInteraction"/>).</summary>
-    public Dictionary<uint, float> ShipHullCollisionDamageCooldownByOtherShipId { get; } = new();
     public short RotationZ { get; set; }
     public float RotationDegrees { get; set; }
     public sbyte AttachPointId { get; init; } = -1;
     public uint OwnerObjId { get; init; }
-    public virtual RigidBody RigidBody { get; set; }
+
+    /// <summary>
+    /// Signed server-world selector for the slave's master. Slaves are local to their summoner by default.
+    /// </summary>
+    public sbyte MasterWorldId { get; set; } = -1;
     public SlaveSpawner Spawner { get; set; }
     public Task LeaveTask { get; set; }
     public CancellationTokenSource CancelTokenSource { get; set; }
-    public ShipController ShipController { get; set; }
     /// <summary>Ship harpoon rope / skill-controller sync (only meaningful for harpoon cannon slaves; default struct = disengaged, no heap alloc).</summary>
     public ShipHarpoonRopeState HarpoonRope;
-    public Vector3 CachedWaterFlow { get; set; }
-    public float CachedWaterSurface { get; set; }
-    public float CachedFloorLevel { get; set; }
+
+    /// <summary>
+    /// ZoneId of the dedicate this hull was announced to with WZUnitState, or 0 when no dedicate
+    /// holds it. The hull must live in exactly one zone: a second dedicate that still simulates it
+    /// keeps streaming its own ShipMoveType, so the World mirror (and every client) flip-flops
+    /// between two headings and skill impulses land in the wrong process.
+    /// </summary>
+    public uint ZoneAnnouncedTo { get; set; }
 
     public Slave()
     {
+        // Unit ctor builds SlotType.Equipment; retail ship customize uses 0xF2.
+        // Slots go to at least 31 (slave_equip_slots); character gear enum tops out at 27.
+        Equipment = new EquipmentContainer(0, SlotType.EquipmentSlave, false, this)
+        {
+            ContainerSize = 32
+        };
         AttachedDoodads = [];
         AttachedSlaves = [];
         AttachedCharacters = [];
@@ -453,8 +430,7 @@ public class Slave : Unit
     {
         get
         {
-            // TODO: This probably needs to change
-            var weapon = (Weapon)Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
+            var weapon = Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand) as Weapon;
             var res = weapon?.Dps ?? 0;
             res += Str / 10f;
             foreach (var bonus in GetBonuses(UnitAttribute.MainhandDps))
@@ -503,7 +479,7 @@ public class Slave : Unit
     {
         get
         {
-            var weapon = (Weapon)Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand);
+            var weapon = Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand) as Weapon;
             var res = weapon?.Dps ?? 0;
             res += Str / 10f;
             foreach (var bonus in GetBonuses(UnitAttribute.OffhandDps))
@@ -523,7 +499,7 @@ public class Slave : Unit
     {
         get
         {
-            var weapon = (Weapon)Equipment.GetItemBySlot((int)EquipmentItemSlot.Ranged);
+            var weapon = Equipment.GetItemBySlot((int)EquipmentItemSlot.Ranged) as Weapon;
             var res = weapon?.Dps ?? 0;
             res += Dex / 10f;
             foreach (var bonus in GetBonuses(UnitAttribute.RangedDps))
@@ -573,7 +549,7 @@ public class Slave : Unit
     {
         get
         {
-            var weapon = (Weapon)Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand);
+            var weapon = Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand) as Weapon;
             var res = weapon?.MDps ?? 0;
             res += Int / 10f;
             foreach (var bonus in GetBonuses(UnitAttribute.SpellDps))
@@ -679,11 +655,68 @@ public class Slave : Unit
 
     #endregion
 
+    /// <summary>
+    /// Ship parts have no effects of their own; item_grade_buffs maps the equipped (itemId, grade) pair to a
+    /// buff that belongs on the hull (all of them are flagged slave_applicable). That buff is where a sail's
+    /// move-speed / turn-speed unit_modifiers live, and it is what a figurehead's mount skills name in their
+    /// unit_reqs (kind 15) before they may be used at the helm.
+    /// Called with both arguments null to (re)build the whole set, e.g. after a summon restores saved gear.
+    /// </summary>
+    public void UpdateEquipmentBuffs(Item itemAdded, Item itemRemoved)
+    {
+        if (itemRemoved != null)
+        {
+            // A hull can carry several copies of the same part (paired cannons), and they all resolve to the
+            // same buff, so it only goes away with the last one.
+            var removedBuff = GetEquipmentBuff(itemRemoved);
+            if (removedBuff != null && Buffs.CheckBuff(removedBuff.Id) &&
+                !Equipment.Items.Any(i => i != itemRemoved && GetEquipmentBuff(i)?.Id == removedBuff.Id))
+                Buffs.RemoveBuff(removedBuff.Id);
+        }
+
+        if (itemAdded != null)
+        {
+            ApplyEquipmentBuff(itemAdded);
+            return;
+        }
+
+        if (itemRemoved != null)
+            return;
+
+        foreach (var item in Equipment.Items)
+            ApplyEquipmentBuff(item);
+    }
+
+    private static BuffTemplate GetEquipmentBuff(Item item)
+    {
+        return ItemGameData.Instance.GetItemBuff(item.TemplateId, item.Grade) ??
+               SkillManager.Instance.GetBuffTemplate(item.Template?.BuffId ?? 0);
+    }
+
+    private void ApplyEquipmentBuff(Item item)
+    {
+        var buffTemplate = GetEquipmentBuff(item);
+        if (buffTemplate == null || Buffs.CheckBuff(buffTemplate.Id))
+            return;
+
+        Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.UtcNow)
+        {
+            AbLevel = (uint)(item.Template?.Level ?? 1)
+        });
+    }
+
     public override void AddVisibleObject(Character character)
     {
         character.SendPacket(new SCUnitStatePacket(this));
         character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
         character.SendPacket(new SCSlaveStatePacket(ObjId, TlId, Summoner?.Name ?? string.Empty, Summoner?.ObjId ?? 0, Id));
+
+        // Same gate as Npc: SCUnitState does not carry faction for non-characters, and the
+        // client only applies 0x02E when oldId matches current (fresh units are 0). Without
+        // old=Invalid → new=real, summoned vehicles stay yellow/neutral.
+        if (Faction != null)
+            character.SendPacket(new SCUnitFactionChangedPacket(
+                ObjId, Name ?? "", FactionsEnum.Invalid, Faction.Id, false));
 
         base.AddVisibleObject(character);
 
@@ -703,103 +736,6 @@ public class Slave : Unit
         base.RemoveVisibleObject(character);
 
         character.SendPacket(new SCUnitsRemovedPacket([ObjId]));
-    }
-
-    /// <summary>
-    /// While <see cref="GroundContactLatched"/> (beached on shore), advances time toward hull damage dealt once per second.
-    /// </summary>
-    public void TickBeachedHullDamage(TimeSpan deltaTime)
-    {
-        if (!GroundContactLatched)
-        {
-            ShoreGroundDamageSecondsAccumulator = 0f;
-            return;
-        }
-
-        const float IntervalSec = 1f;
-        const int PercentPerTick = 1;
-
-        var dt = (float)deltaTime.TotalSeconds;
-        if (dt <= 0f)
-            return;
-
-        ShoreGroundDamageSecondsAccumulator += dt;
-        while (ShoreGroundDamageSecondsAccumulator >= IntervalSec)
-        {
-            ShoreGroundDamageSecondsAccumulator -= IntervalSec;
-            ApplyFloorCollisionDamageImmediate(PercentPerTick, isPercent: true);
-        }
-    }
-
-    /// <summary>
-    /// While in contact with static obstacles (rock face, ship-colliding doodads, polyline barriers), advances time toward hull damage
-    /// dealt once per second — same rate as <see cref="TickBeachedHullDamage(System.TimeSpan)"/>.
-    /// Brief gaps without SAT overlap (e.g. after depenetration) do not zero progress until ~0.35s without contact.
-    /// </summary>
-    public void TickStaticObstacleHullDamage(TimeSpan deltaTime)
-    {
-        const float IntervalSec = 1f;
-        const int PercentPerTick = 1;
-        // After this many seconds without obstacle overlap, drop partial progress (avoids paying out damage after leaving).
-        const float ResetAccumulatorAfterNoContactSec = 0.35f;
-
-        var dt = (float)deltaTime.TotalSeconds;
-        if (dt <= 0f)
-            return;
-
-        if (StaticObstacleHullDamageContactActive)
-        {
-            StaticObstacleHullDamageNoContactSeconds = 0f;
-            StaticObstacleHullDamageSecondsAccumulator += dt;
-            while (StaticObstacleHullDamageSecondsAccumulator >= IntervalSec)
-            {
-                StaticObstacleHullDamageSecondsAccumulator -= IntervalSec;
-                ApplyFloorCollisionDamageImmediate(PercentPerTick, isPercent: true);
-            }
-        }
-        else
-        {
-            StaticObstacleHullDamageNoContactSeconds += dt;
-            if (StaticObstacleHullDamageNoContactSeconds >= ResetAccumulatorAfterNoContactSec)
-                StaticObstacleHullDamageSecondsAccumulator = 0f;
-        }
-    }
-
-    /// <summary>Immediate hull damage from floor/collision (percent of <see cref="MaxHp"/> when <paramref name="isPercent"/>).</summary>
-    private void ApplyFloorCollisionDamageImmediate(int damage, bool isPercent = true, KillReason killReason = KillReason.Damage)
-    {
-        if (isPercent)
-            damage = MaxHp * damage / 100;
-
-        if (damage <= 0)
-            return;
-
-        var oldHp = Hp;
-        ReduceCurrentHp(this, damage, killReason);
-        var dealt = oldHp - Hp;
-        if (dealt <= 0)
-            return;
-
-        BroadcastPacket(new SCEnvDamagePacket(EnvSource.Collision, ObjId, (uint)dealt), true);
-    }
-
-    /// <summary>Hull damage from ship–ship collision (<paramref name="damagePercent"/> of <see cref="MaxHp"/>).</summary>
-    internal void ApplyShipHullCollisionDamage(Slave attacker, int damagePercent)
-    {
-        if (damagePercent <= 0 || Hp <= 0)
-            return;
-
-        var damage = MaxHp * damagePercent / 100;
-        if (damage <= 0)
-            return;
-
-        var oldHp = Hp;
-        ReduceCurrentHp(attacker, damage, KillReason.Damage);
-        var dealt = oldHp - Hp;
-        if (dealt <= 0)
-            return;
-
-        BroadcastPacket(new SCEnvDamagePacket(EnvSource.Collision, ObjId, (uint)dealt), true);
     }
 
     public override void PostUpdateCurrentHp(BaseUnit attacker, int oldHpValue, int newHpValue, KillReason killReason = KillReason.Damage)
@@ -825,16 +761,13 @@ public class Slave : Unit
         MarkSummoningItemAsDestroyed();
 
         Summoner?.SendPacket(new SCMySlavePacket(ObjId, TlId, Name, TemplateId, Hp, MaxHp, Transform.World.Position.X, Transform.World.Position.Y, Transform.World.Position.Z));
+        SlaveManager.SendUpdatedSlaveSourceItem(Summoner, this);
         Summoner?.BroadcastPacket(new SCSlaveRemovedPacket(Summoner.ObjId, TlId), true);
         ClearAllAggro();
 
         // Unbind all passengers
         foreach (var character in AttachedCharacters.Values.ToList())
             ParentWorld.SlaveManager.UnbindSlave(character, TlId, AttachUnitReason.None);
-
-        // Remove from physics simulation (ships only)
-        if (Template.IsABoat())
-            WorldManager.Instance.GetWorld(Transform.InstanceId)?.Physics.RemoveShip(this);
 
         // Schedule full cleanup via slave.Delete() → Hide() + DetachAll() + RemoveObject()
         // This keeps the slave visible and selectable during the death animation
@@ -921,7 +854,7 @@ public class Slave : Unit
                     }
                 }
             }
-            ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+            NonUnitObjectIdManager.Instance.ReleaseId(doodad.ObjId);
             doodad.IsPersistent = false;
             doodad.Delete();
         }
@@ -1046,6 +979,44 @@ public class Slave : Unit
         return result;
     }
 
+    /// <summary>
+    /// Moored / Slave Customizing Area (sphere_buffs detail → buffs.id 13817). Flat HealthRegen +200.
+    /// Distinct from Ezi's Divine Protection (13816), which is collision/speed — not the dock heal.
+    /// </summary>
+    public const uint MooredBuffId = 13817;
+
+    /// <summary>
+    /// Registers the <c>unit_modifiers</c> of the hull's equipped parts as gear bonuses.
+    /// </summary>
+    /// <remarks>
+    /// Ship parts carry real stats — each Bubbling mast (item 35426) is MaxHealth +5000 — and the
+    /// client sums them into the hull bar. Ignoring them server-side left the Growling sailing ship
+    /// with MaxHp 85000 against the 95000 the client computed, so a "full" hull drew as 89% and
+    /// dock repair had nothing left to heal (both numbers then scale by Ezi's +10%: 93500/104500).
+    /// </remarks>
+    public void UpdateSlaveGearBonuses()
+    {
+        Bonuses[GearBonusesIndex] = [];
+        if (Equipment == null)
+            return;
+
+        foreach (var item in Equipment.Items)
+        {
+            if (item == null)
+                continue;
+
+            foreach (var template in ItemManager.Instance.GetUnitModifiers(item.TemplateId))
+                AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
+
+            if (item is EquipItem equipItem)
+            {
+                foreach (var gem in equipItem.GemIds)
+                    foreach (var template in ItemManager.Instance.GetUnitModifiers(gem))
+                        AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
+            }
+        }
+    }
+
     protected override void RegenTick(TimeSpan delta)
     {
         if (!NeedsRegen)
@@ -1061,7 +1032,10 @@ public class Slave : Unit
 
         var oldHp = Hp;
 
-        if (IsInBattle)
+        // Dock Moored heal is HealthRegen (+200). Ship turn skills (Impulse) must not mute it via
+        // IsInBattle — retail keeps repairing while you maneuver under the customize-area buff.
+        var moored = Buffs.CheckBuff(MooredBuffId);
+        if (IsInBattle && !moored)
         {
             Hp += PersistentHpRegen;
             Mp += PersistentMpRegen;
@@ -1074,31 +1048,34 @@ public class Slave : Unit
 
         Hp = Math.Min(Hp, MaxHp);
         Mp = Math.Min(Mp, MaxMp);
-        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), false);
+        var points = new SCUnitPointsPacket(ObjId, Hp, Mp);
+        BroadcastPacket(points, false);
+        // Parent/driver can miss GetAround after hull Zone sync moves the ship; always push to riders.
+        foreach (var rider in AttachedCharacters.Values)
+            rider?.SendPacket(points);
+        if (Summoner != null && !AttachedCharacters.ContainsValue(Summoner))
+            Summoner.SendPacket(points);
         PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
+        if (Hp != oldHp)
+            SlaveManager.SendUpdatedSlaveSourceItem(Summoner, this);
     }
 
     public override void OnZoneChange(uint lastZoneKey, uint newZoneKey)
     {
         base.OnZoneChange(lastZoneKey, newZoneKey); // Unit
 
+        // Sailing out of the zone the ship was summoned in has to move the hull to the new dedicate:
+        // WZ traffic (impulse turns, control changes) is routed by the hull's current zone key, and a
+        // dedicate that was never told to drop it keeps streaming a competing ShipMoveType.
+        // ZoneAnnouncedTo 0 means the hull has not been handed to any dedicate yet — that first
+        // announce belongs to the summon path, which sends the fully built state body.
+        if (Template?.IsABoat() == true && ZoneAnnouncedTo != 0 && ZoneAnnouncedTo != newZoneKey)
+            SlaveManager.AnnounceBoatToZone(this);
+
         foreach (var passenger in AttachedCharacters)
         {
             passenger.Value?.OnZoneChange(lastZoneKey, newZoneKey);
         }
-    }
-
-    /// <summary>
-    /// Creates temporary cache of this Slave's current positional info of the floor and water surface heights.
-    /// This is to reduce the calls to GetWaterSurface which is rather CPU intensive
-    /// </summary>
-    // TODO: Add support for custom terrain nodes and static level models
-    public void CreateWaterAndLandSurfaceCache()
-    {
-        // Get Floor and WaterSurface at given location
-        CachedFloorLevel = ParentWorld.GetHeight(Transform.World.Position.X, Transform.World.Position.Y);
-        CachedWaterSurface = ParentWorld.Water.GetWaterSurface(Transform.World.Position, out var cachedWaterFlow);
-        CachedWaterFlow = cachedWaterFlow;
     }
 
     public override Character GetOwnerCharacter()

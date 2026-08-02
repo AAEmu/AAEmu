@@ -1,6 +1,4 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Models.Game.Mails;
@@ -53,31 +51,34 @@ public class BaseMail
         return IsDelivered == false && Header.SenderId != Header.ReceiverId && Header.SenderId > 0 && (MailType == MailType.Normal || MailType == MailType.Express);
     }
 
+    /// <summary>
+    /// Whether <paramref name="characterId"/> may hand this mail back from their inbox.
+    ///
+    /// Deliberately not <see cref="CanReturnMail"/>. That test gates the character-deletion sweep on mail
+    /// that never reached its recipient, so it requires <c>IsDelivered == false</c> — but delivery is set on
+    /// notify, and on load for anything whose RecvDate has passed, meaning every mail a player can actually
+    /// see in their inbox is already delivered. Reusing it would reject every return the client can ask for.
+    /// </summary>
+    public bool CanBeReturnedBy(uint characterId)
+    {
+        return Header.ReceiverId == characterId
+               && Header.SenderId > 0
+               && Header.SenderId != Header.ReceiverId
+               && !Header.Returned
+               && (MailType == MailType.Normal || MailType == MailType.Express);
+    }
+
+    /// <summary>
+    /// Player-initiated return of a mail sitting in <paramref name="characterId"/>'s inbox.
+    /// </summary>
+    public bool ReturnToSenderFor(uint characterId)
+    {
+        return MailManager.Instance.TryReturnToSenderFor(this, characterId);
+    }
+
     public bool ReturnToSender()
     {
-        if (!CanReturnMail())
-            return false;
-
-        var originalReceiver = WorldManager.Instance.GetCharacterById(Header.ReceiverId);
-        var originalSender = WorldManager.Instance.GetCharacterById(Header.SenderId);
-
-        if (originalReceiver != null && originalReceiver.IsOnline)
-            originalReceiver.SendPacket(new SCMailReturnedPacket(_id, _header));
-
-        var originalReceiverId = Header.ReceiverId;
-        var originalReceiverName = Header.ReceiverName;
-        Header.ReceiverId = Header.SenderId;
-        ReceiverName = Header.SenderName;
-        Header.SenderId = originalReceiverId;
-        Header.SenderName = originalReceiverName;
-
-        Send();
-
-        if (originalSender != null && originalSender.IsOnline)
-            MailManager.Instance.NotifyNewMailByNameIfOnline(this, originalSender.Name);
-
-        // TODO
-        return true;
+        return MailManager.Instance.TryReturnToSender(this);
     }
 
     public byte GetTotalAttachmentCount()

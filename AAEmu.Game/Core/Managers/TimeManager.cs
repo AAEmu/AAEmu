@@ -1,109 +1,77 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class TimeManager : Singleton<TimeManager>, IObservable<float>, ITimeManager
+/// <summary>
+/// World's read-only view of the day cycle. Zone advances the clock and reports it through
+/// ZWTimeOfDay; World uses that same value for time-gated game rules.
+/// </summary>
+public class TimeManager : Singleton<TimeManager>, ITimeManager
 {
-    private readonly List<IObserver<float>> _observers = [];
-    private bool _work;
-    private const float MaxTime = 86400f;
-    private float _time = 43200f; // TODO 12h 00m
-    private const float TickDelay = 3600f * Speed;
+    private const float SecondsPerDay = 86400f;
+    private float _time = 43200f;
+    private float _lastTime = 12f;
+    private float _lastRealTime = GetLocalTimeInHours();
 
-    private const float Speed = .0016666f;
-    /// <summary>
-    /// Current game time in hours
-    /// </summary>
-    /// <returns></returns>
-    public float GetTime { get => _time / 3600f; }
-
-    private float _lastTime;
-
-    public IDisposable Subscribe(IObserver<float> observer)
-    {
-        if (_observers.Contains(observer))
-            return null;
-        _observers.Add(observer);
-
-        return new Unsubscriber<float>(_observers, observer);
-    }
-
-    public IDisposable Subscribe(GameConnection connection, IObserver<float> observer)
-    {
-        connection.SendPacket(new SCDetailedTimeOfDayPacket(GetTime));
-        return Subscribe(observer);
-    }
-
-    public void Start()
-    {
-        var curHours = DateTime.UtcNow.TimeOfDay.Hours;
-        var curMinutes = DateTime.UtcNow.TimeOfDay.Minutes;
-        _time = 12 * 3600f;
-        _lastTime = _time;
-        //_time = curHours * 3600f + curMinutes;
-        _work = true;
-        new Thread(Tick) { Name = "TimeManagerThread" }.Start();
-    }
+    /// <summary>Current game time in hours.</summary>
+    public float GetTime => _time / 3600f;
 
     public float Get()
     {
         return _time;
     }
 
+    /// <summary>Requests every loaded Zone to move its authoritative clock.</summary>
     public void Set(float hours)
     {
-        _time = hours * 3600f;
+        WorldIntegration.RelayTimeOfDayToZones?.Invoke(NormalizeHour(hours));
     }
 
-    public void Stop()
+    /// <summary>Consumes the hour reported by an authoritative Zone.</summary>
+    public void OnZoneReport(float hours)
     {
-        _work = false;
-    }
+        var time = NormalizeHour(hours);
+        var realTime = GetLocalTimeInHours();
+        _time = time * 3600f;
+        if (_time >= SecondsPerDay)
+            _time -= SecondsPerDay;
 
-    private void Tick()
-    {
-        while (_work)
-        {
-            _time += TickDelay * 10;
-            if (_time > MaxTime)
-                _time -= MaxTime;
-
-            new Thread(Push) { Name = "TimeManagerPushThread" }.Start();
-            Thread.Sleep(10000);
-        }
-    }
-
-    private void Push()
-    {
-        var time = GetTime;
-        foreach (var observer in _observers.ToList())
-            observer.OnNext(time);
-        OnTimeOfDayChange(time, _lastTime);
+        OnTimeOfDayChange(time, _lastTime, realTime, _lastRealTime);
         _lastTime = time;
+        _lastRealTime = realTime;
     }
 
-    /// <summary>
-    /// Time of Day changed
-    /// </summary>
-    /// <param name="newTime">In-Game time in seconds</param>
-    /// <param name="oldTime"></param>
-    public void OnTimeOfDayChange(float newTime, float oldTime)
+    private static float NormalizeHour(float hours)
     {
-        // TODO: move time to WorldInstance
-        if (oldTime > newTime)
-            oldTime -= 24f;
-        // Only check if it changed at least to the next 6 seconds
-        if ((int)Math.Floor(newTime * 600f) == (int)Math.Floor(oldTime * 600f))
+        var time = hours % 24f;
+        return time < 0f ? time + 24f : time;
+    }
+
+    private static float GetLocalTimeInHours()
+    {
+        return (float)DateTime.Now.TimeOfDay.TotalHours;
+    }
+
+    private static bool CrossedTime(float oldTime, float newTime, float triggerTime)
+    {
+        if (oldTime <= newTime)
+            return oldTime < triggerTime && triggerTime <= newTime;
+
+        // The selected clock wrapped through midnight.
+        return oldTime < triggerTime || triggerTime <= newTime;
+    }
+
+    /// <summary>Applies World-owned rules whose gates depend on Zone game time or server wall time.</summary>
+    private static void OnTimeOfDayChange(float newTime, float oldTime, float newRealTime, float oldRealTime)
+    {
+        if ((int)Math.Floor(newTime * 600f) == (int)Math.Floor(oldTime * 600f)
+            && (int)Math.Floor(newRealTime * 600f) == (int)Math.Floor(oldRealTime * 600f))
             return;
 
-        // Update on all instances
         foreach (var world in WorldManager.Instance.GetWorlds())
         {
-            // check all active Npcs to check if their animation needs to be updated
             foreach (var npc in world.GetAllNpcs())
             {
                 if (npc.Template.NpcPostureSets.Count <= 1)
@@ -118,33 +86,28 @@ public class TimeManager : Singleton<TimeManager>, IObservable<float>, ITimeMana
                     npc.BroadcastPacket(new SCUnitModelPostureChangedPacket(npc, newAnim, true), false);
             }
 
-            // check all doodad of they have a ToD trigger in the current active group, and try to run it again
             foreach (var doodad in world.GetAllDoodads())
             {
-                if (doodad.TemplateId == 2325)
-                {
-                    // Checking Lamp
-                    // Logger.Info($"Checking Lamp");
-                }
-
                 if (doodad.CurrentToDTriggers.Count <= 0)
                     continue;
 
-                foreach (var (tod, nextPhase) in doodad.CurrentToDTriggers)
+                // A phase change replaces this collection, so iterate over a snapshot.
+                foreach (var trigger in doodad.CurrentToDTriggers.ToArray())
                 {
-                    if (newTime >= tod && oldTime < tod)
-                    {
-                        if (nextPhase > 0)
-                        {
-                            //doodad.DoChangePhase(doodad, nextPhase);
-                            doodad.FuncGroupId = (uint)nextPhase;
-                            doodad.BroadcastPacket(new SCDoodadPhaseChangedPacket(doodad), true);
-                            break;
-                        }
-                    }
+                    if (trigger.NextPhase <= 0)
+                        continue;
+
+                    var triggerOldTime = trigger.IsRealtime ? oldRealTime : oldTime;
+                    var triggerNewTime = trigger.IsRealtime ? newRealTime : newTime;
+                    if (!CrossedTime(triggerOldTime, triggerNewTime, trigger.TodAsHours))
+                        continue;
+
+                    // DoChangePhase executes target phase functions and relays the phase to Zone
+                    // before broadcasting the final client state.
+                    doodad.DoChangePhase(null, trigger.NextPhase);
+                    break;
                 }
             }
         }
     }
-
 }

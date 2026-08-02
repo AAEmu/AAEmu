@@ -25,7 +25,7 @@ public enum MoveTypeFlags : byte
 }
 
 [Flags]
-public enum MoveTypeActorFlags : byte
+public enum MoveTypeActorFlags : ushort
 {
     None = 0x00,
     _flag1 = 0x01,
@@ -35,5 +35,7 @@ public enum MoveTypeActorFlags : byte
     Jumping = 0x10, // Jumping seems to be the exception here as it combines moving and stopping
     StandingOnObject = 0x20, // same as moveTypeFlag 0x40
     HangingFromObject = 0x40, // When we are somehow "sticking" to another object, but don't have it as a parent object
-    _flag8 = 0x80,
+    HasFallVel = 0x80,
+    HasMaxPushedUnitId = 0x100,
+    HasPushBlob = 0x8000,
 }

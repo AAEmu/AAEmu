@@ -53,6 +53,11 @@ public class CastPlot : CastAction
     private readonly uint _eventId;
     private readonly uint _skillId;
 
+    public uint PlotId => _plotId;
+    public ushort TlId => _tlId;
+    public uint EventId => _eventId;
+    public uint SkillId => _skillId;
+
     public CastPlot(uint plotId, ushort tlId, uint eventId, uint skillId)
     {
         Type = CastType.Plot;

@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
@@ -8,9 +8,9 @@ public class CSConvertToRaidTeamPacket() : GamePacket(CSOffsets.CSConvertToRaidT
 {
     public override void Read(PacketStream stream)
     {
-        var teamId = stream.ReadUInt32();
+        // i32 tid.
+        var teamId = stream.ReadInt32();
 
-        // Logger.Warn("ConvertToRaidTeam, TeamId: {0}", teamId);
         TeamManager.Instance.ConvertToRaid(Connection.ActiveChar, teamId);
     }
 }

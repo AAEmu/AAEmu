@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Team;
@@ -9,11 +9,11 @@ public class CSAskRiskyTeamActionPacket() : GamePacket(CSOffsets.CSAskRiskyTeamA
 {
     public override void Read(PacketStream stream)
     {
-        var teamId = stream.ReadUInt32();
-        var targetId = stream.ReadUInt32();
-        var riskyAction = (RiskyAction)stream.ReadByte(); // ra
+        // i32 teamId, u64 type, u8 ra.
+        var teamId = stream.ReadInt32();
+        var targetId = stream.ReadUInt64();
+        var riskyAction = (RiskyAction)stream.ReadByte();
 
-        // Logger.Warn("AskRiskyTeamAction, TeamId: {0}, Id: {1}, RiskyAction: {2}", teamId, targetId, riskyAction);
         TeamManager.Instance.AskRiskyTeam(Connection.ActiveChar, teamId, targetId, riskyAction);
     }
 }

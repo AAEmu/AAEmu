@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using AAEmu.Game.IO;
 
 namespace AAEmu.Game.Models.CryEngine.Objects;
@@ -25,7 +25,7 @@ public class MaterialsListFile(string fileStreamFile)
             var count = br.ReadUInt32();
             for (var i = 0u; i < count; i++)
             {
-                _ = br.ReadUInt32(); // Doesn't seem used, always 0x00000000
+                _ = br.ReadUInt32();
                 var chunkBytes = br.ReadBytes(256);
                 var truncatedString = chunkBytes.TakeWhile(b => b != 0).ToArray();
                 var materialName = Encoding.UTF8.GetString(truncatedString);

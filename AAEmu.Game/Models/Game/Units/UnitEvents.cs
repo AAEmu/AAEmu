@@ -50,6 +50,7 @@ public class UnitEvents
     public EventHandler<OnItemUseArgs> OnItemUse = delegate { };
     public EventHandler<OnItemGroupUseArgs> OnItemGroupUse = delegate { };
     public EventHandler<OnInteractionArgs> OnInteraction = delegate { };
+    public EventHandler<OnDoodadPhaseCheckArgs> OnDoodadPhaseCheck = delegate { };
     public EventHandler<OnExpressFireArgs> OnExpressFire = delegate { };
     public EventHandler<OnLevelUpArgs> OnLevelUp = delegate { };
     public EventHandler<OnMateLevelUpArgs> OnMateLevelUp = delegate { };
@@ -149,6 +150,12 @@ public class OnInteractionArgs : EventArgs
 {
     public uint DoodadId { get; set; } // Doodad.TemplateId
     public ICharacter SourcePlayer { get; set; }
+}
+
+public class OnDoodadPhaseCheckArgs : EventArgs
+{
+    public uint DoodadId { get; set; } // Doodad.TemplateId
+    public uint DoodadFuncGroupId { get; set; } // Doodad.FuncGroupId (phase)
 }
 
 public class OnCraftArgs : EventArgs

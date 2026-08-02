@@ -1,6 +1,6 @@
 ﻿using System.Diagnostics;
+using AAEmu.Game;
 using AAEmu.Game.Core.Managers.Id;
-using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
@@ -223,16 +223,12 @@ public class PlotTree(uint plotId)
     }
     private static void FlushExecutionQueue(Queue<(PlotNode node, PlotTargetInfo targetInfo)> executeQueue, PlotState state)
     {
-
-        var packets = new CompressedGamePackets();
+        // Never DD04 (L4 zip) — retail sniff had 0× level-4; each PlotEvent goes as plain SC.
         while (executeQueue.Count > 0)
         {
             var item = executeQueue.Dequeue();
-            item.node.Execute(state, item.targetInfo, packets);
+            item.node.Execute(state, item.targetInfo);
         }
-
-        if (packets.Packets.Count > 0)
-            state.Caster.BroadcastPacket(packets, true);
     }
 
     private static void EndPlotChannel(PlotState state)
@@ -258,6 +254,7 @@ public class PlotTree(uint plotId)
         if (state.CancellationRequested())
             state.Caster?.Events.OnChannelingCancel(state.ActiveSkill, new OnChannelingCancelArgs());
 
+        state.ActiveSkill.RelayZoneSkillEndedIfNeeded();
         SkillTlIdManager.ReleaseId(state.ActiveSkill.TlId);
         state.ActiveSkill.TlId = 0;
 

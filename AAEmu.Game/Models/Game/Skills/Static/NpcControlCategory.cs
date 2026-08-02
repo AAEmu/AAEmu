@@ -1,0 +1,11 @@
+﻿namespace AAEmu.Game.Models.Game.Skills.Static;
+
+public enum NpcControlCategory
+{
+    Signal = 0,
+    FollowUnit = 1,
+    FollowPath = 2,
+    AttackUnit = 3,
+    GoAway = 4,
+    RunCommandSet = 5
+}

@@ -53,7 +53,14 @@ public static class MySQL
             AllowZeroDateTime = true,
             ConvertZeroDateTime = true,
             DefaultCommandTimeout = 180,
-            SslMode = MySqlSslMode.Prefered
+            SslMode = mySqlConnectionSettings?.SslMode ?? MySqlSslMode.Prefered,
+            // MySQL 8 defaults accounts to caching_sha2_password. When SslMode falls back to an
+            // unencrypted channel, full authentication needs the server's RSA public key, and the
+            // connector refuses to request it unless this is set — the connection then fails with
+            // "Retrieval of the RSA public key is not enabled for insecure connections".
+            // The key exchange is only exposed on that fallback path; a negotiated TLS session
+            // never reaches it.
+            AllowPublicKeyRetrieval = true
         };
         s_connectionString = builder.ConnectionString;
     }

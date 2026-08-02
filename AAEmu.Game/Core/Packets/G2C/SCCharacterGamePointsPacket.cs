@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Char;
 
@@ -8,7 +8,6 @@ public class SCCharacterGamePointsPacket(Character character) : GamePacket(SCOff
 {
     public override PacketStream Write(PacketStream stream)
     {
-        // 10.0.2.13 body: a flat array
         // of 14 u32 "moneyAmount" slots. Slots 0/1 are honor/vocation points; the remaining 12 are unused
         // point currencies and go out as 0.
         stream.Write(character.HonorPoint);

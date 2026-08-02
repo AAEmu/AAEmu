@@ -9,17 +9,23 @@ namespace AAEmu.Game.Models.Game.Team;
 
 public class Team : PacketMarshaler
 {
+    public const int PartyMemberLimit = 5;
+    public const int RaidMemberLimit = 50;
+
     public uint Id { get; set; }
     public uint OwnerId { get; set; }
+    public ulong OfficerId { get; set; }
     public bool IsParty { get; set; }
     public TeamMember[] Members { get; set; }
     public LootingRule LootingRule { get; set; }
     public (byte, uint)[] MarksList { get; set; }
     public WorldSpawnPosition PingPosition { get; set; }
+    public int MemberLimit => IsParty ? PartyMemberLimit : RaidMemberLimit;
+    public TeamRoleType RoleType => IsParty ? TeamRoleType.Party : TeamRoleType.Raid;
 
     public Team()
     {
-        Members = new TeamMember[50];
+        Members = new TeamMember[RaidMemberLimit];
         ResetMarks();
         PingPosition = new WorldSpawnPosition();
         LootingRule = new LootingRule();
@@ -38,6 +44,11 @@ public class Team : PacketMarshaler
             if (obj == id)
                 return true;
         return false;
+    }
+
+    public bool IsOfficer(uint id)
+    {
+        return OfficerId == id;
     }
 
     public int MembersCount()
@@ -106,7 +117,7 @@ public class Team : PacketMarshaler
 
     public (TeamMember member, int partyIndex) AddMember(Character unit)
     {
-        for (var i = 0; i < Members.Length; i++)
+        for (var i = 0; i < MemberLimit; i++)
         {
             if (Members[i]?.Character != null)
                 continue;
@@ -125,24 +136,24 @@ public class Team : PacketMarshaler
             return false;
 
         Members[i] = null;
+        if (OfficerId == id)
+            OfficerId = 0;
         return true;
     }
 
-    public bool MoveMember(uint id, uint id2, byte from, byte to)
+    public bool MoveMember(ulong memberId, ulong otherMemberId, sbyte memberIndex, sbyte otherIndex)
     {
-        // TODO validate idFrom, idTo
-        try
-        {
-            var tempMember = Members[from];
-            var tempMember2 = Members[to];
-            Members[from] = tempMember2;
-            Members[to] = tempMember;
-            return true;
-        }
-        catch
-        {
+        var slotCount = MemberLimit;
+        if (memberIndex < 0 || memberIndex >= slotCount || otherIndex < 0 || otherIndex >= slotCount || memberIndex == otherIndex)
             return false;
-        }
+
+        var currentMemberId = (ulong)(Members[memberIndex]?.Character?.Id ?? 0u);
+        var currentOtherMemberId = (ulong)(Members[otherIndex]?.Character?.Id ?? 0u);
+        if (currentMemberId != memberId || currentOtherMemberId != otherMemberId || memberId == 0 && otherMemberId == 0)
+            return false;
+
+        (Members[memberIndex], Members[otherIndex]) = (Members[otherIndex], Members[memberIndex]);
+        return true;
     }
 
     public TeamMember ChangeStatus(Character unit)
@@ -151,10 +162,8 @@ public class Team : PacketMarshaler
         if (i < 0)
             return null;
 
-        // TODO ...
+        // Rebind the persisted team slot to the character instance created by the current login.
         Members[i].Character = unit;
-
-        // Members[i] = new TeamMember(unit);
         return Members[i];
     }
 

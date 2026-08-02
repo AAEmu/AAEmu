@@ -2,8 +2,7 @@ namespace AAEmu.Game.Models.Game.Units.Static;
 
 // Reconciled against the 10.0.2.13 `enum_unit_req_kinds` reference table (authoritative for ids/names).
 // Values are the raw `unit_reqs.kind_id`. Gaps (5-7, 18, 53, 57, 80, 81, 93) are absent in the v10 data.
-// Members 100-140 are new in v10 and are NOT yet handled by UnitReqs.Validate() (they fall through to the
-// default 'ok' branch — i.e. currently not enforced; see UnitReqs.cs).
+// Members 100-140 are new in v10; UnitReqs.Validate() is the authority for which kinds are enforced.
 public enum UnitReqsKindType : uint
 {
     None = 0,
@@ -97,7 +96,7 @@ public enum UnitReqsKindType : uint
     TargetHealthMoreThan = 97,
     BuffTag = 98,
     LaborPowerMarginLocal = 99,
-    // --- New in 10.0.2.13 (not yet enforced by Validate) ---
+    // --- New in 10.0.2.13 ---
     HeirLevel = 100,
     InZoneGroup = 101,
     SkillCooldown = 102,

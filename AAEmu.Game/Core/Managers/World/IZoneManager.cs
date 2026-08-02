@@ -14,6 +14,7 @@ public interface IZoneManager : ILoadable
     uint GetTargetIdByZoneId(uint zoneId);
     Vector2 GetZoneOriginCell(uint zoneId);
     Vector3 ConvertToWorldCoordinates(uint zoneId, Vector3 point);
+    Vector3 ConvertToLocalCoordinates(uint zoneId, Vector3 point);
     bool DoodadHasMatchingClimate(Doodad doodad);
     List<Climate> GetClimatesByZone(Zone zone);
 }

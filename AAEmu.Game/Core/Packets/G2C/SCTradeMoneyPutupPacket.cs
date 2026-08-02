@@ -1,9 +1,11 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCTradeMoneyPutupPacket(int moneyAmount) : GamePacket(SCOffsets.SCTradeMoneyPutupPacket, 1)
+/// <remarks>
+/// </remarks>
+public class SCTradeMoneyPutupPacket(long moneyAmount) : GamePacket(SCOffsets.SCTradeMoneyPutupPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {

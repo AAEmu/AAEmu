@@ -1,5 +1,8 @@
 ﻿using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Effects.Enums;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -34,6 +37,12 @@ public class SpawnEffect : EffectTemplate
         {
             case BaseUnitType.Npc:
                 {
+                    if (WorldIntegration.ZoneAuthority)
+                    {
+                        SpawnNpcInZone(caster, target, castObj);
+                        break;
+                    }
+
                     var spawner = caster?.ParentWorld.SpawnManager.GetNpcSpawner(SubType, target);
                     if (spawner == null)
                     {
@@ -100,5 +109,83 @@ public class SpawnEffect : EffectTemplate
                     break;
                 }
         }
+    }
+
+    private void SpawnNpcInZone(BaseUnit caster, BaseUnit target, CastAction castAction)
+    {
+        // SubType is an npc_spawners row. Resolve its member through loaded game content rather
+        // than treating the spawner id as an NPC template id.
+        var member = NpcGameData.Instance.GetNpcSpawnerNpc(SubType);
+        if (member == null)
+        {
+            Logger.Info($"SpawnEffect: SubType={SubType} not found in npc_spawner_npcs.");
+            return;
+        }
+
+        var positionRelativeToUnit = PosDirId switch
+        {
+            1 => target,
+            2 => caster,
+            _ => null
+        };
+        var orientationRelativeToUnit = OriDirId switch
+        {
+            1 => target,
+            2 => caster,
+            _ => null
+        };
+        if (positionRelativeToUnit?.Transform == null || orientationRelativeToUnit?.Transform == null)
+        {
+            Logger.Warn($"SpawnEffect: unhandled PosDirId {PosDirId} or OriDirId {OriDirId}.");
+            return;
+        }
+
+        var world = caster?.ParentWorld;
+        var npc = world == null ? null : NpcManager.Instance.Create(world, 0, member.MemberId);
+        if (npc == null)
+        {
+            Logger.Warn($"SpawnEffect: NPC template {member.MemberId} for spawner {SubType} could not be created.");
+            return;
+        }
+
+        var (x, y) = MathUtil.AddDistanceToFrontDeg(
+            PosDistance,
+            positionRelativeToUnit.Transform.World.Position.X,
+            positionRelativeToUnit.Transform.World.Position.Y,
+            PosAngle);
+        var yaw = orientationRelativeToUnit.Transform.World.Rotation.Z + OriAngle.DegToRad();
+
+        npc.Transform = positionRelativeToUnit.Transform.CloneDetached(npc);
+        npc.Transform.Local.SetPosition(
+            x,
+            y,
+            positionRelativeToUnit.Transform.World.Position.Z,
+            0f,
+            0f,
+            yaw);
+        npc.OwnerId = caster switch
+        {
+            Character character => character.Id,
+            Npc creatorNpc => creatorNpc.OwnerId,
+            _ => default
+        };
+        if (UseSummonerFaction && caster is Unit summoner)
+            npc.Faction = summoner.Faction;
+
+        npc.IsZoneMirror = true;
+        npc.Spawn();
+        if (!WorldIntegration.PublishNpcSpawn(
+                npc,
+                LifeTime,
+                DespawnOnCreatorDeath,
+                UseSummonerAggroTarget,
+                caster))
+        {
+            WorldIntegration.DeleteNpcMirror(npc, false);
+            return;
+        }
+
+        if (UseSummonerAggroTarget && (target ?? caster) is Unit aggroTarget)
+            WorldIntegration.PublishAggro(npc, aggroTarget, 1, castAction);
     }
 }

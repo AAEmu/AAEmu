@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Numerics;
 using System.Xml;
@@ -13,8 +13,6 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models;
-using AAEmu.Game.Models.Game.AI.v2.Behaviors.Common;
-using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Indun;
@@ -172,34 +170,6 @@ public class WorldManager(
             // Vehicles
             foreach (var slave in world.GetAllSlaves())
                 slave.OnActiveRegionTick(delta);
-
-            // Proximity-based NPC streaming. Respects World.SpawnNpcs so the diagnostic toggle
-            // also suppresses on-demand spawns, not just the initial bulk pass.
-            if (AppConfiguration.Instance.World.SpawnNpcs)
-            {
-                var npcSpawners = world.SpawnManager.GetAllSpawners();
-
-                // Spawner filtering
-                if (sw.ElapsedMilliseconds > 50)
-                {
-                    Logger.Debug($"Processed in world {world.Template.Name} {npcSpawners.Count} spawners...");
-                }
-
-                var activeSpawners = npcSpawners.Values.SelectMany(x => x)
-                    .Where(spawner => spawner.Template != null && IsSpawnerActive(spawner))
-                    .ToList();
-
-                // Consistent processing of spawners
-                if (sw.ElapsedMilliseconds > 50)
-                {
-                    Logger.Debug($"Processed {activeSpawners.Count} active spawners...");
-                }
-
-                foreach (var npcSpawner in activeSpawners)
-                {
-                    npcSpawner.Update();
-                }
-            }
         }
 
         sw.Stop();
@@ -207,11 +177,6 @@ public class WorldManager(
         {
             Logger.Warn($"ActiveRegionTick took {sw.ElapsedMilliseconds} ms");
         }
-    }
-
-    private bool IsSpawnerActive(NpcSpawner spawner)
-    {
-        return spawner.IsPlayerInSpawnRadius();
     }
 
     /// <summary>
@@ -444,6 +409,9 @@ public class WorldManager(
         // Then spawn the rest
         MainWorld.SpawnManager.SpawnAll();
 
+        // Zone may have flooded ZWSpawnNpc before MainWorld existed — flush + remirror.
+        WorldIntegration.NotifyMainWorldReady();
+
         // Mirage Island
         // _ = IndunManager.Instance.CreateSystemInstance(null, GetWorldTemplateByName("arche_mall_world").ZoneKeys.First(), 0, true, 1);
 
@@ -507,10 +475,6 @@ public class WorldManager(
         }
 
         world.InitWaterFromTemplate();
-        world.InitShipStaticBarriers();
-
-        // Create and start the actual physics engine
-        world.StartPhysics();
 
         // Quest sphere handling instance
         world.SphereQuestManager = new SphereQuestManager(world);
@@ -597,12 +561,8 @@ public class WorldManager(
             _zoneKeysByWorldId[worldTemplate.Id].Add(zoneKey);
         }
 
-        // Navmesh data
-        worldTemplate.GeoData = new AiGeoDataManager(worldTemplate);
-        if (AppConfiguration.Instance.World.GeoDataMode)
-        {
-            worldTemplate.GeoData.Load();
-        }
+        // Terrain height lookup (.bai samples + heightmap fallback)
+        worldTemplate.GeoData = new GeoDataManager(worldTemplate);
 
         // Mark "main_world" as the DefaultWorldId
         if (worldName == "main_world")
@@ -650,11 +610,20 @@ public class WorldManager(
         {
             Logger.Info("Loading heightmaps...");
 
+            // Navmesh for every world template is several GB held for the process lifetime, and
+            // most of those worlds (backups, tests, unvisited instances) are never entered.
+            // Default is to let each world load its own on first use — see
+            // WorldTemplate.EnsureZoneBaiFilesLoaded.
+            var preLoadNavmesh = AppConfiguration.Instance.World.PreLoadNavmesh;
+            if (!preLoadNavmesh)
+                Logger.Info("PreLoadNavmesh disabled, zone navmesh will get loaded per world on demand.");
+
             var loaded = 0;
             foreach (var worldTemplate in WorldTemplates.Values)
             {
                 Logger.Info($"Loading heightmap of {worldTemplate.Name}");
-                worldTemplate.LoadZoneBaiFiles();
+                if (preLoadNavmesh)
+                    worldTemplate.LoadZoneBaiFiles();
                 if (LoadHeightMapFromClientData(worldTemplate))
                     loaded++;
             }
@@ -826,42 +795,26 @@ public class WorldManager(
         return height;
     }
 
-    public float GetReferenceHeight(NpcAi ai, float x, float y, float z, uint zoneId)
+    /// <summary>
+    /// Floor height to place an NPC at. Fliers and NPCs over terrain we have no sample for keep
+    /// their spawner's Z, which is the altitude the Zone streams them at.
+    /// </summary>
+    public float GetReferenceHeight(Npc npc, float x, float y, float z, uint zoneId)
     {
-        float finalHeight;
+        if (npc == null)
+            return GetHeight(zoneId, x, y, z);
 
-        // 0. Just in case.
-        if (ai == null)
-        {
-            finalHeight = GetHeight(zoneId, x, y, z);
+        var spawnerHeight = npc.Spawner?.Position.Z;
+
+        // Fliers hold the altitude they were spawned at rather than snapping to terrain.
+        if (npc.CanFly && spawnerHeight.HasValue)
+            return spawnerHeight.Value;
+
+        var finalHeight = GetHeight(zoneId, x, y, z);
+        if (finalHeight != 0f)
             return finalHeight;
-        }
 
-        // 1. If an NPC can fly, the height is taken from the spawner's position.
-        if (ai.Owner.CanFly)
-        {
-            finalHeight = ai.Owner.Spawner.Position.Z;
-            return finalHeight;
-        }
-
-        // 2. For HoldPositionBehavior and IdleBehavior, the height is taken from the spawner.
-        switch (ai.GetCurrentBehavior())
-        {
-            case HoldPositionBehavior:
-            case IdleBehavior:
-                finalHeight = ai.Owner.Spawner.Position.Z;
-                return finalHeight;
-        }
-
-        // 3. Terrain height retrieval
-        finalHeight = GetHeight(zoneId, x, y, z);
-        if (finalHeight != 0/* && Math.Abs(worldHeight - Spawner.Position.Z) <= 0.1f*/)
-        {
-            return finalHeight;
-        }
-
-        // 4. Take the default height
-        return ai.Owner.Spawner?.Position.Z ?? ai.Owner.Transform.World.Position.Z;
+        return spawnerHeight ?? npc.Transform.World.Position.Z;
     }
 
     /// <summary>
@@ -991,8 +944,11 @@ public class WorldManager(
             region.AddObject(obj);
             obj.Region = region;
 
-            // Make object visible in its region and all neighboring regions
-            region.AddToCharacters(obj);
+            // Make object visible in its region and all neighboring regions. GetNeighbors spans
+            // the full -N..N square including the centre, so it already covers `region`; announcing
+            // that separately sent every spawn twice to players standing in the object's own region.
+            // The client drops the repeat for most types but rejects it for slaves, which is what
+            // kept a summoned boat from ever appearing ("duplicated unit id" in the client log).
             foreach (var neighbor in region.GetNeighbors())
                 neighbor.AddToCharacters(obj);
         }
@@ -1056,9 +1012,10 @@ public class WorldManager(
         var neighbors = region.GetNeighbors();
         region.RemoveObject(obj);
 
-        // Must match AddToCharacters: visibility is updated for this region and all neighbors.
-        // Previously only neighbors were notified, so players in the same region cell never got removal packets.
-        region.RemoveFromCharacters(obj);
+        // Mirrors AddVisibleObject: the neighbour square is centred on `region`, so iterating it
+        // covers players standing in the object's own cell. Notifying `region` on top of that sent
+        // the removal twice, which the client reports as "can't find doodad with id(...)" when the
+        // second packet arrives for an object it has already dropped.
         if (neighbors != null && neighbors.Length > 0)
             foreach (var neighbor in neighbors)
                 neighbor?.RemoveFromCharacters(obj);
@@ -1091,6 +1048,22 @@ public class WorldManager(
             neighbor?.GetList(result, obj.ObjId);
 
         return result;
+    }
+
+    /// <summary>
+    /// Whether a world position is inside the same region neighborhood used by object visibility.
+    /// </summary>
+    public static bool IsInNeighborhood(GameObject source, Vector3 targetPosition)
+    {
+        if (source?.Region == null)
+            return false;
+
+        var sourceX = (int)(source.Transform.World.Position.X / REGION_SIZE);
+        var sourceY = (int)(source.Transform.World.Position.Y / REGION_SIZE);
+        var targetX = (int)(targetPosition.X / REGION_SIZE);
+        var targetY = (int)(targetPosition.Y / REGION_SIZE);
+        return Math.Abs(sourceX - targetX) <= REGION_NEIGHBORHOOD_SIZE &&
+               Math.Abs(sourceY - targetY) <= REGION_NEIGHBORHOOD_SIZE;
     }
 
     /// <summary>
@@ -1225,6 +1198,9 @@ public class WorldManager(
         {
             familyManager.Value.OnCharacterLogin(character);
         }
+
+        // Ensure nearby NPCs/doodads are streamed after world entry (Phase 2 visibility).
+        ResendVisibleObjectsToCharacter(character);
     }
 
     public static void ResendVisibleObjectsToCharacter(Character character)
@@ -1296,10 +1272,8 @@ public class WorldManager(
             foreach (var world in _worlds.Values)
             {
                 Logger.Info($"Shutting down {world}");
-                world.Physics?.Stop();
-                world.SpawnManager?.Stop();
-                world.SpawnManager?.DeSpawnAll();
-                world.SpawnManager?.DeleteAllSpawners();
+                // Stops the respawn loop, despawns everything and returns the instance Id to the pool
+                world.Dispose();
             }
             _worlds.Clear();
         }
@@ -1311,7 +1285,11 @@ public class WorldManager(
     /// <param name="worldInstanceId"></param>
     public void RemoveWorld(uint worldInstanceId)
     {
-        if (!_worlds.TryRemove(worldInstanceId, out _))
+        if (_worlds.TryRemove(worldInstanceId, out _))
+        {
+            global::AAEmu.Game.WorldIntegration.OnWorldInstanceRemoved?.Invoke(worldInstanceId);
+        }
+        else
         {
             Logger.Info($"[Dungeon] couldn't remove the dungeon id={worldInstanceId}!");
         }

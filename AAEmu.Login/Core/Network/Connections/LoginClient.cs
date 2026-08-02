@@ -1,6 +1,7 @@
 using AAEmu.Login.Core.PacketHandlers.C2L;
 using AAEmu.Login.Core.Packets.L2C;
 using AAEmu.Login.Models;
+using Microsoft.Extensions.Options;
 
 namespace AAEmu.Login.Core.Network.Connections;
 
@@ -8,20 +9,21 @@ namespace AAEmu.Login.Core.Network.Connections;
 /// Implementation of <see cref="ILoginClient"/> that wraps an <see cref="ILoginConnection"/>
 /// and constructs the appropriate packets.
 /// </summary>
-public sealed class LoginClient(ILoginConnection connection) : ILoginClient
+public sealed class LoginClient(ILoginConnection connection, IOptions<AppConfiguration> appConfig) : ILoginClient
 {
+    private readonly AppConfiguration.CharacterSlotConfig _characterSlots = appConfig.Value.CharacterSlots;
+
     public async ValueTask SendAuthSuccessAsync(AccountId accountId, CancellationToken cancellationToken)
     {
-        // 10.0.2.13 feature set: chMaxCountLimit must be >= 1 or the client blocks character creation. TODO: Make configurable.
-        const byte ChCountLimit = 6;      // base creatable character count
-        const byte ChMaxCountLimit = 6;   // max characters per account
-        const byte ChCountWorldLimit = 6; // max characters per world
-
         await connection.SendPacketAsync(
             new ACJoinResponsePacket(JoinResponseReason.Success,
-                new AfsValue(ChCountLimit, ChMaxCountLimit, ChCountWorldLimit)),
+                new AfsValue(
+                    _characterSlots.CountLimit,
+                    _characterSlots.MaxCountLimit,
+                    _characterSlots.WorldLimit)),
             cancellationToken);
-        await connection.SendPacketAsync(new ACAuthResponsePacket(accountId, 6), cancellationToken);
+        await connection.SendPacketAsync(
+            new ACAuthResponsePacket(accountId, _characterSlots.AvailableSlots), cancellationToken);
     }
 
     public ValueTask SendAuthDeniedAsync(LoginDeniedReason reason, CancellationToken cancellationToken) =>

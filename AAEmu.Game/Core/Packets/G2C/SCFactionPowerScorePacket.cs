@@ -9,7 +9,6 @@ public class SCFactionPowerScorePacket() : GamePacket(SCOffsets.SCFactionPowerSc
     {
         // Reference world-entry body is 21 bytes: four per-faction power scores (u32, all 0 at entry), a
         // season/index dword (=1), and a trailing status byte (0).
-        // TODO: confirm field grouping against the client deserializer for faction power score.
         stream.Write(0u);
         stream.Write(0u);
         stream.Write(0u);

@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -7,7 +7,6 @@ public class SCChatSpamDelayPacket() : GamePacket(SCOffsets.SCChatSpamDelayPacke
 {
     public override PacketStream Write(PacketStream stream)
     {
-        // 10.0.2.13 body:
         //   version(u8) reportDelay(u16) [chatTypeGroup[20](u8) chatGroupDelay[20](u32) whisperChatGroup(u8)]
         //   applyConfig(blob) detectConfig(blob)
         stream.Write((byte)0);    // version

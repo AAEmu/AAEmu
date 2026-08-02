@@ -2,7 +2,6 @@ namespace AAEmu.Login.Core.Packets.C2L;
 
 public static class CLOffsets
 {
-    // ClientToAuth opcodes — verified against client version v10.0.3_r575.
     // Note: the regional auth variants (Tencent/GameOn/Trion/MailRu) no longer exist in this client;
     // their old opcodes were repurposed and everything shifted down.
     public const ushort CARequestAuthPacket = 0x001;

@@ -1,9 +1,13 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills.Plots;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
+/// <summary>
+/// Trailing <c>inputDirection</c> u8 is mandatory; omitting it desyncs the SC stream
+/// (<c>sc error; cur=227 prev=…</c> → System:Quit).
+/// </summary>
 public class SCPlotEventPacket(
     ushort tl,
     uint eventId,
@@ -14,42 +18,35 @@ public class SCPlotEventPacket(
     ushort castingTime,
     byte flag,
     ulong itemId = 0L,
-    byte targetUnitCount = 1)
+    byte targetUnitCount = 1,
+    byte inputDirection = 0)
     : GamePacket(SCOffsets.SCPlotEventPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(tl);      // tl
-        stream.Write(eventId); // eventId
-        stream.Write(skillId); // skillId
-        stream.Write(caster);  // PlotObj
-                                // type(b) Unit | Position
-                                // casterId(bc) | XYZ
-        stream.Write(target);  // PlotObj
-                                // type(b) Unit | Position
-                                // targetId(bc) | XYZ
-        stream.Write(itemId);  // itemObjId
-        stream.WriteBc(objId); // обычно 0, но иногда нужно вставлять casterId(bc)
-        stream.Write(castingTime); // msec, castingTime / 10
-        stream.WriteBc(0);      // objId
-        stream.Write((short)0); // msec
-        stream.Write(targetUnitCount); // targetUnitCount // TODO if aoe, list of units
+        stream.Write(tl);      // u16 tl
+        stream.Write(eventId); // u32 eventId
+        stream.Write(skillId); // u32 skillId
+        stream.Write(caster);  // PlotObj (type1=bc / type2=pos+rots+bcs)
+        stream.Write(target);
+        stream.Write(itemId);  // u64 item
+        stream.WriteBc(objId);
+        stream.Write(castingTime);
+        stream.WriteBc(0);
+        stream.Write((ushort)0); // channeling msec wire
+        stream.Write(targetUnitCount);
         if (targetUnitCount > 0)
         {
             for (var i = 0; i < targetUnitCount; i++)
-            {
-                stream.WriteBc(target.UnitId); // targetId TODO targetUnitCount > 0 -> do->while() stream.WriteBc(0);
-            }
+                stream.WriteBc(target.UnitId);
         }
         stream.Write(flag);
-        if (((flag >> 3) & 1) != 1)
+        if ((flag & 8) != 0)
         {
-            return stream;           // We had a note here that flag = 2 | 6, but it can also be 0. It defaults to 2, it seems.
+            for (var i = 0; i < 13; i++)
+                stream.Write(0);
         }
-        for (var i = 0; i < 13; i++) // flag = 8
-        {
-            stream.Write(0); // v
-        }
+        stream.Write(inputDirection); // ALWAYS present — was missing; caused client quit on 10752
         return stream;
     }
 }

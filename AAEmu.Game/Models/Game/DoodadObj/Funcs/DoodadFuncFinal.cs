@@ -56,8 +56,15 @@ public class DoodadFuncFinal : DoodadPhaseFuncTemplate
         }
         else
         {
+            var spawner = owner.Spawner;
             owner.Delete();
-            if (!Respawn) { return false; }
+            if (!Respawn)
+            {
+                // The phase graph is done with this instance; a management spawn hands the placement
+                // back to its own percent / min_time / max_time cycle instead of retiring for good.
+                spawner?.ScheduleManagementRespawn();
+                return false;
+            }
 
             // Отменяем текущую задачу, если она существует
             // Cancel the current task if it exists

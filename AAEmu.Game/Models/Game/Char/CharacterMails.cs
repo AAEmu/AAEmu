@@ -1,14 +1,24 @@
-﻿using AAEmu.Commons.Exceptions;
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
+using System.Linq;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mails;
 
+using System.Text;
+
+using NLog;
+
 namespace AAEmu.Game.Models.Game.Char;
 
 public class CharacterMails
 {
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
+    /// <summary>Capacity of the mails.title / mails.text columns, which are MySQL text.</summary>
+    private const int MaxMailTitleBytes = 65535;
+    private const int MaxMailTextBytes = 65535;
+
     private Character Self { get; set; }
     public CountUnreadMail UnreadMailCount { get; set; }
 
@@ -25,31 +35,61 @@ public class CharacterMails
 
     public void OpenMailbox()
     {
-        var total = 0;
-        foreach (var m in MailManager.Instance.GetCurrentMailList(Self.Id))
+        // The u32 after isSent is the mailbox total, so the count is taken before sending any rows.
+        var mails = MailManager.Instance.GetCurrentMailList(Self.Id);
+        var total = (uint)mails.Count(m =>
+            m.Value.Header.SenderId == Self.Id || m.Value.Header.ReceiverId == Self.Id);
+
+        var sent = 0;
+        foreach (var m in mails)
         {
-            if (m.Value.Header.SenderId == Self.Id && m.Value.Header.ReceiverId == Self.Id)
-            {
-                Self.SendPacket(new SCMailListPacket(false, [m.Value.Header]));
-                total++;
-            }
-            else if (m.Value.Header.SenderId == Self.Id)
-            {
-                Self.SendPacket(new SCMailListPacket(true, [m.Value.Header]));
-                total++;
-            }
-            else if (m.Value.Header.ReceiverId == Self.Id)
-            {
-                Self.SendPacket(new SCMailListPacket(false, [m.Value.Header]));
-                total++;
-            }
+            var header = m.Value.Header;
+            var isMine = header.SenderId == Self.Id;
+            var isForMe = header.ReceiverId == Self.Id;
+            if (!isMine && !isForMe)
+                continue;
+
+            // Mail to self lists in the received box, matching the sender/receiver test order.
+            Self.SendPacket(new SCMailListPacket(isMine && !isForMe, total, header));
+            sent++;
         }
-        Self.SendPacket(new SCMailListEndPacket(total, 0));
+
+        Self.SendPacket(new SCMailListEndPacket(sent, 0));
+        Self.SendPacket(new SCCountTotalMailPacket(UnreadMailCount));
+    }
+
+    /// <summary>
+    /// Resolves a mail id supplied by the client, rejecting any that this character is not a party to.
+    ///
+    /// Every mail entry point takes its id straight off the wire and used to look it up in the global store
+    /// with nothing but a key test, so a crafted packet naming another player's mail was honoured in full:
+    /// ReadMail returned the body, DeleteMail destroyed it, and GetAttached handed over its coin and items.
+    /// Ids come from MailIdManager and run consecutively, so they did not even have to be guessed.
+    ///
+    /// <paramref name="sentBox"/> selects which side of the mail the caller claims to be — the sender for the
+    /// sent tab, the receiver for the inbox.
+    /// </summary>
+    private bool TryGetOwnMail(long id, bool sentBox, out BaseMail mail)
+    {
+        mail = null;
+
+        if (!MailManager.Instance.AllPlayerMails.TryGetValue(id, out var found))
+            return false;
+
+        var party = sentBox ? found.Header.SenderId : found.Header.ReceiverId;
+        if (party != Self.Id)
+        {
+            Logger.Warn($"{Self.Name} ({Self.Id}) requested mail {id}, which belongs to {party}");
+            return false;
+        }
+
+        mail = found;
+        return true;
     }
 
     public void ReadMail(bool isSent, long id)
     {
-        if (MailManager.Instance._allPlayerMails.TryGetValue(id, out var mail))
+        if (TryGetOwnMail(id, isSent, out var mail))
         {
             if (mail.Header.Status == MailStatus.Unread && !isSent)
             {
@@ -69,12 +109,76 @@ public class CharacterMails
         Self.SendPacket(new SCCountUnreadMailPacket(UnreadMailCount));
     }
 
+    /// <summary>
+    /// Recomputes the unread counters straight off the mail store for this character.
+    ///
+    /// Login cannot use <see cref="MailManager.GetCurrentMailList"/> for this. That method resolves the
+    /// Character through <c>WorldManager.GetCharacterById</c> and null-conditionals every use of it, but
+    /// <c>CSSelectCharacter</c> runs <c>Character.Load</c> — and with it the mail load — at line 29, while the
+    /// character is only assigned an ObjId at 51 and registered with <c>TryAddCharacter</c> at 55. The lookup
+    /// therefore always missed, every count stayed zero, and both <c>SCCharacterState</c> and
+    /// <c>SCCountUnreadMail</c> reported an empty mailbox until the player opened it by hand.
+    ///
+    /// Counting is restricted to mail addressed to this character: the sender-side rows
+    /// <c>GetCurrentMailList</c> also selects are someone else's unread mail, and folding them in inflated the
+    /// icon by every letter the player had sent that had not been read yet. Mail whose RecvDate is still in the
+    /// future has not landed and is not counted either.
+    /// </summary>
+    public void RefreshUnreadCount()
+    {
+        UnreadMailCount.ResetReceived();
+
+        var now = DateTime.UtcNow;
+        foreach (var (_, mail) in MailManager.Instance.AllPlayerMails)
+        {
+            if (mail.Header.ReceiverId != Self.Id)
+                continue;
+            if (mail.Header.Status == MailStatus.Read)
+                continue;
+            if (mail.Body.RecvDate > now)
+                continue;
+
+            UnreadMailCount.UpdateReceived(mail.MailType, 1);
+        }
+    }
+
     public MailResult SendMailToPlayer(MailType mailType, string receiverName, string title, string text, byte attachments, int money0, int money1, int money2, long extra, List<(SlotType, byte)> itemSlots)
     {
 
         if (string.IsNullOrWhiteSpace(receiverName) || NameManager.Instance.GetCharacterId(receiverName) == 0)
         {
             return MailResult.UnableToFindRecipient;
+        }
+
+        // The three money fields come off the wire as signed ints and were used unchecked.
+        //
+        // Negative amounts made the affordability test below trivially true and then bounced off
+        // SubtractMoney's own "amount < 0" guard, so the mail went out free of charge carrying a negative
+        // balance the recipient could never take - and since GetTotalAttachmentCount counts any non-zero
+        // coin value, the mail kept an attachment forever and could never be deleted.
+        //
+        // Large positive amounts were worse: "mailFee + money0" overflowed int, compared as a negative
+        // against the sender's balance, passed, and was then rejected by SubtractMoney for being negative,
+        // so nothing was charged at all. The recipient still collected the full sum through ChangeMoney,
+        // which adds to Money unchecked. That minted currency out of nothing.
+        if (money0 < 0 || money1 < 0 || money2 < 0)
+        {
+            return MailResult.CanNotBeMailed;
+        }
+
+        // title and text were written to the mails row unbounded. Both columns are MySQL text, so anything
+        // past 65535 bytes fails the INSERT on the save tick - and that tick batches every dirty mail on the
+        // server, so one oversized letter takes the whole save down, not just its sender.
+        // TODO(v10): the retail subject and body caps are not yet recovered from the client; CSSendMail notes
+        // 1600 for the body. These bounds only keep the column safe, they are not the client's own limits.
+        if (title != null && Encoding.UTF8.GetByteCount(title) > MaxMailTitleBytes)
+        {
+            return MailResult.SubjectLengthLimited;
+        }
+
+        if (text != null && Encoding.UTF8.GetByteCount(text) > MaxMailTextBytes)
+        {
+            return MailResult.TextLengthLimited;
         }
 
         var mail = new MailPlayerToPlayer(Self, receiverName) {
@@ -101,9 +205,11 @@ public class CharacterMails
             return MailResult.InvalidSlot;
         }
 
-        // With attachments in place, we can calculate the send fee
+        // With attachments in place, we can calculate the send fee.
+        // Widened to long so the sum cannot wrap past the balance check.
         var mailFee = mail.GetMailFee();
-        if (mailFee + money0 > Self.Money)
+        var totalCost = (long)mailFee + money0;
+        if (totalCost > Self.Money)
         {
             // Self.SendErrorMessage(ErrorMessageType.MailNotEnoughMoney);
             return MailResult.InsufficientCoins;
@@ -120,8 +226,8 @@ public class CharacterMails
         if (mail.Send())
         {
             Self.SendPacket(new SCMailSentPacket(mail.Header, itemSlots.ToArray()));
-            // Take the fee
-            Self.SubtractMoney(SlotType.Inventory, mailFee + money0);
+            // Take the fee. totalCost is bounded by the balance check above, so the cast is safe.
+            Self.SubtractMoney(SlotType.Inventory, (int)totalCost);
             return MailResult.Success;
         }
         else
@@ -133,7 +239,8 @@ public class CharacterMails
     public bool GetAttached(long mailId, bool takeMoney, bool takeItems, bool takeAllSelected, ulong specifiedItemId = 0)
     {
         var res = true;
-        if (MailManager.Instance._allPlayerMails.TryGetValue(mailId, out var thisMail))
+        // Attachments only ever come out of the inbox side, never the sent side.
+        if (TryGetOwnMail(mailId, false, out var thisMail))
         {
             var tookMoney = false;
             if (thisMail.MailType == MailType.AucOffSuccess && thisMail.Body.CopperCoins > 0 && takeMoney)
@@ -152,7 +259,10 @@ public class CharacterMails
             {
                 Self.ChangeMoney(SlotType.Inventory, thisMail.Body.CopperCoins);
                 thisMail.Body.CopperCoins = 0;
-                thisMail.Header.Attachments -= 1;
+                // Attachments is a byte; decrementing it at zero wraps to 255 and the mail can never be
+                // deleted again, since DeleteMail only lets go of a mail once the count reaches zero.
+                if (thisMail.Header.Attachments > 0)
+                    thisMail.Header.Attachments -= 1;
                 tookMoney = true;
             }
 
@@ -198,13 +308,21 @@ public class CharacterMails
                             if (Self.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Mail, itemAttachment, stackItem?.Slot ?? -1))
                             {
                                 itemSlotList.Add(itemIdAndLocation);
-                                thisMail.Header.Attachments -= 1;
+                                if (thisMail.Header.Attachments > 0)
+                                    thisMail.Header.Attachments -= 1;
                                 toRemove.Add(itemAttachment);
                             }
                             else
                             {
-                                // Should technically never fail because of previous free slot check
-                                throw new GameException("GetAttachmentFailedAddToBag");
+                                // The free-space check above should have covered this, so getting here means the
+                                // bag shifted underneath us. Throwing was an item-duplication vector: it escaped
+                                // before the toRemove sweep below ran, so anything already moved sat in the bag
+                                // while still counting as an attachment, ready to be taken a second time. Stop
+                                // taking and let the bookkeeping for what did move complete.
+                                Logger.Warn($"GetAttached: could not move attachment {itemAttachment.Id} of mail {mailId} into {Self.Name}'s bag");
+                                Self.SendErrorMessage(ErrorMessageType.BagFull);
+                                res = false;
+                                break;
                             }
                         }
                         else
@@ -275,44 +393,61 @@ public class CharacterMails
 
     public void DeleteMail(long id, bool isSent)
     {
-        if (MailManager.Instance._allPlayerMails.ContainsKey(id) && !isSent)
+        if (isSent || !TryGetOwnMail(id, false, out var mail))
+            return;
+
+        // A mail still holding coin or items is not disposable; its contents would go with it.
+        if (mail.Header.Attachments > 0)
+            return;
+
+        if (mail.Header.Status != MailStatus.Read)
         {
-            if (MailManager.Instance._allPlayerMails[id].Header.Attachments <= 0)
-            {
-                // ReSharper disable ConditionIsAlwaysTrueOrFalse
-                if (MailManager.Instance._allPlayerMails[id].Header.Status != MailStatus.Read)
-                {
-                    UnreadMailCount.UpdateReceived(MailManager.Instance._allPlayerMails[id].MailType, -1);
-                    Self.SendPacket(new SCMailDeletedPacket(isSent, id, true, UnreadMailCount));
-                }
-                else
-                {
-                    Self.SendPacket(new SCMailDeletedPacket(isSent, id, false, UnreadMailCount));
-                }
-                // ReSharper enable ConditionIsAlwaysTrueOrFalse
-                MailManager.Instance.DeleteMail(id);
-            }
+            UnreadMailCount.UpdateReceived(mail.MailType, -1);
+            Self.SendPacket(new SCMailDeletedPacket(isSent, id, true, UnreadMailCount));
         }
+        else
+        {
+            Self.SendPacket(new SCMailDeletedPacket(isSent, id, false, UnreadMailCount));
+        }
+
+        MailManager.Instance.DeleteMail(id);
     }
 
+    /// <summary>
+    /// Hands a received mail back to whoever sent it.
+    ///
+    /// This used to rebuild the attachment list by indexing <c>Body.Attachments</c> across all ten
+    /// <c>MaxMailAttachments</c> slots and re-sending through <see cref="SendMailToPlayer"/>. Attachments is a
+    /// variable-length list holding only the slots actually in use, so that walk threw
+    /// ArgumentOutOfRangeException on the first empty slot — every mail with fewer than ten attachments, which
+    /// is every mail — straight off a client packet. Past the throw it could not have worked either:
+    /// PrepareAttachmentItems only accepts items sitting in SlotType.Inventory, and attachments live in the
+    /// mail container, so the re-send would have failed InvalidSlot while DeleteMail ran regardless.
+    ///
+    /// Turning the existing mail around instead keeps the attachments where they are.
+    /// </summary>
     public void ReturnMail(long id)
     {
-        if (MailManager.Instance._allPlayerMails.TryGetValue(id, out var thisMail))
+        if (!TryGetOwnMail(id, false, out var thisMail))
         {
-            var itemSlots = new List<(SlotType slotType, byte slot)>();
-            for (var i = 0; i < MailBody.MaxMailAttachments; i++)
-            {
-                var item = ItemManager.Instance.GetItemByItemId(thisMail.Body.Attachments[i].Id);
-                itemSlots.Add(item.SlotType == SlotType.None
-                    ? ((SlotType slotType, byte slot))(0, 0)
-                    : (item.SlotType, (byte)item.Slot));
-            }
+            Self.SendPacket(new SCMailFailedPacket(MailResult.CanNotFindMail, [], false));
+            return;
+        }
 
-            SendMailToPlayer(thisMail.Header.Type, thisMail.Header.SenderName, thisMail.Header.Title, thisMail.Body.Text,
-                thisMail.Header.Attachments, thisMail.Body.CopperCoins, thisMail.Body.BillingAmount, thisMail.Body.MoneyAmount2,
-                    thisMail.Header.Extra, itemSlots);
+        var wasUnread = thisMail.Header.Status != MailStatus.Read;
+        var mailType = thisMail.MailType;
 
-            DeleteMail(id, false);
+        if (!thisMail.ReturnToSenderFor(Self.Id))
+        {
+            Self.SendPacket(new SCMailFailedPacket(MailResult.ReturnsNotAllowed, [], false));
+            return;
+        }
+
+        // It is the sender's mail now, so it leaves this inbox and this unread count.
+        if (wasUnread)
+        {
+            UnreadMailCount.UpdateReceived(mailType, -1);
+            SendUnreadMailCount();
         }
     }
 }

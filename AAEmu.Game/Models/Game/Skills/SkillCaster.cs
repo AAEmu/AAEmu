@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Items;
 
@@ -106,8 +106,7 @@ public class SkillItem : SkillCaster
 
     public uint ItemTemplateId { get; set; }
     public byte Type1 { get; set; }
-    // 10.0.2.13 item-caster trailing field is i64/u64 (8 bytes) — the type 2 case of
-    // UnitState_SerializeSkillCaster writes 8 bytes. Was a 4-byte uint in v1.2.
+    // 10.0.2.13 item-caster trailing field is i64/u64 (8 bytes) — binary UnitState_SerializeSkillCaster
     public ulong Type2 { get; set; }
     public Item SkillSourceItem { get; private set; }
 
@@ -129,7 +128,7 @@ public class SkillItem : SkillCaster
         ItemId = stream.ReadUInt64();
         ItemTemplateId = stream.ReadUInt32();
         Type1 = stream.ReadByte();
-        Type2 = stream.ReadUInt32();
+        Type2 = stream.ReadUInt64();
     }
 
     public override PacketStream Write(PacketStream stream)

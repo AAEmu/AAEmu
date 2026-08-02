@@ -1,11 +1,30 @@
 ﻿using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.NPChar;
-public class Aggro(Unit owner)
+
+public readonly record struct AggroComponents(int Damage, int Heal, int Direct)
+{
+    public int Total => Damage + Heal + Direct;
+}
+
+public class Aggro
 {
     private readonly object _lock = new();
 
-    public Unit Owner { get; } = owner;
+    public Aggro(Unit owner)
+    {
+        Owner = owner;
+    }
+
+    public Aggro(Unit owner, AggroComponents components)
+        : this(owner)
+    {
+        _damageAggro = components.Damage;
+        _healAggro = components.Heal;
+        _directAggro = components.Direct;
+    }
+
+    public Unit Owner { get; }
 
     //Considering using interlocked methods instead of a lock, need to research how they work..
     private int _damageAggro;
@@ -32,13 +51,25 @@ public class Aggro(Unit owner)
         }
     }
 
+    private int _directAggro;
+    public int DirectAggro
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _directAggro;
+            }
+        }
+    }
+
     public int TotalAggro
     {
         get
         {
             lock (_lock)
             {
-                return _damageAggro + _healAggro;
+                return _damageAggro + _healAggro + _directAggro;
             }
         }
     }
@@ -51,6 +82,33 @@ public class Aggro(Unit owner)
                 _damageAggro += amount;
             else if (kind == AggroKind.Heal)
                 _healAggro += (int)(amount * 0.6f);
+            else if (kind == AggroKind.Etc)
+                _directAggro += amount;
+        }
+    }
+
+    public AggroComponents GetComponents()
+    {
+        lock (_lock)
+        {
+            return new AggroComponents(_damageAggro, _healAggro, _directAggro);
+        }
+    }
+
+    public void ApplyComponentSelectors(
+        bool selectDamage,
+        bool selectHeal,
+        bool selectDirect,
+        int applyValue)
+    {
+        lock (_lock)
+        {
+            if (selectDamage)
+                _damageAggro = applyValue;
+            if (selectHeal)
+                _healAggro = applyValue;
+            if (selectDirect)
+                _directAggro = applyValue;
         }
     }
 

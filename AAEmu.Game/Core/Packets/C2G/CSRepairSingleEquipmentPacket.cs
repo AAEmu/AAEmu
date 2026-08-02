@@ -18,6 +18,6 @@ public class CSRepairSingleEquipmentPacket() : GamePacket(CSOffsets.CSRepairSing
 
         var item = Connection.ActiveChar.Inventory.GetItem(slotType, slot);
 
-        Connection.ActiveChar.DoRepair([item]);
+        Connection.ActiveChar.DoRepair([item], autoUseAAPoint);
     }
 }

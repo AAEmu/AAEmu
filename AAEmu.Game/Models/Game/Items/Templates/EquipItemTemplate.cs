@@ -10,7 +10,9 @@ public class EquipItemTemplate : ItemTemplate
     public uint RechargeBuffId { get; set; }
     public int ChargeLifetime { get; set; }
     public int ChargeCount { get; set; } // does not seem to be actually used anywhere in the DB
+    public uint RechargeRestrictItemId { get; set; }
     public ItemLookConvert ItemLookConvert { get; set; }
     public uint EquipItemSetId { get; set; }
-    // 10.0.2.13: DefaultDyeItemId removed (dyeable_items.default_dyeing_item_id column dropped)
+    /// <summary>Default packed ARGB color from 10.0.2.13 <c>dyeable_items.color</c>.</summary>
+    public uint DyeingColor { get; set; }
 }

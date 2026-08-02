@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.L2C;
@@ -12,7 +12,6 @@ public enum JoinResponseReason : ushort
 
 /// <summary>
 /// AFS (auth feature settings) bitfield delivered to the client in ACJoinResponse. The 10.0.2.13 client
-/// decodes it as: byte0 = chCountLimit (base creatable
 /// character count), byte1 = chMaxCountLimit (max characters), byte2 = chCountWorldLimit (per-world count),
 /// bit24 = waitInWorld, bit25 = premiumEntrance, bit26 = b2pService. chMaxCountLimit MUST be >= 1, otherwise
 /// the client treats the account's creatable slot count as 0 and every empty slot shows "creation unavailable".

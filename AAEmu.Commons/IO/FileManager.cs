@@ -36,6 +36,20 @@ public static class FileManager
         }
     }
 
+    /// <summary>
+    /// Force content root (configs/data). Used when AAEmu.World hosts the Game stack
+    /// so EntryAssembly is World but Config/Data live under the Game output directory.
+    /// </summary>
+    public static void SetAppPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            throw new ArgumentException("path required", nameof(path));
+
+        _appPath = Path.GetFullPath(path);
+        if (!_appPath.EndsWith(Path.DirectorySeparatorChar.ToString(CultureInfo.InvariantCulture)))
+            _appPath += Path.DirectorySeparatorChar;
+    }
+
     #endregion // AppPath
 
     /// <summary>Platform-specific directory separator.</summary>

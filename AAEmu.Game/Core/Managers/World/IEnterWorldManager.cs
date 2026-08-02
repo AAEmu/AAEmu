@@ -9,5 +9,6 @@ public interface IEnterWorldManager
     void AddAccount(uint accountId, uint connectionId);
     void Login(GameConnection connection, uint accountId, uint token);
     void Leave(GameConnection connection, LeaveWorldTargetType leaveWorldTargetType);
+    bool ReturnToCharacterSelect(GameConnection connection, string reason);
     void LeaveWorldTask(GameConnection connection, LeaveWorldTargetType leaveWorldTarget, Character activeChar);
 }

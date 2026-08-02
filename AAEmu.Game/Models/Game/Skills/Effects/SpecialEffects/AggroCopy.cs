@@ -18,7 +18,18 @@ public class AggroCopy : SpecialEffectAction
         int value3,
         int value4)
     {
-        // TODO ...
-        if (caster is Character) { Logger.Debug("Special effects: AggroCopy value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is not Unit source || target is not Unit destination ||
+            source.ObjId == destination.ObjId)
+        {
+            return;
+        }
+
+        if (WorldIntegration.ZoneAuthority)
+        {
+            WorldIntegration.RelayAggroCopyToZone?.Invoke(source.ObjId, destination.ObjId);
+            return;
+        }
+
+        destination.CopyAggroFrom(source);
     }
 }

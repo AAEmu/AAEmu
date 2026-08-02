@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Cryptography;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Login;
@@ -45,7 +46,8 @@ public class EnterWorldManager(
             connection.SendPacket(new GLPlayerEnterPacket(connectionId, gsId, 1));
         else
         {
-            _accounts.Add(connectionId, accountId);
+            // Overwrite stale pending tokens (e.g. prior CAEnterWorld without a completed X2EnterWorld).
+            _accounts[connectionId] = accountId;
             connection.SendPacket(new GLPlayerEnterPacket(connectionId, gsId, 0));
         }
     }
@@ -72,6 +74,11 @@ public class EnterWorldManager(
                 streamManager.AddToken(connection.AccountId, connection.Id);
 
                 var port = AppConfiguration.Instance.StreamNetwork.Port;
+                // Real client GM UI (toggle_gm_console / X2Gm / CSGmCommand) keys off enter-world
+                // authority + gmFlag — not AAEmu chat "/item". Account access_level>=100 ⇒ GM.
+                var accountAccess = accountManager.GetAccountDetails(accountId).AccessLevel;
+                if (accountAccess >= 100)
+                    connection.AddAttribute("gmFlag", true);
                 var gm = connection.GetAttribute("gmFlag") != null;
 
                 // Enter-world sequence — order verified against a working 3.5.0.3 capture:
@@ -79,9 +86,15 @@ public class EnterWorldManager(
                 // SCWorldQueue is what makes the client start sending FinishState packets, which drive the
                 // server-side config burst (see FinishStatePacket). After X2EnterWorldResponse the client's
                 // encryption gate rejects plain level-1 packets, so EncryptionActive flips on (auto level 5).
+                // Prep RSA *before* Encode so WriteKeyParams does not reset SCMessageCount mid-packet
+                // (that reused seq 0 → sequence-mv → frozen WASD while TCP stayed up).
+                EncryptionManager.Instance.PrepareEnterWorldKeys(connection.Id, connection.AccountId);
                 connection.SendPacket(new X2EnterWorldResponsePacket(0, gm, connection.Id, port, connection));
                 connection.EncryptionActive = true;
                 connection.SendPacket(new ChangeStatePacket(0));
+                // Reset the native receive watchdog immediately; the periodic network timer continues
+                // at one-second intervals after this handshake edge.
+                connection.SendPacket(new PingPacket());
                 // After X2EnterWorldResponse(level 5) + ChangeState the 10.0.2.13 client sends FinishState(0),
                 // which drives the server-side config burst (see FinishStatePacket). The character list is then
                 // pushed by the CSAesXorKeyPacket handler once the client sends its RSA key reply.
@@ -111,8 +124,8 @@ public class EnterWorldManager(
     {
         switch (leaveWorldTargetType)
         {
-            case LeaveWorldTargetType.QuitGame: // выход из игры, quit game
-            case LeaveWorldTargetType.CharacterSelect: // выход к списку персонажей, go to character select
+            case LeaveWorldTargetType.QuitGame:
+            case LeaveWorldTargetType.CharacterSelect:
                 if (connection.State == GameState.World)
                 {
 
@@ -147,7 +160,7 @@ public class EnterWorldManager(
                 }
 
                 break;
-            case LeaveWorldTargetType.ServerSelect: // выбор сервера, server select
+            case LeaveWorldTargetType.ServerSelect:
                 if (connection.State == GameState.Lobby)
                 {
                     var gsId = AppConfiguration.Instance.Id;
@@ -161,6 +174,54 @@ public class EnterWorldManager(
             default:
                 Logger.Warn($"[Leave] Unknown type: {leaveWorldTargetType}");
                 break;
+        }
+    }
+
+    /// <summary>
+    /// Immediately returns an in-world client to character select after a recoverable server-side failure.
+    /// for cleanup failures where the connection can no longer be kept consistent.
+    /// </summary>
+    public bool ReturnToCharacterSelect(GameConnection connection, string reason)
+    {
+        if (connection == null)
+            return false;
+
+        lock (connection)
+        {
+            if (connection.State != GameState.World || connection.ActiveChar == null)
+                return false;
+
+            var activeChar = connection.ActiveChar;
+            try
+            {
+                // Claim the transition before cleanup so duplicate zone-loss notifications cannot run it twice.
+                connection.State = GameState.Lobby;
+
+                // A server failure must not wait on, or race, a normal delayed/cancelable logout.
+                connection.CancelTokenSource?.Cancel();
+                connection.CancelTokenSource?.Dispose();
+                connection.CancelTokenSource = null;
+                connection.LeaveTask = null;
+
+                Logger.Warn(
+                    "Returning {0} (ObjId={1}) to character select: {2}",
+                    activeChar.Name, activeChar.ObjId, reason);
+
+                // SCLeaveWorldGranted(CharacterSelect) followed by ChangeState(0) is the client's native
+                // return-to-lobby path. No SCPrepareLeaveWorld is sent because this is immediate and cannot
+                // be canceled by the client.
+                LeaveWorldTask(connection, LeaveWorldTargetType.CharacterSelect, activeChar);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(
+                    ex,
+                    "Could not return {0} (connection {1}) to character select; closing the inconsistent session",
+                    activeChar.Name, connection.Id);
+                connection.Shutdown();
+                return false;
+            }
         }
     }
 

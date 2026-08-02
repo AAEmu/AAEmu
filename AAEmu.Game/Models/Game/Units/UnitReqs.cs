@@ -1,9 +1,13 @@
 ﻿using System.Numerics;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Faction;
+using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
@@ -11,11 +15,15 @@ using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.StaticValues;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Units;
 
 public class UnitReqs
 {
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
     public uint Id { get; set; }
     public uint OwnerId { get; set; }
     /// <summary>
@@ -25,8 +33,10 @@ public class UnitReqs
     public UnitReqsKindType KindType { get; set; }
     public uint Value1 { get; set; }
     public uint Value2 { get; set; }
+    public uint Value3 { get; set; }
+    public bool DisplayMessage { get; set; }
 
-    public UnitReqsValidationResult Validate(BaseUnit owner, BaseUnit target)
+    public UnitReqsValidationResult Validate(BaseUnit owner, BaseUnit target, Item targetItem = null)
     {
         UnitReqsValidationResult Ret(SkillResultKeys errorKey, bool success)
         {
@@ -67,8 +77,15 @@ public class UnitReqs
                     unit != null && unit.Equipment.GetAllItemsByTemplate(Value1, -1, out _, out _));
 
             case UnitReqsKindType.OwnItem:
+                var ownsRequiredItem = unit?.Equipment.GetAllItemsByTemplate(
+                    Value1, -1, out _, out _) ?? false;
+                var ownItemContainers = Value2 > 0
+                    ? new[] { SlotType.Inventory, SlotType.Bank }
+                    : new[] { SlotType.Inventory };
+                ownsRequiredItem |= player?.Inventory.GetAllItemsByTemplate(
+                    ownItemContainers, Value1, -1, out _, out _) ?? false;
                 return RetWithValue(SkillResultKeys.skill_urk_own_item, Value1,
-                    player != null && player.Inventory.GetAllItemsByTemplate(null, Value1, -1, out _, out _));
+                    ownsRequiredItem);
 
             case UnitReqsKindType.TrainedSkill:
                 // unused
@@ -76,11 +93,27 @@ public class UnitReqs
                     player?.Skills.Skills.GetValueOrDefault(Value1) != null);
 
             case UnitReqsKindType.Combat:
-                // Only OUTSIDE OF combat
-                return Ret(SkillResultKeys.skill_urk_combat, unit is { IsInBattle: false });
+                var combatRequirementMet = unit != null && Value1 switch
+                {
+                    0 => !unit.IsInBattle,
+                    1 => unit.IsInBattle,
+                    _ => false
+                };
+                return Ret(SkillResultKeys.skill_urk_combat, combatRequirementMet);
 
-            // case UnitReqsKindType.Stealth:
-            // case UnitReqsKindType.Health:
+            case UnitReqsKindType.Stealth:
+                var isStealthed = unit?.Buffs.CheckBuffTag((uint)TagsEnum.Stealth) ?? false;
+                var stealthRequirementMet = Value1 switch
+                {
+                    0 => !isStealthed,
+                    1 => isStealthed,
+                    _ => false
+                };
+                return Ret(SkillResultKeys.skill_urk_stealth, stealthRequirementMet);
+
+            case UnitReqsKindType.Health:
+                return Ret(SkillResultKeys.skill_urk_health,
+                    unit != null && unit.Hpp >= Value1);
 
             case UnitReqsKindType.Buff:
                 return RetWithValue(SkillResultKeys.skill_urk_buff, Value1, unit != null && unit.Buffs.CheckBuff(Value1));
@@ -89,11 +122,17 @@ public class UnitReqs
                 return RetWithValue(SkillResultKeys.skill_urk_target_buff, Value1, targetUnit?.Buffs.CheckBuff(Value1) ?? false);
 
             case UnitReqsKindType.TargetCombat:
-                return Ret(SkillResultKeys.skill_urk_target_combat, targetUnit is { IsInBattle: false });
+                var targetCombatRequirementMet = targetUnit != null && Value1 switch
+                {
+                    0 => !targetUnit.IsInBattle,
+                    1 => targetUnit.IsInBattle,
+                    _ => true
+                };
+                return Ret(SkillResultKeys.skill_urk_target_combat, targetCombatRequirementMet);
 
-            // case UnitReqsKindType.CanLearnCraft:
-            //     // Learnable crafts is not implemented
-            //     return ret(SkillResultKeys.skill_urk_can_learn_craft, player != null && !player.Craft.LearnedCraft(Value1));
+            case UnitReqsKindType.CanLearnCraft:
+                return Ret(SkillResultKeys.skill_urk_can_learn_craft,
+                    player != null && CraftManager.Instance.HasCraft(Value1));
 
             case UnitReqsKindType.DoodadRange:
                 if (owner == null)
@@ -104,12 +143,17 @@ public class UnitReqs
                     doodads.Any(doodad => owner.GetDistanceTo(doodad, true) <= rangeCheck && doodad.TemplateId == Value1));
 
             case UnitReqsKindType.EquipShield:
-                // TODO: Validate shield type (value2)
-                return Ret(SkillResultKeys.skill_urk_equip_shield,
-                    unit != null &&
-                    unit.Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand) is { } item &&
-                    item.Template is WeaponTemplate weaponTemplate &&
-                    weaponTemplate.HoldableTemplate.SlotTypeId == (uint)EquipmentItemSlotType.Shield);
+                var hasShield = unit?.Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand)?.Template
+                    is WeaponTemplate { HoldableTemplate.SlotTypeId: (uint)EquipmentItemSlotType.Shield };
+                var offhandDisabled = unit?.Buffs.HasEffectsMatchingCondition(
+                    effect => effect.Template.DisarmamentOffHand) ?? false;
+                var shieldRequirementMet = Value1 switch
+                {
+                    0 => !hasShield,
+                    1 => hasShield && !offhandDisabled,
+                    _ => false
+                };
+                return Ret(SkillResultKeys.skill_urk_equip_shield, shieldRequirementMet);
 
             case UnitReqsKindType.NoBuff:
                 return RetWithValue(SkillResultKeys.skill_urk_nobuff, Value1, unit != null && !unit.Buffs.CheckBuff(Value1));
@@ -119,7 +163,27 @@ public class UnitReqs
                 return RetWithValue(SkillResultKeys.skill_urk_target_buff_tag, Value1, targetBuffTarget?.Buffs.CheckBuffTag(Value1) ?? false);
 
             // case UnitReqsKindType.CorpseRange:
-            // case UnitReqsKindType.EquipWeaponType:
+
+            case UnitReqsKindType.EquipWeaponType:
+                if (unit == null)
+                    return Ret(SkillResultKeys.skill_urk_equip_weapon_type, false);
+                if (Value1 == 0)
+                {
+                    var mainhandEmpty = unit.Equipment.GetItemBySlot((int)EquipmentItemSlot.Mainhand) == null;
+                    var offhandEmpty = unit.Equipment.GetItemBySlot((int)EquipmentItemSlot.Offhand) == null;
+                    return Ret(SkillResultKeys.skill_urk_equip_weapon_type, mainhandEmpty && offhandEmpty);
+                }
+                var weaponSlots = new[]
+                {
+                    EquipmentItemSlot.Mainhand,
+                    EquipmentItemSlot.Offhand,
+                    EquipmentItemSlot.Ranged,
+                    EquipmentItemSlot.Musical
+                };
+                var hasWeaponType = weaponSlots.Any(slot =>
+                    unit.Equipment.GetItemBySlot((int)slot)?.Template is WeaponTemplate weapon &&
+                    weapon.HoldableTemplate.Id == Value1);
+                return Ret(SkillResultKeys.skill_urk_equip_weapon_type, hasWeaponType);
 
             case UnitReqsKindType.TargetHealthLessThan:
                 return Ret(SkillResultKeys.skill_urk_target_health_less_than,
@@ -130,25 +194,76 @@ public class UnitReqs
                     targetUnit is Npc targetNpc && targetNpc.TemplateId == Value1);
 
             case UnitReqsKindType.TargetDoodad:
-                BaseUnit targetDoodad = null;
-                if (unit?.CurrentTarget is Doodad targetDoodadCheck)
-                {
-                    targetDoodad = targetDoodadCheck;
-                }
-                else
-                {
-                    targetDoodad = WorldManager.GetAround<Doodad>(unit, 5f, true)?.Where(x => x.TemplateId == Value1).FirstOrDefault();
-                }
-                return Ret(SkillResultKeys.skill_urk_target_doodad, targetDoodad != null && targetDoodad.TemplateId == Value1);
+                return Ret(SkillResultKeys.skill_urk_target_doodad,
+                    target is Doodad targetDoodad && targetDoodad.TemplateId == Value1);
 
             case UnitReqsKindType.EquipRanged:
-                return Ret(SkillResultKeys.skill_urk_equip_ranged,
-                    unit?.Equipment.GetItemBySlot((int)(Value1 == 1
-                        ? EquipmentItemSlot.Musical
-                        : EquipmentItemSlot.Ranged)) != null);
+                if (Value1 is not (0 or 1 or 2))
+                    return Ret(SkillResultKeys.skill_urk_equip_ranged, false);
+
+                if (unit == null)
+                    return new UnitReqsValidationResult(
+                        SkillResultKeys.skill_urk_equip_ranged,
+                        0,
+                        Value1 == 2 ? 3u : Value1);
+
+                if (Value1 == 1)
+                {
+                    var instrument = unit.Equipment.GetItemBySlot((int)EquipmentItemSlot.Musical);
+                    var isCombatInstrument = instrument?.Template is WeaponTemplate
+                    {
+                        HoldableTemplate.SlotTypeId: (uint)EquipmentItemSlotType.Instrument
+                    };
+                    if (!isCombatInstrument)
+                        return new UnitReqsValidationResult(
+                            SkillResultKeys.skill_urk_equip_ranged,
+                            0,
+                            1);
+
+                    if (ItemManager.Instance.HasItemInstrumentSound(instrument.TemplateId))
+                        return new UnitReqsValidationResult(
+                            SkillResultKeys.skill_urk_equip_ranged,
+                            0,
+                            2);
+
+                    var musicalSlotDisabled = unit.Buffs.HasEffectsMatchingCondition(
+                        effect => effect.Template.DisarmamentMusical);
+                    if (musicalSlotDisabled)
+                        return new UnitReqsValidationResult(
+                            SkillResultKeys.skill_urk_equip_ranged,
+                            0,
+                            1);
+
+                    return Ret(SkillResultKeys.ok, true);
+                }
+
+                if (Value1 is 0 or 2)
+                {
+                    var requiredHoldableName = Value1 == 0 ? "bow" : "shot_gun";
+                    var requiredHoldableId = ItemManager.Instance.GetConstHoldableId(requiredHoldableName);
+                    var rangedWeapon = unit.Equipment.GetItemBySlot((int)EquipmentItemSlot.Ranged);
+                    var hasRequiredRangedWeapon = requiredHoldableId != 0 &&
+                                                  rangedWeapon?.Template is WeaponTemplate rangedTemplate &&
+                                                  rangedTemplate.HoldableTemplate.Id == requiredHoldableId;
+                    var rangedSlotDisabled = unit.Buffs.HasEffectsMatchingCondition(
+                        effect => effect.Template.DisarmamentRanged);
+                    if (hasRequiredRangedWeapon && !rangedSlotDisabled)
+                        return Ret(SkillResultKeys.ok, true);
+
+                    return new UnitReqsValidationResult(
+                        SkillResultKeys.skill_urk_equip_ranged,
+                        0,
+                        Value1 == 0 ? 0u : 3u);
+                }
+
+                return Ret(SkillResultKeys.ok, true);
 
             case UnitReqsKindType.NoBuffTag:
                 return Ret(SkillResultKeys.skill_urk_no_buff_tag, !unit?.Buffs.CheckBuffTag(Value1) ?? false);
+
+            case UnitReqsKindType.BuffTag:
+                return RetWithValue(SkillResultKeys.skill_urk_buff_tag, Value1,
+                    unit?.Buffs.CheckBuffTag(Value1) ?? false);
 
             case UnitReqsKindType.CompleteQuestContext:
                 return RetWithValue(SkillResultKeys.skill_urk_complete_quest_context, Value1, player?.Quests.HasQuestCompleted(Value1) ?? false);
@@ -162,8 +277,9 @@ public class UnitReqs
                     player?.Quests.ActiveQuests.GetValueOrDefault(Value1)?.Step == QuestComponentKind.Ready);
 
             case UnitReqsKindType.TargetNpcGroup:
-                // TODO: Find out how to valid NpcGroup (value1)
-                return Ret(SkillResultKeys.skill_urk_target_npc_group, targetUnit is Npc);
+                return RetWithValue(SkillResultKeys.skill_urk_target_npc_group, Value1,
+                    targetUnit is Npc groupTarget &&
+                    QuestManager.Instance.CheckGroupNpc(Value1, groupTarget.TemplateId));
 
             case UnitReqsKindType.AreaSphere:
                 // Check Sphere for Quest
@@ -171,17 +287,15 @@ public class UnitReqs
                 return RetWithValue(SkillResultKeys.skill_urk_area_sphere, Value1, SphereGameData.Instance.IsInsideAreaSphere(Value1, Value2, owner?.Transform?.World?.Position ?? Vector3.Zero) != null);
 
             case UnitReqsKindType.ExceptCompleteQuestContext:
-                // No specific key for this?
-                return Ret(SkillResultKeys.skill_failure, !player?.Quests.HasQuestCompleted(Value1) ?? false);
+                return RetWithValue(SkillResultKeys.skill_urk_except_complete_quest_context, Value1,
+                    !player?.Quests.HasQuestCompleted(Value1) ?? false);
 
             case UnitReqsKindType.PreCompleteQuestContext:
-                // Not sure if this is correct
+                var preCompleteQuest = player?.Quests.ActiveQuests.GetValueOrDefault(Value1);
                 return RetWithValue(SkillResultKeys.skill_urk_precomplete_quest_context, Value1,
-                    player != null && !player.Quests.HasQuestCompleted(Value1) &&
-                    player.Quests.ActiveQuests.ContainsKey(Value1));
+                    preCompleteQuest is { Step: QuestComponentKind.Progress or QuestComponentKind.Ready });
 
             case UnitReqsKindType.TargetOwnerType:
-                // TODO: Not sure if this is supposed the target itself, or it's owner/summoner
                 return Ret(SkillResultKeys.skill_urk_target_owner_type,
                     targetUnit?.BaseUnitType == (BaseUnitType)Value1);
 
@@ -200,40 +314,39 @@ public class UnitReqs
 
             case UnitReqsKindType.ActAbilityPoint:
                 return RetWithValue(SkillResultKeys.skill_urk_actability_point, Value1,
-                    player?.Actability.Actabilities.GetValueOrDefault(Value1)?.Point >= Value2);
+                    player != null && player.Actability.GetPoint(Value1, Value3 == 0) >= Value2);
 
             case UnitReqsKindType.CrimePoint:
-                // No specific key for this?
-                return Ret(SkillResultKeys.skill_failure, true); //  player?.CrimePoint >= Value1 && player.CrimePoint <= Value2);
+                return Ret(SkillResultKeys.skill_urk_crime_point,
+                    player != null && player.CrimePoint >= Value1 &&
+                    (Value2 == 0 || player.CrimePoint <= Value2));
 
             case UnitReqsKindType.HonorPoint:
                 return Ret(SkillResultKeys.skill_urk_honor_point,
                     player?.HonorPoint >= Value1 && player.HonorPoint <= Value2);
 
             case UnitReqsKindType.CrimeRecord:
-                // TODO: Verify if CrimeRecord is correct here
-                // No specific key for this?
-                return Ret(SkillResultKeys.skill_failure, true); // player?.CrimeRecord >= Value1 && player.CrimeRecord <= Value2);
+                return Ret(SkillResultKeys.skill_urk_crime_record,
+                    player != null && player.CrimeRecord >= Value1 &&
+                    (Value2 == 0 || player.CrimeRecord <= Value2));
 
             case UnitReqsKindType.JuryPoint:
-                // TODO: Is this correct? 
-                // No specific key for this?
-                return Ret(SkillResultKeys.skill_failure, player?.JuryPoint >= Value1);
+                return Ret(SkillResultKeys.skill_urk_jury_point,
+                    player != null && player.JuryPoint >= Value1 &&
+                    (Value2 == 0 || player.JuryPoint <= Value2));
 
             case UnitReqsKindType.SourceOwnerType:
-                // TODO: Not sure if this is supposed the unit itself, or it's owner/summoner
-                // No specific type for this?
-                return Ret(SkillResultKeys.skill_failure, unit?.BaseUnitType == (BaseUnitType)Value1);
+                return Ret(SkillResultKeys.skill_urk_source_owner_type,
+                    unit?.BaseUnitType == (BaseUnitType)Value1);
 
             case UnitReqsKindType.Appellation:
-                // Unused
-                // No specific key for this?
-                return Ret(SkillResultKeys.skill_failure, player?.Appellations.Appellations.Contains(Value1) ?? false);
+                return RetWithValue(SkillResultKeys.skill_urk_appellation, Value1,
+                    player?.Appellations.Appellations.Contains(Value1) ?? false);
 
             case UnitReqsKindType.LivingPoint:
-                // Unused
-                // No specific key for this?
-                return Ret(SkillResultKeys.skill_failure, player?.VocationPoint >= Value1 && player.VocationPoint <= Value2);
+                return Ret(SkillResultKeys.skill_urk_living_point,
+                    player != null && player.VocationPoint >= Value1 &&
+                    (Value2 == 0 || player.VocationPoint <= Value2));
 
             case UnitReqsKindType.InZone:
                 var inZone = ZoneManager.Instance.GetZoneByKey(owner.Transform.ZoneId);
@@ -246,9 +359,7 @@ public class UnitReqs
 
 
             case UnitReqsKindType.VerdictOnly:
-                // This needs implementation of the used to arrest Prime Suspects
-                // For now, return always true as the only skill that uses it, also checks for the target buff already
-                return Ret(SkillResultKeys.skill_urk_verdict_only, true);
+                return UnsupportedRequirement();
 
             case UnitReqsKindType.FactionMatchOnly:
                 // Is this the same as UnitReqsKindType.FactionMatch ? 
@@ -278,48 +389,269 @@ public class UnitReqs
                     player?.LaborPower ?? 0;
                 return RetWithValue(SkillResultKeys.skill_urk_labor_power_margin, Value1, Value1 <= remainingLaborMargin);
 
+            case UnitReqsKindType.LaborPowerMarginLocal:
+                var remainingLocalLaborMargin = player != null
+                    ? player.MaxLocalLaborPower - player.LocalLaborPower
+                    : -1;
+                return RetWithValue(
+                    SkillResultKeys.skill_urk_labor_power_margin_local,
+                    Value1,
+                    remainingLocalLaborMargin >= 0 && (ulong)remainingLocalLaborMargin >= Value1);
+
             case UnitReqsKindType.NotOnMovingPhysicalVehicle:
-                // Just return true for now
-                // This requires checking parents and bindings
-                // No specific key for this?
-                return Ret(SkillResultKeys.skill_failure, true);
+                return UnsupportedRequirement();
 
             case UnitReqsKindType.MaxLevel:
                 return Ret(SkillResultKeys.skill_urk_max_level, player?.Level <= Value1);
 
             case UnitReqsKindType.ExpeditionOwner:
-                // No specific key for this?
-                return Ret(SkillResultKeys.skill_failure, player?.Expedition?.OwnerId == player?.Id);
+                return Ret(SkillResultKeys.skill_urk_expedition_owner,
+                    player != null && player.Expedition?.OwnerId == player.Id);
 
             case UnitReqsKindType.ExpeditionMember:
-                // No specific key for this?
-                return Ret(SkillResultKeys.skill_failure, player?.Expedition?.Id > 0);
+                return Ret(SkillResultKeys.skill_urk_expedition_member, player?.Expedition?.Id > 0);
 
             case UnitReqsKindType.ExceptProgressQuestContext:
-                // No specific key for this?
                 var exceptProgressActiveQuest = player?.Quests.ActiveQuests.GetValueOrDefault(Value1);
-                return Ret(SkillResultKeys.skill_failure,
-                    (!player?.Quests.HasQuestCompleted(Value1) ?? false) &&
-                    exceptProgressActiveQuest is not { Step: QuestComponentKind.Progress });
+                return RetWithValue(SkillResultKeys.skill_urk_except_progress_quest_context, Value1,
+                    player != null && exceptProgressActiveQuest is not { Step: QuestComponentKind.Progress });
 
             case UnitReqsKindType.ExceptReadyQuestContext:
-                // No specific key for this?
                 var exceptReadyActiveQuest = player?.Quests.ActiveQuests.GetValueOrDefault(Value1);
-                return Ret(SkillResultKeys.skill_failure,
-                    (!player?.Quests.HasQuestCompleted(Value1) ?? false) &&
-                    exceptReadyActiveQuest is not { Step: QuestComponentKind.Ready });
+                return RetWithValue(SkillResultKeys.skill_urk_except_ready_quest_context, Value1,
+                    player != null && exceptReadyActiveQuest is not { Step: QuestComponentKind.Ready });
 
-            // --- Not yet implemented (present in data, fall through to the default 'ok' below) ---
-            // 1.2 carry-overs: OwnItemNot(74), LessActAbilityPoint(75), OwnQuestItemGroup(76), LeadershipTotal(77),
-            //   LeadershipCurrent(78), Hero(79), OwnItemCount(82), House(83), DoodadTargetFriendly(84),
-            //   DoodadTargetHostile(85), DominionMember(86), DominionMemberNot(87), InZoneGroupHousingExist(88),
-            //   TargetNoBuffTag(89), ExpeditionLevel(90), IsResident(91), ResidentServicePoint(92), FamilyRole(94),
-            //   TargetManaLessThan(95), TargetManaMoreThan(96), TargetHealthMoreThan(97), BuffTag(98), LaborPowerMarginLocal(99).
-            // 10.0.2.13 additions (kinds 100-140): HeirLevel, InZoneGroup, SkillCooldown, ..., GearScore(122),
-            //   PremiumArchePass(121), etc. — NONE are enforced yet, so these requirements currently auto-pass.
-            // TODO(v10): implement the new gating kinds; the default below is fail-OPEN by design carried from 1.2.
+            case UnitReqsKindType.OwnItemNot:
+                var ownsExcludedItem = unit?.Equipment.GetAllItemsByTemplate(
+                    Value1, -1, out _, out _) ?? false;
+                var searchedContainers = Value2 > 0
+                    ? new[] { SlotType.Inventory, SlotType.Bank }
+                    : new[] { SlotType.Inventory };
+                ownsExcludedItem |= player?.Inventory.GetAllItemsByTemplate(
+                    searchedContainers, Value1, -1, out _, out _) ?? false;
+                return RetWithValue(SkillResultKeys.skill_urk_own_item_not, Value1,
+                    !ownsExcludedItem);
+
+            case UnitReqsKindType.LessActAbilityPoint:
+                return RetWithValue(SkillResultKeys.skill_urk_less_actability_point, Value1,
+                    player != null && player.Actability.GetPoint(Value1, Value3 == 0) < Value2);
+
+            case UnitReqsKindType.OwnQuestItemGroup:
+                return Ret(SkillResultKeys.skill_urk_own_quest_item_group,
+                    player != null && QuestManager.Instance.GetGroupItems(Value1).Any(itemId =>
+                        player.Inventory.GetAllItemsByTemplate(null, itemId, -1, out _, out _)));
+
+            case UnitReqsKindType.House:
+                if (target is not House { Template: not null } targetHouse)
+                    return Ret(SkillResultKeys.skill_urk_house_only, false);
+                var categoryMatches = targetHouse.Template.CategoryId == Value1;
+                return Ret(SkillResultKeys.skill_urk_house,
+                    (Value2 == 1) == categoryMatches);
+
+            case UnitReqsKindType.DoodadTargetHostile:
+                if (owner?.Faction == null || target is not Doodad hostileDoodad)
+                    return Ret(SkillResultKeys.skill_urk_doodad_target_hostile, false);
+                var doodadFaction = DoodadManager.Instance.GetEffectiveFaction(hostileDoodad);
+                return Ret(SkillResultKeys.skill_urk_doodad_target_hostile,
+                    doodadFaction != null &&
+                    owner.Faction.GetRelationState(doodadFaction) == RelationState.Hostile);
+
+            case UnitReqsKindType.TargetNoBuffTag:
+                if (targetUnit == null)
+                    return Ret(SkillResultKeys.skill_urk_target_nobuff_tag_no_target, false);
+                return RetWithValue(SkillResultKeys.skill_urk_target_nobuff_tag, Value1,
+                    !targetUnit.Buffs.CheckBuffTag(Value1));
+
+            case UnitReqsKindType.UnderWater:
+                return Ret(SkillResultKeys.skill_urk_under_water, unit?.IsUnderWater ?? false);
+
+            case UnitReqsKindType.OwnAppellation:
+                return RetWithValue(SkillResultKeys.skill_urk_own_appellation, Value1,
+                    player?.Appellations.Appellations.Contains(Value1) ?? false);
+
+            case UnitReqsKindType.EquipAppellation:
+                return RetWithValue(SkillResultKeys.skill_urk_equip_appellation, Value1,
+                    player?.Appellations.ActiveAppellation == Value1);
+
+            case UnitReqsKindType.EmptySlotInventory:
+                if (player?.Inventory.Bag.FreeSlotCount > 0)
+                    return Ret(SkillResultKeys.skill_urk_empty_slot_inventory, true);
+                // The native evaluator writes 0x19 to the result's 16-bit detail field for a full bag.
+                const ushort emptyInventorySlotFailureDetail = 0x19;
+                return new UnitReqsValidationResult(
+                    SkillResultKeys.skill_urk_empty_slot_inventory,
+                    emptyInventorySlotFailureDetail,
+                    0);
+
+            case UnitReqsKindType.HeirLevel:
+                return RetWithValue(SkillResultKeys.skill_urk_heir_level, Value1,
+                    unit?.HeirLevel >= Value1);
+
+            case UnitReqsKindType.InZoneGroup:
+                var currentZoneGroup = owner?.Transform != null
+                    ? ZoneManager.Instance.GetZoneByKey(owner.Transform.ZoneId)?.GroupId
+                    : null;
+                return RetWithValue(SkillResultKeys.skill_urk_in_zone_group, Value1,
+                    currentZoneGroup == Value1);
+
+            case UnitReqsKindType.SkillCooldown:
+                return Ret(SkillResultKeys.skill_urk_skill_cooldown,
+                    unit?.Cooldowns.CheckCooldown(Value1) ?? false);
+
+            case UnitReqsKindType.FullRechargedLaborPower:
+                var maximumLabor = TimedRewardsManager.GetMaxLabor(
+                    player?.Connection?.Payment?.PremiumState ?? false);
+                return Ret(SkillResultKeys.skill_urk_full_recharged_labor_power,
+                    player?.LaborPower >= maximumLabor);
+
+            case UnitReqsKindType.ExpeditionMemberNot:
+                return Ret(SkillResultKeys.skill_urk_expedition_member_not,
+                    player != null && player.Expedition == null);
+
+            case UnitReqsKindType.RaidOwner:
+                var ownerRaid = player != null
+                    ? TeamManager.Instance.GetActiveTeamByUnit(player.Id)
+                    : null;
+                return Ret(SkillResultKeys.skill_failure,
+                    ownerRaid is { IsParty: false } && ownerRaid.OwnerId == player.Id);
+
+            case UnitReqsKindType.ViceRaidOwner:
+                // Vice owners exist only in the client's joint-raid hierarchy. An ordinary raid
+                // has no vice-owner role, so the requirement correctly fails when no joint raid exists.
+                return Ret(SkillResultKeys.skill_failure, false);
+
+            case UnitReqsKindType.RaidMember:
+                var memberRaid = player != null
+                    ? TeamManager.Instance.GetActiveTeamByUnit(player.Id)
+                    : null;
+                return Ret(SkillResultKeys.skill_failure,
+                    memberRaid is { IsParty: false } && memberRaid.OwnerId != player.Id);
+
+            case UnitReqsKindType.Dual:
+                var dualUnit = Value1 == 1 ? targetUnit : unit;
+                var isDualWielding = dualUnit?.GetWeaponWieldKind() == WeaponWieldKind.DuelWielded;
+                return Value2 switch
+                {
+                    0 => Ret(SkillResultKeys.skill_urk_dual, !isDualWielding),
+                    1 => Ret(SkillResultKeys.skill_urk_no_dual, isDualWielding),
+                    _ => UnsupportedRequirement()
+                };
+
+            case UnitReqsKindType.TargetItemTag:
+                return RetWithValue(SkillResultKeys.skill_urk_target_item_tag, Value1,
+                    targetItem != null && ItemManager.Instance.HasItemTag(targetItem.TemplateId, Value1));
+
+            case UnitReqsKindType.NoTargetItemTag:
+                return RetWithValue(SkillResultKeys.skill_urk_no_target_item_tag, Value1,
+                    targetItem != null && !ItemManager.Instance.HasItemTag(targetItem.TemplateId, Value1));
+
+            case UnitReqsKindType.EquipItemTag:
+                if (unit == null || !TagsGameData.Instance.Exists(Value1))
+                    return Ret(SkillResultKeys.skill_failure, false);
+
+                for (var slot = 0; slot < EquipmentSerializer.SlotCount; slot++)
+                {
+                    var equippedItem = unit.Equipment.GetItemBySlot(slot);
+                    if (equippedItem != null && ItemManager.Instance.HasItemTag(equippedItem.TemplateId, Value1))
+                        return Ret(SkillResultKeys.ok, true);
+                }
+
+                return Ret(SkillResultKeys.skill_failure, false);
+
+            case UnitReqsKindType.CombatResource:
+                if (unit == null)
+                    return Ret(SkillResultKeys.skill_invalid_source, false);
+                return Ret(SkillResultKeys.skill_urk_combat_resource,
+                    (long)unit.GetCombatResource((int)Value1) >= Value2);
+
+            case UnitReqsKindType.TargetManaLessThan:
+                return Ret(SkillResultKeys.skill_urk_target_mana_less_than,
+                    targetUnit != null && targetUnit.Mpp >= Value1 && targetUnit.Mpp <= Value2);
+
+            case UnitReqsKindType.TargetManaMoreThan:
+                return Ret(SkillResultKeys.skill_urk_target_mana_more_than,
+                    targetUnit != null && targetUnit.Mpp >= Value1 && targetUnit.Mpp >= Value2);
+
+            case UnitReqsKindType.TargetHealthMoreThan:
+                return Ret(SkillResultKeys.skill_urk_target_health_more_than,
+                    targetUnit != null && targetUnit.Hpp >= Value1 && targetUnit.Hpp >= Value2);
+
+            case UnitReqsKindType.SourceHealthLessThan:
+                return Ret(SkillResultKeys.skill_urk_source_health_less_than,
+                    unit != null && unit.Hpp >= Value1 && unit.Hpp <= Value2);
+
+            case UnitReqsKindType.SourceHealthMoreThan:
+                return Ret(SkillResultKeys.skill_urk_source_health_more_than,
+                    unit != null && unit.Hpp >= Value1 && unit.Hpp >= Value2);
+
+            case UnitReqsKindType.FamilyRole:
+                var family = player?.Family > 0
+                    ? FamilyManager.Instance.GetFamily(player.Family)
+                    : null;
+                if (family?.Members.Any(member => member.Id == player.Id && member.Role == Value1) == true)
+                    return Ret(SkillResultKeys.skill_urk_family_role, true);
+                // The native evaluator writes 0x3d0 to the result's 16-bit detail field on failure.
+                const ushort familyRoleFailureDetail = 0x3D0;
+                return new UnitReqsValidationResult(
+                    SkillResultKeys.skill_urk_family_role,
+                    familyRoleFailureDetail,
+                    0);
+
+            case UnitReqsKindType.OwnItemCount:
+                var ownedItemCount = 0;
+                if (unit != null)
+                {
+                    unit.Equipment.GetAllItemsByTemplate(Value1, -1, out _, out var equippedItemCount);
+                    ownedItemCount += equippedItemCount;
+                }
+                if (player != null)
+                {
+                    player.Inventory.GetAllItemsByTemplate(
+                        [SlotType.Inventory], Value1, -1, out _, out var inventoryItemCount);
+                    ownedItemCount += inventoryItemCount;
+                }
+                return RetWithValue(SkillResultKeys.skill_urk_own_item_count, Value1,
+                    player != null && ownedItemCount >= Value2);
+
+            case UnitReqsKindType.NotHousingArea:
+                var world = owner?.ParentWorld ?? (owner?.Transform != null
+                    ? WorldManager.Instance.GetWorld(owner.Transform.InstanceId)
+                    : null);
+                var position = owner?.Transform?.World.Position ?? Vector3.Zero;
+                return Ret(SkillResultKeys.skill_urk_not_in_housing_area,
+                    world != null && SubZoneManager.Instance
+                        .GetHousingZoneByPosition(world, position.X, position.Y).Count == 0);
+
+            case UnitReqsKindType.Ulc:
+                if (player == null || !UlcGameData.Instance.Exists(Value1))
+                    return Ret(SkillResultKeys.skill_failure, false);
+
+                var expectsActiveUlc = Value2 == 1;
+                var hasActiveUlc = AccountAttributeManager.Instance
+                    .Get(player.AccountId, AppConfiguration.Instance.Id)
+                    .Any(attribute =>
+                        attribute.KindId == (uint)AccountAttributeKind.Ulc &&
+                        attribute.KindValue == Value1);
+                if (hasActiveUlc == expectsActiveUlc)
+                    return Ret(SkillResultKeys.ok, true);
+
+                return RetWithValue(
+                    expectsActiveUlc
+                        ? SkillResultKeys.skill_urk_need_ulc_activate
+                        : SkillResultKeys.skill_urk_cannot_use_by_ulc_activate,
+                    Value1,
+                    false);
+
             default:
-                return new UnitReqsValidationResult(SkillResultKeys.ok, 0, 0);
+                return UnsupportedRequirement();
+        }
+
+        UnitReqsValidationResult UnsupportedRequirement()
+        {
+            Logger.Warn(
+                "Unsupported UnitReq blocked: id={0} owner={1}:{2} kind={3} values={4},{5},{6}",
+                Id, OwnerType, OwnerId, KindType, Value1, Value2, Value3);
+            return new UnitReqsValidationResult(SkillResultKeys.skill_urk_unknown, 0, 0);
         }
     }
 }

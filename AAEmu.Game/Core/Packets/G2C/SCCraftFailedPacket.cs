@@ -3,17 +3,19 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCCraftFailedPacket(uint id, uint craftId, int count) : GamePacket(SCOffsets.SCCraftFailedPacket, 1)
+public class SCCraftFailedPacket(int type, IReadOnlyList<int> types) : GamePacket(SCOffsets.SCCraftFailedPacket, 1)
 {
-    // TODO needs fixing
+    private const int MaxTypes = 20;
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(id);
-        stream.Write(count);
+        var count = Math.Min(types.Count, MaxTypes);
+
+        stream.Write(type);
+        stream.Write((uint)count);
         for (var i = 0; i < count; i++)
         {
-            stream.Write(craftId);
+            stream.Write(types[i]);
         }
 
         return stream;

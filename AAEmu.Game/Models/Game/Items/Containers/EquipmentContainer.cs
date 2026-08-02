@@ -1,4 +1,6 @@
-﻿using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Commons.Network;
+using AAEmu.Game;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -151,6 +153,17 @@ public class EquipmentContainer : ItemContainer
         if (item == null)
             return true; // always allow empty item slot (un-equip a item)
 
+        // Ship/slave parts are ItemTemplate + impl SlaveEquipment, not character gear templates.
+        if (ContainerType == SlotType.EquipmentSlave)
+        {
+            if (targetSlot < 0 || targetSlot >= ContainerSize)
+            {
+                Logger.Warn($"{ParentUnit?.Name} ({OwnerId}) ship equip slot out of range {targetSlot}/{ContainerSize}");
+                return false;
+            }
+            return true;
+        }
+
         if (Owner == null)
             return true; // Not applicable to NPCs, they can hold whatever they want anywhere
 
@@ -201,13 +214,42 @@ public class EquipmentContainer : ItemContainer
     {
         base.OnEnterContainer(item, lastContainer, previousSlot);
         ParentUnit?.BroadcastPacket(new SCUnitEquipmentsChangedPacket(ParentUnit.ObjId, (byte)item.Slot, item), false);
-        ParentUnit?.UpdateGearBonuses(item, null);
+        if (ContainerType == SlotType.EquipmentSlave)
+            (ParentUnit as Slave)?.UpdateEquipmentBuffs(item, null);
+        else
+            ParentUnit?.UpdateGearBonuses(item, null);
+        RelayEquipmentToZone(ParentUnit, (byte)item.Slot, item);
     }
 
     public override void OnLeaveContainer(Item item, ItemContainer newContainer, byte previousSlot)
     {
         base.OnLeaveContainer(item, newContainer, previousSlot);
         ParentUnit?.BroadcastPacket(new SCUnitEquipmentsChangedPacket(ParentUnit.ObjId, previousSlot, null), false);
-        ParentUnit?.UpdateGearBonuses(null, item);
+        if (ContainerType == SlotType.EquipmentSlave)
+            (ParentUnit as Slave)?.UpdateEquipmentBuffs(null, item);
+        else
+            ParentUnit?.UpdateGearBonuses(null, item);
+        RelayEquipmentToZone(ParentUnit, previousSlot, null);
+    }
+
+    private static void RelayEquipmentToZone(Unit parent, byte slot, Item item)
+    {
+        if (!WorldIntegration.ZoneAuthority || parent == null)
+            return;
+
+        //   bc uid + u8 num + num×{s8 EquipSlot, EquipView} + u64 flags
+        // EquipView leads with u32 type and stops there when it equals the empty sentinel.
+        // the view as non-empty and run off the body ("not enough buffer for type" / opcode 30).
+        // Item.Write already emits a bare 0 for TemplateId 0; SC empty slots use Write(0) too.
+        var body = new PacketStream();
+        body.Write((byte)1); // num
+        body.Write((sbyte)slot);
+        if (item == null)
+            body.Write(0u); // empty EquipView type sentinel
+        else
+            body.Write(item);
+        // Per-entry dirty bits; bit i set ⇒ slot i changed (apply copies flag byte).
+        body.Write(1UL << slot);
+        WorldIntegration.RelayEquipmentChangedToZone?.Invoke(parent.ObjId, body.GetBytes());
     }
 }

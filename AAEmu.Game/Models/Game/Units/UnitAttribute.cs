@@ -169,4 +169,17 @@ public enum UnitAttribute : uint // 10.0.2.13 adds unit_attribute_id 256-261 (>2
     MagicPenetration = 184,
     HealCriticalMul = 185,
     ExpByLaborPowerMul = 186,
+    /// <summary>
+    /// Percent points of collision damage the hull takes, 100 = unmodified. Rowboats carry +19900
+    /// (they shatter), the Growling sailing ship +50, and the dock's Moored buff -99.
+    /// This is one value for the whole hull — the per-face split lives in slave_collision_damages.
+    /// </summary>
+    PhysicsCollisionDamageMul = 187,
+    // 188 is not a collision attribute despite its neighbours: its owners are the Leviathan corpse
+    // weight buffs, "submerged", and the slave-backpack-loaded buffs, i.e. hull mass.
+    /// <summary>
+    /// Percent points of collision armour, 100 = unmodified, divides the damage. Monster figurehead
+    /// grades give +10/20/35/50, the dock's Moored buff +2900.
+    /// </summary>
+    PhysicsCollisionArmorMul = 194,
 }

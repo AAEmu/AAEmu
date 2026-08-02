@@ -29,6 +29,10 @@ public class SkillTemplate
     public int TargetAngle { get; set; }
     public int WeaponSlotForRangeId { get; set; }
     public int WeaponSlotForAutoAttackId { get; set; }
+    /// <summary>DB start_autoattack — client hold-to-repeat this skill; plot AutoAttack must not force weapon skill 2.</summary>
+    public bool StartAutoAttack { get; set; }
+    /// <summary>DB stop_autoattack — cancel weapon auto-attack when this skill begins.</summary>
+    public bool StopAutoAttack { get; set; }
     public int MinRange { get; set; }
     public int MaxRange { get; set; }
     public bool KeepStealth { get; set; }
@@ -101,4 +105,34 @@ public class SkillTemplate
     public int DoodadHitFamily { get; set; }
     public List<SkillEffect> Effects { get; set; } = [];
     public bool FirstReagentOnly { get; set; }
+    public int TargetDecalRadius { get; set; }
+    public uint DoodadBundleId { get; set; }
+    public bool SkipQuestApplyUseItem { get; set; }
+    public bool CalcUserLevel { get; set; }
+    public bool CastingUseable { get; set; }
+    public bool SkipValidateSource { get; set; }
+    public int CharRaceId { get; set; }
+    public int MaxCombatResource { get; set; }
+    public int MinCombatResource { get; set; }
+    public bool AccountCooldown { get; set; }
+    public bool SwitchToSkillCooldown { get; set; }
+    public int SecondCooldownTagId { get; set; }
+    public int ThirdCooldownTagId { get; set; }
+    public bool IsDropableBackpack { get; set; }
+    public int ChargeCount { get; set; }
+    public int ChargeCooldownTime { get; set; }
+    public uint PrecedenceSkillId { get; set; }
+    public string Comments { get; set; }
+    public int ReqPoints { get; set; }
+    public int WeaponGcdId { get; set; }
+    public bool RandomUnitTargeting { get; set; }
+    public bool TargetableStealth { get; set; }
+    public int TargetUnitParam { get; set; }
+    public uint ShotGunStartAnimId { get; set; }
+    public uint ShotGunFireAnimId { get; set; }
+    public int CombatResourceId { get; set; }
+    public bool UseInputDirection { get; set; }
+    public long UseConditionBits { get; set; }
+    public uint SkillLearnItemId { get; set; }
+    public int SkillLearnItemAmount { get; set; }
 }

@@ -3,17 +3,24 @@
 using System.Collections.Concurrent;
 using AAEmu.Commons.Utils;
 using NCrontab;
+using NLog;
 using Task = AAEmu.Game.Models.Tasks.Task;
+using AsyncTask = System.Threading.Tasks.Task;
 
 namespace AAEmu.Game.Core.Managers;
 
 // ReSharper disable once ClassNeverInstantiated.Global
 public class TaskManager(ITickManager tickManager) : Singleton<TaskManager>, ITaskManager
 {
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly ConcurrentDictionary<uint, Task> _queue = new();
+    private readonly ConcurrentDictionary<long, AsyncTask> _runningTasks = new();
     private readonly HashSet<uint> _taskIds = [];
     private readonly object _taskIdLock = new();
+    private readonly object _lifecycleLock = new();
     private uint _taskIdIndex = 1;
+    private long _executionId;
+    private bool _stopping;
 
     public static readonly CrontabSchedule.ParseOptions s_crontabScheduleParseOptions = new() { IncludingSeconds = true };
 
@@ -29,12 +36,41 @@ public class TaskManager(ITickManager tickManager) : Singleton<TaskManager>, ITa
 
     public void Start()
     {
+        lock (_lifecycleLock)
+            _stopping = false;
+
         tickManager.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(50), true);
     }
 
-    public void Stop()
+    public async AsyncTask StopAsync(CancellationToken cancellationToken)
     {
-        // TODO: Wait for still running Tasks before returning
+        AsyncTask[] runningTasks;
+        lock (_lifecycleLock)
+        {
+            _stopping = true;
+            runningTasks = _runningTasks.Values.ToArray();
+        }
+
+        foreach (var (taskId, task) in _queue.ToArray())
+        {
+            if (!_queue.TryRemove(taskId, out _))
+                continue;
+
+            task.Cancelled = true;
+            ReleaseId(taskId);
+        }
+
+        if (runningTasks.Length == 0)
+            return;
+
+        try
+        {
+            await AsyncTask.WhenAll(runningTasks).WaitAsync(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            Logger.Warn("Task manager shutdown cancelled with {0} task executions still running", _runningTasks.Count);
+        }
     }
 
     private void Tick(TimeSpan delta)
@@ -46,7 +82,16 @@ public class TaskManager(ITickManager tickManager) : Singleton<TaskManager>, ITa
             if (task.TriggerTime >= now)
                 continue;
 
-            System.Threading.Tasks.Task.Run(task.ExecuteAsync);
+            lock (_lifecycleLock)
+            {
+                if (_stopping)
+                    return;
+
+                var executionId = Interlocked.Increment(ref _executionId);
+                var execution = AsyncTask.Run(() => ExecuteTrackedAsync(task));
+                _runningTasks.TryAdd(executionId, execution);
+                _ = RemoveCompletedExecutionAsync(executionId, execution);
+            }
             task.ExecuteCount++;
 
             // Check if there still needs to be executions done
@@ -73,6 +118,24 @@ public class TaskManager(ITickManager tickManager) : Singleton<TaskManager>, ITa
         }
     }
 
+    private static async AsyncTask ExecuteTrackedAsync(Task task)
+    {
+        try
+        {
+            await task.ExecuteAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Scheduled task {0} ({1}) failed", task.Id, task.Name);
+        }
+    }
+
+    private async AsyncTask RemoveCompletedExecutionAsync(long executionId, AsyncTask execution)
+    {
+        await execution;
+        _runningTasks.TryRemove(executionId, out _);
+    }
+
     /// <summary>
     /// Schedules a task to be executed in the future
     /// </summary>
@@ -89,7 +152,16 @@ public class TaskManager(ITickManager tickManager) : Singleton<TaskManager>, ITa
         // If it's only supposed to run once and immediately, then don't queue it, and just run now
         if (startDelay.HasValue && startDelay.Value == TimeSpan.Zero && count >= 0 && count <= 1)
         {
-            task.Execute();
+            lock (_lifecycleLock)
+            {
+                if (_stopping)
+                {
+                    ReleaseId(task.Id);
+                    return false;
+                }
+
+                task.Execute();
+            }
             ReleaseId(task.Id);
             return true;
         }
@@ -106,7 +178,16 @@ public class TaskManager(ITickManager tickManager) : Singleton<TaskManager>, ITa
             task.RepeatCount = 1;
         }
 
-        return _queue.TryAdd(taskId, task);
+        lock (_lifecycleLock)
+        {
+            if (_stopping || !_queue.TryAdd(taskId, task))
+            {
+                ReleaseId(taskId);
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -124,7 +205,16 @@ public class TaskManager(ITickManager tickManager) : Singleton<TaskManager>, ITa
 
         if (startDelay.HasValue && startDelay.Value == TimeSpan.Zero)
         {
-            task.Execute();
+            lock (_lifecycleLock)
+            {
+                if (_stopping)
+                {
+                    ReleaseId(task.Id);
+                    return false;
+                }
+
+                task.Execute();
+            }
             ReleaseId(task.Id);
             return true;
         }
@@ -135,7 +225,16 @@ public class TaskManager(ITickManager tickManager) : Singleton<TaskManager>, ITa
         task.TriggerTime = task.CronSchedule.GetNextOccurrence(firstPossibleTriggerTime);
         task.RepeatCount = count;
 
-        return _queue.TryAdd(taskId, task);
+        lock (_lifecycleLock)
+        {
+            if (_stopping || !_queue.TryAdd(taskId, task))
+            {
+                ReleaseId(taskId);
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>

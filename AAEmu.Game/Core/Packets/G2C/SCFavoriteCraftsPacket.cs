@@ -1,14 +1,23 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCFavoriteCraftsPacket() : GamePacket(SCOffsets.SCFavoriteCraftsPacket, 1)
+/// <remarks>
+/// by i32 craft types.
+/// </remarks>
+public class SCFavoriteCraftsPacket(IReadOnlyCollection<int> favoriteCraftTypes)
+    : GamePacket(SCOffsets.SCFavoriteCraftsPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
-        // Count of favorite (pinned) crafting recipes; the reference sends 0 at world entry.
-        stream.Write(0u);
+        if (favoriteCraftTypes.Count > CharacterFavoriteCrafts.MaximumEntries)
+            throw new InvalidOperationException("Favorite-craft count exceeds the native packet capacity.");
+
+        stream.Write(favoriteCraftTypes.Count);
+        foreach (var craftType in favoriteCraftTypes)
+            stream.Write(craftType);
 
         return stream;
     }

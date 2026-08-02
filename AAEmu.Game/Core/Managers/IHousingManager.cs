@@ -18,13 +18,14 @@ public interface IHousingManager
     void SpawnAll();
     void ConstructHouseTax(GameConnection connection, uint designId, float x, float y, float z);
     void HouseTaxInfo(GameConnection connection, ushort tlId);
-    void Build(GameConnection connection, uint designId, float posX, float posY, float posZ, float zRot, ulong itemId, int moneyAmount, int ht, bool autoUseAaPoint);
+    void Build(GameConnection connection, uint designId, float posX, float posY, float posZ, float zRot, ulong itemId, bool autoUseAaPoint);
     void ChangeHousePermission(GameConnection connection, ushort tlId, HousingPermission permission);
     void ChangeHouseName(GameConnection connection, ushort tlId, string name);
     void Demolish(GameConnection connection, House house, bool failedToPayTax, bool forceRestoreAllDecor);
     void RemoveDeadHouse(House house);
     bool CalculateBuildingTaxInfo(uint accountId, HousingTemplate newHouseTemplate, bool buildingNewHouse, out int totalTaxToPay, out int heavyHouseCount, out int normalHouseCount, out int hostileTaxRate, out int oneWeekTaxCount);
     House GetHouseById(uint houseId);
+    IEnumerable<House> GetAllHouses();
     void UpdateOwnedHousingFaction(uint characterId, FactionsEnum factionId);
     bool SetForSale(ushort houseTlId, uint price, uint buyerId, Character seller);
     bool CancelForSale(ushort houseTlId, bool returnCertificates = true);

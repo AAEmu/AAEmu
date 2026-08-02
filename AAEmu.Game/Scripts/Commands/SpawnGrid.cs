@@ -51,6 +51,32 @@ public class SpawnGrid : ICommand
 
     public static void SpawnNPC(uint unitId, Character character, float newX, float newY)
     {
+        if (WorldIntegration.ZoneAuthority)
+        {
+            var npc = NpcManager.Instance.Create(character.ParentWorld, 0, unitId);
+            if (npc == null)
+                return;
+
+            var zoneAngle = (float)MathUtil.CalculateAngleFrom(
+                newX,
+                newY,
+                character.Transform.World.Position.X,
+                character.Transform.World.Position.Y);
+            npc.Transform = character.Transform.CloneDetached(npc);
+            npc.Transform.Local.SetPosition(
+                newX,
+                newY,
+                character.Transform.World.Position.Z,
+                0f,
+                0f,
+                zoneAngle.DegToRad());
+            npc.IsZoneMirror = true;
+            npc.Spawn();
+            if (!WorldIntegration.PublishNpcSpawn(npc))
+                WorldIntegration.DeleteNpcMirror(npc, false);
+            return;
+        }
+
         var npcSpawner = new NpcSpawner
         {
             ParentWorld = character.ParentWorld, Id = 0, UnitId = unitId, Position = character.Transform.CloneAsSpawnPosition()

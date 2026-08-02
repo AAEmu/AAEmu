@@ -1,5 +1,4 @@
-﻿using AAEmu.Commons.Utils;
-using AAEmu.Game.Models.Game.AI.Enums;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -28,6 +27,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     // load errors) leaves these EMPTY rather than null — runtime Get*/lookup paths (e.g.
     // GetBuffTriggerTemplates during HousingManager.Create) must not NullRef and crash the server.
     private Dictionary<uint, SkillTemplate> _skills = [];
+    private readonly Dictionary<string, uint> _constSkillTypes = [];
     private Dictionary<uint, DefaultSkill> _defaultSkills = [];
     private List<uint> _commonSkills = [];
     private Dictionary<AbilityType, List<SkillTemplate>> _startAbilitySkills = [];
@@ -85,6 +85,19 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     public SkillTemplate GetSkillTemplate(uint id)
     {
         return _skills.GetValueOrDefault(id);
+    }
+
+    /// <summary>Skill id behind a <c>const_skill_types</c> name, or 0 when the constant is absent.</summary>
+    public uint GetConstSkillId(string name)
+    {
+        return _constSkillTypes.GetValueOrDefault(name, 0u);
+    }
+
+    /// <summary>The skill the client uses to take a rider off whatever it is attached to.</summary>
+    public bool IsDetachSkill(uint skillId)
+    {
+        var detachSkillId = GetConstSkillId("detached_unit");
+        return detachSkillId != 0 && detachSkillId == skillId;
     }
 
     public bool IsDefaultSkill(uint id)
@@ -229,18 +242,23 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     /// </summary>
     /// <param name="npcSkill"></param>
     /// <returns></returns>
+    /// <summary>
+    /// Resolves an <c>np_skills</c> row to a castable skill.
+    ///
+    /// This used to drop every <see cref="SkillUseConditionKind.InCombat"/> entry that did not
+    /// ignore the global cooldown or that carried a plot. That test arrived with the dungeon work
+    /// in #790 and was inherited wholesale by #994 when NPC events moved off dungeons and onto all
+    /// NPCs, at which point it silenced ordinary NPC combat kits: a sport fish has eight InCombat
+    /// skills and the pair of clauses rejected all eight — 입질 (21608) and the basic attack for the
+    /// cooldown clause, the five movement plots (21646/21647/21648/21098/21289) for the plot clause.
+    /// The fish therefore spawned inert and plot 821 always timed out into 대어 소환 안됨.
+    ///
+    /// The null check also has to come first; the old order dereferenced the template before testing
+    /// it, so an np_skills row naming a missing skill threw instead of being skipped.
+    /// </summary>
     public Skill GetNpSkillTemplate(NpcSkill npcSkill)
     {
         var skillTemplate = GetSkillTemplate(npcSkill.SkillId);
-
-        // Temporary condition to filter for dungeon OnCombat skills.
-        if (npcSkill.SkillUseCondition == SkillUseConditionKind.InCombat)
-        {
-            if (skillTemplate.IgnoreGlobalCooldown == false || skillTemplate.Plot is not null)
-            {
-                return null;
-            }
-        }
 
         return skillTemplate != null ? new Skill(skillTemplate) : null;
     }
@@ -296,6 +314,12 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
             { "SkillController", [] }, // missing from the effect table
             { "SpawnFishEffect", [] }, // missing from the effect table
             { "ResetAoeDiminishingEffect", [] }, // missing from the effect table
+            // Present in effects but previously unregistered, so GetEffectTemplate logged
+            // "No such Effect Type" and returned null - the skill cast and did nothing at all.
+            { "DoodadItemChangeEffect", [] },
+            { "LevelUpEffect", [] },
+            { "MoveToLocationEffect", [] },
+            { "GainMerchantReopenPackItemEffect", [] },
             // v10 effect types loaded below from their compact.sqlite3 tables. WorldMessage/PlayLog apply for
             // real; CombatResource/ExtendCharge/SkillMap/CharTransform load their data with the behavior left
             // as a precise TODO (they depend on systems not yet modeled server-side).
@@ -355,6 +379,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             TargetAngle = reader.GetInt32("target_angle", 0),
                             WeaponSlotForRangeId = reader.GetInt32("weapon_slot_for_range_id", 0),
                             WeaponSlotForAutoAttackId = reader.GetInt32("weapon_slot_for_autoattack_id", 0),
+                            StartAutoAttack = reader.GetBoolean("start_autoattack", true),
+                            StopAutoAttack = reader.GetBoolean("stop_autoattack", true),
                             MinRange = reader.GetInt32("min_range", 0),
                             MaxRange = reader.GetInt32("max_range", 0),
                             KeepStealth = reader.GetBoolean("keep_stealth", true),
@@ -429,12 +455,63 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         template.SkillPoints = reader.GetInt32("skill_points", 0);
                         template.DoodadHitFamily = reader.GetInt32("doodad_hit_family", 0);
                         template.FirstReagentOnly = reader.GetBoolean("first_reagent_only", true);
+                        template.TargetDecalRadius = reader.GetInt32("target_decal_radius", 0);
+                        template.DoodadBundleId = reader.GetUInt32("doodad_bundle_id", 0);
+                        template.SkipQuestApplyUseItem = reader.GetBoolean("skip_quest_apply_use_item", false);
+                        template.CalcUserLevel = reader.GetBoolean("calc_user_level", false);
+                        template.CastingUseable = reader.GetBoolean("casting_useable", false);
+                        template.SkipValidateSource = reader.GetBoolean("skip_validate_source", false);
+                        template.CharRaceId = reader.GetInt32("char_race_id", 0);
+                        template.MaxCombatResource = reader.GetInt32("max_combat_resource", 0);
+                        template.MinCombatResource = reader.GetInt32("min_combat_resource", 0);
+                        template.AccountCooldown = reader.GetBoolean("account_cooldown", false);
+                        template.SwitchToSkillCooldown = reader.GetBoolean("switch_to_skill_cooldown", false);
+                        template.SecondCooldownTagId = reader.GetInt32("second_cooldown_tag_id", 0);
+                        template.ThirdCooldownTagId = reader.GetInt32("third_cooldown_tag_id", 0);
+                        template.IsDropableBackpack = reader.GetBoolean("is_dropable_backpack", false);
+                        template.ChargeCount = reader.GetInt32("charge_count", 0);
+                        template.ChargeCooldownTime = reader.GetInt32("charge_cooldown_time", 0);
+                        template.PrecedenceSkillId = reader.GetUInt32("precedence_skill_id", 0);
+                        template.Comments = reader.GetString("comments", "");
+                        template.ReqPoints = reader.GetInt32("req_points", 0);
+                        template.WeaponGcdId = reader.GetInt32("weapon_gcd_id", 0);
+                        template.RandomUnitTargeting = reader.GetBoolean("random_unit_targeting", false);
+                        template.TargetableStealth = reader.GetBoolean("targetable_stealth", false);
+                        template.TargetUnitParam = reader.GetInt32("target_unit_param", 0);
+                        template.ShotGunStartAnimId = reader.GetUInt32("shot_gun_start_anim_id", 0);
+                        template.ShotGunFireAnimId = reader.GetUInt32("shot_gun_fire_anim_id", 0);
+                        template.CombatResourceId = reader.GetInt32("combat_resource_id", 0);
+                        template.UseInputDirection = reader.GetBoolean("use_input_direction", false);
+                        template.UseConditionBits = reader.GetInt64("use_condition_bits", 0);
+                        template.SkillLearnItemId = reader.GetUInt32("skill_learn_item_id", 0);
+                        template.SkillLearnItemAmount = reader.GetInt32("skill_learn_item_amount", 0);
                         _skills[template.Id] = template; // 10.0.2.13 skills has duplicate ids (e.g. 33984) -> overwrite, don't crash
                     }
                 }
             }
 
             Logger.Info($"Loaded {_skills.Count} skills");
+
+            using (var command = connection.CreateCommand())
+            {
+                // Named skill constants. The client resolves actions like dismounting through these
+                // rather than through skill effects, so "detached_unit" is the only thing that marks
+                // 35837 as the skill that takes a rider off its parent.
+                command.CommandText = "SELECT * FROM const_skill_types";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        var name = reader.GetString("name", string.Empty);
+                        if (!string.IsNullOrEmpty(name))
+                            _constSkillTypes[name] = reader.GetUInt32("skill_id", 0);
+                    }
+                }
+            }
+
+            Logger.Info($"Loaded {_constSkillTypes.Count} skill type constants");
 
             using (var command = connection.CreateCommand())
             {
@@ -475,6 +552,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             Level = reader.GetByte("level", 0),
                             BuffId = reader.GetUInt32("buff_id", 0),
                             ReqPoints = reader.GetInt32("req_points", 0),
+                            SkillPoints = reader.GetInt32("skill_points", 0),
                             Active = reader.GetBoolean("active", true)
                         };
                         _passiveBuffs[template.Id] = template;
@@ -657,6 +735,70 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             FreezeShip = reader.GetBoolean("freeze_ship", true),
                             CrowdFriendly = reader.GetBoolean("crowd_friendly", true),
                             CrowdHostile = reader.GetBoolean("crowd_hostile", true),
+                            NoExpPenalty = reader.GetBoolean("no_exp_penalty", false),
+                            AuraCreatorOnly = reader.GetBoolean("aura_creator_only", false),
+                            NotToSlaveRider = reader.GetBoolean("not_to_slave_rider", false),
+                            RemoveOnUnmountAttachPointId = reader.GetInt32("remove_on_unmount_attach_point_id", 0),
+                            StopOnlineLpRegen = reader.GetBoolean("stop_online_lp_regen", false),
+                            RemoveOnUnbond = reader.GetBoolean("remove_on_unbond", false),
+                            BossTelescopeRange = reader.GetFloat("boss_telescope_range", 0f),
+                            FixAbilityLevelToOne = reader.GetBoolean("fix_ability_level_to_one", false),
+                            ImmuneHealth = reader.GetFloat("immune_health", 0f),
+                            MaxLifeTime = reader.GetInt32("max_life_time", 0),
+                            BalanceLevel = reader.GetInt32("balance_level", 0),
+                            DisarmamentMainHand = reader.GetBoolean("disarmament_main_hand", false),
+                            DisarmamentOffHand = reader.GetBoolean("disarmament_off_hand", false),
+                            DisarmamentRanged = reader.GetBoolean("disarmament_ranged", false),
+                            DisarmamentMusical = reader.GetBoolean("disarmament_musical", false),
+                            MeleeImmortality = reader.GetBoolean("melee_immortality", false),
+                            SpellImmortality = reader.GetBoolean("spell_immortality", false),
+                            RangedImmortality = reader.GetBoolean("ranged_immortality", false),
+                            SiegeImmortality = reader.GetBoolean("siege_immortality", false),
+                            FallDamageImmortality = reader.GetBoolean("fall_damage_immortality", false),
+                            OneTimeImmortality = reader.GetBoolean("one_time_immortality", false),
+                            AddDurationBuffId = reader.GetUInt32("add_duration_buff_id", 0),
+                            AddDurationBuffMul = reader.GetInt32("add_duration_buff_mul", 0),
+                            OffPassive = reader.GetBoolean("off_passive", false),
+                            OffPassiveExecutionTagId = reader.GetUInt32("off_passive_exection_tag_id", 0),
+                            MaxCombatResource = reader.GetInt32("max_combat_resource", 0),
+                            MinCombatResource = reader.GetInt32("min_combat_resource", 0),
+                            RestrictActionbar = reader.GetBoolean("restrict_actionbar", false),
+                            ImmuneExceptCreatorRelationCheck = reader.GetBoolean("immune_except_creator_relation_check", false),
+                            ImmuneExceptCreatorRelationId = reader.GetUInt32("immune_except_creator_relation_id", 0),
+                            ImpossibleTargeting = reader.GetBoolean("impossible_targeting", false),
+                            ImpossibleChangeTargeting = reader.GetBoolean("impossible_change_targeting", false),
+                            TargetingRelationId = reader.GetUInt32("targeting_relation_id", 0),
+                            TargetingUseOriginSource = reader.GetBoolean("targeting_use_origin_source", false),
+                            OnlyMyPet = reader.GetBoolean("only_my_pet", false),
+                            OnlyPetOwner = reader.GetBoolean("only_pet_owner", false),
+                            ImpossibleRotate = reader.GetBoolean("impossible_rotate", false),
+                            SetHeadScale = reader.GetBoolean("set_head_scale", false),
+                            HeadScale = reader.GetFloat("head_scale", 0f),
+                            NotToMateRider = reader.GetBoolean("not_to_mate_rider", false),
+                            DrowningImmortality = reader.GetBoolean("drowning_immortality", false),
+                            CrowdCheckOwner = reader.GetBoolean("crowd_check_owner", false),
+                            CrowdCheckBuffTagId = reader.GetUInt32("crowd_check_buff_tag_id", 0),
+                            CrowdCheckBuffId = reader.GetUInt32("crowd_check_buff_id", 0),
+                            RemoveBySummoned = reader.GetBoolean("remove_by_summoned", false),
+                            CooldownSkillTagId = reader.GetUInt32("cooldown_skill_tag_id", 0),
+                            AliveNotApplicable = reader.GetBoolean("alive_not_applicable", false),
+                            AuraMaxCount = reader.GetInt32("aura_max_count", 0),
+                            TickAreaMaxCount = reader.GetInt32("tick_area_max_count", 0),
+                            MilestoneId = reader.GetUInt32("milestone_id", 0),
+                            Comments = reader.GetString("comments", ""),
+                            ReflectionMelee = reader.GetBoolean("reflection_melee", false),
+                            ReflectionSpell = reader.GetBoolean("reflection_spell", false),
+                            ReflectionSiege = reader.GetBoolean("reflection_siege", false),
+                            ReflectionRanged = reader.GetBoolean("reflection_ranged", false),
+                            ReflectionHeal = reader.GetBoolean("reflection_heal", false),
+                            ReflectionIgnoreAttacker = reader.GetBoolean("reflection_ignore_attacker", false),
+                            ReflectionIgnoreDefender = reader.GetBoolean("reflection_ignore_defender", false),
+                            SavePos = reader.GetBoolean("save_pos", false),
+                            Transparent = reader.GetBoolean("transparent", false),
+                            CombatResourceId = reader.GetInt32("combat_resource_id", 0),
+                            RemoveOnChangeEquipments = reader.GetInt64("remove_on_change_equipments", 0),
+                            IpnirFx = reader.GetBoolean("ipnir_fx", false),
+                            CollidePushable = reader.GetBoolean("collide_pushable", false),
                         };
 
                         // _effects["Buff"][template.Id] = template;
@@ -802,7 +944,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             Id = reader.GetUInt32("id", 0), KindId = reader.GetUInt32("kind_id", 0), BindWorld = reader.GetBoolean("bind_world"),
                             IsAdd = reader.GetBoolean("is_add"),
                             Count = reader.GetUInt32("count", 0),
-                            Time = reader.GetUInt32("time", 0)
+                            Time = reader.GetUInt32("time", 0),
+                            KindValue = reader.GetUInt32("kind_value", 0)
                         };
                         _effects["AccountAttributeEffect"][template.Id] = template;
                     }
@@ -1597,6 +1740,79 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
             using (var command = connection.CreateCommand())
             {
+                command.CommandText = "SELECT * FROM doodad_item_change_effects";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new DoodadItemChangeEffect
+                        {
+                            Id = reader.GetUInt32("id", 0), Idx = reader.GetInt32("idx", 0)
+                        };
+                        _effects["DoodadItemChangeEffect"][template.Id] = template;
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM level_up_effects";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new LevelUpEffect
+                        {
+                            Id = reader.GetUInt32("id", 0),
+                            Level = reader.GetInt32("level", 1),
+                            ApplyAllAbilities = reader.GetBoolean("apply_all_abilities", true)
+                        };
+                        _effects["LevelUpEffect"][template.Id] = template;
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM move_to_location_effects";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new MoveToLocationEffect
+                        {
+                            Id = reader.GetUInt32("id", 0),
+                            OwnHouseOnly = reader.GetBoolean("own_house_only", true)
+                        };
+                        _effects["MoveToLocationEffect"][template.Id] = template;
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM gain_merchant_reopen_pack_item_effects";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new GainMerchantReopenPackItemEffect
+                        {
+                            Id = reader.GetUInt32("id", 0),
+                            MerchantReopenPackId = reader.GetUInt32("merchant_reopen_pack_id", 0),
+                            LifeTime = reader.GetInt32("life_time", 0)
+                        };
+                        _effects["GainMerchantReopenPackItemEffect"][template.Id] = template;
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
                 command.CommandText = "SELECT * FROM spawn_fish_effects";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
@@ -1659,7 +1875,10 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             Value1 = reader.GetInt32("value1", 0),
                             Value2 = reader.GetInt32("value2", 0),
                             Value3 = reader.GetInt32("value3", 0),
-                            Value4 = reader.GetInt32("value4", 0)
+                            Value4 = reader.GetInt32("value4", 0),
+                            Value5 = reader.GetInt32("value5", 0),
+                            Value6 = reader.GetInt32("value6", 0),
+                            Value7 = reader.GetInt32("value7", 0)
                         };
                         _effects["SpecialEffect"][template.Id] = template;
                     }
@@ -1685,7 +1904,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM skill_effects";
+                command.CommandText = "SELECT * FROM skill_effects WHERE enable = 't'";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
@@ -1838,7 +2057,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
             _buffTriggers = [];
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM buff_triggers";
+                command.CommandText = "SELECT * FROM buff_triggers WHERE enable = 't'";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {

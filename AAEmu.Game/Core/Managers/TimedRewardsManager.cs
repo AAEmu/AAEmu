@@ -42,7 +42,7 @@ public class TimedRewardsManager(ITaskManager taskManager) : Singleton<TimedRewa
             var newLabor = (short)(currentLabor + addLabor);
             AccountManager.Instance.UpdateLabor(connection.AccountId, newLabor);
 
-            connection.ActiveChar?.SendPacket(new SCCharacterLaborPowerChangedPacket(addLabor, 0, 0, 0));
+            connection.ActiveChar?.SendPacket(new SCCharacterLaborPowerChangedPacket(addLabor, 0, 0, 0, 0, 0));
 
             // Update cache if character was logged in
             connection.ActiveChar?.InitializeLaborCache(newLabor, DateTime.UtcNow);

@@ -4,11 +4,11 @@ namespace AAEmu.Game.Models.Game.Items.Actions;
 
 public class AAPointUpdate : ItemTask
 {
-    private readonly int _amount;
+    private readonly long _amount;
 
-    public AAPointUpdate(int amount)
+    public AAPointUpdate(long amount)
     {
-        _type = ItemAction.ChangeAaPoint; // 16
+        _type = ItemAction.ChangeAaPoint;
         _amount = amount;
     }
 

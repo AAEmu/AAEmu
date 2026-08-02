@@ -1,18 +1,21 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
+using AAEmu.Game.Models.Game.Char;
+
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCPlayerGameDataPacket() : GamePacket(SCOffsets.SCPlayerGameDataPacket, 1)
+/// <remarks>
+/// 10.0.2.13 body, named by its own serializer: u32 totalPlayTime, u64 createdTime. The old body sent a
+/// client-data revision, a login timestamp and a zero, so the /played figure and the character's age were
+/// both nonsense.
+/// </remarks>
+public class SCPlayerGameDataPacket(Character character) : GamePacket(SCOffsets.SCPlayerGameDataPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
-        // Reference world-entry body is 12 bytes: revision(u32) loginTime(u32, unix seconds) reserved(u32).
-        // The value 7 is the client-data revision the reference reports; the trailing dword is zero at entry.
-        // TODO: confirm the semantics of the leading revision field against the client deserializer.
-        stream.Write(7u);
-        stream.Write((uint)DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-        stream.Write(0u);
+        stream.Write((uint)character.GetTotalPlayTimeSeconds());
+        stream.Write(character.Created);
 
         return stream;
     }

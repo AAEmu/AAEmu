@@ -15,6 +15,7 @@ using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
@@ -44,6 +45,7 @@ public class CharacterManager(
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private readonly Dictionary<byte, CharacterTemplate> _templates = [];
+    private readonly HashSet<byte> _creatableTemplates = [];
     private readonly Dictionary<byte, AbilityItems> _abilityItems = [];
     private readonly Dictionary<int, List<Expand>> _expands = [];
     private readonly Dictionary<uint, AppellationTemplate> _appellations = [];
@@ -51,10 +53,21 @@ public class CharacterManager(
     private readonly Dictionary<uint, ActabilityCategoriesTemplate> _actabilitiesCategories = [];
     private readonly Dictionary<int, ExpertLimit> _expertLimits = [];
     private readonly Dictionary<int, ExpandExpertLimit> _expandExpertLimits = [];
+    private readonly object _characterDeletionLock = new();
 
     public CharacterTemplate GetTemplate(Race race, Gender gender)
     {
         return _templates[(byte)(16 * (byte)gender + (byte)race)];
+    }
+
+    /// <summary>
+    /// Whether this race/gender may be used to create a new character, mirroring the
+    /// <c>characters.creatable</c> column. Templates for non-creatable rows are still loaded so that
+    /// existing characters keep resolving; only the creation path is gated.
+    /// </summary>
+    public bool IsCreatable(Race race, Gender gender)
+    {
+        return _creatableTemplates.Contains((byte)(16 * (byte)gender + (byte)race));
     }
 
     public AppellationTemplate GetAppellationsTemplate(uint id)
@@ -137,6 +150,8 @@ public class CharacterManager(
 
                         var templateId = (byte)(16 * (byte)template.Gender + (byte)template.Race);
                         _templates.Add(templateId, template);
+                        if (reader.GetBoolean("creatable", true))
+                            _creatableTemplates.Add(templateId);
                     }
                 }
             }
@@ -287,7 +302,10 @@ public class CharacterManager(
 
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM actability_groups";
+                command.CommandText =
+                    "SELECT a.*, COALESCE(e.actability_view_group_id, 0) AS view_group_id " +
+                    "FROM actability_groups a " +
+                    "LEFT JOIN actability_view_group_elems e ON e.actability_group_id = a.id";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
@@ -295,7 +313,12 @@ public class CharacterManager(
                     {
                         var template = new ActabilityTemplate
                         {
-                            Id = reader.GetUInt32("id"), Name = reader.GetString("name"), UnitAttributeId = reader.GetInt32("unit_attr_id")
+                            Id = reader.GetUInt32("id"),
+                            Name = reader.GetString("name"),
+                            UnitAttributeId = reader.GetInt32("unit_attr_id"),
+                            ViewGroupId = reader.GetUInt32("view_group_id"),
+                            CountsTowardExpertLimit = reader.GetBoolean("skill_page_visible") &&
+                                                     reader.GetUInt32("view_group_id") != 0
                         };
                         _actabilities.Add(template.Id, template);
                     }
@@ -333,7 +356,9 @@ public class CharacterManager(
 
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM expert_limits ORDER BY up_limit ASC";
+                // Actability.Step is the zero-based native expert-limit sequence. IDs are the sequence;
+                // ordering by up_limit incorrectly inserts the language-only id 32 between ids 2 and 3.
+                command.CommandText = "SELECT * FROM expert_limits ORDER BY id ASC";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
@@ -350,10 +375,30 @@ public class CharacterManager(
                             UpCurrencyId = reader.GetUInt32("up_currency_id", 0),
                             UpPrice = reader.GetInt32("up_price"),
                             DownCurrencyId = reader.GetUInt32("down_currency_id", 0),
-                            DownPrice = reader.GetInt32("down_price")
+                            DownPrice = reader.GetInt32("down_price"),
+                            UseIntensified = reader.GetBoolean("use_intensified")
                         };
                         _expertLimits.Add(step++, template);
                     }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "SELECT expert_limit_id, actability_view_group_id, count " +
+                    "FROM intensified_expert_limits";
+                command.Prepare();
+                using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+                while (reader.Read())
+                {
+                    var expertLimitId = reader.GetUInt32("expert_limit_id");
+                    var template = _expertLimits.Values.FirstOrDefault(limit => limit.Id == expertLimitId);
+                    if (template == null)
+                        continue;
+
+                    template.IntensifiedViewGroupLimits[reader.GetUInt32("actability_view_group_id")] =
+                        reader.GetByte("count");
                 }
             }
 
@@ -433,6 +478,16 @@ public class CharacterManager(
 
     public void Create(GameConnection connection, string name, Race race, Gender gender, uint[] bodyItems, UnitCustomModelParams customModel, AbilityType ability1, AbilityType ability2, AbilityType ability3, byte level)
     {
+        // The client builds its race list from characters.creatable, so a request for a non-creatable
+        // race/gender only arrives from a modified client or a crafted packet. Reject it before any
+        // name or id is reserved.
+        if (!IsCreatable(race, gender))
+        {
+            Logger.Error($"User tried to create a character with a non-creatable race/gender. Account {connection.AccountId}, Name {name}, Race {race}, Gender {gender}");
+            connection.SendPacket(new SCCharacterCreationFailedPacket(CharacterCreateError.Failed));
+            return;
+        }
+
         name = name.NormalizeName();
         var nameValidationCode = nameManager.ValidateCharacterName(name);
         if (nameValidationCode != CharacterCreateError.Ok)
@@ -468,6 +523,16 @@ public class CharacterManager(
             Gender = gender
         };
         character.Transform.ApplyWorldSpawnPosition(template.SpawnPosition);
+        if (WorldIntegration.ZoneAuthority
+            && WorldIntegration.IsZoneLoaded != null
+            && !WorldIntegration.IsZoneLoaded(character.Transform.ZoneId))
+        {
+            Logger.Warn(
+                "Create '{0}' race={1} faction={2} zoneId={3} pos=({4:F0},{5:F0},{6:F0}) — no ZoneLoaded dedicate; NPCs/mobs will not appear until that zone is running",
+                name, race, template.FactionId, character.Transform.ZoneId,
+                character.Transform.World.Position.X, character.Transform.World.Position.Y,
+                character.Transform.World.Position.Z);
+        }
         character.Level = level;
         character.Faction = factionManager.GetFaction(template.FactionId);
         character.FactionName = "";
@@ -549,6 +614,8 @@ public class CharacterManager(
             character.Actability.Actabilities.Add(id, new Actability(actabilityTemplate));
 
         character.Skills = new CharacterSkills(character);
+        character.SkillActiveTypes = new CharacterSkillActiveTypes(character);
+        character.HeirSkills = new CharacterHeirSkills(character);
         foreach (var skill in skillManager.GetDefaultSkills())
         {
             if (!skill.AddToSlot)
@@ -571,6 +638,7 @@ public class CharacterManager(
         character.Mails = new CharacterMails(character);
         character.Portals = new CharacterPortals(character);
         character.Friends = new CharacterFriends(character);
+        character.FavoriteCrafts = new CharacterFavoriteCrafts(character);
 
         character.Hp = character.MaxHp;
         character.Mp = character.MaxMp;
@@ -583,22 +651,37 @@ public class CharacterManager(
         }
         else
         {
-            // There is no actual response for internal DB saving error for the client.
-            // Just send a generic Failed error (Name already in use for pending deletion)
+            // SaveDirectlyToDatabase has rolled back, but Inventory construction registered transient items and
+            // containers globally. Discard those allocations before allowing this character ID to be reused.
+            var cleanupSucceeded = false;
+            try
+            {
+                itemManager.DiscardUnsavedCharacterState(characterId);
+                cleanupSucceeded = true;
+            }
+            catch (Exception exception)
+            {
+                Logger.Fatal(exception,
+                    "CreateCharacter - Failed to discard transient state for character id {0}; keeping its name and id reserved",
+                    characterId);
+            }
+
+            if (cleanupSucceeded)
+            {
+                nameManager.RemoveCharacterId(characterId);
+                characterIdManager.ReleaseId(characterId);
+            }
+
+            // There is no specific internal-save error packet; use the generic creation failure.
             connection.SendPacket(new SCCharacterCreationFailedPacket(CharacterCreateError.Failed));
-            characterIdManager.ReleaseId(characterId);
-            nameManager.RemoveCharacterId(characterId);
-            // TODO release items...
-            DeleteCharacterAssets(character, true);
         }
     }
 
     /// <summary>
-    /// Removed all items and assets this character currently owns
+    /// Cleans external relationships after a character is durably soft-deleted.
     /// </summary>
     /// <param name="character">Character to delete assets from</param>
-    /// <param name="fullWipe">Do owned items need to be actually deleted</param>
-    public void DeleteCharacterAssets(Character character, bool fullWipe)
+    public void DeleteCharacterAssets(Character character)
     {
         // Demolish owned houses
         var myHouses = new Dictionary<uint, House>();
@@ -625,11 +708,20 @@ public class CharacterManager(
         // TODO: Remove from player nation
         // TODO: Delete leadership
 
-        // Return all mails to sender (if needed)
-        // The main reason we do this is so other people's items wouldn't get delete if fullWipe is enabled
-        foreach (var (mailId, mail) in mailManager.AllPlayerMails)
+        // Return player mail addressed to this character so another player's attachments cannot be
+        // consumed by a later full wipe. Delivery state is irrelevant here: visible inbox mail has
+        // already been marked delivered, but the deleting receiver is still authorized to return it.
+        List<BaseMail> receivedMails;
+        lock (mailManager.AllPlayerMails)
         {
-            if (mail.CanReturnMail() && !mail.ReturnToSender())
+            receivedMails = mailManager.AllPlayerMails.Values
+                .Where(mail => mail.Header.ReceiverId == character.Id)
+                .ToList();
+        }
+
+        foreach (var mail in receivedMails)
+        {
+            if (mail.CanBeReturnedBy(character.Id) && !mail.ReturnToSenderFor(character.Id))
                 Logger.Warn(
                     "DeleteCharacterAssets - Unable to return mail to sender for mail: {0}, deleted char: {1}({2}), sender: {3}({4})",
                     mail.Id,
@@ -637,12 +729,6 @@ public class CharacterManager(
                     mail.Header.SenderName, mail.Header.SenderId);
         }
 
-        if (!fullWipe)
-            return;
-
-        Logger.Warn("DeleteCharacterAssets - fullWipe is currently not implemented yet, charId: {0}", character.Id);
-        // TODO: Wipe all mails
-        // TODO: Wipe all items/gold (this also deletes all pets/vehicles)
     }
 
     /// <summary>
@@ -654,52 +740,85 @@ public class CharacterManager(
     /// <returns>Returns true if a character was marked deleted, otherwise false</returns>
     public bool CheckForDeletedCharactersDeletion(Character character, GameConnection gameConnection, MySqlConnection dbConnection)
     {
-        if (character.DeleteTime > DateTime.MinValue && character.DeleteTime <= DateTime.UtcNow)
+        lock (_characterDeletionLock)
         {
-            Logger.Info("CheckForDeletedCharactersDeletion - Deleting Account:{0} Id:{1} Name:{2}", character.AccountId, character.Id, character.Name);
-            using (var command = dbConnection.CreateCommand())
+            if (character.DeleteTime > DateTime.MinValue && character.DeleteTime <= DateTime.UtcNow)
             {
+                Logger.Info("CheckForDeletedCharactersDeletion - Deleting Account:{0} Id:{1} Name:{2}", character.AccountId, character.Id, character.Name);
+                using var command = dbConnection.CreateCommand();
+                var originalName = character.Name;
+                var deleteRequestTime = character.DeleteRequestTime;
+                var deleteTime = character.DeleteTime;
                 var deletedName = character.Name;
                 if (AppConfiguration.Instance.Account.DeleteReleaseName)
-                {
                     deletedName = "!" + character.Name;
-                    nameManager.RemoveCharacterId(character.Id);
-                    nameManager.AddCharacter(character.Id, deletedName, character.AccountId);
-                }
 
                 command.Connection = dbConnection;
-                command.CommandText = "UPDATE `characters` SET `deleted`='1', `delete_time`=@new_delete_time, `name`=@deletedname WHERE `id`=@char_id and `account_id`=@account_id;";
+                command.CommandText =
+                    "UPDATE `characters` SET `deleted`='1', `delete_time`=@new_delete_time, `name`=@deletedname " +
+                    "WHERE `id`=@char_id AND `account_id`=@account_id AND `deleted`=0 " +
+                    "AND `delete_time`=@expected_delete_time AND `delete_time`<=@delete_cutoff;";
                 command.Parameters.AddWithValue("@new_delete_time", DateTime.MinValue);
                 command.Parameters.AddWithValue("@char_id", character.Id);
                 command.Parameters.AddWithValue("@account_id", character.AccountId);
                 command.Parameters.AddWithValue("@deletedname", deletedName);
+                command.Parameters.AddWithValue("@expected_delete_time", character.DeleteTime);
+                command.Parameters.AddWithValue("@delete_cutoff", DateTime.UtcNow);
 
                 var res = command.ExecuteNonQuery();
-                // Send update to current connection
-                if (res > 0)
+                if (res == 1)
                 {
-                    DeleteCharacterAssets(character, false);
+                    // Cache changes must follow the durable row update. Otherwise a failed or cancelled
+                    // deletion releases the character name until the next restart.
+                    if (AppConfiguration.Instance.Account.DeleteReleaseName)
+                    {
+                        nameManager.RemoveCharacterId(character.Id);
+                        nameManager.AddCharacter(character.Id, deletedName, character.AccountId);
+                    }
+
+                    try
+                    {
+                        DeleteCharacterAssets(character);
+                    }
+                    catch (Exception exception)
+                    {
+                        // The character row is already durably deleted. Keep lobby/name caches coherent and
+                        // leave the remaining cross-manager cleanup visible in the log for an operator retry.
+                        Logger.Error(exception,
+                            "CheckForDeletedCharactersDeletion - Asset cleanup failed for deleted charId:{0}",
+                            character.Id);
+                    }
+
+                    character.Name = deletedName;
+                    character.DeleteTime = DateTime.MinValue;
+                    character.DeleteRequestTime = DateTime.MinValue;
 
                     // Send delete packet to the player if online
                     if (gameConnection != null)
                     {
-                        gameConnection.SendPacket(new SCCharacterDeletedPacket(character.Id, character.Name));
+                        gameConnection.Characters.Remove(character.Id);
+                        gameConnection.SendPacket(new SCCharacterDeletedPacket(character.Id, originalName));
                         // Not sure if this is the way it should be sent or not, but it seems to work with status 1
-                        gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(character.Id, 1, character.DeleteRequestTime, character.DeleteTime));
+                        gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(character.Id, 1, deleteRequestTime, deleteTime));
                     }
                 }
-                return res > 0;
+                return res == 1;
             }
+            if (character.DeleteRequestTime > DateTime.MinValue)
+            {
+                Logger.Warn("CheckForDeletedCharactersDeletion - Delete request for Account:{0} Id:{1} Name:{2}, but character is no longer marked for deletion (possibly cancelled delete)", character.AccountId, character.Id, character.Name);
+            }
+            return false;
         }
-        else
-        if (character.DeleteRequestTime > DateTime.MinValue)
-        {
-            Logger.Warn("CheckForDeletedCharactersDeletion - Delete request for Account:{0} Id:{1} Name:{2}, but character is no longer marked for deletion (possibly cancelled delete)", character.AccountId, character.Id, character.Name);
-        }
-        return false;
     }
 
     public void CheckForDeletedCharacters()
+    {
+        lock (_characterDeletionLock)
+            CheckForDeletedCharactersCore();
+    }
+
+    private void CheckForDeletedCharactersCore()
     {
         var nextCheckTime = DateTime.MaxValue;
         var deleteList = new List<(uint, uint)>(); // charId, accountId
@@ -709,8 +828,10 @@ public class CharacterManager(
         {
             using (var command = connection.CreateCommand())
             {
-                // TODO: Update this query to be more efficient
-                command.CommandText = "SELECT `id`, `name`, `account_id`, `delete_time` FROM characters WHERE `deleted`=0";
+                command.CommandText =
+                    "SELECT `id`, `account_id`, `delete_time` FROM characters " +
+                    "WHERE `deleted`=0 AND `delete_time`>@minimum_delete_time";
+                command.Parameters.AddWithValue("@minimum_delete_time", DateTime.MinValue);
                 using (var reader = command.ExecuteReader())
                 {
                     while (reader.Read())
@@ -768,33 +889,37 @@ public class CharacterManager(
 
     public void SetDeleteCharacter(GameConnection gameConnection, uint characterId)
     {
-        if (gameConnection.Characters.TryGetValue(characterId, out var character))
+        lock (_characterDeletionLock)
         {
-            character.DeleteRequestTime = DateTime.UtcNow;
-
-            var targetDeleteDelay = 0;
-
-            // Get timings from settings
-            foreach (var timing in AppConfiguration.Instance.Account.DeleteTimings)
+            if (gameConnection.Characters.TryGetValue(characterId, out var character))
             {
-                if (character.Level >= timing.Level)
-                    targetDeleteDelay = timing.Delay;
-            }
+                var deleteRequestTime = DateTime.UtcNow;
+                var targetDeleteDelay = 0;
 
-            // Add the actual timing
-            character.DeleteTime = character.DeleteRequestTime.AddMinutes(targetDeleteDelay);
+                // Get timings from settings
+                foreach (var timing in AppConfiguration.Instance.Account.DeleteTimings)
+                {
+                    if (character.Level >= timing.Level)
+                        targetDeleteDelay = timing.Delay;
+                }
 
-            using (var connection = MySQL.CreateConnection())
-            {
+                var deleteTime = deleteRequestTime.AddMinutes(targetDeleteDelay);
+
+                using (var connection = MySQL.CreateConnection())
                 using (var command = connection.CreateCommand())
                 {
-                    command.CommandText = "UPDATE characters SET `delete_request_time` = @delete_request_time, `delete_time` = @delete_time WHERE `id` = @id";
-                    command.Parameters.AddWithValue("@delete_request_time", character.DeleteRequestTime);
-                    command.Parameters.AddWithValue("@delete_time", character.DeleteTime);
+                    command.CommandText =
+                        "UPDATE characters SET `delete_request_time`=@delete_request_time, `delete_time`=@delete_time " +
+                        "WHERE `id`=@id AND `account_id`=@account_id AND `deleted`=0";
+                    command.Parameters.AddWithValue("@delete_request_time", deleteRequestTime);
+                    command.Parameters.AddWithValue("@delete_time", deleteTime);
                     command.Parameters.AddWithValue("@id", character.Id);
+                    command.Parameters.AddWithValue("@account_id", gameConnection.AccountId);
                     command.Prepare();
                     if (command.ExecuteNonQuery() == 1)
                     {
+                        character.DeleteRequestTime = deleteRequestTime;
+                        character.DeleteTime = deleteTime;
                         gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(character.Id, 2, character.DeleteRequestTime, character.DeleteTime));
                     }
                     else
@@ -805,10 +930,10 @@ public class CharacterManager(
                     }
                 }
             }
-        }
-        else
-        {
-            gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(characterId, 0));
+            else
+            {
+                gameConnection.SendPacket(new SCDeleteCharacterResponsePacket(characterId, 0));
+            }
         }
         // Trigger our task queueing
         CheckForDeletedCharacters();
@@ -816,28 +941,35 @@ public class CharacterManager(
 
     public void SetRestoreCharacter(GameConnection gameConnection, uint characterId)
     {
-        if (gameConnection.Characters.TryGetValue(characterId, out var character))
+        lock (_characterDeletionLock)
         {
-            character.DeleteRequestTime = DateTime.MinValue;
-            character.DeleteTime = DateTime.MinValue;
-            gameConnection.SendPacket(new SCCancelCharacterDeleteResponsePacket(character.Id, 3));
-
-            using (var connection = MySQL.CreateConnection())
+            if (gameConnection.Characters.TryGetValue(characterId, out var character))
             {
-                using (var command = connection.CreateCommand())
+                using var connection = MySQL.CreateConnection();
+                using var command = connection.CreateCommand();
+                command.CommandText =
+                    "UPDATE characters SET `delete_request_time`=@delete_request_time, `delete_time`=@delete_time " +
+                    "WHERE `id`=@id AND `account_id`=@account_id AND `deleted`=0 " +
+                    "AND `delete_request_time`>@minimum_delete_time";
+                command.Parameters.AddWithValue("@delete_request_time", DateTime.MinValue);
+                command.Parameters.AddWithValue("@delete_time", DateTime.MinValue);
+                command.Parameters.AddWithValue("@id", character.Id);
+                command.Parameters.AddWithValue("@account_id", gameConnection.AccountId);
+                command.Parameters.AddWithValue("@minimum_delete_time", DateTime.MinValue);
+                command.Prepare();
+                if (command.ExecuteNonQuery() == 1)
                 {
-                    command.CommandText = "UPDATE characters SET `delete_request_time` = @delete_request_time, `delete_time` = @delete_time WHERE `id` = @id";
-                    command.Parameters.AddWithValue("@delete_request_time", character.DeleteRequestTime);
-                    command.Parameters.AddWithValue("@delete_time", character.DeleteTime);
-                    command.Parameters.AddWithValue("@id", character.Id);
-                    command.Prepare();
-                    command.ExecuteNonQuery();
+                    character.DeleteRequestTime = DateTime.MinValue;
+                    character.DeleteTime = DateTime.MinValue;
+                    gameConnection.SendPacket(new SCCancelCharacterDeleteResponsePacket(character.Id, 3));
                 }
+                else
+                    gameConnection.SendPacket(new SCCancelCharacterDeleteResponsePacket(characterId, 4));
             }
-        }
-        else
-        {
-            gameConnection.SendPacket(new SCCancelCharacterDeleteResponsePacket(characterId, 4));
+            else
+            {
+                gameConnection.SendPacket(new SCCancelCharacterDeleteResponsePacket(characterId, 4));
+            }
         }
     }
     public static List<LoginCharacterInfo> LoadCharacters(uint accountId)
@@ -962,8 +1094,14 @@ public class CharacterManager(
     {
         using var connection = MySQL.CreateConnection();
         using var command = connection.CreateCommand();
-        command.CommandText = "UPDATE characters SET `crime_point` = `crime_point` + @crime_point , `crime_record` = `crime_record` + @crime_point WHERE `id` = @id";
+        command.CommandText =
+            "UPDATE characters " +
+            "SET `crime_point` = LEAST(GREATEST(`crime_point` + @crime_point, 0), @max_crime_point), " +
+            "`crime_record` = LEAST(GREATEST(CAST(`crime_record` AS SIGNED) + @crime_point, 0), @max_crime_record) " +
+            "WHERE `id` = @id";
         command.Parameters.AddWithValue("@crime_point", crimePointsToAdd);
+        command.Parameters.AddWithValue("@max_crime_point", short.MaxValue);
+        command.Parameters.AddWithValue("@max_crime_record", int.MaxValue);
         command.Parameters.AddWithValue("@id", playerId);
         command.Prepare();
         if (command.ExecuteNonQuery() != 1)

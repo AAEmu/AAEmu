@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Commons.Utils.DB;
+using AAEmu.Game;
 using MySql.Data.MySqlClient;
 using NLog;
 
@@ -505,7 +506,7 @@ public class Buffs : IBuffs
         }
     }
 
-    public void RemoveEffect(uint index)
+    public void RemoveEffect(uint index, bool notifyZone = true)
     {
         var own = GetOwner();
         if (own == null)
@@ -520,7 +521,7 @@ public class Buffs : IBuffs
             {
                 if (e?.Index == index)
                 {
-                    e.Template.Dispel(e.Caster, e.Owner, e);
+                    e.Template.Dispel(e.Caster, e.Owner, e, notifyZone: notifyZone);
                     _effects.Remove(e);
                     e.SetInUse(false, false);
                     own.SkillModifiersCache.RemoveModifiers(e.Template.BuffId);
@@ -533,7 +534,7 @@ public class Buffs : IBuffs
         }
     }
 
-    public void RemoveBuff(uint buffId)
+    public void RemoveBuff(uint buffId, bool notifyZone = true)
     {
         var own = GetOwner();
         if (own == null)
@@ -548,13 +549,14 @@ public class Buffs : IBuffs
             {
                 if (e != null && e.Template.BuffId == buffId)
                 {
-                    e.Template.Dispel(e.Caster, e.Owner, e);
+                    e.Template.Dispel(e.Caster, e.Owner, e, notifyZone: notifyZone);
                     _effects.Remove(e);
                     e.SetInUse(false, false);
                     own.SkillModifiersCache.RemoveModifiers(e.Template.BuffId);
                     own.BuffModifiersCache.RemoveModifiers(e.Template.BuffId);
                     own.CombatBuffs.RemoveCombatBuff(e.Template.BuffId);
                     //e.Triggers.UnsubscribeEvents();
+                    // WZBuffRemoved is sent from BuffTemplate.Dispel with buff.Index (not template id).
                     break;
                 }
             }

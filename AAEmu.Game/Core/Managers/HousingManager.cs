@@ -1,8 +1,9 @@
-﻿using System.Drawing;
+using System.Drawing;
 using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
+using AAEmu.Game;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -246,7 +247,31 @@ public class HousingManager(
             // Override instanceId to always be "main_world" instance
             house.Transform.InstanceId = WorldManager.DefaultInstanceId;
             house.Spawn();
+            if (WorldIntegration.ZoneAuthority)
+                HousingZoneBridge.NotifyZoneHouseCreated(house);
         }
+    }
+
+    /// <summary>
+    /// Replays housing state after a Zone joins or reconnects. Houses are already spawned in
+    /// World, so this only sends the native UnitState -> HouseState -> build-state sequence for
+    /// the Zone that just loaded.
+    /// </summary>
+    public void RelayAllToZone(uint zoneId)
+    {
+        if (!WorldIntegration.ZoneAuthority)
+            return;
+
+        var relayed = 0;
+        foreach (var house in _houses.Values)
+        {
+            if (house.Transform?.ZoneId != zoneId)
+                continue;
+            HousingZoneBridge.NotifyZoneHouseCreated(house);
+            relayed++;
+        }
+
+        Logger.Info("Replayed {0} houses to Zone zoneId={1}", relayed, zoneId);
     }
 
     /// <summary>
@@ -396,7 +421,7 @@ public class HousingManager(
 
         var houseTemplate = HousingGameData.Instance.GetTemplate(designId);
 
-        CalculateBuildingTaxInfo(connection.ActiveChar.AccountId, houseTemplate, true, out var totalTaxAmountDue, out var heavyTaxHouseCount, out var normalTaxHouseCount, out _, out _);
+        CalculateBuildingTaxInfo(connection.ActiveChar.AccountId, houseTemplate, true, out var totalTaxAmountDue, out var heavyTaxHouseCount, out var normalTaxHouseCount, out var hostileTaxRate, out var weeklyTax);
 
         var baseTax = (int)(houseTemplate.Taxation?.Tax ?? 0);
         var depositTax = baseTax * 2;
@@ -406,9 +431,11 @@ public class HousingManager(
                 heavyTaxHouseCount,
                 normalTaxHouseCount,
                 houseTemplate.HeavyTax,
-                baseTax,
-                depositTax,
-                totalTaxAmountDue
+                (ulong)baseTax,
+                (ulong)depositTax,
+                (ulong)totalTaxAmountDue,
+                (ulong)weeklyTax,
+                (uint)hostileTaxRate
             )
         );
     }
@@ -423,7 +450,7 @@ public class HousingManager(
         if (!_housesTl.TryGetValue(tlId, out var house))
             return;
 
-        CalculateBuildingTaxInfo(house.AccountId, house.Template, false, out var totalTaxAmountDue, out _, out _, out _, out _);
+        CalculateBuildingTaxInfo(house.AccountId, house.Template, false, out var totalTaxAmountDue, out _, out _, out var hostileTaxRate, out _);
 
         var baseTax = (int)(house.Template.Taxation?.Tax ?? 0);
         var depositTax = baseTax * 2;
@@ -447,13 +474,16 @@ public class HousingManager(
         connection.SendPacket(
             new SCHouseTaxInfoPacket(
                 house.TlId,
-                0,  // TODO: implement when castles are added
-                depositTax, // this is used in the help text on (?) when you hover your mouse over it to display deposit tax for this building
-                totalTaxAmountDue, // Amount Due
+                0u,  // dominionTaxRate — TODO: implement when castles are added
+                (uint)hostileTaxRate,
+                (ulong)depositTax, // shown in the (?) help text as this building's deposit tax
+                (ulong)totalTaxAmountDue, // Amount Due
                 house.ProtectionEndDate,
                 requiresPayment,
-                weeksWithoutPay,  // TODO: do proper calculation ?
-                house.Template.HeavyTax
+                (sbyte)weeksWithoutPay,  // TODO: do proper calculation ?
+                0,  // TODO(v10): weeksPrepay — prepayment is not modelled
+                house.Template.HeavyTax,
+                0   // TODO(v10): taxType — the binary leaves the enum unnamed
             )
         );
     }
@@ -468,16 +498,10 @@ public class HousingManager(
     /// <param name="posZ"></param>
     /// <param name="zRot"></param>
     /// <param name="itemId"></param>
-    /// <param name="moneyAmount"></param>
-    /// <param name="ht"></param>
     /// <param name="autoUseAaPoint"></param>
     public void Build(GameConnection connection, uint designId, float posX, float posY, float posZ, float zRot,
-        ulong itemId, int moneyAmount, int ht, bool autoUseAaPoint)
+        ulong itemId, bool autoUseAaPoint)
     {
-        // TODO validate house by range...
-        // TODO remove itemId
-        // TODO minus moneyAmount
-
         var sourceDesignItem = connection.ActiveChar.Inventory.GetItemById(itemId);
         if (sourceDesignItem == null || sourceDesignItem.OwnerId != connection.ActiveChar.Id)
         {
@@ -486,12 +510,30 @@ public class HousingManager(
             return;
         }
 
-        // var zoneId = worldManager.GetZoneId(connection.ActiveChar.Transform.WorldId, posX, posY);
-
         var houseTemplate = HousingGameData.Instance.GetTemplate(designId);
+        if (houseTemplate == null)
+        {
+            connection.ActiveChar.SendErrorMessage(ErrorMessageType.HouseCannotCreate);
+            return;
+        }
+
+        // The client picks the spot, so the zone it lands in is checked against housing_areas before
+        // the house is persisted — without this a design could be planted anywhere on the map and,
+        // once written, would reload there on every start regardless of whether the ground allows it.
+        var zoneKey = worldManager.GetZoneId(connection.ActiveChar.ParentWorld.Template, posX, posY);
+        var zone = ZoneManager.Instance.GetZoneByKey(zoneKey);
+        if (!HousingGameData.Instance.IsCategoryAllowedInZone(zone?.Name, houseTemplate.CategoryId))
+        {
+            Logger.Debug(
+                "Build refused: design {0} (category {1}) is not permitted in zone {2} ({3})",
+                designId, houseTemplate.CategoryId, zone?.Name ?? "<unknown>", zoneKey);
+            connection.ActiveChar.SendErrorMessage(ErrorMessageType.HouseCannotLocateInvalidArea);
+            return;
+        }
+
         CalculateBuildingTaxInfo(connection.ActiveChar.AccountId, houseTemplate, true, out var totalTaxAmountDue, out _, out _, out _, out _);
 
-        if (FeaturesManager.Fsets.Check(Models.Game.Features.Feature.taxItem))
+        if (FeaturesManager.Fsets.TaxItem)
         {
             // Pay in Tax Certificate
 
@@ -533,14 +575,20 @@ public class HousingManager(
         }
         else
         {
-            // Pay in Gold
-            // TODO: test house with actual gold tax
-            if (totalTaxAmountDue > connection.ActiveChar.Money)
+            var paymentBalance = autoUseAaPoint
+                ? connection.ActiveChar.AaPoint
+                : connection.ActiveChar.Money;
+            if (totalTaxAmountDue > paymentBalance)
             {
                 connection.ActiveChar.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
                 return;
             }
-            connection.ActiveChar.SubtractMoney(SlotType.Inventory, totalTaxAmountDue, ItemTaskType.HouseCreation);
+
+            var paid = autoUseAaPoint
+                ? connection.ActiveChar.SubtractAAPoint(SlotType.Inventory, totalTaxAmountDue, ItemTaskType.HouseCreation)
+                : connection.ActiveChar.SubtractMoney(SlotType.Inventory, totalTaxAmountDue, ItemTaskType.HouseCreation);
+            if (!paid)
+                return;
         }
 
         if (connection.ActiveChar.Inventory.Bag.ConsumeItem(ItemTaskType.HouseBuilding, sourceDesignItem.TemplateId, 1, sourceDesignItem) <= 0)
@@ -590,6 +638,8 @@ public class HousingManager(
         _housesTl.Add(house.TlId, house);
         connection.ActiveChar.SendPacket(new SCMyHousePacket(house));
         house.Spawn();
+        if (WorldIntegration.ZoneAuthority)
+            HousingZoneBridge.NotifyZoneHouseCreated(house);
         UpdateTaxInfo(house);
     }
 
@@ -830,6 +880,9 @@ public class HousingManager(
     /// </summary>
     /// <param name="houseId"></param>
     /// <returns></returns>
+    /// <summary>Every loaded building. Used by the recall skills to find one the caster may enter.</summary>
+    public IEnumerable<House> GetAllHouses() => _houses.Values;
+
     public House GetHouseById(uint houseId)
     {
         return _houses.GetValueOrDefault(houseId);
@@ -852,8 +905,17 @@ public class HousingManager(
     /// <param name="factionId"></param>
     private void UpdateHouseFaction(House house, FactionsEnum factionId)
     {
-        house.BroadcastPacket(new SCUnitFactionChangedPacket(house.ObjId, house.Name, house.Faction?.Id ?? 0, factionId, false), true);
+        var oldFaction = house.Faction?.Id ?? 0;
+        house.BroadcastPacket(new SCUnitFactionChangedPacket(house.ObjId, house.Name, oldFaction, factionId, false), true);
         house.Faction = factionManager.GetFaction(factionId);
+        foreach (var doodad in house.AttachedDoodads)
+            doodadManager.RefreshFaction(doodad, house, house);
+        foreach (var doodad in house.ParentWorld?.SpawnManager?.GetAllPlayerDoodads()
+                     .Where(d => d.OwnerDbId == house.Id) ?? [])
+            doodadManager.RefreshFaction(doodad, house, house);
+        if (WorldIntegration.ZoneAuthority)
+            WorldIntegration.RelayUnitFactionChangedToZone?.Invoke(
+                house.ObjId, (int)oldFaction, (int)factionId, false);
     }
 
     /// <summary>
@@ -909,7 +971,7 @@ public class HousingManager(
             // Return taxes
             if (!failedToPayTax)
             {
-                if (FeaturesManager.Fsets.Check(Models.Game.Features.Feature.taxItem))
+                if (FeaturesManager.Fsets.TaxItem)
                 {
                     var taxItem = itemManager.Create(Item.BoundTaxCertificate, (int)(house.Template.Taxation.Tax / 5000), 0);
                     taxItem.OwnerId = house.OwnerId;
@@ -942,6 +1004,7 @@ public class HousingManager(
                 f.ParentObjId = 0;
                 f.ParentObj = null;
                 f.OwnerDbId = 0;
+                doodadManager.RefreshFaction(f);
                 // TODO: probably needs to send a packet as well here
                 continue;
             }
@@ -954,6 +1017,7 @@ public class HousingManager(
                 f.ParentObjId = 0;
                 f.ParentObj = null;
                 f.OwnerDbId = 0;
+                doodadManager.RefreshFaction(f);
                 Logger.Warn($"ReturnHouseItemsToOwner - Furniture has a design, but couldn't find a item for it, DoodadObjId:{f.ObjId} Template:{f.TemplateId}, DesignId: {decoDesign.Id}");
                 continue;
             }
@@ -1197,6 +1261,7 @@ public class HousingManager(
                 doodad.AttachPoint = AttachPointKind.None;
                 doodad.OwnerType = DoodadOwnerType.Housing;
                 doodad.OwnerDbId = house.Id;
+                doodadManager.RefreshFaction(doodad, null, house);
                 doodad.InitDoodad();
 
                 doodad.Spawn();
@@ -1256,7 +1321,7 @@ public class HousingManager(
         house.SellPrice = price;
         house.SellToPlayerId = buyerId;
 
-        house.BroadcastPacket(new SCHouseSetForSalePacket(house.TlId, price, house.SellToPlayerId, buyerName, house.Name), false);
+        house.BroadcastPacket(new SCHouseSetForSalePacket(house.TlId, price, house.SellToPlayerId, buyerName), false);
         SetForSaleMarkers(house, true);
 
         return true;
@@ -1456,8 +1521,7 @@ public class HousingManager(
 
         // TODO: broadcast changes
         house.BroadcastPacket(
-            new SCHouseSoldPacket(house.TlId, previousOwner, character.Id, character.AccountId, character.Name,
-                house.Name), false);
+            new SCHouseSoldPacket(house.TlId, previousOwner, character.Id, character.AccountId, character.Name), false);
 
         SetForSaleMarkers(house, false);
 

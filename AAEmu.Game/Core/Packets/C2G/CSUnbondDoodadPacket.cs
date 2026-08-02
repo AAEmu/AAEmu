@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 
@@ -17,10 +18,12 @@ public class CSUnbondDoodadPacket() : GamePacket(CSOffsets.CSUnbondDoodadPacket,
         var doodad = Connection.ActiveChar.Bonding.GetOwner();
         doodad.Seat.UnLoadPassenger(Connection.ActiveChar, doodad.ObjId); // we free up the place where we were sitting
 
+        var bonding = Connection.ActiveChar.Bonding;
         Connection.ActiveChar.Bonding.SetOwner(null);
         Connection.ActiveChar.Bonding = null;
         Connection.ActiveChar.Transform.Parent = null;
 
         Connection.ActiveChar.BroadcastPacket(new SCUnbondDoodadPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.Id, doodadObjId), true);
+        WorldIntegration.RelayBondDoodadToZone?.Invoke(Connection.ActiveChar.ObjId, bonding, false);
     }
 }

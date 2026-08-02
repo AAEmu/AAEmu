@@ -6,13 +6,32 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSCheckRaceCongestionPacket() : GamePacket(CSOffsets.CSCheckRaceCongestionPacket, 1)
 {
-    // 10.0.2.13 CSCheckRaceCongestion: an "id" group (no presence byte on the wire)
-    // wrapping a single i64. Sent during enter-world, before SpawnCharacter.
+    // no presence byte on this wire path, so the body is exactly eight bytes.
     public override void Read(PacketStream stream)
     {
-        _ = stream.ReadInt64(); // "type" id (TODO(v10): identify; observed 3) — not needed to answer the check
-        // The response "result" byte = 1 (canEnter) lets the client proceed; result = 0 shows the
-        // "cannot enter the world with this character" congestion dialog. So send true.
-        Connection.SendPacket(new SCCheckRaceCongestionResponsePacket(true));
+        // PacketStream retains the decrypted crc/count/opcode prefix. GameProtocolHandler has already
+        // advanced Pos past those four bytes, so validate the unread native body rather than total Count.
+        if (stream.LeftBytes != sizeof(ulong))
+        {
+            Logger.Warn(
+                "Rejected malformed race-congestion request from account {0}: body length {1}.",
+                Connection.AccountId,
+                stream.LeftBytes);
+            Connection.SendPacket(new SCCheckRaceCongestionResponsePacket(false));
+            return;
+        }
+
+        var characterId = stream.ReadUInt64();
+        var canEnter = characterId <= uint.MaxValue &&
+                       Connection.Characters.ContainsKey((uint)characterId);
+        if (!canEnter)
+        {
+            Logger.Warn(
+                "Rejected race-congestion request for character {0} from account {1}.",
+                characterId,
+                Connection.AccountId);
+        }
+
+        Connection.SendPacket(new SCCheckRaceCongestionResponsePacket(canEnter));
     }
 }

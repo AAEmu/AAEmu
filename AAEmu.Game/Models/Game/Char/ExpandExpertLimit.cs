@@ -4,7 +4,7 @@ public class ExpandExpertLimit
 {
     public uint Id { get; set; }
     public byte ExpandCount { get; set; }
-    public int LifePoint { get; set; } // TODO Vocation
+    public int LifePoint { get; set; }
     public uint ItemId { get; set; }
     public int ItemCount { get; set; }
 }

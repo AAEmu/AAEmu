@@ -66,8 +66,21 @@ public class MailPlayerToPlayer : BaseMail
                     // Attchment Items do not match player inventory, abort
                     return false;
                 }
+                // The client sends ten slot pairs and nothing stopped it naming one twice, which attached the
+                // same item to the mail more than once off a single inventory stack.
+                if (Body.Attachments.Contains(tempItem))
+                {
+                    return false;
+                }
                 Body.Attachments.Add(tempItem);
             }
+        }
+
+        // MailBody only serialises MaxMailAttachments slots, so anything past that would be silently swallowed
+        // on the way out while still having been taken from the sender's bag.
+        if (Body.Attachments.Count > MailBody.MaxMailAttachments)
+        {
+            return false;
         }
         Header.Attachments = GetTotalAttachmentCount();
         return true;

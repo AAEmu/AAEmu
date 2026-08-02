@@ -2,6 +2,7 @@
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.CommonFarm.Static;
@@ -46,8 +47,10 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
 
             // defense time is up
             doodad.OwnerId = 0;
+            doodad.OwnerObjId = 0;
             doodad.OwnerType = DoodadOwnerType.System;
             doodad.FarmType = FarmType.Invalid;
+            DoodadManager.Instance.RefreshFaction(doodad);
             doodad.Save();
             deleted.Add(doodad);
         }

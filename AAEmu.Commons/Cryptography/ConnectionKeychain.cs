@@ -27,7 +27,6 @@ public class ConnectionKeychain(uint connectionId, RSA rsaKeyPair)
     /// <summary>Raw XOR "head" dword recovered from CSAesXorKey.</summary>
     public uint Head { get; set; }
 
-    // Derived XOR keys. Used for C->S DecodeXor.
     public uint XorKey1 { get; set; }
     public uint XorKey2 { get; set; }
 

@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -14,11 +15,26 @@ public class NpcSpawnerDespawnEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        Logger.Info($"NpcSpawnerDespawnEffect: SpawnerId={SpawnerId}");
+        if (WorldIntegration.ZoneAuthority)
+        {
+            if (!WorldIntegration.PublishNpcSpawnerEvent(caster, SpawnerId, NpcSpawnerEvent.DespawnAll))
+                Logger.Warn($"NpcSpawnerDespawnEffect: no loaded Zone accepted spawner {SpawnerId}.");
+            return;
+        }
 
-        //var spawner = SpawnManager.Instance.GetNpcSpawner(SpawnerId, (byte)caster.Transform.WorldId);
-        //spawner.DoDespawn();
+        // Counterpart to NpcSpawnerSpawnEffect, resolved the same way: the spawner id may map to
+        // several spawners, and each clears the npcs it owns.
+        var spawners = caster?.ParentWorld?.SpawnManager.GetNpcSpawner(SpawnerId);
+        if (spawners is not { Count: not 0 })
+        {
+            Logger.Info($"NpcSpawnerDespawnEffect: SpawnerId={SpawnerId} not found in spawners.");
+            return;
+        }
 
-        //Logger.Debug("NpcSpawnerDespawnEffect id:{0}, Npc unitId:{1} spawnerId:{2}", Id, spawner.UnitId, SpawnerId);
+        foreach (var spawner in spawners)
+            spawner.DespawnNpcsNow();
+
+        Logger.Debug("NpcSpawnerDespawnEffect: despawned {0} spawner(s) for SpawnerId={1}",
+            spawners.Count, SpawnerId);
     }
 }

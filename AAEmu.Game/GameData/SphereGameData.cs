@@ -201,8 +201,9 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
                     var template = new SphereBuffs
                     {
                         Id = reader.GetUInt32("id"),
-                        BuffId = reader.GetUInt32("buff_id")
-
+                        BuffId = reader.GetUInt32("buff_id"),
+                        RemoveOnLeaveBuffId = reader.GetUInt32("remove_on_leave_buff_id", 0),
+                        AndPet = reader.GetBoolean("and_pet", true)
                     };
 
                     _sphereBuffs.Add(template.Id, template);
@@ -327,6 +328,93 @@ public class SphereGameData : Singleton<SphereGameData>, IGameDataLoader
     public Spheres GetSphere(uint sphereId)
     {
         return _spheres.GetValueOrDefault(sphereId);
+    }
+
+    public SphereBuffs GetSphereBuff(uint sphereBuffId) =>
+        _sphereBuffs.GetValueOrDefault(sphereBuffId);
+
+    public SphereQuests GetSphereQuestDetail(uint sphereDetailId) =>
+        _sphereQuests.GetValueOrDefault(sphereDetailId);
+
+    public IEnumerable<uint> GetAcceptQuestIdsForSphereDetail(uint sphereAcceptQuestId) =>
+        _sphereAcceptQuestQuests.Values
+            .Where(x => x.SphereAcceptQuestId == sphereAcceptQuestId)
+            .Select(x => x.QuestId);
+
+    /// <summary>
+    /// Resolve quest + component for a compact <c>spheres.id</c> via act tables / SphereQuest detail.
+    /// </summary>
+    public bool TryResolveSphereQuestLink(uint sphereId, out uint questId, out uint componentId)
+    {
+        questId = 0;
+        componentId = 0;
+        if (!_spheres.TryGetValue(sphereId, out var dbSphere))
+            return false;
+
+        if (dbSphere.SphereDetailType == "SphereQuest" &&
+            _sphereQuests.TryGetValue(dbSphere.SphereDetailId, out var sq))
+        {
+            questId = sq.QuestId;
+        }
+
+        componentId = FindComponentIdForSphereAct(sphereId, questId);
+        if (questId == 0 && componentId != 0)
+        {
+            var comp = QuestManager.Instance.GetComponent(componentId);
+            questId = comp?.ParentQuestTemplate?.Id ?? 0;
+        }
+
+        return questId != 0 || componentId != 0;
+    }
+
+    private static uint FindComponentIdForSphereAct(uint sphereId, uint questIdHint)
+    {
+        if (questIdHint != 0)
+        {
+            var found = FindInQuest(questIdHint, sphereId);
+            if (found != 0)
+                return found;
+        }
+
+        // Fallback: scan accept/obj/check acts by SphereId (rare; prefer quest hint).
+        foreach (var name in new[] { "QuestActObjSphere", "QuestActCheckSphere", "QuestActConAcceptSphere" })
+        {
+            // Act templates are not reverse-indexed; use quest_sign spheres when available.
+            _ = name;
+        }
+
+        var signSpheres = SphereQuestManager.GetSpheresForQuest(questIdHint);
+        foreach (var s in signSpheres)
+        {
+            if (s.ComponentId != 0)
+                return s.ComponentId;
+        }
+
+        return 0;
+    }
+
+    private static uint FindInQuest(uint questId, uint sphereId)
+    {
+        var qt = QuestManager.Instance.GetTemplate(questId);
+        if (qt == null)
+            return 0;
+        foreach (var component in qt.Components.Values)
+        {
+            foreach (var act in QuestManager.Instance.GetActsInComponent(component.Id))
+            {
+                switch (act)
+                {
+                    case QuestActObjSphere obj when obj.SphereId == sphereId:
+                        return component.Id;
+                    case QuestActCheckSphere check when check.SphereId == sphereId:
+                        return component.Id;
+                    case QuestActConAcceptSphere accept when accept.SphereId == sphereId:
+                        return component.Id;
+                }
+            }
+        }
+
+        return 0;
     }
 
     /// <summary>

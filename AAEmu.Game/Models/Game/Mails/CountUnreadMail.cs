@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Mails;
 
@@ -11,7 +11,6 @@ public class CountUnreadMail : PacketMarshaler
 
     public override PacketStream Write(PacketStream stream)
     {
-        // 10.0.2.13 mail-count struct (shared by SCCountTotalMail 0x15B and
         // the mail body/list packets): 8 u32 — the four total_* counts then the four unread_* counts. AAEmu
         // tracks only the unread counts; totals go out as 0, matching the mail block in SCCharacterState.
         stream.Write(0);                  // total_sent

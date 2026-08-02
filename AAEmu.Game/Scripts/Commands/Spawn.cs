@@ -64,7 +64,7 @@ public class Spawn : ICommand
                     if (myDoodad != null)
                     {
                         CommandManager.SendNormalText(this, messageOutput, $"Removing Doodad with ID {myDoodad.ObjId}");
-                        ObjectIdManager.Instance.ReleaseId(myDoodad.ObjId);
+                        NonUnitObjectIdManager.Instance.ReleaseId(myDoodad.ObjId);
                         myDoodad.Delete();
                     }
                     else
@@ -102,6 +102,12 @@ public class Spawn : ICommand
                     npcSpawner.Position.Yaw = angle;
                     npcSpawner.Position.Pitch = 0;
                     npcSpawner.Position.Roll = 0;
+
+                    if (WorldIntegration.ZoneAuthority)
+                    {
+                        SpawnNpcForZone(character, unitId, charPos, messageOutput);
+                        break;
+                    }
 
                     character.ParentWorld.SpawnManager.AddNpcSpawner(npcSpawner);
 
@@ -148,5 +154,31 @@ public class Spawn : ICommand
         {
             CommandManager.SendNormalText(this, messageOutput, "unitId can not be 0");
         }
+    }
+
+    private void SpawnNpcForZone(
+        Character character,
+        uint npcTemplateId,
+        Models.Game.World.Transform.Transform spawnPosition,
+        IMessageOutput messageOutput)
+    {
+        var npc = NpcManager.Instance.Create(character.ParentWorld, 0, npcTemplateId);
+        if (npc == null)
+        {
+            CommandManager.SendErrorText(this, messageOutput, $"NPC {npcTemplateId} could not be created.");
+            return;
+        }
+
+        npc.Transform = spawnPosition.CloneDetached(npc);
+        npc.IsZoneMirror = true;
+        npc.Spawn();
+        if (WorldIntegration.PublishNpcSpawn(npc))
+            return;
+
+        WorldIntegration.DeleteNpcMirror(npc, false);
+        CommandManager.SendErrorText(
+            this,
+            messageOutput,
+            "No loaded Zone owns this position, so the NPC was not created.");
     }
 }

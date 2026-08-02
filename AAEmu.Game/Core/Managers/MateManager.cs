@@ -1,5 +1,6 @@
 ﻿using System.Text.RegularExpressions;
 using AAEmu.Commons.Utils;
+using AAEmu.Game;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
@@ -99,13 +100,34 @@ public class MateManager(WorldInstance parentWorldInstance)
     /// <param name="connection"></param>
     /// <param name="tlId"></param>
     /// <param name="objId"></param>
-    public void ChangeTargetMate(GameConnection connection, uint tlId, uint objId)
+    public void ChangeTargetMate(GameConnection connection, short tlId, uint objId)
     {
-        // var owner = connection.ActiveChar;
-        var mateInfo = GetActiveMateByTlId(tlId);
-        if (mateInfo == null) return;
-        mateInfo.CurrentTarget = objId > 0 ? World.GetUnit(objId) : null;
-        mateInfo.BroadcastPacket(new SCTargetChangedPacket(mateInfo.ObjId, mateInfo.CurrentTarget?.ObjId ?? 0), true);
+        var owner = connection.ActiveChar;
+        var mateInfo = tlId >= 0 ? GetActiveMateByTlId((ushort)tlId) : null;
+        if (owner == null || mateInfo == null || mateInfo.OwnerObjId != owner.ObjId)
+        {
+            Logger.Warn(
+                "Rejected mate target change tlId={0} from {1} ({2})",
+                tlId, owner?.Name ?? "<disconnected>", owner?.ObjId ?? 0);
+            return;
+        }
+
+        var target = objId > 0 ? World.GetUnit(objId) : null;
+        if (objId != 0 && target == null)
+        {
+            Logger.Warn(
+                "Rejected missing mate target {0} for mate {1} from {2}",
+                objId, mateInfo.ObjId, owner.Name);
+            return;
+        }
+
+        mateInfo.CurrentTarget = target;
+        mateInfo.BroadcastPacket(
+            new SCTargetChangedPacket(mateInfo.ObjId, mateInfo.CurrentTarget?.ObjId ?? 0), true);
+
+        if (WorldIntegration.ZoneAuthority)
+            WorldIntegration.RelayTargetChangedToZone?.Invoke(
+                mateInfo.ObjId, mateInfo.CurrentTarget?.ObjId ?? 0, false);
 
         Logger.Debug($"ChangeTargetMate. tlId: {mateInfo.TlId}, objId: {mateInfo.ObjId}, targetObjId: {objId}");
     }
@@ -164,6 +186,8 @@ public class MateManager(WorldInstance parentWorldInstance)
                 character.AttachedPoint = attachPoint;
 
                 character.IsVisible = true; // When we're on a horse, you can see us
+                WorldIntegration.RelayUnitAttachToZone?.Invoke(
+                    character.ObjId, mateInfo.ObjId, (byte)attachPoint, true);
             }
         }
         else
@@ -214,6 +238,8 @@ public class MateManager(WorldInstance parentWorldInstance)
             targetObj.AttachedPoint = AttachPointKind.None;
 
             targetObj.BroadcastPacket(new SCUnitDetachedPacket(targetObj.ObjId, reason), true);
+            WorldIntegration.RelayUnitAttachToZone?.Invoke(
+                targetObj.ObjId, mateInfo.ObjId, (byte)attachPoint, false);
 
             targetObj.Events.OnUnmount(character, new OnUnmountArgs());
 
@@ -284,8 +310,11 @@ public class MateManager(WorldInstance parentWorldInstance)
         
         mateInfo.Delete();
 
-        ObjectIdManager.Instance.ReleaseId(mateInfo.ObjId);
-        TlIdManager.Instance.ReleaseId(mateInfo.TlId);
+        // Deferred so a re-summon cannot draw the same object id while the client still has its
+        // movement-handler slot keyed to it — see MateIdReleaseTask.
+        TaskManager.Instance.Schedule(
+            new Models.Tasks.Mate.MateIdReleaseTask(mateInfo.ObjId, mateInfo.TlId),
+            TimeSpan.FromSeconds(30));
 
         Logger.Debug($"Mount removed. ownerObjId: {owner.ObjId}, tlId: {mateInfo.TlId}, mateObjId: {mateInfo.ObjId}");
     }

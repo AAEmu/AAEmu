@@ -3,7 +3,9 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Skills.Buffs;
+using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.StaticValues;
@@ -58,14 +60,127 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
         // if movement is forbidden when teleporting to instances, then to exit
         if (character.DisabledSetPosition) return;
 
+        // Commercial: zone owns locomotion — forward CS move as WZ; do not broadcast Game SC as authority.
+        if (WorldIntegration.ZoneAuthority && WorldIntegration.RelayMoveToZone != null)
+        {
+            var mirrorTarget = character.ParentWorld.GetBaseUnit(_objId);
+            if (mirrorTarget == null || !CanControlMovement(character, mirrorTarget, _moveType))
+            {
+                Logger.Warn(
+                    "Rejected Zone movement type {0} for target {1} from {2} ({3})",
+                    _moveType.Type, _objId, character.Name, character.ObjId);
+                return;
+            }
+
+            var moveBody = new PacketStream();
+            moveBody.Write((byte)_moveType.Type);
+            moveBody.Write(_moveType);
+            WorldIntegration.RelayMoveToZone(_objId, moveBody.GetBytes());
+
+            // Keep local transform for region/interest so CS/SC glue does not desync, but no SC broadcast.
+            if (_moveType is UnitMoveType umt && _objId == character.ObjId)
+            {
+                // Anchor the physics clock to the client's own reported tPhy. MirrorMovementStreamTask uses
+                // this to stamp synthesized NPC keepalive movements with a tPhy in the client's clock domain
+                // (the native zone streams no idle movement, so without this the client's world clock stalls
+                // and it cleanly quits a few seconds after entering an idle area).
+                character.PhysTimeAnchor = _moveType.Time;
+                character.PhysTimeAnchorTick = Environment.TickCount64;
+
+                // Sit/bond (buff 4645 remove_on_move, chair DoodadFuncAttachment): ZoneAuthority used to
+                // return before RemoveEffects / unbond, so move never cleared the sit state → stuck.
+                RemoveEffects(character, _moveType);
+                if (character.Bonding != null &&
+                    (_moveType.VelX != 0 || _moveType.VelY != 0 || _moveType.VelZ != 0))
+                {
+                    var bonding = character.Bonding;
+                    var bondedDoodad = bonding.GetOwner();
+                    var doodadObjId = bonding.ObjId;
+                    bondedDoodad?.Seat.UnLoadPassenger(character, doodadObjId);
+                    character.Bonding.SetOwner(null);
+                    character.Bonding = null;
+                    character.Transform.Parent = null;
+                    character.Transform.StickyParent = null;
+                    character.BroadcastPacket(
+                        new SCUnbondDoodadPacket(character.ObjId, character.Id, doodadObjId), true);
+                    WorldIntegration.RelayBondDoodadToZone?.Invoke(character.ObjId, bonding, false);
+                    // Sit buff 4645 has remove_on_unbond + remove_on_move; RemoveEffects above
+                    // covers move. Explicitly drop sit buff if still present after unbond.
+                    if (character.Buffs.CheckBuff(4645))
+                        character.Buffs.RemoveBuff(4645);
+                }
+
+                // Mast / ladder hang (StickyParent) and BindSlave seats: ZoneAuthority used to
+                // rewrite Local world coords while still parented, or clear Parent without
+                // UnbindSlave — player stayed "on the mast" with no get-off. Jump and hang-bit
+                // drop must Unbind + SCUnhung (client hang state), not only null StickyParent.
+                var jumping = umt.Flags.HasFlag(MoveTypeFlags.Jumping)
+                    || ((MoveTypeActorFlags)umt.ActorFlags).HasFlag(MoveTypeActorFlags.Jumping);
+                var hanging = ((MoveTypeActorFlags)umt.ActorFlags).HasFlag(MoveTypeActorFlags.HangingFromObject);
+                if (jumping || (!hanging && umt.GcId == 0))
+                    TryDismountSlaveOrHang(character, jumping);
+
+                // Bound to helm/sail: never keep mast hang — client blocks T as airborne.
+                if (character.AttachedPoint != AttachPointKind.None &&
+                    (character.Transform.StickyParent != null || hanging))
+                    ClearHang(character, reason: 0);
+                else if (character.Transform.StickyParent != null && !hanging)
+                    ClearHang(character, reason: 0); // climbed off
+
+                ApplyGroundContact(character, umt);
+
+                character.Transform.Local.SetPosition(
+                    umt.X, umt.Y, umt.Z,
+                    (float)MathUtil.ConvertDirectionToRadian(umt.RotationX),
+                    (float)MathUtil.ConvertDirectionToRadian(umt.RotationY),
+                    (float)MathUtil.ConvertDirectionToRadian(umt.RotationZ));
+                character.Transform.FinalizeTransform();
+                character.SetPlayerMoved();
+            }
+            else if (_moveType is UnitMoveType controlledUnitMove)
+            {
+                RemoveEffects(mirrorTarget, _moveType);
+                mirrorTarget.Transform.Local.SetPosition(
+                    controlledUnitMove.X, controlledUnitMove.Y, controlledUnitMove.Z,
+                    (float)MathUtil.ConvertDirectionToRadian(controlledUnitMove.RotationX),
+                    (float)MathUtil.ConvertDirectionToRadian(controlledUnitMove.RotationY),
+                    (float)MathUtil.ConvertDirectionToRadian(controlledUnitMove.RotationZ));
+                mirrorTarget.Transform.FinalizeTransform();
+            }
+            else if (_moveType is VehicleMoveType vehicleMove && mirrorTarget is Slave vehicle)
+            {
+                var (rotX, rotY, rotZ) = MathUtil.GetSlaveRotationInDegrees(
+                    vehicleMove.RotationX, vehicleMove.RotationY, vehicleMove.RotationZ);
+                character.Transform.Parent = vehicle.Transform;
+                vehicle.Transform.Local.SetPosition(
+                    vehicleMove.X, vehicleMove.Y, vehicleMove.Z, rotX, rotY, rotZ);
+                vehicle.Transform.FinalizeTransform();
+            }
+            else if (_moveType is ShipRequestMoveType shipRequest && mirrorTarget is Slave ship)
+            {
+                // The zone owns the hull, so the helm request above is what actually moves it. These two
+                // are kept for the packets that report the current helm position back to observers.
+                ship.ThrottleRequest = shipRequest.Throttle;
+                ship.SteeringRequest = shipRequest.Steering;
+                character.Transform.Parent = ship.Transform;
+            }
+
+            return;
+        }
+
         var targetUnit = character.ParentWorld.GetBaseUnit(_objId);
 
-        // Invalid Object ?
         if (targetUnit == null)
         {
-            // TODO по какой то причине объект удалили из региона, наверное нужно его как то вернуть назад 
-            // TODO for some reason the object has been removed from the region, you probably need to get it back somehow
-            Logger.Warn($"Invalid target {_objId} from {character.Name}");
+            Logger.Warn("Rejected movement for missing target {0} from {1} ({2})", _objId, character.Name, character.ObjId);
+            return;
+        }
+
+        if (!CanControlMovement(character, targetUnit, _moveType))
+        {
+            Logger.Warn(
+                "Rejected movement type {0} for target {1} from {2} ({3})",
+                _moveType.Type, _objId, character.Name, character.ObjId);
             return;
         }
 
@@ -74,13 +189,10 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
         {
             case ShipRequestMoveType srmt:
                 {
-                    // TODO: Validate if we are in the driver seat
                     // We are controlling a ship
                     // Logger.Debug("ShipRequestMoveType - Throttle: {0} - Steering {1}", srmt.Throttle, srmt.Steering);
                     if (targetUnit is not Slave ship)
                         return;
-
-                    // TODO: Validate if targetUnit is actually a ship
 
                     ship.ThrottleRequest = srmt.Throttle;
                     ship.SteeringRequest = srmt.Steering;
@@ -92,7 +204,6 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                 }
             case VehicleMoveType vmt:
                 {
-                    // TODO: Validate if we are in the driver seat
                     // Steering: Value between -1.0 and +1.0
                     // WheelAngVel: Velocity on individual wheels? (note: cart/wagon has "no wheels")
                     /*
@@ -104,8 +215,6 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
 
                     if (targetUnit is not Slave car)
                         return;
-
-                    // TODO: Validate if targetUnit is a "car"
 
                     var (rotDegX, rotDegY, rotDegZ) = MathUtil.GetSlaveRotationInDegrees(vmt.RotationX, vmt.RotationY, vmt.RotationZ);
 
@@ -126,7 +235,6 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                         // Pet moved
                         RemoveEffects(targetUnit, _moveType);
 
-                        // TODO: Check if we're the owner, or allowed to otherwise control this pet
                         if (dmt.VelX != 0 || dmt.VelY != 0)
                             mate.StartUpdateXp(character);
                         else
@@ -146,8 +254,6 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                     // If controlling character, but it's riding something, sync parent with the mount
                     if (targetUnit is Character player)
                     {
-                        // TODO : check target has Telekinesis buff if target is a player
-                        // Just forward it to the packet, not safe for exploits/hacking
                         // We moved
                         RemoveEffects(player, _moveType);
 
@@ -213,7 +319,7 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
 
                     // If ActorFlag 0x40 is no longer set, it means we're no longer climbing/holding onto something
                     if (targetUnit.Transform.StickyParent != null && !isSticky)
-                        targetUnit.Transform.StickyParent = null;
+                        ClearHang(targetUnit, reason: 0);
 
                     // Debug Climb Data
                     /*
@@ -232,12 +338,6 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                     }
                     */
 
-                    if (targetUnit is Character other && other.ObjId != character.ObjId)
-                    {
-                        // TODO : check target has Telekinesis buff if target is a player
-                        // Just forward it to the packet, not safe for exploits/hacking
-                    }
-
                     // Actually update the position
                     targetUnit.Transform.Local.SetPosition(dmt.X, dmt.Y, dmt.Z,
                         (float)MathUtil.ConvertDirectionToRadian(dmt.RotationX),
@@ -251,8 +351,24 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                     // Handle Fall Velocity
                     if (dmt.FallVel > 0 && targetUnit is Unit unit)
                     {
-                        _ = unit.DoFallDamage(dmt.FallVel);
-                        // character.SendMessage("{0} took {1} fall damage {2}/{3} HP left", unit.Name, fallDmg, unit.Hp, unit.MaxHp);
+                        // A unit being carried reports velocity relative to the mover, not the
+                        // ground: riding a tower lift or an airship produces values well past the
+                        // 32000 instant-death threshold in DoFallDamage. Anything parented,
+                        // stuck to a surface, or bonded to a seat is not falling under its own
+                        // weight, so the client's figure is meaningless for damage.
+                        var carried = targetUnit.Transform.Parent != null ||
+                                      targetUnit.Transform.StickyParent != null ||
+                                      (targetUnit as Character)?.Bonding != null;
+                        if (carried)
+                        {
+                            Logger.Debug(
+                                "Ignoring FallVel {0} for carried unit {1} ({2})",
+                                dmt.FallVel, targetUnit.Name, targetUnit.ObjId);
+                        }
+                        else
+                        {
+                            _ = unit.DoFallDamage(dmt.FallVel);
+                        }
                     }
 
                     break;
@@ -267,6 +383,126 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
     {
         if (moveType.VelX != 0 || moveType.VelY != 0 || moveType.VelZ != 0)
             unit.Buffs.TriggerRemoveOn(BuffRemoveOn.Move);
+    }
+
+    /// <summary>
+    /// Roots the actor to whatever it is standing on, so the position that follows is applied in the
+    /// right space.
+    /// </summary>
+    /// <remarks>
+    /// While an actor stands on a moving entity (gimmick lift, ship deck) the client reports its
+    /// position in that entity's local space and names the carrier in <c>actor.gcId</c>
+    /// (ActorFlags 0x20/0x40 - see <see cref="UnitMoveType.Read"/>). Applying those coordinates
+    /// without re-parenting drops the character onto the platform offset in world space - a few
+    /// metres from the origin - which puts its interest region at the origin (surrounding objects
+    /// despawn) and its Z below <c>OceanLevel</c> (drowning).
+    /// </remarks>
+    private static void ApplyGroundContact(Character character, UnitMoveType umt)
+    {
+        var carrier = umt.GcId != 0 ? character.ParentWorld?.GetGameObject(umt.GcId) : null;
+
+        if (carrier != null && carrier.ObjId != character.ObjId)
+        {
+            if (!ReferenceEquals(character.Transform.Parent, carrier.Transform))
+                character.Transform.Parent = carrier.Transform;
+            return;
+        }
+
+        // No carrier reported. Bonding owns the parent link while seated, so leave that alone.
+        // Slave BindSlave seats must Unbind (SCUnitDetached + Zone), not only null Parent —
+        // otherwise the player stays attached (mast stuck) with AttachedPoint still set.
+        if (character.Bonding == null && character.Transform.Parent != null)
+        {
+            if (character.AttachedPoint != AttachPointKind.None)
+                TryDismountSlaveOrHang(character, jumping: false);
+            else
+                character.Transform.Parent = null;
+        }
+    }
+
+    /// <summary>
+    /// Leave a slave seat / mast or ladder hang. Jump always forces off; free movement does too
+    /// when not actively hanging (ActorFlags hanging bit).
+    /// </summary>
+    private static void TryDismountSlaveOrHang(Character character, bool jumping)
+    {
+        var slaveManager = character.ParentWorld?.SlaveManager;
+        if (slaveManager != null)
+        {
+            var onSlave = slaveManager.GetIsMounted(character.ObjId, out var attachPoint);
+            if (onSlave != null)
+            {
+                // Driver helm: only leave on explicit jump / get-off skill — not every move packet.
+                if (attachPoint == AttachPointKind.Driver && !jumping)
+                    return;
+
+                slaveManager.UnbindSlave(character, onSlave.TlId, AttachUnitReason.None);
+                Logger.Debug(
+                    "Dismount slave {0} attach={1} jump={2} char={3}",
+                    onSlave.ObjId, attachPoint, jumping, character.Name);
+                return;
+            }
+        }
+
+        // Mast/ladder hang is StickyParent + CS/SCUnhang — not BindSlave Mast0 (equip mesh points).
+        if (character.Transform.StickyParent != null && jumping)
+            ClearHang(character, reason: 7); // jumped off
+    }
+
+    /// <summary>
+    /// Mirror <see cref="CSUnhangPacket"/> so the client leaves climb/hang state (reason 0 climb-off, 7 jump-off).
+    /// Always includes self — BroadcastPacket(false) never delivers SCUnhung to the caster, so the client
+    /// stays in skill_source_is_hanging ("Can't be used while airborne") and T/get-off never fires.
+    /// </summary>
+    private static void ClearHang(BaseUnit unit, uint reason)
+    {
+        var sticky = unit.Transform.StickyParent;
+        var targetObjId = sticky?.GameObject?.ObjId ?? 0;
+        if (sticky != null)
+            unit.Transform.StickyParent = null;
+        else if (unit is not Character)
+            return;
+
+        // Even with StickyParent already null (CSUnhang cleared server state), re-notify the client
+        // when this is a Character — BindSlave often races after Unhang with hang still latched client-side.
+        if (unit is Character ch)
+            ch.BroadcastPacket(new SCUnhungPacket(unit.ObjId, targetObjId, reason), true);
+        else
+            unit.BroadcastPacket(new SCUnhungPacket(unit.ObjId, targetObjId, reason), false);
+
+        if (sticky?.GameObject is Slave stickySlave)
+            ShipHarpoonRopeController.BreakRopeForClients(stickySlave, cutouted: false);
+    }
+
+    private static bool CanControlMovement(Character character, BaseUnit target, MoveType moveType)
+    {
+        if (target is Character)
+            return target.ObjId == character.ObjId && moveType is UnitMoveType;
+
+        if (target is Mate mate)
+        {
+            return moveType is UnitMoveType
+                   && (mate.OwnerObjId == character.ObjId
+                   || mate.Passengers.TryGetValue(AttachPointKind.Driver, out var passenger)
+                   && passenger._objId == character.ObjId);
+        }
+
+        if (target is Slave slave)
+        {
+            var isDriver = slave.AttachedCharacters.TryGetValue(AttachPointKind.Driver, out var driver)
+                           && driver?.ObjId == character.ObjId;
+            if (!isDriver)
+                return false;
+
+            return moveType switch
+            {
+                ShipRequestMoveType => slave.Template?.IsABoat() == true,
+                VehicleMoveType => slave.Template?.IsClientDrivenLandVehicle() == true,
+                _ => false
+            };
+        }
+
+        return false;
     }
 
     public override string Verbose()

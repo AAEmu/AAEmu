@@ -71,8 +71,8 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
         // table 'loot_groups'
         using (var command = connection.CreateCommand())
         {
-            // 10.0.2.13: drop_rate is now a plain integer (DEFAULT 10000000); the old v1.2 0..1 normalization CASE is dead.
-            command.CommandText = "SELECT id, pack_id, group_no, drop_rate, item_grade_distribution_id FROM loot_groups ORDER BY pack_id ASC, group_no ASC, drop_rate DESC";
+            // 10.0.2.13: no surrogate id; composite (pack_id, group_no). drop_rate is plain int.
+            command.CommandText = "SELECT pack_id, group_no, drop_rate, item_grade_distribution_id, zone_group_id FROM loot_groups ORDER BY pack_id ASC, group_no ASC, drop_rate DESC";
             command.Prepare();
             using (var sqliteReader = command.ExecuteReader())
             using (var reader = new SQLiteWrapperReader(sqliteReader))
@@ -81,14 +81,15 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
                 {
                     var template = new LootGroups
                     {
-                        Id = reader.GetUInt32("id"),
                         PackId = reader.GetUInt32("pack_id"),
                         GroupNo = reader.GetUInt32("group_no"),
                         DropRate = reader.GetUInt32("drop_rate"),
-                        ItemGradeDistributionId = reader.GetByte("item_grade_distribution_id")
+                        ItemGradeDistributionId = reader.GetByte("item_grade_distribution_id"),
+                        ZoneGroupId = reader.GetUInt32("zone_group_id")
                     };
 
-                    _lootGroups.Add(template.Id, template);
+                    var key = (template.PackId << 16) | (template.GroupNo & 0xFFFF);
+                    _lootGroups[key] = template;
 
                     if (!_lootGroupsByPackId.ContainsKey(template.PackId))
                         _lootGroupsByPackId.Add(template.PackId, []);
@@ -101,7 +102,7 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
         // table 'loot_actability_groups'
         using (var command = connection.CreateCommand())
         {
-            command.CommandText = "SELECT * FROM loot_actability_groups";
+            command.CommandText = "SELECT loot_pack_id, loot_group_id, max_dice, min_dice FROM loot_actability_groups";
             command.Prepare();
             using (var sqliteReader = command.ExecuteReader())
             using (var reader = new SQLiteWrapperReader(sqliteReader))
@@ -110,14 +111,14 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
                 {
                     var template = new LootActabilityGroups
                     {
-                        Id = reader.GetUInt32("id"),
                         LootPackId = reader.GetUInt32("loot_pack_id"),
                         GroupId = reader.GetUInt32("loot_group_id"),
                         MaxDice = reader.GetUInt32("max_dice"),
                         MinDice = reader.GetUInt32("min_dice")
                     };
 
-                    _lootActabilityGroups.Add(template.Id, template);
+                    var key = (template.LootPackId << 16) | (template.GroupId & 0xFFFF);
+                    _lootActabilityGroups[key] = template;
 
                     if (!_lootActabilityGroupsByPackId.ContainsKey(template.LootPackId))
                         _lootActabilityGroupsByPackId.Add(template.LootPackId, []);

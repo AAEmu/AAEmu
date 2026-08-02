@@ -3,6 +3,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
@@ -43,12 +44,17 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
         using var reader = new SQLiteWrapperReader(sqliteReader);
         while (reader.Read())
         {
+            if (!reader.GetBoolean("enable"))
+                continue;
+
             var t = new UnitReqs
             {
                 Id = reader.GetUInt32("id"), OwnerId = reader.GetUInt32("owner_id"), OwnerType = reader.GetString("owner_type"),
                 KindType = (UnitReqsKindType)reader.GetUInt32("kind_id"),
                 Value1 = reader.GetUInt32("value1"),
-                Value2 = reader.GetUInt32("value2")
+                Value2 = reader.GetUInt32("value2"),
+                Value3 = reader.GetUInt32("value3"),
+                DisplayMessage = reader.GetBoolean("display_msg")
             };
 
             _unitReqs.TryAdd(t.Id, t);
@@ -67,8 +73,23 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
     private IEnumerable<UnitReqs> GetRequirement(string ownerType, uint ownerId)
     {
         if (!_unitReqsByOwnerType.TryGetValue(ownerType, out var unitReqsMap))
-            return null;
+            return [];
         return unitReqsMap.Where(x => x.OwnerId == ownerId);
+    }
+
+    public bool CanUseItemBag(ItemBagTemplate itemBag, Character character)
+    {
+        ArgumentNullException.ThrowIfNull(itemBag);
+        if (character == null)
+            return false;
+
+        var requirements = GetRequirement(nameof(ItemBag), itemBag.ItemBagId).ToList();
+        if (requirements.Count == 0)
+            return true;
+
+        return itemBag.OrUnitReqs
+            ? requirements.Any(requirement => requirement.Validate(character, character).ResultKey == SkillResultKeys.ok)
+            : requirements.All(requirement => requirement.Validate(character, character).ResultKey == SkillResultKeys.ok);
     }
 
     public List<UnitReqs> GetSkillRequirements(uint skillId)
@@ -131,7 +152,11 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
     /// <param name="ownerUnit"></param>
     /// <param name="skillCaster"></param>
     /// <returns></returns>
-    public UnitReqsValidationResult CanUseSkill(SkillTemplate skillTemplate, BaseUnit ownerUnit, SkillCaster skillCaster)
+    public UnitReqsValidationResult CanUseSkill(
+        SkillTemplate skillTemplate,
+        BaseUnit ownerUnit,
+        SkillCaster skillCaster,
+        SkillCastTarget skillTarget)
     {
         // Buried Treasure check, I can't seem to find any table that adds this requirement
         // Note by ZeromusXYZ:
@@ -139,7 +164,7 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
         // any tables that could be used to identify that this skill needs a check
         if (skillTemplate.Id == SkillsEnum.DigUpTreasureChestMarkedOnMap)
         {
-            var treasureMap = GetTreasureMapWithCoordinatesNearbyItem(ownerUnit as Character, 5.0);
+            var treasureMap = GetTreasureMapWithCoordinatesNearbyItem(ownerUnit as Character, skillTemplate.MaxRange);
             if (treasureMap == null)
             {
                 return new UnitReqsValidationResult(SkillResultKeys.skill_urk_own_item, 0, Item.TreasureMapWithCoordinates);
@@ -168,11 +193,18 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
         }
         // TODO: check if there are any other skill types that required to be used in a specific area of multiple quest spheres
 
-        // Needed to fix skills that can only target self (i.e. that don't apply to the target, for example glider skills),
-        // even though they use UnitReqsKindType.TargetBuffTag
+        // Unit requirements apply to the target carried by this cast. CurrentTarget is UI state and
+        // may point at another unit (or lag behind the packet), so it cannot authorize Target* kinds.
         var target = skillTemplate.TargetType == SkillTargetType.Self
             ? ownerUnit
-            : (ownerUnit as Unit)?.CurrentTarget ?? ownerUnit;
+            : skillTarget is SkillCastUnitTarget or SkillCastDoodadTarget
+                ? skillTarget.ObjId > 0
+                    ? ownerUnit?.ParentWorld?.GetBaseUnit(skillTarget.ObjId)
+                    : ownerUnit
+                : ownerUnit;
+        var targetItem = ownerUnit is Character itemOwner && skillTarget is SkillCastItemTarget itemTarget
+            ? itemOwner.Inventory.GetItemById(itemTarget.Id)
+            : null;
         
         var res = !skillTemplate.OrUnitReqs;
         var lastFailedCheckResult = new UnitReqsValidationResult(SkillResultKeys.skill_failure, 0, 0);
@@ -195,20 +227,23 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
             }
             else
             {
-                var lastCheckResult = unitReq.Validate(ownerUnit, target);
+                var lastCheckResult = unitReq.Validate(ownerUnit, target, targetItem);
                 reqRes = lastCheckResult.ResultKey == SkillResultKeys.ok;
                 if (lastCheckResult.ResultKey != SkillResultKeys.ok)
                     lastFailedCheckResult = lastCheckResult;
             }
 
-            if (skillTemplate.OrUnitReqs)
+            if (skillTemplate.OrUnitReqs && reqRes)
             {
-                // If OrUnitReqs is set, stop checking at the first hit
                 res = true;
                 break;
             }
 
-            res &= reqRes;
+            if (!skillTemplate.OrUnitReqs && !reqRes)
+            {
+                res = false;
+                break;
+            }
         }
 
         return res ? new UnitReqsValidationResult(SkillResultKeys.ok, 0, 0) : lastFailedCheckResult;
@@ -228,14 +263,17 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
             var validateRes = unitReq.Validate(ownerUnit, target);
             var reqRes = validateRes.ResultKey == SkillResultKeys.ok;
 
-            if (sphere.OrUnitReqs)
+            if (sphere.OrUnitReqs && reqRes)
             {
-                // If OrUnitReqs is set, stop checking at the first hit
                 res = true;
                 break;
             }
 
-            res &= reqRes;
+            if (!sphere.OrUnitReqs && !reqRes)
+            {
+                res = false;
+                break;
+            }
         }
         return res;
     }
@@ -252,14 +290,17 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
             var validateRes = unitReq.Validate(ownerUnit, target);
             var reqRes = validateRes.ResultKey == SkillResultKeys.ok;
 
-            if (questComponent.OrUnitReqs)
+            if (questComponent.OrUnitReqs && reqRes)
             {
-                // If OrUnitReqs is set, stop checking at the first hit
                 res = true;
                 break;
             }
 
-            res &= reqRes;
+            if (!questComponent.OrUnitReqs && !reqRes)
+            {
+                res = false;
+                break;
+            }
         }
         return res;
     }

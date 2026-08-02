@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
@@ -130,7 +130,7 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                             Condition = _conditions[condId], Position = reader.GetInt32("position"), SourceId = (PlotEffectSource)reader.GetInt32("source_id"),
                             TargetId = (PlotEffectTarget)reader.GetInt32("target_id")
                         };
-                        // TODO 1.2 // template.NotifyFailure = reader.GetBoolean("notify_failure", true);
+                        template.NotifyFailure = reader.GetBoolean("notify_failure", true);
                         var plotEvent = _eventTemplates[id];
                         if (plotEvent.Conditions.Count > 0)
                         {

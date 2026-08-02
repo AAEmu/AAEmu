@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Skills;
@@ -58,6 +59,11 @@ public class DoodadFuncUse : DoodadFuncTemplate
                 // The first try to recover the doodad will still give a error, but after that, it's free to recover by anyone.
                 owner.OwnerDbId = 0;
                 owner.OwnerId = 0;
+                owner.OwnerObjId = 0;
+                owner.ParentObjId = 0;
+                owner.ParentObj = null;
+                owner.OwnerType = DoodadOwnerType.System;
+                DoodadManager.Instance.RefreshFaction(owner);
                 Logger.Trace("Interaction failed because attached house does not exist for doodad {0}, resetting DbHouseId to public", owner.ObjId);
                 //return;
             }

@@ -1,54 +1,78 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
+/// <remarks>
+/// <c>u8 reason</c>. Despite its native name, <c>buffId</c> is the runtime buff index used by
+/// SCBuffRemoved and the unit's effect collection.
+/// </remarks>
 public class CSRemoveBuffPacket() : GamePacket(CSOffsets.CSRemoveBuffPacket, 1)
 {
-    private static bool RemoveEffect(Buff buffEffect)
-    {
-        if (buffEffect == null)
-            return false;
-        if (buffEffect.Template.Kind == BuffKind.Good)
-            buffEffect.Exit();
-        return true;
-    }
-
     public override void Read(PacketStream stream)
     {
-        var objId = stream.ReadBc();
+        var unitId = stream.ReadBc();
         var buffId = stream.ReadUInt32();
         var reason = stream.ReadByte();
 
-        // Check if it's actually the player
-        if (Connection.ActiveChar.ObjId == objId)
+        var character = Connection.ActiveChar;
+        if (character == null)
+            return;
+
+        BaseUnit target = null;
+        if (unitId == character.ObjId)
         {
-            if (RemoveEffect(Connection.ActiveChar.Buffs.GetEffectByIndex(buffId)))
+            target = character;
+        }
+        else
+        {
+            var mate = character.ParentWorld.MateManager.GetActiveMateByMateObjId(unitId);
+            if (mate?.OwnerObjId == character.ObjId)
             {
-                // Removed buff from player
-                return;
+                target = mate;
+            }
+            else
+            {
+                var slave = character.ParentWorld.SlaveManager.GetSlaveByObjId(unitId);
+                if (slave != null &&
+                    (slave.Summoner?.ObjId == character.ObjId || slave.OwnerObjId == character.ObjId))
+                {
+                    target = slave;
+                }
             }
         }
 
-        // TODO: check if player actually owns the pet
-        var mate = Connection.ActiveChar.ParentWorld.MateManager.GetActiveMates(Connection.ActiveChar.Id).FirstOrDefault(x => x.Id == objId);
-        if (mate != null)
+        if (target == null)
         {
-            if (RemoveEffect(mate.Buffs.GetEffectByIndex(buffId)))
-            {
-                // Removed buff from target pet
-                return;
-            }
+            Logger.Warn(
+                "Rejected buff removal for unit {0} from {1} ({2})",
+                unitId, character.Name, character.ObjId);
+            return;
         }
 
-        // TODO: check if player actually owns the vehicle
-        var slave = Connection.ActiveChar.ParentWorld.SlaveManager.GetSlaveByObjId(objId);
-        if (slave != null)
+        var buff = target.Buffs.GetEffectByIndex(buffId);
+        if (buff == null)
         {
-            // Removed buff from target vehicle
-            if (RemoveEffect(slave.Buffs.GetEffectByIndex(buffId))) { return; }
+            Logger.Debug(
+                "Ignored missing buff index {0} on owned unit {1} from {2}",
+                buffId, unitId, character.Name);
+            return;
         }
 
+        // Client cancellation may remove beneficial effects only; hostile effects require a dispel.
+        if (buff.Template.Kind != BuffKind.Good)
+        {
+            Logger.Warn(
+                "Rejected client cancellation of non-beneficial buff index {0} on unit {1} from {2}",
+                buffId, unitId, character.Name);
+            return;
+        }
+
+        Logger.Debug(
+            "Client buff cancellation unit={0} buffIndex={1} reason={2} character={3}",
+            unitId, buffId, reason, character.Name);
+        buff.Exit();
     }
 }

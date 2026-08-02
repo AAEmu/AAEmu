@@ -7,8 +7,6 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSCreateHousePacket() : GamePacket(CSOffsets.CSCreateHousePacket, 1)
 {
-    //
-
     public override void Read(PacketStream stream)
     {
         var designId = stream.ReadUInt32();
@@ -21,12 +19,14 @@ public class CSCreateHousePacket() : GamePacket(CSOffsets.CSCreateHousePacket, 1
         var ht = stream.ReadInt32();
         var autoUseAaPoint = stream.ReadBoolean();
 
-        Logger.Debug($"CreateHouse, Id: {designId}, X: {x}, Y: {y}, Z: {z}, ZRot: {zRot}");
+        Logger.Debug(
+            "CreateHouse, Id: {0}, X: {1}, Y: {2}, Z: {3}, ZRot: {4}, ClientMoney: {5}, ClientTax: {6}, UseAAPoint: {7}",
+            designId, x, y, z, zRot, moneyAmount, ht, autoUseAaPoint);
 
         HousingManager.Instance.Build(
             Connection,
             designId, x, y, z, zRot,
-            itemId, moneyAmount, ht, autoUseAaPoint
+            itemId, autoUseAaPoint
         );
     }
 }

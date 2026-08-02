@@ -14,15 +14,19 @@ public interface IItemManager : ILoadable
 {
     event EventHandler OnItemsLoaded;
     ItemTemplate GetTemplate(uint id);
+    int? GetShopPrice(uint itemId, ShopCurrencyType currency);
     EquipItemSet GetEquippedItemSet(uint id);
     GradeTemplate GetGradeTemplate(int grade);
     Holdable GetHoldable(uint id);
+    uint GetConstHoldableId(string name);
+    bool HasItemInstrumentSound(uint itemId);
+    bool HasItemTag(uint itemId, uint tagId);
     EquipSlotEnchantingCost GetEquipSlotEnchantingCost(uint slotTypeId);
     GradeTemplate GetGradeTemplateByOrder(int gradeOrder);
     ItemGradeEnchantingSupport GetItemGradEnchantingSupportByItemId(uint itemId);
     List<LootPackDroppingNpc> GetLootPackIdByNpcId(uint npcId);
     List<ItemTemplate> GetAllItems();
-    List<Item> GetLootConvertFish(uint templateId);
+    bool TryGetFishConversion(uint functionId, uint sourceItemId, out uint outputItemId);
     GradeDistributions GetGradeDistributions(byte id);
     uint GetSocketChance(uint numSockets);
     float GetDurabilityRepairCostFactor();
@@ -41,12 +45,16 @@ public interface IItemManager : ILoadable
     List<BonusTemplate> GetUnitModifiers(uint itemId);
     ArmorGradeBuff GetArmorGradeBuff(ArmorType type, ItemGrade grade);
     Item Create(uint templateId, int count, byte grade, bool generateId = true);
+    TItem Create<TItem>(uint templateId, int count, byte grade, bool generateId = true) where TItem : Item;
     bool AddItem(Item item);
     Item GetItemByItemId(ulong itemId);
     ItemContainer GetItemContainerForCharacter(uint characterId, SlotType slotType, Unit parentUnit, uint mateId);
     CofferContainer NewCofferContainer(uint characterId);
+    ItemBagContainer GetOrCreateItemBagContainer(ItemBag itemBag);
+    ItemBagContainer GetItemBagContainer(ulong itemId);
     ItemContainer GetItemContainerByDbId(ulong dbId);
     bool DeleteItemContainer(ItemContainer container);
+    void DiscardUnsavedCharacterState(uint characterId);
     void LoadUserItems();
     void ReleaseId(ulong itemId);
     List<Item> LoadPlayerInventory(ICharacter character);

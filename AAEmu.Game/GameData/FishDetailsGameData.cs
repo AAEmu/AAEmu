@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.FishSchools;
@@ -37,45 +37,76 @@ public class FishDetailsGameData : Singleton<FishDetailsGameData>, IGameDataLoad
         }
     }
 
-    public BigFish Create(uint templateId, int count = 1, byte grade = 0, bool generateId = true)
+    public bool HasFishDetails(uint itemId)
     {
-        //var itemTemplate = ItemManager.Instance.GetItemTemplateFromItemId(trophy.TemplateId);
-        //var newItem = ItemManager.Instance.Create(itemTemplate.Id, trophy.Count, trophy.Grade);
-        //character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Fishing, newItem);
-
-        var template = ItemManager.Instance.GetItemTemplateFromItemId(templateId); ;
-        if (template == null)
-        {
-            return null;
-        }
-
-        var newItem = ItemManager.Instance.Create(templateId, 1, 0);
-
-        var fish = new BigFish(newItem.Id, template, 1);
-        (fish.Length, fish.Weight) = GetFishSize(templateId);
-
-        return fish;
+        return _fishDetails?.ContainsKey(itemId) == true;
     }
 
-    public BigFish Create(Item item)
+    public bool TryGetMaxWeight(uint itemId, out int maxWeight)
     {
-        var template = ItemManager.Instance.GetItemTemplateFromItemId(item.TemplateId);
-        if (template == null)
-        {
+        maxWeight = 0;
+        if (_fishDetails == null || !_fishDetails.TryGetValue(itemId, out var details))
+            return false;
+
+        maxWeight = details.MaxWeight;
+        return maxWeight > 0;
+    }
+
+    public void InitializeCaughtFish(BigFish fish)
+    {
+        ArgumentNullException.ThrowIfNull(fish);
+        if (!HasFishDetails(fish.TemplateId))
+            throw new InvalidOperationException($"Item {fish.TemplateId} has no fish details");
+
+        var captureTime = DateTime.UtcNow;
+        fish.CreateTime = captureTime;
+        // The client treats the final detail qword as opaque. Retain AAEmu's established creation-time
+        // encoding without claiming a native semantic for this field.
+        fish.DetailQword = Helpers.UnixTime(captureTime);
+        (fish.Length, fish.Weight) = GetFishSize(fish.TemplateId);
+    }
+
+    public bool TryCalculateSalePrice(BigFish fish, out long price)
+    {
+        const float percentScale = 0.01f;
+
+        price = 0;
+        if (fish == null || fish.Template == null || fish.Weight < 0 || !float.IsFinite(fish.Weight) ||
+            !TryGetMaxWeight(fish.TemplateId, out var maxWeight))
+            return false;
+
+        var grade = ItemManager.Instance.GetGradeTemplate(fish.Grade);
+        if (grade == null || grade.RefundMultiplier < 0 || fish.Template.Refund < 0)
+            return false;
+
+        // then the weight ratio. Values are non-negative, so floor(x + 0.5) is the exact native rule.
+        var adjustedBaseValue = grade.RefundMultiplier * percentScale * fish.Template.Refund;
+        if (!float.IsFinite(adjustedBaseValue))
+            return false;
+        var adjustedBase = (long)MathF.Floor(adjustedBaseValue + 0.5f);
+
+        var weightedValue = (float)adjustedBase * fish.Weight / maxWeight;
+        if (!float.IsFinite(weightedValue) || weightedValue < 0)
+            return false;
+
+        price = (long)MathF.Floor(weightedValue + 0.5f);
+        return true;
+    }
+
+    public BigFish CreateTrophy(uint outputItemId, BigFish sourceFish)
+    {
+        ArgumentNullException.ThrowIfNull(sourceFish);
+        if (!HasFishDetails(sourceFish.TemplateId))
             return null;
-        }
 
-        var fish = new BigFish(item.Id, template, 1) { CreateTime = DateTime.UtcNow };
-        (fish.Length, fish.Weight) = GetFishSize(item.MadeUnitId);
+        var fish = ItemManager.Instance.Create<BigFish>(outputItemId, 1, 0);
+        if (fish == null)
+            return null;
 
-        var byteArray = new byte[16];
-        Buffer.BlockCopy(BitConverter.GetBytes(fish.Weight), 0, byteArray, 0, 4);
-        Buffer.BlockCopy(BitConverter.GetBytes(fish.Length), 0, byteArray, 4, 4);
-        Buffer.BlockCopy(BitConverter.GetBytes(Helpers.UnixTime(fish.CreateTime)), 0, byteArray, 8, 8);
-
-        fish.Detail = byteArray;
-
-        ItemManager.Instance.AddItem(fish);
+        fish.MadeUnitId = sourceFish.TemplateId;
+        fish.DetailQword = sourceFish.DetailQword;
+        fish.Length = sourceFish.Length;
+        fish.Weight = sourceFish.Weight;
 
         return fish;
     }

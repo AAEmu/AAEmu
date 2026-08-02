@@ -1,0 +1,33 @@
+{
+    "LevelRestrictions": {
+        "AuctionSearchLevel": 10,
+        "AuctionBidLevel": 10,
+        "AuctionPostLevel": 10,
+        "TradeLevel": 10,
+        "MailLevel": 10,
+        "PermissionLevel": 0,
+        "OtherLevel": 0,
+        "Chat": {
+            "White": 0,
+            "Shout": 15,
+            "Trade": 15,
+            "GroupFind": 15,
+            "Party": 0,
+            "Raid": 0,
+            "Region": 15,
+            "Clan": 0,
+            "System": 0,
+            "Family": 0,
+            "RaidLeader": 0,
+            "Judge": 0,
+            "Reserved12": 0,
+            "Reserved13": 0,
+            "Ally": 15,
+            "User": 0,
+            "Reserved16": 0,
+            "Reserved17": 0,
+            "Reserved18": 0,
+            "Reserved19": 0
+        }
+    }
+}

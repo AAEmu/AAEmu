@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -294,6 +294,9 @@ public class LootingContainer(IBaseUnit owner)
                         if (minimumDespawnTime < DateTime.UtcNow)
                             minimumDespawnTime = DateTime.UtcNow.AddSeconds(PostLootMinimumDespawnTime);
                         npc.Despawn = minimumDespawnTime;
+                        // Zone mirrors have no Spawner.DoDespawn registration — ensure the tick list has them.
+                        if (npc.Spawner == null && npc.IsZoneMirror)
+                            npc.ParentWorld?.SpawnManager?.AddDespawn(npc);
                     }
                     break;
                 default:
@@ -371,7 +374,7 @@ public class LootingContainer(IBaseUnit owner)
             {
                 player.SendErrorMessage(ErrorMessageType.NoPermissionToLoot, itemEntry.HighestRoller);
             }
-            player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.NoPermissionToLoot, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
+            player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.NoPermissionToLoot, LootOwnerType, LootOwner.ObjId, itemEntry.Item.Id));
             return false;
         }
 
@@ -380,7 +383,7 @@ public class LootingContainer(IBaseUnit owner)
         {
             if (!player.Quests.HasQuest(itemEntry.Item.Template.LootQuestId))
             {
-                player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.NeedQuestToInteract, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
+                player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.NeedQuestToInteract, LootOwnerType, LootOwner.ObjId, itemEntry.Item.Id));
                 return false;
             }
         }
@@ -437,7 +440,9 @@ public class LootingContainer(IBaseUnit owner)
                 break;
             case LootingRuleMethod.LootMaster:
                 allowLootingNow = true;
-                lootTarget = WorldManager.Instance.GetCharacterById(TeamLootingRule.LootMaster) ?? player;
+                lootTarget = TeamLootingRule.LootMaster <= uint.MaxValue
+                    ? WorldManager.Instance.GetCharacterById((uint)TeamLootingRule.LootMaster) ?? player
+                    : player;
                 // TODO: verify if looting range matters
                 break;
             case LootingRuleMethod.Public:
@@ -563,7 +568,7 @@ public class LootingContainer(IBaseUnit owner)
         if (freeSpace < itemEntry.Item.Count)
         {
             // player.SendErrorMessage(ErrorMessageType.BagFull);
-            player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
+            player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.Item.Id));
             return false;
         }
 
@@ -580,14 +585,38 @@ public class LootingContainer(IBaseUnit owner)
             // Attempt to remove the current backpack item to free up the slot.
             if (player.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
             {
-                itemEntry.Item.Id = ItemIdManager.Instance.GetNextId();
+                var acquiredItem = ItemManager.Instance.Create(
+                    itemEntry.Item.TemplateId,
+                    itemEntry.Item.Count,
+                    itemEntry.Item.Grade);
+                if (acquiredItem == null)
+                {
+                    player.SendPacket(new SCLootItemFailedPacket(
+                        ErrorMessageType.Invalid,
+                        LootOwnerType,
+                        LootOwner.ObjId,
+                        itemEntry.Item.Id));
+                    return false;
+                }
+
+                // Loot generation already chose the caught fish measurements shown to the player.
+                // Preserve those values when replacing the synthetic loot-container ID with a persistent item.
+                if (itemEntry.Item is BigFish generatedFish && acquiredItem is BigFish caughtFish)
+                {
+                    caughtFish.DetailQword = generatedFish.DetailQword;
+                    caughtFish.Length = generatedFish.Length;
+                    caughtFish.Weight = generatedFish.Weight;
+                }
+
                 // Try to add the new item to the Equipment container's Backpack slot.
-                if (!player.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, itemEntry.Item, (int)EquipmentItemSlot.Backpack))
+                if (!player.Inventory.Equipment.AddOrMoveExistingItem(
+                        ItemTaskType.RecoverDoodadItem,
+                        acquiredItem,
+                        (int)EquipmentItemSlot.Backpack))
                 {
                     // If adding fails, release the item ID and restore original.
-                    ItemIdManager.Instance.ReleaseId((uint)itemEntry.Item.Id);
-                    itemEntry.Item.Id = fullOldItemId;
-                    player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
+                    ItemManager.Instance.ReleaseId(acquiredItem.Id);
+                    player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.Item.Id));
                     return false;
                 }
                 else
@@ -598,7 +627,7 @@ public class LootingContainer(IBaseUnit owner)
             else
             {
                 Logger.Warn("AutoEquipTradePack: Failed to take off backpack for auto-equip tradepack item TemplateId={0}.", itemEntry.Item.TemplateId);
-                player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
+                player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.Item.Id));
                 return false;
             }
         }
@@ -614,7 +643,7 @@ public class LootingContainer(IBaseUnit owner)
                 itemEntry.Item.Id = fullOldItemId;
                 // Send a bag full fail message
                 // player.SendErrorMessage(ErrorMessageType.BagFull);
-                player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.ItemIndex, itemEntry.Item.TemplateId));
+                player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.Item.Id));
                 return false;
             }
         }

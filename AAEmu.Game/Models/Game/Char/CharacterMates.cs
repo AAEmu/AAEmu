@@ -87,6 +87,7 @@ public class CharacterMates(Character owner)
             ModelId = template.ModelId,
             Faction = Owner.Faction,
             Level = (byte)mateDbInfo.Level,
+            MateType = MateGameData.Instance.GetMateType((uint)template.MateEquipSlotPackId),
             Hp = mateDbInfo.Hp > 0 ? mateDbInfo.Hp : 100,
             Mp = mateDbInfo.Mp > 0 ? mateDbInfo.Mp : 100,
             OwnerObjId = Owner.ObjId,

@@ -1,4 +1,4 @@
-﻿namespace AAEmu.Game.Core.Packets.C2G;
+namespace AAEmu.Game.Core.Packets.C2G;
 
 public static class CSOffsets
 {
@@ -9,11 +9,11 @@ public static class CSOffsets
     public const ushort CSLeaveWorldPacket = 0x001;
     public const ushort CSCancelLeaveWorldPacket = 0x002;
     public const ushort CSCreateExpeditionPacket = 0x004;
-    public const ushort CSChangeExpeditionSponsorPacket = 0x005; // TODO : this packet seems like it has been removed.
+    public const ushort CSChangeExpeditionSponsorPacket = 0x005;
     public const ushort CSChangeExpeditionRolePolicyPacket = 0x006;
     public const ushort CSChangeExpeditionMemberRolePacket = 0x007;
     public const ushort CSChangeExpeditionOwnerPacket = 0x008;
-    public const ushort CSRenameExpeditionPacket = 0xFFF;
+    public const ushort CSRenameExpeditionPacket = 0x009;  // Client declares this as CSRenameFactionPacket; it fills the 0x009 gap in the expedition block.
     public const ushort CSDismissExpeditionPacket = 0x00B;
     public const ushort CSInviteToExpeditionPacket = 0x00C;
     public const ushort CSReplyExpeditionInvitationPacket = 0x00D;
@@ -21,18 +21,12 @@ public static class CSOffsets
     public const ushort CSKickFromExpeditionPacket = 0x00F;
     // 0x10 unk packet
     public const ushort CSUpdateDominionTaxRatePacket = 0x01A;
-    public const ushort CSFactionImmigrationInvitePacket = 0xFFF;
-    public const ushort CSFactionImmigrationInviteReplyPacket = 0xFFF;
-    public const ushort CSFactionImmigrateToOriginPacket = 0xFFF;
-    public const ushort CSFactionKickToOriginPacket = 0xFFF;
-    public const ushort CSFactionDeclareHostilePacket = 0xFFF;
     public const ushort CSFamilyInviteMemberPacket = 0x03D;
     public const ushort CSFamilyReplyInvitationPacket = 0x03E;
     public const ushort CSFamilyLeavePacket = 0x03F;
     public const ushort CSFamilyKickPacket = 0x040;
     public const ushort CSFamilyChangeTitlePacket = 0x041;
     public const ushort CSFamilyChangeOwnerPacket = 0x042;
-    public const ushort CSListCharacterPacket = 0xFFF;
     public const ushort CSRefreshInCharacterListPacket = 0x048;
     public const ushort CSCreateCharacterPacket = 0x049;
     public const ushort CSEditCharacterPacket = 0x04A;
@@ -51,7 +45,7 @@ public static class CSOffsets
     public const ushort CSDestroySlavePacket = 0x05D;
     public const ushort CSBindSlavePacket = 0x05E;
     public const ushort CSDiscardSlavePacket = 0x05F;
-    public const ushort CSChangeSlaveTargetPacket = 0x060; // TODO: this packet is not in the offsets
+    public const ushort CSChangeSlaveTargetPacket = 0x060;
     public const ushort CSChangeSlaveNamePacket = 0x061;
     public const ushort CSRepairSlaveItemsPacket = 0x062;
     public const ushort CSTurretStatePacket = 0x063;
@@ -67,8 +61,8 @@ public static class CSOffsets
     public const ushort CSSellBackpackGoodsPacket = 0x06F;
     public const ushort CSSpecialtyRatioPacket = 0x070;
     public const ushort CSListSpecialtyGoodsPacket = 0x071;
-    public const ushort CSBuySpecialtyItemPacket = 0x072; // TODO: this packet is not in the offsets
-    public const ushort CSSpecialtyRecordLoadPacket = 0x075; // TODO: this packet is not in the offsets
+    public const ushort CSBuySpecialtyItemPacket = 0x072;
+    public const ushort CSSpecialtyRecordLoadPacket = 0x075;
     public const ushort CSDepositMoneyPacket = 0x076;
     public const ushort CSWithdrawMoneyPacket = 0x077;
     public const ushort CSConvertItemLookPacket = 0x078;
@@ -77,7 +71,6 @@ public static class CSOffsets
     public const ushort CSEquipmentsSecurePacket = 0x07D;
     public const ushort CSEquipmentsUnsecurePacket = 0x07E;
     public const ushort CSResurrectCharacterPacket = 0x082;
-    public const ushort CSSetForceAttackPacket = 0xFFF;
     public const ushort CSChallengeDuelPacket = 0x084;
     public const ushort CSStartDuelPacket = 0x085;
     public const ushort CSStartSkillPacket = 0x086;
@@ -88,7 +81,6 @@ public static class CSOffsets
     public const ushort CSDecorateHousePacket = 0x08D;
     public const ushort CSChangeHouseNamePacket = 0x08E;
     public const ushort CSChangeHousePermissionPacket = 0x08F;
-    public const ushort CSChangeHousePayPacket = 0xFFF; // TODO: this packet is not in the offsets
     public const ushort CSRequestHouseTaxPacket = 0x090;
     // 0x5c unk packet
     public const ushort CSAllowHousingRecoverPacket = 0x092;
@@ -99,6 +91,8 @@ public static class CSOffsets
     public const ushort CSLeaveChatChannelPacket = 0x097;
     public const ushort CSSendChatMessagePacket = 0x098;
     public const ushort CSConsoleCmdUsedPacket = 0x09A;
+    public const ushort CSGmCommandPacket = 0x10A; // 10.0.2.13 — real X2Gm / gm_console
+    public const ushort CSGmNoticePacket = 0x10B; // 10.0.2.13 — X2Gm:NoticeEx
     public const ushort CSInteractNPCPacket = 0x09B;
     public const ushort CSInteractNPCEndPacket = 0x09C;
     public const ushort CSBoardingTransferPacket = 0x09D;
@@ -123,7 +117,6 @@ public static class CSOffsets
     public const ushort CSLeaveTeamPacket = 0x0B4;
     public const ushort CSKickTeamMemberPacket = 0x0B5;
     public const ushort CSMakeTeamOwnerPacket = 0x0B6;
-    public const ushort CSSetTeamOfficerPacket = 0xFFF; // TODO: this packet is not in the offsets 
     public const ushort CSConvertToRaidTeamPacket = 0x0B7;
     public const ushort CSMoveTeamMemberPacket = 0x0B8;
     public const ushort CSChangeLootingRulePacket = 0x0BA;
@@ -136,7 +129,6 @@ public static class CSOffsets
     public const ushort CSSkillControllerStatePacket = 0x0C9;
     public const ushort CSCreateSkillControllerPacket = 0x0CA;
     public const ushort CSActiveWeaponChangedPacket = 0x0CB;
-    public const ushort CSChangeItemLookPacket = 0xFFF; // TODO: this packet is not in the offsets 
     public const ushort CSLootOpenBagPacket = 0x0CE;
     public const ushort CSLootItemPacket = 0x0CF;
     public const ushort CSLootCloseBagPacket = 0x0D0;
@@ -155,8 +147,7 @@ public static class CSOffsets
     public const ushort CSTakeAttachmentSequentially = 0x0E1;
     public const ushort CSPayChargeMoneyPacket = 0x0E2;
     public const ushort CSDeleteMailPacket = 0x0E3;
-    public const ushort CSReportSpamPacket = 0xFFF;
-    public const ushort CSReturnMailPacket = 0x0E4; // TODO: this packet is not in the offsets 
+    public const ushort CSReturnMailPacket = 0x0E4;
     public const ushort CSRemoveMatePacket = 0x0E5;
     public const ushort CSChangeMateTargetPacket = 0x0E6;
     public const ushort CSChangeMateNamePacket = 0x0E7;
@@ -168,11 +159,8 @@ public static class CSOffsets
     // 0xac unk packet
     public const ushort CSExpressEmotionPacket = 0x0EE;
     public const ushort CSBuyItemsPacket = 0x0F0;
-    public const ushort CSBuyCoinItemPacket = 0xFFF;
     public const ushort CSSellItemsPacket = 0x0F2;
     public const ushort CSListSoldItemPacket = 0x0F3;
-    public const ushort CSBuyPriestBuffPacket = 0xFFF;
-    public const ushort CSUseTeleportPacket = 0xFFF;
     public const ushort CSTeleportEndedPacket = 0x0F5;
     public const ushort CSRepairPetItemsPacket = 0x0F6;
     public const ushort CSUpdateActionSlotPacket = 0x0F7;
@@ -191,7 +179,7 @@ public static class CSOffsets
     public const ushort CSUnbondDoodadPacket = 0x10F;
     public const ushort CSCompletedCinemaPacket = 0x110;
     public const ushort CSStartedCinemaPacket = 0x111;
-    public const ushort CSRequestPermissionToPlayCinemaForDirectingMode = 0xFFF;
+    public const ushort CSRequestPermissionToPlayCinemaForDirectingMode = 0x112;
     //0xd1 CSEditorRemoveGimmickPacket
     //0xd2 CSEditorAddGimmickPacket
     //0xd3 CSInteractGimmickPacket
@@ -199,8 +187,8 @@ public static class CSOffsets
     public const ushort CSStartQuestContextPacket = 0x117;
     public const ushort CSCompleteQuestContextPacket = 0x118;
     public const ushort CSDropQuestContextPacket = 0x119;
-    public const ushort CSResetQuestContextPacket = 0x11A; // TODO: this packet is not in the offsets 
-    public const ushort CSAcceptCheatQuestContextPacket = 0x11B; // TODO: this packet is not in the offsets 
+    public const ushort CSResetQuestContextPacket = 0x11A;
+    public const ushort CSAcceptCheatQuestContextPacket = 0x11B;
     public const ushort CSQuestTalkMadePacket = 0x11C;
     public const ushort CSQuestStartWithPacket = 0x11D;
     public const ushort CSTryQuestCompleteAsLetItDonePacket = 0x11F;
@@ -209,18 +197,14 @@ public static class CSOffsets
     public const ushort CSInstanceLoadedPacket = 0x125;
     public const ushort CSApplyToInstantGamePacket = 0x126;
     public const ushort CSCancelInstantGamePacket = 0x127;
-    public const ushort CSJoinInstantGamePacket = 0xFFF;
-    public const ushort CSEnteredInstantGameWorldPacket = 0xFFF;
     public const ushort CSLeaveInstantGamePacket = 0x12A;
     // Client re-entry check, sent fire-and-forget in char-list/char-select/in-world. The reference server
     // sends no response; handled as a no-op to stop the "Unknown packet 0x12e" log spam.
     public const ushort CSReentryCheckPacket = 0x12E;
     public const ushort CSCreateDoodadPacket = 0x131;
-    public const ushort CSSaveDoodadUccStringPacket = 0xFFF; // TODO: this packet is not in the offsets 
     public const ushort CSNaviTeleportPacket = 0x132;
     public const ushort CSNaviOpenPortalPacket = 0x133;
     public const ushort CSChangeDoodadPhasePacket = 0x134;
-    public const ushort CSNaviOpenBountyPacket = 0xFFF;
     public const ushort CSChangeDoodadDataPacket = 0x135;
     public const ushort CSStartTradePacket = 0x139;
     public const ushort CSCanStartTradePacket = 0x13A;
@@ -242,34 +226,28 @@ public static class CSOffsets
     public const ushort CSUpgradeExpertLimitPacket = 0x151;
     public const ushort CSDowngradeExpertLimitPacket = 0x152;
     public const ushort CSExpandExpertPacket = 0x153;
-    public const ushort CSSearchListPacket = 0x157; // TODO: this packet is not in the offsets 
-    public const ushort CSAddFriendPacket = 0xFFF;
+    public const ushort CSSearchListPacket = 0x157;
     public const ushort CSDeleteFriendPacket = 0x159;
     public const ushort CSCharDetailPacket = 0x15A;
     public const ushort CSAddBlockedUserPacket = 0x15B;
     public const ushort CSDeleteBlockedUserPacket = 0x15C;
-    public const ushort CSRequestCommonFarmList = 0xFFF;
+    public const ushort CSRequestCommonFarmList = 0x15F;
     public const ushort CSNotifySubZonePacket = 0x165;
     public const ushort CSResturnAddrsPacket = 0x168;
     public const ushort CSRequestUIDataPacket = 0x16D;
     public const ushort CSSaveUIDataPacket = 0x16E;
     public const ushort CSBroadcastVisualOptionPacket = 0x16F;
+    public const ushort CSBroadcastOpenEquipInfoPacket = 0x170;
     public const ushort CSRestrictCheckPacket = 0x172;
     public const ushort CSICSMenuListPacket = 0x173;
-    public const ushort CSICSGoodsListPacket = 0xFFF;
-    public const ushort CSICSBuyGoodPacket = 0xFFF;
+    public const ushort CSICSBuyGoodPacket = 0x174;
     public const ushort CSICSMoneyRequestPacket = 0x175;
     public const ushort CSSendUserMusicPacket = 0x177;
     public const ushort CSSaveUserMusicNotesPacket = 0x178;
     public const ushort CSRequestMusicNotesPacket = 0x179;
-    public const ushort CSEndMusicPacket = 0xFFF; // tentative name
-    public const ushort CSExitBeautySalonPacket = 0xFFF;
     public const ushort CSBeautyshopDataPacket = 0x185;
-    public const ushort CSEnterBeautySalonPacket = 0xFFF;
-    public const ushort CSRankCharacterPacket = 0xFFF;
     public const ushort CSRequestSecondPasswordKeyTablesPacket = 0x17F;
     // 0x130 CSRankSnapshotPacket
-    public const ushort CSRequestSpecialtyCurrentPacket = 0xFFF;
     public const ushort CSIdleStatusPacket = 0x18E;
     // 0x133 CSChangeAutoUseAAPointPacket
     public const ushort CSThisTimeUnpackItemPacket = 0x190;
@@ -283,13 +261,257 @@ public static class CSOffsets
     public const ushort CSPremiumServiceMsgPacket = 0x197;
     // 0x13d unk packet
     // 0x13e unk packet
-    public const ushort CSUnknownInstancePacket = 0xFFF;
     // 0x13f unk packet
-    public const ushort CSSetupSecondPassword = 0xFFF;
     // 0x141 unk packet
     // 0x142 unk packet
 
+    public const ushort CSProtectSensitiveOperation = 0x19A;
+    public const ushort CSSecurityReportPacket = 0x1AD;
+    public const ushort CSRequestMonitorNpcsInfoPacket = 0x1B9; // 10.0.2.13
+    public const ushort CSRaidRecruitListPacket = 0x1CB;
+    public const ushort CSUIContentTogglePacket = 0x1E4;
+    public const ushort CSInvokeItemSelectiveItemEffectPacket = 0x1BB;
+
     // no such packets
-    public const ushort CSUpdateNationalTaxRatePacket = 0xFFF;
-    public const ushort CSSetCraftingPayPacket = 0xFFF;
+
+    // Ids for packet types the 10.0.2.13 client declares that this file did not. Recovered
+    public const ushort CSActivateHeirSkillPacket = 0x1C4;
+    public const ushort CSAddAccountAttendancePacket = 0x1B0;
+    public const ushort CSAddInstanceVisitCountPacket = 0x12B;
+    public const ushort CSAddResidentChargePacket = 0x020;
+    public const ushort CSAddResidentServicePointPacket = 0x1E;
+    public const ushort CSAnswerZonePermissionPacket = 0x058;
+    public const ushort CSArchePassBuyPacket = 0x1FB;
+    public const ushort CSArchePassChangeMissionPacket = 0x1FD;
+    public const ushort CSArchePassGetRewardItemPacket = 0x1F8;
+    public const ushort CSArchePassNormalCompletePacket = 0x1FE;
+    public const ushort CSArchePassRemovePacket = 0x1F9;
+    public const ushort CSArchePassStartPacket = 0x1FA;
+    public const ushort CSBeautyshopBypassPacket = 0x186;
+    public const ushort CSBlessUthstinApplyStatsPacket = 0x1C0;
+    public const ushort CSBlessUthstinConsumeApplyStatsPacket = 0x1BF;
+    public const ushort CSBlessUthstinCopyPagePacket = 0x1C2;
+    public const ushort CSBlessUthstinInitStatsPacket = 0x1BD;
+    public const ushort CSBlockInstancePacket = 0x1E3;
+    public const ushort CSCancelCraftOrderPacket = 0x148;
+    public const ushort CSChangeSecondPasswordPacket = 0x181;
+    public const ushort CSChangeSquadMemberRolePacket = 0x1E0;
+    public const ushort CSCharacterPrivacyStatusUpdatePacket = 0x20A;
+    public const ushort CSChargeButlerWorldResourcePacket = 0x1F5;
+    public const ushort CSCheckSecondPasswordPacket = 0x183;
+    public const ushort CSChronicleInfoBuyPacket = 0x200;
+    public const ushort CSClearSecondPasswordPacket = 0x182;
+    public const ushort CSCofferSubbagOpenPacket = 0x0A3;
+    public const ushort CSContentRosterMemberListPacket = 0x203;
+    public const ushort CSCreateSecondPasswordPacket = 0x180;
+    public const ushort CSDeclareExpeditionWarPacket = 0x010;
+    public const ushort CSDelegateSquadLeaderPacket = 0x1E5;
+    public const ushort CSDeleteAbilitySetPacket = 0xD8;
+    public const ushort CSDeleteExpeditionPortalPacket = 0x209;
+    public const ushort CSDoodadItemChangerPacket = 0x136;
+    public const ushort CSDoodadPurchaseItemPacket = 0xF1;
+    public const ushort CSDoodadQuestNotiPacket = 0x137;
+    public const ushort CSEnsembleMidiBinReadyPacket = 0x17D;
+    public const ushort CSEnterSysInstancePacket = 0x198;
+    public const ushort CSExpeditionApplicantDelPacket = 0x35;
+    public const ushort CSExpeditionBuffGradePacket = 0x018;
+    public const ushort CSExpeditionBuffPacket = 0x16;
+    public const ushort CSExpeditionExpAddPacket = 0x02C;
+    public const ushort CSExpeditionInterestUpatePacket = 0x02F;
+    public const ushort CSExpeditionLevelUpPacket = 0x02D;
+    public const ushort CSExpeditionRecruitmentAddPacket = 0x31;
+    public const ushort CSExpeditionRecruitmentsGetPacket = 0x030;
+    public const ushort CSExpelSquadMemberPacket = 0x1E1;
+    public const ushort CSFactionMobilizationOrderPacket = 0x027;
+    public const ushort CSFactionRelationRequestPacket = 0x2A;
+    public const ushort CSFactionRelationResponsePacket = 0x2B;
+    public const ushort CSFakeBuySpecialtyItemPacket = 0x74;
+    public const ushort CSFakeSellSpecialtyItemPacket = 0x73;
+    public const ushort CSFamilyChangeMemberRolePacket = 0x46;
+    public const ushort CSFireNuonsArrowPacket = 0x023;
+    public const ushort CSFollowAskPacket = 0x0CC;
+    public const ushort CSForceDailyResetPacket = 0x59;
+    public const ushort CSFriendAcceptPacket = 0x20E;
+    public const ushort CSFriendCancelPacket = 0x20D;
+    public const ushort CSGMSiegeRaidTeamCreatePacket = 0x1E8;
+    public const ushort CSGameSchedulePacket = 0x187;
+    public const ushort CSGetResidentInfoPacket = 0x01D;
+    public const ushort CSHeroAbstainPacket = 0x1A6;
+    public const ushort CSHeroAllScorePacket = 0x1A8;
+    public const ushort CSHeroGiveDominionPointPacket = 0x1A9;
+    public const ushort CSHeroRankingListPacket = 0x1A4;
+    public const ushort CSHousingTradeListPacket = 0x1C6;
+    public const ushort CSHousingUccApplyPacket = 0x1E7;
+    public const ushort CSICSBuyAAPointPacket = 0x193;
+    public const ushort CSIndunDirectTelPacket = 0x1A2;
+    public const ushort CSInstantTimePacket = 0x1AC;
+    public const ushort CSInvitationAnswerPacket = 0x128;
+    public const ushort CSItemTaskConfirmPacket = 0x7A;
+    public const ushort CSItemUccPacket = 0x16C;
+    public const ushort CSJoinSquadMemberPacket = 0x1DB;
+    public const ushort CSMakeTeamOfficerPacket = 0x1EB;
+    public const ushort CSPickBuffInstantGamePacket = 0x12C;
+    public const ushort CSPlaceAreaShapePacket = 0x162;
+    public const ushort CSPlaceAreaSpheresPacket = 0x161;
+    public const ushort CSPlaceCommonFarmPacket = 0x164;
+    public const ushort CSPlotAuctionExitPacket = 0x217;
+    public const ushort CSPlotAuctionPlaceBidPacket = 0x216;
+    public const ushort CSPlotAuctionQueryInfoPacket = 0x218;
+    public const ushort CSPostCraftOrderPacket = 0x147;
+    public const ushort CSPrepayHouseTaxPacket = 0x091;
+    public const ushort CSQuizResponsePacket = 0x19F;
+    public const ushort CSRaidApplicantAcceptPacket = 0x1D0;
+    public const ushort CSRaidApplicantAcceptReplyPacket = 0x1D1;
+    public const ushort CSRaidApplicantAddPacket = 0x1CE;
+    public const ushort CSRaidApplicantDelPacket = 0x1CF;
+    public const ushort CSRaidApplicantListPacket = 0x1D3;
+    public const ushort CSRaidApplicantRejectPacket = 0x1D2;
+    public const ushort CSRaidRecruitDetailPacket = 0x1CD;
+    public const ushort CSRaidRecruitOptionPacket = 0x1CC;
+    public const ushort CSRandomShopInfoPacket = 0x206;
+    public const ushort CSRankRewardSnapshotPacket = 0x18A;
+    public const ushort CSRankSnapshotPacket = 0x189;
+    public const ushort CSRebuildHouseTaxInfoPacket = 0x1AB;
+    public const ushort CSReentryReponsePacket = 0x12D;
+    public const ushort CSRenameCharacterByItemPacket = 0x1D6;
+    public const ushort CSReopenRandomBoxRefreshPacket = 0x210;
+    public const ushort CSRequestButlerHarvestJobPacket = 0x1F4;
+    public const ushort CSRequestButlerSpecialtyTradeJobPacket = 0x1F7;
+    public const ushort CSRequestCraftOrderFeePacket = 0x149;
+    public const ushort CSRequestCraftOrderItemsPacket = 0x14A;
+    public const ushort CSRequestDominionSummaryPacket = 0x01C;
+    public const ushort CSRequestSysInstanceIndexPacket = 0x199;
+    public const ushort CSResetTodayAssignmentPacket = 0x122;
+    public const ushort CSSailingActivityEnterPacket = 0x212;
+    public const ushort CSSailingActivityLeavePacket = 0x213;
+    public const ushort CSSailingActivityRequestDataPacket = 0x215;
+    public const ushort CSSaveAbilitySetPacket = 0x0D7;
+    public const ushort CSSearchAuctionSoldRecordPacket = 0xFE;
+    public const ushort CSSetAccountPrivilegePacket = 0x10C;
+    public const ushort CSSetAppellationStampPacket = 0x14D;
+    public const ushort CSShowCommonFarmAreaPacket = 0x15E;
+    public const ushort CSShowQuestAreaPacket = 0x15D;
+    public const ushort CSShowResidentChargeBalancePacket = 0x01F;
+    public const ushort CSShowResidentMembersPacket = 0x021;
+    public const ushort CSSiegeRaidRegisterAckPacket = 0x1E9;
+    public const ushort CSSpecialtyCurrentLoadPacket = 0x18D;
+    public const ushort CSSpecialtyPacket = 0x188;
+    public const ushort CSTakeScheduleItemPacket = 0x196;
+    public const ushort CSTeamJointBreakPacket = 0x0C5;
+    public const ushort CSTeamJointPacket = 0x0C4;
+    public const ushort CSUnbindEquipBindedPacket = 0x07F;
+    public const ushort CSUnlockLearnSkillPacket = 0xD9;
+    public const ushort CSUpdateFavoriteCraftsPacket = 0x14B;
+    public const ushort CSUpdateTabNameByAboxResponsePacket = 0x171;
+    public const ushort CSVoteReputationPacket = 0x1A3;
+    public const ushort CSWorldRayCastingPacket = 0x116;
+
+    // Recovered from the 10.0.2.13 client in this pass: opcode from the client's own
+    public const ushort CSRequestDominionDataPacket = 0x01B;
+    public const ushort CSFactionIssuanceOfMobilizationOrderPacket = 0x026;
+    public const ushort CSRefreshBotCheckInfoPacket = 0x056;
+    public const ushort CSAnswerBotCheckInfoPacket = 0x057;
+    public const ushort CSReportSpammerPacket = 0x099;
+    public const ushort CSTeamHandOverOwnerResponsePacket = 0x0C0;
+    public const ushort CSTeamOwnerOfferResponsePacket = 0x0C1;
+    public const ushort CSChangeClientNpcTargetPacket = 0x0EC;
+    public const ushort CSRemoveClientNpcPacket = 0x0ED;
+    public const ushort CSRemoveAllDoodadFromCell = 0x101;
+    public const ushort CSAddDoodadToCellEndedPacket = 0x103;
+    public const ushort CSSetDoodadTimeAccel = 0x104;
+    public const ushort CSRemoveAllFieldSlaves = 0x108;
+    public const ushort CSEditorRemoveGimmickPacket = 0x113;
+    public const ushort CSInteractGimmickPacket = 0x115;
+    public const ushort CSRequestTodayAssignmentPacket = 0x120;
+    public const ushort CSEnterInstantGamePacket = 0x129;
+    public const ushort CSInstantLeaveUserListRequest = 0x12F;
+    public const ushort CSBanVoteRequestPacket = 0x130;
+    public const ushort CSRemoveAreaSpheresPacket = 0x160;
+    public const ushort CSRemoveCommonFarmsPacket = 0x163;
+    public const ushort CSPauseUserMusicPacket = 0x17A;
+    public const ushort CSLeaveBeautyshopPacket = 0x184;
+    public const ushort CSRankPersonalDataPacket = 0x18B;
+    public const ushort CSChangeAutoUseAAPointPacket = 0x18F;
+    public const ushort CSRequestSkipClientDrivenIndunPacket = 0x195;
+    public const ushort CSCancelSensitiveOperationVerify = 0x19B;
+    public const ushort CSHeroCandidateListPacket = 0x1A5;
+    public const ushort CSHeroVotingPacket = 0x1A7;
+    public const ushort CSRepresentCharacter = 0x1AF;
+    public const ushort CSFriendRequestPacket = 0x20C;
+    public const ushort CSReopenRandomBoxGetItemPacket = 0x211;
+
+    // does not name these), layouts from each type's own serializer.
+    public const ushort CSExpeditionWarKillScorePacket = 0x012;
+    public const ushort CSRequestExpeditionHistoriesPacket = 0x013;
+    public const ushort CSReqExpdWarHistoriesPacket = 0x014;
+    public const ushort CSCancelExpeditionProtectionPacket = 0x015;
+    public const ushort CSExpeditionBuffUnitPacket = 0x017;
+    public const ushort CSShowResidentZoneGroupsPacket = 0x022;
+    public const ushort CSResidentBalanceAllPacket = 0x024;
+    public const ushort CSFactionRelationHistoryGetPacket = 0x028;
+    public const ushort CSFactionRelationCountGetPacket = 0x029;
+    public const ushort CSExpeditionNoticeUpatePacket = 0x02E;
+    public const ushort CSExpeditionRecruitmentDelPacket = 0x032;
+    public const ushort CSExpeditionApplicantsGetPacket = 0x033;
+    public const ushort CSExpeditionApplicantAddPacket = 0x034;
+    public const ushort CSExpeditionApplicantAcceptPacket = 0x036;
+    public const ushort CSExpeditionApplicantRejectPacket = 0x037;
+    public const ushort CSExpeditionSummonGetPacket = 0x038;
+    public const ushort CSExpeditionSummonReplyPacket = 0x039;
+    public const ushort CSFamilyNameSetPacket = 0x043;
+    public const ushort CSFamilyNoticeSetPacket = 0x044;
+    public const ushort CSFamilyIncreaseMemberPacket = 0x045;
+    public const ushort CSResetVisualRacePacket = 0x05A;
+    public const ushort CSTeamTestRaidCreatePacket = 0x0C2;
+    public const ushort CSTeamJointInfoPacket = 0x0C3;
+    public const ushort CSTeamSummonGetPacket = 0x0C6;
+    public const ushort CSTeamSummonReplyPacket = 0x0C7;
+    public const ushort CSFollowRespPacket = 0x0CD;
+    public const ushort CSExpandAbilitySetSlotPacket = 0x0D6;
+    public const ushort CSHeroDropoutComebackAccept = 0x0EF;
+    public const ushort CSChangeDiceBidRulePacket = 0x100;
+    public const ushort CSGetDoodadManikinSkin = 0x107;
+    public const ushort CSTodayAssignmentAcceptAllPacket = 0x121;
+    public const ushort CSCleanupGardenPacket = 0x138;
+    public const ushort CSSearchCraftOrderPacket = 0x146;
+    public const ushort CSRunZoneCommand = 0x156;
+    public const ushort CSICSBuyCountRequestPacket = 0x176;
+    public const ushort CSEnsembleAcceptPacket = 0x17C;
+    public const ushort CSEnsembleRejectPacket = 0x17E;
+    public const ushort CSRankRankerAppearance = 0x18C;
+    public const ushort CSAntibotTransferWorldPacket = 0x19E;
+    public const ushort CSLoadAccountAttendancePacket = 0x1B1;
+    public const ushort CSAddReportBadUser = 0x1B2;
+    public const ushort CSRequestBadUserList = 0x1B3;
+    public const ushort CSReportBadwordUser = 0x1B4;
+    public const ushort CSReportSpamMailPacket = 0x1B5;
+    public const ushort CSRevenueSanction = 0x1B6;
+    public const ushort CSRequestEventInfoCountPacket = 0x1B7;
+    public const ushort CSRequestEventMainInfoPacket = 0x1B8;
+    public const ushort CSBlessUthstinExtendMaxStatsPacket = 0x1BE;
+    public const ushort CSBlessUthstinExpandPagePacket = 0x1C1;
+    public const ushort CSHeirLevlUpPacket = 0x1C3;
+    public const ushort CSResetHeirSkillPacket = 0x1C5;
+    public const ushort CSDepartToForeignServerPacket = 0x1C7;
+    public const ushort CSArrivedFromAbroadPacket = 0x1C8;
+    public const ushort CSRaidRecruitDelPacket = 0x1CA;
+    public const ushort CSEquipSlotReinforceLevelUpPacket = 0x1D4;
+    public const ushort CSDisbandSquadPacket = 0x1D9;
+    public const ushort CSRefuseSquadInvitation = 0x1DC;
+    public const ushort CSLeaveSquadMemberPacket = 0x1DD;
+    public const ushort CSIgnoreMinGameSizePacket = 0x1E2;
+    public const ushort CSChangeSquadOpenTypePacket = 0x1E6;
+    public const ushort CSSiegeRaidRegisterListRequestPacket = 0x1EA;
+    public const ushort CSSiegeRaidTeamInfoRequest = 0x1EC;
+    public const ushort CSAllSiegeRaidTeamInfoRequest = 0x1ED;
+    public const ushort CSNextSiegeInfoPacket = 0x1EE;
+    public const ushort CSTakeReturnAccountItemPacket = 0x1EF;
+    public const ushort CSUnbindButlerPacket = 0x1F0;
+    public const ushort CSExpandButlerUsableSlotPacket = 0x1F3;
+    public const ushort CSChangeButlerNamePacket = 0x1F6;
+    public const ushort CSArchePassUpgradePacket = 0x1FC;
+    public const ushort CSShowCurrentWorld = 0x1FF;
+    public const ushort CSContentRosterSavePacket = 0x202;
+    public const ushort CSRandomShopInfoRefreshPacket = 0x207;
+    public const ushort CSSelectInstanceDifficultPacket = 0x208;
 }

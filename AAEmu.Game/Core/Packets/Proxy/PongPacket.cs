@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.Proxy;
 /// </summary>
 public class PongPacket(long tm, long when, uint local) : GamePacket(PPOffsets.PongPacket, 2)
 {
-    public override PacketLogLevel LogLevel => PacketLogLevel.Off; // keepalive — keep out of logs
+    public override PacketLogLevel LogLevel => PacketLogLevel.Info;
 
     private readonly uint _world = (uint)(Environment.TickCount & int.MaxValue);
 

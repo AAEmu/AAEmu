@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Items.Templates;
 
@@ -14,13 +14,12 @@ public class EquipItem : Item
     public ushort TemperPhysical { get; set; }
     public ushort TemperMagical { get; set; }
 
-    // v10 equipment-detail fields (Item_SerializeDetail case 1).
     public ushort EvolveChance { get; set; }
     public DateTime ChargeProcTime { get; set; } = DateTime.MinValue;
     public byte MappingFailBonus { get; set; }
     public byte ElementLevel { get; set; }
     // 18-value gem/socket block carried by the pish/pisc codec. The per-value semantics (which entries are
-    // GemIds/Temper) still need the in-memory gem struct decoded; meanwhile this round-trips byte-correct.
+    // GemIds/Temper) still need RE of the in-memory gem struct; meanwhile this round-trips byte-correct.
     public uint[] GemData { get; set; }
 
     public virtual int Str => 0;
@@ -86,13 +85,12 @@ public class EquipItem : Item
         ChargeUseSkillTime = stream.ReadDateTime(); // v10: new trailing field
     }
 
-    // v10 equipment detail (Item_SerializeDetail case 1): 8 fixed fields then an
     // 18-value pish/pisc gem block. Variable length — replaces the v1.2 fixed 55-byte blob. NOTE: this is
     // the same serializer used to persist the items.details blob, so the DB detail format is now v10.
     public override void ReadDetails(PacketStream stream)
     {
         Durability = stream.ReadByte();
-        ChargeCount = stream.ReadUInt16(); // chargeCount is u16 (2 bytes), not i32
+        ChargeCount = stream.ReadUInt16(); // chargeCount is u16 (binary serializer vtbl+168, 2 bytes), not i32
         ChargeStartTime = stream.ReadDateTime();
         RuneId = stream.ReadUInt16();
         EvolveChance = stream.ReadUInt16();
@@ -105,7 +103,7 @@ public class EquipItem : Item
     public override void WriteDetails(PacketStream stream)
     {
         stream.Write(Durability);          // durability u8
-        stream.Write((ushort)ChargeCount); // chargeCount u16 (2 bytes)
+        stream.Write((ushort)ChargeCount); // chargeCount u16 (binary serializer vtbl+168, 2 bytes)
         stream.Write(ChargeStartTime);     // chargeTime i64
         stream.Write((ushort)RuneId);      // runeId u16
         stream.Write(EvolveChance);        // evolveChance u16

@@ -14,6 +14,15 @@ public class ApplySkillTask(
 {
     public override void Execute()
     {
+        if (skill.Cancelled)
+        {
+            if (skill.TlId != 0)
+            {
+                AAEmu.Game.Core.Managers.Id.SkillTlIdManager.ReleaseId(skill.TlId);
+                skill.TlId = 0;
+            }
+            return;
+        }
         skill.ApplyEffects(caster, casterCaster, target, targetCaster, skillObject);
         skill.EndSkill(caster);
     }

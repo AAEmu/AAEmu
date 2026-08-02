@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Utils;
+using AAEmu.Game;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -432,9 +433,36 @@ public class DamageEffect : EffectTemplate
         else
             trg.BroadcastPacket(packet, true);
 
+        if (WorldIntegration.ZoneAuthority && packetBuilder == null)
+        {
+            // Zone WZUnitDamaged applies HP + aggro. Also sending WZUnitPoints (absolute HP) on the
+            // same hit double-applies damage on Zone → HP desync → mid-fight leash/11503 reset.
+            uint wzSkillId = 0;
+            ushort wzTl = 0;
+            var sendDamaged = Environment.GetEnvironmentVariable("AAEMU_WZ_UNIT_DAMAGED") != "0" &&
+                              TryGetSkillCastIds(castObj, out wzSkillId, out wzTl);
+            if (sendDamaged)
+            {
+                WorldIntegration.RelayUnitDamagedToZone?.Invoke(
+                    wzSkillId, wzTl, casterObj, targetObj, value, absorbed, caster.ObjId, trg.ObjId);
+            }
+            else
+            {
+                ZoneAuthorityCombat.SyncUnitPoints(trg.ObjId, trg.Hp, trg.Mp);
+            }
+        }
+
         if (trg is Npc npc)
         {
-            trg.SendPacketToPlayers([trg, caster], new SCAiAggroPacket(trg.ObjId, 1, caster.ObjId, ((Unit)caster).SummarizeDamage, 0, 0));
+            if (!WorldIntegration.ZoneAuthority)
+            {
+                trg.SendPacketToPlayers(
+                    [trg, caster],
+                    new SCAiAggroPacket(
+                        trg.ObjId,
+                        AiAggroEntry.FromDamageValue(caster.ObjId, ((Unit)caster).SummarizeDamage)));
+            }
+
             npc.OnDamageReceived((Unit)caster, value);
         }
 
@@ -492,6 +520,25 @@ public class DamageEffect : EffectTemplate
             }
 
             trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedEtc);
+        }
+    }
+
+    private static bool TryGetSkillCastIds(CastAction castObj, out uint skillId, out ushort tlId)
+    {
+        switch (castObj)
+        {
+            case CastSkill cs:
+                skillId = cs.SkillId;
+                tlId = cs.TlId;
+                return true;
+            case CastPlot cp:
+                skillId = cp.SkillId;
+                tlId = cp.TlId;
+                return skillId != 0;
+            default:
+                skillId = 0;
+                tlId = 0;
+                return false;
         }
     }
 }

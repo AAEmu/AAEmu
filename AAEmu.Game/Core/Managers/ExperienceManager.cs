@@ -1,6 +1,7 @@
 ﻿#nullable enable
 
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 
 using NLog;
@@ -17,12 +18,6 @@ public class ExperienceManager : Singleton<ExperienceManager>, IExperienceManage
     private readonly List<int> _expByLevel = [];
     /// <summary>Sorted list of total mate experience amounts from lowest level to highest level, indexed by zero-based mate level (level 1 is index 0).</summary>
     private readonly List<int> _mateExpByLevel = [];
-
-    // TODO: Put this in the configuration files
-    /// <summary>Artificial level cap for players. If database contains more levels than this, they will be ignored.</summary>
-    private static byte PlayerLevelCap => 55;
-    /// <summary>Artificial level cap for mates (mounts, pets). If database contains more levels than this, they will be ignored.</summary>
-    private static byte MateLevelCap => 50;
 
     /// <summary>
     /// Gets the maximum level for players.
@@ -157,7 +152,10 @@ public class ExperienceManager : Singleton<ExperienceManager>, IExperienceManage
     /// Loads the experience level templates from the default loader (Sqlite).
     /// </summary>
     public void Load()
-        => Load(new SqliteExperienceLevelTemplateLoader(Logger), PlayerLevelCap, MateLevelCap);
+        => Load(
+            new SqliteExperienceLevelTemplateLoader(Logger),
+            AppConfiguration.Instance.World.PlayerLevelCap,
+            AppConfiguration.Instance.World.MateLevelCap);
 
     /// <summary>
     /// Loads the experience level templates from the given loader.

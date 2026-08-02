@@ -32,7 +32,7 @@ public class CSUnhangPacket() : GamePacket(CSOffsets.CSUnhangPacket, 1)
             character.Transform.StickyParent = null;
         }
 
-        Connection.ActiveChar.BroadcastPacket(new SCUnhungPacket(unitObjId, targetObjId, reason), false);
+        Connection.ActiveChar.BroadcastPacket(new SCUnhungPacket(unitObjId, targetObjId, reason), true);
 
         if (stickySlave != null)
             ShipHarpoonRopeController.BreakRopeForClients(stickySlave, cutouted: false);

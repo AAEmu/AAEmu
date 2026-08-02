@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Models.Game.Items.Actions;
 
@@ -14,7 +14,8 @@ public class ItemCountUpdate : ItemTask
     /// <param name="count">Amount to add or subtract</param>
     public ItemCountUpdate(Item item, int count)
     {
-        _type = ItemAction.AddStack;
+        // Case 4 (AddStack) is only templateId u32 + amount i64 — wrong for bag stack deltas.
+        _type = ItemAction.Create;
         _item = item;
         _count = count;
     }

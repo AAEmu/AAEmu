@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 
@@ -8,10 +8,9 @@ public class CSSellBackpackGoodsPacket() : GamePacket(CSOffsets.CSSellBackpackGo
 {
     public override void Read(PacketStream stream)
     {
-        var objId = stream.ReadBc();
+        var npcObjId = stream.ReadBc();
+        var characterObjId = stream.ReadBc();
 
-        var basePrice = SpecialtyManager.Instance.SellSpecialty(Connection.ActiveChar, objId);
-
-        Logger.Warn($"CSSellBackpackGoods, ObjId: {objId}. BasePrice: {basePrice}");
+        SpecialtyManager.Instance.SellSpecialty(Connection.ActiveChar, npcObjId, characterObjId);
     }
 }

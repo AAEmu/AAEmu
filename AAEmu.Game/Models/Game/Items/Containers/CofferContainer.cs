@@ -1,5 +1,6 @@
 ﻿using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.DoodadObj;
 
 namespace AAEmu.Game.Models.Game.Items.Containers;
 
@@ -8,6 +9,9 @@ public class CofferContainer(uint ownerId, bool createWithNewId)
 {
     public byte CofferPermission { get; set; } = 0;
     public ChestType CofferType { get; set; }
+    public bool IsPrivateCoffer { get; set; }
+    public IReadOnlySet<int> AllowedItemCategoryIds { get; set; } = new HashSet<int>();
+    public DoodadCoffer Doodad { get; set; }
 
     // Coffers are considered trade windows in the item manipulation code
 
@@ -19,8 +23,11 @@ public class CofferContainer(uint ownerId, bool createWithNewId)
             itemTemplate.ExpDate > DateTime.MinValue)
             return false;
 
+        if (AllowedItemCategoryIds.Count > 0 && !AllowedItemCategoryIds.Contains(itemTemplate.CategoryId))
+            return false;
+
         // Otherwordly Storage Chest will accept pretty much any other item
-        if (CofferType == ChestType.Otherworldly)
+        if (CofferType == ChestType.Otherworldly || IsPrivateCoffer)
             return true;
 
         // Normal Coffer/Chest will accept anything that can't be bound 
@@ -35,9 +42,10 @@ public class CofferContainer(uint ownerId, bool createWithNewId)
 
     public override bool CanAccept(Item item, int targetSlot)
     {
-        return item == null || (!item.HasFlag(ItemFlag.SoulBound) &&
-                                CanAcceptTemplate(item.Template) &&
-                                base.CanAccept(item, targetSlot));
+        return item == null ||
+               ((IsPrivateCoffer || CofferType == ChestType.Otherworldly || !item.HasFlag(ItemFlag.SoulBound)) &&
+                CanAcceptTemplate(item.Template) &&
+                base.CanAccept(item, targetSlot));
     }
 
     public override void Delete()

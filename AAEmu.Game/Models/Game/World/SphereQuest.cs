@@ -32,7 +32,9 @@ public class SphereQuest
         {
             if (_dbSphere == null)
             {
-                var sphereId = SphereGameData.Instance.GetSphereIdFromQuest(QuestId);
+                var sphereId = SphereId != 0
+                    ? SphereId
+                    : SphereGameData.Instance.GetSphereIdFromQuest(QuestId);
                 _dbSphere = SphereGameData.Instance.GetSphere(sphereId);
             }
             return _dbSphere;
@@ -44,6 +46,8 @@ public class SphereQuest
     public string WorldId { get; set; }
     public uint QuestId { get; set; }
     public uint ComponentId { get; set; }
+    /// <summary>Compact DB <c>spheres.id</c> (quest_area_sphere.g <c>stype</c>).</summary>
+    public uint SphereId { get; set; }
     public float Radius { get; set; }
     public Vector3 Xyz { get; set; } = Vector3.Zero;
 

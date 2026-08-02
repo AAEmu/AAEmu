@@ -8,6 +8,7 @@
     <ProjectReference Include="..\AAEmu.Commons\AAEmu.Commons.csproj" />
     <ProjectReference Include="..\AAEmu.Game\AAEmu.Game.csproj" />
     <ProjectReference Include="..\AAEmu.Login\AAEmu.Login.csproj" />
+    <ProjectReference Include="..\AAEmu.WorldServer\AAEmu.World\AAEmu.World.csproj" />
   </ItemGroup>
   
   <ItemGroup>

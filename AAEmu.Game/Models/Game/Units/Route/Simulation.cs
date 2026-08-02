@@ -391,7 +391,7 @@ public class Simulation : Patrol
             // TODO: Implement proper use for Transform.World.AddDistanceToFront)
             var (newX, newY, newZ) = PositionAndRotation.AddDistanceToFront(travelDist, targetDist, npc.Transform.Local.Position, target);
 
-            newZ = WorldManager.Instance.GetReferenceHeight(npc.Ai, newX, newY, newZ, npc.Transform.ZoneId);
+            newZ = WorldManager.Instance.GetReferenceHeight(npc, newX, newY, newZ, npc.Transform.ZoneId);
             npc.Transform.Local.SetPosition(newX, newY, newZ);
 
             var angle = MathUtil.CalculateAngleFrom(npc.Transform.Local.Position, target);

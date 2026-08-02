@@ -137,8 +137,7 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
             // make the flag flutter in the wind
             duel.SendPacketChallenger(new SCDoodadPhaseChangedPacket(_combatFlag.Last));
             // Player can be attacked
-            duel.SendPacketsBoth(new SCCombatEngagedPacket(duel.Challenger.ObjId));
-            duel.SendPacketsBoth(new SCCombatEngagedPacket(duel.Challenged.ObjId));
+            duel.SendPacketsBoth(new SCCombatEngagedPacket(duel.Challenger.ObjId, duel.Challenged.ObjId));
 
             // final operations after a duel
             duel.DuelEndTimerTask = new DuelEndTimerTask(duel, duel.Challenger.Id);

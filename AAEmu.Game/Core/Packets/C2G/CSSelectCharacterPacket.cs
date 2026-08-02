@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -16,8 +16,7 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
 {
     public override void Read(PacketStream stream)
     {
-        // SelectCharacterPacket body: "id" group { charId = 8-byte i64 } then "exit" bool.
-        // Char ids fit in u32, so cast down.
+        // = 8-byte i64 } then "exit" bool via vtbl+248. Char ids fit in u32, so cast down.
         var characterId = (uint)stream.ReadUInt64();
         _ = stream.ReadBoolean(); // exit (return-to-character-select flag)
 
@@ -36,6 +35,12 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
             }
 
             Connection.ActiveChar = character;
+            // LastPacketActivityTime is set when the lobby Character is constructed (CSAesXorKey / LoadAccount).
+            // Sitting on character-select for >2 minutes then makes the first OnActiveRegionTick after Select
+            // treat the player as crashed/inactive and null out ActiveChar — Spawn/NotifyInGame then NRE and
+            // the client drops. Reset on select so the inactivity window starts at enter, not at lobby load.
+            character.LastPacketActivityTime = DateTime.UtcNow;
+            character.ResetMirrorNpcStreaming();
             if (Character.UsedCharacterObjIds.TryGetValue(character.Id, out var oldObjId))
             {
                 Connection.ActiveChar.ObjId = oldObjId;
@@ -59,22 +64,20 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
 
             // Opens the in-world data load at context-view state 2 (SELECT_CHARACTER), ahead of the server-driven
             // ChangeState(3→7). First S2C packet after the char-select restrict/congestion checks in a live
-            // 10.0.2.13 session.
             //
             // worldId here is the game-server (shard) id the client connected to via the login server list — the
             // login code calls the same value "WorldId" (GameController: "requesting an invalid WorldId {GsId}").
             // It must echo AppConfiguration.Id (this shard's GameServers[].Id), NOT the internal world-instance id:
             // sending Transform.WorldId (0 for main_world) leaves the client's current-world context unset, so
-            // SCWorldLevelInfo has nothing to bind to and the client's GetWorldLevel HUD provider null-derefs
-            // its player-unit link when the player-frame event window shows. The reference sends 0x02 because
-            // that official shard's id is 2; ours is 1.
+            // null-derefs *(ClientPlayer+104)+8 when the player-frame event window shows. The reference capture
+            // sends 0x02 because that official shard's id is 2; ours is 1.
             Connection.SendPacket(new SCShowCurrentWorldPacket(AppConfiguration.Instance.Id));
 
             Connection.SendPacket(new SCCharacterStatePacket(character));
 
             // SCWorldLevelInfo is NOT sent here. The client's world-level manager binds the packet's data to the
             // local player unit, which does not exist until Spawn() runs on NotifyInGame; sending it in the select
-            // burst leaves that unit link null and the GetWorldLevel HUD provider
+            // burst leaves that unit link (*(ClientPlayer+104)+8) null and the GetWorldLevel HUD provider
             // null-derefs on player-frame show. The reference sends it ~4s after NotifyInGame — see
             // CSNotifyInGamePacket.
 
@@ -100,11 +103,11 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
             // the uninitialized structure when the matching UI window shows and crashes on load.
             Connection.SendPacket(new SCIncreasedFavoritePortalLimitPacket());
             Connection.SendPacket(new SCWorldRestrictOwnerChangePacket(false));
-            Connection.SendPacket(new SCPlayerGameDataPacket());
+            Connection.SendPacket(new SCPlayerGameDataPacket(character));
             Connection.SendPacket(new SCInstanceVisitCountsPacket());
             Connection.SendPacket(new SCBattleFieldRecordsPacket());
-            Connection.SendPacket(new SCFavoriteCraftsPacket());
-            Connection.SendPacket(new SCCharacterPrivacyStatusUpdatePacket());
+            Connection.SendPacket(new SCFavoriteCraftsPacket(character.FavoriteCrafts.GetWireCraftTypes()));
+            Connection.SendPacket(new SCCharacterPrivacyStatusUpdatePacket(true, character.PrivacyStatus));
             Connection.SendPacket(new SCUpdateAdditionalSkillPointPacket());
 
             foreach (var house in houses)

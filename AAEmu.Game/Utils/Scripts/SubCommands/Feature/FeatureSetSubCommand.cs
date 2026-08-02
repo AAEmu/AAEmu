@@ -11,7 +11,9 @@ public class FeatureSetSubCommand : SubCommandBase
         Title = "[Feature]";
         Description = "Change the characteristic features of the account using a bitwise installation";
         CallPrefix = $"{CommandManager.CommandPrefix}feature set";
-        AddParameter(new NumericSubCommandParameter<int>("feature", "feature id", true, 0, 87));
+        // 10.0.2.13 fset is 31 bytes -> ids 0..247. Bytes 1, 8, 10 and 26 are scalars and are
+        // rejected by FeatureSet.Set, which reports back as an error here.
+        AddParameter(new NumericSubCommandParameter<int>("feature", "feature id", true, 0, Models.Game.Features.FeatureSet.FsetLength * 8 - 1));
         AddParameter(new StringSubCommandParameter("enable", "enable", true));
     }
 

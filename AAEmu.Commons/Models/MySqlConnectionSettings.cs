@@ -7,4 +7,6 @@ public class MySqlConnectionSettings
     public string User { get; set; }
     public string Password { get; set; }
     public string Database { get; set; }
+    public MySql.Data.MySqlClient.MySqlSslMode SslMode { get; set; } =
+        MySql.Data.MySqlClient.MySqlSslMode.Prefered;
 }

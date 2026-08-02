@@ -1,7 +1,7 @@
 ﻿namespace AAEmu.Game.Models.Game;
 
 public enum ErrorMessageType : short
-{   //switch 842 cases
+{
     Invalid = -1,												    	// "invalid";
     NoErrorMessage = 0,													// "no_error_message";
     InternalError = 1,													// "internal_error";
@@ -785,5 +785,18 @@ public enum ErrorMessageType : short
     OnlyExpeditionMember = 808,											// "only_expedition_member";
     AucPostAlreadyAuthority = 831,										// "auc_post_already_authority";
     AucPostNonAuthority = 832,											// "auc_post_non_authority";
-    ChatNotInTrial = 841												// "chat_not_in_trial";
+    ChatNotInTrial = 841,												// "chat_not_in_trial";
+    AlreadyFriend = 1299,												// "already_friend";
+    FriendRequestExists = 1300,										// "friend_request_exist";
+    FriendRequestFailed = 1301,										// "friend_request_failed";
+    FriendRequestImpossible = 1302,									// "friend_request_impossible";
+    FriendListMax = 1303,												// "friend_list_max";
+    FriendRequestListMax = 1304,										// "friend_request_list_max";
+    FriendReceiverListMax = 1305,									// "friend_receiver_list_max";
+    FriendAcceptFailed = 1306,										// "friend_accept_failed";
+    FriendCancelFailed = 1307,										// "friend_cancel_failed";
+    FriendRejectFailed = 1308,										// "friend_reject_failed";
+    FriendAcceptInfoInvalid = 1309,									// "friend_accept_info_invalid";
+    FriendRequestInfoInvalid = 1310,									// "friend_request_info_invalid";
+    BlockUserMax = 1311												// "block_user_max";
 }

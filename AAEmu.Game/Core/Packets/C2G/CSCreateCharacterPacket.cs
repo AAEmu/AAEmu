@@ -9,13 +9,11 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSCreateCharacterPacket() : GamePacket(CSOffsets.CSCreateCharacterPacket, 1)
 {
-    // 10.0.2.13 CSCreateCharacter (opcode 0x049) body. Layout follows the reference
-    // CreateCharacterPacket::SerializeBody:
+    // 10.0.2.13 CSCreateCharacter (opcode 0x049) body. Layout from the dedicated-server serializer
     //   name        : string
     //   CharRace    : u8
     //   CharGender  : u8
     //   bodyItems   : u32 x7   ("type")
-    //   appearance  : ext-gated variable block (UnitCustomModelParams)
     //   ability1..3 : u8 x3
     //   level       : u8
     //   introZoneId : u32

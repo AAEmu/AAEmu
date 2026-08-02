@@ -15,6 +15,7 @@ public class SCUnitMovementsPacket((uint id, MoveType type)[] movements)
         foreach (var (id, type) in movements)
         {
             stream.WriteBc(id);
+            stream.Write((byte)type.Type); // CN 10.0.2.13: type discriminant before body (same as SCOneUnitMovement)
             stream.Write(type);
         }
 

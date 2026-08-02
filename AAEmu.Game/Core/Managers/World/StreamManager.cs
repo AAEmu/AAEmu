@@ -1,80 +1,129 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
+using System.Collections.Concurrent;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.S2C;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
+using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
 public class StreamManager : Singleton<StreamManager>, IStreamManager
 {
-    private readonly Dictionary<uint, uint> _accounts = [];
-
-    public static void Load()
-    {
-        // TODO ...
-    }
+    // Official 10.0.2.13 streams page cell doodads in 30-record chunks; `next` is the exclusive cursor.
+    private const int MaxDoodadsPerPacket = 30;
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    private readonly ConcurrentDictionary<uint, uint> _accounts = [];
 
     public void AddToken(uint accountId, uint connectionId)
     {
-        _accounts.Add(connectionId, accountId);
+        _accounts[connectionId] = accountId;
     }
 
     public void RemoveToken(uint token)
     {
-        _accounts.Remove(token);
+        _accounts.TryRemove(token, out _);
     }
 
-    public void Login(StreamConnection connection, uint accountId, uint token)
+    public void Login(StreamConnection connection, long accountId, uint token)
     {
-        if (_accounts.ContainsKey(token))
+        if (!_accounts.TryRemove(token, out var expectedAccountId)
+            || accountId <= 0
+            || accountId > uint.MaxValue
+            || expectedAccountId != (uint)accountId)
         {
-            if (accountId == _accounts[token])
-            {
-                var gCon = GameConnectionTable.Instance.GetConnection(token);
-                connection.GameConnection = gCon;
-                connection.SendPacket(new TCJoinResponsePacket(0));
-            }
-            else
-            {
-                _accounts.Remove(token);
-                connection.SendPacket(new TCJoinResponsePacket(1));
-            }
-        }
-        else
-            connection.SendPacket(new TCJoinResponsePacket(1));
-    }
-
-    public static void RequestCell(StreamConnection connection, uint instanceId, int x, int y)
-    {
-        if (connection is not null)
-        {
-            var worldInstanceId = connection.GameConnection?.ActiveChar?.Transform?.InstanceId ?? WorldManager.DefaultInstanceId;
-            if (worldInstanceId != instanceId)
-            {
-                // Trying to grab cell info of a instance the player is not inside of
-            }
-            var world = WorldManager.Instance.GetWorld(instanceId);
-            // TODO: Handle requests for instances correctly ?
-            var doodads = world.GetInCell<Doodad>(x, y).ToArray();
-            var requestId = connection.GetNextRequestId(doodads);
-            var count = Math.Min(doodads.Length, 30);
-            var res = new Doodad[count];
-            Array.Copy(doodads, 0, res, 0, count);
-            connection.SendPacket(new TCDoodadStreamPacket(requestId, count, res));
-        }
-    }
-
-    public static void ContinueCell(StreamConnection connection, int requestId, int next)
-    {
-        var doodads = connection.GetRequest(requestId);
-        if (doodads == null)
+            connection.SendPacket(new TCJoinResponsePacket(StreamJoinResponse.Rejected));
             return;
-        if (next >= doodads.Length)
-            connection.RemoveRequest(requestId);
-        var count = Math.Min(doodads.Length - next, 30);
-        var res = new Doodad[count];
-        Array.Copy(doodads, next > 0 ? next - 1 : 0, res, 0, count);
-        next += count;
-        connection.SendPacket(new TCDoodadStreamPacket(requestId, next, res));
+        }
+
+        var gameConnection = GameConnectionTable.Instance.GetConnection(token);
+        if (gameConnection is null || gameConnection.AccountId != expectedAccountId)
+        {
+            connection.SendPacket(new TCJoinResponsePacket(StreamJoinResponse.Rejected));
+            return;
+        }
+
+        connection.GameConnection = gameConnection;
+        connection.SendPacket(new TCJoinResponsePacket(StreamJoinResponse.Success));
+    }
+
+    public static void RequestCell(StreamConnection connection, int instanceId, uint cellX, uint cellY)
+    {
+        var character = connection?.GameConnection?.ActiveChar;
+        if (character is null || instanceId < 0 || character.Transform.InstanceId != (uint)instanceId)
+        {
+            Logger.Warn("Rejected stream cell request for instance {0} from unauthorised connection {1}",
+                instanceId, connection?.Id);
+            return;
+        }
+
+        var world = WorldManager.Instance.GetWorld((uint)instanceId);
+        if (world is null
+            || world.Template.CellX <= 0
+            || world.Template.CellY <= 0
+            || cellX >= (uint)world.Template.CellX
+            || cellY >= (uint)world.Template.CellY)
+        {
+            Logger.Warn("Rejected out-of-range stream cell {0},{1} in instance {2}", cellX, cellY, instanceId);
+            return;
+        }
+
+        // looks up ClientDoodad — house-bound doors streamed first stay closed forever
+        // (SC create is "Doodad duplicated id" no-op). Keep parented/housing doodads on the
+        // SC Create path so phase open/close can swap models.
+        var doodads = world.GetInCell<Doodad>((int)cellX, (int)cellY)
+            .Where(d => d.ParentObjId == 0
+                        && d.AttachPoint == AttachPointKind.None
+                        && d.OwnerType != DoodadOwnerType.Housing)
+            .ToArray();
+        var requestId = connection.ReserveRequestId();
+        var count = Math.Min(doodads.Length, MaxDoodadsPerPacket);
+        var next = checked((uint)count);
+        var result = new Doodad[count];
+        Array.Copy(doodads, result, count);
+
+        if (count < doodads.Length)
+        {
+            connection.AddRequest(requestId,
+                new StreamConnection.CellRequest(instanceId, cellX, cellY, doodads, next));
+        }
+
+        connection.SendPacket(new TCDoodadStreamPacket(requestId, next, result));
+    }
+
+    public static void ContinueCell(StreamConnection connection, uint requestId, uint next)
+    {
+        // Retail TCDoodadStream `next` is the exclusive end index of the chunk just sent
+        // (30, 60, 90, …). CTContinue echoes that value as the start of the next chunk.
+        // Copying from next-1 re-sent the boundary entry and dropped the cell tail.
+        if (connection is null || !connection.TryGetRequest(requestId, out var request))
+            return;
+
+        var character = connection.GameConnection?.ActiveChar;
+        lock (request)
+        {
+            if (character is null
+                || request.InstanceId < 0
+                || character.Transform.InstanceId != (uint)request.InstanceId
+                || next != request.Next
+                || next >= (uint)request.Doodads.Length)
+            {
+                connection.RemoveRequest(requestId);
+                return;
+            }
+
+            var count = Math.Min(request.Doodads.Length - checked((int)next), MaxDoodadsPerPacket);
+            var result = new Doodad[count];
+            Array.Copy(request.Doodads, checked((int)next), result, 0, count);
+            request.Next = checked(next + (uint)count);
+            connection.SendPacket(new TCDoodadStreamPacket(requestId, request.Next, result));
+            if (request.Next >= (uint)request.Doodads.Length)
+                connection.RemoveRequest(requestId);
+        }
+    }
+
+    public static void CancelCell(StreamConnection connection, int instanceId, uint cellX, uint cellY)
+    {
+        connection?.CancelCell(instanceId, cellX, cellY);
     }
 }

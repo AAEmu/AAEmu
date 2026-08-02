@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 
@@ -16,6 +16,6 @@ public class CSSaveTutorialPacket() : GamePacket(CSOffsets.CSSaveTutorialPacket,
         var body = new byte[8];
         completedQuestBlock.Body.CopyTo(body, 0);
 
-        Connection.SendPacket(new SCTutorialSavedPacket(id, body));
+        Connection.SendPacket(new SCTutorialSavedPacket(id));
     }
 }

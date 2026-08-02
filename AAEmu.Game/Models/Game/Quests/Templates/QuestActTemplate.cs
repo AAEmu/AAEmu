@@ -314,6 +314,14 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
     }
 
     /// <summary>
+    /// Handles a Zone-validated doodad template and phase observation.
+    /// </summary>
+    public virtual void OnDoodadPhaseCheck(QuestAct questAct, object sender, OnDoodadPhaseCheckArgs args)
+    {
+        //
+    }
+
+    /// <summary>
     /// OnCraft 
     /// </summary>
     /// <param name="questAct"></param>

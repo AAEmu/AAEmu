@@ -8,6 +8,13 @@
 	"SecretKey": "test",
 	"AutoAccount": true,
 	"SkipHostResolve": false,
+	"WorldListRequestTimeout": "00:00:20",
+	"CharacterSlots": {
+		"AvailableSlots": 6,
+		"CountLimit": 6,
+		"MaxCountLimit": 6,
+		"WorldLimit": 6
+	},
 	"InternalNetwork": {
 		"Host": "*",
 		"Port": 1234

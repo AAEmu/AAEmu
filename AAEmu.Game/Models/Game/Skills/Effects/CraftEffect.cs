@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -121,6 +122,7 @@ public class CraftEffect : EffectTemplate
                             ),
                             true
                         );
+                        HousingZoneBridge.NotifyZoneHouseBuildState(house);
 
                         // When done, spawn all attached doodads like doors and windows
                         if (house.CurrentStep == -1)

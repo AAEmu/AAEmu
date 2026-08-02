@@ -6,11 +6,13 @@ using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Gimmicks;
+using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Slaves;
@@ -19,6 +21,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Json;
 using AAEmu.Game.Utils;
 
@@ -81,8 +84,11 @@ public class SpawnManager(WorldInstance parentWorld)
                     npcSpawner.ParentWorld = World;
                     npcSpawner.NpcSpawnerIds.Add(id);
                     npcSpawner.Id = id;
-                    var tmpTemplate = NpcGameData.Instance.GetNpcSpawnerTemplate(1); // id=1 Test Warrior
-                    npcSpawner.Template = Helpers.Clone(tmpTemplate);
+                    // 10.0.2.13 compact.sqlite3: npc_spawners is empty — no template id=1 to clone.
+                    var tmpTemplate = NpcGameData.Instance.GetNpcSpawnerTemplate(1);
+                    npcSpawner.Template = tmpTemplate != null
+                        ? Helpers.Clone(tmpTemplate)
+                        : new NpcSpawnerTemplate();
                     npcSpawner.Template.Id = id;
 
                     var tmpNpc = new NpcSpawnerNpc
@@ -145,36 +151,6 @@ public class SpawnManager(WorldInstance parentWorld)
                 _nextId++;
             }
         }
-    }
-
-    /// <summary>
-    /// Spawn all Npcs for this world template into this instance
-    /// </summary>
-    private void SpawnAllNpcs()
-    {
-        var spawnStartTime = DateTime.UtcNow;
-        Logger.Info($"Spawning {NpcSpawners.Count} NPC spawners in world {World}");
-        var count = 0;
-        foreach (var spawners in NpcSpawners.Values)
-        {
-            foreach (var spawner in spawners)
-            {
-                if (spawner.Template == null)
-                {
-                    Logger.Warn($"Templates not found for Npc templateId {spawner.UnitId} in world {World}");
-                }
-                else
-                {
-                    spawner.Update();
-                    count++;
-                    if (count % 5000 == 0)
-                    {
-                        Logger.Debug($"{count} NPC spawners spawned in world {World}");
-                    }
-                }
-            }
-        }
-        Logger.Info($"{count} NPC spawners spawned in world {World} in {DateTime.UtcNow.Subtract(spawnStartTime)} ({GameService.TimeSinceStart} since server start)");
     }
 
     /// <summary>
@@ -273,13 +249,9 @@ public class SpawnManager(WorldInstance parentWorld)
         Logger.Info($"Loading spawn data for {World} ...");
         var worldPath = Path.Combine(FileManager.AppPath, "Data", "Worlds", World.Template.Name);
 
-        // Load NPC Spawns. The converted client-derived data (npc_spawners.g.json) is
-        // authoritative when present; the legacy npc_spawns*.json is the fallback.
-        Logger.Debug($"Loading NPC spawn data for {World} ...");
-        if (File.Exists(Path.Combine(worldPath, "npc_spawners.g.json")))
-            _ = LoadNpcSpawnersG(worldPath);
-        else
-            _ = LoadNpcSpawns(worldPath);
+        // NPC placements are not read here: the Zone loads npc_spawners.g itself and announces
+        // every NPC it creates over ZWSpawnNpc, which World mirrors. Parsing the same placements a
+        // second time only produced a duplicate, unmanaged copy of the world's NPCs.
 
         // Load Doodad spawns
         Logger.Debug($"Loading Doodad spawn data for {World} ...");
@@ -327,156 +299,6 @@ public class SpawnManager(WorldInstance parentWorld)
         respawnThread.Start();
 
         _loaded = true;
-    }
-
-    private bool LoadNpcSpawns(string worldPath)
-    {
-        string[] npcFiles;
-        try
-        {
-            npcFiles = Directory.GetFiles(worldPath, "npc_spawns*.json");
-        }
-        catch (Exception)
-        {
-            return false;
-        }
-        npcFiles = ReverseSpawnFiles(npcFiles);
-        foreach (var jsonFileName in npcFiles)
-        {
-            if (!File.Exists(jsonFileName))
-            {
-                Logger.Info($"World {World} is missing {Path.GetFileName(jsonFileName)}");
-                continue;
-            }
-            var contents = FileManager.GetFileContents(jsonFileName);
-            if (string.IsNullOrWhiteSpace(contents))
-            {
-                Logger.Warn($"File {jsonFileName} is empty.");
-                continue;
-            }
-            if (JsonHelper.TryDeserializeObject(contents, out List<NpcSpawner> npcSpawnersFromFile, out _))
-            {
-                var entry = 0;
-                foreach (var npcSpawnerFromFile in npcSpawnersFromFile)
-                {
-                    entry++;
-                    npcSpawnerFromFile.ParentWorld = World;
-
-                    // Check for duplication by UnitId and Position
-                    if (NpcSpawners.Values.SelectMany(spawners => spawners)
-                        .Any(spawner => spawner.UnitId == npcSpawnerFromFile.UnitId &&
-                                        Math.Abs(spawner.Position.X - npcSpawnerFromFile.Position.X) < 2f &&
-                                        Math.Abs(spawner.Position.Y - npcSpawnerFromFile.Position.Y) < 2f
-                                        ))
-                    {
-                        Logger.Trace($"Duplicate NPC spawner found in {jsonFileName} (UnitId: {npcSpawnerFromFile.UnitId}, Position: {npcSpawnerFromFile.Position})");
-                        continue;
-                    }
-                    if (!NpcManager.Instance.Exist(npcSpawnerFromFile.UnitId))
-                    {
-                        Logger.Trace($"Npc Template {npcSpawnerFromFile.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
-                        continue;
-                    }
-                    npcSpawnerFromFile.Position.WorldId = World.Id;
-                    npcSpawnerFromFile.Position.ZoneId = WorldManager.Instance.GetZoneId(World.Template, npcSpawnerFromFile.Position.X, npcSpawnerFromFile.Position.Y);
-                    npcSpawnerFromFile.Position.Yaw = npcSpawnerFromFile.Position.Yaw.DegToRad();
-                    npcSpawnerFromFile.Position.Pitch = npcSpawnerFromFile.Position.Pitch.DegToRad();
-                    npcSpawnerFromFile.Position.Roll = npcSpawnerFromFile.Position.Roll.DegToRad();
-                    AddNpcSpawner(npcSpawnerFromFile);
-                }
-            }
-            else
-            {
-                throw new GameException($"SpawnManager: Parse {jsonFileName} file");
-            }
-        }
-        return true;
-    }
-
-    /// <summary>
-    /// Loads npc_spawners.g.json — placements converted from the client's
-    /// npc_spawners.g — binding each to its compact.sqlite3 spawner template by
-    /// SpawnerType. Carries discrete multi-point candidates, area roaming polygons and
-    /// follow paths through to the runtime spawner.
-    /// </summary>
-    private bool LoadNpcSpawnersG(string worldPath)
-    {
-        var fileName = Path.Combine(worldPath, "npc_spawners.g.json");
-        if (!File.Exists(fileName))
-            return false;
-
-        var contents = FileManager.GetFileContents(fileName);
-        if (string.IsNullOrWhiteSpace(contents))
-        {
-            Logger.Warn($"File {fileName} is empty.");
-            return false;
-        }
-
-        if (!JsonHelper.TryDeserializeObject(contents, out List<JsonNpcSpawnerG> entries, out _))
-            throw new GameException($"SpawnManager: Parse {fileName} file");
-
-        var loaded = 0;
-        var missingTemplate = 0;
-        foreach (var entry in entries)
-        {
-            var template = NpcGameData.Instance.GetNpcSpawnerTemplate(entry.SpawnerType);
-            if (template?.Npcs == null || template.Npcs.Count == 0)
-            {
-                missingTemplate++;
-                continue;
-            }
-
-            var spawner = new NpcSpawner
-            {
-                Id = _nextId,
-                SpawnerId = entry.SpawnerType,
-                UnitId = template.Npcs[0].MemberId,
-                NpcSpawnerIds = [entry.SpawnerType],
-                Template = template,
-                ParentWorld = World,
-                FollowPath = entry.FollowPath ?? string.Empty,
-                Position = ToSpawnPosition(entry.Position)
-            };
-            spawner.InitializeSpawnableNpcs(template);
-
-            if (entry.Points is { Count: > 0 })
-                spawner.SpawnPositions = entry.Points.Select(ToSpawnPosition).ToList();
-
-            if (entry.Area is { Count: > 0 })
-                spawner.SpawnArea = entry.Area.Select(ToAreaTriangle).ToList();
-
-            NpcSpawners.TryAdd(_nextId, [spawner]);
-            _nextId++;
-            loaded++;
-        }
-
-        Logger.Info($"Loaded {loaded} npc_spawners.g placements for {World}" +
-                    (missingTemplate > 0 ? $" ({missingTemplate} skipped: no template)" : string.Empty));
-        return true;
-    }
-
-    private WorldSpawnPosition ToSpawnPosition(JsonGSpawnPos pos)
-    {
-        return new WorldSpawnPosition
-        {
-            WorldId = World.Id,
-            ZoneId = WorldManager.Instance.GetZoneId(World.Template, pos.X, pos.Y),
-            X = pos.X,
-            Y = pos.Y,
-            Z = pos.Z,
-            Yaw = pos.Yaw
-        };
-    }
-
-    private static SpawnAreaTriangle ToAreaTriangle(JsonGAreaTriangle tri)
-    {
-        return new SpawnAreaTriangle
-        {
-            A = new Vector3(tri.A.X, tri.A.Y, tri.A.Z),
-            B = new Vector3(tri.B.X, tri.B.Y, tri.B.Z),
-            C = new Vector3(tri.C.X, tri.C.Y, tri.C.Z),
-            Rate = tri.Rate
-        };
     }
 
     private static string[] ReverseSpawnFiles(string[] spawnFiles)
@@ -629,61 +451,41 @@ public class SpawnManager(WorldInstance parentWorld)
         return true;
     }
 
+    /// <summary>
+    /// Builds the world's gimmick spawners from the client level data.
+    /// </summary>
+    /// <remarks>
+    /// Sourced from <c>entities.xml</c> rather than a spawn file: a lift carries template id 0 and
+    /// binds to the client purely through its <c>EntityGuid</c>, so placement kept by hand drifts
+    /// silently the moment the client's level is rebuilt and every movement update is then
+    /// discarded client-side.
+    /// </remarks>
     private bool LoadGimmickSpawns(string worldPath)
     {
         GimmickSpawners.Clear();
-        string[] gimmickFiles;
-        try
+
+        var spawners = GimmickClientSpawnLoader.Load(World);
+        var entry = 0;
+        foreach (var spawner in spawners)
         {
-            gimmickFiles = Directory.GetFiles(worldPath, "gimmick_spawns*.json");
-        }
-        catch (Exception)
-        {
-            return false;
-        }
-        foreach (var jsonFileName in gimmickFiles)
-        {
-            if (!File.Exists(jsonFileName))
+            entry++;
+            spawner.ParentWorld = World;
+            if (spawner.UnitId != 0 && !GimmickGameData.Instance.Exist(spawner.UnitId))
             {
-                Logger.Info($"World {World} is missing {Path.GetFileName(jsonFileName)}");
+                Logger.Error($"Gimmick Template {spawner.UnitId} (entry {entry}) doesn't exist in world {World}");
                 continue;
             }
 
-            var contents = FileManager.GetFileContents(jsonFileName);
-
-            if (string.IsNullOrWhiteSpace(contents))
+            spawner.Id = _nextId;
+            spawner.Position.WorldId = World.Id;
+            spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(World.Template, spawner.Position.X, spawner.Position.Y);
+            if (GimmickSpawners.TryAdd(_nextId, spawner))
             {
-                Logger.Warn($"File {jsonFileName} doesn't exists or is empty.");
-                continue;
-            }
-
-            if (JsonHelper.TryDeserializeObject(contents, out List<GimmickSpawner> spawners, out var gimmickException))
-            {
-                var entry = 0;
-                foreach (var spawner in spawners)
-                {
-                    entry++;
-                    spawner.ParentWorld = World;
-                    if (spawner.UnitId != 0 && !GimmickGameData.Instance.Exist(spawner.UnitId))
-                    {
-                        Logger.Error($"Gimmick Template {spawner.UnitId} (file entry {entry}) doesn't exist - {jsonFileName}");
-                        continue;
-                    }
-
-                    spawner.Id = _nextId;
-                    spawner.Position.WorldId = World.Id;
-                    spawner.Position.ZoneId = WorldManager.Instance.GetZoneId(World.Template, spawner.Position.X, spawner.Position.Y);
-                    if (GimmickSpawners.TryAdd(_nextId, spawner))
-                    {
-                        _nextId++;
-                    }
-                }
-            }
-            else
-            {
-                throw gimmickException;// new GameException($"SpawnManager: Parse {jsonFileName} file");
+                _nextId++;
             }
         }
+
+        Logger.Info($"Loaded {GimmickSpawners.Count} gimmick spawners for world {World} from client level data");
         return true;
     }
 
@@ -785,11 +587,16 @@ public class SpawnManager(WorldInstance parentWorld)
         {
             // Sorting required to make sure parenting doesn't produce invalid parents (normally)
 
-            command.CommandText = "SELECT * FROM doodads WHERE owner_type = @OwnerType";
+            command.CommandText = "SELECT d.*, c.faction_id AS creator_faction_id FROM doodads d " +
+                                  "LEFT JOIN characters c ON c.id = d.owner_id " +
+                                  "AND d.owner_type IN (@CharacterOwnerType, @HousingOwnerType) " +
+                                  "WHERE d.owner_type = @OwnerType";
             if (ownerToSpawnId >= 0)
                 command.CommandText += " AND house_id = @OwnerId";
-            command.CommandText += " ORDER BY `plant_time`";
+            command.CommandText += " ORDER BY d.plant_time";
             command.Parameters.AddWithValue("OwnerType", (byte)ownerTypeToSpawn);
+            command.Parameters.AddWithValue("CharacterOwnerType", (byte)DoodadOwnerType.Character);
+            command.Parameters.AddWithValue("HousingOwnerType", (byte)DoodadOwnerType.Housing);
             if (ownerToSpawnId >= 0)
                 command.Parameters.AddWithValue("OwnerId", ownerToSpawnId);
             command.Prepare();
@@ -820,6 +627,9 @@ public class SpawnManager(WorldInstance parentWorld)
                     var itemContainerId = reader.GetUInt64("item_container_id");
                     var data = reader.GetInt32("data");
                     var farmType = (FarmType)reader.GetUInt32("farm_type");
+                    var creatorFactionId = reader.IsDBNull(reader.GetOrdinal("creator_faction_id"))
+                        ? FactionsEnum.Invalid
+                        : (FactionsEnum)reader.GetUInt32("creator_faction_id");
 
                     var doodad = DoodadManager.Instance.Create(World, 0, templateId, null, true);
 
@@ -847,6 +657,8 @@ public class SpawnManager(WorldInstance parentWorld)
                     doodad.FarmType = farmType;
 
                     // Apparently this is only a reference value, so might not actually need to parent it
+                    BaseUnit creator = null;
+                    House owningHouse = null;
                     if (parentDoodad > 0)
                     {
                         // var pDoodad = WorldManager.Instance.GetDoodadByDbId(parentDoodad);
@@ -865,27 +677,28 @@ public class SpawnManager(WorldInstance parentWorld)
 
                     if (houseId > 0 && doodad.ParentObjId <= 0)
                     {
-                        var owningHouse = HousingManager.Instance.GetHouseById(doodad.OwnerDbId);
-                        if (owningHouse == null)
+                        var resolvedHouse = HousingManager.Instance.GetHouseById(doodad.OwnerDbId);
+                        if (resolvedHouse == null)
                         {
                             Logger.Warn($"Unable to place doodad {dbId} can't find it's owning house {houseId}");
                         }
                         else
                         {
-                            doodad.Transform.Parent = owningHouse.Transform;
-                            doodad.ParentObj = owningHouse;
-                            doodad.ParentObjId = owningHouse.ObjId;
+                            doodad.Transform.Parent = resolvedHouse.Transform;
+                            doodad.ParentObj = resolvedHouse;
+                            doodad.ParentObjId = resolvedHouse.ObjId;
+                            owningHouse = resolvedHouse;
 
                             // If persistent house doodads are enabled and this doodad matches a binding
                             // from the house template, register it in AttachedDoodads so
                             // House.Spawn/Show/Hide/Delete handle it correctly.
                             if (AppConfiguration.Instance.World.UsePersistentHouseDoodads)
                             {
-                                var isBoundDoodad = owningHouse.Template?.HousingBindingDoodad != null &&
-                                    owningHouse.Template.HousingBindingDoodad.Any(b =>
+                                var isBoundDoodad = resolvedHouse.Template?.HousingBindingDoodad != null &&
+                                    resolvedHouse.Template.HousingBindingDoodad.Any(b =>
                                         b.DoodadId == templateId && b.AttachPointId == attachPoint);
                                 if (isBoundDoodad)
-                                    owningHouse.AttachedDoodads.Add(doodad);
+                                    resolvedHouse.AttachedDoodads.Add(doodad);
                             }
                         }
                     }
@@ -895,7 +708,11 @@ public class SpawnManager(WorldInstance parentWorld)
                         doodad.ParentObj = useParentObject;
                         doodad.ParentObjId = useParentObject.ObjId;
                         doodad.Transform.Parent = useParentObject.Transform;
+                        creator = useParentObject as BaseUnit;
+                        owningHouse = useParentObject as House ?? owningHouse;
                     }
+
+                    DoodadManager.Instance.RefreshFaction(doodad, creator, owningHouse, creatorFactionId);
 
                     doodad.Transform.Local.SetPosition(x, y, z);
                     doodad.Transform.Local.SetRotation(roll, pitch, yaw);
@@ -907,7 +724,7 @@ public class SpawnManager(WorldInstance parentWorld)
                         {
                             var itemContainer = ItemManager.Instance.GetItemContainerByDbId(itemContainerId);
                             if (itemContainer is CofferContainer cofferContainer)
-                                coffer.ItemContainer = cofferContainer;
+                                coffer.ConfigureItemContainer(cofferContainer);
                             else
                                 Logger.Error($"Unable to attach ItemContainer {itemContainerId} to DoodadCoffer, objId: {doodad.ObjId}, DbId: {doodad.DbId}");
                         }
@@ -941,18 +758,12 @@ public class SpawnManager(WorldInstance parentWorld)
         return spawnCount;
     }
 
+    /// <summary>
+    /// Spawns everything this world owns. NPCs are absent by design: the Zone creates them and
+    /// World mirrors what it announces.
+    /// </summary>
     public void SpawnAll()
     {
-        if (AppConfiguration.Instance.World.SpawnNpcs)
-        {
-            Logger.Info("Spawning NPCs...");
-            SpawnTasks.Add(Task.Run(SpawnAllNpcs));
-        }
-        else
-        {
-            Logger.Info("NPC spawning disabled by configuration (World.SpawnNpcs)");
-        }
-
         if (AppConfiguration.Instance.World.SpawnDoodads)
         {
             Logger.Info("Spawning Doodads...");
@@ -963,12 +774,13 @@ public class SpawnManager(WorldInstance parentWorld)
                 var count = 0;
                 foreach (var spawner in DoodadSpawners.Values)
                 {
-                    spawner.Spawn(0);
+                    // Zone takes physics ownership of each doodad World authors.
+                    var doodad = spawner.Spawn(0);
+                    if (doodad != null)
+                        WorldIntegration.RelayCreateDoodadToZone?.Invoke(doodad);
                     count++;
                     if (count % 5000 == 0)
-                    {
                         Logger.Debug($"In world {World} Doodads spawned: {count}...");
-                    }
                 }
 
                 Logger.Info($"In world {World} Doodads spawned: {count} in {DateTime.UtcNow.Subtract(spawnStartTime)} ({GameService.TimeSinceStart} since server start)");
@@ -995,9 +807,7 @@ public class SpawnManager(WorldInstance parentWorld)
                     spawner.SpawnAll();
                     count++;
                     if (count % 25 == 0)
-                    {
                         Logger.Debug($"In world {World} Transfers spawned: {count}...");
-                    }
                 }
 
                 Logger.Info($"In world {World} Transfers spawned: {count} in {DateTime.UtcNow.Subtract(spawnStartTime)} ({GameService.TimeSinceStart} since server start)");
@@ -1018,11 +828,25 @@ public class SpawnManager(WorldInstance parentWorld)
                 var count = 0;
                 foreach (var spawner in GimmickSpawners.Values)
                 {
-                    spawner.Spawn(0);
-                    count++;
-                    if (count % 25 == 0)
+                    try
                     {
-                        Logger.Debug($"In world {World} Gimmicks spawned: {count}...");
+                        var gimmick = spawner.Spawn(0);
+                        if (gimmick == null)
+                            continue;
+
+                        var pos = gimmick.Transform.World.Position;
+                        var zoneId = gimmick.Transform.ZoneId;
+                        WorldIntegration.RelayGimmickCreatedToZone?.Invoke(
+                            gimmick.ObjId, gimmick.TemplateId, zoneId,
+                            gimmick.ModelPath ?? gimmick.Template?.ModelPath ?? "",
+                            pos.X, pos.Y, pos.Z, gimmick.Scale);
+                        count++;
+                        if (count % 25 == 0)
+                            Logger.Debug($"In world {World} Gimmicks spawned: {count}...");
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.Warn(ex, "Gimmick spawn failed in world {0}", World);
                     }
                 }
 
@@ -1048,9 +872,7 @@ public class SpawnManager(WorldInstance parentWorld)
                     spawner.Spawn(0);
                     count++;
                     if (count % 25 == 0)
-                    {
                         Logger.Debug($"In world {World} Slaves spawned: {count}...");
-                    }
                 }
 
                 Logger.Info($"In world {World} slaves spawned: {count} in {DateTime.UtcNow.Subtract(spawnStartTime)} ({GameService.TimeSinceStart} since server start)");
@@ -1176,11 +998,10 @@ public class SpawnManager(WorldInstance parentWorld)
                 {
                     if (obj.Respawn >= DateTime.UtcNow)
                         continue;
-                    if (obj is Npc npc)
-                    {
-                        //npc.Spawner.Respawn(npc);
+                    // Mirrored NPCs respawn on the Zone's own timer; only spawners World created
+                    // itself (GM commands, skill effects, dungeons) are rearmed here.
+                    if (obj is Npc { Spawner: not null } npc)
                         npc.Spawner.SetSpawnScheduled(false); // in the Update() method, enable spawn
-                    }
 
                     if (obj is Doodad doodad)
                         doodad.Spawner.Respawn(doodad);
@@ -1201,6 +1022,16 @@ public class SpawnManager(WorldInstance parentWorld)
                         continue;
                     if (obj is Npc { Spawner: not null } npc)
                         npc.Spawner.Despawn(npc);
+                    else if (obj is Npc { IsZoneMirror: true } mirrorNpc)
+                    {
+                        // Zone mirror bcIds come from ObjectIdManager (unit pool under max_unit).
+                        WorldIntegration.RelayNpcStartDespawnToZone?.Invoke(mirrorNpc.ObjId);
+                        WorldIntegration.RelayUnitRemovedToZone?.Invoke(mirrorNpc.ObjId);
+                        mirrorNpc.Delete();
+                        ObjectIdManager.Instance.ReleaseId(mirrorNpc.ObjId);
+                        RemoveDespawn(obj);
+                        continue;
+                    }
                     else if (obj is Doodad { Spawner: not null } doodadWithSpawner)
                         doodadWithSpawner.Spawner.Despawn(doodadWithSpawner);
                     else if (obj is Transfer { Spawner: not null } transfer)
@@ -1214,7 +1045,10 @@ public class SpawnManager(WorldInstance parentWorld)
                     else
                         obj.Delete();
 
-                    ObjectIdManager.Instance.ReleaseId(obj.ObjId);
+                    if (obj is Doodad or Gimmick)
+                        NonUnitObjectIdManager.Instance.ReleaseId(obj.ObjId);
+                    else
+                        ObjectIdManager.Instance.ReleaseId(obj.ObjId);
                     RemoveDespawn(obj);
                 }
             }
@@ -1284,7 +1118,7 @@ public class SpawnManager(WorldInstance parentWorld)
             if (npcSpawnersIds == null)
             {
                 spawner.UnitId = unitId;
-                spawner.Id = ObjectIdManager.Instance.GetNextId();
+                spawner.Id = NonUnitObjectIdManager.Instance.GetNextId();
                 spawner.NpcSpawnerIds = [spawner.Id];
                 spawner.Template = new NpcSpawnerTemplate(spawner.Id);
                 spawner.Template.Npcs[0].MemberId = spawner.UnitId;

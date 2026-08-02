@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -28,6 +29,7 @@ public class DoodadFuncAttachment : DoodadFuncTemplate
 
                 character.Bonding = new BondDoodad(owner, AttachPointId, BondKindId, Space, spot);
                 character.BroadcastPacket(new SCBondDoodadPacket(caster.ObjId, character.Bonding), true);
+                WorldIntegration.RelayBondDoodadToZone?.Invoke(character.ObjId, character.Bonding, true);
                 character.Transform.StickyParent = owner.Transform.StickyParent;
                 character.Transform.Parent = owner.Transform;
             }

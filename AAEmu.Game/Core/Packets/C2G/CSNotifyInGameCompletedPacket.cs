@@ -9,6 +9,16 @@ public class CSNotifyInGameCompletedPacket() : GamePacket(CSOffsets.CSNotifyInGa
     public override void Read(PacketStream stream)
     {
         WorldManager.Instance.OnPlayerJoin(Connection.ActiveChar);
-        Logger.Info($"NotifyInGameCompleted SubZoneId {Connection.ActiveChar.SubZoneId}, {Connection.ActiveChar?.Name} ({Connection.ActiveChar?.Id})");
+        // Load finished — arm mirror interest. Do NOT start during NotifyInGame (mid-load Quit).
+        // Grace default 0 (was 3000ms workaround); AAEMU_MIRROR_NPC_GRACE_MS to restore delay.
+        Connection.ActiveChar?.ArmMirrorNpcStream(graceMs: ParseMirrorGraceMs());
+        Logger.Info(
+            $"NotifyInGameCompleted SubZoneId {Connection.ActiveChar?.SubZoneId}, {Connection.ActiveChar?.Name} ({Connection.ActiveChar?.Id}) mirrorStream armed");
+    }
+
+    private static int ParseMirrorGraceMs()
+    {
+        var raw = System.Environment.GetEnvironmentVariable("AAEMU_MIRROR_NPC_GRACE_MS");
+        return int.TryParse(raw, out var n) && n >= 0 ? n : 0;
     }
 }

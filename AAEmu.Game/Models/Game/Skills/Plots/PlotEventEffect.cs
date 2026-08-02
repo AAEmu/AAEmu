@@ -15,7 +15,9 @@ public class PlotEventEffect
     public uint ActualId { get; set; }
     public string ActualType { get; set; }
 
-    public void ApplyEffect(PlotState state, PlotTargetInfo targetInfo, PlotEventTemplate evt, ref byte flag, bool channeled = false, CompressedGamePackets gamePackets = null)
+    public void ApplyEffect(PlotState state, PlotTargetInfo targetInfo, PlotEventTemplate evt, ref byte flag,
+        bool channeled = false, CompressedGamePackets gamePackets = null,
+        Action<Action> deferUntilPlotEventProcessed = null)
     {
         var template = SkillManager.Instance.GetEffectTemplate(ActualId, ActualType);
 
@@ -80,7 +82,7 @@ public class PlotEventEffect
                 target,
                 state.TargetCaster,
                 new CastPlot(evt.PlotId, state.ActiveSkill.TlId, evt.Id, state.ActiveSkill.Template.Id),
-                new EffectSource(state.ActiveSkill),
+                new EffectSource(state.ActiveSkill, deferUntilPlotEventProcessed),
                 state.SkillObject,
                 DateTime.UtcNow,
                 gamePackets);

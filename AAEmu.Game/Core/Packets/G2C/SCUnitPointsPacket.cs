@@ -7,8 +7,10 @@ public class SCUnitPointsPacket(uint id, int health, int mana) : GamePacket(SCOf
 {
     public override PacketLogLevel LogLevel => PacketLogLevel.Trace;
 
-    private readonly int _preciseHealth = health * 100;
-    private readonly int _preciseMana = mana * 100;
+    // 10.0.2.13: precise hp/mp are i64 (same as SCUnitState). i32 truncates the body and
+    // the client logs "not enough buffer for preciseMana" → sc sequence desync → disconnect.
+    private readonly long _preciseHealth = (long)health * 100;
+    private readonly long _preciseMana = (long)mana * 100;
 
     public override PacketStream Write(PacketStream stream)
     {

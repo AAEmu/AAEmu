@@ -1,48 +1,30 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-#pragma warning disable IDE0052 // Remove unread private members
-
-public class SCCooldownsPacket : GamePacket
+public class SCCooldownsPacket(UnitCooldowns cooldowns) : GamePacket(SCOffsets.SCCooldownsPacket, 1)
 {
-    private Character _chr;
-    //private uint _skillId;
-    private readonly int _skillCount;
-    private readonly int _tagCount;
-
-    public SCCooldownsPacket() : base(SCOffsets.SCCooldownsPacket, 1)
-    {
-        _skillCount = 0;
-        _tagCount = 0;
-    }
-    public SCCooldownsPacket(Character chr) : base(SCOffsets.SCCooldownsPacket, 1)
-    {
-        _chr = chr;
-        _skillCount = 0;
-        _tagCount = 0;
-    }
+    // Native reserves 0x708 bytes per bucket: u32 count followed by 150 12-byte entries.
+    private const int MaximumEntriesPerBucket = 150;
 
     public override PacketStream Write(PacketStream stream)
     {
-        //TODO заготовка для пакета
+        var skillEntries = cooldowns.GetActiveSnapshots(MaximumEntriesPerBucket);
 
-        stream.Write(_skillCount); // skillCount
-        for (var i = 0; i < _skillCount; i++)
+        stream.Write((uint)skillEntries.Count);
+        foreach (var entry in skillEntries)
         {
-            stream.Write(0u); // type(id)
-            stream.Write(0u); // type(id)
-            stream.Write(0u); // type(id)
+            stream.Write(unchecked((int)entry.SkillId));
+            stream.Write(unchecked((int)entry.Duration));
+            stream.Write(unchecked((int)entry.Remaining));
         }
-        stream.Write(_tagCount); // tagCount
-        for (var i = 0; i < _tagCount; i++)
-        {
-            stream.Write(0u); // type(id) //tagId
-            stream.Write(0u); // type(id) // GCD?
-            stream.Write(0u); // type(id) // Delay?
-        }
+
+        // AAEmu currently has no independent tag or charge cooldown stores. The native body still
+        // requires both counts when those buckets are empty.
+        stream.Write(0u); // tagCount
+        stream.Write(0u); // chargeCount
 
         return stream;
     }

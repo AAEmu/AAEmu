@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 
 namespace AAEmu.Game.Models.Game.DoodadObj;
@@ -7,16 +7,20 @@ public class BondDoodad : PacketMarshaler
 {
     private Doodad _owner;
     private readonly byte _attachPoint;
-    private readonly byte _kind;
+    private readonly BondKind _kind;
     private readonly int _space;
     private readonly int _spot;
 
     public uint ObjId => _owner?.ObjId ?? 0;
+    public AttachPointKind AttachPoint => (AttachPointKind)_attachPoint;
+    public BondKind Kind => _kind;
+    public int Space => _space;
+    public int Spot => _spot;
 
     public BondDoodad(AttachPointKind attachPoint, BondKind kind, int space, int spot)
     {
         _attachPoint = (byte)attachPoint;
-        _kind = (byte)kind;
+        _kind = kind;
         _space = space;
         _spot = spot;
     }
@@ -25,7 +29,7 @@ public class BondDoodad : PacketMarshaler
     {
         SetOwner(owner);
         _attachPoint = (byte)attachPoint;
-        _kind = (byte)kind;
+        _kind = kind;
         _space = space;
         _spot = spot;
     }
@@ -40,13 +44,17 @@ public class BondDoodad : PacketMarshaler
         return _owner;
     }
 
+    /// <summary>
+    /// point u8, doodad bc(3), space s32, spot s32, type u32 (BondKind).
+    /// Older AAEmu wrote kind before space/spot as u8 — client never bonded → no sit.
+    /// </summary>
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(_attachPoint);
-        stream.WriteBc(_owner.ObjId);
-        stream.Write(_kind);
+        stream.WriteBc(_owner?.ObjId ?? 0);
         stream.Write(_space);
         stream.Write(_spot);
+        stream.Write((uint)_kind);
         return stream;
     }
 }

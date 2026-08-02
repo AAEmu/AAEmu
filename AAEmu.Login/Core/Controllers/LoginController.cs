@@ -298,35 +298,59 @@ public partial class LoginController(
     public void AddReconnectionToken(InternalConnection connection, GameServerId gsId, AccountId accountId, uint token)
     {
         var tokensForGameServer = _tokens.GetOrAdd(gsId, static _ => []);
-        tokensForGameServer.TryAdd(token, accountId);
+        if (!tokensForGameServer.TryAdd(token, accountId))
+        {
+            tokensForGameServer.TryGetValue(token, out var previousAccountId);
+            tokensForGameServer[token] = accountId;
+            logger.LogWarning(
+                "Replaced duplicate reconnect cookie {Token} for game server {GameServerId}: account {PreviousAccountId} -> {AccountId}",
+                token, gsId, previousAccountId, accountId);
+        }
+
         connection.SendPacket(new LGPlayerReconnectPacket(token));
     }
 
     public Task<ReconnectResult> Reconnect(GameServerId gsId, AccountId accountId, uint token)
     {
-        if (!_tokens.ContainsKey(gsId))
+        if (!_tokens.TryGetValue(gsId, out var tokensForGameServer))
         {
-            if (gameController.TryGetParentId(gsId, out var parentId))
-                gsId = parentId;
-            else
+            if (!gameController.TryGetParentId(gsId, out var parentId) ||
+                !_tokens.TryGetValue(parentId, out tokensForGameServer))
             {
-                // TODO ...
+                logger.LogWarning(
+                    "Rejected reconnect for account {AccountId}: no cookie store for game server {GameServerId}",
+                    accountId, gsId);
                 return Task.FromResult(new ReconnectResult(false, default));
             }
+
+            gsId = parentId;
         }
 
-        if (!_tokens[gsId].TryGetValue(token, out var value))
+        if (!tokensForGameServer.TryGetValue(token, out var registeredAccountId))
         {
-            // TODO ...
+            logger.LogWarning(
+                "Rejected reconnect for account {AccountId}: cookie {Token} is unknown on game server {GameServerId}",
+                accountId, token, gsId);
             return Task.FromResult(new ReconnectResult(false, default));
         }
 
-        if (value == accountId)
+        if (registeredAccountId != accountId)
         {
-            return Task.FromResult(new ReconnectResult(true, accountId));
+            logger.LogWarning(
+                "Rejected reconnect cookie {Token} on game server {GameServerId}: registered account {RegisteredAccountId}, requested account {AccountId}",
+                token, gsId, registeredAccountId, accountId);
+            return Task.FromResult(new ReconnectResult(false, default));
         }
 
-        // TODO ...
-        return Task.FromResult(new ReconnectResult(false, default));
+        // A reconnect cookie is a one-shot credential. Only one concurrent request may consume it.
+        if (!tokensForGameServer.TryRemove(token, out var consumedAccountId) || consumedAccountId != accountId)
+        {
+            logger.LogWarning(
+                "Rejected replayed reconnect cookie {Token} for account {AccountId} on game server {GameServerId}",
+                token, accountId, gsId);
+            return Task.FromResult(new ReconnectResult(false, default));
+        }
+
+        return Task.FromResult(new ReconnectResult(true, accountId));
     }
 }

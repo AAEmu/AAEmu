@@ -8,5 +8,6 @@ public abstract class DoodadFuncTemplate
     protected static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public uint Id { get; set; }
+    public virtual bool CompletesFromClientPacket => false;
     public abstract void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0);
 }

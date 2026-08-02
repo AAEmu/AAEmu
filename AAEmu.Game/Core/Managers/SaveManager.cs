@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -18,6 +18,7 @@ public class SaveManager(
     IItemManager itemManager,
     IAuctionManager auctionManager,
     ICrimeManager crimeManager,
+    IAccountAttributeManager accountAttributeManager,
     IWorldManager worldManager) : Singleton<SaveManager>, ISaveManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
@@ -88,6 +89,8 @@ public class SaveManager(
                         var savedAuctionHouse = auctionManager.Save(connection, transaction);
                         // Crimes
                         var savedCrimes = crimeManager.Save(connection, transaction);
+                        // Account attributes
+                        var savedAccountAttributes = accountAttributeManager.Save(connection, transaction);
 
                         // Characters
                         var savedCharacters = 0;

@@ -78,6 +78,20 @@ public class RouteMapperTests
         await Assert.That(route).IsNull();
         await Assert.That(matches).IsNull();
     }
+
+    [Test]
+    public async Task GetRoute_ZoneManagerStatusEndpoint_ShouldBeRegistered()
+    {
+        var routeMapper = new RouteMapper();
+        routeMapper.DiscoverRoutesFromType(typeof(WorldController));
+
+        var (route, matches) = routeMapper.GetRoute("/api/world/zone-manager-status", HttpMethod.Get);
+
+        await Assert.That(route).IsNotNull();
+        await Assert.That(matches).IsNotNull();
+        await Assert.That(route.Path).IsEqualTo("/api/world/zone-manager-status");
+    }
+
     internal sealed class MyController : BaseController
     {
         [WebApiGet("/world/logged-characters")]

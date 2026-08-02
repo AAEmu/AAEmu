@@ -7,8 +7,18 @@ namespace AAEmu.Game.Models.Game.Units;
 
 public sealed class Portal : Npc
 {
+    /// <summary>Bit 1 of the SCUnitState NPC flag: walking into this unit sends CSUsePortal.</summary>
+    private const byte EntranceFlag = 0x02;
+    /// <summary>Bit 2: the client shows the destination name but does not auto-use the portal.</summary>
+    private const byte ExitFlag = 0x04;
+
     public Transform TeleportPosition { get; set; }
     public Npc LinkedPortal { get; set; }
+
+    /// <summary>The yellow portal that appears at the destination; it is not walked through.</summary>
+    public bool IsExit { get; init; }
+
+    public override byte UnitStateFlag => IsExit ? ExitFlag : EntranceFlag;
 
     private void KillLinkedPortal()
     {

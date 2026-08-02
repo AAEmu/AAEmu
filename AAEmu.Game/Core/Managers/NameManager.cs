@@ -34,14 +34,13 @@ public partial class NameManager(Lazy<ICharacterManager> characterManager = null
 
     public NameManager() : this(null, null) { }
 
-    private const string DefaultCharacterNameRegexPattern = "^[a-zA-Z0-9а-яА-Я]{1,18}$";
-    [GeneratedRegex(DefaultCharacterNameRegexPattern)]
+    [GeneratedRegex(AppConfiguration.DefaultCharacterNameRegexPattern)]
     private static partial Regex DefaultCharacterNameRegex();
 
     public void Load()
     {
         if (options?.Value.CharacterNameRegex is { } characterNameRegex &&
-            characterNameRegex != DefaultCharacterNameRegexPattern)
+            characterNameRegex != AppConfiguration.DefaultCharacterNameRegexPattern)
         {
             _characterNameRegex = new Regex(characterNameRegex, RegexOptions.Compiled);
         }
@@ -85,7 +84,7 @@ public partial class NameManager(Lazy<ICharacterManager> characterManager = null
         Dictionary<uint, uint> characterAccounts)
     {
         if (options?.Value.CharacterNameRegex is { } characterNameRegex &&
-            characterNameRegex != DefaultCharacterNameRegexPattern)
+            characterNameRegex != AppConfiguration.DefaultCharacterNameRegexPattern)
         {
             _characterNameRegex = new Regex(characterNameRegex, RegexOptions.Compiled);
         }

@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -63,6 +64,7 @@ public class BuildHouse : ICommand
                 ),
                 true
             );
+            HousingZoneBridge.NotifyZoneHouseBuildState(targetHouse);
         }
 
         if (targetHouse.CurrentStep == -1)

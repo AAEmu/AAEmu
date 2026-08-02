@@ -96,9 +96,9 @@ public class WorldTemplate
     public Dictionary<uint, List<Area>> HousingZones { get; set; } = []; 
 
     /// <summary>
-    /// Handles navmesh data
+    /// Terrain height lookup for this world
     /// </summary>
-    public AiGeoDataManager GeoData { get; set; }
+    public GeoDataManager GeoData { get; set; }
 
     /// <summary>
     /// ZoneKey, BaiLoader
@@ -214,8 +214,32 @@ public class WorldTemplate
         return Cells[cellX, cellY];
     }
 
+    private readonly Lock _zoneBaiLock = new();
+    private bool _zoneBaiLoaded;
+
+    /// <summary>
+    /// Loads this world's zone navmesh once, on first use. Boot only preloads every world's
+    /// navmesh when <c>World.PreLoadNavmesh</c> is set; otherwise the cost is paid per world
+    /// that is actually entered, which keeps unused worlds (backups, tests, unvisited instances)
+    /// out of the process entirely.
+    /// </summary>
+    public void EnsureZoneBaiFilesLoaded()
+    {
+        if (_zoneBaiLoaded)
+            return;
+
+        lock (_zoneBaiLock)
+        {
+            if (_zoneBaiLoaded)
+                return;
+            LoadZoneBaiFiles();
+        }
+    }
+
     public void LoadZoneBaiFiles()
     {
+        _zoneBaiLoaded = true;
+
         if (!AppConfiguration.Instance.World.GeoDataMode)
             return; // Don't load navmesh if GeoDataMode is disabled
 
@@ -234,6 +258,7 @@ public class WorldTemplate
 
     public BaseBaiLoader GetBaiByPos(Vector3 pos)
     {
+        EnsureZoneBaiFilesLoaded();
         if (ZoneBaiLoader.Count > 0)
             return ZoneBaiLoader.Values.First(); // TODO: Pick the actually correct zone
 

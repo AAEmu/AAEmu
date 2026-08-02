@@ -21,6 +21,10 @@ public class Transfer : Unit
     /// </summary>
     public const float BoundedChildAlongFrontOffsetMeters = -9.24417f;
 
+    /// <summary>Steering constants for transfer models that have no vehicle_models row.</summary>
+    private const float DefaultAngularVelocity = 1f;
+    private const float DefaultMass = 450f;
+
     public override UnitTypeFlag TypeFlag { get => UnitTypeFlag.Transfer; }
     public override BaseUnitType BaseUnitType => BaseUnitType.Transfer;
 
@@ -567,18 +571,23 @@ public class Transfer : Unit
         /* Поведение Seek (поиск) */
         /* Behaviors: Seek */
         // https://code.tutsplus.com/understanding-steering-behaviors-flee-and-arrival--gamedev-1303t?_ga=2.235770881.1818027478.1708218508-301354123.1708218508
+        // Most transfer models have no vehicle_models row — carriage 654, airship 657 and lift 2094
+        // are all absent — so a missing model must not stop the route. It only contributes steering
+        // constants, which fall back to values that keep the seek behaviour stable.
         var vehicleModel = ModelManager.Instance.GetVehicleModels(transfer.Template.ModelId);
-        if (vehicleModel == null)
-            return;
 
         transfer.vPosition = transfer.Transform.World.ClonePosition();
-        // 10.0.2.13: vehicle_models.velocity removed; v10 uses wheeled_vehicle_speed_limit (not yet loaded into VehicleModel).
-        MaxVelocityForward = 0f; // TODO(v10): load wheeled_vehicle_speed_limit into VehicleModel and use it here
-        MaxForce = vehicleModel.AngVel;
-        Mass = vehicleModel.WheeledVehicleMass;
+        // 10.0.2.13: vehicle_models.velocity is gone, and wheeled_vehicle_speed_limit only exists for
+        // the 76 models that have a row. transfers.velocity is per-transfer and always present
+        // (carriage 8.0, airship 9.6, lift 8.0), so it drives the route directly.
+        MaxVelocityForward = transfer.Template.Velocity;
+        MaxForce = vehicleModel?.AngVel ?? DefaultAngularVelocity;
+        Mass = vehicleModel?.WheeledVehicleMass ?? DefaultMass;
         //var slowingRadius = transfer.Template.PathSmoothing; // расстояние с которого начинаем тормозить
 
-        transfer.VelAccel = vehicleModel.WheeledVehicleMaxGear switch
+        // vehicleModel is null for every transfer model without a vehicle_models row, which is most
+        // of them — fall through to the default gear ratio rather than dereferencing it.
+        transfer.VelAccel = vehicleModel?.WheeledVehicleMaxGear switch
         {
             1 => vehicleModel.WheeledVehicleGearSpeedRatio1,
             2 => vehicleModel.WheeledVehicleGearSpeedRatio2,
@@ -664,6 +673,13 @@ public class Transfer : Unit
             childMove.UseTransferBase(child);
             child.BroadcastPacket(new SCOneUnitMovementPacket(child.ObjId, childMove), false);
         }
+
+        // Follow the region as the route crosses one. Movement alone never re-registers visibility,
+        // so the rig stayed bound to the region it spawned in and streamed out of every client the
+        // moment it drove clear of that region's neighbourhood. AddVisibleObject resolves through
+        // the transform root (the bounded child, moved just above) and early-returns when the
+        // region is unchanged, so this is cheap on the common tick.
+        Core.Managers.World.WorldManager.Instance.AddVisibleObject(transfer);
     }
 
     private void NextPoint(Transfer transfer)

@@ -5,5 +5,5 @@ public enum ShopCurrencyType : byte
     Money = 0,
     Honor = 1,
     VocationBadges = 2,
-    SiegeShop = 3,
+    ItemPoint = 5,
 }

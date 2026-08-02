@@ -18,7 +18,19 @@ public class ChangeSkillActiveType : SpecialEffectAction
         int value3,
         int value4)
     {
-        // TODO ...
-        if (caster is Character) { Logger.Debug("Special effects: ChangeSkillActiveType value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        var character = target as Character ?? caster as Character;
+        if (character == null || value1 <= 0 || value3 < 0 ||
+            !Enum.IsDefined(typeof(SkillActiveType), value2))
+            return;
+
+        if (!character.SkillActiveTypes.TrySet(
+                checked((uint)value3),
+                checked((uint)value1),
+                (SkillActiveType)value2))
+        {
+            Logger.Warn(
+                "ChangeSkillActiveType rejected character={0}, heir={1}, skill={2}, active={3}",
+                character.Id, value3, value1, value2);
+        }
     }
 }

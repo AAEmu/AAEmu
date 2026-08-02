@@ -116,13 +116,6 @@ public class NpcSpawnerNpc : Spawner<Npc>
 
         npc.Transform.InstanceId = npc.Transform.InstanceId;
 
-        if (npc.Ai != null)
-        {
-            npc.Ai.HomePosition = npc.Transform.World.Position;
-            npc.Ai.IdlePosition = npc.Ai.HomePosition;
-            npc.Ai.GoToSpawn();
-        }
-
         npc.Spawner = npcSpawner;
         npc.Spawner.RespawnTime = (int)Random.Shared.Next(npc.Spawner.Template.SpawnDelayMin, npc.Spawner.Template.SpawnDelayMax);
         npc.Spawn();
@@ -130,12 +123,6 @@ public class NpcSpawnerNpc : Spawner<Npc>
         var world = WorldManager.Instance.GetWorld(npc.Transform.InstanceId);
         world.Events.OnUnitSpawn(world, new OnUnitSpawnArgs { Npc = npc });
         npc.Simulation = new Simulation(npc);
-
-        if (npc.Ai != null && !string.IsNullOrWhiteSpace(npcSpawner.FollowPath))
-        {
-            if (!npc.Ai.LoadAiPathPoints(npcSpawner.FollowPath, false))
-                Logger.Warn($"Failed to load {npcSpawner.FollowPath} for NPC {npc.TemplateId} ({npc.ObjId})");
-        }
 
         npcs.Add(npc);
         return npcs;

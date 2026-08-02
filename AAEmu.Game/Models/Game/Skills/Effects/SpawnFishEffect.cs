@@ -52,6 +52,12 @@ public class SpawnFishEffect : EffectTemplate
 
         Logger.Debug($"Selected fish template {npcTemplateEntry.MemberId} from spawner {fishSpawnerId}");
 
+        if (WorldIntegration.ZoneAuthority)
+        {
+            SpawnFishInZone(player, target, npcTemplateEntry, castObj, source);
+            return;
+        }
+
         // Create temporary spawner with correct position
         var tempSpawner = new NpcSpawner
         {
@@ -79,8 +85,14 @@ public class SpawnFishEffect : EffectTemplate
             // Aggro & targeting
             fish.CurrentTarget = player;
             fish.AddUnitAggro(AggroKind.Damage, player, 10000);
+            // The fish is spawned already hooked on the angler, so it enters combat here rather than
+            // through the aggro sweep an ordinary NPC uses. Announcing it is what releases the
+            // SkillUseConditionKind.InCombat skills every sport fish carries — 입질 (21608) applies
+            // the tag 1090 buff that plot 821 waits on, and without it the plot times out seven
+            // seconds later into 대어 소환 안됨 ("big fish not summoned") with the fish left floating.
+            fish.Events.OnCombatStarted(fish, new OnCombatStartedArgs { Owner = fish, Target = player });
             player.CurrentTarget = fish;
-            player.BroadcastPacket(new SCTargetChangedPacket(player.ObjId, fish.ObjId), true);
+            player.SendPacket(new SCTargetChangedPacket(player.ObjId, fish.ObjId));
             Logger.Debug($"Successfully spawned fish {npcTemplateEntry.MemberId} (owner {player.Id}) at bobber for {player.Name}");
         }
         catch (Exception ex)
@@ -89,6 +101,104 @@ public class SpawnFishEffect : EffectTemplate
         }
     }
 
+    private void SpawnFishInZone(
+        Character player,
+        BaseUnit target,
+        NpcSpawnerNpc npcTemplateEntry,
+        CastAction castAction,
+        EffectSource effectSource)
+    {
+        Npc fish = null;
+        var publishAttempted = false;
+        var published = false;
+        try
+        {
+            fish = NpcManager.Instance.Create(player.ParentWorld, 0, npcTemplateEntry.MemberId);
+            if (fish == null)
+            {
+                Logger.Warn($"Fish template {npcTemplateEntry.MemberId} could not be created.");
+                return;
+            }
+
+            fish.OwnerId = player.Id;
+            fish.Transform = target.Transform.CloneDetached(fish);
+            fish.IsZoneMirror = true;
+            fish.Spawn();
+
+            void CompleteCombatHandoff()
+            {
+                // Native spawning.lua removes buff 815 when the NPC leaves its spawn state. The
+                // hook plot event and that removal must both complete before combat is handed off;
+                // otherwise spawning's destructor clears the target and combat relation again.
+                if (fish.ParentWorld?.GetNpc(fish.ObjId) != fish)
+                {
+                    Logger.Debug("Skipped stale fish handoff obj={0} player={1}", fish.ObjId, player.Id);
+                    return;
+                }
+
+                if (!player.IsOnline || player.ParentWorld != fish.ParentWorld)
+                {
+                    Logger.Debug("Retiring fish handoff obj={0}; player={1} is no longer present", fish.ObjId, player.Id);
+                    WorldIntegration.DeleteNpcMirror(fish, true);
+                    return;
+                }
+
+                try
+                {
+                    fish.CurrentTarget = player;
+                    WorldIntegration.RelayTargetChangedToZone?.Invoke(fish.ObjId, player.ObjId, true);
+                    player.CurrentTarget = fish;
+                    WorldIntegration.RelayTargetChangedToZone?.Invoke(player.ObjId, fish.ObjId, true);
+                    WorldIntegration.PublishAggro(fish, player, 10000, castAction);
+                    fish.IsInBattle = true;
+                    player.IsInBattle = true;
+                    Logger.Debug(
+                        $"Successfully handed fish {npcTemplateEntry.MemberId} (owner {player.Id}) to Zone at the bobber.");
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(ex, "Failed fish combat handoff obj={0}; retiring Zone mirror", fish.ObjId);
+                    WorldIntegration.DeleteNpcMirror(fish, true);
+                }
+            }
+
+            WorldIntegration.RegisterNpcHandoff(
+                fish.ObjId,
+                (uint)BuffConstants.ZoneNpcSpawnProtection,
+                CompleteCombatHandoff);
+
+            // Native NpcManager::Create resolves a non-empty creator identity to that creator's
+            // owner/faction before constructing the NPC. Sending the angler here therefore makes
+            // the fish inherit the angler's side and its hostile bite cannot target them. Retail
+            // attributes this spawn with NpcSpawnReason::Fishing and its CastAction payload while
+            // leaving the creator identity empty, so the fish keeps its template faction.
+            publishAttempted = true;
+            published = WorldIntegration.PublishNpcSpawn(
+                fish,
+                reason: NpcSpawnReasonType.Fishing,
+                spawnAction: castAction);
+            if (!published)
+            {
+                WorldIntegration.CancelNpcHandoff(fish.ObjId);
+                WorldIntegration.DeleteNpcMirror(fish, false);
+                return;
+            }
+
+            if (effectSource?.DeferUntilPlotEventProcessed(
+                    () => WorldIntegration.MarkNpcHandoffPlotReady(fish.ObjId)) != true)
+                WorldIntegration.MarkNpcHandoffPlotReady(fish.ObjId);
+        }
+        catch (Exception ex)
+        {
+            if (fish != null)
+            {
+                WorldIntegration.CancelNpcHandoff(fish.ObjId);
+                WorldIntegration.DeleteNpcMirror(fish, publishAttempted);
+            }
+
+            Logger.Error(ex, $"Error handing fish template {npcTemplateEntry.MemberId} to Zone.");
+        }
+    }
     private NpcSpawnerNpc SelectWeightedRandom(List<NpcSpawnerNpc> npcs)
     {
         var totalWeight = npcs.Sum(x => x.Weight);
@@ -106,9 +216,16 @@ public class SpawnFishEffect : EffectTemplate
         return npcs[0];
     }
 
+    /// <summary>
+    /// Finds the school the bobber landed in and returns the npc_spawners id its current phase feeds
+    /// from. Only the chummed phase carries a <see cref="DoodadFuncFishSchool"/> — freshwater 6447
+    /// holds it on 26363 and not on the idle 26362 — so an un-chummed school correctly yields 0.
+    /// </summary>
     private uint GetFishSpawnerId(Character player)
     {
-        var doodads = WorldManager.GetAround<Doodad>(player, 100);
+        // spawn_fish_effects.range is millimetres, as in ScopedFEffect: 50000 -> 50m for the school
+        // effects plot 821 and 809 use, 25000 -> 25m for effect 1.
+        var doodads = WorldManager.GetAround<Doodad>(player, Range / 1000f);
         foreach (var doodad in doodads)
         {
             if (doodad.Template.GroupId == 65)

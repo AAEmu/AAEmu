@@ -1,11 +1,14 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Skills;
 using NLog;
+
+using WorldIntegration = AAEmu.Game.WorldIntegration;
 
 namespace AAEmu.Game.Models.Game.Skills;
 
@@ -39,6 +42,13 @@ public class Buff
     public DateTime EndTime { get; set; }
     public int Charge { get; set; }
     public bool Passive { get; set; }
+    /// <summary>
+    /// The native Zone has already applied this buff and notified World through ZWCreateBuff.
+    /// World mirrors it for state and client presentation, but must not send the corresponding
+    /// WZ create/update/remove messages back to the Zone.
+    /// </summary>
+    public bool ZoneAuthored { get; set; }
+
     public uint AbLevel { get; set; }
     public BuffEvents Events { get; }
     public BuffTriggersHandler Triggers { get; }
@@ -170,6 +180,7 @@ public class Buff
             this.AbLevel = newBuff.AbLevel;
             this.Caster = newBuff.Caster;
             this.SkillCaster = newBuff.SkillCaster;
+            this.ZoneAuthored = newBuff.ZoneAuthored;
 
             // Set StartTime to now.
             var now = DateTime.UtcNow;
@@ -202,7 +213,34 @@ public class Buff
             });
             SetInUse(true, true);
         }
+
+        NotifyUpdated(reason: 1); // refresh/overwrite
     }
+
+    /// <summary>
+    /// Push SC + WZ BuffUpdated so clients and Zone see charge/duration changes after Create.
+    /// </summary>
+    public void NotifyUpdated(byte reason = 0)
+    {
+        if (Owner == null || Passive)
+            return;
+
+        var elapsedMs = StartTime == DateTime.MinValue
+            ? 0
+            : (int)Math.Max(0, (DateTime.UtcNow - StartTime).TotalMilliseconds);
+        var stack = 1u;
+        if (Owner.Buffs != null)
+            stack = (uint)Math.Max(1, Owner.Buffs.GetBuffCountById(Template.BuffId));
+
+        Owner.BroadcastPacket(
+            new SCBuffUpdatedPacket(Owner.ObjId, (int)Index, stack, (uint)Charge, elapsedMs, reason),
+            true);
+
+        if (WorldIntegration.ZoneAuthority && !ZoneAuthored)
+            WorldIntegration.RelayBuffUpdatedToZone?.Invoke(
+                Owner.ObjId, (int)Index, stack, (uint)Charge, elapsedMs, reason);
+    }
+
     public void Exit(bool replace = false)
     {
         if (State == EffectState.Finished)
@@ -289,6 +327,10 @@ public class Buff
         if (Charge <= 0)
         {
             Exit(false);
+        }
+        else
+        {
+            NotifyUpdated(reason: 2); // charge consumed
         }
 
         return value;

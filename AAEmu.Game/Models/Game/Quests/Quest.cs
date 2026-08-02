@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -9,6 +9,8 @@ using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.StaticValues;
+
+using WorldIntegration = AAEmu.Game.WorldIntegration;
 
 #pragma warning disable IDE0052 // Remove unread private members
 
@@ -280,19 +282,44 @@ public partial class Quest : PacketMarshaler
     }
 
     /// <summary>
-    /// If NpcAiId is AttackUnit, change the Npc faction to Monstrosity
+    /// Drive Zone NPC AI from quest component NpcAiId (Attack / Follow / Path / RunCommandSet).
     /// </summary>
-    /// <param name="component"></param>
     public void SetNpcAggro(QuestComponentTemplate component)
     {
         if (component == null) { return; }
-        if (component.NpcAiId == QuestNpcAiName.AttackUnit)
+        if (component.NpcId == 0)
+            return;
+
+        var owner = Owner as Character;
+        var npc = owner?.ParentWorld.GetNpcByTemplateId(component.NpcId);
+        if (npc == null)
+            return;
+
+        switch (component.NpcAiId)
         {
-            if (component.NpcId > 0)
-            {
-                var npc = ((Character)Owner).ParentWorld.GetNpcByTemplateId(component.NpcId);
-                npc?.SetFaction(FactionsEnum.Monstrosity); // TODO mb Hostile
-            }
+            case QuestNpcAiName.AttackUnit:
+                npc.SetFaction(FactionsEnum.Monstrosity); // TODO mb Hostile
+                if (WorldIntegration.ZoneAuthority && owner != null)
+                    WorldIntegration.RelayQuestNpcAiToZone?.Invoke(0, npc.ObjId, owner.ObjId, null, 0, 0);
+                break;
+            case QuestNpcAiName.FollowUnit:
+                if (WorldIntegration.ZoneAuthority && owner != null)
+                    WorldIntegration.RelayQuestNpcAiToZone?.Invoke(1, npc.ObjId, owner.ObjId, null, 0, 0);
+                break;
+            case QuestNpcAiName.FollowPath:
+                if (WorldIntegration.ZoneAuthority && owner != null)
+                    WorldIntegration.RelayQuestNpcAiToZone?.Invoke(
+                        2, npc.ObjId, owner.ObjId, component.AiPathName ?? "", (byte)component.AiPathTypeId, 0);
+                break;
+            case QuestNpcAiName.RunCommandSet:
+                if (WorldIntegration.ZoneAuthority && owner != null)
+                    WorldIntegration.RelayQuestNpcAiToZone?.Invoke(
+                        3, npc.ObjId, owner.ObjId, null, 0, (int)component.AiCommandSetId);
+                break;
+            case QuestNpcAiName.GoAway:
+            case QuestNpcAiName.None:
+            default:
+                break;
         }
     }
 
@@ -531,13 +558,17 @@ public partial class Quest : PacketMarshaler
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(Id);
+        // s64 id, u32 templateId, u8 status, 10× objectives via pish/pisc, bool isCheckSet,
+        // Bc×3 + u32, s32 leftTime, u32 component, s64 doodadId, u64 acceptTime, u8 acceptorKind, u32 acceptorId
+        stream.Write((long)Id);
         stream.Write(TemplateId);
         stream.Write((byte)Status);
-        foreach (var objective in Objectives) // TODO do-while, count 5
-        {
-            stream.Write(objective);
-        }
+
+        const int WireObjectiveCount = 10;
+        var wireObjectives = new uint[WireObjectiveCount];
+        for (var i = 0; i < Objectives.Length && i < WireObjectiveCount; i++)
+            wireObjectives[i] = Objectives[i] < 0 ? 0u : (uint)Objectives[i];
+        stream.WritePisc(wireObjectives);
 
         stream.Write(false);          // isCheckSet
         stream.WriteBc((uint)ObjId);  // ObjId
@@ -546,7 +577,7 @@ public partial class Quest : PacketMarshaler
         stream.WriteBc((uint)ObjId);  // ObjId
         stream.Write(LeftTime);       // quest time limit
         stream.Write(LeftTime == -1 ? 0 : ComponentId); // type(id) - indicates which step is limited
-        stream.Write(DoodadId);                // doodadId
+        stream.Write(DoodadId);                // doodadId (s64)
         stream.Write(DateTime.UtcNow);         // acceptTime
         stream.Write((byte)QuestAcceptorType); // type QuestAcceptorType
         stream.Write(AcceptorId);            // acceptorType npcId or doodadId

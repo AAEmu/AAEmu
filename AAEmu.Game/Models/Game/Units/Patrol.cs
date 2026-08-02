@@ -1,7 +1,6 @@
 ﻿using System.Numerics;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.NPChar;
-using AAEmu.Game.Models.Game.Units.Route;
 using AAEmu.Game.Models.Tasks.UnitMove;
 
 namespace AAEmu.Game.Models.Game.Units;
@@ -157,32 +156,13 @@ public abstract class Patrol
             Repeat(npc);
             return;
         }
-        // 如果上次巡航不为null
-        // If the last cruise is not null
+        // Resume the previous route. Walking the unit back to where that route was paused is a
+        // navigation decision and belongs to the Zone, so the route simply picks up again.
         if (LastPatrol != null && Running == false)
         {
-            if (npc.Transform.Local.Position.X == LastPatrol.PausePosition.X && npc.Transform.Local.Position.Y == LastPatrol.PausePosition.Y && npc.Transform.Local.Position.Z == LastPatrol.PausePosition.Z)
-            {
-                LastPatrol.Running = true;
-                npc.Patrol = LastPatrol;
-                // 恢复上次巡航
-                // Resume last cruise
-                Repeat(npc, 500, LastPatrol);
-            }
-            else
-            {
-                // 创建直线巡航回归上次巡航暂停点
-                // Create a straight cruise to return to the last cruise pause
-                var line = new Line {
-                    // 不可中断，不受外力及攻击影响 类似于处于脱战状态
-                    // Uninterrupted, unaffected by external forces and attacks
-                    Interrupt = true, Loop = false, LastPatrol = LastPatrol, // 指定目标Point
-                    // Specify target point
-                    Position = LastPatrol.PausePosition };
-                // 恢复上次巡航
-                // Resume last cruise
-                Repeat(npc, 500, line);
-            }
+            LastPatrol.Running = true;
+            npc.Patrol = LastPatrol;
+            Repeat(npc, 500, LastPatrol);
         }
     }
 

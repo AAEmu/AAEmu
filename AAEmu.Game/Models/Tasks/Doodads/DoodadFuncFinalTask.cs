@@ -58,6 +58,9 @@ public class DoodadFuncFinalTask : DoodadFuncTask
             if (_owner.Spawner != null)
             {
                 _owner.Spawner.Despawn(_owner);
+                // Same contract as the after = 0 branch of DoodadFuncFinal: a management spawn returns
+                // on its own percent / min_time / max_time cycle rather than retiring for good.
+                _owner.Spawner.ScheduleManagementRespawn();
             }
             else
             {

@@ -16,13 +16,13 @@ public class SCQuestContextUpdatedPacket(
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(quest);
-        stream.Write(componentId); // componentId
-        stream.Write(para1); // type
-        stream.Write(para2); // type
-        stream.Write(para3); // type
-        stream.Write(para4); // type
-        // Needs 4 int parameters at minimum, but adding more doesn't seem to break the packet
-        // Changing the values of these doesn't seem to have any visible effect.
+        stream.WritePisc(
+            componentId,
+            (uint)Math.Max(0, para1),
+            (uint)Math.Max(0, para2),
+            (uint)Math.Max(0, para3),
+            (uint)Math.Max(0, para4),
+            0u, 0u, 0u, 0u, 0u);
         return stream;
     }
 }

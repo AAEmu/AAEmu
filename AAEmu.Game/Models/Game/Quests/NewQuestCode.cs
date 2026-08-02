@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Units;
 
@@ -50,8 +50,15 @@ public partial class Quest
         Step = QuestComponentKind.Start;
         // Send the first components, or the one that's used to start this ?
         ComponentId = stepStart.Components.Values.FirstOrDefault()?.Template.Id ?? 0;
+
+        // tracker pin (journal vtable+24) only when status==Progress(1). Ready(3) uses a
+        // different UI path. Never send Invalid(0) on Started — that was leaving the
+        // right-hand quest window empty despite 0x18C/0x18E flowing.
+        if (Status == QuestStatus.Invalid || Status == QuestStatus.Dropped)
+            Status = QuestStatus.Progress;
+
         Owner.SendPacket(new SCQuestContextStartedPacket(this, ComponentId));
-        Logger.Debug($"StartQuest, Quest:{TemplateId}, Player {Owner.Name} ({Owner.Id})");
+        Logger.Debug($"StartQuest, Quest:{TemplateId}, Player {Owner.Name} ({Owner.Id}) status={(byte)Status}");
         return true;
     }
 
@@ -146,7 +153,7 @@ public partial class Quest
                     completedBlock.Body.CopyTo(body, 0);
 
                     Owner.Quests.DropQuest(TemplateId, false, false);
-                    Owner.SendPacket(new SCQuestContextCompletedPacket(TemplateId, body, 0));
+                    Owner.SendPacket(new SCQuestContextCompletedPacket(TemplateId, 0));
 
                     return;
                 default:

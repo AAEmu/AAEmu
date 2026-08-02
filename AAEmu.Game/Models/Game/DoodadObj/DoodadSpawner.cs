@@ -182,7 +182,7 @@ public class DoodadSpawner : Spawner<Doodad>
 
         if (doodad.Respawn == DateTime.MinValue)
         {
-            ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+            NonUnitObjectIdManager.Instance.ReleaseId(doodad.ObjId);
         }
 
         Last = null;
@@ -304,6 +304,59 @@ public class DoodadSpawner : Spawner<Doodad>
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Re-seeds a placement whose template is a management spawn (<c>doodad_almighties.mgmt_spawn</c>)
+    /// after its phase graph retired it.
+    ///
+    /// These templates carry their own respawn contract in <c>percent</c> / <c>min_time</c> /
+    /// <c>max_time</c> and deliberately end on a <c>DoodadFuncFinal</c> with <c>respawn = f</c>: the
+    /// phase graph only removes the instance, the spawn management layer decides when — and whether —
+    /// a new one takes its place. Without this the placement is gone for the rest of the server's
+    /// uptime, which is what emptied every fish school 30 minutes after boot (6447 phase 26362 runs a
+    /// 1800000 ms timer into 17140, whose final 3235 is <c>after = 0, respawn = f</c>).
+    ///
+    /// The initial world spawn is intentionally left alone: <c>percent</c> gates the respawn cycle
+    /// here, not <c>SpawnManager</c>'s boot pass, so a restart still seeds every placement.
+    /// </summary>
+    public void ScheduleManagementRespawn()
+    {
+        var template = DoodadManager.Instance.GetTemplate(UnitId);
+        if (template is not { MgmtSpawn: true })
+            return;
+
+        // percent 0 opts the template out of the cycle entirely - it retires the same way it does today.
+        if (template.Percent <= 0 || template.MaxTime <= 0)
+            return;
+
+        var minTime = Math.Max(0, template.MinTime);
+        var maxTime = Math.Max(minTime, template.MaxTime);
+        var delay = Random.Shared.Next(minTime, maxTime + 1);
+
+        TaskManager.Instance.Schedule(new DoodadSpawnerManagementRespawnTask(this), TimeSpan.FromMilliseconds(delay));
+        Logger.Trace($"ScheduleManagementRespawn: Doodad templateId={UnitId} returns in {delay}ms");
+    }
+
+    /// <summary>
+    /// One turn of the management respawn cycle. <c>percent</c> is the chance the placement is
+    /// occupied for this turn, so a miss waits out another interval rather than ending the cycle -
+    /// that is what keeps the saltwater schools (6448, percent 5) at a sparse steady state instead
+    /// of clearing the ocean on the first roll.
+    /// </summary>
+    public void DoManagementRespawn()
+    {
+        var template = DoodadManager.Instance.GetTemplate(UnitId);
+        if (template == null)
+            return;
+
+        if (template.Percent < 100 && Random.Shared.Next(100) >= template.Percent)
+        {
+            ScheduleManagementRespawn();
+            return;
+        }
+
+        Spawn(0);
     }
 
     /// <summary>

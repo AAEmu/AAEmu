@@ -1,5 +1,7 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Trading;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -7,13 +9,11 @@ public class CSBuySpecialtyItemPacket() : GamePacket(CSOffsets.CSBuySpecialtyIte
 {
     public override void Read(PacketStream stream)
     {
-        var id = stream.ReadUInt32();
-        var refund = stream.ReadInt32();
-        var currency = stream.ReadByte();
-        var type = stream.ReadByte();
+        // from SCSpecialtyRatio. The server recomputes that quote before changing stock or money.
+        var npcObjId = stream.ReadBc();
+        var characterObjId = stream.ReadBc();
+        var quote = stream.Read<SpecialtyQuote>();
 
-        var objId = stream.ReadBc();
-
-        Logger.Warn("BuySpecialtyItem, Id: {0}, Currency: {1}", id, currency);
+        SpecialtyManager.Instance.BuySpecialty(Connection.ActiveChar, npcObjId, characterObjId, quote);
     }
 }

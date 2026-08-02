@@ -70,7 +70,7 @@ public class Despawn : ICommand
                     {
                         CommandManager.SendNormalText(this, messageOutput,
                             $"Removing Doodad with ID {myDoodad.ObjId} - @DOODAD_NAME({myDoodad.TemplateId})");
-                        ObjectIdManager.Instance.ReleaseId(myDoodad.ObjId);
+                        NonUnitObjectIdManager.Instance.ReleaseId(myDoodad.ObjId);
                         myDoodad.Delete();
                     }
                     else
@@ -129,7 +129,7 @@ public class Despawn : ICommand
                     {
                         if (doodad.TemplateId == unitId)
                         {
-                            ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+                            NonUnitObjectIdManager.Instance.ReleaseId(doodad.ObjId);
                             doodad.Delete();
                             removedCount++;
                         }

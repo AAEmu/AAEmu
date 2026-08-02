@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.AI.Enums;
+﻿using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 

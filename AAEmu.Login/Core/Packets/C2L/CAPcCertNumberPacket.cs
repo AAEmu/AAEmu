@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Login.Core.Network.Login;
 
 namespace AAEmu.Login.Core.Packets.C2L;
@@ -8,6 +8,8 @@ namespace AAEmu.Login.Core.Packets.C2L;
 /// </summary>
 public class CAPcCertNumberPacket() : LoginPacket(TypeId), ILoginPacket
 {
+    private const int CertificateNumberLength = 8;
+
     public new static ushort TypeId => CLOffsets.CAPcCertNumberPacket;
 
     public string? CertNumber { get; private set; }
@@ -15,6 +17,8 @@ public class CAPcCertNumberPacket() : LoginPacket(TypeId), ILoginPacket
     public override void Read(PacketStream stream)
     {
         // Nexon Simple Authentication Number? https://easyprotect.nexon.com/
-        CertNumber = stream.ReadString(); // TODO but on old client length const 8
+        CertNumber = stream.ReadString();
+        if (System.Text.Encoding.UTF8.GetByteCount(CertNumber) != CertificateNumberLength)
+            throw new InvalidDataException($"PC certificate number must contain {CertificateNumberLength} bytes");
     }
 }

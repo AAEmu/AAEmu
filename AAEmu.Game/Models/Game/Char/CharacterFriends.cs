@@ -1,5 +1,4 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
 using MySql.Data.MySqlClient;
 
@@ -7,43 +6,26 @@ namespace AAEmu.Game.Models.Game.Char;
 
 public class CharacterFriends(Character owner)
 {
+    private readonly object _relationshipLock = new();
+
     public Character Owner { get; set; } = owner;
     public Dictionary<uint, FriendTemplate> FriendsIdList { get; set; } = []; // friendId, Template
-    private readonly List<uint> _removedFriends = []; // friendId
-
-    public void AddFriend(string name)
-    {
-        var friend = FriendMananger.GetFriendInfo(name);
-        if (friend == null || FriendsIdList.ContainsKey(friend.CharacterId))
-        {
-            // TODO - ERROR MESSAGE ALREADY ADDED
-            return;
-        }
-
-        var template = new FriendTemplate
-        {
-            Id = FriendIdManager.Instance.GetNextId(),
-            FriendId = friend.CharacterId,
-            Owner = Owner.Id
-        };
-        FriendsIdList.Add(friend.CharacterId, template);
-        FriendMananger.Instance.AddToAllFriends(template);
-        Owner.SendPacket(new SCAddFriendPacket(friend, true, 0));
-    }
 
     public void RemoveFriend(string name)
     {
-        var friend = FriendMananger.GetFriendInfo(name);
-        if (friend == null || !FriendsIdList.TryGetValue(friend.CharacterId, out var value))
-        {
-            // TODO - ERROR MESSAGE NOT FRIEND
-            return;
-        }
+        FriendMananger.Instance.DeleteFriend(Owner, name);
+    }
 
-        FriendMananger.Instance.RemoveFromAllFriends(value.Id);
-        FriendsIdList.Remove(friend.CharacterId);
-        _removedFriends.Add(friend.CharacterId);
-        Owner.SendPacket(new SCDeleteFriendPacket(friend.CharacterId, true, name, 0));
+    internal void SetRelationship(FriendTemplate relationship)
+    {
+        lock (_relationshipLock)
+            FriendsIdList[relationship.FriendId] = relationship;
+    }
+
+    internal void RemoveRelationship(uint friendId)
+    {
+        lock (_relationshipLock)
+            FriendsIdList.Remove(friendId);
     }
 
     public void Send()
@@ -51,10 +33,28 @@ public class CharacterFriends(Character owner)
         // The client expects SCFriends at entry to initialize its friend list; the reference server sends an
         // empty one (total=0, count=0 -> 8-byte body) even with no friends. The packet already serializes 8 bytes
         // for an empty array, so send it unconditionally instead of skipping.
-        var allFriends = FriendMananger.GetFriendInfo([.. FriendsIdList.Keys]);
+        Dictionary<uint, FriendTemplate> relationships;
+        lock (_relationshipLock)
+            relationships = new Dictionary<uint, FriendTemplate>(FriendsIdList);
+
+        var allFriends = FriendMananger.GetFriendInfo([.. relationships.Keys]);
+        foreach (var friend in allFriends)
+        {
+            if (!relationships.TryGetValue(friend.CharacterId, out var relationship))
+                continue;
+            friend.Status = relationship.Status;
+            friend.FriendCreateTime = relationship.CreatedAt;
+        }
         var allFriendsArray = new Friend[allFriends.Count];
         allFriends.CopyTo(allFriendsArray, 0);
-        Owner.SendPacket(new SCFriendsPacket(allFriendsArray.Length, allFriendsArray));
+        if (allFriendsArray.Length == 0)
+        {
+            Owner.SendPacket(new SCFriendsPacket(0, []));
+            return;
+        }
+
+        foreach (var page in allFriendsArray.Chunk(SCFriendsPacket.MaxCountPerPacket))
+            Owner.SendPacket(new SCFriendsPacket(allFriendsArray.Length, page));
     }
 
     public void Load(MySqlConnection connection)
@@ -72,9 +72,12 @@ public class CharacterFriends(Character owner)
                     {
                         Id = reader.GetUInt32("id"),
                         FriendId = reader.GetUInt32("friend_id"),
-                        Owner = reader.GetUInt32("owner")
+                        Owner = reader.GetUInt32("owner"),
+                        Status = (FriendStatus)reader.GetByte("status"),
+                        CreatedAt = reader.GetDateTime("created_at")
                     };
-                    FriendsIdList.Add(template.FriendId, template);
+                    lock (_relationshipLock)
+                        FriendsIdList.Add(template.FriendId, template);
                 }
             }
         }
@@ -82,34 +85,7 @@ public class CharacterFriends(Character owner)
 
     public void Save(MySqlConnection connection, MySqlTransaction transaction)
     {
-        if (_removedFriends.Count > 0)
-        {
-            using (var command = connection.CreateCommand())
-            {
-                command.Connection = connection;
-                command.Transaction = transaction;
-
-                command.CommandText = "DELETE FROM friends WHERE owner = @owner AND friend_id IN(" + string.Join(",", _removedFriends) + ")";
-                command.Parameters.AddWithValue("@owner", Owner.Id);
-                command.Prepare();
-                command.ExecuteNonQuery();
-                _removedFriends.Clear();
-            }
-        }
-
-        foreach (var (_, value) in FriendsIdList)
-        {
-            using (var command = connection.CreateCommand())
-            {
-                command.Connection = connection;
-                command.Transaction = transaction;
-
-                command.CommandText = "REPLACE INTO friends(`id`,`friend_id`,`owner`) VALUES (@id, @friend_id, @owner)";
-                command.Parameters.AddWithValue("@id", value.Id);
-                command.Parameters.AddWithValue("@friend_id", value.FriendId);
-                command.Parameters.AddWithValue("@owner", value.Owner);
-                command.ExecuteNonQuery();
-            }
-        }
+        // FriendMananger commits every lifecycle transition atomically when it occurs. Rewriting a snapshot
+        // during the general character save could resurrect a request concurrently canceled by its other party.
     }
 }
