@@ -14,7 +14,6 @@ public class SCCharacterStatePacket(Character character) : GamePacket(SCOffsets.
     {
         stream.Write((uint)character.Transform.InstanceId); // iid
         // guid: serialized via ISerialize slot +464 (the same length-prefixed byte-string writer used for the
-        // faction-relation name fields), so the 16 bytes go out behind a u16 length. A live 10.0.2.13 capture
         // shows `10 00` (len=16) then a non-zero 16-byte guid. Derive a stable per-character guid from the id so
         // the client's identity keying is non-degenerate (the reference never sends an all-zero guid here).
         var guid = new byte[16];
@@ -86,8 +85,8 @@ public class SCCharacterStatePacket(Character character) : GamePacket(SCOffsets.
         stream.Write(0u);                                   // _extendMaxStats
         stream.Write(0u);                                   // _applyExtendCount
 
-        stream.Write(0u);                                   // type
-        stream.Write(0u);                                   // appellationStamp
+        stream.Write((uint)character.UnitStateType);         // type
+        stream.Write(character.AppellationStampId);          // appellationStamp
 
         // equipSlotReinforces (optional group, always present): slotInfoList + levelEffectList, both empty
         stream.Write(0u);

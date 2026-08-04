@@ -1156,7 +1156,13 @@ public class WorldManager(
             case AreaShapeType.Sphere:
                 {
                     var radius = shape.Value1 > 0 ? shape.Value1 : 40f;
-                    return GetAround<T>(obj, radius, true);
+                    var around = GetAround<T>(obj, radius, true);
+                    // value3 > 0: frontal cone half-angle (shotgun plots 5796/5604/5231). Without
+                    // this filter the sphere is a full 360° disc and MaxTargets=3 hits every mob
+                    // around the caster — combat floaters spam and total damage stacks per pellet.
+                    if (shape.SphereConeHalfAngleDegrees > 0f)
+                        around = shape.FilterSphereCone(obj, around);
+                    return around;
                 }
             case AreaShapeType.Cuboid:
                 {

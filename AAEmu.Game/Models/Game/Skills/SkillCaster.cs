@@ -9,7 +9,7 @@ public enum SkillCasterType : byte
     Unit = 0,
     Unk1 = 1, // Doodad
     Item = 2,
-    Mount = 3, // TODO mountSkillType
+    Mount = 3,
     Doodad = 4 // Gimmick
 }
 

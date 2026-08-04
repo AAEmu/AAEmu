@@ -313,6 +313,14 @@ public partial class Character
                 doodad.Spawn();
                 doodad.Save();
 
+                if (WorldIntegration.ZoneAuthority)
+                {
+                    var p = doodad.Transform.World.Position;
+                    WorldIntegration.RelayDropBackpackToZone?.Invoke(
+                        ObjId, item, backpackDoodadId, Transform.ZoneId,
+                        p.X, p.Y, p.Z, true, false, false);
+                }
+
                 BroadcastPacket(new SCUnitEquipmentsChangedPacket(ObjId, (byte)EquipmentItemSlot.Backpack, null), false);
             }
 

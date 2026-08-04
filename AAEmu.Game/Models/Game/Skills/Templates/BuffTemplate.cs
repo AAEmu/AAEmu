@@ -352,10 +352,13 @@ public class BuffTemplate
                 RadarManager.Instance.RegisterForPublicTransport(character, TransferTelescopeRange);
             if (TelescopeRange > 0)
                 RadarManager.Instance.RegisterForShips(character, TelescopeRange);
-            if (character.Buffs.CheckBuff((uint)BuffConstants.Dash))
+            // Dash (buffs.id 2675 = skills.toggle_buff_id on 16287): tick_level_mana_cost drains MP.
+            if (buff.Template.Id == (uint)BuffConstants.Dash)
             {
-                var template = new ManaRegenTemplate(character, buff.Template.Tick, buff.Template.TickLevelManaCost, character.Level);
-                ManaRegenManager.Instance.Register(character, template);
+                ManaRegenManager.Instance.Register(
+                    character,
+                    new ManaRegenTemplate(
+                        character, buff.Template.Tick, buff.Template.TickLevelManaCost, character.Level));
             }
         }
     }

@@ -122,7 +122,6 @@ public class CombatRelay
 
     /// <summary>
     /// <c>count</c> entries of <c>bc npcId, bc hostileUnitId, i32 value[3], i8 topFlags</c>.
-    /// entries by NPC and has a separate native limit of 100 entries per packet.
     /// </summary>
     private bool RelayAiAggro(PacketStream stream)
     {
@@ -223,9 +222,11 @@ public class CombatRelay
         var skill = new Skill(template);
         var caster = new SkillCasterUnit(casterId);
         var skillObject = new SkillObject();
-        // Zone already owns AI pacing and selected this cast. Bypass the duplicate World GCD while
-        // retaining the normal requirement, range, cooldown, effect, and acknowledgement paths.
-        var result = skill.Use(casterUnit, caster, target, skillObject, true, out _, out _);
+        // After World stopped rejecting those as TooFarRange, bypassGcd=true applied full damage
+        // every tick. NPC casters keep World swing/GCD (SkillLastUsed 800ms for skills 2/3/4);
+        // player casts from Zone still bypass the duplicate World GCD.
+        var bypassGcd = casterUnit is not Npc;
+        var result = skill.Use(casterUnit, caster, target, skillObject, bypassGcd, out _, out _);
         Logger.Debug(
             "ZWStartSkill caster={0} skill={1} targetType={2} almighty={3} result={4} tl={5}",
             casterId, skillId, targetType, almighty, result, skill.TlId);
@@ -247,7 +248,6 @@ public class CombatRelay
     }
 
     /// <summary>
-    /// ZWStopCasting: bc unit + two u16 casting timeline slots. The native producer
     /// emits one non-zero timeline and one zero sentinel.
     /// </summary>
     private bool RelayStopCasting(PacketStream stream)
@@ -403,12 +403,16 @@ public class CombatRelay
             return false;
 
         var npcId = stream.ReadBc();
-        WorldIntegration.OnZoneNpcRemove?.Invoke(npcId);
+        // Zone kill authority → full death path (loot, SCUnitDeath, quest kills).
+        // Despawn-only uses OnZoneNpcRemove → MirrorZoneNpcRemove (no loot).
+        if (WorldIntegration.OnZoneNpcKilled != null)
+            WorldIntegration.OnZoneNpcKilled.Invoke(npcId);
+        else
+            WorldIntegration.OnZoneNpcRemove?.Invoke(npcId);
         return true;
     }
 
     /// <summary>
-    /// Mirrors an exact native ZWAggroRemove entry removal. Combat clearing and leash healing are
     /// separate ZWClearCombat transitions and must not be inferred from this packet.
     /// </summary>
     private bool RelayAggroRemove(PacketStream stream)

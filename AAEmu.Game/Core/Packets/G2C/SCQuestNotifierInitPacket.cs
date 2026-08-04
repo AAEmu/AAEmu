@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// TODO: nothing constructs this packet yet.
+/// Finalizes the client's quest-notifier state after active and completed quests are sent.
 /// </summary>
 /// <remarks>
 /// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each

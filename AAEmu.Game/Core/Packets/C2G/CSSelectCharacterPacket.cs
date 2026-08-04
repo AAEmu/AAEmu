@@ -69,7 +69,6 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
             // login code calls the same value "WorldId" (GameController: "requesting an invalid WorldId {GsId}").
             // It must echo AppConfiguration.Id (this shard's GameServers[].Id), NOT the internal world-instance id:
             // sending Transform.WorldId (0 for main_world) leaves the client's current-world context unset, so
-            // null-derefs *(ClientPlayer+104)+8 when the player-frame event window shows. The reference capture
             // sends 0x02 because that official shard's id is 2; ours is 1.
             Connection.SendPacket(new SCShowCurrentWorldPacket(AppConfiguration.Instance.Id));
 
@@ -88,8 +87,7 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
             Connection.SendPacket(new SCCharacterPrelimEquipmentsPacket());
             Connection.SendPacket(new SCActionSlotsPacket(Connection.ActiveChar.Slots));
 
-            Connection.ActiveChar.Quests.Send();
-            Connection.ActiveChar.Quests.SendCompleted();
+            Connection.ActiveChar.Quests.SendInitialState();
 
             Connection.ActiveChar.Actability.Send();
             Connection.ActiveChar.Mails.SendUnreadMailCount();

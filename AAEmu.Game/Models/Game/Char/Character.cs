@@ -47,7 +47,6 @@ public partial class Character : Unit, ICharacter
 
     /// <summary>
     /// Zone-mirror NPCs waiting for SCUnitState — queued while loading, outside soft AOI, or at MAX.
-    /// Retail: UnitState is interest-driven (L5, not DD04); region neighborhood is only the candidate pool.
     /// </summary>
     private readonly ConcurrentDictionary<uint, Npc> _pendingMirrorSpawns = new();
 
@@ -65,7 +64,6 @@ public partial class Character : Unit, ICharacter
 
     /// <summary>
     /// Optional delay after Completed before first mirror UnitState (AAEMU_MIRROR_NPC_GRACE_MS).
-    /// Default 0 — retail arms interest as soon as load finishes.
     /// </summary>
     public long MirrorNpcStreamNotBeforeTick { get; set; }
 
@@ -85,7 +83,6 @@ public partial class Character : Unit, ICharacter
     }
 
     /// <summary>
-    /// Retail gate: stream ready, grace elapsed, inside soft AOI, under MAX, not already sent.
     /// </summary>
     public bool CanStreamMirrorNow(Npc npc)
     {
@@ -245,7 +242,6 @@ public partial class Character : Unit, ICharacter
 
     /// <summary>
     /// At MAX: if a nearer pending exists inside AOI, despawn farthest streamed and free a slot
-    /// (retail interest replace — not sticky first-N).
     /// </summary>
     public bool TryEvictFarthestStreamedForNearerPending()
     {
@@ -298,8 +294,6 @@ public partial class Character : Unit, ICharacter
     /// Physics-time (tPhy) anchor reconstructed from the client's own CSMoveUnit.Time. The 10.0.2.13 client
     /// binds and interpolates world objects against the server physics clock carried in movement packets, so
     /// the synthesized NPC keepalive movements (MirrorMovementStreamTask) MUST carry a tPhy in the client's
-    /// exact clock domain or the client rejects/mis-times them. We capture the client's last reported movement
-    /// Time plus the wall-clock tick at capture, then advance it at real time. Tick 0 => no anchor yet.
     /// </summary>
     public uint PhysTimeAnchor { get; set; }
     public long PhysTimeAnchorTick { get; set; }
@@ -335,7 +329,6 @@ public partial class Character : Unit, ICharacter
     }
 
     /// <summary>
-    /// Character-local labor pool. The native character block keeps this separate from account labor.
     /// </summary>
     public int LocalLaborPower { get; set; }
 
@@ -433,7 +426,6 @@ public partial class Character : Unit, ICharacter
     public int PrevPoint { get; set; }
     public int Point { get; set; }
 
-    /// <summary>UnitState duelTeamType. 0xFF is the client's "not duelling" value; duels are not implemented.</summary>
     public byte DuelTeamType { get; set; } = 0xFF;
 
     /// <summary>UnitState camp — faction-war camp assignment, not implemented.</summary>
@@ -1394,7 +1386,8 @@ public partial class Character : Unit, ICharacter
                 FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.HealCritical);
             var parameters = new Dictionary<string, double>
             {
-                ["spi"] = Spi //Str not needed, but maybe we use later
+                ["heir_level"] = HeirLevel,
+                ["spi"] = Spi
             };
             var res = formula.Evaluate(parameters);
             res = CalculateWithBonuses(res, UnitAttribute.HealCritical);
@@ -1578,6 +1571,7 @@ public partial class Character : Unit, ICharacter
                 FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Dodge);
             var parameters = new Dictionary<string, double>
             {
+                ["heir_level"] = HeirLevel,
                 ["dex"] = Dex,
                 ["int"] = Int
             };
@@ -1643,7 +1637,9 @@ public partial class Character : Unit, ICharacter
                 FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Block);
             var parameters = new Dictionary<string, double>
             {
-                ["str"] = Str
+                ["heir_level"] = HeirLevel,
+                ["str"] = Str,
+                ["sta"] = Sta
             };
             var res = formula.Evaluate(parameters);
             res = CalculateWithBonuses(res, UnitAttribute.Block);
@@ -1748,7 +1744,6 @@ public partial class Character : Unit, ICharacter
     }
 
     /// <summary>
-    /// Performs the native heir-level boundary transition. The client only sends the request when
     /// cumulative heir experience is exactly one below the current row's threshold; the server
     /// repeats every eligibility check because the request has no fields and cannot be trusted.
     /// </summary>
@@ -1791,7 +1786,6 @@ public partial class Character : Unit, ICharacter
             expDelta = (int)(expDelta * AppConfiguration.Instance.World.ExpRate);
         }
 
-        // SCExpChanged drives both client accumulators. Its native heir branch tests the character's
         // level before SCLevelChanged arrives, accepts positive deltas only, and clamps at the current
         // heir threshold minus one until CSHeirLevlUp explicitly crosses it.
         var wasHeirEligible = Level >= HeirGameData.Instance.StartLevel;
@@ -2052,7 +2046,6 @@ public partial class Character : Unit, ICharacter
     }
 
     /// <summary>
-    /// Adds labor to the character-local pool and returns the amount that fit below the native
     /// premium-grade cap.
     /// </summary>
     public int AddLocalLaborPower(int amount)
@@ -2120,7 +2113,6 @@ public partial class Character : Unit, ICharacter
 
     public void ResetAllSkillCooldowns(bool triggerGcd)
     {
-        // Retail sniff: 0× DD04 (L4 zip). Send each reset as normal L5 SC.
         const uint playerSkillsTag = 378;
         var skillIds = SkillManager.Instance.GetSkillsByTag(playerSkillsTag);
         foreach (var skillId in skillIds)
@@ -2298,7 +2290,6 @@ public partial class Character : Unit, ICharacter
             return;
         }
 
-        // Send extra info to player if we are still in a real but unreleased zone (not null), this is not retail behaviour!
         if (newZone != null)
             SendMessage(ChatType.System, $"You have entered a closed zone ({newZone.ZoneKey} - {newZone.Name})!\nPlease leave immediately!", Color.Red);
 
@@ -3469,7 +3460,6 @@ public partial class Character : Unit, ICharacter
         CrimePoint = (short)Math.Clamp((long)CrimePoint + amount, 0L, short.MaxValue);
         CrimeRecord = (int)Math.Clamp((long)CrimeRecord + amount, 0L, int.MaxValue);
 
-        // The 10.0.2.13 character data model has no persisted crime-score value. Its native packet
         // constructor initializes this reserved i16 field to zero as well.
         SendPacket(new SCCrimeChangedPacket(amount, CrimePoint, CrimeRecord, crimeScore: 0));
     }

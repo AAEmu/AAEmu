@@ -19,14 +19,18 @@ public class CSSellItemsPacket() : GamePacket(CSOffsets.CSSellItemsPacket, 1)
 
         var num = stream.ReadByte();
         var items = new List<Item>();
+        var seenItems = new HashSet<ulong>();
 
         for (var i = 0; i < num; i++)
         {
+            _ = stream.ReadByte();
             var slotType = (SlotType)stream.ReadByte();
+            _ = stream.ReadByte();
             var slot = stream.ReadByte();
 
             var itemId = stream.ReadUInt64();
-            var unkId = stream.ReadUInt32();
+            var stack = stream.ReadUInt32();
+            var removeReservationTime = stream.ReadUInt64();
 
             Item item = null;
             if (slotType == SlotType.Equipment)
@@ -35,8 +39,13 @@ public class CSSellItemsPacket() : GamePacket(CSOffsets.CSSellItemsPacket, 1)
                 item = Connection.ActiveChar.Inventory.Bag.GetItemBySlot(slot);
             //                else if (slotType == SlotType.Bank)
             //                    item = Connection.ActiveChar.Inventory.Bank[slot];
-            if (item != null && item.Id == itemId)
+            if (item != null && item.Id == itemId && stack <= int.MaxValue && (int)stack == item.Count && seenItems.Add(itemId))
+            {
+                Logger.Trace(
+                    "SellItems item={0} slot={1}:{2} stack={3} removeReservationTime={4}",
+                    itemId, slotType, slot, stack, removeReservationTime);
                 items.Add(item);
+            }
         }
 
         //var tasks = new List<ItemTask>();

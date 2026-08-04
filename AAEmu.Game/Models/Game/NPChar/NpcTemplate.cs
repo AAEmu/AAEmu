@@ -77,6 +77,14 @@ public class NpcTemplate
     public bool CrowdEffect { get; set; }
     public byte Race { get; set; }
     public byte Gender { get; set; }
+    /// <summary>
+    /// True when this NPC model has a row in <c>characters</c> and therefore uses
+    /// the playable-character skin/customization pipeline. Special actor models
+    /// without that relation must keep <see cref="UnitCustomModelType.None"/> so
+    /// the client renders their authored CDF instead of rebuilding a nude actor.
+    /// </summary>
+    public bool UsesCharacterAppearance { get; set; }
+    public uint DefaultFaceItemId { get; set; }
     public uint MerchantPackId { get; set; }
     public uint EquipClothsId { get; set; }
     public uint EquipWeaponsId { get; set; }

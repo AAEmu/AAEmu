@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.StaticValues;
 
@@ -18,6 +18,8 @@ public class SystemFaction : PacketMarshaler
     public bool GuardHelp { get; set; }
     public byte AllowChangeName { get; set; }
     public DateTime Created { get; set; }
+    public DateTime RenameTime { get; set; }
+    public bool IntegrationFaction { get; set; }
 
     public Dictionary<FactionsEnum, FactionRelation> Relations { get; set; } = [];
 
@@ -53,7 +55,7 @@ public class SystemFaction : PacketMarshaler
         if (factionId == otherFactionId)
             return RelationState.Friendly;
 
-        // Not sure if we should prioritize mother faction here?
+        // Prefer mother-faction diplomacy when set (e.g. Crescent Throne 101 → Nuia Alliance 148).
         if (MotherId != 0)
         {
             var motherFaction = FactionManager.Instance.GetFaction(MotherId);
@@ -62,27 +64,61 @@ public class SystemFaction : PacketMarshaler
                 if (motherFaction.Relations.TryGetValue(otherFactionId, out var motherRelation))
                     return motherRelation.State;
 
-                // TODO not found, so enemy (id = [1, 2, 3])?
+                // system_faction_relations is loaded into faction1.Relations[faction2] only.
+                // Content often stores a single directed row — e.g. monster 115 → Nuia 148
+                // Hostile (state_id=1) with no 148 → 115 twin. Without the reverse lookup,
+                // plot Area Hostile filters (shotgun 5796 / continuous fire 5604) see every
+                // mob as Friendly and the SetVariable hit-count gate reports no target.
+                if (TryGetStoredRelation(otherFaction, MotherId, out var reverseMother))
+                    return reverseMother;
+                if (TryGetStoredRelation(otherFaction, Id, out var reverseSelf))
+                    return reverseSelf;
+
+                // TODO(v10): default when neither direction exists — comment claims enemy, code returns Friendly.
                 return RelationState.Friendly;
             }
         }
 
-        return Relations.TryGetValue(otherFactionId, out var relation) ? relation.State : RelationState.Neutral;
+        if (Relations.TryGetValue(otherFactionId, out var relation))
+            return relation.State;
+        if (TryGetStoredRelation(otherFaction, factionId, out var reverse))
+            return reverse;
+        if (Id != factionId && TryGetStoredRelation(otherFaction, Id, out var reverseId))
+            return reverseId;
+        return RelationState.Neutral;
+    }
+
+    /// <summary>
+    /// Reads a relation row indexed on <paramref name="from"/> as faction1 toward <paramref name="towardId"/>.
+    /// </summary>
+    private static bool TryGetStoredRelation(SystemFaction from, FactionsEnum towardId, out RelationState state)
+    {
+        if (from.Relations.TryGetValue(towardId, out var relation))
+        {
+            state = relation.State;
+            return true;
+        }
+
+        state = default;
+        return false;
     }
 
     public override PacketStream Write(PacketStream stream)
     {
+        // SCExpeditionList, SCFactionCreated, and the Zone faction list.
         stream.Write((uint)Id);
-        stream.Write(AggroLink);
         stream.Write((uint)MotherId);
         stream.Write(Name);
-        stream.Write(OwnerId);
+        stream.Write((ulong)OwnerId);
         stream.Write(OwnerName);
         stream.Write(UnitOwnerType);
         stream.Write(PoliticalSystem);
         stream.Write(Created);
+        stream.Write(AggroLink);
         stream.Write(DiplomacyTarget);
         stream.Write(AllowChangeName);
+        stream.Write(RenameTime);
+        stream.Write(IntegrationFaction);
         return stream;
     }
 }

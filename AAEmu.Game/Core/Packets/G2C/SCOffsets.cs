@@ -10,6 +10,7 @@ public static class SCOffsets
     public const ushort SCWorldQueuePacket = 0x5;
     public const ushort SCInitialConfigPacket = 0x7;
     public const ushort SCTrionConfigPacket = 0x07;
+    public const ushort SCExpeditionListPacket = 0xA; // 10.0.2.13
     public const ushort SCFactionRelationListPacket = 0xB; // 10.0.2.13
     public const ushort SCExpeditionRolePolicyListPacket = 0xD; // 10.0.2.13
     public const ushort SCExpeditionRolePolicyChangedPacket = 0xE; // 10.0.2.13

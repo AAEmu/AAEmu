@@ -38,21 +38,5 @@ public class Use : IWorldInteraction
                 }
             }
         }
-
-        /*
-        // TODO ID=21902, View Fish Finder: Scan around with the Fish Finder. Detected schools of fish will be displayed on the map.
-        if (skillId == SkillsEnum.ViewFishFinder)
-        {
-            var characterTarget = target as Character;
-            var doodads = WorldManager.GetAround<Doodad>(caster, 1f);
-            if ((doodads != null) && (characterTarget != null))
-            {
-                foreach (var d in doodads)
-                {
-                    FishSchoolManager.FishFinderStart(characterTarget);
-                }
-            }
-        }
-        */
     }
 }

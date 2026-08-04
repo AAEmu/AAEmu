@@ -99,10 +99,10 @@ public class PutDownBackpackEffect : EffectTemplate
                 var p = doodad.Transform.World.Position;
                 WorldIntegration.RelayDropBackpackToZone?.Invoke(
                     character.ObjId,
-                    item.Id,
+                    item,
                     BackpackDoodadId,
                     character.Transform.ZoneId,
-                    p.X, p.Y, p.Z);
+                    p.X, p.Y, p.Z, true, false, true);
             }
 
             character.BroadcastPacket(new SCUnitEquipmentsChangedPacket(character.ObjId, (byte)EquipmentItemSlot.Backpack, null), false);

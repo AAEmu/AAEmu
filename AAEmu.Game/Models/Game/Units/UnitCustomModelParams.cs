@@ -267,4 +267,12 @@ public class UnitCustomModelParams : PacketMarshaler
 
         return stream;
     }
+
+    public UnitCustomModelParams Clone()
+    {
+        var bytes = Write(new PacketStream()).GetBytes();
+        var clone = new UnitCustomModelParams();
+        clone.Read(new PacketStream(bytes));
+        return clone;
+    }
 }

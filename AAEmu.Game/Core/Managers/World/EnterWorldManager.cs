@@ -31,6 +31,7 @@ public class EnterWorldManager(
     /// List of connected accounts (connection token, accountId)
     /// </summary>
     private readonly Dictionary<uint, uint> _accounts = [];
+    private readonly Lock _accountsLock = new();
 
     /// <summary>
     /// Adds an account to the connection list and notifies the login server the client is connected
@@ -47,7 +48,8 @@ public class EnterWorldManager(
         else
         {
             // Overwrite stale pending tokens (e.g. prior CAEnterWorld without a completed X2EnterWorld).
-            _accounts[connectionId] = accountId;
+            lock (_accountsLock)
+                _accounts[connectionId] = accountId;
             connection.SendPacket(new GLPlayerEnterPacket(connectionId, gsId, 0));
         }
     }
@@ -61,55 +63,57 @@ public class EnterWorldManager(
     /// <param name="token"></param>
     public void Login(GameConnection connection, uint accountId, uint token)
     {
-        if (_accounts.TryGetValue(token, out var account))
+        uint expectedAccountId = 0;
+        var accountMatches = false;
+        var tokenExists = false;
+        lock (_accountsLock)
         {
-            if (account == accountId)
-            {
+            tokenExists = _accounts.TryGetValue(token, out expectedAccountId);
+            accountMatches = tokenExists && expectedAccountId == accountId;
+            if (accountMatches)
                 _accounts.Remove(token);
+        }
 
-                connection.AccountId = accountId;
-                connection.State = GameState.Lobby;
+        if (accountMatches)
+        {
+            connection.AccountId = accountId;
+            connection.State = GameState.Lobby;
 
-                accountManager.Add(connection);
-                streamManager.AddToken(connection.AccountId, connection.Id);
+            accountManager.Add(connection);
+            streamManager.AddToken(connection.AccountId, connection.Id);
 
-                var port = AppConfiguration.Instance.StreamNetwork.Port;
-                // Real client GM UI (toggle_gm_console / X2Gm / CSGmCommand) keys off enter-world
-                // authority + gmFlag — not AAEmu chat "/item". Account access_level>=100 ⇒ GM.
-                var accountAccess = accountManager.GetAccountDetails(accountId).AccessLevel;
-                if (accountAccess >= 100)
-                    connection.AddAttribute("gmFlag", true);
-                var gm = connection.GetAttribute("gmFlag") != null;
+            var port = AppConfiguration.Instance.StreamNetwork.Port;
+            // Real client GM UI (toggle_gm_console / X2Gm / CSGmCommand) keys off enter-world
+            // authority + gmFlag — not AAEmu chat "/item". Account access_level>=100 ⇒ GM.
+            var accountAccess = accountManager.GetAccountDetails(accountId).AccessLevel;
+            if (accountAccess >= 100)
+                connection.AddAttribute("gmFlag", true);
+            var gm = connection.GetAttribute("gmFlag") != null;
 
-                // Enter-world sequence — order verified against a working 3.5.0.3 capture:
-                //   X2EnterWorldResponse (level 5, carries RSA pubKey) -> ChangeState(0) -> SCWorldQueue.
-                // SCWorldQueue is what makes the client start sending FinishState packets, which drive the
-                // server-side config burst (see FinishStatePacket). After X2EnterWorldResponse the client's
-                // encryption gate rejects plain level-1 packets, so EncryptionActive flips on (auto level 5).
-                // Prep RSA *before* Encode so WriteKeyParams does not reset SCMessageCount mid-packet
-                // (that reused seq 0 → sequence-mv → frozen WASD while TCP stayed up).
-                EncryptionManager.Instance.PrepareEnterWorldKeys(connection.Id, connection.AccountId);
-                connection.SendPacket(new X2EnterWorldResponsePacket(0, gm, connection.Id, port, connection));
-                connection.EncryptionActive = true;
-                connection.SendPacket(new ChangeStatePacket(0));
-                // Reset the native receive watchdog immediately; the periodic network timer continues
-                // at one-second intervals after this handshake edge.
-                connection.SendPacket(new PingPacket());
-                // After X2EnterWorldResponse(level 5) + ChangeState the 10.0.2.13 client sends FinishState(0),
-                // which drives the server-side config burst (see FinishStatePacket). The character list is then
-                // pushed by the CSAesXorKeyPacket handler once the client sends its RSA key reply.
-            }
-            else
-            {
-                // TODO: Token did not match the expected account (phishing attempt?)
-                Logger.Warn($"Token does not match expected account, Token: {token}, AccountId: {accountId}, Expected AccountId: {account}, IP: {connection.Ip}");
-                connection.Shutdown();
-            }
+            //   X2EnterWorldResponse (level 5, carries RSA pubKey) -> ChangeState(0) -> SCWorldQueue.
+            // SCWorldQueue is what makes the client start sending FinishState packets, which drive the
+            // server-side config burst (see FinishStatePacket). After X2EnterWorldResponse the client's
+            // encryption gate rejects plain level-1 packets, so EncryptionActive flips on (auto level 5).
+            // Prep RSA *before* Encode so WriteKeyParams does not reset SCMessageCount mid-packet
+            // (that reused seq 0 → sequence-mv → frozen WASD while TCP stayed up).
+            EncryptionManager.Instance.PrepareEnterWorldKeys(connection.Id, connection.AccountId);
+            connection.SendPacket(new X2EnterWorldResponsePacket(0, gm, connection.Id, port, connection));
+            connection.EncryptionActive = true;
+            connection.SendPacket(new ChangeStatePacket(0));
+            // at one-second intervals after this handshake edge.
+            connection.SendPacket(new PingPacket());
+            // After X2EnterWorldResponse(level 5) + ChangeState the 10.0.2.13 client sends FinishState(0),
+            // which drives the server-side config burst (see FinishStatePacket). The character list is then
+            // pushed by the CSAesXorKeyPacket handler once the client sends its RSA key reply.
+        }
+        else if (tokenExists)
+        {
+            Logger.Warn("Token does not match expected account, Token: {0}, AccountId: {1}, Expected AccountId: {2}, IP: {3}", token, accountId, expectedAccountId, connection.Ip);
+            connection.Shutdown();
         }
         else
         {
-            // TODO: Invalid token (hacking attempt?)
-            Logger.Warn($"Invalid token during login attempt, Token: {token}, AccountId: {accountId}, IP: {connection.Ip}");
+            Logger.Warn("Invalid token during login attempt, Token: {0}, AccountId: {1}, IP: {2}", token, accountId, connection.Ip);
             connection.Shutdown();
         }
     }
@@ -207,7 +211,6 @@ public class EnterWorldManager(
                     "Returning {0} (ObjId={1}) to character select: {2}",
                     activeChar.Name, activeChar.ObjId, reason);
 
-                // SCLeaveWorldGranted(CharacterSelect) followed by ChangeState(0) is the client's native
                 // return-to-lobby path. No SCPrepareLeaveWorld is sent because this is immediate and cannot
                 // be canceled by the client.
                 LeaveWorldTask(connection, LeaveWorldTargetType.CharacterSelect, activeChar);

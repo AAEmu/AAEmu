@@ -34,4 +34,16 @@ public class TotalCharacterCustom
     public float FaceFixedDecalAsset3Weight { get; set; }
     public float FaceNormalMapWeight { get; set; }
     public uint DecoColor { get; set; }
+    public uint TwoToneHairColor { get; set; }
+    public float TwoToneFirstWidth { get; set; }
+    public float TwoToneSecondWidth { get; set; }
+    public uint DefaultHairColor { get; set; }
+    public uint BodyNormalMapId { get; set; }
+    public float BodyNormalMapWeight { get; set; }
+    public uint FaceFixedDecalAsset4Id { get; set; }
+    public float FaceFixedDecalAsset4Weight { get; set; }
+    public uint FaceFixedDecalAsset5Id { get; set; }
+    public float FaceFixedDecalAsset5Weight { get; set; }
+    public uint HornColorId { get; set; }
+    public uint FaceId { get; set; }
 }

@@ -9,6 +9,13 @@ public class AreaShape
     public float Value2 { get; set; }
     public float Value3 { get; set; }
 
+    /// <summary>
+    /// Sphere cone half-angle in degrees. On <see cref="AreaShapeType.Sphere"/>, content stores
+    /// radius in <see cref="Value1"/> and this half-angle in <see cref="Value3"/> (e.g. shotgun
+    /// aoe_shapes 20454 / 20458: 15.7m, ±45°). Cuboid uses Value3 as vertical extent instead.
+    /// </summary>
+    public float SphereConeHalfAngleDegrees => Type == AreaShapeType.Sphere ? Value3 : 0f;
+
     public List<T> ComputeCuboid<T>(GameObject origin, List<T> toCheck) where T : GameObject
     {
         // Z check
@@ -35,5 +42,21 @@ public class AreaShape
         }).ToList();
 
         return toCheck;
+    }
+
+    /// <summary>
+    /// Keeps units whose bearing from <paramref name="origin"/> facing is within ±Value3 degrees.
+    /// </summary>
+    public List<T> FilterSphereCone<T>(GameObject origin, List<T> toCheck) where T : GameObject
+    {
+        var halfAngle = SphereConeHalfAngleDegrees;
+        if (halfAngle <= 0f || toCheck == null || toCheck.Count == 0)
+            return toCheck;
+
+        return toCheck.Where(o =>
+        {
+            var degree = Math.Abs(MathUtil.ClampDegAngle(MathUtil.CalculateAngleFrom(origin, o)));
+            return degree <= halfAngle;
+        }).ToList();
     }
 }

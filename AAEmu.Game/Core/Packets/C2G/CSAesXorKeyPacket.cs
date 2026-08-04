@@ -20,6 +20,15 @@ public class CSAesXorKeyPacket() : GamePacket(CSOffsets.CSAesXorKeyPacket, 1)
 {
     public override void Read(PacketStream stream)
     {
+        // This exchange is the plaintext response to X2EnterWorldResponse. Decrypted level-5
+        // packets share the normal C2S opcode namespace, so an encrypted 0x047 must not be
+        // interpreted as RSA material or cause the lobby state to be published again.
+        if (Level != 1)
+        {
+            Logger.Warn("Ignoring CSAesXorKeyPacket on transport level {0}; the key reply must be level 1", Level);
+            return;
+        }
+
         // Recover the client's RSA-encrypted AES + XOR keys. Wrapped defensively so that even if the exact
         // blob layout differs from the assumed [int][short][128][128], the char-select push below still runs
         // (the S->C StoC cipher is keyless, so char-select renders without the C->S keys).
@@ -38,7 +47,6 @@ public class CSAesXorKeyPacket() : GamePacket(CSOffsets.CSAesXorKeyPacket, 1)
 
         // Key exchange done — push the lobby / character-select data (encrypted, level 5).
         // sc = creatable character-slot count. 0 made every slot show "캐릭터 생성 불가" (cannot create);
-        // Keep this byte aligned with tmpMaxCharSlot from the verified SCInitialConfig body.
         Connection.SendPacket(new SCGetSlotCountPacket(
             AppConfiguration.Instance.InitialConfig.MaxCharacterSlots));
         Connection.SendPacket(new SCAccountInfoPacket(

@@ -64,9 +64,8 @@ public class DoodadFuncClout : DoodadPhaseFuncTemplate
 
         if (Duration > 0)
         {
-            // TODO : Add a proper delay in here
-            // Отменяем текущую задачу, если она существует
-            // Cancel the current task if it exists
+            // The completion task owns the duration and removes the area trigger.
+            // Cancel a prior lifecycle task before replacing it.
             if (owner.FuncTask != null)
             {
                 try
@@ -79,8 +78,7 @@ public class DoodadFuncClout : DoodadPhaseFuncTemplate
                 }
             }
 
-            // Создаем и назначаем новую задачу
-            // Create and assign a new task
+            // Schedule the lifecycle completion task.
             owner.FuncTask = new DoodadFuncCloutTask(areaTrigger.Caster, areaTrigger.Owner, 0, NextPhase, areaTrigger);
             TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(Duration));
         }

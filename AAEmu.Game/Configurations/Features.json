@@ -27,10 +27,8 @@
             // as (uint)fset[8] & 0x400, i.e. byte 9 bit 2. Lua exports this bit as itemChangeMapping.
             "dwarfWarborn": true,
 
-            // Family invites / family title. Native-only bit in 10.0.2.13 (1.2 called it allowFamilyChanges).
             "fset_0_1_unknown": true,
 
-            // Custom UI (addon) Lua loading. Native-only bit in 10.0.2.13 (1.2 called it customUiButton).
             "fset_4_7_unknown": true,
 
             // Client-side or data-driven; no server system to back.
@@ -38,6 +36,9 @@
             "hairTwoTone": true,
             "chatRace": true,
             "show_instance_in_hud": true,
+            // Opens the cosplay-looks equipment path (fset bit useCosplayLooksSlot). NPC costumes
+            // such as Lucius pack cosplay 16066 attach through slot 27 / EST_COSPLAY.
+            "useCosplayLooksSlot": true,
 
             // Web content. These open URLs built from InitialConfig.Host, which must serve them.
             "eventWebLink": true,

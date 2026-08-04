@@ -116,7 +116,7 @@ public class Doodad : BaseUnit
                 return (DoodadFuncPermission)currentFunc.PermId;
             }
 
-            return DoodadFuncPermission.Any;
+            return DoodadFuncPermission.Public;
         }
     }
 
@@ -574,7 +574,6 @@ public class Doodad : BaseUnit
     }
 
     /// <summary>
-    /// Completes a function whose authoritative result arrives in a dedicated client packet.
     /// The function must still be in the doodad's current phase when this is called.
     /// </summary>
     public void CompleteDeferredFunc(BaseUnit caster, DoodadFunc func)
@@ -948,8 +947,6 @@ public class Doodad : BaseUnit
     {
         stream.WriteBc(ObjId);
         // SC pisc: [templateId, funcGroupId → obj+68, backpackItemId → obj+96, ?].
-        // Retail capture matches FuncGroupId into pisc[1] (pumpkin 3078, chest 13212).
-        // pisc[2] keys optional freshness via ItemBackpackDesc (type goods/tradegoods); retail SC
         // keeps 0 for normal props. Same gate on WZCreateDoodad — never ModelKindId.
         stream.WritePisc(TemplateId, FuncGroupId, 0u, 0u);
 
@@ -987,10 +984,8 @@ public class Doodad : BaseUnit
         stream.Write(Scale);
         stream.Write((long)OwnerId);
         stream.Write((long)ItemTemplateId);
-        // Post-scale u32 (obj+100) is NOT funcGroup on SC — retail writes 0; phase lives in pisc[1].
         stream.Write(0u);
         stream.Write(TimeLeft); // growing
-        // plantTime: retail system/static props write 0 (not FILETIME). Create() always stamps
         // PlantTime=UtcNow, so treat System owner as unplanted on the SC wire.
         var plantTime = OwnerType == DoodadOwnerType.System
                         || PlantTime == default

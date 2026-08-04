@@ -1,68 +1,69 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Faction;
+using AAEmu.World.Core.Network;
 
 namespace AAEmu.World.Core.Packets.Wz;
 
 /// <summary>
-/// WZFactionList (0x013) — WZ_BRINGONLINE: [u32 total][u8 count≤20][FactionDesc×count].
-/// Empty list is valid; prefer real system factions when Game has loaded them.
+/// WZFactionList (0x013) — [u32 total][u8 count≤20][FactionDesc×count].
+/// The receiver accumulates chunks until its stored count reaches total.
 /// </summary>
 public class WZFactionListPacket : ZonePacket
 {
+    public const int MaxEntriesPerPacket = 20;
+
     private readonly IReadOnlyList<SystemFaction> _factions;
+    private readonly uint _total;
 
-    public WZFactionListPacket() : this(null)
+    public WZFactionListPacket() : this(0, [])
     {
     }
 
-    public WZFactionListPacket(IReadOnlyList<SystemFaction> factions) : base(WzOpcodes.FactionList)
+    private WZFactionListPacket(uint total, IReadOnlyList<SystemFaction> factions) : base(WzOpcodes.FactionList)
     {
-        _factions = factions ?? Array.Empty<SystemFaction>();
+        _total = total;
+        _factions = factions ?? [];
+        if (_factions.Count > MaxEntriesPerPacket)
+            throw new ArgumentOutOfRangeException(nameof(factions), "Use SendAllFromGame to chunk.");
     }
 
-    /// <summary>Build from FactionManager when available (≤20 per packet).</summary>
-    public static WZFactionListPacket FromGame()
+    public static void SendAllFromGame(ZoneConnection connection)
     {
+        ArgumentNullException.ThrowIfNull(connection);
+
+        IReadOnlyList<SystemFaction> all;
         try
         {
-            var all = FactionManager.Instance.GetSystemFactions();
-            if (all == null || all.Count == 0)
-                return new WZFactionListPacket();
-            // Single bring-online packet: count == total ≤ 20
-            var take = all.Take(20).ToList();
-            return new WZFactionListPacket(take);
+            all = FactionManager.Instance.GetSystemFactions()
+                .OrderBy(faction => (uint)faction.Id)
+                .ToList();
         }
         catch
         {
-            return new WZFactionListPacket();
+            all = [];
+        }
+
+        if (all.Count == 0)
+        {
+            connection.SendPacket(new WZFactionListPacket());
+            return;
+        }
+
+        var total = checked((uint)all.Count);
+        for (var offset = 0; offset < all.Count; offset += MaxEntriesPerPacket)
+        {
+            var take = Math.Min(MaxEntriesPerPacket, all.Count - offset);
+            connection.SendPacket(new WZFactionListPacket(total, all.Skip(offset).Take(take).ToList()));
         }
     }
 
     protected override void WriteBody(PacketStream stream)
     {
-        var count = (byte)Math.Min(20, _factions.Count);
-        stream.Write((uint)count); // total
+        var count = checked((byte)_factions.Count);
+        stream.Write(_total);
         stream.Write(count);
         for (var i = 0; i < count; i++)
-        {
-            var f = _factions[i];
-            stream.Write((uint)f.Id);
-            stream.Write((uint)f.MotherId);
-            stream.Write(Truncate(f.Name, 128));
-            stream.Write((long)f.OwnerId);
-            stream.Write(Truncate(f.OwnerName ?? "", 128));
-            stream.Write((byte)f.UnitOwnerType);
-            stream.Write(f.PoliticalSystem);
-            stream.Write(0ul); // createdTime
-            stream.Write(f.AggroLink);
-            stream.Write(f.DiplomacyTarget); // dTarget
-            stream.Write((byte)0); // allowChangeName
-            stream.Write(0ul); // renameTime
-            stream.Write(false); // integrationFaction
-        }
+            stream.Write(_factions[i]);
     }
-
-    private static string Truncate(string s, int max) =>
-        string.IsNullOrEmpty(s) ? "" : (s.Length <= max ? s : s[..max]);
 }

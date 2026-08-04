@@ -48,6 +48,9 @@ public class PlotNode
         stopwatch.Start();
         byte flag = 2;
         var deferredActions = new List<Action>();
+        // Exclude synthetic ObjId=MaxValue position anchors from the Area/RandomArea hit count.
+        state.LastEffectedTargetCount = targetInfo.EffectedTargets.Count(
+            t => t != null && t.ObjId != 0 && t.ObjId != uint.MaxValue);
         foreach (var eff in Event.Effects)
         {
             try

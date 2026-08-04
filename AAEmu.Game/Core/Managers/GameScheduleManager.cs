@@ -27,6 +27,7 @@ public class GameScheduleManager(
     private Dictionary<int, GameScheduleDoodads> _gameScheduleDoodads;
     private Dictionary<int, List<int>> _gameScheduleDoodadIds;
     private Dictionary<int, GameScheduleQuests> _gameScheduleQuests;
+    private Dictionary<int, List<int>> _gameScheduleQuestIds;
     private List<int> GameScheduleId { get; set; }
 
     public void Load()
@@ -378,7 +379,18 @@ public class GameScheduleManager(
                 gameScheduleIds.Add(gsd.GameScheduleId);
             }
         }
-        //TODO: quests data
+        _gameScheduleQuestIds = [];
+        foreach (var gsq in _gameScheduleQuests.Values)
+        {
+            if (!_gameScheduleQuestIds.TryGetValue(gsq.QuestId, out var gameScheduleIds))
+            {
+                _gameScheduleQuestIds.Add(gsq.QuestId, [gsq.GameScheduleId]);
+            }
+            else
+            {
+                gameScheduleIds.Add(gsq.GameScheduleId);
+            }
+        }
     }
 
     public bool GetGameScheduleDoodadsData(uint doodadId)
@@ -394,13 +406,14 @@ public class GameScheduleManager(
 
     public bool GetGameScheduleQuestsData(uint questId)
     {
-        GameScheduleId = [];
-        foreach (var gsq in _gameScheduleQuests.Values)
+        if (questId > int.MaxValue || !_gameScheduleQuestIds.TryGetValue((int)questId, out var gameScheduleIds))
         {
-            if (gsq.QuestId != questId) { continue; }
-            GameScheduleId.Add(gsq.GameScheduleId);
+            GameScheduleId = [];
+            return false;
         }
-        return GameScheduleId.Count != 0;
+
+        GameScheduleId = [.. gameScheduleIds];
+        return true;
     }
 
     private static (bool hasStarted, bool hasEnded) CheckData(GameSchedules value)

@@ -42,7 +42,6 @@ public class Slave : Unit
     public BaseUnitType OwnerType { get; init; }
 
     /// <summary>
-    /// When true, SCUnitState writes flags bit 11 (0x0800). Client maps that bit to unit+0x6E5C
     /// Set for the initial Spawn broadcast when CS/skill did not request hideSpawnEffect; clear
     /// immediately after so AOI re-streams do not replay the portal.
     /// </summary>
@@ -75,8 +74,6 @@ public class Slave : Unit
     public ShipHarpoonRopeState HarpoonRope;
 
     /// <summary>
-    /// ZoneId of the dedicate this hull was announced to with WZUnitState, or 0 when no dedicate
-    /// holds it. The hull must live in exactly one zone: a second dedicate that still simulates it
     /// keeps streaming its own ShipMoveType, so the World mirror (and every client) flip-flops
     /// between two headings and skill impulses land in the wrong process.
     /// </summary>
@@ -84,7 +81,6 @@ public class Slave : Unit
 
     public Slave()
     {
-        // Unit ctor builds SlotType.Equipment; retail ship customize uses 0xF2.
         // Slots go to at least 31 (slave_equip_slots); character gear enum tops out at 27.
         Equipment = new EquipmentContainer(0, SlotType.EquipmentSlave, false, this)
         {
@@ -834,6 +830,14 @@ public class Slave : Unit
                         newDoodad.Spawn();
                         newDoodad.Save();
 
+                        if (WorldIntegration.ZoneAuthority)
+                        {
+                            var p = newDoodad.Transform.World.Position;
+                            WorldIntegration.RelayDropBackpackToZone?.Invoke(
+                                ObjId, droppedItem, newDoodadId, Transform.ZoneId,
+                                p.X, p.Y, p.Z, true, false, false);
+                        }
+
                         // Remove data from trade pack slot
                         doodad.ItemTemplateId = 0;
                         doodad.ItemId = 0;
@@ -1033,7 +1037,6 @@ public class Slave : Unit
         var oldHp = Hp;
 
         // Dock Moored heal is HealthRegen (+200). Ship turn skills (Impulse) must not mute it via
-        // IsInBattle — retail keeps repairing while you maneuver under the customize-area buff.
         var moored = Buffs.CheckBuff(MooredBuffId);
         if (IsInBattle && !moored)
         {
@@ -1064,10 +1067,7 @@ public class Slave : Unit
     {
         base.OnZoneChange(lastZoneKey, newZoneKey); // Unit
 
-        // Sailing out of the zone the ship was summoned in has to move the hull to the new dedicate:
         // WZ traffic (impulse turns, control changes) is routed by the hull's current zone key, and a
-        // dedicate that was never told to drop it keeps streaming a competing ShipMoveType.
-        // ZoneAnnouncedTo 0 means the hull has not been handed to any dedicate yet — that first
         // announce belongs to the summon path, which sends the fully built state body.
         if (Template?.IsABoat() == true && ZoneAnnouncedTo != 0 && ZoneAnnouncedTo != newZoneKey)
             SlaveManager.AnnounceBoatToZone(this);

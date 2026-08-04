@@ -15,9 +15,8 @@ public class DoodadFuncCutdowning : DoodadFuncTemplate
         else
             Logger.Trace("DoodadFuncCutdowning");
 
-        //TODO Tree falling effect goes here?
-        // DoodadManager.Instance.TriggerFunc(GetType().Name, caster, owner, skillId);
-        //owner.Use(caster, skillId);
+        // Cutdown.Execute emits SCVegetationCutdowning after this function advances the
+        // doodad state. Do not send it here as well: that would play the fall twice.
 
         owner.ToNextPhase = true;
     }

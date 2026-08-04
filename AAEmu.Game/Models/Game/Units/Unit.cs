@@ -78,7 +78,6 @@ public class Unit : BaseUnit, IUnit
     public int UnitStateType { get; set; }
 
     /// <summary>
-    /// Signed 64-bit <c>v</c> member of the character identity union. Zero is the native local-identity
     /// value; federated identity providers may supply a nonzero value with the matching world selector.
     /// </summary>
     public long UnitStateIdentityValue { get; set; }
@@ -94,6 +93,28 @@ public class Unit : BaseUnit, IUnit
 
     /// <summary>Signed attack-faction flags copied by UnitState and later updates.</summary>
     public sbyte AttackFactionFlags { get; set; }
+
+    /// <summary>Selected appellation stamp id; distinct from the character's active appellation/title id.</summary>
+    public uint AppellationStampId { get; set; }
+
+    /// <summary>Whether other clients may open this unit's equipment information.</summary>
+    public bool IsEquipmentPublic { get; set; }
+
+    /// <summary>Client presentation state set by SCUnitOffline and included in UnitState snapshots.</summary>
+    public bool IsOffline { get; set; }
+
+    public uint DuelStateObjectId { get; set; }
+
+    /// <summary>Conditional action tail used only by WZUnitState.</summary>
+    public UnitStateAction UnitStateAction { get; } = new();
+
+    /// <summary>Current UnitState target object, or zero when this state snapshot has no target.</summary>
+    public uint UnitStateTargetObjId { get; set; }
+
+    public UnitStateOptionalData UnitStateOptionalData { get; set; }
+
+    /// <summary>Character equipment-slot effect flags trailing the 34-slot UnitState equipment block.</summary>
+    public ulong UnitStateEquipmentFlags { get; set; }
 
     public int Hp { get; set; }
 
@@ -968,8 +989,7 @@ public class Unit : BaseUnit, IUnit
         }
     }
 
-    // TODO: Implement this to grab actual loot info
-    public virtual bool HasLootLeft { get; set; } = false;
+    public virtual bool IsLooted { get; set; }
     public virtual ModelPostureType ModelPostureType { get => ModelPostureType.None; }
     public Gimmick Gimmick { get; set; }
 
@@ -1099,37 +1119,7 @@ public class Unit : BaseUnit, IUnit
 
     public static void ModelPosture(PacketStream stream, Unit unit, uint animActionId, bool activateAnimation)
     {
-        var npc = unit as Npc;
-
-        stream.Write((byte)unit.ModelPostureType);
-        stream.Write(unit.HasLootLeft); // isLooted
-
-        switch (unit.ModelPostureType)
-        {
-            case ModelPostureType.HouseState: // build
-                // states as one packed flags byte. Writing eight bools shifts the rest of
-                // UnitState by seven bytes and makes Zone reject/crash on housing replay.
-                stream.Write((byte)0xFF);
-                break;
-            case ModelPostureType.ActorModelState: // npc
-                // Logger.Debug($"Using AnimActionId={animActionId} for NPC TemplateId: {npc?.TemplateId}, ObjId:{npc?.ObjId}");
-                stream.Write(animActionId); // Animation override
-                stream.Write(activateAnimation); // activate
-                break;
-            case ModelPostureType.FarmfieldState:
-                // isHarvested packed into a single flags byte (bit 0 and bit 1). Writing them as two
-                // bools put an extra byte on the wire and shifted everything after modelPosture —
-                // the same fault the HouseState case above already accounts for.
-                stream.Write(0u); // type(id)
-                stream.Write(0f); // growRate
-                stream.Write(0u); // randomSeed
-                stream.Write((byte)0); // flags: isWithered | isHarvested << 1
-                break;
-            case ModelPostureType.TurretState: // slave
-                stream.Write(0f); // pitch
-                stream.Write(0f); // yaw
-                break;
-        }
+        UnitModelPostureSerializer.Write(stream, unit, animActionId, activateAnimation);
     }
 
     public WeaponWieldKind GetWeaponWieldKind()
@@ -1766,9 +1756,7 @@ public class Unit : BaseUnit, IUnit
     }
 
     /// <summary>
-    /// Applies native AggroReset component selectors to every hostile entry. The three selectors
     /// address damage, heal, and direct/script aggro respectively; any non-zero selector replaces
-    /// that component with <paramref name="applyValue"/>. A completely zero request is the native
     /// </summary>
     public void ApplyAggroReset(
         int damageSelector,
@@ -1790,7 +1778,6 @@ public class Unit : BaseUnit, IUnit
                 directSelector != 0,
                 applyValue);
 
-            // Native Zone retains a dormant zero-valued row. Standalone AAEmu uses table
             // IsEmpty/Count as a combat-state invariant and has no dormant-entry state, so the
             // equivalent zero-hostility result must remove the row and its reverse index here.
             if (aggro.TotalAggro <= 0)

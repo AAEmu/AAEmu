@@ -9,9 +9,9 @@ public class CSCreateExpeditionPacket() : GamePacket(CSOffsets.CSCreateExpeditio
     public override void Read(PacketStream stream)
     {
         var name = stream.ReadString();
-        var id = stream.ReadUInt32(); // TODO character id?
+        var type = stream.ReadInt32();
 
-        Logger.Debug("CreateExpedition, name: {0}, id: {1}", name, id);
+        Logger.Debug("CreateExpedition, name: {0}, type: {1}", name, type);
         ExpeditionManager.Instance.CreateExpedition(name, Connection);
     }
 }

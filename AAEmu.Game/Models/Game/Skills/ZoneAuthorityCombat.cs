@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -58,7 +58,6 @@ public static class ZoneAuthorityCombat
         WorldIntegration.RelayUnitPointsToZone?.Invoke(objId, hp, mp);
 
     /// <summary>
-    /// Zone NPC skill hit (ZWStartSkill). Dedicate applies Zone-local HP but has no ZWUnitDamaged —
     /// World must author SC UnitDamaged/Points for the client (and mirror player HP via WZUnitPoints).
     /// </summary>
     public static void ApplyNpcSkillHit(uint casterId, uint skillId, SkillCastTarget target, Skill skill)
@@ -134,6 +133,14 @@ public static class ZoneAuthorityCombat
         if (npc == null || npc.MaxHp <= 0)
             return;
 
+        // Same corpse race as ResetMirrorNpcHp: Zone may cast 11503 after World already killed.
+        if (npc.Hp <= 0 || npc.IsDead)
+        {
+            Logger.Info("ZoneAuthority NPC self-heal skill={0} npc={1} — skip (already dead)",
+                template.Id, casterId);
+            return;
+        }
+
         var beforeHp = npc.Hp;
         var beforeMp = npc.Mp;
         if (hasHeal)
@@ -205,6 +212,16 @@ public static class ZoneAuthorityCombat
 
         if (npc.MaxHp <= 0)
             return false;
+
+        // World (or ZWKillNpc) already authored death: Hp==0 and/or IsDead. Zone still emits
+        // ZWClearCombat on the corpse; healing 0→MaxHp + SCUnitPoints after SCUnitDeath left
+        // zombies (death anim + full bar) that plot TargetAlive filters still accepted.
+        if (npc.Hp <= 0 || npc.IsDead)
+        {
+            Logger.Info("ZWClearCombat npc={0} — skip leash heal (already dead hp={1})", objId, npc.Hp);
+            npc.SetBattleStateFromZone(false);
+            return false;
+        }
 
         var beforeHp = npc.Hp;
         var beforeMp = npc.Mp;

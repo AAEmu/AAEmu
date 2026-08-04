@@ -20,7 +20,6 @@ public class DoodadFuncPurchase : DoodadFuncTemplate
 
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        // Native PurchaseDlgTask only opens the confirmation UI here. The result is committed by
         // CSDoodadPurchaseItemPacket after the client confirms its currency or token dialog.
     }
 
@@ -68,7 +67,6 @@ public class DoodadFuncPurchase : DoodadFuncTemplate
     {
         refund = static () => { };
 
-        // PurchaseCoinDlgTask is selected only when both native descriptor fields are populated.
         if (CoinItemId != 0 && CoinCount > 0)
         {
             character.Inventory.Bag.GetAllItemsByTemplate(CoinItemId, -1, out _, out var available);
@@ -181,7 +179,7 @@ public class DoodadFuncPurchase : DoodadFuncTemplate
     {
         switch ((Static.DoodadFuncPermission)func.PermId)
         {
-            case Static.DoodadFuncPermission.Any:
+            case Static.DoodadFuncPermission.Public:
                 return true;
             case Static.DoodadFuncPermission.Expedition:
                 var ownerCharacter = owner.GetOwnerCharacter();

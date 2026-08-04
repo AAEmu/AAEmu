@@ -15,6 +15,11 @@ public class PlotState(
     private bool _finishChanneling = false;
     public Dictionary<uint, int> Tickets { get; set; } = [];
     public int[] Variables { get; set; } = new int[12];
+    /// <summary>
+    /// Hit count from the latest plot target update (Area/RandomUnit/…). Consumed by
+    /// SetVariable operation 12 on "타겟 수 체크" nodes.
+    /// </summary>
+    public int LastEffectedTargetCount { get; set; }
     public byte CombatDiceRoll { get; set; }
     public bool IsCasting { get; set; }
     public bool IsChanneling { get; set; }

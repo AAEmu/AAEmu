@@ -20,16 +20,21 @@ public class DoodadFuncLootPack : DoodadFuncTemplate
         var actAbility = SkillManager.Instance.GetSkillActAbility(skillId);
 
         var lootPack = LootGameData.Instance.GetPack(LootPackId);
-        var lootPackContents = lootPack.GeneratePack(character, actAbility);
-
-        if (character.Inventory.Bag.FreeSlotCount >= lootPackContents.Count)
+        if (lootPack == null)
         {
-            lootPack.GiveLootPack(character, actAbility, ItemTaskType.DoodadInteraction, lootPackContents);
-            owner.ToNextPhase = true;
-
+            Logger.Error("Doodad {0} requested missing loot pack {1}", owner.ObjId, LootPackId);
             return;
         }
-        // TODO: make sure the doodad is marked as loot-able when not enough inventory space
+
+        var lootPackContents = lootPack.GeneratePack(character, actAbility);
+
+        // GiveLootPack performs the exact stack-aware capacity check. A raw free-slot
+        // comparison incorrectly rejects rewards that fit into existing stacks.
+        if (lootPack.GiveLootPack(character, actAbility, ItemTaskType.DoodadInteraction, lootPackContents))
+        {
+            owner.ToNextPhase = true;
+            return;
+        }
 
         character.SendErrorMessage(ErrorMessageType.BagFull);
     }

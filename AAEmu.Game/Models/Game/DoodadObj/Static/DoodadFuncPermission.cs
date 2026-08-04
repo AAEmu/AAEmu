@@ -2,14 +2,21 @@
 
 public enum DoodadFuncPermission : byte
 {
-    // TODO: complete and verify enums
-    Any = 0,
-    Permission1 = 1,
-    Permission2 = 2, // seems to be used for one type of uproot only, maybe family permission?
-    OwnerOnly = 3, // for recover furniture?
-    Permission4 = 4, // seems to be event related only
-    OwnerRaidMembers = 5,
-    SameAccount = 6,
-    ZoneResidents = 8,
+    // 10.0.2 content DB enum_doodad_perms / doodad_funcs.perm_id.
+    Public = 0,
+    Owner = 1,
+    Friend = 2,
+    SiegeMaster = 3,
+    Party = 4,
+    Raid = 5,
+    Account = 6,
+    ZoneCitizen = 7,
+    HouseInZone = 8,
     Expedition = 9,
+    Family = 10,
+    Nation = 11,
+    FriendlyFaction = 12,
+    FirstInteraction = 13,
+    PartyOwner = 14,
+    RaidOwner = 15,
 }

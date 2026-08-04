@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills.Buffs;
@@ -38,12 +38,13 @@ public class Buff
     public bool InUse { get; set; }
     public int Duration { get; set; }
     public double Tick { get; set; }
+    /// <summary>Periodic tick index carried by the UnitState buff snapshot.</summary>
+    public uint TickIndex { get; set; }
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
     public int Charge { get; set; }
     public bool Passive { get; set; }
     /// <summary>
-    /// The native Zone has already applied this buff and notified World through ZWCreateBuff.
     /// World mirrors it for state and client presentation, but must not send the corresponding
     /// WZ create/update/remove messages back to the Zone.
     /// </summary>
@@ -140,6 +141,7 @@ public class Buff
                     {
                         if (Template.OnActionTime)
                         {
+                            TickIndex++;
                             Template.TimeToTimeApply(Caster, Owner, this);
                             return;
                         }
@@ -149,30 +151,32 @@ public class Buff
                         _count--;
                         if (Template.OnActionTime && _count > 0)
                         {
+                            TickIndex++;
                             Template.TimeToTimeApply(Caster, Owner, this);
                             return;
                         }
                     }
 
-                    //Buff seems to come to natural expiration here
-                    //Events.OnTimeout(this, new OnTimeoutArgs());
+                    // Natural duration/tick expiry. remove_on_move / dispel / charge-zero call
+                    // Exit() → Finishing without this path; those must not raise OnTimeout.
+                    // Buff 31556 (질주 이동확인): Timeout dispel (tag 4154 → 2675) only when the
+                    // 800ms check expires while standing still; move clears 31556 via
+                    // RemoveOnMove and must leave dash 2675 intact.
                     State = EffectState.Finishing;
-                    break;
+                    FinishBuff(replace, fireTimeout: true);
+                    return;
                 }
         }
 
         if (State == EffectState.Finishing)
         {
-            State = EffectState.Finished;
-            InUse = false;
-            StopEffectTask(replace);
+            FinishBuff(replace, fireTimeout: false);
         }
     }
     public void OverwriteWith(Buff newBuff)
     {
         lock (_lock)
         {
-            // Capture the remaining time before we update the StartTime.
             var remaining = GetTimeLeft();
 
             // Update buff properties from the new buff.
@@ -181,6 +185,7 @@ public class Buff
             this.Caster = newBuff.Caster;
             this.SkillCaster = newBuff.SkillCaster;
             this.ZoneAuthored = newBuff.ZoneAuthored;
+            TickIndex = 0;
 
             // Set StartTime to now.
             var now = DateTime.UtcNow;
@@ -254,11 +259,22 @@ public class Buff
             State = EffectState.Finishing;
     }
 
-    private void StopEffectTask(bool replace)
+    private void FinishBuff(bool replace, bool fireTimeout)
+    {
+        State = EffectState.Finished;
+        InUse = false;
+        StopEffectTask(replace, fireTimeout);
+    }
+
+    private void StopEffectTask(bool replace, bool fireTimeout)
     {
         lock (_lock)
         {
-            Events.OnTimeout(this, new OnTimeoutArgs());
+            // Timeout triggers (buff_triggers.kind=timeout) fire only on natural expiry.
+            // Early Exit (remove_on_move, purge, toggle-off, etc.) must not run them —
+            // e.g. dash move-check 31556 Timeout → DispelEffect tag 4154 (질주 태그 / 2675).
+            if (fireTimeout)
+                Events.OnTimeout(this, new OnTimeoutArgs());
             Triggers.UnsubscribeEvents();
             Owner.Buffs.RemoveEffect(this);
             Template.Dispel(Caster, Owner, this, replace);
@@ -285,7 +301,7 @@ public class Buff
         else if (State != EffectState.Finished)
         {
             State = EffectState.Finishing;
-            StopEffectTask(false);
+            FinishBuff(false, fireTimeout: false);
         }
     }
 

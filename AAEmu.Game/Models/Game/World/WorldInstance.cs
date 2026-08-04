@@ -709,23 +709,5 @@ public partial class WorldInstance(WorldTemplate template, uint channelId, bool 
         Logger.Debug($"Removed objects from WorldInstance {this}");
     }
     
-    /// <summary>
-    /// Handle "is still in combat" related things
-    /// </summary>
-    /// <param name="unit"></param>
-    private static void CombatTick(Unit unit)
-    {
-        // TODO: Make it so you can also become out of combat if you are not on any aggro lists
-        if (unit.IsInBattle && unit.LastCombatActivity.AddSeconds(WorldManager.DefaultCombatTimeout) < DateTime.UtcNow)
-        {
-            unit.IsInBattle = false;
-        }
-
-        if (unit is Character { IsInPostCast: true } character && character.LastCast.AddSeconds(5) < DateTime.UtcNow)
-        {
-            character.IsInPostCast = false;
-        }
-    }
-    
     #endregion events
 }

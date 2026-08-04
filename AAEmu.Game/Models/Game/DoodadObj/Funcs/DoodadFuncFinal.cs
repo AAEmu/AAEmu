@@ -23,7 +23,10 @@ public class DoodadFuncFinal : DoodadPhaseFuncTemplate
         else
             Logger.Trace("DoodadFuncFinal: After {0}, Respawn {1}, MinTime {2}, MaxTime {3}, ShowTip {4}, ShowEndTime {5}, Tip {6}", After, Respawn, MinTime, MaxTime, ShowTip, ShowEndTime, Tip);
 
-        var delay = Random.Shared.Next(MinTime, MaxTime);
+        // The content interval is half-open, matching Random.Next(min, max). A number of final
+        // functions deliberately use one fixed respawn time, represented by equal bounds.
+        // Do not sample a delay for a non-respawning final phase: that value is never consumed.
+        var delay = Respawn ? GetRespawnDelay() : 0;
 
         if (After > 0)
         {
@@ -35,8 +38,7 @@ public class DoodadFuncFinal : DoodadPhaseFuncTemplate
                 afterTimerDelay = owner.TimeLeft;
             }
 
-            // Отменяем текущую задачу, если она существует
-            // Cancel the current task if it exists
+            // Cancel the current task if it exists.
             if (owner.FuncTask != null)
             {
                 try
@@ -49,8 +51,7 @@ public class DoodadFuncFinal : DoodadPhaseFuncTemplate
                 }
             }
 
-            // Создаем и назначаем новую задачу
-            // Create and assign a new task
+            // Create and assign a new task.
             owner.FuncTask = new DoodadFuncFinalTask(caster, owner, 0, Respawn, delay);
             TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(afterTimerDelay)); // After ms remove the object from visibility
         }
@@ -66,8 +67,7 @@ public class DoodadFuncFinal : DoodadPhaseFuncTemplate
                 return false;
             }
 
-            // Отменяем текущую задачу, если она существует
-            // Cancel the current task if it exists
+            // Cancel the current task if it exists.
             if (owner.FuncTask != null)
             {
                 try
@@ -80,12 +80,22 @@ public class DoodadFuncFinal : DoodadPhaseFuncTemplate
                 }
             }
 
-            // Создаем и назначаем новую задачу
-            // Create and assign a new task
+            // Create and assign a new task.
             owner.FuncTask = new DoodadFuncFinalTask(caster, owner, 0, Respawn, delay);
             TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(delay));
         }
 
         return true;
+    }
+
+    private int GetRespawnDelay()
+    {
+        var minimum = Math.Max(0, MinTime);
+        var maximum = Math.Max(0, MaxTime);
+
+        // Random.Next requires max > min. Equal values are content's fixed-delay form; retain
+        // the lower bound for malformed inverted intervals as well so a bad row cannot strand
+        // the doodad's final phase with an exception.
+        return maximum <= minimum ? minimum : Random.Shared.Next(minimum, maximum);
     }
 }

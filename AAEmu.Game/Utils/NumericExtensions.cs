@@ -63,7 +63,9 @@ public static class NumericExtensions
     /// <returns>(offsetX, offsetY)</returns>
     public static (float, float) ToCellOffset(this Vector3 pos)
     {
-        return (pos.X - (float)Math.Floor(pos.X / 1024f), pos.Y - (float)Math.Floor(pos.Y / 1024f));
+        return (
+            pos.X - (float)Math.Floor(pos.X / 1024f) * 1024f,
+            pos.Y - (float)Math.Floor(pos.Y / 1024f) * 1024f);
     }
 
     /// <summary>
@@ -73,6 +75,8 @@ public static class NumericExtensions
     /// <returns>(offsetX, offsetY)</returns>
     public static (float, float) ToPathsOffset(this Vector3 pos)
     {
-        return (pos.X - (float)Math.Floor(pos.X / 256f), pos.Y - (float)Math.Floor(pos.Y / 256f));
+        return (
+            pos.X - (float)Math.Floor(pos.X / 256f) * 256f,
+            pos.Y - (float)Math.Floor(pos.Y / 256f) * 256f);
     }
 }

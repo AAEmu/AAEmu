@@ -132,7 +132,7 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
         var guardTime = CommonFarmGameData.Instance.GetDoodadGuardTime(doodad.Template.GroupId);
         var protectionTime = doodad.PlantTime.AddSeconds(guardTime);
 
-        return doodad.PlantTime < protectionTime;
+        return DateTime.UtcNow < protectionTime;
     }
 
     public void Load()

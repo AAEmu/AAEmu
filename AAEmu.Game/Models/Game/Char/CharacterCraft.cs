@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Crafts;
@@ -34,7 +34,6 @@ public class CharacterCraft(Character owner)
         // check if you are equipped with a backpack or glider
         if (!Owner.Inventory.CanReplaceGliderInBackpackSlot())
         {
-            // TODO verified
             Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.BackpackOccupied, 0, false);
             CancelCraft();
             return;
@@ -44,7 +43,6 @@ public class CharacterCraft(Character owner)
         var hasMaterials = craft.CraftMaterials.Count == 0 || craft.CraftMaterials.All(craftMaterial => Owner.Inventory.GetItemsCount(craftMaterial.ItemId) >= craftMaterial.Amount);
         if (!hasMaterials)
         {
-            // TODO not verified
             Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.NotEnoughRequiredItem, 0, false);
             CancelCraft();
             return;
@@ -53,22 +51,22 @@ public class CharacterCraft(Character owner)
         // Check if we have permission to actually use the doodad (mostly sanity check since the client already checks this before you can craft)
         var hasPermission = true;
         var doodad = Owner.ParentWorld.GetDoodad(doodadId);
-        if (doodad != null && doodad.FuncPermission != DoodadFuncPermission.Any && Owner != null)
+        if (doodad != null && doodad.FuncPermission != DoodadFuncPermission.Public && Owner != null)
         {
             switch (doodad.FuncPermission)
             {
-                case DoodadFuncPermission.Any:
-                case DoodadFuncPermission.Permission1:
-                case DoodadFuncPermission.Permission2:
-                case DoodadFuncPermission.OwnerOnly:
-                case DoodadFuncPermission.Permission4:
-                case DoodadFuncPermission.OwnerRaidMembers:
+                case DoodadFuncPermission.Public:
+                case DoodadFuncPermission.Owner:
+                case DoodadFuncPermission.Friend:
+                case DoodadFuncPermission.SiegeMaster:
+                case DoodadFuncPermission.Party:
+                case DoodadFuncPermission.Raid:
                     break;
-                case DoodadFuncPermission.SameAccount:
+                case DoodadFuncPermission.Account:
                     if (doodad.OwnerType == DoodadOwnerType.Character)
                         hasPermission = WorldManager.Instance.GetCharacterById(doodad.OwnerId).AccountId == Owner.AccountId;
                     break;
-                case DoodadFuncPermission.ZoneResidents:
+                case DoodadFuncPermission.HouseInZone:
                     hasPermission = false;
                     var zoneGroup = ZoneManager.Instance.GetZoneByKey(doodad.Transform.ZoneId)?.GroupId ?? 0;
                     var playerHouses = new Dictionary<uint, House>();
@@ -95,7 +93,6 @@ public class CharacterCraft(Character owner)
 
         if (!hasPermission)
         {
-            // TODO not verified
             Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.CraftPermissionDeny, 0, false);
             CancelCraft();
             return;
@@ -131,16 +128,7 @@ public class CharacterCraft(Character owner)
         if (Owner.LaborPower < ConsumeLaborPower)
         {
             Owner.SendDebugMessage("|cFFFFFF00[Craft] Not enough Labor Powers for crafting! Performing a fictitious crafting step...|r");
-            // TODO not verified
             Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.NotEnoughLaborPower, 0, false);
-            CraftOrCancel();
-            return;
-        }
-
-        if (Owner.Inventory.FreeSlotCount(SlotType.Inventory) < CurrentCraft.CraftProducts.Count)
-        {
-            // TODO not verified
-            Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.NotEnoughSpace, 0, false);
             CraftOrCancel();
             return;
         }
@@ -243,10 +231,9 @@ public class CharacterCraft(Character owner)
             }
         }
 
+        var productsWithGrades = new List<(CraftProduct Product, int Grade)>();
         foreach (var product in CurrentCraft.CraftProducts)
         {
-            // Determine if this product should inherit grade  
-            var productTemplate = ItemManager.Instance.GetTemplate(product.ItemId);
             int gradeToUse = -1;
 
             // If we found an equipment material, inherit grade and roll for free regrade
@@ -256,18 +243,21 @@ public class CharacterCraft(Character owner)
             }
             else if (product.ItemGradeId > 0)
             {
-                // Use specified grade if set  
                 gradeToUse = (int)product.ItemGradeId;
             }
 
-            // Check if template allows grade changes  
-            var template = ItemManager.Instance.GetTemplate(product.ItemId);
-            if (template != null)
-            {
-                Owner.SendDebugMessage($"Product template {product.ItemId} - FixedGrade: {template.FixedGrade}, Gradable: {template.Gradable}");
-            }
+            productsWithGrades.Add((product, gradeToUse));
+        }
 
-            // Check if we're crafting a trade pack, if so, try to remove currently equipped backpack slot
+        if (!CanFitCraftProducts(productsWithGrades))
+        {
+            Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.NotEnoughSpace, 0, false);
+            CraftOrCancel();
+            return;
+        }
+
+        foreach (var (product, gradeToUse) in productsWithGrades)
+        {
             if (ItemManager.Instance.IsAutoEquipTradePack(product.ItemId) == false)
             {
                 Owner.Inventory.Bag.AcquireDefaultItem(ItemTaskType.CraftActSaved, product.ItemId, product.Amount, gradeToUse, Owner.Id);
@@ -308,6 +298,38 @@ public class CharacterCraft(Character owner)
         {
             CancelCraft();
         }
+    }
+
+    /// <summary>
+    /// Preflights the exact product grades selected for this craft. Existing partial stacks are
+    /// consumed first; only the residual quantities reserve inventory slots. This avoids rejecting
+    /// stackable craft results merely because the number of product rows exceeds free slots.
+    /// </summary>
+    private bool CanFitCraftProducts(IEnumerable<(CraftProduct Product, int Grade)> products)
+    {
+        var requiredSlots = 0;
+        foreach (var group in products
+                     .Where(entry => !ItemManager.Instance.IsAutoEquipTradePack(entry.Product.ItemId))
+                     .GroupBy(entry => (entry.Product.ItemId, Grade: Math.Max(entry.Grade, 0))))
+        {
+            var amount = group.Sum(entry => entry.Product.Amount);
+            if (amount <= 0 || group.Key.ItemId == Item.Coins)
+                continue;
+
+            var template = ItemManager.Instance.GetTemplate(group.Key.ItemId);
+            if (template == null || template.MaxCount <= 0)
+                return false;
+
+            Owner.Inventory.Bag.GetAllItemsByTemplate(
+                group.Key.ItemId, group.Key.Grade, out var existing, out var existingAmount);
+            var availableInExistingStacks = (long)existing.Count * template.MaxCount - existingAmount;
+            var remainder = Math.Max(0L, amount - availableInExistingStacks);
+            requiredSlots += (int)Math.Ceiling(remainder / (double)template.MaxCount);
+            if (requiredSlots > Owner.Inventory.Bag.FreeSlotCount)
+                return false;
+        }
+
+        return true;
     }
 
     private void CraftOrCancel()

@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -96,7 +96,6 @@ public class Skill
     }
 
     /// <summary>
-    /// Runs the skill and preserves both native SkillStarted failure-detail fields.
     /// </summary>
     public SkillResult Use(
         BaseUnit caster,
@@ -273,7 +272,11 @@ public class Skill
             maxRangeCheck = maxWeaponRange;
         }
 
-        if (targetDist < minRangeCheck)
+        // World mirror transforms can lag ZWUnitMovements by a tick, which rejected every
+        // Zone melee (skill 2) as TooFarRange while the NPC visually swung and dealt no SC damage.
+        var zoneNpcCast = WorldIntegration.ZoneAuthority && caster is Npc;
+
+        if (!zoneNpcCast && targetDist < minRangeCheck)
         {
             SkillTlIdManager.ReleaseId(TlId);
             TlId = 0;
@@ -293,7 +296,7 @@ public class Skill
 
         // TODO: Remove exception for doodads
         // TODO: Remove exceptions for slave initiated by Doodads (needed to fix repair points on ships)
-        if (targetDist > maxRangeCheck && !unboundedPlacement && target is not Doodad && target is not Slave)
+        if (!zoneNpcCast && targetDist > maxRangeCheck && !unboundedPlacement && target is not Doodad && target is not Slave)
         {
             SkillTlIdManager.ReleaseId(TlId);
             TlId = 0;
@@ -806,7 +809,6 @@ public class Skill
         //     }
         // }
 
-        // Validate cast Item
         if (caster is Character player && casterCaster is SkillItem castItem)
         {
             var castItemTemplate = ItemManager.Instance.GetTemplate(castItem.ItemTemplateId);
@@ -938,10 +940,20 @@ public class Skill
             }
             return;
         }
+        // toggle_buff_id (e.g. Dash 16287 → buff 2675): second use cancels. BuffTemplate.Apply
+        // early-returns when the buff is already present, so toggle-off must RemoveBuff here.
         if (Template.ToggleBuffId != 0)
         {
-            var buff = SkillManager.Instance.GetBuffTemplate(Template.ToggleBuffId);
-            buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow);
+            if (caster.Buffs.CheckBuff(Template.ToggleBuffId))
+            {
+                caster.Buffs.RemoveBuff(Template.ToggleBuffId);
+            }
+            else
+            {
+                var buff = SkillManager.Instance.GetBuffTemplate(Template.ToggleBuffId);
+                buff.Apply(caster, casterCaster, target, targetCaster, new CastSkill(Template.Id, TlId),
+                    new EffectSource(this), skillObject, DateTime.UtcNow);
+            }
         }
 
         var totalDelay = 0;
@@ -952,15 +964,17 @@ public class Skill
         if (Template.FireAnim != null && Template.UseAnimTime)
             totalDelay += (int)(Template.FireAnim.CombatSyncTime * (unit.GlobalCooldownMul / 100));
 
-        // Determine weapon-based animation for auto-attacks (skill 2/3/4).
-        // 0 means "no override" — packet keeps its default (skill template's FireAnim).
+        // Auto-attacks use the equipped holdable animation. Other ranged skills can carry a
+        // separate shotgun fire animation in the skill row; select it from the actual ranged
+        // holdable instead of always sending the bow/default fire_anim_id.
         var weaponAnimId = GetWeaponAttackAnimId(caster);
+        var fireAnimId = weaponAnimId > 0 ? weaponAnimId : GetRangedSkillFireAnimId(caster);
         var firedPacket = new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
         {
             ComputedDelay = (short)totalDelay
         };
-        if (weaponAnimId > 0)
-            firedPacket.FireAnimId = weaponAnimId;
+        if (fireAnimId > 0)
+            firedPacket.FireAnimId = fireAnimId;
         caster.BroadcastPacket(firedPacket, true);
 
         // ZoneAuthority: bridge fire to Zone at the same moment as SC SkillFired (not for plot_only — Use never reaches here).
@@ -1021,6 +1035,26 @@ public class Skill
         var fistAnim = (AutoAttackIndex % 2 == 0) ? 1u : 2u;
         AutoAttackIndex++;
         return fistAnim;
+    }
+
+    /// <summary>
+    /// Resolves the optional shotgun-specific animation carried by a ranged skill template.
+    /// A zero result keeps the ordinary <c>fire_anim_id</c> selected by the packet.
+    /// </summary>
+    private uint GetRangedSkillFireAnimId(BaseUnit caster)
+    {
+        if (Template.ShotGunFireAnimId == 0 || caster is not Unit unit)
+            return 0;
+
+        var shotgunHoldableId = ItemManager.Instance.GetConstHoldableId("shot_gun");
+        if (shotgunHoldableId == 0)
+            return 0;
+
+        var rangedWeapon = unit.Equipment?.GetItemBySlot((int)EquipmentItemSlot.Ranged);
+        return rangedWeapon?.Template is WeaponTemplate rangedTemplate &&
+               rangedTemplate.HoldableTemplate?.Id == shotgunHoldableId
+            ? Template.ShotGunFireAnimId
+            : 0;
     }
 
     private IEnumerable<BaseUnit> FilterAoeUnits(BaseUnit caster, IEnumerable<BaseUnit> units)
@@ -1110,7 +1144,6 @@ public class Skill
             }
         }
 
-        // Never DD04 (L4 zip) — retail enter/in-world sniff had 0× level-4; send plain SC only.
         CompressedGamePackets packets = null;
         var consumedItems = new List<(Item, int)>();
         var consumedItemTemplates = new List<(uint, int)>(); // itemTemplateId, amount
@@ -1428,7 +1461,6 @@ public class Skill
                 if (effect.ItemSetId > 0)
                 {
                     // TODO: Check what KindId does (only 1 used in 1.2)
-                    // TODO: Verify items before validating skill
                     var itemSet = ItemManager.Instance.GetItemSet(effect.ItemSetId);
                     if (itemSet != null)
                     {
@@ -1694,7 +1726,6 @@ AlwaysHit:
     }
 
     /// <summary>
-    /// plot_only skips Cast(); call at cast-end (or immediately for instant plot_only) so GCD matches retail.
     /// </summary>
     public void ApplyPlotOnlyFireCosts(Unit unit)
     {
@@ -1746,7 +1777,6 @@ AlwaysHit:
     }
 
     /// <summary>
-    /// Complete a native Zone skill timeline exactly once before its managed timeline is released.
     /// Plot-only skills call this directly because they do not use <see cref="EndSkill"/>.
     /// </summary>
     public void RelayZoneSkillEndedIfNeeded()

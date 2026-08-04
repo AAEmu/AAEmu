@@ -16,6 +16,7 @@ public class CSBroadcastOpenEquipInfoPacket() : GamePacket(CSOffsets.CSBroadcast
             return;
 
         Logger.Debug("CSBroadcastOpenEquipInfo: {0} open={1}", character.Name, open);
+        character.IsEquipmentPublic = open;
         character.BroadcastPacket(new SCUnitOpenEquipInfoPacket(character.ObjId, open), true);
     }
 }

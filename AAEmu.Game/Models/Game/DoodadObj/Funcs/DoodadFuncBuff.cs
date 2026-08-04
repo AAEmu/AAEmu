@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -16,9 +17,6 @@ public class DoodadFuncBuff : DoodadFuncTemplate
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
         Logger.Trace("DoodadFuncBuff");
-        // TODO: ImplementRelationShipId
-        // TODO: Not sure what count is, maximum targets maybe?
-
         if (Radius <= 0f)
         {
             // Caster only
@@ -26,7 +24,11 @@ public class DoodadFuncBuff : DoodadFuncTemplate
         }
         else
         {
-            var targets = WorldManager.GetAround<BaseUnit>(caster, Radius, true);
+            var relationship = (RelationState)RelationshipId;
+            var targets = WorldManager
+                .GetAround<BaseUnit>(caster, Radius, true)
+                .Where(target => target != null && caster.GetRelationStateTo(target) == relationship)
+                .Take(Count);
             foreach (var target in targets)
             {
                 target.Buffs.AddBuff(BuffId, caster);

@@ -21,7 +21,10 @@ public class CSDoodadQuestNotiPacket() : GamePacket(CSOffsets.CSDoodadQuestNotiP
         var doodadTemplateId = stream.ReadUInt32();
 
         var character = Connection.ActiveChar;
-        var doodad = character?.ParentWorld?.GetDoodad(doodadObjId);
+        if (character == null || !character.Quests.ObserveQuestDoodad(doodadObjId, doodadTemplateId))
+            return;
+
+        var doodad = character.ParentWorld?.GetDoodad(doodadObjId);
         if (doodad == null || !doodad.IsVisible || doodad.TemplateId != doodadTemplateId)
             return;
 
@@ -31,7 +34,6 @@ public class CSDoodadQuestNotiPacket() : GamePacket(CSOffsets.CSDoodadQuestNotiP
 
         lock (doodad)
         {
-            // Revalidate mutable and client-correlated state under the doodad's phase lock.
             if (!doodad.IsVisible || doodad.TemplateId != doodadTemplateId)
                 return;
 

@@ -254,7 +254,6 @@ public class HousingManager(
 
     /// <summary>
     /// Replays housing state after a Zone joins or reconnects. Houses are already spawned in
-    /// World, so this only sends the native UnitState -> HouseState -> build-state sequence for
     /// the Zone that just loaded.
     /// </summary>
     public void RelayAllToZone(uint zoneId)
@@ -417,9 +416,13 @@ public class HousingManager(
     /// <param name="z"></param>
     public void ConstructHouseTax(GameConnection connection, uint designId, float x, float y, float z)
     {
-        // TODO validation position and some range...
 
         var houseTemplate = HousingGameData.Instance.GetTemplate(designId);
+        if (houseTemplate == null)
+        {
+            connection.ActiveChar.SendErrorMessage(ErrorMessageType.HouseCannotCreateConstructTaxAbnormal);
+            return;
+        }
 
         CalculateBuildingTaxInfo(connection.ActiveChar.AccountId, houseTemplate, true, out var totalTaxAmountDue, out var heavyTaxHouseCount, out var normalTaxHouseCount, out var hostileTaxRate, out var weeklyTax);
 
@@ -748,17 +751,22 @@ public class HousingManager(
     /// <param name="house"></param>
     public void RemoveDeadHouse(House house)
     {
+        var zoneId = house.Transform?.ZoneId ?? 0;
+        var houseObjId = house.ObjId;
+
         // Remove house from housing tables
         _removedHousings.Add(house.Id);
         _houses.Remove(house.Id);
         _housesTl.Remove(house.TlId);
         housingTldManager.ReleaseId(house.TlId);
         housingIdManager.ReleaseId(house.Id);
-        // TODO: not sure how to handle this, just instant delete it for now
         house.Delete();
-        // TODO: Add to despawn handler
-        //house.Despawn = DateTime.UtcNow.AddSeconds(20);
-        //SpawnManager.Instance.AddDespawn(house);
+
+        // House.Delete tears down attached doodads first, each of which emits WZRemoveDoodad.
+        HousingZoneBridge.NotifyZoneHouseRemoved(zoneId, houseObjId);
+
+        if (houseObjId > 0)
+            objectIdManager.ReleaseId(houseObjId);
     }
 
     /// <summary>
@@ -872,6 +880,67 @@ public class HousingManager(
     public bool PayWeeklyTax(House house)
     {
         house.ProtectionEndDate = house.ProtectionEndDate.AddDays(AppConfiguration.Instance.World.DaysForTaxPayment);
+        return true;
+    }
+
+    /// <summary>
+    /// Pays one configured tax period before it is due. The request is keyed by the housing
+    /// timeline ID, never by a client-supplied house database or object ID.
+    /// </summary>
+    public bool PrepayHouseTax(GameConnection connection, ushort tlId, bool useAaPoint)
+    {
+        var character = connection.ActiveChar;
+        if (character == null || !_housesTl.TryGetValue(tlId, out var house) || house.OwnerId != character.Id)
+            return false;
+
+        if (!CalculateBuildingTaxInfo(
+                house.AccountId, house.Template, false,
+                out _, out _, out _, out _, out var weeklyTax))
+            return false;
+
+        if (FeaturesManager.Fsets.TaxItem)
+        {
+            var boundCertificates = character.Inventory.GetItemsCount(SlotType.Inventory, Item.BoundTaxCertificate);
+            var certificates = character.Inventory.GetItemsCount(SlotType.Inventory, Item.TaxCertificate);
+            var requiredCertificates = (int)Math.Ceiling(weeklyTax / 10000f);
+            if (boundCertificates + certificates < requiredCertificates)
+            {
+                character.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
+                return false;
+            }
+
+            var remaining = requiredCertificates;
+            if (boundCertificates > 0)
+            {
+                var consume = Math.Min(remaining, boundCertificates);
+                character.Inventory.Bag.ConsumeItem(ItemTaskType.HouseDeposit, Item.BoundTaxCertificate, consume, null);
+                remaining -= consume;
+            }
+
+            if (remaining > 0)
+                character.Inventory.Bag.ConsumeItem(ItemTaskType.HouseDeposit, Item.TaxCertificate, remaining, null);
+        }
+        else
+        {
+            var balance = useAaPoint ? character.AaPoint : character.Money;
+            if (weeklyTax > balance)
+            {
+                character.SendErrorMessage(ErrorMessageType.MailNotEnoughMoneyToPayTaxes);
+                return false;
+            }
+
+            var paid = useAaPoint
+                ? character.SubtractAAPoint(SlotType.Inventory, weeklyTax, ItemTaskType.HouseDeposit)
+                : character.SubtractMoney(SlotType.Inventory, weeklyTax, ItemTaskType.HouseDeposit);
+            if (!paid)
+                return false;
+        }
+
+        if (!PayWeeklyTax(house))
+            return false;
+
+        UpdateTaxInfo(house);
+        HouseTaxInfo(connection, tlId);
         return true;
     }
 
@@ -1613,7 +1682,6 @@ public class HousingManager(
         // Create decoration doodad
         var decorationDesign = HousingGameData.Instance.GetDecorationDesignFromId(designId);
 
-        // TODO: Validate if designId is correct for the given item
         /*
         if (item.TemplateId != decorationDesign.ItemTemplateId)
         {

@@ -110,6 +110,11 @@ public class EquipItem : Item
         stream.Write(ChargeProcTime);      // chargeProcTime i64
         stream.Write(MappingFailBonus);    // mappingFailBonus u8
         stream.Write(ElementLevel);        // elementLevel u8
-        stream.WritePisc(GemData ?? new uint[18]); // gem/socket block (18 values)
+        // then 14 gem ints. ImageItemTemplateId must occupy GemData[0] on the wire.
+        var gemData = GemData ?? new uint[18];
+        if (gemData.Length < 18)
+            Array.Resize(ref gemData, 18);
+        gemData[0] = ImageItemTemplateId;
+        stream.WritePisc(gemData);
     }
 }

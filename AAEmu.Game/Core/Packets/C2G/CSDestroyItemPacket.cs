@@ -14,27 +14,20 @@ public class CSDestroyItemPacket() : GamePacket(CSOffsets.CSDestroyItemPacket, 1
     public override void Read(PacketStream stream)
     {
         var itemId = stream.ReadUInt64();
+        _ = stream.ReadByte();
         var slotType = (SlotType)stream.ReadByte();
+        _ = stream.ReadByte();
         var slot = stream.ReadByte();
-        var count = stream.ReadInt32();
+        var amount = stream.ReadUInt32();
 
         var item = Connection.ActiveChar.Inventory.GetItem(slotType, slot);
-        if (item == null || item.Id != itemId || item.Count < count)
+        if (item == null || item.Id != itemId || amount == 0 || amount > int.MaxValue || (int)amount > item.Count)
         {
             Logger.Warn("DestroyItem: Invalid item...");
-            // TODO ... ItemNotify?
             return;
         }
 
-        if (count <= 0)
-        {
-            // The amount to destroy should always be more than 0, assume hacking otherwise, and just destroy the entire item
-            SusManager.Instance.LogActivity(
-                SusManager.CategoryCheating,
-                Connection.ActiveChar,
-                $"CSDestroyItemPacket, player {Connection.ActiveChar?.Name} attempted to destroy a negative amount of items {count} for item: template {item.TemplateId}, id {item.Id}");
-            count = item.Count;
-        }
+        var count = (int)amount;
 
         if (item.Count > count)
         {
@@ -58,6 +51,6 @@ public class CSDestroyItemPacket() : GamePacket(CSOffsets.CSDestroyItemPacket, 1
             // Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, new List<ItemTask> { new ItemRemove(item) }, new List<ulong>()));
         }
 
-        Connection.ActiveChar?.Inventory.OnItemManuallyDestroyed(item, item.Count);
+        Connection.ActiveChar?.Inventory.OnItemManuallyDestroyed(item, count);
     }
 }

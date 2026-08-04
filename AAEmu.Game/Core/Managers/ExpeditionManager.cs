@@ -17,6 +17,8 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.StaticValues;
 
+using WorldIntegration = AAEmu.Game.WorldIntegration;
+
 namespace AAEmu.Game.Core.Managers;
 
 public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamManager teamManager, IWorldManager worldManager, IChatManager chatManager) : Singleton<ExpeditionManager>, IExpeditionManager
@@ -308,13 +310,13 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         _expeditions.Add(expedition.Id, expedition);
 
         owner.Expedition = expedition;
+        WorldIntegration.RelayUnitExpeditionChangedToZone?.Invoke(owner.ObjId, 0, (int)expedition.Id);
 
         owner.SendPacket(
             new SCFactionCreatedPacket(expedition, owner.ObjId, [(owner.ObjId, owner.Id, owner.Name)])
         );
 
-        // TODO 10.0.2.13: guild descriptors broadcast via SCExpeditionList (opcode 0x0A), which replaced the
-        // removed SCFactionList (0x08). SCExpeditionListPacket is not yet implemented.
+        owner.SendPacket(new SCExpeditionListPacket(_expeditions.Values.ToArray()));
         owner.BroadcastPacket(
             new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, (uint)expedition.Id, false),
             true
@@ -333,6 +335,7 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             var newMember = GetMemberFromCharacter(expedition, invited, false);
 
             invited.Expedition = expedition;
+            WorldIntegration.RelayUnitExpeditionChangedToZone?.Invoke(invited.ObjId, 0, (int)expedition.Id);
             expedition.Members.Add(newMember);
 
             invited.BroadcastPacket(
@@ -373,6 +376,7 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         var newMember = GetMemberFromCharacter(expedition, invited, false);
 
         invited.Expedition = expedition;
+        WorldIntegration.RelayUnitExpeditionChangedToZone?.Invoke(invited.ObjId, 0, (int)expedition.Id);
         expedition.Members.Add(newMember);
 
         invited.BroadcastPacket(
@@ -424,6 +428,7 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             false
         );
         character.Expedition = null;
+        WorldIntegration.RelayUnitExpeditionChangedToZone?.Invoke(character.ObjId, (int)expedition.Id, 0);
         character.BroadcastPacket(changedPacket, true);
         expedition.SendPacket(changedPacket);
         Save(expedition);
@@ -452,6 +457,7 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         if (kickedChar is not null)
         {
             kickedChar.Expedition = null;
+            WorldIntegration.RelayUnitExpeditionChangedToZone?.Invoke(kickedChar.ObjId, (int)expedition.Id, 0);
             kickedChar.BroadcastPacket(changedPacket, true);
         }
         expedition.SendPacket(changedPacket);
@@ -598,9 +604,8 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
 
     public void SendExpeditions(Character character)
     {
-        // TODO 10.0.2.13: the character's guild list is sent via SCExpeditionList (opcode 0x0A), which replaced
-        // the removed SCFactionList (0x08). SCExpeditionListPacket is not yet implemented; the client loads
-        // guild membership from the trailing world-entry data until it is.
+        var expeditions = _expeditions.Values.ToArray();
+        character.SendPacket(new SCExpeditionListPacket(expeditions));
         character.SendPacket(new SCExpeditionRolePolicyListPacket([]));
     }
 

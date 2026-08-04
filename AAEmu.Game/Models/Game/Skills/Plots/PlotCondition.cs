@@ -115,20 +115,36 @@ public class PlotCondition
         return target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)tagId));
     }
 
-    // 6
+    // 6 — compact.sqlite3 enum_weapon_equip_statuses:
+    // 1 onehand, 2 twohand, 3 dual_wield, 4 bow, 5 gun.
+    // 4/5 are ranged holdables (const_holdable_types bow / shot_gun), not WeaponWieldKind.
+    // Shotgun auto-attack plot 5796 event 52244 ("총 장착 여부 판정") uses param1=5; treating 5 as
+    // WeaponWieldKind always failed and stopped the plot after the start node (no damage, no ManaCost).
     private static bool ConditionWeaponEquipStatus(BaseUnit caster, SkillCaster casterCaster, BaseUnit target,
         SkillCastTarget targetCaster, SkillObject skillObject, int weaponEquipStatus, int unused2, int unused3)
     {
-        // Weapon equip status can be :
-        // 1 = 1handed
-        // 2 = 2handed
-        // 3 = duel-wielded
-        var wieldKind = (WeaponWieldKind)weaponEquipStatus;
-        if (caster is Character character)
+        if (caster is not Character character)
+            return false;
+
+        return weaponEquipStatus switch
         {
-            return character.GetWeaponWieldKind() == wieldKind;
-        }
-        return false;
+            1 => character.GetWeaponWieldKind() == WeaponWieldKind.OneHanded,
+            2 => character.GetWeaponWieldKind() == WeaponWieldKind.TwoHanded,
+            3 => character.GetWeaponWieldKind() == WeaponWieldKind.DuelWielded,
+            4 => HasRangedHoldable(character, "bow"),
+            5 => HasRangedHoldable(character, "shot_gun"),
+            _ => false
+        };
+    }
+
+    private static bool HasRangedHoldable(Character character, string holdableName)
+    {
+        var holdableId = ItemManager.Instance.GetConstHoldableId(holdableName);
+        if (holdableId == 0)
+            return false;
+        var ranged = character.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Ranged);
+        return ranged?.Template is WeaponTemplate weapon &&
+               weapon.HoldableTemplate.Id == holdableId;
     }
 
     // 7

@@ -1,7 +1,9 @@
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Data;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
@@ -23,6 +25,9 @@ public class CharacterQuests(Character owner)
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private readonly List<uint> _removed = [];
+    private readonly ConcurrentDictionary<uint, ObservedQuestDoodad> _observedQuestDoodads = [];
+
+    private readonly record struct ObservedQuestDoodad(uint TemplateId, uint ZoneId);
 
     private Character Owner { get; set; } = owner;
     public Dictionary<uint, Quest> ActiveQuests { get; } = [];
@@ -68,6 +73,15 @@ public class CharacterQuests(Character owner)
         if (template == null)
         {
             Logger.Error($"Failed to start new Quest {questId}, invalid Id");
+            return false;
+        }
+
+        if (!forcibly && !template.MeetsContextRequirements(Owner))
+        {
+            Logger.Trace(
+                "User {0} ({1}) does not meet context requirements for quest {2}: level={3}, minLevel={4}, maxLevel={5}, race={6}, raceMask={7}",
+                Owner.Name, Owner.Id, questId, Owner.Level, template.MinLevel, template.MaxLevel, Owner.Race,
+                template.RaceMask);
             return false;
         }
 
@@ -164,12 +178,27 @@ public class CharacterQuests(Character owner)
     public bool AddQuestFromDoodad(uint questId, uint doodadObjId)
     {
         var doodad = Owner.ParentWorld.GetDoodad(doodadObjId);
-        if (doodad == null)
+        if (doodad != null)
+            return AddQuest(questId, false, QuestAcceptorType.Doodad, doodad.TemplateId);
+
+        if (!_observedQuestDoodads.TryGetValue(doodadObjId, out var observed) ||
+            observed.ZoneId != Owner.Transform.ZoneId ||
+            !DoodadManager.Instance.OffersQuest(observed.TemplateId, questId))
         {
             Logger.Warn("AddQuestFromDoodad: doodad objId {0} not found for quest {1}", doodadObjId, questId);
             return false;
         }
-        return AddQuest(questId, false, QuestAcceptorType.Doodad, doodad.TemplateId);
+
+        return AddQuest(questId, false, QuestAcceptorType.Doodad, observed.TemplateId);
+    }
+
+    public bool ObserveQuestDoodad(uint doodadObjId, uint doodadTemplateId)
+    {
+        if (doodadObjId == 0 || DoodadManager.Instance.GetTemplate(doodadTemplateId) == null)
+            return false;
+
+        _observedQuestDoodads[doodadObjId] = new ObservedQuestDoodad(doodadTemplateId, Owner.Transform.ZoneId);
+        return true;
     }
 
     /// <summary>
@@ -440,6 +469,19 @@ public class CharacterQuests(Character owner)
             Array.Copy(completedQuests, i, result, 0, size);
             Owner.SendPacket(new SCCompletedQuestsPacket(result));
         }
+    }
+
+    /// <summary>
+    /// Sends the complete quest state in the order expected by the client and then marks the
+    /// quest notifier as initialized. Without the final marker, the client keeps category limits
+    /// (including daily hunting quests) in their unopened/default state and rejects board quests
+    /// locally before sending a start request to World.
+    /// </summary>
+    public void SendInitialState()
+    {
+        Send();
+        SendCompleted();
+        Owner.SendPacket(new SCQuestNotifierInitPacket(true));
     }
 
     /// <summary>

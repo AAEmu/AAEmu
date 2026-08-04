@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -268,7 +268,6 @@ public class Buffs : IBuffs
                     badBuffs.Add(buff);
                     break;
                 case BuffKind.Hidden:
-                    // Always include passives of Hidden Buffs, required by for example WorldBoss and Queen Bee captures
                     hiddenBuffs.Add(buff);
                     break;
                 default:
@@ -296,10 +295,7 @@ public class Buffs : IBuffs
             buff.State = EffectState.Created;
             if (index == 0)
             {
-                buff.Index = _nextIndex; // TODO need safe increment...
-
-                if (++_nextIndex == uint.MaxValue)
-                    _nextIndex = FirstBuffIndex; // [GEAR-SLOT-FIX] skip GearBonusesIndex on wrap
+                buff.Index = AllocateIndex();
             }
             else
             {
@@ -450,6 +446,20 @@ public class Buffs : IBuffs
         if (finalToleranceBuffId > 0)
         {
             AddBuff(new Buff(buff.Owner, buff.Caster, buff.SkillCaster, SkillManager.Instance.GetBuffTemplate(finalToleranceBuffId), buff.Skill, DateTime.UtcNow));
+        }
+    }
+
+    private uint AllocateIndex()
+    {
+        // The caller holds _lock. Do not reuse an index after a long-running server wraps,
+        // and never allocate the Unit.Bonuses slot reserved for gear effects.
+        while (true)
+        {
+            var candidate = _nextIndex;
+            _nextIndex = candidate == uint.MaxValue ? FirstBuffIndex : candidate + 1;
+
+            if (candidate != GearBonusesIndex && _effects.All(effect => effect?.Index != candidate))
+                return candidate;
         }
     }
 

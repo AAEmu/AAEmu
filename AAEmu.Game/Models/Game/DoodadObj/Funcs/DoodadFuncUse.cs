@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -74,8 +74,7 @@ public class DoodadFuncUse : DoodadFuncTemplate
             }
         }
 
-        // TODO: check skill references and consume items if items are required for skills
-        // Make caster cast skill ?
+        // reagents. Doodad functions only construct the interaction target.
         if (SkillId > 0)
         {
             var skillTemplate = SkillManager.Instance.GetSkillTemplate(SkillId);

@@ -79,6 +79,12 @@ public class DamageEffect : EffectTemplate
             return;
         }
 
+        // Every damage calculation below reads Unit combat attributes and equipment. A periodic
+        // buff can outlive a non-Unit or removed source, in which case Buff.Caster is null. Such a
+        // tick has no authoritative attacker to attribute damage, procs, aggro, or crime to.
+        if (caster is not Unit)
+            return;
+
         if (Bonuses != null)
         {
             foreach (var bonus in Bonuses)

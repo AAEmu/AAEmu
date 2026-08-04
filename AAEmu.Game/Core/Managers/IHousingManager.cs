@@ -36,6 +36,7 @@ public interface IHousingManager
     void HousingToggleAllowRecover(Character character, ushort houseTl);
     House GetHouseAtLocation(float x, float y);
     bool PayWeeklyTax(House house);
+    bool PrepayHouseTax(GameConnection connection, ushort tlId, bool useAaPoint);
     (int, int) Save(MySqlConnection connection, MySqlTransaction transaction);
     void ReconcileBoundDoodads();
 }

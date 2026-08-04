@@ -26,7 +26,6 @@ public class ZoneProtocolHandler : BaseProtocolHandler
     {
         Logger.Info("Zone connect from {0}, session id: {1}", session.Ip, session.SessionId);
         // Do NOT clear NpcStateSent here — ZoneId is unknown until ZWJoin, and wiping
-        // would drop markers for every other live dedicate. Cleared per-zone on Join/disconnect.
         var connection = new ZoneConnection(session);
         ZoneSession.Instance.Add(connection);
     }
@@ -35,13 +34,11 @@ public class ZoneProtocolHandler : BaseProtocolHandler
     {
         var connection = ZoneSession.Instance.Get(session.SessionId);
         var zoneId = connection?.ZoneId ?? 0;
-        // Tear down this dedicate's MainWorld mirrors before dropping the connection —
         // otherwise sibling zones that later allocate colliding bcIds (pre-fix) or
         // remirror leave ghost units and SC movement thrash.
         if (connection != null)
             NpcSpawnRelay.RemoveMirrorsForConnection(connection, $"zone TCP disconnect {session.Ip}");
         ZoneSession.Instance.Remove(session.SessionId);
-        // Only this dedicate's Create markers — sibling zones keep theirs.
         NpcSpawnRelay.ResetNpcStateSentForZone(zoneId, $"zone TCP disconnect {session.Ip}");
         Logger.Error(
             "Zone disconnect from {0} zoneId={1} — returning affected clients to character select",
@@ -141,7 +138,6 @@ public class ZoneProtocolHandler : BaseProtocolHandler
                     Logger.Warn("ZW opcode 0 after join from {0} len={1}", connection.Ip, bodyLen);
                 break;
             case ZwOpcodes.UnitMovements:
-                // Phase 2: Info so we can see whether dedicate ever emits movers (was Debug → invisible).
                 Logger.Info("ZWUnitMovements from zone {0} len={1}", connection.Ip, bodyLen);
                 _movementRelay.RelayZoneMoveToClient(connection, body.GetBytes());
                 break;
@@ -156,12 +152,10 @@ public class ZoneProtocolHandler : BaseProtocolHandler
                     "Zone {0} ZoneLoaded zoneId={1} instanceId={2} units={3}; registry loadedCount={4}",
                     connection.Ip, connection.ZoneId, connection.InstanceId, connection.Units.Count,
                     ZoneSession.Instance.LoadedCount);
-                // Retail: World-authored doodads must exist on Zone (physics/climb). SC spawn may
                 // have run before Zone connected — flush existing + keep live RelayCreateDoodad.
                 WorldIntegration.NotifyZoneReadyForDoodads?.Invoke(connection.ZoneId);
                 WorldIntegration.NotifyZoneReadyForHousing?.Invoke(connection.ZoneId);
                 WorldIntegration.NotifyZoneReadyForGimmicks?.Invoke(connection.ZoneId);
-                // A dedicate that connects mid-period never saw the Start edge; without this its
                 // schedule-linked spawners stay held back until the period next reopens.
                 GameScheduleRelay.OnZoneLoaded(connection);
                 var npcActivate = global::AAEmu.World.WorldRuntime.Config.NpcSpawnerActivate;
@@ -205,14 +199,10 @@ public class ZoneProtocolHandler : BaseProtocolHandler
 
         // NikES gate: JoinResponse + FactionRelationList + SpawnerList(last=1).
         // Real FromGame() lists are sent by default. An earlier note had them crashing the
-        // dedicate ~1s after ZoneLoaded; re-tested 2026-07-29 against s_silent_sea_1 and the
-        // dedicate reached ZoneLoaded with 503 units and stayed up, so that no longer holds.
-        // Without them the dedicate has no faction relations, cannot classify a player as
         // hostile, and its NPCs aggro but never engage.
         // Opt-out: AAEMU_WZ_REAL_FACTIONS=0 (+ optional WorldGameTime/DetailedToD).
         connection.ZoneId = (uint)join.Id;
         connection.InstanceId = join.InstanceId;
-        // Fresh dedicate (or remap) for this ZoneId — allow full WZNpcState Create pass again.
         NpcSpawnRelay.ResetNpcStateSentForZone(connection.ZoneId, $"ZWJoin from {connection.Ip}");
         ZoneSession.Instance.IndexByZoneId(connection);
         var joinResponse = new WZJoinResponsePacket();
@@ -221,8 +211,8 @@ public class ZoneProtocolHandler : BaseProtocolHandler
         var realFactions = Environment.GetEnvironmentVariable("AAEMU_WZ_REAL_FACTIONS") != "0";
         if (realFactions)
         {
-            connection.SendPacket(WZFactionListPacket.FromGame());
-            connection.SendPacket(WZFactionRelationListPacket.FromGame());
+            WZFactionListPacket.SendAllFromGame(connection);
+            WZFactionRelationListPacket.SendAllFromGame(connection);
         }
         else
         {
@@ -296,7 +286,6 @@ public class ZoneProtocolHandler : BaseProtocolHandler
 
     private static void SendActivateNpcSpawners(ZoneConnection connection, global::AAEmu.World.Models.NpcSpawnerActivateConfig cfg)
     {
-        // Config XYZ is a single-zone bring-up default (Gweonid). Each dedicate only owns its
         // ZoneId cells — center the activate sphere on that zone or distant starters (Nuian
         // Solzreed / Firran Falcorth / …) get zero ZWSpawnNpc even when ZoneLoaded.
         // The closed set must exist before the ZWSpawnNpc flood it gates, and zone load can beat
@@ -304,7 +293,6 @@ public class ZoneProtocolHandler : BaseProtocolHandler
         NpcScheduleGate.EnsureLoaded();
 
         ResolveNpcActivateCenter(connection.ZoneId, cfg, out var x, out var y, out var z, out var source, out var radius);
-        // Centre must be zone-local: the dedicate compares it against npc_spawners.g spawn points.
         var local = AAEmu.Game.Core.Managers.World.ZoneManager.Instance.ConvertToLocalCoordinates(
             connection.ZoneId, new System.Numerics.Vector3(x, y, z));
         connection.SendPacket(new WZActivateNpcSpawnersInAreaPacket(local.X, local.Y, local.Z, radius, activate: true));

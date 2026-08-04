@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
@@ -601,7 +601,6 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
             using (var command = connection.CreateCommand())
             {
-                // The native EquipRanged instrument predicate rejects musical-slot items that
                 // have an item-kind instrument sound descriptor. Resolve the kind relationally
                 // so its numeric enum id is not baked into server code.
                 command.CommandText = """
@@ -823,6 +822,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             KindTemplate = _wearableKinds[typeId],
                             SlotTemplate = _wearableSlots[slotTypeId],
                             BaseEnchantable = reader.GetBoolean("base_enchantable", true),
+                            AssetId = reader.GetUInt32("asset_id", 0),
                             ModSetId = reader.GetUInt32("mod_set_id", 0),
                             Repairable = reader.GetBoolean("repairable", true),
                             DurabilityMultiplier = reader.GetInt32("durability_multiplier"),
@@ -835,6 +835,26 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             EquipItemSetId = reader.GetUInt32("eiset_id", 0)
                         };
                         _templates.Add(template.Id, template);
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "SELECT item_armors.item_id, item_assets.model_id " +
+                    "FROM item_armors " +
+                    "INNER JOIN item_armor_assets ON item_armor_assets.armor_asset_id = item_armors.asset_id " +
+                    "INNER JOIN item_assets ON item_assets.id = item_armor_assets.asset_id";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        var itemId = reader.GetUInt32("item_id");
+                        if (_templates.TryGetValue(itemId, out var itemTemplate) && itemTemplate is ArmorTemplate armorTemplate)
+                            armorTemplate.CompatibleModelIds.Add(reader.GetUInt32("model_id"));
                     }
                 }
             }
@@ -1186,7 +1206,6 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
             }
 
             // 10.0.2.13: vendor pricing moved from items to item_prices and is keyed by wire currency.
-            // Keep the complete table for authoritative shop validation. Gold refund remains mirrored on the
             // template because selling and several older item paths consume that field directly.
             using (var command = connection.CreateCommand())
             {
@@ -1549,7 +1568,14 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                     }
 
                     if (deleteCount != _removedItems.Count)
-                        Logger.Error($"Some items could not be deleted, only {deleteCount}/{_removedItems.Count} items removed !");
+                    {
+                        // Newly created items can be consumed before their first persistence pass. Their IDs are
+                        // still queued so any older row is removed, but an already-absent row is a successful,
+                        // idempotent outcome rather than a database failure.
+                        Logger.Debug(
+                            "Deleted {0}/{1} queued item rows; {2} IDs were already absent",
+                            deleteCount, _removedItems.Count, _removedItems.Count - deleteCount);
+                    }
                     _removedItems.Clear();
                 }
             }
@@ -2052,7 +2078,6 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                     var details = (Commons.Network.PacketStream)detailsBytes;
                     item.ReadDetails(details);
 
-                    // Overwrite Fixed-grade items, just to make sure. Retail does not do this, but it just feels better if we do
                     if (item.Template.FixedGrade >= 0)
                         item.Grade = (byte)item.Template.FixedGrade;
                     else if (item.Template.Gradable)
@@ -2261,7 +2286,6 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         // Logger.Trace($"UpdateItemTimers - Tick, Delta: {delta.TotalMilliseconds}ms");
 
         // Timers are actually only checked when it's owner is actually online, so we loop the online characters for this.
-        // You can clearly see this on retail after event items expired when you were offline, they will expire immediately
         // even before you get the welcome message when logging in. (you can see it in the logs)
         // It only does this for items in your inventory, equipment and warehouse,
         // it is for example possible to have one in your mailbox, and it will immediately expire when you take it out.

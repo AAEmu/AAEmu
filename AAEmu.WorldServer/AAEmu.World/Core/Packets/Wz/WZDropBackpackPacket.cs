@@ -1,20 +1,21 @@
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.World.Core.Packets.Wz;
 
 /// <summary>
 /// WZDropBackpack (0x07F) — announce a World-authored ground pack to Zone.
-/// Fields from dedicate struct: uid (item), zoneId, type (doodad tpl), instanceId, removeItem,
 /// Minimal live body used by PutDownBackpackEffect: uid + zoneId + type + instanceId + removeItem
-/// + world pos. Extra trailing fields zeroed if dedicate expects more.
 /// </summary>
 public class WZDropBackpackPacket(
-    ulong itemUid,
+    Item item,
     uint zoneId,
     ulong doodadTemplateId,
     uint instanceId,
     bool removeItem,
+    bool hackAttempt,
+    bool userDrop,
     float x,
     float y,
     float z)
@@ -22,13 +23,16 @@ public class WZDropBackpackPacket(
 {
     protected override void WriteBody(PacketStream stream)
     {
-        stream.Write(itemUid);
+        stream.Write(item.Id);
         stream.Write(zoneId);
+        item.Write(stream);
         stream.Write(doodadTemplateId);
-        stream.Write(instanceId);
-        stream.Write(removeItem);
         stream.Write((ulong)Helpers.ConvertLongX(x));
         stream.Write((ulong)Helpers.ConvertLongY(y));
         stream.Write(z);
+        stream.Write(instanceId);
+        stream.Write(removeItem);
+        stream.Write(hackAttempt);
+        stream.Write(userDrop);
     }
 }

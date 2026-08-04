@@ -1,8 +1,12 @@
 ﻿using System.Drawing;
 
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
@@ -52,6 +56,27 @@ public class NpcInformationSubCommand : SubCommandBase
         var roll = npc.Transform.Local.Rotation.X.RadToDeg();
 
         //TODO: There is much more potential information to show on this command.
-        SendMessage(messageOutput, $"Name:@NPC_NAME({npc.TemplateId}) ObjId:{npc.ObjId} TemplateId:{npc.TemplateId}, x:{x}, y:{y}, z:{z}, roll:{roll:0.#}°, pitch:{pitch:0.#}°, yaw:{yaw:0.#}°");
+        SendMessage(messageOutput, $"Name:@NPC_NAME({npc.TemplateId}) ObjId:{npc.ObjId} TemplateId:{npc.TemplateId}, modelRef:{npc.ModelId}, x:{x}, y:{y}, z:{z}, roll:{roll:0.#}°, pitch:{pitch:0.#}°, yaw:{yaw:0.#}°");
+        var appearanceExt = npc.ModelParams.Write(new PacketStream()).GetBytes()[0];
+        SendMessage(messageOutput, $"Appearance ext:{appearanceExt} ({(UnitCustomModelType)appearanceExt})");
+        var cosplay = npc.Equipment.GetItemBySlot((int)EquipmentItemSlot.Cosplay);
+        if (cosplay is not null)
+            SendMessage(messageOutput, $"Cosplay slot 27: template {cosplay.TemplateId}, itemId {cosplay.Id}");
+        else
+            SendMessage(messageOutput, "Cosplay slot 27: empty");
+
+        var occupied = new List<string>();
+        for (var slot = 0; slot < EquipmentSerializer.SlotCount; slot++)
+        {
+            var item = npc.Equipment.GetItemBySlot(slot);
+            if (item is not null)
+                occupied.Add($"{slot}:{item.TemplateId}");
+        }
+        SendMessage(messageOutput, occupied.Count > 0
+            ? $"Equipment: {string.Join(", ", occupied)}"
+            : "Equipment: empty");
+
+        var unitStateLen = new SCUnitStatePacket(npc).Write(new PacketStream()).GetBytes().Length;
+        SendMessage(messageOutput, $"SCUnitState body: {unitStateLen} bytes");
     }
 }

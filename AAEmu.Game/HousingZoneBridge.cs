@@ -8,7 +8,6 @@ using NLog;
 namespace AAEmu.Game;
 
 /// <summary>
-/// Pushes World houses into Zone in the native UnitState -> HouseState -> build-state order.
 /// </summary>
 public static class HousingZoneBridge
 {
@@ -55,7 +54,19 @@ public static class HousingZoneBridge
     }
 
     /// <summary>
-    /// Fields not represented by the current game model retain their native zero defaults.
+    /// Removes a World-deleted house from the Zone simulation after its attached doodads have
+    /// been torn down. WZUnitRemoved is keyed by the house's unit object ID, while routing must
+    /// </summary>
+    public static void NotifyZoneHouseRemoved(uint zoneId, uint houseObjId)
+    {
+        if (!WorldIntegration.ZoneAuthority || zoneId == 0 || houseObjId == 0)
+            return;
+
+        WorldIntegration.RelayUnitRemovedToZoneId?.Invoke(zoneId, houseObjId);
+        Logger.Debug("WZUnitRemoved queued for house obj={0} zoneId={1}", houseObjId, zoneId);
+    }
+
+    /// <summary>
     /// </summary>
     public static byte[] BuildHouseStateBody(House house)
     {
@@ -88,7 +99,6 @@ public static class HousingZoneBridge
         stream.Write(false); // isBoundButler
         stream.Write(0u);
 
-        // The native structure has five fixed UCC slots, not a counted array.
         for (var i = 0; i < 5; i++)
         {
             stream.Write(0u);

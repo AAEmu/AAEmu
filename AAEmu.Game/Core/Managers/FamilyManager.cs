@@ -65,11 +65,19 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
     {
         using var connection = MySQL.CreateConnection();
         using var transaction = connection.BeginTransaction();
+        try
+        {
+            foreach (var family in _families.Values)
+                family.Save(connection, transaction);
 
-        foreach (var family in _families.Values)
-            family.Save(connection, transaction);
-
-        transaction.Commit(); // TODO try/catch
+            transaction.Commit();
+        }
+        catch (Exception ex)
+        {
+            transaction.Rollback();
+            Logger.Error(ex, "Failed to save all families; transaction rolled back");
+            throw;
+        }
     }
 
     /// <summary>
@@ -80,10 +88,17 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
     {
         using var connection = MySQL.CreateConnection();
         using var transaction = connection.BeginTransaction();
-
-        family.Save(connection, transaction);
-
-        transaction.Commit(); // TODO: try/catch
+        try
+        {
+            family.Save(connection, transaction);
+            transaction.Commit();
+        }
+        catch (Exception ex)
+        {
+            transaction.Rollback();
+            Logger.Error(ex, "Failed to save family {0}; transaction rolled back", family.Id);
+            throw;
+        }
     }
 
     /// <summary>
@@ -320,6 +335,7 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
         var member = _familyMembers[memberId];
         member.Title = newTitle;
 
+        SaveFamily(family);
         family.SendPacket(new SCFamilyTitleChangedPacket(family.Id, memberId, newTitle));
     }
 
@@ -340,6 +356,7 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
         member.Role = 1;
         previousOwnerMember.Role = 0;
 
+        SaveFamily(family);
         family.SendPacket(new SCFamilyOwnerChangedPacket(family.Id, memberId, previousOwner.Id));
         family.SendPacket(new SCFamilyDescPacket(family));
     }

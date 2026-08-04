@@ -16,8 +16,7 @@ public class DoodadFuncGrowth : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        // TODO: Add doodad scaling transformation
-        owner.Scale = StartScale / 1000f;
+        owner.SetScale(StartScale / 1000f);
         var customDelay = Delay / AppConfiguration.Instance.World.GrowthRate; // decrease delay
         if (ZoneManager.Instance.DoodadHasMatchingClimate(owner))
             customDelay = customDelay * 0.73f;
@@ -43,8 +42,7 @@ public class DoodadFuncGrowth : DoodadPhaseFuncTemplate
         else
             Logger.Trace("DoodadFuncGrowth: Delay {0}, StartScale {1}, EndScale {2}, NextPhase {3}", Delay, StartScale, EndScale, NextPhase);
 
-        // Отменяем текущую задачу, если она существует
-        // Cancel the current task if it exists
+        // Cancel the current task if it exists.
         if (owner.FuncTask != null)
         {
             try
@@ -57,8 +55,7 @@ public class DoodadFuncGrowth : DoodadPhaseFuncTemplate
             }
         }
 
-        // Создаем и назначаем новую задачу
-        // Create and assign a new task
+        // Create and assign the completion task.
         owner.FuncTask = new DoodadFuncGrowthTask(caster, owner, 0, NextPhase, EndScale / 1000f);
         TaskManager.Instance.Schedule(owner.FuncTask, TimeSpan.FromMilliseconds(timeLeft));
 

@@ -1054,9 +1054,6 @@ public partial class Npc : Unit
     }
 
     /// <summary>
-    /// Zone mirrors: retail interest — soft AOI SCUnitState (L5, never DD04 zip).
-    /// Region neighborhood (~320m) is only the candidate pool; create/remove follow
-    /// AAEMU_MIRROR_NPC_AOI (default 100m). Capture: individual 0x097, proximity-timed;
     /// flood (~150 at once) Quit'd — AOI+MAX prevent that, not artificial 1/s drip.
     /// AAEMU_DISABLE_MIRROR_NPC=1 | AAEMU_MIRROR_NPC_MAX=N (default 50; 0=unlimited) |
     /// AAEMU_MIRROR_NPC_BURST=N (0=flush all/tick) | AAEMU_MIRROR_NPC_INTERVAL_MS (0=off) |
@@ -1079,7 +1076,6 @@ public partial class Npc : Unit
         return int.TryParse(raw, out var n) && n >= 0 ? n : 50;
     }
 
-    /// <summary>Per drain-tick cap. 0 = flush all pending in AOI up to MAX (retail default).</summary>
     private static int ParseMirrorNpcBurst()
     {
         var raw = System.Environment.GetEnvironmentVariable("AAEMU_MIRROR_NPC_BURST");
@@ -1091,7 +1087,6 @@ public partial class Npc : Unit
     private static float ParseMirrorNpcAoiRadiusSq()
     {
         var raw = System.Environment.GetEnvironmentVariable("AAEMU_MIRROR_NPC_AOI");
-        // Default 100m — inside region neighborhood (5×64) so walking recycles view like retail interest.
         var metres = 100f;
         if (float.TryParse(raw, System.Globalization.NumberStyles.Float,
                 System.Globalization.CultureInfo.InvariantCulture, out var n) && n >= 20f)
@@ -1109,7 +1104,6 @@ public partial class Npc : Unit
 
         if (IsZoneMirror && WorldIntegration.ZoneAuthority)
         {
-            // Retail: UnitState when interest is live and unit is in soft AOI — not a timed trickle.
             // Queue only while loading / outside AOI / at MAX (drain + cull recycle slots).
             if (character.CanStreamMirrorNow(this))
                 SendUnitStateTo(character);
@@ -1141,9 +1135,9 @@ public partial class Npc : Unit
         }
 
         character.SendPacket(new SCUnitStatePacket(this));
+        // 0xBF. Cosplay is already on the UnitState equipment block for slots 27/31–33.
         character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
 
-        // Commercial: NPC faction is NOT in SCUnitState (idType 1). Retail capture often never sends
         // 0x02E (client may fill from local template), but when we do send it the client gate in
         // Fresh NPCs start at faction 0; sending (Faction.Id, Faction.Id) no-ops and leaves them
         // neutral (Zeromus: "faction 0 … same visuals"). Must send old=0 → new=real.
@@ -1352,7 +1346,6 @@ public partial class Npc : Unit
     /// <summary>
     /// Builds a stand-still movement body for this NPC at its current position, stamped with the given
     /// physics time. Used by MirrorMovementStreamTask to keep the client's world clock advancing: the
-    /// commercial server streams constant SCUnitMovements, but our native zone only emits movement for units
     /// that actually move, and mirrored NPCs stand idle. Byte-identical to a real idle stand (VelZero,
     /// Stopping, no actor sub-blocks), so the client processes it exactly as it would a commercial one.
     /// Real zone movement (relayed 0x08) supersedes these whenever the unit truly moves.

@@ -541,7 +541,6 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                 }
             }
 
-            // doodad_func_private_coffers (native actual doodad function type 0x35)
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_func_private_coffers";
@@ -1127,10 +1126,6 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                             EndScale = reader.GetInt32("end_scale"),
                             NextPhase = reader.GetInt32("next_phase", -1)
                         };
-                        // TODO: Remove testing stuff
-                        // if (func.Delay > 0)
-                        //     func.Delay = Math.Max(1, func.Delay / 1000);
-
                         _phaseFuncTemplates["DoodadFuncGrowth"].Add(func.Id, func);
                     }
                 }
@@ -2021,10 +2016,6 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                             ShowEndTime = reader.GetBoolean("show_end_time", true),
                             Tip = reader.GetString("tip")
                         };
-                        // TODO: Remove testing stuff
-                        // if (func.Delay > 0)
-                        //     func.Delay = Math.Max(1, func.Delay / 1000);
-
                         _phaseFuncTemplates["DoodadFuncTimer"].Add(func.Id, func);
                     }
                 }
@@ -2048,7 +2039,6 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                             IsRealtime = reader.GetBoolean("is_realtime", false)
                         };
 
-                        // Preserve the native HHMM field while normalizing the known extra-zero content typos.
                         var normalizedTod = func.Tod;
                         while (normalizedTod >= 2400)
                             normalizedTod /= 10;
@@ -2248,7 +2238,6 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
 
     /// <summary>
     /// Zone WZCreateDoodad looks up modelId in the models registry; path comes from PrefabModel
-    /// (prefab_elements.file_path). modelId=0 → dedicate loads pumpkin CGF for every create.
     /// </summary>
     private void LoadZoneModelIdMap(SqliteConnection connection)
     {
@@ -2667,6 +2656,21 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
         return funcs.GetValueOrDefault(funcId);
     }
 
+    public bool OffersQuest(uint doodadTemplateId, uint questId)
+    {
+        foreach (var group in GetDoodadFuncGroups(doodadTemplateId))
+        {
+            foreach (var func in GetFuncsForGroup(group.Id))
+            {
+                if (GetFuncTemplate(func.FuncId, func.FuncType) is DoodadFuncQuest questFunc &&
+                    questFunc.QuestId == questId)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
     public DoodadPhaseFuncTemplate GetPhaseFuncTemplate(uint funcId, string funcType)
     {
         if (!_phaseFuncTemplates.TryGetValue(funcType, out var funcs))
@@ -2933,7 +2937,6 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
             return false;
         }
 
-        // For Coffers validate if select option is applicable
         if (doodad is DoodadCoffer)
         {
             switch (data)

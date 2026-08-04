@@ -116,6 +116,17 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
         ower.SetFaction(factionId);
     }
 
+    private static void RelayDuelStateToZone(Character character)
+    {
+        if (!WorldIntegration.ZoneAuthority)
+            return;
+
+        WorldIntegration.RelayUnitDuelStateToZone?.Invoke(
+            character.ObjId,
+            character.DuelStateObjectId,
+            character.DuelTeamType);
+    }
+
     private void RestoreFaction(Unit owner)
     {
         // restore the fraction
@@ -132,8 +143,18 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
             duel.SendPacketsBoth(new SCAreaChatBubblePacket(true, duel.Challenger.ObjId, 543));
             //duel.SendPacketChallenger(new SCAreaChatBubblePacket(true, duel.Challenged.ObjId, 543));
             duel.SendPacketsBoth(new SCDuelStartCountdownPacket());
-            duel.SendPacketsBoth(new SCDuelStatePacket(duel.Challenger.ObjId, duel.DuelFlag.ObjId));
-            duel.SendPacketsBoth(new SCDuelStatePacket(duel.Challenged.ObjId, duel.DuelFlag.ObjId));
+            duel.Challenger.DuelStateObjectId = duel.DuelFlag.ObjId;
+            duel.Challenged.DuelStateObjectId = duel.DuelFlag.ObjId;
+            duel.SendPacketsBoth(new SCDuelStatePacket(
+                duel.Challenger.ObjId,
+                duel.Challenger.DuelStateObjectId,
+                unchecked((sbyte)duel.Challenger.DuelTeamType)));
+            duel.SendPacketsBoth(new SCDuelStatePacket(
+                duel.Challenged.ObjId,
+                duel.Challenged.DuelStateObjectId,
+                unchecked((sbyte)duel.Challenged.DuelTeamType)));
+            RelayDuelStateToZone(duel.Challenger);
+            RelayDuelStateToZone(duel.Challenged);
             // make the flag flutter in the wind
             duel.SendPacketChallenger(new SCDoodadPhaseChangedPacket(_combatFlag.Last));
             // Player can be attacked
@@ -233,8 +254,18 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
                 }
             }
             // Duel Status - Duel ended
-            duel.SendPacketsBoth(new SCDuelStatePacket(duel.Challenged.ObjId, 0));
-            duel.SendPacketsBoth(new SCDuelStatePacket(duel.Challenger.ObjId, 0));
+            duel.Challenged.DuelStateObjectId = 0;
+            duel.Challenger.DuelStateObjectId = 0;
+            duel.SendPacketsBoth(new SCDuelStatePacket(
+                duel.Challenged.ObjId,
+                duel.Challenged.DuelStateObjectId,
+                unchecked((sbyte)duel.Challenged.DuelTeamType)));
+            duel.SendPacketsBoth(new SCDuelStatePacket(
+                duel.Challenger.ObjId,
+                duel.Challenger.DuelStateObjectId,
+                unchecked((sbyte)duel.Challenger.DuelTeamType)));
+            RelayDuelStateToZone(duel.Challenged);
+            RelayDuelStateToZone(duel.Challenger);
 
             if (duel.DuelFlag != null)
             {

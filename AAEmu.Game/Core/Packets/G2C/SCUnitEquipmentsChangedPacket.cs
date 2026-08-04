@@ -35,16 +35,19 @@ public class SCUnitEquipmentsChangedPacket : GamePacket
         stream.WriteBc(_objectId);
         stream.Write((byte)_items.Length); // client clamps to 34
         stream.Write(_isCharTransform);
-        foreach (var (slot, item) in _items)
+        ulong flags = 0;
+        for (var index = 0; index < _items.Length; index++)
         {
+            var (slot, item) = _items[index];
             stream.Write((sbyte)slot);
             if (item == null)
-                stream.Write(0); // EquipView empty type sentinel
+                stream.Write(0u); // EquipView empty type sentinel (dword == 0)
             else
                 stream.Write(item);
+            flags |= 1UL << index;
         }
 
-        stream.Write(0UL); // per-entry flags bitmask
+        stream.Write(flags);
         return stream;
     }
 }

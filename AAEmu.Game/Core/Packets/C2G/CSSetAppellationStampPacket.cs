@@ -3,9 +3,6 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-/// <summary>
-/// TODO: the body is parsed but nothing acts on it yet.
-/// </summary>
 /// <remarks>
 /// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
 /// value's name alongside the value:
@@ -17,5 +14,17 @@ public class CSSetAppellationStampPacket() : GamePacket(CSOffsets.CSSetAppellati
     public override void Read(PacketStream stream)
     {
         AppStampId = stream.ReadUInt32();
+
+        var character = Connection.ActiveChar;
+        if (character is null)
+            return;
+
+        character.AppellationStampId = AppStampId;
+        character.BroadcastPacket(
+            new G2C.SCAppellationChangedPacket(
+                character.ObjId,
+                character.Appellations.ActiveAppellation,
+                character.AppellationStampId),
+            true);
     }
 }

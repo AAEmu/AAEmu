@@ -486,7 +486,13 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
         {
             var template = new QuestTemplate
             {
-                Id = reader.GetUInt32("id"), Repeatable = reader.GetBoolean("repeatable", true), Level = reader.GetByte("level", 0),
+                Id = reader.GetUInt32("id"),
+                Name = reader.GetString("name", string.Empty),
+                Repeatable = reader.GetBoolean("repeatable", true),
+                Level = reader.GetByte("level", 0),
+                MinLevel = reader.GetByte("min_level", 0),
+                MaxLevel = reader.GetByte("max_level", 0),
+                RaceMask = reader.GetByte("race", byte.MaxValue),
                 Selective = reader.GetBoolean("selective", true),
                 Successive = reader.GetBoolean("successive", true),
                 RestartOnFail = reader.GetBoolean("restart_on_fail", true),
@@ -502,7 +508,11 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                 Score = reader.GetInt32("score", 0),
                 UseAcceptMessage = reader.GetBoolean("use_accept_message", true),
                 UseCompleteMessage = reader.GetBoolean("use_complete_message", true),
-                GradeId = reader.GetUInt32("grade_id", 0)
+                GradeId = reader.GetUInt32("grade_id", 0),
+                Translate = reader.GetBoolean("translate", true),
+                Priority = reader.GetInt32("priority", 0),
+                OnlyOneScoreTitle = reader.GetBoolean("only_one_score_title", false),
+                HideChapterIndex = reader.GetBoolean("hide_chapter_index", false)
             };
             // Skip "loading" tutorial quests
             if (template.CategoryId != QuestCategoryTutorial)
