@@ -13,17 +13,21 @@ public class CSDestroyItemPacket() : GamePacket(CSOffsets.CSDestroyItemPacket, 1
 
     public override void Read(PacketStream stream)
     {
+        // Body is 14 bytes: itemId (u64), slotType (u8), slot (u8), amount (u32).
+        // There is no actionOwnerType/padding here — that only exists in the S2C ItemTask bodies.
         var itemId = stream.ReadUInt64();
-        _ = stream.ReadByte();
         var slotType = (SlotType)stream.ReadByte();
-        _ = stream.ReadByte();
         var slot = stream.ReadByte();
         var amount = stream.ReadUInt32();
 
-        var item = Connection.ActiveChar.Inventory.GetItem(slotType, slot);
+        // Prefer the slot the client pointed at, but fall back to the id so a stale client-side
+        // slot doesn't make the destroy silently fail. The id check below still guards both paths.
+        var item = Connection.ActiveChar.Inventory.GetItem(slotType, slot)
+                   ?? Connection.ActiveChar.Inventory.GetItemById(itemId);
+
         if (item == null || item.Id != itemId || amount == 0 || amount > int.MaxValue || (int)amount > item.Count)
         {
-            Logger.Warn("DestroyItem: Invalid item...");
+            Logger.Warn($"DestroyItem: Invalid item, itemId {itemId}, slotType {slotType}, slot {slot}, amount {amount}, found {(item == null ? "none" : $"id {item.Id} count {item.Count}")}");
             return;
         }
 
