@@ -1,0 +1,39 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+<section class="hero">
+    <img src="~/img/logo.png" alt="AAEmu" />
+    <p>
+        Account services for this AAEmu server. Create an account here, then use the same
+        credentials in the game client to log in.
+    </p>
+    <div class="hero-actions">
+        <a class="btn btn-primary" asp-page="/Accounts/Create">Create an account</a>
+        <a class="btn btn-secondary" asp-page="/Accounts/Index">Browse accounts</a>
+    </div>
+    @if (!Model.DatabaseUnavailable)
+    {
+        <p class="hero-meta">
+            @Model.AccountCount.ToString("N0") @(Model.AccountCount == 1 ? "account" : "accounts") registered
+        </p>
+    }
+</section>
+
+@if (Model.DatabaseUnavailable)
+{
+    <div class="alert alert-error">
+        The login database is not reachable. Check <code>Connections:MySQLProvider</code> in
+        <code>Config.Local.json</code>.
+    </div>
+}
+
+<div class="card">
+    <h2>Getting started</h2>
+    <p>
+        Accounts created here are written straight to the login database, so the login server
+        picks them up without a restart. Character data is created in-game on first connect.
+    </p>
+</div>

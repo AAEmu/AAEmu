@@ -1,0 +1,133 @@
+@page
+@model AAEmu.Web.Pages.Accounts.IndexModel
+@{
+    ViewData["Title"] = "Accounts";
+}
+
+<div class="page-head">
+    <h1>Accounts</h1>
+    <p>Registered accounts in the login database.</p>
+</div>
+
+@if (TempData["Success"] is string success)
+{
+    <div class="alert alert-success">@success</div>
+}
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-error">@error</div>
+}
+
+@if (Model.DatabaseUnavailable)
+{
+    <div class="alert alert-error">
+        The login database is not reachable. Check <code>Connections:MySQLProvider</code> in
+        <code>Config.Local.json</code>.
+    </div>
+}
+else
+{
+    <form class="toolbar" method="get">
+        <input type="search" name="search" value="@Model.Search" placeholder="Search by username&hellip;" aria-label="Search by username" />
+        <button class="btn btn-secondary" type="submit">Search</button>
+        @if (!string.IsNullOrWhiteSpace(Model.Search))
+        {
+            <a class="btn btn-secondary" asp-page="/Accounts/Index">Clear</a>
+        }
+    </form>
+
+    <div class="table-wrap">
+        @if (Model.Users.Count == 0)
+        {
+            <div class="empty-state">
+                @if (!string.IsNullOrWhiteSpace(Model.Search))
+                {
+                    <text>No accounts match &ldquo;@Model.Search&rdquo;.</text>
+                }
+                else
+                {
+                    <text>No accounts yet. <a asp-page="/Accounts/Create">Create the first one</a>.</text>
+                }
+            </div>
+        }
+        else
+        {
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Created</th>
+                        <th>Last login</th>
+                        <th>Status</th>
+                        @if (Model.CanLaunchClient)
+                        {
+                            <th></th>
+                        }
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var user in Model.Users)
+                {
+                    <tr>
+                        <td class="id">@user.Id</td>
+                        <td class="username">
+                            <a asp-page="/Accounts/Details" asp-route-id="@user.Id">@user.Username</a>
+                        </td>
+                        <td class="muted">@user.MaskedEmail</td>
+                        <td class="muted">@user.CreatedAt.UtcDateTime.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td class="muted">
+                            @(user.LastLogin is { } lastLogin
+                                ? lastLogin.UtcDateTime.ToString("yyyy-MM-dd HH:mm")
+                                : "never")
+                        </td>
+                        <td>
+                            @if (user.Banned)
+                            {
+                                <span class="badge badge-banned" title="Ban reason @user.BanReason">Banned</span>
+                            }
+                            else
+                            {
+                                <span class="badge badge-ok">Active</span>
+                            }
+                        </td>
+                        @if (Model.CanLaunchClient)
+                        {
+                            <td class="row-action">
+                                <form method="post" asp-page-handler="Launch" asp-route-id="@user.Id">
+                                    <input type="hidden" name="search" value="@Model.Search" />
+                                    <input type="hidden" name="p" value="@Model.PageNumber" />
+                                    <button class="btn btn-small" type="submit" title="Start the game client as @user.Username">
+                                        Run
+                                    </button>
+                                </form>
+                            </td>
+                        }
+                    </tr>
+                }
+                </tbody>
+            </table>
+        }
+    </div>
+
+    @if (Model.TotalCount > 0)
+    {
+        <div class="pagination">
+            <span class="page-info">
+                Showing @Model.FirstRowOnPage&ndash;@Model.LastRowOnPage of @Model.TotalCount.ToString("N0")
+            </span>
+            <span class="page-links">
+                <a class="btn btn-secondary @(Model.HasPreviousPage ? "" : "disabled")"
+                   asp-page="/Accounts/Index"
+                   asp-route-search="@Model.Search"
+                   asp-route-p="@(Model.PageNumber - 1)">Previous</a>
+                <a class="btn btn-secondary @(Model.HasNextPage ? "" : "disabled")"
+                   asp-page="/Accounts/Index"
+                   asp-route-search="@Model.Search"
+                   asp-route-p="@(Model.PageNumber + 1)">Next</a>
+            </span>
+        </div>
+    }
+}

@@ -1,0 +1,48 @@
+@page
+@model AAEmu.Web.Pages.Accounts.CreateModel
+@{
+    ViewData["Title"] = "Create account";
+}
+
+<div class="page-head">
+    <h1>Create account</h1>
+    <p>These credentials are what you enter in the game client.</p>
+</div>
+
+<div class="card form-narrow">
+    <form method="post">
+        <div asp-validation-summary="ModelOnly" class="alert alert-error" role="alert"></div>
+
+        <div class="field">
+            <label asp-for="Input.Username"></label>
+            <input asp-for="Input.Username" autocomplete="username" autofocus />
+            <span class="field-hint">3&ndash;32 characters: letters, digits, underscores, hyphens.</span>
+            <span asp-validation-for="Input.Username"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.Email"></label>
+            <input asp-for="Input.Email" autocomplete="email" />
+            <span asp-validation-for="Input.Email"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.Password"></label>
+            <input asp-for="Input.Password" autocomplete="new-password" />
+            <span class="field-hint">At least 8 characters.</span>
+            <span asp-validation-for="Input.Password"></span>
+        </div>
+
+        <div class="field">
+            <label asp-for="Input.ConfirmPassword"></label>
+            <input asp-for="Input.ConfirmPassword" autocomplete="new-password" />
+            <span asp-validation-for="Input.ConfirmPassword"></span>
+        </div>
+
+        <button class="btn btn-primary btn-block" type="submit">Create account</button>
+    </form>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,0 +1,22 @@
+{
+  "ClientLauncher": {
+    "Enabled": true,
+    "ExecutablePath": "C:\\path\\to\\client\\Bin64\\archeage.exe"
+  },
+  "Connections": {
+    "MySQLProvider": {
+      "Host": "127.0.0.1",
+      "Port": "3306",
+      "User": "root",
+      "Password": "your_password_here",
+      "Database": "aaemu_login"
+    },
+    "GameMySQLProvider": {
+      "Host": "127.0.0.1",
+      "Port": "3306",
+      "User": "root",
+      "Password": "your_password_here",
+      "Database": "aaemu_game"
+    }
+  }
+}

@@ -1,0 +1,222 @@
+@page "{id:int}"
+@model AAEmu.Web.Pages.Accounts.DetailsModel
+@{
+    ViewData["Title"] = Model.Account?.Username ?? "Account";
+}
+
+@if (Model.LoginDatabaseUnavailable || Model.Account is null)
+{
+    <div class="page-head">
+        <a class="back-link" asp-page="/Accounts/Index">&larr; Accounts</a>
+        <h1>Account</h1>
+    </div>
+    <div class="alert alert-error">
+        The login database is not reachable, so this account cannot be loaded.
+        Check <code>Connections:MySQLProvider</code> in <code>Config.Local.json</code>.
+    </div>
+    return;
+}
+
+<div class="page-head">
+    <a class="back-link" asp-page="/Accounts/Index">&larr; Accounts</a>
+    <h1>
+        @Model.Account.Username
+        @if (Model.Account.Banned)
+        {
+            <span class="badge badge-banned" title="Ban reason @Model.Account.BanReason">Banned</span>
+        }
+    </h1>
+    <div class="page-head-row">
+        <p>Account #@Model.Account.Id</p>
+        @if (Model.CanLaunchClient)
+        {
+            <form method="post" asp-page-handler="Launch" asp-route-id="@Model.Account.Id">
+                <button class="btn btn-small" type="submit" title="Start the game client as @Model.Account.Username">
+                    Run client
+                </button>
+            </form>
+        }
+    </div>
+</div>
+
+@if (TempData["Success"] is string success)
+{
+    <div class="alert alert-success">@success</div>
+}
+
+@if (TempData["Error"] is string error)
+{
+    <div class="alert alert-error">@error</div>
+}
+
+<div class="card">
+    <h2>Login</h2>
+    <dl class="detail-list">
+        <div>
+            <dt>Email</dt>
+            <dd>@(string.IsNullOrWhiteSpace(Model.Account.Email) ? "—" : Model.Account.Email)</dd>
+        </div>
+        <div>
+            <dt>Created</dt>
+            <dd>@Model.Account.CreatedAt.UtcDateTime.ToString("yyyy-MM-dd HH:mm") UTC</dd>
+        </div>
+        <div>
+            <dt>Last login</dt>
+            <dd>
+                @(Model.Account.LastLogin is { } lastLogin
+                    ? $"{lastLogin.UtcDateTime:yyyy-MM-dd HH:mm} UTC"
+                    : "never")
+            </dd>
+        </div>
+    </dl>
+</div>
+
+@if (Model.GameDatabaseUnavailable)
+{
+    <div class="alert alert-error">
+        The game database is not reachable, so gameplay values and characters are unavailable.
+        Check <code>Connections:GameMySQLProvider</code> in <code>Config.Local.json</code>.
+    </div>
+}
+else
+{
+    <div class="card">
+        <h2>Account values</h2>
+        @if (Model.GameAccount is null)
+        {
+            <div class="alert alert-warn">
+                This account has no row in the game database yet — the game server creates one on
+                first login. Saving here will create it.
+            </div>
+        }
+        else
+        {
+            <p class="card-meta">
+                Last game login @Model.GameAccount.LastLogin.ToString("yyyy-MM-dd HH:mm") UTC ·
+                updated @Model.GameAccount.LastUpdated.ToString("yyyy-MM-dd HH:mm") UTC
+            </p>
+        }
+
+        <p class="card-meta">
+            These four values are shared by every character on the account.
+        </p>
+
+        <form method="post" class="edit-grid">
+            <div asp-validation-summary="ModelOnly" class="alert alert-error" role="alert"></div>
+
+            <div class="field">
+                <label asp-for="Input.AccessLevel"></label>
+                <input asp-for="Input.AccessLevel" type="number" min="0" max="999" list="access-levels" />
+                <datalist id="access-levels">
+                    @foreach (var tier in Model.AccessLevelTiers)
+                    {
+                        <option value="@tier.Level">@tier.Label</option>
+                    }
+                </datalist>
+                <span class="field-hint">
+                    Currently <strong>@Model.DescribeLevel(Model.Input.AccessLevel)</strong> &mdash;
+                    @Model.CommandsAvailableAt(Model.Input.AccessLevel) of @Model.TotalCommands commands.
+                    Effective level in game is the higher of this and the character's own.
+                </span>
+                <span asp-validation-for="Input.AccessLevel"></span>
+            </div>
+
+            <div class="field">
+                <label asp-for="Input.Labor"></label>
+                <input asp-for="Input.Labor" type="number" min="0" max="32767" />
+                <span class="field-hint">Max 32767.</span>
+                <span asp-validation-for="Input.Labor"></span>
+            </div>
+
+            <div class="field">
+                <label asp-for="Input.Credits"></label>
+                <input asp-for="Input.Credits" type="number" min="0" />
+                <span asp-validation-for="Input.Credits"></span>
+            </div>
+
+            <div class="field">
+                <label asp-for="Input.Loyalty"></label>
+                <input asp-for="Input.Loyalty" type="number" min="0" />
+                <span asp-validation-for="Input.Loyalty"></span>
+            </div>
+
+            <div class="edit-actions">
+                <button class="btn btn-primary" type="submit">Save changes</button>
+            </div>
+        </form>
+
+        @if (Model.AccessLevelTiers.Count > 0)
+        {
+            <details class="tier-help">
+                <summary>Access level tiers</summary>
+                <ul>
+                    @foreach (var tier in Model.AccessLevelTiers)
+                    {
+                        <li>
+                            <strong>@tier.Level</strong> &mdash; @tier.Label
+                            <span class="muted-inline">
+                                (@tier.CumulativeCommands of @Model.TotalCommands commands)
+                            </span>
+                        </li>
+                    }
+                </ul>
+                <p class="card-meta">Derived from <code>AAEmu.Game/Configurations/AccessLevels.json</code>.</p>
+            </details>
+        }
+    </div>
+
+    <div class="card">
+        <h2>Characters <span class="count-pill">@Model.Characters.Count</span></h2>
+
+        @if (Model.Characters.Count == 0)
+        {
+            <p class="card-meta" style="margin-bottom: 0;">No characters on this account.</p>
+        }
+        else
+        {
+            <div class="table-wrap flush">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Lvl</th>
+                            <th>Race</th>
+                            <th>Faction</th>
+                            <th>Money</th>
+                            <th>Played</th>
+                            <th>Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var character in Model.Characters)
+                    {
+                        <tr class="@(character.Deleted ? "row-deleted" : "")">
+                            <td class="username">
+                                @character.Name
+                                @if (character.Deleted)
+                                {
+                                    <span class="badge badge-banned">Deleted</span>
+                                }
+                                @if (character.AccessLevel > 0)
+                                {
+                                    <span class="badge badge-gm">GM @character.AccessLevel</span>
+                                }
+                            </td>
+                            <td class="numeric">@character.Level</td>
+                            <td class="muted">@character.Race / @character.Gender</td>
+                            <td class="muted">@(string.IsNullOrWhiteSpace(character.FactionName) ? $"#{character.FactionId}" : character.FactionName)</td>
+                            <td class="numeric">@character.FormattedMoney</td>
+                            <td class="numeric">@character.FormattedPlayTime</td>
+                            <td class="muted">@character.CreatedAt.ToString("yyyy-MM-dd")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

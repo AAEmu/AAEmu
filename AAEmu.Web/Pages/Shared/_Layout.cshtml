@@ -1,0 +1,49 @@
+@{
+    var currentPage = ViewContext.RouteData.Values["page"]?.ToString() ?? string.Empty;
+
+    string NavClass(string page) =>
+        currentPage.StartsWith(page, StringComparison.OrdinalIgnoreCase) ? "active" : string.Empty;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] · AAEmu</title>
+    <link rel="icon" href="~/favicon.ico" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <header class="site-header">
+        <div class="container">
+            <a class="brand" asp-page="/Index">
+                <img src="~/img/logo.png" alt="AAEmu" />
+            </a>
+            <nav class="site-nav">
+                <a class="@NavClass("/Index")" asp-page="/Index">Home</a>
+                <a class="@NavClass("/Accounts/Index")@NavClass("/Accounts/Details")" asp-page="/Accounts/Index">Accounts</a>
+                <a class="@NavClass("/Characters")" asp-page="/Characters/Index">Characters</a>
+                <a class="@NavClass("/Accounts/Create")" asp-page="/Accounts/Create">Create account</a>
+            </nav>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            @RenderBody()
+        </div>
+    </main>
+
+    <footer class="site-footer">
+        <div class="container">
+            <span>AAEmu &mdash; ArcheAge server emulator</span>
+            <span>@DateTime.UtcNow.Year</span>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

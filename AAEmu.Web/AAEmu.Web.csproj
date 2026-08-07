@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>3f5b8c21-0d9e-4a6f-9c73-1e8a2b4d6f05</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AAEmu.Commons\AAEmu.Commons.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MySql.Data" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Config.json" Condition="Exists('Config.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="Config.Local.json" Condition="Exists('Config.Local.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- The command-to-access-level map is owned by AAEmu.Game; link it rather than copying it
+         so the two cannot drift apart. -->
+    <None Include="..\AAEmu.Game\Configurations\AccessLevels.json" Link="AccessLevels.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>

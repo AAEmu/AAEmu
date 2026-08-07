@@ -1,0 +1,35 @@
+{
+	"Logging": {
+		"LogLevel": {
+			"Default": "Information",
+			"Microsoft.AspNetCore": "Warning"
+		}
+	},
+	"AllowedHosts": "*",
+	"ClientLauncher": {
+		"Enabled": false,
+		"ExecutablePath": "",
+		"DevMode": "1514255490",
+		"Locale": "en_us",
+		"AuthIp": "127.0.0.1",
+		"AuthPort": 1237,
+		"GameId": 1,
+		"UserToken": "testtoken"
+	},
+	"Connections": {
+		"MySQLProvider": {
+			"Database": "aaemu_login",
+			"Host": "%db_host%",
+			"Password": "%db_password%",
+			"Port": "%db_port%",
+			"User": "%db_user%"
+		},
+		"GameMySQLProvider": {
+			"Database": "aaemu_game",
+			"Host": "%db_host%",
+			"Password": "%db_password%",
+			"Port": "%db_port%",
+			"User": "%db_user%"
+		}
+	}
+}
