@@ -461,8 +461,8 @@ public static class SCOffsets
     public const ushort SCICSCheckTimePacket = 0x24E; // 10.0.2.13
     public const ushort SCICSBuyResultPacket = 0x24F; // 10.0.2.13
     public const ushort SCICSSyncGoodPacket = 0x251; // 10.0.2.13
-    public const ushort SCICSCashPointPacket = 0x252;     // was 0x1d6
-    public const ushort SCICSExchangeRatioPacket = 0x253; // was 0x1d7
+    public const ushort SCICSCashPointPacket = 0x252; // 10.0.2.13
+    public const ushort SCICSExchangeRatioPacket = 0x253; // 10.0.2.13
     public const ushort SCPremiumServiceListPacket = 0x256; // 10.0.2.13
     public const ushort SCBountyListPacket = 0x1d9;
     public const ushort SCSetBountyPermittedPacket = 0x1da;
