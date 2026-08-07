@@ -704,6 +704,20 @@ public class Unit : BaseUnit, IUnit
         BroadcastPacket(new SCUnitGmModeChangedPacket(ObjId, mode, value), true);
     }
 
+    /// <summary>
+    /// Reads back a value previously set via <see cref="SendGmModeChanged"/>. This is the
+    /// single source of truth for GM-mode marker state — it lives on the Unit itself and is
+    /// naturally reset on reconnect (fresh Unit, null UnitStateOptionalData), unlike a
+    /// separate lookup keyed by ObjId, which can go stale when an ObjId is reused across
+    /// sessions.
+    /// </summary>
+    public bool GetGmModeValue(int mode)
+    {
+        if (UnitStateOptionalData is null || mode < 0 || mode >= UnitStateOptionalData.GmModeValues.Length)
+            return false;
+        return UnitStateOptionalData.GmModeValues[mode] != 0;
+    }
+
     public void SetGeoDataMode(bool value)
     {
         AppConfiguration.Instance.World.GeoDataMode = value;
