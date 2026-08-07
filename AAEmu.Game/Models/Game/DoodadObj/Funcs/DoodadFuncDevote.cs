@@ -32,20 +32,31 @@ public class DoodadFuncDevote : DoodadFuncTemplate
         if (caster is not Character character)
             return;
 
-        // ConsumeItem happily consumes a partial amount, so verify the full cost is available first
+        // ConsumeItem happily consumes a partial amount, so verify the full cost is available first.
+        // The check has to run against the same container the consume does: Inventory.GetItemsCount
+        // would total up Inventory, Equipment and Bank, and materials split across those would pass
+        // the check while only the bag portion actually got taken.
         if (ItemId > 0 && ItemCount > 0)
         {
-            if (character.Inventory.GetItemsCount(ItemId) < ItemCount)
+            character.Inventory.Bag.GetAllItemsByTemplate(ItemId, -1, out _, out var availableInBag);
+            if (availableInBag < ItemCount)
             {
-                Logger.Debug($"DoodadFuncDevote: {character.Name} lacks {ItemCount}x item {ItemId} for doodad {owner.TemplateId} (objId {owner.ObjId})");
+                Logger.Debug($"DoodadFuncDevote: {character.Name} has {availableInBag}/{ItemCount} of item {ItemId} in their bag for doodad {owner.TemplateId} (objId {owner.ObjId})");
                 return;
             }
 
             var consumed = character.Inventory.Bag.ConsumeItem(ItemTaskType.DoodadItemChanger, ItemId, ItemCount, null);
+            if (consumed <= 0)
+            {
+                Logger.Warn($"DoodadFuncDevote: consumed nothing of item {ItemId} for doodad {owner.TemplateId} (objId {owner.ObjId})");
+                return;
+            }
+
             if (consumed < ItemCount)
             {
-                Logger.Warn($"DoodadFuncDevote: consumed only {consumed}/{ItemCount} of item {ItemId} for doodad {owner.TemplateId} (objId {owner.ObjId})");
-                return;
+                // Should be unreachable now the check matches the container, but the items are already
+                // gone at this point, so credit the contribution rather than take them for nothing
+                Logger.Error($"DoodadFuncDevote: consumed only {consumed}/{ItemCount} of item {ItemId} for doodad {owner.TemplateId} (objId {owner.ObjId}), crediting anyway");
             }
         }
 
