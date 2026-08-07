@@ -4,28 +4,28 @@ using AAEmu.Game.Models.Game.CashShop;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCICSGoodDetailPacket(bool pageEnd, IcsSku itemDetail) : GamePacket(SCOffsets.SCICSGoodDetailPacket, 1)
+public class SCICSGoodDetailPacket(IReadOnlyList<IcsSku> details) : GamePacket(SCOffsets.SCICSGoodDetailPacket, 1)
 {
-    // private readonly CashShopItemDetail _itemDetail;
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(pageEnd);
+        stream.Write((ushort)details.Count);
 
-        // stream.Write(_itemDetail); // replaced by new code
-        stream.Write(itemDetail.ShopId);
-        stream.Write(itemDetail.Sku);
-        stream.Write(itemDetail.ItemId);
-        stream.Write(itemDetail.ItemCount);
-        stream.Write(itemDetail.SelectType);
-        stream.Write(itemDetail.IsDefault);
-        stream.Write(itemDetail.EventType);
-        stream.Write(itemDetail.EventEndDate);
-        stream.Write((byte)itemDetail.Currency);
-        stream.Write(itemDetail.Price);
-        stream.Write(itemDetail.DiscountPrice);
-        stream.Write(itemDetail.BonusItemId);
-        stream.Write(itemDetail.BonusItemCount);
+        foreach (var sku in details)
+        {
+            stream.Write(sku.ShopId);           // u32 cashShopId
+            stream.Write(sku.Sku);              // u32 cashUniqId (SKU)
+            stream.Write(sku.ItemId);           // i32 type (item)
+            stream.Write(sku.ItemCount);        // u32 itemCount
+            stream.Write(sku.IsDefault);        // u8 defaultFlag
+            stream.Write(sku.EventType);        // u8 eventType
+            stream.Write(sku.EventEndDate);     // i64 eventDate
+            stream.Write((byte)sku.Currency);   // u8 priceType
+            stream.Write(sku.Price);            // u32 price
+            stream.Write(sku.DiscountPrice);    // u32 disPrice
+            stream.Write(sku.BonusItemId);      // u32 bonusType
+            stream.Write(sku.BonusItemCount);   // u32 bonusCount
+            stream.Write(0u);                   // u32 payItemType (unknown -> 0)
+        }
 
         return stream;
     }

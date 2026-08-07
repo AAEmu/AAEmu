@@ -173,39 +173,30 @@ public class CashShopManager(IWorldManager worldManager, IAccountManager account
             character?.SendPacket(new SCICSCheckTimePacket());
     }
 
-    public void SendICSPage(GameConnection connection, byte mainTabId, byte subTabId, ushort page)
+    public void SendShopContents(GameConnection connection)
     {
-        var thisTabItems = MenuItems.Where(t => t.MainTab == mainTabId && t.SubTab == subTabId).ToList();
-        var isLimitedTab = mainTabId == 1 && subTabId == 1;
-        var itemsPerPage = isLimitedTab ? 4 : 8;
-        var numberOfPages = (ushort)Math.Ceiling((float)thisTabItems.Count / itemsPerPage);
-        var thisPageItems = thisTabItems.Skip(itemsPerPage * (page - 1)).Take(itemsPerPage).ToList();
+        var entries = MenuItems.Where(m => m.ShopItem != null).ToList();
+        Logger.Info($"SendShopContents: Enabled={Enabled} goods={entries.Count} menuItems={MenuItems.Count}");
 
-        for (var i = 0; i < thisPageItems.Count; i++)
+        const int goodsPerPacket = 50;
+        for (var i = 0; i < entries.Count; i += goodsPerPacket)
         {
-            var isLast = i == thisPageItems.Count - 1;
-            var shopItem = thisPageItems[i].ShopItem;
-            if (shopItem == null)
-                continue;
-
-            connection.SendPacket(new SCICSGoodListPacket(isLast, numberOfPages, mainTabId, subTabId, shopItem));
+            var batch = entries.GetRange(i, Math.Min(goodsPerPacket, entries.Count - i));
+            connection.SendPacket(new SCICSGoodListPacket(batch));
         }
 
-        for (var i = 0; i < thisPageItems.Count; i++)
+        var skus = entries
+            .SelectMany(e => e.ShopItem.Skus.Values)
+            .DistinctBy(s => s.Sku)
+            .ToList();
+        const int detailsPerPacket = 1000;
+        for (var i = 0; i < skus.Count; i += detailsPerPacket)
         {
-            var isLastItem = i >= thisPageItems.Count - 1;
-            var shopItem = thisPageItems[i].ShopItem;
-            if (shopItem == null)
-                continue;
-
-            var n = 0;
-            foreach (var sku in shopItem.Skus.Values)
-            {
-                var isLastSku = n >= shopItem.Skus.Count - 1;
-                connection.SendPacket(new SCICSGoodDetailPacket(isLastSku && isLastItem, sku));
-                n++;
-            }
+            var batch = skus.GetRange(i, Math.Min(detailsPerPacket, skus.Count - i));
+            connection.SendPacket(new SCICSGoodDetailPacket(batch));
         }
+
+        connection.SendPacket(new SCICSExchangeRatioPacket(1, DateTime.UtcNow));
     }
 
     /// <summary>

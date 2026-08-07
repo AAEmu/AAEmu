@@ -1,58 +1,45 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.CashShop;
 using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCICSGoodListPacket(bool pageEnd, ushort totalPage, byte mainTab, byte subTab, IcsItem item)
-    : GamePacket(SCOffsets.SCICSGoodListPacket, 1)
+public class SCICSGoodListPacket(IReadOnlyList<IcsMenu> entries) : GamePacket(SCOffsets.SCICSGoodListPacket, 1)
 {
-    private readonly IcsSku _firstSku = item.FirstSku;
-
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(pageEnd);
-        stream.Write(totalPage);
+        stream.Write((ushort)entries.Count);
 
-        stream.Write(item.ShopId);
-        stream.Write(item.Name);
-        stream.Write(mainTab);
-        stream.Write(subTab);
-        stream.Write(item.LevelMin);
-        stream.Write(item.LevelMax);
-        stream.Write(item.DisplayItemId);
-        stream.Write(item.IsSale);
-        stream.Write(item.IsHidden);
-        stream.Write((byte)item.LimitedType);
-        stream.Write(item.LimitedStockMax);
-        stream.Write((byte)item.BuyRestrictType);
-        stream.Write(item.BuyRestrictId);
-        stream.Write(item.SaleStart);
-        stream.Write(item.SaleEnd);
+        foreach (var entry in entries)
+        {
+            var item = entry.ShopItem;
+            var sku = item.FirstSku;
 
-        // stream.Write(_item); // Replaced with new code
-        if (_firstSku != null)
-        {
-            stream.Write((byte)_firstSku.Currency);
-            stream.Write(_firstSku.Price);
-            stream.Write(item.Remaining);
-            stream.Write(_firstSku.BonusItemId);
-            stream.Write(_firstSku.BonusItemCount);
-            stream.Write((byte)item.ShopButtons);
+            stream.Write(item.ShopId);                  // u32 cashShopId
+            stream.Write(item.Name ?? "");              // wstring casnName
+            stream.Write(entry.MainTab);                // u8 mainTab
+            stream.Write(entry.SubTab);                 // u8 subTab
+            stream.Write(item.LevelMin);                // u8 levelMin
+            stream.Write(item.LevelMax);                // u8 levelMax
+            stream.Write(item.DisplayItemId);           // i32 type (display item)
+            stream.Write((byte)0);                      // u8 displayMode (unknown -> 0)
+            stream.Write((byte)item.LimitedType);       // u8 limitType
+            stream.Write(item.LimitedStockMax);         // u16 buyCount
+            stream.Write((byte)item.BuyRestrictType);   // u8 buyType
+            stream.Write(item.BuyRestrictId);           // u32 buyId
+            stream.Write(item.SaleStart);               // i64 sdate
+            stream.Write(item.SaleEnd);                 // i64 edate
+            stream.Write((byte)(sku?.Currency ?? CashShopCurrencyType.Credits)); // u8 currency
+            stream.Write(sku?.Price ?? 0u);             // u32 price
+            stream.Write(item.Remaining);               // i32 remain
+            stream.Write(sku?.BonusItemId ?? 0u);       // u32 bonusType
+            stream.Write(sku?.BonusItemCount ?? 0u);    // u32 bonusCount
+            stream.Write((byte)item.ShopButtons);       // u8 cmdUi
+            stream.Write(0u);                           // u32 payItemType (unknown -> 0)
+            stream.Write(sku?.DiscountPrice ?? 0u);     // u32 disPrice
         }
-        else
-        {
-            // No item for some reason?
-            stream.Write((byte)CashShopCurrencyType.Credits);
-            stream.Write(0);
-            stream.Write(0);
-            stream.Write(0);
-            stream.Write(0);
-            stream.Write((byte)CashShopCmdUiType.AllowAll);
-        }
-        // stream.Write(0);
-        // stream.Write(0); // In captures this is discount price
+
         return stream;
     }
 }

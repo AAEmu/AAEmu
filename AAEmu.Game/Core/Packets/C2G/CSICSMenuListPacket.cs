@@ -13,5 +13,8 @@ public class CSICSMenuListPacket() : GamePacket(CSOffsets.CSICSMenuListPacket, 1
         Logger.Warn("ICSMenuList");
 
         Connection.SendPacket(new SCICSMenuListPacket(CashShopManager.Instance.Enabled));
+
+        if (CashShopManager.Instance.Enabled)
+            CashShopManager.Instance.SendShopContents(Connection);
     }
 }
