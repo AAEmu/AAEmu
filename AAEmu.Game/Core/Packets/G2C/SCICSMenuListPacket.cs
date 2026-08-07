@@ -6,8 +6,11 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCICSMenuListPacket : GamePacket
 {
-    private const byte MainTabCount = 9;
-    private const byte SubTabCount = 8;
+    private const byte WireMainGroups = 9;
+    private const byte WireSubBytes = 8;
+    private const byte MaxMainTab = 8;
+    private const byte MaxSubTab = 7;
+
     private readonly bool _enabled;
     private readonly Dictionary<byte, Dictionary<byte, bool>> _tabsEnabled;
 
@@ -15,20 +18,21 @@ public class SCICSMenuListPacket : GamePacket
     {
         _enabled = enabled;
 
-        // Initialize tabs
         _tabsEnabled = [];
-        for (byte mainTab = 1; mainTab <= MainTabCount; mainTab++)
+        for (byte mainTab = 1; mainTab <= MaxMainTab; mainTab++)
         {
             _tabsEnabled.Add(mainTab, []);
-            for (byte subTab = 1; subTab <= SubTabCount; subTab++)
+            for (byte subTab = 1; subTab <= MaxSubTab; subTab++)
                 _tabsEnabled[mainTab].Add(subTab, false);
         }
 
-        // Set tab state to true for used tabs (guarded: an out-of-range tab in the data must not crash the send)
         foreach (var item in CashShopManager.Instance.MenuItems)
         {
             if (_tabsEnabled.TryGetValue(item.MainTab, out var subs) && subs.ContainsKey(item.SubTab))
                 subs[item.SubTab] = true;
+            else
+                Logger.Debug($"ICS menu row with out-of-range tab main={item.MainTab} sub={item.SubTab} " +
+                            $"(client supports main 1..{MaxMainTab}, sub 1..{MaxSubTab}); it will not appear in any tab");
         }
     }
 
@@ -39,12 +43,12 @@ public class SCICSMenuListPacket : GamePacket
         if (!_enabled)
             return stream;
 
-        for (byte mainTab = 0; mainTab < MainTabCount; mainTab++)
+        for (byte mainTab = 0; mainTab < WireMainGroups; mainTab++)
         {
-            _tabsEnabled.TryGetValue(mainTab, out var subs); // group 0 has no entry -> sentinel
+            _tabsEnabled.TryGetValue(mainTab, out var subs);
             stream.Write(subs != null && subs.Values.Any(v => v));
 
-            for (byte subTab = 0; subTab < SubTabCount; subTab++)
+            for (byte subTab = 0; subTab < WireSubBytes; subTab++)
             {
                 var enabled = subTab >= 1 && subs != null && subs.TryGetValue(subTab, out var v) && v;
                 stream.Write((byte)(enabled ? subTab : 0));
