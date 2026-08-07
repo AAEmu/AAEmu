@@ -690,9 +690,17 @@ public class Unit : BaseUnit, IUnit
     /// Notifies nearby clients of a GM-mode marker change via the dedicated GmModeChanged
     /// opcode. Currently known meaning: mode 6 toggles the GM icon shown next to the
     /// character's name; value 1 enables it, 0 disables it.
+    ///
+    /// Also persists the value into UnitStateOptionalData.GmModeValues so that a full
+    /// UnitState sync (e.g. sent to an observer who only now starts seeing this unit)
+    /// carries the current GM-mode state too. The dedicated opcode alone is fire-and-forget
+    /// and only reaches clients that were already observing this unit at call time.
     /// </summary>
     public void SendGmModeChanged(int mode, byte value)
     {
+        if (mode >= 0 && mode < (UnitStateOptionalData ??= new UnitStateOptionalData()).GmModeValues.Length)
+            UnitStateOptionalData.GmModeValues[mode] = unchecked((sbyte)value);
+
         BroadcastPacket(new SCUnitGmModeChangedPacket(ObjId, mode, value), true);
     }
 
