@@ -919,6 +919,79 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
             }
 
 
+            // doodad_func_devotes
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_devotes";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncDevote
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Count = reader.GetInt32("count"),
+                            ItemId = reader.GetUInt32("item_id"),
+                            ItemCount = reader.GetInt32("item_count"),
+                            TooltipText = reader.GetString("tooltip_text")
+                        };
+                        _funcTemplates["DoodadFuncDevote"].Add(func.Id, func);
+                    }
+                }
+            }
+
+
+            // doodad_func_change_other_doodad_phases
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_change_other_doodad_phases";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        // target_doodad_id is a varchar in the client data and is null on a couple of rows
+                        var targetDoodadId = 0u;
+                        if (!reader.IsDBNull("target_doodad_id"))
+                            _ = uint.TryParse(reader.GetString("target_doodad_id"), out targetDoodadId);
+
+                        var func = new DoodadFuncChangeOtherDoodadPhase
+                        {
+                            Id = reader.GetUInt32("id"),
+                            TargetDoodadId = targetDoodadId,
+                            TargetPhase = reader.GetInt32("target_phase"),
+                            NextPhase = reader.GetInt32("next_phase")
+                        };
+                        _phaseFuncTemplates["DoodadFuncChangeOtherDoodadPhase"].Add(func.Id, func);
+                    }
+                }
+            }
+
+
+            // doodad_func_react_devotes
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_react_devotes";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncReactDevote
+                        {
+                            Id = reader.GetUInt32("id"),
+                            SkillId = reader.GetUInt32("skill_id"),
+                            Count = reader.GetInt32("count"),
+                            TooltipText = reader.GetString("tooltip_text"),
+                            NextPhase = reader.GetInt32("next_phase")
+                        };
+                        _phaseFuncTemplates["DoodadFuncReactDevote"].Add(func.Id, func);
+                    }
+                }
+            }
+
+
             // doodad_func_dig_terrains
             using (var command = connection.CreateCommand())
             {

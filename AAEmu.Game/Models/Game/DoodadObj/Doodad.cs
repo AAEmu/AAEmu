@@ -855,6 +855,24 @@ public class Doodad : BaseUnit
     /// <param name="skillId"></param>
     public void OnSkillHit(BaseUnit caster, uint skillId)
     {
+        // Contribution counters on later construction phases react to a counting skill rather than
+        // to a player interaction, and live as phase funcs. Handled here because the phase func
+        // interface has no skill id to match against.
+        foreach (var phaseFunc in DoodadManager.Instance.GetPhaseFunc(FuncGroupId))
+        {
+            if (phaseFunc?.FuncType != nameof(DoodadFuncReactDevote))
+                continue;
+
+            if (DoodadManager.Instance.GetPhaseFuncTemplate(phaseFunc.FuncId, phaseFunc.FuncType)
+                is not DoodadFuncReactDevote reactDevote || reactDevote.SkillId != skillId)
+                continue;
+
+            if (reactDevote.RegisterHit(this))
+                DoChangePhase(caster, reactDevote.NextPhase);
+
+            return;
+        }
+
         var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
         if (funcs == null) { return; }
 
