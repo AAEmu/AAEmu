@@ -686,6 +686,16 @@ public class Unit : BaseUnit, IUnit
         BroadcastPacket(new SCUnitInvisiblePacket(ObjId, Invisible), true);
     }
 
+    /// <summary>
+    /// Notifies nearby clients of a GM-mode marker change via the dedicated GmModeChanged
+    /// opcode. Currently known meaning: mode 6 toggles the GM icon shown next to the
+    /// character's name; value 1 enables it, 0 disables it.
+    /// </summary>
+    public void SendGmModeChanged(int mode, byte value)
+    {
+        BroadcastPacket(new SCUnitGmModeChangedPacket(ObjId, mode, value), true);
+    }
+
     public void SetGeoDataMode(bool value)
     {
         AppConfiguration.Instance.World.GeoDataMode = value;
