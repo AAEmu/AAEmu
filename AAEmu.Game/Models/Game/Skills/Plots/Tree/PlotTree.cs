@@ -81,6 +81,13 @@ public class PlotTree(uint plotId)
                     if (item.targetInfo.Target == null)
                         continue;
 
+                    // enum_plot_variable_kinds id 12 ("targets") is engine-provided: the hit count of
+                    // THIS event's target update. Conditions run BEFORE Execute, so the count has to be
+                    // published here as well — PlotNode.Execute recomputes the identical value, but by
+                    // then the gate below has already branched on a stale number.
+                    state.LastEffectedTargetCount = item.targetInfo.EffectedTargets.Count(
+                        t => t != null && t.ObjId != 0 && t.ObjId != uint.MaxValue);
+
                     var condition = node.CheckConditions(state, item.targetInfo);
 
                     if (condition)

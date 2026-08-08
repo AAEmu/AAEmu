@@ -149,6 +149,16 @@ public class WorldManager(
     public const float DefaultCombatTimeout = 15f;
 
     /// <summary>
+    /// Radius used for a sphere aoe_shape whose value1 is 0. Not derived from anything — those rows carry
+    /// no geometry at all — so it is a placeholder that keeps such an AoE finding something instead of
+    /// nothing. See the warning in <see cref="GetAroundByShape{T}(GameObject, AreaShape)"/>.
+    /// </summary>
+    private const float DefaultSphereRadiusForBlankShape = 40f;
+
+    /// <summary>Shape ids already reported as radius-less; used as a set so the warning fires once each.</summary>
+    private static readonly ConcurrentDictionary<uint, byte> WarnedBlankSphereShapes = new();
+
+    /// <summary>
     /// Called every second and forwards the tick to all live player related objects
     /// </summary>
     /// <param name="delta"></param>
@@ -317,7 +327,9 @@ public class WorldManager(
                             Type = (AreaShapeType)reader.GetUInt32("kind_id"),
                             Value1 = reader.GetFloat("value1"),
                             Value2 = reader.GetFloat("value2"),
-                            Value3 = reader.GetFloat("value3")
+                            Value3 = reader.GetFloat("value3"),
+                            // Only line shapes use it, but every kind_id 3 row carries one.
+                            AreaTargetKind = (AreaTargetKindType)reader.GetUInt32("area_target_kind_id", 0)
                         };
                         _areaShapes.TryAdd(shape.Id, shape);
                     }
@@ -1149,19 +1161,40 @@ public class WorldManager(
     /// <param name="shape"></param>
     /// <typeparam name="T"></typeparam>
     /// <returns></returns>
-    public static List<T> GetAroundByShape<T>(GameObject obj, AreaShape shape) where T : GameObject
+    /// <param name="trace">
+    /// Optional per-step counter. The shape's own geometry filters run inside here, so without it a
+    /// caller only ever sees the final count and cannot tell a radius miss from a cone miss.
+    /// </param>
+    public static List<T> GetAroundByShape<T>(GameObject obj, AreaShape shape, List<(string step, int left)> trace = null) where T : GameObject
     {
         switch (shape.Type)
         {
             case AreaShapeType.Sphere:
                 {
-                    var radius = shape.Value1 > 0 ? shape.Value1 : 40f;
+                    var radius = shape.Value1;
+                    if (radius <= 0)
+                    {
+                        // ~497 shape rows are entirely blank (value1..3 all 0) yet 502 plot events search
+                        // them for up to 50 targets. There is no radius in the data to recover, so the
+                        // historical 40m guess stands — but it is loud now instead of invisible, because a
+                        // 40m sweep is wide enough to explain an AoE that "hits things it shouldn't".
+                        radius = DefaultSphereRadiusForBlankShape;
+                        if (WarnedBlankSphereShapes.TryAdd(shape.Id, 0))
+                            Logger.Warn(
+                                "aoe_shape {0} is a sphere with no radius; falling back to {1}m. Any AoE using it over-reaches.",
+                                shape.Id, radius);
+                    }
+
                     var around = GetAround<T>(obj, radius, true);
+                    trace?.Add(($"radius{radius:F1}", around.Count));
                     // value3 > 0: frontal cone half-angle (shotgun plots 5796/5604/5231). Without
                     // this filter the sphere is a full 360° disc and MaxTargets=3 hits every mob
                     // around the caster — combat floaters spam and total damage stacks per pellet.
                     if (shape.SphereConeHalfAngleDegrees > 0f)
+                    {
                         around = shape.FilterSphereCone(obj, around);
+                        trace?.Add(($"cone±{shape.SphereConeHalfAngleDegrees:F0}", around.Count));
+                    }
                     return around;
                 }
             case AreaShapeType.Cuboid:
@@ -1171,15 +1204,60 @@ public class WorldManager(
                     res = shape.ComputeCuboid(obj, res);
                     return res;
                 }
+            case AreaShapeType.Line:
+                {
+                    // Fallback only. A line is a corridor and needs a start and an aim point, which
+                    // this 2-argument overload does not have - use the 4-argument one below. Centring
+                    // a box on the anchor is wrong twice over: it reaches behind the origin, and it
+                    // puts the aimed-at unit exactly on the rectangle's diagonal where the strict
+                    // point-in-triangle test drops it.
+                    var diagonal = Math.Sqrt(shape.Value1 * shape.Value1 + shape.Value2 * shape.Value2);
+                    var res = GetAround<T>(obj, (float)diagonal, true);
+                    res = shape.ComputeCuboid(obj, res);
+                    return res;
+                }
             default:
                 {
-                    Logger.Error("AreaShape had impossible type");
-                    //throw new ArgumentNullException(nameof(shape), "AreaShape type does not exist!");
+                    Logger.Error("AreaShape {0} has unsupported type {1}", shape.Id, shape.Type);
                     break;
                 }
         }
 
-        return null;
+        // Never null: callers feed this straight into LINQ filters, so a null here surfaced as an
+        // exception several frames away and took the calling plot down with it.
+        return [];
+    }
+
+    /// <summary>
+    /// Line-aware variant. kind_id 3 shapes are a corridor running from <paramref name="corridorStart"/>
+    /// towards <paramref name="corridorAnchor"/> — the unit named by aoe_shapes.area_target_kind_id.
+    /// Every other shape type falls through to the two-argument overload.
+    /// </summary>
+    public static List<T> GetAroundByShape<T>(GameObject obj, AreaShape shape, GameObject corridorStart, GameObject corridorAnchor) where T : GameObject
+    {
+        if (shape.Type != AreaShapeType.Line || corridorStart?.Region == null)
+            return GetAroundByShape<T>(obj, shape);
+
+        var start = corridorStart.Transform.World.Position;
+        var forward = Vector3.Zero;
+        var aimDistance = 0f;
+        if (corridorAnchor != null && !ReferenceEquals(corridorAnchor, corridorStart))
+        {
+            var a = corridorAnchor.Transform.World.Position;
+            forward = new Vector3(a.X - start.X, a.Y - start.Y, 0f);
+            aimDistance = forward.Length();
+        }
+
+        if (forward.LengthSquared() < 0.0001f)
+        {
+            // Anchor sits on the origin: fall back to where the origin is facing.
+            var rot = corridorStart.Transform.World.Rotation.Z;
+            forward = new Vector3(-MathF.Sin(rot), MathF.Cos(rot), 0f);
+        }
+
+        var radius = shape.Value1 + (shape.Value2 > 0f ? shape.Value2 : aimDistance);
+        var res = GetAround<T>(corridorStart, radius, true);
+        return shape.ComputeCorridor(start, forward, res, aimDistance);
     }
 
     /// <summary>

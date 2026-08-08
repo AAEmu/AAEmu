@@ -1,5 +1,4 @@
 using AAEmu.Game.Core.Packets;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -24,6 +23,10 @@ public class CombatResourceEffect : EffectTemplate
         if (target is not Unit unit)
             return;
 
+        var resourceId = ResolveCombatResourceId(source);
+        if (resourceId == 0)
+            return;
+
         // chance 0 is "always" throughout the shipped rows, not "never" — every combat_resource_effects row
         // carries 0 and these are the builders an ability relies on, so a literal reading would make the whole
         // system dead. Anything above zero rolls out of 100.
@@ -37,19 +40,39 @@ public class CombatResourceEffect : EffectTemplate
         if (amount == 0)
             return;
 
-        var before = unit.GetCombatResource(CombatResourceId);
-        var after = unit.AddCombatResource(CombatResourceId, amount);
+        var before = unit.GetCombatResource(resourceId);
+        var after = unit.AddCombatResource(resourceId, amount, ResetRemainTime);
 
-        Logger.Debug($"CombatResourceEffect: resource {CombatResourceId} on {unit.ObjId} {before} -> {after} (amount {amount}, resetRemainTime {ResetRemainTime})");
+        Logger.Debug($"CombatResourceEffect: resource {resourceId} on {unit.ObjId} {before} -> {after} (amount {amount}, resetRemainTime {ResetRemainTime})");
 
         // combat_resources.resouece_send_type_id decides the audience: 1 Self, 2 Broadcast.
-        var resource = CombatResourceGameData.Instance.Get(CombatResourceId);
+        var resource = CombatResourceGameData.Instance.Get(resourceId);
         var updateTime = ResetRemainTime ? 0 : (int)(DateTime.UtcNow - time).TotalMilliseconds;
-        var packet = new SCCombatResourcePointPacket(unit.ObjId, CombatResourceId, (ulong)after, updateTime);
+        unit.BroadcastCombatResource(resource, after, updateTime);
+    }
 
-        if (resource is { SendTypeId: 2 })
-            unit.BroadcastPacket(packet, true);
-        else
-            (unit as Char.Character)?.SendPacket(packet);
+    /// <summary>
+    /// Resolves which pool this effect feeds.
+    /// </summary>
+    /// <remarks>
+    /// <c>combat_resource_effects.combat_resource_id</c> is 0 on 51 plot effects and 20 skill effects, and
+    /// combat_resources has no id 0 — those rows mean "the resource the casting skill owns", named by
+    /// <c>skills.combat_resource_id</c>. Their amounts confirm it: the id-0 rows carry ±300…±600, which fits
+    /// no pool with a ceiling of 3–60 but matches 근성 (id 3, max 5000) exactly, and 근성 is what all 12
+    /// skills carrying a non-zero skills.combat_resource_id point at. Writing them to bucket 0 instead put
+    /// the whole grant somewhere nothing ever reads.
+    /// </remarks>
+    private int ResolveCombatResourceId(EffectSource source)
+    {
+        if (CombatResourceId != 0)
+            return CombatResourceId;
+
+        var fromSkill = source?.Skill?.Template?.CombatResourceId ?? 0;
+        if (fromSkill != 0)
+            return fromSkill;
+
+        Logger.Debug("CombatResourceEffect: combat_resource_id 0 and skill {0} names no resource — skipped",
+            source?.Skill?.Template?.Id ?? 0);
+        return 0;
     }
 }

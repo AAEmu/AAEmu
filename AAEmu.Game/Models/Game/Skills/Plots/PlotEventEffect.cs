@@ -6,10 +6,14 @@ using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
+using NLog;
+
 namespace AAEmu.Game.Models.Game.Skills.Plots;
 
 public class PlotEventEffect
 {
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
     public int Position { get; set; }
     public PlotEffectSource SourceId { get; set; }
     public PlotEffectTarget TargetId { get; set; }
@@ -61,8 +65,21 @@ public class PlotEventEffect
                 ? newTarget
                 : ResolveFixedTarget(state, targetInfo);
 
-            ApplyToResolvedTarget(source, target, state, evt, buffEffect, channeled, gamePackets,
-                deferUntilPlotEventProcessed, template);
+            // One target must not cost the others. The nearest try/catch used to be a whole level up in
+            // PlotNode.Execute, so anything thrown while applying target N — an item proc with a missing
+            // skill template was the live case — silently dropped targets N..last of this effect. An AoE
+            // that found five units then damaged two and reported "Plot Effects Error" once.
+            try
+            {
+                ApplyToResolvedTarget(source, target, state, evt, buffEffect, channeled, gamePackets,
+                    deferUntilPlotEventProcessed, template);
+            }
+            catch (Exception e)
+            {
+                Logger.Error(e,
+                    "Plot effect {0} (event {1}, skill {2}) failed on target {3}; continuing with the remaining targets",
+                    template.GetType().Name, evt.Id, state.ActiveSkill?.Template?.Id, target.ObjId);
+            }
         }
     }
 
