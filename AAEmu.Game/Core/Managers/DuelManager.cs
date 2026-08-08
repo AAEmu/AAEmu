@@ -47,14 +47,47 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
         _duels.TryRemove(duel.Challenged.Id, out _);
     }
 
-    public void DuelRequest(Character challenger, uint challengedId)
+    public void DuelRequest(Character challenger, uint challengedId, byte duelType = 0)
     {
-        // приходит ID того, кого вызвали на дуэль
+        if (challenger == null)
+            return;
+
+        // The target used to be taken on trust: an unknown id produced a Duel with a null Challenged,
+        // and DuelAdd then threw on its Id, leaving a half-registered duel behind.
         var challenged = WorldManager.Instance.GetCharacterById(challengedId);
+        if (challenged == null)
+        {
+            challenger.SendErrorMessage(ErrorMessageType.BadDuelTarget);
+            Logger.Warn($"DuelRequest: challenged id {challengedId} is not online");
+            return;
+        }
+
+        if (challenged.Id == challenger.Id)
+        {
+            challenger.SendErrorMessage(ErrorMessageType.BadDuelSelf);
+            return;
+        }
+
+        // Neither side may already be involved. Without this the table kept an entry from every earlier
+        // request - including ones nobody ever answered - and both players stayed stuck as "already in
+        // a duel" with no way out short of a server restart. Both error messages already existed in
+        // ErrorMessageType and were never used by anything.
+        if (_duels.ContainsKey(challenger.Id))
+        {
+            challenger.SendErrorMessage(ErrorMessageType.AlreadyInDuel);
+            return;
+        }
+
+        if (_duels.ContainsKey(challenged.Id))
+        {
+            challenger.SendErrorMessage(ErrorMessageType.OtherAlreadyInDuel);
+            return;
+        }
+
         var duel = new Duel(challenger, challenged);
         DuelAdd(duel);
-        challenged.SendPacket(new SCDuelChallengedPacket(challenger.Id)); // we send only to the enemy
-        Logger.Warn($"DuelRequest: challenger={challenger.Id}:{challenger.ObjId}, challenged={challengedId}:{challenged.Id}:{challenged.ObjId}");
+        challenged.SendPacket(new SCDuelChallengedPacket(challenger.Id, duelType)); // we send only to the enemy
+        Logger.Info($"DuelRequest: challenger={challenger.Id}:{challenger.ObjId}, challenged={challenged.Id}:{challenged.ObjId}, type={duelType}");
     }
 
     public void DuelAccepted(Character challenged, uint challengerId)
