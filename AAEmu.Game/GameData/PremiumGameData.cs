@@ -1,5 +1,6 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Premium;
 using AAEmu.Game.Utils.DB;
 
@@ -41,6 +42,30 @@ public class PremiumGameData : Singleton<PremiumGameData>, IGameDataLoader
     }
 
     public PremiumGrade GetGrade(uint gradeId) => _grades.FirstOrDefault(g => g.GradeId == gradeId);
+
+    /// <summary>
+    /// The grade the ACCOUNT is at, for the paths that run without a character selected.
+    /// </summary>
+    /// <remarks>
+    /// Premium is account-wide, so the best point total any character on the account reached stands in
+    /// for it, exactly as the lobby resolves it. One method on purpose: the lobby tells the player which
+    /// grade they are on and the reward tick decides what that grade pays, and those two answering
+    /// differently is precisely how an account ends up being shown one tier and paid another.
+    /// </remarks>
+    public uint GetAccountGrade(IEnumerable<Models.Game.Char.Character> characters)
+    {
+        if (AppConfiguration.Instance.Account?.ForceMaxPremiumGrade == true && MaxGradeId > 0)
+            return MaxGradeId;
+
+        var point = 0;
+        if (characters != null)
+        {
+            foreach (var character in characters)
+                point = Math.Max(point, character.Point);
+        }
+
+        return GetGradeForPoint(point);
+    }
 
     /// <summary>
     /// Highest grade premium_grades defines (6 on 10.0.2.13), or 0 when the table is empty. Used by
