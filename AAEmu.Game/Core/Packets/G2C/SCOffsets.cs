@@ -384,7 +384,6 @@ public static class SCOffsets
     public const ushort SCTrialCancledPacket = 0x1CA; // 10.0.2.13
     public const ushort SCBotSuspectReportedPacket = 0x184;
     public const ushort SCBotSuspectArrestedPacket = 0x1CB; // 10.0.2.13
-    public const ushort SCSuspectGoingBotTrial = 0x1CC; // 10.0.2.13
     public const ushort SCUnderWaterPacket = 0x1CD; // 10.0.2.13
     public const ushort SCCharacterGamePointsPacket = 0x1CE; // 10.0.2.13
     public const ushort SCGamePointChangedPacket = 0x1D0; // 10.0.2.13

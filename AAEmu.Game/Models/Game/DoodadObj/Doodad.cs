@@ -405,6 +405,12 @@ public class Doodad : BaseUnit
     /// <param name="funcGroupId"></param>
     public void Use(BaseUnit caster, uint startedSkillId = 0, int funcGroupId = 0)
     {
+        lock (this)
+            UseLocked(caster, startedSkillId, funcGroupId);
+    }
+
+    private void UseLocked(BaseUnit caster, uint startedSkillId, int funcGroupId)
+    {
         var skillId = startedSkillId;
         var startedSkillTemplate = SkillManager.Instance.GetSkillTemplate(startedSkillId);
         if (caster == null)
@@ -855,6 +861,12 @@ public class Doodad : BaseUnit
     /// <param name="skillId"></param>
     public void OnSkillHit(BaseUnit caster, uint skillId)
     {
+        lock (this)
+            OnSkillHitLocked(caster, skillId);
+    }
+
+    private void OnSkillHitLocked(BaseUnit caster, uint skillId)
+    {
         // Contribution counters on later construction phases react to a counting skill rather than
         // to a player interaction, and live as phase funcs. Handled here because the phase func
         // interface has no skill id to match against.
@@ -868,9 +880,12 @@ public class Doodad : BaseUnit
                 continue;
 
             if (reactDevote.RegisterHit(this))
+            {
                 DoChangePhase(caster, reactDevote.NextPhase);
+                return;
+            }
 
-            return;
+            break;
         }
 
         var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
