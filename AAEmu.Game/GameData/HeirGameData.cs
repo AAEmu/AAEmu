@@ -68,27 +68,51 @@ public class HeirGameData : Singleton<HeirGameData>, IGameDataLoader
     }
 
     /// <summary>
-    /// Applies a positive experience notification to heir progression. Native keeps experience one
-    /// point below the current level's threshold until the explicit level-up request crosses it.
+    /// Applies a positive experience notification to heir progression.
     /// </summary>
+    /// <remarks>
+    /// <c>req_total_exp</c> is always the gate; <c>req_item_id</c> only decides whether material
+    /// is owed on top of it.
+    /// <para>
+    /// A row with no item is reached on experience alone and is crossed here as soon as the
+    /// experience arrives. One large gain can span several such levels, so this loops rather than
+    /// crossing a single threshold. The client draws no level-up button for these, which is
+    /// consistent: there is nothing to pay, so there is nothing to confirm.
+    /// </para>
+    /// <para>
+    /// A row that does name an item is bought explicitly through CSHeirLevlUp, so experience
+    /// stops one point below that threshold and waits. That is what makes the client draw the
+    /// button, and <see cref="Models.Game.Char.Character.TryLevelUpHeir"/> consumes the material
+    /// before advancing.
+    /// </para>
+    /// </remarks>
     public long ApplyExpGain(long totalExp, int expDelta)
     {
         if (expDelta <= 0)
             return totalExp;
 
-        var heirLevel = GetLevelForExp(totalExp);
-        if (heirLevel >= MaxLevel)
-            return totalExp;
+        var target = totalExp + expDelta;
+        while (true)
+        {
+            var heirLevel = GetLevelForExp(totalExp);
+            if (heirLevel >= MaxLevel)
+                return totalExp;
 
-        var level = GetLevel(heirLevel);
-        if (level == null)
-            return totalExp;
+            var level = GetLevel(heirLevel);
+            if (level == null)
+                return totalExp;
 
-        var cap = level.ReqTotalExp - 1;
-        if (totalExp >= cap)
-            return cap;
+            if (level.ReqItemId != 0)
+            {
+                var cap = level.ReqTotalExp - 1;
+                return target < cap ? target : cap;
+            }
 
-        return totalExp + Math.Min((long)expDelta, cap - totalExp);
+            if (target < level.ReqTotalExp)
+                return target;
+
+            totalExp = level.ReqTotalExp;
+        }
     }
 
     /// <summary>Step the given heir level belongs to, or 0 when the level is unknown.</summary>

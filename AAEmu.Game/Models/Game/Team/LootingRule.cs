@@ -24,8 +24,8 @@ public class LootingRule : PacketMarshaler
         if (config.DefaultTeamLootMethod is not (LootingRuleMethod.FreeForAll or LootingRuleMethod.RotateWinner))
             throw new InvalidOperationException("World.DefaultTeamLootMethod must be FreeForAll (0) or RotateWinner (1).");
         if (config.DefaultTeamLootMinimumGrade < (sbyte)ItemGrade.Crude ||
-            config.DefaultTeamLootMinimumGrade > (sbyte)ItemGrade.Mythic)
-            throw new InvalidOperationException("World.DefaultTeamLootMinimumGrade must be between Crude (0) and Mythic (11).");
+            config.DefaultTeamLootMinimumGrade > (sbyte)ItemGrade.Eternal)
+            throw new InvalidOperationException("World.DefaultTeamLootMinimumGrade must be between Crude (0) and Eternal (12).");
     }
 
     public override void Read(PacketStream stream)

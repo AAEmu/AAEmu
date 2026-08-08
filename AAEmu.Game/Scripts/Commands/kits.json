@@ -1515,6 +1515,78 @@
             "id": 20465,
             "grade": 5,
             "count": 1
+        },
+        {
+            // Erenor Mage 2h: Staff
+            "names": [
+                "erenor_mage_2h"
+            ],
+            "id": 53094,
+            "grade": 12,
+            "count": 1
+        },
+        {
+            // Erenor Mage 2h: Shirt
+            "names": [
+                "erenor_mage_2h"
+            ],
+            "id": 53074,
+            "grade": 12,
+            "count": 1
+        },
+        {
+            // Erenor Mage 2h: Hood
+            "names": [
+                "erenor_mage_2h"
+            ],
+            "id": 53073,
+            "grade": 12,
+            "count": 1
+        },
+        {
+            // Erenor Mage 2h: Pants
+            "names": [
+                "erenor_mage_2h"
+            ],
+            "id": 53075,
+            "grade": 12,
+            "count": 1
+        },
+        {
+            // Erenor Mage 2h: Gloves
+            "names": [
+                "erenor_mage_2h"
+            ],
+            "id": 53076,
+            "grade": 12,
+            "count": 1
+        },
+        {
+            // Erenor Mage 2h: Shoes
+            "names": [
+                "erenor_mage_2h"
+            ],
+            "id": 53077,
+            "grade": 12,
+            "count": 1
+        },
+        {
+            // Erenor Mage 2h: Sleeves
+            "names": [
+                "erenor_mage_2h"
+            ],
+            "id": 53079,
+            "grade": 12,
+            "count": 1
+        },
+        {
+            // Erenor Mage 2h: Sash
+            "names": [
+                "erenor_mage_2h"
+            ],
+            "id": 53080,
+            "grade": 12,
+            "count": 1
         }
     ]
 }

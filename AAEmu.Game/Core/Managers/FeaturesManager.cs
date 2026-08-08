@@ -10,6 +10,30 @@ public class FeaturesManager(IExperienceManager experienceManager) : Singleton<F
 {
     public static FeatureSet Fsets { get; private set; }
 
+    /// <summary>
+    /// Whether Heir (ancestral) progression runs on this server.
+    /// </summary>
+    /// <remarks>
+    /// The rest of the fset only advertises to the client, but heir cannot be left to that: heir
+    /// experience accrues in <c>AddExp</c> and <c>HeirLevel</c> derives from it, and that level is
+    /// broadcast in UnitState, team, friend, expedition and family packets and folded into the
+    /// <c>Level + HeirLevel</c> gates for trade, auction, chat and mail. Advertising the feature as
+    /// off while still accumulating it would diverge visible state from the configuration, and would
+    /// hand every level-capped character an unearned pile of heir levels the moment it was switched
+    /// on. So the same bits gate the server: progression and the Heir C2G handlers both consult this.
+    /// Both are required, matching the client - useHeirSkill (202) reveals the tab, heirLevel (101)
+    /// the level block within it.
+    /// <para>
+    /// This gates what happens next, not what already happened. <c>characters.heir_exp</c> and
+    /// <c>heir_skill_activations</c> are untouched while it is false, so <see cref="Character.HeirLevel"/>
+    /// still resolves from the stored total and successors already chosen stay active; turning the
+    /// bits back on resumes from there. Deliberate: silently voiding earned levels and equipped
+    /// skills would be worse than leaving them dormant.
+    /// </para>
+    /// </remarks>
+    public static bool HeirEnabled =>
+        Fsets is not null && Fsets.Check(Feature.useHeirSkill) && Fsets.Check(Feature.heirLevel);
+
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public void Initialize()

@@ -1850,11 +1850,21 @@ public partial class Character : Unit, ICharacter
             expDelta = (int)(expDelta * AppConfiguration.Instance.World.ExpRate);
         }
 
-        // level before SCLevelChanged arrives, accepts positive deltas only, and clamps at the current
-        // heir threshold minus one until CSHeirLevlUp explicitly crosses it.
-        var wasHeirEligible = Level >= HeirGameData.Instance.StartLevel;
+        // level before SCLevelChanged arrives, and accepts positive deltas only. Levels that owe an
+        // item clamp one point below their threshold and wait for CSHeirLevlUp; the rest are crossed
+        // inside ApplyExpGain. Nothing accrues while the feature is off, so heir levels cannot build
+        // up unseen and appear all at once if it is later switched on.
+        var wasHeirEligible = FeaturesManager.HeirEnabled && Level >= HeirGameData.Instance.StartLevel;
         if (wasHeirEligible)
+        {
+            var previousHeirLevel = HeirLevel;
             HeirExp = HeirGameData.Instance.ApplyExpGain(HeirExp, expDelta);
+
+            // SCHeirLevelUp carries no level value - the client increments its own heir level by
+            // one per packet - so a gain spanning several free levels needs one packet each.
+            for (var gained = previousHeirLevel; gained < HeirLevel; gained++)
+                BroadcastPacket(new SCHeirLevelUpPacket(ObjId), true);
+        }
 
         var newExperience = Experience + expDelta;
         var newLevel = ExperienceManager.Instance.GetLevelFromExp(newExperience, Level, out var overflow);
