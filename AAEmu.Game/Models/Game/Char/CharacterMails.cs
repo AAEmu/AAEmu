@@ -33,7 +33,7 @@ public class CharacterMails
         UnreadMailCount.ResetReceived();
     }
 
-    public void OpenMailbox()
+    public void OpenMailbox(byte mailBoxListKind = 0)
     {
         // The u32 after isSent is the mailbox total, so the count is taken before sending any rows.
         var mails = MailManager.Instance.GetCurrentMailList(Self.Id);
@@ -50,11 +50,13 @@ public class CharacterMails
                 continue;
 
             // Mail to self lists in the received box, matching the sender/receiver test order.
+            // (Rows route to the client store by mail type, not by this kind byte, so it stays 0.)
             Self.SendPacket(new SCMailListPacket(isMine && !isForMe, total, header));
             sent++;
         }
 
-        Self.SendPacket(new SCMailListEndPacket(sent, 0));
+        // Echo the requested kind so the client finalizes the matching list (clears its loading state).
+        Self.SendPacket(new SCMailListEndPacket(mailBoxListKind, UnreadMailCount));
         Self.SendPacket(new SCCountTotalMailPacket(UnreadMailCount));
     }
 
@@ -127,15 +129,20 @@ public class CharacterMails
     public void RefreshUnreadCount()
     {
         UnreadMailCount.ResetReceived();
+        UnreadMailCount.ResetTotals();
 
         var now = DateTime.UtcNow;
         foreach (var (_, mail) in MailManager.Instance.AllPlayerMails)
         {
             if (mail.Header.ReceiverId != Self.Id)
                 continue;
-            if (mail.Header.Status == MailStatus.Read)
-                continue;
             if (mail.Body.RecvDate > now)
+                continue;
+
+            // Total counts every landed received mail (read + unread); the client uses it to size the list.
+            UnreadMailCount.UpdateTotal(mail.MailType, 1);
+
+            if (mail.Header.Status == MailStatus.Read)
                 continue;
 
             UnreadMailCount.UpdateReceived(mail.MailType, 1);
@@ -400,6 +407,8 @@ public class CharacterMails
         if (mail.Header.Attachments > 0)
             return;
 
+        // The mail leaves the received box, so it leaves the per-category total regardless of read state.
+        UnreadMailCount.UpdateTotal(mail.MailType, -1);
         if (mail.Header.Status != MailStatus.Read)
         {
             UnreadMailCount.UpdateReceived(mail.MailType, -1);
@@ -443,11 +452,11 @@ public class CharacterMails
             return;
         }
 
-        // It is the sender's mail now, so it leaves this inbox and this unread count.
+        // It is the sender's mail now, so it leaves this inbox: drop it from the total (always) and the
+        // unread count (only if it was unread), then resync the client.
+        UnreadMailCount.UpdateTotal(mailType, -1);
         if (wasUnread)
-        {
             UnreadMailCount.UpdateReceived(mailType, -1);
-            SendUnreadMailCount();
-        }
+        SendUnreadMailCount();
     }
 }

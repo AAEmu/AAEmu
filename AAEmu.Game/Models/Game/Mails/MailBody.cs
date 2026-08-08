@@ -33,9 +33,10 @@ public class MailBody(BaseMail parent) : PacketMarshaler
         stream.Write(ReceiverName);
         stream.Write(Title);
         stream.Write(Text);
-        stream.Write(CopperCoins);
-        stream.Write(BillingAmount);
-        stream.Write(MoneyAmount2);
+        stream.Write((long)CopperCoins);   // 10.0.2.13: money widened to int64
+        stream.Write((long)BillingAmount); // 10.0.2.13: money widened to int64
+        stream.Write((long)MoneyAmount2);  // 10.0.2.13: money widened to int64
+        stream.Write(0);                   // 10.0.2.13: 4th money field (int32), new in v10
         stream.Write(SendDate);
         stream.Write(RecvDate);
         stream.Write(OpenDate);

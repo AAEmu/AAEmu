@@ -29,6 +29,7 @@ public class MailHeader(BaseMail parent) : PacketMarshaler
         stream.Write(OpenDate);
         stream.Write(Returned);
         stream.Write(Extra);
+        stream.Write(false); // 10.0.2.13: trailing failToLoadBody flag the client reads after Extra
         return stream;
     }
 }
