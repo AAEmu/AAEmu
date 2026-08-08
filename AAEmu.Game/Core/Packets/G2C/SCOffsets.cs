@@ -459,7 +459,7 @@ public static class SCOffsets
     public const ushort SCICSGoodListPacket = 588;
     public const ushort SCICSGoodDetailPacket = 589;
     public const ushort SCICSCheckTimePacket = 590;
-    public const ushort SCICSBuyResultPacket = 591;
+    public const ushort SCICSBuySucceededPacket = 591;
     public const ushort SCICSBuyFailedPacket = 592;
     public const ushort SCICSSyncGoodPacket = 593;
     public const ushort SCICSCashPointPacket = 594;

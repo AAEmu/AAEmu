@@ -22,18 +22,19 @@ public class SCAttachmentTakenPacket(
         stream.Write(honorPointTaken);
         stream.Write(takeSequentially);
         stream.Write((byte)itemsList.Count);
+
+        foreach (var item in itemsList)
+            stream.Write(item.Id);
+
         for (var i = 0; i < 10; i++)
         {
             if (i < itemsList.Count)
             {
-                var item = itemsList[i];
-                stream.Write(item.Id);
-                stream.Write((byte)item.SlotType);
-                stream.Write(item.Slot);
+                stream.Write((byte)itemsList[i].SlotType);
+                stream.Write(itemsList[i].Slot);
             }
             else
             {
-                stream.Write((ulong)0);
                 stream.Write((byte)0);
                 stream.Write((byte)0);
             }

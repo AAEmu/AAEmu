@@ -11,7 +11,7 @@ using NLog;
 
 namespace AAEmu.Game.Models.Tasks.CashShop;
 
-public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlayer, List<IcsSku> shoppingCart)
+public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlayer, List<IcsPurchase> shoppingCart)
     : Task
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
@@ -20,7 +20,7 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
     {
         #region check_costs
         var costs = new uint[(byte)CashShopCurrencyType.Max];
-        foreach (var sku in shoppingCart)
+        foreach (var sku in shoppingCart.Select(purchase => purchase.Sku))
             costs[(byte)sku.Currency] += sku.DiscountPrice > 0 ? sku.DiscountPrice : sku.Price;
 
         var beforeBuyAccountDetails = AccountManager.Instance.GetAccountDetails(buyer.AccountId);
@@ -48,7 +48,7 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
         #endregion
 
         #region validate_cart
-        foreach (var sku in shoppingCart)
+        foreach (var sku in shoppingCart.Select(purchase => purchase.Sku))
         {
             if (!CashShopManager.Instance.ShopItems.TryGetValue(sku.ShopId, out var shopItem))
             {
@@ -102,7 +102,8 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
 
             if (shopItem.Remaining >= 0)
             {
-                var totalItemsBoughtOfThisType = shoppingCart.Count(b => b.ShopId == sku.ShopId);
+                var totalItemsBoughtOfThisType = shoppingCart.Count(
+                    purchase => purchase.Sku.ShopId == sku.ShopId);
                 if (shopItem.Remaining < totalItemsBoughtOfThisType)
                 {
                     // 595 → BFR_SOLD_OUT
@@ -134,9 +135,11 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
 
         #region transactions
         var entriesSold = 0;
-        var soldShopIds = new List<uint>();
-        foreach (var sku in shoppingCart)
+        var soldItems = new List<(uint CashShopId, byte DetailIndex)>();
+        var stockToSync = new Dictionary<uint, int>();
+        foreach (var purchase in shoppingCart)
         {
+            var sku = purchase.Sku;
             if (!CashShopManager.Instance.ShopItems.TryGetValue(sku.ShopId, out var shopItem))
             {
                 Logger.Error("ICS buy missing shopItem for sku {0}", sku.Sku);
@@ -177,6 +180,7 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
 
                 shopItem.Remaining -= (int)sku.ItemCount;
                 CashShopManager.Instance.UpdateRemainingShopItemStock(shopItem.ShopId, shopItem.Remaining);
+                stockToSync[shopItem.ShopId] = shopItem.Remaining;
             }
 
             switch (sku.Currency)
@@ -226,7 +230,7 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
                 targetPlayer.SendErrorMessage(ErrorMessageType.IngameShopBuyFail);
 
             entriesSold++;
-            soldShopIds.Add(sku.ShopId);
+            soldItems.Add((sku.ShopId, purchase.DetailIndex));
 
             Logger.Info("ICSBuyGood {0} -> {1} - {2} x {3}, SKU:{4}",
                 buyer.Name, targetPlayer.Name, useName, sku.ItemCount, sku.Sku);
@@ -244,25 +248,15 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
             buyer.SendPacket(new SCICSCashPointPacket(postSale.Credits));
             buyer.SendPacket(new SCBmPointPacket(postSale.Loyalty));
 
-            var buyItems = new uint[10];
-            var remain = new byte[10];
-            for (var i = 0; i < soldShopIds.Count && i < 10; i++)
-            {
-                buyItems[i] = soldShopIds[i];
-                if (CashShopManager.Instance.ShopItems.TryGetValue(soldShopIds[i], out var soldShop))
-                {
-                    var bought = CashShopManager.Instance.GetPurchasedItemCount(
-                        buyer.AccountId, buyer.Id, soldShop);
-                    remain[i] = (byte)Math.Min(255, bought);
-                }
-            }
+            foreach (var (shopId, remaining) in stockToSync)
+                buyer.SendPacket(new SCICSSyncGoodPacket((int)shopId, remaining));
 
-            // Normalize the mode so the pending purchase completes successfully.
-            var mode = buyMode == 0 ? (byte)1 : buyMode;
-            buyer.SendPacket(new SCICSBuyResultPacket(
-                true, mode, targetPlayer.Name,
+            buyer.SendPacket(new SCICSBuySucceededPacket(
+                buyMode,
+                SCICSBuySucceededPacket.ReceiveWayChargedMail,
+                targetPlayer.Name,
                 (int)costs[(byte)CashShopCurrencyType.AaPoints],
-                ErrorMessageType.Invalid, buyItems, null, remain));
+                soldItems));
             CashShopManager.Instance.SendBuyCounts(buyer.Connection, buyer.AccountId, buyer.Id);
         }
         else
@@ -279,7 +273,9 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
         uint shopId = 0)
     {
         buyer.SendErrorMessage(toast ?? wireError);
-        buyer.SendPacket(SCICSBuyResultPacket.Fail(buyMode, targetPlayer.Name, wireError, shopId));
+        IReadOnlyList<(uint CashShopId, ErrorMessageType Reason)> itemFailures =
+            shopId == 0 ? [] : [(shopId, wireError)];
+        buyer.SendPacket(new SCICSBuyFailedPacket(buyMode, wireError, itemFailures));
         CashShopManager.Instance.SendBuyCounts(buyer.Connection, buyer.AccountId, buyer.Id);
     }
 }

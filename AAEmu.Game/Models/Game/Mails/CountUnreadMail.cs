@@ -35,6 +35,13 @@ public class CountUnreadMail : PacketMarshaler
         CommercialReceived = 0;
     }
 
+    public void ResetTotals()
+    {
+        TotalReceived = 0;
+        TotalMiaReceived = 0;
+        TotalCommercialReceived = 0;
+    }
+
     public void ResetAll()
     {
         TotalSent = 0;

@@ -13,9 +13,8 @@ public class CSICSBuyGoodPacket() : GamePacket(CSOffsets.CSICSBuyGoodPacket, 1)
 {
     public override void Read(PacketStream stream)
     {
-        var buyer = Connection.ActiveChar;
-        var buyList = new List<IcsSku>();
         var thisChar = Connection.ActiveChar;
+        var buyList = new List<IcsPurchase>();
         byte buyMode = 1; // No idea what this means
 
         var numBuys = stream.ReadByte();
@@ -51,7 +50,7 @@ public class CSICSBuyGoodPacket() : GamePacket(CSOffsets.CSICSBuyGoodPacket, 1)
                 continue;
             }
 
-            buyList.Add(sku);
+            buyList.Add(new IcsPurchase(sku, detailIndex));
         }
 
         var receiverName = stream.ReadString();
@@ -62,23 +61,23 @@ public class CSICSBuyGoodPacket() : GamePacket(CSOffsets.CSICSBuyGoodPacket, 1)
 
         if (targetChar == null)
         {
-            // 623 → BFR_FRIEND_NAME
             thisChar.SendErrorMessage(ErrorMessageType.IngameShopFindCharacterNameFail);
-            thisChar.SendPacket(SCICSBuyResultPacket.Fail(
-                buyMode, receiverName, ErrorMessageType.IngameShopFindCharacterNameFail));
+            thisChar.SendPacket(new SCICSBuyFailedPacket(
+                buyMode, ErrorMessageType.IngameShopFindCharacterNameFail));
             return;
         }
 
         if (buyList.Count <= 0)
         {
             thisChar.SendErrorMessage(ErrorMessageType.BuyCartEmpty);
-            // 590 → BFR_NORMAL
-            Connection.ActiveChar.SendPacket(SCICSBuyResultPacket.Fail(
-                buyMode, receiverName, ErrorMessageType.IngameShopBuyFail));
+            thisChar.SendPacket(new SCICSBuyFailedPacket(
+                buyMode, ErrorMessageType.IngameShopBuyFail));
             return;
         }
 
         // Create task for the transaction, this allows handling of credits in a async manner
-        TaskManager.Instance.Schedule(new CashShopBuyTask(buyMode, Connection.ActiveChar, targetChar, buyList), TimeSpan.FromSeconds(1));
+        TaskManager.Instance.Schedule(
+            new CashShopBuyTask(buyMode, thisChar, targetChar, buyList),
+            TimeSpan.FromSeconds(1));
     }
 }

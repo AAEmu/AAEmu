@@ -75,6 +75,19 @@ public class CharacterMails
 
         Self.SendPacket(new SCMailListEndPacket(mailBoxListKind, UnreadMailCount));
         Self.SendPacket(new SCCountTotalMailPacket(UnreadMailCount));
+
+        if (mailBoxListKind == 3)
+        {
+            foreach (var mail in page)
+            {
+                if (mail.Header.ReceiverId == Self.Id &&
+                    mail.Header.Status != MailStatus.Read &&
+                    mail.MailType is MailType.Charged or MailType.Promotion)
+                {
+                    Self.SendPacket(new SCGotMailPacket(mail.Header, UnreadMailCount, mail.Body));
+                }
+            }
+        }
     }
 
     private bool BelongsInMailbox(BaseMail mail, byte kind)
@@ -457,6 +470,7 @@ public class CharacterMails
         if (mail.Header.Attachments > 0)
             return;
 
+        UnreadMailCount.AddTotal(mail.MailType, -1);
         if (mail.Header.Status != MailStatus.Read)
         {
             UnreadMailCount.UpdateReceived(mail.MailType, -1);
@@ -500,11 +514,10 @@ public class CharacterMails
             return;
         }
 
-        // It is the sender's mail now, so it leaves this inbox and this unread count.
+        // It is the sender's mail now, so it leaves this inbox and its counters.
+        UnreadMailCount.AddTotal(mailType, -1);
         if (wasUnread)
-        {
             UnreadMailCount.UpdateReceived(mailType, -1);
-            SendUnreadMailCount();
-        }
+        SendUnreadMailCount();
     }
 }

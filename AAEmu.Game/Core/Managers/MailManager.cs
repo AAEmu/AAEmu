@@ -386,6 +386,14 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                  ).
             ToDictionary(x => x.Key, x => x.Value);
         character?.Mails.UnreadMailCount.ResetReceived();
+        character?.Mails.UnreadMailCount.ResetTotals();
+        // Pre-pass: total counts every landed received mail (read + unread) so each pushed SCGotMail carries
+        // the final total (the client uses the total, not unread, to size each mail-list tab).
+        foreach (var mail in tempMails)
+        {
+            if (mail.Value.Header.ReceiverId == characterId)
+                character?.Mails.UnreadMailCount.AddTotal(mail.Value.MailType);
+        }
         foreach (var mail in tempMails)
         {
             //if ((mail.Value.Header.Status != MailStatus.Read) && (mail.Value.Header.SenderId != character.Id))
@@ -431,6 +439,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
         {
             if (m.Header.Status != MailStatus.Read)
                 player.Mails.UnreadMailCount.UpdateReceived(m.MailType, -1);
+            player.Mails.UnreadMailCount.AddTotal(m.MailType, -1);
             player.SendPacket(new SCMailDeletedPacket(false, m.Id, true, player.Mails.UnreadMailCount));
             return true;
         }
