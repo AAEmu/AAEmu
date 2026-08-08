@@ -418,6 +418,18 @@ public partial class Character : Unit, ICharacter
     public DateTime DeleteTime { get; set; }
 
     /// <summary>
+    /// The account's nominated main character ("represent character" in the client's own wording).
+    /// At most one character per account carries this.
+    /// </summary>
+    /// <remarks>
+    /// This travels client to server only. The client keeps its own copy for the character select
+    /// screen - that is what refuses a deletion with "Must deselect as Main Character before
+    /// deleting." - and the character list packet has no field to send it back, so we record the
+    /// choice rather than drive it.
+    /// </remarks>
+    public bool IsRepresent { get; set; }
+
+    /// <summary>
     /// Cache value of AccountDetails.Loyalty
     /// </summary>
     public long BmPoint { get; set; }
@@ -2798,6 +2810,7 @@ public partial class Character : Unit, ICharacter
                     character.TransferRequestTime = reader.GetDateTime("transfer_request_time");
                     character.DeleteRequestTime = reader.GetDateTime("delete_request_time");
                     character.DeleteTime = reader.GetDateTime("delete_time");
+                    character.IsRepresent = reader.GetBoolean("represent");
                     character.AutoUseAAPoint = reader.GetBoolean("auto_use_aapoint");
                     character.PrivacyStatus = (CharacterPrivacyStatus)reader.GetSByte("privacy_status");
                     character.PrevPoint = reader.GetInt32("prev_point");
@@ -2923,6 +2936,7 @@ public partial class Character : Unit, ICharacter
                     character.TransferRequestTime = reader.GetDateTime("transfer_request_time");
                     character.DeleteRequestTime = reader.GetDateTime("delete_request_time");
                     character.DeleteTime = reader.GetDateTime("delete_time");
+                    character.IsRepresent = reader.GetBoolean("represent");
                     // character.BmPoint = reader.GetInt32("bm_point");
                     character.AutoUseAAPoint = reader.GetBoolean("auto_use_aapoint");
                     character.PrivacyStatus = (CharacterPrivacyStatus)reader.GetSByte("privacy_status");
@@ -3179,7 +3193,11 @@ public partial class Character : Unit, ICharacter
                     "`money`,`money2`,`aa_point`,`bank_aa_point`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`jury_point`," +
                     "`hostile_faction_kills`,`pvp_honor`,`died_in_pvp`,`died_in_pvp_war_zone`," +
                     "`delete_request_time`,`transfer_request_time`,`delete_time`,`auto_use_aapoint`,`prev_point`,`point`,`gift`," +
-                    "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`created_at`,`updated_at`,`return_district`,`online_time`,`total_play_time`,`privacy_status`" +
+                    "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`created_at`,`updated_at`,`return_district`,`online_time`,`total_play_time`,`privacy_status`," +
+                    // Must be listed: this is a REPLACE INTO, so a column left out is written back at its
+                    // default. Omitting it would clear the account's main-character nomination on every
+                    // save, and with it the guard that keeps that character from being deleted.
+                    "`represent`" +
                     ") VALUES (" +
                     "@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@experience,@recoverable_exp,@heir_exp," +
                     "@hp,@mp,@consumed_lp,@local_lp,@ability1,@ability2,@ability3," +
@@ -3188,10 +3206,12 @@ public partial class Character : Unit, ICharacter
                     "@money,@money2,@aa_point,@bank_aa_point,@honor_point,@vocation_point,@crime_point,@crime_record,@jury_point," +
                     "@hostile_faction_kills,@pvp_honor,@died_in_pvp,@died_in_pvp_war_zone," +
                     "@delete_request_time,@transfer_request_time,@delete_time,@auto_use_aapoint,@prev_point,@point,@gift," +
-                    "@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@created_at,@updated_at,@return_district,@online_time,@total_play_time,@privacy_status)";
+                    "@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@created_at,@updated_at,@return_district,@online_time,@total_play_time,@privacy_status," +
+                    "@represent)";
 
                 command.Parameters.AddWithValue("@id", Id);
                 command.Parameters.AddWithValue("@account_id", AccountId);
+                command.Parameters.AddWithValue("@represent", IsRepresent);
                 command.Parameters.AddWithValue("@name", Name);
                 command.Parameters.AddWithValue("@access_level", AccessLevel);
                 command.Parameters.AddWithValue("@race", (byte)Race);

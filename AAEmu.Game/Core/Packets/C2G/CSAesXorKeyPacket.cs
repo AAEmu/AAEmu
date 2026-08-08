@@ -93,12 +93,19 @@ public class CSAesXorKeyPacket() : GamePacket(CSOffsets.CSAesXorKeyPacket, 1)
             }
         }
 
-        // Featured/representative character for the character-select screen. The reference sends
-        // SCRepreSentCharacter (0x2C4) right after the character list; represent the first character
-        // (success/first true), or an empty representation when the account has none.
-        if (characters.Length > 0)
-            Connection.SendPacket(new SCRepreSentCharacterPacket(characters[0].Id, true, true, false));
+        // The account's main ("represent") character for the character-select screen, sent right after
+        // the character list.
+        //
+        // This used to name characters[0] unconditionally with success=true. The client's handler for
+        // 0x2C4 stores that id as THE represent character (RVA 0x4DD270), and its delete dialog then
+        // refuses the first character on every account with "Must deselect as Main Character before
+        // deleting." - a main character nobody had chosen, reasserted at every login. Send whoever the
+        // player actually nominated instead, and success=false when that is nobody, which leaves the
+        // client's id at its default of zero.
+        var represent = characters.FirstOrDefault(c => c.IsRepresent);
+        if (represent != null)
+            Connection.SendPacket(new SCRepreSentCharacterPacket(represent.Id, true, true, false));
         else
-            Connection.SendPacket(new SCRepreSentCharacterPacket(0, false, false, false));
+            Connection.SendPacket(new SCRepreSentCharacterPacket(0, false, true, false));
     }
 }

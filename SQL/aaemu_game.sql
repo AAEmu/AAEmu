@@ -215,6 +215,7 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `online_time` INT(11) NOT NULL DEFAULT 0 COMMENT 'Time that the character has been online',
   `total_play_time` int unsigned NOT NULL DEFAULT '0',
   `privacy_status` tinyint NOT NULL DEFAULT '0',
+  `represent` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Is this the account main (represent) character',
   PRIMARY KEY (`id`, `account_id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = 'Basic player character data' ROW_FORMAT = DYNAMIC;
 
