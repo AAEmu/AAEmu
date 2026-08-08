@@ -210,7 +210,7 @@ public static class SCOffsets
     public const ushort SCChatSpamDelayPacket = 0x107; // 10.0.2.13 SCChatSpamConfig (1.2 was 0xd3)
     public const ushort SCAskToJoinTeamPacket = 0x109; // 10.0.2.13
     public const ushort SCAskToJoinTeamAreaPacket = 0x10A; // 10.0.2.13
-    public const ushort SCJoinedTeamPacket = 0xd6;
+    public const ushort SCJoinedTeamPacket = 0x10B; // 10.0.2.13
     public const ushort SCRejectedTeamPacket = 0x10C; // 10.0.2.13
     public const ushort SCLeavedTeamPacket = 0x10D; // 10.0.2.13
     public const ushort SCTeamDismissedPacket = 0x10E; // 10.0.2.13
