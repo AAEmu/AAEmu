@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -19,7 +20,7 @@ public class CSActivateHeirSkillPacket() : GamePacket(CSOffsets.CSActivateHeirSk
         SuccessorSkillId = stream.ReadInt32();
         IsChange = stream.ReadBoolean();
 
-        if (HeirSkillId <= 0 || SuccessorSkillId <= 0)
+        if (!FeaturesManager.HeirEnabled || HeirSkillId <= 0 || SuccessorSkillId <= 0)
             return;
 
         Connection.ActiveChar?.HeirSkills.TryActivate(

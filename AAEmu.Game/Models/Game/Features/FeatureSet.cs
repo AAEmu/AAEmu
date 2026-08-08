@@ -9,6 +9,17 @@ namespace AAEmu.Game.Models.Game.Features;
 /// </summary>
 /// <remarks>
 /// <para>
+/// This is client advertisement, not server enablement. The blob is serialized into
+/// SCInitialConfig and read nowhere else, so a <see cref="Feature"/> bit decides what the client
+/// shows and what packets it is willing to send - it does not gate the handler behind that packet,
+/// nor any server-side progression. Clearing a bit hides the feature in the client while the
+/// server logic stays live for anything that sends the packet regardless. Two kinds of exception
+/// exist: the server-only switches in the region below, which left the blob in 10.0.2.13 and are
+/// read directly by server code, and <see cref="Core.Managers.FeaturesManager.HeirEnabled"/>,
+/// where the heir bits deliberately gate the server too because heir progression leaves state
+/// behind whether or not the client can see it.
+/// </para>
+/// <para>
 /// Wire layout is a fixed 31-byte bitmap. The client reads it with
 /// <c>ReadString("fset", buf, 31)</c> (u16 length prefix + N bytes, <c>0 &lt; N &lt;= 31</c>) and copies
 /// it into its game context at +40. A shorter blob is accepted silently, leaving the tail bytes

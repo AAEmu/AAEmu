@@ -13,5 +13,6 @@ public enum ItemGrade : byte
     Divine = 8,
     Epic = 9,
     Legendary = 10,
-    Mythic = 11
+    Mythic = 11,
+    Eternal = 12
 }

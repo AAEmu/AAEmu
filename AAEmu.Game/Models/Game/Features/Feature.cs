@@ -89,7 +89,16 @@ public enum Feature
     arche_pass = 98,
     hud_mail_box_button = 99,
     fastQuestChatBubble = 100,
-    fset_12_5_unknown = 101,
+    /// <summary>
+    /// Ancestral ("heir") level progression. Backs the native <c>X2Player:IsEnabledHeirLevel()</c>,
+    /// which is <c>(fset[12] &amp; 0x20) != 0 &amp;&amp; content_config heir_start_level (187) &gt; 0</c> -
+    /// the client reads the dword at ctx+0x34 (fset[12..15]) and tests bit 5. It gates the whole
+    /// level block at the top of the Heir tab: level label, exp bar, level-up button and the four
+    /// heir stat lines (CreateHeirLevelSection in x2ui/skill/tab_heir.lua).
+    /// Separate from <see cref="useHeirSkill"/> (202), which only gates the tab itself - with this
+    /// bit off the tab renders but shows the successor wheel alone and can never gain a level.
+    /// </summary>
+    heirLevel = 101,
     forbidTransferChar = 102,
     target_equipment_wnd = 103,
 

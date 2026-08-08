@@ -417,6 +417,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSBlessUthstinExtendMaxStatsPacket, 1, typeof(CSBlessUthstinExtendMaxStatsPacket));
         RegisterPacket(CSOffsets.CSBlessUthstinExpandPagePacket, 1, typeof(CSBlessUthstinExpandPagePacket));
         RegisterPacket(CSOffsets.CSHeirLevlUpPacket, 1, typeof(CSHeirLevlUpPacket));
+        RegisterPacket(CSOffsets.CSActivateHeirSkillPacket, 1, typeof(CSActivateHeirSkillPacket));
         RegisterPacket(CSOffsets.CSResetHeirSkillPacket, 1, typeof(CSResetHeirSkillPacket));
         RegisterPacket(CSOffsets.CSDepartToForeignServerPacket, 1, typeof(CSDepartToForeignServerPacket));
         RegisterPacket(CSOffsets.CSArrivedFromAbroadPacket, 1, typeof(CSArrivedFromAbroadPacket));
