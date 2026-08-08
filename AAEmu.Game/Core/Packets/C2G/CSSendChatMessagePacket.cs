@@ -88,7 +88,7 @@ public class CSSendChatMessagePacket() : GamePacket(CSOffsets.CSSendChatMessageP
                     }
                     else
                     {
-                        ChatManager.Instance.GetRaidChat(teamRaid).SendPacket(new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType));
+                        ChatManager.Instance.GetRaidChat(teamRaid).SendMessage(Connection.ActiveChar, type, message, ability, languageType);
                     }
                 }
                 else
@@ -111,9 +111,8 @@ public class CSSendChatMessagePacket() : GamePacket(CSOffsets.CSSendChatMessageP
             case ChatType.GroupFind: //lfg
             case ChatType.Shout: //shout
                 // We use SendPacket here so we can fake our way through the different channel types
-                ChatManager.Instance.GetZoneChat(Connection.ActiveChar.Transform.ZoneId).SendPacket(
-                    new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType)
-                    );
+                ChatManager.Instance.GetZoneChat(Connection.ActiveChar.Transform.ZoneId)
+                    .SendMessage(Connection.ActiveChar, type, message, ability, languageType);
                 break;
             case ChatType.Clan:
                 if (Connection.ActiveChar.Expedition != null)
@@ -147,6 +146,9 @@ public class CSSendChatMessagePacket() : GamePacket(CSOffsets.CSSendChatMessageP
             */
             case ChatType.Region: //nation (birth place/race, includes pirates etc)
                 ChatManager.Instance.GetNationChat(Connection.ActiveChar.Race).SendMessage(Connection.ActiveChar, message, ability, languageType);
+                break;
+            case ChatType.Csm: // one server-wide channel, not scoped to faction or zone
+                ChatManager.Instance.GetGlobalChat().SendMessage(Connection.ActiveChar, message, ability, languageType);
                 break;
             case ChatType.Ally: //faction (by current allegiance)
                 ChatManager.Instance.GetFactionChat(Connection.ActiveChar.Faction.MotherId).SendMessage(Connection.ActiveChar, message, ability, languageType);

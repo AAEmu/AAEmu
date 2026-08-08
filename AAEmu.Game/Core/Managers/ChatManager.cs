@@ -28,6 +28,19 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
     private ConcurrentDictionary<long, ChatChannel> FamilyChannels { get; } = new();
 
     /// <summary>
+    /// The single server-wide channel (client calls it CSM, command /u).
+    /// </summary>
+    /// <remarks>
+    /// Unlike every other channel this one is not scoped: no faction, no zone, no group. Both
+    /// factions share it and on live it even spans servers, so it carries neither a SubType nor a
+    /// Faction - the client identifies it by ChatType.User alone.
+    /// </remarks>
+    private ChatChannel GlobalChannel { get; } = new()
+    {
+        ChatType = ChatType.Csm, SubType = 0, Faction = 0, InternalId = 0, InternalName = "CSM"
+    };
+
+    /// <summary>
     /// Creates default channels
     /// </summary>
     public void Initialize()
@@ -44,8 +57,16 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
         _ = AddNationChannel(Race.Nuian, FactionsEnum.NuiaAlliance, "Nuian-Elf-Dwarf");
         _ = AddNationChannel(Race.Hariharan, FactionsEnum.HaranyaAlliance, "Harani-Firran-Warborn");
 
+        // The global channel exists for the whole server lifetime; everyone joins it at login.
+        Logger.Info("Global chat channel '{0}' ready", GlobalChannel.InternalName);
+
         // Zone, Party/Raid, Guild, Family channels are created on the fly
     }
+
+    /// <summary>
+    /// The server-wide channel every character belongs to.
+    /// </summary>
+    public ChatChannel GetGlobalChat() => GlobalChannel;
 
     /// <summary>
     /// Used in GM command /testchatchannel list
@@ -64,6 +85,7 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
         res.AddRange(RaidChannels.Values);
         res.AddRange(GuildChannels.Values);
         res.AddRange(FamilyChannels.Values);
+        res.Add(GlobalChannel);
         return res;
     }
 
@@ -87,6 +109,7 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
             c.Value?.LeaveChannel(character);
         foreach (var c in FamilyChannels)
             c.Value?.LeaveChannel(character);
+        GlobalChannel.LeaveChannel(character);
     }
 
     /// <summary>

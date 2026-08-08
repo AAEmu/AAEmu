@@ -5,7 +5,7 @@ using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCJoinedChatChannelPacket(ChatType type, short subType, FactionsEnum factionId)
+public class SCJoinedChatChannelPacket(ChatType type, short subType, FactionsEnum factionId, string name = "")
     : GamePacket(SCOffsets.SCJoinedChatChannelPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
@@ -14,7 +14,8 @@ public class SCJoinedChatChannelPacket(ChatType type, short subType, FactionsEnu
         stream.Write(subType);
         stream.Write((uint)factionId);
         // -------------
-        stream.Write(""); // name
+        // User channels are addressed by name in the UI; the fixed ones carry none.
+        stream.Write(name ?? "");
         return stream;
     }
 }

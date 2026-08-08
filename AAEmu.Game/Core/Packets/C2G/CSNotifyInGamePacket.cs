@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -76,11 +76,14 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
 
         // Joining channel 1 (shout) will automatically also join /lfg and /trade for that zone on the client-side
         // Back in 1.x /trade was zone based, not faction based
-        ChatManager.Instance.GetZoneChat(Connection.ActiveChar.Transform.ZoneId).JoinChannel(Connection.ActiveChar); // shout, trade, lfg
+        var zoneChat = ChatManager.Instance.GetZoneChat(Connection.ActiveChar.Transform.ZoneId);
+        if (!zoneChat.JoinChannel(Connection.ActiveChar)) // shout, trade, lfg
+            zoneChat.AnnounceTo(Connection.ActiveChar);  // already a member from OnZoneChange - tell the client anyway
         ChatManager.Instance.GetNationChat(Connection.ActiveChar.Race).JoinChannel(Connection.ActiveChar); // nation
         // TODO: Implement crime system, actual jury channel doesn't exist yet
         Connection.ActiveChar.SendPacket(new SCJoinedChatChannelPacket(ChatType.Judge, 0, Connection.ActiveChar.Faction.MotherId)); //trial
         ChatManager.Instance.GetFactionChat(Connection.ActiveChar.Faction.MotherId).JoinChannel(Connection.ActiveChar); // faction
+        ChatManager.Instance.GetGlobalChat().JoinChannel(Connection.ActiveChar); // CSM - server-wide, both factions
 
         // TODO: Maybe move to spawn character?
         TeamManager.Instance.UpdateAtLogin(Connection.ActiveChar);

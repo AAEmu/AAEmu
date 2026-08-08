@@ -52,9 +52,27 @@ public class ChatChannel
 
         // character.SendMessage(ChatType.System, "ChatManager.JoinChannel {0} - {1} - {2}", chatType, internalId, internalName);
         Members.Add(character);
-        character.SendPacket(new SCJoinedChatChannelPacket(ChatType, SubType, Faction));
+        character.SendPacket(new SCJoinedChatChannelPacket(ChatType, SubType, Faction, AnnouncedName));
 
         return true;
+    }
+
+    /// <summary>Only user channels are addressed by name; the fixed ones are identified by type alone.</summary>
+    private string AnnouncedName => ChatType is ChatType.User or ChatType.Csm ? InternalName : string.Empty;
+
+    /// <summary>
+    /// Re-announces this channel to a character that is already a member.
+    /// </summary>
+    /// <remarks>
+    /// Membership and the client's knowledge of a channel are not the same thing. The zone channel in
+    /// particular is joined from Character.OnZoneChange while the login position is applied, long
+    /// before the client can take a chat packet - so by the time CSNotifyInGame runs, JoinChannel sees
+    /// an existing member and stays silent, and the client never learns the channel exists. Shout,
+    /// Trade and LFG all ride that one channel, which is exactly the set that stayed dead.
+    /// </remarks>
+    public void AnnounceTo(Character character)
+    {
+        character?.SendPacket(new SCJoinedChatChannelPacket(ChatType, SubType, Faction, AnnouncedName));
     }
 
     /// <summary>
@@ -84,12 +102,32 @@ public class ChatChannel
     /// <param name="ability"></param>
     /// <param name="languageType"></param>
     /// <returns>Number of members the message was sent to</returns>
+    /// <summary>
+    /// Sends a message whose ChatType differs from the channel's own.
+    /// </summary>
+    /// <remarks>
+    /// Trade, LFG and Shout all ride the zone channel, and Raid/RaidLeader share the raid one, so the
+    /// message type and the channel type are not the same thing. The channel's SubType and Faction
+    /// still have to travel with it - they are what lets the client match the message to a channel it
+    /// joined - which is why these callers cannot simply build the packet themselves.
+    /// </remarks>
+    public int SendMessage(Character origin, ChatType type, string msg, int ability = 0, byte languageType = 0)
+    {
+        var res = 0;
+        foreach (var m in Members)
+        {
+            m.SendPacket(new SCChatMessagePacket(type, origin ?? m, msg, ability, languageType, SubType, Faction));
+            res++;
+        }
+        return res;
+    }
+
     public int SendMessage(Character origin, string msg, int ability = 0, byte languageType = 0)
     {
         var res = 0;
         foreach (var m in Members)
         {
-            m.SendPacket(new SCChatMessagePacket(ChatType, origin ?? m, msg, ability, languageType));
+            m.SendPacket(new SCChatMessagePacket(ChatType, origin ?? m, msg, ability, languageType, SubType, Faction));
             res++;
         }
         return res;
