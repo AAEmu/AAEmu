@@ -70,7 +70,13 @@ public class CSAesXorKeyPacket() : GamePacket(CSOffsets.CSAesXorKeyPacket, 1)
             (int)Connection.Payment.Method,
             Connection.Payment.Location,
             Connection.Payment.StartTime,
-            Connection.Payment.EndTime));
+            Connection.Payment.EndTime,
+            Connection.Payment.RealPayTimeSeconds,
+            Connection.Payment.BuyPremiumCount));
+
+        // The client's membership flags do not survive the trip back from in-world, so returning to
+        // character select showed "Patron 0" again until this went out a second time.
+        AccountAttributePublisher.Send(Connection);
 
         Connection.LoadAccount();
 
