@@ -253,6 +253,11 @@ public class EnterWorldManager(
             // Check if still mounted on somebody else's mount and dismount that if needed
             activeChar.ForceDismount(/*AttachUnitReason.PrefabChanged*/); // Dismounting a mount because of unsummoning sends "10" for this
 
+            // Cancel any duel or pending duel invitation. This has to happen before the character is
+            // deleted below: a duel that is still running needs the flag removed and both factions
+            // restored, and a reservation nobody releases blocks the player from ever duelling again.
+            DuelManager.Instance.OnCharacterLogout(activeChar);
+
             // Remove from Team (raid/party)
             teamManager.MemberRemoveFromTeam(activeChar, activeChar, RiskyAction.Leave);
 

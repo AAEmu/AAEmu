@@ -91,6 +91,11 @@ public class GameConnection
 
         if (ActiveChar != null)
         {
+            // Cancel any duel or pending invitation. This path is the one a crash or an Alt+F4 takes -
+            // it never reaches EnterWorldManager.LeaveWorldTask - so without it a player who dropped
+            // mid-duel stayed registered as duelling and was refused every duel after relogging.
+            DuelManager.Instance.OnCharacterLogout(ActiveChar);
+
             ActiveChar.ParentWorld?.GimmickManager?.ReleaseGrasps(ActiveChar.ObjId);
             AAEmu.Game.WorldIntegration.ReleaseZoneGimmickGrasps?.Invoke(ActiveChar);
             AAEmu.Game.WorldIntegration.OnPlayerLeave?.Invoke(ActiveChar.ObjId);

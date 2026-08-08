@@ -9,6 +9,8 @@ public interface IDuelManager : IInitializable
 {
     Dictionary<uint, FactionsEnum> SaveFactions { get; set; }
     void DuelRequest(Character challenger, uint challengedId, byte duelType = 0);
+    void DuelRequestExpired(uint challengerId);
+    void OnCharacterLogout(Character character);
     void DuelAccepted(Character challenged, uint challengerId);
     void DuelStart(uint id);
     void DuelCancel(uint challengerId, ErrorMessageType errorMessage);
