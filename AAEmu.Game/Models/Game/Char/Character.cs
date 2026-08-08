@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Data;
 using System.Drawing;
 
@@ -345,9 +345,13 @@ public partial class Character : Unit, ICharacter
         }
     }
 
+    /// <summary>
+    /// Cap of the SERVER-LOCAL pool: premium_grades.max_local_labor plus what the account's memberships
+    /// add. The client sums the same two tables for its own display.
+    /// </summary>
     public int MaxLocalLaborPower => Math.Max(
         0,
-        PremiumGameData.Instance.GetGrade(PremiumGrade)?.MaxLocalLabor ?? 0);
+        AccountMemberships.LaborFor(PremiumGrade, AccountId, AppConfiguration.Instance.Id).MaxLocalLabor);
 
     /// <summary>
     /// Last time labor got updated
@@ -446,8 +450,41 @@ public partial class Character : Unit, ICharacter
 
     /// <summary>
     /// Premium grade resolved from <see cref="Point"/> against premium_grades. 0 is no premium.
+    /// Pinned to the highest grade when Account.ForceMaxPremiumGrade is set.
     /// </summary>
-    public uint PremiumGrade => PremiumGameData.Instance.GetGradeForPoint(Point);
+    public uint PremiumGrade
+    {
+        get
+        {
+            if (AppConfiguration.Instance.Account?.ForceMaxPremiumGrade == true)
+            {
+                var maxGrade = PremiumGameData.Instance.MaxGradeId;
+                if (maxGrade > 0)
+                    return maxGrade;
+            }
+
+            return PremiumGameData.Instance.GetGradeForPoint(Point);
+        }
+    }
+
+    /// <summary>
+    /// Premium points as the character-select record reports them. Normally <see cref="Point"/>, but a
+    /// forced max grade has no points behind it, so the lobby is given the top grade's threshold -
+    /// otherwise character select would still show the free tier for a character the world treats as a
+    /// full Patron.
+    /// </summary>
+    private uint LobbyPremiumPoint
+    {
+        get
+        {
+            var point = (uint)Math.Max(0, Point);
+            if (AppConfiguration.Instance.Account?.ForceMaxPremiumGrade != true)
+                return point;
+
+            var threshold = PremiumGameData.Instance.GetGrade(PremiumGameData.Instance.MaxGradeId)?.Point ?? 0;
+            return Math.Max(point, (uint)Math.Max(0, threshold));
+        }
+    }
 
     /// <summary>Cumulative heir exp (characters.heir_exp). heir_levels measures against the total.</summary>
     public long HeirExp { get; set; }
@@ -2124,36 +2161,40 @@ public partial class Character : Unit, ICharacter
         return applied;
     }
 
-    /// <summary>Guards <see cref="SendLaborPowerSnapshot"/> against seeding the client twice.</summary>
-    private bool _laborSnapshotSent;
-
     /// <summary>
-    /// Seeds the client's in-world labor counters with the current balances of both pools.
+    /// Grants the buff premium_grades attaches to this character's grade and strips the buffs of every
+    /// other grade.
     /// </summary>
     /// <remarks>
-    /// Both counters are pure accumulators: the handler for SCCharacterLaborPowerChanged does
-    /// `add [mgr+0xE58], amount` and `add [mgr+0xE68], localAmount` and never stores an absolute
-    /// value, and no other packet writes them either. The absolute {lp, localLp, consumed, ...}
-    /// block the server sends is only parsed into the character-list entry and feeds the
-    /// character-select screen, never the in-world manager. So without this a fresh session starts
-    /// both counters at zero and the UI under-reports until the next tick happens to move them.
+    /// premium_grades.buff_id was loaded into <see cref="Models.Game.Premium.PremiumGrade.BuffId"/> and
+    /// never used by anything. It is how ArcheAge carries Patron status on the character - grade 6 is
+    /// buff 7153, duration 0 (permanent) and flagged system - and the client evidently keys its Patron
+    /// readout off it rather than off the grade the server sends: with the grade correct in both
+    /// SCUpdatePremiumPoint and UnitState, the client still displayed the free tier's numbers.
+    /// The free tier has no buff of its own, so grade 1 only removes.
     /// </remarks>
-    public void SendLaborPowerSnapshot()
+    public void ApplyPremiumGradeBuff()
     {
-        // At most once per session. The counters are accumulators (`add`, never `mov`), so a second
-        // snapshot does not correct them - it doubles them. CSSpawnCharacter can legitimately arrive
-        // more than once for the same character, which is how Online Labor climbed past its own
-        // 5,000 cap to 5,529.
-        if (_laborSnapshotSent)
-            return;
-        _laborSnapshotSent = true;
+        var wanted = PremiumGameData.Instance.GetGrade(PremiumGrade)?.BuffId ?? 0;
 
-        var account = Math.Max(0, (int)LaborPower);
-        var local = Math.Max(0, LocalLaborPower);
-        if (account == 0 && local == 0)
+        foreach (var buffId in PremiumGameData.Instance.GradeBuffIds)
+        {
+            if (buffId == wanted)
+                continue;
+            if (Buffs.CheckBuff(buffId))
+                Buffs.RemoveBuff(buffId);
+        }
+
+        if (wanted == 0 || Buffs.CheckBuff(wanted))
             return;
 
-        SendPacket(new SCCharacterLaborPowerChangedPacket(account, local, 0, 0, 0, 0));
+        if (SkillManager.Instance.GetBuffTemplate(wanted) == null)
+        {
+            Logger.Warn("Premium grade {0} names buff {1}, which is not in the buff templates", PremiumGrade, wanted);
+            return;
+        }
+
+        Buffs.AddBuff(wanted, this);
     }
 
     public void ChangeGamePoints(GamePointKind kind, int change)
@@ -3529,9 +3570,13 @@ public partial class Character : Unit, ICharacter
         stream.Write(Money2);                                        // moneyAmount (bank)
         stream.Write(BankAaPoint);                                   // AA point amount (bank)
         stream.Write((byte)(AutoUseAAPoint ? 1 : 0));                 // autoUseAApoint (u8)
-        stream.Write((uint)0);                                        // prevPoint
-        stream.Write((uint)0);                                        // point
-        stream.Write((uint)0);                                        // gift
+        // Premium points. Hardcoded to 0, which is why character select read "Patron 0" for every
+        // character even when characters.point put them on a paid grade. LobbyPremiumPoint reports the
+        // grade threshold when Account.ForceMaxPremiumGrade is on, so the lobby agrees with the grade
+        // UnitState hands the client once it is in the world.
+        stream.Write((uint)Math.Max(0, PrevPoint));                   // prevPoint
+        stream.Write(LobbyPremiumPoint);                              // point
+        stream.Write((uint)Math.Max(0, Gift));                        // gift
         stream.Write(0L);                                            // updated
         stream.Write((byte)0);                                        // forceNameChange
         // guid: length-prefixed 16 bytes
