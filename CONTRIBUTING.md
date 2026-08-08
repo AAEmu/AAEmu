@@ -23,4 +23,19 @@ Look for a project's contribution instructions. If there are any, follow them.
 - Once the pull request is approved and merged you can pull the changes from `upstream` to your local repo and delete
 your extra branch(es).
 
-And last but not least: Always write your commit messages in the present tense. Your commit message should describe what the commit, when applied, does to the code – not what you did to the code.
+### Commit messages
+
+All commit messages must follow the [Conventional Commits 1.0.0 specification](https://www.conventionalcommits.org/en/v1.0.0/):
+
+```text
+<type>[optional scope][!]: <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+- Use `feat` for new features and `fix` for bug fixes. Other appropriate types, such as `build`, `chore`, `ci`, `docs`, `perf`, `refactor`, `style`, and `test`, are also allowed.
+- Use an optional scope to identify the affected area, for example: `fix(auth): reject expired tokens`.
+- Mark breaking changes with `!` before the colon or a `BREAKING CHANGE:` footer.
+- Write the description in the present tense. It should describe what the commit does when applied, not what you did while creating it.
