@@ -329,8 +329,21 @@ public partial class Character : Unit, ICharacter
     }
 
     /// <summary>
+    /// Cached representation of the SERVER-LOCAL labor pool ("Online Labor"). Account-wide, exactly
+    /// like <see cref="LaborPower"/> - the client keeps one labor manager per session, so a
+    /// per-character balance shows up as whichever character the character-select header binds to.
     /// </summary>
-    public int LocalLaborPower { get; set; }
+    public int LocalLaborPower
+    {
+        get => _localLaborPower;
+        set
+        {
+            if (_localLaborPower == value)
+                return;
+            _localLaborPower = value;
+            AccountManager.Instance.UpdateLocalLabor(AccountId, value);
+        }
+    }
 
     public int MaxLocalLaborPower => Math.Max(
         0,
@@ -568,6 +581,7 @@ public partial class Character : Unit, ICharacter
     private bool _inParty;
     private bool _isOnline;
     private short _laborPower;
+    private int _localLaborPower;
     private DateTime _laborPowerModified;
 
     /// <summary>
@@ -580,9 +594,10 @@ public partial class Character : Unit, ICharacter
     public List<uint> AssaultedBy { get; } = [];
     public List<uint> AssaultOn { get; } = [];
 
-    public void InitializeLaborCache(short labor, DateTime newTime)
+    public void InitializeLaborCache(short labor, int localLabor, DateTime newTime)
     {
         _laborPower = labor;
+        _localLaborPower = localLabor;
         _laborPowerModified = newTime;
     }
 
@@ -2771,9 +2786,9 @@ public partial class Character : Unit, ICharacter
                     character._savedMp = character.Mp;
                     // character.LaborPower = reader.GetInt16("labor_power");
                     // character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
-                    character.InitializeLaborCache(accountDetails.Labor, accountDetails.LastUpdated);
+                    // Both pools are account-wide, so neither comes from the character row.
+                    character.InitializeLaborCache(accountDetails.Labor, accountDetails.LocalLabor, accountDetails.LastUpdated);
                     character.ConsumedLaborPower = reader.GetInt32("consumed_lp");
-                    character.LocalLaborPower = reader.GetInt32("local_lp");
                     character.Ability1 = (AbilityType)reader.GetByte("ability1");
                     character.Ability2 = (AbilityType)reader.GetByte("ability2");
                     character.Ability3 = (AbilityType)reader.GetByte("ability3");
@@ -2895,11 +2910,9 @@ public partial class Character : Unit, ICharacter
                     character.Mp = reader.GetInt32("mp");
                     character._savedHp = character.Hp; // save for later
                     character._savedMp = character.Mp;
-                    character.InitializeLaborCache(accountDetails.Labor, accountDetails.LastUpdated);
-                    // character.LaborPower = reader.GetInt16("labor_power");
-                    // character.LaborPowerModified = reader.GetDateTime("labor_power_modified");
+                    // Both pools are account-wide, so neither comes from the character row.
+                    character.InitializeLaborCache(accountDetails.Labor, accountDetails.LocalLabor, accountDetails.LastUpdated);
                     character.ConsumedLaborPower = reader.GetInt32("consumed_lp");
-                    character.LocalLaborPower = reader.GetInt32("local_lp");
                     character.Ability1 = (AbilityType)reader.GetByte("ability1");
                     character.Ability2 = (AbilityType)reader.GetByte("ability2");
                     character.Ability3 = (AbilityType)reader.GetByte("ability3");
@@ -3187,7 +3200,9 @@ public partial class Character : Unit, ICharacter
                 command.CommandText =
                     "REPLACE INTO `characters` " +
                     "(`id`,`account_id`,`name`,`access_level`,`race`,`gender`,`unit_model_params`,`level`,`experience`,`recoverable_exp`,`heir_exp`," +
-                    "`hp`,`mp`,`consumed_lp`,`local_lp`,`ability1`,`ability2`,`ability3`," +
+                    // local_lp is deliberately absent: the local labor pool is account-wide and lives in
+                    // accounts.local_labor. REPLACE INTO resets the obsolete column to its default.
+                    "`hp`,`mp`,`consumed_lp`,`ability1`,`ability2`,`ability3`," +
                     "`world_id`,`zone_id`,`x`,`y`,`z`,`roll`,`pitch`,`yaw`," +
                     "`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`," +
                     "`money`,`money2`,`aa_point`,`bank_aa_point`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`jury_point`," +
@@ -3200,7 +3215,7 @@ public partial class Character : Unit, ICharacter
                     "`represent`" +
                     ") VALUES (" +
                     "@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@experience,@recoverable_exp,@heir_exp," +
-                    "@hp,@mp,@consumed_lp,@local_lp,@ability1,@ability2,@ability3," +
+                    "@hp,@mp,@consumed_lp,@ability1,@ability2,@ability3," +
                     "@world_id,@zone_id,@x,@y,@z,@yaw,@pitch,@roll," +
                     "@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time," +
                     "@money,@money2,@aa_point,@bank_aa_point,@honor_point,@vocation_point,@crime_point,@crime_record,@jury_point," +
@@ -3224,7 +3239,6 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@hp", Hp);
                 command.Parameters.AddWithValue("@mp", Mp);
                 command.Parameters.AddWithValue("@consumed_lp", ConsumedLaborPower);
-                command.Parameters.AddWithValue("@local_lp", LocalLaborPower);
                 command.Parameters.AddWithValue("@ability1", (byte)Ability1);
                 command.Parameters.AddWithValue("@ability2", (byte)Ability2);
                 command.Parameters.AddWithValue("@ability3", (byte)Ability3);
@@ -3490,7 +3504,11 @@ public partial class Character : Unit, ICharacter
         stream.Write((uint)Math.Max(0, LocalLaborPower));             // localLp
         stream.Write((uint)Math.Max(0, ConsumedLaborPower));          // consumed
         stream.Write(LaborPowerModified);                             // updated (unix DateTime)
-        stream.Write(0L);                                             // bmPoint
+        // Loyalty tokens ("Loyalty Token" in the char-select header). This was hardcoded to 0, which is
+        // why the header read 0 for every character while accounts.loyalty held the real balance. The
+        // labor fields right above it come from the same block and render correctly, so the block is
+        // parsed at the right offset - only the value was missing.
+        stream.Write(BmPoint);                                        // bmPoint
         stream.Write(0u);                                             // rechargedLp
         stream.Write(0L);                                             // rechargeResetTime
         return stream;

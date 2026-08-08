@@ -42,11 +42,34 @@ public class TimedRewardsManager(ITaskManager taskManager) : Singleton<TimedRewa
             var newLabor = (short)(currentLabor + addLabor);
             AccountManager.Instance.UpdateLabor(connection.AccountId, newLabor);
 
-            connection.ActiveChar?.SendPacket(new SCCharacterLaborPowerChangedPacket(addLabor, 0, 0, 0, 0, 0));
+            var activeChar = connection.ActiveChar;
+            activeChar?.SendPacket(new SCCharacterLaborPowerChangedPacket(addLabor, 0, 0, 0, 0, 0));
 
-            // Update cache if character was logged in
-            connection.ActiveChar?.InitializeLaborCache(newLabor, DateTime.UtcNow);
+            // Update cache if character was logged in. Only the account pool changed here - carry the
+            // local pool over unchanged, it is account-wide state too and this tick does not touch it.
+            activeChar?.InitializeLaborCache(newLabor, activeChar.LocalLaborPower, DateTime.UtcNow);
         }
+    }
+
+    /// <summary>
+    /// Adds to the SERVER-LOCAL pool ("Online Labor"), the one that fills while the player is logged
+    /// in. <see cref="Character.AddLocalLaborPower"/> clamps to the premium grade's max_local_labor and
+    /// emits the change in the packet's localAmount field, which is the counter the client adds it to.
+    /// Only runs with a character in the world - there is nothing to regenerate at character select.
+    /// </summary>
+    private static void DoAddLocalLabor(GameConnection connection, int addLabor)
+    {
+        if (addLabor <= 0)
+            return;
+
+        // Without a character in the world there is nothing to credit. Leave the tick time alone in
+        // that case, otherwise sitting at character select silently eats one tick after another.
+        var activeChar = connection.ActiveChar;
+        if (activeChar == null)
+            return;
+
+        AccountManager.Instance.UpdateTickTimes(connection.AccountId, DateTime.UtcNow, true, false, false);
+        activeChar.AddLocalLaborPower(addLabor);
     }
 
     public void DoTick()
@@ -58,11 +81,14 @@ public class TimedRewardsManager(ITaskManager taskManager) : Singleton<TimedRewa
             // Grab current values for last ticks
             var accountDetails = AccountManager.Instance.GetAccountDetails(connection.AccountId);
 
-            // Distribute Labor if needed (only for online labor)
+            // Online regeneration fills the SERVER-LOCAL pool, which the client labels "Online Labor" -
+            // its own ui_texts describe that one as restoring while you are logged in, and the account
+            // pool as restoring only while you are logged off. Crediting the account pool here is why
+            // "Online Labor" stayed at 0 forever while "Offline Labor" kept climbing.
             if (AppConfiguration.Instance.Labor.TickMinutes > 0 && accountDetails.LastLaborTick.AddMinutes(AppConfiguration.Instance.Labor.TickMinutes) <= DateTime.UtcNow)
             {
                 var addLabor = AppConfiguration.Instance.Labor.GetTickAmount(connection.Payment.PremiumState);
-                DoAddLabor(connection, accountDetails.Labor, addLabor);
+                DoAddLocalLabor(connection, addLabor);
             }
 
             // Distribute Credits if needed. 10.0.2.13 does not push the account balance on a timer (a live

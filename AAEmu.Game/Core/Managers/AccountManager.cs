@@ -78,6 +78,7 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
                 res.AccountId = reader.GetInt32("account_id");
                 res.AccessLevel = reader.GetInt32("access_level");
                 res.Labor = reader.GetInt16("labor");
+                res.LocalLabor = (int)reader.GetUInt32("local_labor");
                 res.Credits = reader.GetInt32("credits");
                 res.Loyalty = reader.GetInt32("loyalty");
                 res.LastUpdated = reader.GetDateTime("last_updated");
@@ -234,6 +235,40 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
                 command.CommandText = "UPDATE accounts SET labor = @labor WHERE account_id = @account_id";
                 command.Parameters.AddWithValue("@account_id", accountId);
                 command.Parameters.AddWithValue("@labor", laborPower);
+                command.Prepare();
+                command.ExecuteNonQuery();
+            }
+            catch (Exception e)
+            {
+                Logger.Error($"{e.Message}\n{e.StackTrace}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Persists the SERVER-LOCAL pool ("Online Labor"). Account-scoped, see
+    /// <see cref="AccountDetails.LocalLabor"/>.
+    /// </summary>
+    public void UpdateLocalLabor(uint accountId, int localLabor)
+    {
+        object accLock;
+        lock (_locks)
+        {
+            if (!_locks.TryGetValue(accountId, out accLock))
+            {
+                accLock = new object();
+                _locks.Add(accountId, accLock);
+            }
+        }
+        lock (accLock)
+        {
+            try
+            {
+                using var connection = MySQL.CreateConnection();
+                using var command = connection.CreateCommand();
+                command.CommandText = "UPDATE accounts SET local_labor = @local_labor WHERE account_id = @account_id";
+                command.Parameters.AddWithValue("@account_id", accountId);
+                command.Parameters.AddWithValue("@local_labor", Math.Max(0, localLabor));
                 command.Prepare();
                 command.ExecuteNonQuery();
             }

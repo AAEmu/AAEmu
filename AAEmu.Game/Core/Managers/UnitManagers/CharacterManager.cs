@@ -539,7 +539,9 @@ public class CharacterManager(
         character.AccessLevel = useAccessLevel;
         // character.LaborPower = (short)AppConfiguration.Instance.Labor.Default;
         // character.LaborPowerModified = DateTime.UtcNow;
-        character.InitializeLaborCache(accountDetails.Labor, accountDetails.LastUpdated); // Initialize Labor cache, so we don't need to query the DB every time we need to read it
+        // Initialize the labor cache, so we don't need to query the DB every time we need to read it.
+        // A new character inherits both account-wide pools rather than starting either of them over.
+        character.InitializeLaborCache(accountDetails.Labor, accountDetails.LocalLabor, accountDetails.LastUpdated);
         character.NumInventorySlots = template.NumInventorySlot;
         character.NumBankSlots = template.NumBankSlot;
         character.Inventory = new Inventory(character);

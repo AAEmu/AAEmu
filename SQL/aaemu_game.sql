@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS `accounts` (
   `account_id` INT(11) NOT NULL,
   `access_level` INT(11) NOT NULL DEFAULT '0',
   `labor` INT(11) NOT NULL DEFAULT '0',
+  `local_labor` INT UNSIGNED NOT NULL DEFAULT '0',
   `credits` INT(11) NOT NULL DEFAULT '0',
   `loyalty` INT(11) NOT NULL DEFAULT '0',
   `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
