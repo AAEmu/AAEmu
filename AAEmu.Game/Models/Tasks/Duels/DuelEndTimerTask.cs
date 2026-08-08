@@ -32,11 +32,11 @@ public class DuelEndTimerTask(Duel duel, uint challengerId) : Task
 
         if (_duel.Challenger.Hp < _duel.Challenged.Hp)
         {
-            DuelManager.Instance.DuelStop(_duel.Challenged.Id, DuelDetType.Win, _challengerId);
+            DuelManager.Instance.DuelStop(_duel.Challenged.Id, DuelDetType.Decided, _challengerId);
         }
         else if (_duel.Challenger.Hp > _duel.Challenged.Hp)
         {
-            DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Win, _duel.Challenged.Id);
+            DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Decided, _duel.Challenged.Id);
         }
         else if (_duel.Challenger.Hp == _duel.Challenged.Hp)
         {

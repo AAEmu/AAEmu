@@ -5,10 +5,22 @@ using AAEmu.Game.Models.Tasks.Duels;
 
 namespace AAEmu.Game.Models.Game.Duels;
 
-public class Duel(Character challenger, Character challenged)
+public class Duel(Character challenger, Character challenged, byte duelType = 1)
 {
+    /// <summary>A plain 1v1. The client's start handler maps this to its "start" cue.</summary>
+    public const byte NormalDuel = 1;
+
+    /// <summary>A party duel - the client's "start_party_duel" cue.</summary>
+    public const byte PartyDuel = 2;
+
     public Character Challenger { get; set; } = challenger; // это персонаж который вызвал нас на дуэль
     public Character Challenged { get; set; } = challenged; // это наш персонаж (т.е. connection.ActiveChar)
+
+    /// <summary>
+    /// Echoed back in SCDuelStarted. The client ignores that packet outright when this is 0, so it has
+    /// to be carried from the challenge all the way to the start.
+    /// </summary>
+    public byte DuelType { get; set; } = duelType;
     public Doodad DuelFlag { get; set; }
     public DuelStartTask DuelStartTask { get; set; }
     public DuelEndTimerTask DuelEndTimerTask { get; set; }

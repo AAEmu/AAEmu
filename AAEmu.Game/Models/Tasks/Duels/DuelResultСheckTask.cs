@@ -19,11 +19,11 @@ public class DuelResultСheckTask(Duel duel) : Task
         {
             if (_duel.Challenger.Hp <= 1)
             {
-                DuelManager.Instance.DuelStop(_challengedId, DuelDetType.Win, _challengerId);
+                DuelManager.Instance.DuelStop(_challengedId, DuelDetType.Decided, _challengerId);
             }
             else if (_duel.Challenged.Hp <= 1)
             {
-                DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Win, _challengedId);
+                DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Decided, _challengedId);
             }
             else if (_duel.Challenger.Hp <= 1 && _duel.Challenged.Hp <= 1)
             {
