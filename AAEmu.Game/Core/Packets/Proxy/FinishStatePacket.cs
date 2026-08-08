@@ -118,6 +118,7 @@ public class FinishStatePacket() : GamePacket(PPOffsets.FinishStatePacket, 2)
         foreach (var character in connection.Characters.Values)
             point = Math.Max(point, character.Point);
 
-        return (point, PremiumGameData.Instance.GetGradeForPoint(point));
+        // Same resolution the reward tick uses, so the tier shown here is the tier that gets paid.
+        return (point, PremiumGameData.Instance.GetAccountGrade(connection.Characters.Values));
     }
 }

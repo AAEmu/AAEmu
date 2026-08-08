@@ -81,9 +81,11 @@ public class TimedRewardsManager(ITaskManager taskManager) : Singleton<TimedRewa
         if (activeChar != null)
             return activeChar.PremiumGrade;
 
-        return AppConfiguration.Instance.Account?.ForceMaxPremiumGrade == true
-            ? PremiumGameData.Instance.MaxGradeId
-            : 0;
+        // No character picked yet - the login catch-up runs before that. Falling back to grade 0 here
+        // billed every offline catch-up at the free tier no matter what the account had paid for, which
+        // is the one tick where the difference is largest. Premium is account-wide, so resolve it the
+        // way the lobby does.
+        return PremiumGameData.Instance.GetAccountGrade(connection?.Characters?.Values);
     }
 
     /// <summary>

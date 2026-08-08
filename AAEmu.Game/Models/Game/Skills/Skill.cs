@@ -1565,7 +1565,12 @@ public class Skill
             if (Template.ConsumeLaborPower > 0 && laborCost < 1)
                 laborCost = 1;
 
-            if (laborCost > 0 && !Cancelled && character.LaborPower >= laborCost)
+            // Both pools pay, so both have to be counted here. ChangeLabor charges the account pool
+            // first and the local pool for the rest; gating on the account pool alone let a skill whose
+            // cost exceeded it run without being charged at all, while the player still held plenty of
+            // Online Labor. The other labor gates - crafting, the auction fee, specialty selling, exp
+            // recovery - all read the combined balance.
+            if (laborCost > 0 && !Cancelled && character.LaborPower + character.LocalLaborPower >= laborCost)
             {
                 // Consume labor only if there is enough of it
                 character.ChangeLabor((short)-laborCost, Template.ActabilityGroupId);
