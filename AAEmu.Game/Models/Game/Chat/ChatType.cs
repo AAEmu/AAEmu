@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Chat;
+﻿namespace AAEmu.Game.Models.Game.Chat;
 
 public enum ChatType : short
 {
@@ -19,5 +19,12 @@ public enum ChatType : short
     RaidLeader = 10,
     Judge = 11,
     Ally = 14,
-    User = 15
+    User = 15,
+
+    /// <summary>
+    /// The server-wide channel the client labels CSM (command /u). Measured from a live client:
+    /// it sends type 18 with an otherwise empty channel descriptor (chat = 0x12, no subType, no
+    /// faction), which fits a channel scoped to nothing at all.
+    /// </summary>
+    Csm = 18
 }

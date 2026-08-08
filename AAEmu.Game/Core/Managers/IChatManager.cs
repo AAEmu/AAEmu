@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Team;
@@ -16,6 +16,7 @@ public interface IChatManager : IInitializable
     ChatChannel GetNationChat(Race race);
     ChatChannel GetNationChat(Character character);
     ChatChannel GetZoneChat(uint zoneKey);
+    ChatChannel GetGlobalChat();
     ChatChannel GetGuildChat(Expedition guild);
     ChatChannel GetFamilyChat(uint familyId);
     ChatChannel GetPartyChat(Team party, Character myChar);
