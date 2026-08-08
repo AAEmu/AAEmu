@@ -10,6 +10,7 @@ public interface IAccountManager : IInitializable
     bool Contains(uint id);
     int Count();
     AccountDetails GetAccountDetails(uint accountId);
+    (int Point, uint Grade) GetAccountPremium(GameConnection connection);
     bool AddCredits(uint accountId, int creditsAmount);
     bool RemoveCredits(uint accountId, int credits);
     bool AddLoyalty(uint accountId, int loyaltyAmount);
