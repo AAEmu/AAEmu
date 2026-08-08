@@ -16,14 +16,20 @@ public class CSStartDuelPacket() : GamePacket(CSOffsets.CSStartDuelPacket, 1)
         var errorMessage = stream.ReadInt16();        // i16 - 0 accepted, 507 refused
         _ = stream.ReadByte();                        // u8  duelType
 
-        Logger.Warn("StartDuel, Id: {0}, ErrorMessage: {1}", challengerId, errorMessage);
+        Logger.Info("StartDuel, Id: {0}, ErrorMessage: {1}", challengerId, errorMessage);
 
+        var caller = Connection.ActiveChar;
+        if (caller == null)
+            return;
+
+        // Both paths are handed the caller, because challengerId is the client's word for whose duel
+        // this is. DuelManager checks it against the duel's own participants.
         if (errorMessage != 0)
         {
-            DuelManager.Instance.DuelCancel(challengerId, (ErrorMessageType)errorMessage);
+            DuelManager.Instance.DuelCancel(challengerId, (ErrorMessageType)errorMessage, caller);
             return;
         }
 
-        DuelManager.Instance.DuelAccepted(Connection.ActiveChar, challengerId);
+        DuelManager.Instance.DuelAccepted(caller, challengerId);
     }
 }

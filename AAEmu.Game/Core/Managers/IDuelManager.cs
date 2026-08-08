@@ -13,7 +13,7 @@ public interface IDuelManager : IInitializable
     void OnCharacterLogout(Character character);
     void DuelAccepted(Character challenged, uint challengerId);
     void DuelStart(uint id);
-    void DuelCancel(uint challengerId, ErrorMessageType errorMessage);
+    void DuelCancel(uint challengerId, ErrorMessageType errorMessage, Character caller = null);
     void DuelStop(uint id, DuelDetType det, uint loseId = 0);
     bool DuelResultСheck(uint id);
     DuelDistance DuelDistanceСheck(uint id);

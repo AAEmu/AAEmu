@@ -189,6 +189,19 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
                 return;
             }
 
+            // challengerId is whatever the client sent. Without this the only thing needed to seize
+            // somebody else's pending duel is their challenger id: the accept would mutate that duel's
+            // participants and spawn its flag in the CALLER's world, with neither of the two players
+            // involved having agreed to anything.
+            if (duel.Challenged.Id != challenged.Id)
+            {
+                challenged.SendErrorMessage(ErrorMessageType.BadDuelTarget);
+                Logger.Warn(
+                    "DuelAccepted: {0} ({1}) tried to accept the duel {2} -> {3}, which is not theirs",
+                    challenged.Name, challenged.Id, challengerId, duel.Challenged.Id);
+                return;
+            }
+
             if (duel.DuelStarted == false)
             {
                 duel.DuelStarted = true;
@@ -323,22 +336,47 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
         }
     }
 
-    public void DuelCancel(uint challengerId, ErrorMessageType errorMessage)
+    /// <summary>
+    /// Declines or withdraws a pending duel.
+    /// </summary>
+    /// <param name="caller">
+    /// The character the request came from. Only the two participants may end their own duel - the
+    /// challenger withdrawing, the challenged declining. Null skips the check, for the server-side
+    /// callers that are not acting on behalf of a player.
+    /// </param>
+    public void DuelCancel(uint challengerId, ErrorMessageType errorMessage, Character caller = null)
     {
+        if (!_duels.TryGetValue(challengerId, out var duel))
+        {
+            Logger.Info($"DuelCancel: no pending duel for challenger {challengerId} - expired or already ended");
+            return;
+        }
+
+        // Same reasoning as in DuelAccepted: challengerId comes from the client, so without this a
+        // third party could cancel any duel whose challenger id they know.
+        if (caller != null && duel.Challenger.Id != caller.Id && duel.Challenged.Id != caller.Id)
+        {
+            Logger.Warn(
+                "DuelCancel: {0} ({1}) tried to cancel the duel {2} -> {3}, which they are not part of",
+                caller.Name, caller.Id, challengerId, duel.Challenged.Id);
+            return;
+        }
+
         try
         {
-            var duel = _duels[challengerId];
             duel.DuelAllowed = false;
             if (errorMessage != 0)
                 duel.Challenger.SendErrorMessage(errorMessage);
 
-            Logger.Warn($"DuelCancel: Duel with challengerId={challengerId} canceled, error={errorMessage}");
-            DuelCleanUp(challengerId);
+            Logger.Info($"DuelCancel: Duel with challengerId={challengerId} canceled, error={errorMessage}");
         }
         catch (Exception e)
         {
-            // id is missing in the database
-            Logger.Warn($"DuelCancel: Id={challengerId} not found in duels[], error code: {e}");
+            Logger.Error($"DuelCancel: Id={challengerId} did not cancel cleanly, releasing both players anyway: {e}");
+        }
+        finally
+        {
+            DuelCleanUp(challengerId);
         }
     }
 
