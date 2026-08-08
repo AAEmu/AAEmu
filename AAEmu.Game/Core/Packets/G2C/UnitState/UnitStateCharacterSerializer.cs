@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 
 namespace AAEmu.Game.Core.Packets.G2C.UnitState;
 
@@ -31,8 +31,11 @@ internal static class UnitStateCharacterSerializer
         foreach (var ability in activeAbilities)
             stream.Write((byte)ability);
 
-        var factionId = (uint)(character.Faction?.Id ?? 0);
-        stream.WriteBc(factionId);
+        // This bc is the DUEL STATE object, not the faction. The client reads the block as
+        // "bc, duelTeamType, camp" (VA 0x39C3A61C4), and we wrote the faction id into it - so every
+        // player, having a non-zero faction, looked to the client as if they were already duelling,
+        // and "That person is already dueling." blocked every invite before the client sent one.
+        stream.WriteBc(character.DuelStateObjectId);
         stream.Write(unchecked((sbyte)character.DuelTeamType));
         stream.Write(unchecked((sbyte)character.Camp));
         character.VisualOptions.WriteOptions(stream);
