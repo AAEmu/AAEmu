@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -13,9 +13,8 @@ public class CSICSBuyGoodPacket() : GamePacket(CSOffsets.CSICSBuyGoodPacket, 1)
 {
     public override void Read(PacketStream stream)
     {
-        var buyer = Connection.ActiveChar;
-        var buyList = new List<IcsSku>();
         var thisChar = Connection.ActiveChar;
+        var buyList = new List<IcsPurchase>();
         byte buyMode = 1; // No idea what this means
 
         var numBuys = stream.ReadByte();
@@ -28,7 +27,7 @@ public class CSICSBuyGoodPacket() : GamePacket(CSOffsets.CSICSBuyGoodPacket, 1)
 
             if (!CashShopManager.Instance.ShopItems.TryGetValue(cashShopId, out var shopItem))
             {
-                Logger.Warn($"{Connection.ActiveChar.Name} is trying to shop for invalid ShopItem: {cashShopId}");
+                Logger.Warn($"{thisChar.Name} is trying to shop for invalid ShopItem: {cashShopId}");
                 continue;
             }
 
@@ -47,11 +46,12 @@ public class CSICSBuyGoodPacket() : GamePacket(CSOffsets.CSICSBuyGoodPacket, 1)
             if (sku == null)
             {
                 Logger.Warn(
-                    $"{Connection.ActiveChar.Name} is trying to shop from ShopItem: {shopItem.ShopId}, but with invalid index: {detailIndex}");
+                    $"{thisChar.Name} is trying to shop from ShopItem: {shopItem.ShopId}, but with invalid index: {detailIndex}");
                 continue;
             }
 
-            buyList.Add(sku);
+            // Keep the client's detail index so the buy-result can echo it back (buyItem/remainBuyCount).
+            buyList.Add(new IcsPurchase(sku, detailIndex));
         }
 
         var receiverName = stream.ReadString();
@@ -63,18 +63,18 @@ public class CSICSBuyGoodPacket() : GamePacket(CSOffsets.CSICSBuyGoodPacket, 1)
         if (targetChar == null)
         {
             thisChar.SendErrorMessage(ErrorMessageType.IngameShopFindCharacterNameFail);
-            thisChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
+            thisChar.SendPacket(new SCICSBuyFailedPacket(buyMode, SCICSBuyFailedPacket.ReasonGeneric));
             return;
         }
 
         if (buyList.Count <= 0)
         {
             thisChar.SendErrorMessage(ErrorMessageType.BuyCartEmpty);
-            Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
+            thisChar.SendPacket(new SCICSBuyFailedPacket(buyMode, SCICSBuyFailedPacket.ReasonGeneric));
             return;
         }
 
         // Create task for the transaction, this allows handling of credits in a async manner
-        TaskManager.Instance.Schedule(new CashShopBuyTask(buyMode, Connection.ActiveChar, targetChar, buyList), TimeSpan.FromSeconds(1));
+        TaskManager.Instance.Schedule(new CashShopBuyTask(buyMode, thisChar, targetChar, buyList), TimeSpan.FromSeconds(1));
     }
 }

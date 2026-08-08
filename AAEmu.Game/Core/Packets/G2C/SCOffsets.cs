@@ -459,7 +459,8 @@ public static class SCOffsets
     public const ushort SCICSGoodListPacket = 0x24C; // 10.0.2.13
     public const ushort SCICSGoodDetailPacket = 0x24D; // 10.0.2.13
     public const ushort SCICSCheckTimePacket = 0x24E; // 10.0.2.13
-    public const ushort SCICSBuyResultPacket = 0x24F; // 10.0.2.13
+    public const ushort SCICSBuySucceededPacket = 0x24F; // 10.0.2.13 (was SCICSBuyResult; client splits success/fail)
+    public const ushort SCICSBuyFailedPacket = 0x250;    // 10.0.2.13 (note: dup with stale SCGmDumpSubStat=0x250)
     public const ushort SCICSSyncGoodPacket = 0x251; // 10.0.2.13
     public const ushort SCICSCashPointPacket = 0x252; // 10.0.2.13
     public const ushort SCICSExchangeRatioPacket = 0x253; // 10.0.2.13
