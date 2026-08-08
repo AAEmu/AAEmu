@@ -31,6 +31,13 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
     /// </summary>
     private static readonly TimeSpan CountdownDuration = TimeSpan.FromMilliseconds(3000);
 
+    /// <summary>
+    /// How long an unanswered invitation keeps both players reserved. The client has no timer of its
+    /// own - its challenge handler only builds the dialog - so if we do not expire the request nobody
+    /// will, and an ignored popup blocks both players from duelling for the rest of the session.
+    /// </summary>
+    private static readonly TimeSpan RequestTimeout = TimeSpan.FromSeconds(30);
+
     // there can be several duels at the same time
     private readonly ConcurrentDictionary<uint, Duel> _duels = new();
     public Dictionary<uint, FactionsEnum> SaveFactions { get; set; } = [];
@@ -98,8 +105,73 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
 
         var duel = new Duel(challenger, challenged, duelType);
         DuelAdd(duel);
+
+        // Both players are now reserved. Arm the release before the invitation goes out, so that an
+        // ignored popup cannot leave them reserved for good.
+        duel.DuelRequestTimeoutTask = new DuelRequestTimeoutTask(challenger.Id);
+        TaskManager.Instance.Schedule(duel.DuelRequestTimeoutTask, RequestTimeout);
+
         challenged.SendPacket(new SCDuelChallengedPacket(challenger.Id, duelType)); // we send only to the enemy
         Logger.Info($"DuelRequest: challenger={challenger.Id}:{challenger.ObjId}, challenged={challenged.Id}:{challenged.ObjId}, type={duelType}");
+    }
+
+    /// <summary>
+    /// Called when nobody answered an invitation within <see cref="RequestTimeout"/>. Releases both
+    /// players. A duel that has already been accepted is left alone - it has its own end conditions.
+    /// </summary>
+    public void DuelRequestExpired(uint challengerId)
+    {
+        if (!_duels.TryGetValue(challengerId, out var duel))
+            return;
+
+        if (duel.DuelStarted)
+            return;
+
+        Logger.Info($"DuelRequestExpired: {duel.Challenger.Name} -> {duel.Challenged.Name} went unanswered, releasing both");
+        duel.Challenger.SendErrorMessage(ErrorMessageType.TargetRejectedDuel);
+        ReleaseDuel(duel);
+    }
+
+    /// <summary>
+    /// Cancels whatever duel a character is involved in when they leave the world.
+    /// </summary>
+    /// <remarks>
+    /// Logging out used to release nothing: the entry, and with it the reference to the Character, sat
+    /// in the table until the server restarted, and the player was refused every duel after their next
+    /// login. A duel already in progress is ended as cancelled so the opponent gets a result and their
+    /// faction and flag are cleaned up.
+    /// </remarks>
+    public void OnCharacterLogout(Character character)
+    {
+        if (character == null || !_duels.TryGetValue(character.Id, out var duel))
+            return;
+
+        if (duel.DuelStarted)
+        {
+            Logger.Info($"OnCharacterLogout: {character.Name} left during a duel, cancelling it");
+            DuelStop(character.Id, DuelDetType.Cancel, character.Id);
+            return;
+        }
+
+        // Still only an invitation. Tell whoever is left that it is off.
+        var other = duel.Challenger.Id == character.Id ? duel.Challenged : duel.Challenger;
+        Logger.Info($"OnCharacterLogout: {character.Name} left with a duel invitation pending, releasing both");
+        other.SendErrorMessage(ErrorMessageType.TargetRejectedDuel);
+        ReleaseDuel(duel);
+    }
+
+    /// <summary>
+    /// Frees both players from a duel that never started: cancel the timeout and drop the entry.
+    /// </summary>
+    private void ReleaseDuel(Duel duel)
+    {
+        if (duel.DuelRequestTimeoutTask != null)
+        {
+            _ = duel.DuelRequestTimeoutTask.Cancel();
+            duel.DuelRequestTimeoutTask = null;
+        }
+
+        DuelRemove(duel);
     }
 
     public void DuelAccepted(Character challenged, uint challengerId)
@@ -108,13 +180,27 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
         // приходит ID того, кто вызвал на дуэль
         try
         {
-            var duel = _duels[challengerId];
+            // The invitation can have expired while the popup sat on screen, so accepting one we no
+            // longer know about is normal rather than exceptional - say so instead of failing mutely.
+            if (!_duels.TryGetValue(challengerId, out var duel))
+            {
+                challenged.SendErrorMessage(ErrorMessageType.BadDuelTarget);
+                Logger.Info($"DuelAccepted: no pending duel for challenger {challengerId} - expired or withdrawn");
+                return;
+            }
 
             if (duel.DuelStarted == false)
             {
                 duel.DuelStarted = true;
                 duel.Challenger.IsInDuel = true;
                 duel.Challenged.IsInDuel = true;
+
+                // Answered in time - the reservation is now the duel's own business.
+                if (duel.DuelRequestTimeoutTask != null)
+                {
+                    _ = duel.DuelRequestTimeoutTask.Cancel();
+                    duel.DuelRequestTimeoutTask = null;
+                }
 
                 // spawn flag
                 _combatFlag = new DoodadSpawner
@@ -180,9 +266,13 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
 
     private void RestoreFaction(Unit owner)
     {
-        // restore the fraction
-        owner.SetFaction(SaveFactions[owner.Id]);
-        SaveFactions.Remove(owner.Id);
+        // A duel that never got as far as swapping factions has nothing saved here. Indexing blindly
+        // threw, and since this runs in the middle of winding the duel down, that throw used to take
+        // the release of both players with it.
+        if (!SaveFactions.Remove(owner.Id, out var faction))
+            return;
+
+        owner.SetFaction(faction);
     }
 
     public void DuelStart(uint id)
@@ -254,40 +344,56 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
 
     private void DuelCleanUp(uint id)
     {
+        if (!_duels.TryGetValue(id, out var duel))
+            return;
+
         try
         {
-            var duel = _duels[id];
-
             duel.Challenger.IsInDuel = false;
             duel.Challenged.IsInDuel = false;
 
-            if (duel.DuelStartTask != null)
-            {
-                _ = duel.DuelStartTask.Cancel();
-                duel.DuelStartTask = null;
-            }
-
-            if (duel.DuelEndTimerTask != null)
-            {
-                _ = duel.DuelEndTimerTask.Cancel();
-                duel.DuelEndTimerTask = null;
-            }
-
-            DuelRemove(duel);
+            // Every task has to go, not just the two that used to be listed here. The distance and
+            // result checks reschedule themselves once a second and each one holds the Duel - and with
+            // it both Characters - alive until it next fails to find the duel in the table.
+            duel.DuelRequestTimeoutTask = CancelTask(duel.DuelRequestTimeoutTask);
+            duel.DuelStartTask = CancelTask(duel.DuelStartTask);
+            duel.DuelEndTimerTask = CancelTask(duel.DuelEndTimerTask);
+            duel.DuelDistanceСheckTask = CancelTask(duel.DuelDistanceСheckTask);
+            duel.DuelResultСheckTask = CancelTask(duel.DuelResultСheckTask);
         }
         catch (Exception e)
         {
-            // id is missing in the database
-            Logger.Warn($"CleanUpDuel: Id={id} not found in duels[], error code: {e}");
+            Logger.Error($"CleanUpDuel: Id={id} threw while tidying up, dropping the entry anyway: {e}");
         }
+        finally
+        {
+            DuelRemove(duel);
+        }
+    }
+
+    /// <summary>Cancels a scheduled task if there is one, and hands back the null to store.</summary>
+    private static T CancelTask<T>(T task) where T : Models.Tasks.Task
+    {
+        if (task != null)
+            _ = task.Cancel();
+
+        return null;
     }
 
     public void DuelStop(uint id, DuelDetType det, uint loseId = 0)
     {
+        if (!_duels.TryGetValue(id, out var duel))
+        {
+            Logger.Warn($"DuelStop: Id={id} not found in duels[]");
+            return;
+        }
+
+        // Winding a duel down touches players who may already be halfway out of the world, so any of
+        // the steps below can throw. Releasing them is the one thing that must happen regardless -
+        // DuelCleanUp used to sit last inside the try, where a single throw above it skipped the
+        // release and left both players registered as duelling until the server restarted.
         try
         {
-            Logger.Warn("DuelStop: Duel ended");
-            var duel = _duels[id];
             duel.DuelAllowed = false;
 
             // A decided duel needs somebody to have lost it. Without that we cannot say who won, and
@@ -329,13 +435,14 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
             // Player cannot be attacked
             duel.Challenger.IsInBattle = false;
             duel.Challenged.IsInBattle = false;
-
-            DuelCleanUp(id);
         }
         catch (Exception e)
         {
-            // id is missing in the database
-            Logger.Warn($"DuelStop: Id={id} not found in duels[], error code: {e}");
+            Logger.Error($"DuelStop: Id={id} did not wind down cleanly, releasing both players anyway: {e}");
+        }
+        finally
+        {
+            DuelCleanUp(id);
         }
     }
 

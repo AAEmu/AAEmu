@@ -23,6 +23,9 @@ public class Duel(Character challenger, Character challenged, byte duelType = 1)
     public byte DuelType { get; set; } = duelType;
     public Doodad DuelFlag { get; set; }
     public DuelStartTask DuelStartTask { get; set; }
+
+    /// <summary>Releases both players again if the invitation is never answered.</summary>
+    public DuelRequestTimeoutTask DuelRequestTimeoutTask { get; set; }
     public DuelEndTimerTask DuelEndTimerTask { get; set; }
     public DuelDistanceСheckTask DuelDistanceСheckTask { get; set; }
     public DuelResultСheckTask DuelResultСheckTask { get; set; }
