@@ -216,16 +216,19 @@ public class PlotTargetInfo
         //TODO for now we get all units in a 5 meters radius
         var randomUnits = WorldManager.GetAroundByShape<Unit>(Source, args.Shape);
 
-        var filteredUnits = FilterTargets(randomUnits, state, args, plotEvent);
+        // Materialise once, before anything counts or indexes it. FilterTargets is lazy and now runs
+        // plot_aoe_conditions, which include kinds that are not idempotent - Chance rolls a die and
+        // CombatDiceResult writes the result the rest of the plot reads. Enumerating the sequence three
+        // times (Count, Any, ElementAt) rolled them three times, so each pass could see a different
+        // population and the index could point past the end of the last one.
+        var filteredUnits = FilterTargets(randomUnits, state, args, plotEvent).ToList();
         if (args.HitOnce)
-            filteredUnits = filteredUnits.Where(unit => unit.ObjId != PreviousTarget.ObjId);
+            filteredUnits = filteredUnits.Where(unit => unit.ObjId != PreviousTarget.ObjId).ToList();
 
-        var index = Random.Shared.Next(0, filteredUnits.Count());
-
-        if (!filteredUnits.Any())
+        if (filteredUnits.Count == 0)
             return null;
 
-        var randomUnit = filteredUnits.ElementAt(index);
+        var randomUnit = filteredUnits[Random.Shared.Next(0, filteredUnits.Count)];
 
         EffectedTargets.Add(randomUnit);
         if (state.HitObjects.TryGetValue(plotEvent.Id, out var o))
@@ -299,17 +302,17 @@ public class PlotTargetInfo
     }
 
     /// <summary>
-    /// Reports, per plot area search, where it looked and how many units each filter step drops.
-    /// Set AAEMU_PLOT_AREA_DEBUG=0 to turn it off.
+    /// AAEMU_PLOT_AREA_DEBUG=1 reports, per plot area search, where it looked and how many units each
+    /// filter step drops. Off by default.
     /// </summary>
     /// <remarks>
-    /// On by default while plot AoE target counts are under investigation. It materialises the
-    /// intermediate lists, but one line per area search is nothing next to the per-packet and per-doodad
-    /// TRACE this log already carries — and it is the one step whose outcome nothing else records:
-    /// events without effects or conditions emit no SCPlotEvent, so an empty search looks exactly like an
-    /// event that never ran.
+    /// Off because this sits on the combat hot path: it materialises every intermediate list, and a
+    /// sphere search additionally runs a 40m neighbourhood query and sorts it. Worth turning on when a
+    /// plot AoE hits the wrong number of targets — that is the one step whose outcome nothing else
+    /// records, since events without effects or conditions emit no SCPlotEvent, so an empty search looks
+    /// exactly like an event that never ran.
     /// </remarks>
-    private static readonly bool AreaDebug = Environment.GetEnvironmentVariable("AAEMU_PLOT_AREA_DEBUG") != "0";
+    private static readonly bool AreaDebug = Environment.GetEnvironmentVariable("AAEMU_PLOT_AREA_DEBUG") == "1";
 
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -325,7 +328,7 @@ public class PlotTargetInfo
         var shape = args.Shape;
         var pos = origin?.Transform?.World?.Position ?? System.Numerics.Vector3.Zero;
         var yaw = origin?.Transform?.World?.Rotation.Z ?? 0f;
-        Logger.Info(
+        Logger.Debug(
             "PlotArea evt={0} skill={1} shape={2}(kind={3} v1={4:F1} v2={5:F1} v3={6:F1}) origin={7} pos=({8:F1},{9:F1},{10:F1}) yawDeg={11:F0} rel={12} typeFlag={13} maxT={14} | found={15} → {16} | taken={17}",
             plotEvent.Id, state.ActiveSkill?.Template?.Id, shape?.Id, shape?.Type, shape?.Value1, shape?.Value2,
             shape?.Value3, origin?.ObjId, pos.X, pos.Y, pos.Z, yaw.RadToDeg(), args.UnitRelationType,
@@ -358,7 +361,7 @@ public class PlotTargetInfo
             .Take(12)
             .Select(x => $"{x.u.ObjId}({x.u.TemplateId}) d={x.dist:F1} a={MathUtil.ClampDegAngle(MathUtil.CalculateAngleFrom(origin, x.u)):F0}°");
 
-        Logger.Info("PlotArea   neighbourhood({0}m): {1}", NeighbourhoodProbeRadius, string.Join(", ", near));
+        Logger.Debug("PlotArea   neighbourhood({0}m): {1}", NeighbourhoodProbeRadius, string.Join(", ", near));
     }
 
     /// <summary>How far the neighbourhood dump looks — wide enough to catch units the shape radius missed.</summary>
