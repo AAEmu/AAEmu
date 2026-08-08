@@ -38,6 +38,15 @@ public class CSSpawnCharacterPacket() : GamePacket(CSOffsets.CSSpawnCharacterPac
 
         Connection.SendPacket(new SCDetailedTimeOfDayPacket(TimeManager.Instance.GetTime));
 
-        Logger.Info("CSSpawnCharacterPacket faction={0}", me.Faction?.Id);
+        // Deliberately no labor packet here. SCCharacterLaborPowerChanged is a delta - the handler does
+        // `add [mgr+0xE58], amount` and `add [mgr+0xE68], localAmount`, never a store - and the client
+        // already carries both balances into the world from the {lp, localLp, ...} block in the
+        // character-list record. Sending the totals once more would add them on top, so the in-world
+        // display reads exactly twice the stored balance. Only real changes belong on this packet.
+
+        // After SCUnitState, so the client has the unit before the buff-created packet references it.
+        me.ApplyPremiumGradeBuff();
+
+        Logger.Info("CSSpawnCharacterPacket faction={0} premiumGrade={1}", me.Faction?.Id, me.PremiumGrade);
     }
 }

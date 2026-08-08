@@ -11,8 +11,29 @@ public class AccountPayment(GameConnection connection)
     public PaymentMethodType Method { get; set; } = PaymentMethodType.Premium;
     public int Location { get; set; } = 1;
 
-    public DateTime StartTime { get; set; } = DateTime.MinValue;
+    /// <summary>
+    /// Start of the paid period. A fixed past date rather than DateTime.MinValue, which serializes to a
+    /// unix time of 0 and told the client the subscription began in 1970.
+    /// </summary>
+    public DateTime StartTime { get; set; } = new(2020, 1, 1);
     public DateTime EndTime { get; set; } = new(2030, 1, 1);
+
+    /// <summary>
+    /// Paid time left, in seconds. The client reads realPayTime through its plain int64 slot rather
+    /// than its DateTime slot (serializer at rva 0xc512a0), so this is a duration, not a timestamp -
+    /// and it was previously hardcoded to 0 on the wire.
+    /// </summary>
+    public long RealPayTimeSeconds
+    {
+        get
+        {
+            var remaining = EndTime - DateTime.UtcNow;
+            return remaining <= TimeSpan.Zero ? 0L : (long)remaining.TotalSeconds;
+        }
+    }
+
+    /// <summary>How many times premium was bought. No purchase records exist, so report one.</summary>
+    public int BuyPremiumCount { get; set; } = 1;
 
     /// <summary>
     /// Checks if Premium is currently active

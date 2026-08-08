@@ -246,6 +246,18 @@ public class AccountConfig
     /// Access-Level that should be used for the first created character on the server regardless of other settings
     /// </summary>
     public int AccessLevelFirstCharacter { get; set; } = 100;
+
+    /// <summary>
+    /// Grants every character the highest grade in premium_grades instead of deriving it from
+    /// characters.point. Off by default, so the point thresholds (1, 50, 125, 225, 400) keep deciding.
+    /// </summary>
+    /// <remarks>
+    /// Turning this on is what "everyone is a max Patron" means: it moves the whole account off the
+    /// free tier (grade 1, which premium_grades gives max_labor = 0, so the account/"Offline" pool
+    /// does not exist for it) onto the top grade and its 6000/5000 caps and 15/10 regeneration.
+    /// The grade also travels in UnitState, so the client's own labor cap display follows it.
+    /// </remarks>
+    public bool ForceMaxPremiumGrade { get; set; } = false;
 }
 
 public class CurrencyValuesConfig

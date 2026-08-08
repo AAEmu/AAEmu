@@ -1,8 +1,11 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 
 namespace AAEmu.Game.Core.Packets.Proxy;
 
@@ -37,22 +40,14 @@ public class FinishStatePacket() : GamePacket(PPOffsets.FinishStatePacket, 2)
                         (int)Connection.Payment.Method,
                         Connection.Payment.Location,
                         Connection.Payment.StartTime,
-                        Connection.Payment.EndTime)
+                        Connection.Payment.EndTime,
+                        Connection.Payment.RealPayTimeSeconds,
+                        Connection.Payment.BuyPremiumCount)
                 );
                 Connection.SendPacket(new SCChatSpamDelayPacket());
                 Connection.SendPacket(new SCAccountAttributeConfigPacket());
 
-                var accountAttributes = AccountAttributeManager.Instance.Get(
-                    Connection.AccountId, AppConfiguration.Instance.Id);
-                if (accountAttributes.Count == 0)
-                {
-                    Connection.SendPacket(new SCAccountAttributeListPacket([]));
-                }
-                else
-                {
-                    foreach (var batch in accountAttributes.Chunk(SCAccountAttributeListPacket.MaxAttributes))
-                        Connection.SendPacket(new SCAccountAttributeListPacket(batch));
-                }
+                AccountAttributePublisher.Send(Connection);
 
                 Connection.SendPacket(new SCLevelRestrictionConfigPacket(AppConfiguration.Instance.LevelRestrictions));
 
@@ -78,11 +73,51 @@ public class FinishStatePacket() : GamePacket(PPOffsets.FinishStatePacket, 2)
                 Connection.SendPacket(new ChangeStatePacket(state + 1));
                 break;
             case 7:
-                Connection.SendPacket(new SCUpdatePremiumPointPacket(1, 1, 1));
+                // This carried a hardcoded (1, 1, 1). Grade 1 is the free tier and the client's Patron
+                // readout counts from zero - buff 7153 is named "grade 5" and hangs on grade_id 6 - so
+                // character select showed "Patron 0" for every account regardless of characters.point.
+                var (premiumPoint, premiumGrade) = ResolveAccountPremium(Connection);
+                Logger.Debug(
+                    "SCUpdatePremiumPoint point={0} grade={1} (forceMaxGrade={2}, maxGradeId={3}, chars={4})",
+                    premiumPoint, premiumGrade,
+                    AppConfiguration.Instance.Account?.ForceMaxPremiumGrade,
+                    PremiumGameData.Instance.MaxGradeId,
+                    Connection.Characters.Count);
+                // Wire format verified against x2game-dev.dll: the serializer at rva 0xc61e50 reads
+                // {int32 point, uint8 oldPg, uint8 pg} - point through the int32 vtable slot 0xA0, both
+                // grades through the one-byte slot 0x90 - so this packet is shaped correctly. Nothing is
+                // in flight at the handshake, so the old grade IS the current one; claiming a transition
+                // here would be a fabrication, and testing one changed nothing in the client anyway.
+                Connection.SendPacket(new SCUpdatePremiumPointPacket(
+                    premiumPoint, (byte)premiumGrade, (byte)premiumGrade));
                 break;
             default:
                 Logger.Info("Unknown state: {0}", state);
                 break;
         }
+    }
+
+    /// <summary>
+    /// Premium points and grade for the whole account. Premium is account-wide and the lobby has no
+    /// character selected yet, so the best grade any character on the account reached stands in for it.
+    /// </summary>
+    /// <remarks>
+    /// The character list may not be loaded yet at this point in the handshake; that only costs the
+    /// free tier, which is what the hardcoded value gave anyway. A forced max grade needs no characters.
+    /// </remarks>
+    private static (int Point, uint Grade) ResolveAccountPremium(GameConnection connection)
+    {
+        if (AppConfiguration.Instance.Account?.ForceMaxPremiumGrade == true)
+        {
+            var maxGrade = PremiumGameData.Instance.MaxGradeId;
+            if (maxGrade > 0)
+                return (Math.Max(0, PremiumGameData.Instance.GetGrade(maxGrade)?.Point ?? 0), maxGrade);
+        }
+
+        var point = 0;
+        foreach (var character in connection.Characters.Values)
+            point = Math.Max(point, character.Point);
+
+        return (point, PremiumGameData.Instance.GetGradeForPoint(point));
     }
 }
