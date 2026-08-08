@@ -61,6 +61,25 @@ public class PlotEventCondition
         }
 
         var result = true;
+
+        if (targetInfo.EffectedTargets.Count == 0)
+        {
+            // With no hits the loop below never executes, so the method returns its initial `true` —
+            // a "did we find a target?" gate reports SUCCESS precisely when nothing was found. The
+            // plot then takes the success edge, whose children are per_target and expand to nothing,
+            // the queue drains and SCPlotEnded fires. That is what made Crashing Wave (plot 3523)
+            // dead-end at event 48423. Evaluate the condition once against the non-per-target unit.
+            var fallbackTarget = TargetId switch
+            {
+                PlotEffectTarget.OriginalSource => state.Caster,
+                PlotEffectTarget.OriginalTarget => state.Target,
+                PlotEffectTarget.Source => targetInfo.Source,
+                _ => targetInfo.Target
+            };
+            return condition.Condition.Check(source, state.CasterCaster, fallbackTarget,
+                state.TargetCaster, state.SkillObject, state.ActiveSkill);
+        }
+
         foreach (var newTarget in targetInfo.EffectedTargets)
         {
             BaseUnit target;

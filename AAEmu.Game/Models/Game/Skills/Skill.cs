@@ -114,6 +114,15 @@ public class Skill
             return SkillResult.InvalidSource;
         }
 
+        // Every line below dereferences Template. A Skill built from a missing template (item procs did
+        // exactly that) used to NRE on the first Template.Id read, and callers inside a plot effect turned
+        // that into a lost target list rather than a visible failure.
+        if (Template == null)
+        {
+            Logger.Warn("Skill.Use called with no template (caster {0})", caster.ObjId);
+            return SkillResult.InvalidSkill;
+        }
+
         // Cast character for future reference
         var character = caster as Character;
 
@@ -1796,6 +1805,15 @@ AlwaysHit:
         if (Template.Id is 2 or 3 or 4)
             return;
 
+        // A skill flagged ignore_global_cooldown neither waits for the GCD nor arms it. The wait side was
+        // already honoured in Use(); arming it here anyway meant 8659 skills put every OTHER skill on a
+        // cooldown they themselves are declared to sit outside of — Backdraft (44200) among them.
+        if (Template.IgnoreGlobalCooldown)
+            return;
+
+        // NOTE: default_gcd overriding custom_gcd is deliberate and matches the data — 29054 of the 29669
+        // skills with default_gcd set carry custom_gcd 0, i.e. "use the server default". The 619 that carry
+        // both are ambiguous and are left on the default rather than guessed at.
         var gcd = Template.CustomGcd;
         if (Template.DefaultGcd)
             gcd = unit is Npc ? 1500 : 1000;

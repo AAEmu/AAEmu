@@ -302,10 +302,17 @@ public class Unit : BaseUnit, IUnit
 
     /// <summary>
     /// Accumulated combat resources by combat_resources id — the combo-point style pools an ability builds up
-    /// (광란, 착취, 근성 …). Plot flow already gates on these through plot_next_events'
-    /// start_combat_resource / end_combat_resource and skill_effects' target_combat_resource_id.
+    /// (광란, 착취, 근성 …). Plot flow gates on these through PlotCondition kind 19 and skill_effects'
+    /// target_combat_resource_id.
     /// </summary>
     public Dictionary<int, int> CombatResources { get; } = [];
+
+    /// <summary>
+    /// When each resource next loses <c>combat_resources.peace_recovery_amount</c> /
+    /// <c>combat_recovery_amount</c>. A resource with no entry is idle: it is either empty or its
+    /// <c>recovery_cycle</c> is 0 (기쁨 / 슬픔 never drain).
+    /// </summary>
+    private readonly Dictionary<int, DateTime> _combatResourceDecayAt = [];
 
     public int GetCombatResource(int combatResourceId) => CombatResources.GetValueOrDefault(combatResourceId, 0);
 
@@ -313,7 +320,14 @@ public class Unit : BaseUnit, IUnit
     /// Adds to a combat resource, clamped to that resource's own ceiling from combat_resources.max and never
     /// below zero. Returns the amount actually held afterwards.
     /// </summary>
-    public int AddCombatResource(int combatResourceId, int amount)
+    /// <param name="combatResourceId">combat_resources id.</param>
+    /// <param name="amount">Signed delta; negative spends.</param>
+    /// <param name="resetDecayTimer">
+    /// <c>combat_resource_effects.reset_remain_time</c>. The shipped rows set it on every builder, which is
+    /// what makes the short cycles workable: 증오 drains its whole pool every 5s, so without restarting the
+    /// timer on each gain the window to spend it would depend on when the last tick happened to land.
+    /// </param>
+    public int AddCombatResource(int combatResourceId, int amount, bool resetDecayTimer = true)
     {
         var max = CombatResourceGameData.Instance.GetMax(combatResourceId);
         var current = GetCombatResource(combatResourceId);
@@ -324,7 +338,163 @@ public class Unit : BaseUnit, IUnit
             : Math.Max(0, current + amount);
 
         CombatResources[combatResourceId] = updated;
+        ArmCombatResourceDecay(combatResourceId, updated, resetDecayTimer);
+        SyncCombatResourceBuff(combatResourceId, updated);
         return updated;
+    }
+
+    /// <summary>
+    /// Seeds <c>combat_resources.default_point</c>. Called once when a unit enters the world — 죽음의 낙인
+    /// starts at 6 and 기쁨 / 슬픔 at 5, and until this ran every ability that reads them saw 0.
+    /// </summary>
+    public void InitializeCombatResources()
+    {
+        foreach (var resource in CombatResourceGameData.Instance.WithDefaultPoint)
+        {
+            CombatResources[resource.Id] = resource.Max > 0
+                ? Math.Min(resource.DefaultPoint, resource.Max)
+                : resource.DefaultPoint;
+            ArmCombatResourceDecay(resource.Id, CombatResources[resource.Id], restart: true);
+            SyncCombatResourceBuff(resource.Id, CombatResources[resource.Id]);
+        }
+    }
+
+    /// <summary>
+    /// Drains pools whose cycle has elapsed. Driven from <see cref="OnActiveRegionTick"/>, i.e. about once a
+    /// second for units in a region a player is watching.
+    /// </summary>
+    private void CombatResourceTick(TimeSpan delta)
+    {
+        if (_combatResourceDecayAt.Count == 0)
+            return;
+
+        var now = DateTime.UtcNow;
+        List<int> due = null;
+        foreach (var (resourceId, at) in _combatResourceDecayAt)
+        {
+            if (at <= now)
+                (due ??= []).Add(resourceId);
+        }
+
+        if (due == null)
+            return;
+
+        foreach (var resourceId in due)
+        {
+            var resource = CombatResourceGameData.Instance.Get(resourceId);
+            if (resource == null)
+            {
+                _combatResourceDecayAt.Remove(resourceId);
+                continue;
+            }
+
+            var step = resource.RecoveryAmountFor(IsInBattle);
+            if (step == 0)
+            {
+                _combatResourceDecayAt.Remove(resourceId);
+                continue;
+            }
+
+            // Decay must not restart its own timer from the change — that would make a pool that drains in
+            // several steps re-arm on every step and never reach the next one on schedule.
+            var before = GetCombatResource(resourceId);
+            var after = AddCombatResource(resourceId, step, resetDecayTimer: false);
+            if (after == before)
+            {
+                _combatResourceDecayAt.Remove(resourceId);
+                continue;
+            }
+
+            BroadcastCombatResource(resource, after, updateTimeMs: 0);
+
+            if (after > 0)
+                _combatResourceDecayAt[resourceId] = now.AddMilliseconds(resource.RecoveryCycle);
+            else
+                _combatResourceDecayAt.Remove(resourceId);
+        }
+    }
+
+    /// <summary>Starts, restarts or clears a resource's decay timer for its current amount.</summary>
+    private void ArmCombatResourceDecay(int combatResourceId, int amount, bool restart)
+    {
+        var resource = CombatResourceGameData.Instance.Get(combatResourceId);
+        // recovery_cycle 0 means the pool is not on a timer at all, not "drain every tick".
+        if (resource == null || resource.RecoveryCycle <= 0 || amount <= 0)
+        {
+            _combatResourceDecayAt.Remove(combatResourceId);
+            return;
+        }
+
+        if (restart || !_combatResourceDecayAt.ContainsKey(combatResourceId))
+            _combatResourceDecayAt[combatResourceId] = DateTime.UtcNow.AddMilliseconds(resource.RecoveryCycle);
+    }
+
+    /// <summary>
+    /// Holds or drops the resource's bar buff. The client draws the pip UI off this buff, so without it the
+    /// point packets arrive against a bar that was never shown.
+    /// </summary>
+    private void SyncCombatResourceBuff(int combatResourceId, int amount)
+    {
+        var resource = CombatResourceGameData.Instance.Get(combatResourceId);
+        if (resource is not { BuffId: > 0 } || Buffs == null)
+            return;
+
+        var shouldHold = resource.ShouldHoldBuff(amount);
+        var holds = Buffs.CheckBuff(resource.BuffId);
+        if (shouldHold == holds)
+            return;
+
+        if (shouldHold)
+        {
+            // An id with no template would NRE inside Buffs.AddBuff. Every shipped bar buff resolves, but
+            // this runs on data we do not control.
+            if (SkillManager.Instance.GetBuffTemplate(resource.BuffId) == null)
+            {
+                Logger.Warn("Combat resource {0} names buff {1}, which is not loaded", resource.Id, resource.BuffId);
+                return;
+            }
+
+            Buffs.AddBuff(resource.BuffId, this);
+            return;
+        }
+
+        // 기쁨 (26) and 슬픔 (27) share buff 29976. Dropping it for one while the other still qualifies would
+        // take the bar away from both.
+        foreach (var other in CombatResourceGameData.Instance.All)
+        {
+            if (other.Id != combatResourceId && other.BuffId == resource.BuffId &&
+                other.ShouldHoldBuff(GetCombatResource(other.Id)))
+                return;
+        }
+
+        Buffs.RemoveBuff(resource.BuffId);
+    }
+
+    /// <summary>
+    /// Pushes a resource total to whoever combat_resources.resouece_send_type_id says should see it
+    /// (1 Self, 2 Broadcast).
+    /// </summary>
+    public void BroadcastCombatResource(CombatResource resource, int amount, int updateTimeMs)
+    {
+        if (resource == null)
+            return;
+
+        var packet = new SCCombatResourcePointPacket(ObjId, resource.Id, (ulong)Math.Max(0, amount), updateTimeMs);
+        if (resource.SendTypeId == 2)
+            BroadcastPacket(packet, true);
+        else
+            (this as Char.Character)?.SendPacket(packet);
+    }
+
+    /// <summary>Sends every non-empty pool, so a freshly entered client starts with a bar that matches the server.</summary>
+    public void SendAllCombatResources()
+    {
+        foreach (var resource in CombatResourceGameData.Instance.All)
+        {
+            var amount = GetCombatResource(resource.Id);
+            if (amount != 0)
+                BroadcastCombatResource(resource, amount, updateTimeMs: 0);
+        }
     }
 
     private bool _isInBattle;
@@ -1666,6 +1836,7 @@ public class Unit : BaseUnit, IUnit
     {
         CombatTick(delta);
         RegenTick(delta);
+        CombatResourceTick(delta);
     }
 
     /// <summary>
