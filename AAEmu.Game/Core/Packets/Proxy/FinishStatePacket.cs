@@ -107,18 +107,9 @@ public class FinishStatePacket() : GamePacket(PPOffsets.FinishStatePacket, 2)
     /// </remarks>
     private static (int Point, uint Grade) ResolveAccountPremium(GameConnection connection)
     {
-        if (AppConfiguration.Instance.Account?.ForceMaxPremiumGrade == true)
-        {
-            var maxGrade = PremiumGameData.Instance.MaxGradeId;
-            if (maxGrade > 0)
-                return (Math.Max(0, PremiumGameData.Instance.GetGrade(maxGrade)?.Point ?? 0), maxGrade);
-        }
-
-        var point = 0;
-        foreach (var character in connection.Characters.Values)
-            point = Math.Max(point, character.Point);
-
-        // Same resolution the reward tick uses, so the tier shown here is the tier that gets paid.
-        return (point, PremiumGameData.Instance.GetAccountGrade(connection.Characters.Values));
+        // Same resolution the reward tick uses, so the tier shown here is the tier that gets paid - and
+        // it falls back to the database, because this runs at a point in the handshake where the
+        // character list may not be loaded yet.
+        return AccountManager.Instance.GetAccountPremium(connection);
     }
 }

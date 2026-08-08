@@ -2,6 +2,7 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Network.Connections;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Account;
 
@@ -22,6 +23,71 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
     public void Initialize()
     {
         tickManager.OnTick.Subscribe(RemoveDeadConnections, TimeSpan.FromSeconds(30));
+    }
+
+    /// <summary>
+    /// The premium grade the ACCOUNT is at, for every path that runs without a character selected.
+    /// </summary>
+    /// <remarks>
+    /// Premium is account-wide, so the best point total any living character on it reached stands in
+    /// for the account.
+    ///
+    /// The character list cannot be the source here. The offline catch-up runs from <see cref="Add"/>,
+    /// which happens at authentication, while <c>GameConnection.LoadAccount</c> only fills
+    /// <c>Characters</c> later at CSAesXorKey - so reading the list would resolve every paid account as
+    /// the free tier for the single largest labor credit it ever gets. The loaded list is used when it
+    /// is there, to save a query, and the database answers when it is not.
+    ///
+    /// One method for lobby and reward tick both: the lobby tells the player which tier they are on and
+    /// the tick decides what that tier pays, and those two answering differently is how an account ends
+    /// up shown one thing and paid another.
+    /// </remarks>
+    public (int Point, uint Grade) GetAccountPremium(GameConnection connection)
+    {
+        if (AppConfiguration.Instance.Account?.ForceMaxPremiumGrade == true)
+        {
+            var forced = PremiumGameData.Instance.MaxGradeId;
+            if (forced > 0)
+                return (PremiumGameData.Instance.GetGrade(forced)?.Point ?? 0, forced);
+        }
+
+        var point = 0;
+        if (connection?.Characters is { Count: > 0 })
+        {
+            foreach (var character in connection.Characters.Values)
+                point = Math.Max(point, character.Point);
+        }
+        else if (connection != null)
+        {
+            point = GetMaxCharacterPoint(connection.AccountId);
+        }
+
+        return (point, PremiumGameData.Instance.GetGradeForPoint(point));
+    }
+
+    /// <summary>
+    /// Highest <c>characters.point</c> on the account, straight from the database.
+    /// </summary>
+    private static int GetMaxCharacterPoint(uint accountId)
+    {
+        try
+        {
+            using var connection = MySQL.CreateConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                "SELECT COALESCE(MAX(`point`), 0) FROM `characters` WHERE `account_id`=@account_id AND `deleted`=0";
+            command.Parameters.AddWithValue("@account_id", accountId);
+            command.Prepare();
+            var result = command.ExecuteScalar();
+            return result is null or DBNull ? 0 : Convert.ToInt32(result);
+        }
+        catch (Exception e)
+        {
+            // The free tier is the safe answer: it under-pays rather than handing out a grade the
+            // account may not hold, and it says so instead of failing silently.
+            Logger.Error($"GetMaxCharacterPoint: account {accountId} could not be read, assuming no premium: {e}");
+            return 0;
+        }
     }
 
     public void Add(GameConnection connection)
