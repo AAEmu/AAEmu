@@ -62,7 +62,8 @@ public class RecoverExpEffect : EffectTemplate
 
         if (NeedLaborPower)
         {
-            if (character.LaborPower < ExpRecoveryLabor)
+            // Both pools pay; see Character.ChangeLabor.
+            if (character.LaborPower + character.LocalLaborPower < ExpRecoveryLabor)
             {
                 character.SendErrorMessage(ErrorMessageType.NotEnoughLaborPower);
                 return;

@@ -307,7 +307,8 @@ public class SpecialtyManager(IItemManager itemManager) : Singleton<SpecialtyMan
             (int)Math.Round(
                 AppConfiguration.Instance.Specialty.SellLaborCost * commerce.GetLaborCostMultiplier(),
                 MidpointRounding.AwayFromZero));
-        if (player.LaborPower < laborCost)
+        // Both pools pay; see Character.ChangeLabor.
+        if (player.LaborPower + player.LocalLaborPower < laborCost)
         {
             player.SendErrorMessage(ErrorMessageType.NotEnoughLaborPower);
             return false;
