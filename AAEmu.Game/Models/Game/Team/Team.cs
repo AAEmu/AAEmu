@@ -248,33 +248,69 @@ public class Team : PacketMarshaler
     }
     
 
+    /// <summary>
+    /// The team header, read out of the 10.0.2.13 client's own deserializer (VA 0x39C6D700), which names
+    /// every value it reads:
+    ///
+    ///   id             u32     4       our Id
+    ///   type           u64     8       the owner - EIGHT bytes, not four
+    ///   party          bool    1       IsParty
+    ///   num            u8   x10 = 10   the ten per-party member counts
+    ///   50x { type u64 (8) ; con bool (1) }  = 450   one entry per raid slot
+    ///   12x mark { type u8 ; type==1 -> u64 ; type==2 -> bc (3) }
+    ///   LootingRule            11      i8 lootMethod, i8 minimumGrade, u64 lootMaster, bool rollForBop
+    ///   jointId        u32     4       instance-team ("team joint") state - 0 when not joined
+    ///   isJointLeader  bool    1
+    ///   jointOrder     u32     4
+    ///   type           u64     8
+    ///   teamRoleType   i8      1       Solo(0) Party(1) Raid(2) SiegeRaid(3)
+    ///
+    /// Widths come from the archive vtable slot each read calls: 0x80 = 4, 0x88 = 2, 0x90 = 1,
+    /// 0x98 = 8, 0xA0 = 4, 0xF8 = 1 (bool), 0x1A0 = 3 (compressed id). Slots 0x30 and 0x40 are
+    /// `mov al,1; ret` here, so every branch guarded by them takes the taken-path.
+    ///
+    /// The previous version wrote the owner and each of the fifty slot ids as u32 and stopped after the
+    /// looting rule. That left the stream 222 bytes short of what the client reads, starting at the
+    /// SECOND field - so the client mis-parsed everything after it, dropped the packet, and never
+    /// learned the team id. Party and raid chat died with it, because the channel descriptor
+    /// SCJoinedChatChannel announces is keyed by exactly that team id.
+    /// </summary>
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(Id);
-        stream.Write(OwnerId);
-        stream.Write(IsParty);
+        stream.Write(Id);                   // u32  id
+        stream.Write((ulong)OwnerId);       // u64  type
+        stream.Write(IsParty);              // bool party
 
         foreach (var count in GetPartyCounts())
-            stream.Write(count);
+            stream.Write(count);            // u8   num  x10
 
         foreach (var member in Members)
         {
-            stream.Write(member?.Character?.Id ?? 0u);
-            stream.Write(member?.Character?.IsOnline ?? false);
+            stream.Write((ulong)(member?.Character?.Id ?? 0u));  // u64  type
+            stream.Write(member?.Character?.IsOnline ?? false);  // bool con
         }
 
         for (var i = 0; i < 12; i++)
         {
             var type = MarksList[i].Item1;
             var obj = MarksList[i].Item2;
-            stream.Write(type);
+            stream.Write(type);             // u8
             if (type == 1)
-                stream.Write(obj);
+                stream.Write((ulong)obj);   // u64
             else if (type == 2)
-                stream.WriteBc(obj);
+                stream.WriteBc(obj);        // bc (3)
         }
 
         stream.Write(LootingRule);
+
+        // Instance-team ("team joint") state. A plain party or raid is not joined to anything, so these
+        // are zero; the client still reads them unconditionally and desyncs if they are missing.
+        stream.Write(0u);                   // u32  jointId
+        stream.Write(false);                // bool isJointLeader
+        stream.Write(0u);                   // u32  jointOrder
+        stream.Write(0UL);                  // u64  type
+        stream.Write((sbyte)RoleType);      // i8   teamRoleType
+
         return stream;
     }
 }
