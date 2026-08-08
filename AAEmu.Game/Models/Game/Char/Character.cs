@@ -2073,10 +2073,34 @@ public partial class Character : Unit, ICharacter
             AddExp(xpToAdd, true);
         }
 
-        LaborPower += change;
-        // amount = primary labor delta; local/recharged pools unused on our single-pool account labor.
+        // Spending draws on BOTH account-wide pools, offline ("Offline Labor", the account pool) first
+        // and only then online ("Online Labor", the local pool). Callers gate on the combined balance -
+        // Skill.Use and the unit_reqs labor margins both do - so charging the account pool alone drove
+        // it negative whenever the cost exceeded it while the local pool still had plenty.
+        //
+        // Granting stays on the account pool: the online tick has its own path in AddLocalLaborPower,
+        // which is the only thing that may raise the local pool, and it clamps to max_local_labor.
+        var accountDelta = change;
+        var localDelta = 0;
+        if (change < 0)
+        {
+            var cost = -(int)change;
+            var fromAccount = Math.Min(cost, Math.Max(0, (int)LaborPower));
+            var fromLocal = Math.Min(cost - fromAccount, Math.Max(0, LocalLaborPower));
+
+            accountDelta = (short)-fromAccount;
+            localDelta = -fromLocal;
+
+            if (fromLocal > 0)
+                LocalLaborPower -= fromLocal;
+        }
+
+        LaborPower += accountDelta;
+
+        // amount = account pool delta, localAmount = local pool delta. Both counters in the client's
+        // labor manager are accumulators, so each one has to carry its own share of the spend.
         SendPacket(new SCCharacterLaborPowerChangedPacket(
-            change, 0, 0, (uint)actabilityId, actabilityChange, actabilityStep));
+            accountDelta, localDelta, 0, (uint)actabilityId, actabilityChange, actabilityStep));
     }
 
     /// <summary>
@@ -2098,6 +2122,38 @@ public partial class Character : Unit, ICharacter
         LocalLaborPower = newAmount;
         SendPacket(new SCCharacterLaborPowerChangedPacket(0, applied, 0, 0, 0, 0));
         return applied;
+    }
+
+    /// <summary>Guards <see cref="SendLaborPowerSnapshot"/> against seeding the client twice.</summary>
+    private bool _laborSnapshotSent;
+
+    /// <summary>
+    /// Seeds the client's in-world labor counters with the current balances of both pools.
+    /// </summary>
+    /// <remarks>
+    /// Both counters are pure accumulators: the handler for SCCharacterLaborPowerChanged does
+    /// `add [mgr+0xE58], amount` and `add [mgr+0xE68], localAmount` and never stores an absolute
+    /// value, and no other packet writes them either. The absolute {lp, localLp, consumed, ...}
+    /// block the server sends is only parsed into the character-list entry and feeds the
+    /// character-select screen, never the in-world manager. So without this a fresh session starts
+    /// both counters at zero and the UI under-reports until the next tick happens to move them.
+    /// </remarks>
+    public void SendLaborPowerSnapshot()
+    {
+        // At most once per session. The counters are accumulators (`add`, never `mov`), so a second
+        // snapshot does not correct them - it doubles them. CSSpawnCharacter can legitimately arrive
+        // more than once for the same character, which is how Online Labor climbed past its own
+        // 5,000 cap to 5,529.
+        if (_laborSnapshotSent)
+            return;
+        _laborSnapshotSent = true;
+
+        var account = Math.Max(0, (int)LaborPower);
+        var local = Math.Max(0, LocalLaborPower);
+        if (account == 0 && local == 0)
+            return;
+
+        SendPacket(new SCCharacterLaborPowerChangedPacket(account, local, 0, 0, 0, 0));
     }
 
     public void ChangeGamePoints(GamePointKind kind, int change)

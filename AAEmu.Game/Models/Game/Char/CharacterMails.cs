@@ -315,7 +315,8 @@ public class CharacterMails
             var tookMoney = false;
             if (thisMail.MailType == MailType.AucOffSuccess && thisMail.Body.CopperCoins > 0 && takeMoney)
             {
-                if (Self.LaborPower < 1)
+                // Both pools pay; see Character.ChangeLabor.
+                if (Self.LaborPower + Self.LocalLaborPower < 1)
                 {
                     Self.SendErrorMessage(ErrorMessageType.NotEnoughLaborPower);
                     takeMoney = false;

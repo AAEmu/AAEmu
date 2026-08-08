@@ -125,7 +125,8 @@ public class CharacterCraft(Character owner)
             return;
         }
 
-        if (Owner.LaborPower < ConsumeLaborPower)
+        // Both pools pay: ChangeLabor spends the account pool first and the local one for the rest.
+        if (Owner.LaborPower + Owner.LocalLaborPower < ConsumeLaborPower)
         {
             Owner.SendDebugMessage("|cFFFFFF00[Craft] Not enough Labor Powers for crafting! Performing a fictitious crafting step...|r");
             Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.NotEnoughLaborPower, 0, false);
