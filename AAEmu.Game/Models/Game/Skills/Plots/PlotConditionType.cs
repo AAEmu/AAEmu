@@ -19,6 +19,12 @@ public enum PlotConditionType
     Stealth = 15,
     Visible = 16,
     ABLevel = 17,
+    // 18..21 arrived with the v10 data. Until they were named here every one of them fell into
+    // PlotCondition.Check's "_ => true" arm, i.e. passed unconditionally.
+    CastingUseable = 18,
+    CombatResource = 19,
+    UnitReqs = 20,
+    AccrueDamageMonster = 21,
 }
 
 // No clue what that shit does fam
