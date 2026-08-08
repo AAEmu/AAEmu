@@ -136,6 +136,17 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                     (float)MathUtil.ConvertDirectionToRadian(umt.RotationZ));
                 character.Transform.FinalizeTransform();
                 character.SetPlayerMoved();
+
+                // Fan this player's movement out to everyone around them.
+                //
+                // The zone-authority design assumed the zone would stream player movement back to us as
+                // part of ZWUnitMovements, which is why this path deliberately sent no SC packet. It does
+                // not: measured with two clients walking towards each other, every ZWUnitMovements batch
+                // contained only NPC ids and never a player's - so nobody ever saw anybody else move.
+                //
+                // Sent to everyone BUT the mover: the client integrates its own character locally and
+                // reports the finished state through CSMoveUnit, so echoing it back fights that prediction.
+                character.BroadcastPacket(new SCOneUnitMovementPacket(_objId, umt), false);
             }
             else if (_moveType is UnitMoveType controlledUnitMove)
             {
@@ -146,6 +157,11 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                     (float)MathUtil.ConvertDirectionToRadian(controlledUnitMove.RotationY),
                     (float)MathUtil.ConvertDirectionToRadian(controlledUnitMove.RotationZ));
                 mirrorTarget.Transform.FinalizeTransform();
+
+                // Same gap as for the character above: the zone never streams this back, so without a
+                // broadcast a ridden mount would stand still for everybody else. Mirrors what the
+                // pre-zone path does for mates.
+                mirrorTarget.BroadcastPacket(new SCOneUnitMovementPacket(_objId, controlledUnitMove), false);
             }
             else if (_moveType is VehicleMoveType vehicleMove && mirrorTarget is Slave vehicle)
             {
@@ -155,6 +171,10 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                 vehicle.Transform.Local.SetPosition(
                     vehicleMove.X, vehicleMove.Y, vehicleMove.Z, rotX, rotY, rotZ);
                 vehicle.Transform.FinalizeTransform();
+
+                // As above. The driver's own client authored this position, so the relay filters the
+                // zone's copy of wheeled vehicles back out for them anyway; observers need it from here.
+                vehicle.BroadcastPacket(new SCOneUnitMovementPacket(_objId, vehicleMove), false);
             }
             else if (_moveType is ShipRequestMoveType shipRequest && mirrorTarget is Slave ship)
             {
