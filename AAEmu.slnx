@@ -118,6 +118,7 @@
     <Project Path="AAEmu.Commons/AAEmu.Commons.csproj" />
     <Project Path="AAEmu.Game/AAEmu.Game.csproj" />
     <Project Path="AAEmu.Login/AAEmu.Login.csproj" />
+    <Project Path="AAEmu.WorldServer/AAEmu.World/AAEmu.World.csproj" />
   </Folder>
   <Folder Name="/Tests/">
     <Project Path="AAEmu.IntegrationTests/AAEmu.IntegrationTests.csproj" />
