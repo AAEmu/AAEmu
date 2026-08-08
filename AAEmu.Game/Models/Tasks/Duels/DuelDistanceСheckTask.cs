@@ -18,10 +18,10 @@ public class DuelDistanceСheckTask(Duel duel) : Task
         switch (res)
         {
             case DuelDistance.ChallengerFar:
-                DuelManager.Instance.DuelStop(_challengedId, DuelDetType.Surrender, _challengerId);
+                DuelManager.Instance.DuelStop(_challengedId, DuelDetType.Cancel, _challengerId);
                 break;
             case DuelDistance.ChallengedFar:
-                DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Surrender, _challengedId);
+                DuelManager.Instance.DuelStop(_challengerId, DuelDetType.Cancel, _challengedId);
                 break;
             case DuelDistance.Error:
                 break;

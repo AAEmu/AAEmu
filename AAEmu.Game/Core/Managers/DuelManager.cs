@@ -24,6 +24,13 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
     private const float DistanceForSurrender = 75; // square 75 meters
     private const double DuelDurationTime = 5;    // 5 min
 
+    /// <summary>
+    /// How long the client counts down before a duel begins. Not our choice: its countdown handler
+    /// (RVA 0x105E20) writes the constant 0xBB8 = 3000 ms, so anything else here would put our start
+    /// packet out of step with what the player is watching.
+    /// </summary>
+    private static readonly TimeSpan CountdownDuration = TimeSpan.FromMilliseconds(3000);
+
     // there can be several duels at the same time
     private readonly ConcurrentDictionary<uint, Duel> _duels = new();
     public Dictionary<uint, FactionsEnum> SaveFactions { get; set; } = [];
@@ -84,7 +91,12 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
             return;
         }
 
-        var duel = new Duel(challenger, challenged);
+        // The client discards SCDuelStarted when the duel type is 0, so a request that arrives without
+        // one would produce a duel that silently never begins. Fall back to a normal 1v1.
+        if (duelType == 0)
+            duelType = Duel.NormalDuel;
+
+        var duel = new Duel(challenger, challenged, duelType);
         DuelAdd(duel);
         challenged.SendPacket(new SCDuelChallengedPacket(challenger.Id, duelType)); // we send only to the enemy
         Logger.Info($"DuelRequest: challenger={challenger.Id}:{challenger.ObjId}, challenged={challenged.Id}:{challenged.ObjId}, type={duelType}");
@@ -120,9 +132,15 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
                 SetFaction(duel.Challenger, FactionsEnum.RedTeam);
                 SetFaction(duel.Challenged, FactionsEnum.BlueTeam);
 
+                // Start the client's countdown NOW, not together with the duel itself. The client runs
+                // it for a fixed 3000 ms of its own (see SCDuelStartCountdownPacket), so the start task
+                // below has to wait exactly that long - otherwise the countdown and the "fight" cue
+                // land in the same frame and the player never sees one.
+                duel.SendPacketsBoth(new SCDuelStartCountdownPacket());
+
                 //Schedule duel start task.
                 duel.DuelStartTask = new DuelStartTask(duel.Challenger.Id);
-                TaskManager.Instance.Schedule(duel.DuelStartTask, TimeSpan.FromSeconds(3));
+                TaskManager.Instance.Schedule(duel.DuelStartTask, CountdownDuration);
             }
             else
                 Logger.Warn($"DuelAccepted: Duel with challengerId = {challengerId} is already started");
@@ -172,10 +190,15 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
         try
         {
             var duel = _duels[id];
-            duel.SendPacketsBoth(new SCDuelStartedPacket(duel.Challenger.ObjId, duel.Challenged.ObjId));
+
+            // Each side is told who it is fighting, so the two packets are not the same - and the duel
+            // type has to travel with them or the client drops both. The countdown was sent three
+            // seconds ago, when the challenge was accepted.
+            duel.SendPacketChallenger(new SCDuelStartedPacket(duel.Challenged.ObjId, duel.DuelType));
+            duel.SendPacketChallenged(new SCDuelStartedPacket(duel.Challenger.ObjId, duel.DuelType));
+
             duel.SendPacketsBoth(new SCAreaChatBubblePacket(true, duel.Challenger.ObjId, 543));
             //duel.SendPacketChallenger(new SCAreaChatBubblePacket(true, duel.Challenged.ObjId, 543));
-            duel.SendPacketsBoth(new SCDuelStartCountdownPacket());
             duel.Challenger.DuelStateObjectId = duel.DuelFlag.ObjId;
             duel.Challenged.DuelStateObjectId = duel.DuelFlag.ObjId;
             duel.SendPacketsBoth(new SCDuelStatePacket(
@@ -266,26 +289,18 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
             Logger.Warn("DuelStop: Duel ended");
             var duel = _duels[id];
             duel.DuelAllowed = false;
-            // Duel is over, det 00=lose, 01=win, 02=surrender (Fled beyond the flag action border), 03=draw
-            if (det == DuelDetType.Draw)
+
+            // A decided duel needs somebody to have lost it. Without that we cannot say who won, and
+            // announcing a winner to both sides is worse than calling it a draw.
+            if (det == DuelDetType.Decided && loseId == 0)
             {
-                duel.SendPacketChallenged(new SCDuelEndedPacket(duel.Challenger.Id, duel.Challenged.Id, duel.Challenger.ObjId, duel.Challenged.ObjId, det));
-                duel.SendPacketChallenger(new SCDuelEndedPacket(duel.Challenged.Id, duel.Challenger.Id, duel.Challenged.ObjId, duel.Challenger.ObjId, det));
-                Logger.Warn("DuelStop: Draw!");
+                Logger.Warn($"DuelStop: Id={id} decided but no loser given, reporting a draw");
+                det = DuelDetType.Draw;
             }
-            else if (loseId != 0)
-            {
-                if (loseId == duel.Challenger.Id)
-                {
-                    duel.SendPacketsBoth(new SCDuelEndedPacket(duel.Challenged.Id, duel.Challenger.Id, duel.Challenged.ObjId, duel.Challenger.ObjId, det));
-                    Logger.Warn($"DuelStop: Challenger:{duel.Challenger.Name} Lose, Challenged:{duel.Challenged.Name} Win!");
-                }
-                else if (loseId == duel.Challenged.Id)
-                {
-                    duel.SendPacketsBoth(new SCDuelEndedPacket(duel.Challenger.Id, duel.Challenged.Id, duel.Challenger.ObjId, duel.Challenged.ObjId, det));
-                    Logger.Warn($"DuelStop: Challenger:{duel.Challenger.Name} Win, Challenged:{duel.Challenged.Name} Lose!");
-                }
-            }
+
+            SendDuelEnded(duel, det, loseId);
+            Logger.Info($"DuelStop: {duel.Challenger.Name} vs {duel.Challenged.Name}, det={det}, loser={loseId}");
+
             // Duel Status - Duel ended
             duel.Challenged.DuelStateObjectId = 0;
             duel.Challenger.DuelStateObjectId = 0;
@@ -322,6 +337,26 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
             // id is missing in the database
             Logger.Warn($"DuelStop: Id={id} not found in duels[], error code: {e}");
         }
+    }
+
+    /// <summary>
+    /// Announces the outcome to both duellists. SCDuelEnded carries an isWin flag and a list of
+    /// opponents, both from the receiving player's point of view, so the two sides get different
+    /// packets rather than one broadcast.
+    /// </summary>
+    private static void SendDuelEnded(Duel duel, DuelDetType det, uint loseId)
+    {
+        SendDuelEndedTo(duel.Challenger, duel.Challenged, det, loseId);
+        SendDuelEndedTo(duel.Challenged, duel.Challenger, det, loseId);
+    }
+
+    private static void SendDuelEndedTo(Character receiver, Character opponent, DuelDetType det, uint loseId)
+    {
+        // isWin only selects a text when the duel was decided; for a draw and for a cancelled duel the
+        // client's win and lose tables hold the same string, so the flag makes no difference there.
+        var isWin = det == DuelDetType.Decided && loseId != receiver.Id;
+
+        receiver.SendPacket(new SCDuelEndedPacket(isWin, det, [opponent.ObjId], [opponent.Id]));
     }
 
     public bool DuelResultСheck(uint id)
