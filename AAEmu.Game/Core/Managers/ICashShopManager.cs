@@ -13,4 +13,5 @@ public interface ICashShopManager : ILoadable, IInitializable
     void DisableShop();
     void CreditDisperseTick(TimeSpan delta);
     void SendICSPage(GameConnection connection, byte mainTabId, byte subTabId, ushort page);
+    void SendAllIcsTabsFirstPage(GameConnection connection);
 }

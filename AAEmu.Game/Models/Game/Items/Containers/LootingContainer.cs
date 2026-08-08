@@ -200,6 +200,9 @@ public class LootingContainer(IBaseUnit owner)
                 // RegisterItems(items);
             }
 
+            // Convert direct NPC coin drops into the content-configured purse item.
+            ApplyNpcCoinPurseMoney(lootPackResults, lootPackDroppingNpcs);
+
             // New Loot, i guess both loops can be optimzed....
             var groups = lootPackResults.GroupBy(x => x.lootGroupOrigin).Select(x => x.Key).ToList();
             foreach (var group in groups)
@@ -235,6 +238,70 @@ public class LootingContainer(IBaseUnit owner)
             // TODO: Either loot generated for a not supported type or it no longer exists 
             Logger.Warn($"Unsupported LootOwner: {LootOwnerType}:{LootOwner.ObjId}");
         }
+    }
+
+    /// <summary>
+    /// Strip raw coins from NPC loot and guarantee one content-configured coin purse when the NPC
+    /// has purse and/or coin packs. Purse item ids come from
+    /// items → skill_effects(consume) → GainLootPackItemEffect → loots(item_id=500).
+    /// </summary>
+    private static void ApplyNpcCoinPurseMoney(
+        List<(uint itemId, int count, byte grade, uint lootGroupOrigin)> results,
+        List<LootPackDroppingNpc> lootPackDroppingNpcs)
+    {
+        var hadRawCoins = false;
+        for (var i = results.Count - 1; i >= 0; i--)
+        {
+            if (results[i].itemId != Item.Coins)
+                continue;
+            hadRawCoins = true;
+            results.RemoveAt(i);
+        }
+
+        var purseWeights = new List<(uint itemId, uint dropRate)>();
+        var packHadCoins = false;
+        foreach (var dropping in lootPackDroppingNpcs)
+        {
+            var pack = LootGameData.Instance.GetPack(dropping.LootPackId);
+            if (pack?.Loots == null)
+                continue;
+            foreach (var loot in pack.Loots)
+            {
+                if (loot.ItemId == Item.Coins)
+                    packHadCoins = true;
+                if (LootGameData.Instance.IsCoinPurseItem(loot.ItemId))
+                    purseWeights.Add((loot.ItemId, loot.DropRate > 0 ? loot.DropRate : 1u));
+            }
+        }
+
+        if (purseWeights.Count == 0)
+        {
+            if (hadRawCoins || packHadCoins)
+                results.Add((Item.FarmerCoinPurse, 1, 0, 0));
+            return;
+        }
+
+        if (results.Any(r => LootGameData.Instance.IsCoinPurseItem(r.itemId)))
+            return;
+
+        // Always drop one purse (weighted by the content drop_rate on the NPC's packs).
+        var total = 0L;
+        foreach (var (_, rate) in purseWeights)
+            total += rate;
+        var roll = Random.Shared.NextInt64(0, Math.Max(total, 1));
+        var cumulative = 0L;
+        var chosen = purseWeights[0].itemId;
+        foreach (var (itemId, rate) in purseWeights)
+        {
+            cumulative += rate;
+            if (roll < cumulative)
+            {
+                chosen = itemId;
+                break;
+            }
+        }
+
+        results.Add((chosen, 1, 0, 0));
     }
 
     /// <summary>

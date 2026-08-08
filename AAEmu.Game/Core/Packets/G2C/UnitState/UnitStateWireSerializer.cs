@@ -1,3 +1,5 @@
+using System.Numerics;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
@@ -24,9 +26,9 @@ public static class UnitStateWireSerializer
         _ => BaseUnitType.Invalid
     };
 
-    public static void Write(PacketStream stream, Unit unit, BaseUnitType baseUnitType)
+    public static void Write(PacketStream stream, Unit unit, BaseUnitType baseUnitType, Vector3? placementOverride = null)
     {
-        var context = new UnitStateWireContext(unit, baseUnitType);
+        var context = new UnitStateWireContext(unit, baseUnitType, placementOverride);
 
         UnitStateIdentitySerializer.Write(stream, context);
         UnitStatePlacementSerializer.Write(stream, context);

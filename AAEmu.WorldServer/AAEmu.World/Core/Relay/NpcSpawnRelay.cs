@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 
 using AAEmu.Game;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.World.Core.Network;
 using AAEmu.World.Core.Packets.Wz;
@@ -30,6 +31,7 @@ public class NpcSpawnRelay
     private int _mirrorFail;
     private int _npcStateOk;
     private int _npcStateFail;
+    private int _npcStateSkipped;
     private int _flyStateOk;
 
     private static readonly bool DisableFlyState =
@@ -194,6 +196,7 @@ public class NpcSpawnRelay
                 if (WorldIntegration.FindUnitAcrossWorlds(bcId) is Npc { IsZoneMirror: true })
                 {
                     connection.SendPacket(new WZNpcStatePacket(raw));
+                    SyncNpcFactionToZone(connection, bcId);
                     ok++;
                 }
                 continue;
@@ -250,7 +253,17 @@ public class NpcSpawnRelay
     {
         var key = MarkerKey(connection.ZoneId, bcId);
         if (!NpcStateSent.TryAdd(key, 0))
+        {
+            var skipped = ++_npcStateSkipped;
+            if (skipped <= 5 || skipped % 50 == 0)
+            {
+                Logger.Info(
+                    "WZNpcState SKIPPED #{0} bc={1} tpl={2} zoneId={3} — Create marker already set",
+                    skipped, bcId, parsed.TemplateId, connection.ZoneId);
+            }
+
             return true;
+        }
 
         try
         {
@@ -262,7 +275,10 @@ public class NpcSpawnRelay
                 parsed.TableIdx,
                 parsed.GroupType,
                 parsed.GroupId,
-                parsed.GroupMemberIdx);
+                parsed.GroupMemberIdx,
+                parsed.X,
+                parsed.Y,
+                parsed.Z);
 
             if (body == null || body.Length == 0)
             {
@@ -273,14 +289,18 @@ public class NpcSpawnRelay
 
             connection.SendPacket(new WZNpcStatePacket(body));
             _npcStateOk++;
+            // Faction is synchronized separately from the initial unit state.
+            SyncNpcFactionToZone(connection, bcId);
             TrySendFlyingState(connection, bcId, parsed.TemplateId);
 
             if (_npcStateOk <= 3 || _npcStateOk % 100 == 0)
             {
                 Logger.Info(
-                    "WZNpcState #{0} → zone {1} zoneId={2} bc={3} tpl={4} sid={5} bodyLen={6}",
+                    "WZNpcState #{0} → zone {1} zoneId={2} bc={3} tpl={4} sid={5} bodyLen={6} " +
+                    "createLocal=({7:F1},{8:F1},{9:F1}) localWire={10}",
                     _npcStateOk, connection.Ip, connection.ZoneId, bcId, parsed.TemplateId, parsed.SpawnerId,
-                    body.Length);
+                    body.Length, parsed.X, parsed.Y, parsed.Z,
+                    ZoneCoordBoundary.UseLocalOnZoneWire);
             }
 
             return true;
@@ -291,6 +311,23 @@ public class NpcSpawnRelay
             _npcStateFail++;
             Logger.Warn(ex, "WZNpcState failed bc={0} tpl={1}", bcId, parsed.TemplateId);
             return false;
+        }
+    }
+
+    /// <summary>Synchronizes an NPC faction immediately after creating its zone unit.</summary>
+    private static void SyncNpcFactionToZone(ZoneConnection connection, uint bcId)
+    {
+        try
+        {
+            if (WorldIntegration.FindUnitAcrossWorlds(bcId) is not Npc npc ||
+                npc.Faction is null || (uint)npc.Faction.Id == 0)
+                return;
+
+            connection.SendPacket(new WZUnitFactionChangedPacket(bcId, 0, (int)npc.Faction.Id, false));
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, "WZUnitFactionChanged (npc) failed bc={0}", bcId);
         }
     }
 

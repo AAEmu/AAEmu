@@ -507,7 +507,11 @@ public class Unit : BaseUnit, IUnit
             }
         }
 
-        if (Hp > 0)
+        // Only the transition into death counts. Calling this after a revive setup (old=0,new>0)
+        // or re-publishing on an already-dead unit (old=0,new=0) must not re-run DoDie/SCUnitDeath.
+        if (Hp > 0 || newHpValue > 0)
+            return;
+        if (oldHpValue <= 0)
             return;
 
         if (attackerBase is Unit attackerUnit)
@@ -1151,6 +1155,12 @@ public class Unit : BaseUnit, IUnit
 
     public void UpdateGearBonuses(Item itemAdded, Item itemRemoved)
     {
+        // Capture before gear-index clear so MaxHp still reflects the previous loadout.
+        var oldMaxHp = MaxHp;
+        var oldMaxMp = MaxMp;
+        var wasFullHp = Hp >= oldMaxHp && oldMaxHp > 0;
+        var wasFullMp = Mp >= oldMaxMp && oldMaxMp > 0;
+
         Bonuses[GearBonusesIndex] = [];
 
         foreach (var item in Equipment.Items)
@@ -1175,6 +1185,16 @@ public class Unit : BaseUnit, IUnit
         ApplyWeaponWieldBuff();
         ApplyArmorGradeBuff(itemAdded, itemRemoved);
         ApplyEquipItemSetBonuses();
+
+        // Gear that raises MaxHp/MaxMp left current points on the old ceiling (pet armor: 8194/9423).
+        if (wasFullHp)
+            Hp = MaxHp;
+        else
+            Hp = Math.Min(Hp, MaxHp);
+        if (wasFullMp)
+            Mp = MaxMp;
+        else
+            Mp = Math.Min(Mp, MaxMp);
     }
 
     private void ApplyWeaponWieldBuff()

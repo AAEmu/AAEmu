@@ -39,6 +39,13 @@ public partial class Npc : Unit
     public bool IsZoneMirror { get; set; }
 
     /// <summary>
+    /// A zone mirror whose corpse timer has already sent WZNpcStartDespawn. The zone owns the
+    /// teardown from there and answers with ZWRemoveNpc; this only marks that we are waiting, so
+    /// the deadline can fall back to a forced removal instead of leaking the mirror.
+    /// </summary>
+    public bool ZoneDespawnSignaled { get; set; }
+
+    /// <summary>
     /// This is the "Idle Animation Id" that is used in UnitModelChangePosture, it can change depending on the time of the day
     /// </summary>
     public uint AnimActionId
@@ -1133,6 +1140,9 @@ public partial class Npc : Unit
             if (!character.MirrorNpcStatesSentIds.TryAdd(ObjId, 0))
                 return;
         }
+
+        NpcHeightDiagnostics.RecordPaint(
+            ObjId, TemplateId, character.Name, Transform.Local.Position.Z);
 
         character.SendPacket(new SCUnitStatePacket(this));
         // 0xBF. Cosplay is already on the UnitState equipment block for slots 27/31–33.

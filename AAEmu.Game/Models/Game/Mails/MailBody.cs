@@ -28,21 +28,23 @@ public class MailBody(BaseMail parent) : PacketMarshaler
 
     public override PacketStream Write(PacketStream stream)
     {
+        // Monetary fields use their full storage widths so attachments stay aligned.
         stream.Write(MailId);
         stream.Write((byte)Type);
         stream.Write(ReceiverName);
         stream.Write(Title);
         stream.Write(Text);
-        stream.Write(CopperCoins);
-        stream.Write(BillingAmount);
-        stream.Write(MoneyAmount2);
+        stream.Write((long)CopperCoins);
+        stream.Write((long)BillingAmount);
+        stream.Write((long)MoneyAmount2);
+        stream.Write(0u);
         stream.Write(SendDate);
         stream.Write(RecvDate);
         stream.Write(OpenDate);
         for (var i = 0; i < MaxMailAttachments; i++)
         {
             if (i >= Attachments.Count || Attachments[i] == null)
-                stream.Write(0);
+                stream.Write(0); // templateId empty → client skips item body
             else
                 stream.Write(Attachments[i]);
         }

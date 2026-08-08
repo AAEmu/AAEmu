@@ -4,6 +4,9 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
+/// <summary>
+/// Replies to a mate equipment request and unlocks the affected slots even when refused.
+/// </summary>
 public class SCMateEquipmentChangedPacket : GamePacket
 {
     private readonly ushort _mateTlId;
@@ -11,11 +14,21 @@ public class SCMateEquipmentChangedPacket : GamePacket
     private readonly uint _passengerId;
     private readonly bool _bts;
     private readonly byte _num;
-    // private readonly bool _success;
+    private readonly bool _success;
     private readonly ItemAndLocation _itemOnPet;
     private readonly ItemAndLocation _itemInBag;
+    private readonly DateTime _expireTime;
 
-    public SCMateEquipmentChangedPacket(ItemAndLocation itemOnPet, ItemAndLocation itemInBag, ushort mateTlId, uint characterId, uint passengerId, bool bts, bool success) : base(SCOffsets.SCMateEquipmentChangedPacket, 1)
+    public SCMateEquipmentChangedPacket(
+        ItemAndLocation itemOnPet,
+        ItemAndLocation itemInBag,
+        ushort mateTlId,
+        uint characterId,
+        uint passengerId,
+        bool bts,
+        bool success,
+        DateTime expireTime = default)
+        : base(SCOffsets.SCMateEquipmentChangedPacket, 1)
     {
         _itemOnPet = itemOnPet;
         _itemInBag = itemInBag;
@@ -23,25 +36,26 @@ public class SCMateEquipmentChangedPacket : GamePacket
         _characterId = characterId;
         _passengerId = passengerId;
         _bts = bts;
-        _num = 1; // all time == 1
-        // _success = success;
+        _num = 1;
+        _success = success;
+        _expireTime = expireTime;
     }
 
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(_characterId); // type
-        stream.Write(_mateTlId);        // tl
-        stream.Write(_passengerId); // type
-        stream.Write(_bts);         // bts
-        stream.Write(_num);         // num
+        stream.Write((ulong)_characterId);
+        stream.Write(_mateTlId);
+        stream.Write(_passengerId);
+        stream.Write(_bts);
+        stream.Write(_num);
 
         if (_itemOnPet.Item == null)
-            stream.Write(0);
+            stream.Write(0u);
         else
             stream.Write(_itemOnPet.Item);
 
         if (_itemInBag.Item == null)
-            stream.Write(0);
+            stream.Write(0u);
         else
             stream.Write(_itemInBag.Item);
 
@@ -49,8 +63,8 @@ public class SCMateEquipmentChangedPacket : GamePacket
         stream.Write(_itemOnPet.SlotNumber);
         stream.Write((byte)_itemInBag.SlotType);
         stream.Write(_itemInBag.SlotNumber);
-
-        stream.Write(true); // success
+        stream.Write(_expireTime);
+        stream.Write(_success);
 
         return stream;
     }

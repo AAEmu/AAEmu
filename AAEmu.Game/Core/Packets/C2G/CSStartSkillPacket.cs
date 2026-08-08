@@ -250,7 +250,24 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             else
             {
                 Logger.Warn("ZoneAuthority mount skill {0}: no Slave/Mate for bc={1}", skillId, skillCaster.ObjId);
+                // Unlock the slot without fabricating a use timeline.
+                character.ResetSkillCooldown(skillId, true);
                 return;
+            }
+        }
+        else
+        {
+            // Pet hotbar sometimes arrives as SkillCasterUnit(player). Casting Scratch (17701) as
+            // the owner fails TooFarRange at the player's feet and greys the icon until CD ends.
+            var mateCaster = FindActiveMateForSkill(character, skillId);
+            if (mateCaster != null)
+            {
+                casterUnit = mateCaster;
+                var mountSkillId = MateGameData.Instance.GetMountSkillIdBySkillId(skillId);
+                skillCaster = new SkillCasterMount(mateCaster.ObjId)
+                {
+                    MountSkillTemplateId = mountSkillId
+                };
             }
         }
 
@@ -276,6 +293,10 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             fail.SetResultUShort(skillResultErrorValueUShort);
             fail.SetResultUInt(skillResultErrorValue);
             character.SendPacket(fail);
+            // Clear the local cooldown after failures that should immediately unlock the slot.
+            if (skillResult is SkillResult.TooFarRange or SkillResult.TooCloseRange or SkillResult.NoTarget
+                or SkillResult.InvalidSource or SkillResult.Failure)
+                character.ResetSkillCooldown(skillId, true);
             Logger.Warn("ZoneAuthority Use failed skillId={0} result={1} caster={2}", skillId, skillResult, casterUnit.ObjId);
             return;
         }
@@ -305,5 +326,20 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         Logger.Info("ZoneAuthority Use+WZ skillId={0} tl={1} plotOnly={2} hasPlot={3} castMs={4} auto={5} caster={6}",
             skillId, skill.TlId, template.PlotOnly, template.Plot != null, template.CastingTime, character.IsAutoAttack,
             casterUnit.ObjId);
+    }
+
+    private static Mate FindActiveMateForSkill(Character character, uint skillId)
+    {
+        var mates = character.ParentWorld?.MateManager?.GetActiveMates(character.Id);
+        if (mates == null)
+            return null;
+
+        foreach (var mate in mates)
+        {
+            if (mate != null && MateGameData.Instance.NpcHasMountSkill(mate.TemplateId, skillId))
+                return mate;
+        }
+
+        return null;
     }
 }

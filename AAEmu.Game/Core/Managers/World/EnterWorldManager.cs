@@ -291,6 +291,9 @@ public class EnterWorldManager(
         {
             connection.State = GameState.Lobby;
             connection.LeaveTask = null;
+            // Drop the world avatar so re-select does not see a still-“active” character.
+            // Session encryption remains active; lobby re-entry republishes the character list.
+            connection.ActiveChar = null;
             connection.SendPacket(new SCLeaveWorldGrantedPacket(leaveWorldTarget));
             connection.SendPacket(new ChangeStatePacket(0));
         }

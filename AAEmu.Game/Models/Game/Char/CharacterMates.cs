@@ -1,6 +1,7 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -119,14 +120,29 @@ public class CharacterMates(Character owner)
         mount.Equipment = ItemManager.Instance.GetItemContainerForCharacter(Owner.Id, SlotType.EquipmentMate, mount, mount.Id);
         mount.UpdateGearBonuses(null, null);
 
-        // Cap stats to their max
-        mount.Hp = Math.Min(mount.Hp, mount.MaxHp);
-        mount.Mp = Math.Min(mount.Mp, mount.MaxMp);
+        // CreateNewMate seeds Hp/Mp at 9999 as "full"; after MaxHp is known, treat that sentinel
+        // (or any over-cap) as full so the pet frame does not spawn mid-bar waiting on regen.
+        if (mateDbInfo.Hp >= 9999 || mount.Hp >= mount.MaxHp)
+            mount.Hp = mount.MaxHp;
+        else
+            mount.Hp = Math.Min(mount.Hp, mount.MaxHp);
+        if (mateDbInfo.Mp >= 9999 || mount.Mp >= mount.MaxMp)
+            mount.Mp = mount.MaxMp;
+        else
+            mount.Mp = Math.Min(mount.Mp, mount.MaxMp);
 
         mount.Transform.Local.AddDistanceToFront(3f);
         //Logger.Warn($"Spawn the pet:{mount.ObjId} X={mount.Transform.World.Position.X} Y={mount.Transform.World.Position.Y}");
         Owner.ParentWorld.MateManager.AddActiveMateAndSpawn(Owner, mount, item);
         mount.PostUpdateCurrentHp(mount, 0, mount.Hp, KillReason.Unknown);
+
+        // UnitState at spawn carries current Hp; gear MaxHealth is already in MaxHp. Re-push state
+        // and points so the pet frame denominator matches server MaxHp (SCUnitPoints alone does not).
+        mateDbInfo.Hp = mount.Hp;
+        mateDbInfo.Mp = mount.Mp;
+        Owner.SendPacket(new SCUnitStatePacket(mount));
+        Owner.SendPacket(new SCUnitPointsPacket(mount.ObjId, mount.Hp, mount.Mp));
+        WorldIntegration.RelayUnitPointsToZone?.Invoke(mount.ObjId, mount.Hp, mount.Mp);
     }
 
     public void DespawnMate(uint tlId)

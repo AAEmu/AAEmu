@@ -350,16 +350,13 @@ public class NpcManager(
             Patrol = null
         };
 
-        if (template.TotalCustomId == 0)
-        {
-            // load random hairstyles
-            var templ = LoadCustom(template);
-            template.HairId = templ.HairId;
-            template.ModelParams = templ.ModelParams;
-            template.BodyItems = templ.BodyItems;
-        }
+        // Look-only template holding this spawn's random hairstyle. Keep it local: the result was
+        // being written back into the shared template, so concurrent spawns raced each other and a
+        // lookup that found no hair zeroed HairId permanently, leaving every later spawn bald.
+        // LoadCustom returns the template itself when there is nothing to randomise.
+        var look = template.TotalCustomId == 0 ? LoadCustom(template) : template;
 
-        npc.ModelParams = CopyModelParamsForNpc(template);
+        npc.ModelParams = CopyModelParamsForNpc(look);
 
         SetEquipItemTemplate(npc, template.Items.Headgear, EquipmentItemSlot.Head);
         SetEquipItemTemplate(npc, template.Items.Necklace, EquipmentItemSlot.Neck);
@@ -381,10 +378,10 @@ public class NpcManager(
         for (var i = 0; i < 7; i++)
         {
             var slot = (EquipmentItemSlot)(i + 19);
-            if (slot == EquipmentItemSlot.Hair && template.ModelParams != null)
-                SetEquipItemTemplate(npc, template.HairId, EquipmentItemSlot.Hair);
+            if (slot == EquipmentItemSlot.Hair && look.ModelParams != null)
+                SetEquipItemTemplate(npc, look.HairId, EquipmentItemSlot.Hair);
             else
-                SetEquipItemTemplate(npc, template.BodyItems[i].ItemId, slot, 0, template.BodyItems[i].NpcOnly);
+                SetEquipItemTemplate(npc, look.BodyItems[i].ItemId, slot, 0, look.BodyItems[i].NpcOnly);
         }
 
         npc.InitializeSpawnBuffs();
@@ -411,39 +408,14 @@ public class NpcManager(
             return template;
         }
 
-        //Logger.Info("Loading random npc {0} custom templates...", template.ModelId);
-        var modelParamsId = 0u;
-        switch ((Race)template.CharRaceId)
-        {
-            case Race.None:
-            case Race.Nuian: // Nuian male
-                modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)10 : (byte)11;
-                break;
-            case Race.Dwarf: // Dwarf male
-                // modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)14 : (byte)15;
-                break;
-            case Race.Elf: // Elf male
-                modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)16 : (byte)17;
-                break;
-            case Race.Hariharan: // Hariharan male
-                modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)18 : (byte)19;
-                break;
-            case Race.Ferre: // Ferre male
-                modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)20 : (byte)21;
-                break;
-            case Race.Warborn: // Warborn male
-                // modelParamsId = (Gender)template.Gender == Gender.Male ? (byte)24 : (byte)25;
-                break;
-            case Race.Fairy:
-                // Not implemented
-                break;
-            case Race.Returned:
-                // Not implemented
-                break;
-            default:
-                // Invalid
-                return template;
-        }
+        // total_character_customs.model_id indexes models, the same space as npcs.model_id, so the
+        // NPC's own model is the lookup key. This used to be derived from npcs.char_race_id via a
+        // race+gender switch, which was really just an open-coded copy of the characters table the
+        // loader already queried by model_id — except char_race_id is a loose hint that often
+        // disagrees with the model (8687 is char_race_id 3 on a ferre_male model), and Dwarf,
+        // Warborn, Fairy and Returned had no case at all. Any mismatch found no compatible hair,
+        // which leaves HairId 0 and spawns the NPC with no hair item and no face morph.
+        var modelParamsId = template.UsesCharacterAppearance ? template.ModelId : 0u;
 
         var modelType = modelManager.GetModelType(template.ModelId);
 

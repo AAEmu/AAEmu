@@ -1,4 +1,6 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System.Numerics;
+using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -6,9 +8,15 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Containers;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.SkillControllers;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Mate;
+using AAEmu.Game.Utils;
 using Task = AAEmu.Game.Models.Tasks.Task;
 
 namespace AAEmu.Game.Models.Game.Units;
@@ -27,6 +35,24 @@ public sealed class Mate : Unit
     public uint OwnerObjId { get; set; }
     public Dictionary<AttachPointKind, MatePassengerInfo> Passengers { get; }
     public override float Scale => Template.Scale;
+
+    /// <summary>Zone key that currently owns this mate's synchronized unit state.</summary>
+    public uint ZoneAnnouncedTo { get; set; }
+
+    /// <summary>
+    /// Combat chase uses the actor model's run stance, same source as <see cref="NPChar.Npc.BaseMoveSpeed"/>.
+    /// </summary>
+    public override float BaseMoveSpeed
+    {
+        get
+        {
+            var model = ModelManager.Instance.GetActorModel(ModelId);
+            if (model == null || !model.Stances.TryGetValue(GameStanceType.Combat, out var stance))
+                return 1f;
+            return Math.Min(stance.AiMoveSpeedRun, stance.MaxSpeed);
+        }
+    }
+
     /// <summary>
     /// The item that this summon is from
     /// </summary>
@@ -260,8 +286,9 @@ public sealed class Mate : Unit
                 ["fai"] = Fai,
                 ["mate_kind"] = Template.MateKindId
             };
+            // compact.sqlite3 unit_formulas kind 31 owner Mate: (sta * 0.1) * 2 — same shape as
+            // Slave (no post-divide). The old /= 5 zeroed low-Sta ticks and stalled pet HP bars.
             var res = (int)formula.Evaluate(parameters);
-            res /= 5; // TODO ...
             foreach (var bonus in GetBonuses(UnitAttribute.PersistentHealthRegen))
             {
                 if (bonus.Template.ModifierType == UnitModifierType.Percent)
@@ -270,7 +297,7 @@ public sealed class Mate : Unit
                     res += (int)bonus.Value;
             }
 
-            return res;
+            return Math.Max(res, 1);
         }
     }
 
@@ -569,10 +596,18 @@ public sealed class Mate : Unit
 
         if (leveledUp)
         {
+            Hp = MaxHp;
+            Mp = MaxMp;
             BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
+            owner.SendPacket(new SCUnitStatePacket(this));
+            owner.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+            if (WorldIntegration.ZoneAuthority)
+            {
+                WorldIntegration.RelayLevelChangedToZone?.Invoke(ObjId, Level);
+                WorldIntegration.RelayUnitPointsToZone?.Invoke(ObjId, Hp, Mp);
+            }
             // Notify owner of the level up event
             owner.Events.OnMateLevelUp(this, new OnMateLevelUpArgs());
-            //StartRegen();
         }
     }
 
@@ -583,7 +618,12 @@ public sealed class Mate : Unit
         character.SendPacket(new SCUnitStatePacket(this));
         character.SendPacket(new SCMateStatePacket(ObjId));
         character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
-        // TODO: Maybe let base handle this ?
+
+        // Initialize faction for a newly visible mate.
+        if (Faction != null)
+            character.SendPacket(new SCUnitFactionChangedPacket(
+                ObjId, Name ?? "", FactionsEnum.Invalid, Faction.Id, false));
+
         foreach (var ati in Passengers)
         {
             if (ati.Value._objId > 0)
@@ -600,6 +640,129 @@ public sealed class Mate : Unit
         base.RemoveVisibleObject(character);
 
         character.SendPacket(new SCUnitsRemovedPacket([ObjId]));
+    }
+
+    /// <summary>Starts server-paced attacks on <see cref="Unit.CurrentTarget"/>.</summary>
+    public void StartOrderedAttack()
+    {
+        if (CurrentTarget is not Unit target || target.Hp <= 0 || !CanAttack(target))
+        {
+            StopOrderedAttack();
+            return;
+        }
+
+        var skillId = Template?.BaseSkillId > 0 ? (uint)Template.BaseSkillId : 2u;
+        var template = SkillManager.Instance.GetSkillTemplate(skillId);
+        if (template == null)
+            return;
+
+        if (AutoAttackTask != null)
+        {
+            if (!AutoAttackTask.Cancelled && AutoAttackTask.Skill?.Template?.Id == skillId)
+                return;
+            StopOrderedAttack();
+        }
+
+        IsInBattle = true;
+        LastCombatActivity = DateTime.UtcNow;
+        var skill = new Skill(template);
+        var task = new UseMateAutoAttackSkillTask(skill, this);
+        IsAutoAttack = true;
+        AutoAttackTask = task;
+        // Chase needs a short period; weapon delay alone left the pet stranded out of melee.
+        var delayMs = Math.Min(200.0, SkillManager.GetAttackDelay(template, this));
+        TaskManager.Instance.Schedule(task, TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(delayMs), -1);
+    }
+
+    public void StopOrderedAttack()
+    {
+        if (AutoAttackTask == null)
+        {
+            IsAutoAttack = false;
+            return;
+        }
+
+        var skillId = AutoAttackTask.Skill?.Template?.Id ?? 0;
+        if (AutoAttackTask.Skill != null)
+            AutoAttackTask.Skill.Cancelled = true;
+        AutoAttackTask.Cancelled = true;
+        AutoAttackTask.Cancel();
+        AutoAttackTask = null;
+        IsAutoAttack = false;
+        // Ordered-attack sets IsInBattle for PersistentHpRegen; clear it when the order ends so
+        // out-of-combat HealthRegen (spi*0.1+7) resumes instead of waiting on combat timeout.
+        IsInBattle = false;
+        if (skillId != 0)
+            BroadcastPacket(new SCSkillStoppedPacket(ObjId, skillId), true);
+    }
+
+    /// <summary>Steps toward a world position and synchronizes the movement with the active zone.</summary>
+    public bool MoveTowards(Vector3 other, float distance, byte actorFlags = 4, float rangeTolerance = 1f)
+    {
+        distance *= MoveSpeedMul;
+        if (distance < 0.01f)
+            return false;
+
+        if (Buffs.HasEffectsMatchingCondition(e =>
+                e.Template.Stun
+                || e.Template.Sleep
+                || e.Template.Root
+                || e.Template.Knockdown
+                || e.Template.Fastened)
+            || IsDead)
+            return false;
+
+        if ((ActiveSkillController?.State ?? SkillController.SCState.Ended) == SkillController.SCState.Running)
+            return false;
+
+        var oldPosition = Transform.Local.ClonePosition();
+        var targetDist = MathUtil.CalculateDistance(Transform.Local.Position, other, true);
+        if (targetDist <= rangeTolerance)
+            return true;
+
+        var travelDist = Math.Min(targetDist, distance);
+        var (newX, newY, newZ) = World.Transform.PositionAndRotation.AddDistanceToFront(
+            travelDist, targetDist, Transform.Local.Position, other);
+        var targetPositionZ = WorldManager.Instance.GetHeight(Transform.ZoneId, newX, newY, newZ);
+        Transform.Local.SetPosition(newX, newY, targetPositionZ);
+        Transform.FinalizeTransform();
+
+        var angle = MathUtil.CalculateAngleFrom(Transform.Local.Position, other);
+        var (velX, velY) = MathUtil.AddDistanceToFront(4000, 0, 0, (float)angle.DegToRad());
+        Transform.Local.SetRotationDegree(0f, 0f, (float)angle - 90);
+        var (rx, ry, rz) = Transform.Local.ToRollPitchYawSBytesMovement();
+
+        var moveType = (UnitMoveType)MoveType.GetType(MoveTypeEnum.Unit);
+        moveType.X = Transform.Local.Position.X;
+        moveType.Y = Transform.Local.Position.Y;
+        moveType.Z = Transform.Local.Position.Z;
+        moveType.VelX = (short)velX;
+        moveType.VelY = (short)velY;
+        moveType.RotationX = rx;
+        moveType.RotationY = ry;
+        moveType.RotationZ = rz;
+        moveType.ActorFlags = actorFlags;
+        moveType.Flags = MoveTypeFlags.Moving | (IsInBattle ? MoveTypeFlags.InCombat : 0);
+        moveType.DeltaMovement = [0, 127, 0];
+        moveType.Stance = GameStanceType.Combat;
+        moveType.Alertness = MoveTypeAlertness.Combat;
+        moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
+
+        CheckMovedPosition(oldPosition);
+
+        if (WorldIntegration.ZoneAuthority && WorldIntegration.RelayMoveToZone != null)
+        {
+            var moveBody = new PacketStream();
+            moveBody.Write((byte)moveType.Type);
+            moveBody.Write(moveType);
+            WorldIntegration.RelayMoveToZone(ObjId, moveBody.GetBytes());
+        }
+        else
+        {
+            BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
+        }
+
+        return false;
     }
 
     public override int DoFallDamage(float impactSpeed)
@@ -659,6 +822,12 @@ public sealed class Mate : Unit
         Hp = Math.Min(Hp, MaxHp);
         Mp = Math.Min(Mp, MaxMp);
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), false);
+        // BroadcastPacket(self:false) only hits GetAround characters; also push to owner so the
+        // pet frame updates when regen ticks (owner can sit outside the mate's around radius).
+        var owner = WorldManager.Instance.GetCharacterByObjId(OwnerObjId);
+        owner?.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+        // Zone mirror HP — same WZUnitPoints path as HealEffect / ZoneAuthorityCombat.
+        WorldIntegration.RelayUnitPointsToZone?.Invoke(ObjId, Hp, Mp);
         PostUpdateCurrentHp(this, oldHp, Hp, KillReason.Unknown);
     }
 

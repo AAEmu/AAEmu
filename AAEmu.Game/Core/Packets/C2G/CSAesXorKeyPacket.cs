@@ -2,6 +2,7 @@ using System.Linq;
 
 using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
@@ -13,18 +14,25 @@ namespace AAEmu.Game.Core.Packets.C2G;
 /// Client reply to the RSA key exchange started by X2EnterWorldResponse: carries the client's AES + XOR
 /// session keys, each RSA-encrypted (128 bytes) with the server's public key. Sent at level 1 (plaintext),
 /// since the C->S encryption it establishes is not active yet.
-///
-/// NOTE: name is the emulator's descriptive placeholder — the real key reply is an inner packet (opcode
+/// On return to character select, the existing encrypted session reuses this packet as a lobby
+/// re-entry cue, so the server republishes the character list without re-keying.
 /// </summary>
 public class CSAesXorKeyPacket() : GamePacket(CSOffsets.CSAesXorKeyPacket, 1)
 {
     public override void Read(PacketStream stream)
     {
-        // This exchange is the plaintext response to X2EnterWorldResponse. Decrypted level-5
-        // packets share the normal C2S opcode namespace, so an encrypted 0x047 must not be
-        // interpreted as RSA material or cause the lobby state to be published again.
+        // First enter uses a plaintext RSA reply; lobby re-entry uses the existing encrypted session.
         if (Level != 1)
         {
+            if (Connection.EncryptionActive && Connection.State == GameState.Lobby)
+            {
+                Logger.Info(
+                    "CSAesXorKey at L{0} during lobby re-entry (acc={1}) — publishing character list without re-key",
+                    Level, Connection.AccountId);
+                PublishCharacterSelect();
+                return;
+            }
+
             Logger.Warn("Ignoring CSAesXorKeyPacket on transport level {0}; the key reply must be level 1", Level);
             return;
         }
@@ -45,6 +53,15 @@ public class CSAesXorKeyPacket() : GamePacket(CSOffsets.CSAesXorKeyPacket, 1)
             // ignore — proceed to char-select regardless
         }
 
+        PublishCharacterSelect();
+    }
+
+    /// <summary>
+    /// Lobby payloads that unlock character select (slots + list + featured portrait).
+    /// Shared by first-enter RSA completion and in-session return-from-world.
+    /// </summary>
+    private void PublishCharacterSelect()
+    {
         // Key exchange done — push the lobby / character-select data (encrypted, level 5).
         // sc = creatable character-slot count. 0 made every slot show "캐릭터 생성 불가" (cannot create);
         Connection.SendPacket(new SCGetSlotCountPacket(

@@ -1,5 +1,4 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -21,7 +20,8 @@ public class DoodadFuncSkillHit : DoodadFuncTemplate
             if (SkillId > 0)
             {
                 var skillCaster = SkillCaster.GetByType(SkillCasterType.Item);
-                skillCaster.ObjId = NonUnitObjectIdManager.Instance.GetNextId();
+                // An item caster uses the wielding unit's identifier, not a non-unit object id.
+                skillCaster.ObjId = character.ObjId;
 
                 var target = SkillCastTarget.GetByType(SkillCastTargetType.Doodad);
                 target.ObjId = owner.ObjId;

@@ -39,6 +39,38 @@ public class MateGameData : Singleton<MateGameData>, IGameDataLoader
     }
 
     /// <summary>
+    /// True when <paramref name="skillId"/> is a <c>mount_skills.skill_id</c> granted to this NPC
+    /// via <c>npc_mount_skills</c> (pet hotbar Scratch/Recover/etc.).
+    /// </summary>
+    public bool NpcHasMountSkill(uint npcId, uint skillId)
+    {
+        foreach (var npcMount in _npcMountSkills.Values)
+        {
+            if (npcMount.NpcId != npcId)
+                continue;
+            if (_mountSkills.TryGetValue(npcMount.MountSkillId, out var mountSkill) &&
+                mountSkill.SkillId == skillId)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// <c>mount_skills.id</c> for a skill used as a mount/mate bar entry, or 0.
+    /// </summary>
+    public uint GetMountSkillIdBySkillId(uint skillId)
+    {
+        foreach (var ms in _mountSkills.Values)
+        {
+            if (ms.SkillId == skillId)
+                return ms.Id;
+        }
+
+        return 0;
+    }
+
+    /// <summary>
     /// Get the associated rider skill for a given mountSkill
     /// </summary>
     /// <param name="mateSkill">The skill the mate used</param>

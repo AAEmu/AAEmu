@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Numerics;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.Id;
@@ -301,6 +302,9 @@ public static class WorldIntegration
     /// <summary>WZForceAttackSet (0x024).</summary>
     public static Action<uint, bool> RelayForceAttackToZone { get; set; }
 
+    /// <summary>Relays a unit level change to its zone.</summary>
+    public static Action<uint, byte> RelayLevelChangedToZone { get; set; }
+
     /// <summary>
     /// WZUnitResurrection (0x022). Args: unit bc, world x/y/z, zRot.
     /// </summary>
@@ -581,8 +585,24 @@ public static class WorldIntegration
     public static byte[] BuildWzUnitStateBody(Unit unit)
     {
         var stream = new PacketStream();
-        new SCUnitStatePacket(unit).WriteWzBody(stream);
+        new SCUnitStatePacket(unit).WriteWzBody(stream, ResolveWzPlacement(unit));
         return stream.GetBytes();
+    }
+
+    /// <summary>Returns a zone-local placement only when local Zone wire coordinates are enabled.</summary>
+    private static Vector3? ResolveWzPlacement(Unit unit, Vector3? zoneLocal = null)
+    {
+        if (!ZoneAuthority || !ZoneCoordBoundary.UseLocalOnZoneWire || unit?.Transform == null)
+            return null;
+
+        if (zoneLocal.HasValue)
+            return zoneLocal;
+
+        var zoneId = unit.Transform.ZoneId;
+        if (zoneId == 0)
+            return null;
+
+        return ZoneManager.Instance.ConvertToLocalCoordinates(zoneId, unit.Transform.World.Position);
     }
 
     public static bool PublishNpcSpawnerEvent(
@@ -790,7 +810,7 @@ public static class WorldIntegration
         if (house == null)
             return null;
         var stream = new PacketStream();
-        new SCUnitStatePacket(house).WriteWzBody(stream);
+        new SCUnitStatePacket(house).WriteWzBody(stream, ResolveWzPlacement(house));
         return stream.GetBytes();
     }
 
@@ -806,13 +826,20 @@ public static class WorldIntegration
         ushort tableIdx,
         uint groupType,
         uint groupId,
-        byte groupMemberIdx)
+        byte groupMemberIdx,
+        float? zoneLocalX = null,
+        float? zoneLocalY = null,
+        float? zoneLocalZ = null)
     {
         if (!ZoneAuthority || bcId == 0)
             return null;
 
         if (FindUnitAcrossWorlds(bcId) is not Npc npc)
             return null;
+
+        Vector3? zoneLocal = null;
+        if (zoneLocalX.HasValue && zoneLocalY.HasValue && zoneLocalZ.HasValue)
+            zoneLocal = new Vector3(zoneLocalX.Value, zoneLocalY.Value, zoneLocalZ.Value);
 
         return BuildWzNpcStateBody(
             npc,
@@ -830,7 +857,8 @@ public static class WorldIntegration
             null,
             0f,
             false,
-            false);
+            false,
+            zoneLocal);
     }
 
     private static byte[] BuildWzNpcStateBody(
@@ -841,7 +869,7 @@ public static class WorldIntegration
         bool useSummonerAggroTarget)
         => BuildWzNpcStateBody(
             npc, WorldAuthoredNpcSpawn, creator, lifeTime,
-            despawnOnCreatorDeath, useSummonerAggroTarget);
+            despawnOnCreatorDeath, useSummonerAggroTarget, null);
 
     private static byte[] BuildWzNpcStateBody(
         Npc npc,
@@ -849,7 +877,8 @@ public static class WorldIntegration
         BaseUnit creator,
         float lifeTime,
         bool despawnOnCreatorDeath,
-        bool useSummonerAggroTarget)
+        bool useSummonerAggroTarget,
+        Vector3? zoneLocalPlacement = null)
     {
         var stream = new PacketStream();
 
@@ -906,9 +935,9 @@ public static class WorldIntegration
                 return null;
         }
 
-        // UnitState_Serialize + buffs (no WZUnitState action tail)
-        // Live unit state is World-space. Only static spawner geometry is Zone-local; converting
-        new SCUnitStatePacket(npc).WriteWzUnitStateAndBuffs(stream);
+        // UnitState and buffs; the optional override is active only in local-wire mode.
+        new SCUnitStatePacket(npc).WriteWzUnitStateAndBuffs(
+            stream, ResolveWzPlacement(npc, zoneLocalPlacement));
 
         stream.Write(metadata.SpawningEffectTime);
 
@@ -1031,6 +1060,8 @@ public static class WorldIntegration
             var worldPos = ZoneManager.Instance.ConvertToWorldCoordinates(zoneId, new System.Numerics.Vector3(x, y, z));
             npc.Transform.ZoneId = zoneId;
             npc.Transform.Local.SetPosition(worldPos.X, worldPos.Y, worldPos.Z, 0f, 0f, zRot);
+            NpcHeightDiagnostics.RecordSpawn(
+                bcId, templateId, zoneId, x, y, z, worldPos.X, worldPos.Y, worldPos.Z);
             npc.Spawn();
 
             if ((bcId - 0x00F00000) <= 5 || (bcId - 0x00F00000) % 100 == 0 || bcId <= 5 || bcId % 100 == 0)
@@ -1079,6 +1110,7 @@ public static class WorldIntegration
     public static void MirrorZoneNpcRemove(uint bcId)
     {
         CancelNpcHandoff(bcId);
+        NpcHeightDiagnostics.OnRemove(bcId);
         if (!ZoneAuthority || bcId == 0)
             return;
 

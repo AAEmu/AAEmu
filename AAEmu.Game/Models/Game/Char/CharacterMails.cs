@@ -33,29 +33,97 @@ public class CharacterMails
         UnreadMailCount.ResetReceived();
     }
 
-    public void OpenMailbox()
+    /// <summary>Opens the inbox, sent, or commercial mailbox and publishes one page.</summary>
+    public void OpenMailbox(byte mailBoxListKind = 1, uint startIdx = 1, uint pageCount = 100)
     {
-        // The u32 after isSent is the mailbox total, so the count is taken before sending any rows.
-        var mails = MailManager.Instance.GetCurrentMailList(Self.Id);
-        var total = (uint)mails.Count(m =>
-            m.Value.Header.SenderId == Self.Id || m.Value.Header.ReceiverId == Self.Id);
+        RefreshAllMailCounts();
 
-        var sent = 0;
-        foreach (var m in mails)
+        var now = DateTime.UtcNow;
+        var candidates = new List<BaseMail>();
+        foreach (var (_, mail) in MailManager.Instance.AllPlayerMails)
         {
-            var header = m.Value.Header;
-            var isMine = header.SenderId == Self.Id;
-            var isForMe = header.ReceiverId == Self.Id;
-            if (!isMine && !isForMe)
+            if (mail.Body.RecvDate > now)
                 continue;
-
-            // Mail to self lists in the received box, matching the sender/receiver test order.
-            Self.SendPacket(new SCMailListPacket(isMine && !isForMe, total, header));
-            sent++;
+            if (!BelongsInMailbox(mail, mailBoxListKind))
+                continue;
+            candidates.Add(mail);
         }
 
-        Self.SendPacket(new SCMailListEndPacket(sent, 0));
+        // startIdx is 1-based from the client; keep listing compact.
+        var start = startIdx == 0 ? 0 : (int)startIdx - 1;
+        if (start < 0)
+            start = 0;
+        var take = pageCount == 0 ? 100 : (int)Math.Min(pageCount, 100);
+        var page = candidates
+            .OrderByDescending(m => m.Body.RecvDate)
+            .Skip(start)
+            .Take(take)
+            .ToList();
+
+        var total = (uint)candidates.Count;
+        var isSentBox = mailBoxListKind == 2;
+        foreach (var mail in page)
+        {
+            Self.SendPacket(new SCMailListPacket(isSentBox, total, mail.Header, mailBoxListKind));
+            // Marketplace Mail Lua (comercial_mailbox.FillMailList) requires BOTH title and
+            // body for every row: body nil ⇒ MAIL_LIST_CONTINUE + WaitPageCont spinner forever.
+            // SCMailList only seeds the title; push SCMailBody (isPrepare) so GetCacheBodyInfo
+            // returns non-nil and CompleteMailList can run.
+            // Kind 3 is commercial; also send for inbox so recvDate/attachments display match.
+            Self.SendPacket(new SCMailBodyPacket(true, isSentBox, mail.Body, false, UnreadMailCount));
+        }
+
+        Self.SendPacket(new SCMailListEndPacket(mailBoxListKind, UnreadMailCount));
         Self.SendPacket(new SCCountTotalMailPacket(UnreadMailCount));
+    }
+
+    private bool BelongsInMailbox(BaseMail mail, byte kind)
+    {
+        return kind switch
+        {
+            // Sent box
+            2 => mail.Header.SenderId == Self.Id && mail.Header.SenderId != 0 &&
+                 mail.MailType is not (MailType.Charged or MailType.Promotion),
+            // Marketplace / commercial (Charged=9, Promotion=10)
+            3 => mail.Header.ReceiverId == Self.Id &&
+                 mail.MailType is MailType.Charged or MailType.Promotion,
+            // Normal inbox (not commercial, not mia)
+            _ => mail.Header.ReceiverId == Self.Id &&
+                 mail.MailType is not (MailType.Charged or MailType.Promotion) &&
+                 mail.MailType != MailType.MiaRecv
+        };
+    }
+
+    /// <summary>
+    /// Fills both total_* and unread_* for CharacterState / mailbox chrome.
+    /// Kind filters still run in <see cref="OpenMailbox"/>; this only feeds count packets.
+    /// </summary>
+    public void RefreshAllMailCounts()
+    {
+        UnreadMailCount.ResetAll();
+        var now = DateTime.UtcNow;
+        foreach (var (_, mail) in MailManager.Instance.AllPlayerMails)
+        {
+            var isForMe = mail.Header.ReceiverId == Self.Id;
+            var isFromMe = mail.Header.SenderId == Self.Id && mail.Header.SenderId != 0;
+            if (!isForMe && !isFromMe)
+                continue;
+            if (mail.Body.RecvDate > now)
+                continue;
+
+            if (isFromMe && !isForMe)
+            {
+                UnreadMailCount.TotalSent++;
+                if (mail.Header.Status != MailStatus.Read)
+                    UnreadMailCount.Sent++;
+                continue;
+            }
+
+            // Inbox / commercial addressed to this character
+            UnreadMailCount.AddTotal(mail.MailType);
+            if (mail.Header.Status != MailStatus.Read)
+                UnreadMailCount.UpdateReceived(mail.MailType, 1);
+        }
     }
 
     /// <summary>
@@ -126,20 +194,9 @@ public class CharacterMails
     /// </summary>
     public void RefreshUnreadCount()
     {
-        UnreadMailCount.ResetReceived();
-
-        var now = DateTime.UtcNow;
-        foreach (var (_, mail) in MailManager.Instance.AllPlayerMails)
-        {
-            if (mail.Header.ReceiverId != Self.Id)
-                continue;
-            if (mail.Header.Status == MailStatus.Read)
-                continue;
-            if (mail.Body.RecvDate > now)
-                continue;
-
-            UnreadMailCount.UpdateReceived(mail.MailType, 1);
-        }
+        // Keep totals + unread in lockstep (CharacterState "commercial 9/0" was unread
+        // commercial with total always 0).
+        RefreshAllMailCounts();
     }
 
     public MailResult SendMailToPlayer(MailType mailType, string receiverName, string title, string text, byte attachments, int money0, int money1, int money2, long extra, List<(SlotType, byte)> itemSlots)

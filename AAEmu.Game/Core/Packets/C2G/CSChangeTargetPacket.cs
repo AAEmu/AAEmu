@@ -49,6 +49,9 @@ public class CSChangeTargetPacket() : GamePacket(CSOffsets.CSChangeTargetPacket,
                 ? npc.Spawner.NpcSpawnerIds[0]
                 : 0u;
 
+            if (npc.IsZoneMirror)
+                NpcHeightDiagnostics.ArmTrace(npc.ObjId, npc.TemplateId);
+
             Connection.ActiveChar.SendDebugMessage(string.Format("ObjId: {0}, TemplateId: {1}, Ai: {2}, @{3} SpawnerId: {4} Stance: {6}, Speed: {7:F1}\nPos: {5}",
                 targetId,
                 npc.TemplateId,

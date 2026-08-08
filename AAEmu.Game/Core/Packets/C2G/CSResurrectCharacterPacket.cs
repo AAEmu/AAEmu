@@ -80,88 +80,102 @@ public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectChar
             }
         }
 
+        var character = Connection.ActiveChar;
+        var oldHp = character.Hp;
+
+        // Resolve spawn point before restoring vitals. Historically we only told the *client*
+        // SCCharacterResurrected coordinates and left World Transform at the corpse. With Zone
+        // authority, NPCs still had an active unit at the death scene — the moment we set Hp > 0 they
+        // hit again, pinned Hp to 0, and GamePing re-emitted zeros while the player stood at temple
+        // (IsDead blocks RegenTick). Same-level res must move the server unit first.
+        float rx, ry, rz, rrot;
+        if (portal != null && (portal.X != 0f || portal.Y != 0f))
+        {
+            rx = portal.X;
+            ry = portal.Y;
+            rz = portal.Z;
+            rrot = portal.ZRot;
+        }
+        else
+        {
+            var p = character.Transform.World.Position;
+            rx = p.X;
+            ry = p.Y;
+            rz = p.Z;
+            rrot = character.Transform.World.Rotation.Z;
+        }
+
+        // Same-instance temple resurrection must update the authoritative transform here.
+        character.DisabledSetPosition = false;
+        character.SetPosition(rx, ry, rz, 0f, 0f, rrot);
+        character.Transform.FinalizeTransform();
+
+        character.IsInBattle = false;
+        character.CurrentTarget = null;
+        character.IsUnderWater = false;
+        character.Breath = character.LungCapacity;
+
+        // Apply the final vital floor after revival debuffs so conversion effects cannot leave the
+        // character dead immediately after resurrection.
+        int newHp;
+        int newMp;
         if (inPlace)
         {
-            Connection.ActiveChar.Hp = (int)(Connection.ActiveChar.MaxHp * (Connection.ActiveChar.ResurrectHpPercent / 100.0f));
-            Connection.ActiveChar.Mp = (int)(Connection.ActiveChar.MaxMp * (Connection.ActiveChar.ResurrectMpPercent / 100.0f));
-            Connection.ActiveChar.ResurrectHpPercent = 1;
-            Connection.ActiveChar.ResurrectMpPercent = 1;
-            Connection.ActiveChar.PostUpdateCurrentHp(Connection.ActiveChar, 0, Connection.ActiveChar.Hp, KillReason.Unknown);
+            var hpPct = character.ResurrectHpPercent;
+            var mpPct = character.ResurrectMpPercent;
+            if (hpPct == 0)
+                hpPct = 1;
+            if (mpPct == 0)
+                mpPct = 1;
+            newHp = Math.Max(1, (int)Math.Ceiling(character.MaxHp * (hpPct / 100.0)));
+            newMp = Math.Max(0, (int)Math.Ceiling(character.MaxMp * (mpPct / 100.0)));
+            character.ResurrectHpPercent = 1;
+            character.ResurrectMpPercent = 1;
         }
         else
         {
-            Connection.ActiveChar.Hp = (int)(Connection.ActiveChar.MaxHp * 0.1);
-            Connection.ActiveChar.Mp = (int)(Connection.ActiveChar.MaxMp * 0.1);
-            Connection.ActiveChar.PostUpdateCurrentHp(Connection.ActiveChar, 0, Connection.ActiveChar.Hp, KillReason.Unknown);
+            // Temple / return-point res — 10% with a hard floor of 1.
+            newHp = Math.Max(1, (int)Math.Ceiling(character.MaxHp * 0.1));
+            newMp = Math.Max(0, (int)Math.Ceiling(character.MaxMp * 0.1));
         }
 
-        if (portal.X != 0)
+        // Zone resurrection while World Hp is still 0 so leftover skill hits early-out.
+        if (WorldIntegration.ZoneAuthority)
         {
-            Connection.ActiveChar.BroadcastPacket(
-                new SCCharacterResurrectedPacket(
-                    Connection.ActiveChar.ObjId,
-                    portal.X,
-                    portal.Y,
-                    portal.Z,
-                    portal.ZRot
-                ),
-                true
-            );
-        }
-        else
-        {
-            Connection.ActiveChar.BroadcastPacket(
-                new SCCharacterResurrectedPacket(
-                    Connection.ActiveChar.ObjId,
-                    Connection.ActiveChar.Transform.World.Position.X,
-                    Connection.ActiveChar.Transform.World.Position.Y,
-                    Connection.ActiveChar.Transform.World.Position.Z,
-                    0
-                ),
-                true
-            );
+            WorldIntegration.RelayUnitResurrectionToZone?.Invoke(
+                character.ObjId, rx, ry, rz, rrot);
+            WorldIntegration.RelayCombatClearedToZone?.Invoke(character.ObjId);
         }
 
-        Connection.ActiveChar.BroadcastPacket(
-            new SCUnitPointsPacket(
-                Connection.ActiveChar.ObjId,
-                Connection.ActiveChar.Hp,
-                Connection.ActiveChar.Mp
-            ),
+        // Debuffs first: OnStarted conversions clamp drain to current HP (0 → no-op).
+        ApplyRevivalDebuffs(character, inPlace);
+
+        character.Hp = newHp;
+        character.Mp = newMp;
+        // Safety: never exit revive dead.
+        if (character.Hp <= 0)
+            character.Hp = Math.Max(1, newHp);
+
+        if (WorldIntegration.ZoneAuthority)
+            WorldIntegration.RelayUnitPointsToZone?.Invoke(character.ObjId, character.Hp, character.Mp);
+
+        character.BroadcastPacket(
+            new SCCharacterResurrectedPacket(character.ObjId, rx, ry, rz, rrot),
             true
         );
 
-        if (WorldIntegration.ZoneAuthority)
-        {
-            float rx, ry, rz, rrot;
-            if (portal.X != 0)
-            {
-                rx = portal.X;
-                ry = portal.Y;
-                rz = portal.Z;
-                rrot = portal.ZRot;
-            }
-            else
-            {
-                var p = Connection.ActiveChar.Transform.World.Position;
-                rx = p.X;
-                ry = p.Y;
-                rz = p.Z;
-                rrot = Connection.ActiveChar.Transform.World.Rotation.Z;
-            }
+        character.BroadcastPacket(
+            new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp),
+            true
+        );
 
-            WorldIntegration.RelayUnitResurrectionToZone?.Invoke(
-                Connection.ActiveChar.ObjId, rx, ry, rz, rrot);
-            WorldIntegration.RelayUnitPointsToZone?.Invoke(
-                Connection.ActiveChar.ObjId, Connection.ActiveChar.Hp, Connection.ActiveChar.Mp);
-        }
+        if (character.Hp > 0)
+            character.PostUpdateCurrentHp(character, oldHp, character.Hp, KillReason.Unknown);
 
-        // Route death-debuffs based on death context (set by Character.DoDie).
-        ApplyRevivalDebuffs(Connection.ActiveChar, inPlace);
-
-        Connection.ActiveChar.IsUnderWater = false;
-        //Connection.ActiveChar.StartRegen();
-        Connection.ActiveChar.Breath = Connection.ActiveChar.LungCapacity;
+        Logger.Info(
+            "ResurrectCharacter {0} inPlace={1} hp={2}/{3} mp={4}/{5} pos=({6:F1},{7:F1},{8:F1})",
+            character.Name, inPlace, character.Hp, character.MaxHp, character.Mp, character.MaxMp,
+            rx, ry, rz);
     }
 
     /// <summary>

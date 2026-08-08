@@ -412,6 +412,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             {
                 // TODO: Mia mail stuff
                 var addBody = m.MailType == MailType.Charged;
+                player.Mails.UnreadMailCount.AddTotal(m.MailType);
                 player.Mails.UnreadMailCount.UpdateReceived(m.MailType, 1);
 
                 player.SendPacket(new SCGotMailPacket(m.Header, player.Mails.UnreadMailCount, addBody ? m.Body : null));

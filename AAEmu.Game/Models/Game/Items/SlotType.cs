@@ -10,6 +10,6 @@ public enum SlotType : byte
     Mail = 5,
     Auction = 6,
     EquipmentSlave = 0xF2,
-    EquipmentMate = 252,
+    EquipmentMate = 237,
     System = 0xFF
 }

@@ -19,6 +19,7 @@ public class MailHeader(BaseMail parent) : PacketMarshaler
 
     public override PacketStream Write(PacketStream stream)
     {
+        // Keep the header complete so an optional body remains aligned.
         stream.Write(MailId);
         stream.Write((byte)Type);
         stream.Write((byte)Status);
@@ -29,6 +30,7 @@ public class MailHeader(BaseMail parent) : PacketMarshaler
         stream.Write(OpenDate);
         stream.Write(Returned);
         stream.Write(Extra);
+        stream.Write(false);
         return stream;
     }
 }

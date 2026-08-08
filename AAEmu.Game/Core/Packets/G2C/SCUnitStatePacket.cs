@@ -1,3 +1,5 @@
+using System.Numerics;
+
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C.UnitState;
@@ -8,6 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// <summary>
 /// Client UnitState envelope. The shared unit body and each nested wire block live under
 /// <see cref="UnitStateWireSerializer"/> so SCUnitState, WZUnitState, and WZNpcState cannot drift.
+/// Client packets use world placement; Zone packets may provide an explicit local placement.
 /// </summary>
 public sealed class SCUnitStatePacket : GamePacket
 {
@@ -20,18 +23,18 @@ public sealed class SCUnitStatePacket : GamePacket
         _baseUnitType = UnitStateWireSerializer.GetBaseUnitType(unit);
     }
 
-    public void WriteWzUnitStateAndBuffs(PacketStream stream)
+    public void WriteWzUnitStateAndBuffs(PacketStream stream, Vector3? placementOverride = null)
     {
-        UnitStateWireSerializer.Write(stream, _unit, _baseUnitType);
+        UnitStateWireSerializer.Write(stream, _unit, _baseUnitType, placementOverride);
         UnitStateBuffSerializer.Write(stream, _unit);
     }
 
     /// <summary>
-    /// WZUnitState 0x007 body: UnitState + buffs + action state. The action serializer owns
+    /// Writes the Zone UnitState body, its buffs, and action state.
     /// </summary>
-    public void WriteWzBody(PacketStream stream)
+    public void WriteWzBody(PacketStream stream, Vector3? placementOverride = null)
     {
-        WriteWzUnitStateAndBuffs(stream);
+        WriteWzUnitStateAndBuffs(stream, placementOverride);
         UnitStateActionSerializer.Write(stream, _unit.UnitStateAction);
     }
 

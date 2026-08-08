@@ -9,10 +9,10 @@ public class CSICSMoneyRequestPacket() : GamePacket(CSOffsets.CSICSMoneyRequestP
 {
     public override void Read(PacketStream stream)
     {
-        // Empty struct
-        Logger.Warn("ICSMoneyRequest");
+        Logger.Info("ICSMoneyRequest account={0}", Connection.AccountId);
 
         var points = AccountManager.Instance.GetAccountDetails(Connection.AccountId);
-        Connection.SendPacket(new SCICSCashPointPacket(points.Credits));
+        // Publish both cash balances and refresh metadata.
+        Connection.SendPacket(new SCICSCashPointPacket(points.Credits, points.Loyalty));
     }
 }

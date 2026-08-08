@@ -18,6 +18,9 @@ public class ObjectIdManager() : IdManager("ObjectIdManager", FirstId, LastId, O
     /// <summary>Matches dedicate default <c>max unit</c> (world+test). Exclusive end.</summary>
     public const uint DedicateMaxUnitExclusive = 101000;
 
+    /// <summary>Whether <paramref name="objId"/> is valid for a Zone unit field.</summary>
+    public static bool IsZoneUnitId(uint objId) => objId is > 0 and <= LastId;
+
     private const uint FirstId = 0x00000100;
     private const uint LastId = DedicateMaxUnitExclusive - 1; // 100999
     private static readonly uint[] Exclude = [];

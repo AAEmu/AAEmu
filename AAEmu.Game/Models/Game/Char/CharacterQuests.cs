@@ -471,17 +471,11 @@ public class CharacterQuests(Character owner)
         }
     }
 
-    /// <summary>
-    /// Sends the complete quest state in the order expected by the client and then marks the
-    /// quest notifier as initialized. Without the final marker, the client keeps category limits
-    /// (including daily hunting quests) in their unopened/default state and rejects board quests
-    /// locally before sending a start request to World.
-    /// </summary>
+    /// <summary>Sends active and completed quest lists at character select.</summary>
     public void SendInitialState()
     {
         Send();
         SendCompleted();
-        Owner.SendPacket(new SCQuestNotifierInitPacket(true));
     }
 
     /// <summary>

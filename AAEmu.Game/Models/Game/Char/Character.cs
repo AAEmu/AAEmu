@@ -1812,15 +1812,36 @@ public partial class Character : Unit, ICharacter
         SendPacket(new SCExpChangedPacket(ObjId, expDelta, shouldAddAbilityExp));
 
         if (leveledUp)
-        {
-            Expedition?.OnCharacterRefresh(this);
-            BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
+            ApplyLevelUpBenefits();
+    }
 
-            // AcceptLevelUp starters only make sense on an actual level change — firing on every
-            // AddExp re-scans the whole table and amplified the Elf-spawn badge-quest cascade.
-            if (Connection != null)
-                QuestManager.Instance.DoOnLevelUpEvents(Connection.ActiveChar);
+    /// <summary>Refills level-dependent vitals and synchronizes the new level and unit state.</summary>
+    private void ApplyLevelUpBenefits()
+    {
+        Expedition?.OnCharacterRefresh(this);
+
+        // Level is already on this.Level; MaxHp/MaxMp getters re-evaluate immediately.
+        Hp = MaxHp;
+        Mp = MaxMp;
+
+        BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
+        // Re-push appearance/max for self so the local unit frame denominator matches the new level.
+        // SCUnitPoints alone only patches current precise HP/MP (see CharacterMates mate gear path).
+        SendPacket(new SCUnitStatePacket(this));
+        BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Mp), true);
+
+        if (WorldIntegration.ZoneAuthority)
+        {
+            WorldIntegration.RelayLevelChangedToZone?.Invoke(ObjId, Level);
+            WorldIntegration.RelayUnitPointsToZone?.Invoke(ObjId, Hp, Mp);
         }
+
+        // AcceptLevelUp starters only make sense on an actual level change — firing on every
+        // AddExp re-scans the whole table and amplified the Elf-spawn badge-quest cascade.
+        if (Connection != null)
+            QuestManager.Instance.DoOnLevelUpEvents(Connection.ActiveChar);
+
+        Logger.Info("{0} leveled to {1}: hp={2}/{3} mp={4}/{5}", Name, Level, Hp, MaxHp, Mp, MaxMp);
     }
 
     private void ValidateAndFixExpAndLevel()
@@ -1846,9 +1867,7 @@ public partial class Character : Unit, ICharacter
         Level = newLevel;
         
         if (leveledUp)
-        {
-            Expedition?.OnCharacterRefresh(this);
-        }
+            ApplyLevelUpBenefits();
     }
 
     public bool ChangeMoney(SlotType moneyLocation, long amount, ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
@@ -3302,7 +3321,13 @@ public partial class Character : Unit, ICharacter
     public override void AddVisibleObject(Character character)
     {
         if (this != character) // Never send to self, or the client crashes
+        {
             character.SendPacket(new SCUnitStatePacket(this));
+            // Initialize the faction transition for newly visible remote characters.
+            if (Faction != null && Faction.Id != FactionsEnum.Invalid)
+                character.SendPacket(new SCUnitFactionChangedPacket(
+                    ObjId, Name ?? "", FactionsEnum.Invalid, Faction.Id, false));
+        }
         character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
         /*
         // If player is hanging on something, also send a hung packet, this should work in theory, but doesn't

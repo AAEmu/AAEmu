@@ -110,6 +110,10 @@ public partial class Character
         DropTradePackToFloor();
         ClearAllAggro();
 
+        // Notify the zone so its AI releases the dead character as a combat target.
+        if (WorldIntegration.ZoneAuthority)
+            WorldIntegration.RelayUnitDeathToZone?.Invoke(ObjId);
+
         // Clear damage history on death (heal history is intentionally kept)
         _pvpDamageHistory.Clear();
     }

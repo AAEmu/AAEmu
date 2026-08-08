@@ -481,6 +481,11 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
 
         if (target is Mate mate)
         {
+            // Ordered attack owns mate transform (UseMateAutoAttackSkillTask.MoveTowards). Client
+            // follow/recall CSMoveUnit was overwriting chase so Skill.Use stayed TooFarRange.
+            if (mate.IsAutoAttack)
+                return false;
+
             return moveType is UnitMoveType
                    && (mate.OwnerObjId == character.ObjId
                    || mate.Passengers.TryGetValue(AttachPointKind.Driver, out var passenger)

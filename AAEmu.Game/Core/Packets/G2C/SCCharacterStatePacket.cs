@@ -40,10 +40,10 @@ public class SCCharacterStatePacket(Character character) : GamePacket(SCOffsets.
         for (var i = 0; i < 30; i++)
             stream.Write(0u);                               // abilityExp[30]
 
-        stream.Write(0u);                                   // totalSentMail
-        stream.Write(0u);                                   // totalMail
-        stream.Write(0u);                                   // totalMiaMail
-        stream.Write(0u);                                   // totalCommercialMail
+        stream.Write((uint)character.Mails.UnreadMailCount.TotalSent);
+        stream.Write((uint)character.Mails.UnreadMailCount.TotalReceived);
+        stream.Write((uint)character.Mails.UnreadMailCount.TotalMiaReceived);
+        stream.Write((uint)character.Mails.UnreadMailCount.TotalCommercialReceived);
         stream.Write(character.Mails.UnreadMailCount.Received);            // unreadMail
         stream.Write(character.Mails.UnreadMailCount.MiaReceived);         // unreadMiaMail
         stream.Write(character.Mails.UnreadMailCount.CommercialReceived);  // unreadCommercialMail

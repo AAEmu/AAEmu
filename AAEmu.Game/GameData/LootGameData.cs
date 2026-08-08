@@ -22,6 +22,12 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
     private Dictionary<uint, List<LootGroups>> _lootGroupsByPackId;
     private Dictionary<uint, List<LootActabilityGroups>> _lootActabilityGroupsByPackId;
 
+    /// <summary>
+    /// Items whose use-skill consumes the item and grants a loot pack containing Item.Coins (500).
+    /// 10.0.2.13 NPC corpse money uses these purses instead of raw coins.
+    /// </summary>
+    private HashSet<uint> _coinPurseItemIds;
+
     public void Load(SqliteConnection connection)
     {
         _lootPacks = [];
@@ -33,6 +39,7 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
         _lootsByPackId = [];
         _lootGroupsByPackId = [];
         _lootActabilityGroupsByPackId = [];
+        _coinPurseItemIds = [];
 
         // table 'loots'
         using (var command = connection.CreateCommand())
@@ -169,6 +176,28 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
 
             _lootPacks.Add(pack.Id, pack);
         }
+
+        // Coin purses: use_skill consumes the item and GainLootPackItemEffect opens a pack that
+        // contains item 500 (돈). Used to convert NPC corpse money away from raw coins.
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText =
+                """
+                SELECT DISTINCT i.id
+                FROM items i
+                JOIN skill_effects se ON se.skill_id = i.use_skill_id AND se.consume_source_item = 't'
+                JOIN effects e ON e.id = se.effect_id AND e.actual_type = 'GainLootPackItemEffect'
+                JOIN gain_loot_pack_item_effects g ON g.id = e.actual_id
+                JOIN loots l ON l.loot_pack_id = g.loot_pack_id AND l.item_id = 500
+                """;
+            command.Prepare();
+            using (var sqliteReader = command.ExecuteReader())
+            using (var reader = new SQLiteWrapperReader(sqliteReader))
+            {
+                while (reader.Read())
+                    _coinPurseItemIds.Add(reader.GetUInt32("id"));
+            }
+        }
     }
 
     public void PostLoad()
@@ -181,4 +210,6 @@ public class LootGameData : Singleton<LootGameData>, IGameDataLoader
             return pack;
         return null;
     }
+
+    public bool IsCoinPurseItem(uint itemId) => _coinPurseItemIds != null && _coinPurseItemIds.Contains(itemId);
 }

@@ -42,6 +42,7 @@ public class PlayerEnterService
         zone.SendPacket(new WZUnitStatePacket(unitStateBody));
         zone.Units.RegisterWithId(bcId, unitStateBody);
         var character = FindActiveCharacter(bcId);
+        SyncUnitFaction(zone, character);
         ActivateNpcSpawnersNearPlayer(zone, character);
         SyncExpedition(zone, character);
         Logger.Info(
@@ -98,6 +99,7 @@ public class PlayerEnterService
         newZone.SendPacket(new WZUnitStatePacket(unitStateBody));
         newZone.Units.RegisterWithId(bcId, unitStateBody);
         var character = FindActiveCharacter(bcId);
+        SyncUnitFaction(newZone, character);
         ActivateNpcSpawnersNearPlayer(newZone, character);
         SyncExpedition(newZone, character);
         Logger.Info(
@@ -126,6 +128,18 @@ public class PlayerEnterService
             "WZActivateNpcSpawnersInArea player-scoped -> zoneId={0} bcId={1} local=({2:F1},{3:F1},{4:F1}) world=({5:F1},{6:F1},{7:F1}) r={8:F0}",
             zone.ZoneId, character.ObjId, local.X, local.Y, local.Z,
             position.X, position.Y, position.Z, radius);
+    }
+
+    /// <summary>Synchronizes the character faction after creating its zone unit.</summary>
+    private static void SyncUnitFaction(ZoneConnection zone, Character? character)
+    {
+        if (character?.Faction is not { } faction || (uint)faction.Id == 0)
+            return;
+
+        zone.SendPacket(new WZUnitFactionChangedPacket(character.ObjId, 0, (int)faction.Id, false));
+        Logger.Info(
+            "WZUnitFactionChanged enter → zoneId={0} unit={1} faction={2}",
+            zone.ZoneId, character.ObjId, faction.Id);
     }
 
     private static void SyncExpedition(ZoneConnection zone, Character? character)

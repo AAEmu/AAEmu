@@ -280,15 +280,16 @@ public static class Program
 
             var aggro = (uint)Math.Max(1, damage + absorbed);
             var world = WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
+            // Aggro tables and combat engagement belong to NPC targets, not player victims.
             var damagedNpc = world?.GetNpc(targetId);
-            if (damagedNpc != null)
-            {
-                var abuser = world.GetUnit(casterId);
-                if (abuser != null)
-                    damagedNpc.CurrentTarget = abuser;
-                zone.SendPacket(new WZTargetChangedPacket(targetId, casterId, forceByWorld: true));
-                Logger.Info("WZTargetChanged → zone npc={0} target={1} (damage handoff)", targetId, casterId);
-            }
+            if (damagedNpc == null)
+                return;
+
+            var abuser = world.GetUnit(casterId);
+            if (abuser != null)
+                damagedNpc.CurrentTarget = abuser;
+            zone.SendPacket(new WZTargetChangedPacket(targetId, casterId, forceByWorld: true));
+            Logger.Info("WZTargetChanged → zone npc={0} target={1} (damage handoff)", targetId, casterId);
 
             zone.SendPacket(new WZUpdateAggroPacket(
                 targetId,
@@ -299,11 +300,8 @@ public static class Program
                 castAction));
             Logger.Info("WZUpdateAggro → zone npc={0} target={1} aggro={2}", targetId, casterId, aggro);
 
-            if (damagedNpc != null)
-            {
-                zone.SendPacket(new WZCombatEngagedPacket(targetId));
-                Logger.Info("WZCombatEngaged → zone npc={0} (damage handoff)", targetId);
-            }
+            zone.SendPacket(new WZCombatEngagedPacket(targetId));
+            Logger.Info("WZCombatEngaged → zone npc={0} (damage handoff)", targetId);
         };
         WorldIntegration.RelayUnitPointsToZone = (objId, hp, mp) =>
         {
@@ -436,7 +434,10 @@ public static class Program
                 return;
 
             zone.SendPacket(new WZUnitRemovedPacket(bcId));
-            Logger.Info("WZUnitRemoved → zone bcId={0} (mirror corpse cleanup)", bcId);
+
+            // A forced removal has no completion callback, so release its spawn marker here.
+            NpcSpawnRelay.ForgetNpcState(zone.ZoneId, bcId);
+            Logger.Info("WZUnitRemoved → zone bcId={0} (forced teardown, Create marker dropped)", bcId);
         };
         WorldIntegration.RelayUnitRemovedToZoneId = (zoneId, bcId) =>
         {
@@ -668,6 +669,18 @@ public static class Program
 
             zone.SendPacket(new WZForceAttackSetPacket(unitId, on));
             Logger.Debug("WZForceAttackSet → zone unit={0} on={1}", unitId, on);
+        };
+        WorldIntegration.RelayLevelChangedToZone = (unitId, level) =>
+        {
+            if (Environment.GetEnvironmentVariable("AAEMU_DISABLE_ZONE_COMBAT_RELAY") == "1")
+                return;
+
+            var zone = PlayerEnterService.ForUnit(unitId);
+            if (zone == null)
+                return;
+
+            zone.SendPacket(new WZLevelChangedPacket(unitId, level));
+            Logger.Info("WZLevelChanged → zone unit={0} level={1}", unitId, level);
         };
         WorldIntegration.RelayUnitResurrectionToZone = (unitId, x, y, z, zRot) =>
         {
@@ -986,8 +999,9 @@ public static class Program
         };
 
         Logger.Info(
-            "ZoneAuthority ON | NPCs+move+doodad/housing/gimmick/quest-area relays | CS/SC glue | zone :{0}",
-            appConfig.ZoneNetwork.Port);
+            "ZoneAuthority ON | NPCs+move+doodad/housing/gimmick/quest-area relays | CS/SC glue | zone :{0} | localWire={1}",
+            appConfig.ZoneNetwork.Port,
+            AAEmu.Game.Core.Managers.World.ZoneCoordBoundary.UseLocalOnZoneWire);
 
         var gameContentRoot = ResolveGameContentRoot(appConfig);
         Logger.Info("CS/SC lobby glue from {0}", gameContentRoot);
@@ -1024,6 +1038,7 @@ public static class Program
             WorldIntegration.RelayUnitDuelStateToZone = null;
             WorldIntegration.RelayTargetChangedToZone = null;
             WorldIntegration.RelayForceAttackToZone = null;
+            WorldIntegration.RelayLevelChangedToZone = null;
             WorldIntegration.RelayUnitResurrectionToZone = null;
             WorldIntegration.RelaySkillStoppedToZone = null;
             WorldIntegration.RelayCastingStoppedToZone = null;

@@ -178,34 +178,41 @@ public class CashShopManager(IWorldManager worldManager, IAccountManager account
         var thisTabItems = MenuItems.Where(t => t.MainTab == mainTabId && t.SubTab == subTabId).ToList();
         var isLimitedTab = mainTabId == 1 && subTabId == 1;
         var itemsPerPage = isLimitedTab ? 4 : 8;
-        var numberOfPages = (ushort)Math.Ceiling((float)thisTabItems.Count / itemsPerPage);
-        var thisPageItems = thisTabItems.Skip(itemsPerPage * (page - 1)).Take(itemsPerPage).ToList();
+        if (page < 1)
+            page = 1;
+        var thisPageItems = thisTabItems.Skip(itemsPerPage * (page - 1)).Take(itemsPerPage)
+            .Select(t => t.ShopItem)
+            .Where(si => si != null)
+            .Cast<IcsItem>()
+            .ToList();
 
-        for (var i = 0; i < thisPageItems.Count; i++)
-        {
-            var isLast = i == thisPageItems.Count - 1;
-            var shopItem = thisPageItems[i].ShopItem;
-            if (shopItem == null)
-                continue;
+        // Send both batches, including empty ones, so the client can finish the refresh.
+        Logger.Info(
+            "ICSGoods push main={0} sub={1} page={2} items={3} skus={4}",
+            mainTabId, subTabId, page, thisPageItems.Count,
+            thisPageItems.Sum(i => i.Skus.Count));
+        connection.SendPacket(new SCICSGoodListPacket(mainTabId, subTabId, thisPageItems));
 
-            connection.SendPacket(new SCICSGoodListPacket(isLast, numberOfPages, mainTabId, subTabId, shopItem));
-        }
+        var skus = new List<IcsSku>();
+        foreach (var shopItem in thisPageItems)
+            skus.AddRange(shopItem.Skus.Values);
+        connection.SendPacket(new SCICSGoodDetailPacket(skus));
+    }
 
-        for (var i = 0; i < thisPageItems.Count; i++)
-        {
-            var isLastItem = i >= thisPageItems.Count - 1;
-            var shopItem = thisPageItems[i].ShopItem;
-            if (shopItem == null)
-                continue;
+    /// <summary>Push first page for every tab that has listings (client has no CS goods-list request type).</summary>
+    public void SendAllIcsTabsFirstPage(GameConnection connection)
+    {
+        if (!Enabled)
+            return;
 
-            var n = 0;
-            foreach (var sku in shopItem.Skus.Values)
-            {
-                var isLastSku = n >= shopItem.Skus.Count - 1;
-                connection.SendPacket(new SCICSGoodDetailPacket(isLastSku && isLastItem, sku));
-                n++;
-            }
-        }
+        var tabs = MenuItems
+            .Select(m => (m.MainTab, m.SubTab))
+            .Distinct()
+            .OrderBy(t => t.MainTab)
+            .ThenBy(t => t.SubTab);
+
+        foreach (var (main, sub) in tabs)
+            SendICSPage(connection, main, sub, 1);
     }
 
     /// <summary>
@@ -299,6 +306,59 @@ public class CashShopManager(IWorldManager worldManager, IAccountManager account
             return false;
         }
         return true;
+    }
+
+    /// <summary>
+    /// How many units of this shop item the buyer already owns under the item's limit scope.
+    /// </summary>
+    public uint GetPurchasedItemCount(uint accountId, uint characterId, IcsItem shopItem)
+    {
+        if (shopItem.LimitedType == CashShopLimitType.None)
+            return 0;
+
+        var sales = GetSalesForShopItem(
+            accountId,
+            shopItem.LimitedType == CashShopLimitType.Character ? characterId : 0,
+            shopItem.ShopId);
+
+        var count = 0u;
+        foreach (var sale in sales)
+        {
+            if (!SKUs.TryGetValue(sale.Sku, out var sku))
+                continue;
+            if (shopItem.LimitedType == CashShopLimitType.Character && sale.BuyerChar != characterId)
+                continue;
+            if (shopItem.LimitedType == CashShopLimitType.Account && sale.BuyerAccount != accountId)
+                continue;
+            count += sku.ItemCount;
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    /// Entries for SCICSBuyCount (kind 1): every limited ICS product + how many already bought.
+    /// Client maps shopIds to list badges (e.g. green "3" sold-out style remaining UX).
+    /// </summary>
+    public List<(uint ShopId, uint BuyCount)> BuildBuyCountEntries(uint accountId, uint characterId)
+    {
+        var result = new List<(uint, uint)>();
+        foreach (var shop in ShopItems.Values)
+        {
+            if (shop.LimitedType == CashShopLimitType.None)
+                continue;
+            result.Add((shop.ShopId, GetPurchasedItemCount(accountId, characterId, shop)));
+        }
+
+        return result;
+    }
+
+    public void SendBuyCounts(GameConnection connection, uint accountId, uint characterId, uint kind = 1)
+    {
+        var entries = BuildBuyCountEntries(accountId, characterId);
+        if (entries.Count == 0)
+            return;
+        connection.SendPacket(new SCICSBuyCountPacket(kind, entries));
     }
 
     public bool UpdateRemainingShopItemStock(uint shopItemId, int newRemaining)

@@ -337,9 +337,17 @@ public class BuffTemplate
             owner.BroadcastPacket(new SCBuffCreatedPacket(buff), true);
             if (WorldIntegration.ZoneAuthority && !buff.ZoneAuthored)
             {
-                var body = new PacketStream();
-                BuffCreatedWire.Write(body, buff);
-                WorldIntegration.RelayBuffCreatedToZone?.Invoke(owner.ObjId, body.GetBytes());
+                if (BuffCreatedWire.IsZoneSafe(buff, out var unsafeReason))
+                {
+                    var body = new PacketStream();
+                    BuffCreatedWire.Write(body, buff);
+                    WorldIntegration.RelayBuffCreatedToZone?.Invoke(owner.ObjId, body.GetBytes());
+                }
+                else
+                {
+                    // Skip invalid unit references instead of forwarding an unsafe buff.
+                    Logger.Warn($"Not relaying buff {Id} to zone: {unsafeReason}.");
+                }
             }
         }
 

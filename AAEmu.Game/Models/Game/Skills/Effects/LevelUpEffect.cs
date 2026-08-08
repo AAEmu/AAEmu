@@ -1,5 +1,6 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -54,8 +55,14 @@ public class LevelUpEffect : EffectTemplate
 
         if (expToAdd > 0)
             character.AddExp(expToAdd, ApplyAllAbilities);
-
-        character.Hp = character.MaxHp;
-        character.Mp = character.MaxMp;
+        // Full vitals + SCUnitPoints / UnitState / zone points are applied inside Character.AddExp
+        // when Level actually rises (ApplyLevelUpBenefits). Re-heal here only if already at target
+        // (AddExp no-ops when exp needed is 0).
+        else if (character.Hp < character.MaxHp || character.Mp < character.MaxMp)
+        {
+            character.Hp = character.MaxHp;
+            character.Mp = character.MaxMp;
+            character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
+        }
     }
 }

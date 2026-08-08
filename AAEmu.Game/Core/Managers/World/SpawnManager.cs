@@ -33,6 +33,9 @@ namespace AAEmu.Game.Core.Managers.World;
 public class SpawnManager(WorldInstance parentWorld)
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
+    /// <summary>How long a zone gets to acknowledge an NPC despawn request.</summary>
+    private const int ZoneDespawnAckSeconds = 15;
     private bool _loaded;
 
     /// <summary>
@@ -1021,8 +1024,44 @@ public class SpawnManager(WorldInstance parentWorld)
                         npc.Spawner.Despawn(npc);
                     else if (obj is Npc { IsZoneMirror: true } mirrorNpc)
                     {
-                        // Zone mirror bcIds come from ObjectIdManager (unit pool under max_unit).
-                        WorldIntegration.RelayNpcStartDespawnToZone?.Invoke(mirrorNpc.ObjId);
+                        // The zone owns this unit, so it owns the teardown: ZWRemoveNpc drives
+                        // NpcSpawnRelay.CompleteRemove, which deletes the mirror, drops the
+                        // WZNpcState Create marker and releases the bcId. If that already
+                        // happened the schedule entry is stale — the id may even belong to
+                        // another unit by now, so compare identity, not just presence.
+                        if (WorldIntegration.FindUnitAcrossWorlds(mirrorNpc.ObjId) != mirrorNpc)
+                        {
+                            RemoveDespawn(obj);
+                            continue;
+                        }
+
+                        if (!mirrorNpc.ZoneDespawnSignaled)
+                        {
+                            // Give the zone-owned AI time to complete its normal teardown before
+                            // falling back to a forced removal.
+                            mirrorNpc.ZoneDespawnSignaled = true;
+                            WorldIntegration.RelayNpcStartDespawnToZone?.Invoke(mirrorNpc.ObjId);
+                            mirrorNpc.Despawn = DateTime.UtcNow.AddSeconds(ZoneDespawnAckSeconds);
+                            continue;
+                        }
+
+                        // Deadline passed with no ZWRemoveNpc. Force it rather than leak the
+                        // mirror. A killed mirror always lands here (its AI proxy died with it, so
+                        // nothing was left to answer) and that is the normal corpse path; only a
+                        // living mirror going silent means the zone actually ignored us, and its
+                        // respawn is the one at risk of coming up without AI.
+                        if (mirrorNpc.IsDead)
+                        {
+                            Logger.Debug(
+                                "Zone mirror bc={0} tpl={1} corpse expired after {2}s — WZUnitRemoved",
+                                mirrorNpc.ObjId, mirrorNpc.TemplateId, ZoneDespawnAckSeconds);
+                        }
+                        else
+                        {
+                            Logger.Warn(
+                                "Zone mirror bc={0} tpl={1} ignored WZNpcStartDespawn for {2}s — forcing WZUnitRemoved",
+                                mirrorNpc.ObjId, mirrorNpc.TemplateId, ZoneDespawnAckSeconds);
+                        }
                         WorldIntegration.RelayUnitRemovedToZone?.Invoke(mirrorNpc.ObjId);
                         mirrorNpc.Delete();
                         ObjectIdManager.Instance.ReleaseId(mirrorNpc.ObjId);

@@ -153,18 +153,16 @@ public class Skill
             {
                 // Basic attacks: short anti-spam only. 500ms blocked the client auto-attack
                 // retry storm and made the hotbar feel unresponsive (CooldownTime).
+                // Zone-driven NPC melee needs a hard cooldown gate; the interval fallback permits
+                // duplicate swings when a key has not yet been recorded.
                 var delay = 150;
                 if (Id == 2 || Id == 3 || Id == 4)
-                    delay = character != null ? 100 : 800;
+                    delay = character != null ? 100 : 1500;
 
                 if (unit.SkillLastUsed.AddMilliseconds(delay) > DateTime.UtcNow)
                 {
-                    // Will delay for 150 Milliseconds to eliminate the hanging of the skill
-                    if (!caster.CheckInterval(delay))
-                    {
-                        Logger.Trace($"Skill: CooldownTime [{delay}]!");
-                        return SkillResult.CooldownTime;
-                    }
+                    Logger.Trace($"Skill: CooldownTime [{delay}]!");
+                    return SkillResult.CooldownTime;
                 }
 
                 // Instant combo hits (e.g. Fireball 24894/24895 custom_gcd=10) must not be blocked by

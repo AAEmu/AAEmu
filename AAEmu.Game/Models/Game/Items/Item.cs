@@ -169,6 +169,8 @@ public class Item : PacketMarshaler, IComparable<Item>
 
     public static uint DawnStone => 327;
     public static uint Coins => 500;
+    /// <summary>농민의 주머니 — lowest NPC coin-purse tier (opens loot pack 10867).</summary>
+    public static uint FarmerCoinPurse => 29203;
     public static uint TaxCertificate => 31891;
     public static uint BoundTaxCertificate => 31892;
     public static uint AppraisalCertificate => 28085;

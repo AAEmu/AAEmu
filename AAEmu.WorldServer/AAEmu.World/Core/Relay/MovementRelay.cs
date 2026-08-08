@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -18,6 +19,7 @@ namespace AAEmu.World.Core.Relay;
 
 /// <summary>
 /// CSMoveUnit → WZUnitMovement and ZWUnitMovements → SCUnitMovements.
+/// Local Zone positions are converted at the boundary when local-wire mode is enabled.
 /// </summary>
 public class MovementRelay
 {
@@ -25,10 +27,7 @@ public class MovementRelay
     private const int ScMaxUnits = 400;
 
     /// <summary>
-    /// AAEMU_LOG_ZONE_MOVE_POS=1 traces the Z the Zone streams for flying NPCs, so a hawk that
-    /// drops out of the sky can be blamed on (or cleared of) the dedicate. Also dumps the first
-    /// batch's raw positions: that is what proved the Zone simulates in WORLD space, not zone-local
-    /// (Falcony bc 15728641 streamed (24478,8357), its world mirror, never local (926,1189)).
+    /// AAEMU_LOG_ZONE_MOVE_POS=1 traces positions received from Zone after any enabled conversion.
     /// </summary>
     private static readonly bool LogMovePositions =
         System.Environment.GetEnvironmentVariable("AAEMU_LOG_ZONE_MOVE_POS") == "1";
@@ -194,6 +193,30 @@ public class MovementRelay
         return source.ZoneId == slave.ZoneAnnouncedTo;
     }
 
+    /// <summary>Copies zone-owned NPC and mate positions onto their World mirrors.</summary>
+    private static void ApplyCombatUnitPosition(uint bcId, UnitMoveType move, ZoneConnection source)
+    {
+        if (DisableHullPositionSync)
+            return;
+
+        var unit = WorldIntegration.FindUnitAcrossWorlds(bcId);
+        if (unit is not Npc && unit is not Mate)
+            return;
+
+        // Reject movement from a zone that does not own this unit.
+        var unitZone = unit.Transform?.ZoneId ?? 0;
+        if (source != null && unitZone != 0 && source.ZoneId != unitZone)
+            return;
+
+        unit.Transform.Local.SetPosition(
+            move.X, move.Y, move.Z,
+            (float)MathUtil.ConvertDirectionToRadian(move.RotationX),
+            (float)MathUtil.ConvertDirectionToRadian(move.RotationY),
+            (float)MathUtil.ConvertDirectionToRadian(move.RotationZ));
+        unit.Transform.FinalizeTransform();
+        NpcHeightDiagnostics.ObserveMove(bcId, move.X, move.Y, move.Z);
+    }
+
     /// <summary>
     /// Copies a dedicate-simulated hull position onto the World mirror. CSMoveUnit for a ship only
     /// carries throttle and steering, and nothing else writes a Slave transform under ZoneAuthority,
@@ -237,8 +260,33 @@ public class MovementRelay
         if (zone == null || payload == null || payload.Length == 0)
             return;
 
-        Logger.Debug("RelayClientMoveToZone bcId={0} len={1}", bcId, payload.Length);
-        zone.SendPacket(new WZUnitMovementPacket(bcId, payload));
+        var body = payload;
+        if (ZoneCoordBoundary.UseLocalOnZoneWire && zone.ZoneId != 0)
+        {
+            try
+            {
+                var stream = new PacketStream();
+                stream.Insert(0, payload);
+                stream.Pos = 0;
+                var typeByte = stream.ReadByte();
+                var move = MoveType.GetType((MoveTypeEnum)typeByte);
+                move.Read(stream);
+                ZoneCoordBoundary.ShiftWorldToLocal(zone.ZoneId, move);
+
+                var rewritten = new PacketStream();
+                rewritten.Write(typeByte);
+                move.Write(rewritten);
+                body = rewritten.GetBytes();
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, "RelayClientMoveToZone local conversion failed bcId={0}; forwarding original payload", bcId);
+                body = payload;
+            }
+        }
+
+        Logger.Debug("RelayClientMoveToZone bcId={0} len={1}", bcId, body.Length);
+        zone.SendPacket(new WZUnitMovementPacket(bcId, body));
     }
 
     public void RelayZoneMoveToClient(ZoneConnection source, byte[] payload)
@@ -261,8 +309,11 @@ public class MovementRelay
             if (count <= 0)
                 return;
 
-            // Parse each entry once; filter it against each client's streamed-unit set below.
+            var zoneId = source?.ZoneId ?? 0;
+
+            // Parse and normalize each entry once, then filter it for each client below.
             var entries = new List<(uint BcId, MoveTypeEnum Type, byte[] Body)>(Math.Min(count, ScMaxUnits));
+            Dictionary<uint, float> tracedZ = null;
             for (var i = 0; i < count; i++)
             {
                 var start = stream.Pos;
@@ -277,6 +328,8 @@ public class MovementRelay
                     break;
                 }
 
+                ZoneCoordBoundary.ShiftLocalToWorld(zoneId, mt);
+
                 if (mt is ShipMoveType hull)
                 {
                     // Foreign copy of somebody else's hull: neither the mirror nor the clients may
@@ -286,23 +339,34 @@ public class MovementRelay
 
                     ApplyHullPosition(bcId, hull, source);
                 }
+                else if (mt is UnitMoveType unitMove)
+                {
+                    // NPC / mate World mirrors lagged ZWUnitMovements so Skill.Use range and mate
+                    // chase measured stale centers (TooFarRange 5–9 m). Hulls use ApplyHullPosition.
+                    ApplyCombatUnitPosition(bcId, unitMove, source);
+                }
 
                 if (LogMovePositions)
                 {
                     if (_relayLog == 0 && i < 3)
                     {
                         Logger.Info(
-                            "ZWUnitMovements pos bc={0} type={1} pos=({2:F1},{3:F1},{4:F1})",
-                            bcId, (MoveTypeEnum)typeByte, mt.X, mt.Y, mt.Z);
+                            "ZWUnitMovements pos bc={0} type={1} pos=({2:F1},{3:F1},{4:F1}) zoneId={5} localWire={6}",
+                            bcId, (MoveTypeEnum)typeByte, mt.X, mt.Y, mt.Z, zoneId,
+                            ZoneCoordBoundary.UseLocalOnZoneWire);
                     }
 
                     LogFlierPosition(bcId, (MoveTypeEnum)typeByte, mt);
                     Census(bcId, mt);
                 }
 
-                var entry = new byte[len];
-                Buffer.BlockCopy(payload, start, entry, 0, len);
-                entries.Add((bcId, (MoveTypeEnum)typeByte, entry));
+                var rewritten = new PacketStream();
+                rewritten.WriteBc(bcId);
+                rewritten.Write(typeByte);
+                mt.Write(rewritten);
+                entries.Add((bcId, (MoveTypeEnum)typeByte, rewritten.GetBytes()));
+                if (NpcHeightDiagnostics.IsTracing(bcId))
+                    (tracedZ ??= [])[bcId] = mt.Z;
             }
 
             if (entries.Count == 0)
@@ -331,6 +395,16 @@ public class MovementRelay
                         .Where(entry => entry.BcId != drivenObjId || !IsClientAuthoredVehicleMove(entry.Type))
                         .Where(entry => WorldIntegration.IsStreamedUnitForClient(character, entry.BcId))
                         .ToList();
+
+                    if (tracedZ != null)
+                    {
+                        foreach (var (bcId, z) in tracedZ)
+                        {
+                            NpcHeightDiagnostics.RecordRelay(
+                                bcId, character.Name, z, visible.Any(entry => entry.BcId == bcId));
+                        }
+                    }
+
                     if (visible.Count == 0)
                         return;
 

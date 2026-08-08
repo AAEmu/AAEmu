@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.G2C.UnitState;
 
-/// <summary>World position, scale, level pairs, four slot selectors, and model reference.</summary>
+/// <summary>Position, scale, level pairs, four slot selectors, and model reference.</summary>
 internal static class UnitStatePlacementSerializer
 {
     private const byte NpcUnsetSlot = byte.MaxValue;
@@ -13,9 +13,12 @@ internal static class UnitStatePlacementSerializer
     public static void Write(PacketStream stream, UnitStateWireContext context)
     {
         var unit = context.Unit;
-        GroundWorldNpc(unit, context);
+        // Only client packets ground World-owned NPCs. A Zone placement override is already local.
+        if (context.PlacementOverride is null)
+            GroundWorldNpc(unit, context);
 
-        stream.WritePosition(unit.Transform.Local.Position);
+        var position = context.PlacementOverride ?? unit.Transform.Local.Position;
+        stream.WritePosition(position);
         stream.Write(unit.Scale);
         stream.Write(checked((sbyte)unit.Level));
         stream.Write(checked((sbyte)unit.HeirLevel));

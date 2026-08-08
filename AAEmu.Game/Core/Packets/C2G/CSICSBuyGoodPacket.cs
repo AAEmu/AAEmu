@@ -62,15 +62,19 @@ public class CSICSBuyGoodPacket() : GamePacket(CSOffsets.CSICSBuyGoodPacket, 1)
 
         if (targetChar == null)
         {
+            // 623 → BFR_FRIEND_NAME
             thisChar.SendErrorMessage(ErrorMessageType.IngameShopFindCharacterNameFail);
-            thisChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
+            thisChar.SendPacket(SCICSBuyResultPacket.Fail(
+                buyMode, receiverName, ErrorMessageType.IngameShopFindCharacterNameFail));
             return;
         }
 
         if (buyList.Count <= 0)
         {
             thisChar.SendErrorMessage(ErrorMessageType.BuyCartEmpty);
-            Connection.ActiveChar.SendPacket(new SCICSBuyResultPacket(false, buyMode, receiverName, 0));
+            // 590 → BFR_NORMAL
+            Connection.ActiveChar.SendPacket(SCICSBuyResultPacket.Fail(
+                buyMode, receiverName, ErrorMessageType.IngameShopBuyFail));
             return;
         }
 

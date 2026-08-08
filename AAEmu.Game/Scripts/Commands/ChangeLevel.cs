@@ -121,13 +121,7 @@ public class ChangeLevel : ICommand
             {
                 targetPlayer.AddExp(maxExpToAdd, true);
             }
-
-            // If the target level is bigger than player's current level, refill HP/MP
-            if (level > targetPlayer.Level)
-            {
-                targetPlayer.Hp = targetPlayer.MaxHp;
-                targetPlayer.Mp = targetPlayer.MaxMp;
-            }
+            // AddExp → ApplyLevelUpBenefits already fills HP/MP + SC packets when a level is gained.
         }
     }
 }

@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Buffs;
+using AAEmu.Game.Models.Game.Skills.Effects.Enums;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
@@ -89,8 +90,12 @@ public class MateManager(WorldInstance parentWorldInstance)
         foreach (var mateInfo in mateInfoList)
         {
             if (mateInfo?.TlId != tlId) continue;
-            mateInfo.UserState = newState; // TODO - Maybe verify range
-            // owner.BroadcastPacket(new SCMateStatePacket(mateInfo.ObjId), true);
+            // enum_mate_state / MateState: 1 passive, 2 protective, 3 aggressive (compact.sqlite3).
+            mateInfo.UserState = newState;
+            if (newState == (byte)MateState.Passive)
+                mateInfo.StopOrderedAttack();
+            else if (newState == (byte)MateState.Aggressive && mateInfo.CurrentTarget != null)
+                mateInfo.StartOrderedAttack();
         }
     }
 
@@ -129,7 +134,15 @@ public class MateManager(WorldInstance parentWorldInstance)
             WorldIntegration.RelayTargetChangedToZone?.Invoke(
                 mateInfo.ObjId, mateInfo.CurrentTarget?.ObjId ?? 0, false);
 
-        Logger.Debug($"ChangeTargetMate. tlId: {mateInfo.TlId}, objId: {mateInfo.ObjId}, targetObjId: {objId}");
+        // Start or stop the server-paced battle-mate attack when its target changes.
+        if (target == null)
+            mateInfo.StopOrderedAttack();
+        else
+            mateInfo.StartOrderedAttack();
+
+        Logger.Info(
+            "ChangeTargetMate tlId={0} mate={1} target={2} state={3}",
+            mateInfo.TlId, mateInfo.ObjId, objId, mateInfo.UserState);
     }
 
     /// <summary>
@@ -186,6 +199,8 @@ public class MateManager(WorldInstance parentWorldInstance)
                 character.AttachedPoint = attachPoint;
 
                 character.IsVisible = true; // When we're on a horse, you can see us
+                // Announce the mate to the zone before attaching its rider.
+                AnnounceMateToZone(mateInfo);
                 WorldIntegration.RelayUnitAttachToZone?.Invoke(
                     character.ObjId, mateInfo.ObjId, (byte)attachPoint, true);
             }
@@ -281,8 +296,51 @@ public class MateManager(WorldInstance parentWorldInstance)
         owner.SendPacket(new SCMateSpawnedPacket(mate));
         Thread.Sleep(50);
         mate.Spawn();
+        AnnounceMateToZone(mate);
 
         Logger.Debug($"Mount spawned. ownerObjId: {owner.ObjId}, tlId: {mate.TlId}, mateObjId: {mate.ObjId}");
+    }
+
+    /// <summary>Materializes a mate in its zone before attachment and movement relays.</summary>
+    public static void AnnounceMateToZone(Mate mate)
+    {
+        if (!WorldIntegration.ZoneAuthority || mate == null)
+            return;
+
+        var zoneId = mate.Transform?.ZoneId ?? 0;
+        if (zoneId == 0)
+        {
+            var owner = WorldManager.Instance.GetCharacterByObjId(mate.OwnerObjId);
+            zoneId = owner?.Transform?.ZoneId ?? 0;
+        }
+
+        if (zoneId == 0)
+            return;
+
+        if (mate.ZoneAnnouncedTo != 0 && mate.ZoneAnnouncedTo != zoneId)
+            WithdrawMateFromZone(mate);
+
+        if (mate.ZoneAnnouncedTo == zoneId)
+            return;
+
+        var body = WorldIntegration.BuildWzUnitStateBody(mate);
+        if (body is not { Length: > 0 })
+            return;
+
+        WorldIntegration.RelayUnitStateToZone?.Invoke(zoneId, body);
+        mate.ZoneAnnouncedTo = zoneId;
+        Logger.Info("WZUnitState queued for mate obj={0} zoneId={1}", mate.ObjId, zoneId);
+    }
+
+    /// <summary>Drops the mate from the zone that currently owns it.</summary>
+    public static void WithdrawMateFromZone(Mate mate)
+    {
+        if (mate == null || mate.ZoneAnnouncedTo == 0)
+            return;
+
+        WorldIntegration.RelayUnitRemovedToZoneId?.Invoke(mate.ZoneAnnouncedTo, mate.ObjId);
+        Logger.Info("WZUnitRemoved for mate obj={0} zoneId={1}", mate.ObjId, mate.ZoneAnnouncedTo);
+        mate.ZoneAnnouncedTo = 0;
     }
 
     /// <summary>
@@ -300,6 +358,9 @@ public class MateManager(WorldInstance parentWorldInstance)
         {
             UnMountMate(WorldManager.Instance.GetCharacterByObjId(ati.Value._objId), mateInfo.TlId, ati.Key, AttachUnitReason.SlaveBinding);
         }
+
+        mateInfo.StopOrderedAttack();
+        WithdrawMateFromZone(mateInfo);
 
         if (_activeMates.TryGetValue(owner.Id, out var activeMateList))
         {
@@ -335,6 +396,7 @@ public class MateManager(WorldInstance parentWorldInstance)
 
             if (mate.OwnerObjId > 0)
                 markForDeleteObj.Add(mate.OwnerObjId);
+            WithdrawMateFromZone(mate);
             mate.Delete();
             ObjectIdManager.Instance.ReleaseId(mate.ObjId);
             if (mate.TlId > 0)
