@@ -53,12 +53,52 @@ public class PlotCondition
             PlotConditionType.Stealth => ConditionStealth(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
             PlotConditionType.Visible => ConditionVisible(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
             PlotConditionType.ABLevel => ConditionAbLevel(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
-            _ => true
+            PlotConditionType.CombatResource => ConditionCombatResource(caster, Param1, Param2, Param3),
+            _ => UnhandledKind()
         };
 
         Logger.Trace($"PlotCondition : {Kind} | Params : {Param1}, {Param2}, {Param3} | Result : {(NotCondition ? "NOT" : "")} {res}");
 
         return NotCondition ? !res : res;
+    }
+
+    /// <summary>
+    /// Fallback for condition kinds this server does not implement yet. Stays permissive so an
+    /// unknown kind cannot silently block a plot, but says so once per kind instead of passing
+    /// invisibly - kinds 18/20/21 are still unimplemented and used to look like working gates.
+    /// </summary>
+    private bool UnhandledKind()
+    {
+        if (_warnedKinds.Add(Kind))
+            Logger.Warn($"PlotCondition kind {(int)Kind} ({Kind}) is not implemented - treated as true. Plots gated on it take their first branch unconditionally.");
+        return true;
+    }
+
+    private static readonly HashSet<PlotConditionType> _warnedKinds = [];
+
+    // 19
+    /// <summary>
+    /// combat_resource: is the caster's amount of combat resource <paramref name="combatResourceId"/>
+    /// within [<paramref name="min"/>, <paramref name="max"/>]?
+    /// </summary>
+    /// <remarks>
+    /// This is the v10 combo-point gate. Malediction is the clearest case: Ghastly Pack (plot 5477)
+    /// carries three of these on resource 15 - (1,4), (5,9) and (10,10) - which are exactly the
+    /// base / "5 Malice Charges" / "10 Malice Charges" tiers the tooltip advertises. While kind 19
+    /// was unimplemented all three passed, so the plot always took its first branch, never reached
+    /// the higher tiers, and never ran the plot_effects that spend the charges.
+    /// 233 conditions across the shipped data are gated this way.
+    /// </remarks>
+    private static bool ConditionCombatResource(BaseUnit caster, int min, int max, int combatResourceId)
+    {
+        if (caster is not Unit casterUnit)
+        {
+            Logger.Warn($"PlotCondition CombatResource check without caster being a Unit");
+            return false;
+        }
+
+        var amount = casterUnit.GetCombatResource(combatResourceId);
+        return amount >= min && amount <= max;
     }
 
     // 1
