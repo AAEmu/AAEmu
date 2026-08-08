@@ -58,6 +58,23 @@ public class CharacterMails
         // Echo the requested kind so the client finalizes the matching list (clears its loading state).
         Self.SendPacket(new SCMailListEndPacket(mailBoxListKind, UnreadMailCount));
         Self.SendPacket(new SCCountTotalMailPacket(UnreadMailCount));
+
+        // The commercial store's client-side early-out drops SCGotMail bodies that arrive DURING a list
+        // load (it makes them count-only). On a fresh login the commercial rows built from SCMailList
+        // therefore have no body/attachment and the list stays stuck "loading". Now that the load is
+        // finished (SCMailListEnd cleared the in-flight flag), re-push the body for each unread commercial
+        // mail so the client attaches it to the row it just built and renders the item.
+        foreach (var m in mails)
+        {
+            var mail = m.Value;
+            if (mail.Header.ReceiverId != Self.Id)
+                continue;
+            if (mail.MailType != MailType.Charged && mail.MailType != MailType.Promotion)
+                continue;
+            if (mail.Header.Status == MailStatus.Read)
+                continue;
+            Self.SendPacket(new SCGotMailPacket(mail.Header, UnreadMailCount, mail.Body));
+        }
     }
 
     /// <summary>
