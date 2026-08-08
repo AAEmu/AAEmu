@@ -12,11 +12,13 @@ public class TeamManagerTests
         var mockWorld = Mock.Of<IWorldManager>();
         var mockChat = Mock.Of<IChatManager>();
         var mockTeamId = Mock.Of<ITeamIdManager>();
-        var manager = new TeamManager(mockWorld.Object, mockChat.Object, mockTeamId.Object);
+        var mockTick = Mock.Of<ITickManager>();
+        var manager = new TeamManager(mockWorld.Object, mockChat.Object, mockTeamId.Object, mockTick.Object);
 
         await Assert.That(manager).IsNotNull();
         Mock.VerifyNoOtherCalls(mockWorld);
         Mock.VerifyNoOtherCalls(mockChat);
         Mock.VerifyNoOtherCalls(mockTeamId);
+        Mock.VerifyNoOtherCalls(mockTick);
     }
 }

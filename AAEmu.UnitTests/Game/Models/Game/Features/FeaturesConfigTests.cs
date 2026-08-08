@@ -60,7 +60,7 @@ public class FeaturesConfigTests
             fset.Set(Enum.Parse<Feature>(name, true), enabled);
 
         await Assert.That(fset.ToString()).IsEqualTo(
-            "13 00 00 00 d0 09 21 00 00 0c 00 88 08 00 00 00 " +
-            "00 80 0a 10 00 80 80 00 04 30 00 00 01 e0 00");
+            "13 00 00 00 d0 09 21 00 00 0c 00 88 28 00 00 00 " +
+            "00 80 0a 10 00 80 80 00 04 34 00 10 01 e0 00");
     }
 }

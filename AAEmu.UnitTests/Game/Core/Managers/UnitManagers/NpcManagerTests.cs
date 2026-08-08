@@ -14,12 +14,19 @@ public class NpcManagerTests
         var mockModel = Mock.Of<IModelManager>();
         var mockFaction = Mock.Of<IFactionManager>();
         var mockItem = Mock.Of<IItemManager>();
-        var manager = new NpcManager(mockObjId.Object, mockModel.Object, mockFaction.Object, mockItem.Object);
+        var mockTask = Mock.Of<ITaskManager>();
+        var manager = new NpcManager(
+            mockObjId.Object,
+            mockModel.Object,
+            mockFaction.Object,
+            mockItem.Object,
+            mockTask.Object);
 
         await Assert.That(manager).IsNotNull();
         Mock.VerifyNoOtherCalls(mockObjId);
         Mock.VerifyNoOtherCalls(mockModel);
         Mock.VerifyNoOtherCalls(mockFaction);
         Mock.VerifyNoOtherCalls(mockItem);
+        Mock.VerifyNoOtherCalls(mockTask);
     }
 }

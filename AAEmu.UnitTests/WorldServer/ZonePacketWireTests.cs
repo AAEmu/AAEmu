@@ -190,7 +190,7 @@ public class ZonePacketWireTests
             await Assert.That(unit.ReadByte()).IsEqualTo((byte)BaseUnitType.Housing);
             await Assert.That(unit.ReadUInt16()).IsEqualTo(house.TlId);
             await Assert.That(unit.ReadUInt32()).IsEqualTo(house.TemplateId);
-            await Assert.That(unit.ReadInt16()).IsEqualTo((short)-1);
+            await Assert.That(unit.ReadUInt16()).IsEqualTo((ushort)house.CurrentStep);
             await Assert.That(actualTl).IsEqualTo(house.TlId);
             await Assert.That(actualModel).IsEqualTo(house.ModelId);
             await Assert.That(actualAll).IsEqualTo(house.AllAction);

@@ -32,6 +32,9 @@ public class FeatureSetTests
     [Arguments(Feature.mailCoolTime, 9, 0x08)]
     [Arguments(Feature.auctionPostBuff, 11, 0x08)]
     [Arguments(Feature.houseTaxPrepay, 11, 0x80)]
+    [Arguments(Feature.heirLevel, 12, 0x20)]
+    [Arguments(Feature.useHeirSkill, 25, 0x04)]
+    [Arguments(Feature.useCosplayLooksSlot, 27, 0x10)]
     [Arguments(Feature.notGainLeaderShipPoint, 30, 0x04)]
     public async Task Set_LandsOnTheByteAndBitTheClientReads(Feature feature, int byteIndex, int mask)
     {

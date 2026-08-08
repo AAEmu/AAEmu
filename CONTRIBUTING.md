@@ -39,3 +39,7 @@ All commit messages must follow the [Conventional Commits 1.0.0 specification](h
 - Use an optional scope to identify the affected area, for example: `fix(auth): reject expired tokens`.
 - Mark breaking changes with `!` before the colon or a `BREAKING CHANGE:` footer.
 - Write the description in the present tense. It should describe what the commit does when applied, not what you did while creating it.
+
+### Required checks
+
+Pull requests must pass the `Build & Unit Test / Unit Tests` GitHub Actions check before they can be merged.

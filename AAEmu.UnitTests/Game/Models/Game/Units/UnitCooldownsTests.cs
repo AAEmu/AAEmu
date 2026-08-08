@@ -17,7 +17,7 @@ public class UnitCooldownsTests
         cooldowns.AddCooldown(skillId, duration);
 
         // Assert
-        await Assert.That(cooldowns.Cooldowns.ContainsKey(skillId)).IsTrue();
+        await Assert.That(cooldowns.CheckCooldown(skillId)).IsTrue();
     }
 
     [Test]
@@ -34,7 +34,9 @@ public class UnitCooldownsTests
         cooldowns.AddCooldown(skillId, duration2);
 
         // Assert
-        await Assert.That(cooldowns.Cooldowns).HasSingleItem();
+        var snapshots = cooldowns.GetActiveSnapshots(10);
+        await Assert.That(snapshots).HasSingleItem();
+        await Assert.That(snapshots[0].Duration).IsEqualTo(duration2);
     }
 
     [Test]
@@ -59,8 +61,7 @@ public class UnitCooldownsTests
         var skillId = 100u;
         var duration = 60000u; // 60 seconds
 
-        // Manually add a cooldown with a future end time
-        cooldowns.Cooldowns.TryAdd(skillId, DateTime.UtcNow.AddMilliseconds(duration));
+        cooldowns.AddCooldown(skillId, duration);
 
         // Act
         var result = cooldowns.CheckCooldown(skillId);
@@ -76,15 +77,14 @@ public class UnitCooldownsTests
         var cooldowns = new UnitCooldowns();
         var skillId = 100u;
 
-        // Manually add an expired cooldown
-        cooldowns.Cooldowns.TryAdd(skillId, DateTime.UtcNow.AddSeconds(-1));
+        cooldowns.AddCooldown(skillId, 0);
 
         // Act
         var result = cooldowns.CheckCooldown(skillId);
 
         // Assert
         await Assert.That(result).IsFalse();
-        await Assert.That(cooldowns.Cooldowns.ContainsKey(skillId)).IsFalse();
+        await Assert.That(cooldowns.GetActiveSnapshots(1)).IsEmpty();
     }
 
     [Test]
@@ -93,13 +93,13 @@ public class UnitCooldownsTests
         // Arrange
         var cooldowns = new UnitCooldowns();
         var skillId = 100u;
-        cooldowns.Cooldowns.TryAdd(skillId, DateTime.UtcNow.AddMinutes(1));
+        cooldowns.AddCooldown(skillId, 60000);
 
         // Act
         cooldowns.RemoveCooldown(skillId);
 
         // Assert
-        await Assert.That(cooldowns.Cooldowns.ContainsKey(skillId)).IsFalse();
+        await Assert.That(cooldowns.CheckCooldown(skillId)).IsFalse();
     }
 
     [Test]
@@ -128,7 +128,9 @@ public class UnitCooldownsTests
         cooldowns.AddCooldown(skillId, duration);
 
         // Assert
-        await Assert.That(cooldowns.Cooldowns.ContainsKey(skillId)).IsTrue();
+        var snapshots = cooldowns.GetActiveSnapshots(1);
+        await Assert.That(snapshots).HasSingleItem();
+        await Assert.That(snapshots[0].SkillId).IsEqualTo(skillId);
     }
 
     [Test]
@@ -142,15 +144,14 @@ public class UnitCooldownsTests
         var cooldowns = new UnitCooldowns();
         var skillId = 100u;
 
-        if (duration > 250) // Only add if it would be considered "active"
+        cooldowns.AddCooldown(skillId, duration);
+        if (duration > 250)
         {
-            cooldowns.Cooldowns.TryAdd(skillId, DateTime.UtcNow.AddMilliseconds(duration));
             var result = cooldowns.CheckCooldown(skillId);
             await Assert.That(result).IsTrue();
         }
         else
         {
-            cooldowns.Cooldowns.TryAdd(skillId, DateTime.UtcNow.AddMilliseconds(duration));
             var result = cooldowns.CheckCooldown(skillId);
             await Assert.That(result).IsFalse();
         }

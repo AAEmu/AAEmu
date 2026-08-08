@@ -1,6 +1,7 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Details;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
@@ -22,9 +23,16 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
+        var mockFaction = Mock.Of<IFactionManager>();
 
         // Act
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(
+            mockObjId.Object,
+            mockDoodadId.Object,
+            mockItem.Object,
+            new Lazy<IHousingManager>(() => mockHousing.Object),
+            mockSus.Object,
+            mockFaction.Object);
 
         // Assert
         await Assert.That(manager).IsNotNull();
@@ -33,6 +41,7 @@ public class DoodadManagerTests
         Mock.VerifyNoOtherCalls(mockItem);
         Mock.VerifyNoOtherCalls(mockHousing);
         Mock.VerifyNoOtherCalls(mockSus);
+        Mock.VerifyNoOtherCalls(mockFaction);
     }
 
     #endregion
@@ -48,7 +57,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var template = new DoodadTemplate { Id = 1 };
         var templates = new Dictionary<uint, DoodadTemplate> { { 1, template } };
@@ -70,7 +79,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
         SetPrivateField(manager, "_templates", templates);
@@ -91,7 +100,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
         SetPrivateField(manager, "_templates", templates);
@@ -116,7 +125,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var template = new DoodadTemplate { Id = 1, GroupId = 100 };
         var templates = new Dictionary<uint, DoodadTemplate> { { 1, template } };
@@ -140,7 +149,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
         SetPrivateField(manager, "_templates", templates);
@@ -161,7 +170,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
         SetPrivateField(manager, "_templates", templates);
@@ -190,7 +199,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
         SetPrivateField(manager, "_templates", templates);
@@ -213,7 +222,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var template = new DoodadTemplate { Id = 1 };
         template.FuncGroups.Add(new DoodadFuncGroups { Id = 10, Almighty = 1, GroupKindId = DoodadFuncGroups.DoodadFuncGroupKind.Start });
@@ -240,7 +249,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var func = new DoodadFunc { FuncKey = 1, GroupId = 10, FuncId = 100 };
         var funcsById = new Dictionary<uint, DoodadFunc> { { 1, func } };
@@ -264,7 +273,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcsById = new Dictionary<uint, DoodadFunc>();
         SetPrivateField(manager, "_funcsById", funcsById);
@@ -285,7 +294,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var func = new DoodadFunc { FuncKey = 1, GroupId = 10, SkillId = 50 };
         var funcsByGroups = new Dictionary<uint, List<DoodadFunc>>
@@ -311,7 +320,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcsByGroups = new Dictionary<uint, List<DoodadFunc>>();
         SetPrivateField(manager, "_funcsByGroups", funcsByGroups);
@@ -336,7 +345,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcs = new List<DoodadFunc>
         {
@@ -363,7 +372,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcsByGroups = new Dictionary<uint, List<DoodadFunc>>();
         SetPrivateField(manager, "_funcsByGroups", funcsByGroups);
@@ -389,7 +398,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var phaseFuncs = new List<DoodadPhaseFunc>
         {
@@ -416,7 +425,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var phaseFuncsByGroups = new Dictionary<uint, List<DoodadPhaseFunc>>();
         SetPrivateField(manager, "_phaseFuncs", phaseFuncsByGroups);
@@ -442,7 +451,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var template = new DoodadTemplate { Id = 1 };
         template.FuncGroups.Add(new DoodadFuncGroups { Id = 10, Almighty = 1, GroupKindId = DoodadFuncGroups.DoodadFuncGroupKind.Start });
@@ -467,7 +476,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
         SetPrivateField(manager, "_templates", templates);
@@ -493,7 +502,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var template = new DoodadTemplate { Id = 1 };
         template.FuncGroups.Add(new DoodadFuncGroups { Id = 10, Almighty = 1, GroupKindId = DoodadFuncGroups.DoodadFuncGroupKind.Start });
@@ -520,7 +529,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
         SetPrivateField(manager, "_templates", templates);
@@ -546,7 +555,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var consumeItems = new Dictionary<uint, DoodadFuncConsumeChangerItem>
         {
@@ -575,7 +584,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var consumeItems = new Dictionary<uint, DoodadFuncConsumeChangerItem>();
         SetPrivateField(manager, "_doodadFuncConsumeChangerItem", consumeItems);
@@ -601,7 +610,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>
         {
@@ -635,7 +644,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
         SetPrivateField(manager, "_templates", templates);
@@ -661,7 +670,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var phaseFuncs = new List<DoodadPhaseFunc>
         {
@@ -688,7 +697,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var phaseFuncsDict = new Dictionary<uint, List<DoodadPhaseFunc>>();
         SetPrivateField(manager, "_phaseFuncs", phaseFuncsDict);
@@ -714,7 +723,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcTemplate = new DoodadFuncUse { Id = 1, SkillId = 100 };
         var funcTemplates = new Dictionary<string, Dictionary<uint, DoodadFuncTemplate>>
@@ -740,7 +749,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcTemplates = new Dictionary<string, Dictionary<uint, DoodadFuncTemplate>>();
         SetPrivateField(manager, "_funcTemplates", funcTemplates);
@@ -761,7 +770,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcTemplates = new Dictionary<string, Dictionary<uint, DoodadFuncTemplate>>
         {
@@ -789,7 +798,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var phaseFuncTemplate = new DoodadFuncTimer { Id = 1, Delay = 5000 };
         var phaseFuncTemplates = new Dictionary<string, Dictionary<uint, DoodadPhaseFuncTemplate>>
@@ -815,7 +824,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var phaseFuncTemplates = new Dictionary<string, Dictionary<uint, DoodadPhaseFuncTemplate>>();
         SetPrivateField(manager, "_phaseFuncTemplates", phaseFuncTemplates);
@@ -840,7 +849,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcs = new List<DoodadFunc>
         {
@@ -867,7 +876,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var funcsByGroups = new Dictionary<uint, List<DoodadFunc>>();
         SetPrivateField(manager, "_funcsByGroups", funcsByGroups);
@@ -893,7 +902,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
         SetPrivateField(manager, "_templates", templates);
@@ -914,7 +923,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var templates = new Dictionary<uint, DoodadTemplate>();
         SetPrivateField(manager, "_templates", templates);
@@ -935,7 +944,7 @@ public class DoodadManagerTests
         var mockItem = Mock.Of<IItemManager>();
         var mockHousing = Mock.Of<IHousingManager>();
         var mockSus = Mock.Of<ISusManager>();
-        var manager = new DoodadManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object, new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
 
         var template = new DoodadTemplate { Id = 1, GroupId = 100 };
         var templates = new Dictionary<uint, DoodadTemplate> { { 1, template } };
@@ -957,6 +966,39 @@ public class DoodadManagerTests
     #endregion
 
     #region Helper Methods
+
+    private static DoodadManager CreateManager(
+        INonUnitObjectIdManager objectIdManager,
+        IDoodadIdManager doodadIdManager,
+        IItemManager itemManager,
+        Lazy<IHousingManager> housingManager,
+        ISusManager susManager)
+    {
+        return CreateManager(
+            objectIdManager,
+            doodadIdManager,
+            itemManager,
+            housingManager,
+            susManager,
+            Mock.Of<IFactionManager>().Object);
+    }
+
+    private static DoodadManager CreateManager(
+        INonUnitObjectIdManager objectIdManager,
+        IDoodadIdManager doodadIdManager,
+        IItemManager itemManager,
+        Lazy<IHousingManager> housingManager,
+        ISusManager susManager,
+        IFactionManager factionManager)
+    {
+        return new DoodadManager(
+            objectIdManager,
+            doodadIdManager,
+            itemManager,
+            housingManager,
+            susManager,
+            factionManager);
+    }
 
     private static void SetPrivateField(object obj, string fieldName, object value)
     {

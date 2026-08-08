@@ -272,7 +272,7 @@ public class GameControllerTests
 
         await Assert.That(result.GameServers.Count).IsEqualTo(1);
         await Assert.That(result.Characters).IsEmpty();
-        _requestController.Create(Any<int>(), Any<int>()).WasCalled(Times.Never);
+        _requestController.Create(Any<int>(), Any<TimeSpan>()).WasCalled(Times.Never);
     }
 
     [Test]
@@ -287,11 +287,11 @@ public class GameControllerTests
         connectionMock.AccountId.Returns(s_accountId);
         connectionMock.Characters.Returns(new Dictionary<GameServerId, List<LoginCharacterInfo>>());
         connectionMock.GetCharacters().Returns([]);
-        _requestController.Create(1, Any<int>()).Returns(([1u], Task.CompletedTask));
+        _requestController.Create(1, Any<TimeSpan>()).Returns(([1u], Task.CompletedTask));
 
         var result = await sut.GetWorldListAsync(connectionMock.Object);
 
         await Assert.That(result.GameServers.Count).IsEqualTo(1);
-        _requestController.Create(1, Any<int>()).WasCalled(Times.Once);
+        _requestController.Create(1, Any<TimeSpan>()).WasCalled(Times.Once);
     }
 }

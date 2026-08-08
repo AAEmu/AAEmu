@@ -2,7 +2,7 @@ name: Build & Unit Test
 
 on:
   push:
-    branches: [master, develop]
+    branches: [master, develop, client_version/zone-10.0.2_r575]
   pull_request:
     # The branches below must be a subset of the branches above
     branches:
@@ -24,10 +24,23 @@ jobs:
         run: dotnet build --configuration Release --no-restore
       - name: Scripts Compile
         run: dotnet run --configuration Release --no-build --project AAEmu.Game/AAEmu.Game.csproj compiler-check
-      - name: Test
-        run: dotnet test --project AAEmu.UnitTests --configuration Release --no-build --coverage --coverage-output coverage.cobertura.xml --coverage-output-format cobertura --results-directory ./TestResults
       - name: Login Integration Tests
         run: dotnet test --project AAEmu.Login.IntegrationTests --configuration Release --no-build
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+      - name: Install dependencies
+        run: dotnet restore AAEmu.UnitTests/AAEmu.UnitTests.csproj
+      - name: Run unit tests
+        run: dotnet test --project AAEmu.UnitTests --configuration Release --no-restore --coverage --coverage-output coverage.cobertura.xml --coverage-output-format cobertura --results-directory ./TestResults
       - name: Coveralls GitHub Action
         uses: coverallsapp/github-action@v2
         with:
