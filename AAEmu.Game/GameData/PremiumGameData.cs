@@ -42,6 +42,19 @@ public class PremiumGameData : Singleton<PremiumGameData>, IGameDataLoader
 
     public PremiumGrade GetGrade(uint gradeId) => _grades.FirstOrDefault(g => g.GradeId == gradeId);
 
+    /// <summary>
+    /// Highest grade premium_grades defines (6 on 10.0.2.13), or 0 when the table is empty. Used by
+    /// <see cref="Models.Game.Configurations.AccountConfig.ForceMaxPremiumGrade"/> rather than a
+    /// constant, so it follows the client data instead of going stale against it.
+    /// </summary>
+    public uint MaxGradeId => _grades.Count == 0 ? 0u : _grades.Max(g => g.GradeId);
+
+    /// <summary>
+    /// Every buff premium_grades attaches to a grade. Used to strip the buff of a grade a character no
+    /// longer holds before granting the current one. The free tier carries none, hence the filter.
+    /// </summary>
+    public IEnumerable<uint> GradeBuffIds => _grades.Where(g => g.BuffId > 0).Select(g => g.BuffId).Distinct();
+
     public PremiumConfig Config => _config;
 
     public void Load(SqliteConnection connection)

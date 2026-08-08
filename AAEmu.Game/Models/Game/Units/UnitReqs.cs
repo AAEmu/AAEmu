@@ -384,9 +384,13 @@ public class UnitReqs
             // case UnitReqsKindType.ManaMargin:
 
             case UnitReqsKindType.LaborPowerMargin:
-                var remainingLaborMargin =
-                    TimedRewardsManager.GetMaxLabor(player?.Connection?.Payment?.PremiumState ?? false) -
-                    player?.LaborPower ?? 0;
+                // Headroom across BOTH pools: the account cap plus the local cap, minus what is held in
+                // either. Both pools are account-wide, so the margin the client shows spans both.
+                var remainingLaborMargin = player == null
+                    ? 0
+                    : TimedRewardsManager.GetMaxLabor(player.PremiumGrade, player.Connection?.Payment?.PremiumState ?? false, player.AccountId) +
+                      player.MaxLocalLaborPower -
+                      (player.LaborPower + player.LocalLaborPower);
                 return RetWithValue(SkillResultKeys.skill_urk_labor_power_margin, Value1, Value1 <= remainingLaborMargin);
 
             case UnitReqsKindType.LaborPowerMarginLocal:
@@ -499,10 +503,13 @@ public class UnitReqs
                     unit?.Cooldowns.CheckCooldown(Value1) ?? false);
 
             case UnitReqsKindType.FullRechargedLaborPower:
-                var maximumLabor = TimedRewardsManager.GetMaxLabor(
-                    player?.Connection?.Payment?.PremiumState ?? false);
+                var maximumLabor = player == null
+                    ? 0
+                    : TimedRewardsManager.GetMaxLabor(player.PremiumGrade, player.Connection?.Payment?.PremiumState ?? false, player.AccountId) +
+                      player.MaxLocalLaborPower;
+                // Both pools count towards "fully recharged", because maximumLabor is both caps added up.
                 return Ret(SkillResultKeys.skill_urk_full_recharged_labor_power,
-                    player?.LaborPower >= maximumLabor);
+                    player != null && player.LaborPower + player.LocalLaborPower >= maximumLabor);
 
             case UnitReqsKindType.ExpeditionMemberNot:
                 return Ret(SkillResultKeys.skill_urk_expedition_member_not,

@@ -4,6 +4,8 @@
 		"AccessLevelFirstAccount": 100,
 		"AccessLevelFirstCharacter": 100,
 		"DeleteReleaseName": true,
+		// true grants every character the top premium_grades grade instead of deriving it from characters.point
+		"ForceMaxPremiumGrade": false,
 		"DeleteTimings": [
 			{
 				"Delay": 1,
