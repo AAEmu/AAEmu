@@ -426,30 +426,6 @@ public class PlotTargetInfo
             Step("aoeConditions");
         }
 
-        // plot_aoe_conditions (loaded on PlotEventTemplate.AoeConditions) gate Area / Random*
-        // picks. Crime Aura 40917 event 35070 requires BuffTag 894 (현상수배); without this
-        // filter every character in the 25m sphere is "wanted" → taunt, chip damage, and the
-        // criminal bubble on a Friendly Nuia guard.
-        if (plotEvent.AoeConditions is { Count: > 0 })
-        {
-            filtered = filtered.Where(unit =>
-            {
-                foreach (var aoe in plotEvent.AoeConditions)
-                {
-                    if (!aoe.Condition.Check(
-                            state.Caster,
-                            state.CasterCaster,
-                            unit,
-                            state.TargetCaster,
-                            state.SkillObject,
-                            state.ActiveSkill))
-                        return false;
-                }
-
-                return true;
-            });
-        }
-
         return filtered;
 
         // Materialises only while the probe is on; otherwise the whole chain stays lazy.
