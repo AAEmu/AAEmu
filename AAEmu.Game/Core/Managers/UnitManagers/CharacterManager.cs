@@ -744,6 +744,36 @@ public class CharacterManager(
         {
             if (character.DeleteTime > DateTime.MinValue && character.DeleteTime <= DateTime.UtcNow)
             {
+                // The main character is not deletable, and that has to hold here too, not only in
+                // SetDeleteCharacter. A row can carry both states - the nomination guard was added
+                // after this timer existed, and a database edited by hand can always produce it - and
+                // the timer firing anyway would delete exactly what the other rule protects.
+                //
+                // The pending deletion is cleared rather than left to fire again on the next pass:
+                // nominating a character as the account main is the player saying to keep it, and a
+                // request that can never complete would otherwise be retried and logged forever.
+                if (character.IsRepresent)
+                {
+                    Logger.Warn(
+                        "CheckForDeletedCharactersDeletion - Account:{0} Id:{1} Name:{2} is the account main character; cancelling the pending deletion instead",
+                        character.AccountId, character.Id, character.Name);
+
+                    using var cancelCommand = dbConnection.CreateCommand();
+                    cancelCommand.Connection = dbConnection;
+                    cancelCommand.CommandText =
+                        "UPDATE `characters` SET `delete_request_time`=@none, `delete_time`=@none " +
+                        "WHERE `id`=@char_id AND `account_id`=@account_id AND `deleted`=0";
+                    cancelCommand.Parameters.AddWithValue("@none", DateTime.MinValue);
+                    cancelCommand.Parameters.AddWithValue("@char_id", character.Id);
+                    cancelCommand.Parameters.AddWithValue("@account_id", character.AccountId);
+                    cancelCommand.Prepare();
+                    cancelCommand.ExecuteNonQuery();
+
+                    character.DeleteRequestTime = DateTime.MinValue;
+                    character.DeleteTime = DateTime.MinValue;
+                    return false;
+                }
+
                 Logger.Info("CheckForDeletedCharactersDeletion - Deleting Account:{0} Id:{1} Name:{2}", character.AccountId, character.Id, character.Name);
                 using var command = dbConnection.CreateCommand();
                 var originalName = character.Name;
@@ -996,11 +1026,24 @@ public class CharacterManager(
     {
         lock (_characterDeletionLock)
         {
-            if (!isDeleted && !gameConnection.Characters.ContainsKey(characterId))
+            if (!isDeleted)
             {
-                Logger.Warn($"SetRepresentCharacter: character {characterId} is not on account {gameConnection.AccountId}");
-                gameConnection.SendPacket(new SCRepreSentCharacterPacket(characterId, false, false, false));
-                return;
+                if (!gameConnection.Characters.TryGetValue(characterId, out var nominee))
+                {
+                    Logger.Warn($"SetRepresentCharacter: character {characterId} is not on account {gameConnection.AccountId}");
+                    gameConnection.SendPacket(new SCRepreSentCharacterPacket(characterId, false, false, false));
+                    return;
+                }
+
+                // A character queued for deletion must not become the account main. Nominating one would
+                // put the two rules against each other: SetDeleteCharacter refuses to delete the main
+                // character, while the pending timer would still take it away when it expires.
+                if (nominee.DeleteRequestTime > DateTime.MinValue)
+                {
+                    Logger.Info($"SetRepresentCharacter: refusing character {characterId} on account {gameConnection.AccountId} - deletion is pending");
+                    gameConnection.SendPacket(new SCRepreSentCharacterPacket(characterId, false, false, false));
+                    return;
+                }
             }
 
             using (var connection = MySQL.CreateConnection())
