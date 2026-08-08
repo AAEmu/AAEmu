@@ -14,6 +14,7 @@ public interface IAccountManager : IInitializable
     bool RemoveCredits(uint accountId, int credits);
     bool AddLoyalty(uint accountId, int loyaltyAmount);
     void UpdateLabor(uint accountId, short laborPower);
+    void UpdateLocalLabor(uint accountId, int localLabor);
     DateTime UpdateLoginTime(uint accountId, DateTime newTime);
     void UpdateTickTimes(uint accountId, DateTime newTime, bool updateLabor, bool updateCredits, bool updateLoyalty);
     void UpdateDivineClock(uint accountId, uint timeElapsed, uint timesTaken);
