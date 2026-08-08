@@ -88,6 +88,13 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
 
         Connection.ActiveChar.UpdateGearBonuses(null, null);
 
+        // Combat resources (combat_resources) after Spawn(): seeding applies each pool's bar buff, and
+        // both that buff and the point packet address the local player unit, which only exists once the
+        // character is spawned. default_point had never been read, so every pool started each session at
+        // 0 and the abilities gated on them could not reach their first tier.
+        Connection.ActiveChar.InitializeCombatResources();
+        Connection.ActiveChar.SendAllCombatResources();
+
         // The player-frame event window shows during the post-NotifyInGame load and reads its event counts; the
         // client crashes on show without them. The reference server sends this (all-zero, no active events) at
         // world entry — emit it here so the window has data before it renders.
