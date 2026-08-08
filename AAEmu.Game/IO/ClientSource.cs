@@ -1,4 +1,5 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Linq;
+using System.Text.RegularExpressions;
 using AAEmu.Commons.Utils.AAPak;
 
 namespace AAEmu.Game.IO;
@@ -89,9 +90,16 @@ public class ClientSource
                     var wildCard = WildcardToRegex("*" + searchPattern.ToLower() + "*");// Hopefully this behaves the same as the Directory.GetFiles pattern
                     if (includeSubDirectories)
                     {
-                        foreach (var pfiName in GamePak.pakFiles.Keys)
+                        // Ordinal, not CurrentCulture: these are pak paths, so a culture-sensitive
+                        // comparison is both semantically wrong and routed through native ICU. The
+                        // ICU path crashed the whole process with 0xC0000005 when a plot asked for
+                        // terrain height (Plot.RunAsync -> GetHeight -> VerifyCellLoaded ->
+                        // LoadBaiFiles -> here) while the startup BAI loader was still enumerating,
+                        // and it also ran over all ~523k pak entries per call. Snapshot the keys so
+                        // the enumeration cannot observe the dictionary mid-write either.
+                        foreach (var pfiName in GamePak.pakFiles.Keys.ToArray())
                         {
-                            if (pfiName.StartsWith(rootDir, System.StringComparison.CurrentCultureIgnoreCase))
+                            if (pfiName.StartsWith(rootDir, System.StringComparison.OrdinalIgnoreCase))
                             {
                                 if (string.IsNullOrWhiteSpace(searchPattern) ||
                                     Regex.Match(pfiName.ToLower(), wildCard).Success)
