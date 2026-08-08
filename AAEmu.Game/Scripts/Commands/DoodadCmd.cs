@@ -18,6 +18,7 @@ public class DoodadCmd : SubCommandBase, ICommand
         CallPrefix = $"{CommandManager.CommandPrefix}{CommandNames[0]}";
 
         Register(new DoodadChainSubCommand(), "chain");
+        Register(new DoodadDevoteSubCommand(), "devote");
         Register(new DoodadPhaseSubCommand(), "phase", "setphase");
         Register(new DoodadSaveSubCommand(), "save");
         Register(new DoodadPositionSubCommand(), "position", "pos");
