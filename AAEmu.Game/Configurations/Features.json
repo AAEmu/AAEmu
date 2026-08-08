@@ -5,17 +5,10 @@
         "TaxItem": true,
         "BackpackProfitShare": true,
 
-        // fset feature bits, keyed by Feature enum name. Anything not listed here stays off:
-        // an enabled bit opens client UI and lets the client send packets, so only enable what the
-        // server answers. Bit positions live in Models/Game/Features/Feature.cs.
-        //
-        // These are client-advertisement switches, not server kill switches. The whole set is
-        // serialized into SCInitialConfig and nothing else reads it: no bit here gates any server
-        // logic, and the server answers a packet whether or not the bit that reveals its UI is
-        // set. Clearing a bit therefore hides or disables the feature in the client, while the
-        // handlers behind it stay live for anything that sends the packet anyway. The two
-        // switches above are the exception - 10.0.2.13 dropped them from the blob, so they are
-        // plain server settings and are read by server code directly.
+        // Feature switches shared by the server and client, keyed by Feature enum name. Anything
+        // not listed here stays off. Each bit is serialized into SCInitialConfig for the client,
+        // and the corresponding server implementation must check the same bit before running.
+        // Bit positions live in Models/Game/Features/Feature.cs.
         "Flags": {
             // Backed by server systems.
             "siege": true,
@@ -48,20 +41,15 @@
             // begin. Note the 10.0.2.13 client additionally ships its Heir tab hard-disabled in
             // scriptsbin64/x2ui/skill/main_window.alb, which needs its own patch.
             //
-            // Unlike the rest of the fset, these two do gate the server as well: with either off,
-            // no heir experience accrues and CSHeirLevlUp / CSActivateHeirSkill / CSResetHeirSkill
-            // are ignored. Heir needs that because HeirLevel derives from the accrued experience
-            // and is broadcast in UnitState, team, friend, expedition and family packets and
-            // folded into the Level + HeirLevel gates, so advertising the feature as off while
-            // still accumulating it would diverge visible state from this configuration - and
-            // would hand every level-capped character an unearned pile of heir levels the moment
-            // it was switched on. See FeaturesManager.HeirEnabled.
+            // These switches also gate the matching server behavior. heirLevel controls experience
+            // progression and level-up requests; useHeirSkill controls successor activation and
+            // reset requests.
             //
-            // This stops progression, it does not undo it. characters.heir_exp and any rows in
+            // Disabling these switches affects only future actions. characters.heir_exp and rows in
             // heir_skill_activations are left alone, so a character keeps the heir level already
             // earned - it still counts toward Level + HeirLevel and is still broadcast - and
-            // successor skills already chosen stay active. Turning the bits back on resumes from
-            // where the character left off. Clear those two tables if you want a truly clean slate.
+            // successor skills already chosen stay active. Turning the relevant switch back on
+            // resumes from where the character left off. Clear those two tables for a clean slate.
             "useHeirSkill": true,
             "heirLevel": true,
 

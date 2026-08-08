@@ -2,6 +2,7 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
+using AAEmu.Game.Models.Game.Features;
 using AAEmu.Game.Models.Game.Heirs;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -22,7 +23,8 @@ public class CSResetHeirSkillPacket() : GamePacket(CSOffsets.CSResetHeirSkillPac
         Ability = stream.ReadSByte();
         SuccessorSkillId = stream.ReadInt32();
 
-        if (!FeaturesManager.HeirEnabled || !Enum.IsDefined(typeof(HeirSkillResetKind), ResetKind))
+        if (!FeaturesManager.Fsets.Check(Feature.useHeirSkill) ||
+            !Enum.IsDefined(typeof(HeirSkillResetKind), ResetKind))
             return;
 
         Connection.ActiveChar?.HeirSkills.TryReset(

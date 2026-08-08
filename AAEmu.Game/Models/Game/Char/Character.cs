@@ -13,6 +13,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Features;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
@@ -1854,7 +1855,8 @@ public partial class Character : Unit, ICharacter
         // item clamp one point below their threshold and wait for CSHeirLevlUp; the rest are crossed
         // inside ApplyExpGain. Nothing accrues while the feature is off, so heir levels cannot build
         // up unseen and appear all at once if it is later switched on.
-        var wasHeirEligible = FeaturesManager.HeirEnabled && Level >= HeirGameData.Instance.StartLevel;
+        var wasHeirEligible = FeaturesManager.Fsets.Check(Feature.heirLevel) &&
+                              Level >= HeirGameData.Instance.StartLevel;
         if (wasHeirEligible)
         {
             var previousHeirLevel = HeirLevel;
