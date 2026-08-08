@@ -690,6 +690,38 @@ public class Unit : BaseUnit, IUnit
         BroadcastPacket(new SCUnitInvisiblePacket(ObjId, Invisible), true);
     }
 
+    /// <summary>
+    /// Notifies nearby clients of a GM-mode marker change via the dedicated GmModeChanged
+    /// opcode. Currently known meaning: mode 6 toggles the GM icon shown next to the
+    /// character's name; value 1 enables it, 0 disables it.
+    ///
+    /// Also persists the value into UnitStateOptionalData.GmModeValues so that a full
+    /// UnitState sync (e.g. sent to an observer who only now starts seeing this unit)
+    /// carries the current GM-mode state too. The dedicated opcode alone is fire-and-forget
+    /// and only reaches clients that were already observing this unit at call time.
+    /// </summary>
+    public void SendGmModeChanged(int mode, byte value)
+    {
+        if (mode >= 0 && mode < (UnitStateOptionalData ??= new UnitStateOptionalData()).GmModeValues.Length)
+            UnitStateOptionalData.GmModeValues[mode] = unchecked((sbyte)value);
+
+        BroadcastPacket(new SCUnitGmModeChangedPacket(ObjId, mode, value), true);
+    }
+
+    /// <summary>
+    /// Reads back a value previously set via <see cref="SendGmModeChanged"/>. This is the
+    /// single source of truth for GM-mode marker state — it lives on the Unit itself and is
+    /// naturally reset on reconnect (fresh Unit, null UnitStateOptionalData), unlike a
+    /// separate lookup keyed by ObjId, which can go stale when an ObjId is reused across
+    /// sessions.
+    /// </summary>
+    public bool GetGmModeValue(int mode)
+    {
+        if (UnitStateOptionalData is null || mode < 0 || mode >= UnitStateOptionalData.GmModeValues.Length)
+            return false;
+        return UnitStateOptionalData.GmModeValues[mode] != 0;
+    }
+
     public void SetGeoDataMode(bool value)
     {
         AppConfiguration.Instance.World.GeoDataMode = value;

@@ -42,6 +42,7 @@
         "despawnall": 100,
         "dummy": 100,
         "echo": 100,
+        "gm": 100,
         "housebindingmove": 100,
         "move_all": 100,
         "moveto": 100,
