@@ -87,7 +87,8 @@ public class WZUnitDetachedPacket(uint unitId, byte reason = 0) : ZonePacket(WzO
 }
 
 /// <summary>
-/// bc unit + UnitState_SerializeBonding + bc root (ProcessPassenger).
+/// bc unit + bonding (seat doodad) + bc root.
+/// Root is a zone unit ObjId or 0 — never the seat doodad id.
 /// </summary>
 public class WZUnitBondToDoodadPacket(uint unitId, BondDoodad bonding, uint rootObjId)
     : ZonePacket(WzOpcodes.UnitBondToDoodad)

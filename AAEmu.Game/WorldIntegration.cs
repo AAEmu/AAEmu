@@ -345,7 +345,8 @@ public static class WorldIntegration
 
     /// <summary>
     /// WZUnitBondToDoodad / Unbond. When <paramref name="bond"/> is true, <paramref name="bonding"/>
-    /// must be non-null (full SerializeBonding + root bc). Unbond ignores bonding.
+    /// must be non-null (full bonding payload + unit-space root bc, or 0 for free seats).
+    /// Unbond ignores bonding.
     /// </summary>
     public static Action<uint, BondDoodad, bool> RelayBondDoodadToZone { get; set; }
 

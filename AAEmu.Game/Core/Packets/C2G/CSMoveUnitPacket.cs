@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
@@ -87,27 +88,14 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                 character.PhysTimeAnchor = _moveType.Time;
                 character.PhysTimeAnchorTick = Environment.TickCount64;
 
-                // Sit/bond (buff 4645 remove_on_move, chair DoodadFuncAttachment): ZoneAuthority used to
-                // return before RemoveEffects / unbond, so move never cleared the sit state → stuck.
-                RemoveEffects(character, _moveType);
-                if (character.Bonding != null &&
-                    (_moveType.VelX != 0 || _moveType.VelY != 0 || _moveType.VelZ != 0))
+                // Seats under zone authority: clear remove_on_move only when not bonded, or when
+                // the move is leave (walk/jump). Residual settle velocity must not unseat.
+                if (character.Bonding == null)
+                    RemoveEffects(character, _moveType);
+                else if (BondDoodad.IsIntentionalSeatLeave(umt.Flags, umt.ActorFlags))
                 {
-                    var bonding = character.Bonding;
-                    var bondedDoodad = bonding.GetOwner();
-                    var doodadObjId = bonding.ObjId;
-                    bondedDoodad?.Seat.UnLoadPassenger(character, doodadObjId);
-                    character.Bonding.SetOwner(null);
-                    character.Bonding = null;
-                    character.Transform.Parent = null;
-                    character.Transform.StickyParent = null;
-                    character.BroadcastPacket(
-                        new SCUnbondDoodadPacket(character.ObjId, character.Id, doodadObjId), true);
-                    WorldIntegration.RelayBondDoodadToZone?.Invoke(character.ObjId, bonding, false);
-                    // Sit buff 4645 has remove_on_unbond + remove_on_move; RemoveEffects above
-                    // covers move. Explicitly drop sit buff if still present after unbond.
-                    if (character.Buffs.CheckBuff(4645))
-                        character.Buffs.RemoveBuff(4645);
+                    RemoveEffects(character, _moveType);
+                    BondDoodad.TryRelease(character);
                 }
 
                 // Mast / ladder hang (StickyParent) and BindSlave seats: ZoneAuthority used to
@@ -128,6 +116,10 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                     ClearHang(character, reason: 0); // climbed off
 
                 ApplyGroundContact(character, umt);
+
+                // Never apply CSMove world XYZ as local under a seat doodad (AOI thrash).
+                if (character.Bonding != null && character.Transform.Parent?.GameObject is Doodad)
+                    character.Transform.Parent = null;
 
                 character.Transform.Local.SetPosition(
                     umt.X, umt.Y, umt.Z,

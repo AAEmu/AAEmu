@@ -28,18 +28,22 @@ public class VehicleSeat(BaseUnit parentVehicle)
 
     private void AddSeat(Character character, uint seatObjId, int spot)
     {
-        _seats[seatObjId][spot] = character.Id; // occupied place
-        character.Transform.Parent = null;
-        character.Transform.StickyParent = parentVehicle.Transform;
+        _seats[seatObjId][spot] = character.Id;
+        // Static doodad chairs: occupancy only. Transfers keep the passenger parented.
+        if (parentVehicle is Transfer transfer)
+            character.Transform.Parent = transfer.Transform;
     }
 
     public void UnLoadPassenger(Character character, uint seatObjId)
     {
-        for (var i = 0; i < _seats[seatObjId].Count; i++)
+        if (!_seats.TryGetValue(seatObjId, out var spots))
+            return;
+
+        for (var i = 0; i < spots.Count; i++)
         {
-            if (_seats[seatObjId][i] == character.Id)
+            if (spots[i] == character.Id)
             {
-                _seats[seatObjId][i] = 0; // free up space
+                spots[i] = 0; // free up space
                 character.Transform.StickyParent = null;
                 if (parentVehicle is Transfer transfer)
                     transfer.AttachedCharacters.Remove(character);
