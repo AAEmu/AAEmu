@@ -14,8 +14,10 @@ using NLog;
 namespace AAEmu.Game.Core.Managers;
 
 /// <summary>
-/// Daily schedule (today_quest_* tables): unlock, accept, re-roll, and completion.
-/// Progress is stored per character and day in character_today_assignments.
+/// Daily schedule (today_quest_* tables).
+/// Client visuals for Locked: grey until level+cost item (client); green when satisfy.
+/// Flow: LOCKED → Unlock → READY (blue, no quest) → Accept → PROGRESS → DONE.
+/// Paid steps (item cost): unlock once per character; each new day seeds READY again.
 /// </summary>
 public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
 {
@@ -37,8 +39,17 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
     /// <summary>characterId → free re-rolls used today (0..MaxDailyResets).</summary>
     private readonly Dictionary<uint, uint> _resetsUsed = [];
 
-    /// <summary>Characters whose rows for today have been loaded this process lifetime.</summary>
-    private readonly HashSet<uint> _loadedOwners = [];
+    /// <summary>
+    /// Paid slot unlocks that survive across days (item cost paid once per character).
+    /// Free steps (no item cost) are not stored here.
+    /// </summary>
+    private readonly Dictionary<uint, HashSet<uint>> _lifetimeUnlocks = [];
+
+    /// <summary>
+    /// Characters loaded for a specific local calendar day. If the day changes while online,
+    /// EnsureLoaded reloads so assignment/reroll state does not carry across midnight.
+    /// </summary>
+    private readonly Dictionary<uint, DateTime> _loadedDay = [];
 
     private sealed class ActiveTodayAssignment
     {
@@ -50,6 +61,9 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
     }
 
     private static DateTime TodayKey => DateTime.Today;
+
+    private static bool IsPaidStep(TodayQuestStepTemplate step)
+        => step != null && step.ItemId != 0 && step.ItemNum > 0;
 
     public void SendResetCount(Character character)
     {
@@ -101,18 +115,7 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
             return;
         }
 
-        if (!UnitRequirementsGameData.Instance.MeetOwnerRequirements(
-                "TodayQuestStep", step.Id, step.OrUnitReqs, character))
-        {
-            Logger.Info(
-                "TodayAssignment: step reqs failed realStep={0} stepId={1} for {2}",
-                realStep, step.Id, character.Name);
-            return;
-        }
-
-        if (step.LevelMin > 0 && character.Level < step.LevelMin)
-            return;
-        if (step.LevelMax > 0 && character.Level > step.LevelMax)
+        if (!MeetsStepEligibility(character, step, realStep, log: true))
             return;
 
         switch (request)
@@ -231,7 +234,9 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
         SetActive(character.Id, realStep, state);
         Persist(character.Id, realStep, state);
 
-        _resetsUsed[character.Id] = used + 1;
+        var newUsed = used + 1;
+        _resetsUsed[character.Id] = newUsed;
+        PersistResetsUsed(character.Id, newUsed);
 
         SendState(character, realStep, state, init: false);
         SendResetCount(character);
@@ -239,7 +244,7 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
         Logger.Info(
             "TodayAssignment reset ok {0}: realStep={1} group {2}→{3} quest {4}→{5} used={6}/{7}",
             character.Name, realStep, oldGroupId, newGroup.Id, oldQuestId, newQuestId,
-            used + 1, MaxDailyResets);
+            newUsed, MaxDailyResets);
     }
 
     public void HandleAcceptAll(Character character, sbyte todayType, IReadOnlyList<uint> realSteps)
@@ -263,7 +268,9 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
                     if (state.Unlocked && !state.Accepted && state.Status != TodayAssignmentStatus.Done)
                     {
                         var step = TodayQuestGameData.Instance.GetStepByRealStep(realStep);
-                        if (step == null || !Accept(character, step, realStep))
+                        if (step == null
+                            || !MeetsStepEligibility(character, step, realStep, log: true)
+                            || !Accept(character, step, realStep))
                             ok = false;
                     }
                 }
@@ -275,6 +282,13 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
             {
                 var step = TodayQuestGameData.Instance.GetStepByRealStep(realStep);
                 if (step == null)
+                {
+                    ok = false;
+                    continue;
+                }
+
+                // Same step-level gates as CSRequestTodayAssignment — bulk list is client-controlled.
+                if (!MeetsStepEligibility(character, step, realStep, log: true))
                 {
                     ok = false;
                     continue;
@@ -295,7 +309,38 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
     {
         _active.Remove(characterId);
         _resetsUsed.Remove(characterId);
-        _loadedOwners.Remove(characterId);
+        _lifetimeUnlocks.Remove(characterId);
+        _loadedDay.Remove(characterId);
+    }
+
+    /// <summary>
+    /// Step unit_reqs + level bounds shared by single-step requests and AcceptAll bulk unlock.
+    /// </summary>
+    private static bool MeetsStepEligibility(
+        Character character,
+        TodayQuestStepTemplate step,
+        uint realStep,
+        bool log)
+    {
+        if (!UnitRequirementsGameData.Instance.MeetOwnerRequirements(
+                "TodayQuestStep", step.Id, step.OrUnitReqs, character))
+        {
+            if (log)
+            {
+                Logger.Info(
+                    "TodayAssignment: step reqs failed realStep={0} stepId={1} for {2}",
+                    realStep, step.Id, character.Name);
+            }
+
+            return false;
+        }
+
+        if (step.LevelMin > 0 && character.Level < step.LevelMin)
+            return false;
+        if (step.LevelMax > 0 && character.Level > step.LevelMax)
+            return false;
+
+        return true;
     }
 
     public void NotifyQuestCompleted(Character character, uint questContextId)
@@ -397,9 +442,6 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
                 return;
             }
 
-            if (TryRecoverDoneFromCompletedQuests(character, realStep, existing))
-                return;
-
             // Re-click on an unlocked, not-yet-accepted slot completes accept (no second charge).
             if (existing.Status == TodayAssignmentStatus.Ready || !existing.Accepted)
             {
@@ -420,34 +462,16 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
             return;
         }
 
-        // If player already completed a quest for this group today (DB completed_quests), stay Done.
-        // No item charge — cost was (or would have been) paid before completion.
-        foreach (var qid in group.QuestContextIds)
+        // Green unlock → blue Ready only (no quest start). Item cost once for paid slots.
+        if (IsPaidStep(step))
         {
-            if (!character.Quests.HasQuestCompleted(qid))
-                continue;
-
-            var doneState = new ActiveTodayAssignment
+            if (!HasLifetimeUnlock(character.Id, realStep))
             {
-                GroupId = group.Id,
-                QuestContextId = qid,
-                Unlocked = true,
-                Accepted = true,
-                Status = TodayAssignmentStatus.Done
-            };
-            SetActive(character.Id, realStep, doneState);
-            Persist(character.Id, realStep, doneState);
-            DropSiblingQuests(character, group.Id, keepQuestId: qid);
-            SendState(character, realStep, doneState, init: false);
-            Logger.Info(
-                "TodayAssignment unlock recovered Done {0}: realStep={1} quest={2}",
-                character.Name, realStep, qid);
-            return;
+                if (!TryConsumeUnlockCost(character, step, realStep))
+                    return;
+                GrantLifetimeUnlock(character.Id, realStep);
+            }
         }
-
-        // Paid unlocks (e.g. Blue Salt Hammer / Evenstone) charge bag once at unlock.
-        if (!TryConsumeUnlockCost(character, step, realStep))
-            return;
 
         var state = new ActiveTodayAssignment
         {
@@ -461,15 +485,12 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
         Persist(character.Id, realStep, state);
 
         Logger.Info(
-            "TodayAssignment unlocked {0}: realStep={1} group={2} costItem={3}x{4}",
-            character.Name, realStep, group.Id, step.ItemId, step.ItemNum);
+            "TodayAssignment unlocked→Ready {0}: realStep={1} group={2} costItem={3}x{4} lifetime={5}",
+            character.Name, realStep, group.Id, step.ItemId, step.ItemNum,
+            IsPaidStep(step) && HasLifetimeUnlock(character.Id, realStep));
 
-        // Paid unlocks auto-accept so the slot immediately enters Progress.
-        if (!Accept(character, step, realStep))
-        {
-            SendState(character, realStep, state, init: false);
-            SendResetCount(character);
-        }
+        SendState(character, realStep, state, init: false);
+        SendResetCount(character);
     }
 
     /// <summary>
@@ -511,11 +532,13 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
 
     private bool Accept(Character character, TodayQuestStepTemplate step, uint realStep)
     {
+        // Not unlocked yet: unlock only (Ready/blue). Client must click Accept/unlock again for Progress.
         if (!TryGetActive(character.Id, realStep, out var state) || !state.Unlocked)
         {
             Unlock(character, step, realStep);
-            if (!TryGetActive(character.Id, realStep, out state) || !state.Unlocked)
-                return false;
+            return TryGetActive(character.Id, realStep, out state)
+                   && state.Unlocked
+                   && state.Status == TodayAssignmentStatus.Ready;
         }
 
         if (state.Status == TodayAssignmentStatus.Done)
@@ -524,9 +547,6 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
             SendState(character, realStep, state, init: false);
             return true;
         }
-
-        if (TryRecoverDoneFromCompletedQuests(character, realStep, state))
-            return true;
 
         if (state.Accepted)
         {
@@ -554,12 +574,6 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
         uint primaryQuestId = 0;
         foreach (var questId in group.QuestContextIds)
         {
-            if (character.Quests.HasQuestCompleted(questId))
-            {
-                CompleteStep(character, realStep, state, questId);
-                return true;
-            }
-
             if (character.Quests.HasQuest(questId))
             {
                 startedAny = true;
@@ -568,7 +582,7 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
             }
         }
 
-        // Start only the first incomplete group quest (not all three) so one kill pool tracks one contract.
+        // Start only the first group quest that can still be started (repeatables ok on later days).
         if (!startedAny)
         {
             foreach (var questId in group.QuestContextIds)
@@ -613,35 +627,6 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
             "TodayAssignment accepted {0}: realStep={1} group={2} quest={3}",
             character.Name, realStep, group.Id, primaryQuestId);
         return true;
-    }
-
-    private bool TryRecoverDoneFromCompletedQuests(
-        Character character,
-        uint realStep,
-        ActiveTodayAssignment state)
-    {
-        var group = TodayQuestGameData.Instance.GetGroup(state.GroupId);
-        if (group == null)
-        {
-            var stepTemplate = TodayQuestGameData.Instance.GetStepByRealStep(realStep);
-            if (stepTemplate != null)
-                group = PickEligibleGroup(character, stepTemplate);
-        }
-
-        if (group == null)
-            return false;
-
-        foreach (var qid in group.QuestContextIds)
-        {
-            if (!character.Quests.HasQuestCompleted(qid))
-                continue;
-
-            state.GroupId = group.Id;
-            CompleteStep(character, realStep, state, qid);
-            return true;
-        }
-
-        return false;
     }
 
     private void Resync(Character character, uint realStep)
@@ -756,11 +741,49 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
     {
         if (character == null)
             return;
-        if (_loadedOwners.Contains(character.Id))
+
+        var today = TodayKey;
+        if (_loadedDay.TryGetValue(character.Id, out var loadedDay) && loadedDay == today)
             return;
 
+        // Midnight crossed while still online (or first load this process).
+        var dayRolledOver = loadedDay != default && loadedDay != today;
+        if (dayRolledOver)
+        {
+            Logger.Info(
+                "TodayAssignment day rollover owner={0} was={1:yyyy-MM-dd} now={2:yyyy-MM-dd}",
+                character.Id, loadedDay, today);
+            _active.Remove(character.Id);
+            _resetsUsed.Remove(character.Id);
+        }
+
         LoadFromDb(character);
-        _loadedOwners.Add(character.Id);
+        _loadedDay[character.Id] = today;
+
+        // Refresh client UI so yesterday's Done/Progress does not stick after midnight.
+        if (dayRolledOver)
+            PushDayRolloverUi(character);
+    }
+
+    private void PushDayRolloverUi(Character character)
+    {
+        SendResetCount(character);
+
+        foreach (var step in TodayQuestGameData.Instance.AllSteps)
+        {
+            if (TryGetActive(character.Id, step.RealStep, out var state))
+            {
+                SendState(character, step.RealStep, state, init: true);
+                continue;
+            }
+
+            character.SendPacket(new SCTodayAssignmentChangedPacket(
+                (int)step.Id,
+                0,
+                0,
+                (sbyte)TodayAssignmentStatus.Locked,
+                init: true));
+        }
     }
 
     private void LoadFromDb(Character character)
@@ -802,6 +825,11 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
                     Accepted = status >= TodayAssignmentStatus.Progress
                 };
                 SetActive(character.Id, realStep, state);
+
+                // Any paid step used today is also a lifetime unlock.
+                var stepTpl = TodayQuestGameData.Instance.GetStepByRealStep(realStep);
+                if (IsPaidStep(stepTpl) && status >= TodayAssignmentStatus.Ready)
+                    RememberLifetimeUnlock(character.Id, realStep);
             }
         }
         catch (MySqlException ex) when (ex.Number is 1146 or 1054)
@@ -815,38 +843,218 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
             Logger.Error(ex, "TodayAssignment LoadFromDb failed for {0}", character.Id);
         }
 
-        // Recover Done from completed_quests even when the row was never saved (pre-persist sessions).
-        foreach (var step in TodayQuestGameData.Instance.AllSteps)
+        LoadLifetimeUnlocksFromDb(character);
+        BackfillLifetimeUnlocksFromHistory(character);
+        SeedReadyForLifetimeUnlocks(character);
+        LoadResetsUsedFromDb(character);
+    }
+
+    private bool HasLifetimeUnlock(uint characterId, uint realStep)
+        => _lifetimeUnlocks.TryGetValue(characterId, out var set) && set.Contains(realStep);
+
+    private void RememberLifetimeUnlock(uint characterId, uint realStep)
+    {
+        if (!_lifetimeUnlocks.TryGetValue(characterId, out var set))
         {
-            if (TryGetActive(character.Id, step.RealStep, out var existing)
-                && existing.Status == TodayAssignmentStatus.Done)
+            set = [];
+            _lifetimeUnlocks[characterId] = set;
+        }
+
+        set.Add(realStep);
+    }
+
+    private void GrantLifetimeUnlock(uint characterId, uint realStep)
+    {
+        RememberLifetimeUnlock(characterId, realStep);
+        PersistLifetimeUnlock(characterId, realStep);
+    }
+
+    private void LoadLifetimeUnlocksFromDb(Character character)
+    {
+        try
+        {
+            using var connection = MySQL.CreateConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                """
+                SELECT real_step
+                FROM character_today_step_unlocks
+                WHERE owner = @owner
+                """;
+            command.Parameters.AddWithValue("@owner", character.Id);
+            command.Prepare();
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+                RememberLifetimeUnlock(character.Id, reader.GetUInt32("real_step"));
+        }
+        catch (MySqlException ex) when (ex.Number is 1146 or 1054)
+        {
+            Logger.Warn(
+                "TodayAssignment step-unlocks table missing — run SQL/updates/2026-08-09_aaemu_game_character_today_step_unlocks.sql ({0})",
+                ex.Message);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "TodayAssignment LoadLifetimeUnlocks failed for {0}", character.Id);
+        }
+    }
+
+    /// <summary>
+    /// One-time migration: any past daily row for a paid step implies the character already paid.
+    /// </summary>
+    private void BackfillLifetimeUnlocksFromHistory(Character character)
+    {
+        try
+        {
+            using var connection = MySQL.CreateConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                """
+                SELECT DISTINCT real_step
+                FROM character_today_assignments
+                WHERE owner = @owner AND status >= 1
+                """;
+            command.Parameters.AddWithValue("@owner", character.Id);
+            command.Prepare();
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                var realStep = reader.GetUInt32("real_step");
+                var step = TodayQuestGameData.Instance.GetStepByRealStep(realStep);
+                if (!IsPaidStep(step) || HasLifetimeUnlock(character.Id, realStep))
+                    continue;
+
+                RememberLifetimeUnlock(character.Id, realStep);
+                PersistLifetimeUnlock(character.Id, realStep);
+                Logger.Info(
+                    "TodayAssignment backfilled lifetime unlock {0} realStep={1}",
+                    character.Name, realStep);
+            }
+        }
+        catch (MySqlException ex) when (ex.Number is 1146 or 1054)
+        {
+            // assignments or unlocks table missing — ignore
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "TodayAssignment BackfillLifetimeUnlocks failed for {0}", character.Id);
+        }
+    }
+
+    /// <summary>
+    /// After midnight / first login of the day: paid slots already unlocked sit Ready (blue), not Locked.
+    /// </summary>
+    private void SeedReadyForLifetimeUnlocks(Character character)
+    {
+        if (!_lifetimeUnlocks.TryGetValue(character.Id, out var unlockedSteps) || unlockedSteps.Count == 0)
+            return;
+
+        foreach (var realStep in unlockedSteps)
+        {
+            if (TryGetActive(character.Id, realStep, out _))
+                continue;
+
+            var step = TodayQuestGameData.Instance.GetStepByRealStep(realStep);
+            if (step == null || !IsPaidStep(step))
+                continue;
+
+            if (!MeetsStepEligibility(character, step, realStep, log: false))
                 continue;
 
             var group = PickEligibleGroup(character, step);
             if (group == null)
                 continue;
 
-            foreach (var qid in group.QuestContextIds)
+            var state = new ActiveTodayAssignment
             {
-                if (!character.Quests.HasQuestCompleted(qid))
-                    continue;
+                GroupId = group.Id,
+                QuestContextId = 0,
+                Unlocked = true,
+                Accepted = false,
+                Status = TodayAssignmentStatus.Ready
+            };
+            SetActive(character.Id, realStep, state);
+            Persist(character.Id, realStep, state);
+            Logger.Info(
+                "TodayAssignment seeded Ready for lifetime unlock {0} realStep={1} group={2}",
+                character.Name, realStep, group.Id);
+        }
+    }
 
-                var state = new ActiveTodayAssignment
-                {
-                    GroupId = group.Id,
-                    QuestContextId = qid,
-                    Unlocked = true,
-                    Accepted = true,
-                    Status = TodayAssignmentStatus.Done
-                };
-                SetActive(character.Id, step.RealStep, state);
-                Persist(character.Id, step.RealStep, state);
-                DropSiblingQuests(character, group.Id, keepQuestId: qid);
-                Logger.Info(
-                    "TodayAssignment recovered Done from completed_quests {0}: realStep={1} quest={2}",
-                    character.Name, step.RealStep, qid);
-                break;
+    private void PersistLifetimeUnlock(uint ownerId, uint realStep)
+    {
+        try
+        {
+            using var connection = MySQL.CreateConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                """
+                INSERT IGNORE INTO character_today_step_unlocks (owner, real_step)
+                VALUES (@owner, @realStep)
+                """;
+            command.Parameters.AddWithValue("@owner", ownerId);
+            command.Parameters.AddWithValue("@realStep", realStep);
+            command.Prepare();
+            command.ExecuteNonQuery();
+        }
+        catch (MySqlException ex) when (ex.Number is 1146 or 1054)
+        {
+            Logger.Warn(
+                "TodayAssignment PersistLifetimeUnlock skipped (table missing): owner={0} realStep={1}",
+                ownerId, realStep);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(
+                ex, "TodayAssignment PersistLifetimeUnlock failed owner={0} realStep={1}", ownerId, realStep);
+        }
+    }
+
+    private void LoadResetsUsedFromDb(Character character)
+    {
+        try
+        {
+            using var connection = MySQL.CreateConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                """
+                SELECT resets_used, day_key
+                FROM character_today_reset_counts
+                WHERE owner = @owner
+                """;
+            command.Parameters.AddWithValue("@owner", character.Id);
+            command.Prepare();
+
+            using var reader = command.ExecuteReader();
+            if (!reader.Read())
+            {
+                _resetsUsed.Remove(character.Id);
+                return;
             }
+
+            var dayKey = reader.GetDateTime("day_key").Date;
+            if (dayKey != TodayKey)
+            {
+                _resetsUsed.Remove(character.Id);
+                return;
+            }
+
+            var used = reader.GetUInt32("resets_used");
+            if (used > MaxDailyResets)
+                used = MaxDailyResets;
+            _resetsUsed[character.Id] = used;
+        }
+        catch (MySqlException ex) when (ex.Number is 1146 or 1054)
+        {
+            Logger.Warn(
+                "TodayAssignment reset-count table missing — run SQL/updates/2026-08-09_aaemu_game_character_today_assignments.sql ({0})",
+                ex.Message);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "TodayAssignment LoadResetsUsed failed for {0}", character.Id);
         }
     }
 
@@ -881,6 +1089,37 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
         catch (Exception ex)
         {
             Logger.Error(ex, "TodayAssignment Persist failed owner={0} realStep={1}", ownerId, realStep);
+        }
+    }
+
+    private void PersistResetsUsed(uint ownerId, uint used)
+    {
+        try
+        {
+            using var connection = MySQL.CreateConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                """
+                REPLACE INTO character_today_reset_counts
+                    (owner, day_key, resets_used)
+                VALUES
+                    (@owner, @dayKey, @used)
+                """;
+            command.Parameters.AddWithValue("@owner", ownerId);
+            command.Parameters.AddWithValue("@dayKey", TodayKey.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+            command.Parameters.AddWithValue("@used", used);
+            command.Prepare();
+            command.ExecuteNonQuery();
+        }
+        catch (MySqlException ex) when (ex.Number is 1146 or 1054)
+        {
+            Logger.Warn(
+                "TodayAssignment PersistResetsUsed skipped (table missing): owner={0}",
+                ownerId);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "TodayAssignment PersistResetsUsed failed owner={0}", ownerId);
         }
     }
 

@@ -154,7 +154,7 @@ public partial class Quest
                     var body = new byte[8];
                     completedBlock.Body.CopyTo(body, 0);
 
-                    // Daily Contracts: push A_TODAY_STATUS.DONE before remove so the UI still has questType.
+                    // Daily schedule: push Done status before remove so the UI still has questType.
                     if (Owner is Character character)
                         TodayAssignmentManager.Instance.NotifyQuestCompleted(character, TemplateId);
 
