@@ -52,6 +52,9 @@ public partial class Npc : Unit
     {
         get
         {
+            if (_overrideAnimActionId.HasValue)
+                return _overrideAnimActionId.Value;
+
             switch (Template.NpcPostureSets.Count)
             {
                 // If no postures, just return 0
@@ -68,7 +71,10 @@ public partial class Npc : Unit
                     }
             }
         }
+        set => _overrideAnimActionId = value;
     }
+
+    private uint? _overrideAnimActionId;
 
     public override float Scale => Template.Scale;
 
