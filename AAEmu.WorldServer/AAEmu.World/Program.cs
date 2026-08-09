@@ -1,3 +1,4 @@
+using System.Numerics;
 using System.Reflection;
 
 using AAEmu.Commons.IO;
@@ -125,6 +126,33 @@ public static class Program
             // tracked units applies the same window rules as a live announcement.
             NpcScheduleGate.Start();
             NpcSpawnRelay.RemirrorAllZones();
+            // Force-spawn quest 2387 target: Eokad Deltokin (npc_id=7817) at Gweonid arena marker
+            try
+            {
+                var mainWorld = WorldManager.Instance.MainWorld;
+                if (mainWorld != null)
+                {
+                    var worldPos = new Vector3(10268.2f, 15264.3f, 239.4f);
+                    var zoneId = WorldManager.Instance.GetZoneId(mainWorld.Template, worldPos.X, worldPos.Y);
+                    if (zoneId != 0)
+                    {
+                        var localPos = ZoneManager.Instance.ConvertToLocalCoordinates(zoneId, worldPos);
+                        var bcId = AAEmu.Game.Core.Managers.Id.ObjectIdManager.Instance.GetNextId();
+                        if (WorldIntegration.MirrorZoneNpcSpawn(zoneId, bcId, 7817, localPos.X, localPos.Y, localPos.Z, 0f, 1f))
+                            Logger.Info("Spawned quest 2387 target Eokad Deltokin (bc={0}, zone={1})", bcId, zoneId);
+                        else
+                            Logger.Warn("Failed to spawn quest 2387 target Eokad Deltokin");
+                    }
+                    else
+                    {
+                        Logger.Warn("Could not resolve zone for quest 2387 spawn position");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, "Quest 2387 Eokad Deltokin forced spawn failed");
+            }
         };
         WorldIntegration.RelayMoveToZone = (bcId, moveBody) =>
         {
