@@ -425,8 +425,10 @@ public class Skill
             return null;
 
         // HACKFIX : Mounts and Turbulence
+        // Some client-initiated self casts (e.g. sprint/double-W) may carry caster objId before
+        // the world unit lookup is fully in sync; falling back to caster avoids false NoTarget.
         if (skillCaster.Type == SkillCasterType.Mount || skillCaster.Type == SkillCasterType.Unit)
-            target = caster.ParentWorld.GetUnit(skillCaster.ObjId);
+            target = caster.ParentWorld.GetUnit(skillCaster.ObjId) ?? caster;
 
         switch (Template.TargetType)
         {

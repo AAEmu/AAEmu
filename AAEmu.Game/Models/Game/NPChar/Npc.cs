@@ -144,6 +144,9 @@ public partial class Npc : Unit
             _currentGameStance = value;
         }
     }
+
+    /// <summary>Stance the client should use for animations: Relaxed when idle, otherwise CurrentGameStance.</summary>
+    public GameStanceType VisualStance => CurrentGameStance == GameStanceType.Combat && !IsInBattle ? GameStanceType.Relaxed : CurrentGameStance;
     public MoveTypeAlertness CurrentAlertness { get; set; }
 
     #region Attributes
@@ -1276,7 +1279,7 @@ public partial class Npc : Unit
         moveType.DeltaMovement[0] = 0;
         moveType.DeltaMovement[1] = 127;
         moveType.DeltaMovement[2] = 0;
-        moveType.Stance = CurrentGameStance;    // COMBAT = 0x0, IDLE = 0x1
+        moveType.Stance = VisualStance;    // COMBAT = 0x0, IDLE = 0x1
         moveType.Alertness = CurrentAlertness;
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
 
@@ -1347,7 +1350,7 @@ public partial class Npc : Unit
         moveType.DeltaMovement[0] = 0;
         moveType.DeltaMovement[1] = 0;
         moveType.DeltaMovement[2] = 0;
-        moveType.Stance = CurrentGameStance;// (sbyte)(CurrentAggroTarget?.ObjId > 0 ? 0 : 1);    // COMBAT = 0x0, IDLE = 0x1
+        moveType.Stance = VisualStance;// (sbyte)(CurrentAggroTarget?.ObjId > 0 ? 0 : 1);    // COMBAT = 0x0, IDLE = 0x1
         moveType.Alertness = CurrentAlertness;
         moveType.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
         BroadcastPacket(new SCOneUnitMovementPacket(ObjId, moveType), false);
@@ -1374,7 +1377,7 @@ public partial class Npc : Unit
         moveType.RotationZ = Transform.Local.ToRollPitchYawSBytesMovement().Item3;
         moveType.Flags = MoveTypeFlags.Stopping | (IsInBattle ? MoveTypeFlags.InCombat : 0);
         moveType.DeltaMovement = new sbyte[3];
-        moveType.Stance = CurrentGameStance;
+        moveType.Stance = VisualStance;
         moveType.Alertness = CurrentAlertness;
         moveType.Time = time;
         return moveType;
