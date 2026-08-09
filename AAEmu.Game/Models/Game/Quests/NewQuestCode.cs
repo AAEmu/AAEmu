@@ -1,4 +1,6 @@
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Units;
 
@@ -151,6 +153,10 @@ public partial class Quest
                     // copy body data for packet
                     var body = new byte[8];
                     completedBlock.Body.CopyTo(body, 0);
+
+                    // Daily Contracts: push A_TODAY_STATUS.DONE before remove so the UI still has questType.
+                    if (Owner is Character character)
+                        TodayAssignmentManager.Instance.NotifyQuestCompleted(character, TemplateId);
 
                     Owner.Quests.DropQuest(TemplateId, false, false);
                     Owner.SendPacket(new SCQuestContextCompletedPacket(TemplateId, 0));

@@ -109,6 +109,9 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
         // The reference emits 0x038A ~4s after NotifyInGame, never in the select burst.
         Connection.ActiveChar.SendPacket(new SCWorldLevelInfoPacket());
 
+        // Daily schedule: load persisted contracts for today, then reset-count budget.
+        TodayAssignmentManager.Instance.OnCharacterEnterWorld(Connection.ActiveChar);
+
         // Mirror interest armed on NotifyInGameCompleted — not here during load.
         Logger.Info($"NotifyInGame: {Connection.ActiveChar?.Name} ({Connection.ActiveChar?.Id}) zoneAuth={WorldIntegration.ZoneAuthority}");
     }

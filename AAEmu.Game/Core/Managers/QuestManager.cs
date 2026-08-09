@@ -862,6 +862,23 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
         }
         using (var command = connection.CreateCommand())
         {
+            command.CommandText = "SELECT * FROM quest_act_con_accept_uis";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActConAcceptUi", actId);
+                    if (parentComponent == null)
+                        continue;
+                    var template = new QuestActConAcceptUi(parentComponent) { DetailId = actId };
+                    AddActTemplate(template);
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
             command.CommandText = "SELECT * FROM quest_act_con_auto_completes";
             command.Prepare();
             using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
@@ -1370,6 +1387,31 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                     var template = new QuestActObjLevel(parentComponent)
                     {
                         DetailId = actId, Level = reader.GetByte("level"), UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
+                    AddActTemplate(template);
+                }
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM quest_act_obj_labor_powers";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActObjLaborPower", actId);
+                    if (parentComponent == null)
+                        continue;
+                    var template = new QuestActObjLaborPower(parentComponent)
+                    {
+                        DetailId = actId,
+                        Count = reader.GetInt32("count"),
+                        ActabilityGroupId = reader.GetUInt32("actability_group_id", 0),
+                        UseAlias = reader.GetBoolean("use_alias", true),
                         QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
                     };
                     AddActTemplate(template);
