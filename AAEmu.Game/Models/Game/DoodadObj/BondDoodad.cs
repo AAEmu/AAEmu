@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Skills.Buffs;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
 
@@ -93,6 +94,43 @@ public class BondDoodad : PacketMarshaler
     }
 
     /// <summary>
+    /// Live unit the seat rides on (transfer, slave, house, …), or null for free-world furniture.
+    /// Transfer seat doodads often only set ParentObjId + Transform.Parent (ParentObj may be null).
+    /// </summary>
+    public static BaseUnit ResolveCarrierUnit(Doodad seat)
+    {
+        if (seat == null)
+            return null;
+
+        for (var cur = seat.ParentObj; cur != null; cur = cur.ParentObj)
+        {
+            if (cur is BaseUnit unit and not Doodad)
+                return unit;
+        }
+
+        if (ObjectIdManager.IsZoneUnitId(seat.ParentObjId))
+        {
+            var byId = seat.ParentWorld?.GetBaseUnit(seat.ParentObjId);
+            if (byId is not null and not Doodad)
+                return byId;
+        }
+
+        for (var t = seat.Transform?.Parent; t != null; t = t.Parent)
+        {
+            if (t.GameObject is BaseUnit unit and not Doodad)
+                return unit;
+        }
+
+        for (var t = seat.Transform?.StickyParent; t != null; t = t.StickyParent)
+        {
+            if (t.GameObject is BaseUnit unit and not Doodad)
+                return unit;
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Trailing root on WZUnitBondToDoodad must be a zone unit ObjId (or 0), never the seat doodad.
     /// Free-world furniture has no house/slave parent → root 0.
     /// </summary>
@@ -101,21 +139,13 @@ public class BondDoodad : PacketMarshaler
         if (seat == null)
             return 0;
 
-        for (GameObject cur = seat.ParentObj; cur != null; cur = cur.ParentObj)
-        {
-            if (ObjectIdManager.IsZoneUnitId(cur.ObjId))
-                return cur.ObjId;
-        }
+        var carrier = ResolveCarrierUnit(seat);
+        if (carrier != null && ObjectIdManager.IsZoneUnitId(carrier.ObjId))
+            return carrier.ObjId;
 
+        // ParentObjId alone when the carrier is not resolved in-memory (tests / load order).
         if (ObjectIdManager.IsZoneUnitId(seat.ParentObjId))
             return seat.ParentObjId;
-
-        for (var t = seat.Transform?.StickyParent; t != null; t = t.StickyParent)
-        {
-            var go = t.GameObject;
-            if (go != null && ObjectIdManager.IsZoneUnitId(go.ObjId))
-                return go.ObjId;
-        }
 
         return 0;
     }
