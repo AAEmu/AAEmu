@@ -91,6 +91,8 @@ public class TodayQuestGameData : Singleton<TodayQuestGameData>, IGameDataLoader
 
     public IEnumerable<TodayQuestStepTemplate> AllSteps => _stepsById.Values;
 
+    public IEnumerable<TodayQuestGroupTemplate> AllGroups => _groupsById.Values;
+
     public TodayQuestStepTemplate GetStepByRealStep(uint realStep)
     {
         return _stepsByRealStep.GetValueOrDefault(realStep);
