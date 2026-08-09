@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Taxations;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.World.Core.Packets.Wz;
 using AAEmu.World.Core.Packets.Zw;
 using AAEmu.World.Core.Relay;
@@ -45,12 +46,17 @@ public class ZonePacketWireTests
     }
 
     [Test]
-    public async Task UnitBond_WritesBondDataAndTrailingParent()
+    public async Task UnitBond_WritesBondDataAndTrailingUnitRoot()
     {
-        var doodad = new Doodad { ObjId = 0x010203 };
+        // Free-world doodad ObjIds live above unit space; body carries the seat, root must not.
+        var doodad = new Doodad { ObjId = 105992 };
         var bond = new BondDoodad(
             doodad, AttachPointKind.Driver, BondKind.BondChairSingle, space: 7, spot: 11);
-        var frame = new PacketStream(new WZUnitBondToDoodadPacket(0x040506, bond, doodad.ObjId).Encode());
+
+        var freeRoot = BondDoodad.ResolveZoneRootUnitId(doodad);
+        await Assert.That(freeRoot).IsEqualTo(0u);
+
+        var frame = new PacketStream(new WZUnitBondToDoodadPacket(0x040506, bond, freeRoot).Encode());
 
         await Assert.That(frame.ReadUInt16()).IsEqualTo((ushort)24); // opcode + 22-byte body
         await Assert.That(frame.ReadUInt16()).IsEqualTo(WzOpcodes.UnitBondToDoodad);
@@ -60,8 +66,40 @@ public class ZonePacketWireTests
         await Assert.That(frame.ReadInt32()).IsEqualTo(7);
         await Assert.That(frame.ReadInt32()).IsEqualTo(11);
         await Assert.That(frame.ReadUInt32()).IsEqualTo((uint)BondKind.BondChairSingle);
-        await Assert.That(frame.ReadBc()).IsEqualTo(doodad.ObjId);
+        await Assert.That(frame.ReadBc()).IsEqualTo(0u);
         await Assert.That(frame.Pos).IsEqualTo(frame.Count);
+
+        var houseUnitId = 1500u;
+        doodad.ParentObjId = houseUnitId;
+        await Assert.That(BondDoodad.ResolveZoneRootUnitId(doodad)).IsEqualTo(houseUnitId);
+
+        doodad.ParentObjId = 105999u;
+        await Assert.That(BondDoodad.ResolveZoneRootUnitId(doodad)).IsEqualTo(0u);
+        await Assert.That(BondDoodad.ResolveZoneRootUnitId(null)).IsEqualTo(0u);
+    }
+
+    [Test]
+    public async Task SeatLeaveIntent_RequiresLocomotionFlagsNotResidueVel()
+    {
+        await Assert.That(
+            BondDoodad.IsIntentionalSeatLeave(MoveTypeFlags.None, (ushort)MoveTypeActorFlags.None))
+            .IsFalse();
+
+        await Assert.That(
+            BondDoodad.IsIntentionalSeatLeave(MoveTypeFlags.Stopping, (ushort)MoveTypeActorFlags.None))
+            .IsFalse();
+
+        await Assert.That(
+            BondDoodad.IsIntentionalSeatLeave(MoveTypeFlags.Moving, (ushort)MoveTypeActorFlags.None))
+            .IsTrue();
+
+        await Assert.That(
+            BondDoodad.IsIntentionalSeatLeave(MoveTypeFlags.Jumping, (ushort)MoveTypeActorFlags.None))
+            .IsTrue();
+
+        await Assert.That(
+            BondDoodad.IsIntentionalSeatLeave(MoveTypeFlags.None, (ushort)MoveTypeActorFlags.Jumping))
+            .IsTrue();
     }
 
     [Test]

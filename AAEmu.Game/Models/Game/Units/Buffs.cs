@@ -737,6 +737,8 @@ public class Buffs : IBuffs
                 }
                 else if (template.RemoveOnUnmount && on == BuffRemoveOn.Unmount)
                     effect.Exit();
+                else if (template.RemoveOnUnbond && on == BuffRemoveOn.Unbond)
+                    effect.Exit();
                 else if (template.RemoveOnUseSkill && on == BuffRemoveOn.UseSkill)
                     effect.Exit();
             }

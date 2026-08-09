@@ -11,6 +11,7 @@ public enum BuffRemoveOn
     Interaction,
     Unmount,
     Mount,
+    Unbond,
     StartSkill,
     AttackSpellDot,
     AttackEtcDot,

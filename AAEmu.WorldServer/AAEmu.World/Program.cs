@@ -4,8 +4,10 @@ using AAEmu.Commons.IO;
 using AAEmu.Commons.Network;
 using AAEmu.Game;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.World.Core.Network;
 using AAEmu.World.Core.Packets.Wz;
@@ -846,10 +848,21 @@ public static class Program
                 return;
             if (bond && bonding != null)
             {
+                // Passenger fields require zone unit ids; doodad ObjIds are invalid as the bonding unit.
+                if (!ObjectIdManager.IsZoneUnitId(unitId))
+                {
+                    Logger.Warn("Not relaying WZUnitBondToDoodad: unit={0} is not a zone unit id", unitId);
+                    return;
+                }
+
                 var doodad = bonding.GetOwner();
-                var rootObjId = doodad != null && doodad.ParentObjId != 0
-                    ? doodad.ParentObjId
-                    : bonding.ObjId;
+                if (doodad == null || bonding.ObjId == 0)
+                {
+                    Logger.Warn("Not relaying WZUnitBondToDoodad: unit={0} has no seat doodad", unitId);
+                    return;
+                }
+
+                var rootObjId = BondDoodad.ResolveZoneRootUnitId(doodad);
                 zone.SendPacket(new WZUnitBondToDoodadPacket(unitId, bonding, rootObjId));
                 Logger.Info("WZUnitBondToDoodad → zone unit={0} doodad={1} root={2} point={3} kind={4}",
                     unitId, bonding.ObjId, rootObjId, (byte)bonding.AttachPoint, (uint)bonding.Kind);
