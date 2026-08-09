@@ -4,13 +4,10 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// TODO: nothing constructs this packet yet.
+/// Reports how many free mission re-rolls have been used (count) for a schedule sort (countType).
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
-public class SCTodayAssignmentResetCountPacket(uint count, uint countType) : GamePacket(SCOffsets.SCTodayAssignmentResetCountPacket, 1)
+public class SCTodayAssignmentResetCountPacket(uint count, uint countType)
+    : GamePacket(SCOffsets.SCTodayAssignmentResetCountPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {

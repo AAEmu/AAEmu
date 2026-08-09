@@ -1,0 +1,932 @@
+using System.Globalization;
+using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.DB;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.TodayAssignment;
+using MySql.Data.MySqlClient;
+using NLog;
+
+namespace AAEmu.Game.Core.Managers;
+
+/// <summary>
+/// Daily schedule (today_quest_* tables): unlock, accept, re-roll, and completion.
+/// Progress is stored per character and day in character_today_assignments.
+/// </summary>
+public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
+{
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
+    private const sbyte RequestQuery = 0;
+    private const sbyte RequestUnlock = 1;
+    private const sbyte RequestAccept = 2;
+
+    /// <summary>Free mission re-rolls allowed per calendar day.</summary>
+    private const uint MaxDailyResets = 3;
+
+    /// <summary>SCTodayAssignmentResetCount countType for personal daily schedule.</summary>
+    private const uint PersonalResetCountType = 0x0B;
+
+    /// <summary>characterId → realStep → assignment (today only).</summary>
+    private readonly Dictionary<uint, Dictionary<uint, ActiveTodayAssignment>> _active = [];
+
+    /// <summary>characterId → free re-rolls used today (0..MaxDailyResets).</summary>
+    private readonly Dictionary<uint, uint> _resetsUsed = [];
+
+    /// <summary>Characters whose rows for today have been loaded this process lifetime.</summary>
+    private readonly HashSet<uint> _loadedOwners = [];
+
+    private sealed class ActiveTodayAssignment
+    {
+        public uint GroupId { get; set; }
+        public uint QuestContextId { get; set; }
+        public bool Unlocked { get; set; }
+        public bool Accepted { get; set; }
+        public TodayAssignmentStatus Status { get; set; }
+    }
+
+    private static DateTime TodayKey => DateTime.Today;
+
+    public void SendResetCount(Character character)
+    {
+        if (character == null)
+            return;
+
+        var used = _resetsUsed.GetValueOrDefault(character.Id, 0u);
+        character.SendPacket(new SCTodayAssignmentResetCountPacket(used, PersonalResetCountType));
+    }
+
+    /// <summary>
+    /// Load today's assignments from MySQL and push SC to the client (NotifyInGame).
+    /// </summary>
+    public void OnCharacterEnterWorld(Character character)
+    {
+        if (character == null)
+            return;
+
+        EnsureLoaded(character);
+        SendResetCount(character);
+
+        if (!TryGetCharState(character.Id, out var byStep) || byStep.Count == 0)
+            return;
+
+        foreach (var (realStep, state) in byStep)
+        {
+            // Do not re-fire complete-toast on login.
+            SendState(character, realStep, state, init: true);
+            if (state.Status == TodayAssignmentStatus.Done)
+                DropSiblingQuests(character, state.GroupId, keepQuestId: state.QuestContextId);
+        }
+    }
+
+    public void HandleRequest(Character character, uint realStep, sbyte request)
+    {
+        if (character == null)
+            return;
+
+        EnsureLoaded(character);
+
+        Logger.Info(
+            "TodayAssignment request {0} ({1}) realStep={2} request={3}",
+            character.Name, character.Id, realStep, request);
+
+        var step = TodayQuestGameData.Instance.GetStepByRealStep(realStep);
+        if (step == null)
+        {
+            Logger.Warn("TodayAssignment: unknown realStep={0} for {1}", realStep, character.Name);
+            return;
+        }
+
+        if (!UnitRequirementsGameData.Instance.MeetOwnerRequirements(
+                "TodayQuestStep", step.Id, step.OrUnitReqs, character))
+        {
+            Logger.Info(
+                "TodayAssignment: step reqs failed realStep={0} stepId={1} for {2}",
+                realStep, step.Id, character.Name);
+            return;
+        }
+
+        if (step.LevelMin > 0 && character.Level < step.LevelMin)
+            return;
+        if (step.LevelMax > 0 && character.Level > step.LevelMax)
+            return;
+
+        switch (request)
+        {
+            case RequestQuery:
+                Resync(character, realStep);
+                SendResetCount(character);
+                break;
+            case RequestUnlock:
+                Unlock(character, step, realStep);
+                break;
+            case RequestAccept:
+                Accept(character, step, realStep);
+                break;
+            default:
+                Logger.Warn(
+                    "TodayAssignment: unhandled request={0} realStep={1} for {2}",
+                    request, realStep, character.Name);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Change Mission: re-roll an in-progress step. Free while under MaxDailyResets;
+    /// charges inventory gold when moneyAmount is greater than zero.
+    /// </summary>
+    public void HandleReset(Character character, uint realStep, ulong moneyAmount)
+    {
+        if (character == null)
+            return;
+
+        EnsureLoaded(character);
+
+        Logger.Info(
+            "TodayAssignment reset {0} ({1}) realStep={2} money={3}",
+            character.Name, character.Id, realStep, moneyAmount);
+
+        var step = TodayQuestGameData.Instance.GetStepByRealStep(realStep);
+        if (step == null)
+        {
+            Logger.Warn("TodayAssignment: reset unknown realStep={0} for {1}", realStep, character.Name);
+            return;
+        }
+
+        if (!TryGetActive(character.Id, realStep, out var state)
+            || !state.Accepted
+            || state.Status != TodayAssignmentStatus.Progress)
+        {
+            Logger.Info(
+                "TodayAssignment: reset refused (not in Progress) realStep={0} for {1}",
+                realStep, character.Name);
+            return;
+        }
+
+        var used = _resetsUsed.GetValueOrDefault(character.Id, 0u);
+        if (used >= MaxDailyResets)
+        {
+            Logger.Info(
+                "TodayAssignment: reset limit reached ({0}/{1}) for {2}",
+                used, MaxDailyResets, character.Name);
+            SendResetCount(character);
+            return;
+        }
+
+        if (moneyAmount > 0)
+        {
+            if (moneyAmount > (ulong)long.MaxValue
+                || !character.ChangeMoney(
+                    SlotType.Inventory,
+                    SlotType.None,
+                    (long)moneyAmount,
+                    ItemTaskType.StoreBuy))
+            {
+                character.SendErrorMessage(ErrorMessageType.NotEnoughMoney);
+                return;
+            }
+        }
+
+        var oldGroupId = state.GroupId;
+        var oldQuestId = state.QuestContextId;
+
+        if (!TryPickReplacement(character, step, oldGroupId, oldQuestId, out var newGroup, out var newQuestId))
+        {
+            Logger.Warn(
+                "TodayAssignment: reset no alternate quest realStep={0} for {1} (group={2} quest={3})",
+                realStep, character.Name, oldGroupId, oldQuestId);
+            // Refund gold if we charged but cannot re-roll.
+            if (moneyAmount > 0)
+                character.ChangeMoney(SlotType.None, SlotType.Inventory, (long)moneyAmount, ItemTaskType.StoreBuy);
+            return;
+        }
+
+        // Drop every active quest in the old group, then start the replacement.
+        DropSiblingQuests(character, oldGroupId, keepQuestId: 0);
+        if (newGroup.Id != oldGroupId)
+            DropSiblingQuests(character, newGroup.Id, keepQuestId: 0);
+
+        if (!character.Quests.AddQuest(newQuestId))
+        {
+            Logger.Warn(
+                "TodayAssignment: reset failed to start quest={0} realStep={1} for {2}",
+                newQuestId, realStep, character.Name);
+            if (moneyAmount > 0)
+                character.ChangeMoney(SlotType.None, SlotType.Inventory, (long)moneyAmount, ItemTaskType.StoreBuy);
+            // Try to restore the previous contract if it still exists as a template.
+            if (oldQuestId != 0 && !character.Quests.HasQuestCompleted(oldQuestId))
+                character.Quests.AddQuest(oldQuestId);
+            return;
+        }
+
+        state.GroupId = newGroup.Id;
+        state.QuestContextId = newQuestId;
+        state.Unlocked = true;
+        state.Accepted = true;
+        state.Status = TodayAssignmentStatus.Progress;
+        SetActive(character.Id, realStep, state);
+        Persist(character.Id, realStep, state);
+
+        _resetsUsed[character.Id] = used + 1;
+
+        SendState(character, realStep, state, init: false);
+        SendResetCount(character);
+
+        Logger.Info(
+            "TodayAssignment reset ok {0}: realStep={1} group {2}→{3} quest {4}→{5} used={6}/{7}",
+            character.Name, realStep, oldGroupId, newGroup.Id, oldQuestId, newQuestId,
+            used + 1, MaxDailyResets);
+    }
+
+    public void HandleAcceptAll(Character character, sbyte todayType, IReadOnlyList<uint> realSteps)
+    {
+        if (character == null)
+            return;
+
+        EnsureLoaded(character);
+
+        Logger.Info(
+            "TodayAssignment AcceptAll {0} ({1}) todayType={2} steps=[{3}]",
+            character.Name, character.Id, todayType, string.Join(",", realSteps ?? []));
+
+        var ok = true;
+        if (realSteps == null || realSteps.Count == 0)
+        {
+            if (TryGetCharState(character.Id, out var byStep))
+            {
+                foreach (var (realStep, state) in byStep.ToList())
+                {
+                    if (state.Unlocked && !state.Accepted && state.Status != TodayAssignmentStatus.Done)
+                    {
+                        var step = TodayQuestGameData.Instance.GetStepByRealStep(realStep);
+                        if (step == null || !Accept(character, step, realStep))
+                            ok = false;
+                    }
+                }
+            }
+        }
+        else
+        {
+            foreach (var realStep in realSteps)
+            {
+                var step = TodayQuestGameData.Instance.GetStepByRealStep(realStep);
+                if (step == null)
+                {
+                    ok = false;
+                    continue;
+                }
+
+                if (!TryGetActive(character.Id, realStep, out var state) || !state.Unlocked)
+                    Unlock(character, step, realStep);
+
+                if (!Accept(character, step, realStep))
+                    ok = false;
+            }
+        }
+
+        character.SendPacket(new SCTodayAssignmentAcceptAllPacket(ok ? (ushort)0 : (ushort)1));
+    }
+
+    public void OnCharacterLogout(uint characterId)
+    {
+        _active.Remove(characterId);
+        _resetsUsed.Remove(characterId);
+        _loadedOwners.Remove(characterId);
+    }
+
+    public void NotifyQuestCompleted(Character character, uint questContextId)
+    {
+        if (character == null || questContextId == 0)
+            return;
+
+        EnsureLoaded(character);
+
+        if (!TryGetCharState(character.Id, out var byStep) || byStep.Count == 0)
+        {
+            TryCompleteFromQuestId(character, questContextId);
+            return;
+        }
+
+        foreach (var (realStep, state) in byStep.ToList())
+        {
+            if (state.Status == TodayAssignmentStatus.Done)
+                continue;
+            if (!state.Accepted && !state.Unlocked)
+                continue;
+
+            var group = TodayQuestGameData.Instance.GetGroup(state.GroupId);
+            if (group == null)
+                continue;
+
+            if (!group.QuestContextIds.Contains(questContextId)
+                && state.QuestContextId != questContextId)
+                continue;
+
+            CompleteStep(character, realStep, state, questContextId);
+            return;
+        }
+
+        TryCompleteFromQuestId(character, questContextId);
+    }
+
+    private void TryCompleteFromQuestId(Character character, uint questContextId)
+    {
+        var group = TodayQuestGameData.Instance.FindGroupByQuestId(questContextId);
+        if (group == null)
+            return;
+
+        var step = TodayQuestGameData.Instance.GetStepById(group.StepId);
+        if (step == null)
+            return;
+
+        if (!TryGetActive(character.Id, step.RealStep, out var state))
+        {
+            state = new ActiveTodayAssignment
+            {
+                GroupId = group.Id,
+                Unlocked = true,
+                Accepted = true
+            };
+            SetActive(character.Id, step.RealStep, state);
+        }
+        else
+        {
+            state.GroupId = group.Id;
+        }
+
+        CompleteStep(character, step.RealStep, state, questContextId);
+    }
+
+    private void CompleteStep(
+        Character character,
+        uint realStep,
+        ActiveTodayAssignment state,
+        uint completedQuestId)
+    {
+        state.GroupId = state.GroupId != 0
+            ? state.GroupId
+            : TodayQuestGameData.Instance.FindGroupByQuestId(completedQuestId)?.Id ?? 0;
+        state.QuestContextId = completedQuestId;
+        state.Unlocked = true;
+        state.Accepted = true;
+        state.Status = TodayAssignmentStatus.Done;
+        SetActive(character.Id, realStep, state);
+        Persist(character.Id, realStep, state);
+
+        SendState(character, realStep, state, init: false);
+        DropSiblingQuests(character, state.GroupId, keepQuestId: completedQuestId);
+
+        Logger.Info(
+            "TodayAssignment done {0}: realStep={1} group={2} quest={3}",
+            character.Name, realStep, state.GroupId, completedQuestId);
+    }
+
+    private void Unlock(Character character, TodayQuestStepTemplate step, uint realStep)
+    {
+        if (TryGetActive(character.Id, realStep, out var existing) && existing.Unlocked)
+        {
+            // Done/progress for today must not be reset to Ready by a re-unlock click.
+            if (existing.Status == TodayAssignmentStatus.Done)
+            {
+                DropSiblingQuests(character, existing.GroupId, keepQuestId: existing.QuestContextId);
+                SendState(character, realStep, existing, init: false);
+                return;
+            }
+
+            if (TryRecoverDoneFromCompletedQuests(character, realStep, existing))
+                return;
+
+            // Re-click on an unlocked, not-yet-accepted slot completes accept (no second charge).
+            if (existing.Status == TodayAssignmentStatus.Ready || !existing.Accepted)
+            {
+                Accept(character, step, realStep);
+                return;
+            }
+
+            SendState(character, realStep, existing, init: false);
+            return;
+        }
+
+        var group = PickEligibleGroup(character, step);
+        if (group == null)
+        {
+            Logger.Warn(
+                "TodayAssignment: unlock no eligible group realStep={0} for {1} (level={2} race={3})",
+                realStep, character.Name, character.Level, character.Race);
+            return;
+        }
+
+        // If player already completed a quest for this group today (DB completed_quests), stay Done.
+        // No item charge — cost was (or would have been) paid before completion.
+        foreach (var qid in group.QuestContextIds)
+        {
+            if (!character.Quests.HasQuestCompleted(qid))
+                continue;
+
+            var doneState = new ActiveTodayAssignment
+            {
+                GroupId = group.Id,
+                QuestContextId = qid,
+                Unlocked = true,
+                Accepted = true,
+                Status = TodayAssignmentStatus.Done
+            };
+            SetActive(character.Id, realStep, doneState);
+            Persist(character.Id, realStep, doneState);
+            DropSiblingQuests(character, group.Id, keepQuestId: qid);
+            SendState(character, realStep, doneState, init: false);
+            Logger.Info(
+                "TodayAssignment unlock recovered Done {0}: realStep={1} quest={2}",
+                character.Name, realStep, qid);
+            return;
+        }
+
+        // Paid unlocks (e.g. Blue Salt Hammer / Evenstone) charge bag once at unlock.
+        if (!TryConsumeUnlockCost(character, step, realStep))
+            return;
+
+        var state = new ActiveTodayAssignment
+        {
+            GroupId = group.Id,
+            QuestContextId = 0,
+            Unlocked = true,
+            Accepted = false,
+            Status = TodayAssignmentStatus.Ready
+        };
+        SetActive(character.Id, realStep, state);
+        Persist(character.Id, realStep, state);
+
+        Logger.Info(
+            "TodayAssignment unlocked {0}: realStep={1} group={2} costItem={3}x{4}",
+            character.Name, realStep, group.Id, step.ItemId, step.ItemNum);
+
+        // Paid unlocks auto-accept so the slot immediately enters Progress.
+        if (!Accept(character, step, realStep))
+        {
+            SendState(character, realStep, state, init: false);
+            SendResetCount(character);
+        }
+    }
+
+    /// <summary>
+    /// Consumes today_quest_steps item cost from bag inventory when unlocking a paid step.
+    /// </summary>
+    private static bool TryConsumeUnlockCost(Character character, TodayQuestStepTemplate step, uint realStep)
+    {
+        if (step.ItemId == 0 || step.ItemNum <= 0)
+            return true;
+
+        if (!character.Inventory.CheckItems(SlotType.Inventory, step.ItemId, step.ItemNum))
+        {
+            character.SendErrorMessage(ErrorMessageType.NotEnoughItem);
+            Logger.Info(
+                "TodayAssignment: unlock cost missing {0} realStep={1} item={2} need={3}",
+                character.Name, realStep, step.ItemId, step.ItemNum);
+            return false;
+        }
+
+        var consumed = character.Inventory.Bag.ConsumeItem(
+            ItemTaskType.Destroy,
+            step.ItemId,
+            step.ItemNum,
+            null);
+        if (consumed < step.ItemNum)
+        {
+            character.SendErrorMessage(ErrorMessageType.NotEnoughItem);
+            Logger.Warn(
+                "TodayAssignment: unlock consume short {0} realStep={1} item={2} need={3} got={4}",
+                character.Name, realStep, step.ItemId, step.ItemNum, consumed);
+            return false;
+        }
+
+        Logger.Info(
+            "TodayAssignment: unlock consumed {0}×{1} from {2} realStep={3}",
+            step.ItemId, step.ItemNum, character.Name, realStep);
+        return true;
+    }
+
+    private bool Accept(Character character, TodayQuestStepTemplate step, uint realStep)
+    {
+        if (!TryGetActive(character.Id, realStep, out var state) || !state.Unlocked)
+        {
+            Unlock(character, step, realStep);
+            if (!TryGetActive(character.Id, realStep, out state) || !state.Unlocked)
+                return false;
+        }
+
+        if (state.Status == TodayAssignmentStatus.Done)
+        {
+            DropSiblingQuests(character, state.GroupId, keepQuestId: state.QuestContextId);
+            SendState(character, realStep, state, init: false);
+            return true;
+        }
+
+        if (TryRecoverDoneFromCompletedQuests(character, realStep, state))
+            return true;
+
+        if (state.Accepted)
+        {
+            if (state.QuestContextId != 0 && state.Status < TodayAssignmentStatus.Progress)
+                state.Status = TodayAssignmentStatus.Progress;
+            Persist(character.Id, realStep, state);
+            SendState(character, realStep, state, init: false);
+            return true;
+        }
+
+        var group = TodayQuestGameData.Instance.GetGroup(state.GroupId)
+                    ?? PickEligibleGroup(character, step);
+        if (group == null || group.QuestContextIds.Count == 0)
+        {
+            Logger.Warn(
+                "TodayAssignment: accept no group/quests realStep={0} for {1}",
+                realStep, character.Name);
+            return false;
+        }
+
+        state.GroupId = group.Id;
+
+        // Prefer a single active difficulty: if several already exist from older bugs, keep the first.
+        var startedAny = false;
+        uint primaryQuestId = 0;
+        foreach (var questId in group.QuestContextIds)
+        {
+            if (character.Quests.HasQuestCompleted(questId))
+            {
+                CompleteStep(character, realStep, state, questId);
+                return true;
+            }
+
+            if (character.Quests.HasQuest(questId))
+            {
+                startedAny = true;
+                if (primaryQuestId == 0)
+                    primaryQuestId = questId;
+            }
+        }
+
+        // Start only the first incomplete group quest (not all three) so one kill pool tracks one contract.
+        if (!startedAny)
+        {
+            foreach (var questId in group.QuestContextIds)
+            {
+                if (character.Quests.AddQuest(questId))
+                {
+                    primaryQuestId = questId;
+                    startedAny = true;
+                    break;
+                }
+            }
+        }
+        else
+        {
+            // Drop extra active variants so progress is not split across 10/20/30 tracks.
+            foreach (var questId in group.QuestContextIds)
+            {
+                if (questId == primaryQuestId)
+                    continue;
+                if (character.Quests.HasQuest(questId))
+                    character.Quests.DropQuest(questId, true, false);
+            }
+        }
+
+        if (!startedAny || primaryQuestId == 0)
+        {
+            Logger.Warn(
+                "TodayAssignment: accept failed to start quests realStep={0} group={1} for {2}",
+                realStep, group.Id, character.Name);
+            return false;
+        }
+
+        state.QuestContextId = primaryQuestId;
+        state.Accepted = true;
+        state.Status = TodayAssignmentStatus.Progress;
+        SetActive(character.Id, realStep, state);
+        Persist(character.Id, realStep, state);
+        SendState(character, realStep, state, init: false);
+        SendResetCount(character);
+
+        Logger.Info(
+            "TodayAssignment accepted {0}: realStep={1} group={2} quest={3}",
+            character.Name, realStep, group.Id, primaryQuestId);
+        return true;
+    }
+
+    private bool TryRecoverDoneFromCompletedQuests(
+        Character character,
+        uint realStep,
+        ActiveTodayAssignment state)
+    {
+        var group = TodayQuestGameData.Instance.GetGroup(state.GroupId);
+        if (group == null)
+        {
+            var stepTemplate = TodayQuestGameData.Instance.GetStepByRealStep(realStep);
+            if (stepTemplate != null)
+                group = PickEligibleGroup(character, stepTemplate);
+        }
+
+        if (group == null)
+            return false;
+
+        foreach (var qid in group.QuestContextIds)
+        {
+            if (!character.Quests.HasQuestCompleted(qid))
+                continue;
+
+            state.GroupId = group.Id;
+            CompleteStep(character, realStep, state, qid);
+            return true;
+        }
+
+        return false;
+    }
+
+    private void Resync(Character character, uint realStep)
+    {
+        if (TryGetActive(character.Id, realStep, out var state))
+            SendState(character, realStep, state, init: false);
+    }
+
+    private static void DropSiblingQuests(Character character, uint groupId, uint keepQuestId)
+    {
+        if (groupId == 0)
+            return;
+
+        var group = TodayQuestGameData.Instance.GetGroup(groupId);
+        if (group == null)
+            return;
+
+        foreach (var otherId in group.QuestContextIds)
+        {
+            // Drop every still-active variant once the contract is done (including the finished one
+            // if DropQuest hasn't run yet — caller may remove keepQuestId after CompleteStep).
+            if (character.Quests.HasQuest(otherId))
+                character.Quests.DropQuest(otherId, true, false);
+        }
+
+        // Silence unused parameter if we always drop all actives for Done.
+        _ = keepQuestId;
+    }
+
+    private static TodayQuestGroupTemplate PickEligibleGroup(Character character, TodayQuestStepTemplate step)
+    {
+        var eligible = GetEligibleGroups(character, step);
+        return eligible.Count > 0 ? eligible[0] : null;
+    }
+
+    private static List<TodayQuestGroupTemplate> GetEligibleGroups(Character character, TodayQuestStepTemplate step)
+    {
+        var list = new List<TodayQuestGroupTemplate>();
+        foreach (var group in step.Groups)
+        {
+            if (!UnitRequirementsGameData.Instance.MeetOwnerRequirements(
+                    "TodayQuestGroup", group.Id, group.OrUnitReqs, character))
+                continue;
+            list.Add(group);
+        }
+
+        return list;
+    }
+
+    /// <summary>
+    /// Prefer a different eligible group, then a different incomplete quest in any eligible group.
+    /// Falls back to the current quest only if nothing else is available.
+    /// </summary>
+    private static bool TryPickReplacement(
+        Character character,
+        TodayQuestStepTemplate step,
+        uint oldGroupId,
+        uint oldQuestId,
+        out TodayQuestGroupTemplate newGroup,
+        out uint newQuestId)
+    {
+        newGroup = null;
+        newQuestId = 0;
+
+        var eligible = GetEligibleGroups(character, step);
+        if (eligible.Count == 0)
+            return false;
+
+        // Candidates: (group, quest) that are incomplete and not the current pair.
+        var alternates = new List<(TodayQuestGroupTemplate Group, uint QuestId)>();
+        var sameAsCurrent = ((TodayQuestGroupTemplate Group, uint QuestId)?)null;
+
+        foreach (var group in eligible)
+        {
+            foreach (var questId in group.QuestContextIds)
+            {
+                if (character.Quests.HasQuestCompleted(questId))
+                    continue;
+
+                if (group.Id == oldGroupId && questId == oldQuestId)
+                {
+                    sameAsCurrent = (group, questId);
+                    continue;
+                }
+
+                alternates.Add((group, questId));
+            }
+        }
+
+        // Prefer a different group when several are eligible.
+        var otherGroups = alternates.Where(c => c.Group.Id != oldGroupId).ToList();
+        var pool = otherGroups.Count > 0
+            ? otherGroups
+            : alternates;
+
+        if (pool.Count == 0)
+        {
+            if (sameAsCurrent == null)
+                return false;
+            newGroup = sameAsCurrent.Value.Group;
+            newQuestId = sameAsCurrent.Value.QuestId;
+            return true;
+        }
+
+        var pick = pool[Random.Shared.Next(pool.Count)];
+        newGroup = pick.Group;
+        newQuestId = pick.QuestId;
+        return true;
+    }
+
+    private void EnsureLoaded(Character character)
+    {
+        if (character == null)
+            return;
+        if (_loadedOwners.Contains(character.Id))
+            return;
+
+        LoadFromDb(character);
+        _loadedOwners.Add(character.Id);
+    }
+
+    private void LoadFromDb(Character character)
+    {
+        try
+        {
+            using var connection = MySQL.CreateConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                """
+                SELECT real_step, group_id, quest_context_id, status, day_key
+                FROM character_today_assignments
+                WHERE owner = @owner
+                """;
+            command.Parameters.AddWithValue("@owner", character.Id);
+            command.Prepare();
+
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                var dayKey = reader.GetDateTime("day_key").Date;
+                var realStep = reader.GetUInt32("real_step");
+                if (dayKey != TodayKey)
+                {
+                    // Stale day — leave row; Persist will overwrite when used; ignore for load.
+                    continue;
+                }
+
+                var status = (TodayAssignmentStatus)reader.GetByte("status");
+                if (status is < TodayAssignmentStatus.Ready or > TodayAssignmentStatus.Done)
+                    continue;
+
+                var state = new ActiveTodayAssignment
+                {
+                    GroupId = reader.GetUInt32("group_id"),
+                    QuestContextId = reader.GetUInt32("quest_context_id"),
+                    Status = status,
+                    Unlocked = status >= TodayAssignmentStatus.Ready,
+                    Accepted = status >= TodayAssignmentStatus.Progress
+                };
+                SetActive(character.Id, realStep, state);
+            }
+        }
+        catch (MySqlException ex) when (ex.Number is 1146 or 1054)
+        {
+            Logger.Warn(
+                "TodayAssignment table missing — run SQL/updates/2026-08-09_aaemu_game_character_today_assignments.sql ({0})",
+                ex.Message);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "TodayAssignment LoadFromDb failed for {0}", character.Id);
+        }
+
+        // Recover Done from completed_quests even when the row was never saved (pre-persist sessions).
+        foreach (var step in TodayQuestGameData.Instance.AllSteps)
+        {
+            if (TryGetActive(character.Id, step.RealStep, out var existing)
+                && existing.Status == TodayAssignmentStatus.Done)
+                continue;
+
+            var group = PickEligibleGroup(character, step);
+            if (group == null)
+                continue;
+
+            foreach (var qid in group.QuestContextIds)
+            {
+                if (!character.Quests.HasQuestCompleted(qid))
+                    continue;
+
+                var state = new ActiveTodayAssignment
+                {
+                    GroupId = group.Id,
+                    QuestContextId = qid,
+                    Unlocked = true,
+                    Accepted = true,
+                    Status = TodayAssignmentStatus.Done
+                };
+                SetActive(character.Id, step.RealStep, state);
+                Persist(character.Id, step.RealStep, state);
+                DropSiblingQuests(character, group.Id, keepQuestId: qid);
+                Logger.Info(
+                    "TodayAssignment recovered Done from completed_quests {0}: realStep={1} quest={2}",
+                    character.Name, step.RealStep, qid);
+                break;
+            }
+        }
+    }
+
+    private void Persist(uint ownerId, uint realStep, ActiveTodayAssignment state)
+    {
+        try
+        {
+            using var connection = MySQL.CreateConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                """
+                REPLACE INTO character_today_assignments
+                    (owner, real_step, group_id, quest_context_id, status, day_key)
+                VALUES
+                    (@owner, @realStep, @groupId, @questId, @status, @dayKey)
+                """;
+            command.Parameters.AddWithValue("@owner", ownerId);
+            command.Parameters.AddWithValue("@realStep", realStep);
+            command.Parameters.AddWithValue("@groupId", state.GroupId);
+            command.Parameters.AddWithValue("@questId", state.QuestContextId);
+            command.Parameters.AddWithValue("@status", (sbyte)state.Status);
+            command.Parameters.AddWithValue("@dayKey", TodayKey.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+            command.Prepare();
+            command.ExecuteNonQuery();
+        }
+        catch (MySqlException ex) when (ex.Number is 1146 or 1054)
+        {
+            Logger.Warn(
+                "TodayAssignment Persist skipped (table missing): owner={0} realStep={1}",
+                ownerId, realStep);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "TodayAssignment Persist failed owner={0} realStep={1}", ownerId, realStep);
+        }
+    }
+
+    private bool TryGetCharState(uint characterId, out Dictionary<uint, ActiveTodayAssignment> byStep)
+        => _active.TryGetValue(characterId, out byStep);
+
+    private bool TryGetActive(uint characterId, uint realStep, out ActiveTodayAssignment active)
+    {
+        active = null;
+        if (!_active.TryGetValue(characterId, out var byStep))
+            return false;
+        return byStep.TryGetValue(realStep, out active);
+    }
+
+    private void SetActive(uint characterId, uint realStep, ActiveTodayAssignment active)
+    {
+        if (!_active.TryGetValue(characterId, out var byStep))
+        {
+            byStep = [];
+            _active[characterId] = byStep;
+        }
+
+        byStep[realStep] = active;
+    }
+
+    private static void SendState(
+        Character character,
+        uint realStep,
+        ActiveTodayAssignment state,
+        bool init)
+    {
+        // First packet field is today_quest_steps.id (catalog key), not real_step.
+        var step = TodayQuestGameData.Instance.GetStepByRealStep(realStep);
+        if (step == null)
+        {
+            Logger.Warn(
+                "TodayAssignment SendState: no step for realStep={0} char={1}",
+                realStep, character?.Name);
+            return;
+        }
+
+        character.SendPacket(new SCTodayAssignmentChangedPacket(
+            (int)step.Id,
+            (int)state.GroupId,
+            (int)state.QuestContextId,
+            (sbyte)state.Status,
+            init));
+    }
+}

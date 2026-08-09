@@ -334,28 +334,42 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
 
     public bool CanComponentRun(QuestComponentTemplate questComponent, BaseUnit ownerUnit)
     {
-        var reqs = GetQuestComponentRequirements(questComponent.Id);
+        return MeetOwnerRequirements(
+            "QuestComponent",
+            questComponent.Id,
+            questComponent.OrUnitReqs,
+            ownerUnit);
+    }
+
+    /// <summary>
+    /// Validates unit_reqs rows for a (owner_type, owner_id) pair using the same AND/OR rule as components.
+    /// </summary>
+    public bool MeetOwnerRequirements(string ownerType, uint ownerId, bool orUnitReqs, BaseUnit ownerUnit)
+    {
+        var reqs = GetRequirement(ownerType, ownerId).ToList();
         if (reqs.Count == 0)
-            return true; // No requirements, we're good
+            return true;
+
         var target = (ownerUnit as Unit)?.CurrentTarget ?? ownerUnit;
-        var res = !questComponent.OrUnitReqs;
+        var res = !orUnitReqs;
         foreach (var unitReq in reqs)
         {
             var validateRes = unitReq.Validate(ownerUnit, target);
             var reqRes = validateRes.ResultKey == SkillResultKeys.ok;
 
-            if (questComponent.OrUnitReqs && reqRes)
+            if (orUnitReqs && reqRes)
             {
                 res = true;
                 break;
             }
 
-            if (!questComponent.OrUnitReqs && !reqRes)
+            if (!orUnitReqs && !reqRes)
             {
                 res = false;
                 break;
             }
         }
+
         return res;
     }
 }

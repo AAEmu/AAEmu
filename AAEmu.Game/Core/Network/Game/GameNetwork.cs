@@ -348,6 +348,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSEditorRemoveGimmickPacket, 1, typeof(CSEditorRemoveGimmickPacket));
         RegisterPacket(CSOffsets.CSInteractGimmickPacket, 1, typeof(CSInteractGimmickPacket));
         RegisterPacket(CSOffsets.CSRequestTodayAssignmentPacket, 1, typeof(CSRequestTodayAssignmentPacket));
+        RegisterPacket(CSOffsets.CSResetTodayAssignmentPacket, 1, typeof(CSResetTodayAssignmentPacket));
         RegisterPacket(CSOffsets.CSEnterInstantGamePacket, 1, typeof(CSEnterInstantGamePacket));
         RegisterPacket(CSOffsets.CSInstantLeaveUserListRequest, 1, typeof(CSInstantLeaveUserListRequest));
         RegisterPacket(CSOffsets.CSBanVoteRequestPacket, 1, typeof(CSBanVoteRequestPacket));

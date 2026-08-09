@@ -58,6 +58,7 @@ public class UnitEvents
     public EventHandler<OnEnterSphereArgs> OnEnterSphere = delegate { };
     public EventHandler<OnExitSphereArgs> OnExitSphere = delegate { };
     public EventHandler<OnCraftArgs> OnCraft = delegate { };
+    public EventHandler<OnLaborPowerArgs> OnLaborPower = delegate { };
     public EventHandler<OnZoneKillArgs> OnZoneKill = delegate { };
     // public EventHandler<OnZoneMonsterHuntArgs> OnZoneMonsterHunt = delegate { }; // Integrated into OnZoneKill
     public EventHandler<OnCinemaStartedArgs> OnCinemaStarted = delegate { };
@@ -161,6 +162,15 @@ public class OnDoodadPhaseCheckArgs : EventArgs
 public class OnCraftArgs : EventArgs
 {
     public uint CraftId { get; set; }
+}
+
+public class OnLaborPowerArgs : EventArgs
+{
+    /// <summary>Positive amount of labor spent in this change.</summary>
+    public int LaborUsed { get; set; }
+
+    /// <summary>Actability group for the spend (0 if untagged).</summary>
+    public uint ActabilityGroupId { get; set; }
 }
 
 public class OnExpressFireArgs : EventArgs
