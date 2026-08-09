@@ -351,16 +351,12 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
         EnsureLoaded(character);
 
         if (!TryGetCharState(character.Id, out var byStep) || byStep.Count == 0)
-        {
-            TryCompleteFromQuestId(character, questContextId);
             return;
-        }
 
         foreach (var (realStep, state) in byStep.ToList())
         {
-            if (state.Status == TodayAssignmentStatus.Done)
-                continue;
-            if (!state.Accepted && !state.Unlocked)
+            // Only Progress contracts can complete. Orphan / previous-day quests must not invent Done.
+            if (state.Status != TodayAssignmentStatus.Progress || !state.Accepted)
                 continue;
 
             var group = TodayQuestGameData.Instance.GetGroup(state.GroupId);
@@ -374,36 +370,6 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
             CompleteStep(character, realStep, state, questContextId);
             return;
         }
-
-        TryCompleteFromQuestId(character, questContextId);
-    }
-
-    private void TryCompleteFromQuestId(Character character, uint questContextId)
-    {
-        var group = TodayQuestGameData.Instance.FindGroupByQuestId(questContextId);
-        if (group == null)
-            return;
-
-        var step = TodayQuestGameData.Instance.GetStepById(group.StepId);
-        if (step == null)
-            return;
-
-        if (!TryGetActive(character.Id, step.RealStep, out var state))
-        {
-            state = new ActiveTodayAssignment
-            {
-                GroupId = group.Id,
-                Unlocked = true,
-                Accepted = true
-            };
-            SetActive(character.Id, step.RealStep, state);
-        }
-        else
-        {
-            state.GroupId = group.Id;
-        }
-
-        CompleteStep(character, step.RealStep, state, questContextId);
     }
 
     private void CompleteStep(
@@ -753,6 +719,8 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
             Logger.Info(
                 "TodayAssignment day rollover owner={0} was={1:yyyy-MM-dd} now={2:yyyy-MM-dd}",
                 character.Id, loadedDay, today);
+            // Yesterday's active contracts are abandoned — partial progress is lost.
+            DropAllTodayAssignmentQuests(character);
             _active.Remove(character.Id);
             _resetsUsed.Remove(character.Id);
         }
@@ -847,6 +815,81 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
         BackfillLifetimeUnlocksFromHistory(character);
         SeedReadyForLifetimeUnlocks(character);
         LoadResetsUsedFromDb(character);
+        // Drop daily-contract quests that do not belong to today's Progress (incl. leftover from prior days).
+        DropOrphanTodayAssignmentQuests(character);
+    }
+
+    /// <summary>
+    /// Drops every active quest from the today_quest catalog (used on calendar rollover).
+    /// Partial progress does not carry; player re-accepts from Ready for a fresh pool.
+    /// </summary>
+    private static void DropAllTodayAssignmentQuests(Character character)
+    {
+        if (character?.Quests == null)
+            return;
+
+        foreach (var group in TodayQuestGameData.Instance.AllGroups)
+        {
+            foreach (var questId in group.QuestContextIds)
+            {
+                if (character.Quests.HasQuest(questId))
+                    character.Quests.DropQuest(questId, true, false);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Keep only quests tied to this character's Progress assignments for the current day.
+    /// Everything else from the daily-contract catalog is dropped (no silent Done invent).
+    /// </summary>
+    private void DropOrphanTodayAssignmentQuests(Character character)
+    {
+        if (character?.Quests == null)
+            return;
+
+        var keep = new HashSet<uint>();
+        if (TryGetCharState(character.Id, out var byStep))
+        {
+            foreach (var state in byStep.Values)
+            {
+                if (state.Status != TodayAssignmentStatus.Progress || !state.Accepted)
+                    continue;
+
+                if (state.QuestContextId != 0)
+                {
+                    keep.Add(state.QuestContextId);
+                    continue;
+                }
+
+                // No primary stored — keep at most one still-active variant from the group.
+                var group = TodayQuestGameData.Instance.GetGroup(state.GroupId);
+                if (group == null)
+                    continue;
+                foreach (var qid in group.QuestContextIds)
+                {
+                    if (!character.Quests.HasQuest(qid))
+                        continue;
+                    keep.Add(qid);
+                    break;
+                }
+            }
+        }
+
+        foreach (var group in TodayQuestGameData.Instance.AllGroups)
+        {
+            foreach (var questId in group.QuestContextIds)
+            {
+                if (keep.Contains(questId))
+                    continue;
+                if (!character.Quests.HasQuest(questId))
+                    continue;
+
+                character.Quests.DropQuest(questId, true, false);
+                Logger.Info(
+                    "TodayAssignment dropped orphan daily quest {0} for {1}",
+                    questId, character.Name);
+            }
+        }
     }
 
     private bool HasLifetimeUnlock(uint characterId, uint realStep)
