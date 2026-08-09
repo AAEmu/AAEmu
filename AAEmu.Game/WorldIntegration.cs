@@ -1057,6 +1057,13 @@ public static class WorldIntegration
 
             npc.IsZoneMirror = true;
 
+            // Zone-mirror NPCs that use the attention idle pose get their posture cleared
+            // so the walk movement from the native zone isn't overridden by a full-body idle pose.
+            if (npc.AnimActionId == 109)
+            {
+                npc.AnimActionId = 0;
+            }
+
             var worldPos = ZoneManager.Instance.ConvertToWorldCoordinates(zoneId, new System.Numerics.Vector3(x, y, z));
             npc.Transform.ZoneId = zoneId;
             npc.Transform.Local.SetPosition(worldPos.X, worldPos.Y, worldPos.Z, 0f, 0f, zRot);
