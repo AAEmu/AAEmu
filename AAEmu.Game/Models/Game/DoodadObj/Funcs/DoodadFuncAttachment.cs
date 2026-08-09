@@ -30,10 +30,11 @@ public class DoodadFuncAttachment : DoodadFuncTemplate
                 character.Bonding = new BondDoodad(owner, AttachPointId, BondKindId, Space, spot);
                 character.BroadcastPacket(new SCBondDoodadPacket(caster.ObjId, character.Bonding), true);
                 WorldIntegration.RelayBondDoodadToZone?.Invoke(character.ObjId, character.Bonding, true);
-                // Sit attach is SCBond; keep free chairs unparented so CSMove world coords stay world-space.
-                // Parent only when the seat is on a unit carrier (house/slave).
-                if (owner.ParentObj is BaseUnit carrierUnit)
-                    character.Transform.Parent = carrierUnit.Transform;
+                // SCBond is the client attach. Free seats stay unparented (CSMove world-space).
+                // Transfer/slave/house seats parent to the resolved carrier (not the seat doodad).
+                var carrier = BondDoodad.ResolveCarrierUnit(owner);
+                if (carrier != null)
+                    character.Transform.Parent = carrier.Transform;
             }
             // Ships // TODO Check how sit on the ship
             else

@@ -117,16 +117,27 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
 
                 ApplyGroundContact(character, umt);
 
-                // Never apply CSMove world XYZ as local under a seat doodad (AOI thrash).
+                // Free seats: never parent under the doodad (world CSMove as Local → AOI thrash).
+                // Carrier seats (transfer/slave): parent stays the unit; skip position overwrite so
+                // world XYZ is not applied as local under a moving parent.
                 if (character.Bonding != null && character.Transform.Parent?.GameObject is Doodad)
                     character.Transform.Parent = null;
 
-                character.Transform.Local.SetPosition(
-                    umt.X, umt.Y, umt.Z,
-                    (float)MathUtil.ConvertDirectionToRadian(umt.RotationX),
-                    (float)MathUtil.ConvertDirectionToRadian(umt.RotationY),
-                    (float)MathUtil.ConvertDirectionToRadian(umt.RotationZ));
-                character.Transform.FinalizeTransform();
+                if (character.Bonding != null &&
+                    character.Transform.Parent?.GameObject is BaseUnit and not Doodad)
+                {
+                    character.Transform.FinalizeTransform();
+                }
+                else
+                {
+                    character.Transform.Local.SetPosition(
+                        umt.X, umt.Y, umt.Z,
+                        (float)MathUtil.ConvertDirectionToRadian(umt.RotationX),
+                        (float)MathUtil.ConvertDirectionToRadian(umt.RotationY),
+                        (float)MathUtil.ConvertDirectionToRadian(umt.RotationZ));
+                    character.Transform.FinalizeTransform();
+                }
+
                 character.SetPlayerMoved();
 
                 // Fan this player's movement out to everyone around them.
