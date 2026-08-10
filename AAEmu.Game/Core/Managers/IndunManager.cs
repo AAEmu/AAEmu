@@ -195,7 +195,7 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
             if (possibleTargetInstance.PlayersWithAccess.Contains(character.Id))
             {
                 // Return queue if not full yet
-                if (possibleTargetInstance.World.GetCharacterCount() > possibleTargetInstance._indunZone.MaxPlayers)
+                if (IsDungeonFull(possibleTargetInstance.World.GetCharacterCount(), possibleTargetInstance._indunZone.MaxPlayers))
                 {
                     character.SendErrorMessage(ErrorMessageType.InstanceQuota); // Too many users are currently in the dungeon
                     return false;
@@ -337,6 +337,12 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
 
         return true;
     }
+
+    /// <summary>
+    /// Returns true when the dungeon already holds its maximum allowed number of players.
+    /// Kept as a single decision point so the manager and <see cref="Dungeon.IsFull"/> stay in sync.
+    /// </summary>
+    private static bool IsDungeonFull(int characterCount, uint maxPlayers) => characterCount >= maxPlayers;
 
     /// <summary>
     /// Creates a new player created dungeon instance
