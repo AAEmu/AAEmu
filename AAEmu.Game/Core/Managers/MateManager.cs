@@ -174,7 +174,7 @@ public class MateManager(WorldInstance parentWorldInstance)
     {
         var character = connection.ActiveChar;
         var mateInfo = GetActiveMateByTlId(tlId);
-        if (mateInfo == null) return;
+        if (mateInfo == null || mateInfo.IsDead) return;
 
         // Request seat position
         if (mateInfo.Passengers.TryGetValue(attachPoint, out var seatInfo))
