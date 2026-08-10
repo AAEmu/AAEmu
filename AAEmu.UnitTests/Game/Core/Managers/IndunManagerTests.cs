@@ -15,4 +15,26 @@ public class IndunManagerTests
 
         mockTick.OnTick.WasCalled(Times.Once);
     }
+
+    [Test]
+    public async Task IsDungeonFull_AtMaxCapacity_ReturnsTrue()
+    {
+        var method = typeof(IndunManager).GetMethod("IsDungeonFull",
+            System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+
+        var result = method!.Invoke(null, [1, 1u]);
+
+        await Assert.That(result).IsEqualTo(true);
+    }
+
+    [Test]
+    public async Task IsDungeonFull_BelowMaxCapacity_ReturnsFalse()
+    {
+        var method = typeof(IndunManager).GetMethod("IsDungeonFull",
+            System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+
+        var result = method!.Invoke(null, [0, 1u]);
+
+        await Assert.That(result).IsEqualTo(false);
+    }
 }
