@@ -641,38 +641,36 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
                     }
                 }
             }
-            else
+            // Keyword and item filters are cumulative. A keyword search must not bypass
+            // the selected category, grade, or level range.
+            if (settings.CategoryA != search.CategoryA && search.CategoryA != 0)
             {
-                // Проверка по категориям и другим параметрам
-                if (settings.CategoryA != search.CategoryA && search.CategoryA != 0)
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                if (settings.CategoryB != search.CategoryB && search.CategoryB != 0)
-                {
-                    continue;
-                }
+            if (settings.CategoryB != search.CategoryB && search.CategoryB != 0)
+            {
+                continue;
+            }
 
-                if (settings.CategoryC != search.CategoryC && search.CategoryC != 0)
-                {
-                    continue;
-                }
+            if (settings.CategoryC != search.CategoryC && search.CategoryC != 0)
+            {
+                continue;
+            }
 
-                if (lot.Item.Grade != search.Grade && search.Grade != 0)
-                {
-                    continue;
-                }
+            if (lot.Item.Grade != search.Grade && search.Grade != 0)
+            {
+                continue;
+            }
 
-                if (template.Level > search.MaxItemLevel && search.MaxItemLevel != 0)
-                {
-                    continue;
-                }
+            if (template.Level > search.MaxItemLevel && search.MaxItemLevel != 0)
+            {
+                continue;
+            }
 
-                if (template.Level < search.MinItemLevel && search.MinItemLevel != 0)
-                {
-                    continue;
-                }
+            if (template.Level < search.MinItemLevel && search.MinItemLevel != 0)
+            {
+                continue;
             }
 
             searchedArticles.Add(lot);
