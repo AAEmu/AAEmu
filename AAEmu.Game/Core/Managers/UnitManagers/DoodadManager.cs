@@ -262,9 +262,30 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                             Id = reader.GetUInt32("id"),
                             AttachPointId = (AttachPointKind)reader.GetByte("attach_point_id"),
                             Space = reader.GetInt32("space"),
-                            BondKindId = (BondKind)reader.GetByte("bond_kind_id")
+                            BondKindId = (BondKind)reader.GetByte("bond_kind_id"),
+                            // Decides whether this is a seat at all - see DoodadFuncAttachment.IsSeat.
+                            AnimActionId = reader.GetInt32("anim_action_id")
                         };
                         _funcTemplates["DoodadFuncAttachment"].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // doodad_func_hero_elections
+            //
+            // The table is an id column and nothing else - the Voting Machine's behaviour is entirely
+            // server-side - but the rows still have to exist here, because a func is found by its
+            // (type, actual_func_id) pair and an empty bucket makes the doodad silently do nothing.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_hero_elections";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncHeroElection { Id = reader.GetUInt32("id") };
+                        _funcTemplates["DoodadFuncHeroElection"].Add(func.Id, func);
                     }
                 }
             }

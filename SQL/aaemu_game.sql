@@ -1,4 +1,4 @@
-CREATE DATABASE IF NOT EXISTS `aaemu_game`;
+﻿CREATE DATABASE IF NOT EXISTS `aaemu_game`;
 USE aaemu_game;
 -- ----------------------------------------------------------------------------------------------
 -- Make sure to remove the above two lines if you want use your own DB/Schema names during import
@@ -118,6 +118,22 @@ CREATE TABLE IF NOT EXISTS `character_favorite_crafts` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Per-character favorite crafting recipes';
 
 
+-- One row per rater/target pair, holding when that pair last rated.
+--
+-- Needed because the once-per-day rule is per PAIR, not per rater: you may rate many people in a day,
+-- but each of them only once. A counter on the rater could not express that.
+--
+-- Rows are kept rather than cleared after an evaluation - the pair is the key, and the timestamp is
+-- what the rule reads - so the table stays one row per relationship instead of growing per day.
+CREATE TABLE IF NOT EXISTS `character_reputation_votes` (
+  `voter_id` int unsigned NOT NULL,
+  `target_id` int unsigned NOT NULL,
+  `voted_at` datetime NOT NULL,
+  PRIMARY KEY (`voter_id`, `target_id`),
+  KEY `idx_reputation_votes_target` (`target_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Last time each rater rated each target';
+
+
 CREATE TABLE IF NOT EXISTS `character_skill_active_types` (
   `owner` int unsigned NOT NULL COMMENT 'Character id',
   `heir_skill_type` int unsigned NOT NULL COMMENT 'Client Heir-skill category key',
@@ -126,6 +142,92 @@ CREATE TABLE IF NOT EXISTS `character_skill_active_types` (
   PRIMARY KEY (`owner`,`heir_skill_type`,`skill_type`) USING BTREE,
   KEY `idx_character_skill_active_types_owner` (`owner`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Per-character skill visibility and activation state';
+
+
+-- Serving heroes. This is the election's output: whoever wins a season is written here, and the Hero
+-- window's "Current Heroes" tab plus every IsHero() gate in the client reads from it.
+--
+-- Keyed on the character, because a character serves for at most one nation at a time. faction_id is
+-- the NATION (the top-level system_factions row, e.g. 148 Nuia Alliance) rather than the character's
+-- own member faction, since that is the granularity the client asks about.
+--
+-- grade is a hero_grades row: 1 Eperium, 2 Delphinad, 3 Ayanad, 4 Erenor. Retail seats six per nation
+-- in a 1/2/3 pyramid - one Erenor, two Ayanad, three Delphinad - which the client lays out from the
+-- grade alone.
+--
+-- season is the heros row the term belongs to, so a later rollover can retire a term without losing
+-- the record of who held it.
+CREATE TABLE IF NOT EXISTS `heroes` (
+  `character_id` int unsigned NOT NULL,
+  `faction_id` int unsigned NOT NULL COMMENT 'Nation (top-level system_factions id)',
+  `grade` tinyint unsigned NOT NULL DEFAULT 1 COMMENT 'hero_grades row: 1 Eperium .. 4 Erenor',
+  `season` int unsigned NOT NULL DEFAULT 0 COMMENT 'heros row this term belongs to',
+  `elected_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`character_id`),
+  KEY `idx_heroes_faction` (`faction_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Currently serving heroes per nation';
+
+
+-- The candidates standing in one nation's hero election, frozen when the ballot opens. The list cannot
+-- be derived live: leadership keeps accruing while voting is open, so a list computed per request would
+-- reorder itself between one player opening the window and the next. The leadership figures and the
+-- reputation are copied for the same reason - the ballot shows what a candidate stood on. The guild is
+-- deliberately absent, being identity rather than qualification, and is resolved when the ballot is sent.
+CREATE TABLE IF NOT EXISTS `hero_election_candidates` (
+  `season`        int unsigned NOT NULL COMMENT 'heros.id - the season this ballot belongs to',
+  `faction_id`    int unsigned NOT NULL COMMENT 'The NATION, not the member faction',
+  `character_id`  int unsigned NOT NULL,
+  `ranking`       int NOT NULL DEFAULT 0 COMMENT 'Placing on the ladder when the snapshot was taken',
+  `score`         int NOT NULL DEFAULT 0 COMMENT 'Leadership earned in the ranking period',
+  `accum_point`   int NOT NULL DEFAULT 0 COMMENT 'Lifetime leadership at snapshot time',
+  `reputation`    int NOT NULL DEFAULT 0,
+  `abstained`     tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Withdrew during the hero_abstain phase',
+  `vote_count`    int NOT NULL DEFAULT 0,
+  `frozen_at`     datetime NOT NULL,
+  PRIMARY KEY (`season`, `character_id`),
+  KEY `idx_hero_candidates_faction` (`season`, `faction_id`, `ranking`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Frozen hero election candidate list, one row per candidate';
+
+
+-- One row per candidate a voter picked. The ballot is multi-select - a voter may back as many
+-- candidates as their nation elects - so a vote is a set of picks rather than a single choice. Storing
+-- them individually makes the count a GROUP BY and "has this character voted" a plain EXISTS.
+CREATE TABLE IF NOT EXISTS `hero_election_votes` (
+  `season`       int unsigned NOT NULL COMMENT 'heros.id - the election this ballot belongs to',
+  `voter_id`     int unsigned NOT NULL,
+  `candidate_id` int unsigned NOT NULL,
+  `voted_at`     datetime NOT NULL,
+  PRIMARY KEY (`season`, `voter_id`, `candidate_id`),
+  KEY `idx_hero_votes_candidate` (`season`, `candidate_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Hero election ballots, one row per pick';
+
+
+-- Records that a season's leadership roll has been done, so it happens once. The roll moves every
+-- character's current-period leadership into the historical column and clears it, which is what starts
+-- a fresh ladder. It belongs to the beginning of a leadership_ranking window, but "entered
+-- leadership_ranking" is not the same event as "a new season began" - a GM stepping the phases back and
+-- forth, or a restart inside the window, would otherwise wipe the ladder each time.
+CREATE TABLE IF NOT EXISTS `hero_season_rolls` (
+  `season`    int unsigned NOT NULL COMMENT 'heros.id whose ranking period has been opened',
+  `rolled_at` datetime NOT NULL,
+  `characters_rolled` int NOT NULL DEFAULT 0 COMMENT 'How many rows the roll touched, for the record',
+  PRIMARY KEY (`season`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Which seasons have had their leadership roll applied';
+
+
+-- How many mobilization orders a hero has issued: today, and across the current term. Two counters with
+-- different lifetimes, which is why neither lives on `characters`. The daily one is a budget the client
+-- also tracks and shows; the term one is progress toward the fifty the hero bonus asks for. `day` and
+-- `season` are stored so both rollovers can be decided on read, which means a server that was down over
+-- either boundary still rolls over correctly.
+CREATE TABLE IF NOT EXISTS `hero_mobilization_orders` (
+  `character_id` int unsigned NOT NULL,
+  `season`       int unsigned NOT NULL COMMENT 'heros.id the total belongs to; a new season restarts it',
+  `day`          date NOT NULL COMMENT 'UTC day the daily count belongs to',
+  `today_count`  int NOT NULL DEFAULT 0 COMMENT 'Issued on `day`, capped at 5',
+  `total_count`  int NOT NULL DEFAULT 0 COMMENT 'Issued during `season`, counts toward the bonus',
+  PRIMARY KEY (`character_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Mobilization orders issued per hero';
 
 
 CREATE TABLE IF NOT EXISTS `heir_skill_activations` (
@@ -194,6 +296,12 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `crime_point` int NOT NULL DEFAULT '0',
   `crime_record` int NOT NULL DEFAULT '0',
   `jury_point` int NOT NULL DEFAULT '0',
+  `leadership_point` int NOT NULL DEFAULT '0' COMMENT 'Current period leadership; ranks the leaderboard, voting/candidacy gate',
+  `leadership_period_point` int NOT NULL DEFAULT '0' COMMENT 'Previous period final leadership; client "Last Season Leadership" row',
+  `accumulated_leadership_point` int NOT NULL DEFAULT '0' COMMENT 'Lifetime leadership, never reset; client "Current Record" right-hand figure',
+  `reputation` int NOT NULL DEFAULT '0' COMMENT 'Peer-rating standing; converted to leadership at each evaluation, then reset',
+  `daily_leadership_point` int unsigned NOT NULL DEFAULT '0' COMMENT 'Leadership earned since last_daily_leadership_point_time',
+  `last_daily_leadership_point_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00' COMMENT 'When the daily leadership counter last rolled over',
   `hostile_faction_kills` int NOT NULL DEFAULT '0',
   `pvp_honor` int NOT NULL DEFAULT '0',
   `died_in_pvp` tinyint(1) NOT NULL DEFAULT '0',

@@ -108,6 +108,8 @@ public static class GmCommandDispatcher
             (ushort)GmCommandId.Return => ReturnHome(me, unitId),
             (ushort)GmCommandId.SetCrimeValue => SetCrime(me, unitId, args),
             (ushort)GmCommandId.TowerDef => TowerDef(me, args),
+            // Runs the Hero Qualification Evaluation now instead of waiting for the next 12-hour boundary.
+            (ushort)GmCommandId.DailyResetReputation => ReputationManager.Instance.Evaluate(),
             (ushort)GmCommandId.Attach or (ushort)GmCommandId.Detach
                 => $"ok: {((GmCommandId)cmd)} (client/vehicle attach — no World action)",
             (ushort)GmCommandId.PlaySequence
@@ -124,7 +126,7 @@ public static class GmCommandDispatcher
                 or (ushort)GmCommandId.SetCongestion or (ushort)GmCommandId.SetInstantGmEventMode
                 or (ushort)GmCommandId.SetTradeStatus or (ushort)GmCommandId.GmOneAndOneChat
                 or (ushort)GmCommandId.CheckBotPlayer or (ushort)GmCommandId.UpdateLeadership
-                or (ushort)GmCommandId.UpdateHeroScore or (ushort)GmCommandId.DailyResetReputation
+                or (ushort)GmCommandId.UpdateHeroScore
                 or (ushort)GmCommandId.AddActionPoint or (ushort)GmCommandId.SetDoodadGrowth
                 or (ushort)GmCommandId.RecoverDoodad or (ushort)GmCommandId.MoveCharRezPoint
                 => $"stub: {((GmCommandId)cmd)} — acknowledged, not simulated yet",

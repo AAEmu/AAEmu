@@ -379,6 +379,11 @@ public enum SkillResultKeys
     skill_urk_no_target_item_tag,
     skill_urk_need_ulc_activate,
     skill_urk_cannot_use_by_ulc_activate,
+    // Appended, not inserted: these values are internal - SkillResultErrorKeyToId maps them to the
+    // SkillResult codes that actually go on the wire - but the enum is implicitly numbered, so anything
+    // added in the middle would renumber every key after it.
+    skill_urk_hero,
+    skill_urk_not_hero,
 }
 // ReSharper restore InconsistentNaming
 
@@ -549,6 +554,8 @@ public static class SkillResultHelper
             SkillResultKeys.skill_urk_no_target_item_tag => SkillResult.UrkNoTargetItemTag,
             SkillResultKeys.skill_urk_need_ulc_activate => SkillResult.UrkNeedUlcActivate,
             SkillResultKeys.skill_urk_cannot_use_by_ulc_activate => SkillResult.UrkCannotUseByUlcActivate,
+            SkillResultKeys.skill_urk_hero => SkillResult.UrkHero,
+            SkillResultKeys.skill_urk_not_hero => SkillResult.UrkNotHero,
             _ => SkillResult.UrkUnknown
         };
     }

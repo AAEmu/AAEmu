@@ -634,6 +634,11 @@ public static class SCOffsets
     public const ushort SCFactionCompetitionUpdatePointPacket = 0x338;
     public const ushort SCFactionImmigrateLimitDataPacket = 0x51;
     public const ushort SCFactionMobilizationOrderPacket = 0x3D;
+
+    // Recovered 2026-08-10 by widening the registrar scan to 0x360000/0x20000, which reaches the
+    // opcodes below 0x084 that the earlier pass never covered. Its handler (.text 0x347330) reads
+    // nothing from the packet - it only raises a UI event - so the body is empty.
+    public const ushort SCFactionMobilizationOrderSuccessPacket = 0x3E;
     public const ushort SCFactionRelationRequestPacket = 0x2B;
     public const ushort SCFactionRelationResponsePacket = 0x2C;
     public const ushort SCFamilyChangeMemberLevelPacket = 0x5E;
@@ -659,6 +664,24 @@ public static class SCOffsets
     public const ushort SCHeroElectionMailPacket = 0x2B1;
     public const ushort SCHeroGiveDominionPointPacket = 0x2B6;
     public const ushort SCHeroInfoDeletedPacket = 0x2B2;
+    // Recovered from the client's PacketFunctor dispatch table (x2game-dev.dll, ~0x15c1200-0x15c1c00),
+    // whose entries are laid out in opcode order. The run from SCReputationChanged onward is
+    // consecutive and reproduces NINE opcodes this file already knew - 0x2A5, 0x2A8, 0x2A9, 0x2AA,
+    // 0x2AD, 0x2AF, 0x2B1, 0x2B2 and 0x2B6 - with no contradiction anywhere, so the entries between
+    // them are read off the same run rather than guessed.
+    //
+    // SCHeroAllScore at 0x2B5 is what closes the gap that made SCHeroGiveDominionPoint look off by one
+    // against an earlier RTTI-only reading. Do not re-derive these from the RTTI *name* table: its
+    // order is link order, not opcode order, and it splits this block across two clusters.
+    //
+    // Opcodes only. The packet BODIES are still unknown for everything here except what is implemented.
+    public const ushort SCHeroRankingListPacket = 0x2AB;
+    public const ushort SCHeroCandidateListPacket = 0x2AC;
+    public const ushort SCHeroListPacket = 0x2AE;
+    public const ushort SCHeroEventStatePacket = 0x2B0;
+    public const ushort SCHeroInfoUpdatedPacket = 0x2B3;
+    public const ushort SCHeroMobilizationOrderUpdatedPacket = 0x2B4;
+    public const ushort SCHeroAllScorePacket = 0x2B5;
     public const ushort SCHeroScoreUpdatedPacket = 0x2AA;
     public const ushort SCHeroSeasonInfoPacket = 0x2A8;
     public const ushort SCHeroSeasonOffPacket = 0x2A9;
