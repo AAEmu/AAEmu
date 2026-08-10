@@ -1,0 +1,12 @@
+[
+  // Shops the client opens from its own UI instead of from an npc or a doodad. Such a CSBuyItems
+  // carries no npc and no doodad object id, only the open type the shop window was opened with.
+  //
+  // This file is the only thing that makes such a shop reachable. The open type comes from the client,
+  // so an open type with no entry here is refused rather than guessed at, and adding an entry is what
+  // grants access to that pack without any world object to stand next to.
+  //
+  // The client accepts open types 1 through 6; 0 means a world shop and is never valid here.
+  { "OpenType": 2, "MerchantPackId": 192, "Name": "Honor merchant, opened from the character sheet" },
+  { "OpenType": 4, "MerchantPackId": 393, "Name": "Arena shop, opened from Instance -> Arena" }
+]

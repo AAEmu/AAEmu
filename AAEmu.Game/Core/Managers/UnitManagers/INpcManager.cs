@@ -10,6 +10,7 @@ public interface INpcManager : ILoadable, IInitializable
     NpcTemplate GetTemplate(uint templateId);
     Dictionary<uint, NpcTemplate> GetAllTemplates();
     MerchantGoods GetGoods(uint id);
+    MerchantGoods GetUiShopGoods(byte openType);
     IReadOnlyDictionary<uint, MerchantPurchaseState> GetMerchantPurchaseStates(uint characterId);
     bool TryReserveMerchantPurchases(
         uint characterId,

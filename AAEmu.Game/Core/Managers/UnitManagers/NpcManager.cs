@@ -1,3 +1,4 @@
+using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.Creatures;
 using AAEmu.Commons.Utils.DB;
@@ -44,6 +45,7 @@ public class NpcManager(
     /// List of goods a merchant sells
     /// </summary>
     private Dictionary<uint, MerchantGoods> Goods { get; } = [];
+    private readonly UiMerchantShopMap _uiShops = new();
     private readonly object _merchantPurchaseLock = new();
     private readonly Dictionary<(uint CharacterId, uint ItemTemplateId), MerchantPurchaseState> _merchantPurchases = [];
     /// <summary>
@@ -111,6 +113,19 @@ public class NpcManager(
     public MerchantGoods GetGoods(uint id)
     {
         return Goods.GetValueOrDefault(id);
+    }
+
+    /// <summary>
+    /// Goods behind a shop the client opens from its own UI rather than from a world object. Those
+    /// requests carry no npc and no doodad, only the open type the client's shop window was opened
+    /// with, and the client never tells us which pack that window is showing. The mapping is the whole
+    /// authorization for such a request, and lives in <c>Data/ui_merchant_shops.json</c>; an open type
+    /// with no entry there resolves to null and the purchase is refused.
+    /// </summary>
+    public MerchantGoods GetUiShopGoods(byte openType)
+    {
+        var packId = _uiShops.GetMerchantPackId(openType);
+        return packId == 0 ? null : Goods.GetValueOrDefault(packId);
     }
 
     public IReadOnlyDictionary<uint, MerchantPurchaseState> GetMerchantPurchaseStates(uint characterId)
@@ -1081,11 +1096,19 @@ public class NpcManager(
                             continue;
                         }
 
+                        // A non-gradable template always materialises at its fixed grade, whatever
+                        // grade_id says, so resolve the granted grade once here instead of letting
+                        // the buy path reason about a grade the character will never receive.
+                        var grantedGrade = itemManager.GetTemplate(itemId) is { Gradable: false, FixedGrade: >= 0 } fixedTemplate
+                            ? (byte)fixedTemplate.FixedGrade
+                            : grade;
+
                         pack.AddItemToStock(new MerchantGoodsItem
                         {
                             Id = reader.GetUInt32("id"),
                             ItemTemplateId = itemId,
                             Grade = grade,
+                            GrantedGrade = grantedGrade,
                             Cost = price.Value,
                             Currency = currency,
                             PurchaseType = (MerchantPurchaseType)reader.GetByte("purchase_type_id"),
@@ -1098,11 +1121,51 @@ public class NpcManager(
             Logger.Info($"Loaded {Goods.Count} merchant packs");
         }
 
+        LoadUiShopPacks();
         LoadMerchantPurchases();
 
         // NpcGameData.Instance.LoadMemberAndSpawnerTemplateIds();
 
         Loaded = true;
+    }
+
+    private void LoadUiShopPacks()
+    {
+        _uiShops.Clear();
+
+        var pathFile = Path.Combine(FileManager.AppPath, "Data", "ui_merchant_shops.json");
+        var contents = FileManager.GetFileContents(pathFile);
+        if (string.IsNullOrWhiteSpace(contents))
+        {
+            Logger.Warn("No {0}, so every shop the client opens from its own UI will be refused", pathFile);
+            return;
+        }
+
+        if (!JsonHelper.TryDeserializeObject(contents, out List<UiMerchantShop> shops, out _))
+        {
+            Logger.Error("Failed to parse {0}", pathFile);
+            return;
+        }
+
+        foreach (var shop in shops)
+        {
+            if (!Goods.ContainsKey(shop.MerchantPackId))
+            {
+                Logger.Warn(
+                    "UI shop open type {0} points at merchant pack {1}, which does not exist",
+                    shop.OpenType, shop.MerchantPackId);
+                continue;
+            }
+
+            if (!_uiShops.TryAdd(shop.OpenType, shop.MerchantPackId))
+            {
+                Logger.Warn(
+                    "Ignoring UI shop entry with open type {0} and merchant pack {1}; neither may be 0",
+                    shop.OpenType, shop.MerchantPackId);
+            }
+        }
+
+        Logger.Info($"Loaded {_uiShops.Count} UI merchant shops");
     }
 
     private void LoadMerchantPurchases()
