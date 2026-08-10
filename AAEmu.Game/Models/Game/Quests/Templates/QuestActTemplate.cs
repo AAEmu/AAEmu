@@ -332,6 +332,11 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
         //
     }
 
+    public virtual void OnLaborPower(QuestAct questAct, object sender, OnLaborPowerArgs args)
+    {
+        //
+    }
+
     /// <summary>
     /// OnExpressFire 
     /// </summary>

@@ -11,6 +11,7 @@ public class CSSaveUIDataPacket() : GamePacket(CSOffsets.CSSaveUIDataPacket, 1)
         var id = stream.ReadUInt32();
         var data = stream.ReadString();
 
-        Connection.ActiveChar.SetOption(uiDataType, data);
+        if (Connection?.ActiveChar != null)
+            Connection.ActiveChar.SetOption(uiDataType, data);
     }
 }

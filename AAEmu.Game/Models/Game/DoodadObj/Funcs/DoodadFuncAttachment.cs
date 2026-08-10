@@ -29,7 +29,10 @@ public class DoodadFuncAttachment : DoodadFuncTemplate
 
                 character.Bonding = new BondDoodad(owner, AttachPointId, BondKindId, Space, spot);
                 character.BroadcastPacket(new SCBondDoodadPacket(caster.ObjId, character.Bonding), true);
-                WorldIntegration.RelayBondDoodadToZone?.Invoke(character.ObjId, character.Bonding, true);
+                if (character.Bonding.IsMovingParent)
+                    WorldIntegration.RelayBondDoodadToZone?.Invoke(character.ObjId, character.Bonding, true);
+                else
+                    Logger.Trace("DoodadFuncAttachment: skip WZUnitBondToDoodad for static furniture doodad={0}", owner.ObjId);
                 character.Transform.StickyParent = owner.Transform.StickyParent;
                 character.Transform.Parent = owner.Transform;
             }

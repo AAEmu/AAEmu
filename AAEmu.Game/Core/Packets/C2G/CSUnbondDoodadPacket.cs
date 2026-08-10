@@ -24,6 +24,7 @@ public class CSUnbondDoodadPacket() : GamePacket(CSOffsets.CSUnbondDoodadPacket,
         Connection.ActiveChar.Transform.Parent = null;
 
         Connection.ActiveChar.BroadcastPacket(new SCUnbondDoodadPacket(Connection.ActiveChar.ObjId, Connection.ActiveChar.Id, doodadObjId), true);
-        WorldIntegration.RelayBondDoodadToZone?.Invoke(Connection.ActiveChar.ObjId, bonding, false);
+        if (bonding.IsMovingParent)
+            WorldIntegration.RelayBondDoodadToZone?.Invoke(Connection.ActiveChar.ObjId, bonding, false);
     }
 }

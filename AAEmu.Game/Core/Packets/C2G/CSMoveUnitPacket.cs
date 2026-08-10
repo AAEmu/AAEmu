@@ -103,7 +103,8 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                     character.Transform.StickyParent = null;
                     character.BroadcastPacket(
                         new SCUnbondDoodadPacket(character.ObjId, character.Id, doodadObjId), true);
-                    WorldIntegration.RelayBondDoodadToZone?.Invoke(character.ObjId, bonding, false);
+                    if (bonding.IsMovingParent)
+                        WorldIntegration.RelayBondDoodadToZone?.Invoke(character.ObjId, bonding, false);
                     // Sit buff 4645 has remove_on_unbond + remove_on_move; RemoveEffects above
                     // covers move. Explicitly drop sit buff if still present after unbond.
                     if (character.Buffs.CheckBuff(4645))

@@ -576,7 +576,7 @@ public partial class Quest : PacketMarshaler
         stream.WriteBc((uint)ObjId);  // ObjId
         stream.WriteBc((uint)ObjId);  // ObjId
         stream.Write(LeftTime);       // quest time limit
-        stream.Write(LeftTime == -1 ? 0 : ComponentId); // type(id) - indicates which step is limited
+        stream.Write(ComponentId); // type(id) - current step / time-limited step
         stream.Write(DoodadId);                // doodadId (s64)
         stream.Write(DateTime.UtcNow);         // acceptTime
         stream.Write((byte)QuestAcceptorType); // type QuestAcceptorType

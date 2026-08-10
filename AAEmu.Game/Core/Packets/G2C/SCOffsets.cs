@@ -739,6 +739,7 @@ public static class SCOffsets
     public const ushort SCTodayAssignmentGoalPacket = 0x286;
     public const ushort SCTodayAssignmentItemSentPacket = 0x284;
     public const ushort SCTodayAssignmentResetCountPacket = 0x328;
+    public const ushort SCTodayAssignmentAcceptAllPacket = 0x329;
     public const ushort SCUlcNeedSquadNoticePacket = 0x31E;
     public const ushort SCUnitCollisionResultPacket = 0x18A;
     public const ushort SCUnlockLearnSkillPacket = 0x146;

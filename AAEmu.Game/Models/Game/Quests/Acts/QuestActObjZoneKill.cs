@@ -59,6 +59,10 @@ public class QuestActObjZoneKill(QuestComponentTemplate parentComponent) : Quest
         if (questAct.Id != ActId)
             return;
 
+        // zone_id column is zone_group id (same as QuestActObjZoneMonsterHunt).
+        if (ZoneId != 0 && args.ZoneGroupId != ZoneId)
+            return;
+
         var player = questAct.QuestComponent.Parent.Parent.Owner;
 
         // If Party kills is not allowed, only allow kills from self
@@ -77,16 +81,20 @@ public class QuestActObjZoneKill(QuestComponentTemplate parentComponent) : Quest
 
         if (CountNpc > 0 && victimNpc != null)
         {
-            // NPC kills
+            // No faction gate → any NPC. Most today-assignment / clear-zone acts ship 0/null.
             if (NpcFactionId > 0)
             {
-                if (NpcFactionExclusive && victimNpc.Faction.Id != NpcFactionId)
-                    valid = true;
-                if (!NpcFactionExclusive && victimNpc.Faction.Id == NpcFactionId)
-                    valid = true;
+                valid = NpcFactionExclusive
+                    ? victimNpc.Faction.Id != NpcFactionId
+                    : victimNpc.Faction.Id == NpcFactionId;
+            }
+            else
+            {
+                valid = true;
             }
 
-            if (victimNpc.Level < LvlMinNpc || victimNpc.Level > LvlMaxNpc)
+            // 0/0 means unlimited. max=0 with min>0 means minimum only.
+            if (valid && !MeetsLevelRange(victimNpc.Level, LvlMinNpc, LvlMaxNpc))
                 valid = false;
         }
 
@@ -94,14 +102,16 @@ public class QuestActObjZoneKill(QuestComponentTemplate parentComponent) : Quest
         {
             if (PcFactionId > 0)
             {
-                // Player kills
-                if (PcFactionExclusive && victimPc.Faction.Id != PcFactionId)
-                    valid = true;
-                if (!PcFactionExclusive && victimPc.Faction.Id == PcFactionId)
-                    valid = true;
+                valid = PcFactionExclusive
+                    ? victimPc.Faction.Id != PcFactionId
+                    : victimPc.Faction.Id == PcFactionId;
+            }
+            else
+            {
+                valid = true;
             }
 
-            if (victimPc.Level < LvlMin || victimPc.Level > LvlMax)
+            if (valid && !MeetsLevelRange(victimPc.Level, LvlMin, LvlMax))
                 valid = false;
         }
 
@@ -133,5 +143,19 @@ public class QuestActObjZoneKill(QuestComponentTemplate parentComponent) : Quest
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Level filter for zone-kill acts. max == 0 means no upper bound (and with min == 0, no filter).
+    /// </summary>
+    private static bool MeetsLevelRange(byte level, int min, int max)
+    {
+        if (min <= 0 && max <= 0)
+            return true;
+        if (min > 0 && level < min)
+            return false;
+        if (max > 0 && level > max)
+            return false;
+        return true;
     }
 }

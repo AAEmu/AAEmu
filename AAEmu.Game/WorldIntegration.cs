@@ -1056,13 +1056,7 @@ public static class WorldIntegration
             }
 
             npc.IsZoneMirror = true;
-
-            // Zone-mirror NPCs that use the attention idle pose get their posture cleared
-            // so the walk movement from the native zone isn't overridden by a full-body idle pose.
-            if (npc.AnimActionId == 109)
-            {
-                npc.AnimActionId = 0;
-            }
+            npc.AnimActionId = 0; // fix: zone-mirrored guards must not lock in posture 109 (attention idle) so walking blends correctly
 
             var worldPos = ZoneManager.Instance.ConvertToWorldCoordinates(zoneId, new System.Numerics.Vector3(x, y, z));
             npc.Transform.ZoneId = zoneId;

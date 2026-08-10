@@ -9,5 +9,6 @@ public class CSDropQuestContextPacket() : GamePacket(CSOffsets.CSDropQuestContex
     {
         var questId = stream.ReadUInt32();
         Connection.ActiveChar.Quests.DropQuest(questId, true);
+        Connection.ActiveChar.Quests.Send();
     }
 }

@@ -69,6 +69,7 @@ public interface IQuestAct
     void OnInteraction(object sender, OnInteractionArgs args);
     void OnDoodadPhaseCheck(object sender, OnDoodadPhaseCheckArgs args);
     void OnCraft(object sender, OnCraftArgs args);
+    void OnLaborPower(object sender, OnLaborPowerArgs args);
     void OnExpressFire(object sender, OnExpressFireArgs args);
     void OnLevelUp(object sender, OnLevelUpArgs args);
     void OnMateLevelUp(object sender, OnMateLevelUpArgs args);

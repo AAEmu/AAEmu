@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
 
 public class DoodadFuncQuest : DoodadFuncTemplate
 {
-    // doodad_funcs
+    // doodad_func_quests
     public uint QuestKindId { get; set; }
     public uint QuestId { get; set; }
 
@@ -18,11 +18,12 @@ public class DoodadFuncQuest : DoodadFuncTemplate
 
         if (caster is Character character)
         {
+            // Keep native behavior: quest doodad phases sometimes expose only one quest func,
+            // so strict quest_kind_id routing can hide valid accept interactions.
             if (!character.Quests.HasQuest(QuestId))
             {
                 if (caster is Character player)
                     player.SendPacket(new SCDoodadQuestAcceptPacket(owner.ObjId, QuestId));
-                // character.Quests.AddQuestFromDoodad(QuestId, owner.ObjId);
             }
             else
             {

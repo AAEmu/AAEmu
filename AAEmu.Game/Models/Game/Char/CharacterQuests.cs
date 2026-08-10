@@ -145,7 +145,8 @@ public class CharacterQuests(Character owner)
         quest.Owner.SendDebugMessage($"[Quest] {Owner.Name}, quest {questId} added.");
 
         // Execute the first Step
-        _ = quest.RunCurrentStep(); // We don't need the return value here
+        _ = quest.RunCurrentStep(); // Start step, may advance to Progress
+        _ = quest.RunCurrentStep(); // Progress step, sets the current component id for the client UI
 
         quest.QuestInitialized();
         return true;

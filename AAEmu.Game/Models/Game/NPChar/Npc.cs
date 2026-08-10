@@ -150,7 +150,6 @@ public partial class Npc : Unit
             _currentGameStance = value;
         }
     }
-
     public MoveTypeAlertness CurrentAlertness { get; set; }
 
     #region Attributes

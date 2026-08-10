@@ -2162,6 +2162,20 @@ public partial class Character : Unit, ICharacter
         // labor manager are accumulators, so each one has to carry its own share of the spend.
         SendPacket(new SCCharacterLaborPowerChangedPacket(
             accountDelta, localDelta, 0, (uint)actabilityId, actabilityChange, actabilityStep));
+
+        // Quest objectives (QuestActObjLaborPower) track labor spent after accept only.
+        if (change < 0)
+        {
+            var spent = -(accountDelta + localDelta);
+            if (spent > 0)
+            {
+                Events.OnLaborPower.Invoke(this, new OnLaborPowerArgs
+                {
+                    LaborUsed = spent,
+                    ActabilityGroupId = (uint)Math.Max(0, actabilityId)
+                });
+            }
+        }
     }
 
     /// <summary>

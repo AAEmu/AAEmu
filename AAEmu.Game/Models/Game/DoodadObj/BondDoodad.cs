@@ -1,5 +1,7 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Slaves;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.DoodadObj;
 
@@ -16,6 +18,8 @@ public class BondDoodad : PacketMarshaler
     public BondKind Kind => _kind;
     public int Space => _space;
     public int Spot => _spot;
+    public uint ParentObjId { get; }
+    public bool IsMovingParent { get; }
 
     public BondDoodad(AttachPointKind attachPoint, BondKind kind, int space, int spot)
     {
@@ -32,6 +36,13 @@ public class BondDoodad : PacketMarshaler
         _kind = kind;
         _space = space;
         _spot = spot;
+
+        ParentObjId = owner?.ParentObjId ?? 0;
+        if (ParentObjId != 0 && owner?.ParentWorld != null)
+        {
+            var parent = owner.ParentWorld.GetBaseUnit(ParentObjId);
+            IsMovingParent = parent is Slave or Transfer;
+        }
     }
 
     public void SetOwner(Doodad owner)

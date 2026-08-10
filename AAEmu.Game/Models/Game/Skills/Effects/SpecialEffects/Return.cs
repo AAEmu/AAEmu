@@ -1,5 +1,4 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Teleport;
@@ -49,12 +48,10 @@ public class Return : SpecialEffectAction
         if (trp != null)
         {
             // return to main_world
-            var mainWorldInstanceId = WorldManager.DefaultInstanceId;
-            var mainWorldTemplateId = WorldManager.DefaultWorldTemplateId;
             character.DisabledSetPosition = true;
             character.SendPacket(
                 new SCLoadInstancePacket(
-                    mainWorldTemplateId,
+                    1,
                     trp.ZoneId,
                     trp.X,
                     trp.Y,
@@ -69,7 +66,7 @@ public class Return : SpecialEffectAction
                 character,
                 null,
                 trp.ZoneId,
-                mainWorldInstanceId,
+                0,
                 trp.X,
                 trp.Y,
                 trp.Z,

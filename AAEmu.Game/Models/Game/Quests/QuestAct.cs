@@ -180,6 +180,11 @@ public class QuestAct(QuestComponent parentComponent, QuestActTemplate template)
         Template.OnCraft(this, sender, args);
     }
 
+    public virtual void OnLaborPower(object sender, OnLaborPowerArgs args)
+    {
+        Template.OnLaborPower(this, sender, args);
+    }
+
     /// <summary>
     /// OnExpressFire 
     /// </summary>
