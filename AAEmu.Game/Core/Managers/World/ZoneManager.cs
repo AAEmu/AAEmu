@@ -151,11 +151,6 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
 
                             _groups[zoneGroupId].Conflict = template;
                             _conflicts.Add(zoneGroupId, template);
-
-                            // Only do intial setup when the zone isn't closed
-                            if (!template.Closed)
-                                template.SetState(ZoneConflictType
-                                    .Conflict); // Set to Conflict for testing, normally it should start at Tension
                         }
                         else
                             Logger.Warn("ZoneGroupId: {0} doesn't exist for conflict", zoneGroupId);
