@@ -1143,7 +1143,9 @@ public class Skill
                             break;
                     }
                 }
-                HitTypes.TryAdd(targetUnit.ObjId, diceResult);
+                // Auto-attack tasks reuse their Skill instance, so each swing must replace the
+                // previous result for this target instead of latching the first hit or miss forever.
+                HitTypes[targetUnit.ObjId] = diceResult;
             }
             else if (target is Doodad doodad)
             {
