@@ -1462,16 +1462,16 @@ public class HousingManager(
     /// <param name="house"></param>
     /// <param name="characterId"></param>
     /// <returns>The number of items that have their owner information updated</returns>
-    private static uint UpdateFurnitureOwner(House house, uint characterId)
+    private static uint UpdateFurnitureOwner(House house, uint characterId, FactionsEnum newFaction)
     {
         uint res = 0;
         var furnitureList = house.ParentWorld.GetDoodadByHouseDbId(house.Id);
         foreach (var furniture in furnitureList)
         {
-            if (furniture.AttachPoint != AttachPointKind.None)
-                continue;
             furniture.OwnerId = characterId;
-            furniture.BroadcastPacket(new SCDoodadOriginatorPacket(furniture.ObjId, characterId, 0), true);
+            furniture.BroadcastPacket(new SCDoodadOriginatorPacket(furniture.ObjId, characterId, newFaction), true);
+            if (furniture.IsPersistent)
+                furniture.Save();
             res++;
         }
         return res;
@@ -1605,7 +1605,7 @@ public class HousingManager(
         if (oldOwner is { IsOnline: true })
             oldOwner.SendPacket(new SCHouseRemovedPacket(house.TlId));
 
-        UpdateFurnitureOwner(house, character.Id);
+        UpdateFurnitureOwner(house, character.Id, character.Faction.Id);
 
         house.IsDirty = true;
 
