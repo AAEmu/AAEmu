@@ -47,4 +47,6 @@ public enum FormulaKind
     EloRatingCalculation = 43,
     BlessUthstinConsumeItemNum = 44,
     BlessUthstinExtendMaxStat = 45,
+    /// <summary>Gold charged per synthesis step. Variables: item_evolving_value, item_level, item_evolving_cost_mul.</summary>
+    ItemEvolvingCost = 64,
 };

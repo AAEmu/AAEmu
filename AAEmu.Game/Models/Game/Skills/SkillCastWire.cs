@@ -51,6 +51,20 @@ public static class SkillCastWire
                 stream.Write(ig.SupportItemId);
                 stream.Write(ig.AutoUseAaPoint);
                 break;
+            // Synthesis echoes the material slots straight back. The flag byte above already announced
+            // type 8, so the body is not optional: omitting it leaves the client reading the following
+            // 51 bytes of the cast packet as material ids, which drops SCSkillStarted/SCSkillFired and
+            // takes the cast animation with them.
+            case SkillObjectType.ItemEvolvingMaterials when skillObject is SkillObjectItemEvolvingMaterials em:
+                var materialIds = em.MaterialItemIds ?? [];
+                stream.Write((ushort)(materialIds.Length * sizeof(ulong)));
+                foreach (var materialId in materialIds)
+                    stream.Write(materialId);
+                stream.Write(em.AutoUseAaPoint);
+                break;
+            case SkillObjectType.ItemChangeMapping when skillObject is SkillObjectItemChangeMapping cm:
+                stream.Write(cm.MappingId);
+                break;
         }
 
         stream.Write((byte)0); // inputDirection

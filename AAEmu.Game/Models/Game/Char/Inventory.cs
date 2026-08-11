@@ -534,6 +534,17 @@ public class Inventory
         // Owner.SendMessage($"ItemMove {action}: {fromItemId} {fromType}:{fromSlot} => {toItemId} {toType}:{toSlot} - {count}");
         // Actually execute what we need to do
         var itemTasks = new List<ItemTask>();
+        // Ids the client must drop outright. ItemContainer.RemoveItem pairs its Seize task with the id in
+        // this list, and that is the destroy path known to work; a Seize on its own leaves the client
+        // holding the item.
+        var forceRemoveIds = new List<ulong>();
+        // Removals go out in their own packet, after the one carrying the gain. ItemContainer's
+        // AddOrMoveExistingItem has always split them that way and stacking works there, while merging
+        // sent both in one packet and the client applied only the removal - the dragged item vanished and
+        // the target stayed at its old count until the next relog resynced the bag. Neither encoding of
+        // the gain helped (Create banks a delta, Take restates the whole stack), which is what points at
+        // the pairing rather than at the gain itself.
+        var removalTasks = new List<ItemTask>();
         switch (action)
         {
             case SwapAction.doEquipInEmptySlot:
@@ -590,7 +601,8 @@ public class Inventory
                 }
                 else
                 {
-                    itemTasks.Add(new ItemRemove(fromItem));
+                    removalTasks.Add(new ItemRemove(fromItem));
+                    forceRemoveIds.Add(fromItem.Id);
                     sourceContainer.RemoveItem(ItemTaskType.Invalid, fromItem, true);
                 }
                 itemTasks.Add(new ItemCountUpdate(itemInTargetSlot, toAddCount));
@@ -635,6 +647,9 @@ public class Inventory
         // Send Item manipulation packet 
         if (taskType != ItemTaskType.Invalid && itemTasks.Count > 0)
             Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, []));
+
+        if (taskType != ItemTaskType.Invalid && removalTasks.Count > 0)
+            Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, removalTasks, forceRemoveIds));
 
         // Send ItemContainer events
         if (sourceContainer != targetContainer)

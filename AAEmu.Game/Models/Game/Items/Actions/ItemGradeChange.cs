@@ -20,6 +20,9 @@ public class ItemGradeChange : ItemTask
         stream.Write((byte)_item.SlotType);
         stream.Write((byte)_item.Slot);
         stream.Write(_item.Id);
+        // grade is written bare. It is declared optional in the shared schema, but the binary wire
+        // format carries no presence byte for an optional field, so adding one shifts every field after
+        // it and corrupts the rest of the packet.
         stream.Write(_grade);
         return stream;
     }
