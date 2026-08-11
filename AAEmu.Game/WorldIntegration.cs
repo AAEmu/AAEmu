@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Gimmicks;
@@ -147,7 +148,7 @@ public static class WorldIntegration
     /// <summary>
     /// Relay WZUnitDamaged (0x030) after World authors SCUnitDamaged.
     /// Args: skillId, tl, caster, target, damage, absorbed, casterBc, targetBc.
-    /// HARD-BLOCKED until full UnitDamaged body RE — use <see cref="RelayUnitPointsToZone"/> instead.
+    /// Not wired: UnitDamaged WZ body is incomplete — use <see cref="RelayUnitPointsToZone"/> instead.
     /// </summary>
     public static Action<uint, ushort, SkillCaster, SkillCastTarget, int, int, uint, uint> RelayUnitDamagedToZone { get; set; }
 
@@ -245,6 +246,11 @@ public static class WorldIntegration
     /// Zone day-cycle report. Args: zoneId, time, speed, start, end, isDetailed.
     /// </summary>
     public static Action<uint, float, float, float, float, bool> OnZoneTimeOfDay { get; set; }
+
+    /// <summary>
+    /// Game-hour advanced (oldHour, newHour in [0,24)). World arms Game-Time tower_defs rifts here.
+    /// </summary>
+    public static Action<float, float> OnGameTimeAdvanced { get; set; }
 
     /// <summary>WZRemoveDoodad.</summary>
     public static Action<uint> RelayRemoveDoodadToZone { get; set; }
@@ -476,6 +482,23 @@ public static class WorldIntegration
     public static Func<IEnumerable<string>> DescribeTowerDefs { get; set; }
 
     /// <summary>
+    /// Push current tower map marks (ActiveInfoList + positioned List) to a late-joining player.
+    /// Set by World from <c>TowerDefScheduler.SyncToCharacter</c>.
+    /// </summary>
+    public static Action<Character> SyncTowerDefsToCharacter { get; set; }
+
+    /// <summary>
+    /// Portal seed NPC mirror ready — refresh map pins. Arg: NPC template id.
+    /// </summary>
+    public static Action<uint> OnTowerDefEventNpcMirrored { get; set; }
+
+    /// <summary>
+    /// After WZTowerDefEnd: despawn World-owned army + portal/stage mirrors for this tower.
+    /// Args: towerDefId, host zone ids (empty = any zone).
+    /// </summary>
+    public static Action<uint, IReadOnlyList<uint>> CleanupTowerDefEventUnits { get; set; }
+
+    /// <summary>
     /// Broadcast a finished SC body (opcode + body only) to in-world clients only.
     /// Must NOT target lobby/select/loading connections — ActiveChar is set on SelectCharacter,
     /// and premature SCUnitMovements (zone flood) hard-closes the client before enter finishes.
@@ -695,8 +718,14 @@ public static class WorldIntegration
             lifeTime,
             despawnOnCreatorDeath,
             useSummonerAggroTarget);
-        return body is { Length: > 0 }
-               && RelayNpcSpawnToZone?.Invoke(new WorldNpcSpawnRequest(zoneId, npc.ObjId, body)) == true;
+        if (body is not { Length: > 0 }
+            || RelayNpcSpawnToZone?.Invoke(new WorldNpcSpawnRequest(zoneId, npc.ObjId, body)) != true)
+            return false;
+
+        // Same OnSpawn plot_only path as ZW mirrors (tower stage 8830 → army). Safe: zone skill
+        // relay suppressed inside CastOnSpawnPlotSkills.
+        npc.CastOnSpawnPlotSkills();
+        return true;
     }
 
     public static void PublishNpcDespawn(BaseUnit npc)
@@ -760,6 +789,69 @@ public static class WorldIntegration
         {
             Logger.Error(ex, "Pending NPC handoff failed obj={0}", objId);
         }
+    }
+
+    /// <summary>
+    /// Retire event NPCs (seed/stage + World-authored army) on End. Prefer zone notify so dedic
+    /// retires units; then delete World mirrors.
+    /// </summary>
+    public static int DespawnTowerDefEventUnits(uint towerDefId, IReadOnlyList<uint> hostZoneIds)
+    {
+        if (!ZoneAuthority || towerDefId == 0)
+            return 0;
+
+        var templates = TowerDefGameData.Instance.GetCleanupNpcTemplates(towerDefId);
+        if (templates.Count == 0)
+            return 0;
+
+        var filterZones = hostZoneIds is { Count: > 0 }
+            ? new HashSet<uint>(hostZoneIds)
+            : null;
+
+        var victims = new List<Npc>();
+        foreach (var world in WorldManager.Instance.GetWorlds() ?? [])
+        {
+            foreach (var npc in world.GetAllNpcs())
+            {
+                if (npc is not { IsZoneMirror: true })
+                    continue;
+                if (!templates.Contains(npc.TemplateId))
+                    continue;
+                if (filterZones != null)
+                {
+                    var z = npc.Transform?.ZoneId ?? 0;
+                    if (z == 0 || !filterZones.Contains(z))
+                        continue;
+                }
+
+                victims.Add(npc);
+            }
+        }
+
+        foreach (var npc in victims)
+        {
+            try
+            {
+                // Drop World plot/cast so late SpawnEffect nodes stop filling the field after End.
+                npc.InterruptSkills();
+                DeleteNpcMirror(npc, notifyZone: true);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, "DespawnTowerDefEventUnits failed bc={0} tpl={1}", npc.ObjId, npc.TemplateId);
+            }
+        }
+
+        if (victims.Count > 0)
+        {
+            Logger.Info(
+                "DespawnTowerDefEventUnits tower={0} count={1} zones=[{2}]",
+                towerDefId,
+                victims.Count,
+                filterZones == null ? "*" : string.Join(',', filterZones.OrderBy(z => z)));
+        }
+
+        return victims.Count;
     }
 
     /// <summary>
@@ -1063,14 +1155,38 @@ public static class WorldIntegration
             npc.Transform.Local.SetPosition(worldPos.X, worldPos.Y, worldPos.Z, 0f, 0f, zRot);
             NpcHeightDiagnostics.RecordSpawn(
                 bcId, templateId, zoneId, x, y, z, worldPos.X, worldPos.Y, worldPos.Z);
+            // Hellgate portals (8828/12911): mesh is invisible.chr — client VFX is fx_group from
+            // OnSpawn buffs via SCBuffCreated (0x0EB). SC UnitState for Npcs deliberately writes
+            // 0/0/0 buff counts, so the storm cannot ride UnitState. Apply buffs *after* Spawn so
+            // region viewers receive SCBuffCreated; pre-Spawn Apply OnSpawn left FX silent.
             npc.Spawn();
+            // Paint before FX so SCBuffCreated lands after the unit exists for late AOI/MAX cases.
+            if (npc.IsMirrorStreamPriority)
+                PaintPriorityMirrorToNearby(npc);
+            npc.ApplyOnSpawnSkillBuffs(zoneAuthored: true);
+            // AddBuff → BroadcastPacket only hits region neighbors. Priority paint can stream the
+            // same-zone UnitState from km away, so OnSpawn 2293 never reaches those clients unless
+            // we unicast SCBuffCreated to everyone who already got UnitState.
+            ResyncMirrorBuffsToStreamed(npc);
 
-            if ((bcId - 0x00F00000) <= 5 || (bcId - 0x00F00000) % 100 == 0 || bcId <= 5 || bcId % 100 == 0)
+            // Ghost-army OnSpawn is fire_anim-only (no buffs) — SC SkillFired, never Skill.Use/WZ.
+            // After UnitState: client must already know the bc for fire_anim attach.
+            npc.CastOnSpawnAnimationSkills();
+            // Tower stage portals: plot_only OnSpawn (15298 → army SpawnEffect). Dedic is silent;
+            // World graph with zone skill relay suppressed (see CastOnSpawnPlotSkills).
+            npc.CastOnSpawnPlotSkills();
+
+            if ((bcId - 0x00F00000) <= 5 || (bcId - 0x00F00000) % 100 == 0 || bcId <= 5 || bcId % 100 == 0
+                || npc.IsMirrorStreamPriority)
             {
                 Logger.Info(
-                    "Mirrored zone NPC bc={0} tpl={1} zone={2} local=({3:F1},{4:F1},{5:F1}) world=({6:F1},{7:F1},{8:F1})",
-                    bcId, templateId, zoneId, x, y, z, worldPos.X, worldPos.Y, worldPos.Z);
+                    "Mirrored zone NPC bc={0} tpl={1} zone={2} local=({3:F1},{4:F1},{5:F1}) world=({6:F1},{7:F1},{8:F1}) pri={9}",
+                    bcId, templateId, zoneId, x, y, z, worldPos.X, worldPos.Y, worldPos.Z,
+                    npc.IsMirrorStreamPriority);
             }
+
+            if (TowerDefGameData.Instance.IsTowerDefEventNpc(templateId))
+                OnTowerDefEventNpcMirrored?.Invoke(templateId);
 
             return true;
         }
@@ -1079,6 +1195,88 @@ public static class WorldIntegration
             Logger.Warn(ex, "MirrorZoneNpcSpawn failed bc={0} tpl={1}", bcId, templateId);
             return false;
         }
+    }
+
+    /// <summary>
+    /// After a late tower/event emit, push SC paint to every stream-ready client that can see this
+    /// mirror. Without this, MAX slots filled at load leave the rift pending forever.
+    /// </summary>
+    private static void PaintPriorityMirrorToNearby(Npc npc)
+    {
+        if (npc == null || !npc.IsMirrorStreamPriority)
+            return;
+
+        var painted = 0;
+        foreach (var character in WorldManager.Instance.GetAllCharacters())
+        {
+            if (character == null || character.ParentWorld != npc.ParentWorld)
+                continue;
+            if (!character.MirrorNpcStreamReady)
+            {
+                character.EnqueuePendingMirrorSpawn(npc);
+                continue;
+            }
+
+            // TryEvict first when at MAX so CanStreamMirrorNow can succeed for same-zone events.
+            if (!character.CanStreamMirrorNow(npc))
+                character.TryEvictFarthestStreamedForPriority(npc);
+
+            if (character.CanStreamMirrorNow(npc))
+            {
+                // Do not ReleaseMirrorNpcSlot when already painted — release+resend races with
+                // soft-remove and produced SCUnitsRemoved for the same bc same tick.
+                if (!character.MirrorNpcStatesSentIds.ContainsKey(npc.ObjId))
+                    npc.SendUnitStateTo(character);
+                painted++;
+            }
+            else
+                character.EnqueuePendingMirrorSpawn(npc);
+        }
+
+        if (painted > 0)
+            Logger.Info(
+                "Mirror priority paint bc={0} tpl={1} clients={2}",
+                npc.ObjId, npc.TemplateId, painted);
+        else
+            Logger.Info(
+                "Mirror priority paint pending bc={0} tpl={1} zone={2} (no stream-ready client in AOI/MAX)",
+                npc.ObjId, npc.TemplateId, npc.Transform?.ZoneId ?? 0);
+    }
+
+    /// <summary>
+    /// Unicast active buffs to every client that already received SCUnitState for this zone mirror.
+    /// Complements <see cref="GameObject.BroadcastPacket"/> (region-only) for same-zone priority
+    /// and re-stream paths where OnSpawn FX would otherwise miss.
+    /// </summary>
+    private static void ResyncMirrorBuffsToStreamed(Npc npc)
+    {
+        if (npc == null || !npc.IsZoneMirror)
+            return;
+
+        var n = 0;
+        foreach (var character in WorldManager.Instance.GetAllCharacters())
+        {
+            if (character == null || character.ParentWorld != npc.ParentWorld)
+                continue;
+            if (!character.MirrorNpcStatesSentIds.ContainsKey(npc.ObjId))
+                continue;
+            npc.SendActiveBuffsTo(character);
+            n++;
+        }
+
+        if (n > 0 && npc.IsMirrorStreamPriority)
+            Logger.Info(
+                "Mirror buff re-sync after OnSpawn bc={0} tpl={1} clients={2}",
+                npc.ObjId, npc.TemplateId, n);
+    }
+
+    /// <summary>
+    /// After Zone has acknowledged Create (WZNpcState). Most OnSpawn paint happens at mirror
+    /// create (buffs / fire_anim / plot_only for tower stage). Left for post-Create zone-safe hooks.
+    /// </summary>
+    public static void AfterZoneMirrorNpcState(uint bcId)
+    {
+        _ = bcId;
     }
 
     /// <summary>Flush NPCs that arrived before MainWorld existed. Call after CreateStaticInstances.</summary>

@@ -3,6 +3,8 @@ using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
@@ -46,8 +48,8 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
     private readonly Dictionary<uint, HashSet<uint>> _lifetimeUnlocks = [];
 
     /// <summary>
-    /// Characters loaded for a specific local calendar day. If the day changes while online,
-    /// EnsureLoaded reloads so assignment/reroll state does not carry across midnight.
+    /// Characters loaded for a specific <b>UTC</b> calendar day. If the day changes while online,
+    /// EnsureLoaded reloads so assignment/reroll state does not carry past 00:00 UTC.
     /// </summary>
     private readonly Dictionary<uint, DateTime> _loadedDay = [];
 
@@ -60,7 +62,8 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
         public TodayAssignmentStatus Status { get; set; }
     }
 
-    private static DateTime TodayKey => DateTime.Today;
+    /// <summary>day_key / in-memory calendar day — always World UTC date (GMT).</summary>
+    private static DateTime TodayKey => ServerCalendar.TodayUtc;
 
     private static bool IsPaidStep(TodayQuestStepTemplate step)
         => step != null && step.ItemId != 0 && step.ItemNum > 0;
@@ -72,6 +75,29 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
 
         var used = _resetsUsed.GetValueOrDefault(character.Id, 0u);
         character.SendPacket(new SCTodayAssignmentResetCountPacket(used, PersonalResetCountType));
+    }
+
+    /// <summary>
+    /// 00:00 UTC day edge (same cron as <c>QuestDailyResetTask</c>). Forces online players through
+    /// day rollover even if they do not touch the daily-schedule UI.
+    /// Restart-safe: next fire is absolute UTC; no local host midnight.
+    /// </summary>
+    public void OnServerDailyReset()
+    {
+        var today = TodayKey;
+        Logger.Info("TodayAssignment server daily reset (UTC day {0:yyyy-MM-dd})", today);
+
+        foreach (var character in WorldManager.Instance.GetAllCharacters())
+        {
+            // Force EnsureLoaded's rollover path when memory still holds yesterday.
+            if (_loadedDay.TryGetValue(character.Id, out var loaded) && loaded == today)
+            {
+                // Already reloaded for this UTC day (e.g. packet right after midnight).
+                continue;
+            }
+
+            EnsureLoaded(character);
+        }
     }
 
     /// <summary>

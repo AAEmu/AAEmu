@@ -1,5 +1,6 @@
 ﻿using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Faction;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
 using AAEmu.Game.Models.Game.Skills.Plots.UpdateTargetMethods;
 using AAEmu.Game.Models.Game.Skills.Utils;
@@ -162,8 +163,8 @@ public class PlotTargetInfo
         {
             posUnit.Transform.Local.AddDistanceToFront(args.Distance / 1000f - 0.01f);
         }
-        // TODO: Make this use geo data, need to check if we can grab parent world from here
-        posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + args.HeightOffset / 1000f, WorldManager.Instance.GetHeight(posUnit.Transform)));
+        posUnit.Transform.Local.SetHeight(ResolvePlotLandHeight(
+            PreviousTarget, posUnit, args.HeightOffset));
 
         if (args.MaxTargets == 0)
         {
@@ -251,8 +252,10 @@ public class PlotTargetInfo
         posUnit.Transform.InstanceId = PreviousTarget.Transform.InstanceId;
         posUnit.Transform.Local.SetZRotation(((float)Random.Shared.Next(-180, 180)).DegToRad());
         posUnit.Transform.Local.AddDistanceToFront(args.Distance / 1000f);
-        // TODO: Make this use geo data, need to check if we can grab parent world from here
-        posUnit.Transform.Local.SetHeight(Math.Max(PreviousTarget.Transform.World.Position.Z + args.HeightOffset / 1000f, WorldManager.Instance.GetHeight(posUnit.Transform)));
+        // Crimson plot 143: RandomArea after flying portals used Math.Max(portalZ+offset, ground)
+        // which kept markers at rifts (balls never "landed"); army SpawnEffect copied that Z.
+        posUnit.Transform.Local.SetHeight(ResolvePlotLandHeight(
+            PreviousTarget, posUnit, args.HeightOffset));
 
         if (args.MaxTargets == 0)
         {
@@ -315,6 +318,37 @@ public class PlotTargetInfo
     private static readonly bool AreaDebug = Environment.GetEnvironmentVariable("AAEMU_PLOT_AREA_DEBUG") == "1";
 
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
+    /// <summary>
+    /// Land plot area/random markers for ground summons. Legacy used Math.Max(anchorZ+offset, ground),
+    /// which keeps flying portal anchors in the air so Crimson SpawnEffects appear as sky mobs.
+    /// Large HeightOffset values (e.g. 500000 → 500m) are treated as ray-drop range, not lift.
+    /// </summary>
+    private static float ResolvePlotLandHeight(BaseUnit previous, BaseUnit posUnit, int heightOffsetRaw)
+    {
+        var offsetM = heightOffsetRaw / 1000f;
+        var anchorZ = previous?.Transform?.World.Position.Z ?? 0f;
+        var raised = anchorZ + offsetM;
+        var ground = WorldManager.Instance.GetHeight(posUnit.Transform);
+        if (ground <= 0f)
+            return raised;
+
+        // Typical retail RandomArea after portal: |offset| 300–500 m is "search down from sky"
+        // rather than place 500 m above the anchor.
+        if (Math.Abs(offsetM) >= 100f)
+            return ground;
+
+        // Flying portal / synthetic previous keep Math.Max only for shallow lifts; otherwise land.
+        var previousIsAerial = previous is Npc { CanFly: true }
+                               || (previous != null
+                                   && previous.ObjId != uint.MaxValue
+                                   && ground > 0f
+                                   && anchorZ > ground + 8f);
+        if (previousIsAerial && raised > ground + 2f)
+            return ground;
+
+        return Math.Max(raised, ground);
+    }
 
     /// <summary>
     /// One line describing where a plot area search looked and what each filter step removed. This is the

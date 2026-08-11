@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.GameData;
 
 namespace AAEmu.World.Core.Relay;
 
@@ -28,11 +29,16 @@ public sealed class ZwSpawnNpcParsed
 
 public static class ZwSpawnNpcParser
 {
+    /// <summary>Minimum body for fixed header+pos (sid…scale). Ambient pad is 78 B.</summary>
+    public const int MinBodyLength = 41;
+
+    /// <summary>Retail ambient body size (zeroed optional tail).</summary>
+    public const int AmbientBodyLength = 78;
+
     public static ZwSpawnNpcParsed? TryParse(byte[] raw)
     {
-        // Live ZWSpawnNpc from dedicate is a fixed 78-byte body. Reject other blobs
-        // (e.g. player WZUnitState stored in the same UnitRegistry).
-        if (raw == null || raw.Length != 78)
+        // Ambient is 78 B; event OnEvent may append creator fields. Soft-cap avoids UnitState dumps.
+        if (raw == null || raw.Length < MinBodyLength || raw.Length > 512)
             return null;
 
         try
@@ -57,6 +63,10 @@ public static class ZwSpawnNpcParser
             var z = s.ReadSingle();
             var zRot = s.ReadSingle();
             var scale = s.ReadSingle();
+
+            // Type-2 group path sometimes writes template 0; resolve first Npc member from sType.
+            if (templateId == 0 && sType != 0)
+                templateId = ResolveTemplateFromSpawnerType(sType);
 
             if (templateId == 0)
                 return null;
@@ -83,5 +93,45 @@ public static class ZwSpawnNpcParser
         {
             return null;
         }
+    }
+
+    /// <summary>Peek sid/sType for TRACE when full parse fails.</summary>
+    public static bool TryPeekIds(byte[] raw, out uint spawnerId, out uint spawnerType)
+    {
+        spawnerId = 0;
+        spawnerType = 0;
+        if (raw == null || raw.Length < 8)
+            return false;
+        spawnerId = BitConverter.ToUInt32(raw, 0);
+        spawnerType = BitConverter.ToUInt32(raw, 4);
+        return true;
+    }
+
+    private static uint ResolveTemplateFromSpawnerType(uint spawnerType)
+    {
+        try
+        {
+            var template = NpcGameData.Instance.GetNpcSpawnerTemplate(spawnerType);
+            if (template?.Npcs == null)
+                return 0;
+
+            foreach (var member in template.Npcs)
+            {
+                if (member == null || member.MemberId == 0)
+                    continue;
+                if (string.Equals(member.MemberType, "Npc", StringComparison.OrdinalIgnoreCase))
+                    return member.MemberId;
+            }
+
+            // NpcGroup wire with templateId 0 — leave reject for non-Npc membership.
+            // Member Npc templates may still sit inside group tables only if desc expands them
+            // differently; World will still TRACE reject for pure groups with zero template.
+        }
+        catch
+        {
+            // GameData not ready — reject as before.
+        }
+
+        return 0;
     }
 }

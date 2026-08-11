@@ -347,6 +347,8 @@ public class WorldManager(
     {
         tickManager.OnTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(1));
         tickManager.OnTick.Subscribe(AutoWaterProbeTick, TimeSpan.FromSeconds(10));
+        // Shared game-day clock (seamless zones do not ZW-report ToD).
+        TimeManager.Instance.Start();
     }
 
     private static readonly Lock AutoWaterProbeLock = new();

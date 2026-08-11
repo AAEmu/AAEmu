@@ -36,7 +36,8 @@ public class CSSpawnCharacterPacket() : GamePacket(CSOffsets.CSSpawnCharacterPac
             Connection.SendPacket(new SCUnitFactionChangedPacket(
                 me.ObjId, me.Name ?? "", FactionsEnum.Invalid, me.Faction.Id, false));
 
-        Connection.SendPacket(new SCDetailedTimeOfDayPacket(TimeManager.Instance.GetTime));
+        Connection.SendPacket(new SCDetailedTimeOfDayPacket(
+            TimeManager.Instance.GetTime, TimeManager.DefaultGameHourSpeed, 0f, 24f));
 
         // Deliberately no labor packet here. SCCharacterLaborPowerChanged is a delta - the handler does
         // `add [mgr+0xE58], amount` and `add [mgr+0xE68], localAmount`, never a store - and the client

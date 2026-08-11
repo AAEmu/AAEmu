@@ -75,14 +75,23 @@ public static class Program
             .OrderBy(zone => zone.ZoneId)
             .ThenBy(zone => zone.SessionId)
             .ToArray();
+        // Shared day → main_world dedicades only (instances own a local noon-start clock).
         WorldIntegration.RelayTimeOfDayToZones = hour =>
         {
             foreach (var zone in PlayerEnterService.AllLoadedZones())
+            {
+                if (!TimeManager.ZoneUsesSharedGameDay(zone.ZoneId))
+                    continue;
                 zone.SendPacket(new WZTimeOfDayPacket(hour));
+                zone.SendPacket(new WZDetailedTimeOfDayPacket(
+                    hour, TimeManager.DefaultGameHourSpeed, 0f, 24f));
+            }
         };
+        // Type-2 ZW ToD: clients in that zone only — never rebases shared TimeManager.
         WorldIntegration.OnZoneTimeOfDay = (zoneId, time, speed, start, end, detailed) =>
         {
-            TimeManager.Instance.OnZoneReport(time);
+            if (TimeManager.ZoneUsesSharedGameDay(zoneId))
+                return;
             WorldIntegration.ForEachReadyConnection((connection, character) =>
             {
                 if (character.Transform.ZoneId != zoneId)
@@ -92,6 +101,8 @@ public static class Program
                     : new SCTimeOfDayPacket(time));
             });
         };
+        // Shared World hour crosses drive Game-Time tower arms (seamless has no ZW ToD).
+        WorldIntegration.OnGameTimeAdvanced = TowerDefScheduler.OnGameTimeAdvanced;
         WorldIntegration.RelayUnitStateToZone = (zoneId, body) =>
         {
             var zone = PlayerEnterService.ForZoneId(zoneId)
@@ -105,7 +116,16 @@ public static class Program
         WorldIntegration.OnPlayerLeave = bcId => enter.LeaveZone(bcId);
         WorldIntegration.OnZoneNpcSpawn = WorldIntegration.MirrorZoneNpcSpawn;
         WorldIntegration.OnZoneNpcRemove = WorldIntegration.MirrorZoneNpcRemove;
-        WorldIntegration.OnZoneNpcKilled = WorldIntegration.MirrorZoneNpcKilled;
+        WorldIntegration.OnZoneNpcKilled = bcId =>
+        {
+            // Capture template before the death path may remove the mirror.
+            uint tpl = 0;
+            if (WorldIntegration.FindUnitAcrossWorlds(bcId) is AAEmu.Game.Models.Game.NPChar.Npc npc)
+                tpl = npc.TemplateId;
+            WorldIntegration.MirrorZoneNpcKilled(bcId);
+            if (tpl != 0)
+                TowerDefScheduler.OnNpcKilled(tpl);
+        };
         WorldIntegration.OnWorldInstanceRemoved = ZoneNpcSpawnerCatalog.RemoveInstance;
         WorldIntegration.TriggerTowerDef = (action, towerDefId, step) => action switch
         {
@@ -121,6 +141,8 @@ public static class Program
             _ => $"unknown action {action}"
         };
         WorldIntegration.DescribeTowerDefs = TowerDefScheduler.Describe;
+        WorldIntegration.SyncTowerDefsToCharacter = TowerDefScheduler.SyncToCharacter;
+        WorldIntegration.OnTowerDefEventNpcMirrored = TowerDefScheduler.OnEventNpcMirrored;
         WorldIntegration.OnMainWorldReady = () =>
         {
             // Arm the schedule gate before remirroring, so the pass that re-accepts already
@@ -1033,6 +1055,7 @@ public static class Program
             WorldIntegration.GetZoneConnectionStatus = null;
             WorldIntegration.RelayTimeOfDayToZones = null;
             WorldIntegration.OnZoneTimeOfDay = null;
+            WorldIntegration.OnGameTimeAdvanced = null;
             WorldIntegration.RelayUnitStateToZone = null;
             WorldIntegration.OnPlayerLeave = null;
             WorldIntegration.RelayMoveToZone = null;

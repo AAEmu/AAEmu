@@ -55,6 +55,12 @@ public class Skill
     public Action Callback { get; set; }
 
     /// <summary>
+    /// When true, skip WZSkillStarted/Fired/Ended relay. Used for World-authored OnSpawn plots
+    /// under ZoneAuthority so the zone process does not dual-run the same skill graph.
+    /// </summary>
+    public bool SuppressZoneSkillRelay { get; set; }
+
+    /// <summary>
     /// Multiplier that can be added as an additional modifier to casting times
     /// </summary>
     public float CastTimeMultiplier { get; set; } = 1f;
@@ -1755,7 +1761,7 @@ AlwaysHit:
     /// </summary>
     private void RelayZoneSkillStartedIfNeeded(SkillCaster casterCaster, SkillCastTarget targetCaster, SkillObject skillObject)
     {
-        if (_zoneSkillStartedRelayed || TlId == 0)
+        if (_zoneSkillStartedRelayed || TlId == 0 || SuppressZoneSkillRelay)
             return;
         if (!WorldIntegration.ZoneAuthority)
             return;

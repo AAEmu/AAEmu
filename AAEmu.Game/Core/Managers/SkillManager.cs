@@ -1695,7 +1695,9 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             LifeTime = reader.GetFloat("life_time", 0f),
                             DespawnOnCreatorDeath = reader.GetBoolean("despawn_on_creator_death", true),
                             UseSummonerAggroTarget = reader.GetBoolean("use_summoner_aggro_target", true),
-                            MateStateId = (MateState)reader.GetUInt32("mate_state_id", 0)
+                            MateStateId = (MateState)reader.GetUInt32("mate_state_id", 0),
+                            // Crimson 963/969: ray-cast land under the high portal XY.
+                            EnableRayCast = reader.GetBoolean("enable_ray_cast", true)
                         };
                         _effects["SpawnEffect"][template.Id] = template;
                     }

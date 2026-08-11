@@ -9,45 +9,72 @@ public class DoodadFuncPulse : DoodadPhaseFuncTemplate
 {
     public bool Flag { get; set; }
 
+    /// <summary>
+    /// Neighbourhood radius used when the spawner has no <c>RelatedIds</c>.
+    /// Grimghast harpoons sit ~10–30 m from their mana trebuchet; 60 m covers both lines without
+    /// whole-map side effects.
+    /// </summary>
+    private const float DefaultPulseRadius = 60f;
+
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        Logger.Trace($"DoodadFuncPulse: Flag {Flag}");
+        Logger.Trace("DoodadFuncPulse: Flag {0} ownerTpl={1} obj={2}", Flag, owner?.TemplateId, owner?.ObjId);
 
-        if (caster is not null)
+        if (owner == null)
+            return false;
+
+        // Intermediate build steps pulse with Flag=false — no neighbour transit.
+        if (!Flag)
+            return false;
+
+        var relatedIds = owner.Spawner?.RelatedIds;
+        var hasRelatedFilter = relatedIds is { Count: > 0 };
+        IEnumerable<Doodad> candidates;
+        if (hasRelatedFilter)
         {
-            var aroundDoodads = WorldManager.GetAround<Doodad>(caster);
-            var doodads = new List<Doodad>();
-            if (owner?.Spawner != null)
-            {
-                if (owner.Spawner.RelatedIds != null)
-                {
-                    foreach (var relatedId in owner.Spawner.RelatedIds)
-                    {
-                        if (aroundDoodads != null)
-                        {
-                            doodads.AddRange(aroundDoodads.Where(doodad => doodad.TemplateId == relatedId));
-                        }
-                    }
-                }
-
-                foreach (var doodad in doodads)
-                {
-                    var funcGroup = DoodadManager.Instance.GetPhaseFunc(doodad.FuncGroupId);
-                    foreach (var func in funcGroup)
-                    {
-                        switch (func.FuncType)
-                        {
-                            case "DoodadFuncPulseTrigger" when Flag:
-                                {
-                                    func.PulseTriggered = false; // Allow one-time execution
-                                    doodad.DoChangePhase(caster, (int)doodad.FuncGroupId);
-                                    break;
-                                }
-                        }
-                    }
-                }
-            }
+            var around = WorldManager.GetAround<Doodad>(owner);
+            var related = relatedIds.ToHashSet();
+            candidates = around.Where(d => related.Contains(d.TemplateId));
         }
+        else
+        {
+            // Most main_world siege furniture (Grimghast treb → harpoons) never got RelatedIds authored
+            // into doodad_spawns.json. Pulse by template proximity instead.
+            candidates = WorldManager.GetAround<Doodad>(owner, DefaultPulseRadius);
+        }
+
+        var triggered = 0;
+        foreach (var doodad in candidates)
+        {
+            if (doodad == null || doodad.ObjId == owner.ObjId)
+                continue;
+
+            var phaseFuncs = DoodadManager.Instance.GetPhaseFunc(doodad.FuncGroupId);
+            var hasPulseTrigger = false;
+            foreach (var func in phaseFuncs)
+            {
+                if (func.FuncType != "DoodadFuncPulseTrigger")
+                    continue;
+                hasPulseTrigger = true;
+                // Allow the one-shot PulseTrigger on this shared phase-func row for this firing.
+                func.PulseTriggered = false;
+            }
+
+            if (!hasPulseTrigger)
+                continue;
+
+            // Re-enter current phase so the DoodadFuncPulseTrigger can set OverridePhase → charged.
+            doodad.DoChangePhase(caster, (int)doodad.FuncGroupId);
+            triggered++;
+        }
+
+        if (triggered > 0)
+        {
+            Logger.Info(
+                "DoodadFuncPulse ownerTpl={0} obj={1} flag={2} relatedFilter={3} charged={4}",
+                owner.TemplateId, owner.ObjId, Flag, hasRelatedFilter, triggered);
+        }
+
         return false;
     }
 }

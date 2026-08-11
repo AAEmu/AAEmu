@@ -7,23 +7,27 @@ using NLog;
 namespace AAEmu.Game.Core.Managers.World;
 
 /// <summary>
-/// Converts unit positions at the World/Zone boundary when zone-local placement is enabled.
-/// The conversion is opt-in because world-space placement remains the default.
+/// Optional World-side unit-space remapping at the zone TCP boundary.
+/// Spawner geometry packets (Activate circle, ZWSpawnNpc parse) always use zone-local convert;
+/// this flag only affects WZ unit Create/move bodies — leave it off unless reproducing a local-space
+/// unit wire layout.
 /// </summary>
 public static class ZoneCoordBoundary
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     /// <summary>
-    /// When true: WZ placement + WZUnitMovement are zone-local; ZWUnitMovements convert local→world
-    /// for SC. Default <c>false</c> (world-on-wire). Set <c>AAEMU_WZ_UNIT_POS_LOCAL=1</c> to experiment.
+    /// When true, World rewrites WZ unit placement + moves into zone-local and ZW moves into world.
+    /// Default <c>false</c>: World sends/receives world coords on WZNpcState/WZUnitState/movements.
+    /// Force-local can double-subtract zone origin and place units off-mesh. Opt-in:
+    /// <c>AAEMU_WZ_UNIT_POS_LOCAL=1</c>. Kill with <c>WORLD=1</c> / <c>LOCAL=0</c>. Never flip mid-session.
     /// </summary>
     public static bool UseLocalOnZoneWire { get; } = ResolveUseLocalOnZoneWire();
 
     static ZoneCoordBoundary()
     {
         Logger.Info(
-            "ZoneCoordBoundary: UseLocalOnZoneWire={0} (opt-in LOCAL=1; kill WORLD=1 / LOCAL=0)",
+            "ZoneCoordBoundary: UseLocalOnZoneWire={0} (default world-on-wire; LOCAL=1 only for regression repro)",
             UseLocalOnZoneWire);
     }
 
@@ -33,7 +37,7 @@ public static class ZoneCoordBoundary
             return false;
         if (IsEnv("AAEMU_WZ_UNIT_POS_LOCAL", "0"))
             return false;
-        // Keep the conversion opt-in; world-space placement is the default.
+        // Opt-in only — default is world coordinates on unit wire.
         return IsEnv("AAEMU_WZ_UNIT_POS_LOCAL", "1");
     }
 

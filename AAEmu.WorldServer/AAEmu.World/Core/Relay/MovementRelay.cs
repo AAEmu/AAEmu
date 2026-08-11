@@ -208,6 +208,42 @@ public class MovementRelay
         if (source != null && unitZone != 0 && source.ZoneId != unitZone)
             return;
 
+        // Dedic owns pathing/flight — World only mirrors. Never clamp mid-path jumps (rift fly-ins
+        // span hundreds of metres). Only repair multi-km snaps that look like raw zone-local on a
+        // world-space mirror (ObjectId recycle / space poisoning), by converting local→world when
+        // that lands much closer to the last known world position.
+        if (unit is Npc { IsZoneMirror: true } && unitZone != 0)
+        {
+            var cur = unit.Transform.World.Position;
+            var raw = new System.Numerics.Vector3(move.X, move.Y, move.Z);
+            var dx = raw.X - cur.X;
+            var dy = raw.Y - cur.Y;
+            var dz = raw.Z - cur.Z;
+            var rawD2 = dx * dx + dy * dy + dz * dz;
+            const float poisonJumpM = 2000f;
+            if (rawD2 > poisonJumpM * poisonJumpM)
+            {
+                var asWorld = ZoneManager.Instance.ConvertToWorldCoordinates(unitZone, raw);
+                var wx = asWorld.X - cur.X;
+                var wy = asWorld.Y - cur.Y;
+                var wz = asWorld.Z - cur.Z;
+                var worldD2 = wx * wx + wy * wy + wz * wz;
+                if (worldD2 < rawD2 * 0.25f)
+                {
+                    if (LogMovePositions)
+                    {
+                        Logger.Warn(
+                            "ZW move local→world bc={0} jump={1:F0}m raw=({2:F1},{3:F1}) → world=({4:F1},{5:F1}) zoneId={6}",
+                            bcId, MathF.Sqrt(rawD2), raw.X, raw.Y, asWorld.X, asWorld.Y, unitZone);
+                    }
+
+                    move.X = asWorld.X;
+                    move.Y = asWorld.Y;
+                    move.Z = asWorld.Z;
+                }
+            }
+        }
+
         unit.Transform.Local.SetPosition(
             move.X, move.Y, move.Z,
             (float)MathUtil.ConvertDirectionToRadian(move.RotationX),

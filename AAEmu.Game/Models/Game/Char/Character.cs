@@ -100,7 +100,13 @@ public partial class Character : Unit, ICharacter
             MirrorNpcStatesSentCount >= Npc.MirrorNpcMaxPerCharacter)
             return false;
         var d2 = DistanceSq(Transform.World.Position, npc.Transform.World.Position);
-        return d2 <= Npc.MirrorNpcAoiRadiusSq;
+        // Same Transform.ZoneId: event rifts must still paint / show on map so dedic fly-in
+        // movements can be relayed; ambient mirrors keep the short commercial soft AOI.
+        if (npc.IsMirrorStreamPriority &&
+            npc.Transform?.ZoneId != 0 &&
+            Transform?.ZoneId == npc.Transform.ZoneId)
+            return true;
+        return d2 <= npc.MirrorStreamAoiRadiusSq;
     }
 
     /// <summary>Queue a zone mirror for later AOI enter / post-load flush.</summary>
@@ -137,6 +143,7 @@ public partial class Character : Unit, ICharacter
         best = null;
         bestD2 = float.MaxValue;
         bestId = 0;
+        var bestPriority = false;
         var origin = Transform.World.Position;
 
         foreach (var kv in _pendingMirrorSpawns)
@@ -156,14 +163,25 @@ public partial class Character : Unit, ICharacter
 
             var d2 = DistanceSq(origin, npc.Transform.World.Position);
             // Outside soft AOI: skip for send (still pending for when player walks closer).
-            if (d2 > Npc.MirrorNpcAoiRadiusSq)
+            // Priority event mirrors use the larger stream radius / same-zone rule.
+            var aoi = npc.IsMirrorStreamPriority
+                ? (npc.Transform?.ZoneId != 0 && Transform?.ZoneId == npc.Transform.ZoneId
+                    ? float.MaxValue
+                    : npc.MirrorStreamAoiRadiusSq)
+                : Npc.MirrorNpcAoiRadiusSq;
+            if (d2 > aoi)
                 continue;
 
-            if (d2 < bestD2)
+            // Event rifts always beat ambient pending at equal-or-farther distance.
+            var pri = npc.IsMirrorStreamPriority;
+            if (best == null ||
+                (pri && !bestPriority) ||
+                (pri == bestPriority && d2 < bestD2))
             {
                 bestD2 = d2;
                 best = npc;
                 bestId = kv.Key;
+                bestPriority = pri;
             }
         }
 
@@ -214,6 +232,11 @@ public partial class Character : Unit, ICharacter
                 (remove ??= []).Add(objId);
                 continue;
             }
+
+            // Tower/event hellgates stay painted for the whole arm even if soft AOI thrash or a
+            // ZW move briefly poisons World position (seen: Grimghast 12911 flash + SCUnitsRemoved).
+            if (npc.IsMirrorStreamPriority)
+                continue;
 
             if (DistanceSq(origin, npc.Transform.World.Position) > aoiSq)
                 (remove ??= []).Add(objId);
@@ -267,6 +290,10 @@ public partial class Character : Unit, ICharacter
                 continue;
             }
 
+            // Never soft-evict tower/event seeds for ambient backlog.
+            if (npc.IsMirrorStreamPriority)
+                continue;
+
             var d2 = DistanceSq(origin, npc.Transform.World.Position);
             if (d2 > farthestD2)
             {
@@ -282,6 +309,85 @@ public partial class Character : Unit, ICharacter
         // Require meaningful improvement (~15m closer) to avoid thrash.
         const float minImproveSq = 15f * 15f;
         if (farthestD2 - nearerD2 < minImproveSq)
+            return false;
+
+        ReleaseMirrorNpcSlot(farthestId);
+        if (farthestNpc != null && IsStillInRegionInterest(farthestNpc))
+            EnqueuePendingMirrorSpawn(farthestNpc);
+        SendPacket(new SCUnitsRemovedPacket([farthestId]));
+        return true;
+    }
+
+    /// <summary>
+    /// Event/tower mirrors must land on the wire even when ambient already filled MAX.
+    /// Drops the farthest streamed ambient (non-priority preferred) while the priority NPC
+    /// is inside soft AOI and stream-ready.
+    /// </summary>
+    public bool TryEvictFarthestStreamedForPriority(Npc priorityNpc)
+    {
+        if (priorityNpc == null || !priorityNpc.IsMirrorStreamPriority)
+            return false;
+        if (!MirrorNpcStreamReady)
+            return false;
+        if (MirrorNpcStreamNotBeforeTick != 0 &&
+            Environment.TickCount64 < MirrorNpcStreamNotBeforeTick)
+            return false;
+        if (MirrorNpcStatesSentIds.ContainsKey(priorityNpc.ObjId))
+            return true;
+        if (Npc.MirrorNpcMaxPerCharacter <= 0 ||
+            MirrorNpcStatesSentCount < Npc.MirrorNpcMaxPerCharacter)
+            return true;
+
+        var origin = Transform.World.Position;
+        var pD2 = DistanceSq(origin, priorityNpc.Transform.World.Position);
+        var sameZone = priorityNpc.Transform?.ZoneId != 0 &&
+                       Transform?.ZoneId == priorityNpc.Transform.ZoneId;
+        if (!sameZone && pD2 > priorityNpc.MirrorStreamAoiRadiusSq)
+            return false;
+
+        uint farthestId = 0;
+        var farthestD2 = -1f;
+        Npc farthestNpc = null;
+        // Prefer evicting ambient first so a second rift doesn't jettison the first.
+        uint farthestAmbientId = 0;
+        var farthestAmbientD2 = -1f;
+        Npc farthestAmbientNpc = null;
+
+        foreach (var objId in MirrorNpcStatesSentIds.Keys)
+        {
+            var npc = ParentWorld?.GetNpc(objId);
+            if (npc == null)
+            {
+                ReleaseMirrorNpcSlot(objId);
+                continue;
+            }
+
+            var d2 = DistanceSq(origin, npc.Transform.World.Position);
+            if (d2 > farthestD2)
+            {
+                farthestD2 = d2;
+                farthestId = objId;
+                farthestNpc = npc;
+            }
+
+            if (!npc.IsMirrorStreamPriority && d2 > farthestAmbientD2)
+            {
+                farthestAmbientD2 = d2;
+                farthestAmbientId = objId;
+                farthestAmbientNpc = npc;
+            }
+        }
+
+        // Ambient only. Evicting priority-for-priority (wave packs at MAX) loops:
+        // remove→requeue→paint thrash (~thousands SCUnitState/s) and can hard-kill the client
+        // ("too many unit movements"). If every streamed slot is already event priority, refuse.
+        if (farthestAmbientId == 0)
+            return false;
+
+        farthestId = farthestAmbientId;
+        farthestNpc = farthestAmbientNpc;
+
+        if (farthestId == 0 || farthestId == priorityNpc.ObjId)
             return false;
 
         ReleaseMirrorNpcSlot(farthestId);

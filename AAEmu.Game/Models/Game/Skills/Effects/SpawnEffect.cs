@@ -1,5 +1,6 @@
 ﻿using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
@@ -24,6 +25,8 @@ public class SpawnEffect : EffectTemplate
     public bool DespawnOnCreatorDeath { get; set; }
     public bool UseSummonerAggroTarget { get; set; }
     public MateState MateStateId { get; set; }
+    /// <summary>When true, non-flying summons snap to terrain under the XY (drop-from-rift).</summary>
+    public bool EnableRayCast { get; set; } = true;
 
     public override bool OnActionTime => false;
 
@@ -75,7 +78,12 @@ public class SpawnEffect : EffectTemplate
 
                     spawner.Position.X = xx;
                     spawner.Position.Y = yy;
-                    spawner.Position.Z = positionRelativeToUnit.Transform.World.Position.Z;
+                    spawner.Position.Z = ResolveSpawnZ(
+                        positionRelativeToUnit,
+                        xx,
+                        yy,
+                        positionRelativeToUnit.Transform.World.Position.Z,
+                        canFly: false);
 
                     spawner.Position.Yaw = orientationRelativeToUnit.Transform.World.Rotation.Z + OriAngle.DegToRad();
 
@@ -113,12 +121,14 @@ public class SpawnEffect : EffectTemplate
 
     private void SpawnNpcInZone(BaseUnit caster, BaseUnit target, CastAction castAction)
     {
-        // SubType is an npc_spawners row. Resolve its member through loaded game content rather
-        // than treating the spawner id as an NPC template id.
-        var member = NpcGameData.Instance.GetNpcSpawnerNpc(SubType);
-        if (member == null)
+        // Crimson / tower stage plots store an Npc template id in SubType (e.g. 8834 궁수,
+        // 8826 보병). Those ids are not always npc_spawners rows; when both exist (8826), the
+        // spawner row is a different mob. Prefer a real Npc template, then fall back to spawner
+        // member lookup (legacy World-local SpawnEffect path).
+        var templateId = ResolveZoneSpawnNpcTemplateId();
+        if (templateId == 0)
         {
-            Logger.Info($"SpawnEffect: SubType={SubType} not found in npc_spawner_npcs.");
+            Logger.Info($"SpawnEffect: SubType={SubType} is neither an Npc template nor npc_spawners member.");
             return;
         }
 
@@ -141,10 +151,10 @@ public class SpawnEffect : EffectTemplate
         }
 
         var world = caster?.ParentWorld;
-        var npc = world == null ? null : NpcManager.Instance.Create(world, 0, member.MemberId);
+        var npc = world == null ? null : NpcManager.Instance.Create(world, 0, templateId);
         if (npc == null)
         {
-            Logger.Warn($"SpawnEffect: NPC template {member.MemberId} for spawner {SubType} could not be created.");
+            Logger.Warn($"SpawnEffect: NPC template {templateId} (SubType={SubType}) could not be created.");
             return;
         }
 
@@ -154,15 +164,17 @@ public class SpawnEffect : EffectTemplate
             positionRelativeToUnit.Transform.World.Position.Y,
             PosAngle);
         var yaw = orientationRelativeToUnit.Transform.World.Rotation.Z + OriAngle.DegToRad();
-
-        npc.Transform = positionRelativeToUnit.Transform.CloneDetached(npc);
-        npc.Transform.Local.SetPosition(
+        // Portal/rift casters sit high for the client ball drop. SpawnEffect rows for ground
+        // army (enable_ray_cast) must land on terrain — otherwise units freeze at air Z.
+        var z = ResolveSpawnZ(
+            positionRelativeToUnit,
             x,
             y,
             positionRelativeToUnit.Transform.World.Position.Z,
-            0f,
-            0f,
-            yaw);
+            npc.CanFly);
+
+        npc.Transform = positionRelativeToUnit.Transform.CloneDetached(npc);
+        npc.Transform.Local.SetPosition(x, y, z, 0f, 0f, yaw);
         npc.OwnerId = caster switch
         {
             Character character => character.Id,
@@ -187,5 +199,58 @@ public class SpawnEffect : EffectTemplate
 
         if (UseSummonerAggroTarget && (target ?? caster) is Unit aggroTarget)
             WorldIntegration.PublishAggro(npc, aggroTarget, 1, castAction);
+    }
+
+    /// <summary>
+    /// Floor Z for ground army (Crimson balls land then emerge). Aerial Z kept for fliers.
+    /// </summary>
+    private float ResolveSpawnZ(BaseUnit anchor, float x, float y, float rawZ, bool canFly)
+    {
+        if (canFly)
+            return rawZ;
+
+        // Retail enable_ray_cast: snap non-flyers unless disabled for this effect row.
+        // Default true when the column was not loaded (older caches).
+        if (!EnableRayCast && rawZ > 0f)
+        {
+            // Still drop when the position unit is a flying portal / synthetic anchor above terrain.
+            var anchorNpc = anchor as Npc;
+            if (anchorNpc is not { CanFly: true } && anchor?.ObjId != uint.MaxValue)
+                return rawZ;
+        }
+
+        var zoneId = anchor?.Transform?.ZoneId ?? 0;
+        if (zoneId == 0)
+            return rawZ;
+
+        var ground = WorldManager.Instance.GetReferenceHeight(null, x, y, rawZ, zoneId);
+        if (ground <= 0f)
+            ground = WorldManager.Instance.GetHeight(zoneId, x, y, rawZ);
+
+        if (ground <= 0f)
+            return rawZ;
+
+        // Only correct obvious air spawns (rift is typically +40–60 m).
+        if (rawZ > ground + 3f)
+        {
+            Logger.Debug(
+                "SpawnEffect terrain snap SubType={0} rawZ={1:F1} → ground={2:F1} @({3:F1},{4:F1})",
+                SubType, rawZ, ground, x, y);
+            return ground;
+        }
+
+        return rawZ;
+    }
+
+    /// <summary>
+    /// Npc template for ZoneAuthority SpawnEffect: template id first, then spawner-member id.
+    /// </summary>
+    private uint ResolveZoneSpawnNpcTemplateId()
+    {
+        if (SubType != 0 && NpcManager.Instance.GetTemplate(SubType) != null)
+            return SubType;
+
+        var member = NpcGameData.Instance.GetNpcSpawnerNpc(SubType);
+        return member?.MemberId ?? 0;
     }
 }

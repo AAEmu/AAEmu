@@ -257,10 +257,15 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
         Logger.Info($"Loaded {_questTemplates.Count} quests");
         _loaded = true;
 
-        // Start daily reset task
-        var dailyCron = "0 0 0 */1 * *"; // Crontab
-        // TODO: Make sure it obeys server time settings
-        taskManager.CronSchedule(new QuestDailyResetTask(), dailyCron);
+        // Calendar quest resets use TaskManager's DateTime.UtcNow (GMT). Host local TZ is ignored.
+        // Daily 00:00 UTC; weekly Monday 00:00 UTC (NCrontab: Sunday=0 → Monday=1). Same boundaries as
+        // merchant daily/weekly purchase limits.
+        taskManager.CronSchedule(new QuestDailyResetTask(), "0 0 0 */1 * *");
+        taskManager.CronSchedule(new QuestWeeklyResetTask(), "0 0 0 * * 1");
+        Logger.Info(
+            "Quest calendar resets armed (UTC): daily at 00:00; weekly Mon 00:00; today={0:yyyy-MM-dd} weekStart={1:yyyy-MM-dd}",
+            Models.ServerCalendar.TodayUtc,
+            Models.ServerCalendar.WeekStartMondayUtc);
     }
 
     /// <summary>
