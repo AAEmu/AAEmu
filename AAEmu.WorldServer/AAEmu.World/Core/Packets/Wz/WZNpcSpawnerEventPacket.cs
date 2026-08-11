@@ -8,6 +8,11 @@ namespace AAEmu.World.Core.Packets.Wz;
 /// <summary>
 /// type(i32), despawnOnCreatorDeath(bool), useSummonerAggroTarget(bool), lifeTime(f32).
 /// </summary>
+/// <remarks>
+/// Keep reason type as Default (0) with no reason sub-payload. A non-Default reason or incorrect
+/// case padding size-mismatches the zone deserializer (NpcSpawnerEvent / WZ 0x070) and can
+/// terminate the zone process. Leave tower-only filter layout alone until the wire is known.
+/// </remarks>
 public sealed class WZNpcSpawnerEventPacket(WorldNpcSpawnerEventRequest request)
     : ZonePacket(WzOpcodes.NpcSpawnerEvent)
 {

@@ -24,27 +24,47 @@ public class DoodadFuncTod : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
+        // Init already settled this graph against current clock; do not re-fire ToD jumps.
+        // Runtime ToD edges are edge-crossing driven by TimeManager (and scheduled tasks).
+        if (owner.SuppressTodPhaseOverride)
+            return false;
+
         if (NextPhase <= 0)
             return false;
 
-        var currentTime = IsRealtime
-            ? (float)DateTime.Now.TimeOfDay.TotalHours
-            : TimeManager.Instance.GetTime;
-
-        // Ranged descriptors are entry conditions. Point triggers normally wait for the next
-        // crossing; templates marked force_tod_top_priority (for example lamps) resolve their
-        // current phase immediately when initialized.
-        var shouldChange = TodEnd >= 0
-            ? IsWithinWindow(currentTime)
-            : owner.Template.ForceTodTopPriority && currentTime >= TodAsHours;
-        if (!shouldChange)
+        if (!ShouldJumpAt(GetClockHours(), owner.Template.ForceTodTopPriority))
             return false;
 
         Logger.Trace(
             "DoodadFuncTod: currentTime {0}, Tod {1}, TodEnd {2}, IsRealtime {3}, OverridePhase {4}",
-            currentTime, Tod, TodEnd, IsRealtime, NextPhase);
+            GetClockHours(), Tod, TodEnd, IsRealtime, NextPhase);
         owner.OverridePhase = NextPhase;
         return true;
+    }
+
+    /// <summary>
+    /// Pure evaluation for settle/init — whether this descriptor would leave its phase at
+    /// <paramref name="hours"/> without side effects.
+    /// </summary>
+    public bool ShouldJumpAt(float hours, bool forceTodTopPriority)
+    {
+        if (NextPhase <= 0)
+            return false;
+
+        // Ranged descriptors are entry conditions for the next phase while the window is open.
+        if (TodEnd >= 0)
+            return IsWithinWindow(hours);
+
+        // Point triggers normally wait for the next schedule-crossing on TimeManager.
+        // force_tod_top_priority (lamps etc.) re-reads "period of day" on init only — settle walk.
+        return forceTodTopPriority && NormalizeHours(hours) >= TodAsHours;
+    }
+
+    public float GetClockHours()
+    {
+        return IsRealtime
+            ? (float)DateTime.Now.TimeOfDay.TotalHours
+            : TimeManager.Instance.GetTime;
     }
 
     public bool IsWithinWindow(float hours)

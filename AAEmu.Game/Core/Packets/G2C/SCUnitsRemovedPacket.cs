@@ -18,10 +18,12 @@ public class SCUnitsRemovedPacket(uint[] ids) : GamePacket(SCOffsets.SCUnitsRemo
 
     public override string Verbose()
     {
-        //if (_ids?.Length > 1)
-            return $" - Removed {ids.Length} objects";
-        //if (_ids?.Length == 1)
-        //    return " - " + WorldManager.Instance.GetGameObject(_ids[0])?.DebugName();
-        //return base.Verbose();
+        if (ids == null || ids.Length == 0)
+            return " - Removed 0 objects";
+        if (ids.Length == 1)
+            return $" - Removed bc={ids[0]}";
+        if (ids.Length <= 8)
+            return $" - Removed {ids.Length}: [{string.Join(',', ids)}]";
+        return $" - Removed {ids.Length} objects (first={ids[0]} last={ids[^1]})";
     }
 }

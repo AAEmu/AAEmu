@@ -26,6 +26,24 @@ public class NpcSpawnRelay
     /// </summary>
     private static readonly ConcurrentDictionary<ulong, byte> NpcStateSent = new();
 
+    /// <summary>
+    /// ObjectIds pending delayed free after ZWRemove. Dedicate ProcessFreeUnits is deferred;
+    /// reusing the same bc the next second causes Create collisions (DataMap / unit table) and
+    /// SCUnitsRemoved flashes on tower rifts (bc reused for 8828 while the old body still moves).
+    /// Hold matches mate id release (default 60s). Override: <c>AAEMU_ZONE_OBJID_HOLD_MS</c>.
+    /// </summary>
+    private static readonly ConcurrentDictionary<uint, byte> PendingObjectIdReleases = new();
+
+    private static readonly int ObjectIdHoldMs = ParseObjectIdHoldMs();
+
+    private static int ParseObjectIdHoldMs()
+    {
+        var raw = Environment.GetEnvironmentVariable("AAEMU_ZONE_OBJID_HOLD_MS");
+        if (int.TryParse(raw, out var n) && n >= 0)
+            return n;
+        return 60_000;
+    }
+
     private int _hexDumps;
     private int _mirrorOk;
     private int _mirrorFail;
@@ -36,6 +54,31 @@ public class NpcSpawnRelay
 
     private static readonly bool DisableFlyState =
         Environment.GetEnvironmentVariable("AAEMU_DISABLE_WZ_FLY_STATE") == "1";
+
+    /// <summary>
+    /// Always log these sTypes (retail event seeds: Crimson/Grimghast portals + waves).
+    /// Env <c>AAEMU_ZW_SPAWN_TRACE_TYPES=9846,14335</c> extends the set.
+    /// </summary>
+    private static readonly HashSet<uint> TraceSpawnerTypes = BuildTraceSpawnerTypes();
+
+    /// <summary>sType → emit count (process lifetime). Used to prove OnEvent→ZW for event arms.</summary>
+    private static readonly ConcurrentDictionary<uint, long> SpawnerTypeEmits = new();
+
+    private static HashSet<uint> BuildTraceSpawnerTypes()
+    {
+        var set = new HashSet<uint> { 9846, 9848, 9849, 9865, 9866, 14335, 14133, 14122, 14280, 23862, 23868, 23869 };
+        var extra = Environment.GetEnvironmentVariable("AAEMU_ZW_SPAWN_TRACE_TYPES");
+        if (!string.IsNullOrWhiteSpace(extra))
+        {
+            foreach (var part in extra.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+            {
+                if (uint.TryParse(part, out var id) && id != 0)
+                    set.Add(id);
+            }
+        }
+
+        return set;
+    }
 
     private static ulong MarkerKey(uint zoneId, uint bcId) => ((ulong)zoneId << 32) | bcId;
 
@@ -96,7 +139,7 @@ public class NpcSpawnRelay
                 if (WorldIntegration.FindUnitAcrossWorlds(bcId) is Npc { IsZoneMirror: true })
                 {
                     WorldIntegration.OnZoneNpcRemove?.Invoke(bcId);
-                    ObjectIdManager.Instance.ReleaseId(bcId);
+                    ScheduleObjectIdRelease(bcId);
                     removed++;
                 }
                 else
@@ -108,7 +151,7 @@ public class NpcSpawnRelay
             }
 
             WorldIntegration.OnZoneNpcRemove?.Invoke(bcId);
-            ObjectIdManager.Instance.ReleaseId(bcId);
+            ScheduleObjectIdRelease(bcId);
             removed++;
             connection.Units.TryRemove(bcId);
         }
@@ -122,6 +165,19 @@ public class NpcSpawnRelay
     {
         var parsed = ZwSpawnNpcParser.TryParse(raw);
 
+        // Event OnEvent may emit non-78 B bodies; surface those for seed sTypes.
+        ZwSpawnNpcParser.TryPeekIds(raw, out var peekSid, out var peekType);
+        var eventSpawner = peekType != 0 &&
+                           AAEmu.Game.GameData.TowerDefGameData.Instance.IsTowerDefEventSpawner(peekType);
+        var tracePeek = peekType != 0 && (TraceSpawnerTypes.Contains(peekType) || eventSpawner);
+        if (parsed == null && (tracePeek || raw is { Length: > 0 and not ZwSpawnNpcParser.AmbientBodyLength }))
+        {
+            Logger.Warn(
+                "ZWSpawnNpc REJECT zoneId={0} len={1} sid={2} sType={3} hex={4}",
+                connection.ZoneId, raw?.Length ?? 0, peekSid, peekType,
+                raw == null ? "-" : BitConverter.ToString(raw, 0, Math.Min(raw.Length, 64)));
+        }
+
         // Reject before a bcId is spent. Leaving the announcement unacknowledged keeps Zone from
         // running NpcManager::Create, so the NPC exists nowhere.
         if (parsed != null && NpcScheduleGate.IsClosed(parsed.SpawnerType))
@@ -131,41 +187,65 @@ public class NpcSpawnRelay
             connection.SendPacket(new WZNpcSpawnFailedPacket(raw));
             NpcScheduleGate.CountSuppressed(
                 connection.ZoneId, parsed.SpawnerId, parsed.SpawnerType, parsed.TemplateId);
+            if (TraceSpawnerTypes.Contains(parsed.SpawnerType) ||
+                AAEmu.Game.GameData.TowerDefGameData.Instance.IsTowerDefEventSpawner(parsed.SpawnerType))
+            {
+                Logger.Warn(
+                    "ZWSpawnNpc GATECLOSED zoneId={0} sid={1} sType={2} tpl={3} pos=({4:F1},{5:F1},{6:F1})",
+                    connection.ZoneId, parsed.SpawnerId, parsed.SpawnerType, parsed.TemplateId,
+                    parsed.X, parsed.Y, parsed.Z);
+            }
+
             return 0;
         }
 
         var bcId = connection.Units.Register(raw);
         var count = connection.Units.Count;
 
-        if (_hexDumps < 3)
-        {
-            _hexDumps++;
-            Logger.Info("ZWSpawnNpc HEX#{0} len={1} {2}", _hexDumps, raw.Length, BitConverter.ToString(raw));
-            if (parsed != null)
-            {
-                Logger.Info(
-                    "ZWSpawnNpc PARSE#{0} sid={1} sType={2} tpl={3} pos=({4:F1},{5:F1},{6:F1}) zRot={7:F2} scale={8:F2} → bc={9}",
-                    _hexDumps, parsed.SpawnerId, parsed.SpawnerType, parsed.TemplateId,
-                    parsed.X, parsed.Y, parsed.Z, parsed.ZRot, parsed.Scale, bcId);
-            }
-            else
-            {
-                Logger.Warn("ZWSpawnNpc PARSE#{0} failed", _hexDumps);
-            }
-        }
-
         if (parsed != null)
         {
+            var typeTotal = SpawnerTypeEmits.AddOrUpdate(parsed.SpawnerType, 1, (_, n) => n + 1);
+            var isTdEvent =
+                AAEmu.Game.GameData.TowerDefGameData.Instance.IsTowerDefEventSpawner(parsed.SpawnerType);
+            var trace = TraceSpawnerTypes.Contains(parsed.SpawnerType) || isTdEvent;
+            if (trace || typeTotal <= 2 || _hexDumps < 3
+                || raw.Length != ZwSpawnNpcParser.AmbientBodyLength)
+            {
+                if (_hexDumps < 3)
+                    _hexDumps++;
+                Logger.Info(
+                    "ZWSpawnNpc TRACE zoneId={0} #{1} sTypeTotal={2} sid={3} sType={4} tpl={5} " +
+                    "pos=({6:F1},{7:F1},{8:F1}) zRot={9:F2} scale={10:F2} → bc={11} len={12}",
+                    connection.ZoneId, count, typeTotal, parsed.SpawnerId, parsed.SpawnerType,
+                    parsed.TemplateId, parsed.X, parsed.Y, parsed.Z, parsed.ZRot, parsed.Scale,
+                    bcId, raw?.Length ?? 0);
+            }
+
             if (TryMirror(connection.ZoneId, bcId, parsed))
             {
                 if (TrySendNpcState(connection, bcId, parsed))
+                {
                     ZoneNpcSpawnerCatalog.SetState(connection, parsed, active: true);
+                    // Create is on Zone; now run tower_def OnSpawn plot/animation skills for all events.
+                    WorldIntegration.AfterZoneMirrorNpcState(bcId);
+                }
             }
             else
                 _mirrorFail++;
         }
         else
+        {
             _mirrorFail++;
+            if (_hexDumps < 3 || tracePeek)
+            {
+                if (_hexDumps < 3)
+                    _hexDumps++;
+                Logger.Warn(
+                    "ZWSpawnNpc PARSE failed zoneId={0} len={1} sid={2} sType={3} hex={4}",
+                    connection.ZoneId, raw?.Length ?? 0, peekSid, peekType,
+                    raw == null ? "-" : BitConverter.ToString(raw));
+            }
+        }
 
         if (count <= 5 || count % 100 == 0)
         {
@@ -287,6 +367,9 @@ public class NpcSpawnRelay
                 return false;
             }
 
+            // Drop any zombie unit still keyed by this bc (ObjectId recycle / incomplete free).
+            // Empty slot is a no-op; occupied slot must clear before Create or OnSpawn plots never run.
+            connection.SendPacket(new WZUnitRemovedPacket(bcId));
             connection.SendPacket(new WZNpcStatePacket(body));
             _npcStateOk++;
             // Faction is synchronized separately from the initial unit state.
@@ -343,12 +426,29 @@ public class NpcSpawnRelay
 
         try
         {
-            if (WorldIntegration.FindUnitAcrossWorlds(bcId) is not Npc npc || !npc.CanFly)
+            if (WorldIntegration.FindUnitAcrossWorlds(bcId) is not Npc npc)
+            {
+                if (IsEventFlyingTemplate(templateId))
+                    Logger.Warn("WZUnitFlyingState skip bc={0} tpl={1}: mirror not found", bcId, templateId);
                 return;
+            }
+
+            if (!npc.CanFly)
+            {
+                if (IsEventFlyingTemplate(templateId) || npc.IsMirrorStreamPriority)
+                {
+                    Logger.Info(
+                        "WZUnitFlyingState skip bc={0} tpl={1}: CanFly=false (event/priority mirror)",
+                        bcId, templateId);
+                }
+
+                return;
+            }
 
             connection.SendPacket(new WZUnitFlyingStateChangedPacket(bcId, true));
             var sent = Interlocked.Increment(ref _flyStateOk);
-            if (sent <= 5 || sent % 50 == 0)
+            // Always log first few, every 50th, and every known tower seed template.
+            if (sent <= 5 || sent % 50 == 0 || IsEventFlyingTemplate(templateId) || npc.IsMirrorStreamPriority)
             {
                 Logger.Info(
                     "WZUnitFlyingState #{0} → zone {1} zoneId={2} bc={3} tpl={4} flying=true",
@@ -360,6 +460,10 @@ public class NpcSpawnRelay
             Logger.Warn(ex, "WZUnitFlyingState failed bc={0} tpl={1}", bcId, templateId);
         }
     }
+
+    /// <summary>Crimson/Grimghast portal + wave seeds — always log fly success/skip.</summary>
+    private static bool IsEventFlyingTemplate(uint templateId) =>
+        templateId is 8828 or 8830 or 12911 or 4175;
 
     public void OnRemove(ZoneConnection connection, byte[] raw)
     {
@@ -407,6 +511,45 @@ public class NpcSpawnRelay
         NpcStateSent.TryRemove(MarkerKey(connection.ZoneId, bcId), out _);
         WorldIntegration.OnZoneNpcRemove?.Invoke(bcId);
         if (wasZoneAuthoredNpc || hadMirror)
+            ScheduleObjectIdRelease(bcId);
+    }
+
+    /// <summary>
+    /// Return a zone-mirror (or world-authored NPC) bc to the ObjectId pool only after dedicate
+    /// ProcessFreeUnits has had time to clear the slot. Immediate reuse was the Crimson portal
+    /// SCUnitsRemoved path (reused bc=1053 while dedic still owned the id).
+    /// </summary>
+    private static void ScheduleObjectIdRelease(uint bcId)
+    {
+        if (bcId == 0 || !ObjectIdManager.IsZoneUnitId(bcId))
+            return;
+
+        if (ObjectIdHoldMs <= 0)
+        {
             ObjectIdManager.Instance.ReleaseId(bcId);
+            return;
+        }
+
+        if (!PendingObjectIdReleases.TryAdd(bcId, 0))
+            return;
+
+        _ = ReleaseObjectIdAfterHoldAsync(bcId);
+    }
+
+    private static async System.Threading.Tasks.Task ReleaseObjectIdAfterHoldAsync(uint bcId)
+    {
+        try
+        {
+            await System.Threading.Tasks.Task.Delay(ObjectIdHoldMs).ConfigureAwait(false);
+            ObjectIdManager.Instance.ReleaseId(bcId);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, "Deferred ObjectId release failed bc={0}", bcId);
+        }
+        finally
+        {
+            PendingObjectIdReleases.TryRemove(bcId, out _);
+        }
     }
 }

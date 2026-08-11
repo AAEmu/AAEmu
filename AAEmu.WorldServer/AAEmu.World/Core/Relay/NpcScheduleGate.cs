@@ -50,7 +50,16 @@ public static class NpcScheduleGate
     /// </summary>
     public static bool IsClosed(uint spawnerTemplateId)
     {
-        return Config.Enabled && _closed.Contains(spawnerTemplateId);
+        if (!Config.Enabled || spawnerTemplateId == 0)
+            return false;
+
+        // TowerDef portal / wave spawners often carry a day-night window (e.g. Grimghast 14133
+        // 0.1–1.0h). Dedic arms them via WZTowerDef*, not ambient geometry + schedule. Applying the
+        // ToD gate answers WZNpcSpawnFailed and tears the whole NpcGroup down mid-wave.
+        if (AAEmu.Game.GameData.TowerDefGameData.Instance.IsTowerDefEventSpawner(spawnerTemplateId))
+            return false;
+
+        return _closed.Contains(spawnerTemplateId);
     }
 
     /// <summary>

@@ -194,23 +194,39 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
         // Special handling for characters (players)
         if (obj is Character character1)
         {
-            // Existing logic for sending SCUnitsRemovedPacket, SCDoodadsRemovedPacket, etc. remains unchanged.
-            var unitIds = GetListId<Unit>([], character1.ObjId).ToArray();
+            // Leaving a region batches SCUnitsRemoved for every unit in that cell. Soft AOI cull
+            // already skips priority event mirrors; this path did not — so walking one cell away
+            // stripped hellgate UnitState (+ OnSpawn FX buffs) even while still same zone.
             var units = GetList(new List<Unit>(), character1.ObjId);
+            var unitIds = new List<uint>(units.Count);
             foreach (var t in units)
             {
-                // Region leave batches SCUnitsRemoved and does not call Npc.RemoveVisibleObject —
-                // still free mirror MAX slots / pending so walking recycles interest capacity.
+                if (t is Npc
+                    {
+                        IsZoneMirror: true,
+                        IsMirrorStreamPriority: true,
+                        IsVisible: true
+                    } priorityMirror
+                    && priorityMirror.Transform?.ZoneId != 0
+                    && character1.Transform?.ZoneId == priorityMirror.Transform.ZoneId)
+                {
+                    // Keep stream slot + client unit for tower_def / event rifts across region hops.
+                    continue;
+                }
+
+                // Ambient mirrors: free MAX slots so walking recycles interest capacity.
                 if (t is Npc { IsZoneMirror: true } mirror)
                     character1.ReleaseMirrorNpcSlot(mirror.ObjId);
+                unitIds.Add(t.ObjId);
             }
-            for (var offset = 0; offset < unitIds.Length; offset += SCUnitsRemovedPacket.MaxCountPerPacket)
+
+            for (var offset = 0; offset < unitIds.Count; offset += SCUnitsRemovedPacket.MaxCountPerPacket)
             {
-                var length = unitIds.Length - offset;
+                var length = unitIds.Count - offset;
                 var temp = new uint[length > SCUnitsRemovedPacket.MaxCountPerPacket
                     ? SCUnitsRemovedPacket.MaxCountPerPacket
                     : length];
-                Array.Copy(unitIds, offset, temp, 0, temp.Length);
+                unitIds.CopyTo(offset, temp, 0, temp.Length);
                 character1.SendPacket(new SCUnitsRemovedPacket(temp));
             }
 
@@ -281,6 +297,9 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
             // Send the removal packet ONLY to the filtered list of players
             foreach (var character in charactersToRemoveFrom)
             {
+                // Priority event mirrors stay painted on soft region hops (ZW move poison / id reuse).
+                if (obj is Npc { IsMirrorStreamPriority: true, IsVisible: true })
+                    continue;
                 obj.RemoveVisibleObject(character);
             }
         }

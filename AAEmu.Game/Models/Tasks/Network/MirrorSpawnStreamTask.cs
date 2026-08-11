@@ -47,12 +47,17 @@ public class MirrorSpawnStreamTask : Task
                 // Leave-view first (beyond soft AOI) — frees MAX slots before we try to send.
                 character.CullStreamedMirrorsBeyondAoi();
 
-                // At cap with nearer pending: replace farthest (interest swap).
+                // At cap: nearer pending first, then event/tower priority rifts (steal ambient slot).
                 if (Npc.MirrorNpcMaxPerCharacter > 0 &&
                     character.MirrorNpcStatesSentCount >= Npc.MirrorNpcMaxPerCharacter &&
                     character.HasPendingMirrorSpawns)
                 {
-                    character.TryEvictFarthestStreamedForNearerPending();
+                    if (!character.TryEvictFarthestStreamedForNearerPending() &&
+                        character.TryPeekNearestPendingMirror(out var pendingPri, out _, out _) &&
+                        pendingPri is { IsMirrorStreamPriority: true })
+                    {
+                        character.TryEvictFarthestStreamedForPriority(pendingPri);
+                    }
                 }
 
                 if (!character.HasPendingMirrorSpawns)
@@ -75,7 +80,13 @@ public class MirrorSpawnStreamTask : Task
                 {
                     if (Npc.MirrorNpcMaxPerCharacter > 0 &&
                         character.MirrorNpcStatesSentCount >= Npc.MirrorNpcMaxPerCharacter)
-                        break;
+                    {
+                        // One more priority peel per burst wave if still capped.
+                        if (!character.TryPeekNearestPendingMirror(out var p2, out _, out _) ||
+                            p2 is not { IsMirrorStreamPriority: true } ||
+                            !character.TryEvictFarthestStreamedForPriority(p2))
+                            break;
+                    }
 
                     var npc = character.TryTakeNearestPendingMirror();
                     if (npc == null)

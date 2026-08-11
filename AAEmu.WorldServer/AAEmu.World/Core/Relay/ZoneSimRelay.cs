@@ -66,7 +66,7 @@ public class ZoneSimRelay
             ZwOpcodes.ReportMoleTrader => HandleMole("ZWReportMoleTrader", bodyLen),
             ZwOpcodes.ReportMoveHack => HandleMole("ZWReportMoveHack", bodyLen),
             ZwOpcodes.ReportDoodadSurfaceHack => HandleMole("ZWReportDoodadSurfaceHack", bodyLen),
-            ZwOpcodes.TowerDefReportPlayability => HandleTowerDef(stream),
+            ZwOpcodes.TowerDefReportPlayability => HandleTowerDef(zoneId, stream),
             ZwOpcodes.ResponseCombatUnits => HandleResponseCombatUnits(stream, bodyLen),
             ZwOpcodes.TimeOfDay => HandleTimeOfDay(zoneId, stream, detailed: false),
             ZwOpcodes.DetailedTimeOfDay => HandleTimeOfDay(zoneId, stream, detailed: true),
@@ -577,14 +577,14 @@ public class ZoneSimRelay
         return true;
     }
 
-    private static bool HandleTowerDef(PacketStream stream)
+    private static bool HandleTowerDef(uint zoneId, PacketStream stream)
     {
         if (stream.Count < 10)
             return false;
         var type = stream.ReadUInt32();
         var type2 = stream.ReadUInt16();
         var playable = stream.ReadUInt32();
-        Logger.Info("ZWTowerDefReportPlayability type={0}/{1} playableSpots={2}", type, type2, playable);
+        TowerDefScheduler.OnPlayabilityReport(zoneId, type, type2, playable);
         return true;
     }
 
@@ -607,10 +607,12 @@ public class ZoneSimRelay
             speed = stream.ReadSingle();
             start = stream.ReadSingle();
             end = stream.ReadSingle();
-            Logger.Info("ZWDetailedTimeOfDay time={0:F2} speed={1:F3} start={2:F2} end={3:F2}", time, speed, start, end);
+            Logger.Info(
+                "ZWDetailedTimeOfDay zoneId={0} time={1:F2} speed={2:F3} start={3:F2} end={4:F2}",
+                zoneId, time, speed, start, end);
         }
         else
-            Logger.Info("ZWTimeOfDay time={0:F2}", time);
+            Logger.Info("ZWTimeOfDay zoneId={0} time={1:F2}", zoneId, time);
         WorldIntegration.OnZoneTimeOfDay?.Invoke(zoneId, time, speed, start, end, detailed);
         return true;
     }

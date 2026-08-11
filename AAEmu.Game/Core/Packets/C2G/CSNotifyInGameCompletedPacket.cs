@@ -14,6 +14,8 @@ public class CSNotifyInGameCompletedPacket() : GamePacket(CSOffsets.CSNotifyInGa
         Connection.ActiveChar?.ArmMirrorNpcStream(graceMs: ParseMirrorGraceMs());
         Logger.Info(
             $"NotifyInGameCompleted SubZoneId {Connection.ActiveChar?.SubZoneId}, {Connection.ActiveChar?.Name} ({Connection.ActiveChar?.Id}) mirrorStream armed");
+        if (Connection.ActiveChar != null)
+            WorldIntegration.SyncTowerDefsToCharacter?.Invoke(Connection.ActiveChar);
     }
 
     private static int ParseMirrorGraceMs()

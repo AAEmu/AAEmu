@@ -341,6 +341,30 @@ public class Doodad : BaseUnit
     private bool _deleted;
 
     /// <summary>
+    /// Re-entrancy cap for <see cref="DoPhaseFuncs"/>. Phase graphs must settle; without this,
+    /// ToD chains can recurse until StackOverflow (boot / big ToD snaps).
+    /// </summary>
+    private const int MaxPhaseDepth = 32;
+    private int _phaseDepth;
+
+    /// <summary>
+    /// When true, <see cref="Funcs.DoodadFuncTod"/> will not set <see cref="OverridePhase"/>.
+    /// Used after a retail-style settle so applying the chosen phase does not re-walk ToD jumps.
+    /// Runtime ToD still advances via <see cref="TimeManager"/> edge crosses.
+    /// </summary>
+    public bool SuppressTodPhaseOverride { get; set; }
+
+    /// <summary>
+    /// Logic-family currently signalled by a <c>DoodadFuncLogicFamilyProvider</c> on this doodad (0 = none).
+    /// </summary>
+    public uint ActiveLogicFamilyId { get; set; }
+
+    /// <summary>
+    /// Logic-family this doodad is listening for via <c>DoodadFuncLogicFamilySubscriber</c> (0 = none).
+    /// </summary>
+    public uint ListeningLogicFamilyId { get; set; }
+
+    /// <summary>
     /// Seat data for this Doodad
     /// </summary>
     public VehicleSeat Seat { get; set; }
@@ -688,6 +712,30 @@ public class Doodad : BaseUnit
     {
         if (nextPhase <= 0) { return true; }
 
+        // Hard stop self-referential / empty-func phase cycles (ToD chains, prison gates, etc.).
+        // Without this, InitDoodad at boot can recurse until StackOverflow and kill World.
+        if (_phaseDepth >= MaxPhaseDepth)
+        {
+            Logger.Warn(
+                "DoPhaseFuncs: depth limit TemplateId={0} ObjId={1} phase={2} depth={3}",
+                TemplateId, ObjId, nextPhase, _phaseDepth);
+            ListGroupId.Clear();
+            return true;
+        }
+
+        _phaseDepth++;
+        try
+        {
+            return DoPhaseFuncsBody(caster, ref nextPhase);
+        }
+        finally
+        {
+            _phaseDepth--;
+        }
+    }
+
+    private bool DoPhaseFuncsBody(BaseUnit caster, ref int nextPhase)
+    {
         // Changing the phase.
         FuncGroupId = (uint)nextPhase;
         if (WorldIntegration.ZoneAuthority)
@@ -699,25 +747,18 @@ public class Doodad : BaseUnit
         }
         else
         {
-            var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
-            if (funcs.Count > 0)
+            // Cycle detected: always abort. (Previously empty funcs fell through and infinite-looped.)
+            if (caster is Character)
             {
-                // например, если это ID=2231, Target, то надо прервать рекурсию
-                if (caster is Character)
-                {
-                    Logger.Debug($"DoPhase: Finished execution with recurse: TemplateId {TemplateId}, Using phase {FuncGroupId}");
-                }
-                else
-                {
-                    Logger.Trace($"DoPhase: Finished execution with recurse: TemplateId {TemplateId}, Using phase {FuncGroupId}");
-                }
-
-                ListGroupId.Clear();
-                return true;
+                Logger.Debug($"DoPhase: Finished execution with recurse: TemplateId {TemplateId}, Using phase {FuncGroupId}");
+            }
+            else
+            {
+                Logger.Trace($"DoPhase: Finished execution with recurse: TemplateId {TemplateId}, Using phase {FuncGroupId}");
             }
 
-            // например, если это ID=898, Prison Gate, то не надо прервать рекурсию
             ListGroupId.Clear();
+            return true;
         }
 
         if (FuncTask != null)
@@ -913,9 +954,78 @@ public class Doodad : BaseUnit
 
         GrowthTime = PlantTime.AddMilliseconds(growTime);
 
-        // Actually do the phase change
         var unit = ParentWorld.GetUnit(OwnerObjId);
-        DoChangePhase(unit, (int)FuncGroupId);
+        var startPhase = FuncGroupId != 0 ? FuncGroupId : GetFuncGroupId();
+        if (startPhase == 0)
+            return;
+
+        // Retail-shaped settle: walk ToD windows iteratively (visited-set, no call stack blow-up),
+        // then apply that phase once with ToD overrides suppressed so lamp A↔B graphs cannot thrash.
+        var settled = SettlePhaseForCurrentClock(startPhase);
+        SuppressTodPhaseOverride = true;
+        try
+        {
+            DoChangePhase(unit, (int)settled);
+        }
+        finally
+        {
+            SuppressTodPhaseOverride = false;
+            ListGroupId.Clear();
+            _phaseDepth = 0;
+        }
+    }
+
+    /// <summary>
+    /// Pick the phase that should be live at the current game/wall clock by following only
+    /// active ToD descriptors. Cycles terminate by returning the last phase before a revisit —
+    /// never via nested recursion.
+    /// </summary>
+    public uint SettlePhaseForCurrentClock(uint startPhase)
+    {
+        if (startPhase == 0)
+            return 0;
+
+        var phase = startPhase;
+        // Cap length of any single graph; shipped templates stay well under this.
+        const int MaxHops = 64;
+        var visited = new HashSet<uint>();
+
+        for (var hop = 0; hop < MaxHops; hop++)
+        {
+            if (!visited.Add(phase))
+                break; // cycle — keep the pre-cycle phase we already stored
+
+            var forceTop = Template?.ForceTodTopPriority ?? false;
+            var next = 0;
+
+            foreach (var phaseFunc in DoodadManager.Instance.GetPhaseFunc(phase))
+            {
+                if (phaseFunc == null || phaseFunc.FuncType != nameof(DoodadFuncTod))
+                    continue;
+
+                if (DoodadManager.Instance.GetPhaseFuncTemplate(phaseFunc.FuncId, phaseFunc.FuncType)
+                    is not DoodadFuncTod tod)
+                    continue;
+
+                var hours = tod.GetClockHours();
+                if (!tod.ShouldJumpAt(hours, forceTop))
+                    continue;
+
+                if (tod.NextPhase > 0 && tod.NextPhase != (int)phase)
+                {
+                    next = tod.NextPhase;
+                    // First matching ToD on the phase drives the hop (same order as Use()).
+                    break;
+                }
+            }
+
+            if (next <= 0)
+                break;
+
+            phase = (uint)next;
+        }
+
+        return phase;
     }
 
     /// <summary>

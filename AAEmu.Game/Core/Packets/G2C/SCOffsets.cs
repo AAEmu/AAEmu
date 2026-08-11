@@ -329,6 +329,7 @@ public static class SCOffsets
     public const ushort CSQuestAcceptConditionalPacket = 0x14a;
     public const ushort SCQuestContextCompletedPacket = 0x190; // 10.0.2.13
     public const ushort SCQuestContextResetPacket = 0x191; // 10.0.2.13
+    public const ushort SCQuestContextResetBulkPacket = 0x192; // 10.0.2.13
     public const ushort SCDoodadCompleteQuestPacket = 0x193; // 10.0.2.13
     public const ushort SCQuestRewardedByMailPacket = 0x194; // 10.0.2.13
     public const ushort SCQuestMailSentPacket = 0x196; // 10.0.2.13
@@ -361,6 +362,8 @@ public static class SCOffsets
     public const ushort SCTowerDefStartPacket = 0x1B3; // 10.0.2.13
     public const ushort SCTowerDefEndPacket = 0x1B4; // 10.0.2.13
     public const ushort SCTowerDefWaveStartPacket = 0x1B5; // 10.0.2.13
+    /// <summary>World-map tower marks; rebuilds client active list (Crimson red skull / icon_key).</summary>
+    public const ushort SCTowerDefActiveInfoListPacket = 0x344; // 10.0.2.13
     public const ushort SCCrimeChangedPacket = 0x1B6; // 10.0.2.13
     public const ushort SCCriminalArrestedPacket = 0x1B7; // 10.0.2.13
     public const ushort SCAskImprisonOrTrialPacket = 0x1B8; // 10.0.2.13
