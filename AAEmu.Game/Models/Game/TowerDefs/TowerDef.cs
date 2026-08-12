@@ -2,24 +2,6 @@ namespace AAEmu.Game.Models.Game.TowerDefs;
 
 public class TowerDef
 {
-    /// <summary>
-    /// Event Center "Game Time" rifts are identified by spawner-backed <c>tower_defs</c> rows whose
-    /// names match these substrings (Korean client data / classic localization).
-    /// </summary>
-    private static readonly string[] GameTimeRiftNameMarkers =
-    [
-        "징조의 틈",   // Crimson Rift
-        "전장의 안개",  // Grimghast
-        "망각의 균열",  // Oblivion Rift
-        "기계의 소란"   // Clockwork Rebellion
-    ];
-
-    /// <summary>Expand/hard-mode suffix in rift names (paired base + expand rows share a portal).</summary>
-    private const string ExpandNameMarker = "확장";
-
-    /// <summary>Guide/tutorial variant of Grimghast (separate spawner; not the night main event).</summary>
-    private const string GrimghastGuideNameMarker = "안내";
-
     public uint Id { get; set; }
     public string Name { get; set; }
     public string StartMsg { get; set; }
@@ -35,6 +17,18 @@ public class TowerDef
     public uint MilestoneId { get; set; }
     public bool BroadcastToWholeWorld { get; set; }
     public uint StartDayOfWeekBit { get; set; }
+
+    /// <summary>Event family from typed schedule config (not display name).</summary>
+    public TowerDefEventFamily Family { get; set; } = TowerDefEventFamily.Unspecified;
+
+    /// <summary>Base / expand / guide from typed schedule config.</summary>
+    public TowerDefEventVariant Variant { get; set; } = TowerDefEventVariant.Unspecified;
+
+    /// <summary>
+    /// How World auto-arms this row. Set from weekday StartTimes and/or
+    /// <c>Configurations/TowerDefs.json</c> GameTimeAutoArm entries.
+    /// </summary>
+    public TowerDefScheduleMode ScheduleMode { get; set; } = TowerDefScheduleMode.Manual;
 
     /// <summary>
     /// Wall-clock start time per day of the week, index 0 = Sunday, or null on days the event does
@@ -65,57 +59,22 @@ public class TowerDef
     }
 
     /// <summary>
-    /// Event-Center "Game Time" strip: no wall-clock hours, has a day interval, armed spawner,
-    /// and a name marker for rift-family content. Driven by zone-simulated hour, not UTC.
+    /// Event-Center Game Time strip: ToD-driven auto-arm from typed schedule config.
+    /// Requires day interval + seed spawner; never uses display-name substrings.
     /// </summary>
-    /// <remarks>
-    /// Shipped rows pair base + expand on the same portal. Event Center Game Time strip:
-    /// Grimghast @0 (base), Crimson @12 Cinderstone/Ynystere + @18 Auroria (expand only),
-    /// Oblivion/Clockwork @2/@14. Base Crimson still has <c>tod=0</c> in data — arming every
-    /// marker twin-spawns Crimson with Grimghast at night. Expand Grimghast / guide rows stay
-    /// GM-startable, not auto Game-Time.
-    /// </remarks>
     public bool IsGameTimeScheduled
     {
         get
         {
+            if (ScheduleMode != TowerDefScheduleMode.GameTime)
+                return false;
             if (IsScheduled)
                 return false;
             if (TimeOfDayDayInterval == 0)
                 return false;
             if (TargetNpcSpawnId == 0)
                 return false;
-            if (string.IsNullOrEmpty(Name))
-                return false;
-            if (Name.Contains("[테스트]", StringComparison.Ordinal) ||
-                Name.Contains("[TEST]", StringComparison.OrdinalIgnoreCase))
-                return false;
-
-            var isExpand = Name.Contains(ExpandNameMarker, StringComparison.Ordinal);
-            var isCrimson = Name.Contains(GameTimeRiftNameMarkers[0], StringComparison.Ordinal);
-            var isGrimghast = Name.Contains(GameTimeRiftNameMarkers[1], StringComparison.Ordinal);
-
-            // Crimson: only expand rows (tod 12 Cinderstone/Ynystere, 18 Auroria).
-            if (isCrimson)
-                return isExpand;
-
-            // Grimghast main: base only. Skip expand (shares portal) and "안내" guides.
-            if (isGrimghast)
-            {
-                if (isExpand)
-                    return false;
-                if (Name.Contains(GrimghastGuideNameMarker, StringComparison.Ordinal))
-                    return false;
-                return true;
-            }
-
-            foreach (var marker in GameTimeRiftNameMarkers)
-            {
-                if (Name.Contains(marker, StringComparison.Ordinal))
-                    return true;
-            }
-
-            return false;
+            return true;
         }
     }
 

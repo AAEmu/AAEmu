@@ -293,6 +293,76 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
 
         _npcGroupMembers = groupMembers;
         _priorityNpcTemplateIds = priorityNpcs;
+        ApplyScheduleMetadata();
+    }
+
+    /// <summary>
+    /// Assign Family / Variant / ScheduleMode from StartTimes + <c>Configurations/TowerDefs.json</c>.
+    /// Unknown GameTimeAutoArm ids are logged; classification never uses display names.
+    /// </summary>
+    private void ApplyScheduleMetadata()
+    {
+        foreach (var towerDef in _towerDefs.Values)
+        {
+            towerDef.Family = TowerDefEventFamily.Unspecified;
+            towerDef.Variant = TowerDefEventVariant.Unspecified;
+            towerDef.ScheduleMode = towerDef.IsScheduled
+                ? TowerDefScheduleMode.WallClock
+                : TowerDefScheduleMode.Manual;
+        }
+
+        var entries = Models.AppConfiguration.Instance.TowerDefs?.GameTimeAutoArm;
+        if (entries == null || entries.Count == 0)
+        {
+            NLog.LogManager.GetCurrentClassLogger().Error(
+                "TowerDefs.GameTimeAutoArm is empty — Event Center Game Time auto-arm will not run. " +
+                "Add entries under Configurations/TowerDefs.json");
+            return;
+        }
+
+        var log = NLog.LogManager.GetCurrentClassLogger();
+        foreach (var entry in entries)
+        {
+            if (entry.Id == 0)
+                continue;
+            if (!_towerDefs.TryGetValue(entry.Id, out var towerDef))
+            {
+                log.Error(
+                    "TowerDefs.GameTimeAutoArm references unknown tower_defs.id={0}",
+                    entry.Id);
+                continue;
+            }
+
+            if (!Enum.TryParse<TowerDefEventFamily>(entry.Family, ignoreCase: true, out var family) ||
+                family == TowerDefEventFamily.Unspecified)
+            {
+                log.Error(
+                    "TowerDefs.GameTimeAutoArm id={0} has invalid Family '{1}'",
+                    entry.Id, entry.Family);
+                continue;
+            }
+
+            if (!Enum.TryParse<TowerDefEventVariant>(entry.Variant, ignoreCase: true, out var variant) ||
+                variant == TowerDefEventVariant.Unspecified)
+            {
+                log.Error(
+                    "TowerDefs.GameTimeAutoArm id={0} has invalid Variant '{1}'",
+                    entry.Id, entry.Variant);
+                continue;
+            }
+
+            if (towerDef.IsScheduled)
+            {
+                log.Warn(
+                    "TowerDefs.GameTimeAutoArm id={0} also has weekday StartTimes — keeping WallClock",
+                    entry.Id);
+                continue;
+            }
+
+            towerDef.Family = family;
+            towerDef.Variant = variant;
+            towerDef.ScheduleMode = TowerDefScheduleMode.GameTime;
+        }
     }
 
     public void PostLoad()

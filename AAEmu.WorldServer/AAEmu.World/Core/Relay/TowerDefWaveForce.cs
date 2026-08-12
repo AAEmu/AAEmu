@@ -1,6 +1,4 @@
-using System.Collections.Concurrent;
 using System.Numerics;
-using System.Text.RegularExpressions;
 
 using AAEmu.Game;
 using AAEmu.Game.Core.Managers.World;
@@ -30,21 +28,28 @@ namespace AAEmu.World.Core.Relay;
 /// <c>AAEMU_TOWER_WAVE_FORCE=1</c>. Portal re-arm is separate: <c>AAEMU_TOWER_PORTAL_FORCE=1</c>.
 /// When on, only the placement of each wanted sType nearest the live seed portal is fired.
 /// </remarks>
-public static partial class TowerDefWaveForce
+public static class TowerDefWaveForce
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    private sealed record Placement(uint Id, uint Type, float LocalX, float LocalY, float LocalZ);
+    /// <summary>
+    /// Max distance (m) from seed portal to a step placement of the arm type.
+    /// Override with World <c>TowerDef.WaveSpotRadiusMetres</c> or env <c>AAEMU_TOWER_WAVE_SPOT_RADIUS</c>.
+    /// </summary>
+    private static float SpotRadiusMetres
+    {
+        get
+        {
+            var raw = Environment.GetEnvironmentVariable("AAEMU_TOWER_WAVE_SPOT_RADIUS");
+            if (float.TryParse(raw, System.Globalization.NumberStyles.Float,
+                    System.Globalization.CultureInfo.InvariantCulture, out var metres) &&
+                metres > 0f)
+                return metres;
 
-    private static readonly ConcurrentDictionary<uint, IReadOnlyList<Placement>> PlacementCache = new();
-
-    private static readonly Regex SpawnerIdRegex = SpawnerIdPattern();
-    private static readonly Regex SpawnerTypeRegex = SpawnerTypePattern();
-    private static readonly Regex PosRegex = PosPattern();
-    private static readonly Regex SplitBlocksRegex = SplitSpawnerBlocks();
-
-    /// <summary>Max distance (m) from seed portal to a step placement of the arm type.</summary>
-    private const float SpotRadiusMetres = 80f;
+            var configured = WorldRuntime.Config?.TowerDef?.WaveSpotRadiusMetres ?? 0f;
+            return configured > 0f ? configured : 80f;
+        }
+    }
 
     private static bool WaveForceEnabled
     {
@@ -141,14 +146,14 @@ public static partial class TowerDefWaveForce
                 continue;
             }
 
-            var placements = PlacementCache.GetOrAdd(zoneId, LoadPlacements);
+            var placements = ZoneSpawnerPlacementCatalog.GetAll(zoneId);
             var fired = 0;
             foreach (var p in placements)
             {
-                if (!wanted.Contains(p.Type))
+                if (!wanted.Contains(p.SpawnerType))
                     continue;
 
-                if (!SendTowerRespawn(zone, creator, p.Id))
+                if (!SendTowerRespawn(zone, creator, p.PlacementId))
                     continue;
                 fired++;
                 total++;
@@ -203,20 +208,20 @@ public static partial class TowerDefWaveForce
                 continue;
             }
 
-            var placements = PlacementCache.GetOrAdd(zoneId, LoadPlacements);
+            var placements = ZoneSpawnerPlacementCatalog.GetAll(zoneId);
             var r2 = SpotRadiusMetres * SpotRadiusMetres;
             var firedIds = new List<uint>();
 
             foreach (var sType in wantedTypes.OrderBy(x => x))
             {
-                Placement best = null;
+                ZoneSpawnerPlacementCatalog.SpawnerPlacement? best = null;
                 var bestD2 = float.MaxValue;
                 foreach (var p in placements)
                 {
-                    if (p.Type != sType)
+                    if (p.SpawnerType != sType)
                         continue;
                     var world = ZoneManager.Instance.ConvertToWorldCoordinates(
-                        zoneId, new Vector3(p.LocalX, p.LocalY, p.LocalZ));
+                        zoneId, new Vector3(p.X, p.Y, p.Z));
                     foreach (var a in anchors)
                     {
                         var d2 = DistanceSq(world, a);
@@ -235,13 +240,13 @@ public static partial class TowerDefWaveForce
                     continue;
                 }
 
-                if (!SendTowerRespawn(zone, creator, best.Id))
+                if (!SendTowerRespawn(zone, creator, best.Value.PlacementId))
                     continue;
-                firedIds.Add(best.Id);
+                firedIds.Add(best.Value.PlacementId);
                 total++;
                 Logger.Info(
                     "TowerDefOnEventForce zoneId={0} placement={1} sType={2} d={3:F1}m ({4})",
-                    zoneId, best.Id, sType, MathF.Sqrt(bestD2), reason);
+                    zoneId, best.Value.PlacementId, sType, MathF.Sqrt(bestD2), reason);
             }
         }
 
@@ -273,13 +278,10 @@ public static partial class TowerDefWaveForce
         // Cold / not yet mirrored: use g-file portal points for this zone's sType.
         if (list.Count == 0 && towerDef.TargetNpcSpawnId != 0)
         {
-            var placements = PlacementCache.GetOrAdd(zoneId, LoadPlacements);
-            foreach (var p in placements)
+            foreach (var p in ZoneSpawnerPlacementCatalog.GetByType(zoneId, towerDef.TargetNpcSpawnId))
             {
-                if (p.Type != towerDef.TargetNpcSpawnId)
-                    continue;
                 list.Add(ZoneManager.Instance.ConvertToWorldCoordinates(
-                    zoneId, new Vector3(p.LocalX, p.LocalY, p.LocalZ)));
+                    zoneId, new Vector3(p.X, p.Y, p.Z)));
             }
         }
 
@@ -288,10 +290,7 @@ public static partial class TowerDefWaveForce
 
     public static void InvalidatePlacementCache(uint zoneId = 0)
     {
-        if (zoneId == 0)
-            PlacementCache.Clear();
-        else
-            PlacementCache.TryRemove(zoneId, out _);
+        ZoneSpawnerPlacementCatalog.Invalidate(zoneId);
     }
 
     private static bool SendTowerRespawn(ZoneConnection zone, BaseUnit creator, uint placementId)
@@ -378,103 +377,6 @@ public static partial class TowerDefWaveForce
         return null;
     }
 
-    private static IReadOnlyList<Placement> LoadPlacements(uint zoneId)
-    {
-        var world = WorldManager.Instance.GetWorldTemplateByZoneKey(zoneId);
-        if (world == null)
-            return [];
-
-        var path = ResolveSpawnerFile(zoneId, world.Name);
-        if (path == null)
-        {
-            Logger.Warn("TowerDefWaveForce: no npc_spawners.g for zoneId={0}", zoneId);
-            return [];
-        }
-
-        try
-        {
-            var text = File.ReadAllText(path);
-            var blocks = SplitBlocksRegex.Split(text);
-            var list = new List<Placement>(blocks.Length);
-            foreach (var block in blocks)
-            {
-                if (string.IsNullOrWhiteSpace(block))
-                    continue;
-                var idMatch = SpawnerIdRegex.Match(block);
-                var typeMatch = SpawnerTypeRegex.Match(block);
-                if (!idMatch.Success || !typeMatch.Success)
-                    continue;
-                if (!uint.TryParse(idMatch.Groups[1].Value, out var id))
-                    continue;
-                if (!uint.TryParse(typeMatch.Groups[1].Value, out var type))
-                    continue;
-                var posMatch = PosRegex.Match(block);
-                var x = 0f;
-                var y = 0f;
-                var z = 0f;
-                if (posMatch.Success)
-                {
-                    float.TryParse(posMatch.Groups[1].Value, System.Globalization.NumberStyles.Float,
-                        System.Globalization.CultureInfo.InvariantCulture, out x);
-                    float.TryParse(posMatch.Groups[2].Value, System.Globalization.NumberStyles.Float,
-                        System.Globalization.CultureInfo.InvariantCulture, out y);
-                    float.TryParse(posMatch.Groups[3].Value, System.Globalization.NumberStyles.Float,
-                        System.Globalization.CultureInfo.InvariantCulture, out z);
-                }
-
-                list.Add(new Placement(id, type, x, y, z));
-            }
-
-            Logger.Info(
-                "TowerDefWaveForce catalog zoneId={0} placements={1} from {2}",
-                zoneId, list.Count, path);
-            return list;
-        }
-        catch (Exception ex)
-        {
-            Logger.Warn(ex, "TowerDefWaveForce failed to parse {0}", path);
-            return [];
-        }
-    }
-
-    private static string ResolveSpawnerFile(uint zoneId, string worldName)
-    {
-        foreach (var root in EnumerateGameRoots())
-        {
-            var path = Path.Combine(
-                root,
-                "worlds",
-                worldName,
-                "level_design",
-                "zone",
-                zoneId.ToString(),
-                "zone_server",
-                "npc_spawners.g");
-            if (File.Exists(path))
-                return Path.GetFullPath(path);
-        }
-
-        return null;
-    }
-
-    private static IEnumerable<string> EnumerateGameRoots()
-    {
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        void Offer(string candidate)
-        {
-            if (string.IsNullOrWhiteSpace(candidate))
-                return;
-            var full = Path.GetFullPath(candidate.Trim());
-            if (Directory.Exists(full))
-                seen.Add(full);
-        }
-
-        Offer(WorldRuntime.Config.ZoneGameDataRoot);
-        Offer(Environment.GetEnvironmentVariable("AAEMU_ZONE_GAME_DATA_ROOT"));
-        Offer(@"G:\AAchina\Server\game");
-        return seen;
-    }
-
     private static float DistanceSq(Vector3 a, Vector3 b)
     {
         var dx = a.X - b.X;
@@ -482,18 +384,4 @@ public static partial class TowerDefWaveForce
         var dz = a.Z - b.Z;
         return dx * dx + dy * dy + dz * dz;
     }
-
-    [GeneratedRegex(@"spawnerId\s+(\d+)", RegexOptions.CultureInvariant)]
-    private static partial Regex SpawnerIdPattern();
-
-    [GeneratedRegex(@"spawnerType\s+(\d+)", RegexOptions.CultureInvariant)]
-    private static partial Regex SpawnerTypePattern();
-
-    [GeneratedRegex(
-        @"pos\s*\(\s*x\s*([-\d.]+),\s*y\s*([-\d.]+),\s*z\s*([-\d.]+)",
-        RegexOptions.CultureInvariant)]
-    private static partial Regex PosPattern();
-
-    [GeneratedRegex(@"(?m)^spawner\r?\n", RegexOptions.CultureInvariant)]
-    private static partial Regex SplitSpawnerBlocks();
 }

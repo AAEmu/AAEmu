@@ -667,22 +667,14 @@ public class CharacterQuests(Character owner)
     /// <summary>Applies any missed daily/weekly completion clears at login (no SC spam — client reloads list).</summary>
     public void CheckCalendarResetsAtLogin()
     {
-        var leaveUtc = Owner.LeaveTime.Kind == DateTimeKind.Utc
-            ? Owner.LeaveTime
-            : Owner.LeaveTime.ToUniversalTime();
+        var leaveUtc = ServerCalendar.AsUtc(Owner.LeaveTime);
 
         if (leaveUtc.Date < ServerCalendar.TodayUtc)
             ResetDailyQuests(false);
 
-        var leaveWeek = WeekStartMondayUtc(leaveUtc.Date);
+        var leaveWeek = ServerCalendar.WeekStartMondayContaining(leaveUtc);
         if (leaveWeek < ServerCalendar.WeekStartMondayUtc)
             ResetWeeklyQuests(false);
-    }
-
-    private static DateTime WeekStartMondayUtc(DateTime utcDate)
-    {
-        var offset = ((int)utcDate.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
-        return utcDate.Date.AddDays(-offset);
     }
 
     /// <summary>

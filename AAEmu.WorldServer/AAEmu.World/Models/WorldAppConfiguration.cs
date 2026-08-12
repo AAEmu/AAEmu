@@ -19,6 +19,17 @@ public class WorldAppConfiguration
     public NpcSpawnerActivateConfig NpcSpawnerActivate { get; set; } = new();
     /// <summary>Hold back spawners that are outside their game_schedule or day-night window.</summary>
     public NpcScheduleGateConfig NpcScheduleGate { get; set; } = new();
+    /// <summary>Optional tower-def World helpers (wave re-arm radius, etc.).</summary>
+    public TowerDefWorldConfig TowerDef { get; set; } = new();
+}
+
+public class TowerDefWorldConfig
+{
+    /// <summary>
+    /// When wave force is enabled, max metres from the live seed portal to the chosen
+    /// <c>npc_spawners.g</c> placement for each step spawn type.
+    /// </summary>
+    public float WaveSpotRadiusMetres { get; set; } = 80f;
 }
 
 public class NpcScheduleGateConfig
