@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -35,10 +35,14 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         skillCastTarget.Read(stream);
 
         // Nest interact sent flag=28 → type=12 (invalid). Old path set SkillObject.Flag=12 and
+        // Flag byte layout: the skill-object type is the low 6 bits (0x3f); 0x40 and 0x80 are two
+        // independent boolean flags and are not part of the type. A narrower mask mis-reads every type
+        // from 16 up. An unknown type is refused rather than guessed at, because its body length is not
+        // known and consuming the wrong number of bytes corrupts every field after it.
         var flag = stream.ReadByte();
-        var flagType = flag & 15;
+        var flagType = flag & 0x3f;
         SkillObject skillObject;
-        if (flagType == 0 || flagType > (int)SkillObjectType.ItemGradeEnchantingSupport)
+        if (!SkillObject.IsKnownType(flagType))
         {
             if (flagType != 0)
                 Logger.Warn($"StartSkill: skillObject flag={flag} type={flagType} clamped to None");
@@ -51,6 +55,17 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         }
         // Always present on CS wire after SkillCastExtra payload.
         _ = stream.ReadByte(); // inputDirection
+
+        // Unknown skill-object types are clamped to None above, which skips their body and leaves the
+        // rest of the cast unparsed. That is silent otherwise, so say so with the bytes attached -
+        // it is how skill object type 8 (synthesis materials) was found.
+        if (stream.Pos < stream.Count)
+        {
+            var rest = new byte[stream.Count - stream.Pos];
+            Array.Copy(stream.Buffer, stream.Pos, rest, 0, rest.Length);
+            Logger.Warn("StartSkill {0}: {1} trailing bytes unread (skillObject flag={2}) hex={3}",
+                skillId, rest.Length, flag, Convert.ToHexString(rest));
+        }
 
         HarpoonMechanicsDebug.LogCsStartSkillIfHarpoon(skillId, flag, flagType, skillCaster, skillCastTarget, skillObject);
 

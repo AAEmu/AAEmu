@@ -24,6 +24,17 @@
             "auctionPostBuff": true,
             "shopOnUI": true,
 
+            // Synthesis / "Item Growth" (합성). The client gates the whole feature on this bit: the
+            // tooltip block that prints an item's synthesis EXP bar, the infusion's "grants N EXP"
+            // line, and the Synthesis pane under the bag all sit behind a single
+            // `fset[17] & 0x20` test (bit 141) and render nothing when it is clear. Without it
+            // the data is loaded and correct but invisible, which reads as "synthesis is missing".
+            // Server side it gates the ItemEvolving special effect (skill 30666).
+            //
+            // itemEvolvingReRoll (161) stays off: rerolling a synthesized item's random attributes
+            // is not implemented, and the bit only adds a button that would do nothing.
+            "itemEvolving": true,
+
             // Ancestral ("heir") progression past the level cap. Both bits are needed:
             // useHeirSkill (202) shows the Heir tab, heirLevel (101) enables the level block
             // inside it (level, exp bar, level-up button, heir stats). With only the first, the

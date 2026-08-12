@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using System.Numerics;
 
 using AAEmu.Commons.Network;
@@ -1378,6 +1378,24 @@ public class Unit : BaseUnit, IUnit
             foreach (var gem in ei.GemIds)
                 foreach (var template in ItemManager.Instance.GetUnitModifiers(gem))
                     AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
+
+            // Synthesis Effects: the item stores which attribute groups it rolled, and the value comes
+            // from the group's entry for the item's current grade.
+            foreach (var groupId in ei.RndAttrGroupIds)
+            {
+                var group = ItemManager.Instance.GetRndAttrGroup(groupId);
+                var value = group?.GetValue(ei.Grade) ?? 0;
+                if (value == 0)
+                    continue;
+
+                var template = new BonusTemplate
+                {
+                    Attribute = (UnitAttribute)group.UnitAttributeId,
+                    ModifierType = (UnitModifierType)group.UnitModifierTypeId,
+                    Value = value
+                };
+                AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = value });
+            }
         }
 
         // Apply Equipment Effects

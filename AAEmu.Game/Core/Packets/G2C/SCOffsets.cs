@@ -148,6 +148,7 @@ public static class SCOffsets
     public const ushort SCItemTaskNotifyPacket = 0xBD; // 10.0.2.13
     public const ushort SCItemDetailUpdatedPacket = 0xBE; // 10.0.2.13
     public const ushort SCUnitEquipmentsChangedPacket = 0xBF; // 10.0.2.13
+    public const ushort SCUnitEquipmentsRndAttrUnitModifierAvtivateChangedPacket = 0xC0; // 10.0.2.13 (client spelling)
     public const ushort SCUnitEquipmentIdsPacket = 0xC1; // 10.0.2.13
     public const ushort SCCofferContentsUpdatePacket = 0xC2; // 10.0.2.13
     public const ushort SCItemAcquisitionPacket = 0xC3; // 10.0.2.13
@@ -156,6 +157,9 @@ public static class SCOffsets
     public const ushort SCSpecialtyGoodsPacket = 0xC6; // 10.0.2.13
     public const ushort SCSpecialtyRecordsPacket = 0xC7; // 10.0.2.13
     public const ushort SCGradeEnchantResultPacket = 0xC9; // 10.0.2.13
+    public const ushort SCItemEvolvingResultPacket = 0xCD; // 10.0.2.13
+    public const ushort SCItemReRollEvolvingResultPacket = 0xCE; // 10.0.2.13
+    public const ushort SCItemChangeMappingResultPacket = 0xD4; // 10.0.2.13
     public const ushort SCItemSocketingLunagemResultPacket = 0x9d;
     public const ushort SCItemSocketingLunastoneResultPacket = 0x9e;
     public const ushort SCGradeEnchantBroadcastPacket = 0xD0; // 10.0.2.13

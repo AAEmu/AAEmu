@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -1152,6 +1152,12 @@ public class Skill
         }
 
         CompressedGamePackets packets = null;
+        // An effect vetoes its own cast by setting SkillCancelled, which gates the consumption below.
+        // Nothing ever cleared it, so the first veto stuck to the character for the rest of the
+        // session and every later cast was treated as cancelled. Reset it per cast.
+        if (player != null)
+            player.SkillCancelled = false;
+
         var consumedItems = new List<(Item, int)>();
         var consumedItemTemplates = new List<(uint, int)>(); // itemTemplateId, amount
 

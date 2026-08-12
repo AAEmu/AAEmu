@@ -2107,6 +2107,66 @@ public partial class Character : Unit, ICharacter
         return ChangeAAPoint(aaPointLocation, SlotType.None, amount, itemTaskType);
     }
 
+    /// <summary>
+    /// Charges <paramref name="price"/> in the currency a content table names, reporting the shortfall to
+    /// the player. Returns false without taking anything when the balance is short or the currency is one
+    /// this server does not handle, so callers can treat it as a checked reservation and bail out before
+    /// mutating anything else.
+    /// </summary>
+    /// <param name="currencyId">A <see cref="ContentCurrencyType"/>, as content tables store it.</param>
+    /// <param name="autoUseAaPoint">
+    /// The player's "use AA points" choice, sent with the request. Gold prices are paid from AA points
+    /// instead of coin when it is set.
+    /// </param>
+    public bool TryPayCurrency(uint currencyId, long price, bool autoUseAaPoint, ItemTaskType itemTaskType)
+    {
+        if (price < 0)
+        {
+            SendErrorMessage(ErrorMessageType.Invalid);
+            return false;
+        }
+
+        if (price == 0)
+            return true;
+
+        switch ((ContentCurrencyType)currencyId)
+        {
+            case ContentCurrencyType.Gold:
+            case ContentCurrencyType.GoldWithAaPoint:
+                return autoUseAaPoint
+                    ? SubtractAAPoint(SlotType.Inventory, price, itemTaskType)
+                    : SubtractMoney(SlotType.Inventory, price, itemTaskType);
+            case ContentCurrencyType.AaPoint:
+                return SubtractAAPoint(SlotType.Inventory, price, itemTaskType);
+            case ContentCurrencyType.HonorPoint:
+                if (HonorPoint < price)
+                {
+                    SendErrorMessage(ErrorMessageType.NotEnoughHonorPoint);
+                    return false;
+                }
+                ChangeGamePoints(GamePointKind.Honor, (int)-price);
+                return true;
+            case ContentCurrencyType.LivingPoint:
+                if (VocationPoint < price)
+                {
+                    SendErrorMessage(ErrorMessageType.NotEnoughLivingPoint);
+                    return false;
+                }
+                ChangeGamePoints(GamePointKind.Vocation, (int)-price);
+                return true;
+            case ContentCurrencyType.ContributionPoint:
+                if (Expedition?.GetMember(this)?.ContributionPoint < price)
+                {
+                    SendErrorMessage(ErrorMessageType.NotEnoughRequiredItem);
+                    return false;
+                }
+                return ExpeditionManager.Instance.TryChangeContributionPoints(this, (int)-price, false);
+            default:
+                SendErrorMessage(ErrorMessageType.Invalid);
+                return false;
+        }
+    }
+
     public void ChangeLabor(short change, int actabilityId)
     {
         var actabilityChange = 0;
@@ -2767,10 +2827,14 @@ public partial class Character : Unit, ICharacter
         {
             equipItem.Durability = equipItem.MaxDurability;
             equipItem.IsDirty = true;
-            tasks.Add(new ItemUpdate(item));
+            // Durability lives in the item detail, which needs SCItemDetailUpdated - the UpdateDetail
+            // item task carries a 128-byte blob this client does not parse, and feeding it a
+            // serialized detail corrupts the client's copy of the item until the next login.
+            Connection.SendPacket(new SCItemDetailUpdatedPacket(item));
         }
 
-        Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Repair, tasks, []));
+        if (tasks.Count > 0)
+            Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Repair, tasks, []));
     }
 
     /// <summary>

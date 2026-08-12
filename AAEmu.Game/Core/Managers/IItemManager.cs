@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Auction.Templates;
+﻿using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Containers;
@@ -25,6 +25,17 @@ public interface IItemManager : ILoadable
     GradeTemplate GetGradeTemplateByOrder(int gradeOrder);
     ItemGradeEnchantingSupport GetItemGradEnchantingSupportByItemId(uint itemId);
     List<LootPackDroppingNpc> GetLootPackIdByNpcId(uint npcId);
+    byte GetEvolvingLadderStartGrade(ItemRndAttrCategory category);
+    int GetEvolvingTotalExp(ItemRndAttrCategory category, byte grade, int currentExp);
+    (byte Grade, int RemainingExp) SpendEvolvingExp(ItemRndAttrCategory category, byte startGrade, int exp);
+    ItemRndAttrUnitModifierGroup GetRndAttrGroup(uint groupId);
+    List<uint> RollRndAttrGroups(ItemRndAttrCategory category, byte grade);
+    ItemChangeMappingGroup GetChangeMappingGroup(uint groupId);
+    ItemChangeMapping GetChangeMapping(ItemChangeMappingGroup group, Item item, uint preferredMappingId);
+    ItemRndAttrCategory GetRndAttrCategory(uint categoryId);
+    ItemRndAttrCategory GetRndAttrCategoryForItem(Item item);
+    ItemEvolvingMaterial GetEvolvingMaterial(uint itemTemplateId);
+    bool CanUseAsEvolvingMaterial(ItemRndAttrCategory target, ItemRndAttrCategory material);
     List<ItemTemplate> GetAllItems();
     bool TryGetFishConversion(uint functionId, uint sourceItemId, out uint outputItemId);
     GradeDistributions GetGradeDistributions(byte id);

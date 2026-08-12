@@ -59,8 +59,10 @@ public class FeaturesConfigTests
         foreach (var (name, enabled) in config.Flags)
             fset.Set(Enum.Parse<Feature>(name, true), enabled);
 
+        // Byte 17 is 0xa0, not 0x80: bit 5 of that byte is itemEvolving (141), the switch the client
+        // tests as fset[17] & 0x20 before drawing anything about synthesis.
         await Assert.That(fset.ToString()).IsEqualTo(
             "13 00 00 00 d0 09 21 00 00 0c 00 88 28 00 00 00 " +
-            "00 80 0a 10 00 80 80 00 04 34 00 10 01 e0 00");
+            "00 a0 0a 10 00 80 80 00 04 34 00 10 01 e0 00");
     }
 }
