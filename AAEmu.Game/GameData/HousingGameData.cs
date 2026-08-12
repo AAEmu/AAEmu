@@ -1,4 +1,4 @@
-using AAEmu.Commons.IO;
+﻿using AAEmu.Commons.IO;
 using System.Numerics;
 
 using AAEmu.Commons.Utils;
@@ -164,8 +164,14 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
                                 if (templateBindings != null &&
                                     templateBindings.AttachPointId.TryGetValue(bindingDoodad.AttachPointId,
                                         out var pos))
+                                {
                                     bindingDoodad.Position = pos.Clone();
+                                    bindingDoodad.HasResolvedPosition = true;
+                                }
 
+                                // Left unresolved until the model can supply it. The placeholder keeps the
+                                // property non-null; HasResolvedPosition is what says whether it means
+                                // anything, since the origin is a legitimate offset.
                                 bindingDoodad.Position ??= new WorldSpawnPosition();
 
                                 doodads.Add(bindingDoodad);
@@ -273,13 +279,14 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
     }
 
     /// <summary>
-    /// Replaces the binding offsets taken from housing_bindings.json with the ones held in the model the house
-    /// actually uses. Runs in PostLoad because the attach point table is built by another loader and the
-    /// loaders' Load() order is reflection order.
+    /// Fills in binding offsets that the json table does not define, from the model the house actually uses.
+    /// Runs in PostLoad because the attach point table is built by another loader and the loaders' Load()
+    /// order is reflection order.
     ///
-    /// The json only ever covered 104 of the 631 templates that have bindings, keyed by template id; everything
-    /// else fell back to (0,0,0) and stacked its doodads on the house origin. Attach point geometry belongs to
-    /// the model, not the template, so templates sharing a model now resolve from the same place.
+    /// Attach point geometry belongs to the model rather than to the template, so templates sharing a model
+    /// resolve from the same place. The json covers a minority of the templates that have bindings; the rest
+    /// depend entirely on this pass, and any binding still unresolved afterwards stays marked as such rather
+    /// than being given a placeholder offset.
     /// </summary>
     private void ResolveBindingPositionsFromClientData()
     {
@@ -296,9 +303,9 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
 
             foreach (var bindingDoodad in template.HousingBindingDoodad)
             {
-                // Only fill the gaps. Where housing_bindings.json has an offset it stays — the two sources
-                // disagree on a handful of points and the json is what the server has been running on.
-                if (bindingDoodad.Position != null && bindingDoodad.Position.AsPositionVector() != Vector3.Zero)
+                // Only fill the gaps. Where the json defines an offset it stays: the two sources disagree on
+                // a handful of points and the json is what the server has been running on.
+                if (bindingDoodad.HasResolvedPosition)
                     continue;
 
                 var pos = ModelAttachPointGameData.Instance
@@ -307,6 +314,7 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
                 if (pos != null)
                 {
                     bindingDoodad.Position = pos.Clone();
+                    bindingDoodad.HasResolvedPosition = true;
                     resolved++;
                 }
                 else

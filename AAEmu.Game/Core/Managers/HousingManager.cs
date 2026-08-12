@@ -1,4 +1,4 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.Numerics;
 
 using AAEmu.Commons.Utils;
@@ -282,6 +282,7 @@ public class HousingManager(
         Logger.Info("Reconciling bound doodads for completed houses...");
         var addedCount = 0;
         var removedCount = 0;
+        var realignedCount = 0;
 
         foreach (var house in _houses.Values)
         {
@@ -299,7 +300,15 @@ public class HousingManager(
 
                 if (matches.Count == 0)
                 {
-                    // Missing from DB — spawn fresh and save (first-run migration or data loss recovery)
+                    // An unresolved binding has no offset to spawn at. Creating one anyway would persist a
+                    // position that was never defined, and every later pass would then treat it as correct.
+                    if (!bindingDoodad.HasResolvedPosition)
+                    {
+                        Logger.Warn($"Reconcile: Not spawning bound doodad templateId={bindingDoodad.DoodadId} attachPoint={bindingDoodad.AttachPointId} for house {house.Id} - attach point unresolved");
+                        continue;
+                    }
+
+                    // Missing from DB - spawn fresh and save (first-run migration or data loss recovery)
                     Logger.Debug($"Reconcile: Spawning missing bound doodad templateId={bindingDoodad.DoodadId} attachPoint={bindingDoodad.AttachPointId} for house {house.Id}");
                     var doodad = doodadManager.Create(house.ParentWorld, 0, bindingDoodad.DoodadId, house, true);
                     if (doodad == null)
@@ -334,10 +343,50 @@ public class HousingManager(
                         removedCount++;
                     }
                 }
+
+                // The kept doodad carries whatever offset it was saved with, and a house built while its
+                // attach point was still unresolved saved the house origin. The template is authoritative
+                // for bound doodads, so pull a drifted one back onto it.
+                if (matches.Count > 0 && RealignBoundDoodad(house, matches[0], bindingDoodad))
+                    realignedCount++;
             }
         }
 
-        Logger.Info($"Bound doodad reconciliation complete: {addedCount} added, {removedCount} duplicates removed.");
+        Logger.Info($"Bound doodad reconciliation complete: {addedCount} added, {removedCount} duplicates removed, {realignedCount} realigned.");
+    }
+
+    /// <summary>
+    /// Moves a bound doodad back onto the offset its house template gives it, and returns whether it moved.
+    /// </summary>
+    /// <remarks>
+    /// Bound doodads are fixtures rather than player-placed furniture, so the template offset is
+    /// authoritative and a saved one that disagrees is stale. This matters because the offset is
+    /// persisted: a house built while its attach point could not be resolved keeps that transform
+    /// indefinitely, leaving the doodad out of interaction range of where it is drawn.
+    /// <para>
+    /// Position and orientation are both compared, by <see cref="BoundDoodadAlignment"/>. A binding
+    /// whose attach point is unresolved is skipped entirely - see
+    /// <see cref="HousingBindingDoodad.HasResolvedPosition"/>.
+    /// </para>
+    /// </remarks>
+    private static bool RealignBoundDoodad(House house, Doodad doodad, HousingBindingDoodad binding)
+    {
+        // Nothing to align to. The saved transform is left exactly as it is rather than being overwritten
+        // with an offset the template does not actually define.
+        if (!binding.HasResolvedPosition || binding.Position is null)
+            return false;
+
+        var target = binding.Position;
+        if (!BoundDoodadAlignment.NeedsRealignment(doodad.Transform.Local.Position,
+                doodad.Transform.Local.Rotation, target))
+            return false;
+
+        Logger.Debug($"Reconcile: Realigning bound doodad templateId={binding.DoodadId} attachPoint={binding.AttachPointId} on house {house.Id}");
+        doodad.Transform.Local.ApplyWorldSpawnPositionWithDeg(target);
+        if (doodad.IsPersistent)
+            doodad.Save();
+
+        return true;
     }
 
     /// <summary>
