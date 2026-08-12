@@ -2,6 +2,7 @@
 using System.Numerics;
 using AAEmu.Game.GameData;
 using AAEmu.Game.IO;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Acts;
@@ -443,7 +444,7 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
         var worldLevelDesignDir = Path.Combine("game", "worlds", worldTemplate.Name, "level_design", "zone");
         var pathFiles = ClientFileManager.GetFilesInDirectory(worldLevelDesignDir, "quest_area_sphere.g", true);
 
-        // ClientData/pak may omit loose zone trees; also scan ZoneGameDataRoot / Server game.
+        // ClientData/pak may omit loose zone trees; also scan the configured ZoneGameDataRoot.
         foreach (var extra in EnumerateLooseQuestAreaSphereFiles(worldTemplate.Name))
         {
             if (!pathFiles.Contains(extra, StringComparer.OrdinalIgnoreCase))
@@ -586,8 +587,14 @@ public class SphereQuestManager(WorldInstance parent) : ISphereQuestManager
         }
 
         Offer(Environment.GetEnvironmentVariable("AAEMU_ZONE_GAME_DATA_ROOT"));
-        // World always uses Server/game (same tree dedic.bat loads). Never client\game.
-        Offer(@"G:\AAchina\Server\game");
+        Offer(AppConfiguration.Instance.ZoneGameDataRoot);
+        if (seen.Count == 0)
+        {
+            Logger.Error(
+                "ZoneGameDataRoot is not configured. Set World Config.ZoneGameDataRoot or AAEMU_ZONE_GAME_DATA_ROOT " +
+                "so quest_area_sphere.g can load from the extracted game data tree.");
+        }
+
         return seen;
     }
 

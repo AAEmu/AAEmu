@@ -53,6 +53,11 @@ public static class Program
         var appConfig = new WorldAppConfiguration();
         configuration.Bind(appConfig);
         WorldRuntime.Config = appConfig;
+        if (!string.IsNullOrWhiteSpace(appConfig.ZoneGameDataRoot) &&
+            string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("AAEMU_ZONE_GAME_DATA_ROOT")))
+        {
+            Environment.SetEnvironmentVariable("AAEMU_ZONE_GAME_DATA_ROOT", appConfig.ZoneGameDataRoot);
+        }
 
         ZoneNetwork.Instance.Start(appConfig.ZoneNetwork);
         if (appConfig.GameBridge.Enabled)
