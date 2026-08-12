@@ -20,11 +20,13 @@ public class LoginProtocolHandler : BaseProtocolHandler
 
     public override void OnConnect(ISession session)
     {
-        _lastPacket = null;
+        // Do not clear _lastPacket here: a rare race can deliver a complete frame before
+        // SetConnection publishes; deferral must survive until the body can be decoded.
         Logger.Info("Connect to {0} established, session id: {1}", session.Ip.ToString(), session.SessionId.ToString(CultureInfo.InvariantCulture));
         var con = new LoginConnection(session);
-        con.OnConnect();
+        session.AddAttribute("LoginConnection", con);
         LoginNetwork.Instance.SetConnection(con);
+        con.OnConnect();
 
         _loadTask = new LoadTask();
         TaskManager.Instance.Schedule(_loadTask, null, TimeSpan.FromMinutes(1));
@@ -34,6 +36,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
     {
         _lastPacket = null;
         Logger.Info("Connection to LoginServer has been lost");
+        session.ClearAttribute("LoginConnection");
         LoginNetwork.Instance.SetConnection(null);
         session.Close();
         if (_loadTask != null)
@@ -42,9 +45,7 @@ public class LoginProtocolHandler : BaseProtocolHandler
             _loadTask = null;
         }
 
-        // A disconnect during an intentional shutdown (Stop already cleared IsRunning) must not reconnect:
-        // the async disconnect callback runs after the DI IServiceProvider behind AppConfiguration.Instance
-        // is disposed, so Start() would throw ObjectDisposedException.
+        // Intentional Stop clears IsRunning; do not reconnect after DI teardown.
         if (!LoginNetwork.Instance.IsRunning)
             return;
 
@@ -53,7 +54,6 @@ public class LoginProtocolHandler : BaseProtocolHandler
 
     public override void OnReceive(ISession session, byte[] buf, int offset, int bytes)
     {
-        var connection = LoginNetwork.Instance.GetConnection();
         PacketStream? stream = new PacketStream();
         if (_lastPacket != null)
         {
@@ -73,8 +73,13 @@ public class LoginProtocolHandler : BaseProtocolHandler
                     Logger.Warn("Dropped invalid login-internal frame from {0}", session.Ip);
                     continue;
                 case LengthPrefixedFrameResult.GotFrame:
+                    var connection = ResolveConnection(session);
                     if (connection == null)
-                        continue;
+                    {
+                        // Keep framing progress; defer body until OnConnect publishes the connection.
+                        _lastPacket = PrependFrame(frame!, stream);
+                        return;
+                    }
                     frame!.ReadUInt16();
                     var type = frame.ReadUInt16();
                     _packets.TryGetValue(type, out var classType);
@@ -92,6 +97,22 @@ public class LoginProtocolHandler : BaseProtocolHandler
                     break;
             }
         }
+    }
+
+    private static LoginConnection ResolveConnection(ISession session)
+    {
+        if (session.GetAttribute("LoginConnection") is LoginConnection fromSession)
+            return fromSession;
+        return LoginNetwork.Instance.GetConnection();
+    }
+
+    private static PacketStream PrependFrame(PacketStream frame, PacketStream? remainder)
+    {
+        var combined = new PacketStream();
+        combined.Insert(0, frame);
+        if (remainder is { Count: > 0 })
+            combined.Insert(combined.Count, remainder);
+        return combined;
     }
 
     public void RegisterPacket(uint type, Type classType)

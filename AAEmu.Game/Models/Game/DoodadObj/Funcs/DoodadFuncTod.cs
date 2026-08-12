@@ -62,8 +62,9 @@ public class DoodadFuncTod : DoodadPhaseFuncTemplate
 
     public float GetClockHours()
     {
+        // Must match TimeManager wall-clock (UTC). Local Now disagrees near day boundaries.
         return IsRealtime
-            ? (float)DateTime.Now.TimeOfDay.TotalHours
+            ? (float)DateTime.UtcNow.TimeOfDay.TotalHours
             : TimeManager.Instance.GetTime;
     }
 

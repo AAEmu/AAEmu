@@ -14,6 +14,7 @@ public sealed class SCTowerDefActiveInfoListPacket(IReadOnlyList<TowerDefActiveI
     public override PacketStream Write(PacketStream stream)
     {
         var list = entries ?? Array.Empty<TowerDefActiveInfo>();
+        // Client "Size" field is a 32-bit count (unlike SCTowerDefListPacket's u8).
         stream.Write(list.Count);
         foreach (var entry in list)
             entry.Write(stream);
