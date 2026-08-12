@@ -73,8 +73,8 @@ public class SCCharacterStatePacket(Character character) : GamePacket(SCOffsets.
         for (var i = 0; i < 12; i++)
             stream.Write(0L);                               // instantTime[12]
 
-        stream.Write(0u);                                   // dailyLeadershipPoint
-        stream.Write(0L);                                   // lastDailyLeadershipPointTime
+        stream.Write(character.DailyLeadershipPoint);       // dailyLeadershipPoint
+        stream.Write(character.LastDailyLeadershipPointTime); // lastDailyLeadershipPointTime
         stream.Write(0u);                                   // dailyHonorWarPoint
         stream.Write(0L);                                   // dailyHonorWarPointDate
         stream.Write(0u);                                   // totalReportBadUser

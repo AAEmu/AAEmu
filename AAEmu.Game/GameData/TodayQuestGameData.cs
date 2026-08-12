@@ -37,6 +37,7 @@ public class TodayQuestGameData : Singleton<TodayQuestGameData>, IGameDataLoader
                     ItemId = reader.GetUInt32("item_id", 0),
                     ItemNum = reader.GetInt32("item_num", 0),
                     OrUnitReqs = reader.GetBoolean("or_unit_reqs", true),
+                    SortId = reader.GetInt32("sort_id", 0),
                     LevelMin = reader.GetInt32("level_min", 0),
                     LevelMax = reader.GetInt32("level_max", 0)
                 };

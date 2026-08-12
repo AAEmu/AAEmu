@@ -1,14 +1,14 @@
 using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units.Route;
+using AAEmu.Game.Models;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -80,7 +80,16 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
             // null-derefs on player-frame show. The reference sends it ~4s after NotifyInGame — see
             // CSNotifyInGamePacket.
 
-            Connection.SendPacket(new SCCharacterGamePointsPacket(character));
+            // Every copy of leadership the client keeps: the character sheet's two rows come from two
+            // different packets, and the peer-rating gate reads a third field that only SCHeroSeasonOff
+            // writes. The widgets call Update() once when the character window first builds them, so the
+            // values have to be in the client before then - the select burst is the last safe point.
+            HeroManager.SendLeadership(character);
+
+            // The hero roster of the player's nation. Nothing requests it - it is server-pushed - and
+            // X2Hero:IsHero() stays false until it arrives, which gates the Current Heroes tab, the Hero
+            // Missions tab, the Dominion tab and the siege commander controls.
+            HeroManager.Instance.Send(character);
             Connection.ActiveChar.Inventory.Send();
             // Reference emits prelim equipments here (after inventory contents) to initialize the client equipment
             // view before the player-frame renders.

@@ -59,8 +59,11 @@ public class FeaturesConfigTests
         foreach (var (name, enabled) in config.Flags)
             fset.Set(Enum.Parse<Feature>(name, true), enabled);
 
+        // The two bits that moved from the earlier baseline are hero and heroBonus, both now enabled:
+        // the client hides the Hero window, the peer-rating button and the mission board entirely while
+        // the hero feature bit is clear, so nothing of that system is reachable without them.
         await Assert.That(fset.ToString()).IsEqualTo(
-            "13 00 00 00 d0 09 21 00 00 0c 00 88 28 00 00 00 " +
-            "00 80 0a 10 00 80 80 00 04 34 00 10 01 e0 00");
+            "13 00 00 00 d0 09 21 00 00 0c 00 88 28 00 04 00 " +
+            "00 80 0a 11 00 80 80 00 04 34 00 10 01 e0 00");
     }
 }

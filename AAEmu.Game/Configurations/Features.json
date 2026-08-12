@@ -87,7 +87,11 @@
             // Account-security gates, off for development logins.
             "sensitiveOpeartion": false,
             "secondpass": false,
-            "itemSecure": false
+            "itemSecure": false,
+
+            // Hero configs
+            "hero": true,
+            "heroBonus": true
         }
     }
 }

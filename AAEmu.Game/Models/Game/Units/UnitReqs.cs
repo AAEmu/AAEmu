@@ -649,6 +649,38 @@ public class UnitReqs
                     Value1,
                     false);
 
+            // The Hero Throne in a capital's Hero Hall is the visible one: its sit skill carries a bare
+            // Hero requirement (values 0,0,0), so before this it failed with skill_urk_unknown and the
+            // chair simply did nothing. The three kinds are the same question asked three ways, so they
+            // share one answer rather than drifting apart.
+            //
+            // Value1 is a hero_grades rank when set - 1 Epherium through 4 Erenor - and 134 of the 153
+            // shipped rows leave it 0, meaning any grade. The 19 that set it are the per-grade hero
+            // costume pieces and three grade-4 skills. Treated as a minimum rather than an exact match:
+            // grades ascend, so the forgiving reading only ever affects whether a higher hero may use a
+            // lower grade's item, and refusing that would visibly block someone who outranks the
+            // requirement.
+            case UnitReqsKindType.Hero:
+                if (player == null || !HeroManager.Instance.IsHero(player.Id))
+                    return Ret(SkillResultKeys.skill_urk_hero, false);
+
+                // Value1 == 0 asks only "are you a hero", which is already answered. Checking the grade
+                // regardless would refuse a hero seated at grade 0, which Grant permits.
+                return Ret(SkillResultKeys.skill_urk_hero,
+                    Value1 == 0 || HeroManager.Instance.GradeOf(player.Id) >= Value1);
+
+            case UnitReqsKindType.NotHero:
+                return Ret(SkillResultKeys.skill_urk_not_hero,
+                    player != null && !HeroManager.Instance.IsHero(player.Id));
+
+            // Candidacy is a rank, not a flag - the top hero_conditions.hero_candidate_scope of the
+            // nation's ladder. Standing for election and serving are both disqualifying here.
+            case UnitReqsKindType.NotHeroNotCandidate:
+                return Ret(SkillResultKeys.skill_urk_not_hero,
+                    player != null
+                    && !HeroManager.Instance.IsHero(player.Id)
+                    && !HeroManager.Instance.IsCandidate(player));
+
             default:
                 return UnsupportedRequirement();
         }

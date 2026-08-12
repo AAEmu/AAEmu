@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Data;
 using System.Drawing;
 
@@ -393,6 +393,71 @@ public partial class Character : Unit, ICharacter
     public long BankAaPoint { get; set; }
     public int HonorPoint { get; set; }
     public int VocationPoint { get; set; }
+
+    /// <summary>
+    /// Leadership ("통솔력") earned in the CURRENT ranking period. This is what the hero leaderboard
+    /// sorts on, and what a period rollover resets. The gate the Hero system reads: hero_conditions
+    /// requires <c>votable_leadership_point</c> (500 in shipped data) to vote and
+    /// <c>hero_candidate_min_point</c> (also 500) to stand as a candidate. Also published in
+    /// <see cref="Core.Packets.G2C.SCTeamAskHandOverOwnerPacket"/> as the i32 <c>leadershipPoint</c>,
+    /// where it decides raid-leader handover (TeamOwnerHandoverReason.LeadershipPoint).
+    /// </summary>
+    /// <remarks>
+    /// Travels to the client as SCHeroSeasonInfo's <c>score</c>, and is the LEFT figure of the Hero
+    /// window's "Current Record: period/lifetime" pair and of every ranking row.
+    /// </remarks>
+    public int LeadershipPoint { get; set; }
+
+    /// <summary>
+    /// Leadership earned over the character's whole life. Never reset by a period rollover.
+    /// </summary>
+    /// <remarks>
+    /// Travels as SCHeroSeasonInfo's <c>leadership</c> and is the RIGHT figure of "Current Record".
+    /// Retail rows such as 3398/621999 are what make the split unmistakable: the ranking is ordered by
+    /// the left figure while the right one runs unordered beside it, which only works if the right is a
+    /// lifetime total. Named after the client's own term, accumulated_leadership_point.
+    ///
+    /// Only ever goes up alongside an award. It is deliberately not derived from the other two: once a
+    /// period rolls over more than once, current + previous stops being the lifetime sum.
+    /// </remarks>
+    public int AccumulatedLeadershipPoint { get; set; }
+
+    /// <summary>
+    /// Peer-rating standing. Raised by other players rating this character in a party or raid, and
+    /// converted into leadership at each Hero Qualification Evaluation, which then resets it.
+    /// </summary>
+    /// <remarks>
+    /// Not leadership itself, and deliberately a separate figure: leadership is the durable stat the
+    /// election reads, while this is the per-period input that decides how much of it you are paid.
+    /// </remarks>
+    public int Reputation { get; set; }
+
+    /// <summary>
+    /// The previous season's final leadership - a closed historical record, not a running total.
+    /// </summary>
+    /// <remarks>
+    /// The client shows this as its own "Last Season Leadership" row on the character sheet
+    /// (character_info_table.lua key <c>last_leadership_point</c>), fed by game-point slot 12 as
+    /// <c>periodLeadershipPointStr</c>. "Period" there means the completed period, which is the
+    /// opposite of what the name suggests - it was first implemented here as a running
+    /// current-period counter, and the client's own row label is what corrected it.
+    ///
+    /// Nothing but a season rollover should write it: current leadership is copied in and reset when a
+    /// leadership_ranking window closes. No HeroManager exists to run that yet, so today it only moves
+    /// via /leadership setlast.
+    /// </remarks>
+    public int LeadershipPeriodPoint { get; set; }
+
+    /// <summary>
+    /// Leadership earned since <see cref="LastDailyLeadershipPointTime"/>, for the retail daily cap.
+    /// Serialized in SCCharacterState; the cap itself is not enforced yet.
+    /// </summary>
+    public uint DailyLeadershipPoint { get; set; }
+
+    /// <summary>
+    /// When <see cref="DailyLeadershipPoint"/> last rolled over. <c>default</c> means "never accrued".
+    /// </summary>
+    public DateTime LastDailyLeadershipPointTime { get; set; }
 
     /// <summary>
     /// Body to restore when a CharTransformEffect polymorph ends. Set on the first transform only, so a
@@ -2941,6 +3006,12 @@ public partial class Character : Unit, ICharacter
                     character.TotalPlayTime = reader.GetUInt32("total_play_time");
                     character.CrimeRecord = reader.GetInt32("crime_record");
                     character.JuryPoint = reader.GetInt32("jury_point");
+                    character.LeadershipPoint = reader.GetInt32("leadership_point");
+                    character.LeadershipPeriodPoint = reader.GetInt32("leadership_period_point");
+                    character.AccumulatedLeadershipPoint = reader.GetInt32("accumulated_leadership_point");
+                    character.Reputation = reader.GetInt32("reputation");
+                    character.DailyLeadershipPoint = reader.GetUInt32("daily_leadership_point");
+                    character.LastDailyLeadershipPointTime = reader.GetDateTime("last_daily_leadership_point_time");
                     character.HostileFactionKills = reader.GetUInt32("hostile_faction_kills");
                     character.HonorGainedInCombat = reader.GetUInt32("pvp_honor");
                     character.DiedInPvp = reader.GetBoolean("died_in_pvp");
@@ -3065,6 +3136,12 @@ public partial class Character : Unit, ICharacter
                     character.TotalPlayTime = reader.GetUInt32("total_play_time");
                     character.CrimeRecord = reader.GetInt32("crime_record");
                     character.JuryPoint = reader.GetInt16("jury_point");
+                    character.LeadershipPoint = reader.GetInt32("leadership_point");
+                    character.LeadershipPeriodPoint = reader.GetInt32("leadership_period_point");
+                    character.AccumulatedLeadershipPoint = reader.GetInt32("accumulated_leadership_point");
+                    character.Reputation = reader.GetInt32("reputation");
+                    character.DailyLeadershipPoint = reader.GetUInt32("daily_leadership_point");
+                    character.LastDailyLeadershipPointTime = reader.GetDateTime("last_daily_leadership_point_time");
                     character.HostileFactionKills = reader.GetUInt32("hostile_faction_kills");
                     character.HonorGainedInCombat = reader.GetUInt32("pvp_honor");
                     character.DiedInPvp = reader.GetBoolean("died_in_pvp");
@@ -3329,6 +3406,7 @@ public partial class Character : Unit, ICharacter
                     "`world_id`,`zone_id`,`x`,`y`,`z`,`roll`,`pitch`,`yaw`," +
                     "`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`," +
                     "`money`,`money2`,`aa_point`,`bank_aa_point`,`honor_point`,`vocation_point`,`crime_point`,`crime_record`,`jury_point`," +
+                    "`leadership_point`,`leadership_period_point`,`accumulated_leadership_point`,`reputation`,`daily_leadership_point`,`last_daily_leadership_point_time`," +
                     "`hostile_faction_kills`,`pvp_honor`,`died_in_pvp`,`died_in_pvp_war_zone`," +
                     "`delete_request_time`,`transfer_request_time`,`delete_time`,`auto_use_aapoint`,`prev_point`,`point`,`gift`," +
                     "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`created_at`,`updated_at`,`return_district`,`online_time`,`total_play_time`,`privacy_status`," +
@@ -3342,6 +3420,7 @@ public partial class Character : Unit, ICharacter
                     "@world_id,@zone_id,@x,@y,@z,@yaw,@pitch,@roll," +
                     "@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time," +
                     "@money,@money2,@aa_point,@bank_aa_point,@honor_point,@vocation_point,@crime_point,@crime_record,@jury_point," +
+                    "@leadership_point,@leadership_period_point,@accumulated_leadership_point,@reputation,@daily_leadership_point,@last_daily_leadership_point_time," +
                     "@hostile_faction_kills,@pvp_honor,@died_in_pvp,@died_in_pvp_war_zone," +
                     "@delete_request_time,@transfer_request_time,@delete_time,@auto_use_aapoint,@prev_point,@point,@gift," +
                     "@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@created_at,@updated_at,@return_district,@online_time,@total_play_time,@privacy_status," +
@@ -3409,6 +3488,12 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@crime_point", CrimePoint);
                 command.Parameters.AddWithValue("@crime_record", CrimeRecord);
                 command.Parameters.AddWithValue("@jury_point", JuryPoint);
+                command.Parameters.AddWithValue("@leadership_point", LeadershipPoint);
+                command.Parameters.AddWithValue("@leadership_period_point", LeadershipPeriodPoint);
+                command.Parameters.AddWithValue("@accumulated_leadership_point", AccumulatedLeadershipPoint);
+                command.Parameters.AddWithValue("@reputation", Reputation);
+                command.Parameters.AddWithValue("@daily_leadership_point", DailyLeadershipPoint);
+                command.Parameters.AddWithValue("@last_daily_leadership_point_time", LastDailyLeadershipPointTime);
                 command.Parameters.AddWithValue("@hostile_faction_kills", HostileFactionKills);
                 command.Parameters.AddWithValue("@pvp_honor", HonorGainedInCombat);
                 command.Parameters.AddWithValue("@died_in_pvp", DiedInPvp);
@@ -3652,6 +3737,95 @@ public partial class Character : Unit, ICharacter
 
         // constructor initializes this reserved i16 field to zero as well.
         SendPacket(new SCCrimeChangedPacket(amount, CrimePoint, CrimeRecord, crimeScore: 0));
+    }
+
+    /// <summary>
+    /// Adds (or, with a negative <paramref name="amount"/>, removes) current leadership and returns the
+    /// new total.
+    /// </summary>
+    /// <remarks>
+    /// Touches the current total and the daily counter only. <see cref="LeadershipPeriodPoint"/> is
+    /// explicitly NOT moved: it is the closed record of the previous season, so an award earned today
+    /// must not rewrite history. The two are only ever connected at a season rollover, when the current
+    /// total is copied into it and reset - and that belongs in the HeroManager that runs the schedule,
+    /// not in an award path.
+    ///
+    /// Losses skip the daily counter: a negative amount must not credit it, or shedding and re-earning
+    /// leadership would burn a daily cap that was never granted (see
+    /// FormulaKind.LeadershipPointDecreaseForNationChange, the retail nation-change penalty).
+    ///
+    /// The daily counter rolls over on a UTC date change. Retail resets on a configured server hour;
+    /// there is no such schedule yet, so UTC midnight stands in and is the one thing to revisit when
+    /// HeroManager lands.
+    /// </remarks>
+    public int AddLeadership(int amount)
+    {
+        if (amount == 0)
+            return LeadershipPoint;
+
+        var now = DateTime.UtcNow;
+        if (LastDailyLeadershipPointTime.Date != now.Date)
+        {
+            DailyLeadershipPoint = 0;
+            LastDailyLeadershipPointTime = now;
+        }
+
+        LeadershipPoint = (int)Math.Clamp((long)LeadershipPoint + amount, 0L, int.MaxValue);
+
+        if (amount > 0)
+        {
+            // The lifetime total follows awards only. A loss reduces what you hold this period, but it
+            // cannot un-earn what was already earned - that is the whole point of keeping it separately.
+            AccumulatedLeadershipPoint = (int)Math.Clamp((long)AccumulatedLeadershipPoint + amount, 0L, int.MaxValue);
+            DailyLeadershipPoint = (uint)Math.Clamp((long)DailyLeadershipPoint + amount, 0L, uint.MaxValue);
+            LastDailyLeadershipPointTime = now;
+        }
+
+        return LeadershipPoint;
+    }
+
+    /// <summary>
+    /// Sets current leadership outright, leaving the previous season's record alone. Returns the new value.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not routed through <see cref="AddLeadership"/>: setting a total is an administrative
+    /// correction, not an award, so it must not inflate the daily counter.
+    /// </remarks>
+    public int SetLeadership(int value)
+    {
+        LeadershipPoint = Math.Max(0, value);
+        return LeadershipPoint;
+    }
+
+    /// <summary>
+    /// Sets the previous season's leadership record, leaving current leadership alone. Returns the new
+    /// value.
+    /// </summary>
+    /// <remarks>
+    /// Separate from <see cref="SetLeadership"/> on purpose. This value is a closed historical record -
+    /// the client shows it as its own "Last Season Leadership" row - so nothing that changes current
+    /// leadership should touch it. Writing it is only useful for seeding test data, and for the season
+    /// rollover once a HeroManager exists to perform one.
+    /// </remarks>
+    public int SetLastSeasonLeadership(int value)
+    {
+        LeadershipPeriodPoint = Math.Max(0, value);
+        return LeadershipPeriodPoint;
+    }
+
+    /// <summary>
+    /// Sets the lifetime leadership total outright, leaving the period figures alone. Returns the new
+    /// value.
+    /// </summary>
+    /// <remarks>
+    /// Separate for the same reason the others are: the three totals answer different questions and no
+    /// single edit is right for all of them. In normal play this only moves through
+    /// <see cref="AddLeadership"/>; setting it directly is for seeding test data.
+    /// </remarks>
+    public int SetAccumulatedLeadership(int value)
+    {
+        AccumulatedLeadershipPoint = Math.Max(0, value);
+        return AccumulatedLeadershipPoint;
     }
 
     /// <summary>

@@ -111,6 +111,18 @@ public sealed class GameService : IHostedService, IDisposable
         CharacterManager.Instance.CheckForDeletedCharacters();
         CharacterManager.Instance.StartOnlineTracking();
 
+        // After the deleted-character sweep, so a hero whose character was removed is not kept in memory.
+        HeroManager.Instance.Load();
+
+        // Reads its reward ladder from game data, then puts the Hero Qualification Evaluation on the
+        // clock. Scheduled here rather than earlier because the payout ranks characters and pays anyone
+        // online directly, so the world has to exist before the first tick can fire.
+        ReputationManager.Instance.Load();
+        ReputationManager.Instance.Initialize();
+
+        // After HeroManager.Load, because the first phase announcement pushes the roster with it.
+        HeroElectionManager.Instance.Initialize();
+
         GameNetwork.Instance.Start();
         StreamNetwork.Instance.Start();
         LoginNetwork.Instance.Start();

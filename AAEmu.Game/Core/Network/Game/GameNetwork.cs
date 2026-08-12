@@ -318,6 +318,11 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSRebuildHouseTaxInfoPacket, 1, typeof(CSRebuildHouseTaxInfoPacket));
         RegisterPacket(CSOffsets.CSInstantTimePacket, 1, typeof(CSInstantTimePacket));
         RegisterPacket(CSOffsets.CSHeroRankingListPacket, 1, typeof(CSHeroRankingListPacket));
+        // The Hero window sends this alongside the ranking request; unregistered it logged as
+        // "Unknown packet 0x1A8", which reads like a missing opcode when the opcode was already known.
+        // Answered with SCHeroAllScore, which feeds HERO_ALL_SCORE_UPDATED and the Mission Status tab -
+        // not the ranking spinner.
+        RegisterPacket(CSOffsets.CSHeroAllScorePacket, 1, typeof(CSHeroAllScorePacket));
         RegisterPacket(CSOffsets.CSQuizResponsePacket, 1, typeof(CSQuizResponsePacket));
         RegisterPacket(CSOffsets.CSIndunDirectTelPacket, 1, typeof(CSIndunDirectTelPacket));
         RegisterPacket(CSOffsets.CSVoteReputationPacket, 1, typeof(CSVoteReputationPacket));

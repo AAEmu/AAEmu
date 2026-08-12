@@ -30,6 +30,9 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
     /// <summary>Free mission re-rolls allowed per calendar day.</summary>
     private const uint MaxDailyResets = 3;
 
+    /// <summary>enum_today_quest_sorts row for the hero board, whose level range is a hero grade.</summary>
+    private const int HeroBoardSortId = 4;
+
     /// <summary>SCTodayAssignmentResetCount countType for personal daily schedule.</summary>
     private const uint PersonalResetCountType = 0x0B;
 
@@ -335,9 +338,26 @@ public class TodayAssignmentManager : Singleton<TodayAssignmentManager>
             return false;
         }
 
-        if (step.LevelMin > 0 && character.Level < step.LevelMin)
+        // The hero board bounds a HERO GRADE, not a character level, so comparing the level there refuses
+        // everyone: its three steps carry level_min 1 and level_max 4 - the whole grade range - and any
+        // level-55 hero is far outside that. The client makes the same distinction and takes the same
+        // branch (.text 0xb7ad4 reads the hero record's grade byte at +0x24 rather than the unit level)
+        // before it will even send the request, so matching it is what keeps the two in step.
+        var rank = step.SortId == HeroBoardSortId
+            ? HeroManager.Instance.GradeOf(character.Id)
+            : character.Level;
+
+        if (step.SortId == HeroBoardSortId && rank == 0)
+        {
+            if (log)
+                Logger.Info("TodayAssignment: realStep={0} is a hero step and {1} is not a hero", realStep, character.Name);
+
             return false;
-        if (step.LevelMax > 0 && character.Level > step.LevelMax)
+        }
+
+        if (step.LevelMin > 0 && rank < step.LevelMin)
+            return false;
+        if (step.LevelMax > 0 && rank > step.LevelMax)
             return false;
 
         return true;
