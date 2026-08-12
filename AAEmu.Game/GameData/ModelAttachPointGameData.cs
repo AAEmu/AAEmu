@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using System.Xml.Linq;
 
 using AAEmu.Commons.IO;
@@ -18,18 +18,24 @@ using NLog;
 namespace AAEmu.Game.GameData;
 
 /// <summary>
-/// Attach point offsets for every model housing and slaves bind doodads to, resolved from the client's own
-/// data instead of a hand-kept table.
+/// Attach point offsets for every model that housing and slaves bind doodads to, resolved from the shipped
+/// static data rather than from a hand-kept table.
 ///
-/// The chain is entirely in the shipped data:
-///   models.sub_id + sub_type  →  prefab_elements.file_path (PrefabModel) or
-///                                ship_models.normal / vehicle_models.normal (Ship/VehicleModel)
-///                             →  prefab://prefabs/&lt;lib&gt;.xml/&lt;prefab&gt;  →  game/prefabs/&lt;lib&gt;.xml
-///                             →  &lt;Object Type="Brush" Prefab="…cgf"&gt;
-///                             →  that cgf's '$' helper nodes, named by model_attach_point_strings.prefab
+/// The chain is entirely within that data: a model names a prefab, a prefab names the meshes it places and
+/// where it places them, and a mesh carries named helper nodes. An attach point is the helper whose name
+/// the attach point table gives it, expressed as an offset from the model.
 ///
-/// Reading ~900 meshes out of a 68 GB game_pak is not something to repeat every boot, so the resolved table
-/// is cached next to the other client data and rebuilt only when the pak changes.
+/// Invariants:
+///   - every element of a model's selected state contributes, since an attach point may be defined by any
+///     of them and reading a subset leaves points unresolved
+///   - a model that defines no helper for an attach point leaves it unresolved, which is distinct from
+///     resolving it to the origin
+///   - resolution is deterministic: elements are read in a fixed order, and a helper defined twice at
+///     different positions is reported rather than settled by enumeration order
+///
+/// Resolution is expensive, so the result is cached beside the other static data and rebuilt only when its
+/// inputs change: the configured static-data sources, or this resolver's format version, so that a change
+/// to what the resolver reads discards a cache that would otherwise still look current.
 /// </summary>
 [GameData]
 public class ModelAttachPointGameData : Singleton<ModelAttachPointGameData>, IGameDataLoader
@@ -38,10 +44,31 @@ public class ModelAttachPointGameData : Singleton<ModelAttachPointGameData>, IGa
 
     private const string CacheFileName = "model_attach_points.cache.json";
 
+    /// <summary>
+    /// Part of the cache identity. Bump it whenever resolution changes what it reads or how it merges,
+    /// so that caches produced under the previous rules are discarded rather than reused.
+    /// </summary>
+    private const int CacheFormatVersion = 2;
+
     private Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>> _attachPoints = [];
 
     /// <summary>Attach point id → the '$' helper name that carries it in a mesh.</summary>
     private Dictionary<AttachPointKind, string> _helperNames = [];
+
+    /// <summary>
+    /// The model state a resolved attach point belongs to: the one the state table names 'normal'.
+    /// </summary>
+    /// <remarks>
+    /// Read from the shipped state table rather than assumed, so the value follows the data. Models that
+    /// do not define it fall back to their lowest state, which is why this is a preference rather than a
+    /// filter - selecting on it alone would resolve nothing for those models.
+    /// </remarks>
+    private uint _normalModelStateId = DefaultNormalModelStateId;
+
+    /// <summary>Used only when the state table is missing or does not name a normal state.</summary>
+    private const uint DefaultNormalModelStateId = 1;
+
+    private const string NormalModelStateName = "normal";
 
     /// <summary>Parsed prefab libraries, held only while the cache is being built.</summary>
     private readonly Dictionary<string, Dictionary<string, List<(string Mesh, Vector3 Offset)>>> _prefabMeshCache =
@@ -56,6 +83,7 @@ public class ModelAttachPointGameData : Singleton<ModelAttachPointGameData>, IGa
     public void Load(SqliteConnection connection)
     {
         _attachPoints = [];
+        _normalModelStateId = LoadNormalModelStateId(connection);
         _helperNames = LoadHelperNames(connection);
         if (_helperNames.Count == 0)
         {
@@ -63,7 +91,7 @@ public class ModelAttachPointGameData : Singleton<ModelAttachPointGameData>, IGa
             return;
         }
 
-        var stamp = BuildClientDataStamp();
+        var stamp = BuildCacheStamp();
         if (TryLoadCache(stamp, out var cached))
         {
             _attachPoints = cached;
@@ -87,15 +115,18 @@ public class ModelAttachPointGameData : Singleton<ModelAttachPointGameData>, IGa
                 continue;
             }
 
-            // A house prefab is dozens of brushes — the building shells plus scenery. The attach helpers sit
-            // in the building meshes and can be spread across several of them, so every brush is read and the
-            // results merged, each shifted by where the prefab places that brush.
-            var helpers = new Dictionary<string, Vector3>(StringComparer.OrdinalIgnoreCase);
+            // Attach helpers may be spread across any of a model's meshes, so all of them contribute, each
+            // shifted by where its brush is placed. Order is fixed upstream so the merge is repeatable.
+            var candidates = new List<(string Name, Vector3 Position)>();
             foreach (var (meshPath, brushOffset) in brushes)
             {
                 foreach (var (name, local) in ReadMeshHelpers(meshPath))
-                    helpers.TryAdd(name, local + brushOffset);
+                    candidates.Add((name, local + brushOffset));
             }
+
+            var helpers = MergeHelpers(candidates, out var conflicts);
+            foreach (var conflict in conflicts)
+                Logger.Warn($"Model {modelId} defines attach helper {conflict} at more than one position; using the first");
 
             if (helpers.Count == 0)
                 continue;
@@ -135,6 +166,65 @@ public class ModelAttachPointGameData : Singleton<ModelAttachPointGameData>, IGa
     {
         var set = _attachPoints.GetValueOrDefault(modelId);
         return set != null && set.TryGetValue(attachPoint, out var pos) ? pos : null;
+    }
+
+    /// <summary>
+    /// The id of the state named <see cref="NormalModelStateName"/>, or
+    /// <see cref="DefaultNormalModelStateId"/> when the table cannot supply one.
+    /// </summary>
+    private static uint LoadNormalModelStateId(SqliteConnection connection)
+    {
+        try
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT id FROM enum_model_states WHERE name=@name";
+            command.Parameters.AddWithValue("@name", NormalModelStateName);
+            command.Prepare();
+            using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+            if (reader.Read())
+                return reader.GetUInt32("id", DefaultNormalModelStateId);
+        }
+        catch (Exception exception)
+        {
+            Logger.Warn(exception, "Could not read the model state table; assuming {0} is the normal state",
+                DefaultNormalModelStateId);
+        }
+
+        return DefaultNormalModelStateId;
+    }
+
+    /// <summary>
+    /// Combines helper definitions from every mesh of a model into one set, reporting any name defined at
+    /// more than one position.
+    /// </summary>
+    /// <remarks>
+    /// The first definition of a name wins, so the caller must supply <paramref name="candidates"/> in a
+    /// deterministic order or the resolved position becomes a function of enumeration order. A name that
+    /// appears again at a different position is a genuine ambiguity in the data rather than something to
+    /// resolve silently, so it is reported through <paramref name="conflicts"/>.
+    /// </remarks>
+    internal static Dictionary<string, Vector3> MergeHelpers(
+        IReadOnlyList<(string Name, Vector3 Position)> candidates, out List<string> conflicts)
+    {
+        const float samePositionTolerance = 0.0001f;
+
+        var merged = new Dictionary<string, Vector3>(StringComparer.OrdinalIgnoreCase);
+        var reported = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        conflicts = [];
+
+        foreach (var (name, position) in candidates)
+        {
+            if (merged.TryGetValue(name, out var existing))
+            {
+                if (Vector3.Distance(existing, position) > samePositionTolerance && reported.Add(name))
+                    conflicts.Add(name);
+                continue;
+            }
+
+            merged[name] = position;
+        }
+
+        return merged;
     }
 
     private static Dictionary<AttachPointKind, string> LoadHelperNames(SqliteConnection connection)
@@ -204,27 +294,52 @@ public class ModelAttachPointGameData : Singleton<ModelAttachPointGameData>, IGa
         if (subId == 0 || string.IsNullOrEmpty(subType))
             return [];
 
-        var uri = subType switch
+        // Invariant: every element of the model's selected state takes part in resolution. A model is
+        // described by several elements at once, and an attach point may be defined by any of them, so
+        // reading a subset silently leaves points unresolved.
+        //
+        // The state is the one named 'normal' where the model defines it, falling back to the lowest state
+        // present for models that do not. Ordering is explicit so that a repeated helper resolves the same
+        // way on every run.
+        var uris = subType switch
         {
-            "PrefabModel" => QueryScalar(connection,
-                "SELECT file_path AS uri FROM prefab_elements WHERE prefab_model_id=@id ORDER BY (state_id<>1), state_id LIMIT 1", subId),
-            "ShipModel" => QueryScalar(connection, "SELECT normal AS uri FROM ship_models WHERE id=@id", subId),
-            "VehicleModel" => QueryScalar(connection, "SELECT normal AS uri FROM vehicle_models WHERE id=@id", subId),
+            "PrefabModel" => QueryList(connection,
+                """
+                SELECT file_path AS uri FROM prefab_elements
+                 WHERE prefab_model_id=@id
+                   AND state_id = (SELECT state_id FROM prefab_elements
+                                    WHERE prefab_model_id=@id
+                                    ORDER BY (state_id<>@normalState), state_id
+                                    LIMIT 1)
+                 ORDER BY id
+                """, subId, _normalModelStateId),
+            "ShipModel" => QueryList(connection, "SELECT normal AS uri FROM ship_models WHERE id=@id", subId),
+            "VehicleModel" => QueryList(connection, "SELECT normal AS uri FROM vehicle_models WHERE id=@id", subId),
             // ActorModel is a character rig; its attach points are bones in a .chr, not helpers in a .cgf.
-            _ => null
+            _ => []
         };
 
-        return string.IsNullOrEmpty(uri) ? [] : ResolvePrefabUri(uri);
+        return [.. uris.SelectMany(ResolvePrefabUri)];
     }
 
-    private static string QueryScalar(SqliteConnection connection, string sql, uint id)
+    private static List<string> QueryList(SqliteConnection connection, string sql, uint id,
+        uint? normalState = null)
     {
+        var res = new List<string>();
         using var command = connection.CreateCommand();
         command.CommandText = sql;
         command.Parameters.AddWithValue("@id", id);
+        if (normalState.HasValue)
+            command.Parameters.AddWithValue("@normalState", normalState.Value);
         command.Prepare();
         using var reader = new SQLiteWrapperReader(command.ExecuteReader());
-        return reader.Read() ? reader.GetString("uri", string.Empty) : null;
+        while (reader.Read())
+        {
+            var uri = reader.GetString("uri", string.Empty);
+            if (!string.IsNullOrEmpty(uri))
+                res.Add(uri);
+        }
+        return res;
     }
 
     /// <summary>
@@ -359,24 +474,47 @@ public class ModelAttachPointGameData : Singleton<ModelAttachPointGameData>, IGa
     private static string CachePath => Path.Combine(FileManager.AppPath, "Data", CacheFileName);
 
     /// <summary>Identity of the client data behind the cache, so a new pak rebuilds it.</summary>
-    private static string BuildClientDataStamp()
+    /// <summary>
+    /// Identity of the currently loadable cache: this resolver's format version together with a
+    /// descriptor for each configured static-data source.
+    /// </summary>
+    private static string BuildCacheStamp() =>
+        ComposeCacheStamp(CacheFormatVersion, ClientFileManager.Sources.Select(DescribeSource));
+
+    /// <summary>
+    /// Builds the cache identity from its two inputs.
+    /// </summary>
+    /// <remarks>
+    /// The format version participates so that changing what the resolver reads discards a cache whose
+    /// sources are otherwise unchanged. Without it such a cache still matches, and the resolver keeps
+    /// serving results produced by the previous rules.
+    /// </remarks>
+    internal static string ComposeCacheStamp(int formatVersion, IEnumerable<string> sourceDescriptors) =>
+        string.Join(";", new[] { $"v{formatVersion}" }.Concat(sourceDescriptors));
+
+    /// <summary>
+    /// Whether a cache carrying <paramref name="cachedStamp"/> may be used now. Any difference rebuilds:
+    /// the stamp is an identity, not a version to compare for order.
+    /// </summary>
+    internal static bool IsCacheCurrent(string cachedStamp, string currentStamp) =>
+        !string.IsNullOrEmpty(cachedStamp) && string.Equals(cachedStamp, currentStamp, StringComparison.Ordinal);
+
+    /// <summary>
+    /// Describes one configured source well enough that replacing it changes the cache identity.
+    /// </summary>
+    private static string DescribeSource(ClientSource source)
     {
-        var parts = new List<string>();
-        foreach (var source in ClientFileManager.Sources)
+        try
         {
-            try
-            {
-                var info = new FileInfo(source.PathName);
-                parts.Add(info.Exists
-                    ? $"{source.PathName}|{info.Length}|{info.LastWriteTimeUtc:O}"
-                    : $"{source.PathName}|dir");
-            }
-            catch
-            {
-                parts.Add(source.PathName);
-            }
+            var info = new FileInfo(source.PathName);
+            return info.Exists
+                ? $"{source.PathName}|{info.Length}|{info.LastWriteTimeUtc:O}"
+                : $"{source.PathName}|dir";
         }
-        return string.Join(";", parts);
+        catch
+        {
+            return source.PathName;
+        }
     }
 
     private static bool TryLoadCache(string stamp, out Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>> data)
@@ -390,9 +528,9 @@ public class ModelAttachPointGameData : Singleton<ModelAttachPointGameData>, IGa
             var cache = JsonConvert.DeserializeObject<CacheFile>(File.ReadAllText(CachePath));
             if (cache?.Models == null || cache.Models.Count == 0)
                 return false;
-            if (!string.Equals(cache.Stamp, stamp, StringComparison.Ordinal))
+            if (!IsCacheCurrent(cache.Stamp, stamp))
             {
-                Logger.Info("Client data changed since the attach point cache was written; rebuilding");
+                Logger.Info("Attach point cache no longer matches its inputs; rebuilding");
                 return false;
             }
 
