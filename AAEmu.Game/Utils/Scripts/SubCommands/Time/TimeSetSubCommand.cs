@@ -27,15 +27,12 @@ public class TimeSetSubCommand : SubCommandBase
         var oldSnap = oldTime;
         TimeManager.Instance.Set(newTime);
 
-        var forward = newTime - oldSnap;
-        if (forward < 0f)
-            forward += 24f;
-        if (forward > 0.25f)
+        if (TimeManager.IsLargeGameHourJump(oldSnap, newTime))
         {
             SendMessage(messageOutput,
                 $"Changed game time {oldSnap:F2} -> {newTime:F2} ({hour}h{minute}m). " +
-                "Large jump: only Event-Center rifts near the landing hour auto-arm " +
-                "(e.g. set 0 1 for Grimghast). Prefer /towerdef start <id> for a force arm.");
+                "Large jump: only Event-Center rifts near the landing hour auto-arm. " +
+                "Prefer /towerdef start <id> for a force arm.");
         }
         else
             SendMessage(messageOutput, $"Changed game time {oldSnap:F2} -> {newTime:F2} ({hour}h{minute}m)");
