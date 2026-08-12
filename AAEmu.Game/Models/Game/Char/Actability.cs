@@ -1,3 +1,4 @@
+using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Char.Templates;
 
 namespace AAEmu.Game.Models.Game.Char;
@@ -8,6 +9,26 @@ public class Actability(ActabilityTemplate template)
     public ActabilityTemplate Template { get; set; } = template;
     public int Point { get; set; }
     public byte Step { get; set; }
+
+    /// <summary>
+    /// Writes this actability as the entry every packet that carries one uses.
+    /// </summary>
+    /// <remarks>
+    /// Schema: <c>packed(id, point)</c> followed by <c>u8 step</c>. Id and point share one packed block,
+    /// so the entry is not a fixed width and neither field can be written on its own - a reader takes the
+    /// pair together. Point is published unsigned and is clamped at zero rather than wrapping.
+    /// <para>
+    /// This lives here rather than in a packet because more than one packet sends it, as a single entry
+    /// and as a list element, and they have to agree: an entry written a field short is not skipped, it
+    /// mis-frames everything after it in the body.
+    /// </para>
+    /// </remarks>
+    public PacketStream Write(PacketStream stream)
+    {
+        stream.WritePisc(Id, (uint)Math.Max(0, Point));
+        stream.Write(Step);
+        return stream;
+    }
 
     // Values for 1.2, not sure about the XP multiplier, might not have existed back then
     //                                                Rank    0      1      2      3      4      5      6      7

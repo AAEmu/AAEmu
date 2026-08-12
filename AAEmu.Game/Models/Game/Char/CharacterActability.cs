@@ -117,7 +117,7 @@ public class CharacterActability(Character owner)
             actability.Point = Math.Min(actability.Point, targetTemplate.UpLimit);
         }
 
-        Owner.SendPacket(new SCExpertLimitModifiedPacket(isUpgrade, id, actability.Step));
+        Owner.SendPacket(new SCExpertLimitModifiedPacket(isUpgrade, actability));
         return true;
     }
 
