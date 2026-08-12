@@ -57,8 +57,13 @@ public class CSBuyItemsPacket() : GamePacket(CSOffsets.CSBuyItemsPacket, 1)
             "BuyItems npc={0}, doodad={1}, shopType={2}, buys={3}, buybacks={4}, useAAPoint={5}, openType={6}",
             npcObjId, doodadObjId, shopType, buyCount, buybackCount, useAaPoint, openType);
 
-        var pack = ResolveMerchantPack(character, npcObjId, doodadObjId);
-        if (pack == null || shopType != (uint)pack.Kind)
+        // shopType is store state the client copies straight out of the shop window it has open; it is
+        // not the pack's merchandise kind (an honor shop still sends 0), so there is nothing here worth
+        // validating. The pack comes from the world object or the open type instead.
+        var pack = npcObjId == 0 && doodadObjId == 0
+            ? ResolveUiMerchantPack(openType)
+            : ResolveWorldMerchantPack(character, npcObjId, doodadObjId);
+        if (pack == null)
             return;
 
         var purchases = new List<Purchase>(requestedGoods.Count);
@@ -71,7 +76,12 @@ public class CSBuyItemsPacket() : GamePacket(CSOffsets.CSBuyItemsPacket, 1)
             var good = pack.GetItem(request.ItemId, request.Grade);
             if (good == null || good.Currency != request.Currency ||
                 ItemManager.Instance.GetTemplate(request.ItemId) == null)
+            {
+                Logger.Debug(
+                    "BuyItems rejected: pack {0} has no offer matching item {1}, grade {2}, currency {3}",
+                    pack.Id, request.ItemId, request.Grade, request.Currency);
                 return;
+            }
 
             if (!TryAddCost(costs, good.Currency, good.Cost, request.Count))
                 return;
@@ -140,7 +150,7 @@ public class CSBuyItemsPacket() : GamePacket(CSOffsets.CSBuyItemsPacket, 1)
                     ItemTaskType.StoreBuy,
                     purchase.Good.ItemTemplateId,
                     purchase.Count,
-                    purchase.Good.Grade))
+                    purchase.Good.GrantedGrade))
             {
                 Logger.Error(
                     "Authoritative merchant acquisition failed after preflight for character {0}, item {1}, count {2}",
@@ -170,9 +180,28 @@ public class CSBuyItemsPacket() : GamePacket(CSOffsets.CSBuyItemsPacket, 1)
             Connection.SendPacket(new SCUpdateMerchantGoodLimitPurchasePacket(updatedPurchaseStates));
     }
 
-    private static MerchantGoods ResolveMerchantPack(Character character, uint npcObjId, uint doodadObjId)
+    /// <summary>
+    /// Pack behind a shop the client opened from its own UI — the honor shop on the character sheet, the
+    /// arena shop — which sends no npc and no doodad, only an open type. The open type is client-supplied
+    /// and is not evidence of anything on its own, so an unmapped one is refused rather than resolved from
+    /// the request: the configured mapping is what establishes that the shop exists and may be bought from.
+    /// </summary>
+    private static MerchantGoods ResolveUiMerchantPack(byte openType)
     {
-        if ((npcObjId == 0) == (doodadObjId == 0))
+        var pack = NpcManager.Instance.GetUiShopGoods(openType);
+        if (pack == null)
+        {
+            Logger.Warn(
+                "BuyItems rejected: UI shop open type {0} has no entry in Data/ui_merchant_shops.json",
+                openType);
+        }
+
+        return pack;
+    }
+
+    private static MerchantGoods ResolveWorldMerchantPack(Character character, uint npcObjId, uint doodadObjId)
+    {
+        if (npcObjId != 0 && doodadObjId != 0)
             return null;
 
         if (npcObjId != 0)
@@ -229,7 +258,7 @@ public class CSBuyItemsPacket() : GamePacket(CSOffsets.CSBuyItemsPacket, 1)
         var incoming = purchases
             .Select(purchase => (
                 ItemTemplateId: purchase.Good.ItemTemplateId,
-                Grade: purchase.Good.Grade,
+                Grade: purchase.Good.GrantedGrade,
                 Count: purchase.Count))
             .Concat(buybacks.Select(item => (
                 ItemTemplateId: item.TemplateId,
