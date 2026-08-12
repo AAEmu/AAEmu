@@ -11,7 +11,13 @@ public class TowerDefScheduleTests
     /// <summary>Kraken: one populated slot (Tuesday 21:30), a one-hour window.</summary>
     private static TowerDef Kraken()
     {
-        var towerDef = new TowerDef { Id = 152, Name = "크라켄의 출현", ForceEndTime = 3600f };
+        var towerDef = new TowerDef
+        {
+            Id = 152,
+            Name = "크라켄의 출현",
+            ForceEndTime = 3600f,
+            ScheduleMode = TowerDefScheduleMode.WallClock
+        };
         towerDef.StartTimes[(int)DayOfWeek.Tuesday] = new TimeSpan(21, 30, 0);
         return towerDef;
     }
@@ -90,7 +96,10 @@ public class TowerDefScheduleTests
         TimeOfDay = tod,
         TimeOfDayDayInterval = 1,
         TargetNpcSpawnId = 9846,
-        ForceEndTime = 3600f
+        ForceEndTime = 3600f,
+        Family = TowerDefEventFamily.Crimson,
+        Variant = TowerDefEventVariant.Expand,
+        ScheduleMode = TowerDefScheduleMode.GameTime
     };
 
     private static TowerDef CrimsonBase(float tod = 0f) => new()
@@ -100,7 +109,10 @@ public class TowerDefScheduleTests
         TimeOfDay = tod,
         TimeOfDayDayInterval = 1,
         TargetNpcSpawnId = 9846,
-        ForceEndTime = 3600f
+        ForceEndTime = 3600f,
+        Family = TowerDefEventFamily.Crimson,
+        Variant = TowerDefEventVariant.Base,
+        ScheduleMode = TowerDefScheduleMode.Manual
     };
 
     private static TowerDef GrimghastBase(float tod = 0f) => new()
@@ -110,7 +122,10 @@ public class TowerDefScheduleTests
         TimeOfDay = tod,
         TimeOfDayDayInterval = 1,
         TargetNpcSpawnId = 14335,
-        ForceEndTime = 3600f
+        ForceEndTime = 3600f,
+        Family = TowerDefEventFamily.Grimghast,
+        Variant = TowerDefEventVariant.Base,
+        ScheduleMode = TowerDefScheduleMode.GameTime
     };
 
     private static TowerDef GrimghastExpand(float tod = 0.1f) => new()
@@ -120,11 +135,14 @@ public class TowerDefScheduleTests
         TimeOfDay = tod,
         TimeOfDayDayInterval = 1,
         TargetNpcSpawnId = 14335,
-        ForceEndTime = 3600f
+        ForceEndTime = 3600f,
+        Family = TowerDefEventFamily.Grimghast,
+        Variant = TowerDefEventVariant.Expand,
+        ScheduleMode = TowerDefScheduleMode.Manual
     };
 
     [Test]
-    public async Task IsGameTimeScheduled_RequiresTodIntervalSpawnerAndRiftName()
+    public async Task IsGameTimeScheduled_RequiresTypedModeIntervalAndSpawner()
     {
         await Assert.That(CrimsonExpand().IsGameTimeScheduled).IsTrue();
 
@@ -136,10 +154,15 @@ public class TowerDefScheduleTests
         var noSpawner = CrimsonExpand();
         noSpawner.TargetNpcSpawnId = 0;
         await Assert.That(noSpawner.IsGameTimeScheduled).IsFalse();
+
+        // Same name as Crimson expand, but Manual mode — must not auto-arm from display text.
+        var manual = CrimsonExpand();
+        manual.ScheduleMode = TowerDefScheduleMode.Manual;
+        await Assert.That(manual.IsGameTimeScheduled).IsFalse();
     }
 
     [Test]
-    public async Task IsGameTimeScheduled_CinderstoneYnystere_NightGrimghast_DayCrimsonExpand()
+    public async Task IsGameTimeScheduled_UsesSemanticFieldsNotDisplayNames()
     {
         // Midnight: Grimghast base only — not base Crimson (legacy tod=0) or Grimghast expand.
         await Assert.That(GrimghastBase().IsGameTimeScheduled).IsTrue();
@@ -151,20 +174,20 @@ public class TowerDefScheduleTests
 
         var ynystereGrim = GrimghastBase();
         ynystereGrim.Id = 15;
-        ynystereGrim.Name = "전장의 안개(이니스테르)";
+        ynystereGrim.Name = "renamed-without-korean-markers";
         ynystereGrim.TargetNpcSpawnId = 14441;
         await Assert.That(ynystereGrim.IsGameTimeScheduled).IsTrue();
 
         var ynystereCrim = CrimsonExpand();
         ynystereCrim.Id = 172;
-        ynystereCrim.Name = "징조의 틈 확장 (이니스테르)";
+        ynystereCrim.Name = "also-renamed";
         ynystereCrim.TargetNpcSpawnId = 8939;
         await Assert.That(ynystereCrim.IsGameTimeScheduled).IsTrue();
 
         // Event Center: Crimson Rift (Auroria) triangle at game hour 18.
         var auroriaCrim = CrimsonExpand(18f);
         auroriaCrim.Id = 173;
-        auroriaCrim.Name = "징조의 틈 확장 (원대륙)";
+        auroriaCrim.Name = "auroria-renamed";
         auroriaCrim.TargetNpcSpawnId = 9998;
         await Assert.That(auroriaCrim.IsGameTimeScheduled).IsTrue();
         await Assert.That(auroriaCrim.CrossedGameStartHour(17.9f, 18.1f)).IsTrue();

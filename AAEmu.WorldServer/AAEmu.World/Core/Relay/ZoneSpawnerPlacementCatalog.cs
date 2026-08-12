@@ -28,7 +28,7 @@ public static partial class ZoneSpawnerPlacementCatalog
         if (zoneId == 0 || spawnerType == 0)
             return [];
 
-        var all = ByZone.GetOrAdd(zoneId, LoadZone);
+        var all = GetAll(zoneId);
         if (all.Count == 0)
             return [];
 
@@ -42,6 +42,14 @@ public static partial class ZoneSpawnerPlacementCatalog
         }
 
         return match ?? [];
+    }
+
+    /// <summary>All placements for a zone (empty when ZoneGameDataRoot / file is unavailable).</summary>
+    public static IReadOnlyList<SpawnerPlacement> GetAll(uint zoneId)
+    {
+        if (zoneId == 0)
+            return [];
+        return ByZone.GetOrAdd(zoneId, LoadZone);
     }
 
     public static void Invalidate(uint zoneId = 0)
@@ -61,14 +69,9 @@ public static partial class ZoneSpawnerPlacementCatalog
             return [];
         }
 
-        var path = ResolveSpawnerFile(zoneId, world.Name);
+        var path = ZoneGameDataRootResolver.TryResolveNpcSpawnersFile(zoneId, world.Name);
         if (path is null)
-        {
-            Logger.Warn(
-                "ZoneSpawnerPlacementCatalog: no npc_spawners.g zoneId={0} world={1}",
-                zoneId, world.Name);
             return [];
-        }
 
         var list = ParsePlacements(path);
         Logger.Info(
@@ -77,42 +80,12 @@ public static partial class ZoneSpawnerPlacementCatalog
         return list;
     }
 
-    private static string? ResolveSpawnerFile(uint zoneId, string worldName)
+    /// <summary>Parse placements from an absolute <c>npc_spawners.g</c> path (tests / tooling).</summary>
+    public static IReadOnlyList<SpawnerPlacement> ParseFile(string path)
     {
-        foreach (var root in EnumerateGameRoots())
-        {
-            var path = Path.Combine(
-                root,
-                "worlds",
-                worldName,
-                "level_design",
-                "zone",
-                zoneId.ToString(CultureInfo.InvariantCulture),
-                "zone_server",
-                "npc_spawners.g");
-            if (File.Exists(path))
-                return Path.GetFullPath(path);
-        }
-
-        return null;
-    }
-
-    private static IEnumerable<string> EnumerateGameRoots()
-    {
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        void Offer(string? candidate)
-        {
-            if (string.IsNullOrWhiteSpace(candidate))
-                return;
-            var full = Path.GetFullPath(candidate.Trim());
-            if (Directory.Exists(full))
-                seen.Add(full);
-        }
-
-        Offer(WorldRuntime.Config.ZoneGameDataRoot);
-        Offer(Environment.GetEnvironmentVariable("AAEMU_ZONE_GAME_DATA_ROOT"));
-        Offer(@"G:\AAchina\Server\game");
-        return seen;
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+            throw new FileNotFoundException("npc_spawners.g not found", path);
+        return ParsePlacements(path);
     }
 
     private static List<SpawnerPlacement> ParsePlacements(string path)

@@ -267,19 +267,9 @@ public static partial class ZoneNpcSpawnerCatalog
     private static IEnumerable<string> EnumerateGameRoots()
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        void Offer(string? candidate)
-        {
-            if (string.IsNullOrWhiteSpace(candidate))
-                return;
-            var full = Path.GetFullPath(candidate.Trim());
-            if (Directory.Exists(full))
-                seen.Add(full);
-        }
-
-        Offer(WorldRuntime.Config.ZoneGameDataRoot);
-        Offer(Environment.GetEnvironmentVariable("AAEMU_ZONE_GAME_DATA_ROOT"));
-        // World always uses Server/game (same tree dedic.bat loads). Never client\game.
-        Offer(@"G:\AAchina\Server\game");
+        var root = ZoneGameDataRootResolver.TryGetRoot();
+        if (root != null)
+            seen.Add(root);
         return seen;
     }
 

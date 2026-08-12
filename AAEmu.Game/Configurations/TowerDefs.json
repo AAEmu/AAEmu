@@ -1,0 +1,15 @@
+{
+  "TowerDefs": {
+    "GameTimeAutoArm": [
+      { "Id": 13, "Family": "Grimghast", "Variant": "Base" },
+      { "Id": 15, "Family": "Grimghast", "Variant": "Base" },
+      { "Id": 28, "Family": "Oblivion", "Variant": "Base" },
+      { "Id": 29, "Family": "Clockwork", "Variant": "Base" },
+      { "Id": 31, "Family": "Oblivion", "Variant": "Base" },
+      { "Id": 32, "Family": "Clockwork", "Variant": "Base" },
+      { "Id": 171, "Family": "Crimson", "Variant": "Expand" },
+      { "Id": 172, "Family": "Crimson", "Variant": "Expand" },
+      { "Id": 173, "Family": "Crimson", "Variant": "Expand" }
+    ]
+  }
+}

@@ -25,6 +25,26 @@ public static class ServerCalendar
         }
     }
 
-    /// <summary>True when <paramref name="utc"/> is at or after the first moment of the current UTC day.</summary>
-    public static bool IsBeforeToday(DateTime utcMoment) => utcMoment.ToUniversalTime().Date < TodayUtc;
+    /// <summary>
+    /// Normalize a persisted timestamp to UTC without treating <see cref="DateTimeKind.Unspecified"/>
+    /// as local (MySQL readers often materialize UTC columns as Unspecified).
+    /// </summary>
+    public static DateTime AsUtc(DateTime value) =>
+        value.Kind switch
+        {
+            DateTimeKind.Utc => value,
+            DateTimeKind.Local => value.ToUniversalTime(),
+            _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+        };
+
+    /// <summary>True when <paramref name="moment"/> is strictly before the current UTC calendar day.</summary>
+    public static bool IsBeforeToday(DateTime moment) => AsUtc(moment).Date < TodayUtc;
+
+    /// <summary>Monday 00:00 UTC of the week containing <paramref name="moment"/>.</summary>
+    public static DateTime WeekStartMondayContaining(DateTime moment)
+    {
+        var day = AsUtc(moment).Date;
+        var offset = ((int)day.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+        return day.AddDays(-offset);
+    }
 }

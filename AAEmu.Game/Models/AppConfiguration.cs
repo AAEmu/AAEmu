@@ -61,6 +61,7 @@ public partial class AppConfiguration
     public SpecialtyConfig Specialty { get; set; } = new();
     public UccConfig Ucc { get; set; } = new();
     public FeaturesConfig Features { get; set; } = new();
+    public TowerDefsConfig TowerDefs { get; set; } = new();
     public InitialConfig InitialConfig { get; set; } = new();
     public LevelRestrictionConfig LevelRestrictions { get; set; } = new();
     public ScriptsConfig Scripts { get; set; } = new();
