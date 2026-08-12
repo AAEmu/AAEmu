@@ -1065,11 +1065,9 @@ public partial class Npc : Unit
     }
 
     /// <summary>
-    /// flood (~150 at once) Quit'd — AOI+MAX prevent that, not artificial 1/s drip.
     /// AAEMU_DISABLE_MIRROR_NPC=1 | AAEMU_MIRROR_NPC_MAX=N (default 50; 0=unlimited) |
     /// AAEMU_MIRROR_NPC_BURST=N (0=flush all/tick) | AAEMU_MIRROR_NPC_INTERVAL_MS (0=off) |
-    /// AAEMU_MIRROR_NPC_AOI=metres | AAEMU_MIRROR_NPC_GRACE_MS |
-    /// AAEMU_MIRROR_PRIORITY_TPL=8828,8830 (tower/event rifts steal MAX slots).
+    /// AAEMU_MIRROR_NPC_AOI=metres | AAEMU_MIRROR_NPC_GRACE_MS
     /// </summary>
     public static readonly bool DisableMirrorNpcStreaming =
         System.Environment.GetEnvironmentVariable("AAEMU_DISABLE_MIRROR_NPC") == "1";
@@ -1088,37 +1086,11 @@ public partial class Npc : Unit
     public static readonly float MirrorStreamPriorityAoiRadiusSq = ParseMirrorStreamPriorityAoiRadiusSq();
 
     /// <summary>
-    /// Event NPCs (any tower_def portal / wave / kill-target template) that must paint even when
-    /// ambient mirrors filled MAX first. Base seed list + env <c>AAEMU_MIRROR_PRIORITY_TPL</c>
-    /// still work; full coverage comes from <see cref="TowerDefGameData.IsTowerDefEventNpc"/>.
+    /// Event NPCs from loaded tower-def relationships that must paint even when ambient mirrors
+    /// filled MAX first. Returns false until <see cref="TowerDefGameData"/> has loaded.
     /// </summary>
-    private static readonly HashSet<uint> MirrorStreamPriorityTemplates = BuildMirrorStreamPriorityTemplates();
-
     public bool IsMirrorStreamPriority =>
-        IsZoneMirror &&
-        (MirrorStreamPriorityTemplates.Contains(TemplateId) ||
-         TowerDefGameData.Instance.IsTowerDefEventNpc(TemplateId));
-
-    private static HashSet<uint> BuildMirrorStreamPriorityTemplates()
-    {
-        // Hardcoded seeds so priority works before / if GameData index is empty.
-        var set = new HashSet<uint>
-        {
-            8828, 8830, 12911, 12720, 12859, 12728, 12729, 12718, 12901, 12719, 12902
-        };
-        var extra = System.Environment.GetEnvironmentVariable("AAEMU_MIRROR_PRIORITY_TPL");
-        if (!string.IsNullOrWhiteSpace(extra))
-        {
-            foreach (var part in extra.Split(',',
-                         StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                if (uint.TryParse(part, out var id) && id != 0)
-                    set.Add(id);
-            }
-        }
-
-        return set;
-    }
+        IsZoneMirror && TowerDefGameData.Instance.IsTowerDefEventNpc(TemplateId);
 
     private static int ParseMirrorNpcMax()
     {

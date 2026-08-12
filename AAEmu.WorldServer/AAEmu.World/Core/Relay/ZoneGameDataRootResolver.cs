@@ -8,43 +8,62 @@ namespace AAEmu.World.Core.Relay;
 /// </summary>
 public static class ZoneGameDataRootResolver
 {
+    public const string EnvVarName = "AAEMU_ZONE_GAME_DATA_ROOT";
+
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private static bool _missingRootWarned;
 
     /// <summary>
-    /// Configured root directory, or null when unset / missing on disk.
-    /// Prefer <see cref="WorldRuntime.Config.ZoneGameDataRoot"/>; env
-    /// <c>AAEMU_ZONE_GAME_DATA_ROOT</c> is an explicit override for ops.
+    /// Existing directory for zone level files, or null when unset / missing on disk.
+    /// <see cref="EnvVarName"/> is an explicit override and is tried first; then
+    /// <see cref="WorldRuntime.Config.ZoneGameDataRoot"/>. Invalid paths are skipped so the
+    /// remaining candidate can still apply.
     /// </summary>
     public static string? TryGetRoot()
     {
-        var candidates = new[]
-        {
+        var root = Resolve(
+            Environment.GetEnvironmentVariable(EnvVarName),
             WorldRuntime.Config?.ZoneGameDataRoot,
-            Environment.GetEnvironmentVariable("AAEMU_ZONE_GAME_DATA_ROOT")
-        };
+            Directory.Exists);
 
-        foreach (var candidate in candidates)
+        if (root is null && !_missingRootWarned)
+        {
+            _missingRootWarned = true;
+            Logger.Error(
+                "ZoneGameDataRoot is not configured. Set World Config.ZoneGameDataRoot (or {0}) " +
+                "to the extracted game data root that contains worlds/.../zone_server/npc_spawners.g",
+                EnvVarName);
+        }
+
+        return root;
+    }
+
+    /// <summary>
+    /// Resolve a root from an env override then a configured path. Invalid or missing candidates
+    /// are skipped so a later valid candidate can still apply.
+    /// </summary>
+    public static string? Resolve(string? envOverride, string? configuredRoot, Func<string, bool> directoryExists)
+    {
+        foreach (var candidate in new[] { envOverride, configuredRoot })
         {
             if (string.IsNullOrWhiteSpace(candidate))
                 continue;
 
-            var full = Path.GetFullPath(candidate.Trim());
-            if (Directory.Exists(full))
+            string full;
+            try
+            {
+                full = Path.GetFullPath(candidate.Trim());
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "ZoneGameDataRoot candidate is not a valid path: {0}", candidate);
+                continue;
+            }
+
+            if (directoryExists(full))
                 return full;
 
-            Logger.Error(
-                "ZoneGameDataRoot configured but directory missing: {0}",
-                full);
-            return null;
-        }
-
-        if (!_missingRootWarned)
-        {
-            _missingRootWarned = true;
-            Logger.Error(
-                "ZoneGameDataRoot is not configured. Set World Config.ZoneGameDataRoot (or AAEMU_ZONE_GAME_DATA_ROOT) " +
-                "to the extracted game data root that contains worlds/.../zone_server/npc_spawners.g");
+            Logger.Error("ZoneGameDataRoot candidate missing: {0}", full);
         }
 
         return null;

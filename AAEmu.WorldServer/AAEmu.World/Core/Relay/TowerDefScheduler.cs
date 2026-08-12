@@ -1,4 +1,5 @@
 using AAEmu.Game;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
@@ -56,12 +57,6 @@ public static class TowerDefScheduler
     private static bool _primed;
 
     public static int RunningCount { get { lock (Sync) return Running.Count; } }
-
-    /// <summary>
-    /// Max forward game-hours allowed in one <see cref="OnGameTimeAdvanced"/> callback.
-    /// Must match <c>TimeManager</c> large-jump threshold.
-    /// </summary>
-    private const float MaxGameTimeArmJumpHours = 0.25f;
 
     private static bool GameTimeTowersDisabled =>
         Environment.GetEnvironmentVariable("AAEMU_DISABLE_GAME_TIME_TOWERS") == "1";
@@ -122,12 +117,11 @@ public static class TowerDefScheduler
         if (GameTimeTowersDisabled)
             return;
 
-        var jump = ForwardHourDelta(oldHour, newHour);
-        if (jump > MaxGameTimeArmJumpHours)
+        if (TimeManager.IsLargeGameHourJump(oldHour, newHour))
         {
             Logger.Warn(
-                "OnGameTimeAdvanced skipped tower arms for large jump {0:F2}→{1:F2} (Δ={2:F2}h) — use /towerdef start",
-                oldHour, newHour, jump);
+                "OnGameTimeAdvanced skipped tower arms for large jump {0:F2}→{1:F2} — use /towerdef start",
+                oldHour, newHour);
             return;
         }
 
@@ -144,7 +138,7 @@ public static class TowerDefScheduler
                     wall, game);
             }
 
-            // Bases (tod=0) before expands (tod=0.1) so portal mutex can keep the first owner.
+            // Earlier TimeOfDay first so a shared portal keeps the first owner.
             foreach (var towerDef in TowerDefGameData.Instance.GetGameTimeScheduledTowerDefs()
                          .OrderBy(t => t.TimeOfDay)
                          .ThenBy(t => t.Id))
@@ -162,18 +156,6 @@ public static class TowerDefScheduler
                     $"game ToD {oldHour:F2}→{newHour:F2} crossed tod={towerDef.TimeOfDay:F2}");
             }
         }
-    }
-
-    private static float ForwardHourDelta(float from, float to)
-    {
-        from %= 24f;
-        to %= 24f;
-        if (from < 0f) from += 24f;
-        if (to < 0f) to += 24f;
-        var d = to - from;
-        if (d < 0f)
-            d += 24f;
-        return d;
     }
 
     /// <summary>Drop playability cache rows for a disconnected zone.</summary>
@@ -377,10 +359,8 @@ public static class TowerDefScheduler
                 QueryPlayability(zone, towerDef.Id);
         }
 
-        // Ship data has base+expand pairs on the same portal sType (13/174 → 14335, 3/171 → 9846).
-        // Auto-arm must not thrash two WZTowerDefStart on one placement — expand at tod=0.1
-        // (not noon; noon 171 is Crimson expand) was removing the live portal ~60s later.
-        // Manual ForceStart reclaims via End of the other owner first.
+        // Auto-arm must not start a second event on a portal spawner another run already owns.
+        // Identity is target_npc_spawner_id (loaded relationship). Manual ForceStart reclaims first.
         if (!manual &&
             towerDef.TargetNpcSpawnId != 0 &&
             TryFindRunningPortalOwner(towerDef.TargetNpcSpawnId, out var ownerId) &&

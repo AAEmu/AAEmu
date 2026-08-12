@@ -3,6 +3,7 @@ using System.Collections.Concurrent;
 using AAEmu.Game;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.World.Core.Network;
 using AAEmu.World.Core.Packets.Wz;
@@ -28,9 +29,8 @@ public class NpcSpawnRelay
 
     /// <summary>
     /// ObjectIds pending delayed free after ZWRemove. Dedicate ProcessFreeUnits is deferred;
-    /// reusing the same bc the next second causes Create collisions (DataMap / unit table) and
-    /// SCUnitsRemoved flashes on tower rifts (bc reused for 8828 while the old body still moves).
-    /// Hold matches mate id release (default 60s). Override: <c>AAEMU_ZONE_OBJID_HOLD_MS</c>.
+    /// reusing the same bc immediately causes Create collisions. Hold matches mate id release
+    /// (default 60s). Override: <c>AAEMU_ZONE_OBJID_HOLD_MS</c>.
     /// </summary>
     private static readonly ConcurrentDictionary<uint, byte> PendingObjectIdReleases = new();
 
@@ -55,30 +55,8 @@ public class NpcSpawnRelay
     private static readonly bool DisableFlyState =
         Environment.GetEnvironmentVariable("AAEMU_DISABLE_WZ_FLY_STATE") == "1";
 
-    /// <summary>
-    /// Always log these sTypes (retail event seeds: Crimson/Grimghast portals + waves).
-    /// Env <c>AAEMU_ZW_SPAWN_TRACE_TYPES=9846,14335</c> extends the set.
-    /// </summary>
-    private static readonly HashSet<uint> TraceSpawnerTypes = BuildTraceSpawnerTypes();
-
-    /// <summary>sType → emit count (process lifetime). Used to prove OnEvent→ZW for event arms.</summary>
+    /// <summary>sType → emit count (process lifetime).</summary>
     private static readonly ConcurrentDictionary<uint, long> SpawnerTypeEmits = new();
-
-    private static HashSet<uint> BuildTraceSpawnerTypes()
-    {
-        var set = new HashSet<uint> { 9846, 9848, 9849, 9865, 9866, 14335, 14133, 14122, 14280, 23862, 23868, 23869 };
-        var extra = Environment.GetEnvironmentVariable("AAEMU_ZW_SPAWN_TRACE_TYPES");
-        if (!string.IsNullOrWhiteSpace(extra))
-        {
-            foreach (var part in extra.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
-            {
-                if (uint.TryParse(part, out var id) && id != 0)
-                    set.Add(id);
-            }
-        }
-
-        return set;
-    }
 
     private static ulong MarkerKey(uint zoneId, uint bcId) => ((ulong)zoneId << 32) | bcId;
 
@@ -167,10 +145,8 @@ public class NpcSpawnRelay
 
         // Event OnEvent may emit non-78 B bodies; surface those for seed sTypes.
         ZwSpawnNpcParser.TryPeekIds(raw, out var peekSid, out var peekType);
-        var eventSpawner = peekType != 0 &&
-                           AAEmu.Game.GameData.TowerDefGameData.Instance.IsTowerDefEventSpawner(peekType);
-        var tracePeek = peekType != 0 && (TraceSpawnerTypes.Contains(peekType) || eventSpawner);
-        if (parsed == null && (tracePeek || raw is { Length: > 0 and not ZwSpawnNpcParser.AmbientBodyLength }))
+        var eventSpawner = peekType != 0 && TowerDefGameData.Instance.IsTowerDefEventSpawner(peekType);
+        if (parsed == null && (eventSpawner || raw is { Length: > 0 and not ZwSpawnNpcParser.AmbientBodyLength }))
         {
             Logger.Warn(
                 "ZWSpawnNpc REJECT zoneId={0} len={1} sid={2} sType={3} hex={4}",
@@ -187,8 +163,7 @@ public class NpcSpawnRelay
             connection.SendPacket(new WZNpcSpawnFailedPacket(raw));
             NpcScheduleGate.CountSuppressed(
                 connection.ZoneId, parsed.SpawnerId, parsed.SpawnerType, parsed.TemplateId);
-            if (TraceSpawnerTypes.Contains(parsed.SpawnerType) ||
-                AAEmu.Game.GameData.TowerDefGameData.Instance.IsTowerDefEventSpawner(parsed.SpawnerType))
+            if (TowerDefGameData.Instance.IsTowerDefEventSpawner(parsed.SpawnerType))
             {
                 Logger.Warn(
                     "ZWSpawnNpc GATECLOSED zoneId={0} sid={1} sType={2} tpl={3} pos=({4:F1},{5:F1},{6:F1})",
@@ -205,10 +180,8 @@ public class NpcSpawnRelay
         if (parsed != null)
         {
             var typeTotal = SpawnerTypeEmits.AddOrUpdate(parsed.SpawnerType, 1, (_, n) => n + 1);
-            var isTdEvent =
-                AAEmu.Game.GameData.TowerDefGameData.Instance.IsTowerDefEventSpawner(parsed.SpawnerType);
-            var trace = TraceSpawnerTypes.Contains(parsed.SpawnerType) || isTdEvent;
-            if (trace || typeTotal <= 2 || _hexDumps < 3
+            var isTdEvent = TowerDefGameData.Instance.IsTowerDefEventSpawner(parsed.SpawnerType);
+            if (isTdEvent || typeTotal <= 2 || _hexDumps < 3
                 || raw.Length != ZwSpawnNpcParser.AmbientBodyLength)
             {
                 if (_hexDumps < 3)
@@ -236,7 +209,7 @@ public class NpcSpawnRelay
         else
         {
             _mirrorFail++;
-            if (_hexDumps < 3 || tracePeek)
+            if (_hexDumps < 3 || eventSpawner)
             {
                 if (_hexDumps < 3)
                     _hexDumps++;
@@ -415,9 +388,7 @@ public class NpcSpawnRelay
     }
 
     /// <summary>
-    /// Birds and other fliers only hold altitude once Zone knows they fly: the flag reaches
-    /// CryAI as bFlyingCreature / b3DMove, and until then living-entity physics free-falls them
-    /// (observed on Falcony hawks — Z dropped at ~9.8 m/s² and snapped back to spawn on a loop).
+    /// Push flying state to Zone after Create so altitude is simulated server-side.
     /// </summary>
     private void TrySendFlyingState(ZoneConnection connection, uint bcId, uint templateId)
     {
@@ -428,17 +399,17 @@ public class NpcSpawnRelay
         {
             if (WorldIntegration.FindUnitAcrossWorlds(bcId) is not Npc npc)
             {
-                if (IsEventFlyingTemplate(templateId))
+                if (TowerDefGameData.Instance.IsTowerDefEventNpc(templateId))
                     Logger.Warn("WZUnitFlyingState skip bc={0} tpl={1}: mirror not found", bcId, templateId);
                 return;
             }
 
             if (!npc.CanFly)
             {
-                if (IsEventFlyingTemplate(templateId) || npc.IsMirrorStreamPriority)
+                if (npc.IsMirrorStreamPriority)
                 {
                     Logger.Info(
-                        "WZUnitFlyingState skip bc={0} tpl={1}: CanFly=false (event/priority mirror)",
+                        "WZUnitFlyingState skip bc={0} tpl={1}: CanFly=false (priority mirror)",
                         bcId, templateId);
                 }
 
@@ -447,8 +418,7 @@ public class NpcSpawnRelay
 
             connection.SendPacket(new WZUnitFlyingStateChangedPacket(bcId, true));
             var sent = Interlocked.Increment(ref _flyStateOk);
-            // Always log first few, every 50th, and every known tower seed template.
-            if (sent <= 5 || sent % 50 == 0 || IsEventFlyingTemplate(templateId) || npc.IsMirrorStreamPriority)
+            if (sent <= 5 || sent % 50 == 0 || npc.IsMirrorStreamPriority)
             {
                 Logger.Info(
                     "WZUnitFlyingState #{0} → zone {1} zoneId={2} bc={3} tpl={4} flying=true",
@@ -459,11 +429,7 @@ public class NpcSpawnRelay
         {
             Logger.Warn(ex, "WZUnitFlyingState failed bc={0} tpl={1}", bcId, templateId);
         }
-    }
-
-    /// <summary>Crimson/Grimghast portal + wave seeds — always log fly success/skip.</summary>
-    private static bool IsEventFlyingTemplate(uint templateId) =>
-        templateId is 8828 or 8830 or 12911 or 4175;
+        }
 
     public void OnRemove(ZoneConnection connection, byte[] raw)
     {

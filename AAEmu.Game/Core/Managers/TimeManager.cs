@@ -1,6 +1,7 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.World;
 
 using NLog;
 
@@ -10,10 +11,10 @@ namespace AAEmu.Game.Core.Managers;
 /// Shared in-game day cycle (hours 0–24) for clients, Game-Time schedules, and open-world zone seeds.
 /// </summary>
 /// <remarks>
-/// Seamless main_world dedicades do not ZW-report ToD (retail type-3 / server-type 3). World owns
-/// the shared day math and WZ-seeds only <c>main_world</c> zones. Instance maps (type 2) run a
-/// local clock: join seed noon, then ZW 0x1D/0x1E for clients currently in that zone — never
-/// rebasing this manager. Wall UTC (dailies / Server Time events) is a separate clock.
+/// Seamless open-world dedicades do not report ToD. World owns the shared day math and seeds only
+/// zones that belong to the default world template. Other world templates keep a local clock
+/// (join seed noon, then zone reports for clients in that instance) and must not rebase this manager.
+/// Wall UTC (dailies / Server Time events) is a separate clock.
 /// </remarks>
 public class TimeManager : Singleton<TimeManager>, ITimeManager
 {
@@ -25,28 +26,42 @@ public class TimeManager : Singleton<TimeManager>, ITimeManager
     public const float DefaultGameHourSpeed = 0.0016666f;
 
     /// <summary>
-    /// Retail-typical instance start hour (dungeons begin near noon then progress).
-    /// Fixed-noon places (e.g. Mirage) snap themselves via dedicate speed=0 afterward.
+    /// Typical instance start hour (dungeons begin near noon then progress).
+    /// Fixed-noon places snap themselves via dedicate speed=0 afterward.
     /// </summary>
     public const float InstanceDefaultStartHour = 12.0f;
 
     /// <summary>
-    /// Seamless open world uses the shared day; every other world template has its own ToD.
-    /// Matches dedicate server-type 3 = <c>main_world</c> only.
+    /// Max forward game-hours allowed in one tick before world-effect cascades and Game-Time
+    /// tower arms are skipped. Shared by <c>TowerDefScheduler</c>.
+    /// </summary>
+    public const float MaxWorldEffectJumpHours = 0.25f;
+
+    /// <summary>
+    /// Shared game-day is owned by the default (open-world) world template.
+    /// Unknown or not-yet-loaded zones fail closed (instance-local clock).
     /// </summary>
     public static bool ZoneUsesSharedGameDay(uint zoneId)
     {
         var world = WorldManager.Instance?.GetWorldTemplateByZoneKey(zoneId);
-        if (world == null)
-            return true;
-        return string.Equals(world.Name, "main_world", StringComparison.OrdinalIgnoreCase);
+        return UsesSharedGameDay(world, WorldManager.DefaultWorldTemplateId);
     }
 
     /// <summary>
-    /// GM snaps and other large jumps skip world-effect cascades (doodad ToD phases overran
-    /// stack when /time set jumped many hours at once).
+    /// True only for the default world template. Instance worlds and a missing lookup fail closed.
     /// </summary>
-    private const float MaxWorldEffectJumpHours = 0.25f;
+    public static bool UsesSharedGameDay(WorldTemplate world, uint defaultWorldTemplateId)
+    {
+        if (world == null)
+            return false;
+        if (world.XmlWorld is { IsInstance: > 0 })
+            return false;
+        return world.Id == defaultWorldTemplateId;
+    }
+
+    /// <summary>True when the forward 24h-circle delta exceeds <see cref="MaxWorldEffectJumpHours"/>.</summary>
+    public static bool IsLargeGameHourJump(float oldHours, float newHours) =>
+        ForwardHourDelta(oldHours, newHours) > MaxWorldEffectJumpHours;
 
     private const float SecondsPerDay = 86400f;
     private const double ClientBroadcastSeconds = 10.0;
@@ -251,15 +266,13 @@ public class TimeManager : Singleton<TimeManager>, ITimeManager
             return;
 
         var jump = ForwardHourDelta(oldTime, newTime);
-        var largeJump = jump > MaxWorldEffectJumpHours;
+        var largeJump = IsLargeGameHourJump(oldTime, newTime);
 
         if (!allowWorldEffects)
             return;
 
-        // Large GM snaps: do NOT cascade every tower between old and new (Grimghast+noon
-        // Crimson+Oblivion at once from wrap math). Still arm events whose ToD sits in a short
-        // trail behind the *landing* hour — so `/time set 0 5` from afternoon starts Grimghast
-        // without faking a 12 h continuous advance. Doodad ToD phases stay skipped on large jumps.
+        // Large snaps skip doodad ToD cascades. Game-Time arms use a short landing window so a
+        // GM hour set does not fire every crossing between the old and new hour.
         if (largeJump)
         {
             if (gameBucketChanged)

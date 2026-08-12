@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Text;
 
 using AAEmu.Commons.Cryptography;
-using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Managers.World;
@@ -129,38 +128,26 @@ public class GameProtocolHandler : BaseProtocolHandler
                 connection.LastPacket = null;
             }
             stream.Insert(stream.Count, buf, offset, bytes);
-            while (stream is { Count: > 0 })
+            PacketStream? pending = stream;
+            while (pending is { Count: > 0 })
             {
-                ushort len;
-                try
+                PacketStream stream2;
+                int packetLen;
+                switch (LengthPrefixedFrames.TryTake(ref pending, LengthPrefixedFrames.MinOpcodePayloadBytes, out var frame))
                 {
-                    len = stream.ReadUInt16();
-                }
-                catch (MarshalException)
-                {
-                    //Logger.Warn("Error on reading type {0}", type);
-                    stream.Rollback();
-                    connection.LastPacket = stream;
-                    stream = null;
-                    continue;
-                }
-                var packetLen = len + stream.Pos;
-                if (packetLen <= stream.Count)
-                {
-                    stream.Rollback();
-                    var stream2 = new PacketStream();
-                    stream2.Replace(stream, 0, packetLen);
-                    if (stream.Count > packetLen)
+                    case LengthPrefixedFrameResult.NeedMore:
+                        connection.LastPacket = pending;
+                        return;
+                    case LengthPrefixedFrameResult.DroppedInvalidLength:
+                        Logger.Warn("Dropped invalid CS frame from {0}", connection.Ip);
+                        continue;
+                    case LengthPrefixedFrameResult.GotFrame:
                     {
-                        var stream3 = new PacketStream();
-                        stream3.Replace(stream, packetLen, stream.Count - packetLen);
-                        stream = stream3;
-                    }
-                    else
-                        stream = null;
-                    stream2.ReadUInt16(); //len
-                    stream2.ReadByte(); //unk
-                    var level = stream2.ReadByte();
+                        stream2 = frame!;
+                        packetLen = stream2.Count;
+                        stream2.ReadUInt16(); //len
+                        stream2.ReadByte(); //unk
+                        var level = stream2.ReadByte();
 
                     //byte crc = 0;
                     //byte counter = 0;
@@ -231,12 +218,9 @@ public class GameProtocolHandler : BaseProtocolHandler
                             Logger.Warn("C2S dispatch of 0x{0:X3} ({1}) threw: {2}", type, classType.Name, ex.Message);
                         }
                     }
-                }
-                else
-                {
-                    stream.Rollback();
-                    connection.LastPacket = stream;
-                    stream = null;
+
+                        break;
+                    }
                 }
             }
         }

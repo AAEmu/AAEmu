@@ -677,9 +677,7 @@ public class CharacterQuests(Character owner)
             ResetWeeklyQuests(false);
     }
 
-    /// <summary>
-    /// Clears completed daily-detail quests (Crimson, Grimghast, daily hunt/group/livelihood, today contracts, …).
-    /// </summary>
+    /// <summary>Clears completed daily-detail quests.</summary>
     public void ResetDailyQuests(bool sendPacketsIfChanged)
     {
         ResetQuests(QuestCalendarResetSet.Daily, sendPacketsIfChanged);
