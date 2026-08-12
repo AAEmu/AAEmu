@@ -1,4 +1,3 @@
-using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.World.Core.Relay;
@@ -34,49 +33,34 @@ public class GameBridgeProtocolHandler : BaseProtocolHandler
     public override void OnReceive(ISession session, byte[] buf, int offset, int bytes)
     {
         var stream = new PacketStream();
-        if (_buffers.TryGetValue(session.SessionId, out var pending))
+        if (_buffers.TryGetValue(session.SessionId, out var leftover))
         {
-            stream.Insert(0, pending);
+            stream.Insert(0, leftover);
             _buffers.Remove(session.SessionId);
         }
 
         stream.Insert(stream.Count, buf, offset, bytes);
 
-        while (stream is { Count: > 0 })
+        PacketStream? cursor = stream;
+        while (cursor is { Count: > 0 })
         {
-            ushort len;
-            try
+            switch (LengthPrefixedFrames.TryTake(ref cursor, LengthPrefixedFrames.MinOpcodePayloadBytes, out var frame))
             {
-                len = stream.ReadUInt16();
+                case LengthPrefixedFrameResult.NeedMore:
+                    if (cursor != null)
+                        _buffers[session.SessionId] = cursor;
+                    return;
+                case LengthPrefixedFrameResult.DroppedInvalidLength:
+                    Logger.Warn("Dropped invalid game-bridge frame from {0}", session.Ip);
+                    continue;
+                case LengthPrefixedFrameResult.GotFrame:
+                    frame!.ReadUInt16();
+                    var opcode = frame.ReadUInt16();
+                    var bodyLen = frame.Count - frame.Pos;
+                    var body = bodyLen > 0 ? frame.ReadBytes(bodyLen) : [];
+                    Handle(opcode, body);
+                    break;
             }
-            catch (MarshalException)
-            {
-                stream.Rollback();
-                _buffers[session.SessionId] = stream;
-                return;
-            }
-
-            var packetLen = len + stream.Pos;
-            if (packetLen > stream.Count)
-            {
-                stream.Rollback();
-                _buffers[session.SessionId] = stream;
-                return;
-            }
-
-            stream.Rollback();
-            var frame = new PacketStream();
-            frame.Replace(stream, 0, packetLen);
-            stream = stream.Count > packetLen
-                ? new PacketStream().Replace(stream.Buffer, packetLen, stream.Count - packetLen)
-                : null;
-
-            frame.ReadUInt16();
-            var opcode = frame.ReadUInt16();
-            var bodyLen = packetLen - 4;
-            var body = bodyLen > 0 ? frame.ReadBytes(bodyLen) : [];
-
-            Handle(opcode, body);
         }
     }
 

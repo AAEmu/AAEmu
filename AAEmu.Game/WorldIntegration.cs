@@ -1070,10 +1070,8 @@ public static class WorldIntegration
     }
 
     /// <summary>
-    /// WorldInstance that owns a zone. Mirrors and doodad pushes must target it rather than
-    /// MainWorld: zone 260 (arche_mall_world) mirrored into main_world, so its NPCs landed
-    /// nowhere near the player's own instance and region interest streamed no SCUnitState —
-    /// Mirage Isle looked completely empty.
+    /// WorldInstance that owns a zone. Mirrors and doodad pushes must target that instance,
+    /// not always MainWorld.
     /// </summary>
     public static Models.Game.World.WorldInstance ResolveWorldForZone(uint zoneId)
     {

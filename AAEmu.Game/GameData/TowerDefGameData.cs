@@ -32,8 +32,12 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
     /// <summary>NpcGroup id → member npc template ids (kill quotas + wave groups).</summary>
     private Dictionary<uint, HashSet<uint>> _npcGroupMembers = [];
 
+    /// <summary>True after <see cref="Load"/> finishes. Lookups fail closed until then.</summary>
+    public bool IsLoaded { get; private set; }
+
     public void Load(SqliteConnection connection)
     {
+        IsLoaded = false;
         _towerDefs = [];
         _towerDefProgs = [];
         _eventSpawnerTemplateIds = [];
@@ -294,74 +298,44 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
         _npcGroupMembers = groupMembers;
         _priorityNpcTemplateIds = priorityNpcs;
         ApplyScheduleMetadata();
+        IsLoaded = true;
     }
 
     /// <summary>
-    /// Assign Family / Variant / ScheduleMode from StartTimes + <c>Configurations/TowerDefs.json</c>.
-    /// Unknown GameTimeAutoArm ids are logged; classification never uses display names.
+    /// Assign ScheduleMode from weekday StartTimes plus <c>TowerDefs.GameTimeAutoArmIds</c>.
+    /// Unknown or stale overlay ids are logged; classification never uses display names.
     /// </summary>
     private void ApplyScheduleMetadata()
     {
-        foreach (var towerDef in _towerDefs.Values)
-        {
-            towerDef.Family = TowerDefEventFamily.Unspecified;
-            towerDef.Variant = TowerDefEventVariant.Unspecified;
-            towerDef.ScheduleMode = towerDef.IsScheduled
-                ? TowerDefScheduleMode.WallClock
-                : TowerDefScheduleMode.Manual;
-        }
-
-        var entries = Models.AppConfiguration.Instance.TowerDefs?.GameTimeAutoArm;
-        if (entries == null || entries.Count == 0)
-        {
-            NLog.LogManager.GetCurrentClassLogger().Error(
-                "TowerDefs.GameTimeAutoArm is empty — Event Center Game Time auto-arm will not run. " +
-                "Add entries under Configurations/TowerDefs.json");
-            return;
-        }
-
+        var ids = Models.AppConfiguration.Instance.TowerDefs?.GameTimeAutoArmIds ?? [];
+        var result = TowerDefScheduleMetadata.Apply(_towerDefs.Values, ids);
         var log = NLog.LogManager.GetCurrentClassLogger();
-        foreach (var entry in entries)
+
+        if (ids.Count == 0)
         {
-            if (entry.Id == 0)
-                continue;
-            if (!_towerDefs.TryGetValue(entry.Id, out var towerDef))
-            {
-                log.Error(
-                    "TowerDefs.GameTimeAutoArm references unknown tower_defs.id={0}",
-                    entry.Id);
-                continue;
-            }
+            log.Error(
+                "TowerDefs.GameTimeAutoArmIds is empty — Event Center Game Time auto-arm will not run. " +
+                "Add tower_defs.id values under Configurations/TowerDefs.json");
+        }
 
-            if (!Enum.TryParse<TowerDefEventFamily>(entry.Family, ignoreCase: true, out var family) ||
-                family == TowerDefEventFamily.Unspecified)
-            {
-                log.Error(
-                    "TowerDefs.GameTimeAutoArm id={0} has invalid Family '{1}'",
-                    entry.Id, entry.Family);
-                continue;
-            }
+        foreach (var id in result.UnknownIds)
+            log.Error("TowerDefs.GameTimeAutoArmIds references unknown tower_defs.id={0}", id);
 
-            if (!Enum.TryParse<TowerDefEventVariant>(entry.Variant, ignoreCase: true, out var variant) ||
-                variant == TowerDefEventVariant.Unspecified)
-            {
-                log.Error(
-                    "TowerDefs.GameTimeAutoArm id={0} has invalid Variant '{1}'",
-                    entry.Id, entry.Variant);
-                continue;
-            }
+        foreach (var id in result.WallClockConflicts)
+            log.Warn("TowerDefs.GameTimeAutoArmIds id={0} also has weekday StartTimes — keeping WallClock", id);
 
-            if (towerDef.IsScheduled)
-            {
-                log.Warn(
-                    "TowerDefs.GameTimeAutoArm id={0} also has weekday StartTimes — keeping WallClock",
-                    entry.Id);
-                continue;
-            }
+        foreach (var id in result.UnlistedToDCandidates)
+        {
+            log.Warn(
+                "tower_defs.id={0} has tod_day_interval and a seed spawner but is not in GameTimeAutoArmIds — staying Manual",
+                id);
+        }
 
-            towerDef.Family = family;
-            towerDef.Variant = variant;
-            towerDef.ScheduleMode = TowerDefScheduleMode.GameTime;
+        foreach (var id in result.IneligibleIds)
+        {
+            log.Error(
+                "TowerDefs.GameTimeAutoArmIds id={0} is missing tod_day_interval or target_npc_spawner_id — staying Manual",
+                id);
         }
     }
 
@@ -378,14 +352,14 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
     /// day-night gating must not suppress ZW that dedic announced because of TowerDef Start/Wave.
     /// </summary>
     public bool IsTowerDefEventSpawner(uint spawnerTemplateId) =>
-        spawnerTemplateId != 0 && _eventSpawnerTemplateIds.Contains(spawnerTemplateId);
+        IsLoaded && spawnerTemplateId != 0 && _eventSpawnerTemplateIds.Contains(spawnerTemplateId);
 
     /// <summary>
     /// True for tower portal/stage (and wave-spawner group) members that must keep priority stream
-    /// paint. Kill-quota infantry are excluded on purpose.
+    /// paint. Kill-quota infantry are excluded on purpose. Returns false until <see cref="Load"/> completes.
     /// </summary>
     public bool IsTowerDefEventNpc(uint npcTemplateId) =>
-        npcTemplateId != 0 && _priorityNpcTemplateIds.Contains(npcTemplateId);
+        IsLoaded && npcTemplateId != 0 && _priorityNpcTemplateIds.Contains(npcTemplateId);
 
     /// <summary>
     /// Direct <c>Npc</c> members of a tower portal/wave spawner template (e.g. 9846 → 8828).

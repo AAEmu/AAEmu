@@ -1,6 +1,5 @@
 ﻿using System.Collections.Concurrent;
 using System.Text;
-using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Game.Core.Network.Connections;
@@ -78,56 +77,33 @@ public class StreamProtocolHandler : BaseProtocolHandler
             }
 
             stream.Insert(stream.Count, buf, offset, bytes);
-            while (stream != null && stream.Count > 0)
+            PacketStream? pending = stream;
+            while (pending is { Count: > 0 })
             {
-                ushort len;
-                try
+                switch (LengthPrefixedFrames.TryTake(ref pending, LengthPrefixedFrames.MinOpcodePayloadBytes, out var frame))
                 {
-                    len = stream.ReadUInt16();
-                }
-                catch (MarshalException)
-                {
-                    //Logger.Warn("Error on reading type {0}", type);
-                    stream.Rollback();
-                    connection.LastPacket = stream;
-                    stream = null;
-                    continue;
-                }
+                    case LengthPrefixedFrameResult.NeedMore:
+                        connection.LastPacket = pending;
+                        return;
+                    case LengthPrefixedFrameResult.DroppedInvalidLength:
+                        Logger.Warn("Dropped invalid stream frame from {0}", connection.Ip);
+                        continue;
+                    case LengthPrefixedFrameResult.GotFrame:
+                        frame!.ReadUInt16();
+                        var type = frame.ReadUInt16();
+                        _packets.TryGetValue(type, out var classType);
+                        if (classType == null)
+                        {
+                            HandleUnknownPacket(connection, type, frame);
+                        }
+                        else
+                        {
+                            var packet = (StreamPacket)Activator.CreateInstance(classType);
+                            packet.Connection = connection;
+                            packet.Decode(frame);
+                        }
 
-                var packetLen = len + stream.Pos;
-                if (packetLen <= stream.Count)
-                {
-                    stream.Rollback();
-                    var stream2 = new PacketStream();
-                    stream2.Replace(stream, 0, packetLen);
-                    if (stream.Count > packetLen)
-                    {
-                        var stream3 = new PacketStream();
-                        stream3.Replace(stream, packetLen, stream.Count - packetLen);
-                        stream = stream3;
-                    }
-                    else
-                        stream = null;
-
-                    stream2.ReadUInt16(); //len
-                    var type = stream2.ReadUInt16();
-                    _packets.TryGetValue(type, out var classType);
-                    if (classType == null)
-                    {
-                        HandleUnknownPacket(connection, type, stream2);
-                    }
-                    else
-                    {
-                        var packet = (StreamPacket)Activator.CreateInstance(classType);
-                        packet.Connection = connection;
-                        packet.Decode(stream2);
-                    }
-                }
-                else
-                {
-                    stream.Rollback();
-                    connection.LastPacket = stream;
-                    stream = null;
+                        break;
                 }
             }
         }

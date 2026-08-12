@@ -25,18 +25,16 @@ public class TowerDef
     public TowerDefEventVariant Variant { get; set; } = TowerDefEventVariant.Unspecified;
 
     /// <summary>
-    /// How World auto-arms this row. Set from weekday StartTimes and/or
-    /// <c>Configurations/TowerDefs.json</c> GameTimeAutoArm entries.
+    /// How World auto-arms this row. WallClock comes from weekday StartTimes; GameTime comes from
+    /// explicit <c>TowerDefs.GameTimeAutoArmIds</c> membership.
     /// </summary>
     public TowerDefScheduleMode ScheduleMode { get; set; } = TowerDefScheduleMode.Manual;
 
     /// <summary>
     /// Wall-clock start time per day of the week, index 0 = Sunday, or null on days the event does
     /// not run. The <c>tower_defs</c> row carries seven independent <c>start_hourN</c> /
-    /// <c>start_minuteN</c> pairs and the data uses them as one slot per weekday rather than seven
-    /// starts in a single day — rows that vary them make this plain: 붉은 용의 출현 통합 인던 runs
-    /// 21:30 on some days and 21:40 on others, 풍랑의 전조 runs 23:00 on two days and 22:00 on the
-    /// rest, and 크라켄의 출현 populates exactly one slot.
+    /// <c>start_minuteN</c> pairs used as one slot per weekday. A 00:00 pair means the event does
+    /// not run that day.
     /// </summary>
     public TimeSpan?[] StartTimes { get; } = new TimeSpan?[7];
 
@@ -134,6 +132,15 @@ public class TowerDef
         var start = now.Date.AddDays(dayOffset).Add(slot);
         return now >= start && now < start + Duration;
     }
+
+    /// <summary>
+    /// True when this event shares a portal spawner with <paramref name="other"/>.
+    /// Portal exclusion uses this loaded relationship, not family labels.
+    /// </summary>
+    public bool SharesPortalSpawnerWith(TowerDef other) =>
+        other != null &&
+        TargetNpcSpawnId != 0 &&
+        TargetNpcSpawnId == other.TargetNpcSpawnId;
 
     public List<TowerDefProg> Progs;
 }

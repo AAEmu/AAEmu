@@ -1,6 +1,5 @@
 using System;
 
-using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Game;
@@ -84,64 +83,31 @@ public class ZoneProtocolHandler : BaseProtocolHandler
 
         stream.Insert(stream.Count, buf, offset, bytes);
 
-        while (stream is { Count: > 0 })
+        PacketStream? pending = stream;
+        while (pending is { Count: > 0 })
         {
-            ushort len;
-            try
+            switch (LengthPrefixedFrames.TryTake(ref pending, LengthPrefixedFrames.MinOpcodePayloadBytes, out var frame))
             {
-                len = stream.ReadUInt16();
+                case LengthPrefixedFrameResult.NeedMore:
+                    connection.LastPacket = pending;
+                    return;
+                case LengthPrefixedFrameResult.DroppedInvalidLength:
+                    var dropped = Interlocked.Increment(ref _emptyFrameDrops);
+                    if (dropped <= 5 || dropped % 10000 == 0)
+                        Logger.Warn(
+                            "ZW empty frame from {0} zoneId={1} dropped={2}",
+                            connection.Ip, connection.ZoneId, dropped);
+                    continue;
+                case LengthPrefixedFrameResult.GotFrame:
+                    frame!.ReadUInt16();
+                    var opcode = frame.ReadUInt16();
+                    var bodyLen = frame.Count - frame.Pos;
+                    var body = new PacketStream();
+                    if (bodyLen > 0)
+                        body.Replace(frame.Buffer, frame.Pos, bodyLen);
+                    HandleZwPacket(connection, opcode, body, bodyLen);
+                    break;
             }
-            catch (MarshalException)
-            {
-                stream.Rollback();
-                connection.LastPacket = stream;
-                return;
-            }
-
-            // Payload length must cover type (u16). Zero (and 1) used to become bodyLen=-4 and
-            // re-entered Join as opcode 0 — multi-GB Warn spam + no useful dispatch.
-            if (len < 2)
-            {
-                // length field already consumed; drop empty frame and keep scanning
-                var dropped = System.Threading.Interlocked.Increment(ref _emptyFrameDrops);
-                if (dropped <= 5 || dropped % 10000 == 0)
-                    Logger.Warn(
-                        "ZW empty frame (len={0}) from {1} zoneId={2} dropped={3}",
-                        len, connection.Ip, connection.ZoneId, dropped);
-                continue;
-            }
-
-            var packetLen = len + stream.Pos;
-            if (packetLen > stream.Count)
-            {
-                stream.Rollback();
-                connection.LastPacket = stream;
-                return;
-            }
-
-            stream.Rollback();
-            var frame = new PacketStream();
-            frame.Replace(stream, 0, packetLen);
-
-            if (stream.Count > packetLen)
-            {
-                var remainder = new PacketStream();
-                remainder.Replace(stream, packetLen, stream.Count - packetLen);
-                stream = remainder;
-            }
-            else
-            {
-                stream = null;
-            }
-
-            frame.ReadUInt16(); // length
-            var opcode = frame.ReadUInt16();
-            var bodyLen = packetLen - 4;
-            var body = new PacketStream();
-            if (bodyLen > 0)
-                body.Replace(frame.Buffer, frame.Pos, bodyLen);
-
-            HandleZwPacket(connection, opcode, body, bodyLen);
         }
     }
 
