@@ -325,6 +325,8 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
             log.Error("TowerDefs.WallClockStartTimesById references unknown tower_defs.id={0}", id);
         foreach (var entry in wallResult.InvalidEntries)
             log.Error("TowerDefs.WallClockStartTimesById invalid entry {0}", entry);
+        foreach (var entry in wallResult.Conflicts)
+            log.Error("TowerDefs.WallClockStartTimesById conflict (existing slot kept): {0}", entry);
 
         var ids = cfg?.GameTimeAutoArmIds ?? [];
         var result = TowerDefScheduleMetadata.Apply(_towerDefs.Values, ids);

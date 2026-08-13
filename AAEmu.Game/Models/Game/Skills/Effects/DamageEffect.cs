@@ -348,14 +348,8 @@ public class DamageEffect : EffectTemplate
         var healthStolen = (int)(value * (HealthStealRatio / 100.0f));
         var manaStolen = (int)(value * (ManaStealRatio / 100.0f));
 
-        // ID=6151, Test Drive Restriction, 8m
-        if (castObj is CastBuff buff && buff.Buff.Template.Id == 6151)
-        {
-            // TODO I don’t know how to correctly check for the destruction buff of a test car
-            // skip the check CanAttack()
-        }
-        // Plot self-damage (caster == target) must apply; CanAttack(self) is always false.
-        else if (caster.ObjId != trg.ObjId && !caster.CanAttack(trg))
+        // ID=6151 Test Drive, or trusted CastPlot self-damage, may bypass CanAttack.
+        if (!caster.CanAttack(trg) && !AllowsCanAttackBypass(castObj, caster, trg))
             return;
 
         trg.ReduceCurrentHp(caster, value);
@@ -546,5 +540,16 @@ public class DamageEffect : EffectTemplate
                 tlId = 0;
                 return false;
         }
+    }
+
+    /// <summary>
+    /// When <see cref="BaseUnit.CanAttack"/> is false, only these cast contexts may still apply damage.
+    /// </summary>
+    internal static bool AllowsCanAttackBypass(CastAction castObj, BaseUnit caster, BaseUnit trg)
+    {
+        if (castObj is CastBuff buff && buff.Buff?.Template?.Id == 6151)
+            return true;
+        // Trusted plot self-damage (restore-channel style). Not every self-target skill.
+        return castObj is CastPlot && caster != null && trg != null && caster.ObjId == trg.ObjId;
     }
 }
