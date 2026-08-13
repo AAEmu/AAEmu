@@ -348,7 +348,7 @@ public class DamageEffect : EffectTemplate
         var healthStolen = (int)(value * (HealthStealRatio / 100.0f));
         var manaStolen = (int)(value * (ManaStealRatio / 100.0f));
 
-        // ID=6151 Test Drive, or trusted CastPlot self-damage, may bypass CanAttack.
+        // ID=6151 Test Drive, or explicitly authorized plot self-damage, may bypass CanAttack.
         if (!caster.CanAttack(trg) && !AllowsCanAttackBypass(castObj, caster, trg))
             return;
 
@@ -549,7 +549,13 @@ public class DamageEffect : EffectTemplate
     {
         if (castObj is CastBuff buff && buff.Buff?.Template?.Id == 6151)
             return true;
-        // Trusted plot self-damage (restore-channel style). Not every self-target skill.
-        return castObj is CastPlot && caster != null && trg != null && caster.ObjId == trg.ObjId;
+
+        // Plot self-hit is not globally trusted. World arms an explicit predicate for the
+        // intended flow (e.g. tower-def kill-quota restore devices).
+        if (castObj is not CastPlot)
+            return false;
+        if (caster == null || trg == null || caster.ObjId != trg.ObjId)
+            return false;
+        return WorldIntegration.AllowsPlotSelfDamageBypass?.Invoke(trg) == true;
     }
 }

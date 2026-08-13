@@ -653,6 +653,21 @@ public class Doodad : BaseUnit
     }
 
     /// <summary>
+    /// Same authorize → apply → complete ordering as <see cref="DoFunc"/>, with an injectable
+    /// apply step for unit tests (avoids DoodadManager template lookup).
+    /// </summary>
+    internal bool DoFuncWithApply(BaseUnit caster, DoodadFunc func, Action<BaseUnit, Doodad> apply)
+    {
+        if (func == null)
+            return true;
+        if (!TryAuthorizeOnceOneManInteraction(caster, out var blockedOnceMan))
+            return true;
+
+        apply?.Invoke(caster, this);
+        return CompleteFunc(caster, func, skillId: 0);
+    }
+
+    /// <summary>
     /// The function must still be in the doodad's current phase when this is called.
     /// </summary>
     public void CompleteDeferredFunc(BaseUnit caster, DoodadFunc func)

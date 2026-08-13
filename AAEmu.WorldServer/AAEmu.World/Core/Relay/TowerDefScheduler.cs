@@ -216,6 +216,29 @@ public static class TowerDefScheduler
     }
 
     /// <summary>
+    /// True when any running tower is waiting on this NPC template as a kill quota.
+    /// Used to authorize plot self-damage for restore-style devices.
+    /// </summary>
+    public static bool IsActiveKillQuotaTemplate(uint templateId)
+    {
+        if (templateId == 0)
+            return false;
+
+        lock (Sync)
+        {
+            foreach (var state in Running.Values)
+            {
+                if (state.KillWaitStep < 0 || state.KillRemaining == null)
+                    continue;
+                if (state.KillRemaining.TryGetValue(templateId, out var left) && left > 0)
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Zone (or World combat) killed an NPC — advance kill-gated tower steps.
     /// </summary>
     public static void OnNpcKilled(uint templateId)

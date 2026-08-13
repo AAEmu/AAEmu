@@ -8,23 +8,60 @@ namespace AAEmu.UnitTests.Game.Models.Game.DoodadObj;
 public class DoodadOnceOneManInteractionTests
 {
     [Test]
-    public async Task Authorize_AllowsFirstUse_ThenBlocksBeforeSideEffect()
+    public async Task DoFunc_AppliesOnce_RegistersAfterSuccess_BlocksRepeat()
     {
         var doodad = new Doodad
         {
-            Template = new DoodadTemplate { OnceOneMan = true }
+            Template = new DoodadTemplate { OnceOneMan = true, FuncGroups = [] }
         };
         var character = new Character(new UnitCustomModelParams()) { Id = 42, Name = "Tester" };
+        // NextPhase -1 completes without changing FuncGroupId (avoids DoodadManager in tests).
+        var func = new DoodadFunc { NextPhase = -1, Count = 0 };
+        var applied = 0;
 
-        await Assert.That(doodad.TryAuthorizeOnceOneManInteraction(character, out var blocked)).IsTrue();
-        await Assert.That(blocked).IsNull();
+        doodad.DoFuncWithApply(character, func, (_, owner) =>
+        {
+            applied++;
+            owner.ToNextPhase = true;
+        });
 
-        // Successful complete records the character (DoFunc → CompleteFunc order).
-        await Assert.That(doodad.TryRegisterOnceOneMan(character.Id)).IsTrue();
+        await Assert.That(applied).IsEqualTo(1);
+        await Assert.That(doodad.HasOnceOneManUse(character.Id)).IsTrue();
 
-        await Assert.That(doodad.TryAuthorizeOnceOneManInteraction(character, out blocked)).IsFalse();
-        await Assert.That(blocked).IsEqualTo(character);
-        // Second authorization failure happens before any Func.Use side effect.
+        doodad.DoFuncWithApply(character, func, (_, owner) =>
+        {
+            applied++;
+            owner.ToNextPhase = true;
+        });
+
+        await Assert.That(applied).IsEqualTo(1);
+        await Assert.That(doodad.HasOnceOneManUse(character.Id)).IsTrue();
+    }
+
+    [Test]
+    public async Task DoFunc_FailedComplete_DoesNotConsumeAllowance()
+    {
+        var doodad = new Doodad
+        {
+            Template = new DoodadTemplate { OnceOneMan = true, FuncGroups = [] }
+        };
+        var character = new Character(new UnitCustomModelParams()) { Id = 7, Name = "Tester" };
+        var func = new DoodadFunc { NextPhase = -1, Count = 0 };
+        var applied = 0;
+
+        // Func runs but does not mark success (ToNextPhase stays false).
+        doodad.DoFuncWithApply(character, func, (_, _) => applied++);
+
+        await Assert.That(applied).IsEqualTo(1);
+        await Assert.That(doodad.HasOnceOneManUse(character.Id)).IsFalse();
+
+        doodad.DoFuncWithApply(character, func, (_, owner) =>
+        {
+            applied++;
+            owner.ToNextPhase = true;
+        });
+
+        await Assert.That(applied).IsEqualTo(2);
         await Assert.That(doodad.HasOnceOneManUse(character.Id)).IsTrue();
     }
 
