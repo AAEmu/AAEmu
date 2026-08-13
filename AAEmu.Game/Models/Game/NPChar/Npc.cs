@@ -1026,12 +1026,9 @@ public partial class Npc : Unit
         CurrentAggroTarget = null;
 
         // Under ZoneAuthority, World-only deaths (plot self-damage) never emit ZWKillNpc.
-        // Zone kills go through MirrorZoneNpcKilled → DoDie; notify at most once per NPC.
-        if (WorldIntegration.ZoneAuthority && TemplateId != 0 && !_towerDefKillQuotaNotified)
-        {
-            _towerDefKillQuotaNotified = true;
-            WorldIntegration.OnWorldNpcKilled?.Invoke(TemplateId);
-        }
+        // Zone kills go through MirrorZoneNpcKilled → DoDie; at most once per life (cleared on Spawn).
+        if (TryConsumeTowerDefKillQuotaNotification(out var killQuotaTemplateId))
+            WorldIntegration.OnWorldNpcKilled?.Invoke(killQuotaTemplateId);
 
         Spawner?.DoDespawn(this);
         // Zone mirrors have no Spawner — World schedules corpse cleanup, but Zone owns respawn.
@@ -1774,6 +1771,13 @@ public partial class Npc : Unit
         }
     }
 
+    public override void Spawn()
+    {
+        // Kill-quota credit is once per life; respawn (or any reuse of this instance) starts a new life.
+        ResetTowerDefKillQuotaNotification();
+        base.Spawn();
+    }
+
     public override void Delete()
     {
         base.Delete();
@@ -1785,5 +1789,25 @@ public partial class Npc : Unit
         // if (OwnerId > 0)
         //     return WorldManager.Instance.GetCharacterById(OwnerId)?.GetOwnerCharacter();
         return null;
+    }
+
+    /// <summary>
+    /// Marks this NPC life as having credited tower kill quotas. Returns false if already credited
+    /// or if ZoneAuthority / template are not applicable.
+    /// </summary>
+    internal bool TryConsumeTowerDefKillQuotaNotification(out uint templateId)
+    {
+        templateId = 0;
+        if (!WorldIntegration.ZoneAuthority || TemplateId == 0 || _towerDefKillQuotaNotified)
+            return false;
+
+        _towerDefKillQuotaNotified = true;
+        templateId = TemplateId;
+        return true;
+    }
+
+    internal void ResetTowerDefKillQuotaNotification()
+    {
+        _towerDefKillQuotaNotified = false;
     }
 }
