@@ -131,6 +131,7 @@ public static class Program
             if (tpl != 0)
                 TowerDefScheduler.OnNpcKilled(tpl);
         };
+        WorldIntegration.OnWorldNpcKilled = tpl => TowerDefScheduler.OnNpcKilled(tpl);
         WorldIntegration.OnWorldInstanceRemoved = ZoneNpcSpawnerCatalog.RemoveInstance;
         WorldIntegration.TriggerTowerDef = (action, towerDefId, step) => action switch
         {
@@ -1308,25 +1309,17 @@ public static class Program
 
     private static string ResolveGameContentRoot(WorldAppConfiguration appConfig)
     {
-        if (!string.IsNullOrWhiteSpace(appConfig.GameContentRoot) && Directory.Exists(appConfig.GameContentRoot))
-            return Path.GetFullPath(appConfig.GameContentRoot);
-
-        var extra = new List<string>();
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        for (var i = 0; i < 8 && dir != null; i++, dir = dir.Parent)
+        // Prefer explicit Config.Local GameContentRoot (Game bin: compact.sqlite3 + Configurations).
+        // Zone level packs stay on ZoneGameDataRoot / AAEMU_ZONE_GAME_DATA_ROOT.
+        var root = GameContentRootResolver.Resolve(appConfig.GameContentRoot, AppContext.BaseDirectory);
+        if (!GameContentRootResolver.HasTowerDefsOverlay(root))
         {
-            extra.Add(Path.Combine(dir.FullName, "AAEmu-public-dev", "AAEmu.Game", "bin", "Debug", "net10.0"));
-            extra.Add(Path.GetFullPath(Path.Combine(dir.FullName, "..", "AAEmu-public-dev", "AAEmu.Game", "bin", "Debug", "net10.0")));
+            Logger.Error(
+                "GameContentRoot {0} is missing Configurations/TowerDefs.json — Game-Time tower auto-arm will stay empty. " +
+                "Copy AAEmu.Game/Configurations/TowerDefs.json into that Configurations folder.",
+                root);
         }
 
-        foreach (var c in extra.Distinct(StringComparer.OrdinalIgnoreCase))
-        {
-            if (File.Exists(Path.Combine(c, "Config.json")) || File.Exists(Path.Combine(c, "Config.Local.json")))
-                return c;
-        }
-
-        throw new DirectoryNotFoundException(
-            "Cannot find AAEmu.Game content root. Set GameContentRoot in Config.json. Tried: "
-            + string.Join(", ", extra.Distinct(StringComparer.OrdinalIgnoreCase)));
+        return root;
     }
 }

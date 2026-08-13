@@ -1024,6 +1024,11 @@ public partial class Npc : Unit
         CharacterTagging.ClearAllTaggers();
         CurrentAggroTarget = null;
 
+        // Under ZoneAuthority, plot/self kills may never emit ZWKillNpc — still advance
+        // tower-def kill quotas from World DoDie.
+        if (WorldIntegration.ZoneAuthority && TemplateId != 0)
+            WorldIntegration.OnWorldNpcKilled?.Invoke(TemplateId);
+
         Spawner?.DoDespawn(this);
         // Zone mirrors have no Spawner — World schedules corpse cleanup, but Zone owns respawn.
         // Tell Zone the unit died (WZUnitDeath) so it enters corpse state; on timeout World sends

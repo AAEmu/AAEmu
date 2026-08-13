@@ -49,6 +49,9 @@ public static class TowerDefScheduler
         public Dictionary<uint, int> KillRemaining;
         /// <summary>Last opened wave index, or -1 before any WaveStart (matches client map curStep).</summary>
         public int CurrentStep = -1;
+        /// <summary>When set, start <see cref="PendingFollowOnId"/> at this UTC time.</summary>
+        public DateTime FollowOnAt = DateTime.MaxValue;
+        public uint PendingFollowOnId;
     }
 
     private static readonly Dictionary<uint, RunState> Running = [];
@@ -95,6 +98,7 @@ public static class TowerDefScheduler
             }
 
             AdvanceTimedWaves(now);
+            AdvancePendingFollowOns(now);
 
             foreach (var (id, state) in Running.ToList())
             {
@@ -176,6 +180,8 @@ public static class TowerDefScheduler
     public static void OnZoneLoaded(ZoneConnection zone)
     {
         if (zone.State < ZoneConnectionState.ZoneLoaded)
+            return;
+        if (!TowerDefGameData.Instance.IsLoaded)
             return;
 
         QueryPlayabilityForZone(zone);
@@ -324,12 +330,18 @@ public static class TowerDefScheduler
             if (towerDef == null)
                 return false;
 
+            var now = DateTime.UtcNow;
             if (!Running.TryGetValue(towerDefId, out var state))
             {
                 state = new RunState
                 {
                     AnnounceZoneId = FirstLoadedZoneId(),
-                    AnnounceZoneGroupId = FirstLoadedZoneGroup()
+                    AnnounceZoneGroupId = FirstLoadedZoneGroup(),
+                    // GM wave without a prior Start must not be culled by WallClock
+                    // ("utc window closed" ~15s later) or an unset Deadline (instant force_end).
+                    Manual = true,
+                    Deadline = now + towerDef.Duration,
+                    KillWaitStep = -1
                 };
                 // Host all currently playable zones for an ad-hoc wave.
                 foreach (var (zone, spots, group) in EnumeratePlayableHosts(towerDefId, manualFallbackAll: true))
@@ -340,10 +352,17 @@ public static class TowerDefScheduler
                     state.AnnounceZoneGroupId = group;
                 }
             }
+            else
+            {
+                // Keep a GM-advanced run alive outside its schedule window.
+                state.Manual = true;
+                if (state.Deadline < now)
+                    state.Deadline = now + towerDef.Duration;
+            }
 
             OpenStep(towerDef, state, (int)step, "manual wave");
             state.NextStep = (int)step + 1;
-            ArmPostStep(towerDef, state, (int)step, DateTime.UtcNow);
+            ArmPostStep(towerDef, state, (int)step, now);
             if (Running.ContainsKey(towerDefId) || state.HostZoneIds.Count > 0)
                 Running[towerDefId] = state;
             return true;
@@ -562,9 +581,228 @@ public static class TowerDefScheduler
         if (zones > 0)
             TowerDefWaveForce.ArmProgSpawners(towerDef, step, state.HostZoneIds);
 
+        // Zone ChangeStep ignores DoodadAlmighty spawn targets — World authors them.
+        if (zones > 0)
+            TowerDefProgDoodads.ApplyStep(towerDef, step, state.HostZoneIds);
+
         Logger.Info(
             "WZTowerDefWaveStart → {0} host zones: towerDef={1} step={2} ({3}) — {4}",
             zones, towerDef.Id, step, reason, towerDef.Name);
+
+        // Victory / loot phases (e.g. Abyssal 36 → 37). Hold for the final step's
+        // cond_to_next_time when set (36 final = 10 s) so restore FX lands before crystals.
+        if (zones > 0 &&
+            towerDef.Progs != null &&
+            step == towerDef.Progs.Count - 1 &&
+            towerDef.FollowOnTowerDefId != 0)
+        {
+            ScheduleOrStartFollowOn(towerDef, state, step);
+        }
+    }
+
+    private static void ScheduleOrStartFollowOn(TowerDef towerDef, RunState state, int finalStep)
+    {
+        var followId = towerDef.FollowOnTowerDefId;
+        if (followId == 0)
+            return;
+
+        var delay = TowerDefFollowOnDelay.FromFinalProg(towerDef.Progs[finalStep]);
+        if (delay <= TimeSpan.Zero)
+        {
+            TryStartFollowOn(towerDef, state);
+            return;
+        }
+
+        state.PendingFollowOnId = followId;
+        state.FollowOnAt = DateTime.UtcNow + delay;
+        Logger.Info(
+            "TowerDef {0} follow-on {1} scheduled in {2:0.#}s (final CondToNextTime)",
+            towerDef.Id, followId, delay.TotalSeconds);
+
+        // Precise wake — schedule-gate Tick is only ~5s; do not wait on that alone.
+        var predecessorId = towerDef.Id;
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                await Task.Delay(delay).ConfigureAwait(false);
+                lock (Sync)
+                {
+                    if (!Running.TryGetValue(predecessorId, out var live))
+                        return;
+                    if (live.PendingFollowOnId != followId)
+                        return;
+                    live.PendingFollowOnId = 0;
+                    live.FollowOnAt = DateTime.MaxValue;
+                    Running[predecessorId] = live;
+                    var td = TowerDefGameData.Instance.GetTowerDef(predecessorId);
+                    if (td == null)
+                        return;
+                    Logger.Info(
+                        "TowerDef {0} follow-on {1} delay elapsed — starting",
+                        predecessorId, followId);
+                    TryStartFollowOn(td, live);
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, "TowerDef {0} follow-on delay task failed", predecessorId);
+            }
+        });
+    }
+
+    private static void AdvancePendingFollowOns(DateTime now)
+    {
+        foreach (var (id, state) in Running.ToList())
+        {
+            if (state.PendingFollowOnId == 0 || now < state.FollowOnAt)
+                continue;
+
+            var towerDef = TowerDefGameData.Instance.GetTowerDef(id);
+            var followId = state.PendingFollowOnId;
+            state.PendingFollowOnId = 0;
+            state.FollowOnAt = DateTime.MaxValue;
+            Running[id] = state;
+
+            if (towerDef == null)
+            {
+                Logger.Warn("TowerDef {0} follow-on {1} due but predecessor missing", id, followId);
+                continue;
+            }
+
+            Logger.Info(
+                "TowerDef {0} follow-on {1} delay elapsed (tick) — starting",
+                id, followId);
+            TryStartFollowOn(towerDef, state);
+        }
+    }
+
+    /// <summary>
+    /// Starts a configured follow-on tower as Manual, preferring the predecessor's host zones
+    /// when the follow-on has no playability reports yet.
+    /// </summary>
+    private static void TryStartFollowOn(TowerDef predecessor, RunState predecessorState)
+    {
+        var followId = predecessor.FollowOnTowerDefId;
+        if (followId == 0 || Running.ContainsKey(followId))
+            return;
+
+        var follow = TowerDefGameData.Instance.GetTowerDef(followId);
+        if (follow == null)
+        {
+            Logger.Warn(
+                "TowerDef {0} follow-on {1} missing from loaded tower_defs",
+                predecessor.Id, followId);
+            return;
+        }
+
+        // Soft-refresh playability so manual seed fallback is not the only path.
+        foreach (var zone in LoadedZones())
+        {
+            if (!HasPlayabilityReport(followId, zone.ZoneId))
+                QueryPlayability(zone, followId);
+        }
+
+        var hosts = EnumeratePlayableHosts(followId, manualFallbackAll: true).ToList();
+        if (hosts.Count == 0 && predecessorState.HostZoneIds.Count > 0)
+        {
+            // Same island / continent as the fight that just completed.
+            Logger.Info(
+                "TowerDef {0} follow-on {1}: no playability yet — hosting predecessor zones [{2}]",
+                predecessor.Id,
+                followId,
+                string.Join(',', predecessorState.HostZoneIds));
+            StartOnHostZones(
+                follow,
+                predecessorState.HostZoneIds,
+                predecessorState.SpotByZone,
+                DateTime.UtcNow,
+                manual: true,
+                fromGameTime: false,
+                $"follow-on after tower={predecessor.Id}");
+            return;
+        }
+
+        if (hosts.Count == 0)
+        {
+            Logger.Warn(
+                "TowerDef {0} follow-on {1} skipped — no host zones ({2})",
+                predecessor.Id, followId, follow.Name);
+            return;
+        }
+
+        Start(
+            follow,
+            DateTime.UtcNow,
+            manual: true,
+            fromGameTime: false,
+            $"follow-on after tower={predecessor.Id}");
+    }
+
+    /// <summary>
+    /// Like <see cref="Start"/> but forces the given host zone list (follow-on inheritance).
+    /// </summary>
+    private static void StartOnHostZones(
+        TowerDef towerDef,
+        IReadOnlyList<uint> hostZoneIds,
+        IReadOnlyDictionary<uint, uint> spotByZone,
+        DateTime now,
+        bool manual,
+        bool fromGameTime,
+        string reason)
+    {
+        if (hostZoneIds == null || hostZoneIds.Count == 0)
+            return;
+
+        var firstWaveDelay = towerDef.FirstWaveAfter > 0f
+            ? TimeSpan.FromSeconds(towerDef.FirstWaveAfter)
+            : TimeSpan.Zero;
+
+        var announceZoneId = hostZoneIds[0];
+        var announceGroup = (ushort)0;
+        var state = new RunState
+        {
+            Deadline = now + towerDef.Duration,
+            Manual = manual,
+            FromGameTime = fromGameTime,
+            NextStep = 0,
+            NextWaveAt = now + firstWaveDelay,
+            AnnounceZoneId = announceZoneId,
+            AnnounceZoneGroupId = announceGroup,
+            KillWaitStep = -1
+        };
+
+        var zones = 0;
+        foreach (var zoneId in hostZoneIds)
+        {
+            var zone = ZoneSession.Instance.GetByZoneId(zoneId);
+            if (zone == null || zone.State < ZoneConnectionState.ZoneLoaded)
+                continue;
+            var spotIdx = spotByZone != null && spotByZone.TryGetValue(zoneId, out var s) ? s : 0u;
+            var group = (ushort)ZoneGroupOf(zone);
+            state.HostZoneIds.Add(zoneId);
+            state.SpotByZone[zoneId] = spotIdx;
+            state.AnnounceZoneId = zoneId;
+            state.AnnounceZoneGroupId = group;
+            zone.SendPacket(new WZTowerDefStartPacket(
+                (int)towerDef.Id, (short)group, spotIdx));
+            zones++;
+            Logger.Info(
+                "WZTowerDefStart → zoneId={0} group={1} towerDef={2} spot={3} ({4})",
+                zoneId, group, towerDef.Id, spotIdx, reason);
+        }
+
+        if (zones == 0)
+            return;
+
+        Running[towerDef.Id] = state;
+        Logger.Info(
+            "WZTowerDefStart hosts={0}: towerDef={1} spawner={2} for {3} ({4}) — {5}",
+            zones, towerDef.Id, towerDef.TargetNpcSpawnId, towerDef.Duration, reason, towerDef.Name);
+        BroadcastScStart(towerDef, state);
+        TowerDefWaveForce.ArmPortalTargets(towerDef, state.HostZoneIds);
+        if (firstWaveDelay <= TimeSpan.Zero)
+            AdvanceTimedWaves(now);
     }
 
     private static void End(TowerDef towerDef, string reason)
@@ -586,6 +824,20 @@ public static class TowerDefScheduler
         }
 
         Running.Remove(towerDef.Id);
+
+        // Drop a pending follow-on so /towerdef end mid-hold does not still arm reward crystals.
+        // (Follow-on already Running is left alone.)
+
+        try
+        {
+            var doodads = TowerDefProgDoodads.DespawnAll(towerDef.Id);
+            if (doodads > 0)
+                Logger.Info("TowerDef {0} End despawned prog doodads={1}", towerDef.Id, doodads);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, "TowerDef {0} End prog doodad cleanup failed", towerDef.Id);
+        }
 
         var zones = 0;
         var zoneList = state.HostZoneIds.Count > 0
@@ -892,9 +1144,15 @@ public static class TowerDefScheduler
                 continue;
             }
 
-            // Manual GM when no cache yet: try spot 0 on every loaded zone (debug path).
+            // Manual GM when no zone has answered yet: only host zones that actually place the
+            // seed spawnerType in npc_spawners.g. Fan-out to every loaded dedicate wrongly armed
+            // Cross Plains when ForceStarting Lilyut Oblivion before playability replies arrived.
             if (manualFallbackAll && !anyReport)
-                yield return (zone, 1, group);
+            {
+                var seedType = TowerDefGameData.Instance.GetTowerDef(towerDefId)?.TargetNpcSpawnId ?? 0;
+                if (seedType != 0 && ZoneSpawnerPlacementCatalog.GetByType(zone.ZoneId, seedType).Count > 0)
+                    yield return (zone, 1, group);
+            }
         }
     }
 
@@ -911,6 +1169,14 @@ public static class TowerDefScheduler
             QueryPlayability(zone, towerDef.Id);
         foreach (var towerDef in TowerDefGameData.Instance.GetScheduledTowerDefs())
             QueryPlayability(zone, towerDef.Id);
+
+        // Follow-on reward phases are Manual and never appear in the schedule lists above.
+        foreach (var towerDef in TowerDefGameData.Instance.GetAllTowerDefs())
+        {
+            if (towerDef.FollowOnTowerDefId == 0)
+                continue;
+            QueryPlayability(zone, towerDef.FollowOnTowerDefId);
+        }
     }
 
     private static void QueryPlayability(ZoneConnection zone, uint towerDefId)

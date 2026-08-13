@@ -302,14 +302,32 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
     }
 
     /// <summary>
-    /// Assign ScheduleMode from weekday StartTimes plus <c>TowerDefs.GameTimeAutoArmIds</c>.
-    /// Unknown or stale overlay ids are logged; classification never uses display names.
+    /// Fill optional UTC StartTimes from config, then assign ScheduleMode from weekday slots plus
+    /// <c>TowerDefs.GameTimeAutoArmIds</c>. Unknown or stale overlay ids are logged; classification
+    /// never uses display names.
     /// </summary>
     private void ApplyScheduleMetadata()
     {
-        var ids = Models.AppConfiguration.Instance.TowerDefs?.GameTimeAutoArmIds ?? [];
-        var result = TowerDefScheduleMetadata.Apply(_towerDefs.Values, ids);
+        var cfg = Models.AppConfiguration.Instance.TowerDefs;
         var log = NLog.LogManager.GetCurrentClassLogger();
+
+        var wallOverlay = cfg?.WallClockStartTimesById ??
+                          new Dictionary<uint, Dictionary<string, string>>();
+        var wallResult = TowerDefScheduleMetadata.ApplyWallClockStartTimes(_towerDefs.Values, wallOverlay);
+        if (wallResult.AppliedSlots > 0)
+        {
+            log.Info(
+                "TowerDefs.WallClockStartTimesById applied {0} weekday slot(s)",
+                wallResult.AppliedSlots);
+        }
+
+        foreach (var id in wallResult.UnknownIds)
+            log.Error("TowerDefs.WallClockStartTimesById references unknown tower_defs.id={0}", id);
+        foreach (var entry in wallResult.InvalidEntries)
+            log.Error("TowerDefs.WallClockStartTimesById invalid entry {0}", entry);
+
+        var ids = cfg?.GameTimeAutoArmIds ?? [];
+        var result = TowerDefScheduleMetadata.Apply(_towerDefs.Values, ids);
 
         if (ids.Count == 0)
         {
@@ -337,6 +355,22 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                 "TowerDefs.GameTimeAutoArmIds id={0} is missing tod_day_interval or target_npc_spawner_id — staying Manual",
                 id);
         }
+
+        var followOverlay = cfg?.FollowOnTowerDefById ?? new Dictionary<uint, uint>();
+        var follow = TowerDefScheduleMetadata.ApplyFollowOn(_towerDefs.Values, followOverlay);
+        if (follow.Applied > 0)
+        {
+            log.Info(
+                "TowerDefs.FollowOnTowerDefById applied {0} link(s)",
+                follow.Applied);
+        }
+
+        foreach (var id in follow.UnknownSourceIds)
+            log.Error("TowerDefs.FollowOnTowerDefById unknown source tower_defs.id={0}", id);
+        foreach (var id in follow.UnknownTargetIds)
+            log.Error("TowerDefs.FollowOnTowerDefById unknown target tower_defs.id={0}", id);
+        foreach (var id in follow.SelfRefs)
+            log.Error("TowerDefs.FollowOnTowerDefById self-reference tower_defs.id={0}", id);
     }
 
     public void PostLoad()
@@ -463,9 +497,12 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
     /// </summary>
     public IEnumerable<TowerDef> GetScheduledTowerDefs()
     {
+        if (!IsLoaded || _towerDefs == null)
+            yield break;
+
         foreach (var towerDef in _towerDefs.Values)
         {
-            if (towerDef.IsScheduled)
+            if (towerDef?.IsScheduled == true)
                 yield return towerDef;
         }
     }
@@ -476,9 +513,12 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
     /// </summary>
     public IEnumerable<TowerDef> GetGameTimeScheduledTowerDefs()
     {
+        if (!IsLoaded || _towerDefs == null)
+            yield break;
+
         foreach (var towerDef in _towerDefs.Values)
         {
-            if (towerDef.IsGameTimeScheduled)
+            if (towerDef?.IsGameTimeScheduled == true)
                 yield return towerDef;
         }
     }

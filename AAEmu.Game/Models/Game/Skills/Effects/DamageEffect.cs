@@ -354,8 +354,8 @@ public class DamageEffect : EffectTemplate
             // TODO I don’t know how to correctly check for the destruction buff of a test car
             // skip the check CanAttack()
         }
-        // Safeguard to prevent accidental flagging
-        else if (!caster.CanAttack(trg))
+        // Plot self-damage (caster == target) must apply; CanAttack(self) is always false.
+        else if (caster.ObjId != trg.ObjId && !caster.CanAttack(trg))
             return;
 
         trg.ReduceCurrentHp(caster, value);

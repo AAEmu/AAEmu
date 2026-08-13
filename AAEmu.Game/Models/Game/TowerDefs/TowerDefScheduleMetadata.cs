@@ -1,14 +1,18 @@
+using System.Globalization;
+
 namespace AAEmu.Game.Models.Game.TowerDefs;
 
 /// <summary>
-/// Applies Event Center Game-Time membership onto loaded <c>tower_defs</c> rows.
+/// Applies Event Center schedule overlays onto loaded <c>tower_defs</c> rows.
 /// </summary>
 /// <remarks>
 /// <c>tower_defs</c> has no schedule-mode column. Weekday <see cref="TowerDef.StartTimes"/> uniquely
 /// identify WallClock events. Game-Time vs Manual cannot be derived from <c>tod</c> /
 /// <c>tod_day_interval</c> / <c>target_npc_spawner_id</c> alone — those columns are populated on
 /// both auto-armed Event Center rows and GM-only rows that share a portal spawner.
-/// <see cref="AAEmu.Game.Models.Game.TowerDefsConfig.GameTimeAutoArmIds"/> is therefore the explicit membership overlay.
+/// <see cref="AAEmu.Game.Models.Game.TowerDefsConfig.GameTimeAutoArmIds"/> is the Game-Time membership
+/// overlay; <see cref="AAEmu.Game.Models.Game.TowerDefsConfig.WallClockStartTimesById"/> fills UTC
+/// weekday slots when compact left them at unused 00:00 (e.g. Abyssal Assault).
 /// Omitted ToD-capable rows stay Manual and are reported so the overlay cannot go stale silently.
 /// Family/variant labels are not required: portal exclusion uses
 /// <see cref="TowerDef.TargetNpcSpawnId"/>.
@@ -22,6 +26,17 @@ public static class TowerDefScheduleMetadata
         IReadOnlyList<uint> UnlistedToDCandidates,
         IReadOnlyList<uint> IneligibleIds);
 
+    public readonly record struct WallClockApplyResult(
+        int AppliedSlots,
+        IReadOnlyList<uint> UnknownIds,
+        IReadOnlyList<string> InvalidEntries);
+
+    public readonly record struct FollowOnApplyResult(
+        int Applied,
+        IReadOnlyList<uint> UnknownSourceIds,
+        IReadOnlyList<uint> UnknownTargetIds,
+        IReadOnlyList<uint> SelfRefs);
+
     /// <summary>
     /// True when the row has the Game-Time columns but no weekday slots — a completeness candidate.
     /// </summary>
@@ -30,6 +45,151 @@ public static class TowerDefScheduleMetadata
         !towerDef.IsScheduled &&
         towerDef.TimeOfDayDayInterval > 0 &&
         towerDef.TargetNpcSpawnId != 0;
+
+    /// <summary>
+    /// Writes <see cref="TowerDef.FollowOnTowerDefId"/> from config (by id only).
+    /// </summary>
+    public static FollowOnApplyResult ApplyFollowOn(
+        IEnumerable<TowerDef> towerDefs,
+        IReadOnlyDictionary<uint, uint> followOnById)
+    {
+        var byId = new Dictionary<uint, TowerDef>();
+        foreach (var towerDef in towerDefs)
+        {
+            if (towerDef == null || towerDef.Id == 0)
+                continue;
+            towerDef.FollowOnTowerDefId = 0;
+            byId[towerDef.Id] = towerDef;
+        }
+
+        var unknownSource = new List<uint>();
+        var unknownTarget = new List<uint>();
+        var selfRefs = new List<uint>();
+        var applied = 0;
+        var overlay = followOnById ?? new Dictionary<uint, uint>();
+
+        foreach (var (sourceId, targetId) in overlay)
+        {
+            if (sourceId == 0 || targetId == 0)
+                continue;
+            if (!byId.TryGetValue(sourceId, out var source))
+            {
+                unknownSource.Add(sourceId);
+                continue;
+            }
+
+            if (!byId.ContainsKey(targetId))
+            {
+                unknownTarget.Add(targetId);
+                continue;
+            }
+
+            if (sourceId == targetId)
+            {
+                selfRefs.Add(sourceId);
+                continue;
+            }
+
+            source.FollowOnTowerDefId = targetId;
+            applied++;
+        }
+
+        unknownSource.Sort();
+        unknownTarget.Sort();
+        selfRefs.Sort();
+        return new FollowOnApplyResult(applied, unknownSource, unknownTarget, selfRefs);
+    }
+
+    /// <summary>
+    /// Writes UTC StartTimes from config before <see cref="Apply"/> assigns ScheduleMode.
+    /// </summary>
+    public static WallClockApplyResult ApplyWallClockStartTimes(
+        IEnumerable<TowerDef> towerDefs,
+        IReadOnlyDictionary<uint, Dictionary<string, string>> wallClockStartTimesById)
+    {
+        var byId = new Dictionary<uint, TowerDef>();
+        foreach (var towerDef in towerDefs)
+        {
+            if (towerDef == null || towerDef.Id == 0)
+                continue;
+            byId[towerDef.Id] = towerDef;
+        }
+
+        var unknown = new List<uint>();
+        var invalid = new List<string>();
+        var applied = 0;
+        var overlay = wallClockStartTimesById ?? new Dictionary<uint, Dictionary<string, string>>();
+
+        foreach (var (id, dayMap) in overlay)
+        {
+            if (id == 0)
+                continue;
+            if (!byId.TryGetValue(id, out var towerDef))
+            {
+                unknown.Add(id);
+                continue;
+            }
+
+            if (dayMap == null || dayMap.Count == 0)
+                continue;
+
+            foreach (var (dayKey, timeText) in dayMap)
+            {
+                if (!TryParseDayOfWeek(dayKey, out var day))
+                {
+                    invalid.Add($"{id}:{dayKey}");
+                    continue;
+                }
+
+                if (!TryParseDayTime(timeText, out var slot))
+                {
+                    invalid.Add($"{id}:{dayKey}={timeText}");
+                    continue;
+                }
+
+                towerDef.StartTimes[(int)day] = slot;
+                applied++;
+            }
+        }
+
+        unknown.Sort();
+        invalid.Sort(StringComparer.Ordinal);
+        return new WallClockApplyResult(applied, unknown, invalid);
+    }
+
+    private static bool TryParseDayOfWeek(string key, out DayOfWeek day)
+    {
+        day = default;
+        if (string.IsNullOrWhiteSpace(key))
+            return false;
+        if (Enum.TryParse(key, ignoreCase: true, out day) &&
+            Enum.IsDefined(typeof(DayOfWeek), day))
+            return true;
+        if (int.TryParse(key, NumberStyles.Integer, CultureInfo.InvariantCulture, out var n) &&
+            n is >= 0 and <= 6)
+        {
+            day = (DayOfWeek)n;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static bool TryParseDayTime(string text, out TimeSpan slot)
+    {
+        slot = default;
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+        if (!TimeSpan.TryParseExact(
+                text.Trim(),
+                ["h\\:mm", "hh\\:mm", "h\\:mm\\:ss", "hh\\:mm\\:ss"],
+                CultureInfo.InvariantCulture,
+                out slot))
+            return false;
+        if (slot < TimeSpan.Zero || slot >= TimeSpan.FromDays(1))
+            return false;
+        return true;
+    }
 
     public static ApplyResult Apply(IEnumerable<TowerDef> towerDefs, IReadOnlyList<uint> gameTimeAutoArmIds)
     {

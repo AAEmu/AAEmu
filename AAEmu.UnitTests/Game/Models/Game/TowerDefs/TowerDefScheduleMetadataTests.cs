@@ -97,4 +97,80 @@ public class TowerDefScheduleMetadataTests
         await Assert.That(result.IneligibleIds).IsEquivalentTo(new uint[] { 50 });
         await Assert.That(result.AppliedGameTime).IsEqualTo(0);
     }
+
+    [Test]
+    public async Task ApplyWallClockStartTimes_FillsEmptySlotsAndMarksWallClock()
+    {
+        // Compact ships Abyssal (36) with all start_hour*=0; Event Center lists Server Time Tu/Th/Sa 22:00.
+        var abyss = ToDRow(36, 16859);
+        var overlay = new Dictionary<uint, Dictionary<string, string>>
+        {
+            [36] = new Dictionary<string, string>
+            {
+                ["Tuesday"] = "22:00",
+                ["Thursday"] = "22:00",
+                ["Saturday"] = "22:00"
+            }
+        };
+
+        var wall = TowerDefScheduleMetadata.ApplyWallClockStartTimes([abyss], overlay);
+        var result = TowerDefScheduleMetadata.Apply([abyss], []);
+
+        await Assert.That(wall.AppliedSlots).IsEqualTo(3);
+        await Assert.That(abyss.StartTimeFor(DayOfWeek.Tuesday)).IsEqualTo(new TimeSpan(22, 0, 0));
+        await Assert.That(abyss.StartTimeFor(DayOfWeek.Sunday)).IsNull();
+        await Assert.That(abyss.ScheduleMode).IsEqualTo(TowerDefScheduleMode.WallClock);
+        await Assert.That(result.UnlistedToDCandidates).IsEmpty();
+    }
+
+    [Test]
+    public async Task ApplyWallClockStartTimes_AcceptsDayIndexKeys()
+    {
+        var row = new TowerDef { Id = 36, ForceEndTime = 7200f, TargetNpcSpawnId = 16859 };
+        var overlay = new Dictionary<uint, Dictionary<string, string>>
+        {
+            [36] = new Dictionary<string, string> { ["2"] = "22:00" }
+        };
+
+        TowerDefScheduleMetadata.ApplyWallClockStartTimes([row], overlay);
+        await Assert.That(row.StartTimeFor(DayOfWeek.Tuesday)).IsEqualTo(new TimeSpan(22, 0, 0));
+    }
+
+    [Test]
+    public async Task ApplyFollowOn_LinksSourceToTargetById()
+    {
+        var fight = new TowerDef { Id = 36, ForceEndTime = 7200f, TargetNpcSpawnId = 16859 };
+        var reward = new TowerDef { Id = 37, ForceEndTime = 3600f, TargetNpcSpawnId = 16918 };
+        var result = TowerDefScheduleMetadata.ApplyFollowOn(
+            [fight, reward],
+            new Dictionary<uint, uint> { [36] = 37 });
+
+        await Assert.That(fight.FollowOnTowerDefId).IsEqualTo(37u);
+        await Assert.That(reward.FollowOnTowerDefId).IsEqualTo(0u);
+        await Assert.That(result.Applied).IsEqualTo(1);
+        await Assert.That(result.UnknownSourceIds).IsEmpty();
+        await Assert.That(result.UnknownTargetIds).IsEmpty();
+        await Assert.That(result.SelfRefs).IsEmpty();
+    }
+
+    [Test]
+    public async Task ApplyFollowOn_ReportsUnknownAndSelfRefs()
+    {
+        var fight = new TowerDef { Id = 36, ForceEndTime = 7200f };
+        var reward = new TowerDef { Id = 37, ForceEndTime = 3600f };
+        var result = TowerDefScheduleMetadata.ApplyFollowOn(
+            [fight, reward],
+            new Dictionary<uint, uint>
+            {
+                [999] = 37,
+                [36] = 888,
+                [37] = 37
+            });
+
+        await Assert.That(fight.FollowOnTowerDefId).IsEqualTo(0u);
+        await Assert.That(result.Applied).IsEqualTo(0);
+        await Assert.That(result.UnknownSourceIds).IsEquivalentTo(new uint[] { 999 });
+        await Assert.That(result.UnknownTargetIds).IsEquivalentTo(new uint[] { 888 });
+        await Assert.That(result.SelfRefs).IsEquivalentTo(new uint[] { 37 });
+    }
 }

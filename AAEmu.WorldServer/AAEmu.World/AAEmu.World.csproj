@@ -23,6 +23,9 @@
     <None Include="..\..\AAEmu.Game\Config.json" Link="Game.Config.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="..\..\AAEmu.Game\Configurations\**\*.json" Link="Configurations\%(RecursiveDir)%(Filename)%(Extension)">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="Config.json" Condition="Exists('Config.json')">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

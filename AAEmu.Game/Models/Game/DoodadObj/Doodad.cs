@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
@@ -82,6 +83,8 @@ public class Doodad : BaseUnit
 
     private float _scale;
     private int _data;
+    private readonly HashSet<uint> _onceOneManCharacterIds = [];
+    private readonly object _onceOneManLock = new();
     private uint _funcGroupId;
 
     /// <summary>
@@ -422,6 +425,17 @@ public class Doodad : BaseUnit
     }
 
     /// <summary>
+    /// Records a character against <c>once_one_man</c>. Returns false if they already used this instance.
+    /// </summary>
+    public bool TryRegisterOnceOneMan(uint characterId)
+    {
+        if (characterId == 0)
+            return true;
+        lock (_onceOneManLock)
+            return _onceOneManCharacterIds.Add(characterId);
+    }
+
+    /// <summary>
     /// "Executes/Uses" the Doodad's current phase
     /// </summary>
     /// <param name="caster"></param>
@@ -641,6 +655,35 @@ public class Doodad : BaseUnit
 
         if (ToNextPhase)
         {
+            // once_one_man: each character may successfully complete this interaction once
+            // per doodad instance (Abyssal crystals: many players share act_count quota).
+            if (Template?.OnceOneMan == true && caster is Character onceMan)
+            {
+                if (!TryRegisterOnceOneMan(onceMan.Id))
+                {
+                    onceMan.SendErrorMessage(ErrorMessageType.NoInteractionAvailable);
+                    ToNextPhase = false;
+                    Logger.Debug(
+                        "CompleteFunc once_one_man blocked TemplateId={0} ObjId={1} char={2}",
+                        TemplateId, ObjId, onceMan.Name);
+                    return true;
+                }
+            }
+
+            // act_count: N successful uses before NextPhase (Data holds uses so far).
+            if (DoodadFuncActCount.TryApply(this, func, out var stayOnPhase))
+            {
+                DoodadFuncActCount.PublishProgress(this);
+                if (stayOnPhase)
+                {
+                    ToNextPhase = false;
+                    Logger.Debug(
+                        "CompleteFunc act_count progress TemplateId={0} ObjId={1} data={2}/{3}",
+                        TemplateId, ObjId, Data, func.Count);
+                    return true;
+                }
+            }
+
             if (func.NextPhase == -1)
             {
                 // We don't need to change phase, we stay in the current phase.

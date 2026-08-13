@@ -18,6 +18,12 @@ public class TowerDef
     public bool BroadcastToWholeWorld { get; set; }
     public uint StartDayOfWeekBit { get; set; }
 
+    /// <summary>
+    /// Optional follow-on <c>tower_defs.id</c> from <c>TowerDefs.FollowOnTowerDefById</c>.
+    /// World starts it when this tower opens its final progression step (0 = none).
+    /// </summary>
+    public uint FollowOnTowerDefId { get; set; }
+
     /// <summary>Event family from typed schedule config (not display name).</summary>
     public TowerDefEventFamily Family { get; set; } = TowerDefEventFamily.Unspecified;
 

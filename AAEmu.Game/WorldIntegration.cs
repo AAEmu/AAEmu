@@ -462,6 +462,12 @@ public static class WorldIntegration
     /// </summary>
     public static Action<uint> OnZoneNpcKilled { get; set; }
 
+    /// <summary>
+    /// World-authored NPC death (plot suicide, GM damage that reaches <c>DoDie</c>). Template id
+    /// only — advances tower-def kill quotas when Zone never emits <c>ZWKillNpc</c>.
+    /// </summary>
+    public static Action<uint> OnWorldNpcKilled { get; set; }
+
     /// <summary>Fired once MainWorld exists — World remirrors any zone units that arrived early.</summary>
     public static Action OnMainWorldReady { get; set; }
 
