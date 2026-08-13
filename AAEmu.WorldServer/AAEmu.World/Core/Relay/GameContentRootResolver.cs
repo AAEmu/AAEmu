@@ -19,8 +19,20 @@ public static class GameContentRootResolver
         if (!string.IsNullOrWhiteSpace(configuredRoot))
         {
             var configured = Path.GetFullPath(configuredRoot.Trim());
-            if (directoryExists(configured) && HasGameConfigs(configured, fileExists))
-                return configured;
+            if (directoryExists(configured))
+            {
+                // Explicit roots must be bootable: Config + compact DB. TowerDefs overlay is
+                // preferred but warned separately by the host when missing.
+                if (HasGameConfigs(configured, fileExists) && HasCompactDatabase(configured, fileExists))
+                    return configured;
+
+                if (HasGameConfigs(configured, fileExists))
+                {
+                    throw new DirectoryNotFoundException(
+                        $"GameContentRoot '{configured}' has a Game config but is missing Data/compact.sqlite3. " +
+                        "Point GameContentRoot at a complete AAEmu.Game output (Config + Data).");
+                }
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(baseDirectory))
