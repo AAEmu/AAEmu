@@ -28,7 +28,7 @@ See [Contributing](CONTRIBUTING.md) for details. Thanks to all the people who al
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=AAEmu/AAEmu,NL0bP/AAEmu&type=Timeline)](https://star-history.com/#AAEmu/AAEmu&NL0bP/AAEmu&Timeline)
+[![Star History Chart](https://star-history.dera.page/svg?repos=AAEmu/AAEmu,NL0bP/AAEmu&type=Timeline)](https://star-history.dera.page/#AAEmu/AAEmu&NL0bP/AAEmu&Timeline)
 
 ## Licensing information
 
