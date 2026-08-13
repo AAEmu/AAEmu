@@ -41,6 +41,7 @@ public partial class Npc : Unit
     /// Jul 18: full Face+equip UnitState on visibility worked (Nuian 警备兵). Later Soft gates/Skin rewrite broke it.
     /// </summary>
     public bool IsZoneMirror { get; set; }
+    private bool _towerDefKillQuotaNotified;
 
     /// <summary>
     /// A zone mirror whose corpse timer has already sent WZNpcStartDespawn. The zone owns the
@@ -1024,10 +1025,13 @@ public partial class Npc : Unit
         CharacterTagging.ClearAllTaggers();
         CurrentAggroTarget = null;
 
-        // Under ZoneAuthority, plot/self kills may never emit ZWKillNpc — still advance
-        // tower-def kill quotas from World DoDie.
-        if (WorldIntegration.ZoneAuthority && TemplateId != 0)
+        // Under ZoneAuthority, World-only deaths (plot self-damage) never emit ZWKillNpc.
+        // Zone kills go through MirrorZoneNpcKilled → DoDie; notify at most once per NPC.
+        if (WorldIntegration.ZoneAuthority && TemplateId != 0 && !_towerDefKillQuotaNotified)
+        {
+            _towerDefKillQuotaNotified = true;
             WorldIntegration.OnWorldNpcKilled?.Invoke(TemplateId);
+        }
 
         Spawner?.DoDespawn(this);
         // Zone mirrors have no Spawner — World schedules corpse cleanup, but Zone owns respawn.

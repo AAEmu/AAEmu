@@ -463,8 +463,8 @@ public static class WorldIntegration
     public static Action<uint> OnZoneNpcKilled { get; set; }
 
     /// <summary>
-    /// World-authored NPC death (plot suicide, GM damage that reaches <c>DoDie</c>). Template id
-    /// only — advances tower-def kill quotas when Zone never emits <c>ZWKillNpc</c>.
+    /// NPC death that reached <c>DoDie</c> (Zone mirror kill or World plot/GM). Template id
+    /// only — advances tower-def kill quotas. Fired at most once per NPC instance.
     /// </summary>
     public static Action<uint> OnWorldNpcKilled { get; set; }
 

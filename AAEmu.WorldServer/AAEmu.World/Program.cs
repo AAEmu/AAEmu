@@ -123,13 +123,9 @@ public static class Program
         WorldIntegration.OnZoneNpcRemove = WorldIntegration.MirrorZoneNpcRemove;
         WorldIntegration.OnZoneNpcKilled = bcId =>
         {
-            // Capture template before the death path may remove the mirror.
-            uint tpl = 0;
-            if (WorldIntegration.FindUnitAcrossWorlds(bcId) is AAEmu.Game.Models.Game.NPChar.Npc npc)
-                tpl = npc.TemplateId;
+            // Quota credit comes from Npc.DoDie → OnWorldNpcKilled (once). Do not also
+            // call TowerDefScheduler here or Zone deaths decrement twice.
             WorldIntegration.MirrorZoneNpcKilled(bcId);
-            if (tpl != 0)
-                TowerDefScheduler.OnNpcKilled(tpl);
         };
         WorldIntegration.OnWorldNpcKilled = tpl => TowerDefScheduler.OnNpcKilled(tpl);
         WorldIntegration.OnWorldInstanceRemoved = ZoneNpcSpawnerCatalog.RemoveInstance;
