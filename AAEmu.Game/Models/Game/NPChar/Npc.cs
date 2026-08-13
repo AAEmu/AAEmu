@@ -1027,7 +1027,8 @@ public partial class Npc : Unit
 
         // Under ZoneAuthority, World-only deaths (plot self-damage) never emit ZWKillNpc.
         // Zone kills go through MirrorZoneNpcKilled → DoDie; at most once per life (cleared on Spawn).
-        if (TryConsumeTowerDefKillQuotaNotification(out var killQuotaTemplateId))
+        if (WorldIntegration.ZoneAuthority
+            && TryConsumeTowerDefKillQuotaNotification(out var killQuotaTemplateId))
             WorldIntegration.OnWorldNpcKilled?.Invoke(killQuotaTemplateId);
 
         Spawner?.DoDespawn(this);
@@ -1793,12 +1794,12 @@ public partial class Npc : Unit
 
     /// <summary>
     /// Marks this NPC life as having credited tower kill quotas. Returns false if already credited
-    /// or if ZoneAuthority / template are not applicable.
+    /// or the template id is unset. Caller gates on <see cref="WorldIntegration.ZoneAuthority"/>.
     /// </summary>
     internal bool TryConsumeTowerDefKillQuotaNotification(out uint templateId)
     {
         templateId = 0;
-        if (!WorldIntegration.ZoneAuthority || TemplateId == 0 || _towerDefKillQuotaNotified)
+        if (TemplateId == 0 || _towerDefKillQuotaNotified)
             return false;
 
         _towerDefKillQuotaNotified = true;

@@ -5,13 +5,14 @@ namespace AAEmu.UnitTests.World.Core.Relay;
 public class GameContentRootResolverTests
 {
     [Test]
-    public async Task ConfiguredRoot_WithConfigAndDb_Wins()
+    public async Task ConfiguredRoot_WithConfigConfigurationsAndDb_Wins()
     {
         var cfg = Directory.CreateTempSubdirectory();
         var bas = Directory.CreateTempSubdirectory();
         try
         {
             File.WriteAllText(Path.Combine(cfg.FullName, "Config.json"), "{}");
+            Directory.CreateDirectory(Path.Combine(cfg.FullName, "Configurations"));
             Directory.CreateDirectory(Path.Combine(cfg.FullName, "Data"));
             File.WriteAllText(Path.Combine(cfg.FullName, "Data", "compact.sqlite3"), "x");
             File.WriteAllText(Path.Combine(bas.FullName, "Config.json"), "{}");
@@ -33,6 +34,25 @@ public class GameContentRootResolverTests
         try
         {
             File.WriteAllText(Path.Combine(cfg.FullName, "Config.json"), "{}");
+            Directory.CreateDirectory(Path.Combine(cfg.FullName, "Configurations"));
+            await Assert.That(() => GameContentRootResolver.Resolve(cfg.FullName, Path.GetTempPath()))
+                .Throws<DirectoryNotFoundException>();
+        }
+        finally
+        {
+            cfg.Delete(true);
+        }
+    }
+
+    [Test]
+    public async Task ConfiguredRoot_ConfigAndDbWithoutConfigurations_Throws()
+    {
+        var cfg = Directory.CreateTempSubdirectory();
+        try
+        {
+            File.WriteAllText(Path.Combine(cfg.FullName, "Config.json"), "{}");
+            Directory.CreateDirectory(Path.Combine(cfg.FullName, "Data"));
+            File.WriteAllText(Path.Combine(cfg.FullName, "Data", "compact.sqlite3"), "x");
             await Assert.That(() => GameContentRootResolver.Resolve(cfg.FullName, Path.GetTempPath()))
                 .Throws<DirectoryNotFoundException>();
         }
