@@ -21,16 +21,17 @@ public static class GameContentRootResolver
             var configured = Path.GetFullPath(configuredRoot.Trim());
             if (directoryExists(configured))
             {
-                // Explicit roots must be bootable: Config + compact DB. TowerDefs overlay is
-                // preferred but warned separately by the host when missing.
-                if (HasGameConfigs(configured, fileExists) && HasCompactDatabase(configured, fileExists))
+                // Explicit roots must be bootable: Config + Configurations/ + compact DB.
+                // Game.Program enumerates Configurations/*.json unconditionally.
+                // TowerDefs overlay is preferred but warned separately when missing.
+                if (IsBootableGameContent(configured, fileExists, directoryExists))
                     return configured;
 
                 if (HasGameConfigs(configured, fileExists))
                 {
                     throw new DirectoryNotFoundException(
-                        $"GameContentRoot '{configured}' has a Game config but is missing Data/compact.sqlite3. " +
-                        "Point GameContentRoot at a complete AAEmu.Game output (Config + Data).");
+                        $"GameContentRoot '{configured}' is incomplete (need Config + Configurations/ + Data/compact.sqlite3). " +
+                        "Point GameContentRoot at a complete AAEmu.Game output.");
                 }
             }
         }
@@ -38,7 +39,7 @@ public static class GameContentRootResolver
         if (!string.IsNullOrWhiteSpace(baseDirectory))
         {
             var bas = Path.GetFullPath(baseDirectory);
-            if (directoryExists(bas) && IsPreferredGameContent(bas, fileExists))
+            if (directoryExists(bas) && IsPreferredGameContent(bas, fileExists, directoryExists))
                 return bas;
         }
 
@@ -63,9 +64,9 @@ public static class GameContentRootResolver
         string? withDbOnly = null;
         foreach (var c in candidates.Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            if (!directoryExists(c) || !HasGameConfigs(c, fileExists))
+            if (!directoryExists(c) || !IsBootableGameContent(c, fileExists, directoryExists))
                 continue;
-            if (IsPreferredGameContent(c, fileExists))
+            if (IsPreferredGameContent(c, fileExists, directoryExists))
                 return c;
             if (withOverlay == null && HasTowerDefsOverlay(c, fileExists))
                 withOverlay = c;
@@ -79,16 +80,33 @@ public static class GameContentRootResolver
             return withDbOnly;
 
         throw new DirectoryNotFoundException(
-            "Cannot find AAEmu.Game content root with Config + Data/compact.sqlite3. " +
+            "Cannot find AAEmu.Game content root with Config + Configurations/ + Data/compact.sqlite3. " +
             "Prefer World output that copies Configurations/TowerDefs.json and place compact.sqlite3 under Data/. Tried: "
             + string.Join(", ", candidates.Distinct(StringComparer.OrdinalIgnoreCase)));
     }
 
-    /// <summary>World/Game output that can run Event Center Game-Time and load sqlite.</summary>
-    public static bool IsPreferredGameContent(string root, Func<string, bool>? fileExists = null) =>
+    /// <summary>Minimum tree Game.Program can load without DirectoryNotFoundException.</summary>
+    public static bool IsBootableGameContent(
+        string root,
+        Func<string, bool>? fileExists = null,
+        Func<string, bool>? directoryExists = null) =>
         HasGameConfigs(root, fileExists)
-        && HasTowerDefsOverlay(root, fileExists)
+        && HasConfigurationsDirectory(root, directoryExists)
         && HasCompactDatabase(root, fileExists);
+
+    /// <summary>World/Game output that can run Event Center Game-Time and load sqlite.</summary>
+    public static bool IsPreferredGameContent(
+        string root,
+        Func<string, bool>? fileExists = null,
+        Func<string, bool>? directoryExists = null) =>
+        IsBootableGameContent(root, fileExists, directoryExists)
+        && HasTowerDefsOverlay(root, fileExists);
+
+    public static bool HasConfigurationsDirectory(string root, Func<string, bool>? directoryExists = null)
+    {
+        directoryExists ??= Directory.Exists;
+        return directoryExists(Path.Combine(root, "Configurations"));
+    }
 
     public static bool HasTowerDefsOverlay(string root, Func<string, bool>? fileExists = null)
     {
