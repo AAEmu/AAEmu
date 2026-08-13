@@ -425,6 +425,17 @@ public class Doodad : BaseUnit
     }
 
     /// <summary>
+    /// True when this character already completed a <c>once_one_man</c> use on this instance.
+    /// </summary>
+    public bool HasOnceOneManUse(uint characterId)
+    {
+        if (characterId == 0)
+            return false;
+        lock (_onceOneManLock)
+            return _onceOneManCharacterIds.Contains(characterId);
+    }
+
+    /// <summary>
     /// Records a character against <c>once_one_man</c>. Returns false if they already used this instance.
     /// </summary>
     public bool TryRegisterOnceOneMan(uint characterId)
@@ -433,6 +444,20 @@ public class Doodad : BaseUnit
             return true;
         lock (_onceOneManLock)
             return _onceOneManCharacterIds.Add(characterId);
+    }
+
+    /// <summary>
+    /// Eligibility gate for <c>once_one_man</c> before any doodad function side effect.
+    /// </summary>
+    internal bool TryAuthorizeOnceOneManInteraction(BaseUnit caster, out Character blockedCharacter)
+    {
+        blockedCharacter = null;
+        if (Template?.OnceOneMan != true || caster is not Character character)
+            return true;
+        if (!HasOnceOneManUse(character.Id))
+            return true;
+        blockedCharacter = character;
+        return false;
     }
 
     /// <summary>
@@ -612,6 +637,16 @@ public class Doodad : BaseUnit
             return true;
         }
 
+        // once_one_man: reject before any Func side effect (loot, timers, phase writes).
+        if (!TryAuthorizeOnceOneManInteraction(caster, out var blockedOnceMan))
+        {
+            blockedOnceMan.SendErrorMessage(ErrorMessageType.NoInteractionAvailable);
+            Logger.Debug(
+                "DoFunc once_one_man blocked before Use TemplateId={0} ObjId={1} char={2}",
+                TemplateId, ObjId, blockedOnceMan.Name);
+            return true;
+        }
+
         // then perform the function
         func.Use(caster, this, skillId, func.NextPhase);
         return CompleteFunc(caster, func, skillId);
@@ -655,20 +690,9 @@ public class Doodad : BaseUnit
 
         if (ToNextPhase)
         {
-            // once_one_man: each character may successfully complete this interaction once
-            // per doodad instance (Abyssal crystals: many players share act_count quota).
+            // Record after a successful complete only (authorized before func.Use).
             if (Template?.OnceOneMan == true && caster is Character onceMan)
-            {
-                if (!TryRegisterOnceOneMan(onceMan.Id))
-                {
-                    onceMan.SendErrorMessage(ErrorMessageType.NoInteractionAvailable);
-                    ToNextPhase = false;
-                    Logger.Debug(
-                        "CompleteFunc once_one_man blocked TemplateId={0} ObjId={1} char={2}",
-                        TemplateId, ObjId, onceMan.Name);
-                    return true;
-                }
-            }
+                TryRegisterOnceOneMan(onceMan.Id);
 
             // act_count: N successful uses before NextPhase (Data holds uses so far).
             if (DoodadFuncActCount.TryApply(this, func, out var stayOnPhase))

@@ -8,6 +8,8 @@ using AAEmu.World.Core.Network;
 using AAEmu.World.Core.Packets.Wz;
 using AAEmu.World.Core.Zone;
 
+using System.Threading;
+
 using NLog;
 
 namespace AAEmu.World.Core.Relay;
@@ -52,12 +54,18 @@ public static class TowerDefScheduler
         /// <summary>When set, start <see cref="PendingFollowOnId"/> at this UTC time.</summary>
         public DateTime FollowOnAt = DateTime.MaxValue;
         public uint PendingFollowOnId;
+        /// <summary>Incremented on each Start; captured when a follow-on delay is armed.</summary>
+        public ulong Generation;
+        public ulong FollowOnGeneration;
     }
 
     private static readonly Dictionary<uint, RunState> Running = [];
     /// <summary>Playable spot counts reported by zones: towerDefId → (zoneId → count).</summary>
     private static readonly Dictionary<uint, Dictionary<uint, uint>> Playability = [];
     private static bool _primed;
+    private static ulong _nextRunGeneration = 1;
+
+    private static ulong NextRunGeneration() => Interlocked.Increment(ref _nextRunGeneration);
 
     public static int RunningCount { get { lock (Sync) return Running.Count; } }
 
@@ -341,7 +349,8 @@ public static class TowerDefScheduler
                     // ("utc window closed" ~15s later) or an unset Deadline (instant force_end).
                     Manual = true,
                     Deadline = now + towerDef.Duration,
-                    KillWaitStep = -1
+                    KillWaitStep = -1,
+                    Generation = NextRunGeneration()
                 };
                 // Host all currently playable zones for an ad-hoc wave.
                 foreach (var (zone, spots, group) in EnumeratePlayableHosts(towerDefId, manualFallbackAll: true))
@@ -416,7 +425,8 @@ public static class TowerDefScheduler
             NextWaveAt = now + firstWaveDelay,
             AnnounceZoneId = announceZoneId,
             AnnounceZoneGroupId = announceGroup,
-            KillWaitStep = -1
+            KillWaitStep = -1,
+            Generation = NextRunGeneration()
         };
 
         foreach (var (zone, spots, group) in hosts)
@@ -615,12 +625,14 @@ public static class TowerDefScheduler
 
         state.PendingFollowOnId = followId;
         state.FollowOnAt = DateTime.UtcNow + delay;
+        state.FollowOnGeneration = state.Generation;
         Logger.Info(
-            "TowerDef {0} follow-on {1} scheduled in {2:0.#}s (final CondToNextTime)",
-            towerDef.Id, followId, delay.TotalSeconds);
+            "TowerDef {0} follow-on {1} scheduled in {2:0.#}s (final CondToNextTime, gen={3})",
+            towerDef.Id, followId, delay.TotalSeconds, state.FollowOnGeneration);
 
         // Precise wake — schedule-gate Tick is only ~5s; do not wait on that alone.
         var predecessorId = towerDef.Id;
+        var scheduledGeneration = state.FollowOnGeneration;
         _ = Task.Run(async () =>
         {
             try
@@ -630,10 +642,12 @@ public static class TowerDefScheduler
                 {
                     if (!Running.TryGetValue(predecessorId, out var live))
                         return;
-                    if (live.PendingFollowOnId != followId)
+                    if (!TowerDefFollowOnGate.ShouldFire(
+                            live.PendingFollowOnId, followId, live.Generation, scheduledGeneration))
                         return;
                     live.PendingFollowOnId = 0;
                     live.FollowOnAt = DateTime.MaxValue;
+                    live.FollowOnGeneration = 0;
                     Running[predecessorId] = live;
                     var td = TowerDefGameData.Instance.GetTowerDef(predecessorId);
                     if (td == null)
@@ -658,10 +672,21 @@ public static class TowerDefScheduler
             if (state.PendingFollowOnId == 0 || now < state.FollowOnAt)
                 continue;
 
+            if (!TowerDefFollowOnGate.ShouldFire(
+                    state.PendingFollowOnId, state.PendingFollowOnId, state.Generation, state.FollowOnGeneration))
+            {
+                state.PendingFollowOnId = 0;
+                state.FollowOnAt = DateTime.MaxValue;
+                state.FollowOnGeneration = 0;
+                Running[id] = state;
+                continue;
+            }
+
             var towerDef = TowerDefGameData.Instance.GetTowerDef(id);
             var followId = state.PendingFollowOnId;
             state.PendingFollowOnId = 0;
             state.FollowOnAt = DateTime.MaxValue;
+            state.FollowOnGeneration = 0;
             Running[id] = state;
 
             if (towerDef == null)
@@ -769,7 +794,8 @@ public static class TowerDefScheduler
             NextWaveAt = now + firstWaveDelay,
             AnnounceZoneId = announceZoneId,
             AnnounceZoneGroupId = announceGroup,
-            KillWaitStep = -1
+            KillWaitStep = -1,
+            Generation = NextRunGeneration()
         };
 
         var zones = 0;

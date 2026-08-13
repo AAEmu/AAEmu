@@ -5,16 +5,13 @@ namespace AAEmu.UnitTests.World.Core.Relay;
 public class GameContentRootResolverTests
 {
     [Test]
-    public async Task ConfiguredRoot_WithConfigConfigurationsAndDb_Wins()
+    public async Task ConfiguredRoot_Bootable_Wins()
     {
         var cfg = Directory.CreateTempSubdirectory();
         var bas = Directory.CreateTempSubdirectory();
         try
         {
-            File.WriteAllText(Path.Combine(cfg.FullName, "Config.json"), "{}");
-            Directory.CreateDirectory(Path.Combine(cfg.FullName, "Configurations"));
-            Directory.CreateDirectory(Path.Combine(cfg.FullName, "Data"));
-            File.WriteAllText(Path.Combine(cfg.FullName, "Data", "compact.sqlite3"), "x");
+            MakeBootable(cfg.FullName);
             File.WriteAllText(Path.Combine(bas.FullName, "Config.json"), "{}");
 
             var root = GameContentRootResolver.Resolve(cfg.FullName, bas.FullName);
@@ -28,75 +25,44 @@ public class GameContentRootResolverTests
     }
 
     [Test]
-    public async Task ConfiguredRoot_ConfigWithoutDb_Throws()
+    public async Task ConfiguredRoot_MissingDirectory_Throws()
     {
-        var cfg = Directory.CreateTempSubdirectory();
-        try
-        {
-            File.WriteAllText(Path.Combine(cfg.FullName, "Config.json"), "{}");
-            Directory.CreateDirectory(Path.Combine(cfg.FullName, "Configurations"));
-            await Assert.That(() => GameContentRootResolver.Resolve(cfg.FullName, Path.GetTempPath()))
-                .Throws<DirectoryNotFoundException>();
-        }
-        finally
-        {
-            cfg.Delete(true);
-        }
+        var missing = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        await Assert.That(() => GameContentRootResolver.Resolve(missing, Path.GetTempPath()))
+            .Throws<DirectoryNotFoundException>();
     }
 
     [Test]
-    public async Task ConfiguredRoot_ConfigAndDbWithoutConfigurations_Throws()
+    public async Task ConfiguredRoot_Incomplete_ThrowsWithoutFallback()
     {
         var cfg = Directory.CreateTempSubdirectory();
-        try
-        {
-            File.WriteAllText(Path.Combine(cfg.FullName, "Config.json"), "{}");
-            Directory.CreateDirectory(Path.Combine(cfg.FullName, "Data"));
-            File.WriteAllText(Path.Combine(cfg.FullName, "Data", "compact.sqlite3"), "x");
-            await Assert.That(() => GameContentRootResolver.Resolve(cfg.FullName, Path.GetTempPath()))
-                .Throws<DirectoryNotFoundException>();
-        }
-        finally
-        {
-            cfg.Delete(true);
-        }
-    }
-
-    [Test]
-    public async Task EmptyConfigured_PrefersBaseWithTowerDefsAndDb()
-    {
         var bas = Directory.CreateTempSubdirectory();
         try
         {
-            File.WriteAllText(Path.Combine(bas.FullName, "Config.json"), "{}");
-            Directory.CreateDirectory(Path.Combine(bas.FullName, "Configurations"));
-            File.WriteAllText(Path.Combine(bas.FullName, "Configurations", "TowerDefs.json"), "{}");
-            Directory.CreateDirectory(Path.Combine(bas.FullName, "Data"));
-            File.WriteAllText(Path.Combine(bas.FullName, "Data", "compact.sqlite3"), "x");
+            File.WriteAllText(Path.Combine(cfg.FullName, "Config.json"), "{}");
+            MakeBootable(bas.FullName);
 
-            var root = GameContentRootResolver.Resolve("", bas.FullName);
-            await Assert.That(root).IsEqualTo(Path.GetFullPath(bas.FullName));
+            await Assert.That(() => GameContentRootResolver.Resolve(cfg.FullName, bas.FullName))
+                .Throws<DirectoryNotFoundException>();
         }
         finally
         {
+            cfg.Delete(true);
             bas.Delete(true);
         }
     }
 
     [Test]
-    public async Task ConfiguredWithoutConfigs_FallsThroughToPreferredBase()
+    public async Task EmptyConfigured_UsesBootableBaseDirectory()
     {
-        var missing = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         var bas = Directory.CreateTempSubdirectory();
         try
         {
-            File.WriteAllText(Path.Combine(bas.FullName, "Game.Config.json"), "{}");
+            MakeBootable(bas.FullName);
             Directory.CreateDirectory(Path.Combine(bas.FullName, "Configurations"));
             File.WriteAllText(Path.Combine(bas.FullName, "Configurations", "TowerDefs.json"), "{}");
-            Directory.CreateDirectory(Path.Combine(bas.FullName, "Data"));
-            File.WriteAllText(Path.Combine(bas.FullName, "Data", "compact.sqlite3"), "x");
 
-            var root = GameContentRootResolver.Resolve(missing, bas.FullName);
+            var root = GameContentRootResolver.Resolve("", bas.FullName);
             await Assert.That(root).IsEqualTo(Path.GetFullPath(bas.FullName));
         }
         finally
@@ -111,5 +77,13 @@ public class GameContentRootResolverTests
         var missing = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
         await Assert.That(() => GameContentRootResolver.Resolve(null, missing))
             .Throws<DirectoryNotFoundException>();
+    }
+
+    private static void MakeBootable(string root)
+    {
+        File.WriteAllText(Path.Combine(root, "Config.json"), "{}");
+        Directory.CreateDirectory(Path.Combine(root, "Configurations"));
+        Directory.CreateDirectory(Path.Combine(root, "Data"));
+        File.WriteAllText(Path.Combine(root, "Data", "compact.sqlite3"), "x");
     }
 }

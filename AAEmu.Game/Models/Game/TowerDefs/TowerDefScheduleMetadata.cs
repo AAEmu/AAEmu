@@ -11,8 +11,8 @@ namespace AAEmu.Game.Models.Game.TowerDefs;
 /// <c>tod_day_interval</c> / <c>target_npc_spawner_id</c> alone — those columns are populated on
 /// both auto-armed Event Center rows and GM-only rows that share a portal spawner.
 /// <see cref="AAEmu.Game.Models.Game.TowerDefsConfig.GameTimeAutoArmIds"/> is the Game-Time membership
-/// overlay; <see cref="AAEmu.Game.Models.Game.TowerDefsConfig.WallClockStartTimesById"/> fills UTC
-/// weekday slots when compact left them at unused 00:00 (e.g. Abyssal Assault).
+/// overlay; <see cref="AAEmu.Game.Models.Game.TowerDefsConfig.WallClockStartTimesById"/> fills empty UTC
+/// weekday slots only (never overwrites an existing StartTimes value).
 /// Omitted ToD-capable rows stay Manual and are reported so the overlay cannot go stale silently.
 /// Family/variant labels are not required: portal exclusion uses
 /// <see cref="TowerDef.TargetNpcSpawnId"/>.
@@ -29,7 +29,8 @@ public static class TowerDefScheduleMetadata
     public readonly record struct WallClockApplyResult(
         int AppliedSlots,
         IReadOnlyList<uint> UnknownIds,
-        IReadOnlyList<string> InvalidEntries);
+        IReadOnlyList<string> InvalidEntries,
+        IReadOnlyList<string> Conflicts);
 
     public readonly record struct FollowOnApplyResult(
         int Applied,
@@ -101,7 +102,8 @@ public static class TowerDefScheduleMetadata
     }
 
     /// <summary>
-    /// Writes UTC StartTimes from config before <see cref="Apply"/> assigns ScheduleMode.
+    /// Fills empty weekday StartTimes from config. Never overwrites a slot that already has a value;
+    /// conflicting overlays are reported so a stale config cannot replace server data.
     /// </summary>
     public static WallClockApplyResult ApplyWallClockStartTimes(
         IEnumerable<TowerDef> towerDefs,
@@ -117,6 +119,7 @@ public static class TowerDefScheduleMetadata
 
         var unknown = new List<uint>();
         var invalid = new List<string>();
+        var conflicts = new List<string>();
         var applied = 0;
         var overlay = wallClockStartTimesById ?? new Dictionary<uint, Dictionary<string, string>>();
 
@@ -147,14 +150,24 @@ public static class TowerDefScheduleMetadata
                     continue;
                 }
 
-                towerDef.StartTimes[(int)day] = slot;
+                var dayIndex = (int)day;
+                var existing = towerDef.StartTimes[dayIndex];
+                if (existing.HasValue)
+                {
+                    if (existing.Value != slot)
+                        conflicts.Add($"{id}:{day} existing={existing.Value:c} overlay={slot:c}");
+                    continue;
+                }
+
+                towerDef.StartTimes[dayIndex] = slot;
                 applied++;
             }
         }
 
         unknown.Sort();
         invalid.Sort(StringComparer.Ordinal);
-        return new WallClockApplyResult(applied, unknown, invalid);
+        conflicts.Sort(StringComparer.Ordinal);
+        return new WallClockApplyResult(applied, unknown, invalid, conflicts);
     }
 
     private static bool TryParseDayOfWeek(string key, out DayOfWeek day)

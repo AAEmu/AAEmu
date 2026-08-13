@@ -101,7 +101,6 @@ public class TowerDefScheduleMetadataTests
     [Test]
     public async Task ApplyWallClockStartTimes_FillsEmptySlotsAndMarksWallClock()
     {
-        // Compact ships Abyssal (36) with all start_hour*=0; Event Center lists Server Time Tu/Th/Sa 22:00.
         var abyss = ToDRow(36, 16859);
         var overlay = new Dictionary<uint, Dictionary<string, string>>
         {
@@ -117,10 +116,27 @@ public class TowerDefScheduleMetadataTests
         var result = TowerDefScheduleMetadata.Apply([abyss], []);
 
         await Assert.That(wall.AppliedSlots).IsEqualTo(3);
+        await Assert.That(wall.Conflicts).IsEmpty();
         await Assert.That(abyss.StartTimeFor(DayOfWeek.Tuesday)).IsEqualTo(new TimeSpan(22, 0, 0));
         await Assert.That(abyss.StartTimeFor(DayOfWeek.Sunday)).IsNull();
         await Assert.That(abyss.ScheduleMode).IsEqualTo(TowerDefScheduleMode.WallClock);
         await Assert.That(result.UnlistedToDCandidates).IsEmpty();
+    }
+
+    [Test]
+    public async Task ApplyWallClockStartTimes_DoesNotOverwriteExistingSlot()
+    {
+        var row = new TowerDef { Id = 36, ForceEndTime = 7200f, TargetNpcSpawnId = 16859 };
+        row.StartTimes[(int)DayOfWeek.Tuesday] = new TimeSpan(21, 0, 0);
+        var overlay = new Dictionary<uint, Dictionary<string, string>>
+        {
+            [36] = new Dictionary<string, string> { ["Tuesday"] = "22:00" }
+        };
+
+        var wall = TowerDefScheduleMetadata.ApplyWallClockStartTimes([row], overlay);
+        await Assert.That(wall.AppliedSlots).IsEqualTo(0);
+        await Assert.That(wall.Conflicts.Count).IsEqualTo(1);
+        await Assert.That(row.StartTimeFor(DayOfWeek.Tuesday)).IsEqualTo(new TimeSpan(21, 0, 0));
     }
 
     [Test]

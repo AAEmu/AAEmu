@@ -1,5 +1,3 @@
-using System.Collections.Concurrent;
-
 using AAEmu.Game;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -10,6 +8,8 @@ using AAEmu.Game.Models.Game.TowerDefs;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 
+using System.Collections.Concurrent;
+
 using NLog;
 
 namespace AAEmu.World.Core.Relay;
@@ -17,7 +17,7 @@ namespace AAEmu.World.Core.Relay;
 /// <summary>
 /// World-authors <c>tower_def_prog_spawn_targets</c> rows with type <c>DoodadAlmighty</c>.
 /// Zone wave start only arms <c>NpcSpawner</c> targets; doodad templates need explicit world
-/// placements from <c>TowerDefs.ProgDoodadPlacementsByTowerDefId</c> (no invented offsets).
+/// placements from <c>TowerDefs.ProgDoodadPlacementsByTowerDefId</c>.
 /// </summary>
 public static class TowerDefProgDoodads
 {
@@ -37,7 +37,7 @@ public static class TowerDefProgDoodads
 
     /// <summary>
     /// After WaveStart: despawn prior-step doodads marked <c>despawn_on_next_step</c>, then spawn
-    /// this step's DoodadAlmighty templates at configured world placements.
+    /// this step's DoodadAlmighty templates at configured world placements (once per world).
     /// </summary>
     public static void ApplyStep(TowerDef towerDef, int step, IReadOnlyList<uint> hostZoneIds)
     {
@@ -75,23 +75,23 @@ public static class TowerDefProgDoodads
             return;
         }
 
+        var worlds = DistinctWorldsForHosts(hostZoneIds);
+        if (worlds.Count == 0)
+        {
+            Logger.Warn(
+                "TowerDefProgDoodads tower={0} step={1}: no world instance for host zones",
+                towerDef.Id, step);
+            return;
+        }
+
         var live = ByTower.GetOrAdd(towerDef.Id, _ => []);
         var spawned = 0;
         var despawnByTemplate = doodadTargets
             .GroupBy(t => t.SpawnTargetId)
             .ToDictionary(g => g.Key, g => g.Any(t => t.DespawnOnNextStep));
 
-        foreach (var zoneId in hostZoneIds)
+        foreach (var (world, fallbackZoneId) in worlds)
         {
-            var world = WorldIntegration.ResolveWorldForZone(zoneId);
-            if (world == null)
-            {
-                Logger.Warn(
-                    "TowerDefProgDoodads tower={0} step={1} zoneId={2}: no world instance",
-                    towerDef.Id, step, zoneId);
-                continue;
-            }
-
             foreach (var place in placements)
             {
                 if (!DoodadManager.Instance.Exist(place.TemplateId))
@@ -102,6 +102,7 @@ public static class TowerDefProgDoodads
                     continue;
                 }
 
+                var owningZoneId = ResolvePlacementZoneId(world, place, fallbackZoneId);
                 var pos = new WorldSpawnPosition
                 {
                     X = place.X,
@@ -135,8 +136,8 @@ public static class TowerDefProgDoodads
                 if (doodad == null || doodad.ObjId == 0)
                     continue;
 
-                if (doodad.Transform != null && doodad.Transform.ZoneId == 0)
-                    doodad.Transform.ZoneId = zoneId;
+                if (doodad.Transform != null)
+                    doodad.Transform.ZoneId = owningZoneId;
 
                 WorldIntegration.RelayCreateDoodadToZone?.Invoke(doodad);
                 var despawnNext = despawnByTemplate.GetValueOrDefault(place.TemplateId, true);
@@ -157,8 +158,8 @@ public static class TowerDefProgDoodads
         if (spawned > 0)
         {
             Logger.Info(
-                "TowerDefProgDoodads tower={0} step={1} spawned={2} placements={3}",
-                towerDef.Id, step, spawned, placements.Count);
+                "TowerDefProgDoodads tower={0} step={1} spawned={2} placements={3} worlds={4}",
+                towerDef.Id, step, spawned, placements.Count, worlds.Count);
         }
         else
         {
@@ -166,6 +167,54 @@ public static class TowerDefProgDoodads
                 "TowerDefProgDoodads tower={0} step={1} spawned 0 (placements={2})",
                 towerDef.Id, step, placements.Count);
         }
+    }
+
+    /// <summary>
+    /// One entry per distinct <see cref="WorldInstance"/> among host zones (first zone is fallback).
+    /// </summary>
+    public static IReadOnlyList<(WorldInstance World, uint FallbackZoneId)> DistinctWorldsForHosts(
+        IReadOnlyList<uint> hostZoneIds)
+    {
+        if (hostZoneIds == null || hostZoneIds.Count == 0)
+            return [];
+
+        var byWorldId = new Dictionary<uint, (WorldInstance World, uint FallbackZoneId)>();
+        foreach (var zoneId in hostZoneIds)
+        {
+            if (zoneId == 0)
+                continue;
+            var world = WorldIntegration.ResolveWorldForZone(zoneId);
+            if (world == null)
+            {
+                Logger.Warn("TowerDefProgDoodads zoneId={0}: no world instance", zoneId);
+                continue;
+            }
+
+            byWorldId.TryAdd(world.Id, (world, zoneId));
+        }
+
+        return byWorldId.Values.ToList();
+    }
+
+    /// <summary>
+    /// Placement zone ownership: optional config <see cref="TowerDefProgDoodadPlacement.ZoneId"/>,
+    /// else world template lookup from XYZ, else host fallback.
+    /// </summary>
+    public static uint ResolvePlacementZoneId(
+        WorldInstance world,
+        TowerDefProgDoodadPlacement place,
+        uint fallbackZoneId)
+    {
+        if (place != null && place.ZoneId != 0)
+            return place.ZoneId;
+        if (world?.Template != null && place != null)
+        {
+            var fromPos = WorldManager.Instance.GetZoneId(world.Template, place.X, place.Y);
+            if (fromPos != 0)
+                return fromPos;
+        }
+
+        return fallbackZoneId;
     }
 
     /// <summary>
