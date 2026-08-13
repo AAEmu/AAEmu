@@ -463,6 +463,12 @@ public static class WorldIntegration
     public static Action<uint> OnZoneNpcKilled { get; set; }
 
     /// <summary>
+    /// When set, plot self-target damage may bypass <see cref="BaseUnit.CanAttack"/> only for the
+    /// units this predicate accepts (e.g. armed tower-def kill-quota NPCs). Null ⇒ deny.
+    /// </summary>
+    public static Func<BaseUnit, bool> AllowsPlotSelfDamageBypass { get; set; }
+
+    /// <summary>
     /// NPC death that reached <c>DoDie</c> (Zone mirror kill or World plot/GM). Template id
     /// only — advances tower-def kill quotas. Fired at most once per NPC instance.
     /// </summary>

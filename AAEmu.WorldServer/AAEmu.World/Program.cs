@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.World.Core.Network;
 using AAEmu.World.Core.Packets.Wz;
@@ -128,6 +129,8 @@ public static class Program
             WorldIntegration.MirrorZoneNpcKilled(bcId);
         };
         WorldIntegration.OnWorldNpcKilled = tpl => TowerDefScheduler.OnNpcKilled(tpl);
+        WorldIntegration.AllowsPlotSelfDamageBypass = unit =>
+            unit is Npc npc && TowerDefScheduler.IsActiveKillQuotaTemplate(npc.TemplateId);
         WorldIntegration.OnWorldInstanceRemoved = ZoneNpcSpawnerCatalog.RemoveInstance;
         WorldIntegration.TriggerTowerDef = (action, towerDefId, step) => action switch
         {
