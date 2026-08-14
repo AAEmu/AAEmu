@@ -51,4 +51,21 @@ public class SlaveOccupyBuffsTests
 
         await Assert.That(SlaveOccupyBuffs.BuffIdsFromSkill(template).Any()).IsFalse();
     }
+
+    [Test]
+    public async Task ResolveOccupySkillId_IgnoresPacketSkillNotOnTheHull()
+    {
+        uint[] helm = [28472];
+
+        await Assert.That(SlaveOccupyBuffs.ResolveOccupySkillId(99999, helm)).IsEqualTo(28472u);
+        await Assert.That(SlaveOccupyBuffs.ResolveOccupySkillId(28472, helm)).IsEqualTo(28472u);
+        await Assert.That(SlaveOccupyBuffs.ResolveOccupySkillId(12076, helm)).IsEqualTo(28472u);
+    }
+
+    [Test]
+    public async Task ResolveOccupySkillId_EmptyHullAppliesNothing()
+    {
+        await Assert.That(SlaveOccupyBuffs.ResolveOccupySkillId(28472, [])).IsEqualTo(0u);
+        await Assert.That(SlaveOccupyBuffs.ResolveOccupySkillId(28472, (IReadOnlyList<uint>)null)).IsEqualTo(0u);
+    }
 }

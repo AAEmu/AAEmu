@@ -26,13 +26,35 @@ public static class SlaveOccupyBuffs
         }
     }
 
-    public static uint ResolveOccupySkillId(uint packetSkillId, Slave slave)
+    /// <summary>
+    /// Occupy skill must be listed on this hull's helm doodad attachments. A client BindSlave
+    /// skillType is only used when it matches that list; otherwise the first helm occupy skill
+    /// is used. Unknown/empty list → 0 (no buffs).
+    /// </summary>
+    public static uint ResolveOccupySkillId(uint packetSkillId, IReadOnlyList<uint> allowedOccupySkillIds)
     {
-        if (HasBuffEffects(packetSkillId))
-            return packetSkillId;
+        if (allowedOccupySkillIds == null || allowedOccupySkillIds.Count == 0)
+            return 0;
 
+        if (packetSkillId != 0)
+        {
+            for (var i = 0; i < allowedOccupySkillIds.Count; i++)
+            {
+                if (allowedOccupySkillIds[i] == packetSkillId)
+                    return packetSkillId;
+            }
+        }
+
+        return allowedOccupySkillIds[0];
+    }
+
+    public static uint ResolveOccupySkillId(uint packetSkillId, Slave slave)
+        => ResolveOccupySkillId(packetSkillId, HelmOccupySkillIds(slave).ToList());
+
+    public static IEnumerable<uint> HelmOccupySkillIds(Slave slave)
+    {
         if (slave?.AttachedDoodads == null)
-            return packetSkillId;
+            yield break;
 
         foreach (var doodad in slave.AttachedDoodads)
         {
@@ -43,11 +65,9 @@ public static class SlaveOccupyBuffs
                 if (func.FuncType != "DoodadFuncAttachment" || func.SkillId == 0)
                     continue;
                 if (HasBuffEffects(func.SkillId))
-                    return func.SkillId;
+                    yield return func.SkillId;
             }
         }
-
-        return packetSkillId;
     }
 
     public static void ApplyBuffEffects(Character character, uint occupySkillId, Slave slave = null)
