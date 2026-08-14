@@ -1,3 +1,4 @@
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -67,5 +68,14 @@ public class SlaveOccupyBuffsTests
     {
         await Assert.That(SlaveOccupyBuffs.ResolveOccupySkillId(28472, [])).IsEqualTo(0u);
         await Assert.That(SlaveOccupyBuffs.ResolveOccupySkillId(28472, (IReadOnlyList<uint>)null)).IsEqualTo(0u);
+    }
+
+    [Test]
+    public async Task IsDriverOccupySeat_RejectsPassengerAndCannon()
+    {
+        await Assert.That(SlaveOccupyBuffs.IsDriverOccupySeat(AttachPointKind.Driver)).IsTrue();
+        await Assert.That(SlaveOccupyBuffs.IsDriverOccupySeat(AttachPointKind.Passenger0)).IsFalse();
+        await Assert.That(SlaveOccupyBuffs.IsDriverOccupySeat(AttachPointKind.Cannon0)).IsFalse();
+        await Assert.That(SlaveOccupyBuffs.IsDriverOccupySeat(AttachPointKind.Mast0)).IsFalse();
     }
 }

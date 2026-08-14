@@ -1,6 +1,8 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Funcs;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -27,8 +29,8 @@ public static class SlaveOccupyBuffs
     }
 
     /// <summary>
-    /// Occupy skill must be listed on this hull's helm doodad attachments. A client BindSlave
-    /// skillType is only used when it matches that list; otherwise the first helm occupy skill
+    /// Occupy skill must be a Driver-seat helm attachment on this hull. A client BindSlave
+    /// skillType is only used when it matches that list; otherwise the first Driver occupy skill
     /// is used. Unknown/empty list → 0 (no buffs).
     /// </summary>
     public static uint ResolveOccupySkillId(uint packetSkillId, IReadOnlyList<uint> allowedOccupySkillIds)
@@ -51,6 +53,13 @@ public static class SlaveOccupyBuffs
     public static uint ResolveOccupySkillId(uint packetSkillId, Slave slave)
         => ResolveOccupySkillId(packetSkillId, HelmOccupySkillIds(slave).ToList());
 
+    /// <summary>
+    /// CSBindSlave always seats Driver. Only doodad_func_attachments whose seat is Driver
+    /// may contribute occupy buffs (helm wheels); cannon/passenger/mast attachments must not.
+    /// </summary>
+    public static bool IsDriverOccupySeat(AttachPointKind attachPoint)
+        => attachPoint == AttachPointKind.Driver;
+
     public static IEnumerable<uint> HelmOccupySkillIds(Slave slave)
     {
         if (slave?.AttachedDoodads == null)
@@ -63,6 +72,10 @@ public static class SlaveOccupyBuffs
             foreach (var func in DoodadManager.Instance.GetFuncsForGroup(doodad.FuncGroupId))
             {
                 if (func.FuncType != "DoodadFuncAttachment" || func.SkillId == 0)
+                    continue;
+                if (DoodadManager.Instance.GetFuncTemplate(func.FuncId, func.FuncType) is not DoodadFuncAttachment attach)
+                    continue;
+                if (!IsDriverOccupySeat(attach.AttachPointId))
                     continue;
                 if (HasBuffEffects(func.SkillId))
                     yield return func.SkillId;
