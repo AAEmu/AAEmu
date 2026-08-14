@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Spheres;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -807,6 +808,8 @@ public class CharacterQuests(Character owner)
         {
             if (geo.SphereId == 0)
                 continue;
+            if (!CanTriggerQuestAreaSphere(geo.SphereId))
+                continue;
             nowIds.Add(geo.SphereId);
             if (_insideQuestAreaSphereIds.Contains(geo.SphereId))
             {
@@ -855,10 +858,20 @@ public class CharacterQuests(Character owner)
     /// <summary>
     /// While still inside a SphereBuff volume, ensure char + slave_applicable mounts still have the buff.
     /// </summary>
+    private bool CanTriggerQuestAreaSphere(uint sphereId)
+    {
+        var db = SphereGameData.Instance.GetSphere(sphereId);
+        if (db == null)
+            return true;
+        return UnitRequirementsGameData.Instance.CanTriggerSphere(db, Owner);
+    }
+
     private void EnsureSphereBuffWhileInside(uint sphereId)
     {
         var db = SphereGameData.Instance.GetSphere(sphereId);
         if (db?.SphereDetailType != "SphereBuff")
+            return;
+        if (!UnitRequirementsGameData.Instance.CanTriggerSphere(db, Owner))
             return;
         ApplySphereBuff(db.SphereDetailId, enter: true);
     }
@@ -997,15 +1010,18 @@ public class CharacterQuests(Character owner)
             if (detail.BuffId == 0)
                 return;
 
-            if (!Owner.Buffs.CheckBuff(detail.BuffId))
+            var buffTemplate = SkillManager.Instance.GetBuffTemplate(detail.BuffId);
+            var slaveApplicable = buffTemplate?.SlaveApplicable == true;
+
+            if (SphereBuffTargets.ApplyToCharacter(slaveApplicable) &&
+                !Owner.Buffs.CheckBuff(detail.BuffId))
             {
                 Owner.Buffs.AddBuff(detail.BuffId, Owner);
                 Logger.Info("SphereBuff APPLY char={0} buff={1} detail={2}", Owner.Name, detail.BuffId, sphereBuffDetailId);
             }
 
-            // slave_applicable: Moored (13817) HealthRegen+200 and Ezi (13816) collision/speed mods
-            // belong on the hull. Character-only application left ships with formula regen ~0.
-            ApplySphereBuffToOwnedMounts(detail.BuffId, detail.AndPet, add: true, sphereBuffDetailId);
+            if (SphereBuffTargets.ApplyToSlave(slaveApplicable))
+                ApplySphereBuffToOwnedMounts(detail.BuffId, detail.AndPet, add: true, sphereBuffDetailId);
             return;
         }
 
@@ -1013,6 +1029,7 @@ public class CharacterQuests(Character owner)
         if (removeId == 0)
             return;
 
+        // Always strip leftover character copies (older sessions applied hull buffs to the PC).
         if (Owner.Buffs.CheckBuff(removeId))
         {
             Owner.Buffs.RemoveBuff(removeId);
@@ -1032,6 +1049,8 @@ public class CharacterQuests(Character owner)
         {
             var db = SphereGameData.Instance.GetSphere(sphereId);
             if (db?.SphereDetailType != "SphereBuff")
+                continue;
+            if (!UnitRequirementsGameData.Instance.CanTriggerSphere(db, Owner))
                 continue;
             var detail = SphereGameData.Instance.GetSphereBuff(db.SphereDetailId);
             if (detail == null || detail.BuffId == 0)

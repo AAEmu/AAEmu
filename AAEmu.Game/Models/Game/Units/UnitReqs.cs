@@ -310,7 +310,7 @@ public class UnitReqs
                 return Ret(SkillResultKeys.skill_urk_tod, currentTime >= Value1 && currentTime <= Value2);
 
             case UnitReqsKindType.MotherFaction:
-                return Ret(SkillResultKeys.skill_urk_mother_faction, (uint)(unit?.Faction.MotherId ?? 0) == Value1);
+                return Ret(SkillResultKeys.skill_urk_mother_faction, EffectiveNationId(unit) == Value1);
 
             case UnitReqsKindType.ActAbilityPoint:
                 return RetWithValue(SkillResultKeys.skill_urk_actability_point, Value1,
@@ -366,17 +366,19 @@ public class UnitReqs
                 return RetWithValue(SkillResultKeys.skill_urk_faction_match_only, Value1, (uint)(unit?.Faction?.Id ?? 0) == Value1);
 
             case UnitReqsKindType.MotherFactionOnly:
-                // Is this the same as UnitReqsKindType.MotherFaction ? 
-                return Ret(SkillResultKeys.skill_urk_mother_faction_only, (uint)(unit?.Faction?.MotherId ?? 0) == Value1);
+                return Ret(SkillResultKeys.skill_urk_mother_faction_only, EffectiveNationId(unit) == Value1);
 
             case UnitReqsKindType.FactionMatchOnlyNot:
                 return Ret(SkillResultKeys.skill_urk_faction_match_only_not, (uint)(unit?.Faction?.Id ?? 0) != Value1);
 
             case UnitReqsKindType.MotherFactionOnlyNot:
-                return Ret(SkillResultKeys.skill_urk_mother_faction_only_not, (uint)(unit?.Faction?.MotherId ?? 0) != Value1);
+                return Ret(SkillResultKeys.skill_urk_mother_faction_only_not, EffectiveNationId(unit) != Value1);
 
-            // case UnitReqsKindType.NationMember:
-            // case UnitReqsKindType.NationMemberNot:
+            case UnitReqsKindType.NationMember:
+                return Ret(SkillResultKeys.skill_urk_nation_member, IsNationMemberOfCurrentZone(owner, unit));
+
+            case UnitReqsKindType.NationMemberNot:
+                return Ret(SkillResultKeys.skill_urk_nation_member_not, !IsNationMemberOfCurrentZone(owner, unit));
             // case UnitReqsKindType.DominionMemberAtPos:
             // case UnitReqsKindType.DominionMemberAtPosNot:
             // case UnitReqsKindType.Housing:
@@ -659,6 +661,22 @@ public class UnitReqs
                 "Unsupported UnitReq blocked: id={0} owner={1}:{2} kind={3} values={4},{5},{6}",
                 Id, OwnerType, OwnerId, KindType, Value1, Value2, Value3);
             return new UnitReqsValidationResult(SkillResultKeys.skill_urk_unknown, 0, 0);
+        }
+
+        static uint EffectiveNationId(Unit unit)
+        {
+            var factionId = (uint)(unit?.Faction?.Id ?? 0);
+            var motherId = (uint)(unit?.Faction?.MotherId ?? 0);
+            return UnitReqNation.EffectiveNationId(factionId, motherId);
+        }
+
+        static bool IsNationMemberOfCurrentZone(BaseUnit owner, Unit unit)
+        {
+            var zone = owner?.Transform != null
+                ? ZoneManager.Instance.GetZoneByKey(owner.Transform.ZoneId)
+                : null;
+            var zoneFaction = (uint)(zone?.FactionId ?? 0);
+            return UnitReqNation.IsNationMemberOfZone(EffectiveNationId(unit), zoneFaction);
         }
     }
 }

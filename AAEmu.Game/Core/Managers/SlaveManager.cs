@@ -184,6 +184,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             character.Transform.Parent = null;
             character.Transform.StickyParent = null;
             character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
+            character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unbond);
             character.AttachedPoint = AttachPointKind.None;
             character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, reason), true);
             WorldIntegration.RelayUnitAttachToZone?.Invoke(character.ObjId, 0, 0, false);
@@ -200,6 +201,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         }
 
         character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
+        character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unbond);
         character.AttachedPoint = AttachPointKind.None;
 
         character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, reason), true);
@@ -215,7 +217,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
     /// <param name="objId"></param>
     /// <param name="attachPoint"></param>
     /// <param name="bondKind"></param>
-    public void BindSlave(Character character, uint objId, AttachPointKind attachPoint, AttachUnitReason bondKind)
+    public void BindSlave(Character character, uint objId, AttachPointKind attachPoint, AttachUnitReason bondKind, int occupySkillId = 0)
     {
         // Check if the target spot is already taken
         var slave = GetSlaveByObjId(objId);
@@ -243,6 +245,8 @@ public class SlaveManager(WorldInstance parentWorldInstance)
                 new SCSlaveBoundPacket(character.Id, slave.MasterWorldId, objId), true);
             if (WorldIntegration.ZoneAuthority && slave.Template.IsABoat())
                 WorldIntegration.RelayShipControlChangeToZone?.Invoke(objId, true);
+            if (occupySkillId > 0 || slave.Template.IsABoat())
+                SlaveOccupyBuffs.ApplyBuffEffects(character, occupySkillId > 0 ? (uint)occupySkillId : 0, slave);
         }
 
         slave.AttachedCharacters.Add(attachPoint, character);

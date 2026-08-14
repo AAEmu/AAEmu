@@ -20,6 +20,12 @@ public class AreaTriggerManager : Singleton<AreaTriggerManager>, IAreaTriggerMan
         TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(200), true);
     }
 
+    /// <summary>
+    /// Keep ticking while the doodad's region has players, or leftover occupants still need leave.
+    /// </summary>
+    public static bool ShouldTick(bool ownerRegionHasPlayers, bool hasOccupants) =>
+        ownerRegionHasPlayers || hasOccupants;
+
     public void AddAreaTrigger(AreaTrigger trigger)
     {
         trigger.Owner?.AttachAreaTriggers.Add(trigger);
@@ -51,9 +57,13 @@ public class AreaTriggerManager : Singleton<AreaTriggerManager>, IAreaTriggerMan
 
             foreach (var trigger in _areaTriggers)
             {
-                // if (trigger.Owner.Position)
-                if (trigger?.Owner?.Region?.HasPlayerActivity() ?? false)
-                    trigger?.Tick(delta);
+                if (trigger == null)
+                    continue;
+                // Idle-region skip is a cost filter. Occupied triggers must still Tick so OnLeave
+                // can strip duration-0 clout buffs after the occupant teleports away.
+                var ownerBusy = trigger.Owner?.Region?.HasPlayerActivity() ?? false;
+                if (ShouldTick(ownerBusy, trigger.HasOccupants))
+                    trigger.Tick(delta);
             }
 
             lock (_remLock)
