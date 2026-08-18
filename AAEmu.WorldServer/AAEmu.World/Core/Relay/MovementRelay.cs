@@ -364,7 +364,9 @@ public class MovementRelay
                     break;
                 }
 
-                ZoneCoordBoundary.ShiftLocalToWorld(zoneId, mt);
+                var localSim = ZoneCoordBoundary.UseLocalOnZoneWire
+                    || WorldIntegration.FindUnitAcrossWorlds(bcId) is Npc { ZoneSimUsesLocalCoordinates: true };
+                ZoneCoordBoundary.ShiftLocalToWorld(zoneId, mt, localSim);
 
                 if (mt is ShipMoveType hull)
                 {

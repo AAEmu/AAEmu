@@ -452,6 +452,7 @@ public static class Program
     {
         var configurationRoot = BuildConfiguration(_launchArgs);
         configurationRoot.Bind(AppConfiguration.Instance);
+        Models.Game.StreamAoi.StreamAoiTable.ReplaceConfig(AppConfiguration.Instance.StreamAoi);
     }
 
     private static IConfigurationRoot BuildConfiguration(string[] args)

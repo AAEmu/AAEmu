@@ -21,6 +21,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.StreamAoi;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
@@ -100,13 +101,7 @@ public partial class Character : Unit, ICharacter
             MirrorNpcStatesSentCount >= Npc.MirrorNpcMaxPerCharacter)
             return false;
         var d2 = DistanceSq(Transform.World.Position, npc.Transform.World.Position);
-        // Same Transform.ZoneId: event rifts must still paint / show on map so dedic fly-in
-        // movements can be relayed; ambient mirrors keep the short commercial soft AOI.
-        if (npc.IsMirrorStreamPriority &&
-            npc.Transform?.ZoneId != 0 &&
-            Transform?.ZoneId == npc.Transform.ZoneId)
-            return true;
-        return d2 <= npc.MirrorStreamAoiRadiusSq;
+        return StreamAoiTable.IsInside(npc.StreamAoiCategory, d2, alreadyStreamed: false);
     }
 
     /// <summary>Queue a zone mirror for later AOI enter / post-load flush.</summary>
@@ -162,14 +157,7 @@ public partial class Character : Unit, ICharacter
             }
 
             var d2 = DistanceSq(origin, npc.Transform.World.Position);
-            // Outside soft AOI: skip for send (still pending for when player walks closer).
-            // Priority event mirrors use the larger stream radius / same-zone rule.
-            var aoi = npc.IsMirrorStreamPriority
-                ? (npc.Transform?.ZoneId != 0 && Transform?.ZoneId == npc.Transform.ZoneId
-                    ? float.MaxValue
-                    : npc.MirrorStreamAoiRadiusSq)
-                : Npc.MirrorNpcAoiRadiusSq;
-            if (d2 > aoi)
+            if (d2 > StreamAoiTable.Band(npc.StreamAoiCategory).EnterSq)
                 continue;
 
             // Event rifts always beat ambient pending at equal-or-farther distance.
@@ -221,7 +209,6 @@ public partial class Character : Unit, ICharacter
             return 0;
 
         var origin = Transform.World.Position;
-        var aoiSq = Npc.MirrorNpcAoiRadiusSq;
         List<uint> remove = null;
 
         foreach (var objId in MirrorNpcStatesSentIds.Keys)
@@ -233,12 +220,8 @@ public partial class Character : Unit, ICharacter
                 continue;
             }
 
-            // Tower/event hellgates stay painted for the whole arm even if soft AOI thrash or a
-            // ZW move briefly poisons World position (seen: Grimghast 12911 flash + SCUnitsRemoved).
-            if (npc.IsMirrorStreamPriority)
-                continue;
-
-            if (DistanceSq(origin, npc.Transform.World.Position) > aoiSq)
+            var d2 = DistanceSq(origin, npc.Transform.World.Position);
+            if (!StreamAoiTable.IsInside(npc.StreamAoiCategory, d2, alreadyStreamed: true))
                 (remove ??= []).Add(objId);
         }
 
@@ -340,9 +323,7 @@ public partial class Character : Unit, ICharacter
 
         var origin = Transform.World.Position;
         var pD2 = DistanceSq(origin, priorityNpc.Transform.World.Position);
-        var sameZone = priorityNpc.Transform?.ZoneId != 0 &&
-                       Transform?.ZoneId == priorityNpc.Transform.ZoneId;
-        if (!sameZone && pD2 > priorityNpc.MirrorStreamAoiRadiusSq)
+        if (!StreamAoiTable.IsInside(priorityNpc.StreamAoiCategory, pD2, alreadyStreamed: false))
             return false;
 
         uint farthestId = 0;
@@ -3016,6 +2997,7 @@ public partial class Character : Unit, ICharacter
                         Hp = reader.GetInt32("hp"),
                         Mp = reader.GetInt32("mp")
                     };
+                    character.ModelParams.ClearUnusedVisualRaceOverride((byte)character.Race);
                     character._savedHp = character.Hp; // save for later
                     character._savedMp = character.Mp;
                     // character.LaborPower = reader.GetInt16("labor_power");
@@ -3136,6 +3118,7 @@ public partial class Character : Unit, ICharacter
                     character.AccessLevel = reader.GetInt32("access_level");
                     character.Race = (Race)reader.GetByte("race");
                     character.Gender = (Gender)reader.GetByte("gender");
+                    character.ModelParams.ClearUnusedVisualRaceOverride((byte)character.Race);
                     character.Level = reader.GetByte("level");
                     character.Experience = reader.GetInt32("experience");
                     character.RecoverableExp = reader.GetInt32("recoverable_exp");
@@ -3705,8 +3688,7 @@ public partial class Character : Unit, ICharacter
         // appearance
         ModelParams.Race = (byte)Race;
         ModelParams.Gender = (byte)Gender;
-        ModelParams.VisualRace = (byte)Race;
-        ModelParams.VisualGender = (byte)Gender;
+        ModelParams.ClearUnusedVisualRaceOverride((byte)Race);
         stream.Write(ModelParams);
         stream.Write((short)0);                                       // deadCount (i16)
         stream.Write(0L);                                            // deadTime

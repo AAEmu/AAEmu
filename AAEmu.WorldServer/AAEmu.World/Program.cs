@@ -288,46 +288,54 @@ public static class Program
             if (zone == null)
                 return;
 
+            var aggroSourceId = casterId;
+            var casterUnit = WorldIntegration.FindUnitAcrossWorlds(casterId);
+            if (casterUnit != null)
+            {
+                var resolved = ZoneAuthorityCombat.ResolveZoneCombatActorBc(casterUnit);
+                if (resolved != 0)
+                    aggroSourceId = resolved;
+            }
+
+            var zoneCaster = new SkillCasterUnit(aggroSourceId);
             var castAction = new CastSkill(skillId, tl);
             zone.SendPacket(new WZUnitDamagedPacket(
                 castAction,
-                caster,
-                casterId,
+                zoneCaster,
+                aggroSourceId,
                 targetId,
                 damage,
                 absorbed));
             Logger.Info("WZUnitDamaged → zone skill={0} tl={1} caster={2} target={3} dmg={4} abs={5}",
-                skillId, tl, casterId, targetId, damage, absorbed);
+                skillId, tl, aggroSourceId, targetId, damage, absorbed);
 
             // Publishing UpdateAggro alone leaves AggroCount>0 with no target; Zone then
             // ProcessAggroCancel → ZWClearCombat / skill 11503 Return (mid-fight leash).
             // Opt-out: AAEMU_WZ_UPDATE_AGGRO=0 (isolates the whole handoff if a zone drops the link).
             if (Environment.GetEnvironmentVariable("AAEMU_WZ_UPDATE_AGGRO") == "0")
                 return;
-            if (casterId == 0 || targetId == 0 || casterId == targetId)
+            if (aggroSourceId == 0 || targetId == 0 || aggroSourceId == targetId)
                 return;
 
             var aggro = (uint)Math.Max(1, damage + absorbed);
-            var world = WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
-            // Aggro tables and combat engagement belong to NPC targets, not player victims.
-            var damagedNpc = world?.GetNpc(targetId);
+            var damagedNpc = WorldIntegration.FindUnitAcrossWorlds(targetId) as Npc;
             if (damagedNpc == null)
                 return;
 
-            var abuser = world.GetUnit(casterId);
+            var abuser = WorldIntegration.FindUnitAcrossWorlds(aggroSourceId);
             if (abuser != null)
                 damagedNpc.CurrentTarget = abuser;
-            zone.SendPacket(new WZTargetChangedPacket(targetId, casterId, forceByWorld: true));
-            Logger.Info("WZTargetChanged → zone npc={0} target={1} (damage handoff)", targetId, casterId);
+            zone.SendPacket(new WZTargetChangedPacket(targetId, aggroSourceId, forceByWorld: true));
+            Logger.Info("WZTargetChanged → zone npc={0} target={1} (damage handoff)", targetId, aggroSourceId);
 
             zone.SendPacket(new WZUpdateAggroPacket(
                 targetId,
-                casterId,
-                casterId,
+                aggroSourceId,
+                aggroSourceId,
                 aggro,
                 true,
                 castAction));
-            Logger.Info("WZUpdateAggro → zone npc={0} target={1} aggro={2}", targetId, casterId, aggro);
+            Logger.Info("WZUpdateAggro → zone npc={0} target={1} aggro={2}", targetId, aggroSourceId, aggro);
 
             zone.SendPacket(new WZCombatEngagedPacket(targetId));
             Logger.Info("WZCombatEngaged → zone npc={0} (damage handoff)", targetId);
@@ -397,11 +405,20 @@ public static class Program
 
             zone.SendPacket(new WZNpcStatePacket(request.Body));
             zone.Units.RegisterWithId(request.ObjId, request.Body);
+            var authored = WorldIntegration.FindUnitAcrossWorlds(request.ObjId) as Npc;
+            if (authored != null)
+            {
+                if (authored.Faction is { Id: not 0 })
+                    zone.SendPacket(new WZUnitFactionChangedPacket(request.ObjId, 0, (int)authored.Faction.Id, false));
+                if (authored.CanFly)
+                    zone.SendPacket(new WZUnitFlyingStateChangedPacket(request.ObjId, true));
+            }
             Logger.Info(
-                "WZNpcState -> zoneId={0} World-authored npc={1} bodyLen={2}",
+                "WZNpcState -> zoneId={0} World-authored npc={1} bodyLen={2} localSim={3}",
                 zone.ZoneId,
                 request.ObjId,
-                request.Body.Length);
+                request.Body.Length,
+                authored is { ZoneSimUsesLocalCoordinates: true });
             return true;
         };
         WorldIntegration.RelayNpcAggroToZone = request =>
@@ -616,8 +633,9 @@ public static class Program
             if (zone == null)
                 return;
 
-            zone.SendPacket(new WZKnockBackUnitPacket(unitId, x, y, z));
-            Logger.Info("WZKnockBackUnit → zone unit={0} pos=({1:F1},{2:F1},{3:F1})", unitId, x, y, z);
+            var local = ZoneCoordBoundary.ToZoneLocal(zone.ZoneId, new System.Numerics.Vector3(x, y, z));
+            zone.SendPacket(new WZKnockBackUnitPacket(unitId, local.X, local.Y, local.Z));
+            Logger.Info("WZKnockBackUnit → zone unit={0} pos=({1:F1},{2:F1},{3:F1})", unitId, local.X, local.Y, local.Z);
         };
         WorldIntegration.RelayBlinkToZone = (unitId, baseUnitId, move3D, x, y, z) =>
         {
@@ -628,15 +646,16 @@ public static class Program
             if (zone == null)
                 return;
 
+            var local = ZoneCoordBoundary.ToZoneLocal(zone.ZoneId, new System.Numerics.Vector3(x, y, z));
             zone.SendPacket(new WZBlinkUnitPacket(
                 unitId,
                 baseUnitId,
                 move3D,
-                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongX(x),
-                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongY(y),
-                z));
+                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongX(local.X),
+                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongY(local.Y),
+                local.Z));
             Logger.Info("WZBlinkUnit → zone unit={0} pos=({1:F1},{2:F1},{3:F1}) move3D={4}",
-                unitId, x, y, z, move3D);
+                unitId, local.X, local.Y, local.Z, move3D);
         };
         WorldIntegration.RelayCombatEngagedToZone = unitId =>
         {
@@ -720,13 +739,14 @@ public static class Program
             if (zone == null)
                 return;
 
+            var local = ZoneCoordBoundary.ToZoneLocal(zone.ZoneId, new System.Numerics.Vector3(x, y, z));
             zone.SendPacket(new WZUnitResurrectionPacket(
                 unitId,
-                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongX(x),
-                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongY(y),
-                z,
+                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongX(local.X),
+                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongY(local.Y),
+                local.Z,
                 zRot));
-            Logger.Info("WZUnitResurrection → zone unit={0} pos=({1:F1},{2:F1},{3:F1})", unitId, x, y, z);
+            Logger.Info("WZUnitResurrection → zone unit={0} pos=({1:F1},{2:F1},{3:F1})", unitId, local.X, local.Y, local.Z);
         };
         WorldIntegration.RelaySkillStoppedToZone = (unitId, skillId) =>
         {
@@ -775,13 +795,14 @@ public static class Program
             var zone = PlayerEnterService.ForUnit(slaveId);
             if (zone == null)
                 return;
+            var local = ZoneCoordBoundary.ToZoneLocal(zone.ZoneId, new System.Numerics.Vector3(x, y, z));
             zone.SendPacket(new WZEscapeSlavePacket(
                 slaveId,
-                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongX(x),
-                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongY(y),
-                z,
+                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongX(local.X),
+                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongY(local.Y),
+                local.Z,
                 rot));
-            Logger.Info("WZEscapeSlave → zone slave={0} pos=({1:F1},{2:F1},{3:F1})", slaveId, x, y, z);
+            Logger.Info("WZEscapeSlave → zone slave={0} pos=({1:F1},{2:F1},{3:F1})", slaveId, local.X, local.Y, local.Z);
         };
         WorldIntegration.RelayShipControlChangeToZone = (slaveId, control) =>
         {
@@ -841,8 +862,9 @@ public static class Program
             var zone = PlayerEnterService.ForUnit(unitId) ?? PlayerEnterService.ForZoneId(zoneId);
             if (zone == null)
                 return;
+            var local = ZoneCoordBoundary.ToZoneLocal(zoneId, new System.Numerics.Vector3(x, y, z));
             zone.SendPacket(new WZDropBackpackPacket(
-                item, zoneId, doodadTpl, zone.InstanceId, removeItem, hackAttempt, userDrop, x, y, z));
+                item, zoneId, doodadTpl, zone.InstanceId, removeItem, hackAttempt, userDrop, local.X, local.Y, local.Z));
             Logger.Info("WZDropBackpack → zone unit={0} item={1} doodadTpl={2}", unitId, itemUid, doodadTpl);
         };
         WorldIntegration.OnZoneBackpackDropped = body =>
@@ -1175,7 +1197,7 @@ public static class Program
                 continue;
             }
 
-            zone.SendPacket(new WZGimmickCreatedPacket(gimmick.ToSpawnData(), (int)zoneId));
+            zone.SendPacket(new WZGimmickCreatedPacket(gimmick.ToZoneWireSpawnData(), (int)zoneId));
             sent++;
         }
 

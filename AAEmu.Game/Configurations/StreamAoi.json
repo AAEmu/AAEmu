@@ -1,0 +1,10 @@
+{
+  "StreamAoi": {
+    "Ambient": { "EnterMetres": 105, "ExitMetres": 110 },
+    "Large": { "EnterMetres": 225, "ExitMetres": 248 },
+    "Ship": { "EnterMetres": 225, "ExitMetres": 248 },
+    "Event": { "EnterMetres": 700, "ExitMetres": 700 },
+    "LargeNpcTemplateIds": [ 7607, 14915 ],
+    "LargeModelIds": [ 897, 530 ]
+  }
+}

@@ -44,6 +44,12 @@ public class SlaveManager(WorldInstance parentWorldInstance)
     private const float HeadingSweepStepRadians = MathF.PI / 12f; // 15°
 
     /// <summary>
+    /// Water surfaces more than this above the caster are treated as bad polygons / sky lakes
+    /// (Cinderstone inland hits), not a legal hull spawn.
+    /// </summary>
+    public const float MaxBoatSurfaceAboveCasterMetres = 8f;
+
+    /// <summary>
     /// Water surface at a position, resolved from the ingested bodies themselves.
     /// </summary>
     /// <remarks>
@@ -74,6 +80,36 @@ public class SlaveManager(WorldInstance parentWorldInstance)
 
         return float.IsNaN(best) ? world.Water.OceanLevel : best;
     }
+
+    /// <summary>Unit forward alignment of a probe relative to the caster (1 = dead ahead, -1 = behind).</summary>
+    public static float BoatSpawnForwardDot(Vector3 caster, float casterYaw, Vector3 probe)
+    {
+        var fx = -MathF.Sin(casterYaw);
+        var fy = MathF.Cos(casterYaw);
+        var dx = probe.X - caster.X;
+        var dy = probe.Y - caster.Y;
+        var len = MathF.Sqrt(dx * dx + dy * dy);
+        if (len < 0.001f)
+            return 1f;
+        return (dx * fx + dy * fy) / len;
+    }
+
+    /// <summary>
+    /// Navigable depth under the hull, and reject sky/inland water polygons far above the caster.
+    /// </summary>
+    public static bool IsBoatSurfaceAllowed(float casterZ, float surfaceZ, float floorZ, float minDepth)
+    {
+        if (surfaceZ - floorZ <= minDepth)
+            return false;
+        // High inland hit (floor and surface both above the caster) — not coastal ocean below.
+        if (surfaceZ > casterZ + MaxBoatSurfaceAboveCasterMetres && floorZ > casterZ + 2f)
+            return false;
+        return true;
+    }
+
+    /// <summary>Higher is better: prefer ahead of the caster and near the template forward offset.</summary>
+    public static float ScoreBoatSpawnCandidate(float forwardDot, float distance, float preferredDistance) =>
+        forwardDot * 100f - MathF.Abs(distance - preferredDistance);
 
     public Slave GetActiveSlaveByOwnerObjId(uint objId)
     {
@@ -206,8 +242,8 @@ public class SlaveManager(WorldInstance parentWorldInstance)
 
         character.BroadcastPacket(new SCUnitDetachedPacket(character.ObjId, reason), true);
         WorldIntegration.RelayUnitAttachToZone?.Invoke(character.ObjId, slave.ObjId, (byte)attachPoint, false);
-        if (WorldIntegration.ZoneAuthority && attachPoint == AttachPointKind.Driver && slave.Template.IsABoat())
-            WorldIntegration.RelayShipControlChangeToZone?.Invoke(slave.ObjId, false);
+        // Helm leave does not send WZShipControlChange control=0. That flag is the zone's ship
+        // physics/wave gate: turning it off freezes the hull. Keep sim on until WithdrawBoatFromZone.
     }
 
     /// <summary>
@@ -542,7 +578,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             // If no spawn position override has been provided, then handle normal spawning algorithm
 
             // owner.SendMessage("SlaveSpawnOffset: x:{0} y:{1}", slaveTemplate.SpawnXOffset, slaveTemplate.SpawnYOffset);
-            if (owner != null)
+            if (owner != null && !slaveTemplate.IsABoat())
             {
                 spawnPos.Local.AddDistanceToFront(Math.Clamp(slaveTemplate.SpawnYOffset, 5f, 50f));
             }
@@ -558,13 +594,14 @@ public class SlaveManager(WorldInstance parentWorldInstance)
                     return null;
                 }
 
-                // Probe from where the caster stands. Water bodies are only reported to callers at or
-                // above their own floor, so sampling after the hull has been dropped to sea level makes
-                // every lake and river sit unreachably far above the query and read as open ocean.
-                var casterLevelPos = spawnPos.World.Position;
+                // Sweep from the caster's feet — not from an already-advanced "front" point.
+                // Advancing first aimed the search inland when facing shore, so the first hit was
+                // often behind the player (or a high inland water polygon → hull in the sky).
+                var casterLevelPos = owner?.Transform.World.Position ?? spawnPos.World.Position;
+                var casterYaw = owner?.Transform.World.Rotation.Z ?? spawnPos.World.Rotation.Z;
+                var forwardOffset = Math.Clamp(slaveTemplate.SpawnYOffset, 5f, 50f);
                 var worldWaterLevel = GetWaterSurfaceFromAreas(world, casterLevelPos);
                 spawnPos.Local.SetHeight(worldWaterLevel);
-
 
                 // temporary grab ship information so that we can use it to find a suitable spot in front to summon it
                 var tempShipModel = ModelManager.Instance.GetShipModel(slaveTemplate.ModelId);
@@ -581,58 +618,65 @@ public class SlaveManager(WorldInstance parentWorldInstance)
                                         tempShipModel.KeelHeight;
                 }
 
-                // Sweep outwards from the caster rather than only along their facing: a player summoning
-                // from a bank is rarely aimed squarely at open water, and a forward-only probe reports
-                // "no water" for a lake that is a few metres to the side.
                 var searchRange = 50f + (tempShipModel?.MassBoxSizeX ?? 10f);
-                var sweepOrigin = (Position: casterLevelPos, Rotation: spawnPos.World.Rotation);
                 var waterAreas = world.Water.GetAreasSnapshot();
-                var foundNavigableWater = false;
-                for (var distance = 5f; distance <= searchRange && !foundNavigableWater; distance += 1f)
+                Vector3? bestPos = null;
+                var bestScore = float.NegativeInfinity;
+
+                // Two passes: forward hemisphere first, then any heading if the bank faces land.
+                for (var pass = 0; pass < 2 && bestPos == null; pass++)
                 {
-                    for (var step = 0; step < HeadingSweepSteps; step++)
+                    var requireForward = pass == 0;
+                    for (var distance = forwardOffset; distance <= searchRange; distance += 1f)
                     {
-                        // 0, +15, -15, +30, -30 ... so the caster's own heading still wins ties.
-                        var yawOffset = (step + 1) / 2 * HeadingSweepStepRadians * (step % 2 == 0 ? 1f : -1f);
-                        var yaw = sweepOrigin.Rotation.Z + yawOffset;
+                        for (var step = 0; step < HeadingSweepSteps; step++)
+                        {
+                            // 0, +15, -15, +30, -30 ... so the caster's own heading still wins ties.
+                            var yawOffset = (step + 1) / 2 * HeadingSweepStepRadians * (step % 2 == 0 ? 1f : -1f);
+                            var yaw = casterYaw + yawOffset;
 
-                        // Offset built here rather than through a cloned Transform: the clone's world
-                        // position does not pick up a local translation, so every probe re-sampled the
-                        // origin and the scan could only ever report whatever was under the caster.
-                        var probePos = new Vector3(
-                            sweepOrigin.Position.X - distance * MathF.Sin(yaw),
-                            sweepOrigin.Position.Y + distance * MathF.Cos(yaw),
-                            sweepOrigin.Position.Z);
+                            var probePos = new Vector3(
+                                casterLevelPos.X - distance * MathF.Sin(yaw),
+                                casterLevelPos.Y + distance * MathF.Cos(yaw),
+                                casterLevelPos.Z);
 
-                        var floorHeight = World.Template.GeoData.GetHeight(probePos);
-                        if (floorHeight <= 0f)
-                            continue;
+                            var forwardDot = BoatSpawnForwardDot(casterLevelPos, casterYaw, probePos);
+                            if (requireForward && forwardDot < 0f)
+                                continue;
 
-                        var surfaceHeight = GetWaterSurfaceFromAreas(world, waterAreas, probePos);
-                        if (surfaceHeight - floorHeight <= minDepth)
-                            continue;
+                            var floorHeight = World.Template.GeoData.GetHeight(probePos);
+                            if (floorHeight <= 0f)
+                                continue;
 
-                        spawnPos.Local.SetPosition(probePos.X, probePos.Y, surfaceHeight);
-                        foundNavigableWater = true;
-                        break;
+                            var surfaceHeight = GetWaterSurfaceFromAreas(world, waterAreas, probePos);
+                            if (!IsBoatSurfaceAllowed(casterLevelPos.Z, surfaceHeight, floorHeight, minDepth))
+                                continue;
+
+                            var score = ScoreBoatSpawnCandidate(forwardDot, distance, forwardOffset);
+                            if (score <= bestScore)
+                                continue;
+
+                            bestScore = score;
+                            bestPos = new Vector3(probePos.X, probePos.Y, surfaceHeight);
+                        }
                     }
                 }
 
-                if (!foundNavigableWater)
+                if (bestPos == null)
                 {
-
                     // GetWaterSurface reports the ocean plane for any coordinate, including dry land far
                     // above it, so without this the hull is placed at sea level directly beneath a player
                     // standing inland - buried in the terrain and invisible, with no error to explain it.
                     Logger.Warn(
                         "SlaveSpawn boat template={0} refused: no water at least {1:0.0} deep within {2:0.0}m of ({3:0.0},{4:0.0}); ground {5:0.0}, surface {6:0.0}",
                         slaveTemplate.Id, minDepth, searchRange,
-                        spawnPos.World.Position.X, spawnPos.World.Position.Y,
-                        World.Template.GeoData.GetHeight(spawnPos.World.Position), worldWaterLevel);
+                        casterLevelPos.X, casterLevelPos.Y,
+                        World.Template.GeoData.GetHeight(casterLevelPos), worldWaterLevel);
                     owner?.SendErrorMessage(ErrorMessageType.SlaveSpawnErrorInvalidArea);
                     return null;
                 }
 
+                spawnPos.Local.SetPosition(bestPos.Value.X, bestPos.Value.Y, bestPos.Value.Z);
                 spawnPos.Local.Position += spawnOffsetPos;
 
             }
@@ -1258,6 +1302,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
 
         WorldIntegration.RelayUnitStateToZone?.Invoke(zoneId, slaveStateBody);
         slave.ZoneAnnouncedTo = zoneId;
+        WorldIntegration.RelayShipControlChangeToZone?.Invoke(slave.ObjId, true);
         Logger.Info("WZUnitState queued for slave obj={0} zoneId={1} bodyLen={2}",
             slave.ObjId, zoneId, slaveStateBody.Length);
     }
@@ -1268,6 +1313,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         if (slave == null || slave.ZoneAnnouncedTo == 0)
             return;
 
+        WorldIntegration.RelayShipControlChangeToZone?.Invoke(slave.ObjId, false);
         WorldIntegration.RelayUnitRemovedToZoneId?.Invoke(slave.ZoneAnnouncedTo, slave.ObjId);
         Logger.Info("WZUnitRemoved for slave obj={0} zoneId={1}", slave.ObjId, slave.ZoneAnnouncedTo);
         slave.ZoneAnnouncedTo = 0;

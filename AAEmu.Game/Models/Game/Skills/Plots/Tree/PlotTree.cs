@@ -70,8 +70,9 @@ public class PlotTree(uint plotId)
                     else
                         state.Tickets.TryAdd(node.Event.Id, 1);
 
-                    //Check if we hit max tickets
-                    if (state.Tickets[node.Event.Id] > node.Event.Tickets && node.Event.Tickets > 1)
+                    var selfLoop = node.Children.Exists(c => c.Event.Id == node.Event.Id);
+                    if (PlotTicketGate.IsExhausted(
+                            state.Tickets[node.Event.Id], node.Event.Tickets, selfLoop))
                     {
                         continue;
                     }

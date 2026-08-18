@@ -328,26 +328,61 @@ public class PlotTargetInfo
     {
         var offsetM = heightOffsetRaw / 1000f;
         var anchorZ = previous?.Transform?.World.Position.Z ?? 0f;
-        var raised = anchorZ + offsetM;
-        var ground = WorldManager.Instance.GetHeight(posUnit.Transform);
-        if (ground <= 0f)
+        var pos = posUnit?.Transform?.World.Position ?? default;
+        var world = previous?.ParentWorld ?? posUnit?.ParentWorld;
+        var ground = TerrainFloor.SampleHeightmap(world, pos.X, pos.Y);
+        if (ground <= 0f && posUnit?.Transform != null)
+            ground = TerrainFloor.SampleHeightmap(posUnit.Transform.ZoneId, pos.X, pos.Y);
+
+        var waterSurfaceZ = 0f;
+        var overWater = false;
+        if (world != null && posUnit?.Transform != null)
+        {
+            // Prefer the caster's altitude when probing water so a glider over open sea is not
+            // classified from a seabed-snapped marker.
+            var probe = previous?.Transform != null
+                ? new System.Numerics.Vector3(pos.X, pos.Y, previous.Transform.World.Position.Z)
+                : pos;
+            overWater = TerrainFloor.TryWaterSurface(world, probe, out waterSurfaceZ);
+        }
+
+        return ChoosePlotAreaHeight(
+            anchorZ,
+            ground,
+            offsetM,
+            previous is Npc { CanFly: true },
+            overWater,
+            waterSurfaceZ);
+    }
+
+    /// <summary>
+    /// Pure floor pick for plot Area / RandomArea markers.
+    /// Flying NPC portals snap down onto terrain/water. Characters (glider nitro, etc.) keep
+    /// altitude + small HeightOffset — do not treat "high above seabed/heightmap" as a portal.
+    /// </summary>
+    public static float ChoosePlotAreaHeight(
+        float anchorZ,
+        float ground,
+        float offsetMetres,
+        bool previousIsFlyingNpc,
+        bool overWater = false,
+        float waterSurfaceZ = 0f)
+    {
+        var raised = anchorZ + offsetMetres;
+        var floor = ground;
+        if (overWater && waterSurfaceZ > ground + 1f)
+            floor = waterSurfaceZ;
+        if (floor <= 0f)
             return raised;
 
-        // Typical retail RandomArea after portal: |offset| 300–500 m is "search down from sky"
-        // rather than place 500 m above the anchor.
-        if (Math.Abs(offsetM) >= 100f)
-            return ground;
+        // Typical retail RandomArea after portal: |offset| 300–500 m is "search down from sky".
+        if (Math.Abs(offsetMetres) >= 100f)
+            return floor;
 
-        // Flying portal / synthetic previous keep Math.Max only for shallow lifts; otherwise land.
-        var previousIsAerial = previous is Npc { CanFly: true }
-                               || (previous != null
-                                   && previous.ObjId != uint.MaxValue
-                                   && ground > 0f
-                                   && anchorZ > ground + 8f);
-        if (previousIsAerial && raised > ground + 2f)
-            return ground;
+        if (previousIsFlyingNpc && raised > floor + 2f)
+            return floor;
 
-        return Math.Max(raised, ground);
+        return Math.Max(raised, floor);
     }
 
     /// <summary>

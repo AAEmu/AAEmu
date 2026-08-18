@@ -45,6 +45,7 @@ public sealed class GameService : IHostedService, IDisposable
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         Logger.Info("Starting daemon: AAEmu.Game");
+        Models.Game.StreamAoi.StreamAoiTable.ReplaceConfig(AppConfiguration.Instance.StreamAoi);
 
         // Check for updates
         using (var connection = MySQL.CreateConnection())

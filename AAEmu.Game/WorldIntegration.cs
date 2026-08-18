@@ -286,7 +286,7 @@ public static class WorldIntegration
     public static Action<CastAction, SkillCaster, uint, HealType, HealHitType, long, uint, bool>
         RelayUnitHealedToZone { get; set; }
 
-    /// <summary>WZKnockBackUnit (0x033). Args: unit bc, world pos xyz.</summary>
+    /// <summary>WZKnockBackUnit (0x033). Args: unit bc, continent xyz (WZ boundary rewrites to zone-local).</summary>
     public static Action<uint, float, float, float> RelayKnockBackToZone { get; set; }
 
     /// <summary>
@@ -625,19 +625,36 @@ public static class WorldIntegration
         return stream.GetBytes();
     }
 
-    /// <summary>Returns a zone-local placement only when local Zone wire coordinates are enabled.</summary>
-    private static Vector3? ResolveWzPlacement(Unit unit, Vector3? zoneLocal = null)
+    /// <summary>
+    /// Zone-local XYZ for WZ UnitState. World <see cref="Unit.Transform"/> stays continent (SC).
+    /// <paramref name="zoneLocal"/> is already zone-local (ZWSpawnNpc or ConvertToLocal) — never convert it again.
+    /// </summary>
+    private static Vector3? ResolveWzPlacement(Unit unit, Vector3? zoneLocal = null, bool forceLocal = false)
     {
-        if (!ZoneAuthority || !ZoneCoordBoundary.UseLocalOnZoneWire || unit?.Transform == null)
+        if (unit?.Transform == null)
             return null;
 
-        if (zoneLocal.HasValue)
+        if (WzCoordPolicy.KeepContinentOnLiveWz(unit) && !forceLocal)
+            return null;
+
+        // Already local. Using Transform.World here would subtract origin a second time and drop the unit off the mesh.
+        if (zoneLocal.HasValue && (forceLocal || ZoneCoordBoundary.UseLocalOnZoneWire))
+        {
+            if (unit is Npc npc)
+                npc.ZoneSimUsesLocalCoordinates = true;
             return zoneLocal;
+        }
+
+        if (!ZoneAuthority || !ZoneCoordBoundary.UseLocalOnZoneWire)
+            return null;
 
         var zoneId = unit.Transform.ZoneId;
         if (zoneId == 0)
             return null;
 
+        if (unit is Npc localNpc)
+            localNpc.ZoneSimUsesLocalCoordinates = true;
+        // Continent Transform → one origin subtract. Z is unchanged (no height remap on this path).
         return ZoneManager.Instance.ConvertToLocalCoordinates(zoneId, unit.Transform.World.Position);
     }
 
@@ -723,18 +740,22 @@ public static class WorldIntegration
         }
 
         npc.IsZoneMirror = true;
+        // Continent on WZ, same as the player. Dedicate subtracts origin for sectors.
+        // Sending zone-local here made Crimson army Create start `invalid sector pos` and fall through.
         var body = BuildWzNpcStateBody(
             npc,
             WorldAuthoredNpcSpawn with { Reason = reason, SpawnAction = spawnAction },
             creator,
             lifeTime,
             despawnOnCreatorDeath,
-            useSummonerAggroTarget);
+            useSummonerAggroTarget,
+            zoneLocalPlacement: null,
+            forceLocalPlacement: false);
         if (body is not { Length: > 0 }
             || RelayNpcSpawnToZone?.Invoke(new WorldNpcSpawnRequest(zoneId, npc.ObjId, body)) != true)
             return false;
 
-        // Same OnSpawn plot_only path as ZW mirrors (tower stage 8830 → army). Safe: zone skill
+        // Same OnSpawn plot path as ZW mirrors (tower stage → army SpawnEffect). Safe: zone skill
         // relay suppressed inside CastOnSpawnPlotSkills.
         npc.CastOnSpawnPlotSkills();
         return true;
@@ -963,7 +984,8 @@ public static class WorldIntegration
             0f,
             false,
             false,
-            zoneLocal);
+            zoneLocal,
+            forceLocalPlacement: ZoneCoordBoundary.UseLocalOnZoneWire && zoneLocal.HasValue);
     }
 
     private static byte[] BuildWzNpcStateBody(
@@ -983,7 +1005,8 @@ public static class WorldIntegration
         float lifeTime,
         bool despawnOnCreatorDeath,
         bool useSummonerAggroTarget,
-        Vector3? zoneLocalPlacement = null)
+        Vector3? zoneLocalPlacement = null,
+        bool forceLocalPlacement = false)
     {
         var stream = new PacketStream();
 
@@ -1040,9 +1063,10 @@ public static class WorldIntegration
                 return null;
         }
 
-        // UnitState and buffs; the optional override is active only in local-wire mode.
+        // Dedicate spawn/nav/sectors are zone-local. World Transform stays continent for SC;
+        // MovementRelay lifts ZW moves when ZoneSimUsesLocalCoordinates is set.
         new SCUnitStatePacket(npc).WriteWzUnitStateAndBuffs(
-            stream, ResolveWzPlacement(npc, zoneLocalPlacement));
+            stream, ResolveWzPlacement(npc, zoneLocalPlacement, forceLocalPlacement));
 
         stream.Write(metadata.SpawningEffectTime);
 
@@ -1182,7 +1206,7 @@ public static class WorldIntegration
             // Ghost-army OnSpawn is fire_anim-only (no buffs) — SC SkillFired, never Skill.Use/WZ.
             // After UnitState: client must already know the bc for fire_anim attach.
             npc.CastOnSpawnAnimationSkills();
-            // Tower stage portals: plot_only OnSpawn (15298 → army SpawnEffect). Dedic is silent;
+            // Tower stage portals: OnSpawn plot graphs (army SpawnEffect). Dedic is silent;
             // World graph with zone skill relay suppressed (see CastOnSpawnPlotSkills).
             npc.CastOnSpawnPlotSkills();
 

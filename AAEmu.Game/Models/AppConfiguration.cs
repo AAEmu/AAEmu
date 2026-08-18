@@ -2,6 +2,7 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.StreamAoi;
 using AAEmu.Game.Models.Game.Expeditions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -67,6 +68,7 @@ public partial class AppConfiguration
     public UccConfig Ucc { get; set; } = new();
     public FeaturesConfig Features { get; set; } = new();
     public TowerDefsConfig TowerDefs { get; set; } = new();
+    public StreamAoiConfig StreamAoi { get; set; } = new();
     public InitialConfig InitialConfig { get; set; } = new();
     public LevelRestrictionConfig LevelRestrictions { get; set; } = new();
     public ScriptsConfig Scripts { get; set; } = new();
