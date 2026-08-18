@@ -217,6 +217,12 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
                 // Ambient mirrors: free MAX slots so walking recycles interest capacity.
                 if (t is Npc { IsZoneMirror: true } mirror)
                     character1.ReleaseMirrorNpcSlot(mirror.ObjId);
+                if (t is Slave slave)
+                {
+                    if (character1.TryKeepSlaveAcrossRegionLeave(slave))
+                        continue;
+                    character1.ReleaseSlaveSlot(slave.ObjId);
+                }
                 unitIds.Add(t.ObjId);
             }
 
