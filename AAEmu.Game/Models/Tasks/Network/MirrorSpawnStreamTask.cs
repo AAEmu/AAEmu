@@ -46,6 +46,8 @@ public class MirrorSpawnStreamTask : Task
 
                 // Leave-view first (beyond soft AOI) — frees MAX slots before we try to send.
                 character.CullStreamedMirrorsBeyondAoi();
+                character.CullStreamedSlavesBeyondAoi();
+                character.TryFlushPendingSlaves();
 
                 // At cap: nearer pending first, then event/tower priority rifts (steal ambient slot).
                 if (Npc.MirrorNpcMaxPerCharacter > 0 &&

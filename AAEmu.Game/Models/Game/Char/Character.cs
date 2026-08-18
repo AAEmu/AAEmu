@@ -28,6 +28,7 @@ using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
@@ -53,10 +54,22 @@ public partial class Character : Unit, ICharacter
     private readonly ConcurrentDictionary<uint, Npc> _pendingMirrorSpawns = new();
 
     /// <summary>
+    /// Hulls waiting for SCUnitState — queued while loading or outside the Ship/Ambient enter band.
+    /// Equipment (Part) is never queued; it paints with region interest.
+    /// </summary>
+    private readonly ConcurrentDictionary<uint, Slave> _pendingSlaves = new();
+
+    /// <summary>
     /// ObjIds that already received SCUnitState and still count toward AAEMU_MIRROR_NPC_MAX.
     /// Freed on leave-view so walking recycles slots (lifetime counter Quit'd after first N).
     /// </summary>
     public ConcurrentDictionary<uint, byte> MirrorNpcStatesSentIds { get; } = new();
+
+    /// <summary>
+    /// Hull ObjIds that already received SCUnitState. Separate from NPC mirrors so
+    /// <see cref="WorldInstance.GetNpc"/> cannot drop a boat as a missing mirror.
+    /// </summary>
+    public ConcurrentDictionary<uint, byte> StreamedSlaveIds { get; } = new();
 
     /// <summary>In-view streamed mirror count (for cap checks).</summary>
     public int MirrorNpcStatesSentCount => MirrorNpcStatesSentIds.Count;
@@ -75,6 +88,8 @@ public partial class Character : Unit, ICharacter
         MirrorNpcStreamNotBeforeTick = 0;
         MirrorNpcStatesSentIds.Clear();
         _pendingMirrorSpawns.Clear();
+        StreamedSlaveIds.Clear();
+        _pendingSlaves.Clear();
     }
 
     /// <summary>Arm mirror interest after load complete (+ optional grace ms).</summary>
@@ -184,15 +199,15 @@ public partial class Character : Unit, ICharacter
         return dx * dx + dy * dy + dz * dz;
     }
 
-    private bool IsStillInRegionInterest(Npc npc)
+    private bool IsStillInRegionInterest(GameObject obj)
     {
-        if (npc?.Region == null || Region == null)
+        if (obj?.Region == null || Region == null)
             return false;
-        if (ReferenceEquals(npc.Region, Region))
+        if (ReferenceEquals(obj.Region, Region))
             return true;
         foreach (var n in Region.GetNeighbors())
         {
-            if (ReferenceEquals(n, npc.Region))
+            if (ReferenceEquals(n, obj.Region))
                 return true;
         }
 
@@ -245,6 +260,138 @@ public partial class Character : Unit, ICharacter
         }
 
         return remove.Count;
+    }
+
+    /// <summary>
+    /// True when this hull may receive SCUnitState now. Equipment (Part) is always inside.
+    /// Does not share the NPC MAX cap — boats are not mirrors.
+    /// </summary>
+    public bool CanStreamSlaveNow(Slave slave)
+    {
+        if (slave == null || slave.ObjId == 0)
+            return false;
+        if (!MirrorNpcStreamReady)
+            return false;
+        if (MirrorNpcStreamNotBeforeTick != 0 &&
+            Environment.TickCount64 < MirrorNpcStreamNotBeforeTick)
+            return false;
+        if (StreamedSlaveIds.ContainsKey(slave.ObjId))
+            return false;
+        var d2 = DistanceSq(Transform.World.Position, slave.Transform.World.Position);
+        return StreamAoiTable.IsInside(slave.StreamAoiCategory, d2, alreadyStreamed: false);
+    }
+
+    public void EnqueuePendingSlave(Slave slave)
+    {
+        if (slave == null || slave.ObjId == 0)
+            return;
+        if (StreamedSlaveIds.ContainsKey(slave.ObjId))
+            return;
+        _pendingSlaves.TryAdd(slave.ObjId, slave);
+    }
+
+    public void MarkSlaveStreamed(Slave slave)
+    {
+        if (slave == null || slave.ObjId == 0)
+            return;
+        StreamedSlaveIds.TryAdd(slave.ObjId, 0);
+        _pendingSlaves.TryRemove(slave.ObjId, out _);
+    }
+
+    public void ReleaseSlaveSlot(uint objId)
+    {
+        StreamedSlaveIds.TryRemove(objId, out _);
+        _pendingSlaves.TryRemove(objId, out _);
+    }
+
+    public bool HasPendingSlaves => !_pendingSlaves.IsEmpty;
+
+    /// <summary>
+    /// Hull-only leave: SCUnitsRemoved for the selectable unit. Does not walk
+    /// Transform.Children — sail/cannon doodads stay until region leave.
+    /// </summary>
+    public int CullStreamedSlavesBeyondAoi()
+    {
+        if (StreamedSlaveIds.IsEmpty)
+            return 0;
+
+        var origin = Transform.World.Position;
+        List<uint> remove = null;
+
+        foreach (var objId in StreamedSlaveIds.Keys)
+        {
+            var slave = ParentWorld?.GetSlaveByObjId(objId);
+            if (slave == null || slave.ObjId == 0)
+            {
+                (remove ??= []).Add(objId);
+                continue;
+            }
+
+            var d2 = DistanceSq(origin, slave.Transform.World.Position);
+            if (!StreamAoiTable.IsInside(slave.StreamAoiCategory, d2, alreadyStreamed: true))
+                (remove ??= []).Add(objId);
+        }
+
+        if (remove == null || remove.Count == 0)
+            return 0;
+
+        foreach (var objId in remove)
+        {
+            var slave = ParentWorld?.GetSlaveByObjId(objId);
+            ReleaseSlaveSlot(objId);
+            if (slave != null && IsStillInRegionInterest(slave))
+                EnqueuePendingSlave(slave);
+        }
+
+        for (var offset = 0; offset < remove.Count; offset += SCUnitsRemovedPacket.MaxCountPerPacket)
+        {
+            var length = Math.Min(SCUnitsRemovedPacket.MaxCountPerPacket, remove.Count - offset);
+            var batch = new uint[length];
+            remove.CopyTo(offset, batch, 0, length);
+            SendPacket(new SCUnitsRemovedPacket(batch));
+        }
+
+        return remove.Count;
+    }
+
+    /// <summary>Paint pending hulls that walked into their enter band (or finished load).</summary>
+    public int TryFlushPendingSlaves()
+    {
+        if (_pendingSlaves.IsEmpty || !MirrorNpcStreamReady)
+            return 0;
+        if (MirrorNpcStreamNotBeforeTick != 0 &&
+            Environment.TickCount64 < MirrorNpcStreamNotBeforeTick)
+            return 0;
+
+        List<Slave> ready = null;
+        foreach (var kv in _pendingSlaves)
+        {
+            var slave = kv.Value;
+            if (slave == null || slave.ObjId == 0 || !slave.IsVisible)
+            {
+                _pendingSlaves.TryRemove(kv.Key, out _);
+                continue;
+            }
+
+            if (StreamedSlaveIds.ContainsKey(slave.ObjId))
+            {
+                _pendingSlaves.TryRemove(kv.Key, out _);
+                continue;
+            }
+
+            if (!CanStreamSlaveNow(slave))
+                continue;
+
+            (ready ??= []).Add(slave);
+        }
+
+        if (ready == null)
+            return 0;
+
+        foreach (var slave in ready)
+            slave.SendUnitStateTo(this);
+
+        return ready.Count;
     }
 
     /// <summary>

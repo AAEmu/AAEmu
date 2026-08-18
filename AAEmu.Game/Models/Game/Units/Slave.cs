@@ -42,7 +42,7 @@ public class Slave : Unit
     /// <summary>
     /// Sea hulls (and player Leviathan kind) use Ship 225/248. Farm haulers use Ambient.
     /// SlaveKind equipment (sails/cannons as units) is Part: no soft unit cull. Doodad sails
-    /// are not slaves — they stay until region leave. SC cull is not wired for hulls yet.
+    /// are not slaves — they stay until region leave.
     /// </summary>
     public StreamAoiCategory StreamAoiCategory =>
         Template?.StreamAoiCategory ?? StreamAoiCategory.Ambient;
@@ -712,6 +712,27 @@ public class Slave : Unit
 
     public override void AddVisibleObject(Character character)
     {
+        if (character.CanStreamSlaveNow(this))
+            SendUnitStateTo(character);
+        else
+            character.EnqueuePendingSlave(this);
+
+        // Children (sail doodads, equipment slaves) still paint with region interest.
+        // Soft hull cull must not reverse that via RemoveVisibleObject.
+        base.AddVisibleObject(character);
+    }
+
+    /// <summary>
+    /// Hull SCUnitState + points + slave-state + faction. Marks the character's slave stream
+    /// slot. Does not walk children.
+    /// </summary>
+    public void SendUnitStateTo(Character character)
+    {
+        if (character == null || ObjId == 0)
+            return;
+        if (character.StreamedSlaveIds.ContainsKey(ObjId))
+            return;
+
         character.SendPacket(new SCUnitStatePacket(this));
         character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
         character.SendPacket(new SCSlaveStatePacket(ObjId, TlId, Summoner?.Name ?? string.Empty, Summoner?.ObjId ?? 0, Id));
@@ -723,7 +744,7 @@ public class Slave : Unit
             character.SendPacket(new SCUnitFactionChangedPacket(
                 ObjId, Name ?? "", FactionsEnum.Invalid, Faction.Id, false));
 
-        base.AddVisibleObject(character);
+        character.MarkSlaveStreamed(this);
 
         foreach (var ati in AttachedCharacters)
         {
@@ -738,6 +759,8 @@ public class Slave : Unit
 
     public override void RemoveVisibleObject(Character character)
     {
+        character.ReleaseSlaveSlot(ObjId);
+
         // Region leave: base walks Transform.Children (sails/cannons). Soft Ship-band cull
         // of the selectable hull must not use this path — those doodads linger commercially.
         base.RemoveVisibleObject(character);
