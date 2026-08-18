@@ -1305,6 +1305,8 @@ public class WorldManager(
                 // Elf starters saw an empty world until they walked far enough for new AOI entries.
                 if (stuff is Npc npc && npc.IsZoneMirror)
                     character.ReleaseMirrorNpcSlot(npc.ObjId);
+                if (stuff is Slave slave)
+                    character.ReleaseSlaveSlot(slave.ObjId);
                 stuff.AddVisibleObject(character);
             }
         }

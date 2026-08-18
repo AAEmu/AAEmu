@@ -281,6 +281,23 @@ public partial class Character : Unit, ICharacter
         return StreamAoiTable.IsInside(slave.StreamAoiCategory, d2, alreadyStreamed: false);
     }
 
+    /// <summary>
+    /// Region leave batches SCUnitsRemoved for the cell. Keep a streamed hull that is still
+    /// inside its exit band (same idea as event-priority NPC mirrors). Equipment Parts always
+    /// leave with the cell.
+    /// </summary>
+    public bool TryKeepSlaveAcrossRegionLeave(Slave slave)
+    {
+        if (slave == null || slave.ObjId == 0)
+            return false;
+        if (slave.StreamAoiCategory == StreamAoiCategory.Part)
+            return false;
+        if (!StreamedSlaveIds.ContainsKey(slave.ObjId))
+            return false;
+        var d2 = DistanceSq(Transform.World.Position, slave.Transform.World.Position);
+        return StreamAoiTable.IsInside(slave.StreamAoiCategory, d2, alreadyStreamed: true);
+    }
+
     public void EnqueuePendingSlave(Slave slave)
     {
         if (slave == null || slave.ObjId == 0)

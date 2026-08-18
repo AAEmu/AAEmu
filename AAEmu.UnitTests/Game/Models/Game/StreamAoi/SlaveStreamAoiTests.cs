@@ -108,6 +108,39 @@ public class SlaveStreamAoiTests
         world.Dispose();
     }
 
+    [Test]
+    public async Task TryKeepSlaveAcrossRegionLeave_KeepsStreamedHullInsideExit()
+    {
+        StreamAoiTable.ReplaceConfig(new StreamAoiConfig());
+        var (character, hull, world) = CreateShipAt(200f);
+        character.ArmMirrorNpcStream();
+        character.MarkSlaveStreamed(hull);
+
+        await Assert.That(character.TryKeepSlaveAcrossRegionLeave(hull)).IsTrue();
+
+        hull.Transform.Local.SetPosition(249f, 0f, 0f);
+        await Assert.That(character.TryKeepSlaveAcrossRegionLeave(hull)).IsFalse();
+
+        character.ReleaseSlaveSlot(hull.ObjId);
+        hull.Transform.Local.SetPosition(200f, 0f, 0f);
+        await Assert.That(character.CanStreamSlaveNow(hull)).IsTrue();
+
+        world.Dispose();
+    }
+
+    [Test]
+    public async Task TryKeepSlaveAcrossRegionLeave_DropsEquipmentParts()
+    {
+        StreamAoiTable.ReplaceConfig(new StreamAoiConfig());
+        var (character, part, world) = CreateSlaveAt(50f, SlaveKind.SlaveEquipment);
+        character.ArmMirrorNpcStream();
+        character.MarkSlaveStreamed(part);
+
+        await Assert.That(character.TryKeepSlaveAcrossRegionLeave(part)).IsFalse();
+
+        world.Dispose();
+    }
+
     private static (Character character, Slave slave, WorldInstance world) CreateShipAt(float x) =>
         CreateSlaveAt(x, SlaveKind.MerchantShip);
 
