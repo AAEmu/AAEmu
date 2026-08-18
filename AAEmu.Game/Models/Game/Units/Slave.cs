@@ -18,6 +18,7 @@ using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Static;
+using AAEmu.Game.Models.Game.StreamAoi;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.StaticValues;
 
@@ -37,6 +38,14 @@ public class Slave : Unit
     public uint BondingObjId { get; set; } = 0;
 
     public SlaveTemplate Template { get; set; }
+
+    /// <summary>
+    /// Sea hulls (and player Leviathan kind) use Ship 225/248. Farm haulers use Ambient.
+    /// SlaveKind equipment (sails/cannons as units) is Part: no soft unit cull. Doodad sails
+    /// are not slaves — they stay until region leave. SC cull is not wired for hulls yet.
+    /// </summary>
+    public StreamAoiCategory StreamAoiCategory =>
+        Template?.StreamAoiCategory ?? StreamAoiCategory.Ambient;
     // public Character Driver { get; set; }
     public Character Summoner { get; set; }
     public BaseUnitType OwnerType { get; init; }
@@ -729,6 +738,8 @@ public class Slave : Unit
 
     public override void RemoveVisibleObject(Character character)
     {
+        // Region leave: base walks Transform.Children (sails/cannons). Soft Ship-band cull
+        // of the selectable hull must not use this path — those doodads linger commercially.
         base.RemoveVisibleObject(character);
 
         character.SendPacket(new SCUnitsRemovedPacket([ObjId]));

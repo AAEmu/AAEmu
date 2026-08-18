@@ -839,7 +839,7 @@ public class SpawnManager(WorldInstance parentWorld)
 
                         var zoneId = gimmick.Transform.ZoneId;
                         WorldIntegration.RelayGimmickCreatedToZone?.Invoke(
-                            gimmick.ToSpawnData(), (int)zoneId);
+                            gimmick.ToZoneWireSpawnData(), (int)zoneId);
                         count++;
                         if (count % 25 == 0)
                             Logger.Debug($"In world {World} Gimmicks spawned: {count}...");

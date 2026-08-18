@@ -55,9 +55,8 @@ public class ZoneAuthorityCombatTests
     }
 
     [Test]
-    public async Task IsLeashResetSkill_EmptyOrNull_IsNotALeashReset()
+    public async Task ResolveZoneCombatActorBc_Null_IsZero()
     {
-        await Assert.That(ZoneAuthorityCombat.IsLeashResetSkill(Skill())).IsFalse();
-        await Assert.That(ZoneAuthorityCombat.IsLeashResetSkill(null)).IsFalse();
+        await Assert.That(ZoneAuthorityCombat.ResolveZoneCombatActorBc(null)).IsEqualTo(0u);
     }
 }

@@ -61,6 +61,12 @@ public class Skill
     public bool SuppressZoneSkillRelay { get; set; }
 
     /// <summary>
+    /// World OnSpawn fill: run the plot graph and return without Cast(), same as plot_only.
+    /// Lusca stage skills have a plot with plot_only false and empty skill_effects.
+    /// </summary>
+    public bool ForcePlotGraphOnly { get; set; }
+
+    /// <summary>
     /// Multiplier that can be added as an additional modifier to casting times
     /// </summary>
     public float CastTimeMultiplier { get; set; } = 1f;
@@ -237,11 +243,11 @@ public class Skill
         // If skill uses Plots, then start the plot
         if (Template.Plot != null)
         {
-            if (Template.PlotOnly)
+            if (Template.PlotOnly || ForcePlotGraphOnly)
             {
-                // plot_only returns before Cast() — apply start costs here. GCD for cast-time plot_only
-                // is applied when the plot leaves its casting edge (PlotNode → ApplyPlotOnlyFireCosts).
-                // Zone needs WZSkillStarted now (Cast never runs).
+                // plot_only (and World OnSpawn fill) returns before Cast() — apply start costs here.
+                // GCD for cast-time plot_only is applied when the plot leaves its casting edge
+                // (PlotNode → ApplyPlotOnlyFireCosts). Zone needs WZSkillStarted now (Cast never runs).
                 RelayZoneSkillStartedIfNeeded(casterCaster, targetCaster, skillObject);
                 ConsumeMana(caster);
                 if (Template.CastingTime <= 0)

@@ -1,6 +1,7 @@
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Items.Templates;
 
@@ -32,7 +33,9 @@ public class WZCreateDoodadPacket(Doodad doodad) : ZonePacket(WzOpcodes.CreateDo
         stream.Write((byte)doodad.AttachPoint);
 
         var useLocal = doodad.AttachPoint > 0 || doodad.ParentObjId > 0;
-        var pos = useLocal ? doodad.Transform.Local.Position : doodad.Transform.World.Position;
+        var pos = useLocal
+            ? doodad.Transform.Local.Position
+            : ZoneCoordBoundary.ToZoneLocal(doodad.Transform.ZoneId, doodad.Transform.World.Position);
         var (roll, pitch, yaw) = useLocal
             ? doodad.Transform.Local.ToRollPitchYawShorts()
             : doodad.Transform.World.ToRollPitchYawShorts();

@@ -25,4 +25,12 @@ public class NpcTowerDefKillQuotaTests
         var npc = new Npc { TemplateId = 0 };
         await Assert.That(npc.TryConsumeTowerDefKillQuotaNotification(out _)).IsFalse();
     }
+
+    [Test]
+    public async Task LuscaGrade_UsesPriorityStream()
+    {
+        await Assert.That(Npc.UsesPriorityStreamAsKillQuotaBoss(NpcGradeType.BossC)).IsTrue();
+        await Assert.That(Npc.UsesPriorityStreamAsKillQuotaBoss(NpcGradeType.Normal)).IsFalse();
+        await Assert.That(Npc.UsesPriorityStreamAsKillQuotaBoss(NpcGradeType.Elite)).IsFalse();
+    }
 }

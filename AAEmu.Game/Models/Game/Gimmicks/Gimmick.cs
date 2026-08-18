@@ -57,9 +57,19 @@ public class Gimmick : Unit
         return ToSpawnData().Write(stream);
     }
 
-    public GimmickSpawnData ToSpawnData()
+    public GimmickSpawnData ToSpawnData() => BuildSpawnData(Transform.World.Position);
+
+    /// <summary>WZ Create body — zone-local XY when local wire is on. SC still uses <see cref="ToSpawnData"/>.</summary>
+    public GimmickSpawnData ToZoneWireSpawnData()
     {
         var position = Transform.World.Position;
+        var zoneId = Transform?.ZoneId ?? 0;
+        position = ZoneCoordBoundary.ToZoneLocal(zoneId, position);
+        return BuildSpawnData(position);
+    }
+
+    private GimmickSpawnData BuildSpawnData(Vector3 position)
+    {
         return new GimmickSpawnData(
             ObjId,
             TemplateId,

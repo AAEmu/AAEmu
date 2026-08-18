@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.StreamAoi;
 using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Slaves;
@@ -54,5 +55,21 @@ public class SlaveTemplate
     public bool IsClientDrivenLandVehicle()
     {
         return SlaveKind is SlaveKind.Tank or SlaveKind.Machine or SlaveKind.SiegeWeapon;
+    }
+
+    /// <summary>
+    /// Hulls use Ship. Equipment slaves (sails/cannons) are Part — they must not Ambient-cull
+    /// at 105 m while the hull stays to 248 m. Doodad sails are not this type.
+    /// </summary>
+    public StreamAoiCategory StreamAoiCategory
+    {
+        get
+        {
+            if (IsABoat() || SlaveKind == SlaveKind.Leviathan)
+                return StreamAoiCategory.Ship;
+            if (SlaveKind == SlaveKind.SlaveEquipment)
+                return StreamAoiCategory.Part;
+            return StreamAoiCategory.Ambient;
+        }
     }
 }

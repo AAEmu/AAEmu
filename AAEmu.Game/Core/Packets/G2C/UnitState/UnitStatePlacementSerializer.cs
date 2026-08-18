@@ -13,7 +13,7 @@ internal static class UnitStatePlacementSerializer
     public static void Write(PacketStream stream, UnitStateWireContext context)
     {
         var unit = context.Unit;
-        // Only client packets ground World-owned NPCs. A Zone placement override is already local.
+        // WZ override is already zone-local XYZ (Z unchanged). Do not snap it against the continent heightmap.
         if (context.PlacementOverride is null)
             GroundWorldNpc(unit, context);
 
