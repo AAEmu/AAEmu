@@ -68,6 +68,33 @@ public class DoodadFuncUse : DoodadFuncTemplate
             }
         }
 
+        // Halcyona Relic Remains: one trophy per winner-alliance character. Refuse a re-loot
+        // from the same character and let everyone else through during the 5-minute window.
+        // Keyed on IsHalcyonaRelicRemains (not the generic SkipDeleteOnUseFinish) so other
+        // doodads that opt out of the DoFunc delete path don't accidentally inherit this
+        // Halcyona-specific single-loot gate. (Greptile #1447 P2)
+        //
+        // The check-and-add holds a lock on the HashSet because concurrent network threads
+        // can land here when two players cast the loot skill simultaneously (common during a
+        // winning alliance rush). HashSet<T> is not thread-safe — without the lock the
+        // backing array can corrupt during resize, or both threads can read "not yet looted"
+        // before either commits and a single player ends up with two trophies. (Greptile
+        // #1447 P1 round 2)
+        if (owner.IsHalcyonaRelicRemains && caster is Character lootingCharacter)
+        {
+            bool alreadyLooted;
+            lock (owner.HalcyonaRelicLootedBy)
+            {
+                alreadyLooted = !owner.HalcyonaRelicLootedBy.Add(lootingCharacter.Id);
+            }
+            if (alreadyLooted)
+            {
+                lootingCharacter.SendErrorMessage(ErrorMessageType.NoInteractionAvailable);
+                owner.ToNextPhase = false;
+                return;
+            }
+        }
+
         // TODO: check skill references and consume items if items are required for skills
         // Make caster cast skill ?
         if (SkillId > 0)

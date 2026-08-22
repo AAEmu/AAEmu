@@ -129,12 +129,21 @@ public class SpawnManager(WorldInstance parentWorld)
                 foreach (var id in npcSpawner.NpcSpawnerIds)
                 {
                     npcSpawner.Id = id;
-                    npcSpawner.Template = new NpcSpawnerTemplate(id, npcSpawner.UnitId);
+                    npcSpawner.SpawnerId = id;
+                    // Prefer the SQL-loaded template (carries MaxPopulation, SpawnDelay, Category,
+                    // and the proper member list); fall back to a synthetic one if the spawner id
+                    // isn't in NpcGameData.
+                    var sqlTemplate = NpcGameData.Instance.GetNpcSpawnerTemplate(id);
+                    npcSpawner.Template = sqlTemplate ?? new NpcSpawnerTemplate(id, npcSpawner.UnitId);
                     npcSpawner.ParentWorld = World;
                     foreach (var n in npcSpawner.Template.Npcs)
                     {
                         n.Position = npcSpawner.Position;
                     }
+                    // Without InitializeSpawnableNpcs, DoSpawn warns "No spawnable NPCs available
+                    // for SpawnerId=..." and never spawns anything. The non-event branch above
+                    // calls it explicitly; mirror that here.
+                    npcSpawner.InitializeSpawnableNpcs(npcSpawner.Template);
                 }
 
                 spawners.Add(npcSpawner);

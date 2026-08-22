@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
 
@@ -55,8 +56,21 @@ public class CSStartInteractionPacket() : GamePacket(CSOffsets.CSStartInteractio
             else if (npc.Template.Blacksmith)
                 option = SkillsEnum.ItemFusion; // Open Item Fuse dialog ?
 
-            Connection.ActiveChar.SendPacket(new SCNpcInteractionSkillListPacket(npcObjId, objId, extraInfo,
-                pickId, mouseButton, modifierKeys, [option]));
+            // npc_interactions: data-driven multi-skill interaction (Halcyona War Golem "기동" +
+            // "무기 장착", and every other interactable boss with an npc_interaction_set_id). The
+            // SQL-defined skill list takes priority over the per-trait single-option above so a
+            // Golem-type NPC that is ALSO a banker would surface the Golem skills first.
+            var interactionSkills = NpcGameData.Instance.GetNpcInteractionSetSkills((uint)npc.Template.NpcInteractionSetId);
+            if (interactionSkills is { Count: > 0 })
+            {
+                Connection.ActiveChar.SendPacket(new SCNpcInteractionSkillListPacket(npcObjId, objId, extraInfo,
+                    pickId, mouseButton, modifierKeys, interactionSkills.ToArray()));
+            }
+            else
+            {
+                Connection.ActiveChar.SendPacket(new SCNpcInteractionSkillListPacket(npcObjId, objId, extraInfo,
+                    pickId, mouseButton, modifierKeys, [option]));
+            }
         }
 
         var slave = Connection.ActiveChar?.ParentWorld?.GetUnit(npcObjId);

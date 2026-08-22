@@ -19,6 +19,14 @@ public class WorldConfig
         Realistic
     }
 
+    /// <summary>Allowed values for <see cref="WorldConfig.HalcyonaWarMode"/>. Plain string so the
+    /// JSON-binder accepts the "2.0" literal directly (Enum.Parse can't handle the dot).</summary>
+    public static class HalcyonaWarModeValues
+    {
+        public const string OG = "OG";
+        public const string TwoPointZero = "2.0";
+    }
+
     /// <summary>
     /// Message of the Day that gets displayed in player's chat upon login
     /// </summary>
@@ -116,6 +124,19 @@ public class WorldConfig
     /// Default: <c>Official</c>.
     /// </summary>
     public WindModelType WindModel { get; set; } = WindModelType.Official;
+
+    /// <summary>
+    /// Selects which Halcyona War game mode the TowerDef runner uses:
+    /// <list type="bullet">
+    /// <item><c>OG</c>: original flag-capture system — players raise/lower faction flags around the central area.</item>
+    /// <item><c>2.0</c>: auto-golem lifecycle — Defense Flag prog spawns the war golems, they sit Immobilized for 5 minutes,
+    /// auto-Mobilize and march their paths, fight on contact, respawn 10 minutes after death.</item>
+    /// </list>
+    /// Configure in <c>AAEmu.Game/Configurations/World.json</c> under <c>World.HalcyonaWarMode</c>. Default: <c>OG</c>
+    /// (matches retail 1.2 behaviour).
+    /// Allowed values are listed in <see cref="HalcyonaWarModeValues"/>.
+    /// </summary>
+    public string HalcyonaWarMode { get; set; } = HalcyonaWarModeValues.OG;
 
     /// <summary>
     /// Server-side Actability Points multiplier (on top of buffs)

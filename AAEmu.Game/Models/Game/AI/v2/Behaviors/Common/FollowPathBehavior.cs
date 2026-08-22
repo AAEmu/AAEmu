@@ -29,6 +29,18 @@ public class FollowPathBehavior : BaseCombatBehavior
 
         Ai.Owner.IsInPatrol = true;
         Ai.Owner.Simulation.MoveToPathEnabled = true;
+        // Run-mode is intentionally limited to the Halcyona War golem templates. The original
+        // unconditional `RunningMode = true` broadcast run animation for every NPC on a
+        // FollowPath patrol — vendor walks, guard patrols and roaming mobs all visibly
+        // regressed to running. Golems need run mode so the ~860m route finishes in ~2.5 min
+        // (retail timing); other NPCs keep the Relaxed-stance walk that RunCommandSetBehavior
+        // already set immediately before handing off here. (Greptile #1447 P1)
+        var tid = Ai.Owner.TemplateId;
+        if (tid == Core.Managers.World.TowerDefManager.NuiaGolemTemplateId
+         || tid == Core.Managers.World.TowerDefManager.HarihiraGolemTemplateId)
+        {
+            Ai.Owner.Simulation.RunningMode = true;
+        }
         Ai.Owner.Simulation.GoToPath(Ai.Owner, true);
 
         _enter = true;

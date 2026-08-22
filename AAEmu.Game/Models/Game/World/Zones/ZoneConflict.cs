@@ -148,6 +148,30 @@ public class ZoneConflict(ZoneGroup owner)
         CurrentZoneState = ct;
         Logger.Info($"ZoneGroup {ZoneGroupId} changed from {previousState} → {ct} (next state at {NextStateTime:HH:mm:ss})");
         SendSwitchZoneState();
+
+        // Phase HW-3: drive the associated TowerDef event off the zone state.
+        // War-entry starts the wave runner; Peace/anything-else stops it. This is the link
+        // ZoneManager loads conflict_zones.war_tower_def_id for but no code ever read.
+        if (WarTowerDefId == 0)
+            return;
+        try
+        {
+            if (ct == ZoneConflictType.War && previousState != ZoneConflictType.War)
+            {
+                // EventZoneId: there is no single canonical zone id for a zone-group, use
+                // ZoneGroupId as a placeholder; the client cares about the (TowerDefId,
+                // ZoneGroupId) tuple in the packet header more than this field.
+                TowerDefManager.Instance.Start(WarTowerDefId, ZoneGroupId, ZoneGroupId);
+            }
+            else if (previousState == ZoneConflictType.War && ct != ZoneConflictType.War)
+            {
+                TowerDefManager.Instance.Stop(WarTowerDefId);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"ZoneConflict {ZoneGroupId}: TowerDef bridge failed (WarTowerDefId={WarTowerDefId})");
+        }
     }
 
     public void ForceNextState()

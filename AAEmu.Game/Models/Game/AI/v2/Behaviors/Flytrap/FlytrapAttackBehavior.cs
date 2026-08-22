@@ -1,9 +1,13 @@
 ﻿using System.Numerics;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.AI.v2.Framework;
 using AAEmu.Game.Models.Game.AI.v2.Params.Flytrap;
+using AAEmu.Game.Models.Game.AI.V2.Params.Flytrap;
 using AAEmu.Game.Models.Game.Models;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
+using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Utils;
@@ -56,9 +60,57 @@ public class FlytrapAttackBehavior : Behavior
 
         Ai.Owner.IsInBattle = true;
         var targetDist = Ai.Owner.GetDistanceTo(Ai.Owner.CurrentTarget);
-        PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget, targetDist);
+
+        // Consume FlytrapAiParams.CombatSkills before falling back to PickSkillAndUseIt — this
+        // is the retail-correct data source for Halcyona War Auto-Cannons (13648/13662) and any
+        // other Flytrap/Turret NPC whose attack rotation is defined in npc_ai_params Lua rather
+        // than np_skills. Without this loop, Cannons aimed but never fired (PickSkillAndUseIt
+        // reads only Template.Skills which is populated from np_skills; cannons have 0 rows).
+        // We prefer Ranged when out of melee, then Melee when in range — same order as
+        // ArcherAttackBehavior. The first cooldown-clear skill whose range fits wins.
+        var firedFromCombatSkills = TryUseCombatSkill(aiParams.CombatSkills, Ai.Owner.CurrentTarget, targetDist);
+        if (!firedFromCombatSkills)
+            PickSkillAndUseIt(SkillUseConditionKind.InCombat, Ai.Owner.CurrentTarget, targetDist);
 
         Update();
+    }
+
+    /// <summary>
+    /// Iterates the Lua-defined combat skill lists (Ranged first, then Melee inside meleeAttackRange),
+    /// filters by cooldown + range, and casts the first match. Returns true if any skill was attempted.
+    /// </summary>
+    private bool TryUseCombatSkill(FlytrapCombatSkill combatSkills, BaseUnit target, float targetDist)
+    {
+        if (combatSkills == null)
+            return false;
+        if (TryPickAndCast(combatSkills.Ranged, target, targetDist))
+            return true;
+        if (targetDist <= _aiParams?.MeleeAttackRange + 0.001f
+            && TryPickAndCast(combatSkills.Melee, target, targetDist))
+            return true;
+        return false;
+    }
+
+    private bool TryPickAndCast(List<uint> skillIds, BaseUnit target, float targetDist)
+    {
+        if (skillIds == null || skillIds.Count == 0)
+            return false;
+        foreach (var skillId in skillIds)
+        {
+            if (skillId == 0)
+                continue;
+            if (Ai.Owner.Cooldowns.CheckCooldown(skillId))
+                continue;
+            var template = SkillManager.Instance.GetSkillTemplate(skillId);
+            if (template == null)
+                continue;
+            if (!(targetDist >= template.MinRange && targetDist <= template.MaxRange || template.TargetType == SkillTargetType.Self))
+                continue;
+            var skill = new Skill(template);
+            UseSkill(skill, target);
+            return true;
+        }
+        return false;
     }
 
     public override void Exit()
@@ -149,6 +201,17 @@ public class FlytrapAttackBehavior : Behavior
 
         foreach (var abuser in abusers)
         {
+            // Aggro can land on units the cannon must not return fire on (a friendly tester punched
+            // it, splash damage from a hostile AoE clipped a Friendly, etc.). Gate the lock-on by
+            // CanAttack so the cannon ignores friendlies even if they appear in the aggro list.
+            // Without this the Halcyona Auto-Cannons end up tracking and "firing" at the player who
+            // poked them first, regardless of faction.
+            if (!Ai.Owner.CanAttack(abuser))
+            {
+                Ai.Owner.ClearAggroOfUnit(abuser);
+                continue;
+            }
+
             Ai.Owner.LookTowards(abuser.Transform.World.Position);
             if (Ai.AlreadyTargeted)
                 return true;

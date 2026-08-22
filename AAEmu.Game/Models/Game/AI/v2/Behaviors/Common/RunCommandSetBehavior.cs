@@ -80,21 +80,21 @@ public class RunCommandSetBehavior : BaseCombatBehavior
                 Logger.Warn($"AI Command: {aiCommand.CmdId} not implemented, NPC {Ai.Owner.ObjId} ({Ai.Owner.TemplateId}), CommandSet {aiCommand.CmdSetId}, P1 {aiCommand.Param1}, P2 {aiCommand.Param2}");
                 break;
             case AiCommandCategory.FollowPath:
+                // Order fix: AiFileName MUST be set BEFORE LoadAiPathPoints, otherwise the loader
+                // reads the previous-iteration filename (or string.Empty) and the path is empty.
+                // Halcyona Golem ai_commands have Param2 = "nuia_golem_move" / "harihara_golem_move"
+                // — without this fix, FollowPathBehavior sees zero points and goes straight to Idle.
+                if (aiCommand.Param1 == 1)
+                    Ai.AiFileName = aiCommand.Param2;
+                else
+                    Ai.AiFileName2 = aiCommand.Param2;
+
                 Ai.LoadAiPathPoints(Ai.AiFileName, aiCommand.Param1 == 1);
                 if (aiCommand.Param1 == 1)
                 {
                     Ai.PathHandler.AiPathPointsRemaining.Enqueue(new AiPathPoint { Position = Vector3.Zero, Action = AiPathPointAction.ReturnToCommandSet, Param = string.Empty });
                 }
                 Ai.GoToFollowPath();
-                if (aiCommand.Param1 == 1)
-                {
-                    Ai.AiFileName = aiCommand.Param2;
-                }
-                else
-                {
-                    Ai.AiFileName2 = aiCommand.Param2;
-                }
-
                 break;
             case AiCommandCategory.UseSkill:
                 Ai.AiSkillId = aiCommand.Param1;
@@ -108,7 +108,23 @@ public class RunCommandSetBehavior : BaseCombatBehavior
                 break;
             case AiCommandCategory.Timeout:
                 Ai.AiTimeOut = aiCommand.Param1;
-                Ai.AiCurrentCommandRunTime = TimeSpan.FromMilliseconds(Ai.AiTimeOut); // This feels like this should be max cooldown remaining for all skills for param 1
+                // ai_commands.param1 unit is overwhelmingly retail-seconds: 453 of 454 timeout
+                // rows in the vanilla DB have Param1 in [1, 60] (avg 8.44), which is only
+                // sensible as seconds — Param1=20ms would expire before the path engine even
+                // started, leaving the AI falling out of the command set immediately. Halcyona
+                // golem cmd_set 322/323 has Param1=20 (= 20s of immobilize before march), which
+                // matched retail timing once we switched from FromMilliseconds.
+                //
+                // The single outlier is cmd_set 167 "상단 습격단 갱" (Merchant Raid Gang) with
+                // Param1=1500, which looks legacy-ms-encoded (= 1.5s) — 25 minutes of waiting
+                // before its next skill cast would freeze the NPC. Heuristic: Param1 ≥ 100
+                // falls back to milliseconds; everything below treats it as seconds. The
+                // threshold sits well above the second-encoded retail range (max 60) and
+                // safely below the legacy-ms-encoded outlier. Audit was driven by Greptile
+                // PR #1447 P1 review. If more outliers surface we can promote them per-cmd_set.
+                Ai.AiCurrentCommandRunTime = Ai.AiTimeOut >= 100
+                    ? TimeSpan.FromMilliseconds(Ai.AiTimeOut)
+                    : TimeSpan.FromSeconds(Ai.AiTimeOut);
                 break;
             default:
                 throw new NotSupportedException(nameof(aiCommand.CmdId));

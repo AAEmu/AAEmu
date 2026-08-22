@@ -336,6 +336,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             IgnoreGlobalCooldown = reader.GetBoolean("ignore_global_cooldown", true),
                             EffectDelay = reader.GetInt32("effect_delay"),
                             EffectSpeed = reader.GetFloat("effect_speed"),
+                            ProjectileId = reader.GetUInt32("projectile_id", 0),
                             EffectRepeatCount = reader.GetInt32("effect_repeat_count"),
                             EffectRepeatTick = reader.GetInt32("effect_repeat_tick"),
                             ActiveWeaponId = reader.GetInt32("active_weapon_id"),

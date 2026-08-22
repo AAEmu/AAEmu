@@ -110,6 +110,10 @@ public sealed class GameService : IHostedService, IDisposable
         WorldManager.Instance.CreateStaticInstances();
         WorldManager.Instance.Initialize();
 
+        // TowerDef event runner (Halcyona War, Crimson/Grimghast/Hasla Rifts) — must come AFTER
+        // WorldManager.Initialize so GetWorlds() returns the loaded worlds we subscribe events on.
+        AAEmu.Game.Core.Managers.World.TowerDefManager.Instance.Initialize();
+
         CharacterManager.Instance.CheckForDeletedCharacters();
         CharacterManager.Instance.StartOnlineTracking();
 

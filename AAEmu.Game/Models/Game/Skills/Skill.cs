@@ -342,6 +342,26 @@ public class Skill
         }
         else
         {
+            // Immediate-cast NPC skill: broadcast a SCSkillStartedPacket with cast time 0 so
+            // the client renders the windup/fire animation. Without this packet the client
+            // never ties the upcoming SCSkillFiredPacket / SCUnitDamagedPacket to a visible
+            // cast on the caster — e.g. Halcyona War Auto-Cannons (skill 21762, casting_time=0)
+            // dealt damage but the turret stayed idle and no projectile appeared.
+            //
+            // Gated on `caster is Npc` because player instant-cast skills (instant buffs,
+            // instant nukes) have always worked without this packet on the existing emulator
+            // codepath, and broadcasting it for them could trigger double-animation or other
+            // undefined client behaviour on the well-trodden player skill path. (Greptile
+            // #1447 P1 round 3)
+            if (caster is Npc)
+            {
+                caster.BroadcastPacket(new SCSkillStartedPacket(Id, TlId, casterCaster, targetCaster, this, skillObject)
+                {
+                    BaseCastTimeDiv10 = 0,
+                    RealCastTimeDiv10 = 0,
+                }, true);
+            }
+
             // Immediate skill
             Cast(caster, casterCaster, target, targetCaster, skillObject);
         }
@@ -615,6 +635,24 @@ public class Skill
     public void Cast(BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
     {
         if (caster is not Unit unit) { return; }
+
+        // Halcyona War OG mode pole skills (23088/23266 plant, 23546/23547 pull) — fires only
+        // after the cast bar completes (this method is the cast-complete callback scheduled
+        // from Use(), so a cancelled/interrupted cast never reaches here). TowerDefManager
+        // owns the side-resolution, item consume/grant, and the actual cannon spawner
+        // spawn/despawn — the DB effects on these skills reference non-existent spawners.
+        if (caster is Character halcyonaPoleCaster && Template != null)
+        {
+            var sid = Template.Id;
+            if (sid == AAEmu.Game.Core.Managers.World.TowerDefManager.NuiaPolePlantSkillId
+                || sid == AAEmu.Game.Core.Managers.World.TowerDefManager.HarihiraPolePlantSkillId
+                || sid == AAEmu.Game.Core.Managers.World.TowerDefManager.NuiaPolePullSkillId
+                || sid == AAEmu.Game.Core.Managers.World.TowerDefManager.HarihiraPolePullSkillId)
+            {
+                try { AAEmu.Game.Core.Managers.World.TowerDefManager.Instance.OnHalcyonaPoleSkill(sid, halcyonaPoleCaster); }
+                catch (Exception ex) { Logger.Warn(ex, $"Halcyona War OG pole skill {sid} hook threw"); }
+            }
+        }
 
         if (!_bypassGcd)
         {

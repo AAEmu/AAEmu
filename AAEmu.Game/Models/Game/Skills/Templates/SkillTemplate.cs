@@ -18,6 +18,14 @@ public class SkillTemplate
     public bool IgnoreGlobalCooldown { get; set; }
     public int EffectDelay { get; set; }
     public float EffectSpeed { get; set; }
+
+    /// <summary>
+    /// Projectile model id (skills.projectile_id). Sent to the client in SCSkillFiredPacket so the
+    /// client renders the actual flying projectile model (cannonball, arrow, fireball, etc.) along
+    /// the trajectory from caster to target.position over <see cref="EffectSpeed"/>-derived
+    /// travel time. 0 = no projectile (instant impact at target / hitscan).
+    /// </summary>
+    public uint ProjectileId { get; set; }
     public int EffectRepeatCount { get; set; }
     public int EffectRepeatTick { get; set; }
     public int ActiveWeaponId { get; set; }
