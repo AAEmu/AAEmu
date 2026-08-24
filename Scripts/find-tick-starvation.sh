@@ -138,8 +138,9 @@ analyze() {
       ts = ts_of($0)
       if (use_since && ts < since) next
       ms = after_took($0) + 0
-      key = ts SUBSEP ++wseq
+      key = ts "|" (++wseq)
       wms[key] = ms
+      wts[key] = ts
       wline[key] = $0
       worder[++nw] = key
       next
@@ -148,37 +149,39 @@ analyze() {
       ts = ts_of($0)
       if (use_since && ts < since) next
       ms = after_took($0) + 0
-      key = ts SUBSEP ++tseq
+      key = ts "|" (++tseq)
       tms[key] = ms
+      tts[key] = ts
       tline[key] = $0
       torder[++nt] = key
-      tbyts[ts] = key
       next
     }
     END {
+      # Match each World WARN to any unused Tick WARN in the same second with ~same ms.
+      # Keep every Tick in that second; do not overwrite by timestamp.
       for (i = 1; i <= nw; i++) {
         key = worder[i]
-        split(key, parts, SUBSEP)
-        ts = parts[1]
-        if (ts in tbyts) {
-          tkey = tbyts[ts]
+        ts = wts[key]
+        matched = 0
+        for (j = 1; j <= nt; j++) {
+          tkey = torder[j]
+          if (tkey in used_tick) continue
+          if (tts[tkey] != ts) continue
           if (abs(wms[key] - tms[tkey]) < 2.0) {
             printf "PAIR|%s|%s|%s|%s\n", ts, wms[key], tms[tkey], wline[key]
             printf "PAIR|%s|%s|%s|%s\n", ts, wms[key], tms[tkey], tline[tkey]
-            paired[ts] = 1
-          } else {
-            printf "WORLD|%s|%s||%s\n", ts, wms[key], wline[key]
+            used_tick[tkey] = 1
+            matched = 1
+            break
           }
-        } else {
-          printf "WORLD|%s|%s||%s\n", ts, wms[key], wline[key]
         }
+        if (!matched)
+          printf "WORLD|%s|%s||%s\n", ts, wms[key], wline[key]
       }
       for (i = 1; i <= nt; i++) {
         key = torder[i]
-        split(key, parts, SUBSEP)
-        ts = parts[1]
-        if (!(ts in paired))
-          printf "TICK|%s||%s|%s\n", ts, tms[key], tline[key]
+        if (!(key in used_tick))
+          printf "TICK|%s||%s|%s\n", tts[key], tms[key], tline[key]
       }
     }
   '
