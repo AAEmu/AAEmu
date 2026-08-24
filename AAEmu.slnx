@@ -38,17 +38,12 @@
     <File Path="Scripts/StartLoginServer.bat" />
     <File Path="Scripts/WatchGameServer.ps1" />
     <File Path="Scripts/WatchLoginServer.ps1" />
-    <File Path="Scripts/StartBillManager.bat" />
-    <File Path="Scripts/StartBillServer.bat" />
-    <File Path="Scripts/test_bill_client.py" />
   </Folder>
   <Folder Name="/Additional Files/SQL/">
-    <File Path="SQL/aaemu_bill.sql" />
     <File Path="SQL/aaemu_game.sql" />
     <File Path="SQL/aaemu_login.sql" />
   </Folder>
   <Folder Name="/Additional Files/SQL/Examples/">
-    <File Path="SQL/examples/ics_seed_bill_demo.sql" />
     <File Path="SQL/examples/example-ics-default-en.sql" />
     <File Path="SQL/examples/test-user.sql" />
   </Folder>
@@ -119,8 +114,6 @@
   </Folder>
   <Folder Name="/Applications/">
     <Project Path="AAEmu.Aspire.AppHost/AAEmu.Aspire.AppHost.csproj" />
-    <Project Path="AAEmu.BillManager/AAEmu.BillManager.csproj" />
-    <Project Path="AAEmu.BillServer/AAEmu.BillServer.csproj" />
     <Project Path="AAEmu.Commons/AAEmu.Commons.csproj" />
     <Project Path="AAEmu.Game/AAEmu.Game.csproj" />
     <Project Path="AAEmu.Login/AAEmu.Login.csproj" />

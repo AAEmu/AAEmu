@@ -67,7 +67,6 @@ public partial class AppConfiguration
     public SpecialtyConfig Specialty { get; set; } = new();
     public UccConfig Ucc { get; set; } = new();
     public FeaturesConfig Features { get; set; } = new();
-    public BillServerConfig BillServer { get; set; } = new();
     public TowerDefsConfig TowerDefs { get; set; } = new();
     public StreamAoiConfig StreamAoi { get; set; } = new();
     public InitialConfig InitialConfig { get; set; } = new();

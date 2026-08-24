@@ -132,8 +132,6 @@ public static class Program
                 services.AddSingleton<CashShopManager>();
                 services.AddSingleton<ICashShopManager>(sp => sp.GetRequiredService<CashShopManager>());
 
-                services.AddSingleton<BillClientManager>();
-                services.AddSingleton<IBillClientManager>(sp => sp.GetRequiredService<BillClientManager>());
 
                 services.AddSingleton<ChatManager>();
                 services.AddSingleton<IChatManager>(sp => sp.GetRequiredService<ChatManager>());

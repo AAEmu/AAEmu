@@ -10,10 +10,9 @@ public class CSICSMenuListPacket() : GamePacket(CSOffsets.CSICSMenuListPacket, 1
     public override void Read(PacketStream stream)
     {
         // This request has no body.
-        Logger.Info("ICSMenuList open={0} enabled={1} bill={2} menus={3} shops={4}",
+        Logger.Info("ICSMenuList open={0} enabled={1} menus={2} shops={3}",
             CashShopManager.Instance.IsOpenForPlayers,
             CashShopManager.Instance.Enabled,
-            BillClientManager.Instance.IsConnected,
             CashShopManager.Instance.MenuItems.Count,
             CashShopManager.Instance.ShopItems.Count);
 

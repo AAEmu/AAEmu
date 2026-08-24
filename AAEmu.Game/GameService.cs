@@ -85,8 +85,7 @@ public sealed class GameService : IHostedService, IDisposable
 
         // --- Stage 3: Post-load special steps ---
         GameDataManager.Instance.PostLoadGameData();
-        BillClientManager.Instance.Start();
-        if (CashShopManager.Instance.IsOpenForPlayers || !BillClientManager.Instance.RequireConnection)
+        if (CashShopManager.Instance.IsOpenForPlayers)
             CashShopManager.Instance.EnabledShop();
         else
             CashShopManager.Instance.DisableShop();
@@ -156,7 +155,6 @@ public sealed class GameService : IHostedService, IDisposable
     {
         Logger.Info("Stopping daemon...");
 
-        BillClientManager.Instance.Stop();
 
         await SaveManager.Instance.StopAsync();
 

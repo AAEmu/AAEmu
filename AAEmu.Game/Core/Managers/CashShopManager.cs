@@ -16,9 +16,7 @@ public class CashShopManager(IWorldManager worldManager, IAccountManager account
 
     public bool Enabled { get; private set; }
 
-    public bool IsOpenForPlayers =>
-        Enabled
-        && (!BillClientManager.Instance.RequireConnection || BillClientManager.Instance.IsConnected);
+    public bool IsOpenForPlayers => Enabled;
 
     public Dictionary<uint, IcsSku> SKUs { get; set; } = [];
     public Dictionary<uint, IcsItem> ShopItems { get; set; } = [];

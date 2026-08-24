@@ -38,7 +38,7 @@ public class InGameCashShop : ICommand
                 CommandManager.SendNormalText(this, messageOutput,
                     $"Currently loaded {CashShopManager.Instance.ShopItems.Count} shop items listed as {CashShopManager.Instance.MenuItems.Count} entries across all tabs in the cash shop.");
                 CommandManager.SendNormalText(this, messageOutput,
-                    $"Shop open={CashShopManager.Instance.IsOpenForPlayers} billConnected={BillClientManager.Instance.IsConnected} billRequired={BillClientManager.Instance.RequireConnection}");
+                    $"Shop open={CashShopManager.Instance.IsOpenForPlayers}");
                 break;
             case "on":
                 CashShopManager.Instance.EnabledShop();
