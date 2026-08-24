@@ -4,6 +4,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.World;
@@ -63,7 +64,9 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
         if (obj.Transform != null)
         {
             obj.Transform.InstanceId = _worldInstance.Id;
-            var zoneId = WorldManager.Instance.GetZoneId(_worldInstance.Template, obj.Transform.World.Position.X, obj.Transform.World.Position.Y);
+            var sampled = WorldManager.Instance.GetZoneId(
+                _worldInstance.Template, obj.Transform.World.Position.X, obj.Transform.World.Position.Y);
+            var zoneId = ResolveZoneKeyForObject(obj, sampled);
             if (zoneId > 0)
                 obj.Transform.ZoneId = zoneId;
         }
@@ -474,5 +477,27 @@ public class Region(WorldInstance worldInstance, int x, int y, uint zoneKey)
         var difference = oldNeighbors.Except(newNeighbors).ToArray();
 
         return difference;
+    }
+
+    /// <summary>
+    /// Sea hulls use sticky zone keys so 64 m grid seams do not flip keys every tick. Riders inherit
+    /// the hull's committed key instead of re-sampling the same oscillating coordinate.
+    /// </summary>
+    private static uint ResolveZoneKeyForObject(GameObject obj, uint sampledKey)
+    {
+        if (obj is Character passenger &&
+            passenger.Transform?.Parent?.GameObject is Slave hull &&
+            hull.Template?.IsABoat() == true)
+        {
+            return hull.Transform.ZoneId != 0 ? hull.Transform.ZoneId : sampledKey;
+        }
+
+        if (obj is Slave boat && boat.Template?.IsABoat() == true)
+        {
+            var current = boat.Transform?.ZoneId ?? 0;
+            return BoatZoneKeyStability.Resolve(boat.ObjId, sampledKey, current);
+        }
+
+        return sampledKey;
     }
 }

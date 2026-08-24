@@ -869,14 +869,15 @@ public static class Program
             var zone = PlayerEnterService.ForUnit(slaveId);
             if (zone == null)
                 return;
-            var local = ZoneCoordBoundary.ToZoneLocal(zone.ZoneId, new System.Numerics.Vector3(x, y, z));
+            // Continent WorldPos on the wire (same as SCEscapeSlave). Dedicate converts against its
+            // stream origin — do not pre-subtract or pe_params_pos lands near (0,0) ("end of world").
             zone.SendPacket(new WZEscapeSlavePacket(
                 slaveId,
-                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongX(local.X),
-                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongY(local.Y),
-                local.Z,
+                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongX(x),
+                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongY(y),
+                z,
                 rot));
-            Logger.Info("WZEscapeSlave → zone slave={0} pos=({1:F1},{2:F1},{3:F1})", slaveId, local.X, local.Y, local.Z);
+            Logger.Info("WZEscapeSlave → zone slave={0} pos=({1:F1},{2:F1},{3:F1})", slaveId, x, y, z);
         };
         WorldIntegration.RelayShipControlChangeToZone = (slaveId, control) =>
         {

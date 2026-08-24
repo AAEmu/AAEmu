@@ -1126,7 +1126,7 @@ public class Slave : Unit
         // WZ traffic (impulse turns, control changes) is routed by the hull's current zone key, and a
         // announce belongs to the summon path, which sends the fully built state body.
         if (Template?.IsABoat() == true && ZoneAnnouncedTo != 0 && ZoneAnnouncedTo != newZoneKey)
-            SlaveManager.AnnounceBoatToZone(this);
+            SlaveManager.CommitBoatZoneHandoff(this, lastZoneKey, newZoneKey);
 
         foreach (var passenger in AttachedCharacters)
         {

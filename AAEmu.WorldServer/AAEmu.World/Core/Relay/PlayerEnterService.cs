@@ -4,6 +4,7 @@ using System.Linq;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.World.Core.Network;
 using AAEmu.World.Core.Packets.Wz;
 using AAEmu.World.Core.Zone;
@@ -287,6 +288,14 @@ public class PlayerEnterService
         if (ch?.Transform == null)
             return 0;
 
+        if (ch.Transform.Parent?.GameObject is Slave hull && hull.Template?.IsABoat() == true)
+        {
+            if (hull.ZoneAnnouncedTo != 0)
+                return hull.ZoneAnnouncedTo;
+            if (hull.Transform.ZoneId != 0)
+                return hull.Transform.ZoneId;
+        }
+
         if (ch.Transform.ZoneId != 0)
             return ch.Transform.ZoneId;
 
@@ -325,7 +334,12 @@ public class PlayerEnterService
             if (unit.Transform?.ZoneId is > 0)
                 return unit.Transform.ZoneId;
         }
-        else if (unit?.Transform != null)
+        else if (unit is Slave boat && boat.Template?.IsABoat() == true && boat.ZoneAnnouncedTo != 0)
+        {
+            return boat.ZoneAnnouncedTo;
+        }
+
+        if (unit?.Transform != null)
         {
             if (unit.Transform.ZoneId != 0)
                 return unit.Transform.ZoneId;

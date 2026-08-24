@@ -2709,7 +2709,11 @@ public partial class Character : Unit, ICharacter
             ChatManager.Instance.GetZoneChat(newZoneKey).JoinChannel(this);
 
         // ZoneAuthority: sim presence follows zone key (WZUnitRemoved old + WZUnitState new).
-        if (WorldIntegration.ZoneAuthority && lastZoneKey != 0 && newZoneKey != 0 && lastZoneKey != newZoneKey)
+        // Passengers on a sea hull are handed off with the boat — a separate player handoff here
+        // used to ping-pong WZUnitRemoved/State every tick at zone seams.
+        var onBoat = Transform.Parent?.GameObject is Slave hull && hull.Template?.IsABoat() == true;
+        if (WorldIntegration.ZoneAuthority && !onBoat &&
+            lastZoneKey != 0 && newZoneKey != 0 && lastZoneKey != newZoneKey)
         {
             var body = WorldIntegration.BuildWzUnitStateBody(this);
             var accepted = WorldIntegration.RelayCharacterZoneHandoff?.Invoke(

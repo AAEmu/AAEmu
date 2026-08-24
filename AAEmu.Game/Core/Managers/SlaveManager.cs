@@ -1293,18 +1293,63 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         if (zoneId == 0)
             return;
 
-        if (slave.ZoneAnnouncedTo != 0 && slave.ZoneAnnouncedTo != zoneId)
+        CommitBoatZoneHandoff(slave, slave.ZoneAnnouncedTo, zoneId);
+    }
+
+    /// <summary>
+    /// Retail zone-authority boat transfer: withdraw old dedicate sim, WZUnitState Create on the new
+    /// one, re-attach passengers, restore helm control if a driver is aboard.
+    /// </summary>
+    /// <remarks>
+    /// WZEscapeSlave is only for Rider's Escape — not part of zone handoff or Bind. Create + control
+    /// is the same path as first summon (<see cref="AnnounceBoatToZone"/>).
+    /// </remarks>
+    public static void CommitBoatZoneHandoff(Slave slave, uint oldZoneKey, uint newZoneKey)
+    {
+        if (!WorldIntegration.ZoneAuthority || slave?.Template?.IsABoat() != true)
+            return;
+
+        if (newZoneKey == 0 || newZoneKey == slave.ZoneAnnouncedTo)
+            return;
+
+        var previousSimZone = slave.ZoneAnnouncedTo != 0 ? slave.ZoneAnnouncedTo : oldZoneKey;
+        if (slave.ZoneAnnouncedTo != 0 && slave.ZoneAnnouncedTo != newZoneKey)
             WithdrawBoatFromZone(slave);
 
         var slaveStateBody = WorldIntegration.BuildWzUnitStateBody(slave);
         if (slaveStateBody is not { Length: > 0 })
             return;
 
-        WorldIntegration.RelayUnitStateToZone?.Invoke(zoneId, slaveStateBody);
-        slave.ZoneAnnouncedTo = zoneId;
-        WorldIntegration.RelayShipControlChangeToZone?.Invoke(slave.ObjId, true);
-        Logger.Info("WZUnitState queued for slave obj={0} zoneId={1} bodyLen={2}",
-            slave.ObjId, zoneId, slaveStateBody.Length);
+        WorldIntegration.RelayUnitStateToZone?.Invoke(newZoneKey, slaveStateBody);
+        slave.ZoneAnnouncedTo = newZoneKey;
+
+        var hasDriver = slave.AttachedCharacters.ContainsKey(AttachPointKind.Driver);
+        foreach (var (attachPoint, passenger) in slave.AttachedCharacters.ToList())
+        {
+            if (passenger == null)
+                continue;
+
+            if (previousSimZone != 0 && previousSimZone != newZoneKey)
+            {
+                var passengerBody = WorldIntegration.BuildWzUnitStateBody(passenger);
+                if (passengerBody is { Length: > 0 })
+                {
+                    WorldIntegration.RelayCharacterZoneHandoff?.Invoke(
+                        passenger.ObjId, previousSimZone, newZoneKey, passengerBody);
+                }
+            }
+
+            WorldIntegration.RelayUnitAttachToZone?.Invoke(
+                passenger.ObjId, slave.ObjId, (byte)attachPoint, true);
+        }
+
+        // Same as first announce / Bind: enable sim when someone is at the wheel.
+        if (hasDriver)
+            WorldIntegration.RelayShipControlChangeToZone?.Invoke(slave.ObjId, true);
+
+        Logger.Info(
+            "Boat zone handoff slave obj={0} {1}→{2} bodyLen={3} passengers={4}",
+            slave.ObjId, previousSimZone, newZoneKey, slaveStateBody.Length, slave.AttachedCharacters.Count);
     }
 
     /// <summary>Tells the dedicate that currently simulates this hull to drop it.</summary>
@@ -1317,6 +1362,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         WorldIntegration.RelayUnitRemovedToZoneId?.Invoke(slave.ZoneAnnouncedTo, slave.ObjId);
         Logger.Info("WZUnitRemoved for slave obj={0} zoneId={1}", slave.ObjId, slave.ZoneAnnouncedTo);
         slave.ZoneAnnouncedTo = 0;
+        BoatZoneKeyStability.Clear(slave.ObjId);
     }
 
     /// <summary>
@@ -1488,12 +1534,21 @@ public class SlaveManager(WorldInstance parentWorldInstance)
 
         if (WorldIntegration.ZoneAuthority)
         {
-            // The escape can land the hull in another zone key; move it to that dedicate first so
-            // the escape (and everything after it) reaches the process that simulates the ship.
-            if (mySlave.ZoneAnnouncedTo != (mySlave.Transform?.ZoneId ?? 0))
-                AnnounceBoatToZone(mySlave);
-
+            // The escape can land the hull in another zone key; commit immediately so the escape
+            // packet reaches the dedicate that will simulate the ship.
+            var template = mySlave.ParentWorld?.Template;
             var p = mySlave.Transform.World.Position;
+            if (template != null)
+            {
+                var sampled = WorldManager.Instance.GetZoneId(template, p.X, p.Y);
+                var zoneKey = BoatZoneKeyStability.ForceCommit(mySlave.ObjId, sampled);
+                if (zoneKey > 0 && mySlave.Transform.ZoneId != zoneKey)
+                    mySlave.Transform.ZoneId = zoneKey;
+                if (mySlave.ZoneAnnouncedTo != zoneKey && zoneKey > 0)
+                    CommitBoatZoneHandoff(mySlave, mySlave.ZoneAnnouncedTo, zoneKey);
+            }
+
+            p = mySlave.Transform.World.Position;
             WorldIntegration.RelayEscapeSlaveToZone?.Invoke(
                 mySlave.ObjId, p.X, p.Y, p.Z, mySlave.Transform.World.Rotation.Z);
             mySlave.BroadcastPacket(new SCEscapeSlavePacket(
