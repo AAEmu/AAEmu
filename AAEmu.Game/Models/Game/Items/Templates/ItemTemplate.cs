@@ -36,8 +36,6 @@ public class ItemTemplate
     public int AuctionCategoryC { get; set; }
     public int LevelLimit { get; set; }
     public int FixedGrade { get; set; }
-    /// <summary>Highest grade reachable by regrading (-1 = uncapped); from items.max_enchantable_grade.</summary>
-    public int MaxEnchantableGrade { get; set; } = -1;
     public bool Disenchantable { get; set; }
     public int LivingPointPrice { get; set; }
     public byte CharGender { get; set; }

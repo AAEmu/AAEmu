@@ -159,7 +159,6 @@ public static class SCOffsets
     public const ushort SCGradeEnchantResultPacket = 0xC9; // 10.0.2.13
     public const ushort SCItemSocketingLunastoneResultPacket = 0x9e;
     public const ushort SCGradeEnchantBroadcastPacket = 0xD0; // 10.0.2.13
-    public const ushort SCRestoreDisableEnchantPacket = 0xD3; // 10.0.2.13
     public const ushort SCUnknownPacket = 0xa0;
     public const ushort SCSkillStartedPacket = 0xD7; // 10.0.2.13 (10.0.2.13 name: SkillStartedPacket)
     public const ushort SCSkillFiredPacket = 0xD8; // 10.0.2.13 (10.0.2.13 name: SkillFiredPacket)
