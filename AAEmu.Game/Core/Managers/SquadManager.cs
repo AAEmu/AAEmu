@@ -295,7 +295,7 @@ public class SquadManager : Singleton<SquadManager>, ISquadManager
                     return;
                 _pendingInvites.Remove((uint)invitationId);
             }
-            else if (!SquadRules.CanJoinPublic(squad, character.Id, character.Level))
+            else if (!SquadRules.CanJoinPublic(squad, character.Id, character.Level, character.GearScore))
             {
                 return;
             }

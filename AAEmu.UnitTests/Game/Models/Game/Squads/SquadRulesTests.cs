@@ -53,7 +53,7 @@ public class SquadRulesTests
     {
         var squad = MakeSquad(1, 23, SquadOpenType.Private);
         await Assert.That(SquadRules.IsListedOpenType(squad.OpenType)).IsTrue();
-        await Assert.That(SquadRules.CanJoinPublic(squad, 2, level: 55)).IsFalse();
+        await Assert.That(SquadRules.CanJoinPublic(squad, 2, level: 55, 0)).IsFalse();
     }
 
     [Test]
@@ -61,17 +61,30 @@ public class SquadRulesTests
     {
         var squad = MakeSquad(1, 23, SquadOpenType.Public, max: 2);
         squad.LimitLevel = 50;
-        await Assert.That(SquadRules.CanJoinPublic(squad, 2, level: 49)).IsFalse();
-        await Assert.That(SquadRules.CanJoinPublic(squad, 2, level: 50)).IsTrue();
+        await Assert.That(SquadRules.CanJoinPublic(squad, 2, level: 49, 0)).IsFalse();
+        await Assert.That(SquadRules.CanJoinPublic(squad, 2, level: 50, 0)).IsTrue();
         squad.Members.Add(new SquadMember { CharacterId = 2, Name = "B", Level = 55 });
-        await Assert.That(SquadRules.CanJoinPublic(squad, 3, level: 55)).IsFalse();
+        await Assert.That(SquadRules.CanJoinPublic(squad, 3, level: 55, 0)).IsFalse();
     }
 
     [Test]
     public async Task OneCharacter_CannotJoinTwice()
     {
         var squad = MakeSquad(1, 23, SquadOpenType.Public);
-        await Assert.That(SquadRules.CanJoinPublic(squad, 1, level: 55)).IsFalse();
+        await Assert.That(SquadRules.CanJoinPublic(squad, 1, level: 55, 0)).IsFalse();
+    }
+
+    [Test]
+    public async Task GearScoreGate_BlocksApplicantsBelowLimit()
+    {
+        var squad = MakeSquad(1, 23, SquadOpenType.Public);
+        squad.LimitGearScore = 5000;
+
+        await Assert.That(SquadRules.CanJoinPublic(squad, 2, level: 55, characterGearScore: 4999)).IsFalse();
+        await Assert.That(SquadRules.CanJoinPublic(squad, 2, level: 55, characterGearScore: 5000)).IsTrue();
+        // No limit set: any score passes.
+        squad.LimitGearScore = 0;
+        await Assert.That(SquadRules.CanJoinPublic(squad, 2, level: 55, characterGearScore: 0)).IsTrue();
     }
 
     [Test]

@@ -35,13 +35,13 @@ public enum Feature
     // ---- fset[4] ----
     nexonPcRoom = 34,
     ranking = 36,
-    fset_4_5_unknown = 37,
+    fset_4_5_unknown = 37,  // native only - EnchantScaleRatioDesc lookup (tempering steps; pairs with itemCapScale)
     ingamecashshop = 38,
     fset_4_7_unknown = 39,  // native only - custom UI / addon Lua loading (1.2 customUiButton)
 
     // ---- fset[5] ----
     customsaveload = 40,
-    fset_5_1_unknown = 41,
+    fset_5_1_unknown = 41,  // native only - tailoring thread-cut mesh (e_custom_thread_cut_mesh)
     fset_5_2_unknown = 42,  // native only - character & diary transfer
     bm_mileage = 43,
     aaPoint = 44,
@@ -84,7 +84,7 @@ public enum Feature
     houseTaxPrepay = 95,
 
     // ---- fset[12] ----
-    fset_12_0_unknown = 96,
+    fset_12_0_unknown = 96,  // native only - inventory swap (CSSwapItemsPacket)
     fset_12_1_unknown = 97,  // native only - item repair cost/slot collector
     arche_pass = 98,
     hud_mail_box_button = 99,
@@ -138,7 +138,7 @@ public enum Feature
 
     // ---- fset[19] ----
     heroBonus = 152,
-    fset_19_2_unknown = 154,
+    fset_19_2_unknown = 154,  // native only - doodad world-map text (SCDoodadWorldmapText*)
     hairTwoTone = 156,
     socketChange = 157,
     mate_type_summon = 158,
@@ -147,10 +147,10 @@ public enum Feature
     // ---- fset[20] ----
     lootGacha = 160,
     itemEvolvingReRoll = 161,
-    fset_20_2_unknown = 162,
+    fset_20_2_unknown = 162,  // native only - ScriptBindCustomizingUnit (appearance preview mannequin)
     eloRating = 163,
     chronicle_info = 164,
-    fset_20_5_unknown = 165,
+    fset_20_5_unknown = 165,  // native only - Lua Item object from catalog template id
     packageDemolish = 166,
     reportBadUser = 167,
 
@@ -208,7 +208,7 @@ public enum Feature
 
     // ---- fset[29] ----
     block_joint_raid = 232,
-    fset_29_1_unknown = 233,
+    fset_29_1_unknown = 233,  // native only - ScriptBindAuctionAddon (search row current/max/percent)
     blockSpendableGamePoint = 234,
     blockFamilyContents = 235,
     useCraftOrder = 236,

@@ -29,7 +29,7 @@ public static class SquadRules
 
     public static bool CanCreate(bool alreadyInSquad) => !alreadyInSquad;
 
-    public static bool CanJoinPublic(Squad squad, uint characterId, byte level)
+    public static bool CanJoinPublic(Squad squad, uint characterId, byte level, int characterGearScore)
     {
         if (squad == null || !AcceptsBoardApplications(squad.OpenType))
             return false;
@@ -38,6 +38,8 @@ public static class SquadRules
         if (squad.IsFull)
             return false;
         if (squad.LimitLevel > 0 && level < squad.LimitLevel)
+            return false;
+        if (squad.LimitGearScore > 0 && characterGearScore < squad.LimitGearScore)
             return false;
         return true;
     }

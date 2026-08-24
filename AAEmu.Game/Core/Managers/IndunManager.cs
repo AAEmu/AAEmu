@@ -338,6 +338,14 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
             character.SendErrorMessage(ErrorMessageType.InstanceLevel);
             return false;
         }
+
+        // Check gear score requirement (10.0.2.13 indun_zones.gear_score)
+        if (dungeonZone.GearScore > 0 && character.GearScore < dungeonZone.GearScore)
+        {
+            Logger.Warn($"Requesting instance gear score too low ({character.GearScore} < {dungeonZone.GearScore}), characterId: {character.Id}, zoneGroupId: {dungeonZone.ZoneGroupId}");
+            character.SendErrorMessage(ErrorMessageType.NotEnoughGearScore);
+            return false;
+        }
         
         // Check party status
         if (dungeonZone.PartyOnly && team == null)

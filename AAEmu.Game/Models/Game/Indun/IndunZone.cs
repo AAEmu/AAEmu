@@ -15,6 +15,11 @@ public class IndunZone
     /// Maximum level a character can have to enter this dungeon
     /// </summary>
     public uint LevelMax { get; init; } = 100;
+
+    /// <summary>
+    /// Minimum gear score required to enter (indun_zones.gear_score; 0 = no requirement).
+    /// </summary>
+    public uint GearScore { get; init; }
     /// <summary>
     /// Maximum number of players in this dungeon
     /// </summary>

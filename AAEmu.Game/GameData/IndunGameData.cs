@@ -378,6 +378,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                         // 10.0.2.13: name, comment, item_id removed from indun_zones
                         LevelMin = reader.GetUInt32("level_min"),
                         LevelMax = reader.GetUInt32("level_max"),
+                        GearScore = reader.GetUInt32("gear_score"),
                         MaxPlayers = reader.GetUInt32("max_players"),
                         PvP = reader.GetBoolean("pvp", true),
                         HasGraveyard = reader.GetBoolean("has_graveyard", true),

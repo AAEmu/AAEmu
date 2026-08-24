@@ -122,6 +122,12 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         return _holdables.GetValueOrDefault(id);
     }
 
+    /// <summary>Wearable-slot row by slot type id (coverage + gear-score weight).</summary>
+    public WearableSlot GetWearableSlot(uint slotTypeId)
+    {
+        return _wearableSlots.GetValueOrDefault(slotTypeId);
+    }
+
     /// <summary>Holdable id behind a <c>const_holdable_types</c> name, or 0 when absent.</summary>
     public uint GetConstHoldableId(string name)
     {
@@ -621,6 +627,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             Angle = reader.GetInt32("angle"),
                             EnchantedDps1000 = reader.GetInt32("enchanted_dps1000"),
                             SlotTypeId = reader.GetUInt32("slot_type_id"),
+                            GearScoreMultiplier = reader.GetInt32("gear_score_multiplier"),
                             DamageScale = reader.GetInt32("damage_scale"),
                             FormulaDps = new Formula(reader.GetString("formula_dps")),
                             FormulaMDps = new Formula(reader.GetString("formula_mdps")),
@@ -760,7 +767,8 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                         var template = new WearableSlot
                         {
                             SlotTypeId = reader.GetUInt32("slot_type_id"),
-                            Coverage = reader.GetInt32("coverage")
+                            Coverage = reader.GetInt32("coverage"),
+                            GearScoreMultiplier = reader.GetInt32("gear_score_multiplier")
                         };
                         _wearableSlots.Add(template.SlotTypeId, template);
                     }

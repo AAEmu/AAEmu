@@ -53,6 +53,9 @@ public enum FormulaKind
     /// equip_slot_enchant_cost (the slot's own factor) and enchant_scale_cost_mul.
     /// </summary>
     EnchantScaleCost = 59,
+    // 10.0.2.13 gear-score formulas (formulas table ids)
+    GearScoreArmor = 56,
+    GearScoreAccessory = 57,
 
     /// <summary>
     /// Coin charged per synthesis attempt. Variables: item_evolving_value (the price already totalled
