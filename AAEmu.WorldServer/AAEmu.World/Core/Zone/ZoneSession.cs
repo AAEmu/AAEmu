@@ -1,89 +1,45 @@
-using System.Collections.Concurrent;
-
 using AAEmu.Commons.Utils;
 using AAEmu.World.Core.Network;
-
-using NLog;
 
 namespace AAEmu.World.Core.Zone;
 
 /// <summary>
-/// All TCP Zone connections. Indexed by session id and by dedicate ZoneId (ZWJoin.id).
+/// All TCP Zone connections. Indexed by session id and by (zoneId, instanceId).
 /// </summary>
 public class ZoneSession : Singleton<ZoneSession>
 {
-    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private readonly ZoneConnectionRegistry _registry = new();
 
-    private readonly ConcurrentDictionary<uint, ZoneConnection> _bySession = new();
-    /// <summary>Zone key → connection. Last ZoneLoaded for a ZoneId wins.</summary>
-    private readonly ConcurrentDictionary<uint, ZoneConnection> _byZoneId = new();
+    public void Add(ZoneConnection connection) => _registry.Add(connection);
 
-    public void Add(ZoneConnection connection) => _bySession[connection.Id] = connection;
-
-    public void Remove(uint sessionId)
-    {
-        if (!_bySession.TryRemove(sessionId, out var connection))
-            return;
-
-        if (connection.ZoneId != 0 &&
-            _byZoneId.TryGetValue(connection.ZoneId, out var mapped) &&
-            ReferenceEquals(mapped, connection))
-        {
-            _byZoneId.TryRemove(connection.ZoneId, out _);
-            Logger.Info("Zone registry remove zoneId={0} session={1}; loadedCount={2}",
-                connection.ZoneId, sessionId, LoadedCount);
-        }
-    }
+    public void Remove(uint sessionId) => _registry.Remove(sessionId);
 
     /// <summary>
-    /// Bind connection under its ZoneId after ZWJoin (and refresh on ZoneLoaded).
-    /// Duplicate ZoneId replaces the previous mapping (warn).
+    /// Bind connection after ZWJoin (and refresh on ZoneLoaded). Key is zone id plus join instance id.
     /// </summary>
-    public void IndexByZoneId(ZoneConnection connection)
-    {
-        if (connection.ZoneId == 0)
-            return;
+    public void IndexByZoneId(ZoneConnection connection) => _registry.Index(connection);
 
-        _byZoneId.AddOrUpdate(
-            connection.ZoneId,
-            connection,
-            (_, existing) =>
-            {
-                if (!ReferenceEquals(existing, connection))
-                {
-                    Logger.Warn(
-                        "ZoneId {0} remapped session {1} → {2} (previous dropped from registry index)",
-                        connection.ZoneId, existing.Id, connection.Id);
-                }
+    public ZoneConnection? Get(uint sessionId) => _registry.Get(sessionId);
 
-                return connection;
-            });
-    }
+    /// <summary>ZoneLoaded connection for this exact copy, or null.</summary>
+    public ZoneConnection? GetByZoneInstance(uint zoneId, uint instanceId) =>
+        _registry.GetLoaded(zoneId, instanceId);
 
-    public ZoneConnection? Get(uint sessionId) =>
-        _bySession.TryGetValue(sessionId, out var connection) ? connection : null;
+    /// <summary>
+    /// Unique ZoneLoaded host for a zone key. Several copies of the same dungeon return instance 0
+    /// if present, otherwise null.
+    /// </summary>
+    public ZoneConnection? GetByZoneId(uint zoneId) => _registry.GetUniqueLoaded(zoneId);
 
-    /// <summary>ZoneLoaded connection for this zone key, or null.</summary>
-    public ZoneConnection? GetByZoneId(uint zoneId)
-    {
-        if (zoneId == 0)
-            return null;
-        if (!_byZoneId.TryGetValue(zoneId, out var connection))
-            return null;
-        return connection.State >= ZoneConnectionState.ZoneLoaded ? connection : null;
-    }
+    /// <summary>Joined (or loaded) connection for this copy.</summary>
+    public ZoneConnection? GetJoinedByZoneInstance(uint zoneId, uint instanceId) =>
+        _registry.GetJoined(zoneId, instanceId);
 
-    /// <summary>Joined (or loaded) connection for zone key — not enter-ready unless ZoneLoaded.</summary>
-    public ZoneConnection? GetJoinedByZoneId(uint zoneId)
-    {
-        if (zoneId == 0)
-            return null;
-        if (!_byZoneId.TryGetValue(zoneId, out var connection))
-            return null;
-        return connection.State >= ZoneConnectionState.Joined ? connection : null;
-    }
+    /// <summary>Joined unique host for a zone key — not enter-ready unless ZoneLoaded.</summary>
+    public ZoneConnection? GetJoinedByZoneId(uint zoneId) =>
+        _registry.GetUnique(zoneId, ZoneConnectionState.Joined);
 
-    public IEnumerable<ZoneConnection> All => _bySession.Values;
+    public IEnumerable<ZoneConnection> All => _registry.All;
 
-    public int LoadedCount => _byZoneId.Values.Count(z => z.State >= ZoneConnectionState.ZoneLoaded);
+    public int LoadedCount => _registry.LoadedCount;
 }

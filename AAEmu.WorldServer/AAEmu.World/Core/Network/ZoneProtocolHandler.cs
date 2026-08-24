@@ -35,6 +35,7 @@ public class ZoneProtocolHandler : BaseProtocolHandler
     {
         var connection = ZoneSession.Instance.Get(session.SessionId);
         var zoneId = connection?.ZoneId ?? 0;
+        var instanceId = connection?.InstanceId ?? 0;
         // otherwise sibling zones that later allocate colliding bcIds (pre-fix) or
         // remirror leave ghost units and SC movement thrash.
         if (connection != null)
@@ -43,13 +44,13 @@ public class ZoneProtocolHandler : BaseProtocolHandler
             TowerDefScheduler.OnZoneDisconnected(connection.ZoneId);
         }
         ZoneSession.Instance.Remove(session.SessionId);
-        NpcSpawnRelay.ResetNpcStateSentForZone(zoneId, $"zone TCP disconnect {session.Ip}");
+        NpcSpawnRelay.ResetNpcStateSentForZone(zoneId, instanceId, $"zone TCP disconnect {session.Ip}");
         Logger.Error(
-            "Zone disconnect from {0} zoneId={1} — returning affected clients to character select",
-            session.Ip, zoneId);
-        // Recover only clients whose Transform.ZoneId matches; sibling zones stay live.
+            "Zone disconnect from {0} zoneId={1} instanceId={2} — returning affected clients to character select",
+            session.Ip, zoneId, instanceId);
+        // Recover only clients in this copy; sibling zones and other copies stay live.
         AAEmu.Game.WorldIntegration.NotifyZoneLost(
-            $"zone TCP disconnect {session.Ip}", zoneId);
+            $"zone TCP disconnect {session.Ip}", zoneId, instanceId);
     }
 
     public override void OnReceive(ISession session, byte[] buf, int offset, int bytes)
@@ -136,9 +137,9 @@ public class ZoneProtocolHandler : BaseProtocolHandler
                     connection.Ip, connection.ZoneId, connection.InstanceId, connection.Units.Count,
                     ZoneSession.Instance.LoadedCount);
                 // have run before Zone connected — flush existing + keep live RelayCreateDoodad.
-                WorldIntegration.NotifyZoneReadyForDoodads?.Invoke(connection.ZoneId);
-                WorldIntegration.NotifyZoneReadyForHousing?.Invoke(connection.ZoneId);
-                WorldIntegration.NotifyZoneReadyForGimmicks?.Invoke(connection.ZoneId);
+                WorldIntegration.NotifyZoneReadyForDoodads?.Invoke(connection.ZoneId, connection.InstanceId);
+                WorldIntegration.NotifyZoneReadyForHousing?.Invoke(connection.ZoneId, connection.InstanceId);
+                WorldIntegration.NotifyZoneReadyForGimmicks?.Invoke(connection.ZoneId, connection.InstanceId);
                 // schedule-linked spawners stay held back until the period next reopens.
                 GameScheduleRelay.OnZoneLoaded(connection);
                 TowerDefScheduler.OnZoneLoaded(connection);
@@ -187,7 +188,7 @@ public class ZoneProtocolHandler : BaseProtocolHandler
         // Opt-out: AAEMU_WZ_REAL_FACTIONS=0 (+ optional WorldGameTime/DetailedToD).
         connection.ZoneId = (uint)join.Id;
         connection.InstanceId = join.InstanceId;
-        NpcSpawnRelay.ResetNpcStateSentForZone(connection.ZoneId, $"ZWJoin from {connection.Ip}");
+        NpcSpawnRelay.ResetNpcStateSentForZone(connection.ZoneId, connection.InstanceId, $"ZWJoin from {connection.Ip}");
         ZoneSession.Instance.IndexByZoneId(connection);
         var joinResponse = new WZJoinResponsePacket();
         connection.SendPacket(joinResponse);

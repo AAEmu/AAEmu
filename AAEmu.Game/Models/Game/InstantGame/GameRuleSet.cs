@@ -5,6 +5,13 @@ public class GameRuleSet
     public uint Id { get; set; }
     public int TimeEnding { get; set; }
     public int TimePlaying { get; set; }
+
+    /// <summary>
+    /// Seconds the match holds its players once everyone has arrived, before the countdown to the
+    /// opening bell. Zero starts the countdown as soon as the last player is in.
+    /// </summary>
+    public int TimeReady { get; set; }
+
     public int VictoryScore { get; set; }
     public uint BattlefieldId { get; set; }
 

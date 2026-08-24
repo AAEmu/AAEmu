@@ -1,20 +1,24 @@
 ﻿using System.Collections.Concurrent;
+using AAEmu.Game;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Indun.Events;
+using AAEmu.Game.Models.Game.Indun.Matching;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils;
 
 using NLog;
 
 namespace AAEmu.Game.Models.Game.Indun;
 
-public class Dungeon
+public class Dungeon : IPreparedIndunInstance
 {
     // ReSharper disable once InconsistentNaming
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
@@ -23,6 +27,11 @@ public class Dungeon
     /// List of players who have been granted access to this dungeon (and did not reset it yet)
     /// </summary>
     public HashSet<uint> PlayersWithAccess { get; init; } = [];
+
+    /// <summary>
+    /// Players who already paid a daily entry for this copy. Rejoin after leave must not charge again.
+    /// </summary>
+    private readonly HashSet<uint> _chargedEntryIds = [];
 
     /// <summary>
     /// The actual linked world instance
@@ -66,6 +75,26 @@ public class Dungeon
     /// <param name="fixedInstanceId"></param>
     /// <param name="channelId"></param>
     public Dungeon(IndunZone indunZone, Character character, uint channelId, Team.Team team, bool overrideInstanceId = false, uint fixedInstanceId = 0)
+        : this(indunZone, character, channelId, team, existingWorld: null, overrideInstanceId, fixedInstanceId)
+    {
+    }
+
+    /// <summary>
+    /// Attach a dungeon to a pre-warmed <see cref="WorldInstance"/> (warm ZoneHost pool claim).
+    /// </summary>
+    public Dungeon(IndunZone indunZone, Character character, uint channelId, Team.Team team, WorldInstance existingWorld)
+        : this(indunZone, character, channelId, team, existingWorld, overrideInstanceId: false, fixedInstanceId: 0)
+    {
+    }
+
+    private Dungeon(
+        IndunZone indunZone,
+        Character character,
+        uint channelId,
+        Team.Team team,
+        WorldInstance existingWorld,
+        bool overrideInstanceId,
+        uint fixedInstanceId)
     {
         _indunZone = indunZone;
         _leaveRequests = new ConcurrentDictionary<uint, DateTime>();
@@ -92,17 +121,23 @@ public class Dungeon
         var worldTemplate = WorldManager.Instance.GetWorldTemplateByZoneKey(zoneKeys[0]);
 
         Logger.Info($"[Dungeon] Create system dungeon {worldTemplate?.Name} - channel {channelId}...");
-        World = WorldManager.Instance.CreateWorldInstance(worldTemplate, channelId, overrideInstanceId, fixedInstanceId, character);
+        if (existingWorld != null)
+        {
+            World = existingWorld;
+        }
+        else
+        {
+            // Do not pass the player as notifyPlayer: CreateWorldInstance would send a second
+            // "creating dungeon" dialog before QueuePlayer runs.
+            World = WorldManager.Instance.CreateWorldInstance(worldTemplate, channelId, overrideInstanceId, fixedInstanceId, notifyPlayer: null);
+        }
+
         World.DungeonInstance = this;
         _zoneInstanceId = new ZoneInstanceId(zoneKeys.First(), World.Id);
 
-        // If started by a character, enter them into queue
+        // Grant access here. The manager queues the player once so the create dialog is not stacked.
         if (character != null)
-        {
             PlayersWithAccess.Add(character.Id);
-            QueuePlayer(character);
-            // EnterRequests.Add(character);
-        }
         // Add team members to allow access
         if (team != null)
         {
@@ -136,6 +171,20 @@ public class Dungeon
 
     public bool IsExpired { get => !IsSystem && _createTime.AddDays(1) < DateTime.UtcNow; }
 
+    /// <inheritdoc />
+    public bool IsReady => FinishedLoading;
+
+    /// <inheritdoc />
+    public void Discard()
+    {
+        // A copy still waiting for its host tears itself down if the host never arrives, and one that
+        // players already reached belongs to them. Only a finished, empty copy is ours to remove.
+        if (!FinishedLoading || HasPlayers || EnterRequests.Count > 0)
+            return;
+
+        DestroyDungeon();
+    }
+
     /// <summary>
     /// Adds a player to the queue while the dungeon is still loading
     /// </summary>
@@ -143,13 +192,21 @@ public class Dungeon
     public bool QueuePlayer(Character character)
     {
         if (EnterRequests.Contains(character))
-            return true;
-        
-        if (!IndunManager.Instance.CheckEntryAttemptCount(character.Id, GetZoneGroupId, _indunZone, true))
         {
-            Logger.Info($"[{World}] Player {character.Name} did too many dungeon attempts.");
-            character.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
-            return false;
+            character.SendPacket(new SCProcessingInstancePacket((int)_zoneInstanceId.ZoneId));
+            return true;
+        }
+        
+        if (ShouldChargeDailyEntry(_chargedEntryIds.Contains(character.Id)))
+        {
+            if (!IndunManager.Instance.CheckEntryAttemptCount(character.Id, GetZoneGroupId, _indunZone, true))
+            {
+                Logger.Info($"[{World}] Player {character.Name} did too many dungeon attempts.");
+                character.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
+                return false;
+            }
+
+            _chargedEntryIds.Add(character.Id);
         }
 
         PlayersWithAccess.Add(character.Id);
@@ -242,6 +299,7 @@ public class Dungeon
             //ObjectIdManager.Instance.ReleaseId(npc.ObjId);
         }
 
+        WorldIntegration.StopInstanceZoneHost?.Invoke(World.Id);
         WorldManager.Instance.RemoveWorld(World.Id);
         // Despawns everything and returns the instance Id to the pool
         World.Dispose();
@@ -277,6 +335,7 @@ public class Dungeon
         TickManager.Instance.OnTick.UnSubscribe(LeaveDungeonTick);
         TickManager.Instance.OnTick.UnSubscribe(AreaClearTick);
 
+        WorldIntegration.StopInstanceZoneHost?.Invoke(World.Id);
         WorldManager.Instance.RemoveWorld(World.Id);
         // Cleans the instance up and returns the instance Id to the pool
         World.Dispose();
@@ -304,7 +363,7 @@ public class Dungeon
         if (World.Template.SpawnPosition != null)
         {
             character.DisabledSetPosition = true;
-            //character.MainWorldPosition = character.Transform.CloneDetached(character); // сохраним координаты для возврата в основной мир
+            RememberMainWorldReturn(character);
             character.Transform.ApplyWorldSpawnPosition(World.Template.SpawnPosition, World.Id);
             character.SendPacket(
                 new SCLoadInstancePacket(
@@ -328,6 +387,48 @@ public class Dungeon
     }
 
     /// <summary>
+    /// Snapshot the overworld position used when the exit portal / leave path returns the player.
+    /// Matchmaking enter used to skip this, which left MainWorldPosition null and made every exit
+    /// report a return-point error.
+    /// </summary>
+    private static void RememberMainWorldReturn(Character character)
+    {
+        if (character.MainWorldPosition == null ||
+            character.Transform.InstanceId == WorldManager.DefaultInstanceId)
+        {
+            character.MainWorldPosition = character.Transform.CloneDetached(character);
+        }
+    }
+
+    /// <summary>
+    /// When enter never saved a return snapshot, fall back to the bound return-district recall.
+    /// </summary>
+    private static bool EnsureLeaveReturn(Character character)
+    {
+        if (character.MainWorldPosition != null)
+            return true;
+
+        var returnPointId = PortalManager.Instance.GetDistrictReturnPoint(
+            character.ReturnDistrictId, character.Faction.Id);
+        var portal = PortalManager.Instance.GetRecallById(returnPointId);
+        if (portal == null)
+            return false;
+
+        character.MainWorldPosition = new Transform(
+            character,
+            null,
+            portal.ZoneId,
+            WorldManager.DefaultInstanceId,
+            portal.X,
+            portal.Y,
+            portal.Z,
+            0f,
+            0f,
+            portal.Yaw.DegToRad());
+        return true;
+    }
+
+    /// <summary>
     /// Moves character to instanced dungeon world
     /// </summary>
     /// <param name="character"></param>
@@ -345,7 +446,7 @@ public class Dungeon
         if (World.Template.SpawnPosition != null)
         {
             character.DisabledSetPosition = true;
-            //character.MainWorldPosition = character.Transform.CloneDetached(character); // сохраним координаты для возврата в основной мир
+            RememberMainWorldReturn(character);
             character.Transform.ApplyWorldSpawnPosition(World.Template.SpawnPosition, World.Id);
             character.SendPacket(
                 new SCLoadInstancePacket(
@@ -386,9 +487,10 @@ public class Dungeon
         _leaveRequests.TryRemove(character.Id, out _);
         _ = RemovePlayer(character);
 
-        if (character.MainWorldPosition == null)
+        if (!EnsureLeaveReturn(character))
         {
             Logger.Info($"World #.{World.Id}, does not have Main World spawn position.");
+            character.SendErrorMessage(ErrorMessageType.InvalidReturnPosInstance);
             return;
         }
 
@@ -407,6 +509,8 @@ public class Dungeon
                 character.MainWorldPosition.World.Rotation.Z.DegToRad()
             )
         );
+        // After the leave teleport: clear squad/instant-game "in match" flags so Register works.
+        SquadManager.Instance.NotifyGameLeave(character);
     }
 
     /// <summary>
@@ -421,9 +525,10 @@ public class Dungeon
         _leaveRequests.TryRemove(character.Id, out _);
         _ = RemovePlayer(character);
 
-        if (character.MainWorldPosition == null)
+        if (!EnsureLeaveReturn(character))
         {
             Logger.Info($"World #.{World.Id}, did not have a return point set in main world for {character.Name} ({character.Id}) !");
+            character.SendErrorMessage(ErrorMessageType.InvalidReturnPosInstance);
             return;
         }
 
@@ -442,6 +547,7 @@ public class Dungeon
                 character.MainWorldPosition.World.Rotation.Z.DegToRad()
             )
         );
+        SquadManager.Instance.NotifyGameLeave(character);
     }
 
     private void OnTeamJoin(object sender, OnTeamJoinArgs args)
@@ -496,18 +602,39 @@ public class Dungeon
 
         Logger.Info($"Player {character.Name} ({character.Id}) has exited from dungeon {World}!");
 
-        if (character.ParentWorld.DungeonInstance != null)
+        if (character.ParentWorld?.DungeonInstance == null)
+            return;
+
+        if (IsSystem)
         {
-            if (character.ParentWorld.DungeonInstance.IsSystem)
-            {
-                LeaveSystemInstance(character);
-            }
-            else
-            {
-                LeaveDungeonInstance(character);
-            }
+            LeaveSystemInstance(character);
+            return;
         }
+
+        LeaveDungeonInstance(character);
+        // Bound copies stay up so the outside portal can re-enter or reset (초기화).
+        // Destroy happens on last unbind, 24h expiry, or empty-after-party-kick.
     }
+
+    public bool HasChargedEntry(uint characterId) => _chargedEntryIds.Contains(characterId);
+
+    /// <summary>First visit to this copy consumes a daily; walking out and back in does not.</summary>
+    internal static bool ShouldChargeDailyEntry(bool alreadyChargedThisCopy) => !alreadyChargedThisCopy;
+
+    /// <summary>Exit doodad / last body leaving does not wipe the bound copy.</summary>
+    internal static bool ShouldDestroyAfterLastPlayerLeft(bool isSystem, int remainingPlayers)
+    {
+        _ = isSystem;
+        _ = remainingPlayers;
+        return false;
+    }
+
+    /// <summary>Disconnect must not 초기화. Relog re-enters the same copy.</summary>
+    internal static bool ShouldUnbindOnDisconnect() => false;
+
+    internal static bool ShouldRefuseResetWhileInside(bool stillInThisCopy) => stillInThisCopy;
+
+    internal static bool ShouldDestroyAfterLastAccessRemoved(int remainingAccess) => remainingAccess <= 0;
 
     private void OnDisconnect(object sender, OnDisconnectArgs args)
     {
@@ -519,12 +646,6 @@ public class Dungeon
             args.Player.Events.OnDungeonLeave -= OnDungeonLeave;
             args.Player.Events.OnDisconnect -= OnDisconnect;
             return;
-        }
-
-        if (!args.Player.InParty)
-        {
-            var zone = ZoneManager.Instance.GetZoneByKey(World.Template.ZoneKeys.First());
-            IndunManager.Instance.RequestDeletion(args.Player, zone);
         }
 
         _ = RemovePlayer(args.Player);
@@ -553,26 +674,13 @@ public class Dungeon
     }
 
     /// <summary>
-    /// Deletes a dungeon when all players in the team are offline
+    /// After a party-leave kick timer expires, remove that player. Optionally destroy an empty copy.
     /// </summary>
     /// <param name="delta"></param>
     private void LeaveDungeonTick(TimeSpan delta)
     {
-        if (_ownerTeam != null)
-        {
-            if (_ownerTeam.MembersOnlineCount() == 0 && _leaveRequests.IsEmpty)
-            {
-                _ = DestroyDungeon();
-            }
-            else if (_leaveRequests.IsEmpty)
-            {
-                return;
-            }
-        }
-        else if (_leaveRequests.IsEmpty)
-        {
+        if (_leaveRequests.IsEmpty)
             return;
-        }
 
         foreach (var (playerId, leaveRequestTime) in _leaveRequests.ToList())
         {

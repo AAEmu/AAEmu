@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -16,6 +17,12 @@ namespace AAEmu.Game.Models.Game.InstantGame;
 public partial class InstantGame
 {
     private static readonly Logger _log = LogManager.GetCurrentClassLogger();
+
+    /// <summary>
+    /// How long the countdown before a battle field opens runs for. The client animates it from its
+    /// own artwork, one numeral per second, and that artwork stops at five.
+    /// </summary>
+    private static readonly TimeSpan CountdownDuration = TimeSpan.FromSeconds(5);
 
     private readonly List<Character> _players;
     private readonly Dictionary<uint, List<Character>> _corps;
@@ -67,7 +74,14 @@ public partial class InstantGame
         _corps[factionId].Add(character);
         _characterCorps.Add(character, corps);
 
-        character.SendPacket(new SCInviteToInstantGamePacket(_zoneInstanceId, _battlefield.RuleSet.Id, corps, 1));
+        var maxEntry = (uint)(_battlefield.RuleSet.CorpsSize * 2);
+        character.SendPacket(new SCInviteToInstantGamePacket(
+            invitationTime: 300000,
+            zoneInstanceId: _zoneInstanceId,
+            type: _battlefield.Id,
+            matchingKey: _world.Id,
+            accept: (uint)_players.Count,
+            maxEntry: maxEntry));
         character.CurrentInstantGame = this;
     }
 
@@ -131,7 +145,7 @@ public partial class InstantGame
     public void OnEnterWorld(Character character, ulong qualifierId)
     {
         var corps = _characterCorps[character];
-        character.SendPacket(new SCInstantGameJoinedPacket(_zoneInstanceId, corps, _battlefield.RuleSet));
+        character.SendPacket(new SCInstantGameJoinedPacket(_zoneInstanceId, _battlefield.Id));
 
         if (corps == InstantCorps.Corps1)
             character.SetFaction((FactionsEnum)_battlefield.RuleSet.Corps1FactionId);
@@ -150,14 +164,47 @@ public partial class InstantGame
         // TODO: This can be done better.
         // TODO: Game expire after 60 seconds if not enough players
         if (_members.Count == _battlefield.RuleSet.CorpsSize * 2)
-            Start();
+            BeginOpening();
     }
 
-    public void Start()
+    /// <summary>
+    /// Walks the match from "everyone is here" to "go", which is what releases the players from the
+    /// standby screen they land on when they join. A battle field pauses on a ready screen, counts
+    /// down, and only then starts; skipping either step leaves its players stuck watching standby,
+    /// because their client refuses to start a battle field that never counted down.
+    /// </summary>
+    private void BeginOpening()
     {
-        var now = (uint)(Environment.TickCount & int.MaxValue);
-        var start = now + 20000;
-        BroadcastPacket(new SCInstantGameStartPacket(_zoneInstanceId, start, now));
+        BroadcastPacket(new SCInstantGameReadyPacket(_zoneInstanceId, _battlefield.Id,
+            Helpers.UnixTimeNowInMilli(), BuildReadyRoster()));
+
+        Task.Run(async () =>
+        {
+            await Task.Delay(TimeSpan.FromSeconds(_battlefield.RuleSet.TimeReady), _endGameTokenSource.Token);
+            BroadcastPacket(new SCInstantGameCountDownPacket(_zoneInstanceId, Helpers.UnixTimeNowInMilli()));
+
+            await Task.Delay(CountdownDuration, _endGameTokenSource.Token);
+            Start();
+        }, _endGameTokenSource.Token);
+    }
+
+    private List<InstantGameRosterMember> BuildReadyRoster()
+    {
+        var worldId = (byte)Math.Min(byte.MaxValue, AppConfiguration.Instance.Id);
+        return _characterCorps
+            .Select(entry => new InstantGameRosterMember(
+                worldId,
+                entry.Value == InstantCorps.Corps1
+                    ? _battlefield.RuleSet.Corps1FactionId
+                    : _battlefield.RuleSet.Corps2FactionId,
+                entry.Key.Name))
+            .ToList();
+    }
+
+    private void Start()
+    {
+        BroadcastPacket(new SCInstantGameStartPacket(_zoneInstanceId, Helpers.UnixTimeNowInMilli(),
+            InstantGameWireContract.FirstRound));
 
         // Reset players on Start
         Task.Run(async () =>

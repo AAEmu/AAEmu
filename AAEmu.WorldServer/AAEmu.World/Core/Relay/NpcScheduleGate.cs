@@ -247,7 +247,7 @@ public static class NpcScheduleGate
                 zone.SendPacket(new WZNpcStartDespawnPacket(bcId));
                 // Idempotent: the mirror is already gone when ZWRemoveNpc repeats this.
                 WorldIntegration.OnZoneNpcRemove?.Invoke(bcId);
-                NpcSpawnRelay.ForgetNpcState(zone.ZoneId, bcId);
+                NpcSpawnRelay.ForgetNpcState(zone.ZoneId, zone.InstanceId, bcId);
                 retired++;
             }
 

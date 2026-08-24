@@ -159,6 +159,7 @@ public static class SCOffsets
     public const ushort SCItemSocketingLunagemResultPacket = 0x9d;
     public const ushort SCItemSocketingLunastoneResultPacket = 0x9e;
     public const ushort SCGradeEnchantBroadcastPacket = 0xD0; // 10.0.2.13
+    public const ushort SCRestoreDisableEnchantPacket = 0xD3; // 10.0.2.13
     public const ushort SCUnknownPacket = 0xa0;
     public const ushort SCSkillStartedPacket = 0xD7; // 10.0.2.13 (10.0.2.13 name: SkillStartedPacket)
     public const ushort SCSkillFiredPacket = 0xD8; // 10.0.2.13 (10.0.2.13 name: SkillFiredPacket)
@@ -397,6 +398,7 @@ public static class SCOffsets
     public const ushort SCInviteToInstantGamePacket = 0x1D4; // 10.0.2.13
     public const ushort SCInstantGameInviteTimeoutPacket = 0x18f;
     public const ushort SCInstantGameJoinedPacket = 0x1D7; // 10.0.2.13
+    public const ushort SCInstantGameReadyPacket = 0x1D9; // 10.0.2.13
     public const ushort SCInstantGameStartPacket = 0x1DA; // 10.0.2.13
     public const ushort SCInstantGameEndPacket = 0x1DC; // 10.0.2.13
     public const ushort SCInstantGameAddPointPacket = 0x193;
@@ -550,6 +552,7 @@ public static class SCOffsets
     public const ushort SCFactionPowerScorePacket = 0x00C; // 10.0.2.13 SC_PACKET_FACTION_POWER_SCORE (12)
     public const ushort SCIncreasedFavoritePortalLimitPacket = 0x08D; // 10.0.2.13 SC_PACKET_INCREASED_FAVORITE_PORTAL_LIMIT (141)
     public const ushort SCInstanceVisitCountsPacket = 0x1EC; // 10.0.2.13 SC_PACKET_INSTANCE_VISIT_COUNTS (492)
+    public const ushort SCInstanceVisitCountChangePacket = 0x1EE; // 10.0.2.13 SC_PACKET_INSTANCE_VISIT_COUNT_CHANGE (494)
     public const ushort SCFavoriteCraftsPacket = 0x23A; // 10.0.2.13 SC_PACKET_FAVORITE_CRAFTS (570)
     public const ushort SCBattleFieldRecordsPacket = 0x2E5; // 10.0.2.13 SC_PACKET_BATTLE_FIELD_RECORDS (741)
     public const ushort SCCharacterPrivacyStatusUpdatePacket = 0x375; // 10.0.2.13 SC_PACKET_CHARACTER_PRIVACY_STATUS_UPDATE (885)
@@ -595,6 +598,10 @@ public static class SCOffsets
     public const ushort SCButlerSpawnedPacket = 0x347;
     public const ushort SCChangeAbilitySetPassiveBuffPacket = 0x14C;
     public const ushort SCChangeSquadMemberRatingPacket = 0x31C;
+    public const ushort SCChangeSquadMemberAbilityPacket = 0x318;
+    public const ushort SCChangeSquadMemberLevelPacket = 0x319;
+    public const ushort SCChangeSquadMemberRoleBcast = 0x314;
+    public const ushort SCChangeSquadOpenTypeBcast = 0x317;
     public const ushort SCChargeSkillCooldownChangedPacket = 0x31D;
     public const ushort SCChronicleInfoDeletePacket = 0x356;
     public const ushort SCChronicleInfoUpdatePacket = 0x358;
@@ -673,8 +680,9 @@ public static class SCOffsets
     public const ushort SCIndunInitialRoundInfoPacket = 0x2D9;
     public const ushort SCIndunPortalSpawnPacket = 0x29C;
     public const ushort SCIndunRoundPlayStatusPacket = 0x2DB;
-    public const ushort SCInstantGameCountDownPacket = 0x1D8;
+    public const ushort SCInstantGameCountDownPacket = 0x1D8; // 10.0.2.13
     public const ushort SCInstantGameKillstreakResetPacket = 0x1E4;
+    public const ushort SCInstantGameReentryPacket = 0x1E7; // 10.0.2.13
     public const ushort SCInstantGameReentryNotifyPacket = 0x1E8;
     public const ushort SCInstantGameStartPointReturnTimePacket = 0x1E6;
     public const ushort SCInstantGameUnearnedWinPacket = 0x1E5;
@@ -731,6 +739,14 @@ public static class SCOffsets
     public const ushort SCSlaveEquipmentExpiredPacket = 0x94;
     public const ushort SCSlaveEquipmentFlagsChangedPacket = 0x96;
     public const ushort SCSnowingEverywherePacket = 0xE9;
+    public const ushort SCSelectSquadListPacket = 0x30B;
+    public const ushort SCCreateSquadPacket = 0x30C;
+    public const ushort SCDisbandSquadPacket = 0x30D;
+    public const ushort SCInviteSquadMemberPacket = 0x30E;
+    public const ushort SCReadySquadPacket = 0x30F;
+    public const ushort SCJoinSquadMemberPacket = 0x311;
+    public const ushort SCRefuseSquadInvitationPacket = 0x312;
+    public const ushort SCLeaveSquadMemberPacket = 0x313;
     public const ushort SCSquadSetGameInfoPacket = 0x31A;
     public const ushort SCStoreTradeFailedPacket = 0x290;
     public const ushort SCSuspectGoingBotTrialPacket = 0x1CC;

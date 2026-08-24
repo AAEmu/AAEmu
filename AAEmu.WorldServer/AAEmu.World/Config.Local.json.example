@@ -1,4 +1,20 @@
 {
   "GameContentRoot": "/path/to/AAEmu.Game/bin/Debug/net10.0",
-  "ZoneGameDataRoot": "/path/to/zone/game/data"
+  "ZoneGameDataRoot": "/path/to/zone/game/data",
+  "ZoneHost": {
+    "Enabled": true,
+    "Executable": "/path/to/Bin64/AAEmu.ZoneHost.exe",
+    "WorkingDirectory": "/path/to/Bin64",
+    "NativeDll": "/path/to/Bin64/x2game-dev_dedicate.dll",
+    "RuntimeLogRoot": "/path/to/AAEmuRuntime/ZoneManager",
+    "WarmPool": {
+      "Enabled": false,
+      "DefaultSize": 2,
+      "IdleUnloadSeconds": 1800,
+      "Zones": [
+        { "WorldTemplateName": "instance_howling_abyss", "Size": 2 },
+        { "WorldTemplateName": "instance_howling_abyss_2", "Size": 1 }
+      ]
+    }
+  }
 }

@@ -1,15 +1,10 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Squad;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-/// <summary>
-/// TODO(v10): the body is parsed but nothing acts on it yet.
-/// </summary>
-/// <remarks>
-/// which passes each field name alongside the value:
-/// sbyte openType
-/// </remarks>
 public class CSChangeSquadOpenTypePacket() : GamePacket(CSOffsets.CSChangeSquadOpenTypePacket, 1)
 {
     public sbyte OpenType { get; private set; }
@@ -17,5 +12,6 @@ public class CSChangeSquadOpenTypePacket() : GamePacket(CSOffsets.CSChangeSquadO
     public override void Read(PacketStream stream)
     {
         OpenType = stream.ReadSByte();
+        SquadManager.Instance.ChangeOpenType(Connection.ActiveChar, (SquadOpenType)OpenType);
     }
 }

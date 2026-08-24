@@ -11,8 +11,27 @@ public class CSICSMoneyRequestPacket() : GamePacket(CSOffsets.CSICSMoneyRequestP
     {
         Logger.Info("ICSMoneyRequest account={0}", Connection.AccountId);
 
+        var credits = 0;
+        var loyalty = 0;
+
+        if (BillClientManager.Instance.IsConnected)
+        {
+            var accountName = Connection.ActiveChar?.Name ?? $"account{Connection.AccountId}";
+            var charId = Connection.ActiveChar?.Id ?? 0;
+            var billCash = BillClientManager.Instance
+                .TryGetCashAsync(Connection.AccountId, accountName, charId)
+                .GetAwaiter()
+                .GetResult();
+            if (billCash is not null)
+            {
+                credits = Math.Max(0, billCash.Value.Cash);
+                loyalty = AccountManager.Instance.GetAccountDetails(Connection.AccountId).Loyalty;
+                Connection.SendPacket(new SCICSCashPointPacket(credits, loyalty));
+                return;
+            }
+        }
+
         var points = AccountManager.Instance.GetAccountDetails(Connection.AccountId);
-        // Publish both cash balances and refresh metadata.
         Connection.SendPacket(new SCICSCashPointPacket(points.Credits, points.Loyalty));
     }
 }

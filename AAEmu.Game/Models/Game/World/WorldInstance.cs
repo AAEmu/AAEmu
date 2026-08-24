@@ -50,6 +50,11 @@ public partial class WorldInstance(WorldTemplate template, uint channelId, bool 
     /// If this instance is a Dungeon, this links to the dungeon info
     /// </summary>
     public Dungeon DungeonInstance { get; set; }
+
+    /// <summary>
+    /// True after <c>SpawnManager.SpawnAll</c> for this dungeon copy (warm pre-spawn or loader).
+    /// </summary>
+    public bool DungeonContentSpawned { get; set; }
     #endregion InstanceProperties
 
     #region GameWorldInstance

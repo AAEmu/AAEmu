@@ -1,0 +1,10 @@
+# Worktree-only ignore (when this folder is opened alone)
+AAEmu.Game/Data/
+**/bin/
+**/obj/
+**/.git/
+**/*.sqlite3
+**/*_spawns.json
+**/worlds/
+**/level_design/
+**/*.g

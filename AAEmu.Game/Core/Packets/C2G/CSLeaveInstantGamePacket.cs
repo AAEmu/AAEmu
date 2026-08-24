@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -7,9 +8,18 @@ public class CSLeaveInstantGamePacket() : GamePacket(CSOffsets.CSLeaveInstantGam
 {
     public override void Read(PacketStream stream)
     {
-        // Empty packet - no data to read
-        Logger.Warn("LeaveInstantGame");
+        var isIndunMatch = stream.ReadByte() != 0;
+        var character = Connection.ActiveChar;
+        if (character == null)
+            return;
 
-        Connection.ActiveChar.CurrentInstantGame?.LeaveInstantGame(Connection.ActiveChar);
+        if (isIndunMatch)
+        {
+            IndunMatchmakingManager.Instance.TryLeaveIndunMatch(character);
+            return;
+        }
+
+        Logger.Warn("LeaveInstantGame battlefield char={0}", character.Name);
+        character.CurrentInstantGame?.LeaveInstantGame(character);
     }
 }

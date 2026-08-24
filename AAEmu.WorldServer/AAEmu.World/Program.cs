@@ -8,12 +8,14 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Indun;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.World.Core.Network;
 using AAEmu.World.Core.Packets.Wz;
 using AAEmu.World.Core.Relay;
 using AAEmu.World.Core.Zone;
+using AAEmu.World.Core.ZoneHost;
 using AAEmu.World.Models;
 
 using Microsoft.Extensions.Configuration;
@@ -70,6 +72,30 @@ public static class Program
         WorldIntegration.TryEnterZone = (bcId, body) => enter.EnterZone(bcId, body);
         WorldIntegration.IsZoneLoaded = zoneId =>
             ZoneSession.Instance.GetByZoneId(zoneId) != null;
+        WorldIntegration.IsZoneInstanceLoaded = (zoneId, instanceId) =>
+            ZoneSession.Instance.GetByZoneInstance(zoneId, instanceId) != null;
+        var zoneHost = new ZoneHostSupervisor(appConfig.ZoneHost);
+        WorldIntegration.ZoneHostSpawnEnabled = appConfig.ZoneHost.Enabled;
+        WorldIntegration.TryStartInstanceZoneHost = zoneHost.TryStart;
+        WorldIntegration.StopInstanceZoneHost = worldId =>
+        {
+            var world = WorldManager.Instance.GetWorld(worldId);
+            if (world != null)
+                zoneHost.StopForWorld(world);
+            else
+                zoneHost.Stop(worldId);
+        };
+        WorldIntegration.TryClaimWarmDungeonWorld = (templateName, ownerId) =>
+        {
+            if (zoneHost.TryClaimWarm(templateName, ownerId, out var warm))
+                return warm;
+            return null;
+        };
+        WorldIntegration.PreSpawnWarmDungeonContent = world =>
+            DungeonLoaderTask.EnsureDungeonContentSpawned(world);
+        WorldIntegration.ZoneHostReadyTimeoutSeconds = appConfig.ZoneHost.ReadyTimeoutSeconds > 0
+            ? appConfig.ZoneHost.ReadyTimeoutSeconds
+            : 120;
         WorldIntegration.GetZoneConnectionStatus = () => ZoneSession.Instance.All
             .Select(zone => new WorldZoneConnectionSnapshot(
                 zone.Id,
@@ -154,6 +180,45 @@ public static class Program
             // tracked units applies the same window rules as a live announcement.
             NpcScheduleGate.Start();
             NpcSpawnRelay.RemirrorAllZones();
+            zoneHost.ConfigureWarmWorldFactory(
+                templateName =>
+                {
+                    var template = WorldManager.Instance.GetWorldTemplateByName(templateName);
+                    if (template == null)
+                    {
+                        Logger.Error("Warm ZoneHost pool: unknown world template {0}", templateName);
+                        return null;
+                    }
+
+                    return WorldManager.Instance.CreateWorldInstance(template, channelId: 0);
+                },
+                world =>
+                {
+                    if (world == null)
+                        return;
+                    WorldManager.Instance.RemoveWorld(world.Id);
+                    world.Dispose();
+                },
+                onWarmHostReady: world =>
+                {
+                    // Do not block World boot — wait for ZoneLoaded then SpawnAll once.
+                    _ = System.Threading.Tasks.Task.Run(() =>
+                    {
+                        try
+                        {
+                            DungeonLoaderTask.WaitForZoneHostReady(world, requireExactCopy: true);
+                            // Prefer ZoneLoaded; still pre-spawn if host is slow so claim path stays fast.
+                            WorldIntegration.PreSpawnWarmDungeonContent?.Invoke(world);
+                            Logger.Info("Warm dungeon content pre-spawned world={0} template={1}",
+                                world.Id, world.Template?.Name);
+                        }
+                        catch (Exception ex)
+                        {
+                            Logger.Warn(ex, "Warm content pre-spawn failed world={0}", world?.Id);
+                        }
+                    });
+                });
+            zoneHost.StartWarmPool();
         };
         WorldIntegration.RelayMoveToZone = (bcId, moveBody) =>
         {
@@ -482,7 +547,7 @@ public static class Program
             zone.SendPacket(new WZUnitRemovedPacket(bcId));
 
             // A forced removal has no completion callback, so release its spawn marker here.
-            NpcSpawnRelay.ForgetNpcState(zone.ZoneId, bcId);
+            NpcSpawnRelay.ForgetNpcState(zone.ZoneId, zone.InstanceId, bcId);
             Logger.Info("WZUnitRemoved → zone bcId={0} (forced teardown, Create marker dropped)", bcId);
         };
         WorldIntegration.RelayUnitRemovedToZoneId = (zoneId, bcId) =>
@@ -544,16 +609,16 @@ public static class Program
             zone.SendPacket(new WZDoodadChangePhasePacket(objId, funcGroupId));
         };
         // After ZoneLoaded: push doodads that spawned while Zone was down (batched).
-        WorldIntegration.NotifyZoneReadyForDoodads = zoneId =>
+        WorldIntegration.NotifyZoneReadyForDoodads = (zoneId, instanceId) =>
         {
             if (Environment.GetEnvironmentVariable("AAEMU_WZ_DOODAD") == "0")
                 return;
-            _ = FlushWorldDoodadsToZoneAsync(zoneId);
+            _ = FlushWorldDoodadsToZoneAsync(zoneId, instanceId);
         };
-        WorldIntegration.NotifyZoneReadyForHousing = zoneId =>
+        WorldIntegration.NotifyZoneReadyForHousing = (zoneId, _) =>
             AAEmu.Game.Core.Managers.HousingManager.Instance.RelayAllToZone(zoneId);
-        WorldIntegration.NotifyZoneReadyForGimmicks = zoneId =>
-            FlushWorldGimmicksToZone(zoneId);
+        WorldIntegration.NotifyZoneReadyForGimmicks = (zoneId, instanceId) =>
+            FlushWorldGimmicksToZone(zoneId, instanceId);
         WorldIntegration.RelayEquipmentChangedToZone = (unitId, body) =>
         {
             // Opcode 0x01E. Empty EquipView type sentinel is 0 (not FFFFFFFF). Kill-switch: AAEMU_WZ_EQUIP=0.
@@ -580,8 +645,17 @@ public static class Program
         {
             if (Environment.GetEnvironmentVariable("AAEMU_WZ_BUFF") == "0")
                 return;
+            if (!ObjectIdManager.IsZoneUnitId(targetId))
+            {
+                Logger.Warn("Not relaying buff remove to zone: target {0} is not a zone unit id", targetId);
+                return;
+            }
+
             var zone = PlayerEnterService.ForUnit(targetId);
-            zone?.SendPacket(new WZBuffRemovedPacket(targetId, buffId));
+            if (zone == null)
+                return;
+            zone.SendPacket(new WZBuffRemovedPacket(targetId, buffId));
+            Logger.Info("WZBuffRemoved → zone target={0} buffIndex={1}", targetId, buffId);
         };
         WorldIntegration.RelayInteractNpcToZone = (playerId, npcId, ending) =>
         {
@@ -1079,6 +1153,11 @@ public static class Program
         {
             WorldIntegration.ZoneAuthority = false;
             WorldIntegration.TryEnterZone = null;
+            WorldIntegration.IsZoneLoaded = null;
+            WorldIntegration.IsZoneInstanceLoaded = null;
+            WorldIntegration.TryStartInstanceZoneHost = null;
+            WorldIntegration.StopInstanceZoneHost = null;
+            WorldIntegration.ZoneHostSpawnEnabled = false;
             WorldIntegration.GetZoneConnectionStatus = null;
             WorldIntegration.RelayTimeOfDayToZones = null;
             WorldIntegration.OnZoneTimeOfDay = null;
@@ -1171,16 +1250,17 @@ public static class Program
         }
     }
 
-    private static void FlushWorldGimmicksToZone(uint zoneId)
+    private static void FlushWorldGimmicksToZone(uint zoneId, uint instanceId)
     {
-        var zone = PlayerEnterService.ForZoneId(zoneId);
+        var zone = PlayerEnterService.ForZoneInstance(zoneId, instanceId)
+                   ?? PlayerEnterService.ForZoneId(zoneId);
         if (zone == null)
         {
-            Logger.Warn("Gimmick flush skipped — no ZoneLoaded for zoneId={0}", zoneId);
+            Logger.Warn("Gimmick flush skipped — no ZoneLoaded for zoneId={0} instanceId={1}", zoneId, instanceId);
             return;
         }
 
-        var world = WorldIntegration.ResolveWorldForZone(zoneId);
+        var world = WorldIntegration.ResolveWorldForZone(zoneId, instanceId);
         if (world == null)
         {
             Logger.Warn("Gimmick flush skipped — no world instance owns zoneId={0}", zoneId);
@@ -1240,23 +1320,21 @@ public static class Program
     /// <summary>
     /// Batched to avoid a 40k-packet burst; kill with AAEMU_WZ_DOODAD=0.
     /// </summary>
-    private static async Task FlushWorldDoodadsToZoneAsync(uint zoneId)
+    private static async Task FlushWorldDoodadsToZoneAsync(uint zoneId, uint instanceId)
     {
         try
         {
             await Task.Delay(250).ConfigureAwait(false); // let ActivateNpcSpawners go first
-            var zone = PlayerEnterService.ForZoneId(zoneId)
+            var zone = PlayerEnterService.ForZoneInstance(zoneId, instanceId)
+                       ?? PlayerEnterService.ForZoneId(zoneId)
                        ?? (zoneId == 0 ? PlayerEnterService.PrimaryZone() : null);
             if (zone == null || zone.State < AAEmu.World.Core.Zone.ZoneConnectionState.ZoneLoaded)
             {
-                Logger.Warn("Doodad flush skipped — no ZoneLoaded for zoneId={0}", zoneId);
+                Logger.Warn("Doodad flush skipped — no ZoneLoaded for zoneId={0} instanceId={1}", zoneId, instanceId);
                 return;
             }
 
-            // Doodads live in the WorldInstance that owns the zone, which is not always MainWorld:
-            // zone 260 (arche_mall_world) was flushed against main_world's 42k, so every doodad but
-            // one fell out as skippedOtherZone and Mirage Isle came up bare.
-            var world = WorldIntegration.ResolveWorldForZone(zone.ZoneId);
+            var world = WorldIntegration.ResolveWorldForZone(zone.ZoneId, instanceId);
             if (world == null)
             {
                 Logger.Warn("Doodad flush skipped — no world instance owns zoneId={0}", zone.ZoneId);
@@ -1281,7 +1359,8 @@ public static class Program
                 zone.ZoneId, world.Template?.Name, all.Count, batch);
             for (var i = 0; i < all.Count; i++)
             {
-                zone = PlayerEnterService.ForZoneId(zoneId)
+                zone = PlayerEnterService.ForZoneInstance(zoneId, instanceId)
+                       ?? PlayerEnterService.ForZoneId(zoneId)
                        ?? (zoneId == 0 ? PlayerEnterService.PrimaryZone() : null);
                 if (zone == null || zone.State < AAEmu.World.Core.Zone.ZoneConnectionState.ZoneLoaded)
                 {

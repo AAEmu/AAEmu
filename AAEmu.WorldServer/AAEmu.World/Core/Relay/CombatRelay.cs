@@ -450,8 +450,7 @@ public class CombatRelay
 
         // Zone clears the *player* while mobs still swing — don't push SCCombatCleared or the
         // client drops combat UI / full out-of-combat regen while still taking hits.
-        var world = WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
-        if (world?.GetCharacterByObjId(unitId) is { } ch)
+        if (ResolveUnit(unitId) is Character ch)
         {
             if (ch.IsInBattle || (DateTime.UtcNow - ch.LastCombatActivity).TotalSeconds < 8.0)
             {
@@ -465,13 +464,9 @@ public class CombatRelay
         return true;
     }
 
-    private static Unit? ResolveUnit(uint objId)
-    {
-        var world = WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
-        if (world == null)
-            return null;
-        if (world.GetUnit(objId) is Unit u)
-            return u;
-        return world.GetNpc(objId) ?? (Unit?)world.GetCharacterByObjId(objId);
-    }
+    /// <summary>
+    /// Dungeon copies are their own <see cref="WorldInstance"/>. Looking only at main_world
+    /// drops Zone NPC casts (<c>ZWStartSkill unresolved caster</c>).
+    /// </summary>
+    internal static Unit? ResolveUnit(uint objId) => WorldIntegration.FindUnitAcrossWorlds(objId) as Unit;
 }

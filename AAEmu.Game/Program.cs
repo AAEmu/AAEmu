@@ -132,6 +132,9 @@ public static class Program
                 services.AddSingleton<CashShopManager>();
                 services.AddSingleton<ICashShopManager>(sp => sp.GetRequiredService<CashShopManager>());
 
+                services.AddSingleton<BillClientManager>();
+                services.AddSingleton<IBillClientManager>(sp => sp.GetRequiredService<BillClientManager>());
+
                 services.AddSingleton<ChatManager>();
                 services.AddSingleton<IChatManager>(sp => sp.GetRequiredService<ChatManager>());
 
@@ -182,6 +185,12 @@ public static class Program
 
                 services.AddSingleton<IndunManager>();
                 services.AddSingleton<IIndunManager>(sp => sp.GetRequiredService<IndunManager>());
+
+                services.AddSingleton<IndunMatchmakingManager>();
+                services.AddSingleton<IIndunMatchmakingManager>(sp => sp.GetRequiredService<IndunMatchmakingManager>());
+
+                services.AddSingleton<SquadManager>();
+                services.AddSingleton<ISquadManager>(sp => sp.GetRequiredService<SquadManager>());
 
                 services.AddSingleton<InstantGameManager>();
                 services.AddSingleton<IInstantGameManager>(sp => sp.GetRequiredService<InstantGameManager>());

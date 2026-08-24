@@ -1,15 +1,9 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-/// <summary>
-/// TODO: the body is parsed but nothing acts on it yet.
-/// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
 public class CSInvitationAnswerPacket() : GamePacket(CSOffsets.CSInvitationAnswerPacket, 1)
 {
     public int InvitationTime { get; private set; }
@@ -19,5 +13,12 @@ public class CSInvitationAnswerPacket() : GamePacket(CSOffsets.CSInvitationAnswe
     {
         InvitationTime = stream.ReadInt32();
         Acceptance = stream.ReadBoolean();
+
+        var character = Connection.ActiveChar;
+        if (character == null)
+            return;
+
+        if (!IndunMatchmakingManager.Instance.TryInvitationAnswer(character, InvitationTime, Acceptance))
+            Logger.Debug("CSInvitationAnswer ignored char={0} acceptance={1}", character.Name, Acceptance);
     }
 }

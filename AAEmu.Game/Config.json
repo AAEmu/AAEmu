@@ -33,5 +33,14 @@
     "HeightMapsEnable": true,
     "DebugInfo": true,
     "DebugInfoLevel": 100,
-	"DefaultLanguage" : "en_us"
+	"DefaultLanguage" : "en_us",
+    "BillServer": {
+        "Enabled": true,
+        "RequireConnection": true,
+        "Host": "127.0.0.1",
+        "Port": 12345,
+        "ReconnectSeconds": 5,
+        "HeartbeatSeconds": 30,
+        "RequestTimeoutMs": 8000
+    }
 }

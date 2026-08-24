@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Network.Bill;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.CashShop;
@@ -18,13 +19,22 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
 
     public override void Execute()
     {
+        if (!CashShopManager.Instance.IsOpenForPlayers)
+        {
+            FailBuy(ErrorMessageType.Maintenance);
+            return;
+        }
+
         #region check_costs
         var costs = new uint[(byte)CashShopCurrencyType.Max];
         foreach (var sku in shoppingCart.Select(purchase => purchase.Sku))
             costs[(byte)sku.Currency] += sku.DiscountPrice > 0 ? sku.DiscountPrice : sku.Price;
 
         var beforeBuyAccountDetails = AccountManager.Instance.GetAccountDetails(buyer.AccountId);
-        if (costs[(byte)CashShopCurrencyType.Credits] > beforeBuyAccountDetails.Credits)
+        var usesBillCredits = BillClientManager.Instance.IsConnected
+            && shoppingCart.All(p => p.Sku.Currency == CashShopCurrencyType.Credits);
+
+        if (!usesBillCredits && costs[(byte)CashShopCurrencyType.Credits] > beforeBuyAccountDetails.Credits)
         {
             // 591 → BFR_CASH
             FailBuy(ErrorMessageType.IngameShopNotEnoughAaCash);
@@ -134,6 +144,11 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
         #endregion
 
         #region transactions
+        var billCash = 0u;
+        var billBonus = 0u;
+        if (usesBillCredits && !TryExecuteBillPurchase(out billCash, out billBonus))
+            return;
+
         var entriesSold = 0;
         var soldItems = new List<(uint CashShopId, byte DetailIndex)>();
         var stockToSync = new Dictionary<uint, int>();
@@ -186,7 +201,8 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
             switch (sku.Currency)
             {
                 case CashShopCurrencyType.Credits:
-                    if (!AccountManager.Instance.RemoveCredits(buyer.AccountId, (int)(sku.DiscountPrice > 0 ? sku.DiscountPrice : sku.Price)))
+                    if (!usesBillCredits
+                        && !AccountManager.Instance.RemoveCredits(buyer.AccountId, (int)(sku.DiscountPrice > 0 ? sku.DiscountPrice : sku.Price)))
                         Logger.Error("ICS credit debit failed for {0}", buyer.Name);
                     break;
                 case CashShopCurrencyType.AaPoints:
@@ -245,7 +261,10 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
         {
             var postSale = AccountManager.Instance.GetAccountDetails(buyer.AccountId);
             buyer.BmPoint = postSale.Loyalty;
-            buyer.SendPacket(new SCICSCashPointPacket(postSale.Credits));
+            if (usesBillCredits)
+                buyer.SendPacket(new SCICSCashPointPacket((int)billCash, (int)billBonus));
+            else
+                buyer.SendPacket(new SCICSCashPointPacket(postSale.Credits));
             buyer.SendPacket(new SCBmPointPacket(postSale.Loyalty));
 
             foreach (var (shopId, remaining) in stockToSync)
@@ -264,6 +283,73 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
             FailBuy(ErrorMessageType.IngameShopBuyFail);
         }
         #endregion
+    }
+
+    private bool TryExecuteBillPurchase(out uint cashBalance, out uint bonusBalance)
+    {
+        cashBalance = 0;
+        bonusBalance = 0;
+
+        var slots = new List<BillBuySlot>();
+        foreach (var purchase in shoppingCart)
+        {
+            var sku = purchase.Sku;
+            if (!CashShopManager.Instance.ShopItems.TryGetValue(sku.ShopId, out var shopItem))
+            {
+                FailBuy(ErrorMessageType.IngameShopBuyFail, shopId: sku.ShopId);
+                return false;
+            }
+
+            var price = sku.DiscountPrice > 0 ? sku.DiscountPrice : sku.Price;
+            slots.Add(new BillBuySlot(
+                price,
+                0,
+                sku.ShopId,
+                (byte)shopItem.LimitedType,
+                shopItem.LimitedStockMax));
+        }
+
+        var request = new BillBuyRequest
+        {
+            AccountId = buyer.AccountId,
+            BuyerName = buyer.Name,
+            BuyerCharId = (int)buyer.Id,
+            ReceiverAccountId = targetPlayer.AccountId,
+            ReceiverName = targetPlayer.Name,
+            ReceiverCharId = (int)targetPlayer.Id,
+            Slots = slots
+        };
+
+        var result = BillClientManager.Instance.TryBuyAsync(request).GetAwaiter().GetResult();
+        if (result is null)
+        {
+            FailBuy(ErrorMessageType.Maintenance);
+            return false;
+        }
+
+        cashBalance = result.Value.CashAmount;
+        bonusBalance = result.Value.BonusAmount;
+
+        if (result.Value.IsSuccess)
+            return true;
+
+        for (var i = 0; i < shoppingCart.Count && i < result.Value.ProductResp.Length; i++)
+        {
+            var code = result.Value.ProductResp[i];
+            var shopId = shoppingCart[i].Sku.ShopId;
+            var wire = code switch
+            {
+                1 => ErrorMessageType.IngameShopNotEnoughAaCash,
+                2 => ErrorMessageType.IngameShopBuyFail,
+                3 => ErrorMessageType.IngameShopSoldOut,
+                _ => ErrorMessageType.IngameShopBuyFail
+            };
+            FailBuy(wire, shopId: shopId);
+            return false;
+        }
+
+        FailBuy(ErrorMessageType.IngameShopBuyFail);
+        return false;
     }
 
     /// <summary>Sends a failure reply and an optional separate chat notification.</summary>

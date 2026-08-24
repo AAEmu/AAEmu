@@ -46,9 +46,41 @@ public class IndunZone
 
     /// <summary>
     /// Maximum number of times a player can entry this instance (0 = can't enter).
-    /// In later versions this field is actually stored in the compact.
+    /// Loaded from <c>instances.enter_count</c> where <c>target_type=IndunZone</c>.
     /// </summary>
     public uint EnterCount { get; set; } = 1000;
+
+    /// <summary>
+    /// Catalog id from <c>instances.id</c> (visit-count wire <c>data</c> field). 0 if none.
+    /// </summary>
+    public uint InstanceCatalogId { get; set; }
+
+    /// <summary><c>instances.reset_item_id</c> for IVT_RESET tickets.</summary>
+    public uint ResetItemId { get; set; }
+    /// <summary><c>instances.reset_limit</c> (0 = unlimited).</summary>
+    public int ResetLimit { get; set; }
+    /// <summary><c>instances.reset_item_increase_scale</c>.</summary>
+    public int ResetItemIncreaseScale { get; set; } = 1;
+    /// <summary><c>instances.permit_enter_count_item_id</c> for IVT_PERMIT tickets.</summary>
+    public uint PermitEnterCountItemId { get; set; }
+
+    /// <summary><c>instances.direct_matching</c> — enter Indun after match (not InstantGame PvP).</summary>
+    public bool DirectMatching { get; set; }
+
+    /// <summary><c>instances.matching_invitation_type_id</c> (0 DIRECT, 1 PERFECT).</summary>
+    public byte MatchingInvitationTypeId { get; set; }
+
+    /// <summary><c>instances.min_matching_time</c> in milliseconds.</summary>
+    public uint MinMatchingTimeMs { get; set; }
+
+    /// <summary><c>instances.apply_waiting_time</c> in milliseconds (max queue lifetime).</summary>
+    public uint ApplyWaitingTimeMs { get; set; }
+
+    /// <summary><c>instances.matching_cleanup_term</c> in milliseconds (invite window).</summary>
+    public uint MatchingCleanupTermMs { get; set; }
+
+    /// <summary><c>instances.matching_intergration_level_id</c> (stored; multi-World unused locally).</summary>
+    public byte MatchingIntegrationLevelId { get; set; }
 
     /// <summary>
     /// Cached localized name of this dungeon

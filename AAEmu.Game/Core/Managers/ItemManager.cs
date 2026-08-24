@@ -1134,6 +1134,8 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                         template.AuctionCategoryC = reader.IsDBNull("auction_c_category_id") ? 0 : reader.GetInt32("auction_c_category_id");
                         template.LevelLimit = reader.GetInt32("level_limit");
                         template.FixedGrade = reader.GetInt32("fixed_grade");
+                        // 10.0.2.13: -1 means uncapped; nullable in some rows
+                        template.MaxEnchantableGrade = reader.IsDBNull("max_enchantable_grade") ? -1 : reader.GetInt32("max_enchantable_grade");
                         template.Disenchantable = reader.GetBoolean("disenchantable", true);
                         // 10.0.2.13: living_point_price column removed from items
                         template.CharGender = reader.GetByte("char_gender_id");

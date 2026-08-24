@@ -6,6 +6,8 @@ namespace AAEmu.Game.Core.Managers;
 public interface ICashShopManager : ILoadable, IInitializable
 {
     bool Enabled { get; }
+    /// <summary>True when the client should show an open marketplace (catalog loaded + Bill up if required).</summary>
+    bool IsOpenForPlayers { get; }
     Dictionary<uint, IcsSku> SKUs { get; set; }
     Dictionary<uint, IcsItem> ShopItems { get; set; }
     List<IcsMenu> MenuItems { get; set; }

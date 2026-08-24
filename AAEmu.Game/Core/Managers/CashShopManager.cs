@@ -10,11 +10,15 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class CashShopManager(IWorldManager worldManager, IAccountManager accountManager, ILocalizationManager localizationManager) : Singleton<CashShopManager>, ICashShopManager
+public class CashShopManager(IWorldManager worldManager, IAccountManager accountManager, ILocalizationManager localizationManager, IItemManager itemManager) : Singleton<CashShopManager>, ICashShopManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     public bool Enabled { get; private set; }
+
+    public bool IsOpenForPlayers =>
+        Enabled
+        && (!BillClientManager.Instance.RequireConnection || BillClientManager.Instance.IsConnected);
 
     public Dictionary<uint, IcsSku> SKUs { get; set; } = [];
     public Dictionary<uint, IcsItem> ShopItems { get; set; } = [];
@@ -105,11 +109,6 @@ public class CashShopManager(IWorldManager worldManager, IAccountManager account
         {
             if (ShopItems.TryGetValue(sku.ShopId, out var shopItem))
             {
-                if (shopItem.Skus.Count <= 0 && string.IsNullOrWhiteSpace(shopItem.Name))
-                {
-                    // First Item, grab it's name when needed
-                    shopItem.Name = localizationManager.Get("items", "name", sku.ItemId) ?? "???";
-                }
                 shopItem.Skus.Add(sku.Sku, sku);
             }
             else
@@ -117,6 +116,8 @@ public class CashShopManager(IWorldManager worldManager, IAccountManager account
                 Logger.Warn($"Found SKU without a valid Shop Item SKU: {key}, ShopItem: {sku.ShopId}");
             }
         }
+
+        ResolveShopItemDisplayNames();
 
         // Verify if all Shop Items have at least one SKU attached
         foreach (var (key, shopItem) in ShopItems)
@@ -384,5 +385,31 @@ public class CashShopManager(IWorldManager worldManager, IAccountManager account
             return false;
         }
         return true;
+    }
+
+    private void ResolveShopItemDisplayNames()
+    {
+        foreach (var shopItem in ShopItems.Values)
+        {
+            if (!CashShopDisplayNames.NeedsResolvedName(shopItem.Name))
+                continue;
+
+            var itemId = CashShopDisplayNames.ResolveItemTemplateId(
+                shopItem.DisplayItemId,
+                shopItem.FirstSku?.ItemId ?? 0);
+            if (itemId == 0)
+                continue;
+
+            var localized = localizationManager.Get("items", "name", itemId);
+            if (!string.IsNullOrWhiteSpace(localized))
+            {
+                shopItem.Name = localized;
+                continue;
+            }
+
+            var template = itemManager.GetTemplate(itemId);
+            if (!string.IsNullOrWhiteSpace(template?.Name))
+                shopItem.Name = template.Name;
+        }
     }
 }

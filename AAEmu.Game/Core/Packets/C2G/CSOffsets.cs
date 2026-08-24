@@ -496,9 +496,14 @@ public static class CSOffsets
     public const ushort CSArrivedFromAbroadPacket = 0x1C8;
     public const ushort CSRaidRecruitDelPacket = 0x1CA;
     public const ushort CSEquipSlotReinforceLevelUpPacket = 0x1D4;
+    public const ushort CSRequestSquadListPacket = 0x1D7;
+    public const ushort CSCreateSquadPacket = 0x1D8;
     public const ushort CSDisbandSquadPacket = 0x1D9;
+    public const ushort CSReadySquadPacket = 0x1DA;
     public const ushort CSRefuseSquadInvitation = 0x1DC;
     public const ushort CSLeaveSquadMemberPacket = 0x1DD;
+    public const ushort CSInviteSquadMemberPacket = 0x1DE;
+    public const ushort CSApplySquadMatchingPacket = 0x1DF;
     public const ushort CSIgnoreMinGameSizePacket = 0x1E2;
     public const ushort CSChangeSquadOpenTypePacket = 0x1E6;
     public const ushort CSSiegeRaidRegisterListRequestPacket = 0x1EA;

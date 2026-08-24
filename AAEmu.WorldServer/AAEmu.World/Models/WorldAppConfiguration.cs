@@ -21,6 +21,11 @@ public class WorldAppConfiguration
     public NpcScheduleGateConfig NpcScheduleGate { get; set; } = new();
     /// <summary>Optional tower-def World helpers (wave re-arm radius, etc.).</summary>
     public TowerDefWorldConfig TowerDef { get; set; } = new();
+    /// <summary>
+    /// Starts extra dungeon copies via <c>AAEmu.ZoneHost.exe</c> (not the Zone Manager UI).
+    /// Paths belong in Config.Local.json.
+    /// </summary>
+    public ZoneHostConfig ZoneHost { get; set; } = new();
 }
 
 public class TowerDefWorldConfig
@@ -65,6 +70,46 @@ public class NpcSpawnerActivateConfig
     public float Z { get; set; } = 356.6f;
     /// <summary>Radius around the entering player, or around the zone center when prewarming.</summary>
     public float Radius { get; set; } = 1024f;
+}
+
+public class ZoneHostConfig
+{
+    /// <summary>When false, World does not start dungeon copies (Zone Manager UI / a pre-started host may still join).</summary>
+    public bool Enabled { get; set; }
+    public string Executable { get; set; } = "";
+    public string WorkingDirectory { get; set; } = "";
+    public string NativeDll { get; set; } = "";
+    public string DbLocation { get; set; } = "game/db/game_decrypted.sqlite3";
+    public string WorldIp { get; set; } = "127.0.0.1";
+    public int WorldPort { get; set; } = 1240;
+    /// <summary>First listen port for World-started copies. Continent hosts keep the Zone Manager default.</summary>
+    public int SvPortBase { get; set; } = 65000;
+    public string RuntimeLogRoot { get; set; } = "";
+    public bool Dedicated { get; set; } = true;
+    public bool DisableRendering { get; set; } = true;
+    public string ExtraArguments { get; set; } = "";
+    /// <summary>Seconds to wait for ZoneLoaded after starting a copy.</summary>
+    public int ReadyTimeoutSeconds { get; set; } = 120;
+    /// <summary>Optional pre-started idle ZoneHost copies claimed on dungeon enter.</summary>
+    public ZoneHostWarmPoolConfig WarmPool { get; set; } = new();
+}
+
+public class ZoneHostWarmPoolConfig
+{
+    public bool Enabled { get; set; }
+    /// <summary>Used when a zone entry omits Size.</summary>
+    public int DefaultSize { get; set; } = 2;
+    /// <summary>Unused idle hosts are stopped after this many seconds (0 = never).</summary>
+    public int IdleUnloadSeconds { get; set; } = 1800;
+    public List<ZoneHostWarmZoneConfig> Zones { get; set; } = [];
+}
+
+public class ZoneHostWarmZoneConfig
+{
+    /// <summary>World template name (e.g. instance_howling_abyss), not a numeric ZoneId.</summary>
+    public string WorldTemplateName { get; set; } = "";
+    /// <summary>0 / omit → DefaultSize.</summary>
+    public int Size { get; set; }
 }
 
 public class ZoneNetworkConfig

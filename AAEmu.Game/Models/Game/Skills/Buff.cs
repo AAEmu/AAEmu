@@ -50,6 +50,13 @@ public class Buff
     /// </summary>
     public bool ZoneAuthored { get; set; }
 
+    /// <summary>
+    /// Set when World actually sent WZBuffCreated. WZBuffRemoved must not go to Zone
+    /// unless this is true — Zone Buff Destroy on a unit that never received Create
+    /// can take the Zone process down instead of logging an invalid buff id.
+    /// </summary>
+    public bool RelayedToZone { get; set; }
+
     public uint AbLevel { get; set; }
     public BuffEvents Events { get; }
     public BuffTriggersHandler Triggers { get; }

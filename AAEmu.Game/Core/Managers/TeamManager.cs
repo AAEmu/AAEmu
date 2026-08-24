@@ -289,7 +289,7 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
                 if (activeTeam.OfficerId != 0)
                     target.SendPacket(new SCTeamOfficerChangedPacket((int)activeTeam.Id, activeTeam.OfficerId));
                 target.InParty = true;
-                target.SendPacket(new SCTeamPingPosPacket(true, activeTeam.PingPosition, 0));
+                target.SendPacket(new SCTeamPingPosPacket(activeTeam.Id, true, activeTeam.PingPosition, 0));
                 activeTeam.BroadcastPacket(new SCTeamMemberJoinedPacket(activeTeam.Id, newTeamMember, party), target.Id);
                 if (!activeTeam.IsParty)
                     chatManager.GetRaidChat(activeTeam).JoinChannel(target);
@@ -455,7 +455,7 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         activeInvitation.Owner.InParty = true;
         activeInvitation.Target.SendPacket(new SCJoinedTeamPacket(newTeam));
         activeInvitation.Target.InParty = true;
-        newTeam.BroadcastPacket(new SCTeamPingPosPacket(true, activeInvitation.Owner.LocalPingPosition, 0));
+        newTeam.BroadcastPacket(new SCTeamPingPosPacket(newTeam.Id, true, activeInvitation.Owner.LocalPingPosition, 0));
         if (!newTeam.IsParty)
         {
             chatManager.GetRaidChat(newTeam).JoinChannel(activeInvitation.Owner);
@@ -497,7 +497,7 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
         character.SendPacket(new SCJoinedTeamPacket(newTeam));
         character.InParty = true;
-        newTeam.BroadcastPacket(new SCTeamPingPosPacket(true, character.LocalPingPosition, 0));
+        newTeam.BroadcastPacket(new SCTeamPingPosPacket(newTeam.Id, true, character.LocalPingPosition, 0));
 
         if (!newTeam.IsParty)
             chatManager.GetRaidChat(newTeam).JoinChannel(character);
@@ -905,7 +905,7 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
             return;
 
         activeTeam.PingPosition = position;
-        activeTeam.BroadcastPacket(new SCTeamPingPosPacket(hasPing, position, insId));
+        activeTeam.BroadcastPacket(new SCTeamPingPosPacket(teamId, hasPing, position, insId));
     }
 
     public void SetOffline(Character unit)

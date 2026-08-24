@@ -8,9 +8,14 @@ public class CSCancelInstantGamePacket() : GamePacket(CSOffsets.CSCancelInstantG
 {
     public override void Read(PacketStream stream)
     {
-        // Empty struct
-        Logger.Warn("CancelInstantGame");
+        var character = Connection.ActiveChar;
+        if (character == null)
+            return;
 
-        InstantGameManager.Instance.WithdrawFromBattlefield(Connection.ActiveChar);
+        // Always ack cancel so the client clears IsApplyInstance even if World already
+        // dropped the queue (close/reopen UI, duplicate cancel clicks).
+        IndunMatchmakingManager.Instance.TryWithdraw(character);
+        InstantGameManager.Instance.WithdrawFromBattlefield(character);
+        character.SendPacket(G2C.SCCancelInstantGamePacket.ClearQueue());
     }
 }

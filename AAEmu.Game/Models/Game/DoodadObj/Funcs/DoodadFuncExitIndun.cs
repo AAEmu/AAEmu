@@ -16,19 +16,20 @@ public class DoodadFuncExitIndun : DoodadFuncTemplate
 
         if (caster is Character character)
         {
-            if (ReturnPointId == 0 && character.MainWorldPosition != null)
+            // ReturnPointId 0 = "leave to wherever we entered from". Leave paths fall back to the
+            // character's return district when MainWorldPosition was never saved (older enter path).
+            if (ReturnPointId == 0)
             {
-                IndunManager.Instance.RequestLeaveInstance(character);
+                if (!IndunManager.Instance.RequestLeaveInstance(character))
+                {
+                    Logger.Info("DoodadFuncExitIndun, leave request failed for {0}", character.Name);
+                    character.SendErrorMessage(ErrorMessageType.InvalidReturnPosInstance);
+                }
             }
             else
             {
-                // TODO in db not have a entries, but we can change this xD
                 Logger.Info("DoodadFuncExitIndun, Not have return point!");
-                character.SendErrorMessage(ErrorMessageType.InvalidReturnPosInstance); // ошибка, не можете выйти сейчас из данжона
-                //character.SendErrorMessage(ErrorMessageType.TryLaterInstance); // ошибка данжона, пробуй еще раз
-                //character.SendErrorMessage(ErrorMessageType.InvalidStateInstance); // данжон уже загружен
-                //character.SendErrorMessage(ErrorMessageType.ProhibitedInInstance); // нельзя это сделать внутри данжона
-                //character.SendErrorMessage(ErrorMessageType.InstanceVisitLimit); // Ты израсходовал лимит на вход в данжон. Пробуй позже.
+                character.SendErrorMessage(ErrorMessageType.InvalidReturnPosInstance);
             }
         }
     }
