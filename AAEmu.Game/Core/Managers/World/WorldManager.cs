@@ -362,7 +362,7 @@ public class WorldManager(
 
     public void Initialize()
     {
-        tickManager.OnTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(1));
+        tickManager.OnTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(1), useAsync: true);
         tickManager.OnTick.Subscribe(AutoWaterProbeTick, TimeSpan.FromSeconds(10));
     }
 
