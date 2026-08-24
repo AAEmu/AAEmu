@@ -1,4 +1,4 @@
-﻿namespace AAEmu.Game.Models.Game.Items;
+namespace AAEmu.Game.Models.Game.Items;
 
 [Flags]
 public enum ItemFlag : byte
@@ -12,9 +12,14 @@ public enum ItemFlag : byte
     AuctionWin = 0x20,
 
     /// <summary>
-    /// Item was disabled by a failed regrade and cannot be used until restored.
-    /// Wire-safe: the flags byte is zero-padded on the SC unit/item stream, so the new bit
-    /// is additive for clients that do not know it.
+    /// The item is locked out of further enchanting after a failed awakening or temper, until a
+    /// restore item clears it (SCRestoreDisableEnchant).
     /// </summary>
-    Disabled = 0x40
+    /// <remarks>
+    /// Confirmed against the client: the tooltip field <c>isEnchantDisable</c> is built by testing
+    /// bit 0x40 of the item's flags byte, at struct+0xd right behind id, templateId and grade
+    /// (x2game.dll rva 0x572a44 and 0x794b2f). The same routine emits <c>securityState</c> from the
+    /// neighbouring bits, which is what anchors the offset.
+    /// </remarks>
+    EnchantDisabled = 0x40
 }

@@ -258,7 +258,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         // Check if the target spot is already taken
         var slave = GetSlaveByObjId(objId);
 
-        if (slave == null || slave.AttachedCharacters.ContainsKey(attachPoint))
+        if (slave == null || slave.IsDead || slave.AttachedCharacters.ContainsKey(attachPoint))
             return;
 
         // Check if the vehicle has the MasterOwnership buff and if the character is not the owner, block the attachment.

@@ -15,4 +15,10 @@ public class EquipItemTemplate : ItemTemplate
     public uint EquipItemSetId { get; set; }
     /// <summary>Default packed ARGB color from 10.0.2.13 <c>dyeable_items.color</c>.</summary>
     public uint DyeingColor { get; set; }
+
+    /// <summary>
+    /// Synthesis pool this piece belongs to (<c>item_rnd_attr_category_id</c> on item_weapons,
+    /// item_armors and item_accessories). 0 means the item cannot be synthesised.
+    /// </summary>
+    public uint RndAttrCategoryId { get; set; }
 }

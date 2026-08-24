@@ -148,6 +148,7 @@ public static class SCOffsets
     public const ushort SCItemTaskNotifyPacket = 0xBD; // 10.0.2.13
     public const ushort SCItemDetailUpdatedPacket = 0xBE; // 10.0.2.13
     public const ushort SCUnitEquipmentsChangedPacket = 0xBF; // 10.0.2.13
+    public const ushort SCUnitEquipmentsRndAttrUnitModifierActivatedPacket = 0xC0; // 10.0.2.13
     public const ushort SCUnitEquipmentIdsPacket = 0xC1; // 10.0.2.13
     public const ushort SCCofferContentsUpdatePacket = 0xC2; // 10.0.2.13
     public const ushort SCItemAcquisitionPacket = 0xC3; // 10.0.2.13
@@ -156,7 +157,6 @@ public static class SCOffsets
     public const ushort SCSpecialtyGoodsPacket = 0xC6; // 10.0.2.13
     public const ushort SCSpecialtyRecordsPacket = 0xC7; // 10.0.2.13
     public const ushort SCGradeEnchantResultPacket = 0xC9; // 10.0.2.13
-    public const ushort SCItemSocketingLunagemResultPacket = 0x9d;
     public const ushort SCItemSocketingLunastoneResultPacket = 0x9e;
     public const ushort SCGradeEnchantBroadcastPacket = 0xD0; // 10.0.2.13
     public const ushort SCRestoreDisableEnchantPacket = 0xD3; // 10.0.2.13
@@ -694,6 +694,15 @@ public static class SCOffsets
     public const ushort SCItemEnchantMagicalResultPacket = 0xCB;
     public const ushort SCItemSmeltingResultPacket = 0xCF;
     public const ushort SCItemSocketingResultPacket = 0xCA;
+    // 10.0.2.13, read out of the client's server-to-client handler table: the slot for opcode N sits
+    // at table+8+N*8 and its "registered" flag at table+0x1ce0+N. Verified against the entries that
+    // were already known here (0xC9, 0xCA, 0xCF, 0xD0, 0x359 all resolve to the same values).
+    public const ushort SCItemRefurbishmentResultPacket = 0xCC; // Tempering
+    public const ushort SCItemEvolvingResultPacket = 0xCD; // Synthesis
+    public const ushort SCItemReRollEvolvingResultPacket = 0xCE; // Synthesis, effect swap
+    public const ushort SCScaleEnchantBroadcastPacket = 0xD1; // Tempering, server-wide notice
+    public const ushort SCRestoreDisableEnchantPacket = 0xD3;
+    public const ushort SCItemChangeMappingResultPacket = 0xD4; // Awakening
     public const ushort SCLoadCraftOrderEntryPacket = 0x231;
     public const ushort SCMailRemovedFromAboxPacket = 0x168;
     public const ushort SCMatchingInvitationInfoPacket = 0x1D6;

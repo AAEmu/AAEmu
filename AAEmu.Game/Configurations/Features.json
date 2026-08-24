@@ -1,176 +1,115 @@
 {
     "Features": {
-        // Server-only switches (not part of the 31-byte fset blob).
+        // Server-only switches. 10.0.2.13 dropped both bits from the fset blob; the server logic
+        // behind them is still live and never needed the client to know about it.
         "TaxItem": true,
         "BackpackProfitShare": true,
 
-        // Feature switches keyed by Feature enum name (Models/Game/Features/Feature.cs).
-        // Serialized into SCInitialConfig fset on login. Omitted keys default off.
+        // Feature switches shared by the server and client, keyed by Feature enum name. Anything
+        // not listed here stays off. Each bit is serialized into SCInitialConfig for the client,
+        // and the corresponding server implementation must check the same bit before running.
+        // Bit positions live in Models/Game/Features/Feature.cs.
         "Flags": {
-
-            // Core / commerce
+            // Backed by server systems.
             "siege": true,
             "premium": true,
             "ingamecashshop": true,
             "bm_mileage": true,
-            "aaPoint": true,
-            "shopOnUI": true,
-            "marketPrice": true,
+            "houseTaxPrepay": true,
+            "mailCoolTime": true,
+            "hud_mail_box_button": true,
+            "slave_customize": true,
+            "ranking": true,
+            "freeLpRaise": true,
             "auctionPostBuff": true,
-            "use_palos_shop": true,
-            "lootGacha": true,
-            "packageDemolish": true,
-            "renameExpeditionByItem": true,
+            "shopOnUI": true,
 
-            // Account / social / web
-            "use_slash_open_chat": true,
-            "useUrlLink": true,
-            "chatRace": true,
+            // Regrade ("grade" tab, client key grade). The enchant window builds its tab list from
+            // the feature set (scripts/x2ui/inventory/enchant/enchant_window.lua keys the first page
+            // on itemGradeEnchant), so with the bit off the tab is not created at all and no cast
+            // can ever reach the server. Backed by the GradeEnchant (92) special effect; the scrolls
+            // (28298 weapon, 28299 armor, 31928 accessory) carry skills 22520/22522/24999 and are
+            // consumed through items.use_skill_as_reagent, not through skill_reagents.
+            "itemGradeEnchant": true,
+
+            // Tempering ("refurbishment" tab, client key item_scale). Opens the tab that raises an
+            // item's enchant scale from +0 upward. The step table is enchant_scale_ratios and the
+            // per-item ceiling is items.max_enchant_scale_id; the polish items (45914-45917 etc.)
+            // carry skills whose SpecialEffect is ItemRefurbishment (126). Note the 1.2-era
+            // ItemCapScale/ItemCapScaleReset effects (111/112) have no rows in 10.0.2.13 data.
+            "itemCapScale": true,
+
+            // Synthesis ("evolving" tab, client key evolving). itemEvolving opens the tab itself,
+            // itemEvolvingReRoll unlocks the "swap effect" sub-menu inside it. Both are backed by
+            // the ItemEvolving (123), ItemEvolvingReRoll (136) and ItemEvolvingSelectReRoll (187)
+            // special effects; the attribute pools come from the item_rnd_attr_* tables.
+            "itemEvolving": true,
+            "itemEvolvingReRoll": true,
+
+            // Ancestral ("heir") progression past the level cap. Both bits are needed:
+            // useHeirSkill (202) shows the Heir tab, heirLevel (101) enables the level block
+            // inside it (level, exp bar, level-up button, heir stats). With only the first, the
+            // tab renders the successor wheel but can never gain a level.
+            //
+            // What progression costs is entirely down to heir_levels: req_total_exp is always the
+            // gate, and req_item_id decides whether material is owed on top of it. Rows without an
+            // item are reached on experience alone; rows with one stop short of the threshold
+            // until the player spends it through the level-up button. Shipped data has no item on
+            // any row, so every heir level comes from experience. Retail charges 1x Honorforged
+            // Medal (item 40491) for the first one - set req_item_id/req_item_count on level 0 in
+            // the client and server compact.sqlite3 to match it.
+            //
+            // heir_start_level (55) must also be <= World.PlayerLevelCap or progression cannot
+            // begin. Note the 10.0.2.13 client additionally ships its Heir tab hard-disabled in
+            // scriptsbin64/x2ui/skill/main_window.alb, which needs its own patch.
+            //
+            // These switches also gate the matching server behavior. heirLevel controls experience
+            // progression and level-up requests; useHeirSkill controls successor activation and
+            // reset requests.
+            //
+            // Disabling these switches affects only future actions. characters.heir_exp and rows in
+            // heir_skill_activations are left alone, so a character keeps the heir level already
+            // earned - it still counts toward Level + HeirLevel and is still broadcast - and
+            // successor skills already chosen stay active. Turning the relevant switch back on
+            // resumes from where the character left off. Clear those two tables for a clean slate.
+            "useHeirSkill": true,
+            "heirLevel": true,
+
+            // Enables Dwarf/Warborn character creation. One bit gates both races; the client tests it
+            // as (uint)fset[8] & 0x400, i.e. byte 9 bit 2. Lua exports this bit as itemChangeMapping,
+            // and the enchant window reads it under that name to decide whether to draw the Awakening
+            // tab - so this single bit turns on both. The awakening side is backed by the
+            // ItemChangeMapping (165) special effect over the item_change_mapping* tables.
+            "dwarfWarborn": true,
+
+            "fset_0_1_unknown": true,
+
+            "fset_4_7_unknown": true,
+
+            // Client-side or data-driven; no server system to back.
             "customsaveload": true,
-            "useCharacterListPage": true,
+            "hairTwoTone": true,
+            "chatRace": true,
+            "show_instance_in_hud": true,
+            // Opens the cosplay-looks equipment path (fset bit useCosplayLooksSlot). NPC costumes
+            // such as Lucius pack cosplay 16066 attach through slot 27 / EST_COSPLAY.
+            "useCosplayLooksSlot": true,
+
+            // Web content. These open URLs built from InitialConfig.Host, which must serve them.
             "eventWebLink": true,
             "use_web_help": true,
             "use_web_diary": true,
             "use_web_messenger": true,
             "use_web_wiki": true,
-            "account_attendance": true,
-            "ui_avi": true,
-            "survey_form": true,
-            "use_character_privacy": true,
-            "show_premium_hud": true,
-            "buyPremiuminSelChar": true,
-            "premiumUserServer": true,
-            "nexonPcRoom": true,
-            "combatResource": true,
 
-            // Mail / housing
-            "mailCoolTime": true,
-            "hud_mail_box_button": true,
-            "houseTaxPrepay": true,
-            "housingUcc": true,
-            "rebuildHouse": true,
-            "freeDemolishHouse": true,
-            "butler": true,
-
-            // Characters / appearance
-            "slave_customize": true,
-            "tailCustomizing": true,
-            "hairTwoTone": true,
-            "freeLpRaise": true,
-            "ranking": true,
-            "dwarfWarborn": true,
-            "itemChangeMapping": true,
-            "permissionZone": true,
-
-            // Heir / hero
-            "useHeirSkill": true,
-            "heirLevel": true,
-            "hero": true,
-            "heroBonus": true,
-            "chronicle_info": true,
-            "characterInfoLivingPoint": true,
-
-            // Instances / squads / indun
-            "show_instance_in_hud": true,
-            "squad": true,
-            "indunPortal": true,
-            "indunDailyLimit": true,
-            "eloRating": true,
-
-            // Expeditions
-            "expeditionWar": true,
-            "expeditionLevel": true,
-            "expeditionSummon": true,
-
-            // Quest / UI QoL
-            "fastQuestChatBubble": true,
-            "questNpcTag": true,
-            "target_equipment_wnd": true,
-            "loadingTipOfDay": true,
-            "specialty_trade_info_ui": true,
-            "useCraftOrder": true,
-
-            // Combat / mates
-            "useForceAttack": true,
-            "freeResurrectionInPlace": true,
-            "mate_type_summon": true,
-            "mateAggressive": true,
-            "vehicleZoneSimulation": true,
-
-            // Gear / item systems
-            "itemGradeEnchant": true,
-            "itemCapScale": true,
-            "itemEvolving": true,
-            "itemEvolvingReRoll": true,
-            "equipSlotEnchantment": true,
-            "socketChange": true,
-            "socketExtract": true,
-            "itemSmelting": true,
-            "bless_uthstin": true,
-            "itemLookConvertInBag": true,
-            "itemlookExtract": true,
-            "itemRepairInBag": true,
-            "petOnlyEnchantStone": true,
-            "useCosplayLooksSlot": true,
-
-            // Events / passes
+            // No server implementation yet — the client opens the UI and gets no data back.
+            // Set to false to hide them until the systems land.
             "event_center_event_info": true,
             "event_center_content_schedule": true,
             "event_center_today_assignment": true,
-            "arche_pass": true,
-            "archePassMissionAccount": true,
+            "use_palos_shop": true,
 
-            // Native-only bits (client internals)
-            "fset_0_1_unknown": true,
-            "fset_4_5_unknown": true,
-            "fset_4_7_unknown": true,
-            "fset_5_1_unknown": true,
-            "fset_5_2_unknown": true,
-            "fset_7_2_unknown": true,
-            "fset_9_6_unknown": true,
-            "fset_11_2_unknown": true,
-            "fset_12_0_unknown": true,
-            "fset_12_1_unknown": true,
-            "fset_13_0_unknown": true,
-            "fset_13_1_unknown": true,
-            "fset_13_3_unknown": true,
-            "fset_14_0_unknown": true,
-            "fset_17_0_unknown": true,
-            "fset_17_1_unknown": true,
-            "fset_19_2_unknown": true,
-            "fset_20_2_unknown": true,
-            "fset_20_5_unknown": true,
-            "fset_24_3_unknown": true,
-            "fset_24_7_unknown": true,
-            "fset_25_1_unknown": true,
-            "fset_25_3_unknown": true,
-            "fset_28_6_unknown": true,
-            "fset_29_1_unknown": true,
-
-            // Restrictions — intentionally off (ON would block content)
-            "forbidTransferChar": false,
-            "restrictFollow": false,
-            "protectPvp": false,
-            "factionMigrateLimit": false,
-            "uccUploadBlock": false,
-            "blockRename": false,
-            "notGainLeaderShipPoint": false,
-            "block_trade_by_nft": false,
-            "block_joint_raid": false,
-            "blockSpendableGamePoint": false,
-            "blockFamilyContents": false,
-            "chatLanguageFilter": false,
-            "auctionPartialBuy": false,
-
-            // Moderation / reports — off until backed
-            "reportSpamMail": false,
-            "reportSpammer": false,
-            "reportBadUser": false,
-            "reportBadWordUser": false,
-            "banishPlayer": false,
-            "pvpModifiySet": false,
-
-            // Account security — off for dev
+            // Account-security gates, off for development logins.
             "sensitiveOpeartion": false,
             "secondpass": false,
             "itemSecure": false

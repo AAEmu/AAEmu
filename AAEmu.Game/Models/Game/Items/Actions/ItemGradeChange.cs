@@ -11,7 +11,7 @@ public class ItemGradeChange : ItemTask
     {
         _item = item;
         _grade = newGrade;
-        _type = ItemAction.ChangeGrade; // 14
+        _type = ItemAction.ChangeGrade; // 15 since 10.0.2.13 - RemoveReservation was inserted at 8
     }
 
     public override PacketStream Write(PacketStream stream)

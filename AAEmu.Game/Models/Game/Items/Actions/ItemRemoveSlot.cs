@@ -34,10 +34,7 @@ public class ItemRemoveSlot : ItemTask
     public override PacketStream Write(PacketStream stream)
     {
         base.Write(stream);
-        stream.Write(_actionOwnerType);
-        stream.Write((byte)_slotType);
-        stream.Write(_slot);
-        stream.Write(_itemId);
+        SeizeBody.Write(stream, _actionOwnerType, _slotType, _slot, _itemId);
         return stream;
     }
 }

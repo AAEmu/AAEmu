@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Numerics;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
@@ -188,7 +188,7 @@ public class CrimeManager(IWorldManager worldManager,
             }
         }
 
-        var zoneKey = zoneManager.GetZoneByKey(evidence.Transform.ZoneId);
+        var zone = zoneManager.GetZoneByKey(evidence.Transform.ZoneId);
 
         var newId = crimeIdManager.GetNextId();
         var newEvent = new CrimeEvent()
@@ -202,7 +202,7 @@ public class CrimeManager(IWorldManager worldManager,
             CrimeTime = evidence.PlantTime,
             ReportTime = DateTime.UtcNow,
             Position = evidence.Transform.World.Position,
-            ZoneKey = zoneKey?.Id ?? 0u,
+            ZoneKey = zone?.ZoneKey ?? 0u,
             Arg1 = arg1,
             Arg2 = arg2,
             Arg3 = arg3,

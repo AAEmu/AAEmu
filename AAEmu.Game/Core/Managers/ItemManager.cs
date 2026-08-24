@@ -53,6 +53,18 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
     // Socketing
     private Dictionary<uint, uint> _socketChance;
+
+    /// <summary>Per-chance-row odds, indexed by row id then by the gem being seated (1-based).</summary>
+    private Dictionary<uint, uint[]> _socketChanceRows;
+
+    /// <summary>How many gems a slot may hold at a grade, keyed by (slot type, grade).</summary>
+    private Dictionary<(uint slot, byte grade), uint> _socketNumLimits;
+
+    /// <summary>Chance rows that destroy an item's gems when a seating fails.</summary>
+    private HashSet<uint> _socketChanceFailBreaks;
+
+    /// <summary>Which chance row a lunagem is seated under, by its item template.</summary>
+    private Dictionary<uint, uint> _gemSocketChanceRow;
     private Dictionary<uint, List<BonusTemplate>> _itemUnitModifiers;
 
     // Loot related
@@ -166,6 +178,52 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     public uint GetSocketChance(uint numSockets)
     {
         return _socketChance.ContainsKey(numSockets + 1) ? _socketChance[numSockets + 1] : 0;
+    }
+
+    /// <summary>
+    /// The odds of seating <paramref name="gemTemplateId"/> as the next gem on a piece that already
+    /// carries <paramref name="filledSockets"/>.
+    /// </summary>
+    /// <remarks>
+    /// Each lunagem names its own row of odds. Most of them - 494 of the shipped gems - sit on the
+    /// "v2" rows, which succeed outright on every socket; the older "default" row is the one that
+    /// falls away after the first. Reading every gem off that older row made most of the game's gems
+    /// a coin flip they were never meant to be.
+    /// </remarks>
+    public uint GetSocketChance(uint gemTemplateId, uint filledSockets)
+    {
+        var index = filledSockets + 1;
+        if (_gemSocketChanceRow.TryGetValue(gemTemplateId, out var rowId) &&
+            _socketChanceRows.TryGetValue(rowId, out var row) &&
+            index < row.Length)
+        {
+            return row[index];
+        }
+
+        return GetSocketChance(filledSockets);
+    }
+
+    /// <summary>
+    /// How many lunagems a piece may carry: its slot decides the shape of the run and its grade how
+    /// far along it opens, from nothing on a poor item to nine on the highest.
+    /// </summary>
+    public uint GetSocketNumLimit(uint slotTypeId, byte grade)
+    {
+        return _socketNumLimits.GetValueOrDefault((slotTypeId, grade), 0u);
+    }
+
+    /// <summary>
+    /// Whether failing to seat this gem destroys the gems already on the piece.
+    /// </summary>
+    /// <remarks>
+    /// The rows disagree, and the ones that spare the item are not the rare case: "v2_default"
+    /// alone covers most of the shipped gems and does not break. Assuming otherwise wiped a piece's
+    /// gems on failures that should not have cost anything.
+    /// </remarks>
+    public bool GetSocketFailBreaks(uint gemTemplateId)
+    {
+        return !_gemSocketChanceRow.TryGetValue(gemTemplateId, out var rowId) ||
+               _socketChanceFailBreaks.Contains(rowId);
     }
 
     public float GetDurabilityRepairCostFactor()
@@ -404,6 +462,10 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         _gradesOrdered = [];
         _enchantingSupports = [];
         _socketChance = [];
+        _socketChanceRows = [];
+        _socketNumLimits = [];
+        _socketChanceFailBreaks = [];
+        _gemSocketChanceRow = [];
         _itemLookConverts = [];
         _holdableItemLookConverts = [];
         _wearableItemLookConverts = [];
@@ -832,7 +894,8 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             ChargeCount = reader.GetInt32("charge_count", 0),
                             RechargeRestrictItemId = reader.GetUInt32("recharge_restrict_item_id", 0),
                             ItemLookConvert = GetWearableItemLookConvert(slotTypeId),
-                            EquipItemSetId = reader.GetUInt32("eiset_id", 0)
+                            EquipItemSetId = reader.GetUInt32("eiset_id", 0),
+                            RndAttrCategoryId = reader.GetUInt32("item_rnd_attr_category_id", 0)
                         };
                         _templates.Add(template.Id, template);
                     }
@@ -888,7 +951,8 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             ChargeCount = reader.GetInt32("charge_count", 0),
                             RechargeRestrictItemId = reader.GetUInt32("recharge_restrict_item_id", 0),
                             ItemLookConvert = GetHoldableItemLookConvert(holdableId),
-                            EquipItemSetId = reader.GetUInt32("eiset_id", 0)
+                            EquipItemSetId = reader.GetUInt32("eiset_id", 0),
+                            RndAttrCategoryId = reader.GetUInt32("item_rnd_attr_category_id", 0)
                         };
                         _templates.Add(template.Id, template);
                     }
@@ -920,7 +984,8 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             ChargeLifetime = reader.GetInt32("charge_lifetime", 0),
                             ChargeCount = reader.GetInt32("charge_count", 0),
                             RechargeRestrictItemId = reader.GetUInt32("recharge_restrict_item_id", 0),
-                            EquipItemSetId = reader.GetUInt32("eiset_id", 0)
+                            EquipItemSetId = reader.GetUInt32("eiset_id", 0),
+                            RndAttrCategoryId = reader.GetUInt32("item_rnd_attr_category_id", 0)
                         };
                         _templates.Add(template.Id, template);
                     }
@@ -1139,6 +1204,12 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                         template.Disenchantable = reader.GetBoolean("disenchantable", true);
                         // 10.0.2.13: living_point_price column removed from items
                         template.CharGender = reader.GetByte("char_gender_id");
+                        // Highest enchant_scale_ratios row this item may be tempered to. 0 means the
+                        // item cannot be tempered at all, which is the case for all but ~6.5k items.
+                        template.MaxEnchantScaleId = reader.GetByte("max_enchant_scale_id", 0);
+                        // Regrade ceiling. -1 on ~44.7k items (no ceiling); the ~6.3k that carry one
+                        // are capped at grade 7, which is what greys the scroll slot in the client.
+                        template.MaxEnchantableGrade = reader.GetInt32("max_enchantable_grade", -1);
 
                         template.AuctionSettings = new AuctionSettings(
                             template.AuctionCategoryA,
@@ -1199,6 +1270,8 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             AddBreakMul = reader.GetInt32("add_break_mul"),
                             AddDowngradeRatio = reader.GetInt32("add_downgrade_ratio"),
                             AddDowngradeMul = reader.GetInt32("add_downgrade_mul"),
+                            AddDisableRatio = reader.GetInt32("add_disable_ratio", 0),
+                            AddDisableMul = reader.GetInt32("add_disable_mul", 0),
                             AddGreatSuccessGrade = reader.GetInt32("add_great_success_grade")
                         };
 
@@ -1235,8 +1308,10 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
             {
                 // 10.0.2.13: item_socket_chances changed from per-row (num_sockets, success_ratio)
                 // to a wide format: each row is a "scale type" with socket0..socket9 columns.
-                // Use the first (default) row and map socket{N} -> key N+1, since GetSocketChance
-                // looks up _socketChance[numSockets + 1].
+                // socket{N} is the chance of landing the Nth gem, so the columns are keyed by their
+                // own number and GetSocketChance's "sockets already filled, plus one" lands on the
+                // right one. Shifting them up by one instead pointed the first gem at socket0, which
+                // is zero in every shipped row - so a first gem could never be socketed at all.
                 command.CommandText = "SELECT * FROM item_socket_chances ORDER BY id LIMIT 1";
                 command.Prepare();
                 using (var sqliteReader = command.ExecuteReader())
@@ -1247,9 +1322,56 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                         for (var socketIndex = 0u; socketIndex <= 9u; socketIndex++)
                         {
                             var chance = reader.GetUInt32($"socket{socketIndex}", 0);
-                            _socketChance.TryAdd(socketIndex + 1, chance);
+                            _socketChance.TryAdd(socketIndex, chance);
                         }
                     }
+                }
+            }
+
+            // Every row, so a gem can be seated under the one it names rather than under the first.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM item_socket_chances";
+                command.Prepare();
+                using var sqliteReader = command.ExecuteReader();
+                using var reader = new SQLiteWrapperReader(sqliteReader);
+                while (reader.Read())
+                {
+                    var rowId = reader.GetUInt32("id");
+                    var odds = new uint[10];
+                    for (var socketIndex = 0; socketIndex < odds.Length; socketIndex++)
+                        odds[socketIndex] = reader.GetUInt32($"socket{socketIndex}", 0);
+
+                    _socketChanceRows[rowId] = odds;
+                    if (reader.GetBoolean("fail_break", false))
+                        _socketChanceFailBreaks.Add(rowId);
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT slot_id, grade_id, num_socket FROM item_socket_num_limits";
+                command.Prepare();
+                using var sqliteReader = command.ExecuteReader();
+                using var reader = new SQLiteWrapperReader(sqliteReader);
+                while (reader.Read())
+                {
+                    _socketNumLimits[(reader.GetUInt32("slot_id", 0), reader.GetByte("grade_id", 0))] =
+                        reader.GetUInt32("num_socket", 0);
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT item_id, item_socket_chance_id FROM item_sockets";
+                command.Prepare();
+                using var sqliteReader = command.ExecuteReader();
+                using var reader = new SQLiteWrapperReader(sqliteReader);
+                while (reader.Read())
+                {
+                    var gemTemplateId = reader.GetUInt32("item_id", 0);
+                    if (gemTemplateId != 0)
+                        _gemSocketChanceRow[gemTemplateId] = reader.GetUInt32("item_socket_chance_id", 0);
                 }
             }
 

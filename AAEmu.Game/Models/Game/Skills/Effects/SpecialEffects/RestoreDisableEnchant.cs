@@ -1,6 +1,4 @@
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -9,7 +7,8 @@ using AAEmu.Game.Models.Game.Units;
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
 /// <summary>
-/// Restores an item that was disabled by a failed grade enchant.
+/// Unlocks an item that a failed awakening or a failed high-scale temper left disabled, putting it
+/// back in reach of the enchant window.
 /// </summary>
 public class RestoreDisableEnchant : SpecialEffectAction
 {
@@ -28,25 +27,41 @@ public class RestoreDisableEnchant : SpecialEffectAction
         int value3,
         int value4)
     {
-        if (caster is not Character character || character is null)
-            return;
-
-        if (targetObj is not SkillCastItemTarget itemTarget || itemTarget is null)
-            return;
-
-        var item = character.Inventory.GetItemById(itemTarget.Id);
-        if (item == null)
-            return;
-
-        if (!item.HasFlag(ItemFlag.Disabled))
+        if (caster is not Character owner)
         {
-            Logger.Debug("RestoreDisableEnchant: item {0} is not disabled", item.Id);
+            Logger.Error("RestoreDisableEnchant: caster {0} is not a character", caster?.Id);
             return;
         }
 
-        item.RemoveFlag(ItemFlag.Disabled);
+        if (targetObj is not SkillCastItemTarget itemTarget)
+        {
+            Logger.Warn("RestoreDisableEnchant: target {0} is not an item", targetObj);
+            skill.Cancelled = true;
+            return;
+        }
 
-        character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantPhysical, [new ItemUpdate(item)], []));
-        character.SendPacket(new SCRestoreDisableEnchantPacket(item, item.Grade, item.Grade));
+        if (owner.Inventory.GetItemById(itemTarget.Id) is not EquipItem equipItem)
+        {
+            Logger.Warn("RestoreDisableEnchant: item {0} not found or not equipment", itemTarget.Id);
+            skill.Cancelled = true;
+            return;
+        }
+
+        if (!equipItem.EnchantDisabled)
+        {
+            // Nothing to undo - don't burn the restore item over it.
+            owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
+            skill.Cancelled = true;
+            return;
+        }
+
+        equipItem.EnchantDisabled = false;
+        equipItem.IsDirty = true;
+
+        owner.SendPacket(new SCItemDetailUpdatedPacket(equipItem));
+        owner.SendPacket(new SCRestoreDisableEnchantPacket(equipItem,
+            (byte)ItemGradeEnchantResult.RestoreDisable, 0));
+
+        Logger.Debug("RestoreDisableEnchant: {0} unlocked item {1}", owner.Name, equipItem.Id);
     }
 }

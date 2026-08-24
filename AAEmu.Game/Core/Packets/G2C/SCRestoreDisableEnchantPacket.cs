@@ -5,10 +5,15 @@ using AAEmu.Game.Models.Game.Items;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Notifies the client that a previously disabled item had its enchantment restored.
-/// Wire: full item view followed by two trailing bytes (initial grade / current grade),
-/// mirroring the other grade-enchant result packets.
+/// Confirms that an item's "enchant disabled" state has been lifted. A failed awakening or a failed
+/// high-scale temper can leave the item locked (<see cref="ItemGradeEnchantResult.Disable"/>); a
+/// restore item clears it and the client shows the result through the same enchant alarm with
+/// <see cref="ItemGradeEnchantResult.RestoreDisable"/>.
 /// </summary>
+/// <remarks>
+/// Layout from the 10.0.2.13 serializer (x2game.dll rva 0xab5950): the item struct followed by two
+/// bytes at struct+0xe0 and +0xe1.
+/// </remarks>
 public class SCRestoreDisableEnchantPacket(Item item, byte type1, byte type2)
     : GamePacket(SCOffsets.SCRestoreDisableEnchantPacket, 1)
 {
