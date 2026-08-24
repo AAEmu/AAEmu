@@ -60,7 +60,12 @@ public class FeaturesConfigTests
             fset.Set(Enum.Parse<Feature>(name, true), enabled);
 
         await Assert.That(fset.ToString()).IsEqualTo(
-            "13 00 00 00 d0 09 21 00 00 0c 00 88 28 00 00 00 " +
-            "00 80 0a 10 00 80 80 00 04 34 00 10 01 e0 00");
+            // The four enchant tabs are on: itemGradeEnchant (byte 25 bit 0x01) opens Regrade,
+            // itemCapScale (byte 6 bit 0x40) Tempering, itemEvolving (byte 17 bit 0x20) Synthesis
+            // and itemEvolvingReRoll (byte 20 bit 0x02) unlocks its effect-swap sub-menu. Awakening
+            // needs no bit of its own here - it shares bit 74 with dwarfWarborn, which byte 9
+            // already carries.
+            "13 00 00 00 d0 09 61 00 00 0c 00 88 28 00 00 00 " +
+            "00 a0 0a 10 02 80 80 00 04 35 00 10 01 e0 00");
     }
 }

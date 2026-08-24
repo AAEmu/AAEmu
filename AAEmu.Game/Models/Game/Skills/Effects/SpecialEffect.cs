@@ -17,6 +17,31 @@ public class SpecialEffect : EffectTemplate
 
     public override bool OnActionTime => false;
 
+    private static readonly Dictionary<SpecialType, bool> ImplementedCache = [];
+
+    /// <summary>
+    /// Whether an action class exists for this special type. Callers use it to tell "the skill did
+    /// something" apart from "the skill was a no-op", which matters before charging the player for
+    /// the cast.
+    /// </summary>
+    public static bool IsImplemented(SpecialType specialType)
+    {
+        lock (ImplementedCache)
+        {
+            if (ImplementedCache.TryGetValue(specialType, out var known))
+                return known;
+
+            var exists = ResolveActionType(specialType) != null;
+            ImplementedCache[specialType] = exists;
+            return exists;
+        }
+    }
+
+    private static Type ResolveActionType(SpecialType specialType)
+    {
+        return Type.GetType("AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects." + specialType);
+    }
+
     public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
@@ -27,7 +52,7 @@ public class SpecialEffect : EffectTemplate
             "SpecialEffect, Special: {0}, Values: [{1}, {2}, {3}, {4}, {5}, {6}, {7}]",
             SpecialEffectTypeId, Value1, Value2, Value3, Value4, Value5, Value6, Value7);
 
-        var classType = Type.GetType("AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects." + SpecialEffectTypeId);
+        var classType = ResolveActionType(SpecialEffectTypeId);
         if (classType == null)
         {
             // We don't need to log every missing effect as some are client-sided

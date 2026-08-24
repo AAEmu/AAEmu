@@ -38,16 +38,44 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         var flag = stream.ReadByte();
         var flagType = flag & 15;
         SkillObject skillObject;
-        if (flagType == 0 || flagType > (int)SkillObjectType.ItemGradeEnchantingSupport)
+
+        // In 10.0.2.13 this byte is a bit MASK, not a SkillObjectType. The original server's parser
+        // splits out bits 0-3 individually, and only bit 3 pulls a payload: thirteen ints, right
+        // before inputDirection. Reading it as `flag & 15` therefore invented types that do not
+        // exist - a dye cast sends flag 27 (0b11011), which looked like type 11, was clamped, and
+        // its thirteen ints (the chosen colour among them) were discarded.
+        //
+        // Deliberately additive: flags that already resolve to a known type keep the old path
+        // untouched, because portals and the other Unk* shapes are wired to it. Only bit 3, and
+        // only where the old code gave up anyway, is newly honoured.
+        //
+        // A type this server models is parsed as itself, and that has to be asked first: synthesis
+        // sends flag 8, which is both "bit 3 set" and a real type - the material slots - so the
+        // generic thirteen-int read would otherwise swallow it and lose which infusions were placed.
+        var hasExtraValues = (flag & 8) != 0;
+        if (SkillObject.IsKnownType(flagType))
+        {
+            skillObject = SkillObject.GetByType((SkillObjectType)flagType);
+            skillObject.Read(stream);
+        }
+        else if (hasExtraValues)
+        {
+            var extraValues = new SkillObjectExtraValues();
+            extraValues.Read(stream);
+            skillObject = extraValues;
+
+            // Logged for every skill that carries the block, not just dyeing, so the change can be
+            // judged on more than one case - the nest interaction sends flag 28 and lands here too.
+            // Drop to Debug once the meaning of the values is settled.
+            Logger.Info(
+                "StartSkill extras: skillId={0} flag={1} values=[{2}]",
+                skillId, flag, string.Join(" ", extraValues.Values.Select(v => v.ToString("X8"))));
+        }
+        else
         {
             if (flagType != 0)
                 Logger.Warn($"StartSkill: skillObject flag={flag} type={flagType} clamped to None");
             skillObject = new SkillObject();
-        }
-        else
-        {
-            skillObject = SkillObject.GetByType((SkillObjectType)flagType);
-            skillObject.Read(stream);
         }
         // Always present on CS wire after SkillCastExtra payload.
         _ = stream.ReadByte(); // inputDirection

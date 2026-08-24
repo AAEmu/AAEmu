@@ -182,4 +182,11 @@ public enum UnitAttribute : uint // 10.0.2.13 adds unit_attribute_id 256-261 (>2
     /// grades give +10/20/35/50, the dock's Moored buff +2900.
     /// </summary>
     PhysicsCollisionArmorMul = 194,
+
+    /// <summary>
+    /// Per-mille discount on what a synthesis attempt costs, which is why
+    /// <c>unit_attribute_limits</c> pens it into -1000..0. Jake's Blessing grants the full -1000 and
+    /// makes synthesis free; nothing shipped raises the price.
+    /// </summary>
+    ItemEvolvingCostMul = 223,
 }

@@ -1,13 +1,16 @@
-﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
+/// <summary>
+/// The 1.2-era tempering action. 10.0.2.13 has no <c>special_effects</c> rows of this type left -
+/// tempering runs through <see cref="ItemRefurbishment"/> now - so this only exists for older data
+/// sets, where it sets the item's scale straight to what the effect's values ask for.
+/// </summary>
 public class ItemCapScale : SpecialEffectAction
 {
     protected override SpecialType SpecialEffectActionType => SpecialType.ItemCapScale;
@@ -25,52 +28,26 @@ public class ItemCapScale : SpecialEffectAction
         int value3,
         int value4)
     {
-        // TODO ...
-        if (caster is Character) { Logger.Debug("Special effects: ItemCapScale value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
-
-        var owner = (Character)caster;
-        var temperSkillItem = (SkillItem)casterObj;
-        var skillTargetItem = (SkillCastItemTarget)targetObj;
-
-        if (owner == null)
-        {
+        if (caster is not Character owner)
             return;
-        }
 
-        if (temperSkillItem == null)
-        {
+        if (targetObj is not SkillCastItemTarget skillTargetItem)
             return;
-        }
 
-        if (skillTargetItem == null)
-        {
+        if (owner.Inventory.GetItemById(skillTargetItem.Id) is not EquipItem equipItem)
             return;
-        }
 
-        var targetItem = owner.Inventory.GetItemById(skillTargetItem.Id);
+        // value1/value2 are the range the old per-skill item_cap_scales lookup used to carry.
+        var scaleMin = Math.Max(0, value1);
+        var scaleMax = Math.Max(scaleMin + 1, value2);
+        var rolled = Random.Shared.Next(scaleMin, scaleMax);
 
-        if (targetItem == null)
-        {
-            return;
-        }
+        var maxScale = equipItem.Template?.MaxEnchantScaleId ?? 0;
+        equipItem.EnchantScale = (ushort)Math.Min(maxScale, rolled);
+        equipItem.IsDirty = true;
 
-        var equipItem = (EquipItem)targetItem;
+        owner.SendPacket(new SCItemDetailUpdatedPacket(equipItem));
 
-        // 10.0.2.13: item_cap_scales table removed; the temper range now comes from this special effect's
-        // own value1 (min) / value2 (max) params instead of a per-skill lookup.
-        var scaleMin = value1;
-        var scaleMax = Math.Max(value1 + 1, value2);
-
-        var physicalScale = (ushort)Random.Shared.Next(scaleMin, scaleMax);
-        var magicalScale = (ushort)Random.Shared.Next(scaleMin, scaleMax);
-
-        equipItem.TemperPhysical = physicalScale;
-        equipItem.TemperMagical = magicalScale;
-
-        // The item appears to be consumed as a skill reagent
-        // temperItem._holdingContainer.ConsumeItem(ItemTaskType.EnchantPhysical, temperItem.TemplateId, 1, temperItem);
-        owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.EnchantPhysical, [new ItemUpdate(equipItem)], []));
-        // Note: According to various videos I have found, there is no information on the % reached by a temper in-game. This is sent to help indicate what was achieved.
-        owner.SendMessage(ChatType.System, $"Temper:\n |cFFFFFFFF{physicalScale}%|r Physical\n|cFFFFFFFF{magicalScale}%|r Magical");
+        Logger.Debug("ItemCapScale: {0} set item {1} to scale {2}", owner.Name, equipItem.Id, equipItem.EnchantScale);
     }
 }

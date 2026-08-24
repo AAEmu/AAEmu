@@ -24,6 +24,28 @@
             "auctionPostBuff": true,
             "shopOnUI": true,
 
+            // Regrade ("grade" tab, client key grade). The enchant window builds its tab list from
+            // the feature set (scripts/x2ui/inventory/enchant/enchant_window.lua keys the first page
+            // on itemGradeEnchant), so with the bit off the tab is not created at all and no cast
+            // can ever reach the server. Backed by the GradeEnchant (92) special effect; the scrolls
+            // (28298 weapon, 28299 armor, 31928 accessory) carry skills 22520/22522/24999 and are
+            // consumed through items.use_skill_as_reagent, not through skill_reagents.
+            "itemGradeEnchant": true,
+
+            // Tempering ("refurbishment" tab, client key item_scale). Opens the tab that raises an
+            // item's enchant scale from +0 upward. The step table is enchant_scale_ratios and the
+            // per-item ceiling is items.max_enchant_scale_id; the polish items (45914-45917 etc.)
+            // carry skills whose SpecialEffect is ItemRefurbishment (126). Note the 1.2-era
+            // ItemCapScale/ItemCapScaleReset effects (111/112) have no rows in 10.0.2.13 data.
+            "itemCapScale": true,
+
+            // Synthesis ("evolving" tab, client key evolving). itemEvolving opens the tab itself,
+            // itemEvolvingReRoll unlocks the "swap effect" sub-menu inside it. Both are backed by
+            // the ItemEvolving (123), ItemEvolvingReRoll (136) and ItemEvolvingSelectReRoll (187)
+            // special effects; the attribute pools come from the item_rnd_attr_* tables.
+            "itemEvolving": true,
+            "itemEvolvingReRoll": true,
+
             // Ancestral ("heir") progression past the level cap. Both bits are needed:
             // useHeirSkill (202) shows the Heir tab, heirLevel (101) enables the level block
             // inside it (level, exp bar, level-up button, heir stats). With only the first, the
@@ -54,7 +76,10 @@
             "heirLevel": true,
 
             // Enables Dwarf/Warborn character creation. One bit gates both races; the client tests it
-            // as (uint)fset[8] & 0x400, i.e. byte 9 bit 2. Lua exports this bit as itemChangeMapping.
+            // as (uint)fset[8] & 0x400, i.e. byte 9 bit 2. Lua exports this bit as itemChangeMapping,
+            // and the enchant window reads it under that name to decide whether to draw the Awakening
+            // tab - so this single bit turns on both. The awakening side is backed by the
+            // ItemChangeMapping (165) special effect over the item_change_mapping* tables.
             "dwarfWarborn": true,
 
             "fset_0_1_unknown": true,
