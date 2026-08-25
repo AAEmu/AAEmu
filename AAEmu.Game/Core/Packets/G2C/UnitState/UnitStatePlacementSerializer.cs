@@ -41,8 +41,8 @@ internal static class UnitStatePlacementSerializer
 
     private static void WriteLevelBlock(PacketStream stream, UnitStateWireContext context)
     {
-        // other currently modelled unit types carry their normal level and no second heir value.
-        if (context.BaseUnitType == BaseUnitType.Npc)
+        // The second pair is the balance-level override. A normal character must leave it inactive.
+        if (context.BaseUnitType is BaseUnitType.Character or BaseUnitType.Npc)
         {
             stream.Write((sbyte)0);
             stream.Write((sbyte)0);
