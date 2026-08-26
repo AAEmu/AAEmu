@@ -1178,6 +1178,37 @@ public class WorldManagerTests
 
     #endregion
 
+    #region Initialize Tests
+
+    [Test]
+    public async Task Initialize_SubscribesActiveRegionTickAsAsync()
+    {
+        var handler = new TickManager.TickEventHandler();
+        var mockTickManager = Mock.Of<ITickManager>();
+        mockTickManager.OnTick.Returns(handler);
+
+        var manager = new WorldManager(
+            mockTickManager.Object,
+            Mock.Of<IWorldIdManager>().Object,
+            new Lazy<IZoneManager>(() => Mock.Of<IZoneManager>().Object),
+            new Lazy<IIndunManager>(() => Mock.Of<IIndunManager>().Object),
+            new Lazy<IFamilyManager>(() => Mock.Of<IFamilyManager>().Object));
+
+        manager.Initialize();
+
+        var queueField = typeof(TickManager.TickEventHandler)
+            .GetField("_eventsToAdd", BindingFlags.NonPublic | BindingFlags.Instance);
+        var pending = (Queue<TickManager.TickEventEntity>)queueField!.GetValue(handler)!;
+
+        var activeRegion = pending.FirstOrDefault(e =>
+            e.Event.Method.Name.Contains("ActiveRegionTick", StringComparison.Ordinal));
+
+        await Assert.That(activeRegion).IsNotNull();
+        await Assert.That(activeRegion!.UseAsync).IsTrue();
+    }
+
+    #endregion
+
     #region Helper Methods
 
     private static WorldManager CreateWorldManager()
