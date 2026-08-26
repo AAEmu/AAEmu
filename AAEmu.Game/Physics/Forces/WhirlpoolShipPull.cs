@@ -88,7 +88,7 @@ public sealed class WhirlpoolShipPull(World world, Func<WorldInstance> getWorld)
 
         foreach (var slave in slaves)
         {
-            if (slave?.RigidBody is not { } body || body.IsStatic || !body.IsActive)
+            if (slave?.RigidBody is not { } body || body.MotionType == MotionType.Static || !body.IsActive)
                 continue;
 
             if (!slave.Buffs.CheckBuff(WhirlpoolBuffId))
