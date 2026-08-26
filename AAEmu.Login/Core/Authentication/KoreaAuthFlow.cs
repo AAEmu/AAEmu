@@ -33,7 +33,9 @@ public class KoreaAuthFlow(
     IArsService arsService,
     IOptions<KoreaAuthOptions> options,
     string username,
+#pragma warning disable CS9113 // Parameter is unread.
     IPAddress clientIp)
+#pragma warning restore CS9113 // Parameter is unread.
     : IChallengeAuthFlow, IChallenge2AuthFlow, IOtpAuthFlow, ICertAuthFlow, IArsAuthFlow
 {
     private enum State

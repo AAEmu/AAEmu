@@ -410,7 +410,11 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         return true;
     }
 
-    public void Load() => Load(SQLite.CreateConnection());
+    public void Load()
+    {
+        using var connection = SQLite.CreateConnection();
+        Load(connection);
+    }
 
     public void Load(SqliteConnection connection)
     {

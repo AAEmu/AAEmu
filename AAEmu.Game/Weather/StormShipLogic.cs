@@ -121,7 +121,7 @@ public sealed class StormShipLogic(World world, Func<WorldInstance> getWorld) : 
         // Process ships currently in storm.
         foreach (var slave in gameWorld.GetAllSlaves())
         {
-            if (slave?.RigidBody is not { } body || body.IsStatic || !body.IsActive)
+            if (slave?.RigidBody is not { } body || body.MotionType == MotionType.Static || !body.IsActive)
                 continue;
 
             if (!slave.Buffs.CheckBuff(StormBuffId))
