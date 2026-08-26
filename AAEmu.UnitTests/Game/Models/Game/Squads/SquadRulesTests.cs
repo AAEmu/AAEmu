@@ -31,6 +31,14 @@ public class SquadRulesTests
     }
 
     [Test]
+    public async Task CallerOwnsInvite_RejectsForeignRefuse()
+    {
+        await Assert.That(SquadRules.CallerOwnsInvite(inviteTargetId: 42, callerCharacterId: 42)).IsTrue();
+        await Assert.That(SquadRules.CallerOwnsInvite(inviteTargetId: 42, callerCharacterId: 7)).IsFalse();
+        await Assert.That(SquadRules.CallerOwnsInvite(inviteTargetId: 0, callerCharacterId: 0)).IsFalse();
+    }
+
+    [Test]
     public async Task FilterListed_OmitsQuickEnterAndWrongCatalog()
     {
         // Private Recruit teams are on the board too — the recruit method only decides whether a

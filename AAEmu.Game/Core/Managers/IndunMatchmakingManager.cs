@@ -351,6 +351,12 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
     private void BeginPreparation(IndunMatchSession session)
     {
         var memberIds = session.Members.Where(m => !m.Declined).Select(m => m.CharacterId).ToList();
+        if (memberIds.Count == 0)
+        {
+            AbandonSession(session, "all members withdrew");
+            return;
+        }
+
         var prepared = PrepareInstance?.Invoke(session.ZoneKey, memberIds);
         if (prepared == null)
         {
@@ -361,7 +367,18 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
         }
 
         lock (_lock)
+        {
+            // Withdraw can AbandonSession while PrepareInstance is still running. Publishing onto a
+            // finished session would orphan the copy with nobody left to Discard it.
+            if (!IndunMatchReadyRules.CanPublishPrepared(
+                    session.Phase, _sessions.ContainsKey(session.MatchingKey)))
+            {
+                prepared.Discard();
+                return;
+            }
+
             session.Prepared = prepared;
+        }
 
         Logger.Info("IndunMatchmaking preparing catalog={0} matchingKey={1} members={2}",
             session.CatalogId, session.MatchingKey, memberIds.Count);

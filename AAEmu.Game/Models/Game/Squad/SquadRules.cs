@@ -94,4 +94,11 @@ public static class SquadRules
 
     public static byte ListButtonType(bool isMySquad) =>
         isMySquad ? (byte)2 : (byte)1; // CANCEL_RECRUIT : APPLY
+
+    /// <summary>
+    /// Invitation IDs are sequential and client-supplied on refuse/join. Only the intended target
+    /// may consume a pending invite; otherwise another player could cancel someone else's invite.
+    /// </summary>
+    public static bool CallerOwnsInvite(uint inviteTargetId, uint callerCharacterId) =>
+        inviteTargetId != 0 && inviteTargetId == callerCharacterId;
 }

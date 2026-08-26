@@ -480,18 +480,25 @@ public class SquadManager : Singleton<SquadManager>, ISquadManager
             return;
 
         uint inviterId = 0;
+        uint resolvedSquadId = 0;
         lock (_lock)
         {
-            if (_pendingInvites.TryGetValue((uint)invitationId, out var invite))
+            if (_pendingInvites.TryGetValue((uint)invitationId, out var invite) &&
+                SquadRules.CallerOwnsInvite(invite.TargetId, character.Id))
             {
                 inviterId = invite.InviterId;
+                resolvedSquadId = invite.SquadId;
                 _pendingInvites.Remove((uint)invitationId);
             }
         }
 
+        if (inviterId == 0)
+            return;
+
         var inviter = WorldManager.Instance.GetCharacterById(inviterId);
         inviter?.SendPacket(new SCRefuseSquadInvitationPacket(character.Id, refuseType));
-        BroadcastToSquadMembers(squadId > 0 ? (uint)squadId : 0,
+        var broadcastSquadId = resolvedSquadId != 0 ? resolvedSquadId : (squadId > 0 ? (uint)squadId : 0u);
+        BroadcastToSquadMembers(broadcastSquadId,
             new SCRefuseSquadInvitationPacket(character.Id, refuseType));
     }
 

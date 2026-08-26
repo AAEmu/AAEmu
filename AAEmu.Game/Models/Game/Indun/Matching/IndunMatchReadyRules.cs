@@ -62,4 +62,12 @@ public static class IndunMatchReadyRules
 
     public static int AcceptedCount(IReadOnlyList<IndunMatchApplicant> members) =>
         members.Count(m => m.Accepted && !m.Declined);
+
+    /// <summary>
+    /// Whether a freshly built prepared copy may be published onto the session. Concurrent withdraw
+    /// can finish the session while <c>PrepareInstance</c> is still running; attaching the copy
+    /// after that orphans world/ZoneHost capacity with no session left to discard it.
+    /// </summary>
+    public static bool CanPublishPrepared(IndunMatchPhase phase, bool sessionStillRegistered) =>
+        phase == IndunMatchPhase.Preparing && sessionStillRegistered;
 }

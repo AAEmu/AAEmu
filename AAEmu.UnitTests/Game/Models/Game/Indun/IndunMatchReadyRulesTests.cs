@@ -131,4 +131,17 @@ public class IndunMatchReadyRulesTests
         };
         await Assert.That(IndunMatchReadyRules.AllActiveAccepted(members)).IsFalse();
     }
+
+    [Test]
+    public async Task CanPublishPrepared_OnlyWhileSessionStillPreparing()
+    {
+        await Assert.That(IndunMatchReadyRules.CanPublishPrepared(IndunMatchPhase.Preparing, true))
+            .IsTrue();
+        await Assert.That(IndunMatchReadyRules.CanPublishPrepared(IndunMatchPhase.Preparing, false))
+            .IsFalse();
+        await Assert.That(IndunMatchReadyRules.CanPublishPrepared(IndunMatchPhase.Done, true))
+            .IsFalse();
+        await Assert.That(IndunMatchReadyRules.CanPublishPrepared(IndunMatchPhase.Inviting, true))
+            .IsFalse();
+    }
 }
