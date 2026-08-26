@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -67,6 +68,23 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         var skillResultErrorValue = 0u;
         Skill skill = null;
 
+        void SendSkillFailIfNeeded()
+        {
+            if (skillResult == SkillResult.Success)
+                return;
+
+            // It actually sends a skill started packet, but not a skill fired or stopped
+            var scSkillStartedPacket = new SCSkillStartedPacket(skillId, 0, skillCaster, skillCastTarget, skill, skillObject)
+            {
+                RealCastTimeDiv10 = 0,
+                BaseCastTimeDiv10 = 0
+            };
+            // ExtraData at the end of the packet is used to mark a use error
+            scSkillStartedPacket.SetSkillResult(skillResult);
+            scSkillStartedPacket.SetResultUInt(skillResultErrorValue);
+            Connection.ActiveChar.SendPacket(scSkillStartedPacket);
+        }
+
         if (skillCaster is SkillCasterUnit scu)
         {
             var unit = world.GetUnit(scu.ObjId);
@@ -84,6 +102,18 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             var mate = caster as Mate;
             var slave = caster as Slave;
             var mountAttachedSkill = 0u;
+
+            if (slave != null && Connection.ActiveChar != null
+                && AAEmu.Game.Weather.StormShipLogic.TryBlockMountOrSlaveSkill(
+                    world, skillId, slave, out var blockResult, out var blockErrorValue))
+            {
+                skillResult = blockResult;
+                skillResultErrorValue = blockErrorValue;
+                // Otherwise the skill press can feel like "nothing happens" client-side.
+                Connection.ActiveChar.SendErrorMessage(ErrorMessageType.NotReady, 0, true);
+                SendSkillFailIfNeeded();
+                return;
+            }
 
             if (mate != null || slave != null)
             {
@@ -166,18 +196,6 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
             skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false, out skillResultErrorValue);
         }
-
-        if (skillResult != SkillResult.Success)
-        {
-            // It actually sends a skill started packet, but not a skill fired or stopped
-            var scSkillStartedPacket = new SCSkillStartedPacket(skillId, 0, skillCaster, skillCastTarget, skill, skillObject)
-            {
-                RealCastTimeDiv10 = 0, BaseCastTimeDiv10 = 0
-            };
-            // ExtraData at the end of the packet is used to mark a use error
-            scSkillStartedPacket.SetSkillResult(skillResult);
-            scSkillStartedPacket.SetResultUInt(skillResultErrorValue);
-            Connection.ActiveChar.SendPacket(scSkillStartedPacket);
-        }
+        SendSkillFailIfNeeded();
     }
 }

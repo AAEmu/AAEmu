@@ -771,7 +771,8 @@ public class Doodad : BaseUnit
         var stop = DoPhaseFuncs(caster, ref nextPhase);
 
         // the phase change packet call must be after the phase functions to have the correct FuncGroupId in the packet
-        BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true); // change the phase to display doodad
+        if (!_deleted)
+            BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true); // change the phase to display doodad
 
         return stop; // if true, it did not pass the check for the quest (it must be aborted)
     }

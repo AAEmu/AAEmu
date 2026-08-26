@@ -1234,6 +1234,14 @@ public class SpawnManager(WorldInstance parentWorld)
         return DoodadSpawners.Values.Where(ds => chestTemplateIds.Contains(ds.RespawnDoodadTemplateId) || chestTemplateIds.Contains(ds.UnitId)).ToList();
     }
 
+    public List<DoodadSpawner> GetDoodadSpawnersByUnitId(uint unitId)
+    {
+        lock (_lockSpawner)
+        {
+            return DoodadSpawners.Values.Where(ds => ds.UnitId == unitId).ToList();
+        }
+    }
+
     public void DeleteAllSpawners()
     {
         // First remove all owned spawns and disable the spawner

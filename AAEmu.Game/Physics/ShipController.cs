@@ -164,8 +164,8 @@ public class ShipController(World world, ShipModelV1 shipModel)
 
     private static (float wx, float wy) GetOpenSeaWind(Slave slave)
     {
-        var model = AppConfiguration.Instance.World?.WindModel ?? WorldConfig.WindModelType.Official;
-        return model == WorldConfig.WindModelType.Official
+        var model = AppConfiguration.Instance.World?.WindModel ?? WindModelType.Official;
+        return model == WindModelType.Official
             ? GetOpenSeaWindFromGameClockOfficial()
             : GetOpenSeaWindFromGameClockRealistic();
     }
@@ -220,7 +220,7 @@ public class ShipController(World world, ShipModelV1 shipModel)
     /// <summary>Multiplier for max speed from wind; depends on <see cref="ResolveShipWindProfile"/>.</summary>
     private static float GetWindSpeedMul(Slave slave, float bowRad)
     {
-        var model = AppConfiguration.Instance.World?.WindModel ?? WorldConfig.WindModelType.Official;
+        var model = AppConfiguration.Instance.World?.WindModel ?? WindModelType.Official;
 
         var profile = ResolveShipWindProfile(slave);
         if (profile == ShipWindProfile.None)
@@ -232,7 +232,7 @@ public class ShipController(World world, ShipModelV1 shipModel)
         var dotBow = fwdX * wx + fwdZ * wy;
         var dotMove = Math.Abs(slave.Speed) < 0.01f ? dotBow : MathF.Sign(slave.Speed) * dotBow;
 
-        if (model == WorldConfig.WindModelType.Official)
+        if (model == WindModelType.Official)
         {
             if (slave.Template.SlaveKind is not (SlaveKind.SmallSailingShip or SlaveKind.BigSailingShip or SlaveKind.Fishboat))
                 return 1f;

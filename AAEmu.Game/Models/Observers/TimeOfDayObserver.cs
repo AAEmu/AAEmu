@@ -1,5 +1,6 @@
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Weather;
 
 namespace AAEmu.Game.Models.Observers;
 
@@ -17,6 +18,7 @@ public class TimeOfDayObserver(Character owner) : IObserver<float>
 
     public void OnNext(float value)
     {
-        owner.SendPacket(new SCTimeOfDayPacket(value));
+        var tod = StormShipLogic.ResolveClientTimeOfDayHours(owner) ?? value;
+        owner.SendPacket(new SCTimeOfDayPacket(tod));
     }
 }
