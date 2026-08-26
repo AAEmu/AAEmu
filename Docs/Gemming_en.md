@@ -171,7 +171,7 @@ the activation mask).
 ## 7. What the window needs to hear
 
 `SCItemSocketingLunagemResultPacket` - the client calls it `SCItemSocketingResultPacket`.
-Field order and widths come from the client's own serializer (x2game.dll rva `0xa9c530`),
+Field order and widths come from the client's own serializer ,
 which names each value as it writes it:
 
 ```

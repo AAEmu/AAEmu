@@ -7,7 +7,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// Result of seating or clearing a lunagem. The client calls it <c>SCItemSocketingResultPacket</c>.
 /// </summary>
 /// <remarks>
-/// Field order and widths come from the client's own serializer (x2game.dll rva 0xa9c530), which
+/// Field order and widths come from the client's own serializer , which
 /// names each value as it writes it: <c>result</c> (u8), <c>itemId</c> (u64), <c>type</c> (u32),
 /// <c>kind</c> (u8) and <c>success</c> (bool).
 /// <para>

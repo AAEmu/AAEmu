@@ -5,7 +5,7 @@
     "Enabled": true,
     "Executable": "/path/to/Bin64/AAEmu.ZoneHost.exe",
     "WorkingDirectory": "/path/to/Bin64",
-    "NativeDll": "/path/to/Bin64/x2game-dev_dedicate.dll",
+    "NativeDll": "/path/to/Bin64/zone_native.dll",
     "RuntimeLogRoot": "/path/to/AAEmuRuntime/ZoneManager",
     "WarmPool": {
       "Enabled": false,

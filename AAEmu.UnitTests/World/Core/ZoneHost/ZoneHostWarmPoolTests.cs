@@ -134,7 +134,7 @@ public class ZoneHostWarmSupervisorTests
             Enabled = true,
             Executable = Path.Combine(Path.GetTempPath(), "AAEmu.ZoneHost.exe"),
             WorkingDirectory = Path.GetTempPath(),
-            NativeDll = Path.Combine(Path.GetTempPath(), "x2game-dev_dedicate.dll"),
+            NativeDll = Path.Combine(Path.GetTempPath(), "zone_native.dll"),
             SvPortBase = 65100,
             WarmPool = new ZoneHostWarmPoolConfig
             {

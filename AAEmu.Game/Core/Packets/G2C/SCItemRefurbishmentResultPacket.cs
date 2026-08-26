@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// </summary>
 /// <remarks>
 /// Field order and widths come from the 10.0.2.13 client's generated serializer
-/// (x2game.dll rva 0xab5a50), which names each value as it writes it:
+/// , which names each value as it writes it:
 /// <c>result</c> (i8), the item struct, then an i32 and two i16 that the center message reads back
 /// as the before/after scale. The i32 sits between the item and the two scales and is not surfaced
 /// to Lua; the polish skill's own kind (1 = weapon, 2 = armor) is what fits there.

@@ -388,7 +388,7 @@ Notes that cost time once:
 - `addCount` is the reader's only length for the trailing run; it must match.
 - The detail goes out on its **own** packet. The `UpdateDetail` item task carries an array
   the client does not decode as a detail, which leaves the item drawn as broken until relog.
-- The shared modifier serializer (x2game.dll rva `0xab0ee0`) reads `attr` i16, `type` i8,
+- The shared modifier serializer  reads `attr` i16, `type` i8,
   `value` u32 - the same element in both result packets.
 
 ---

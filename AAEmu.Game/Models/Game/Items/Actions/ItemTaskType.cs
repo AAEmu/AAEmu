@@ -7,9 +7,9 @@ namespace AAEmu.Game.Models.Game.Items.Actions;
 /// <remarks>
 /// <para>
 /// Every value here is read out of 10.0.2.13's own task-name table, which the client fills one entry
-/// at a time in a single function (rva 0xb5a010; the slots are 0x28 bytes apart, so the entry's
-/// offset divided by 0x28 is the value). Do not renumber by intuition - the table diverges from the
-/// numbering AAEmu inherited from index 18 upward, and the drift grows to seven by the end.
+/// at a time in a single function (slots are a fixed stride apart, so the entry's offset divided by
+/// that stride is the value). Do not renumber by intuition - the table diverges from the numbering
+/// AAEmu inherited from index 18 upward, and the drift grows to seven by the end.
 /// </para>
 /// <para>
 /// That drift was not cosmetic. <see cref="SkillReagents"/> was 40, which this client reads as

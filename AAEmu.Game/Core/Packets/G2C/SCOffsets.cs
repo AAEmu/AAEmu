@@ -694,7 +694,7 @@ public static class SCOffsets
     public const ushort SCItemSmeltingResultPacket = 0xCF;
     public const ushort SCItemSocketingResultPacket = 0xCA;
     // 10.0.2.13, read out of the client's server-to-client handler table: the slot for opcode N sits
-    // at table+8+N*8 and its "registered" flag at table+0x1ce0+N. Verified against the entries that
+    // at table+8+N*8 and its "registered" flag at table+0x1ce0+N. Matches the entries that
     // were already known here (0xC9, 0xCA, 0xCF, 0xD0, 0x359 all resolve to the same values).
     public const ushort SCItemRefurbishmentResultPacket = 0xCC; // Tempering
     public const ushort SCItemEvolvingResultPacket = 0xCD; // Synthesis

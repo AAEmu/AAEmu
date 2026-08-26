@@ -14,7 +14,7 @@ public class ZoneHostCommandLineTests
             {
                 Executable = Path.Combine(Path.GetTempPath(), "AAEmu.ZoneHost.exe"),
                 WorkingDirectory = Path.GetTempPath(),
-                NativeDll = Path.Combine(Path.GetTempPath(), "x2game-dev_dedicate.dll"),
+                NativeDll = Path.Combine(Path.GetTempPath(), "zone_native.dll"),
                 WorldIp = "127.0.0.1",
                 WorldPort = 1240,
                 DbLocation = "game/db/game_decrypted.sqlite3",
@@ -33,7 +33,7 @@ public class ZoneHostCommandLineTests
         await Assert.That(spec.Arguments).Contains("+sv_port");
         await Assert.That(spec.Arguments).Contains("65003");
         await Assert.That(spec.Environment[ZoneHostCommandLine.DllEnvironment])
-            .Contains("x2game-dev_dedicate.dll");
+            .Contains("zone_native.dll");
         await Assert.That(spec.Executable.Contains("AAchina", StringComparison.OrdinalIgnoreCase)).IsFalse();
     }
 
@@ -123,7 +123,7 @@ public class ZoneHostSupervisorTests
             Enabled = true,
             Executable = Path.Combine(Path.GetTempPath(), "AAEmu.ZoneHost.exe"),
             WorkingDirectory = Path.GetTempPath(),
-            NativeDll = Path.Combine(Path.GetTempPath(), "x2game-dev_dedicate.dll"),
+            NativeDll = Path.Combine(Path.GetTempPath(), "zone_native.dll"),
             SvPortBase = 65000
         };
         var supervisor = new ZoneHostSupervisor(
@@ -155,7 +155,7 @@ public class ZoneHostSupervisorTests
             Enabled = true,
             Executable = Path.Combine(Path.GetTempPath(), "AAEmu.ZoneHost.exe"),
             WorkingDirectory = Path.GetTempPath(),
-            NativeDll = Path.Combine(Path.GetTempPath(), "x2game-dev_dedicate.dll")
+            NativeDll = Path.Combine(Path.GetTempPath(), "zone_native.dll")
         };
         var supervisor = new ZoneHostSupervisor(
             config,
@@ -191,8 +191,8 @@ public class ZoneHostWin32Tests
     public async Task BuildEnvironmentBlock_IncludesOverlayKeys()
     {
         var block = ZoneHostWin32.BuildEnvironmentBlock(
-            new Dictionary<string, string> { ["AAEMU_ZONE_DLL"] = "x2game-dev_dedicate.dll" });
+            new Dictionary<string, string> { ["AAEMU_ZONE_DLL"] = "zone_native.dll" });
         var text = System.Text.Encoding.Unicode.GetString(block);
-        await Assert.That(text).Contains("AAEMU_ZONE_DLL=x2game-dev_dedicate.dll");
+        await Assert.That(text).Contains("AAEMU_ZONE_DLL=zone_native.dll");
     }
 }

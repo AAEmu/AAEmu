@@ -5,7 +5,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
 /// Account payment state. Field order, offsets and widths verified against the 10.0.2.13 client's
-/// serializer at rva 0xc512a0, which names each value as it reads it:
+/// client serializer, which names each value as it reads it:
 /// payMethod (+0x10, int32), payLocation (+0x14, int32), payStart (+0x18, DateTime),
 /// payEnd (+0x20, DateTime), realPayTime (+0x28, int64), buyPremiumCount (+0x30, int32).
 /// </summary>

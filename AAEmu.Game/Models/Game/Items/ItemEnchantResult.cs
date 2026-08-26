@@ -3,7 +3,7 @@ namespace AAEmu.Game.Models.Game.Items;
 /// <summary>
 /// Result code shared by regrade, tempering and the tempering broadcast. The client exports these to
 /// Lua as <c>IGER_*</c>; the values below were read out of the 10.0.2.13 client's Lua constant
-/// registration (x2game.dll rva 0x1a9f00-0x1aa300), where each name is bound to a float literal.
+/// registration (the client serializer-0x1aa300), where each name is bound to a float literal.
 /// </summary>
 /// <remarks>
 /// Note the gap: 6 is registered by the client but carries no exported name.

@@ -18,7 +18,7 @@ public enum ItemFlag : byte
     /// <remarks>
     /// Confirmed against the client: the tooltip field <c>isEnchantDisable</c> is built by testing
     /// bit 0x40 of the item's flags byte, at struct+0xd right behind id, templateId and grade
-    /// (x2game.dll rva 0x572a44 and 0x794b2f). The same routine emits <c>securityState</c> from the
+    /// (the client serializer and 0x794b2f). The same routine emits <c>securityState</c> from the
     /// neighbouring bits, which is what anchors the offset.
     /// </remarks>
     EnchantDisabled = 0x40

@@ -62,7 +62,7 @@ untempered and the ceiling is the template's `MaxEnchantScaleId`.
 
 On the wire it rides the u16 the detail serializer only calls `type`, at detail struct
 `+0x3c`. The awakening preview reads that same word as a scale - it compares it against a
-bound and clamps it to build the "+3 > +5" line (x2game.dll rva `0x12d8af` / `0x12d948`),
+bound and clamps it to build the "+3 > +5" line ,
 which is what both a generic `type` name and a 0-31 row id fit.
 
 > The v1.2 layout put a **rune id** in that word instead. A template id does not survive

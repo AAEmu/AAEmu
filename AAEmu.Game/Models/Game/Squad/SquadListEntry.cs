@@ -5,7 +5,7 @@ namespace AAEmu.Game.Models.Game.Squad;
 
 /// <summary>
 /// One recruit-board / create-ack row. Wire layout locked from client
-/// <c>X2::SquadBase</c> reader <c>sub_39BD3680</c> (mask 0x0F).
+/// SquadBase reader <c>the client reader0</c> (mask 0x0F).
 /// </summary>
 public class SquadListEntry : PacketMarshaler
 {

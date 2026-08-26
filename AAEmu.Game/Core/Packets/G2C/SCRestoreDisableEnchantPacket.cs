@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// <see cref="ItemGradeEnchantResult.RestoreDisable"/>.
 /// </summary>
 /// <remarks>
-/// Layout from the 10.0.2.13 serializer (x2game.dll rva 0xab5950): the item struct followed by two
+/// Layout from the 10.0.2.13 serializer : the item struct followed by two
 /// bytes at struct+0xe0 and +0xe1.
 /// </remarks>
 public class SCRestoreDisableEnchantPacket(Item item, byte type1, byte type2)

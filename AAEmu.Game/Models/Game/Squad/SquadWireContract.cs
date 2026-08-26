@@ -82,9 +82,9 @@ namespace AAEmu.Game.Models.Game.Squad;
 
 ///
 
-/// SquadBase (DP payload, reader sub_39BD3680, mask 0x0F). Lua listInfo fields are built client-side
+/// SquadBase (DP payload, SquadBase reader0, mask 0x0F). Lua listInfo fields are built client-side
 
-/// in sub_391DD110; several are NOT on the wire (isMySquad, buttonEnable, buttonType).
+/// in the client reader0; several are NOT on the wire (isMySquad, buttonEnable, buttonType).
 
 /// ownerName / worldName resolve via the member keys and the leader lookup (+120).
 

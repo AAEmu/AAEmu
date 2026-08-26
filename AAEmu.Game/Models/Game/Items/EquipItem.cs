@@ -37,7 +37,7 @@ public class EquipItem : Item
     /// <remarks>
     /// Rides the u16 the detail serializer only calls <c>type</c>, at struct+0x3c. The awakening
     /// preview reads that same word as a scale - it compares it against a bound and runs it through
-    /// a clamp to build the "+3 ▶ +5" line (x2game.dll rva 0x12d8af / 0x12d948) - which is what a
+    /// a clamp to build the "+3 ▶ +5" line  - which is what a
     /// generic <c>type</c> name and a 0-31 row id both fit. The 1.2 layout put a rune id here
     /// instead; see <see cref="RuneId"/> for where that went.
     /// </remarks>
@@ -122,15 +122,15 @@ public class EquipItem : Item
     /// <para>
     /// The client's equipment detail struct has four standalone dwords, at struct +0x01, +0x08,
     /// +0x14 and +0x40, followed by nine socket dwords from +0x18 and five more from +0x44; the
-    /// codec emits them as slots 0-3, 4-12 and 13-17 in that order (x2game.dll rva 0xa3ce35). Slot 0
+    /// codec emits them as slots 0-3, 4-12 and 13-17 in that order . Slot 0
     /// is the image item and slot 2 the dye, both already established.
     /// </para>
     /// <para>
     /// Slot 3 is the synthesis experience and slots 13 to 17 are its effect lines. The experience is
     /// nailed down: the detail struct starts at
-    /// item+0x20 (the item serializer hands it <c>lea rcx,[rsi+0x20]</c> at rva 0xa3d437), and the
+    /// item+0x20 (the item serializer hands that offset as the detail base), and the
     /// tooltip builds its <c>minExp</c> line from <c>dword [item+0x60]</c> - the same dword
-    /// (rva 0x78cdac). That is the left half of the "EXP 1234/5000" line the synthesis tooltip
+    /// . That is the left half of the "EXP 1234/5000" line the synthesis tooltip
     /// shows. The right half is not stored per item at all: the client keys
     /// item_rnd_attr_category_properties by the item's own grade and reads <c>req_exp</c> off it, so
     /// the synthesis grade IS <see cref="Item.Grade"/> and nothing extra needs saving for it.

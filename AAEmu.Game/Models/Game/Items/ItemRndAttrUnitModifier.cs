@@ -4,7 +4,7 @@ namespace AAEmu.Game.Models.Game.Items;
 /// One rolled random attribute on a synthesised ("evolving") item.
 /// </summary>
 /// <remarks>
-/// This is the element the client's shared modifier serializer (x2game.dll rva 0xab0ee0) reads:
+/// This is the element the client's shared modifier serializer  reads:
 /// <c>attr</c> as i16, <c>type</c> as i8 and <c>value</c> as u32, in that order. Both the synthesis
 /// result and the effect-swap result embed a run of these.
 /// </remarks>

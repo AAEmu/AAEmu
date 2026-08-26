@@ -215,7 +215,7 @@ entry already in that slot. Pairing it with a removal - the obvious way to expre
 became something else" - **destroys the item instead**: `Seize` names the id in its remove
 field, and the client acts on that whatever follows it in the same packet.
 
-**The result packet's shape** (10.0.2.13 serializer, x2game.dll rva `0xab59b0`): two item
+**The result packet's shape** (10.0.2.13 serializer, the client serializer): two item
 structs back to back (the second at struct `+0xe0`, directly after the first), an i32 at
 `+0x1b4`, and the `result` byte last. The client turns it into
 `ITEM_CHANGE_MAPPING_RESULT(result, oldGrade, oldGearScore, itemLink, bonusRate)` - the

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// breakRewardItemCount, breakRewardByMail)</c>.
 /// </summary>
 /// <remarks>
-/// Layout from the 10.0.2.13 serializer (x2game.dll rva 0xab5840): <c>result</c> (i8), the item, the
+/// Layout from the 10.0.2.13 serializer : <c>result</c> (i8), the item, the
 /// two grades (i8 each), then an i32 item type and <c>breakRewardItemCount</c> (u32) and
 /// <c>breakRewardByMail</c> (bool). Those last three used to be missing here, which left the client
 /// reading past the end of the packet for the compensation a broken item pays out.

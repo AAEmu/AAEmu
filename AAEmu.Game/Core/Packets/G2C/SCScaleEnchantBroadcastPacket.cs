@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// <c>SCALE_ENCHANT_BROADCAST(characterName, resultCode, itemLink, oldScale, newScale)</c>.
 /// </summary>
 /// <remarks>
-/// Layout from the 10.0.2.13 serializer (x2game.dll rva 0xab5df0): <c>charName</c> (string, 0x80
+/// Layout from the 10.0.2.13 serializer : <c>charName</c> (string, 0x80
 /// cap), <c>result</c> (i8), the item struct, then the two i16 scales. Same shape as
 /// <see cref="SCGradeEnchantBroadcastPacket"/> except the trailing pair is 16-bit.
 /// </remarks>

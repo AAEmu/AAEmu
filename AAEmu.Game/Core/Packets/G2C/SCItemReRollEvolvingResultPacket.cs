@@ -9,7 +9,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// dialog shows the two modifiers side by side as before → after.
 /// </summary>
 /// <remarks>
-/// Layout from the 10.0.2.13 serializer (x2game.dll rva 0xab5c40): <c>itemId</c> (i64),
+/// Layout from the 10.0.2.13 serializer : <c>itemId</c> (i64),
 /// <c>type</c> (i8), <c>changeAttr</c> (bool), then two single modifier structs - the one being
 /// replaced and the one rolled in its place.
 /// </remarks>
