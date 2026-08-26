@@ -23,3 +23,4 @@ publish/
 .env
 _test_obj/
 artifacts/
+*.bak-*
