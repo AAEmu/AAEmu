@@ -252,7 +252,8 @@ public class Skill
 
         // TODO: Remove exception for doodads
         // TODO: Remove exceptions for slave initiated by Doodads (needed to fix repair points on ships)
-        if (targetDist > maxRangeCheck && target is not Doodad && target is not Slave)
+        // Position-targeted skills may legitimately have MaxRange=0 (they're effectively "self" at a point).
+        if (targetDist > maxRangeCheck && maxRangeCheck > 0f && target is not Doodad && target is not Slave)
         {
             SkillTlIdManager.ReleaseId(TlId);
             TlId = 0;

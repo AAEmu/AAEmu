@@ -165,7 +165,9 @@ public class Gimmick : Unit
         }
 
         var skillTemplate = SkillManager.Instance.GetSkillTemplate(skillId);
-        var caster = ParentWorld.GetUnit(SpawnerUnitId);
+        // Prefer the original spawner as caster so relation/faction damage filtering works correctly.
+        // Range checks are handled elsewhere for position-targeted skills with MaxRange=0.
+        BaseUnit caster = ParentWorld?.GetUnit(SpawnerUnitId) ?? this;
         var skillCaster = new SkillDoodad(ObjId);
         var skillCastTarget = new SkillCastPositionTarget
         {
@@ -184,6 +186,8 @@ public class Gimmick : Unit
 
         BroadcastPacket(new SCChatMessagePacket(ChatType.System, $"Gimmick {ObjId} used skill {skillId}"), false);
     }
+
+    public void TriggerSkill(uint skillId) => DoGimmickSkill(skillId);
 
     public void GimmickTick(TimeSpan delta)
     {
@@ -204,8 +208,11 @@ public class Gimmick : Unit
 
         var deltaTime = (float)delta.TotalSeconds;
         var deltaPosition = Transform.World.Position - LastPos;
-        Vel = deltaPosition * deltaTime;
-        AngVel = new Vector3(0f, 0f, 0f);
+        if (MovementHandler == null)
+        {
+            Vel = deltaTime > 0f ? (deltaPosition / deltaTime) : Vector3.Zero;
+            AngVel = new Vector3(0f, 0f, 0f);
+        }
 
         // Time += (uint)delta.Milliseconds;
         Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
