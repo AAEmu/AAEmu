@@ -18,6 +18,7 @@ public class WorldSetSubCommand : SubCommandBase
         Register(new WorldSetAutosaveintervalSubCommand(), "autosaveinterval", "auto_save_interval", "asi");
         Register(new WorldSetLogoutmessageSubCommand(), "logoutmessage", "logout_message", "lm");
         Register(new WorldSetGeodatamodeSubCommand(), "geodatamode", "geo_data_mode", "gdm", "geodata", "geo_data", "gd");
+        Register(new WorldSetFloorsourceSubCommand(), "floorsource", "floor_source", "fs");
         Register(new WorldSetMotdmessageSubCommand(), "motd");
     }
 }

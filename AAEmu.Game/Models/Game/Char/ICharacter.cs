@@ -4,6 +4,7 @@ using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Char;
@@ -41,4 +42,6 @@ public interface ICharacter : IUnit
     public void SetLogoutMessage(string value);
     public void SetMotdMessage(string value);
     public void SetGeoDataMode(bool value);
+    public void SetFloorSource(FloorSourceMode value);
+    public void SetFloorDebug(bool value);
 }

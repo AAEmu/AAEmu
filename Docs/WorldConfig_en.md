@@ -70,7 +70,17 @@ Example:
 
 ### `GeoDataMode`
 - **Type**: `boolean`
-- **Description**: Enables loading GeoData/NavMesh (dungeons/navigation).
+- **Description**: Enables loading GeoData/NavMesh and A* pathfinding. Does **not** select floor height — see `FloorSource`.
+
+### `FloorSource`
+- **Type**: `string` (`TerrainFirst` | `Legacy`)
+- **Default**: `TerrainFirst`
+- **Description**: Floor Z policy for units. `TerrainFirst` uses heightmap Blerp outdoors (and nav-surface in zone/.bai worlds). `Legacy` prefers nearest `.bai` node (pre-split behavior; rollback for floating-NPC debugging). Independent of `GeoDataMode`.
+
+### `FloorDebug`
+- **Type**: `boolean`
+- **Default**: `false`
+- **Description**: When `true`, FloorQuery writes a Debug log line per sample (`src` / terrain / nav / floor).
 
 ### `PreLoadTerrain`
 - **Type**: `boolean`

@@ -591,6 +591,16 @@ public class Unit : BaseUnit, IUnit
     {
         AppConfiguration.Instance.World.GeoDataMode = value;
     }
+
+    public void SetFloorSource(FloorSourceMode value)
+    {
+        AppConfiguration.Instance.World.FloorSource = value;
+    }
+
+    public void SetFloorDebug(bool value)
+    {
+        AppConfiguration.Instance.World.FloorDebug = value;
+    }
     public void SetGodMode(bool value)
     {
         AppConfiguration.Instance.World.GodMode = value;

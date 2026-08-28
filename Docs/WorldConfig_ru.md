@@ -70,7 +70,17 @@
 
 ### `GeoDataMode`
 - **Тип**: `boolean`
-- **Описание**: включает загрузку GeoData/NavMesh (используется для данжей и навигации).
+- **Описание**: включает загрузку GeoData/NavMesh и A* pathfinding. **Не** выбирает источник высоты пола — см. `FloorSource`.
+
+### `FloorSource`
+- **Тип**: `string` (`TerrainFirst` | `Legacy`)
+- **По умолчанию**: `TerrainFirst`
+- **Описание**: политика Floor Z. `TerrainFirst` — heightmap Blerp в open world (и nav-surface в zone/.bai). `Legacy` — ближайшая вершина `.bai` (старое поведение; откат). Независимо от `GeoDataMode`.
+
+### `FloorDebug`
+- **Тип**: `boolean`
+- **По умолчанию**: `false`
+- **Описание**: если `true`, FloorQuery пишет Debug-строку на каждый sample.
 
 ### `PreLoadTerrain`
 - **Тип**: `boolean`
