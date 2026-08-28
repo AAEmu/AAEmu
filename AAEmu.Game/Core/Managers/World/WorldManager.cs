@@ -758,31 +758,20 @@ public class WorldManager(
     /// <returns></returns>
     public float GetHeight(uint zoneKey, float x, float y, float z)
     {
-        // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
-        var height = 0f;
         var world = GetWorldTemplateByZoneKey(zoneKey);
+        if (world?.Floor != null)
+            return world.Floor.GetFloor(x, y, z, FloorContext.Move);
 
+        // Fallback if FloorQuery was not wired (should not happen after world load)
+        var height = 0f;
         if (AppConfiguration.Instance.World.GeoDataMode)
-        {
-            var position = new Vector3(x, y, z);
-            height = world?.GeoData.GetHeight(position) ?? height;
-        }
+            height = world?.GeoData.GetHeight(new Vector3(x, y, z)) ?? height;
 
         if (height != 0f || !AppConfiguration.Instance.HeightMapsEnable)
-        {
             return height;
-        }
 
-        try
-        {
-            height = world?.GetHeight(x, y) ?? 0f;
-        }
-        catch
-        {
-            height = 0f;
-        }
-
-        return height;
+        try { return world?.GetHeight(x, y) ?? 0f; }
+        catch { return 0f; }
     }
 
     /// <summary>
@@ -792,31 +781,27 @@ public class WorldManager(
     /// <returns>Height at target world transform, or transform.World.Position.Z if no heightmap could be found</returns>
     public float GetHeight(Transform transform)
     {
-        // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
-        var height = 0f;
         var world = GetWorld(transform.InstanceId);
         if (world == null)
-        {
-            return height;
-        }
-        if (AppConfiguration.Instance.World.GeoDataMode)
-        {
-            height = world.Template.GeoData?.GetHeight(transform.World.Position) ?? 0f;
-        }
+            return 0f;
 
-        // check, as there is no geodata for main_world yet
+        if (world.Template.Floor != null)
+            return world.Template.Floor.GetFloor(
+                transform.World.Position.X,
+                transform.World.Position.Y,
+                transform.World.Position.Z,
+                FloorContext.Move);
+
+        var height = 0f;
+        if (AppConfiguration.Instance.World.GeoDataMode)
+            height = world.Template.GeoData?.GetHeight(transform.World.Position) ?? 0f;
+
         if (height == 0f)
         {
             if (AppConfiguration.Instance.HeightMapsEnable)
             {
-                try
-                {
-                    height = world.GetHeight(transform.World.Position.X, transform.World.Position.Y);
-                }
-                catch
-                {
-                    height = transform.World.Position.Z;
-                }
+                try { height = world.GetHeight(transform.World.Position.X, transform.World.Position.Y); }
+                catch { height = transform.World.Position.Z; }
             }
             else
             {

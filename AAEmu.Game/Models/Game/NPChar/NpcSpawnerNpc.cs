@@ -96,7 +96,8 @@ public class NpcSpawnerNpc : Spawner<Npc>
 
         if (!npc.CanFly)
         {
-            var newZ = npcSpawner.ParentWorld.Template.GeoData.GetHeight(npcSpawner.Position.AsPositionVector());// WorldManager.Instance.GetHeight(npcSpawner.Position.ZoneId, npcSpawner.Position.X, npcSpawner.Position.Y, npcSpawner.Position.Z);
+            var spawnPos = npcSpawner.Position.AsPositionVector();
+            var newZ = npcSpawner.ParentWorld.Template.Floor.GetFloor(spawnPos.X, spawnPos.Y, spawnPos.Z, FloorContext.Spawn);
             if (Math.Abs(npcSpawner.Position.Z - newZ) < 1f)
             {
                 npcSpawner.Position.Z = newZ;

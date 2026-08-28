@@ -6,6 +6,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Utils.Scripts;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Scripts.Commands;
 
@@ -72,7 +73,7 @@ public class TestHeight : ICommand
                     };
                     doodadSpawner.Position.X = x;
                     doodadSpawner.Position.Y = y;
-                    doodadSpawner.Position.Z = targetPlayer.ParentWorld.Template.GeoData.GetHeight(doodadSpawner.Position.AsPositionVector());
+                    doodadSpawner.Position.Z = targetPlayer.ParentWorld.Template.Floor.GetFloor(doodadSpawner.Position.X, doodadSpawner.Position.Y, doodadSpawner.Position.Z, FloorContext.Debug);
                     doodadSpawner.Position.Yaw = 0;
                     doodadSpawner.Position.Pitch = 0;
                     doodadSpawner.Position.Roll = 0;
@@ -103,7 +104,7 @@ public class TestHeight : ICommand
                 };
                 doodadSpawner.Position.X = x;
                 doodadSpawner.Position.Y = rY;
-                doodadSpawner.Position.Z = character.ParentWorld.Template.GeoData.GetHeight(doodadSpawner.Position.AsPositionVector());
+                doodadSpawner.Position.Z = character.ParentWorld.Template.Floor.GetFloor(doodadSpawner.Position.X, doodadSpawner.Position.Y, doodadSpawner.Position.Z, FloorContext.Debug);
                 doodadSpawner.Position.Yaw = 0;
                 doodadSpawner.Position.Pitch = 0;
                 doodadSpawner.Position.Roll = 0;
@@ -123,7 +124,7 @@ public class TestHeight : ICommand
                 };
                 doodadSpawner.Position.X = rX;
                 doodadSpawner.Position.Y = y;
-                doodadSpawner.Position.Z = character.ParentWorld.Template.GeoData.GetHeight(doodadSpawner.Position.AsPositionVector());
+                doodadSpawner.Position.Z = character.ParentWorld.Template.Floor.GetFloor(doodadSpawner.Position.X, doodadSpawner.Position.Y, doodadSpawner.Position.Z, FloorContext.Debug);
                 doodadSpawner.Position.Yaw = 0;
                 doodadSpawner.Position.Pitch = 0;
                 doodadSpawner.Position.Roll = 0;

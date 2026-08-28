@@ -2,6 +2,7 @@
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
@@ -68,7 +69,7 @@ public class SpawnDoodad : SpecialEffectAction
                 break;
         }
         var (xx, yy) = MathUtil.AddDistanceToFrontDeg(1f, doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y, rpy.Z + 90f); //  + 90f to Front
-        var zz = doodad.ParentWorld.Template.GeoData.GetHeight(doodad.Transform.World.Position); // WorldManager.Instance.GetHeight(doodad.Transform);
+        var zz = doodad.ParentWorld.Template.Floor.GetFloor(doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y, doodad.Transform.World.Position.Z, FloorContext.Spawn); // WorldManager.Instance.GetHeight(doodad.Transform);
         doodad.SetPosition(xx, yy, zz, rpy.X, rpy.Y, rpy.Z);
         doodad.InitDoodad();
         if (delay > 0)

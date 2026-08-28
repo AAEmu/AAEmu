@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
@@ -22,7 +23,7 @@ public class Height : ICommand
 
     public string GetCommandHelpText()
     {
-        return "Gets your or target's current height and that of the supposed floor (using heightmap data)";
+        return "Gets your or target's Z, FloorQuery result, terrain Blerp, and nearest nav node height";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
@@ -33,8 +34,14 @@ public class Height : ICommand
             targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstArg);
         }
 
-        var floorHeight = WorldManager.Instance.GetHeight(targetPlayer.Transform.ZoneId, targetPlayer.Transform.World.Position.X, targetPlayer.Transform.World.Position.Y, targetPlayer.Transform.World.Position.Z);
-        var navMeshHeight = targetPlayer.ParentWorld.Template.GeoData.GetHeight(targetPlayer.Transform.World.Position); // WorldManager.Instance.GetHeight(targetPlayer.Transform.ZoneId, targetPlayer.Transform.World.Position.X, targetPlayer.Transform.World.Position.Y, targetPlayer.Transform.World.Position.Z);
-        CommandManager.SendNormalText(this, messageOutput, $"{targetPlayer.Name} Z-Pos: {character.Transform.World.Position.Z} - Floor: {floorHeight}, NavMeshHeight: {navMeshHeight}");
+        var pos = targetPlayer.Transform.World.Position;
+        var floorHit = targetPlayer.ParentWorld.Template.Floor.QueryFloor(pos.X, pos.Y, pos.Z, FloorContext.Debug);
+        var terrainZ = targetPlayer.ParentWorld.Template.GetHeight(pos.X, pos.Y);
+        var navNodeZ = targetPlayer.ParentWorld.Template.GeoData.GetHeight(pos);
+
+        CommandManager.SendNormalText(
+            this,
+            messageOutput,
+            $"{targetPlayer.Name} Z={pos.Z:0.###} Floor={floorHit.Z:0.###} ({floorHit.Source}) Terrain={terrainZ:0.###} Nav={navNodeZ:0.###} deltaNav={floorHit.DeltaNav:0.###}");
     }
 }
