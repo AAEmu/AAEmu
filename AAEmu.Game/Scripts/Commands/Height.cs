@@ -42,6 +42,6 @@ public class Height : ICommand
         CommandManager.SendNormalText(
             this,
             messageOutput,
-            $"{targetPlayer.Name} Z={pos.Z:0.###} Floor={floorHit.Z:0.###} ({floorHit.Source}) Terrain={terrainZ:0.###} Nav={navNodeZ:0.###} deltaNav={floorHit.DeltaNav:0.###}");
+            $"{targetPlayer.Name} Z={pos.Z:0.###} Floor={floorHit.Z:0.###} src={floorHit.Source} Terrain={terrainZ:0.###} Nav={navNodeZ:0.###} deltaNav={floorHit.DeltaNav:0.###} deltaTerrain={floorHit.DeltaTerrain:0.###}");
     }
 }

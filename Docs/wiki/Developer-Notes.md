@@ -20,6 +20,25 @@ Operational impact for wiki setup docs is small:
 - No user-facing launch command change beyond existing setup workflows.
 - Main effects are internal maintainability, testability, and startup behavior.
 
+
+## Floor ≠ Path (world height)
+
+`GeoDataMode` loads `.bai` navmesh and enables A* pathfinding only. Floor Z for
+units goes through `WorldTemplate.Floor` (`FloorQuery`), controlled by
+`World.FloorSource`:
+
+- `TerrainFirst` (default): outdoor heightmap Blerp; zone/multi-floor may use NavSurface + `zHint`
+- `Legacy`: nearest `.bai` node (pre-split floating-NPC behavior; rollback)
+
+Opt-in `World.FloorDebug` logs one line per sample. Parse with:
+
+```bash
+bash Scripts/find-floor-mismatch.sh --summary
+```
+
+GM `height` prints Z / Floor / src / Terrain / Nav. Related: config docs
+`Docs/WorldConfig_en.md` / `Docs/WorldConfig_ru.md`.
+
 ## Related
 
 - [Home](Home)
