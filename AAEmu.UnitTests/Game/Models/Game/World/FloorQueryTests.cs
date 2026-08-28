@@ -126,6 +126,46 @@ public class FloorQueryTests
     }
 
     [Test]
+    public async Task QueryFloor_WhenMultiFloor_UsesNavSurfaceWithZHint()
+    {
+        var floor = new FloorQuery(
+            worldTemplate: null,
+            geoHeight: _ => 280f, // wrong floor node
+            terrainHeight: (_, _) => 100f,
+            geoDataEnabled: () => true,
+            heightMapsEnabled: () => true,
+            floorSourceMode: () => FloorSourceMode.TerrainFirst,
+            isMultiFloorWorld: () => true,
+            navSurfaceHeight: (_, zHint) => zHint >= 150f ? 151.2f : 100.5f);
+
+        var upper = floor.QueryFloor(10f, 10f, 152f, FloorContext.Move);
+        await Assert.That(upper.Z).IsEqualTo(151.2f);
+        await Assert.That(upper.Source).IsEqualTo(FloorSource.NavSurface);
+
+        var lower = floor.QueryFloor(10f, 10f, 101f, FloorContext.Move);
+        await Assert.That(lower.Z).IsEqualTo(100.5f);
+        await Assert.That(lower.Source).IsEqualTo(FloorSource.NavSurface);
+    }
+
+    [Test]
+    public async Task QueryFloor_WhenMultiFloorAndNoSurface_FallsBackToTerrain()
+    {
+        var floor = new FloorQuery(
+            worldTemplate: null,
+            geoHeight: _ => 210f,
+            terrainHeight: (_, _) => 133.8f,
+            geoDataEnabled: () => true,
+            heightMapsEnabled: () => true,
+            floorSourceMode: () => FloorSourceMode.TerrainFirst,
+            isMultiFloorWorld: () => true,
+            navSurfaceHeight: (_, _) => null);
+
+        var hit = floor.QueryFloor(10f, 10f, 140f, FloorContext.Move);
+        await Assert.That(hit.Z).IsEqualTo(133.8f);
+        await Assert.That(hit.Source).IsEqualTo(FloorSource.Terrain);
+    }
+
+    [Test]
     public async Task TryProjectOnEdgeXy_Midpoint_ReturnsHalfTAndLerpZ()
     {
         var a = new Vector3(0, 0, 10);
