@@ -17,6 +17,8 @@
         "IgnoreFallDamageAccessLevel": 100,
         "GodMode": false,
         "GeoDataMode": true,
+        "FloorSource": "Legacy",
+        "FloorDebug": false,
         "PreLoadTerrain": false,
         "MaxInstances": 32,
         "TargetPhysicsTps": 25.0,

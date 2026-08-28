@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Models.Game.World;
 // ReSharper disable ClassNeverInstantiated.Global
 
 namespace AAEmu.Game.Models.Game;
@@ -93,9 +94,21 @@ public class WorldConfig
     public bool GodMode { get; set; }
 
     /// <summary>
-    /// Enables the loading of NavMesh data for dungeons
+    /// Enables loading of NavMesh (.bai) data and A* pathfinding.
+    /// Does not select floor height provider — see <see cref="FloorSource"/>.
     /// </summary>
     public bool GeoDataMode { get; set; }
+
+    /// <summary>
+    /// Floor Z policy for units. Independent of <see cref="GeoDataMode"/> (path only).
+    /// Default Legacy matches pre-split nearest-node behavior until TerrainFirst is enabled.
+    /// </summary>
+    public FloorSourceMode FloorSource { get; set; } = FloorSourceMode.Legacy;
+
+    /// <summary>
+    /// When true, FloorQuery writes a single Debug line per sample (src/terrain/nav/floor).
+    /// </summary>
+    public bool FloorDebug { get; set; }
 
     /// <summary>
     /// When false, heightmaps get loaded on-demand only. Should increase boot times and lower memory use

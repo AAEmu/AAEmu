@@ -96,9 +96,14 @@ public class WorldTemplate
     public Dictionary<uint, List<Area>> HousingZones { get; set; } = []; 
 
     /// <summary>
-    /// Handles navmesh data
+    /// Handles navmesh data (pathfinding / .bai). Not the floor-Z authority — see <see cref="Floor"/>.
     /// </summary>
     public AiGeoDataManager GeoData { get; set; }
+
+    /// <summary>
+    /// Floor height queries (terrain / nav surface / legacy). Separate from pathfinding.
+    /// </summary>
+    public FloorQuery Floor { get; set; }
 
     /// <summary>
     /// ZoneKey, BaiLoader

@@ -596,12 +596,14 @@ public class WorldManager(
             _zoneKeysByWorldId[worldTemplate.Id].Add(zoneKey);
         }
 
-        // Navmesh data
+        // Navmesh data (pathfinding). Floor Z is FloorQuery — do not conflate the two.
         worldTemplate.GeoData = new AiGeoDataManager(worldTemplate);
         if (AppConfiguration.Instance.World.GeoDataMode)
         {
             worldTemplate.GeoData.Load();
         }
+
+        worldTemplate.Floor = new FloorQuery(worldTemplate);
 
         // Mark "main_world" as the DefaultWorldId
         if (worldName == "main_world")
