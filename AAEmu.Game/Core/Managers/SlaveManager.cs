@@ -1,5 +1,6 @@
 using System.Numerics;
 
+using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game;
 using AAEmu.Game.Core.Managers.Id;
@@ -20,10 +21,12 @@ using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Tasks.Slave;
+using AAEmu.Game.Utils;
 using MySql.Data.MySqlClient;
 
 using NLog;
@@ -116,7 +119,8 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         lock (_slaveListLock)
         {
             var slaves = World.GetAllSlaves();
-            return slaves.FirstOrDefault(slave => slave.Summoner?.ObjId == objId && !slave.IsDead);
+            return slaves.FirstOrDefault(slave =>
+                slave.Summoner?.ObjId == objId && !slave.IsDead && !slave.IsDespawning);
         }
     }
 
@@ -279,8 +283,12 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         {
             character.BroadcastPacket(
                 new SCSlaveBoundPacket(character.Id, slave.MasterWorldId, objId), true);
-            if (WorldIntegration.ZoneAuthority && slave.Template.IsABoat())
-                WorldIntegration.RelayShipControlChangeToZone?.Invoke(objId, true);
+            // Hulls hand their simulation to the dedicate that Created them; the switch is scheduled
+            // so the seeded pose lands first. Land vehicles are driven by their own client and must
+            // not be armed — EnableBoatSimInZone refuses them.
+            if (WorldIntegration.ZoneAuthority)
+                EnableBoatSimInZone(slave, slave.ZoneAnnouncedTo);
+
             if (occupySkillId > 0 || slave.Template.IsABoat())
                 SlaveOccupyBuffs.ApplyBuffEffects(character, occupySkillId > 0 ? (uint)occupySkillId : 0, slave);
         }
@@ -353,44 +361,69 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             }
         }
 
-        var despawnDelayedTime = DateTime.UtcNow.AddSeconds(slaveInfo.Template.PortalTime - 0.5f);
+        // Mark before the portal window so a replace-summon does not treat this hull as still active.
+        slaveInfo.IsDespawning = true;
 
-        slaveInfo.Transform.DetachAll();
+        var portalSeconds = Math.Max(0.5f, slaveInfo.Template.PortalTime);
 
+        // Keep sails, figureheads and doodads parented for the portal. Detaching them left them
+        // visible in the last cell as standalone units; their ids were then recycled onto the
+        // next hull, and crossing back into that cell re-parented the old kit onto the new ship.
+        // Persistent flags are cleared so finalize's Delete does not wipe the saved slave row.
         foreach (var doodad in slaveInfo.AttachedDoodads)
         {
-            // Note, we un-check the persistent flag here, or else the doodad will delete itself from DB as well
-            // This is not desired for player owned slaves
             if (owner != null)
                 doodad.IsPersistent = false;
-            doodad.Despawn = despawnDelayedTime;
-            World.SpawnManager.AddDespawn(doodad);
-            // doodad.Delete();
         }
 
-        foreach (var attachedSlave in slaveInfo.AttachedSlaves)
-        {
-            lock (_slaveListLock)
-                World.RemoveObject(attachedSlave);
-            attachedSlave.Despawn = despawnDelayedTime;
-            World.SpawnManager.AddDespawn(attachedSlave);
-            //attachedSlave.Delete();
-        }
-
+        // Client plays slaves.portal_despawn_fx_id when success=true and the unit is still streamed.
+        // Withdrawing / hiding in the same tick made the ship vanish instead of sailing into the portal.
         owner?.BroadcastPacket(new SCSlaveDespawnPacket(objId), true);
         owner?.BroadcastPacket(new SCSlaveRemovedPacket(owner.ObjId, slaveInfo.TlId), true);
 
-        // Otherwise the dedicate keeps simulating (and streaming) a hull World no longer has, and the
-        // next summon of the same objId ends up with two owners.
-        WithdrawBoatFromZone(slaveInfo);
+        // Keep the hull in the World object list and streamed until FinalizeBoatDespawn: removing it
+        // here made soft AOI treat the missing id as a leave and send SCUnitsRemoved immediately,
+        // which cancelled the portal fx (ship vanished instead of sailing in). Attachments stay
+        // on the hull and their object ids stay reserved until that finalize.
 
-        lock (_slaveListLock)
+        slaveInfo.Despawn = DateTime.UtcNow.AddSeconds(portalSeconds + 0.5f);
+        World.SpawnManager.AddDespawn(slaveInfo);
+
+        TaskManager.Instance.Schedule(
+            new BoatDespawnFinalizeTask(slaveInfo),
+            TimeSpan.FromSeconds(portalSeconds));
+    }
+
+    /// <summary>
+    /// Zone withdraw of the hull and every attachment, then hide + object-list remove + id
+    /// release after the despawn portal has had time to play.
+    /// </summary>
+    internal static void FinalizeBoatDespawn(Slave slave)
+    {
+        if (slave == null || slave.DespawnFinalized || !slave.IsDespawning)
+            return;
+
+        slave.DespawnFinalized = true;
+
+        WithdrawBoatFromZone(slave);
+        TearDownBoatAttachments(slave);
+
+        var world = slave.ParentWorld;
+        world?.SpawnManager.CancelDespawn(slave);
+        slave.Hide();
+        world?.RemoveObject(slave);
+
+        if (slave.ObjId != 0)
         {
-            World.RemoveObject(slaveInfo);
+            ObjectIdManager.Instance.ReleaseId(slave.ObjId);
+            slave.ObjId = 0;
         }
 
-        slaveInfo.Despawn = DateTime.UtcNow.AddSeconds(slaveInfo.Template.PortalTime + 0.5f);
-        World.SpawnManager.AddDespawn(slaveInfo);
+        if (slave.TlId != 0)
+        {
+            TlIdManager.Instance.ReleaseId(slave.TlId);
+            slave.TlId = 0;
+        }
     }
 
     /// <summary>
@@ -467,7 +500,10 @@ public class SlaveManager(WorldInstance parentWorldInstance)
                 existing.Save();
                 var existingObjId = existing.ObjId;
                 Delete(owner, existingObjId, false);
-                if (GetSlaveByObjId(existingObjId) != null)
+                // Despawn keeps the object listed until the portal finishes; IsDespawning means it is
+                // already out of play for a replace-summon.
+                var leftover = GetSlaveByObjId(existingObjId);
+                if (leftover != null && !leftover.IsDespawning)
                 {
                     Logger.Warn(
                         "Create refused: active slave obj={0} still present for {1}",
@@ -850,21 +886,12 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         summonedSlave.Spawn();
         summonedSlave.PendingSpawnPortal = false;
 
-        // Zone owns ship simulation only. Land vehicles announced via WZUnitState get placed against
-        // zone-local terrain that does not contain world-space units → Z drift / hover. Boats still
-        // need the announce for ServerShipSimulationController.
-        AnnounceBoatToZone(summonedSlave);
-
-        if (WorldIntegration.ZoneAuthority && owner != null && summonedSlave.Template.IsABoat())
-            WorldIntegration.RelaySlaveMasterChangedToZone?.Invoke(summonedSlave.ObjId, owner.Id, 0);
-        #endregion
-
-        // If this was a previously saved slave, load doodads from DB and spawn them
-        if (isLoadedPlayerSlave)
-        {
-            var doodadSpawnCount = World.SpawnManager.SpawnPersistentDoodads(DoodadOwnerType.Slave, (int)summonedSlave.Id, summonedSlave, true);
-            Logger.Debug($"Loaded {doodadSpawnCount} doodads from DB for Slave {summonedSlave.ObjId} (Db: {summonedSlave.Id}");
-        }
+        // The hull's rig has to be on it before the zone is told about it. A zone derives the hull's
+        // speed ceiling, and its health cap, from the attribute values carried by the create it
+        // receives, and it is never sent a second one — so a hull announced before its sail was
+        // accounted for keeps a bare-model ceiling in that zone for as long as it lives there, while
+        // every zone it later crosses into gets a freshly built create and the real figure. That is why
+        // a rigged hull could only make its unbuffed speed in the zone it was summoned in.
 
         // Apply equipped gear (used for future parts customization)
         summonedSlave.UpdateGearBonuses(null, null);
@@ -878,8 +905,17 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             : summonedSlave.MaxHp;
 
         // Parts that were already on the hull when it was stored never pass through OnEnterContainer, so
-        // their item_grade_buffs (sail speed, figurehead skills) have to be re-applied here.
+        // their item_grade_buffs (sail speed, figurehead skills) have to be re-applied here. Applying
+        // them before the announce is safe: the announce replays every live buff to the zone.
         summonedSlave.UpdateEquipmentBuffs(null, null);
+        #endregion
+
+        // If this was a previously saved slave, load doodads from DB and spawn them
+        if (isLoadedPlayerSlave)
+        {
+            var doodadSpawnCount = World.SpawnManager.SpawnPersistentDoodads(DoodadOwnerType.Slave, (int)summonedSlave.Id, summonedSlave, true);
+            Logger.Debug($"Loaded {doodadSpawnCount} doodads from DB for Slave {summonedSlave.ObjId} (Db: {summonedSlave.Id}");
+        }
 
         // Create all remaining doodads that where not previously loaded
         foreach (var doodadBinding in summonedSlave.Template.DoodadBindings)
@@ -1051,6 +1087,13 @@ public class SlaveManager(WorldInstance parentWorldInstance)
 
         // Dock spheres (Moored / Ezi) may already be active on the owner — push them onto the new hull.
         owner?.Quests?.SyncSphereBuffsToOwnedMounts();
+
+        // Create the hull after sails and helm doodads exist so the hosting dedicate receives them
+        // on the same announce. An earlier create left the zone with a hull and no rig.
+        AnnounceBoatToZone(summonedSlave);
+
+        if (WorldIntegration.ZoneAuthority && owner != null && summonedSlave.Template.IsABoat())
+            WorldIntegration.RelaySlaveMasterChangedToZone?.Invoke(summonedSlave.ObjId, owner.Id, 0);
 
         return summonedSlave;
     }
@@ -1286,7 +1329,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
     /// </remarks>
     public static void AnnounceBoatToZone(Slave slave)
     {
-        if (!WorldIntegration.ZoneAuthority || slave?.Template?.IsABoat() != true)
+        if (!WorldIntegration.ZoneAuthority || slave?.Template == null)
             return;
 
         var zoneId = slave.Transform?.ZoneId ?? 0;
@@ -1297,72 +1340,727 @@ public class SlaveManager(WorldInstance parentWorldInstance)
     }
 
     /// <summary>
-    /// Retail zone-authority boat transfer: withdraw old dedicate sim, WZUnitState Create on the new
-    /// one, re-attach passengers, restore helm control if a driver is aboard.
+    /// Moves a hull to the zone that will simulate it without freezing the live simulator.
     /// </summary>
     /// <remarks>
-    /// WZEscapeSlave is only for Rider's Escape — not part of zone handoff or Bind. Create + control
-    /// is the same path as first summon (<see cref="AnnounceBoatToZone"/>).
+    /// The previous dedicate keeps simulating until the new one is armed. Create lands on the new
+    /// zone, then the pose and helm-on are sent together so the body is placed before it simulates.
+    /// Passengers stay on the old hull until that enable commits, then they are handed over and the
+    /// old unit is removed. <c>WZShipControlChange control=0</c> is never sent on this path — that
+    /// flag is the zone's simulation switch, and turning it off is the seam stop. A zone with no host
+    /// cannot take the hull at all, which ends in <see cref="AbandonBoatWithoutZoneHost"/> rather
+    /// than a hull nobody simulates.
     /// </remarks>
     public static void CommitBoatZoneHandoff(Slave slave, uint oldZoneKey, uint newZoneKey)
     {
-        if (!WorldIntegration.ZoneAuthority || slave?.Template?.IsABoat() != true)
+        if (!WorldIntegration.ZoneAuthority || slave?.Template == null)
             return;
 
-        if (newZoneKey == 0 || newZoneKey == slave.ZoneAnnouncedTo)
+        if (newZoneKey == 0)
             return;
 
-        var previousSimZone = slave.ZoneAnnouncedTo != 0 ? slave.ZoneAnnouncedTo : oldZoneKey;
-        if (slave.ZoneAnnouncedTo != 0 && slave.ZoneAnnouncedTo != newZoneKey)
-            WithdrawBoatFromZone(slave);
+        if (newZoneKey == slave.ZoneAnnouncedTo)
+        {
+            if (BoatZoneSimRules.ShouldDropStalePending(
+                    slave.ZoneSimPendingFor, slave.ZoneAnnouncedTo, newZoneKey))
+            {
+                DropHullFromZone(slave, slave.ZoneSimPendingFor);
+            }
+
+            slave.ZoneSimPendingFor = 0;
+            return;
+        }
+
+        // Create + helm-on already went to this dedicate; World is still following the previous one
+        // until the new body reports. Sending another Create would spawn a second hull there.
+        if (newZoneKey == slave.ZoneSimPendingFor)
+            return;
+
+        if (!BoatZoneHostGate.HasHost(
+                newZoneKey,
+                slave.Transform?.InstanceId ?? 0,
+                WorldIntegration.IsZoneLoaded,
+                WorldIntegration.IsZoneInstanceLoaded))
+        {
+            if (slave.ZoneAnnouncedTo == 0)
+            {
+                Logger.Warn(
+                    "No zone host for zone {0}; slave obj={1} was not announced", newZoneKey, slave.ObjId);
+                return;
+            }
+
+            AbandonBoatWithoutZoneHost(slave, newZoneKey);
+            return;
+        }
+
+        var liveZone = slave.ZoneAnnouncedTo != 0 ? slave.ZoneAnnouncedTo : oldZoneKey;
+        if (BoatZoneSimRules.ShouldDropStalePending(slave.ZoneSimPendingFor, liveZone, newZoneKey))
+            DropHullFromZone(slave, slave.ZoneSimPendingFor);
+
+        SyncHullTransformFromZonePose(slave);
 
         var slaveStateBody = WorldIntegration.BuildWzUnitStateBody(slave);
         if (slaveStateBody is not { Length: > 0 })
             return;
 
-        WorldIntegration.RelayUnitStateToZone?.Invoke(newZoneKey, slaveStateBody);
-        slave.ZoneAnnouncedTo = newZoneKey;
+        WorldIntegration.RelayUnitStateToZone?.Invoke(newZoneKey, slave.ObjId, slaveStateBody);
+        if (liveZone == 0)
+            slave.ZoneAnnouncedTo = newZoneKey;
 
-        var hasDriver = slave.AttachedCharacters.ContainsKey(AttachPointKind.Driver);
+        // The new dedicate's ZoneBuffMan only knows buffs from WZBuffCreated packets it received
+        // while hosting this unit (its Create handler is the sole writer of that registry, and it
+        // silently drops Creates for units it does not know yet). Re-announce everything live on
+        // the hull so the incoming simulator applies the same sail/thrust bonuses the old one had.
+        ReplaySlaveBuffsToZone(slave, newZoneKey, (int)(slave.Transform?.InstanceId ?? 0));
+
+        // Sails and helm doodads are Created after the hull (parent must exist) and before helm-on.
+        AnnounceBoatAttachmentsToZone(slave, newZoneKey);
+
+        // Seed + helm-on wait for Create to physicalize. World keeps following the previous
+        // simulator until the new one publishes a placed pose; that pose is not streamed.
+        EnableBoatSimInZone(slave, newZoneKey);
+
+        Logger.Info(
+            "Boat zone handoff slave obj={0} {1}→{2} bodyLen={3} overlap={4} passengers={5}",
+            slave.ObjId, liveZone, newZoneKey, slaveStateBody.Length,
+            BoatZoneSimRules.ShouldOverlapOldSim(liveZone, newZoneKey),
+            slave.AttachedCharacters.Count);
+    }
+
+    /// <summary>
+    /// The hull crossed into a zone nothing hosts: stop the old simulation, despawn the hull, and
+    /// return everyone aboard to character select.
+    /// </summary>
+    /// <remarks>
+    /// This is the recovery a lost zone connection already performs (see
+    /// <see cref="WorldIntegration.NotifyZoneLost"/>). Keeping the hull announced to a zone that does
+    /// not exist left it drifting with the pose it had at the seam: the helm did nothing, and the
+    /// riders were stuck aboard until they relogged.
+    /// </remarks>
+    private static void AbandonBoatWithoutZoneHost(Slave slave, uint newZoneKey)
+    {
+        var riders = slave.AttachedCharacters.Values
+            .Where(rider => rider?.Connection != null)
+            .Select(rider => (rider.Name, rider.Connection))
+            .ToList();
+
+        Logger.Error(
+            "No zone host for zone {0}: despawning slave obj={1} and returning {2} rider(s) to character select",
+            newZoneKey, slave.ObjId, riders.Count);
+
+        WithdrawBoatFromZone(slave);
+
+        var slaveObjId = slave.ObjId;
+        var summoner = slave.Summoner;
+        var slaveManager = slave.ParentWorld?.SlaveManager;
+        var reason = $"zone {newZoneKey} is not available";
+
+        // Deferred like the on-foot refusal in Character.OnZoneChange: this runs inside the hull's own
+        // zone-change callback, which must not tear the hull's object hierarchy down underneath itself.
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                slaveManager?.Delete(summoner, slaveObjId, true);
+            }
+            catch (Exception ex)
+            {
+                Logger.Warn(ex, "Could not despawn slave obj={0} left in unhosted zone {1}", slaveObjId, newZoneKey);
+            }
+
+            foreach (var (name, connection) in riders)
+            {
+                if (!EnterWorldManager.Instance.ReturnToCharacterSelect(connection, reason))
+                    Logger.Warn("Character select was unavailable for {0} aboard slave obj={1}", name, slaveObjId);
+            }
+        });
+    }
+
+    /// <summary>
+    /// Re-announces every live buff on the hull to one specific zone instance via
+    /// <see cref="WorldIntegration.ReplayBuffCreatedToZone"/>, mirroring the add-time relay's
+    /// semantics: non-passive buffs only, zone-authored buffs excluded (the zone made those
+    /// itself), unsafe unit references skipped.
+    /// </summary>
+    private static void ReplaySlaveBuffsToZone(Slave slave, uint newZoneKey, int instanceId)
+    {
+        if (!WorldIntegration.ZoneAuthority || slave?.Buffs == null)
+            return;
+
+        var good = new List<Buff>();
+        var bad = new List<Buff>();
+        var hidden = new List<Buff>();
+        slave.Buffs.GetAllBuffs(good, bad, hidden, false);
+
+        var replayed = 0;
+        foreach (var buff in good.Concat(bad).Concat(hidden))
+        {
+            if (buff.Passive || buff.ZoneAuthored)
+                continue;
+            if (!BuffCreatedWire.IsZoneSafe(buff, out _))
+                continue;
+
+            var body = new PacketStream();
+            BuffCreatedWire.Write(body, buff, forZone: true);
+            WorldIntegration.ReplayBuffCreatedToZone?.Invoke(newZoneKey, instanceId, slave.ObjId, body.GetBytes());
+            buff.RelayedToZone = true;
+            replayed++;
+        }
+
+        if (replayed > 0)
+            Logger.Info("Boat handoff buff replay → zone {0} slave obj={1} buffs={2}", newZoneKey, slave.ObjId, replayed);
+    }
+
+    /// <summary>
+    /// Creates equipment slaves and attached doodads in the dedicate that just received the hull.
+    /// Parent-first so a sail's attach names a unit that already exists.
+    /// </summary>
+    internal static void AnnounceBoatAttachmentsToZone(Slave hull, uint zoneKey)
+    {
+        if (!WorldIntegration.ZoneAuthority || hull == null || zoneKey == 0)
+            return;
+
+        var children = new List<Slave>();
+        var doodads = new List<Doodad>();
+        CollectBoatAttachments(hull, children, doodads);
+        var instanceId = (int)(hull.Transform?.InstanceId ?? 0);
+
+        for (var i = children.Count - 1; i >= 0; i--)
+        {
+            var child = children[i];
+            if (child == null || child.ObjId == 0)
+                continue;
+
+            var body = WorldIntegration.BuildWzUnitStateBody(child);
+            if (body is not { Length: > 0 })
+                continue;
+
+            WorldIntegration.RelayUnitStateToZone?.Invoke(zoneKey, child.ObjId, body);
+            ReplaySlaveBuffsToZone(child, zoneKey, instanceId);
+        }
+
+        foreach (var doodad in doodads)
+        {
+            if (doodad == null || doodad.ObjId == 0)
+                continue;
+            WorldIntegration.RelayCreateDoodadToZoneId?.Invoke(zoneKey, doodad);
+        }
+
+        if (children.Count > 0 || doodads.Count > 0)
+        {
+            Logger.Info(
+                "Boat attachments announced → zone {0} hull={1} children={2} doodads={3}",
+                zoneKey, hull.ObjId, children.Count, doodads.Count);
+        }
+    }
+
+    /// <summary>
+    /// Publishes the hull pose to a zone that is about to simulate it. See <see cref="ShipPoseSeed"/>.
+    /// </summary>
+    public static void PublishHullPoseToZone(Slave slave, uint zoneKey = 0)
+    {
+        if (!WorldIntegration.ZoneAuthority || slave?.Template?.IsABoat() != true)
+            return;
+
+        var targetZone = zoneKey != 0 ? zoneKey : slave.ZoneAnnouncedTo;
+        if (targetZone == 0 || slave.Transform == null)
+            return;
+
+        SyncHullTransformFromZonePose(slave);
+        var pose = ShipPoseSeed.ForSlave(slave);
+
+        // Stamp the destination, not wherever the hull was last reported from. A receiver keeps the zone
+        // id of the last ship body it stored and resets its interpolation history the moment an incoming
+        // body disagrees with it; seeding the previous zone's id leaves that stored state describing a
+        // zone the hull is no longer in, so a later body from the zone actually simulating it reads as a
+        // zone change and throws away good interpolation for no reason.
+        pose.ZoneId = (ushort)targetZone;
+
+        WorldIntegration.RelayMoveToZoneId?.Invoke(targetZone, slave.ObjId, ShipPoseSeed.Build(pose));
+    }
+
+    /// <summary>
+    /// Pulls World transform back onto the last zone-reported pose before Create/seed, so a stale
+    /// Transform cannot announce the hull at the dock while the zone last saw it kilometres away.
+    /// </summary>
+    private static void SyncHullTransformFromZonePose(Slave slave)
+    {
+        if (slave.SimulatedShipState is not { } last || slave.Transform == null)
+            return;
+
+        var (rotX, rotY, rotZ) = MathUtil.GetSlaveRotationInDegrees(last.RotationX, last.RotationY, last.RotationZ);
+        slave.Transform.Local.SetPosition(last.X, last.Y, last.Z, rotX, rotY, rotZ);
+        slave.Transform.FinalizeTransform();
+        slave.Throttle = last.Throttle;
+        slave.Steering = last.Steering;
+    }
+
+    /// <summary>
+    /// Hands ship simulation for this hull to a zone, once per zone. The previous dedicate is left
+    /// running until <see cref="CommitBoatSimEnable"/> switches World over and drops it.
+    /// Seed and helm-on wait one Create-physicalize delay so the type-4 pose has a body.
+    /// </summary>
+    /// <remarks>
+    /// <c>ShipControlChange</c> is the zone's simulation switch for a hull, not a "someone is at the
+    /// wheel" notification. Re-sending it on every helm mount re-entered the simulation and froze or
+    /// launched the hull. Create does not place the rigid body, so seed and helm-on wait
+    /// <see cref="BoatZoneSimRules.FirstSummonSimArmDelay"/> after Create; type-4 is then sent
+    /// immediately before helm-on. After helm-on the zone drops further type-4. World keeps
+    /// following the previous simulator until the new one publishes a placed pose; that pose is
+    /// not streamed. Switching the follow on arm put an unplaced or rest pose on the wire.
+    /// </remarks>
+    public static void EnableBoatSimInZone(Slave slave, uint zoneKey)
+    {
+        if (!WorldIntegration.ZoneAuthority || slave?.Template == null)
+            return;
+
+        // Hulls only. The switch is dispatched by the zone against whatever model class the unit has,
+        // and a land vehicle's simulator has no steering or throttle input at all — it holds the
+        // handbrake and drives both to zero, and while it is armed the zone discards the movement
+        // World relays for that unit. Arming a cart therefore parks it and deafens it to its driver.
+        // Land vehicles stay client-driven (see SlaveTemplate.IsClientDrivenLandVehicle).
+        if (!slave.Template.IsZoneSimulatedHull())
+            return;
+
+        if (zoneKey == 0 || slave.ZoneSimPendingFor == zoneKey)
+            return;
+
+        // Helm mount passes the zone World is following. During a seam that is still the old
+        // dedicate; re-arming it would overwrite the pending new zone.
+        if (BoatZoneSimRules.IsWarmupSource(
+                slave.ZoneSimEnabledFor, slave.ZoneAnnouncedTo, slave.ZoneSimPendingFor) &&
+            zoneKey == slave.ZoneAnnouncedTo)
+            return;
+
+        if (!BoatZoneSimRules.ShouldArm(zoneKey, slave.ZoneSimEnabledFor) && slave.ZoneSimPendingFor == 0)
+            return;
+
+        slave.ZoneSimPendingFor = zoneKey;
+        if (BoatZoneSimRules.ShouldDeferSimArm(slave.ZoneAnnouncedTo, zoneKey) &&
+            TaskManager.Instance.Schedule(
+                new BoatZoneSimEnableTask(slave, zoneKey),
+                BoatZoneSimRules.FirstSummonSimArmDelay))
+        {
+            Logger.Info(
+                "Ship simulation arm deferred obj={0} zoneId={1} delayMs={2}",
+                slave.ObjId, zoneKey, BoatZoneSimRules.FirstSummonSimArmDelay.TotalMilliseconds);
+            return;
+        }
+
+        CommitBoatSimEnable(slave, zoneKey);
+    }
+
+    /// <summary>
+    /// Speed samples reported after a seam. Enough to show whether the hull held its way or rebuilt it
+    /// from rest, without following it for the rest of the voyage.
+    /// </summary>
+    public const int SeamSpeedProbeCount = 8;
+
+    /// <summary>
+    /// Arms the new dedicate. On a seam, World keeps following the previous simulator until
+    /// <see cref="FinishBoatSeamHandoff"/>; on first summon there is no previous simulator to follow.
+    /// </summary>
+    internal static void CommitBoatSimEnable(Slave slave, uint zoneKey)
+    {
+        if (slave == null ||
+            !BoatZoneSimRules.ShouldSendEnable(zoneKey, slave.ZoneAnnouncedTo, slave.ZoneSimPendingFor))
+        {
+            return;
+        }
+
+        var liveZone = slave.ZoneAnnouncedTo;
+        PublishHullPoseToZone(slave, zoneKey);
+        WorldIntegration.RelayShipControlChangeToZoneId?.Invoke(zoneKey, slave.ObjId, true);
+        ArmSeamSpeedCorrection(slave, zoneKey);
+        slave.ZoneSimEnabledFor = zoneKey;
+        slave.SeamArmedAtMs = Environment.TickCount64;
+
+        Logger.Info(
+            "Seam speed handoff obj={0} zone={1}→{2} carriedBySeed={3} measuredBefore={4:F1} m/s " +
+            "reportedBefore={5:F1} m/s cap={6:F1} m/s throttle={7}",
+            slave.ObjId, liveZone, zoneKey, ShipPoseSeed.CarryMomentum, slave.SimulatedSpeed,
+            slave.SimulatedShipState?.ReportedSpeed ?? 0f,
+            ShipPoseSeed.EffectiveMaxVelocity(slave), slave.Throttle);
+
+        if (!BoatZoneSimRules.ShouldOverlapOldSim(liveZone, zoneKey))
+        {
+            slave.ZoneAnnouncedTo = zoneKey;
+            slave.ZoneSimPendingFor = 0;
+            Logger.Info(
+                "Ship simulation enabled for slave obj={0} zoneId={1} droppedOld=0",
+                slave.ObjId, zoneKey);
+            slave.SeamSpeedProbes = SeamSpeedProbeCount;
+            return;
+        }
+
+        // The arm-time flush applies the seed velocity to the new body once, at enable; the reports
+        // right after it are that zone's outbound type-4 while the body is still settling (0–0.2 m/s
+        // from an unconsumed or at-rest body). Following them now — and dropping the hull that is
+        // still making way — is the hard dip. Stay on the old simulator until a usable pose has been
+        // seen (and corrected); do not stream it.
+        Logger.Info(
+            "Ship simulation armed for slave obj={0} zoneId={1} stillFollowing={2}",
+            slave.ObjId, zoneKey, liveZone);
+    }
+
+    /// <summary>
+    /// First usable pose from a simulator World is not following yet: correct the shortfall, then
+    /// start following. Origin, or a report younger than the flush transient window (the new zone's
+    /// outbound type-4 for an unconsumed body), is not a body velocity — keep the old simulator.
+    /// The caller never streams this pose.
+    /// </summary>
+    public static void ObserveSeamWarmupPose(Slave slave, uint zoneKey, float reportedSpeed, float x, float y)
+    {
+        if (slave == null)
+            return;
+
+        if (slave.ZoneSimEnabledFor != zoneKey || slave.SeamArmedAtMs == 0)
+            return;
+
+        var elapsedMs = Environment.TickCount64 - slave.SeamArmedAtMs;
+        if (!BoatZoneSimRules.ShouldAcceptWarmupHandoff(
+                x, y, reportedSpeed, slave.SeamTargetSpeed, elapsedMs))
+        {
+            Logger.Info(
+                "Seam warmup pose ignored obj={0} zone={1} pos=({2:F1},{3:F1}) reportedVel={4:F1} " +
+                "expectedCruise={5:F1} elapsedMs={6}",
+                slave.ObjId, zoneKey, x, y, reportedSpeed, slave.SeamTargetSpeed, elapsedMs);
+            return;
+        }
+
+        ApplySeamSpeedCorrection(slave, zoneKey, reportedSpeed);
+        FinishBoatSeamHandoff(slave);
+    }
+
+    /// <summary>
+    /// Points World at the newly armed simulator, hands riders over, and drops the previous unit
+    /// without sending a sim-off.
+    /// </summary>
+    public static void FinishBoatSeamHandoff(Slave slave)
+    {
+        if (slave == null)
+            return;
+
+        var zoneKey = slave.ZoneSimPendingFor;
+        if (zoneKey == 0)
+            return;
+
+        var liveZone = slave.ZoneAnnouncedTo;
+        slave.ZoneAnnouncedTo = zoneKey;
+        slave.ZoneSimPendingFor = 0;
+
+        if (BoatZoneSimRules.ShouldOverlapOldSim(liveZone, zoneKey))
+        {
+            if (!HandoffPassengersToZone(slave, liveZone, zoneKey))
+            {
+                DropHullFromZone(slave, liveZone);
+                AbandonBoatWithoutZoneHost(slave, zoneKey);
+                return;
+            }
+
+            DropHullFromZone(slave, liveZone, detachPassengers: false);
+        }
+
+        Logger.Info(
+            "Ship simulation enabled for slave obj={0} zoneId={1} droppedOld={2}",
+            slave.ObjId, zoneKey,
+            BoatZoneSimRules.ShouldOverlapOldSim(liveZone, zoneKey) ? liveZone : 0);
+        slave.SeamSpeedProbes = SeamSpeedProbeCount;
+    }
+
+    /// <summary>
+    /// Arms a measured correction for a hull that has just been handed to a new simulator: records the
+    /// speed it arrived with so the first pose the new zone publishes can be compared against it.
+    /// </summary>
+    /// <remarks>
+    /// Open-loop restores were tried both ways and neither works, because the impulse channel is
+    /// additive and the fraction of a seeded velocity that survives the handover is not fixed. Sending
+    /// the whole speed on top of the seed overshot (10.6 m/s handed over, 15.9 arrived); sending nothing
+    /// left the hull short (13.5 in, 8.1 out — and 11.3 in, 6.7 out). The gap is worth measuring rather
+    /// than predicting, which is what <see cref="ApplySeamSpeedCorrection"/> does.
+    /// </remarks>
+    private static void ArmSeamSpeedCorrection(Slave slave, uint zoneKey)
+    {
+        slave.SeamTargetSpeed = 0f;
+        slave.SeamCorrectionZone = 0;
+
+        if (!BoatSeamImpulse.Enabled)
+            return;
+
+        // A hull whose helm is at rest crossed under no power; leave it alone.
+        if (slave.Throttle == 0)
+            return;
+
+        // Prefer the speed the outgoing simulator reported for itself over the one inferred from the
+        // positions it published: the inferred figure is an average over a sampling window and reads low.
+        var reported = slave.SimulatedShipState?.ReportedSpeed ?? 0f;
+        var target = reported > 0f ? reported : slave.SimulatedSpeed;
+
+        var age = Environment.TickCount64 - slave.SimulatedSpeedAtMs;
+        if (target < BoatSeamImpulse.MinCruiseSpeed || age >= BoatSeamImpulse.FreshnessWindowMs)
+            return;
+
+        slave.SeamTargetSpeed = target;
+        slave.SeamCorrectionZone = zoneKey;
+    }
+
+    /// <summary>
+    /// Closes the gap between the speed a hull crossed a seam with and the speed its new simulator
+    /// actually gave it, using the one channel that can set a controlled hull's velocity directly.
+    /// </summary>
+    /// <remarks>
+    /// Fires once per crossing, on the first usable pose — after the flush transient has been
+    /// discarded. The impulse is a velocity change applied on top of whatever the body already
+    /// carries: the seed handed the crossing's way to that body at the flush, so the correction is
+    /// the surviving shortfall — a fraction the flush transient and drag make unpredictable, which
+    /// is why it is measured. A self-cast rotates the vectors by the
+    /// hull's live rotation, which is why the magnitude goes on local +Y and arrives on the bow.
+    /// The receiver drops an impulse for a hull it does not consider controlled, so this cannot
+    /// run before the arming message.
+    /// </remarks>
+    /// <param name="reportedSpeed">Speed in the pose the new simulator just published.</param>
+    public static void ApplySeamSpeedCorrection(Slave slave, uint zoneKey, float reportedSpeed)
+    {
+        if (slave == null || slave.SeamTargetSpeed <= 0f || slave.SeamCorrectionZone != zoneKey)
+            return;
+
+        var target = slave.SeamTargetSpeed;
+
+        // One shot either way: a hull that arrived up to speed needs nothing, and re-arming on later
+        // poses would fight the thrust curve for the rest of the voyage.
+        slave.SeamTargetSpeed = 0f;
+        slave.SeamCorrectionZone = 0;
+
+        var thrustCutoff = ShipPoseSeed.EffectiveMaxVelocity(slave);
+        if (!BoatSeamImpulse.TryBuildSeamCorrection(
+                BoatSeamImpulse.Enabled, target, reportedSpeed, thrustCutoff, out var deficit))
+        {
+            Logger.Info(
+                "Seam speed correction not needed obj={0} zone={1} target={2:F1} m/s arrived={3:F1} m/s " +
+                "thrustCutoff={4:F1} m/s",
+                slave.ObjId, zoneKey, target, reportedSpeed, thrustCutoff);
+            return;
+        }
+
+        float[] vel = new float[3];
+        float[] angVel = new float[3];
+        float[] impulse = new float[3];
+        float[] angImpulse = new float[3];
+        BoatSeamImpulse.BuildVectors(deficit, vel, angVel, impulse, angImpulse);
+
+        var self = new SkillCasterUnit(slave.ObjId);
+        WorldIntegration.RelaySeamImpulseToZone?.Invoke(
+            slave.ObjId, zoneKey, self, vel, angVel, impulse, angImpulse);
+
+        Logger.Info(
+            "Seam speed correction obj={0} zone={1} target={2:F1} m/s arrived={3:F1} m/s added={4:F1} m/s " +
+            "thrustCutoff={5:F1} m/s",
+            slave.ObjId, zoneKey, target, reportedSpeed, deficit, thrustCutoff);
+    }
+
+    /// <summary>
+    /// Moves riders from the live simulator onto the newly armed one. They stay on the old hull
+    /// until this runs so the old dedicate never sees a passenger whose root it already deleted.
+    /// </summary>
+    private static bool HandoffPassengersToZone(Slave slave, uint fromZone, uint toZone)
+    {
         foreach (var (attachPoint, passenger) in slave.AttachedCharacters.ToList())
         {
             if (passenger == null)
                 continue;
 
-            if (previousSimZone != 0 && previousSimZone != newZoneKey)
+            var passengerBody = WorldIntegration.BuildWzUnitStateBody(passenger);
+            if (passengerBody is { Length: > 0 })
             {
-                var passengerBody = WorldIntegration.BuildWzUnitStateBody(passenger);
-                if (passengerBody is { Length: > 0 })
-                {
-                    WorldIntegration.RelayCharacterZoneHandoff?.Invoke(
-                        passenger.ObjId, previousSimZone, newZoneKey, passengerBody);
-                }
+                var accepted = WorldIntegration.RelayCharacterZoneHandoff?.Invoke(
+                    passenger.ObjId, fromZone, toZone, passengerBody) ?? true;
+                if (!accepted)
+                    return false;
             }
 
-            WorldIntegration.RelayUnitAttachToZone?.Invoke(
-                passenger.ObjId, slave.ObjId, (byte)attachPoint, true);
+            WorldIntegration.RelayUnitAttachToZoneId?.Invoke(
+                toZone, passenger.ObjId, slave.ObjId, (byte)attachPoint, true);
         }
 
-        // Same as first announce / Bind: enable sim when someone is at the wheel.
-        if (hasDriver)
-            WorldIntegration.RelayShipControlChangeToZone?.Invoke(slave.ObjId, true);
-
-        Logger.Info(
-            "Boat zone handoff slave obj={0} {1}→{2} bodyLen={3} passengers={4}",
-            slave.ObjId, previousSimZone, newZoneKey, slaveStateBody.Length, slave.AttachedCharacters.Count);
+        return true;
     }
 
-    /// <summary>Tells the dedicate that currently simulates this hull to drop it.</summary>
-    public static void WithdrawBoatFromZone(Slave slave)
+    /// <summary>
+    /// Removes this hull from one dedicate. Does not send <c>control=0</c>: the unit is going away,
+    /// and that packet is what freezes a still-present hull at a seam.
+    /// </summary>
+    /// <param name="detachPassengers">
+    /// False once the riders have already been handed to another zone. A character handoff removes the
+    /// rider from the zone it left, so detaching it there afterwards names a unit that zone no longer
+    /// has and it answers <c>OnUnitDetached: cannot find child</c> — once per seam crossing.
+    /// </param>
+    public static void DropHullFromZone(Slave slave, uint zoneId, bool detachPassengers = true)
     {
-        if (slave == null || slave.ZoneAnnouncedTo == 0)
+        if (slave == null || zoneId == 0)
             return;
 
-        WorldIntegration.RelayShipControlChangeToZone?.Invoke(slave.ObjId, false);
-        WorldIntegration.RelayUnitRemovedToZoneId?.Invoke(slave.ZoneAnnouncedTo, slave.ObjId);
-        Logger.Info("WZUnitRemoved for slave obj={0} zoneId={1}", slave.ObjId, slave.ZoneAnnouncedTo);
-        slave.ZoneAnnouncedTo = 0;
+        if (detachPassengers)
+        {
+            foreach (var (attachPoint, passenger) in slave.AttachedCharacters.ToList())
+            {
+                if (passenger != null)
+                {
+                    WorldIntegration.RelayUnitAttachToZoneId?.Invoke(
+                        zoneId, passenger.ObjId, slave.ObjId, (byte)attachPoint, false);
+                }
+            }
+        }
+
+        var childSlaves = new List<Slave>();
+        var doodads = new List<Doodad>();
+        CollectBoatAttachments(slave, childSlaves, doodads);
+        var childIds = BoatDespawnRules.UnitIdsToRemoveFromZone(
+            slave.ObjId, childSlaves.Select(c => c.ObjId));
+        var doodadIds = BoatDespawnRules.DoodadIdsToRemoveFromZone(doodads.Select(d => d.ObjId));
+
+        // Children first: a parent remove that leaves them behind is what re-parented leftover
+        // masts onto the next hull that reused this id.
+        foreach (var unitId in childIds)
+            WorldIntegration.RelayUnitRemovedToZoneId?.Invoke(zoneId, unitId);
+
+        foreach (var doodadId in doodadIds)
+            WorldIntegration.RelayRemoveDoodadToZoneId?.Invoke(zoneId, doodadId);
+
+        Logger.Info(
+            "WZUnitRemoved for slave obj={0} zoneId={1} children={2} doodads={3}",
+            slave.ObjId, zoneId, childIds.Count - (slave.ObjId == 0 ? 0 : 1), doodadIds.Count);
+    }
+
+    /// <summary>
+    /// Drops every dedicate that still has this hull or an attachment (live + a pending create +
+    /// any child whose own zone key differs). Used on despawn.
+    /// </summary>
+    public static void WithdrawBoatFromZone(Slave slave)
+    {
+        if (slave == null)
+            return;
+
+        var announced = slave.ZoneAnnouncedTo;
+        var pending = slave.ZoneSimPendingFor;
+        var extraZones = new List<uint>();
+        var childSlaves = new List<Slave>();
+        var doodads = new List<Doodad>();
+        CollectBoatAttachments(slave, childSlaves, doodads);
+        foreach (var child in childSlaves)
+        {
+            var zoneId = child.Transform?.ZoneId ?? 0;
+            if (zoneId != 0)
+                extraZones.Add(zoneId);
+        }
+
+        foreach (var doodad in doodads)
+        {
+            var zoneId = doodad.Transform?.ZoneId ?? 0;
+            if (zoneId != 0)
+                extraZones.Add(zoneId);
+        }
+
+        var dropped = new HashSet<uint>();
+        if (BoatZoneSimRules.ShouldDropStalePending(pending, announced, 0))
+        {
+            DropHullFromZone(slave, pending);
+            dropped.Add(pending);
+        }
+
+        if (announced != 0)
+        {
+            DropHullFromZone(slave, announced);
+            dropped.Add(announced);
+        }
+
+        foreach (var zoneId in BoatDespawnRules.ZonesThatMayHoldAttachments(announced, pending, extraZones))
+        {
+            if (dropped.Contains(zoneId))
+                continue;
+            DropHullFromZone(slave, zoneId);
+        }
+
         BoatZoneKeyStability.Clear(slave.ObjId);
+        slave.ZoneAnnouncedTo = 0;
+        slave.ZoneSimEnabledFor = 0;
+        slave.ZoneSimPendingFor = 0;
+        slave.SeamTargetSpeed = 0f;
+        slave.SeamCorrectionZone = 0;
+        slave.SeamArmedAtMs = 0;
+    }
+
+    /// <summary>
+    /// Nested-first walk of equipment slaves and attached doodads (sails, figureheads, ladders).
+    /// </summary>
+    internal static void CollectBoatAttachments(Slave hull, List<Slave> slaves, List<Doodad> doodads)
+    {
+        if (hull == null)
+            return;
+
+        if (hull.AttachedDoodads != null)
+        {
+            foreach (var doodad in hull.AttachedDoodads)
+            {
+                if (doodad is { ObjId: > 0 })
+                    doodads.Add(doodad);
+            }
+        }
+
+        if (hull.AttachedSlaves == null)
+            return;
+
+        foreach (var child in hull.AttachedSlaves)
+        {
+            if (child == null)
+                continue;
+            CollectBoatAttachments(child, slaves, doodads);
+            if (child.ObjId > 0)
+                slaves.Add(child);
+        }
+    }
+
+    /// <summary>
+    /// Hides attachments and releases their broadcast ids after the zones have been told to drop them.
+    /// </summary>
+    private static void TearDownBoatAttachments(Slave hull)
+    {
+        var slaves = new List<Slave>();
+        var doodads = new List<Doodad>();
+        CollectBoatAttachments(hull, slaves, doodads);
+
+        foreach (var doodad in doodads)
+        {
+            doodad.IsPersistent = false;
+            doodad.ParentWorld?.SpawnManager.CancelDespawn(doodad);
+            doodad.Delete();
+            if (doodad.ObjId == 0)
+                continue;
+            ObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+            doodad.ObjId = 0;
+        }
+
+        foreach (var child in slaves)
+        {
+            child.ParentWorld?.SpawnManager.CancelDespawn(child);
+            child.Delete();
+            if (child.ObjId != 0)
+            {
+                ObjectIdManager.Instance.ReleaseId(child.ObjId);
+                child.ObjId = 0;
+            }
+
+            if (child.TlId != 0)
+            {
+                TlIdManager.Instance.ReleaseId(child.TlId);
+                child.TlId = 0;
+            }
+
+            child.AttachedDoodads?.Clear();
+            child.AttachedSlaves?.Clear();
+        }
+
+        hull.AttachedDoodads?.Clear();
+        hull.AttachedSlaves?.Clear();
     }
 
     /// <summary>

@@ -343,6 +343,8 @@ public class CombatRelay
         }
 
         // Zone already applied; mirror into World + SC. Caster unknown on wire — self-apply.
+        if (unit is Slave)
+            Logger.Info("ZWCreateBuff slave={0} buffType={1}", unitId, buffType);
         unit.Buffs.AddBuff(new Buff(
             unit,
             unit,

@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Concurrent;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -193,6 +195,20 @@ public class MovementRelay
         return source.ZoneId == slave.ZoneAnnouncedTo;
     }
 
+    /// <summary>
+    /// True when this connection is the newly armed simulator World has not started following yet.
+    /// </summary>
+    private static bool IsSeamWarmup(ZoneConnection? source, uint bcId)
+    {
+        if (source == null)
+            return false;
+
+        if (WorldIntegration.FindUnitAcrossWorlds(bcId) is not Slave slave)
+            return false;
+
+        return BoatZoneSimRules.IsWarmupSource(source.ZoneId, slave.ZoneAnnouncedTo, slave.ZoneSimPendingFor);
+    }
+
     /// <summary>Copies zone-owned NPC and mate positions onto their World mirrors.</summary>
     private static void ApplyCombatUnitPosition(uint bcId, UnitMoveType move, ZoneConnection source)
     {
@@ -281,6 +297,8 @@ public class MovementRelay
         slave.Transform.FinalizeTransform();
         slave.Throttle = ship.Throttle;
         slave.Steering = ship.Steering;
+        slave.SimulatedShipState = ship;
+        MeasureHullSpeed(bcId, source?.ZoneId ?? slave.ZoneAnnouncedTo, slave, ship);
 
         var logged = HullSyncLogged.AddOrUpdate(bcId, 1, (_, count) => count + 1);
         if (logged <= 3 || logged % 600 == 0)
@@ -289,6 +307,48 @@ public class MovementRelay
                 "Hull position from zone bc={0} {1} ({2:F1},{3:F1},{4:F1}) → ({5:F1},{6:F1},{7:F1}) zone={8}",
                 bcId, slave.Name, before.X, before.Y, before.Z, ship.X, ship.Y, ship.Z, slave.Transform.ZoneId);
         }
+    }
+
+    /// <summary>
+    /// Keeps the speed the hull is actually making on the hull, and reports it when it is beyond what
+    /// its own thrust can reach. See <see cref="HullSpeedMonitor"/>.
+    /// </summary>
+    private static void MeasureHullSpeed(uint bcId, uint zoneId, Slave slave, ShipMoveType ship)
+    {
+        var now = Environment.TickCount64;
+        if (HullSpeedMonitor.Observe(bcId, zoneId, ship.X, ship.Y, ship.Z, now) is not { } speed)
+            return;
+
+        slave.SimulatedSpeed = speed;
+        slave.SimulatedSpeedAtMs = now;
+
+        // Judge the hull against what it can actually make with its rig, not its bare model figure:
+        // sails carry large max-speed multipliers, so the bare figure reports normal sailing as a fault.
+        var maxVelocity = ShipPoseSeed.EffectiveMaxVelocity(slave);
+
+        // The first pose the new simulator publishes is what says how much way survived the handover, so
+        // the correction is measured against it rather than guessed at arm time.
+        SlaveManager.ApplySeamSpeedCorrection(slave, zoneId, ship.ReportedSpeed);
+
+        if (slave.SeamSpeedProbes > 0)
+        {
+            var sample = SlaveManager.SeamSpeedProbeCount - slave.SeamSpeedProbes + 1;
+            slave.SeamSpeedProbes--;
+            Logger.Info(
+                "Seam speed probe obj={0} zone={1} sample={2}/{3} speed={4:F1} m/s reportedVel={5:F1} " +
+                "m/s throttle={6} steering={7}",
+                slave.ObjId, slave.ZoneAnnouncedTo, sample, SlaveManager.SeamSpeedProbeCount, speed,
+                ship.ReportedSpeed, ship.Throttle, ship.Steering);
+        }
+
+        if (!HullSpeedMonitor.IsOverspeed(speed, maxVelocity) || !HullSpeedMonitor.ShouldReport(bcId, now))
+            return;
+
+        Logger.Warn(
+            "Hull faster than its rig allows bc={0} {1} {2:F1} m/s (max {3:F1}) throttle={4} " +
+            "vel=({5},{6},{7}) zone={8}",
+            bcId, slave.Name, speed, maxVelocity, ship.Throttle, ship.VelX, ship.VelY, ship.VelZ,
+            slave.ZoneAnnouncedTo);
     }
 
     public void RelayClientMoveToZone(ZoneConnection zone, uint bcId, byte[] payload)
@@ -370,6 +430,19 @@ public class MovementRelay
 
                 if (mt is ShipMoveType hull)
                 {
+                    // Newly armed simulator World is not following yet. A placed pose can take
+                    // follow; an origin or zero-speed tick cannot. Never stream this pose.
+                    if (IsSeamWarmup(source, bcId))
+                    {
+                        if (WorldIntegration.FindUnitAcrossWorlds(bcId) is Slave warmup)
+                        {
+                            SlaveManager.ObserveSeamWarmupPose(
+                                warmup, source.ZoneId, hull.ReportedSpeed, hull.X, hull.Y);
+                        }
+
+                        continue;
+                    }
+
                     // Foreign copy of somebody else's hull: neither the mirror nor the clients may
                     // see it, or the ship visibly fights itself.
                     if (!OwnsHull(source, bcId))

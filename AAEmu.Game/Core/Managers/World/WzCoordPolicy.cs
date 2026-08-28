@@ -31,4 +31,11 @@ public static class WzCoordPolicy
             return false;
         return !DebugRewriteLiveToZoneLocal;
     }
+
+    /// <summary>
+    /// A seated rider (or equipment child) stores the seat in <c>Transform.Local</c>. Live WZ
+    /// Create needs the continent point; writing Local places the unit at the seat offset.
+    /// </summary>
+    public static bool UseWorldPositionOnWz(Unit unit) =>
+        unit?.Transform?.Parent != null && KeepContinentOnLiveWz(unit);
 }

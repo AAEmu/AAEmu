@@ -327,7 +327,7 @@ public class MateManager(WorldInstance parentWorldInstance)
         if (body is not { Length: > 0 })
             return;
 
-        WorldIntegration.RelayUnitStateToZone?.Invoke(zoneId, body);
+        WorldIntegration.RelayUnitStateToZone?.Invoke(zoneId, mate.ObjId, body);
         mate.ZoneAnnouncedTo = zoneId;
         Logger.Info("WZUnitState queued for mate obj={0} zoneId={1}", mate.ObjId, zoneId);
     }

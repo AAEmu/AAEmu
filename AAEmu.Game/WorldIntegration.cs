@@ -116,12 +116,20 @@ public static class WorldIntegration
     public static Func<uint, byte[], bool> TryEnterZone { get; set; }
 
     /// <summary>
-    /// Push an arbitrary WZUnitState (0x007) body to a specific zone key — e.g. house units before WZHouseState.
+    /// Push an arbitrary WZUnitState (0x007) body to a specific zone key — e.g. house units before
+    /// WZHouseState. Args: zoneId, the unit's ObjId, body.
     /// </summary>
-    public static Action<uint, byte[]> RelayUnitStateToZone { get; set; }
+    /// <remarks>
+    /// The ObjId is needed even though the body already carries it: creating a unit in a zone has to
+    /// drop any per-zone bookkeeping left behind by a previous holder of that recycled id.
+    /// </remarks>
+    public static Action<uint, uint, byte[]> RelayUnitStateToZone { get; set; }
 
     /// <summary>Relay CS movement to zone as WZUnitMovement. Args: bcId, type+move body (no outer bc).</summary>
     public static Action<uint, byte[]> RelayMoveToZone { get; set; }
+
+    /// <summary>WZUnitMovement to an explicit zone key. Args: zoneId, bcId, type+move body.</summary>
+    public static Action<uint, uint, byte[]> RelayMoveToZoneId { get; set; }
 
     /// <summary>Relay skill-controller creation state to Zone.</summary>
     public static Action<uint, byte, bool> RelayCreateSkillControllerToZone { get; set; }
@@ -212,6 +220,9 @@ public static class WorldIntegration
     /// <summary>WZCreateDoodad — Zone physics ownership for a World-authored doodad.</summary>
     public static Action<object> RelayCreateDoodadToZone { get; set; }
 
+    /// <summary>WZCreateDoodad on an explicit zone key (boat handoff). Args: zoneId, doodad.</summary>
+    public static Action<uint, object> RelayCreateDoodadToZoneId { get; set; }
+
     /// <summary>
     /// Zone just reached ZoneLoaded — flush World-authored doodads for this zone copy.
     /// Args: zoneId, instanceId.
@@ -287,6 +298,13 @@ public static class WorldIntegration
     /// <summary>WZRemoveDoodad.</summary>
     public static Action<uint> RelayRemoveDoodadToZone { get; set; }
 
+    /// <summary>
+    /// WZRemoveDoodad to one named zone key. Boat attachments can outlive the hull's current
+    /// zone key (a leftover in a dedicate the ship already left), so ForUnit routing is not enough.
+    /// Args: zoneId, objId.
+    /// </summary>
+    public static Action<uint, uint> RelayRemoveDoodadToZoneId { get; set; }
+
     /// <summary>WZDoodadChangePhase.</summary>
     public static Action<uint, uint, int> RelayDoodadPhaseToZone { get; set; }
 
@@ -296,6 +314,14 @@ public static class WorldIntegration
     /// <summary>WZBuffCreated opaque body (target unit ObjId for zone routing).</summary>
     public static Action<uint, byte[]> RelayBuffCreatedToZone { get; set; }
 
+    /// <summary>
+    /// Replays WZBuffCreated bodies to one specific zone instance (zoneKey, instanceId). Used at
+    /// handoff: the new dedicate's ZoneBuffMan only learns a buff from a Create it received while
+    /// hosting the unit, and its handler silently drops Creates for units it does not know yet —
+    /// so the replay must come after the hull's own create.
+    /// </summary>
+    public static Action<uint, int, uint, byte[]> ReplayBuffCreatedToZone { get; set; }
+
     /// <summary>WZBuffRemoved.</summary>
     public static Action<uint, uint> RelayBuffRemovedToZone { get; set; }
 
@@ -304,6 +330,9 @@ public static class WorldIntegration
 
     /// <summary>WZUnitAttached / Detached.</summary>
     public static Action<uint, uint, byte, bool> RelayUnitAttachToZone { get; set; }
+
+    /// <summary>WZUnitAttached / Detached on an explicit zone key. Args: zoneId, unit, target, point, attached.</summary>
+    public static Action<uint, uint, uint, byte, bool> RelayUnitAttachToZoneId { get; set; }
 
     /// <summary>
     /// WZImpulseUnit. Args: target bc, caster, then vel / angvel / impulse / angImpulse as the
@@ -365,6 +394,16 @@ public static class WorldIntegration
 
     /// <summary>WZShipControlChange (0x04B). Args: slave bc, hasDriverControl.</summary>
     public static Action<uint, bool> RelayShipControlChangeToZone { get; set; }
+
+    /// <summary>WZShipControlChange to an explicit zone key. Args: zoneId, slave bc, control.</summary>
+    public static Action<uint, uint, bool> RelayShipControlChangeToZoneId { get; set; }
+
+    /// <summary>
+    /// WZImpulseUnit addressed to an explicit zone key — the seam-handoff restore. Args: target bc,
+    /// zoneId, skill caster (a self-cast makes the dedicate orient the vectors by the hull's live
+    /// physics rotation), then vel / angvel / impulse / angImpulse.
+    /// </summary>
+    public static Action<uint, uint, SkillCaster, float[], float[], float[], float[]> RelaySeamImpulseToZone { get; set; }
 
     /// <summary>
     /// Quest AI WZ family. Args: npc bc, player/target bc, then optional pathName/pathType/commandSetId
@@ -668,7 +707,12 @@ public static class WorldIntegration
             return null;
 
         if (WzCoordPolicy.KeepContinentOnLiveWz(unit) && !forceLocal)
+        {
+            // Seat offset lives in Local. WZ Create of a parented rider or sail must be continent.
+            if (WzCoordPolicy.UseWorldPositionOnWz(unit))
+                return unit.Transform.World.Position;
             return null;
+        }
 
         // Already local. Using Transform.World here would subtract origin a second time and drop the unit off the mesh.
         if (zoneLocal.HasValue && (forceLocal || ZoneCoordBoundary.UseLocalOnZoneWire))

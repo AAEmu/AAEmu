@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Utils;
@@ -287,9 +288,22 @@ public class BuffTemplate
     {
         RemoveBonuses(owner, buff);
 
+        // Scaled by the stack the instance carries: a multiple-stack family lives as one instance rather
+        // than one per application, so its modifiers have to account for all of them. Non-stacking buffs
+        // sit at one and are unaffected.
+        var stack = Math.Max(1, buff.Stack);
+        var propulsionRating = MoveSpeedMulRules.IsPropulsionRating(Bonuses);
         foreach (var template in Bonuses)
         {
-            var bonus = new Bonus { Template = template, Value = (long)Math.Round(template.Value + template.LinearLevelBonus * (buff.AbLevel / 100f)) };
+            var stored = BuffStackRules.ScaledModifier(template.Value, template.LinearLevelBonus, buff.AbLevel, stack);
+            var bonus = new Bonus
+            {
+                Template = template,
+                Value = template.Attribute == UnitAttribute.MoveSpeedMul
+                        && template.ModifierType == UnitModifierType.Value
+                    ? MoveSpeedMulRules.FlatBonus(stored, propulsionRating)
+                    : stored
+            };
             owner.AddBonus(buff.Index, bonus);
         }
 
@@ -337,10 +351,20 @@ public class BuffTemplate
             owner.BroadcastPacket(new SCBuffCreatedPacket(buff), true);
             if (WorldIntegration.ZoneAuthority && !buff.ZoneAuthored)
             {
-                if (BuffCreatedWire.IsZoneSafe(buff, out var unsafeReason))
+                if (!MoveSpeedMulRules.ShouldRelayToZone(Bonuses))
+                {
+                    // Basic engine rating is already the 1000 baseline; sending it would double the hull.
+                    if (owner is Slave)
+                        Logger.Info("SlaveBuffAdd slave={0} buff={1} index={2} zoneRelay=skip",
+                            owner.ObjId, Id, buff.Index);
+                }
+                else if (BuffCreatedWire.IsZoneSafe(buff, out var unsafeReason))
                 {
                     var body = new PacketStream();
-                    BuffCreatedWire.Write(body, buff);
+                    BuffCreatedWire.Write(body, buff, forZone: true);
+                    if (owner is Slave)
+                        Logger.Info("SlaveBuffAdd slave={0} buff={1} index={2} stack={3} caster={4}",
+                            owner.ObjId, Id, buff.Index, buff.StackCount, buff.SkillCaster?.ObjId ?? 0);
                     WorldIntegration.RelayBuffCreatedToZone?.Invoke(owner.ObjId, body.GetBytes());
                     buff.RelayedToZone = true;
                 }

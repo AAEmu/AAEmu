@@ -58,6 +58,21 @@ public class SlaveTemplate
     }
 
     /// <summary>
+    /// Whether a zone may be handed this slave's simulation.
+    /// </summary>
+    /// <remarks>
+    /// Stated as an exclusion rather than a list of water kinds on purpose. A zone that is handed a
+    /// land vehicle holds its handbrake and stops accepting the movement World relays for it, so that
+    /// case must never slip through; whereas a water hull we fail to recognise merely loses its
+    /// simulator. <see cref="IsABoat"/> is too narrow to use here — it omits Leviathan, and the data
+    /// also carries sea-gimmick and gubuk kinds this enum does not name.
+    /// </remarks>
+    public bool IsZoneSimulatedHull()
+    {
+        return !IsClientDrivenLandVehicle() && SlaveKind != SlaveKind.SlaveEquipment;
+    }
+
+    /// <summary>
     /// Hulls use Ship. Equipment slaves (sails/cannons) are Part — they must not Ambient-cull
     /// at 105 m while the hull stays to 248 m. Doodad sails are not this type.
     /// </summary>

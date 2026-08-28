@@ -8,6 +8,23 @@ namespace AAEmu.Game.Models.Game.Units.Movements;
 /// </summary>
 public class ShipMoveType : MoveType
 {
+    /// <summary>
+    /// Metres per second spanned by the full extent of the quantised velocity fields. Velocity travels
+    /// as three 16-bit values scaled against this, so the body cannot express more and saturates at
+    /// the limit rather than reporting the real figure.
+    /// </summary>
+    public const float VelocityQuantizationScale = 30f;
+
+    /// <summary>
+    /// The speed the simulator itself reports, in metres per second, decoded from the quantised
+    /// velocity fields. This is what the hull's physics believes it is doing, as opposed to the speed
+    /// inferred from successive positions — the two disagreeing is how an impulse that adds to the
+    /// hull's existing motion is told apart from one that replaces it.
+    /// </summary>
+    public float ReportedSpeed =>
+        MathF.Sqrt(((float)VelX * VelX) + ((float)VelY * VelY) + ((float)VelZ * VelZ))
+        / short.MaxValue * VelocityQuantizationScale;
+
     public new short RotationX { get; set; }
     public new short RotationY { get; set; }
     public new short RotationZ { get; set; }

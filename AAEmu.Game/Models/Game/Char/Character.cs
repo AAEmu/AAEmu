@@ -345,6 +345,10 @@ public partial class Character : Unit, ICharacter
         foreach (var objId in StreamedSlaveIds.Keys)
         {
             var slave = ParentWorld?.GetSlaveByObjId(objId);
+            // Despawning hulls stay listed for the portal window; do not soft-cull them or the
+            // SCUnitsRemoved cancels the portal fx.
+            if (slave is { IsDespawning: true })
+                continue;
             if (slave == null || slave.ObjId == 0)
             {
                 (remove ??= []).Add(objId);

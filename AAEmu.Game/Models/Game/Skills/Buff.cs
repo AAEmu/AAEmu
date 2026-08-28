@@ -43,6 +43,16 @@ public class Buff
     public DateTime StartTime { get; set; }
     public DateTime EndTime { get; set; }
     public int Charge { get; set; }
+
+    /// <summary>
+    /// How many applications of a multiple-stack family this single instance represents.
+    /// </summary>
+    /// <remarks>
+    /// One instance carries the whole stack because the client draws an icon per instance and reads the
+    /// number on it from the stack field of the wire. The unit_modifiers of the template are multiplied
+    /// by this, so a member at sixty stacks has the same total effect as sixty separate members had.
+    /// </remarks>
+    public int Stack { get; set; } = 1;
     public bool Passive { get; set; }
     /// <summary>
     /// World mirrors it for state and client presentation, but must not send the corresponding
@@ -180,6 +190,30 @@ public class Buff
             FinishBuff(replace, fireTimeout: false);
         }
     }
+    /// <summary>
+    /// Takes one more application of a multiple-stack family into this instance.
+    /// </summary>
+    /// <param name="maxStack">The template ceiling; zero means the family does not stack.</param>
+    /// <returns>Whether the application was absorbed, i.e. the ceiling had room.</returns>
+    public bool TryGrowStack(int maxStack)
+    {
+        lock (_lock)
+        {
+            if (!BuffStackRules.CanGrow(Stack, maxStack))
+                return false;
+
+            Stack++;
+        }
+
+        // The bonuses of this index are scaled by the count, so the whole set is rebuilt for the new
+        // one. Start clears the index before it writes, which is what makes re-running it safe.
+        if (InUse)
+            Template.Start(Caster, Owner, this);
+
+        NotifyUpdated(reason: 1);
+        return true;
+    }
+
     public void OverwriteWith(Buff newBuff)
     {
         lock (_lock)
@@ -230,6 +264,19 @@ public class Buff
     }
 
     /// <summary>
+    /// Applications this buff family currently represents on its owner, as every wire field that
+    /// carries a "stack" expects it.
+    /// </summary>
+    /// <remarks>
+    /// This has to be the same figure on Create as on Update. The zone recomputes attributes that scale
+    /// with the count — a sail's contribution to hull speed among them — from whatever the last packet
+    /// told it, so a Create that always claims one application leaves the simulation running on a single
+    /// stack of a sixty-stack buff no matter what the client is showing.
+    /// </remarks>
+    public uint StackCount =>
+        Owner?.Buffs == null ? 1u : (uint)Math.Max(1, Owner.Buffs.GetBuffCountById(Template.BuffId));
+
+    /// <summary>
     /// Push SC + WZ BuffUpdated so clients and Zone see charge/duration changes after Create.
     /// </summary>
     public void NotifyUpdated(byte reason = 0)
@@ -240,9 +287,7 @@ public class Buff
         var elapsedMs = StartTime == DateTime.MinValue
             ? 0
             : (int)Math.Max(0, (DateTime.UtcNow - StartTime).TotalMilliseconds);
-        var stack = 1u;
-        if (Owner.Buffs != null)
-            stack = (uint)Math.Max(1, Owner.Buffs.GetBuffCountById(Template.BuffId));
+        var stack = StackCount;
 
         Owner.BroadcastPacket(
             new SCBuffUpdatedPacket(Owner.ObjId, (int)Index, stack, (uint)Charge, elapsedMs, reason),
