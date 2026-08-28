@@ -101,9 +101,9 @@ public class WorldConfig
 
     /// <summary>
     /// Floor Z policy for units. Independent of <see cref="GeoDataMode"/> (path only).
-    /// Default Legacy matches pre-split nearest-node behavior until TerrainFirst is enabled.
+    /// TerrainFirst: outdoor uses heightmap Blerp; Legacy: nearest .bai node (pre-split).
     /// </summary>
-    public FloorSourceMode FloorSource { get; set; } = FloorSourceMode.Legacy;
+    public FloorSourceMode FloorSource { get; set; } = FloorSourceMode.TerrainFirst;
 
     /// <summary>
     /// When true, FloorQuery writes a single Debug line per sample (src/terrain/nav/floor).

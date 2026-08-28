@@ -87,6 +87,45 @@ public class FloorQueryTests
     }
 
     [Test]
+    public async Task QueryFloor_WhenTerrainFirst_PrefersTerrainOverNavNode()
+    {
+        // Outdoor fix: nav node at 210 must not lift the unit above terrain 133.8
+        var floor = new FloorQuery(
+            worldTemplate: null,
+            geoHeight: _ => 210f,
+            terrainHeight: (_, _) => 133.8f,
+            geoDataEnabled: () => true,
+            heightMapsEnabled: () => true,
+            floorSourceMode: () => FloorSourceMode.TerrainFirst,
+            isMultiFloorWorld: () => false);
+
+        var hit = floor.QueryFloor(100f, 200f, 150f, FloorContext.Move);
+
+        await Assert.That(hit.Z).IsEqualTo(133.8f);
+        await Assert.That(hit.Source).IsEqualTo(FloorSource.Terrain);
+        await Assert.That(hit.NavNodeZ).IsEqualTo(210f);
+        await Assert.That(hit.DeltaNav).IsGreaterThan(70f);
+    }
+
+    [Test]
+    public async Task QueryFloor_WhenTerrainFirstAndNoTerrain_FallsBackToNavNode()
+    {
+        var floor = new FloorQuery(
+            worldTemplate: null,
+            geoHeight: _ => 210f,
+            terrainHeight: (_, _) => 0f,
+            geoDataEnabled: () => true,
+            heightMapsEnabled: () => true,
+            floorSourceMode: () => FloorSourceMode.TerrainFirst,
+            isMultiFloorWorld: () => false);
+
+        var hit = floor.QueryFloor(100f, 200f, 150f, FloorContext.Move);
+
+        await Assert.That(hit.Z).IsEqualTo(210f);
+        await Assert.That(hit.Source).IsEqualTo(FloorSource.LegacyNavNode);
+    }
+
+    [Test]
     public async Task TryProjectOnEdgeXy_Midpoint_ReturnsHalfTAndLerpZ()
     {
         var a = new Vector3(0, 0, 10);
