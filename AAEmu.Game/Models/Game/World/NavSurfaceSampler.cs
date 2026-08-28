@@ -111,4 +111,38 @@ public static class NavSurfaceSampler
     {
         return a.Pos.Z + (b.Pos.Z - a.Pos.Z) * t;
     }
+
+    /// <summary>
+    /// Rewrite path waypoint Z using edge projection (not raw graph vertex Z).
+    /// Uses each point's previous corrected Z as the vertical hint so slopes stay coherent.
+    /// Points with no nearby surface keep their original Z.
+    /// </summary>
+    public static List<Vector3> ApplyWaypointHeights(WorldTemplate worldTemplate, IEnumerable<Vector3> path,
+        float maxVerticalSep = DefaultMaxVerticalSep, float maxXyRadius = DefaultMaxXyRadius)
+    {
+        var result = new List<Vector3>();
+        if (path == null)
+            return result;
+
+        float? prevZ = null;
+        foreach (var point in path)
+        {
+            var zHint = prevZ ?? point.Z;
+            var surface = TrySample(worldTemplate, point.X, point.Y, zHint, maxVerticalSep, maxXyRadius);
+            var z = surface ?? point.Z;
+            result.Add(new Vector3(point.X, point.Y, z));
+            prevZ = z;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Same as <see cref="ApplyWaypointHeights"/> but keeps a queue for AI path consumers.
+    /// </summary>
+    public static Queue<Vector3> ApplyWaypointHeightsQueue(WorldTemplate worldTemplate, IEnumerable<Vector3> path,
+        float maxVerticalSep = DefaultMaxVerticalSep, float maxXyRadius = DefaultMaxXyRadius)
+    {
+        return new Queue<Vector3>(ApplyWaypointHeights(worldTemplate, path, maxVerticalSep, maxXyRadius));
+    }
 }

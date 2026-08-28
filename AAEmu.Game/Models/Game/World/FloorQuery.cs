@@ -116,6 +116,34 @@ public sealed class FloorQuery
         return NavSurfaceSampler.TrySample(_worldTemplate, x, y, zHint, maxVerticalSep, maxXyRadius);
     }
 
+    /// <summary>
+    /// After A*/ReducePath: set each waypoint Z from NavSurface (edge lerp), not raw graph vertex Z.
+    /// When a custom nav sampler is injected (tests), it is used per point; otherwise <see cref="NavSurfaceSampler"/>.
+    /// </summary>
+    public Queue<Vector3> ApplyPathWaypointZ(IEnumerable<Vector3> path)
+    {
+        if (path == null)
+            return new Queue<Vector3>();
+
+        if (_navSurfaceHeight != null)
+        {
+            var result = new Queue<Vector3>();
+            float? prevZ = null;
+            foreach (var point in path)
+            {
+                var zHint = prevZ ?? point.Z;
+                var surface = _navSurfaceHeight(new Vector3(point.X, point.Y, zHint), zHint);
+                var z = surface ?? point.Z;
+                result.Enqueue(new Vector3(point.X, point.Y, z));
+                prevZ = z;
+            }
+
+            return result;
+        }
+
+        return NavSurfaceSampler.ApplyWaypointHeightsQueue(_worldTemplate, path);
+    }
+
     private FloorHit QueryLegacy(float navNodeZ, float terrainZ, float zHint)
     {
         // Mirror WorldManager.GetHeight(zoneKey, x, y, z): prefer GeoData when GeoDataMode, else heightmap.

@@ -1329,7 +1329,8 @@ public partial class Npc : Unit
         var resList = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, Ai.PathNode.StartPointPos, Ai.PathNode.EndPointPos);
         resList.Add(abuser.Transform.World.Position);
         var reducedPath = ParentWorld.Template.GeoData.ReducePath(resList, 10);
-        Ai.PathNode.FoundPath = reducedPath;
+        // Path XY from A*; Z from NavSurface edge samples (not graph vertex Z). Floor seating stays in MoveTowards.
+        Ai.PathNode.FoundPath = ParentWorld.Template.Floor.ApplyPathWaypointZ(reducedPath);
         if (abuser is Character player)
         {
             player.SendMessage($"Aggro from {Ai.Owner.ObjId}, getting attack path in {Ai.PathNode.FoundPath.Count}/{resList.Count} steps");

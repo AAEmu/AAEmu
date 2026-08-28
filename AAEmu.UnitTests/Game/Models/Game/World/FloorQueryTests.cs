@@ -179,4 +179,60 @@ public class FloorQueryTests
         await Assert.That(distSq).IsEqualTo(0f);
         await Assert.That(a.Z + (b.Z - a.Z) * t).IsEqualTo(15f);
     }
+
+    [Test]
+    public async Task ApplyPathWaypointZ_UsesNavSurfaceNotRawVertexZ()
+    {
+        // Slope: vertices at Z=100 and Z=200; intermediate A* node carried vertex Z=200 but
+        // surface mid-edge should be ~150 so chase does not stair-step on node heights.
+        var floor = new FloorQuery(
+            worldTemplate: null,
+            geoHeight: _ => 200f,
+            terrainHeight: (_, _) => 100f,
+            geoDataEnabled: () => true,
+            heightMapsEnabled: () => true,
+            floorSourceMode: () => FloorSourceMode.TerrainFirst,
+            isMultiFloorWorld: () => false,
+            navSurfaceHeight: (pos, _) =>
+            {
+                // Linear along X from 0..10: Z 100..200
+                if (pos.X is >= 0f and <= 10f)
+                    return 100f + pos.X * 10f;
+                return null;
+            });
+
+        var rawPath = new[]
+        {
+            new Vector3(0, 0, 100),
+            new Vector3(5, 0, 200), // raw vertex Z wrong for mid-edge
+            new Vector3(10, 0, 200),
+        };
+
+        var adjusted = floor.ApplyPathWaypointZ(rawPath).ToArray();
+
+        await Assert.That(adjusted.Length).IsEqualTo(3);
+        await Assert.That(adjusted[0].Z).IsEqualTo(100f);
+        await Assert.That(adjusted[1].Z).IsEqualTo(150f);
+        await Assert.That(adjusted[2].Z).IsEqualTo(200f);
+        await Assert.That(adjusted[1].X).IsEqualTo(5f);
+    }
+
+    [Test]
+    public async Task ApplyPathWaypointZ_WhenNoSurface_KeepsOriginalZ()
+    {
+        var floor = new FloorQuery(
+            worldTemplate: null,
+            geoHeight: _ => 210f,
+            terrainHeight: (_, _) => 133.8f,
+            geoDataEnabled: () => true,
+            heightMapsEnabled: () => true,
+            floorSourceMode: () => FloorSourceMode.TerrainFirst,
+            navSurfaceHeight: (_, _) => null);
+
+        var raw = new[] { new Vector3(1, 2, 55f), new Vector3(3, 4, 66f) };
+        var adjusted = floor.ApplyPathWaypointZ(raw).ToArray();
+
+        await Assert.That(adjusted[0].Z).IsEqualTo(55f);
+        await Assert.That(adjusted[1].Z).IsEqualTo(66f);
+    }
 }
