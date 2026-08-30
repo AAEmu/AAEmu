@@ -240,7 +240,7 @@ public class WorldTemplate
     public BaseBaiLoader GetBaiByPos(Vector3 pos)
     {
         if (ZoneBaiLoader.Count > 0)
-            return ZoneBaiLoader.Values.First(); // TODO: Pick the actually correct zone
+            return GetZoneBaiByPos(pos);
 
         // First verify if target cell is loaded
         var cellPos = pos.ToCellIndex();
@@ -249,5 +249,53 @@ public class WorldTemplate
         // Return value from the main paths dictionary
         var pathsPos = pos.ToPathsIndex();
         return PathBaiLoader.GetValueOrDefault(((uint)pathsPos.Item1, (uint)pathsPos.Item2));
+    }
+
+    /// <summary>
+    /// Resolves zone-scoped .bai for instance/dungeon worlds (see also <see cref="WorldCell.LoadBaiFiles"/>).
+    /// </summary>
+    private BaseBaiLoader GetZoneBaiByPos(Vector3 pos)
+    {
+        var sx = (int)(pos.X / WorldManager.REGION_SIZE);
+        var sy = (int)(pos.Y / WorldManager.REGION_SIZE);
+
+        if (ValidRegion(sx, sy))
+        {
+            var zoneKey = ZoneKeyByRegions[sx, sy];
+            if (ZoneBaiLoader.TryGetValue(zoneKey, out var bai))
+                return bai;
+
+            Logger.Warn(
+                "WorldTemplate {0} has zone BAI loaded ({1} zones), but no loader for region zoneKey {2} at ({3:0.#},{4:0.#})",
+                Name, ZoneBaiLoader.Count, zoneKey, pos.X, pos.Y);
+        }
+
+        return PickZoneBaiByNearestNode(pos);
+    }
+
+    /// <summary>
+    /// Fallback when region zoneKey is missing from <see cref="ZoneBaiLoader"/> (zone boundary / data gap).
+    /// Mirrors multi-zone scan in <see cref="AiGeodataManager.FindСlosestToTheCurrent"/>.
+    /// </summary>
+    private BaseBaiLoader PickZoneBaiByNearestNode(Vector3 pos)
+    {
+        BaseBaiLoader bestBai = null;
+        var bestDistSq = float.MaxValue;
+
+        foreach (var (_, bai) in ZoneBaiLoader)
+        {
+            var node = bai.FindClosestNetMissionNode(pos);
+            if (node == null)
+                continue;
+
+            var distSq = Vector3.DistanceSquared(node.Pos, pos);
+            if (distSq < bestDistSq)
+            {
+                bestDistSq = distSq;
+                bestBai = bai;
+            }
+        }
+
+        return bestBai;
     }
 }
