@@ -14,16 +14,30 @@ namespace AAEmu.Game.Models.Game.World;
 /// This type answers a different question: where should the unit's feet be?</para>
 /// <para>Before this split, <c>GeoData.GetHeight</c> served both roles. Nearest nav vertices sit above
 /// outdoor terrain → floating NPCs (#1425). Path still needs those vertices; seating must not.</para>
-/// <para><see cref="FloorSourceMode"/> (config / GM <c>floorsource</c>):</para>
+/// <para><see cref="FloorPolicyMode"/> (config / GM <c>floorpolicy</c>):</para>
 /// <list type="bullet">
-/// <item><description><see cref="FloorSourceMode.TerrainFirst"/> — heightmap Blerp on open world.</description></item>
-/// <item><description><see cref="FloorSourceMode.Legacy"/> — old rule: nav node then terrain (A/B rollback).</description></item>
+/// <item>
+/// <description>
+/// <see cref="FloorPolicyMode.ByZHint"/> — heightmap + nav-surface candidates, pick nearest to
+/// <c>zHint</c> in a vertical window (<see cref="FloorResolver"/>; L2 multilayer / TrinityCore
+/// <c>getHeight</c> / Detour extents). Not terrain-only. Outdoor (#1425) and caves (#1033).
+/// </description>
+/// </item>
+/// <item>
+/// <description>
+/// <see cref="FloorPolicyMode.Legacy"/> — nearest nav node then terrain (A/B rollback).
+/// </description>
+/// </item>
 /// </list>
-/// <para>Worlds with zone <c>.bai</c> (<see cref="WorldTemplate.ZoneBaiLoader"/>) use
-/// <see cref="FloorProvider.NavSurface"/> + zHint for multi-floor / caves (#1033 partial).</para>
 /// </remarks>
 public sealed class FloorQuery
 {
+    /// <summary>
+    /// When nav vertices rest this close to heightmap, treat as outdoor and skip NavSurface sample
+    /// (Greptile P2 / outdoor Move volume).
+    /// </summary>
+    public const float OutdoorNavSlack = 5f;
+
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     private readonly WorldTemplate _worldTemplate;
@@ -31,8 +45,7 @@ public sealed class FloorQuery
     private readonly Func<float, float, float> _terrainHeight;
     private readonly Func<bool> _geoDataEnabled;
     private readonly Func<bool> _heightMapsEnabled;
-    private readonly Func<FloorSourceMode> _floorSourceMode;
-    private readonly Func<bool> _isMultiFloorWorld;
+    private readonly Func<FloorPolicyMode> _floorPolicyMode;
     private readonly Func<Vector3, float, float?> _navSurfaceHeight;
     private readonly Func<bool> _floorDebug;
 
@@ -46,22 +59,22 @@ public sealed class FloorQuery
             (x, y) => worldTemplate.GetHeight(x, y),
             () => AppConfiguration.Instance.World.GeoDataMode,
             () => AppConfiguration.Instance.HeightMapsEnable,
-            () => AppConfiguration.Instance.World.FloorSource,
-            () => worldTemplate.ZoneBaiLoader.Count > 0,
-            (pos, zHint) => NavSurfaceSampler.TrySample(worldTemplate, pos.X, pos.Y, zHint),
-            () => AppConfiguration.Instance.World.FloorDebug)
+            () => AppConfiguration.Instance.World.FloorPolicy,
+            navSurfaceHeight: null,
+            floorDebug: () => AppConfiguration.Instance.World.FloorDebug)
     {
     }
 
-    /// <summary>Test / custom provider constructor. Default mode matches production (<see cref="FloorSourceMode.TerrainFirst"/>).</summary>
+    /// <summary>
+    /// Test / custom provider constructor. Default mode matches production (<see cref="FloorPolicyMode.ByZHint"/>).
+    /// </summary>
     public FloorQuery(
         WorldTemplate worldTemplate,
         Func<Vector3, float> geoHeight,
         Func<float, float, float> terrainHeight,
         Func<bool> geoDataEnabled,
         Func<bool> heightMapsEnabled,
-        Func<FloorSourceMode> floorSourceMode = null,
-        Func<bool> isMultiFloorWorld = null,
+        Func<FloorPolicyMode> floorPolicyMode = null,
         Func<Vector3, float, float?> navSurfaceHeight = null,
         Func<bool> floorDebug = null)
     {
@@ -70,8 +83,7 @@ public sealed class FloorQuery
         _terrainHeight = terrainHeight ?? ((_, _) => 0f);
         _geoDataEnabled = geoDataEnabled ?? (() => false);
         _heightMapsEnabled = heightMapsEnabled ?? (() => true);
-        _floorSourceMode = floorSourceMode ?? (() => FloorSourceMode.TerrainFirst);
-        _isMultiFloorWorld = isMultiFloorWorld ?? (() => false);
+        _floorPolicyMode = floorPolicyMode ?? (() => FloorPolicyMode.ByZHint);
         _navSurfaceHeight = navSurfaceHeight;
         _floorDebug = floorDebug ?? (() => false);
     }
@@ -88,12 +100,12 @@ public sealed class FloorQuery
         var terrainZ = SampleTerrain(x, y);
         var navNodeZ = SampleNavNode(pos);
 
-        var mode = _floorSourceMode();
+        var mode = _floorPolicyMode();
+        // TerrainFirst is an obsolete alias for ByZHint (same numeric value).
         FloorHit hit = mode switch
         {
-            FloorSourceMode.Legacy => QueryLegacy(navNodeZ, terrainZ, zHint),
-            _ when _isMultiFloorWorld() => QueryNavSurface(pos, zHint, terrainZ, navNodeZ),
-            _ => QueryTerrainFirst(terrainZ, navNodeZ, zHint)
+            FloorPolicyMode.Legacy => QueryLegacy(navNodeZ, terrainZ, zHint),
+            _ => QueryByZHint(pos, zHint, terrainZ, navNodeZ)
         };
 
         LastHit = hit;
@@ -109,7 +121,7 @@ public sealed class FloorQuery
 
     /// <summary>
     /// Project (x,y) onto nearby navmesh edges with vertical filter.
-    /// Used by path waypoint Z and multi-floor Floor — not for outdoor TerrainFirst seating.
+    /// Used by path waypoint Z and as a ByZHint Floor candidate — not as an unfiltered outdoor seat.
     /// </summary>
     public float? TryGetNavSurfaceHeight(float x, float y, float zHint, float maxVerticalSep = 8f, float maxXyRadius = 16f)
     {
@@ -121,7 +133,7 @@ public sealed class FloorQuery
 
     /// <summary>
     /// After A*/ReducePath: rewrite waypoint Z from nav-surface edge lerp, not raw graph vertex Z.
-    /// Path XY still comes from GeoData; this only smooths chase height. MoveTowards re-seats via GetFloor each tick.
+    /// Path XY still comes from GeoData; this only smooths chase height. Move ticks reuse waypoint Z via <see cref="PathLocomotionZ"/>.
     /// </summary>
     public Queue<Vector3> ApplyPathWaypointZ(IEnumerable<Vector3> path)
     {
@@ -170,54 +182,36 @@ public sealed class FloorQuery
         return new FloorHit { Z = zHint, Provider = FloorProvider.Unchanged, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
     }
 
-    private FloorHit QueryTerrainFirst(float terrainZ, float navNodeZ, float zHint)
+    /// <summary>
+    /// ByZHint policy: candidates + vertical window. Always considers nav-surface when GeoData is on
+    /// unless outdoor early-out applies (terrain near zHint and nav near terrain).
+    /// </summary>
+    private FloorHit QueryByZHint(Vector3 pos, float zHint, float terrainZ, float navNodeZ)
     {
-        if (_heightMapsEnabled() && terrainZ != 0f)
-            return new FloorHit { Z = terrainZ, Provider = FloorProvider.Terrain, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
+        var terrainCandidate = _heightMapsEnabled() ? terrainZ : 0f;
 
-        if (_geoDataEnabled() && navNodeZ != 0f)
-        {
-            return new FloorHit
-            {
-                Z = navNodeZ,
-                Provider = FloorProvider.LegacyNavNode,
-                TerrainZ = terrainZ,
-                NavNodeZ = navNodeZ
-            };
-        }
+        float? navSurfaceZ = null;
+        if (_geoDataEnabled() && !CanSkipNavSurfaceOutdoor(terrainCandidate, navNodeZ, zHint))
+            navSurfaceZ = TryGetNavSurfaceHeight(pos.X, pos.Y, zHint);
 
-        return new FloorHit { Z = zHint, Provider = FloorProvider.Unchanged, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
+        return FloorResolver.Pick(zHint, terrainCandidate, navSurfaceZ, navNodeZ);
     }
 
-    private FloorHit QueryNavSurface(Vector3 pos, float zHint, float terrainZ, float navNodeZ)
+    /// <summary>
+    /// Outdoor open ground: heightmap already explains seating; full edge sample is wasted (Greptile P2).
+    /// Caves/multi-floor keep sampling because terrain is far from zHint or nav is far from terrain.
+    /// </summary>
+    internal static bool CanSkipNavSurfaceOutdoor(float terrainZ, float navNodeZ, float zHint,
+        float verticalSep = FloorResolver.DefaultVerticalSep, float outdoorNavSlack = OutdoorNavSlack)
     {
-        var surface = TryGetNavSurfaceHeight(pos.X, pos.Y, zHint);
-        if (surface.HasValue)
-        {
-            return new FloorHit
-            {
-                Z = surface.Value,
-                Provider = FloorProvider.NavSurface,
-                TerrainZ = terrainZ,
-                NavNodeZ = navNodeZ
-            };
-        }
-
-        if (_heightMapsEnabled() && terrainZ != 0f)
-            return new FloorHit { Z = terrainZ, Provider = FloorProvider.Terrain, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
-
-        if (navNodeZ != 0f)
-        {
-            return new FloorHit
-            {
-                Z = navNodeZ,
-                Provider = FloorProvider.LegacyNavNode,
-                TerrainZ = terrainZ,
-                NavNodeZ = navNodeZ
-            };
-        }
-
-        return new FloorHit { Z = zHint, Provider = FloorProvider.Unchanged, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
+        if (terrainZ == 0f)
+            return false;
+        if (MathF.Abs(terrainZ - zHint) > verticalSep)
+            return false;
+        // No nav node (or zero sentinel): still safe to skip — resolver will use terrain in-window.
+        if (navNodeZ == 0f)
+            return true;
+        return MathF.Abs(navNodeZ - terrainZ) <= outdoorNavSlack;
     }
 
     private float SampleTerrain(float x, float y)

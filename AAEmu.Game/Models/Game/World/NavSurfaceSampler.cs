@@ -11,7 +11,9 @@ namespace AAEmu.Game.Models.Game.World;
 /// <remarks>
 /// Raw A* waypoints carry graph vertex Z → stair-step chase on slopes.
 /// Edge projection + <paramref name="zHint"/> picks the correct floor in multi-level nav (#1033).
-/// Outdoor open-world seating still uses heightmap via <see cref="FloorQuery"/> TerrainFirst.
+/// Also a ByZHint Floor candidate in <see cref="FloorQuery"/> / <see cref="FloorResolver"/>
+/// (same role as Detour <c>findNearestPoly</c> extents / TrinityCore height search window).
+/// Uses <see cref="NavEdgeSpatialIndex"/> so queries do not scan the full link list (Greptile P2).
 /// </remarks>
 public static class NavSurfaceSampler
 {
@@ -42,37 +44,31 @@ public static class NavSurfaceSampler
         var found = false;
         var maxXyRadiusSq = maxXyRadius * maxXyRadius;
 
-        foreach (var net in bai.NetMissionReaders)
+        void Consider(NodeDescriptor a, NodeDescriptor b)
         {
-            foreach (var link in net.LinkDescriptorList)
+            // Drop edges whose endpoints are on a different floor than zHint
+            if (MathF.Abs(a.Pos.Z - zHint) > maxVerticalSep && MathF.Abs(b.Pos.Z - zHint) > maxVerticalSep)
+                return;
+
+            if (!TryProjectOnEdgeXy(x, y, a.Pos, b.Pos, out var t, out _, out _, out var distSq))
+                return;
+
+            if (distSq > maxXyRadiusSq)
+                return;
+
+            var edgeZ = LerpEdgeZ(a, b, t);
+            if (MathF.Abs(edgeZ - zHint) > maxVerticalSep)
+                return;
+
+            if (distSq < bestDistSq)
             {
-                var a = link.SourceNodeDescriptor;
-                var b = link.TargetNodeDescriptor;
-                if (a == null || b == null)
-                    continue;
-
-                // Drop edges whose endpoints are on a different floor than zHint
-                if (MathF.Abs(a.Pos.Z - zHint) > maxVerticalSep && MathF.Abs(b.Pos.Z - zHint) > maxVerticalSep)
-                    continue;
-
-                if (!TryProjectOnEdgeXy(x, y, a.Pos, b.Pos, out var t, out var projX, out var projY, out var distSq))
-                    continue;
-
-                if (distSq > maxXyRadiusSq)
-                    continue;
-
-                var edgeZ = LerpEdgeZ(a, b, t);
-                if (MathF.Abs(edgeZ - zHint) > maxVerticalSep)
-                    continue;
-
-                if (distSq < bestDistSq)
-                {
-                    bestDistSq = distSq;
-                    bestZ = edgeZ;
-                    found = true;
-                }
+                bestDistSq = distSq;
+                bestZ = edgeZ;
+                found = true;
             }
         }
+
+        bai.NavEdgeIndex.ForEachNear(x, y, maxXyRadius, Consider);
 
         return found ? bestZ : null;
     }

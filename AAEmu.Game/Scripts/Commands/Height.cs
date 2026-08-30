@@ -40,7 +40,7 @@ public class Height : ICommand
         var terrainZ = targetPlayer.ParentWorld.Template.GetHeight(pos.X, pos.Y);
         var navNodeZ = targetPlayer.ParentWorld.Template.GeoData.GetHeight(pos);
 
-        var mode = AppConfiguration.Instance.World.FloorSource;
+        var mode = AppConfiguration.Instance.World.FloorPolicy;
         CommandManager.SendNormalText(
             this,
             messageOutput,

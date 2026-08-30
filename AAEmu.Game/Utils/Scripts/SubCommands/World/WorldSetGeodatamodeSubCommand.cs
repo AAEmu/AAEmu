@@ -9,7 +9,7 @@ public class WorldSetGeodatamodeSubCommand : SubCommandBase
     public WorldSetGeodatamodeSubCommand()
     {
         Title = "[World Set GeoDataMode]";
-        Description = "Enables/disables GeoDataMode (navmesh load + A* pathfinding only; does not change floor height — use floorsource)";
+        Description = "Enables/disables GeoDataMode (navmesh load + A* pathfinding only; does not change floor height — use floorpolicy)";
         CallPrefix = $"{CommandManager.CommandPrefix}geodatamode";
         AddParameter(new StringSubCommandParameter("GeoDataMode", "GeoDataMode", true));
     }

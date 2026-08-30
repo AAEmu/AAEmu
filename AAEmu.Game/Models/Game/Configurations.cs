@@ -95,15 +95,23 @@ public class WorldConfig
 
     /// <summary>
     /// Enables loading of NavMesh (.bai) data and A* pathfinding.
-    /// Does not select floor height provider — see <see cref="FloorSource"/>.
+    /// Does not select floor height policy — see <see cref="FloorPolicy"/>.
     /// </summary>
     public bool GeoDataMode { get; set; }
 
     /// <summary>
     /// Floor Z policy for units. Independent of <see cref="GeoDataMode"/> (path only).
-    /// TerrainFirst: outdoor uses heightmap Blerp; Legacy: nearest .bai node (pre-split).
+    /// ByZHint: heightmap + nav-surface, pick by zHint (see FloorResolver); not terrain-only.
+    /// Legacy: nearest .bai node (pre-split rollback).
     /// </summary>
-    public FloorSourceMode FloorSource { get; set; } = FloorSourceMode.TerrainFirst;
+    public FloorPolicyMode FloorPolicy { get; set; } = FloorPolicyMode.ByZHint;
+
+    /// <summary>Obsolete JSON/config alias for <see cref="FloorPolicy"/>.</summary>
+    public FloorPolicyMode FloorSource
+    {
+        get => FloorPolicy;
+        set => FloorPolicy = value;
+    }
 
     /// <summary>
     /// When true, FloorQuery writes a single Debug line per sample (src/terrain/nav/floor).

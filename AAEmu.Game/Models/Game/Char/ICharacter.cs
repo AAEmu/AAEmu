@@ -42,6 +42,7 @@ public interface ICharacter : IUnit
     public void SetLogoutMessage(string value);
     public void SetMotdMessage(string value);
     public void SetGeoDataMode(bool value);
-    public void SetFloorSource(FloorSourceMode value);
+    public void SetFloorPolicy(FloorPolicyMode value);
+    public void SetFloorSource(FloorPolicyMode value);
     public void SetFloorDebug(bool value);
 }

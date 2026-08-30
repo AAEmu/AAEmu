@@ -1,5 +1,8 @@
+using System.IO;
 using System.Numerics;
 
+using AAEmu.Game.Models.CryEngine.Entities;
+using AAEmu.Game.Models.CryEngine.Readers;
 using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.UnitTests.Game.Models.Game.World;
@@ -15,7 +18,7 @@ public class FloorQueryTests
             terrainHeight: (_, _) => 133.8f,
             geoDataEnabled: () => true,
             heightMapsEnabled: () => true,
-            floorSourceMode: () => FloorSourceMode.Legacy);
+            floorPolicyMode: () => FloorPolicyMode.Legacy);
 
         var hit = floor.QueryFloor(100f, 200f, 150f, FloorContext.Move);
 
@@ -34,7 +37,7 @@ public class FloorQueryTests
             terrainHeight: (_, _) => 133.8f,
             geoDataEnabled: () => true,
             heightMapsEnabled: () => true,
-            floorSourceMode: () => FloorSourceMode.Legacy);
+            floorPolicyMode: () => FloorPolicyMode.Legacy);
 
         var hit = floor.QueryFloor(100f, 200f, 150f, FloorContext.Spawn);
 
@@ -51,7 +54,7 @@ public class FloorQueryTests
             terrainHeight: (_, _) => 133.8f,
             geoDataEnabled: () => false,
             heightMapsEnabled: () => true,
-            floorSourceMode: () => FloorSourceMode.Legacy);
+            floorPolicyMode: () => FloorPolicyMode.Legacy);
 
         var hit = floor.QueryFloor(100f, 200f, 150f, FloorContext.Move);
 
@@ -62,8 +65,6 @@ public class FloorQueryTests
     [Test]
     public async Task GetFloor_MatchesLegacyWorldManagerPriority_ForFixedPoints()
     {
-        // Golden: same priority as WorldManager.GetHeight with GeoDataMode on —
-        // non-zero nav node wins over terrain.
         var samples = new (Vector3 pos, float nav, float terrain, float expected)[]
         {
             (new Vector3(10, 10, 100), 120f, 100f, 120f),
@@ -79,7 +80,7 @@ public class FloorQueryTests
                 terrainHeight: (_, _) => terrain,
                 geoDataEnabled: () => true,
                 heightMapsEnabled: () => true,
-                floorSourceMode: () => FloorSourceMode.Legacy);
+                floorPolicyMode: () => FloorPolicyMode.Legacy);
 
             var z = floor.GetFloor(pos.X, pos.Y, pos.Z, FloorContext.Debug);
             await Assert.That(z).IsEqualTo(expected);
@@ -87,19 +88,19 @@ public class FloorQueryTests
     }
 
     [Test]
-    public async Task QueryFloor_WhenTerrainFirst_PrefersTerrainOverNavNode()
+    public async Task QueryFloor_WhenByZHint_OutdoorPrefersTerrainOverHighNav()
     {
-        // Outdoor fix: nav node at 210 must not lift the unit above terrain 133.8
+        // #1425: nav vertex at 210 must not lift the unit; zHint near ground → terrain in window.
         var floor = new FloorQuery(
             worldTemplate: null,
             geoHeight: _ => 210f,
             terrainHeight: (_, _) => 133.8f,
             geoDataEnabled: () => true,
             heightMapsEnabled: () => true,
-            floorSourceMode: () => FloorSourceMode.TerrainFirst,
-            isMultiFloorWorld: () => false);
+            floorPolicyMode: () => FloorPolicyMode.ByZHint,
+            navSurfaceHeight: (_, _) => null);
 
-        var hit = floor.QueryFloor(100f, 200f, 150f, FloorContext.Move);
+        var hit = floor.QueryFloor(100f, 200f, 134f, FloorContext.Move);
 
         await Assert.That(hit.Z).IsEqualTo(133.8f);
         await Assert.That(hit.Provider).IsEqualTo(FloorProvider.Terrain);
@@ -108,7 +109,25 @@ public class FloorQueryTests
     }
 
     [Test]
-    public async Task QueryFloor_WhenTerrainFirstAndNoTerrain_FallsBackToNavNode()
+    public async Task QueryFloor_WhenByZHint_OutdoorHealsFloaterTowardTerrain()
+    {
+        var floor = new FloorQuery(
+            worldTemplate: null,
+            geoHeight: _ => 210f,
+            terrainHeight: (_, _) => 133.8f,
+            geoDataEnabled: () => true,
+            heightMapsEnabled: () => true,
+            floorPolicyMode: () => FloorPolicyMode.ByZHint,
+            navSurfaceHeight: (_, _) => null);
+
+        var hit = floor.QueryFloor(100f, 200f, 210f, FloorContext.Move);
+
+        await Assert.That(hit.Z).IsEqualTo(133.8f);
+        await Assert.That(hit.Provider).IsEqualTo(FloorProvider.Terrain);
+    }
+
+    [Test]
+    public async Task QueryFloor_WhenByZHintAndNoTerrain_FallsBackToNavNode()
     {
         var floor = new FloorQuery(
             worldTemplate: null,
@@ -116,8 +135,8 @@ public class FloorQueryTests
             terrainHeight: (_, _) => 0f,
             geoDataEnabled: () => true,
             heightMapsEnabled: () => true,
-            floorSourceMode: () => FloorSourceMode.TerrainFirst,
-            isMultiFloorWorld: () => false);
+            floorPolicyMode: () => FloorPolicyMode.ByZHint,
+            navSurfaceHeight: (_, _) => null);
 
         var hit = floor.QueryFloor(100f, 200f, 150f, FloorContext.Move);
 
@@ -126,16 +145,35 @@ public class FloorQueryTests
     }
 
     [Test]
-    public async Task QueryFloor_WhenMultiFloor_UsesNavSurfaceWithZHint()
+    public async Task QueryFloor_WhenByZHint_CaveUsesNavSurfaceNearZHint()
+    {
+        // #1033 Ronbann-style: heightmap is the surface ~200m above; nav edge is the cave floor.
+        var floor = new FloorQuery(
+            worldTemplate: null,
+            geoHeight: _ => 480f,
+            terrainHeight: (_, _) => 479.2f,
+            geoDataEnabled: () => true,
+            heightMapsEnabled: () => true,
+            floorPolicyMode: () => FloorPolicyMode.ByZHint,
+            navSurfaceHeight: (_, zHint) => zHint is >= 280f and <= 310f ? 293.4f : null);
+
+        var hit = floor.QueryFloor(10f, 10f, 294f, FloorContext.Move);
+
+        await Assert.That(hit.Z).IsEqualTo(293.4f);
+        await Assert.That(hit.Provider).IsEqualTo(FloorProvider.NavSurface);
+        await Assert.That(hit.TerrainZ).IsEqualTo(479.2f);
+    }
+
+    [Test]
+    public async Task QueryFloor_WhenByZHint_MultiFloorUsesNavSurfaceWithZHint()
     {
         var floor = new FloorQuery(
             worldTemplate: null,
-            geoHeight: _ => 280f, // wrong floor node
+            geoHeight: _ => 280f,
             terrainHeight: (_, _) => 100f,
             geoDataEnabled: () => true,
             heightMapsEnabled: () => true,
-            floorSourceMode: () => FloorSourceMode.TerrainFirst,
-            isMultiFloorWorld: () => true,
+            floorPolicyMode: () => FloorPolicyMode.ByZHint,
             navSurfaceHeight: (_, zHint) => zHint >= 150f ? 151.2f : 100.5f);
 
         var upper = floor.QueryFloor(10f, 10f, 152f, FloorContext.Move);
@@ -148,7 +186,7 @@ public class FloorQueryTests
     }
 
     [Test]
-    public async Task QueryFloor_WhenMultiFloorAndNoSurface_FallsBackToTerrain()
+    public async Task QueryFloor_WhenByZHintAndNoSurface_FallsBackToTerrain()
     {
         var floor = new FloorQuery(
             worldTemplate: null,
@@ -156,12 +194,57 @@ public class FloorQueryTests
             terrainHeight: (_, _) => 133.8f,
             geoDataEnabled: () => true,
             heightMapsEnabled: () => true,
-            floorSourceMode: () => FloorSourceMode.TerrainFirst,
-            isMultiFloorWorld: () => true,
+            floorPolicyMode: () => FloorPolicyMode.ByZHint,
             navSurfaceHeight: (_, _) => null);
 
         var hit = floor.QueryFloor(10f, 10f, 140f, FloorContext.Move);
         await Assert.That(hit.Z).IsEqualTo(133.8f);
+        await Assert.That(hit.Provider).IsEqualTo(FloorProvider.Terrain);
+    }
+
+    [Test]
+    public async Task QueryFloor_WhenByZHint_OutdoorSkipsNavSurfaceSampler()
+    {
+        // Greptile P2 early-out: terrain near zHint and nav near terrain → injected sampler must not run.
+        var sampled = false;
+        var floor = new FloorQuery(
+            worldTemplate: null,
+            geoHeight: _ => 135f,
+            terrainHeight: (_, _) => 133.8f,
+            geoDataEnabled: () => true,
+            heightMapsEnabled: () => true,
+            floorPolicyMode: () => FloorPolicyMode.ByZHint,
+            navSurfaceHeight: (_, _) =>
+            {
+                sampled = true;
+                return 999f;
+            });
+
+        var hit = floor.QueryFloor(10f, 10f, 134f, FloorContext.Move);
+
+        await Assert.That(sampled).IsFalse();
+        await Assert.That(hit.Z).IsEqualTo(133.8f);
+        await Assert.That(hit.Provider).IsEqualTo(FloorProvider.Terrain);
+    }
+
+    [Test]
+    public async Task CanSkipNavSurfaceOutdoor_CaveDoesNotSkip()
+    {
+        var skip = FloorQuery.CanSkipNavSurfaceOutdoor(terrainZ: 479f, navNodeZ: 293f, zHint: 294f);
+        await Assert.That(skip).IsFalse();
+    }
+
+    [Test]
+    public async Task FloorResolver_PicksCloserCandidateInsideVerticalWindow()
+    {
+        var hit = FloorResolver.Pick(
+            zHint: 150f,
+            terrainZ: 148f,
+            navSurfaceZ: 156f,
+            navNodeZ: 200f,
+            verticalSep: 12f);
+
+        await Assert.That(hit.Z).IsEqualTo(148f);
         await Assert.That(hit.Provider).IsEqualTo(FloorProvider.Terrain);
     }
 
@@ -183,19 +266,15 @@ public class FloorQueryTests
     [Test]
     public async Task ApplyPathWaypointZ_UsesNavSurfaceNotRawVertexZ()
     {
-        // Slope: vertices at Z=100 and Z=200; intermediate A* node carried vertex Z=200 but
-        // surface mid-edge should be ~150 so chase does not stair-step on node heights.
         var floor = new FloorQuery(
             worldTemplate: null,
             geoHeight: _ => 200f,
             terrainHeight: (_, _) => 100f,
             geoDataEnabled: () => true,
             heightMapsEnabled: () => true,
-            floorSourceMode: () => FloorSourceMode.TerrainFirst,
-            isMultiFloorWorld: () => false,
+            floorPolicyMode: () => FloorPolicyMode.ByZHint,
             navSurfaceHeight: (pos, _) =>
             {
-                // Linear along X from 0..10: Z 100..200
                 if (pos.X is >= 0f and <= 10f)
                     return 100f + pos.X * 10f;
                 return null;
@@ -204,7 +283,7 @@ public class FloorQueryTests
         var rawPath = new[]
         {
             new Vector3(0, 0, 100),
-            new Vector3(5, 0, 200), // raw vertex Z wrong for mid-edge
+            new Vector3(5, 0, 200),
             new Vector3(10, 0, 200),
         };
 
@@ -226,7 +305,7 @@ public class FloorQueryTests
             terrainHeight: (_, _) => 133.8f,
             geoDataEnabled: () => true,
             heightMapsEnabled: () => true,
-            floorSourceMode: () => FloorSourceMode.TerrainFirst,
+            floorPolicyMode: () => FloorPolicyMode.ByZHint,
             navSurfaceHeight: (_, _) => null);
 
         var raw = new[] { new Vector3(1, 2, 55f), new Vector3(3, 4, 66f) };
@@ -234,5 +313,50 @@ public class FloorQueryTests
 
         await Assert.That(adjusted[0].Z).IsEqualTo(55f);
         await Assert.That(adjusted[1].Z).IsEqualTo(66f);
+    }
+}
+
+public class NavEdgeSpatialIndexTests
+{
+    [Test]
+    public async Task ForEachNear_OnlyVisitsEdgesInRadiusCells()
+    {
+        var net = new NetMissionReader(Stream.Null, 0);
+        var nearA = new NodeDescriptor(net) { Id = 1, Pos = new Vector3(0, 0, 10) };
+        var nearB = new NodeDescriptor(net) { Id = 2, Pos = new Vector3(8, 0, 12) };
+        var farA = new NodeDescriptor(net) { Id = 3, Pos = new Vector3(200, 200, 10) };
+        var farB = new NodeDescriptor(net) { Id = 4, Pos = new Vector3(210, 200, 12) };
+
+        var index = new NavEdgeSpatialIndex(cellSize: 16f);
+        index.AddEdge(nearA, nearB);
+        index.AddEdge(farA, farB);
+
+        var visited = 0;
+        index.ForEachNear(4f, 0f, radius: 16f, (_, _) => visited++);
+
+        await Assert.That(visited).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Index_MidEdgeProjection_MatchesSamplerMath()
+    {
+        var net = new NetMissionReader(Stream.Null, 0);
+        var a = new NodeDescriptor(net) { Id = 1, Pos = new Vector3(0, 0, 100) };
+        var b = new NodeDescriptor(net) { Id = 2, Pos = new Vector3(10, 0, 200) };
+
+        var index = new NavEdgeSpatialIndex(cellSize: 16f);
+        index.AddEdge(a, b);
+
+        float? best = null;
+        index.ForEachNear(5f, 0f, 16f, (na, nb) =>
+        {
+            if (!NavSurfaceSampler.TryProjectOnEdgeXy(5f, 0f, na.Pos, nb.Pos, out var t, out _, out _, out var distSq))
+                return;
+            if (distSq > 0.01f)
+                return;
+            best = NavSurfaceSampler.LerpEdgeZ(na, nb, t);
+        });
+
+        await Assert.That(best).IsEqualTo(150f);
     }
 }

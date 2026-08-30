@@ -592,10 +592,13 @@ public class Unit : BaseUnit, IUnit
         AppConfiguration.Instance.World.GeoDataMode = value;
     }
 
-    public void SetFloorSource(FloorSourceMode value)
+    public void SetFloorPolicy(FloorPolicyMode value)
     {
-        AppConfiguration.Instance.World.FloorSource = value;
+        AppConfiguration.Instance.World.FloorPolicy = value;
     }
+
+    /// <summary>Obsolete alias for <see cref="SetFloorPolicy"/>.</summary>
+    public void SetFloorSource(FloorPolicyMode value) => SetFloorPolicy(value);
 
     public void SetFloorDebug(bool value)
     {

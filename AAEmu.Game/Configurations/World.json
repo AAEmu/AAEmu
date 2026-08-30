@@ -17,7 +17,7 @@
         "IgnoreFallDamageAccessLevel": 100,
         "GodMode": false,
         "GeoDataMode": true,
-        "FloorSource": "TerrainFirst",
+        "FloorPolicy": "ByZHint",
         "FloorDebug": false,
         "PreLoadTerrain": false,
         "MaxInstances": 32,
