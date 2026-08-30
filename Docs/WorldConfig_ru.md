@@ -70,18 +70,18 @@
 
 ### `GeoDataMode`
 - **Тип**: `boolean`
-- **Описание**: включает загрузку GeoData/NavMesh и A* pathfinding. **Не** выбирает источник высоты пола — см. `FloorSource`.
+- **Описание**: включает загрузку GeoData/NavMesh и A* pathfinding. **Не** выбирает источник высоты пола — см. `FloorPolicy`.
 
-### `FloorSource`
-- **Тип**: `string` (`TerrainFirst` | `Legacy`)
-- **По умолчанию**: `TerrainFirst`
-- **Описание**: политика Floor Z. `TerrainFirst` — heightmap Blerp в open world (и nav-surface в zone/.bai). `Legacy` — ближайшая вершина `.bai` (старое поведение; откат). Независимо от `GeoDataMode`.
+### `FloorPolicy`
+- **Тип**: `string` (`ByZHint` | `Legacy`; устаревший alias `TerrainFirst` = `ByZHint`)
+- **По умолчанию**: `ByZHint`
+- **Описание**: политика Floor Z. `ByZHint` — кандидаты heightmap + nav-surface, выбор ближайшего к `zHint` в вертикальном окне (**не** terrain-only; outdoor #1425 и пещеры/мультиэтаж #1033). `Legacy` — ближайшая вершина `.bai` (старое поведение; откат). Независимо от `GeoDataMode`. Устаревший ключ `FloorSource` пишет в то же поле.
 
 ### `FloorDebug`
 - **Тип**: `boolean`
 - **По умолчанию**: `false`
 - **Описание**: если `true`, FloorQuery пишет Debug-строку на каждый sample (`mode` / `src` / terrain / nav / floor). GM: `/world set floordebug true`.
-- **Проверка**: `bash Scripts/find-floor-mismatch.sh --summary` (exit 0 = подозрения, 1 = OK). Большой `deltaNav` на outdoor после `TerrainFirst` ожидаем.
+- **Проверка**: `bash Scripts/find-floor-mismatch.sh --summary` (exit 0 = подозрения, 1 = OK). Большой `deltaNav` на outdoor после `ByZHint` ожидаем.
 
 ### `PreLoadTerrain`
 - **Тип**: `boolean`

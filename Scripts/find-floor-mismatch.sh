@@ -4,7 +4,7 @@
 # Enable logging first:
 #   World.FloorDebug = true
 # Expected line (FloorQuery):
-#   Floor mode=TerrainFirst src=Terrain ctx=Move xyz=(x,y,z) terrain=133.8 nav=210.0 floor=133.8 deltaNav=76.2
+#   Floor mode=ByZHint src=Terrain ctx=Move xyz=(x,y,z) terrain=133.8 nav=210.0 floor=133.8 deltaNav=76.2
 #
 # Usage:
 #   bash Scripts/find-floor-mismatch.sh
@@ -13,13 +13,13 @@
 #   bash Scripts/find-floor-mismatch.sh --threshold 2.0 path/to/Server.log
 #
 # Suspects (exit 0):
-#   - |floor - terrain| > threshold when terrain != 0 and provider is Terrain (regression on TerrainFirst)
+#   - |floor - terrain| > threshold when terrain != 0 and provider is Terrain (regression on ByZHint)
 #
 # OK (exit 1): FloorDebug lines present, no suspects.
 # Error (exit 2): no logs / usage.
 #
-# LegacyNavNode on Move is expected when FloorSource=Legacy (A/B rollback). Check mode= in log line.
-# Large deltaNav outdoors after TerrainFirst is EXPECTED (nav Z intentionally ignored for seating).
+# LegacyNavNode on Move is expected when FloorPolicy=Legacy (A/B rollback). Check mode= in log line.
+# Large deltaNav outdoors after ByZHint is EXPECTED (nav Z intentionally ignored for seating).
 
 set -u
 
@@ -221,7 +221,7 @@ if [[ "$SUMMARY" -eq 1 ]]; then
     }
   ' "$tmp"
   echo
-  echo "deltaNav (informational; large outdoors is OK after TerrainFirst):"
+  echo "deltaNav (informational; large outdoors is OK after ByZHint):"
   awk -F'\001' '
     { v[NR]=$6+0 }
     END {
@@ -250,10 +250,10 @@ if [[ "$suspect_count" -gt 0 ]]; then
     echo "... $((suspect_count - 40)) more"
   fi
   echo
-  echo "Suspects found (TerrainFirst seating diverged from heightmap)."
+  echo "Suspects found (ByZHint seating diverged from heightmap)."
   exit 0
 fi
 
 echo "No Floor mismatches in scanned scope ($total FloorDebug samples)."
-echo "TerrainFirst outdoor Move should show src=Terrain with |floor-terrain|≈0."
+echo "ByZHint outdoor Move should show src=Terrain with |floor-terrain|≈0."
 exit 1
