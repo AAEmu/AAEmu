@@ -889,7 +889,7 @@ public class Slave : Unit
                         newDoodad.PlantTime = DateTime.UtcNow;
                         newDoodad.Faction = FactionManager.Instance.GetFaction(FactionsEnum.Friendly);
 
-                        var floor = ParentWorld.Template.Floor.GetFloor(newDoodad.Transform.World.Position.X, newDoodad.Transform.World.Position.Y, newDoodad.Transform.World.Position.Z, FloorContext.Spawn); // WorldManager.Instance.GetHeight(newDoodad.Transform);
+                        var floor = ParentWorld.Template.Floor.GetFloor(newDoodad.Transform.World.Position.X, newDoodad.Transform.World.Position.Y, newDoodad.Transform.World.Position.Z, FloorContext.Spawn);
                         var surface = WorldManager.Instance.GetWorld(doodad.Transform.InstanceId)?.Water?.GetWaterSurface(newDoodad.Transform.World.Position, out _) ?? 0f;
                         var depth = surface - floor;
 
@@ -954,7 +954,7 @@ public class Slave : Unit
                 doodad.Transform.Local.SetPosition(pos);
                 if (dropDoodad.OnWater == false)
                 {
-                    doodad.Transform.Local.SetHeight(doodad.ParentWorld.Template.Floor.GetFloor(doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y, doodad.Transform.World.Position.Z, FloorContext.Spawn)); //WorldManager.Instance.GetHeight(doodad.Transform.ZoneId, pos.X, pos.Y, pos.Z));
+                    doodad.Transform.Local.SetHeight(doodad.ParentWorld.Template.Floor.GetFloor(doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y, doodad.Transform.World.Position.Z, FloorContext.Spawn));
                 }
                 else
                 {

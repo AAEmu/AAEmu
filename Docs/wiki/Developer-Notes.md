@@ -24,11 +24,16 @@ Operational impact for wiki setup docs is small:
 ## Floor ≠ Path (world height)
 
 `GeoDataMode` loads `.bai` navmesh and enables A* pathfinding only. Floor Z for
-units goes through `WorldTemplate.Floor` (`FloorQuery`), controlled by
-`World.FloorSource`:
+units goes through `WorldTemplate.Floor` (`FloorQuery`), controlled by config
+`World.FloorSource` (`FloorSourceMode`: `TerrainFirst` | `Legacy`).
 
-- `TerrainFirst` (default): outdoor heightmap Blerp; zone/multi-floor may use NavSurface + `zHint`
-- `Legacy`: nearest `.bai` node (pre-split floating-NPC behavior; rollback)
+Each query also records which **provider** won (`FloorProvider` in code, `src=`
+in logs): `Terrain`, `NavSurface`, `LegacyNavNode`, or `Unchanged`.
+
+- `TerrainFirst` (default): outdoor heightmap Blerp (#1425); zone/multi-floor may use NavSurface + `zHint` (#1033 partial)
+- `Legacy`: nearest `.bai` node (pre-split behavior; GM rollback for A/B)
+
+GM: `/world set floorsource …`, `/world set floordebug true`, `/height` (mode / src / deltas).
 
 Opt-in `World.FloorDebug` logs one line per sample. Parse with:
 
@@ -36,8 +41,7 @@ Opt-in `World.FloorDebug` logs one line per sample. Parse with:
 bash Scripts/find-floor-mismatch.sh --summary
 ```
 
-GM `height` prints Z / Floor / src / Terrain / Nav. Related: config docs
-`Docs/WorldConfig_en.md` / `Docs/WorldConfig_ru.md`.
+Related: `Docs/WorldConfig_en.md` / `Docs/WorldConfig_ru.md`.
 
 ## Related
 

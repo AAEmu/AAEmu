@@ -80,7 +80,7 @@
 ### `FloorDebug`
 - **Тип**: `boolean`
 - **По умолчанию**: `false`
-- **Описание**: если `true`, FloorQuery пишет Debug-строку на каждый sample.
+- **Описание**: если `true`, FloorQuery пишет Debug-строку на каждый sample (`mode` / `src` / terrain / nav / floor). GM: `/world set floordebug true`.
 - **Проверка**: `bash Scripts/find-floor-mismatch.sh --summary` (exit 0 = подозрения, 1 = OK). Большой `deltaNav` на outdoor после `TerrainFirst` ожидаем.
 
 ### `PreLoadTerrain`

@@ -1,5 +1,6 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.World;
@@ -39,9 +40,10 @@ public class Height : ICommand
         var terrainZ = targetPlayer.ParentWorld.Template.GetHeight(pos.X, pos.Y);
         var navNodeZ = targetPlayer.ParentWorld.Template.GeoData.GetHeight(pos);
 
+        var mode = AppConfiguration.Instance.World.FloorSource;
         CommandManager.SendNormalText(
             this,
             messageOutput,
-            $"{targetPlayer.Name} Z={pos.Z:0.###} Floor={floorHit.Z:0.###} src={floorHit.Source} Terrain={terrainZ:0.###} Nav={navNodeZ:0.###} deltaNav={floorHit.DeltaNav:0.###} deltaTerrain={floorHit.DeltaTerrain:0.###}");
+            $"{targetPlayer.Name} Z={pos.Z:0.###} Floor={floorHit.Z:0.###} mode={mode} src={floorHit.Provider} Terrain={terrainZ:0.###} Nav={navNodeZ:0.###} deltaNav={floorHit.DeltaNav:0.###} deltaTerrain={floorHit.DeltaTerrain:0.###}");
     }
 }

@@ -20,8 +20,7 @@ public class WorldSetFloorsourceSubCommand : SubCommandBase
         IDictionary<string, ParameterValue> parameters, IMessageOutput messageOutput)
     {
         var raw = ((string)parameters["FloorSource"]).Trim();
-        if (!Enum.TryParse<FloorSourceMode>(raw, ignoreCase: true, out var mode)
-            || (mode != FloorSourceMode.TerrainFirst && mode != FloorSourceMode.Legacy))
+        if (!Enum.TryParse<FloorSourceMode>(raw, ignoreCase: true, out var mode))
         {
             SendColorMessage(messageOutput, Color.Coral, "FloorSource must be 'TerrainFirst' or 'Legacy'");
             return;

@@ -8,6 +8,11 @@ namespace AAEmu.Game.Models.Game.World;
 /// <summary>
 /// Samples floor Z by projecting (x,y) onto nearby navmesh edges (not nearest vertex alone).
 /// </summary>
+/// <remarks>
+/// Raw A* waypoints carry graph vertex Z → stair-step chase on slopes.
+/// Edge projection + <paramref name="zHint"/> picks the correct floor in multi-level nav (#1033).
+/// Outdoor open-world seating still uses heightmap via <see cref="FloorQuery"/> TerrainFirst.
+/// </remarks>
 public static class NavSurfaceSampler
 {
     public const float DefaultMaxVerticalSep = 8f;
@@ -56,7 +61,7 @@ public static class NavSurfaceSampler
                 if (distSq > maxXyRadiusSq)
                     continue;
 
-                var edgeZ = a.Pos.Z + (b.Pos.Z - a.Pos.Z) * t;
+                var edgeZ = LerpEdgeZ(a, b, t);
                 if (MathF.Abs(edgeZ - zHint) > maxVerticalSep)
                     continue;
 

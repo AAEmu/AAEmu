@@ -297,8 +297,8 @@ public class FloatingSkillController : SkillController
 
     private float GetGroundHeight()
     {
-        var geoZ = Owner.ParentWorld.Template.Floor.GetFloor(Owner.Transform.World.Position.X, Owner.Transform.World.Position.Y, Owner.Transform.World.Position.Z, FloorContext.Skill);
-        return geoZ > 0 ? geoZ : _startZ;
+        var floorZ = Owner.ParentWorld.Template.Floor.GetFloor(Owner.Transform.World.Position.X, Owner.Transform.World.Position.Y, Owner.Transform.World.Position.Z, FloorContext.Skill);
+        return floorZ > 0 ? floorZ : _startZ;
     }
 
     private void PullTick(TimeSpan delta)

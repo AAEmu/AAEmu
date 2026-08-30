@@ -7,9 +7,21 @@ using NLog;
 namespace AAEmu.Game.Models.Game.World;
 
 /// <summary>
-/// Single entry point for "what Z should a unit stand on".
-/// Pathfinding (.bai / A*) stays on <see cref="WorldTemplate.GeoData"/>; this type owns Floor only.
+/// Single entry point for "what Z should a unit stand on" (seating / spawn / skill landing).
 /// </summary>
+/// <remarks>
+/// <para><b>Floor ≠ Path.</b> A* and chase XY use <see cref="WorldTemplate.GeoData"/> (.bai nodes).
+/// This type answers a different question: where should the unit's feet be?</para>
+/// <para>Before this split, <c>GeoData.GetHeight</c> served both roles. Nearest nav vertices sit above
+/// outdoor terrain → floating NPCs (#1425). Path still needs those vertices; seating must not.</para>
+/// <para><see cref="FloorSourceMode"/> (config / GM <c>floorsource</c>):</para>
+/// <list type="bullet">
+/// <item><description><see cref="FloorSourceMode.TerrainFirst"/> — heightmap Blerp on open world.</description></item>
+/// <item><description><see cref="FloorSourceMode.Legacy"/> — old rule: nav node then terrain (A/B rollback).</description></item>
+/// </list>
+/// <para>Worlds with zone <c>.bai</c> (<see cref="WorldTemplate.ZoneBaiLoader"/>) use
+/// <see cref="FloorProvider.NavSurface"/> + zHint for multi-floor / caves (#1033 partial).</para>
+/// </remarks>
 public sealed class FloorQuery
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
@@ -24,7 +36,7 @@ public sealed class FloorQuery
     private readonly Func<Vector3, float, float?> _navSurfaceHeight;
     private readonly Func<bool> _floorDebug;
 
-    /// <summary>Last hit from <see cref="QueryFloor"/> (debug / GM).</summary>
+    /// <summary>Last hit from <see cref="QueryFloor"/> — same data as return value; for GM /height.</summary>
     public FloorHit LastHit { get; private set; }
 
     public FloorQuery(WorldTemplate worldTemplate)
@@ -41,7 +53,7 @@ public sealed class FloorQuery
     {
     }
 
-    /// <summary>Test / custom provider constructor.</summary>
+    /// <summary>Test / custom provider constructor. Default mode matches production (<see cref="FloorSourceMode.TerrainFirst"/>).</summary>
     public FloorQuery(
         WorldTemplate worldTemplate,
         Func<Vector3, float> geoHeight,
@@ -58,55 +70,46 @@ public sealed class FloorQuery
         _terrainHeight = terrainHeight ?? ((_, _) => 0f);
         _geoDataEnabled = geoDataEnabled ?? (() => false);
         _heightMapsEnabled = heightMapsEnabled ?? (() => true);
-        _floorSourceMode = floorSourceMode ?? (() => FloorSourceMode.Legacy);
+        _floorSourceMode = floorSourceMode ?? (() => FloorSourceMode.TerrainFirst);
         _isMultiFloorWorld = isMultiFloorWorld ?? (() => false);
         _navSurfaceHeight = navSurfaceHeight;
         _floorDebug = floorDebug ?? (() => false);
     }
 
-    /// <summary>
-    /// Floor Z at (x,y) using current policy. Matches legacy WorldManager.GetHeight when FloorSource=Legacy.
-    /// </summary>
-    public float GetFloor(float x, float y, float zHint, FloorContext context)
+    /// <summary>Floor Z at (x,y). Matches legacy WorldManager.GetHeight when mode is Legacy.</summary>
+    public float GetFloor(float x, float y, float zHint, FloorContext context = FloorContext.Move)
     {
         return QueryFloor(x, y, zHint, context).Z;
     }
 
-    public FloorHit QueryFloor(float x, float y, float zHint, FloorContext context)
+    public FloorHit QueryFloor(float x, float y, float zHint, FloorContext context = FloorContext.Move)
     {
         var pos = new Vector3(x, y, zHint);
         var terrainZ = SampleTerrain(x, y);
         var navNodeZ = SampleNavNode(pos);
 
-        FloorHit hit;
         var mode = _floorSourceMode();
-
-        if (mode == FloorSourceMode.Legacy)
+        FloorHit hit = mode switch
         {
-            hit = QueryLegacy(navNodeZ, terrainZ, zHint);
-        }
-        else if (_isMultiFloorWorld())
-        {
-            hit = QueryNavSurface(pos, zHint, terrainZ, navNodeZ);
-        }
-        else
-        {
-            hit = QueryTerrainFirst(terrainZ, navNodeZ, zHint);
-        }
+            FloorSourceMode.Legacy => QueryLegacy(navNodeZ, terrainZ, zHint),
+            _ when _isMultiFloorWorld() => QueryNavSurface(pos, zHint, terrainZ, navNodeZ),
+            _ => QueryTerrainFirst(terrainZ, navNodeZ, zHint)
+        };
 
         LastHit = hit;
         if (_floorDebug())
         {
             Logger.Debug(
-                "Floor src={0} ctx={1} xyz=({2:0.###},{3:0.###},{4:0.###}) terrain={5:0.###} nav={6:0.###} floor={7:0.###} deltaNav={8:0.###}",
-                hit.Source, context, x, y, zHint, hit.TerrainZ, hit.NavNodeZ, hit.Z, hit.DeltaNav);
+                "Floor mode={0} src={1} ctx={2} xyz=({3:0.###},{4:0.###},{5:0.###}) terrain={6:0.###} nav={7:0.###} floor={8:0.###} deltaNav={9:0.###}",
+                mode, hit.Provider, context, x, y, zHint, hit.TerrainZ, hit.NavNodeZ, hit.Z, hit.DeltaNav);
         }
 
         return hit;
     }
 
     /// <summary>
-    /// Project (x,y) onto nearby navmesh edges with vertical filter. Used by Path waypoint Z and multi-floor Floor.
+    /// Project (x,y) onto nearby navmesh edges with vertical filter.
+    /// Used by path waypoint Z and multi-floor Floor — not for outdoor TerrainFirst seating.
     /// </summary>
     public float? TryGetNavSurfaceHeight(float x, float y, float zHint, float maxVerticalSep = 8f, float maxXyRadius = 16f)
     {
@@ -117,8 +120,8 @@ public sealed class FloorQuery
     }
 
     /// <summary>
-    /// After A*/ReducePath: set each waypoint Z from NavSurface (edge lerp), not raw graph vertex Z.
-    /// When a custom nav sampler is injected (tests), it is used per point; otherwise <see cref="NavSurfaceSampler"/>.
+    /// After A*/ReducePath: rewrite waypoint Z from nav-surface edge lerp, not raw graph vertex Z.
+    /// Path XY still comes from GeoData; this only smooths chase height. MoveTowards re-seats via GetFloor each tick.
     /// </summary>
     public Queue<Vector3> ApplyPathWaypointZ(IEnumerable<Vector3> path)
     {
@@ -146,53 +149,44 @@ public sealed class FloorQuery
 
     private FloorHit QueryLegacy(float navNodeZ, float terrainZ, float zHint)
     {
-        // Mirror WorldManager.GetHeight(zoneKey, x, y, z): prefer GeoData when GeoDataMode, else heightmap.
-        if (_geoDataEnabled())
+        // Mirror pre-split WorldManager.GetHeight: GeoData node when enabled, else heightmap.
+        if (_geoDataEnabled() && navNodeZ != 0f)
         {
-            if (navNodeZ != 0f)
+            return new FloorHit
             {
-                return new FloorHit
-                {
-                    Z = navNodeZ,
-                    Source = FloorSource.LegacyNavNode,
-                    TerrainZ = terrainZ,
-                    NavNodeZ = navNodeZ
-                };
-            }
+                Z = navNodeZ,
+                Provider = FloorProvider.LegacyNavNode,
+                TerrainZ = terrainZ,
+                NavNodeZ = navNodeZ
+            };
         }
 
         if (!_heightMapsEnabled())
-        {
-            return new FloorHit { Z = 0f, Source = FloorSource.Unchanged, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
-        }
+            return new FloorHit { Z = 0f, Provider = FloorProvider.Unchanged, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
 
         if (terrainZ != 0f)
-        {
-            return new FloorHit { Z = terrainZ, Source = FloorSource.Terrain, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
-        }
+            return new FloorHit { Z = terrainZ, Provider = FloorProvider.Terrain, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
 
-        return new FloorHit { Z = zHint, Source = FloorSource.Unchanged, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
+        return new FloorHit { Z = zHint, Provider = FloorProvider.Unchanged, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
     }
 
     private FloorHit QueryTerrainFirst(float terrainZ, float navNodeZ, float zHint)
     {
         if (_heightMapsEnabled() && terrainZ != 0f)
-        {
-            return new FloorHit { Z = terrainZ, Source = FloorSource.Terrain, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
-        }
+            return new FloorHit { Z = terrainZ, Provider = FloorProvider.Terrain, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
 
         if (_geoDataEnabled() && navNodeZ != 0f)
         {
             return new FloorHit
             {
                 Z = navNodeZ,
-                Source = FloorSource.LegacyNavNode,
+                Provider = FloorProvider.LegacyNavNode,
                 TerrainZ = terrainZ,
                 NavNodeZ = navNodeZ
             };
         }
 
-        return new FloorHit { Z = zHint, Source = FloorSource.Unchanged, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
+        return new FloorHit { Z = zHint, Provider = FloorProvider.Unchanged, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
     }
 
     private FloorHit QueryNavSurface(Vector3 pos, float zHint, float terrainZ, float navNodeZ)
@@ -203,29 +197,27 @@ public sealed class FloorQuery
             return new FloorHit
             {
                 Z = surface.Value,
-                Source = FloorSource.NavSurface,
+                Provider = FloorProvider.NavSurface,
                 TerrainZ = terrainZ,
                 NavNodeZ = navNodeZ
             };
         }
 
         if (_heightMapsEnabled() && terrainZ != 0f)
-        {
-            return new FloorHit { Z = terrainZ, Source = FloorSource.Terrain, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
-        }
+            return new FloorHit { Z = terrainZ, Provider = FloorProvider.Terrain, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
 
         if (navNodeZ != 0f)
         {
             return new FloorHit
             {
                 Z = navNodeZ,
-                Source = FloorSource.LegacyNavNode,
+                Provider = FloorProvider.LegacyNavNode,
                 TerrainZ = terrainZ,
                 NavNodeZ = navNodeZ
             };
         }
 
-        return new FloorHit { Z = zHint, Source = FloorSource.Unchanged, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
+        return new FloorHit { Z = zHint, Provider = FloorProvider.Unchanged, TerrainZ = terrainZ, NavNodeZ = navNodeZ };
     }
 
     private float SampleTerrain(float x, float y)

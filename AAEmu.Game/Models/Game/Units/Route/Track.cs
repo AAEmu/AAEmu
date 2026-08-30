@@ -109,7 +109,7 @@ internal class Track : Patrol
             }
             else // other
             {
-                moveType.Z = npc.ParentWorld.Template.Floor.GetFloor(npc.Transform.World.Position.X, npc.Transform.World.Position.Y, npc.Transform.World.Position.Z, FloorContext.Move); // WorldManager.Instance.GetHeight(npc.Transform);
+                moveType.Z = npc.ParentWorld.Template.Floor.GetFloor(npc.Transform.World.Position.X, npc.Transform.World.Position.Y, npc.Transform.World.Position.Z, FloorContext.Move);
             }
 
             // looks in the direction of movement

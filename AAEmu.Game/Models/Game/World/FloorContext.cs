@@ -1,7 +1,8 @@
 namespace AAEmu.Game.Models.Game.World;
 
 /// <summary>
-/// Why floor height is being queried. Used for policy and debug logging.
+/// Diagnostic tag for floor queries (FloorDebug logs, GM /height).
+/// Does not change which provider wins — only <see cref="FloorSourceMode"/> and world data do.
 /// </summary>
 public enum FloorContext : byte
 {

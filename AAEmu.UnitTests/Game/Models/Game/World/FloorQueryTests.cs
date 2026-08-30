@@ -20,7 +20,7 @@ public class FloorQueryTests
         var hit = floor.QueryFloor(100f, 200f, 150f, FloorContext.Move);
 
         await Assert.That(hit.Z).IsEqualTo(210f);
-        await Assert.That(hit.Source).IsEqualTo(FloorSource.LegacyNavNode);
+        await Assert.That(hit.Provider).IsEqualTo(FloorProvider.LegacyNavNode);
         await Assert.That(hit.TerrainZ).IsEqualTo(133.8f);
         await Assert.That(hit.NavNodeZ).IsEqualTo(210f);
     }
@@ -39,7 +39,7 @@ public class FloorQueryTests
         var hit = floor.QueryFloor(100f, 200f, 150f, FloorContext.Spawn);
 
         await Assert.That(hit.Z).IsEqualTo(133.8f);
-        await Assert.That(hit.Source).IsEqualTo(FloorSource.Terrain);
+        await Assert.That(hit.Provider).IsEqualTo(FloorProvider.Terrain);
     }
 
     [Test]
@@ -56,7 +56,7 @@ public class FloorQueryTests
         var hit = floor.QueryFloor(100f, 200f, 150f, FloorContext.Move);
 
         await Assert.That(hit.Z).IsEqualTo(133.8f);
-        await Assert.That(hit.Source).IsEqualTo(FloorSource.Terrain);
+        await Assert.That(hit.Provider).IsEqualTo(FloorProvider.Terrain);
     }
 
     [Test]
@@ -102,7 +102,7 @@ public class FloorQueryTests
         var hit = floor.QueryFloor(100f, 200f, 150f, FloorContext.Move);
 
         await Assert.That(hit.Z).IsEqualTo(133.8f);
-        await Assert.That(hit.Source).IsEqualTo(FloorSource.Terrain);
+        await Assert.That(hit.Provider).IsEqualTo(FloorProvider.Terrain);
         await Assert.That(hit.NavNodeZ).IsEqualTo(210f);
         await Assert.That(hit.DeltaNav).IsGreaterThan(70f);
     }
@@ -122,7 +122,7 @@ public class FloorQueryTests
         var hit = floor.QueryFloor(100f, 200f, 150f, FloorContext.Move);
 
         await Assert.That(hit.Z).IsEqualTo(210f);
-        await Assert.That(hit.Source).IsEqualTo(FloorSource.LegacyNavNode);
+        await Assert.That(hit.Provider).IsEqualTo(FloorProvider.LegacyNavNode);
     }
 
     [Test]
@@ -140,11 +140,11 @@ public class FloorQueryTests
 
         var upper = floor.QueryFloor(10f, 10f, 152f, FloorContext.Move);
         await Assert.That(upper.Z).IsEqualTo(151.2f);
-        await Assert.That(upper.Source).IsEqualTo(FloorSource.NavSurface);
+        await Assert.That(upper.Provider).IsEqualTo(FloorProvider.NavSurface);
 
         var lower = floor.QueryFloor(10f, 10f, 101f, FloorContext.Move);
         await Assert.That(lower.Z).IsEqualTo(100.5f);
-        await Assert.That(lower.Source).IsEqualTo(FloorSource.NavSurface);
+        await Assert.That(lower.Provider).IsEqualTo(FloorProvider.NavSurface);
     }
 
     [Test]
@@ -162,7 +162,7 @@ public class FloorQueryTests
 
         var hit = floor.QueryFloor(10f, 10f, 140f, FloorContext.Move);
         await Assert.That(hit.Z).IsEqualTo(133.8f);
-        await Assert.That(hit.Source).IsEqualTo(FloorSource.Terrain);
+        await Assert.That(hit.Provider).IsEqualTo(FloorProvider.Terrain);
     }
 
     [Test]

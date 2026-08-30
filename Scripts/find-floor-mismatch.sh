@@ -4,7 +4,7 @@
 # Enable logging first:
 #   World.FloorDebug = true
 # Expected line (FloorQuery):
-#   Floor src=Terrain ctx=Move xyz=(x,y,z) terrain=133.8 nav=210.0 floor=133.8 deltaNav=76.2
+#   Floor mode=TerrainFirst src=Terrain ctx=Move xyz=(x,y,z) terrain=133.8 nav=210.0 floor=133.8 deltaNav=76.2
 #
 # Usage:
 #   bash Scripts/find-floor-mismatch.sh
@@ -13,14 +13,13 @@
 #   bash Scripts/find-floor-mismatch.sh --threshold 2.0 path/to/Server.log
 #
 # Suspects (exit 0):
-#   - Move/Spawn/Skill with src=Legacy* (regression after TerrainFirst outdoors)
-#   - |floor - terrain| > threshold when terrain != 0 and src is not NavSurface
+#   - |floor - terrain| > threshold when terrain != 0 and provider is Terrain (regression on TerrainFirst)
 #
 # OK (exit 1): FloorDebug lines present, no suspects.
 # Error (exit 2): no logs / usage.
 #
-# Note: large deltaNav after TerrainFirst outdoors is EXPECTED (we intentionally
-# ignore nav vertex Z). This script keys on src and |floor-terrain|, not deltaNav==0.
+# LegacyNavNode on Move is expected when FloorSource=Legacy (A/B rollback). Check mode= in log line.
+# Large deltaNav outdoors after TerrainFirst is EXPECTED (nav Z intentionally ignored for seating).
 
 set -u
 
@@ -153,7 +152,7 @@ parse_floor_lines() {
         return substr(s, RSTART, RLENGTH)
       return ""
     }
-    /Floor src=/ {
+    /Floor .*src=/ {
       line = $0
       src = after_eq(line, "src")
       ctx = after_eq(line, "ctx")
@@ -177,7 +176,7 @@ read_logs | parse_floor_lines > "$tmp"
 total=$(wc -l < "$tmp" | tr -d ' ')
 
 if [[ "$total" -eq 0 ]]; then
-  echo "No FloorDebug lines found (looking for: Floor src=...)."
+  echo "No FloorDebug lines found (looking for: Floor ... src=...)."
   echo "Set World.FloorDebug=true, reproduce movement outdoors, then re-run."
   exit 2
 fi
@@ -185,13 +184,8 @@ fi
 awk -v thr="$THRESHOLD" -F'\001' '
   {
     src=$1; ctx=$2; terrain=$3; floor=$5; ft=$7+0; line=$8
-    if (src ~ /^Legacy/ && (ctx == "Move" || ctx == "Spawn" || ctx == "Skill")) {
-      print "LEGACY_FLOOR\001" line
-      next
-    }
-    if (terrain != "" && (terrain+0) != 0 && ft > thr && src != "NavSurface") {
+    if (terrain != "" && (terrain+0) != 0 && ft > thr && src == "Terrain") {
       print "TERRAIN_DELTA\001" line
-      next
     }
   }
 ' "$tmp" > "$suspects"
@@ -256,10 +250,10 @@ if [[ "$suspect_count" -gt 0 ]]; then
     echo "... $((suspect_count - 40)) more"
   fi
   echo
-  echo "Suspects found (floating / Legacy outdoor Floor)."
+  echo "Suspects found (TerrainFirst seating diverged from heightmap)."
   exit 0
 fi
 
 echo "No Floor mismatches in scanned scope ($total FloorDebug samples)."
-echo "Outdoor Move should show src=Terrain; Legacy* src on Move is a regression."
+echo "TerrainFirst outdoor Move should show src=Terrain with |floor-terrain|≈0."
 exit 1

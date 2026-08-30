@@ -6,7 +6,7 @@ namespace AAEmu.Game.Models.Game.World;
 public readonly struct FloorHit
 {
     public float Z { get; init; }
-    public FloorSource Source { get; init; }
+    public FloorProvider Provider { get; init; }
     public float TerrainZ { get; init; }
     public float NavNodeZ { get; init; }
 
