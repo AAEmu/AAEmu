@@ -848,6 +848,7 @@ public partial class Character : Unit, ICharacter
     public CharacterMails Mails { get; set; }
     public CharacterAppellations Appellations { get; set; }
     public CharacterAbilities Abilities { get; set; }
+    public CharacterAbilitySets AbilitySets { get; set; }
     public CharacterPortals Portals { get; set; }
     public CharacterFriends Friends { get; set; }
     public CharacterBlocked Blocked { get; set; }
@@ -3545,6 +3546,8 @@ public partial class Character : Unit, ICharacter
             // Inventory.Load(connection);
             Abilities = new CharacterAbilities(this);
             Abilities.Load(connection);
+            AbilitySets = new CharacterAbilitySets(this);
+            AbilitySets.Load(connection);
             Actability = new CharacterActability(this);
             Actability.Load(connection);
             Skills = new CharacterSkills(this);
@@ -3768,6 +3771,7 @@ public partial class Character : Unit, ICharacter
 
             // Inventory?.Save(connection, transaction);
             Abilities?.Save(connection, transaction);
+            AbilitySets?.Save(connection, transaction);
             Actability?.Save(connection, transaction);
             Appellations?.Save(connection, transaction);
             // Save active buffs that should persist across logout (SaveRuleId > 0)

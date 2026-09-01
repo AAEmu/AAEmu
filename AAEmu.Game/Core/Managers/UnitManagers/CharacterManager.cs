@@ -658,6 +658,7 @@ public class CharacterManager(
 
         character.Abilities = new CharacterAbilities(character);
         character.Abilities.SetAbility(character.Ability1, 0);
+        character.AbilitySets = new CharacterAbilitySets(character);
 
         character.Actability = new CharacterActability(character);
         foreach (var (id, actabilityTemplate) in _actabilities)

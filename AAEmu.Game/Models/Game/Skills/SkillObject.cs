@@ -13,9 +13,11 @@ public enum SkillObjectType
     Unk5 = 5,
     Unk6 = 6,
     ItemGradeEnchantingSupport = 7,
-
     /// <summary>Synthesis material slots. See <see cref="SkillObjectItemEvolvingMaterials"/>.</summary>
     ItemEvolvingMaterials = 8,
+
+    /// <summary>10.0.2.13 <c>ActiveAbilitySet</c> — payload is skillsaver slot index (i32).</summary>
+    AbilitySet = 15,
 
     /// <summary>The awakening result the player picked. See <see cref="SkillObjectItemChangeMapping"/>.</summary>
     ItemChangeMapping = 26
@@ -32,12 +34,9 @@ public class SkillObject : PacketMarshaler
     }
 
     /// <summary>
-    /// Whether this server can parse a skill-object type. Reading an unknown one would take the
-    /// wrong number of bytes off the stream and desync everything after it, so callers drop those
-    /// rather than guess.
-    /// </summary>
-    /// <summary>
-    /// Whether the low bits of a cast's flag byte name a shape this server can read back.
+    /// Whether the low bits of a cast's flag byte name a shape this server can read back. Reading an
+    /// unknown one would take the wrong number of bytes off the stream and desync everything after
+    /// it, so callers drop those rather than guess.
     /// </summary>
     /// <remarks>
     /// Six is excluded. The flag is a bit mask, and only bit 3 carries a payload, so a cast setting
@@ -49,6 +48,7 @@ public class SkillObject : PacketMarshaler
     public static bool IsKnownType(int flagType) =>
         flagType is >= (int)SkillObjectType.Unk1 and <= (int)SkillObjectType.ItemEvolvingMaterials
             and not (int)SkillObjectType.Unk6
+            or (int)SkillObjectType.AbilitySet
             or (int)SkillObjectType.ItemChangeMapping;
 
     public static SkillObject GetByType(SkillObjectType flag)
@@ -79,6 +79,9 @@ public class SkillObject : PacketMarshaler
                 break;
             case SkillObjectType.ItemEvolvingMaterials:
                 obj = new SkillObjectItemEvolvingMaterials();
+                break;
+            case SkillObjectType.AbilitySet:
+                obj = new SkillObjectAbilitySet();
                 break;
             case SkillObjectType.ItemChangeMapping:
                 obj = new SkillObjectItemChangeMapping();
@@ -258,18 +261,10 @@ public class SkillObjectExtraValues : SkillObject
 
     public int[] Values { get; set; } = new int[ValueCount];
 
-    /// <summary>How many of <see cref="Values"/> the sender actually supplied.</summary>
-    public int ReadCount { get; private set; }
-
     public override void Read(PacketStream stream)
     {
         Values = new int[ValueCount];
-
-        // Only as many as the sender supplied: this block is not always the full thirteen. A nest
-        // interaction carries two, and reading the difference off the end of the body logged eleven
-        // stream errors per cast while contributing nothing but zeroes.
-        ReadCount = System.Math.Min(ValueCount, stream.LeftBytes / sizeof(int));
-        for (var i = 0; i < ReadCount; i++)
+        for (var i = 0; i < ValueCount; i++)
             Values[i] = stream.ReadInt32();
     }
 

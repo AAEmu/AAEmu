@@ -17,9 +17,16 @@ public static class SkillCastWire
     public static PacketStream WriteSkillCastExtra(this PacketStream stream, SkillObject skillObject)
     {
         skillObject ??= new SkillObject();
-        var type = (byte)skillObject.Flag;
-        stream.Write(type); // flag: type in low 6 bits; 0x40/0x80 unused for normal casts
-        switch (skillObject.Flag)
+
+        // ActiveAbilitySet (15) is CS-only: skillsaver slot index. Echoing it on SCSkillStarted /
+        // SCSkillFired makes the client drop cast UX (no cast bar / cast anim) and can scramble
+        // parsing of later SC packets in the same session. Slot is already stashed from CSStartSkill.
+        var flag = skillObject.Flag == SkillObjectType.AbilitySet
+            ? SkillObjectType.None
+            : skillObject.Flag;
+
+        stream.Write((byte)flag); // flag: type in low 6 bits; 0x40/0x80 unused for normal casts
+        switch (flag)
         {
             case SkillObjectType.Unk1 when skillObject is SkillObjectUnk1 u1:
                 stream.Write(u1.Type);

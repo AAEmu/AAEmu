@@ -262,6 +262,8 @@ public static class SCOffsets
     public const ushort SCBuffLearnedPacket = 0x144; // 10.0.2.13
     public const ushort SCSkillsResetPacket = 0x145; // 10.0.2.13
     public const ushort SCAbilitySwappedPacket = 0x147; // 10.0.2.13
+    public const ushort SCSpecialAbilityLearnedPacket = 0x148; // 10.0.2.13 (madness / special ability path)
+    public const ushort SCAbilitySetAllInfoPacket = 0x149; // 10.0.2.13 skillsaver full list
     public const ushort SCErrorMsgPacket = 0x14D; // 10.0.2.13 (10.0.2.13 name: ErrorMsgPacket)
     public const ushort SCDoodadCreatedPacket = 0x14E; // 10.0.2.13 (10.0.2.13 name: DoodadCreatedPacket)
     public const ushort SCDoodadRemovedPacket = 0x14F; // 10.0.2.13 (10.0.2.13 name: DoodadRemovedPacket)

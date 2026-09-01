@@ -36,8 +36,10 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         skillCastTarget.Read(stream);
 
         // Nest interact sent flag=28 → type=12 (invalid). Old path set SkillObject.Flag=12 and
+        // desynced the stream. Type 15 is ActiveAbilitySet (skillsaver slot as i32) on 10.0.2.13.
+        // Type lives in the low 6 bits (same as SC SkillCastExtra); mask 0x0F truncated higher types.
         var flag = stream.ReadByte();
-        var flagType = flag & 15;
+        var flagType = flag & 0x3F;
         SkillObject skillObject;
 
         // In 10.0.2.13 this byte is a bit MASK, not a SkillObjectType. The original server's parser
@@ -53,6 +55,7 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         // A type this server models is parsed as itself, and that has to be asked first: synthesis
         // sends flag 8, which is both "bit 3 set" and a real type - the material slots - so the
         // generic thirteen-int read would otherwise swallow it and lose which infusions were placed.
+        // AbilitySet (15) is registered in IsKnownType so skillsaver activate keeps its slot payload.
         var hasExtraValues = (flag & 8) != 0;
         if (SkillObject.IsKnownType(flagType))
         {
@@ -104,6 +107,10 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         var world = Connection.ActiveChar?.ParentWorld ?? WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
 
         Logger.Info($"StartSkill: Id {skillId}, flag {flag}, caster={skillCaster.ObjId}, target={skillCastTarget.ObjId}");
+
+        // Skillsaver apply: stash slot before zone/local split so ActivateSavedAbilitySet can finish it.
+        if (skillId == CharacterAbilitySets.ActivateSkillId)
+            StashAbilitySetActivationSlot(activeCharacter, skillObject);
 
         // ZoneAuthority: Zone owns cast/effects. Forward WZSkillStarted + emit SC cast UX only.
         // Local Skill.Use builds plot CompressedGamePackets (DD04) that desync the client (sc error / zip fail).
@@ -377,5 +384,32 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Skillsaver apply casts skill 32189; the special effect needs the slot index the UI picked.
+    /// Prefer skill-object payloads when present (Unk5.Step / Unk1.Id).
+    /// </summary>
+    private static void StashAbilitySetActivationSlot(Character character, SkillObject skillObject)
+    {
+        // ActiveAbilitySet is i16 on the wire (see SkillObjectAbilitySet). Legacy Unk5/Unk1 kept as fallback.
+        var slot = skillObject switch
+        {
+            SkillObjectAbilitySet abilitySet => abilitySet.SlotIndex,
+            SkillObjectUnk5 unk5 => unk5.Step,
+            SkillObjectUnk1 unk1 => unk1.Id,
+            _ => -1
+        };
+
+        if (slot < 0)
+        {
+            Logger.Warn(
+                "AbilitySet activate stash {0}: no slot in skillObject type={1}",
+                character.Name, skillObject?.Flag);
+            return;
+        }
+
+        Logger.Info("AbilitySet activate stash {0}: slot {1} (skillObject={2})", character.Name, slot, skillObject.Flag);
+        character.AbilitySets?.SetPendingActivationSlot(slot);
     }
 }
