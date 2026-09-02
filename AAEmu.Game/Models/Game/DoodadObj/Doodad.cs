@@ -83,8 +83,6 @@ public class Doodad : BaseUnit
 
     private float _scale;
     private int _data;
-    private readonly HashSet<uint> _onceOneManCharacterIds = [];
-    private readonly object _onceOneManLock = new();
     private uint _funcGroupId;
 
     /// <summary>
@@ -425,42 +423,6 @@ public class Doodad : BaseUnit
     }
 
     /// <summary>
-    /// True when this character already completed a <c>once_one_man</c> use on this instance.
-    /// </summary>
-    public bool HasOnceOneManUse(uint characterId)
-    {
-        if (characterId == 0)
-            return false;
-        lock (_onceOneManLock)
-            return _onceOneManCharacterIds.Contains(characterId);
-    }
-
-    /// <summary>
-    /// Records a character against <c>once_one_man</c>. Returns false if they already used this instance.
-    /// </summary>
-    public bool TryRegisterOnceOneMan(uint characterId)
-    {
-        if (characterId == 0)
-            return true;
-        lock (_onceOneManLock)
-            return _onceOneManCharacterIds.Add(characterId);
-    }
-
-    /// <summary>
-    /// Eligibility gate for <c>once_one_man</c> before any doodad function side effect.
-    /// </summary>
-    internal bool TryAuthorizeOnceOneManInteraction(BaseUnit caster, out Character blockedCharacter)
-    {
-        blockedCharacter = null;
-        if (Template?.OnceOneMan != true || caster is not Character character)
-            return true;
-        if (!HasOnceOneManUse(character.Id))
-            return true;
-        blockedCharacter = character;
-        return false;
-    }
-
-    /// <summary>
     /// "Executes/Uses" the Doodad's current phase
     /// </summary>
     /// <param name="caster"></param>
@@ -637,30 +599,18 @@ public class Doodad : BaseUnit
             return true;
         }
 
-        // once_one_man: reject before any Func side effect (loot, timers, phase writes).
-        if (!TryAuthorizeOnceOneManInteraction(caster, out var blockedOnceMan))
-        {
-            blockedOnceMan.SendErrorMessage(ErrorMessageType.NoInteractionAvailable);
-            Logger.Debug(
-                "DoFunc once_one_man blocked before Use TemplateId={0} ObjId={1} char={2}",
-                TemplateId, ObjId, blockedOnceMan.Name);
-            return true;
-        }
-
         // then perform the function
         func.Use(caster, this, skillId, func.NextPhase);
         return CompleteFunc(caster, func, skillId);
     }
 
     /// <summary>
-    /// Same authorize → apply → complete ordering as <see cref="DoFunc"/>, with an injectable
-    /// apply step for unit tests (avoids DoodadManager template lookup).
+    /// Same apply → complete ordering as <see cref="DoFunc"/>, with an injectable apply step for
+    /// unit tests (avoids DoodadManager template lookup).
     /// </summary>
     internal bool DoFuncWithApply(BaseUnit caster, DoodadFunc func, Action<BaseUnit, Doodad> apply)
     {
         if (func == null)
-            return true;
-        if (!TryAuthorizeOnceOneManInteraction(caster, out var blockedOnceMan))
             return true;
 
         apply?.Invoke(caster, this);
@@ -705,10 +655,6 @@ public class Doodad : BaseUnit
 
         if (ToNextPhase)
         {
-            // Record after a successful complete only (authorized before func.Use).
-            if (Template?.OnceOneMan == true && caster is Character onceMan)
-                TryRegisterOnceOneMan(onceMan.Id);
-
             // act_count: N successful uses before NextPhase (Data holds uses so far).
             if (DoodadFuncActCount.TryApply(this, func, out var stayOnPhase))
             {

@@ -42,13 +42,4 @@ public class DoodadFuncActCountTests
         await Assert.That(stay).IsFalse();
         await Assert.That(owner.Data).IsEqualTo(0);
     }
-
-    [Test]
-    public async Task TryRegisterOnceOneMan_BlocksSecondUse()
-    {
-        var owner = new Doodad();
-        await Assert.That(owner.TryRegisterOnceOneMan(42)).IsTrue();
-        await Assert.That(owner.TryRegisterOnceOneMan(42)).IsFalse();
-        await Assert.That(owner.TryRegisterOnceOneMan(99)).IsTrue();
-    }
 }
