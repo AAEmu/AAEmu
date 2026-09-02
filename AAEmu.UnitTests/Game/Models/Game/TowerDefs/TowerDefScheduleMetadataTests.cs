@@ -153,6 +153,56 @@ public class TowerDefScheduleMetadataTests
     }
 
     [Test]
+    public async Task ApplyStartDayOfWeekBit_ZeroMaskKeepsEveryHourSlot()
+    {
+        var row = new TowerDef { Id = 44, StartDayOfWeekBit = 0 };
+        for (var day = 0; day < 7; day++)
+            row.StartTimes[day] = new TimeSpan(21, 45, 0);
+
+        TowerDefScheduleMetadata.ApplyStartDayOfWeekBit(row);
+
+        for (var day = 0; day < 7; day++)
+            await Assert.That(row.StartTimes[day]).IsEqualTo(new TimeSpan(21, 45, 0));
+    }
+
+    [Test]
+    public async Task ApplyStartDayOfWeekBit_KeepsOnlyMaskedDays()
+    {
+        // 80 = Thursday + Saturday. Compact stamps 21:30 on every day for Kraken 65.
+        var row = new TowerDef { Id = 65, StartDayOfWeekBit = 80, ForceEndTime = 3600f };
+        for (var day = 0; day < 7; day++)
+            row.StartTimes[day] = new TimeSpan(21, 30, 0);
+
+        TowerDefScheduleMetadata.ApplyStartDayOfWeekBit(row);
+        TowerDefScheduleMetadata.Apply([row], []);
+
+        await Assert.That(TowerDefScheduleMetadata.AllowsWeekday(80, DayOfWeek.Thursday)).IsTrue();
+        await Assert.That(TowerDefScheduleMetadata.AllowsWeekday(80, DayOfWeek.Saturday)).IsTrue();
+        await Assert.That(TowerDefScheduleMetadata.AllowsWeekday(80, DayOfWeek.Tuesday)).IsFalse();
+        await Assert.That(row.StartTimeFor(DayOfWeek.Thursday)).IsEqualTo(new TimeSpan(21, 30, 0));
+        await Assert.That(row.StartTimeFor(DayOfWeek.Saturday)).IsEqualTo(new TimeSpan(21, 30, 0));
+        await Assert.That(row.StartTimeFor(DayOfWeek.Sunday)).IsNull();
+        await Assert.That(row.StartTimeFor(DayOfWeek.Tuesday)).IsNull();
+        await Assert.That(row.ScheduleMode).IsEqualTo(TowerDefScheduleMode.WallClock);
+    }
+
+    [Test]
+    public async Task ApplyStartDayOfWeekBit_LeviathanTuesdayAndSaturday()
+    {
+        // 68 = Tuesday + Saturday. Compact stamps 21:30 on every day for Leviathan 77.
+        var row = new TowerDef { Id = 77, StartDayOfWeekBit = 68, ForceEndTime = 7200f };
+        for (var day = 0; day < 7; day++)
+            row.StartTimes[day] = new TimeSpan(21, 30, 0);
+
+        TowerDefScheduleMetadata.ApplyStartDayOfWeekBit(row);
+
+        await Assert.That(row.StartTimeFor(DayOfWeek.Tuesday)).IsEqualTo(new TimeSpan(21, 30, 0));
+        await Assert.That(row.StartTimeFor(DayOfWeek.Saturday)).IsEqualTo(new TimeSpan(21, 30, 0));
+        await Assert.That(row.StartTimeFor(DayOfWeek.Monday)).IsNull();
+        await Assert.That(row.StartTimeFor(DayOfWeek.Friday)).IsNull();
+    }
+
+    [Test]
     public async Task ApplyFollowOn_LinksSourceToTargetById()
     {
         var fight = new TowerDef { Id = 36, ForceEndTime = 7200f, TargetNpcSpawnId = 16859 };

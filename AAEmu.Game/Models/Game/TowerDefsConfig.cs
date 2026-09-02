@@ -9,9 +9,10 @@ namespace AAEmu.Game.Models.Game;
 /// <list type="bullet">
 /// <item>Authoritative event rows and progression come from loaded <c>tower_defs</c> /
 /// <c>tower_def_progs</c> / spawn-target tables. This JSON only overlays schedule membership.</item>
-/// <item>WallClock normally comes from weekday StartTimes on the loaded row. When those slots are
-/// unused (null / compact 00:00), fill them via <see cref="WallClockStartTimesById"/> (UTC HH:mm).
-/// Existing non-empty slots are never overwritten; conflicts are logged and rejected.</item>
+/// <item>WallClock comes from weekday StartTimes on the loaded row after
+/// <c>start_day_of_week_bit</c> is applied. When those slots are unused (null / compact 00:00),
+/// fill them via <see cref="WallClockStartTimesById"/> (UTC HH:mm). Existing non-empty slots are
+/// never overwritten; conflicts are logged and rejected.</item>
 /// <item>GameTime is explicit membership in <see cref="GameTimeAutoArmIds"/> (ids must exist in
 /// <c>tower_defs</c>, have <c>tod_day_interval</c> and <c>target_npc_spawner_id</c>, and must not
 /// also carry weekday slots).</item>

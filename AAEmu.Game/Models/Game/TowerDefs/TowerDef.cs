@@ -40,7 +40,8 @@ public class TowerDef
     /// Wall-clock start time per day of the week, index 0 = Sunday, or null on days the event does
     /// not run. The <c>tower_defs</c> row carries seven independent <c>start_hourN</c> /
     /// <c>start_minuteN</c> pairs used as one slot per weekday. A 00:00 pair means the event does
-    /// not run that day.
+    /// not run that day. When <see cref="StartDayOfWeekBit"/> is non-zero, only days whose bit is
+    /// set keep their hour (bit 0 = Sunday).
     /// </summary>
     public TimeSpan?[] StartTimes { get; } = new TimeSpan?[7];
 

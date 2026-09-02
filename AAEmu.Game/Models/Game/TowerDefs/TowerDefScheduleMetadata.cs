@@ -7,7 +7,10 @@ namespace AAEmu.Game.Models.Game.TowerDefs;
 /// </summary>
 /// <remarks>
 /// <c>tower_defs</c> has no schedule-mode column. Weekday <see cref="TowerDef.StartTimes"/> uniquely
-/// identify WallClock events. Game-Time vs Manual cannot be derived from <c>tod</c> /
+/// identify WallClock events. Hour columns that are all 00:00 stay empty; a populated hour on every
+/// day still has to pass <c>start_day_of_week_bit</c> (bit 0 = Sunday, same index as
+/// <c>start_hour</c>). A zero bit means the mask is unused and every populated hour stands.
+/// Game-Time vs Manual cannot be derived from <c>tod</c> /
 /// <c>tod_day_interval</c> / <c>target_npc_spawner_id</c> alone — those columns are populated on
 /// both auto-armed Event Center rows and GM-only rows that share a portal spawner.
 /// <see cref="AAEmu.Game.Models.Game.TowerDefsConfig.GameTimeAutoArmIds"/> is the Game-Time membership
@@ -46,6 +49,30 @@ public static class TowerDefScheduleMetadata
         !towerDef.IsScheduled &&
         towerDef.TimeOfDayDayInterval > 0 &&
         towerDef.TargetNpcSpawnId != 0;
+
+    /// <summary>
+    /// True when <paramref name="startDayOfWeekBit"/> allows <paramref name="day"/>.
+    /// Bit 0 is Sunday. A zero mask is unused and allows every day.
+    /// </summary>
+    public static bool AllowsWeekday(uint startDayOfWeekBit, DayOfWeek day) =>
+        startDayOfWeekBit == 0 || (startDayOfWeekBit & (1u << (int)day)) != 0;
+
+    /// <summary>
+    /// Clears hour slots whose weekday is not set in <see cref="TowerDef.StartDayOfWeekBit"/>.
+    /// Compact rows that stamp the same hour on all seven days use the bit as the real calendar
+    /// (Kraken 65 = Thursday+Saturday, Leviathan 77 = Tuesday+Saturday).
+    /// </summary>
+    public static void ApplyStartDayOfWeekBit(TowerDef towerDef)
+    {
+        if (towerDef == null || towerDef.StartDayOfWeekBit == 0)
+            return;
+
+        for (var day = 0; day < towerDef.StartTimes.Length; day++)
+        {
+            if ((towerDef.StartDayOfWeekBit & (1u << day)) == 0)
+                towerDef.StartTimes[day] = null;
+        }
+    }
 
     /// <summary>
     /// Writes <see cref="TowerDef.FollowOnTowerDefId"/> from config (by id only).

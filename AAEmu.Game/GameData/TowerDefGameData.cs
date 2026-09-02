@@ -75,6 +75,8 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                     // start_hour/start_minute is the Sunday slot; start_hourN is day N. A 00:00
                     // pair means the event does not run that day — every row that genuinely wants
                     // a midnight start uses 00:01 (망자 시스템 runs 00:01 on all seven days).
+                    // start_day_of_week_bit is the weekday mask (bit 0 = Sunday). Several rows
+                    // stamp the same hour on all seven days and rely on the bit to pick the days.
                     for (var day = 0; day < 7; day++)
                     {
                         var suffix = day == 0 ? "" : day.ToString();
@@ -88,6 +90,7 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
                         template.StartTimes[day] = new TimeSpan(hour, minute, 0);
                     }
 
+                    TowerDefScheduleMetadata.ApplyStartDayOfWeekBit(template);
                     _towerDefs.Add(template.Id, template);
                 }
             }
