@@ -74,6 +74,15 @@ public sealed class GameService : IHostedService, IDisposable
         // check for stripped/custom DBs and is a no-op if the columns are already present.
         Utils.DB.HoldablesSchemaCheck.EnsureColumns();
 
+        // Compact content scripts (SQL/compact). Not MySQL SQL/updates — compact is gitignored.
+        var compactUpdate = Utils.DB.CompactSqliteUpdater.ApplyDefault();
+        if (!compactUpdate.Success)
+        {
+            Logger.Error(
+                "CompactSqliteUpdater failed ({0} error(s)). Game will load the existing compact.sqlite3.",
+                compactUpdate.Errors.Count);
+        }
+
         // --- ID managers ---
         // All ID managers implement ILoadable and are handled by the orchestrator in Stage 2.
         // SkillTlIdManager.Instance.Initialize(); // static class, not migrated

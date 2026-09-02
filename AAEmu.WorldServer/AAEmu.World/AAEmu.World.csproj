@@ -35,5 +35,8 @@
     <None Include="NLog.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="..\..\SQL\compact\*_compact_*.sql" Link="SQL\compact\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\SQL\compact\README.md" Link="SQL\compact\README.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\SQL\compact\apply_compact_sql.py" Link="SQL\compact\apply_compact_sql.py" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
