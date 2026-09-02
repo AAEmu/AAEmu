@@ -43,6 +43,136 @@ public static class FloorResolver
     public const float DefaultVerticalSep = 12f;
 
     /// <summary>
+    /// Same-storey window inside a building volume (metres). Tall house modifiers are ~40 m tall
+    /// and span 1F/2F; accepting any nav in <c>[MinZ,MaxZ]</c> caused idle flicker between floors.
+    /// </summary>
+    public const float BuildingStoreySep = 3.5f;
+
+    /// <summary>
+    /// Walkable house decks sit on nav above the heightmap foundation (PPZ 1F: terrain ~137, deck ~139).
+    /// Foundation nav at terrain level must not win just because it is nearest to spawner Z.
+    /// </summary>
+    public const float BuildingDeckAboveTerrain = 1.5f;
+
+    /// <summary>True when nav looks like a house deck (above foundation dirt), not cave/plaza dirt.</summary>
+    public static bool IsPlausibleBuildingDeck(float navZ, float terrainZ)
+    {
+        if (terrainZ == 0f)
+            return true;
+
+        return navZ >= terrainZ + BuildingDeckAboveTerrain;
+    }
+
+    /// <summary>
+    /// Inside an AI building volume: seat on the nav deck of the caller's storey, not heightmap
+    /// under the foundation and not a different floor just because the volume is tall.
+    /// Candidates must lie in the volume band; terrain is never used.
+    /// </summary>
+    public static FloorHit PickInBuilding(
+        float zHint,
+        float terrainZ,
+        float? navSurfaceZ,
+        float navNodeZ,
+        BuildingVolume volume,
+        float storeySep = BuildingStoreySep)
+    {
+        if (TryPickBuildingCandidate(zHint, terrainZ, navSurfaceZ, navNodeZ, volume, storeySep,
+                acrossStoreys: false, out var hit))
+            return hit;
+
+        // Never heightmap inside a house — terrain under the foundation is below the deck.
+        return new FloorHit
+        {
+            Z = zHint,
+            Provider = FloorProvider.Unchanged,
+            TerrainZ = terrainZ,
+            NavNodeZ = navNodeZ
+        };
+    }
+
+    /// <summary>
+    /// Spawn seating inside a building: pick nav closest to spawner Z across storeys (DB hint),
+    /// still constrained to the volume band.
+    /// </summary>
+    public static FloorHit PickInBuildingAtSpawn(
+        float zHint,
+        float terrainZ,
+        float? navSurfaceZ,
+        float navNodeZ,
+        BuildingVolume volume)
+    {
+        if (TryPickBuildingCandidate(zHint, terrainZ, navSurfaceZ, navNodeZ, volume, BuildingStoreySep,
+                acrossStoreys: true, out var hit))
+            return hit;
+
+        return new FloorHit
+        {
+            Z = zHint,
+            Provider = FloorProvider.Unchanged,
+            TerrainZ = terrainZ,
+            NavNodeZ = navNodeZ
+        };
+    }
+
+    /// <summary>
+    /// Shared indoor picker. <paramref name="acrossStoreys"/> ignores the same-storey window and
+    /// keeps the candidate nearest to <paramref name="zHint"/> inside the volume (spawn).
+    /// </summary>
+    private static bool TryPickBuildingCandidate(
+        float zHint,
+        float terrainZ,
+        float? navSurfaceZ,
+        float navNodeZ,
+        BuildingVolume volume,
+        float storeySep,
+        bool acrossStoreys,
+        out FloorHit hit)
+    {
+        float? bestZ = null;
+        var bestDist = float.MaxValue;
+        var bestProvider = FloorProvider.Unchanged;
+
+        void Consider(float? z, FloorProvider provider)
+        {
+            if (!z.HasValue || z.Value == 0f)
+                return;
+            if (!IsPlausibleBuildingDeck(z.Value, terrainZ))
+                return;
+            // Stay inside the mission volume (rejects plaza/wrong-cell nav leaking in).
+            if (!volume.ContainsZ(z.Value, storeySep))
+                return;
+            if (!acrossStoreys && MathF.Abs(z.Value - zHint) > storeySep)
+                return;
+
+            var dist = MathF.Abs(z.Value - zHint);
+            if (dist >= bestDist)
+                return;
+
+            bestDist = dist;
+            bestZ = z.Value;
+            bestProvider = provider;
+        }
+
+        Consider(navSurfaceZ, FloorProvider.NavSurface);
+        Consider(navNodeZ != 0f ? navNodeZ : null, FloorProvider.LegacyNavNode);
+
+        if (!bestZ.HasValue)
+        {
+            hit = default;
+            return false;
+        }
+
+        hit = new FloorHit
+        {
+            Z = bestZ.Value,
+            Provider = bestProvider,
+            TerrainZ = terrainZ,
+            NavNodeZ = navNodeZ
+        };
+        return true;
+    }
+
+    /// <summary>
     /// Choose the floor hit among optional terrain / nav-surface samples.
     /// </summary>
     /// <param name="zHint">Caller Z (spawn, current feet, previous waypoint) — the layer key.</param>

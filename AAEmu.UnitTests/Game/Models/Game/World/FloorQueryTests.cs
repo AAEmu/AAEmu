@@ -235,6 +235,84 @@ public class FloorQueryTests
     }
 
     [Test]
+    public async Task QueryFloor_WhenByZHint_HouseUsesNavNotTerrain()
+    {
+        // PPZ-style: heightmap under foundation, deck nav above; volume marks indoor.
+        var house = new BuildingVolume { BuildingId = 42, MinZ = 138f, MaxZ = 175f, Height = 37f };
+        var floor = new FloorQuery(
+            worldTemplate: null,
+            geoHeight: _ => 139.2f,
+            terrainHeight: (_, _) => 137f,
+            geoDataEnabled: () => true,
+            heightMapsEnabled: () => true,
+            floorPolicyMode: () => FloorPolicyMode.ByZHint,
+            navSurfaceHeight: (_, _) => 139.2f,
+            buildingVolume: (_, _, _) => house);
+
+        var hit = floor.QueryFloor(100f, 200f, 139f, FloorContext.Move);
+
+        await Assert.That(hit.Z).IsEqualTo(139.2f);
+        await Assert.That(hit.Provider).IsEqualTo(FloorProvider.NavSurface);
+        await Assert.That(hit.Provider).IsNotEqualTo(FloorProvider.Terrain);
+    }
+
+    [Test]
+    public async Task QueryFloor_WhenByZHint_HouseSpawnPicksClosestDeckToSpawnerZ()
+    {
+        var house = new BuildingVolume { BuildingId = 42, MinZ = 138f, MaxZ = 175f, Height = 37f };
+        var floor = new FloorQuery(
+            worldTemplate: null,
+            geoHeight: _ => 152f,
+            terrainHeight: (_, _) => 137f,
+            geoDataEnabled: () => true,
+            heightMapsEnabled: () => true,
+            floorPolicyMode: () => FloorPolicyMode.ByZHint,
+            navSurfaceHeight: (_, zHint) => zHint >= 150f ? 152f : 139.2f,
+            buildingVolume: (_, _, _) => house);
+
+        var hit = floor.QueryFloor(100f, 200f, 151f, FloorContext.Spawn);
+
+        await Assert.That(hit.Z).IsEqualTo(152f);
+        await Assert.That(hit.Provider).IsEqualTo(FloorProvider.NavSurface);
+    }
+
+    [Test]
+    public async Task QueryFloor_WhenByZHint_SmallCaveIgnoresBuildingVolume()
+    {
+        // BuildingId mission box must not steal cave seating (deck filter would reject under-terrain nav).
+        var fakeHouse = new BuildingVolume { BuildingId = 9, MinZ = 145f, MaxZ = 155f, Height = 10f };
+        var floor = new FloorQuery(
+            worldTemplate: null,
+            geoHeight: _ => 147f,
+            terrainHeight: (_, _) => 150f,
+            geoDataEnabled: () => true,
+            heightMapsEnabled: () => true,
+            floorPolicyMode: () => FloorPolicyMode.ByZHint,
+            navSurfaceHeight: (_, _) => 147.1f,
+            buildingVolume: (_, _, _) => fakeHouse);
+
+        var hit = floor.QueryFloor(10f, 10f, 147.2f, FloorContext.Move);
+
+        await Assert.That(hit.Z).IsEqualTo(147.1f);
+        await Assert.That(hit.Provider).IsEqualTo(FloorProvider.NavSurface);
+    }
+
+    [Test]
+    public async Task FloorResolver_PickInBuilding_NeverReturnsTerrain()
+    {
+        var volume = new BuildingVolume { BuildingId = 1, MinZ = 138f, MaxZ = 170f, Height = 32f };
+        var hit = FloorResolver.PickInBuilding(
+            zHint: 139f,
+            terrainZ: 137f,
+            navSurfaceZ: null,
+            navNodeZ: 0f,
+            volume);
+
+        await Assert.That(hit.Provider).IsEqualTo(FloorProvider.Unchanged);
+        await Assert.That(hit.Z).IsEqualTo(139f);
+    }
+
+    [Test]
     public async Task FloorResolver_PicksCloserCandidateInsideVerticalWindow()
     {
         var hit = FloorResolver.Pick(

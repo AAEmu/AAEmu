@@ -830,13 +830,30 @@ public class WorldManager(
             return finalHeight;
         }
 
-        // 2. For HoldPositionBehavior and IdleBehavior, the height is taken from the spawner.
+        // 2. Idle / hold / return: floor query with home/spawn Z as storey hint (houses).
         switch (ai.GetCurrentBehavior())
         {
             case HoldPositionBehavior:
             case IdleBehavior:
-                finalHeight = ai.Owner.Spawner.Position.Z;
-                return finalHeight;
+            {
+                var anchorZ = ai.Owner.Spawner?.Position.Z ?? 0f;
+                var zHint = BuildingVolumeQuery.StoreyHintForIdle(z, anchorZ);
+                finalHeight = GetHeight(zoneId, x, y, zHint);
+                if (finalHeight != 0f)
+                    return finalHeight;
+                return zHint != 0f ? zHint : ai.Owner.Transform.World.Position.Z;
+            }
+            case ReturnStateBehavior:
+            {
+                // Path home on current feet Z; idle/hold will re-anchor at spawn when settled.
+                finalHeight = GetHeight(zoneId, x, y, z);
+                if (finalHeight != 0f)
+                    return finalHeight;
+                var homeZ = ai.IdlePosition.Z;
+                if (homeZ != 0f)
+                    return homeZ;
+                return ai.Owner.Spawner?.Position.Z ?? ai.Owner.Transform.World.Position.Z;
+            }
         }
 
         // 3. Terrain height retrieval

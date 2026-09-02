@@ -21,6 +21,8 @@ namespace AAEmu.Game.Models.Game.World;
 /// <see cref="FloorPolicyMode.ByZHint"/> — heightmap + nav-surface candidates, pick nearest to
 /// <c>zHint</c> in a vertical window (<see cref="FloorResolver"/>; L2 multilayer / TrinityCore
 /// <c>getHeight</c> / Detour extents). Not terrain-only. Outdoor (#1425) and caves (#1033).
+/// Inside <c>areasmission</c> building volumes, seating uses
+/// <see cref="FloorResolver.PickInBuilding"/> (nav deck, never foundation heightmap).
 /// </description>
 /// </item>
 /// <item>
@@ -48,6 +50,7 @@ public sealed class FloorQuery
     private readonly Func<FloorPolicyMode> _floorPolicyMode;
     private readonly Func<Vector3, float, float?> _navSurfaceHeight;
     private readonly Func<bool> _floorDebug;
+    private readonly Func<float, float, float, BuildingVolume?> _buildingVolume;
 
     /// <summary>Last hit from <see cref="QueryFloor"/> — same data as return value; for GM /height.</summary>
     public FloorHit LastHit { get; private set; }
@@ -61,7 +64,8 @@ public sealed class FloorQuery
             () => AppConfiguration.Instance.HeightMapsEnable,
             () => AppConfiguration.Instance.World.FloorPolicy,
             navSurfaceHeight: null,
-            floorDebug: () => AppConfiguration.Instance.World.FloorDebug)
+            floorDebug: () => AppConfiguration.Instance.World.FloorDebug,
+            buildingVolume: null)
     {
     }
 
@@ -76,7 +80,8 @@ public sealed class FloorQuery
         Func<bool> heightMapsEnabled,
         Func<FloorPolicyMode> floorPolicyMode = null,
         Func<Vector3, float, float?> navSurfaceHeight = null,
-        Func<bool> floorDebug = null)
+        Func<bool> floorDebug = null,
+        Func<float, float, float, BuildingVolume?> buildingVolume = null)
     {
         _worldTemplate = worldTemplate;
         _geoHeight = geoHeight ?? (_ => 0f);
@@ -86,6 +91,7 @@ public sealed class FloorQuery
         _floorPolicyMode = floorPolicyMode ?? (() => FloorPolicyMode.ByZHint);
         _navSurfaceHeight = navSurfaceHeight;
         _floorDebug = floorDebug ?? (() => false);
+        _buildingVolume = buildingVolume;
     }
 
     /// <summary>Floor Z at (x,y). Matches legacy WorldManager.GetHeight when mode is Legacy.</summary>
@@ -105,7 +111,7 @@ public sealed class FloorQuery
         FloorHit hit = mode switch
         {
             FloorPolicyMode.Legacy => QueryLegacy(navNodeZ, terrainZ, zHint),
-            _ => QueryByZHint(pos, zHint, terrainZ, navNodeZ)
+            _ => QueryByZHint(pos, zHint, terrainZ, navNodeZ, context)
         };
 
         LastHit = hit;
@@ -183,18 +189,65 @@ public sealed class FloorQuery
     }
 
     /// <summary>
-    /// ByZHint policy: candidates + vertical window. Always considers nav-surface when GeoData is on
-    /// unless outdoor early-out applies (terrain near zHint and nav near terrain).
+    /// ByZHint policy: outdoor/cave via <see cref="FloorResolver.Pick"/>; houses via areasmission
+    /// volumes + <see cref="FloorResolver.PickInBuilding"/> (never heightmap under the deck).
     /// </summary>
-    private FloorHit QueryByZHint(Vector3 pos, float zHint, float terrainZ, float navNodeZ)
+    private FloorHit QueryByZHint(Vector3 pos, float zHint, float terrainZ, float navNodeZ, FloorContext context)
     {
         var terrainCandidate = _heightMapsEnabled() ? terrainZ : 0f;
+        var looksLikeCave = BuildingVolumeQuery.LooksLikeCave(terrainCandidate, navNodeZ, zHint);
+
+        // Small/deep caves: nav or feet under heightmap — never indoor deck logic (#1033).
+        if (!looksLikeCave)
+        {
+            var volume = TryGetBuildingVolume(pos.X, pos.Y, zHint, terrainCandidate);
+            if (volume.HasValue)
+            {
+                var sampleHint = zHint;
+                if (zHint < volume.Value.MinZ
+                    && volume.Value.MinZ - zHint <= BuildingVolumeQuery.MaxDeckSinkBelowMinZ)
+                    sampleHint = volume.Value.MinZ;
+
+                float? buildingNav = null;
+                if (_geoDataEnabled())
+                    buildingNav = TryGetNavSurfaceHeight(pos.X, pos.Y, sampleHint);
+
+                if (context == FloorContext.Spawn)
+                {
+                    return FloorResolver.PickInBuildingAtSpawn(
+                        sampleHint, terrainCandidate, buildingNav, navNodeZ, volume.Value);
+                }
+
+                return FloorResolver.PickInBuilding(
+                    sampleHint, terrainCandidate, buildingNav, navNodeZ, volume.Value);
+            }
+        }
 
         float? navSurfaceZ = null;
-        if (_geoDataEnabled() && !CanSkipNavSurfaceOutdoor(terrainCandidate, navNodeZ, zHint))
+        // Shallow caves sit within OutdoorNavSlack of terrain — never skip their nav sample.
+        if (_geoDataEnabled()
+            && (looksLikeCave || !CanSkipNavSurfaceOutdoor(terrainCandidate, navNodeZ, zHint)))
             navSurfaceZ = TryGetNavSurfaceHeight(pos.X, pos.Y, zHint);
 
         return FloorResolver.Pick(zHint, terrainCandidate, navSurfaceZ, navNodeZ);
+    }
+
+    private BuildingVolume? TryGetBuildingVolume(float x, float y, float zHint, float terrainZ)
+    {
+        BuildingVolume? volume;
+        if (_buildingVolume != null)
+            volume = _buildingVolume(x, y, zHint);
+        else if (_worldTemplate != null)
+            volume = BuildingVolumeQuery.TryFind(_worldTemplate, x, y, zHint);
+        else
+            return null;
+
+        if (!volume.HasValue)
+            return null;
+
+        return BuildingVolumeQuery.ShouldUseForFloor(volume.Value, zHint, terrainZ)
+            ? volume
+            : null;
     }
 
     /// <summary>
