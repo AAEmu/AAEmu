@@ -84,6 +84,27 @@ public static class BoatSeamImpulse
     }
 
     /// <summary>
+    /// Open-loop restore for an overlap arm. The impulse is additive, so this sends only the
+    /// gap above <paramref name="alreadyOnBody"/> — the speed the seed just put on the new
+    /// simulator. A full cruise on top of a carried seed is the 18.8 → 22.1 bump.
+    /// </summary>
+    public static bool TryBuildOpenLoopRestore(
+        bool enabled, float measuredSpeed, long speedAgeMs, sbyte throttle,
+        float alreadyOnBody, out float speed)
+    {
+        speed = 0f;
+        if (!TryBuildForwardVelocity(enabled, measuredSpeed, speedAgeMs, throttle, out var full))
+            return false;
+
+        var extra = full - Math.Max(0f, alreadyOnBody);
+        if (extra < MinCorrectionDeficit)
+            return false;
+
+        speed = Math.Min(extra, MaxRestoredSpeed);
+        return true;
+    }
+
+    /// <summary>
     /// Decides how much way a hull is missing on the far side of a seam, from the speed it arrived with
     /// and the first speed the new simulator reports for it.
     /// </summary>

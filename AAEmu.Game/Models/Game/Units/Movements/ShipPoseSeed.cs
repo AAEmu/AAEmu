@@ -1,5 +1,7 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Units.Movements;
 
@@ -73,7 +75,152 @@ public static class ShipPoseSeed
     /// <param name="carryMomentum">
     /// Result of <see cref="CarryMomentum"/>; split out so tests can pin both behaviours.
     /// </param>
-    public static ShipMoveType ForSlave(Slave slave, bool carryMomentum)
+    public static ShipMoveType ForSlave(Slave slave, bool carryMomentum) =>
+        ForSlave(slave, carryMomentum, Environment.TickCount64, 0);
+
+    /// <param name="nowMs"><see cref="Environment.TickCount64"/> when the pose will be sent.</param>
+    /// <param name="extraAheadMs">
+    /// Extra wait after this send before the incoming zone consumes the seed (the Create
+    /// physicalize delay). Seam follow switches on the first consumed-body report, not on a
+    /// fixed overlap.
+    /// </param>
+    /// <summary>
+    /// Type-4 body from a frozen seam snapshot, already advanced to that snapshot's activation tick.
+    /// Create and the seed must both use this so the state is not advanced a second time from a
+    /// later outgoing report.
+    /// </summary>
+    public static ShipMoveType ForHandoff(Slave slave, in BoatSeamHandoffSnapshot snapshot, bool carryMomentum)
+    {
+        var pose = new ShipMoveType { Type = MoveTypeEnum.Ship };
+        pose.UseSlaveBase(slave);
+        var (x, y, z, velX, velY, velZ) = BoatSeamHandoffRules.Propagate(snapshot);
+        var (rotX, rotY, rotZ) = BoatSeamHandoffRules.PropagateRotation(snapshot);
+        pose.X = x;
+        pose.Y = y;
+        pose.Z = z;
+        pose.RotationX = rotX;
+        pose.RotationY = rotY;
+        pose.RotationZ = rotZ;
+        pose.Throttle = BoatSeamPredictRules.LiveThrottle(
+            snapshot.Throttle, slave.ThrottleRequest, slave.Throttle);
+        pose.Steering = snapshot.Steering;
+        pose.Rpm = snapshot.Rpm;
+        pose.Stuck = false;
+        pose.Time = BoatSeamHandoffRules.AdvancedTime(snapshot);
+        if (carryMomentum)
+        {
+            pose.AngVelX = snapshot.AngVelX;
+            pose.AngVelY = snapshot.AngVelY;
+            pose.AngVelZ = snapshot.AngVelZ;
+            pose.VelX = velX;
+            pose.VelY = velY;
+            pose.VelZ = velZ;
+        }
+
+        return pose;
+    }
+
+    /// <summary>
+    /// Type-4 the client sees during a seam: the snapshot evaluated up to the activation plant
+    /// x(t1), v(t1). The bridge tick is already clamped there, so Time stays on that plant —
+    /// do not keep integrating, and do not zero cruise (18 → 0 on a frozen xyz is the hitch).
+    /// Zone B is not streamed until its body is at that same plant and at cruise.
+    /// </summary>
+    public static ShipMoveType ForBridge(Slave slave, in BoatSeamHandoffSnapshot snapshot, long nowMs)
+    {
+        var pose = new ShipMoveType { Type = MoveTypeEnum.Ship };
+        pose.UseSlaveBase(slave);
+        var at = BoatSeamHandoffRules.ClientBridgeTick(snapshot, nowMs);
+        var (x, y, z, velX, velY, velZ) = BoatSeamHandoffRules.EvaluateAt(snapshot, at);
+        var (rotX, rotY, rotZ) = BoatSeamHandoffRules.EvaluateRotation(snapshot, at);
+        pose.X = x;
+        pose.Y = y;
+        pose.Z = z;
+        pose.RotationX = rotX;
+        pose.RotationY = rotY;
+        pose.RotationZ = rotZ;
+        pose.Throttle = BoatSeamPredictRules.LiveThrottle(
+            snapshot.Throttle, slave.ThrottleRequest, slave.Throttle);
+        pose.Steering = slave.SteeringRequest != 0 ? slave.SteeringRequest : snapshot.Steering;
+        pose.Rpm = snapshot.Rpm;
+        pose.Stuck = false;
+        pose.Time = BoatSeamHandoffRules.EvaluateTime(snapshot, at);
+        pose.ZoneId = snapshot.ToZone != 0 ? (ushort)snapshot.ToZone : pose.ZoneId;
+        pose.AngVelX = snapshot.AngVelX;
+        pose.AngVelY = snapshot.AngVelY;
+        pose.AngVelZ = snapshot.AngVelZ;
+        pose.VelX = velX;
+        pose.VelY = velY;
+        pose.VelZ = velZ;
+        return pose;
+    }
+
+    public static ShipMoveType ForSlave(Slave slave, bool carryMomentum, long nowMs, long extraAheadMs)
+    {
+        if (slave.SeamHandoff is { } handoff && handoff.ToZone != 0)
+            return ForHandoff(slave, handoff, carryMomentum);
+
+        return FromLastReport(slave, carryMomentum, nowMs, extraAheadMs);
+    }
+
+    /// <summary>
+    /// The pose Zone A is streaming right now. Never the seam snapshot — that plant is only
+    /// B's Create, and putting it on B again at follow-switch is the one-second stop.
+    /// </summary>
+    public static ShipMoveType ForLiveReport(Slave slave) =>
+        ForLiveReport(slave, CarryMomentum);
+
+    /// <param name="carryMomentum">
+    /// Split out so an overlap helm-on can seed the live report's way. Rest plus a full
+    /// cruise impulse is the seam speed bump.
+    /// </param>
+    public static ShipMoveType ForLiveReport(Slave slave, bool carryMomentum) =>
+        FromLastReport(slave, carryMomentum, Environment.TickCount64, 0);
+
+    /// <summary>
+    /// Upright rest at a waterline Z. Roll and pitch from a tumbled report are discarded; yaw is
+    /// kept. Motion is zero so the body does not walk off the plant.
+    /// </summary>
+    public static ShipMoveType ForWaterlineRecover(Slave slave, float x, float y, float z)
+    {
+        var pose = new ShipMoveType { Type = MoveTypeEnum.Ship };
+        pose.UseSlaveBase(slave);
+        pose.X = x;
+        pose.Y = y;
+        pose.Z = z;
+        pose.VelX = 0;
+        pose.VelY = 0;
+        pose.VelZ = 0;
+        pose.AngVelX = 0;
+        pose.AngVelY = 0;
+        pose.AngVelZ = 0;
+        pose.Rpm = 0;
+        pose.Stuck = false;
+
+        short yawX = 0, yawY = 0, yawZ = 0;
+        if (slave.SimulatedShipState is { } last)
+        {
+            var (_, _, yaw) = MathUtil.GetSlaveRotationInDegrees(
+                last.RotationX, last.RotationY, last.RotationZ);
+            (yawX, yawY, yawZ) = MathUtil.GetSlaveRotationFromDegrees(0f, 0f, yaw);
+            pose.Throttle = last.Throttle;
+            pose.Steering = last.Steering;
+            if (last.ZoneId != 0)
+                pose.ZoneId = last.ZoneId;
+        }
+        else
+        {
+            (yawX, yawY, yawZ) = MathUtil.GetSlaveRotationFromDegrees(
+                0f, 0f, slave.Transform.World.Rotation.Z);
+        }
+
+        pose.RotationX = yawX;
+        pose.RotationY = yawY;
+        pose.RotationZ = yawZ;
+        return pose;
+    }
+
+    private static ShipMoveType FromLastReport(Slave slave, bool carryMomentum, long nowMs, long extraAheadMs)
     {
         var pose = new ShipMoveType { Type = MoveTypeEnum.Ship };
         pose.UseSlaveBase(slave);
@@ -81,24 +228,45 @@ public static class ShipPoseSeed
         // Prefer the last zone-reported XYZ/facing when Transform has lagged a handoff behind.
         if (slave.SimulatedShipState is { } last)
         {
-            pose.X = last.X;
-            pose.Y = last.Y;
-            pose.Z = last.Z;
+            var ageMs = slave.SimulatedShipStateAtMs == 0 ? 0 : nowMs - slave.SimulatedShipStateAtMs;
+
+            // A report can claim way the hull is not making (see HullReportedMotionRules). Neither
+            // carry nor extrapolate such a figure: both would feed it straight back to the simulator.
+            var moving = IsReportedMotionReal(slave, last, nowMs);
+            var (x, y, z) = BoatSeamPredictRules.Advance(
+                last.X, last.Y, last.Z, last.VelX, last.VelY, last.VelZ,
+                moving ? BoatSeamPredictRules.AheadMs(ageMs, extraAheadMs) : 0);
+            pose.X = x;
+            pose.Y = y;
+            pose.Z = z;
             pose.RotationX = last.RotationX;
             pose.RotationY = last.RotationY;
             pose.RotationZ = last.RotationZ;
-            pose.Throttle = PreferLiveThrottle(slave, last.Throttle);
+            pose.Throttle = BoatSeamPredictRules.LiveThrottle(
+                last.Throttle, slave.ThrottleRequest, slave.Throttle);
             pose.Steering = last.Steering;
             pose.Rpm = last.Rpm;
             pose.ZoneId = last.ZoneId != 0 ? last.ZoneId : pose.ZoneId;
 
-            if (carryMomentum)
+            if (carryMomentum && moving)
                 CarryMotion(pose, last);
         }
 
         pose.Stuck = false;
         return pose;
     }
+
+    /// <summary>
+    /// Whether the hull's travel backs up the velocity its last report carried. Rest is seeded when
+    /// it does not, which is also what stops the leftover from being echoed back and forth.
+    /// </summary>
+    public static bool IsReportedMotionReal(Slave slave, ShipMoveType last, long nowMs) =>
+        HullReportedMotionRules.IsReportedMotionCorroborated(
+            last.ReportedSpeed,
+            slave.SimulatedSpeed,
+            slave.SimulatedSpeedAtMs == 0
+                ? HullReportedMotionRules.FreshnessWindowMs
+                : nowMs - slave.SimulatedSpeedAtMs);
 
     /// <summary>
     /// Copies the motion the outgoing simulator last reported onto the seed, verbatim.
@@ -111,20 +279,6 @@ public static class ShipPoseSeed
     /// legitimately sails below it and can transiently exceed it, so clamping to it discards real way
     /// and asks the receiving zone to hold the hull slower than it arrived.
     /// </remarks>
-    /// <summary>
-    /// The last type-4 body sometimes reports throttle 0 for a single frame at a seam while the
-    /// rider is still holding the wheel. Seeding that 0 puts the new simulator in its braking
-    /// branch. Prefer the live helm request, then the smoothed helm World already applied.
-    /// </summary>
-    private static sbyte PreferLiveThrottle(Slave slave, sbyte reported)
-    {
-        if (reported != 0)
-            return reported;
-        if (slave.ThrottleRequest != 0)
-            return slave.ThrottleRequest;
-        return slave.Throttle;
-    }
-
     private static void CarryMotion(ShipMoveType pose, ShipMoveType last)
     {
         pose.AngVelX = last.AngVelX;

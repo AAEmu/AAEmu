@@ -1,6 +1,7 @@
 using System.Reflection;
 
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.StreamAoi;
 using AAEmu.Game.Models.Game.Units;
@@ -72,6 +73,37 @@ public class SlaveStreamAoiTests
         hauler.Transform.Local.SetPosition(111f, 0f, 0f);
         await Assert.That(character.CullStreamedSlavesBeyondAoi()).IsEqualTo(1);
         await Assert.That(character.StreamedSlaveIds.ContainsKey(hauler.ObjId)).IsFalse();
+
+        world.Dispose();
+    }
+
+    [Test]
+    public async Task CullStreamedSlavesBeyondAoi_KeepsTheHullARiderIsSittingOn()
+    {
+        StreamAoiTable.ReplaceConfig(new StreamAoiConfig());
+        var (character, hull, world) = CreateShipAt(249f);
+        character.ArmMirrorNpcStream();
+        character.MarkSlaveStreamed(hull);
+        character.AttachedPoint = AttachPointKind.Driver;
+        hull.AttachedCharacters[AttachPointKind.Driver] = character;
+
+        await Assert.That(character.IsRidingSlave(hull)).IsTrue();
+        await Assert.That(character.CullStreamedSlavesBeyondAoi()).IsEqualTo(0);
+        await Assert.That(character.StreamedSlaveIds.ContainsKey(hull.ObjId)).IsTrue();
+
+        world.Dispose();
+    }
+
+    [Test]
+    public async Task TryKeepSlaveAcrossRegionLeave_KeepsTheHullARiderIsSittingOn()
+    {
+        StreamAoiTable.ReplaceConfig(new StreamAoiConfig());
+        var (character, hull, world) = CreateShipAt(400f);
+        character.ArmMirrorNpcStream();
+        character.AttachedPoint = AttachPointKind.Driver;
+        hull.AttachedCharacters[AttachPointKind.Driver] = character;
+
+        await Assert.That(character.TryKeepSlaveAcrossRegionLeave(hull)).IsTrue();
 
         world.Dispose();
     }

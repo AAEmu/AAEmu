@@ -76,6 +76,34 @@ public class BoatSeamImpulseTests
     }
 
     [Test]
+    public async Task OpenLoopRestore_SkipsWhenTheSeedAlreadyCarriesCruise()
+    {
+        // Live 186→218: 18.8 m/s in, full restore on a carried body, 22.1 felt.
+        await Assert.That(
+            BoatSeamImpulse.TryBuildOpenLoopRestore(true, 18.8f, 0, 127, 18.8f, out var speed))
+            .IsFalse();
+        await Assert.That(speed).IsEqualTo(0f);
+    }
+
+    [Test]
+    public async Task OpenLoopRestore_SendsOnlyTheShortfall()
+    {
+        await Assert.That(
+            BoatSeamImpulse.TryBuildOpenLoopRestore(true, 18.8f, 0, 127, 15.0f, out var speed))
+            .IsTrue();
+        await Assert.That(speed).IsEqualTo(18.8f - 15.0f).Within(Delta);
+    }
+
+    [Test]
+    public async Task OpenLoopRestore_StillFillsARestSeed()
+    {
+        await Assert.That(
+            BoatSeamImpulse.TryBuildOpenLoopRestore(true, 18.8f, 0, 127, 0f, out var speed))
+            .IsTrue();
+        await Assert.That(speed).IsEqualTo(18.8f * BoatSeamImpulse.RestoreFactor);
+    }
+
+    [Test]
     public async Task ExtremeMeasurement_IsCapped()
     {
         // The sanity ceiling still applies, for a saturated reading rather than a fast hull.

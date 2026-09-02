@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 
@@ -156,6 +157,134 @@ public class ShipPoseSeedTests
     }
 
     [Test]
+    public async Task ForSlave_AdvancesXyzByReportedVelocityAndPoseAge()
+    {
+        var slave = UnderWay();
+        slave.SimulatedShipStateAtMs = 10_000;
+        var now = 10_000 + 200;
+        var expected = BoatSeamPredictRules.Advance(
+            slave.SimulatedShipState.X,
+            slave.SimulatedShipState.Y,
+            slave.SimulatedShipState.Z,
+            slave.SimulatedShipState.VelX,
+            slave.SimulatedShipState.VelY,
+            slave.SimulatedShipState.VelZ,
+            BoatSeamPredictRules.AheadMs(200, 100));
+
+        var pose = ShipPoseSeed.ForSlave(slave, carryMomentum: true, now, 100);
+
+        await Assert.That(pose.X).IsEqualTo(expected.X);
+        await Assert.That(pose.Y).IsEqualTo(expected.Y);
+        await Assert.That(pose.Z).IsEqualTo(expected.Z);
+        await Assert.That(pose.VelX).IsEqualTo((short)120);
+    }
+
+    [Test]
+    public async Task ForHandoff_UsesTheFrozenSnapshotOnce()
+    {
+        var slave = UnderWay();
+        var velY = BoatSeamHandoffRules.EncodeVelMetresPerSecond(17f);
+        slave.SimulatedShipState.VelX = 0;
+        slave.SimulatedShipState.VelY = velY;
+        await Assert.That(BoatSeamHandoffRules.TryCapture(
+            slave.SimulatedShipState, 20_000, null, 0, 2, 186, 218, 20_050, 1100, 127, out var snap)).IsTrue();
+
+        var first = ShipPoseSeed.ForHandoff(slave, snap, carryMomentum: true);
+        var second = ShipPoseSeed.ForHandoff(slave, snap, carryMomentum: true);
+        var expected = BoatSeamHandoffRules.Propagate(snap);
+
+        await Assert.That(first.X).IsEqualTo(expected.X);
+        await Assert.That(first.Y).IsEqualTo(expected.Y);
+        await Assert.That(first.VelY).IsEqualTo(expected.VelY);
+        await Assert.That(first.Time).IsEqualTo(BoatSeamHandoffRules.AdvancedTime(snap));
+        await Assert.That(second.X).IsEqualTo(first.X);
+        await Assert.That(second.Y).IsEqualTo(first.Y);
+        await Assert.That(first.Y).IsGreaterThan(slave.SimulatedShipState.Y);
+    }
+
+    [Test]
+    public async Task ForBridge_EvaluatesTheSnapshotAtNowAndKeepsCruise()
+    {
+        var slave = UnderWay();
+        var velY = BoatSeamHandoffRules.EncodeVelMetresPerSecond(17f);
+        slave.SimulatedShipState.VelX = 0;
+        slave.SimulatedShipState.VelY = velY;
+        await Assert.That(BoatSeamHandoffRules.TryCapture(
+            slave.SimulatedShipState, 20_000, null, 0, 2, 186, 218, 20_000, 100, 127, out var snap)).IsTrue();
+
+        var pose = ShipPoseSeed.ForBridge(slave, snap, 20_200);
+        var at = BoatSeamHandoffRules.ClientBridgeTick(snap, 20_200);
+        var expected = BoatSeamHandoffRules.EvaluateAt(snap, at);
+
+        await Assert.That(at).IsEqualTo(snap.ActivationTickMs);
+        await Assert.That(pose.X).IsEqualTo(expected.X);
+        await Assert.That(pose.Y).IsEqualTo(expected.Y);
+        await Assert.That(pose.VelY).IsEqualTo(expected.VelY);
+        await Assert.That(pose.Time).IsEqualTo(BoatSeamHandoffRules.EvaluateTime(snap, at));
+        await Assert.That(pose.ZoneId).IsEqualTo((ushort)218);
+        await Assert.That(ShipPoseSeed.ForBridge(slave, snap, 20_200).Y).IsEqualTo(pose.Y);
+    }
+
+    [Test]
+    public async Task ForBridge_AfterActivationBind_StaysAtThePlant()
+    {
+        var slave = UnderWay();
+        var velY = BoatSeamHandoffRules.EncodeVelMetresPerSecond(17f);
+        slave.SimulatedShipState.VelX = 0;
+        slave.SimulatedShipState.VelY = velY;
+        await Assert.That(BoatSeamHandoffRules.TryCapture(
+            slave.SimulatedShipState, 20_000, null, 0, 2, 186, 218, 20_000, 0, 127, out var snap)).IsTrue();
+        var bound = BoatSeamHandoffRules.WithActivationTick(snap, 20_200);
+        var held = ShipPoseSeed.ForBridge(slave, bound, 20_400);
+        var planted = ShipPoseSeed.ForHandoff(slave, bound, carryMomentum: true);
+
+        await Assert.That(held.X).IsEqualTo(planted.X);
+        await Assert.That(held.Y).IsEqualTo(planted.Y);
+        await Assert.That(held.VelX).IsEqualTo(planted.VelX);
+        await Assert.That(held.VelY).IsEqualTo(planted.VelY);
+        await Assert.That(held.VelZ).IsEqualTo(planted.VelZ);
+        await Assert.That(held.Time).IsEqualTo(BoatSeamHandoffRules.AdvancedTime(bound));
+    }
+
+    [Test]
+    public async Task ForLiveReport_IgnoresTheSeamSnapshot()
+    {
+        var slave = UnderWay();
+        var velY = BoatSeamHandoffRules.EncodeVelMetresPerSecond(17f);
+        slave.SimulatedShipState.VelX = 0;
+        slave.SimulatedShipState.VelY = velY;
+        slave.SimulatedShipStateAtMs = 20_000;
+        await Assert.That(BoatSeamHandoffRules.TryCapture(
+            slave.SimulatedShipState, 20_000, null, 0, 2, 186, 218, 20_000, 100, 127, out var snap)).IsTrue();
+        slave.SeamHandoff = snap;
+
+        var live = ShipPoseSeed.ForLiveReport(slave, carryMomentum: true);
+        var planted = ShipPoseSeed.ForHandoff(slave, snap, carryMomentum: true);
+
+        await Assert.That(live.Y).IsEqualTo(slave.SimulatedShipState.Y);
+        await Assert.That(live.Y).IsNotEqualTo(planted.Y);
+        await Assert.That(live.VelY).IsEqualTo(velY);
+    }
+
+    [Test]
+    public async Task ForLiveReport_CanSeedRestWithoutTheSnapshot()
+    {
+        var slave = UnderWay();
+        slave.SimulatedShipStateAtMs = 0;
+        await Assert.That(BoatSeamHandoffRules.TryCapture(
+            slave.SimulatedShipState, 20_000, null, 0, 2, 186, 218, 20_000, 100, 127, out var snap)).IsTrue();
+        slave.SeamHandoff = snap;
+
+        var rest = ShipPoseSeed.ForLiveReport(slave, carryMomentum: false);
+
+        await Assert.That(rest.X).IsEqualTo(slave.SimulatedShipState.X);
+        await Assert.That(rest.Y).IsEqualTo(slave.SimulatedShipState.Y);
+        await Assert.That(rest.VelX).IsEqualTo((short)0);
+        await Assert.That(rest.VelY).IsEqualTo((short)0);
+        await Assert.That(rest.VelZ).IsEqualTo((short)0);
+    }
+
+    [Test]
     public async Task ForSlave_WithNoSimulatorReport_StaysAtRest()
     {
         // Nothing to carry: a hull that has never been simulated has no reported motion.
@@ -167,5 +296,23 @@ public class ShipPoseSeedTests
         await Assert.That(pose.VelX).IsEqualTo((short)0);
         await Assert.That(pose.VelY).IsEqualTo((short)0);
         await Assert.That(pose.VelZ).IsEqualTo((short)0);
+    }
+
+    [Test]
+    public async Task ForWaterlineRecover_UprightRestAtTheGivenZ()
+    {
+        var slave = UnderWay();
+        var pose = ShipPoseSeed.ForWaterlineRecover(slave, 13068f, 10218.5f, 98.8f);
+
+        await Assert.That(pose.X).IsEqualTo(13068f);
+        await Assert.That(pose.Y).IsEqualTo(10218.5f);
+        await Assert.That(pose.Z).IsEqualTo(98.8f);
+        await Assert.That(pose.VelX).IsEqualTo((short)0);
+        await Assert.That(pose.VelY).IsEqualTo((short)0);
+        await Assert.That(pose.VelZ).IsEqualTo((short)0);
+        await Assert.That(pose.AngVelX).IsEqualTo(0f);
+        await Assert.That(pose.AngVelY).IsEqualTo(0f);
+        await Assert.That(pose.AngVelZ).IsEqualTo(0f);
+        await Assert.That(pose.Rpm).IsEqualTo((byte)0);
     }
 }

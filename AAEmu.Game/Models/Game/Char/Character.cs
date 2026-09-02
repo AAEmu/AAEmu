@@ -263,6 +263,17 @@ public partial class Character : Unit, ICharacter
     }
 
     /// <summary>
+    /// True when this character is BindSlave-seated on <paramref name="slave"/>.
+    /// </summary>
+    public bool IsRidingSlave(Slave slave)
+    {
+        if (slave == null || AttachedPoint == AttachPointKind.None)
+            return false;
+        return ReferenceEquals(Transform?.Parent?.GameObject, slave)
+            || slave.AttachedCharacters.ContainsValue(this);
+    }
+
+    /// <summary>
     /// True when this hull may receive SCUnitState now. Equipment (Part) is always inside.
     /// Does not share the NPC MAX cap — boats are not mirrors.
     /// </summary>
@@ -277,6 +288,8 @@ public partial class Character : Unit, ICharacter
             return false;
         if (StreamedSlaveIds.ContainsKey(slave.ObjId))
             return false;
+        if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(IsRidingSlave(slave)))
+            return true;
         var d2 = DistanceSq(Transform.World.Position, slave.Transform.World.Position);
         return StreamAoiTable.IsInside(slave.StreamAoiCategory, d2, alreadyStreamed: false);
     }
@@ -292,6 +305,8 @@ public partial class Character : Unit, ICharacter
             return false;
         if (slave.StreamAoiCategory == StreamAoiCategory.Part)
             return false;
+        if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(IsRidingSlave(slave)))
+            return true;
         if (!StreamedSlaveIds.ContainsKey(slave.ObjId))
             return false;
         var d2 = DistanceSq(Transform.World.Position, slave.Transform.World.Position);
@@ -348,6 +363,8 @@ public partial class Character : Unit, ICharacter
             // Despawning hulls stay listed for the portal window; do not soft-cull them or the
             // SCUnitsRemoved cancels the portal fx.
             if (slave is { IsDespawning: true })
+                continue;
+            if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(IsRidingSlave(slave)))
                 continue;
             if (slave == null || slave.ObjId == 0)
             {

@@ -128,9 +128,8 @@ public static class Program
             {
                 if (character.Transform.ZoneId != zoneId)
                     return;
-                connection.SendPacket(detailed
-                    ? new SCDetailedTimeOfDayPacket(time, speed, start, end)
-                    : new SCTimeOfDayPacket(time));
+                _ = (speed, start, end, detailed);
+                connection.SendPacket(TimeOfDayClientPackets.FromZoneReport(time));
             });
         };
         // Shared World hour crosses drive Game-Time tower arms (seamless has no ZW ToD).
@@ -983,8 +982,8 @@ public static class Program
             var zone = PlayerEnterService.ForUnit(slaveId);
             if (zone == null)
                 return;
-            // Continent WorldPos on the wire (same as SCEscapeSlave). Dedicate converts against its
-            // stream origin — do not pre-subtract or pe_params_pos lands near (0,0) ("end of world").
+            // Continent WorldPos on the wire (same as SCEscapeSlave). The zone converts against its
+            // own origin — do not pre-subtract or the hull is placed near (0,0) ("end of world").
             zone.SendPacket(new WZEscapeSlavePacket(
                 slaveId,
                 (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongX(x),

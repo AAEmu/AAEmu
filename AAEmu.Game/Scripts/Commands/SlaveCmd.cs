@@ -21,6 +21,7 @@ public class SlaveCmd : SubCommandBase, ICommand, ICommandV2
         Register(new SlavePositionSubCommand(), "position", "pos");
         Register(new SlaveSaveSubCommand(), "save");
         Register(new SlaveSpawnSubCommand(), "spawn");
+        Register(new SlaveBindSubCommand(), "bind");
         Register(new SlaveRemoveSubCommand(), "remove");
     }
 

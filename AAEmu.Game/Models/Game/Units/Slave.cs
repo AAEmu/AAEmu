@@ -80,6 +80,12 @@ public class Slave : Unit
     public SlaveSpawner Spawner { get; set; }
     public Task LeaveTask { get; set; }
     public CancellationTokenSource CancelTokenSource { get; set; }
+
+    /// <summary>
+    /// Stops a pending leave-world despawn timer if one was armed.
+    /// Hulls that never started that timer (GM spawn, still-summoned boat) leave this null.
+    /// </summary>
+    public void CancelPendingLeave() => CancelTokenSource?.Cancel();
     /// <summary>Ship harpoon rope / skill-controller sync (only meaningful for harpoon cannon slaves; default struct = disengaged, no heap alloc).</summary>
     public ShipHarpoonRopeState HarpoonRope;
 
@@ -89,12 +95,62 @@ public class Slave : Unit
     /// </summary>
     public uint ZoneAnnouncedTo { get; set; }
 
+    private long _lastLoggedKitAddedMass = long.MinValue;
+
     /// <summary>
     /// Last hull pose the simulating zone reported, and the source of everything replayed to the next
     /// simulator on a handoff — position, heading, throttle, steering, rpm and motion
     /// (see <see cref="ShipPoseSeed"/>).
     /// </summary>
     public ShipMoveType SimulatedShipState { get; set; }
+
+    /// <summary>
+    /// When <see cref="SimulatedShipState"/> was last written (<see cref="Environment.TickCount64"/>).
+    /// A seam handoff freezes that report as <see cref="SeamHandoff"/> so Create and the type-4
+    /// seed both advance the same snapshot once.
+    /// </summary>
+    public long SimulatedShipStateAtMs { get; set; }
+
+    /// <summary>
+    /// The report before <see cref="SimulatedShipState"/>, used only to derive acceleration for a
+    /// seam snapshot. Null until two poses have arrived from the same stretch.
+    /// </summary>
+    public ShipMoveType PreviousSimulatedShipState { get; set; }
+
+    /// <summary>When <see cref="PreviousSimulatedShipState"/> was written.</summary>
+    public long PreviousSimulatedShipStateAtMs { get; set; }
+
+    /// <summary>
+    /// Frozen Zone-A state for the in-flight seam. Create and the type-4 seed both propagate this
+    /// once to the activation tick. Replaced (and the epoch bumped) on the next handoff.
+    /// </summary>
+    public BoatSeamHandoffSnapshot? SeamHandoff { get; set; }
+
+    /// <summary>Handoff sequence for <see cref="SeamHandoff"/>. Stale warmups from an older epoch are ignored.</summary>
+    public uint SeamHandoffEpoch { get; set; }
+
+    /// <summary>Helm stick samples taken while <see cref="SeamHandoff"/> is live.</summary>
+    public List<BoatSeamHelmSample> SeamHelmQueue { get; } = [];
+
+    /// <summary>
+    /// Last type-4 zone id / time / steering written onto <c>SCUnitMovements</c>.
+    /// Follow-switch must not change the streamed zone id (client interpolator reset)
+    /// or send a behind clock (dropped sample). See <see cref="BoatRudderSeamRules"/>.
+    /// </summary>
+    public ushort StreamedShipZoneId { get; set; }
+
+    public uint StreamedShipTime { get; set; }
+
+    public sbyte StreamedShipSteering { get; set; }
+
+    /// <summary>
+    /// Offset that maps the current simulator's body clock onto the streamed clock
+    /// (<see cref="BoatRudderSeamRules.RebasedTime"/>).
+    /// </summary>
+    public uint StreamedShipTimeOffset { get; set; }
+
+    /// <summary><see cref="Environment.TickCount64"/> when the last hull body was streamed.</summary>
+    public long StreamedShipAtMs { get; set; }
 
     /// <summary>
     /// Speed the simulating zone is actually making the hull travel, in metres per second, measured
@@ -127,11 +183,71 @@ public class Slave : Unit
     public uint SeamCorrectionZone { get; set; }
 
     /// <summary>
-    /// Tick when the new dedicate was armed. Reports before
-    /// <see cref="BoatZoneSimRules.WarmupPoseMinAgeMs"/> are the new zone's outbound type-4 for an
-    /// unconsumed or at-rest body — not a body velocity.
+    /// Tick when the new dedicate was armed. Unconsumed outbound type-4 (0–0.2 m/s) is ignored
+    /// until the incoming body publishes the restored cruise.
     /// </summary>
     public long SeamArmedAtMs { get; set; }
+
+    /// <summary>
+    /// When the closed-loop seam impulse was sent. Zero until then. Follow waits for the
+    /// restored speed after this, not for the short pose that triggered the impulse.
+    /// </summary>
+    public long SeamImpulseAtMs { get; set; }
+
+    /// <summary>
+    /// First tick a cruise-speed body was still short of the bridged plant. Zero until then.
+    /// FollowBackstopMs is counted from this, not from arm — a slow crossing must still catch up.
+    /// </summary>
+    public long SeamBridgeBehindAtMs { get; set; }
+
+    /// <summary>
+    /// When B was given A's live pose so follow can switch. Zero until that type-4 is sent.
+    /// </summary>
+    public long SeamReplantAtMs { get; set; }
+
+    /// <summary>
+    /// Forward speed added to the incoming body so it closes its along-track gap to the streamed
+    /// one; taken back at the follow switch. Zero when no catch-up is in flight.
+    /// </summary>
+    public float SeamCatchUpSpeed { get; set; }
+
+    /// <summary>When <see cref="SeamCatchUpSpeed"/> was applied (<see cref="Environment.TickCount64"/>).</summary>
+    public long SeamCatchUpAtMs { get; set; }
+
+    /// <summary>
+    /// Follow-switch blend (<see cref="Core.Managers.World.BoatSeamBlendRules"/>): the outgoing
+    /// simulator's last streamed body, captured at the switch, and the residual to the incoming
+    /// body once its first report arrives. <see cref="SeamBlendStartMs"/> 0 = no blend running.
+    /// </summary>
+    public long SeamBlendStartMs { get; set; }
+
+    public Movements.ShipMoveType SeamBlendFrom { get; set; }
+
+    public long SeamBlendFromAtMs { get; set; }
+
+    public BoatSeamBlendRules.Offset? SeamBlendOffset { get; set; }
+
+    /// <summary>
+    /// Water-body surface Z used at Create (before any keel plant). Recover compares live Z to a
+    /// fresh sample when the world still has water; this is the fallback.
+    /// </summary>
+    public float PlantWaterSurfaceZ { get; set; } = float.NaN;
+
+    /// <summary>
+    /// Last waterline recover (<see cref="Environment.TickCount64"/>). Zero until one has run.
+    /// </summary>
+    public long WaterlineRecoverAtMs { get; set; }
+
+    /// <summary>
+    /// Zone has the hull but simulation is off (no-tube). Tube hulls resume on bind;
+    /// no-tube stays off and World drives the waterline from type-5.
+    /// </summary>
+    public bool WaterlineSimHeldOff { get; set; }
+
+    /// <summary>
+    /// Last <see cref="SlaveManager.TickHeldWaterlineDrive"/> (<see cref="Environment.TickCount64"/>).
+    /// </summary>
+    public long WaterlineDriveAtMs { get; set; }
 
     /// <summary>
     /// Set when <see cref="SlaveManager.Delete"/> starts the despawn portal, so a replace-summon does
@@ -903,13 +1019,21 @@ public class Slave : Unit
             {
                 var player = WorldManager.Instance.GetCharacterByObjId(ati.Value.ObjId);
                 if (player != null)
-                    character.SendPacket(new SCUnitAttachedPacket(player.ObjId, ati.Key, AttachUnitReason.None, ObjId));
+                {
+                    var reason = character.ObjId == player.ObjId && ati.Key == AttachPointKind.Driver
+                        ? AttachUnitReason.NewMaster
+                        : AttachUnitReason.None;
+                    character.SendPacket(new SCUnitAttachedPacket(player.ObjId, ati.Key, reason, ObjId));
+                }
             }
         }
     }
 
     public override void RemoveVisibleObject(Character character)
     {
+        if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(character.IsRidingSlave(this)))
+            return;
+
         character.ReleaseSlaveSlot(ObjId);
 
         // Region leave: base walks Transform.Children (sails/cannons). Soft Ship-band cull
@@ -1186,24 +1310,75 @@ public class Slave : Unit
     public void UpdateSlaveGearBonuses()
     {
         Bonuses[GearBonusesIndex] = [];
-        if (Equipment == null)
-            return;
-
-        foreach (var item in Equipment.Items)
+        if (Equipment != null)
         {
-            if (item == null)
-                continue;
-
-            foreach (var template in ItemManager.Instance.GetUnitModifiers(item.TemplateId))
-                AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
-
-            if (item is EquipItem equipItem)
+            foreach (var item in Equipment.Items)
             {
-                foreach (var gem in equipItem.GemIds)
-                    foreach (var template in ItemManager.Instance.GetUnitModifiers(gem))
-                        AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
+                if (item == null)
+                    continue;
+
+                foreach (var template in ItemManager.Instance.GetUnitModifiers(item.TemplateId))
+                    AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
+
+                if (item is EquipItem equipItem)
+                {
+                    foreach (var gem in equipItem.GemIds)
+                        foreach (var template in ItemManager.Instance.GetUnitModifiers(gem))
+                            AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
+                }
             }
         }
+
+        if (AttachedSlaves != null)
+        {
+            foreach (var child in AttachedSlaves)
+            {
+                if (child?.Template?.Bonuses == null)
+                    continue;
+                foreach (var template in child.Template.Bonuses)
+                {
+                    if (template.Attribute != UnitAttribute.Mass)
+                        continue;
+                    AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
+                }
+            }
+        }
+
+        LogKitAddedMassIfChanged();
+    }
+
+    private void LogKitAddedMassIfChanged()
+    {
+        var itemMass = 0L;
+        if (Equipment != null)
+        {
+            foreach (var item in Equipment.Items)
+            {
+                if (item == null)
+                    continue;
+                itemMass += SlaveMassRules.MassFromBonuses(ItemManager.Instance.GetUnitModifiers(item.TemplateId));
+            }
+        }
+
+        var childMass = 0L;
+        if (AttachedSlaves != null)
+        {
+            foreach (var child in AttachedSlaves)
+            {
+                if (child?.Template?.Bonuses == null)
+                    continue;
+                childMass += SlaveMassRules.MassFromBonuses(child.Template.Bonuses);
+            }
+        }
+
+        var added = SlaveMassRules.KitAddedMass([itemMass], [childMass]);
+        if (added == _lastLoggedKitAddedMass)
+            return;
+
+        _lastLoggedKitAddedMass = added;
+        Logger.Info(
+            "Slave kit mass obj={0} tpl={1} added={2} items={3} children={4}",
+            ObjId, TemplateId, added, itemMass, childMass);
     }
 
     protected override void RegenTick(TimeSpan delta)

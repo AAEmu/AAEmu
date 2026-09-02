@@ -2,7 +2,9 @@ using AAEmu.Commons.Network;
 using AAEmu.Game;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -39,8 +41,7 @@ public class ZoneSimRelay
             ZwOpcodes.EnterArea => HandleEnterArea(stream),
             ZwOpcodes.LeaveArea => HandleLeaveArea(stream),
             ZwOpcodes.NpcSaid => HandleNpcSaid(stream),
-            ZwOpcodes.UnitModelPostureChanged => RelayIdenticalUnitPacket(
-                "ZWUnitModelPostureChanged", SCOffsets.SCUnitModelPostureChangedPacket, body, stream),
+            ZwOpcodes.UnitModelPostureChanged => HandleUnitModelPostureChanged(body, stream),
             ZwOpcodes.UnitFell => HandleUnitFell(stream),
             ZwOpcodes.UnitCollision => HandleUnitCollision(stream),
             ZwOpcodes.UnitCollisionResult => HandleUnitCollisionResult(stream),
@@ -383,6 +384,25 @@ public class ZoneSimRelay
 
         WorldIntegration.BroadcastPacketToUnitViewers(
             new SCTargetChangedPacket(npcId, targetId), npcId, targetId);
+        return true;
+    }
+
+    private static bool HandleUnitModelPostureChanged(byte[] body, PacketStream stream)
+    {
+        if (stream.Count < 3)
+            return false;
+
+        var unitId = stream.ReadBc();
+        var seated = WorldManager.Instance.GetCharacterByObjId(unitId) is Character rider
+            && BoatHelmSeatRules.IsSeatedOnSlave(
+                rider.AttachedPoint != AttachPointKind.None,
+                rider.Transform?.Parent?.GameObject is Slave);
+        if (!BoatHelmSeatRules.ShouldRelayZoneModelPosture(seated))
+            return true;
+
+        WorldIntegration.BroadcastPacketToUnitViewers(
+            new SCOpaquePacket(SCOffsets.SCUnitModelPostureChangedPacket, body), unitId);
+        Logger.Debug("ZWUnitModelPostureChanged unit={0} len={1}", unitId, body.Length);
         return true;
     }
 
