@@ -148,8 +148,9 @@ public abstract class BaseCombatBehavior : Behavior
         {
             if (Ai.PathNode?.EndPointPos != null && Ai.PathNode != null)
             {
-                // If not at target position (take model size error margin), then calculate new target route position
-                if (Math.Abs((Ai.PathNode.EndPointPos - target.Transform.World.Position).Length()) <= Ai.Owner.ModelSize)
+                // Repath only when the target moved beyond model-size slack (pre-#1318: !Equals).
+                // <= was inverted and re-ran A* every combat tick while the target stood still.
+                if ((Ai.PathNode.EndPointPos - target.Transform.World.Position).Length() > Ai.Owner.ModelSize)
                 {
                     var stopWatch = new Stopwatch();
                     stopWatch.Start();
@@ -159,7 +160,7 @@ public abstract class BaseCombatBehavior : Behavior
                     if (stopWatch.Elapsed.Ticks >= TimeSpan.TicksPerMillisecond)
                         Logger.Warn($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId} @ {Ai.Owner.Transform}");
                     // Save the target's new coordinates
-                    Ai.PathNode.EndPointPos =  new Vector3(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
+                    Ai.PathNode.EndPointPos = new Vector3(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
                 }
             }
 
