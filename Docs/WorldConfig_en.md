@@ -81,7 +81,7 @@ Example:
 - **Type**: `boolean`
 - **Default**: `false`
 - **Description**: When `true`, FloorQuery writes a Debug log line per sample (`mode` / `src` / terrain / nav / floor). GM: `/world set floordebug true`.
-- **Verification**: `bash Scripts/find-floor-mismatch.sh --summary` (exit 0 = suspects, 1 = OK). Large `deltaNav` outdoors after `ByZHint` is expected.
+- **Verification**: `bash Scripts/find-floor-mismatch.sh --summary` (exit 0 = suspects when `src=Terrain` and `|floor-terrain|` over threshold; exit 1 = OK). Large `deltaNav` outdoors when `src=Terrain` under `ByZHint` is expected.
 
 ### `PreLoadTerrain`
 - **Type**: `boolean`

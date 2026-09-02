@@ -81,7 +81,7 @@
 - **Тип**: `boolean`
 - **По умолчанию**: `false`
 - **Описание**: если `true`, FloorQuery пишет Debug-строку на каждый sample (`mode` / `src` / terrain / nav / floor). GM: `/world set floordebug true`.
-- **Проверка**: `bash Scripts/find-floor-mismatch.sh --summary` (exit 0 = подозрения, 1 = OK). Большой `deltaNav` на outdoor после `ByZHint` ожидаем.
+- **Проверка**: `bash Scripts/find-floor-mismatch.sh --summary` (exit 0 = подозрения при `src=Terrain` и `|floor-terrain|` выше порога; exit 1 = OK). Большой `deltaNav` на outdoor при `src=Terrain` под `ByZHint` ожидаем.
 
 ### `PreLoadTerrain`
 - **Тип**: `boolean`
