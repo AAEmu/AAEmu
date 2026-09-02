@@ -6,6 +6,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.StaticValues;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
@@ -72,7 +73,7 @@ public class KnockBack : SpecialEffectAction
 
         var oldPosition = npc.Transform.Local.ClonePosition();
 
-        var groundZ = npc.ParentWorld.Template.GeoData.GetHeight(new Vector3(endPos.X, endPos.Y, endPos.Z));
+        var groundZ = npc.ParentWorld.Template.Floor.GetFloor(endPos.X, endPos.Y, endPos.Z, FloorContext.Skill);
         if (groundZ > 0 && Math.Abs(endPos.Z - groundZ) < 5f)
             endPos.Z = groundZ;
 

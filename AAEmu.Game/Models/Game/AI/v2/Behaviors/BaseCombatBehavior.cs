@@ -14,6 +14,7 @@ using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
 
 using AAEmu.Game.Utils;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.AI.v2.Behaviors;
 
@@ -147,8 +148,9 @@ public abstract class BaseCombatBehavior : Behavior
         {
             if (Ai.PathNode?.EndPointPos != null && Ai.PathNode != null)
             {
-                // If not at target position (take model size error margin), then calculate new target route position
-                if (Math.Abs((Ai.PathNode.EndPointPos - target.Transform.World.Position).Length()) <= Ai.Owner.ModelSize)
+                // Repath only when the target moved beyond model-size slack (pre-#1318: !Equals).
+                // <= was inverted and re-ran A* every combat tick while the target stood still.
+                if ((Ai.PathNode.EndPointPos - target.Transform.World.Position).Length() > Ai.Owner.ModelSize)
                 {
                     var stopWatch = new Stopwatch();
                     stopWatch.Start();
@@ -158,7 +160,7 @@ public abstract class BaseCombatBehavior : Behavior
                     if (stopWatch.Elapsed.Ticks >= TimeSpan.TicksPerMillisecond)
                         Logger.Warn($"FindPath took {stopWatch.Elapsed} for Ai.Owner.ObjId:{Ai.Owner.ObjId}, Owner.TemplateId {Ai.Owner.TemplateId} @ {Ai.Owner.Transform}");
                     // Save the target's new coordinates
-                    Ai.PathNode.EndPointPos =  new Vector3(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
+                    Ai.PathNode.EndPointPos = new Vector3(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z);
                 }
             }
 
@@ -356,7 +358,7 @@ public abstract class BaseCombatBehavior : Behavior
         if (_pipeName == "phase_dragon_ground" || _phaseType == 1) // "PHASE_DRAGON_GROUND = 1;"
         {
             // try to find Z first in GeoData, and then in HeightMaps, if not found, leave Z as it is
-            var updZ = Ai.Owner.ParentWorld.Template.GeoData.GetHeight(Ai.Owner.Transform.World.Position); // WorldManager.Instance.GetHeight(Ai.Owner.Transform.ZoneId, Ai.Owner.Transform.Local.Position.X, Ai.Owner.Transform.Local.Position.Y, Ai.Owner.Transform.Local.Position.Z);
+            var updZ = Ai.Owner.ParentWorld.Template.Floor.GetFloor(Ai.Owner.Transform.World.Position.X, Ai.Owner.Transform.World.Position.Y, Ai.Owner.Transform.World.Position.Z, FloorContext.Move);
             Ai.Owner.Transform.Local.SetHeight(updZ);
         }
         else if (_pipeName == "phase_dragon_fly_hovering" || _phaseType == 2) // "PHASE_DRAGON_HOVERING = 2;"

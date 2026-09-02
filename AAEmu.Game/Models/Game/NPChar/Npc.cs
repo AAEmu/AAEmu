@@ -17,6 +17,7 @@ using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 
@@ -1207,7 +1208,17 @@ public partial class Npc : Unit
 
         // TODO: Implement proper use for Transform.World.AddDistanceToFront
         var (newX, newY, newZ) = World.Transform.PositionAndRotation.AddDistanceToFront(travelDist, targetDist, Transform.Local.Position, other);
-        var targetPositionZ = WorldManager.Instance.GetReferenceHeight(Ai, newX, newY, newZ, Transform.ZoneId);
+        var pathPeek = Ai.PathNode?.FoundPath is { Count: > 0 } q ? q.Peek() : Vector3.Zero;
+        var useLerpedZ = PathLocomotionZ.ShouldUseLerpedMoveHeight(
+            AppConfiguration.Instance.World.GeoDataMode,
+            ParentWorld.Template.ZoneBaiLoader.Count > 0,
+            Ai.PathNode?.FoundPath?.Count > 0,
+            other,
+            pathPeek,
+            Transform.Local.Position.Z);
+        var targetPositionZ = useLerpedZ
+            ? newZ
+            : WorldManager.Instance.GetReferenceHeight(Ai, newX, newY, newZ, Transform.ZoneId);
         Transform.Local.SetPosition(newX, newY, targetPositionZ);
 
         var angle = MathUtil.CalculateAngleFrom(Transform.Local.Position, other);
@@ -1329,7 +1340,8 @@ public partial class Npc : Unit
         var resList = Ai.PathNode.FindPath(Ai.Owner.ParentWorld, Ai.PathNode.StartPointPos, Ai.PathNode.EndPointPos);
         resList.Add(abuser.Transform.World.Position);
         var reducedPath = ParentWorld.Template.GeoData.ReducePath(resList, 10);
-        Ai.PathNode.FoundPath = reducedPath;
+        // Path XY from A*; Z from NavSurface edge samples (not graph vertex Z). Floor seating stays in MoveTowards.
+        Ai.PathNode.FoundPath = ParentWorld.Template.Floor.ApplyPathWaypointZ(reducedPath);
         if (abuser is Character player)
         {
             player.SendMessage($"Aggro from {Ai.Owner.ObjId}, getting attack path in {Ai.PathNode.FoundPath.Count}/{resList.Count} steps");

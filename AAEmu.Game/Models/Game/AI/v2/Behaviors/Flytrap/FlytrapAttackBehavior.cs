@@ -90,8 +90,8 @@ public class FlytrapAttackBehavior : Behavior
             // we will find the path to the abuser only if the target coordinates have changed
             if (Ai.PathNode?.FoundPath?.Count == 0 && target != null && Ai.PathNode?.EndPointPos != null)
             {
-                //if (!Ai.PathNode.pos2.Equals(new Point(target.Transform.World.Position.X, target.Transform.World.Position.Y, target.Transform.World.Position.Z)))
-                if (Math.Abs((Ai.PathNode.EndPointPos - target.Transform.World.Position).Length()) <= Ai.Owner.ModelSize)
+                // Repath only when the target moved beyond model-size slack (same fix as BaseCombatBehavior).
+                if ((Ai.PathNode.EndPointPos - target.Transform.World.Position).Length() > Ai.Owner.ModelSize)
                 {
                     // let's find the path to the abuser
                     Ai.Owner.FindPath((Unit)target);
