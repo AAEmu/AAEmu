@@ -220,8 +220,7 @@ public class TimeManager : Singleton<TimeManager>, ITimeManager
         {
             if (character?.Transform == null || !ZoneUsesSharedGameDay(character.Transform.ZoneId))
                 return;
-            connection.SendPacket(new SCDetailedTimeOfDayPacket(
-                hour, DefaultGameHourSpeed, 0f, 24f));
+            connection.SendPacket(TimeOfDayClientPackets.Periodic(hour));
         });
     }
 
