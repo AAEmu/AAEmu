@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Trading;
 
 using MySql.Data.MySqlClient;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,6 +22,7 @@ public class Inventory
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private static long s_nextMutationOrder;
+    internal object SyncRoot => MutationSyncRoot;
     public readonly ICharacter Owner;
 
     private object _mutationSyncRoot;
@@ -33,7 +35,8 @@ public class Inventory
     /// <summary>
     /// Canonical monitor for mutations to this character's item containers.
     /// </summary>
-    public object MutationSyncRoot => LazyInitializer.EnsureInitialized(ref _mutationSyncRoot);
+    public object MutationSyncRoot => (Owner as Character)?.StateSyncRoot ??
+        LazyInitializer.EnsureInitialized(ref _mutationSyncRoot);
 
     private long MutationOrder
     {
@@ -649,7 +652,7 @@ public class Inventory
             }
 
             // Check if target slot has enough room left for this item
-            if (action != SwapAction.doEquipInEmptySlot && itemInTargetSlot.TemplateId == fromItem?.TemplateId && itemInTargetSlot.Count + count > fromItem.Template.MaxCount && fromItem.Template.MaxCount > 1)
+            if (action != SwapAction.doEquipInEmptySlot && itemInTargetSlot.CanStackWith(fromItem) && itemInTargetSlot.Count + count > fromItem.Template.MaxCount && fromItem.Template.MaxCount > 1)
             {
                 Logger.Error("SplitOrMoveItem Target Item stack does not have enough room to take source");
                 return false;
@@ -663,7 +666,7 @@ public class Inventory
                 action = SwapAction.doSplit;
             else if (itemInTargetSlot == null && fromItem?.Count == count)
                 action = SwapAction.doMoveAllToEmpty;
-            else if (itemInTargetSlot != null && itemInTargetSlot.TemplateId == fromItem?.TemplateId && itemInTargetSlot.Template.MaxCount > 1)
+            else if (itemInTargetSlot != null && itemInTargetSlot.CanStackWith(fromItem) && itemInTargetSlot.Template.MaxCount > 1)
                 action = SwapAction.doMerge;
             else
                 action = SwapAction.doSwap;
@@ -802,7 +805,7 @@ public class Inventory
                 var ni = ItemManager.Instance.Create(fromItem.TemplateId, count, fromItem.Grade, true);
                 if (ni == null)
                     return false;
-                ItemSplitRules.CopyStackFields(fromItem, ni);
+                ni.CopyPersistentStateFrom(fromItem);
                 ItemSplitRules.PlaceNewStack(ni, targetContainer?.OwnerId ?? fromItem.OwnerId, toType, toSlot);
                 ni._holdingContainer = targetContainer;
                 var sourceBefore = fromItem.Count;
@@ -943,6 +946,12 @@ public class Inventory
     /// <returns></returns>
     public bool TakeoffBackpack(ItemTaskType taskType, bool glidersOnly = false)
     {
+        lock (SyncRoot)
+            return TakeoffBackpackCore(taskType, glidersOnly);
+    }
+
+    private bool TakeoffBackpackCore(ItemTaskType taskType, bool glidersOnly)
+    {
         var backpack = GetEquippedBySlot(EquipmentItemSlot.Backpack);
         if (backpack == null) return true;
 
@@ -972,14 +981,51 @@ public class Inventory
     /// <param name="gradeToAdd"></param>
     /// <param name="crafterId"></param>
     /// <returns></returns>
-    public bool TryEquipNewBackPack(ItemTaskType taskType, uint itemId, int itemCount, int gradeToAdd = -1, uint crafterId = 0)
+    public bool TryEquipNewBackPack(ItemTaskType taskType, uint itemId, int itemCount, int gradeToAdd = -1,
+        uint crafterId = 0, SpecialtyPackProductionContext? specialtyProductionContext = null)
     {
-        // Remove player backpack
-        if (Owner.Inventory.TakeoffBackpack(taskType, true))
+        lock (SyncRoot)
+            return TryEquipNewBackPackCore(
+                taskType,
+                itemId,
+                itemCount,
+                gradeToAdd,
+                crafterId,
+                specialtyProductionContext);
+    }
+
+    private bool TryEquipNewBackPackCore(ItemTaskType taskType, uint itemId, int itemCount, int gradeToAdd,
+        uint crafterId, SpecialtyPackProductionContext? specialtyProductionContext)
+    {
+        var previousBackpack = GetEquippedBySlot(EquipmentItemSlot.Backpack);
+        var previousBackpackItemId = PreviousBackPackItemId;
+        if (!Owner.Inventory.TakeoffBackpack(taskType, true))
+            return false;
+
+        try
         {
-            // Put tradepack in their backpack slot
-            return Owner.Inventory.Equipment.AcquireDefaultItem(taskType, itemId, itemCount, gradeToAdd, crafterId);
+            if (Owner.Inventory.Equipment.AcquireDefaultItem(
+                    taskType,
+                    itemId,
+                    itemCount,
+                    gradeToAdd,
+                    crafterId,
+                    specialtyProductionContext))
+                return true;
         }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to equip backpack item {0} for character {1}", itemId, Owner.Id);
+        }
+
+        if (previousBackpack != null &&
+            !Equipment.AddOrMoveExistingItem(taskType, previousBackpack, (int)EquipmentItemSlot.Backpack))
+            Logger.Fatal(
+                "Failed to restore backpack item {0} for character {1} after equipping item {2} failed",
+                previousBackpack.Id,
+                Owner.Id,
+                itemId);
+        PreviousBackPackItemId = previousBackpackItemId;
         return false;
     }
 
@@ -992,12 +1038,38 @@ public class Inventory
     /// <param name="gradeToAdd"></param>
     /// <param name="crafterId"></param>
     /// <returns></returns>
-    public bool TryAddNewItem(ItemTaskType taskType, uint itemId, int itemCount, int gradeToAdd = -1, uint crafterId = 0)
+    public bool TryAddNewItem(ItemTaskType taskType, uint itemId, int itemCount, int gradeToAdd = -1,
+        uint crafterId = 0, SpecialtyPackProductionContext? specialtyProductionContext = null)
+    {
+        lock (SyncRoot)
+            return TryAddNewItemCore(
+                taskType,
+                itemId,
+                itemCount,
+                gradeToAdd,
+                crafterId,
+                specialtyProductionContext);
+    }
+
+    private bool TryAddNewItemCore(ItemTaskType taskType, uint itemId, int itemCount, int gradeToAdd,
+        uint crafterId, SpecialtyPackProductionContext? specialtyProductionContext)
     {
         if (ItemManager.Instance.IsAutoEquipTradePack(itemId))
-            return TryEquipNewBackPack(taskType, itemId, itemCount, gradeToAdd, crafterId);
+            return TryEquipNewBackPack(
+                taskType,
+                itemId,
+                itemCount,
+                gradeToAdd,
+                crafterId,
+                specialtyProductionContext);
 
-        return Bag.AcquireDefaultItem(taskType, itemId, itemCount, gradeToAdd, crafterId);
+        return Bag.AcquireDefaultItem(
+            taskType,
+            itemId,
+            itemCount,
+            gradeToAdd,
+            crafterId,
+            specialtyProductionContext);
     }
 
     /// <summary>

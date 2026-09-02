@@ -558,6 +558,7 @@ CREATE TABLE IF NOT EXISTS `items` (
   `slot_type` int NOT NULL DEFAULT 0 COMMENT 'Internal Container Type',
   `slot` int NOT NULL,
   `count` int NOT NULL,
+  `detail_type` tinyint unsigned NOT NULL DEFAULT '0',
   `details` blob,
   `lifespan_mins` int NOT NULL,
   `made_unit_id` int unsigned NOT NULL DEFAULT '0',

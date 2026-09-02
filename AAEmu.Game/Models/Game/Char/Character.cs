@@ -593,6 +593,9 @@ public partial class Character : Unit, ICharacter
     private readonly object _optionsLock = new();
     private readonly object _uiDataSaveLock = new();
     private readonly ICharacterOptionStore _optionStore;
+    private readonly object _stateSyncRoot = new();
+
+    internal object StateSyncRoot => _stateSyncRoot;
 
     public List<IDisposable> Subscribers { get; set; }
     public override CharacterEvents Events { get; } = new();
@@ -2567,6 +2570,39 @@ public partial class Character : Unit, ICharacter
 
     public void ChangeLabor(short change, int actabilityId)
     {
+        lock (_stateSyncRoot)
+            ChangeLaborCore(change, actabilityId);
+    }
+
+    private void ChangeLaborCore(short change, int actabilityId)
+    {
+        ChangeLaborCore(change, actabilityId, true);
+    }
+
+    internal void ApplyCommittedLaborSpend(
+        short laborCost,
+        int actabilityId,
+        short committedLabor,
+        int committedLocalLabor)
+    {
+        if (laborCost <= 0)
+            return;
+        lock (_stateSyncRoot)
+        {
+            try
+            {
+                ChangeLaborCore(checked((short)-laborCost), actabilityId, false);
+            }
+            finally
+            {
+                _laborPower = committedLabor;
+                _localLaborPower = committedLocalLabor;
+            }
+        }
+    }
+
+    private void ChangeLaborCore(short change, int actabilityId, bool persistBalances)
+    {
         var actabilityChange = 0;
         byte actabilityStep = 0;
         var expMultiplier = 1f;
@@ -2613,10 +2649,18 @@ public partial class Character : Unit, ICharacter
                 lockedLocalDelta = -fromLocal;
 
                 if (fromLocal > 0)
-                    LocalLaborPower -= fromLocal;
+                {
+                    if (persistBalances)
+                        LocalLaborPower -= fromLocal;
+                    else
+                        _localLaborPower -= fromLocal;
+                }
             }
 
-            LaborPower += lockedAccountDelta;
+            if (persistBalances)
+                LaborPower += lockedAccountDelta;
+            else
+                _laborPower += lockedAccountDelta;
             return (lockedAccountDelta, lockedLocalDelta);
         });
 

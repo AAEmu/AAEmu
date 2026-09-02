@@ -31,6 +31,19 @@ namespace AAEmu.UnitTests.Commons.Network
         }
 
         [Test]
+        public async Task WriteAndReadDateTime_ShouldReturnSameUnixSecond()
+        {
+            var stream = new PacketStream();
+            var expected = new DateTime(2026, 8, 30, 12, 34, 56, DateTimeKind.Utc);
+            stream.Write(expected);
+            stream.Rollback();
+
+            var result = stream.ReadDateTime();
+
+            await Assert.That(result).IsEqualTo(expected);
+        }
+
+        [Test]
         public async Task WriteAndReadString_ShouldReturnSameString()
         {
             var stream = new PacketStream();

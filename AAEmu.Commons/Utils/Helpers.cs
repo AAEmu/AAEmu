@@ -51,10 +51,11 @@ public static class Helpers
 
     public static DateTime UnixTime(long time)
     {
-        if (time > DateTime.MaxValue.Second)
+        var maxUnixSeconds = (DateTime.MaxValue.Ticks - DateTime.UnixEpoch.Ticks) / TimeSpan.TicksPerSecond;
+        if (time > maxUnixSeconds)
             return DateTime.MaxValue;
 
-        if (time < DateTime.MinValue.Second)
+        if (time < 0)
             return DateTime.MinValue;
 
         return DateTime.UnixEpoch.AddSeconds(time);

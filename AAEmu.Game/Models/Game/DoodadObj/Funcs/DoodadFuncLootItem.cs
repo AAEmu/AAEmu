@@ -1,8 +1,10 @@
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Trading;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
@@ -45,19 +47,16 @@ public class DoodadFuncLootItem : DoodadFuncTemplate
         }
         else
         {
-            if (ItemManager.Instance.IsAutoEquipTradePack(ItemId))
-            {
-                var item = ItemManager.Instance.Create(ItemId, count, 0);
-                if (character.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
-                {
-                    res = character.Inventory.Equipment.AddOrMoveExistingItem(ItemTaskType.RecoverDoodadItem, item,
-                        (int)EquipmentItemSlot.Backpack);
-                }
-            }
-            else
-            {
-                res = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.RecoverDoodadItem, ItemId, count);
-            }
+            var productionContext = new SpecialtyPackProductionContext(
+                SpecialtyPackProductionSource.DoodadLootItem,
+                DateTime.UtcNow,
+                ZoneManager.Instance.GetZoneByKey(owner.Transform.ZoneId)?.GroupId ?? 0,
+                owner.GetOwnerCharacter()?.Id ?? 0);
+            res = character.Inventory.TryAddNewItem(
+                ItemTaskType.RecoverDoodadItem,
+                ItemId,
+                count,
+                specialtyProductionContext: productionContext);
         }
 
         if (res == false)

@@ -30,6 +30,8 @@ public class Item : PacketMarshaler, IComparable<Item>
     private double _expirationOnlineMinutesLeft;
     private DateTime _chargeStartTime = DateTime.MinValue;
     private int _chargeCount;
+    private ItemDetailType _detailType;
+    private byte[] _detail;
 
     [JsonIgnore]
     public int DirtyStamp => _dirty.Stamp;
@@ -179,10 +181,26 @@ public class Item : PacketMarshaler, IComparable<Item>
     }
 
     [JsonProperty]
-    public virtual ItemDetailType DetailType { get; set; }
+    public virtual ItemDetailType DetailType
+    {
+        get => _detailType;
+        set
+        {
+            _detailType = value;
+            _isDirty = true;
+        }
+    }
 
     [JsonProperty]
-    public byte[] Detail { get; set; }
+    public byte[] Detail
+    {
+        get => _detail;
+        set
+        {
+            _detail = value;
+            _isDirty = true;
+        }
+    }
 
     // Helper
     [JsonIgnore]
@@ -262,6 +280,54 @@ public class Item : PacketMarshaler, IComparable<Item>
         MarkDirty();
     }
 
+    public bool HasDefaultDetail => DetailType == ItemDetailType.Invalid && Detail is not { Length: > 0 };
+
+    public bool CanStackWith(Item other)
+    {
+        return other != null &&
+               TemplateId == other.TemplateId &&
+               Grade == other.Grade &&
+               WorldId == other.WorldId &&
+               ItemFlags == other.ItemFlags &&
+               LifespanMins == other.LifespanMins &&
+               MadeUnitId == other.MadeUnitId &&
+               UnsecureTime == other.UnsecureTime &&
+               UnpackTime == other.UnpackTime &&
+               ImageItemTemplateId == other.ImageItemTemplateId &&
+               UccId == other.UccId &&
+               ExpirationTime == other.ExpirationTime &&
+               ExpirationOnlineMinutesLeft.Equals(other.ExpirationOnlineMinutesLeft) &&
+               ChargeStartTime == other.ChargeStartTime &&
+               ChargeCount == other.ChargeCount &&
+               ChargeUseSkillTime == other.ChargeUseSkillTime &&
+               DetailType == other.DetailType &&
+               (ReferenceEquals(Detail, other.Detail) ||
+                Detail is null && other.Detail is null ||
+                Detail is not null && other.Detail is not null && Detail.AsSpan().SequenceEqual(other.Detail));
+    }
+
+    public void CopyPersistentStateFrom(Item source)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        WorldId = source.WorldId;
+        LifespanMins = source.LifespanMins;
+        MadeUnitId = source.MadeUnitId;
+        CreateTime = source.CreateTime;
+        UnsecureTime = source.UnsecureTime;
+        UnpackTime = source.UnpackTime;
+        ImageItemTemplateId = source.ImageItemTemplateId;
+        UccId = source.UccId;
+        ItemFlags = source.ItemFlags;
+        ExpirationTime = source.ExpirationTime;
+        ExpirationOnlineMinutesLeft = source.ExpirationOnlineMinutesLeft;
+        ChargeStartTime = source.ChargeStartTime;
+        ChargeCount = source.ChargeCount;
+        ChargeUseSkillTime = source.ChargeUseSkillTime;
+        DetailType = source.DetailType;
+        Detail = source.Detail?.ToArray();
+    }
+
     public override void Read(PacketStream stream)
     {
         TemplateId = stream.ReadUInt32();
@@ -325,11 +391,11 @@ public class Item : PacketMarshaler, IComparable<Item>
         4 => 9,          // Ucc                 (total 10)
         5 or 11 => 24,   // Treasure / Location (total 25)
         6 or 7 => 16,    // BigFish / Decoration (total 17)
-        8 or 14 => 8,    // MusicSheet / type 0xE (total 9)
+        8 or 14 => 8,    // MusicSheet / opaque type 0xE (total 9)
         9 => 4,          // Glider              (total 5)
         10 => 12,        // SlaveEquipment      (total 13)
-        12 => 10,        // type 0xC            (total 11)
-        13 => 13,        // type 0xD            (total 14)
+        12 => 10,        // BackpackFreshness   (total 11)
+        13 => 13,        // opaque type 0xD      (total 14)
         _ => 0,          // Equipment(1) is structured (EquipItem); 0/unknown carries no body
     };
 

@@ -21,6 +21,7 @@ using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Tasks.Doodads;
+using MySql.Data.MySqlClient;
 
 /*
  *-----------------------------------------------------------------------------------------------------------------
@@ -1367,10 +1368,21 @@ public class Doodad : BaseUnit
 
     public PacketStream Write(PacketStream stream, uint funcGroupId)
     {
+        var itemManager = ItemId == 0 && ItemTemplateId == 0 ? null : ItemManager.Instance;
+        return Write(stream, funcGroupId, itemManager);
+    }
+
+    public PacketStream Write(PacketStream stream, IItemManager itemManager) =>
+        Write(stream, FuncGroupId, itemManager);
+
+    private PacketStream Write(PacketStream stream, uint funcGroupId, IItemManager itemManager)
+    {
+        var goods = default(DoodadPhysicalGoods);
+        var isGoods = itemManager != null && DoodadPhysicalGoods.TryResolve(this, itemManager, out goods);
         stream.WriteBc(ObjId);
         // SC pisc: [templateId, funcGroupId → obj+68, backpackItemId → obj+96, ?].
         // keeps 0 for normal props. Same gate on WZCreateDoodad — never ModelKindId.
-        stream.WritePisc(TemplateId, funcGroupId, 0u, 0u);
+        stream.WritePisc(TemplateId, funcGroupId, isGoods ? goods.ItemTemplateId : 0u, 0u);
 
         // flag bit0 = hasLootItem (gear/loot UI). Exclusive loot-phase only — see CSLootOpenBagPacket.
         var hasLootItem = CurrentFuncs.Count > 0 && CurrentFuncs.All(func => IsFuncDrivenLootFunc(func.FuncType));
@@ -1422,6 +1434,12 @@ public class Doodad : BaseUnit
         stream.Write(Data);
         stream.Write(0); // data2
         stream.Write((ulong)DateTimeOffset.UtcNow.ToUnixTimeSeconds());
+        if (isGoods)
+        {
+            stream.Write(goods.FreshnessTime);
+            stream.Write(0L); // unnamed physical goods field
+            stream.Write((ushort)0); // unnamed physical goods field
+        }
         stream.Write(0L); // type6
         stream.Write(0L); // type7
 
@@ -1503,7 +1521,17 @@ public class Doodad : BaseUnit
 
         DbId = DbId > 0 ? DbId : DoodadIdManager.Instance.GetNextId();
         using var connection = MySQL.CreateConnection();
+        Save(connection, null);
+    }
+
+    public void Save(MySqlConnection connection, MySqlTransaction transaction)
+    {
+        if (!IsPersistent)
+            return;
+
+        DbId = DbId > 0 ? DbId : DoodadIdManager.Instance.GetNextId();
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         // Lookup Parent
         var parentDoodadId = 0u;
         if (Transform?.Parent?.GameObject is Doodad { DbId: > 0 } pDoodad)

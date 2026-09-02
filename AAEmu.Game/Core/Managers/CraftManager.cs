@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Utils.DB;
+using Microsoft.Data.Sqlite;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
@@ -10,10 +11,12 @@ public class CraftManager : Singleton<CraftManager>, ICraftManager
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, Craft> _crafts;
+    private Dictionary<uint, HashSet<uint>> _craftsByPack;
 
     public void Load()
     {
         _crafts = [];
+        _craftsByPack = [];
         Logger.Info("Loading crafts...");
 
         using (var connection = SQLite.CreateConnection())
@@ -98,21 +101,7 @@ public class CraftManager : Singleton<CraftManager>, ICraftManager
                 }
             }
 
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "SELECT * FROM craft_pack_crafts";
-                command.Prepare();
-                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-                {
-                    while (reader.Read())
-                    {
-                        var craftId = reader.GetUInt32("craft_id");
-                        if (!_crafts.TryGetValue(craftId, out var craft))
-                            continue;
-                        craft.IsPack = true;
-                    }
-                }
-            }
+            LoadCraftPackMembership(connection);
         }
 
         Logger.Info("Loaded crafts", _crafts.Count);
@@ -126,5 +115,52 @@ public class CraftManager : Singleton<CraftManager>, ICraftManager
     public bool HasCraft(uint craftId)
     {
         return _crafts.ContainsKey(craftId);
+    }
+
+    public bool TryGetCraft(uint craftId, out Craft craft)
+    {
+        craft = null;
+        return _crafts != null && _crafts.TryGetValue(craftId, out craft);
+    }
+
+    public bool IsCraftInPack(uint craftPackId, uint craftId)
+    {
+        return _craftsByPack != null &&
+               _craftsByPack.TryGetValue(craftPackId, out var craftIds) &&
+               craftIds.Contains(craftId);
+    }
+
+    public IReadOnlyCollection<uint> GetCraftIdsForPack(uint craftPackId)
+    {
+        return _craftsByPack != null && _craftsByPack.TryGetValue(craftPackId, out var craftIds)
+            ? craftIds
+            : Array.Empty<uint>();
+    }
+
+    internal void LoadCraftPackMembership(SqliteConnection connection)
+    {
+        _craftsByPack = [];
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT craft_pack_id, craft_id FROM craft_pack_crafts ORDER BY craft_pack_id, craft_id";
+        command.Prepare();
+        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+        while (reader.Read())
+        {
+            var craftPackId = reader.GetUInt32("craft_pack_id");
+            var craftId = reader.GetUInt32("craft_id");
+            if (craftPackId == 0)
+                throw new InvalidDataException($"craft_pack_crafts craft {craftId} has a zero craft_pack_id.");
+            if (!_crafts.TryGetValue(craftId, out var craft))
+                throw new InvalidDataException(
+                    $"craft_pack_crafts pack {craftPackId} references missing crafts row {craftId}.");
+
+            if (!_craftsByPack.TryGetValue(craftPackId, out var craftIds))
+            {
+                craftIds = [];
+                _craftsByPack.Add(craftPackId, craftIds);
+            }
+            craftIds.Add(craftId);
+            craft.IsPack = true;
+        }
     }
 }

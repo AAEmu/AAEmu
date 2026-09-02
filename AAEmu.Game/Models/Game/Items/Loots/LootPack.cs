@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Trading;
 using AAEmu.Game.Models.Game.Units;
 using NLog;
 
@@ -504,17 +505,37 @@ public class LootPack
     /// <param name="taskType"></param>
     /// <param name="generatedList"></param>
     /// <param name="inheritedGrade">Grade to inherit (Optional)</param>
-    public bool GiveLootPack(Character character, ActabilityType actabilityType, ItemTaskType taskType, List<(uint itemId, int count, byte grade, uint originalGroup)> generatedList = null, byte? inheritedGrade = null)
+    public bool GiveLootPack(Character character, ActabilityType actabilityType, ItemTaskType taskType,
+        List<(uint itemId, int count, byte grade, uint originalGroup)> generatedList = null,
+        byte? inheritedGrade = null,
+        SpecialtyPackProductionContext? specialtyProductionContext = null)
     {
         // If it is not generated yet, generate loot pack info now
         generatedList ??= GeneratePack(character, actabilityType, inheritedGrade);
 
         var canAdd = true;
+        var autoEquipCount = 0;
         // First check for room
         foreach (var (itemTemplateId, count, _, _) in generatedList)
         {
             if (itemTemplateId == Item.Coins)
                 continue;
+            var template = ItemManager.Instance.GetTemplate(itemTemplateId);
+            if (template == null || !SpecialtyPackMaterializer.CanMaterialize(template, specialtyProductionContext))
+            {
+                canAdd = false;
+                break;
+            }
+            if (ItemManager.Instance.IsAutoEquipTradePack(itemTemplateId))
+            {
+                autoEquipCount++;
+                if (count != 1 || autoEquipCount > 1 || !character.Inventory.CanReplaceGliderInBackpackSlot())
+                {
+                    canAdd = false;
+                    break;
+                }
+                continue;
+            }
             var freeSpace = character.Inventory.Bag.SpaceLeftForItem(itemTemplateId);
             if (freeSpace < count)
             {
@@ -542,7 +563,12 @@ public class LootPack
             var itemTemplate = ItemManager.Instance.GetTemplate(itemTemplateId);
             var gradeToAdd = itemTemplate.FixedGrade > 0 ? itemTemplate.FixedGrade : grade > 1 ? grade : -1;
 
-            if (!character.Inventory.TryAddNewItem(taskType, itemTemplateId, count, gradeToAdd))
+            if (!character.Inventory.TryAddNewItem(
+                    taskType,
+                    itemTemplateId,
+                    count,
+                    gradeToAdd,
+                    specialtyProductionContext: specialtyProductionContext))
             {
                 Logger.Error($"Unable to give loot to {character.Name} - ItemId: {itemTemplate} x {count} at grade {gradeToAdd} (loot grade {grade})");
                 return false;

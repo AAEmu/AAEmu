@@ -1,10 +1,204 @@
+using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Trading;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Items;
 
 public class ItemTests
 {
+    [Test]
+    [Arguments(ItemDetailType.BackpackFreshness, 10)]
+    [Arguments(ItemDetailType.Unknown13, 13)]
+    [Arguments(ItemDetailType.Unknown14, 8)]
+    public async Task GenericDetails_RoundTripExactBytes(ItemDetailType detailType, int detailLength)
+    {
+        var expected = Enumerable.Range(1, detailLength).Select(x => (byte)x).ToArray();
+        var item = new Item
+        {
+            DetailType = detailType,
+            Detail = expected
+        };
+        var persisted = new PacketStream();
+
+        item.WriteDetails(persisted);
+        var loaded = new Item { DetailType = detailType };
+        loaded.ReadDetails((PacketStream)persisted.GetBytes());
+
+        await Assert.That(loaded.Detail).IsEquivalentTo(expected);
+    }
+
+    [Test]
+    public async Task CopyPersistentStateFrom_ClonesOpaqueDetailAndProvenance()
+    {
+        var source = new Item
+        {
+            WorldId = 3,
+            MadeUnitId = 42,
+            CreateTime = new DateTime(2026, 8, 30, 12, 34, 56, DateTimeKind.Utc),
+            DetailType = ItemDetailType.Unknown13,
+            Detail = Enumerable.Range(1, 13).Select(value => (byte)value).ToArray()
+        };
+        var split = new Item();
+
+        split.CopyPersistentStateFrom(source);
+
+        await Assert.That(split.WorldId).IsEqualTo(source.WorldId);
+        await Assert.That(split.MadeUnitId).IsEqualTo(source.MadeUnitId);
+        await Assert.That(split.CreateTime).IsEqualTo(source.CreateTime);
+        await Assert.That(split.DetailType).IsEqualTo(source.DetailType);
+        await Assert.That(split.Detail).IsEquivalentTo(source.Detail);
+        await Assert.That(ReferenceEquals(split.Detail, source.Detail)).IsFalse();
+    }
+
+    [Test]
+    public async Task CanStackWith_RequiresMatchingDetailAndProvenance()
+    {
+        var template = new ItemTemplate { Id = 100, MaxCount = 100 };
+        var left = new Item(1, template, 1)
+        {
+            MadeUnitId = 42,
+            DetailType = ItemDetailType.Unknown14,
+            Detail = Enumerable.Range(1, 8).Select(value => (byte)value).ToArray()
+        };
+        var matching = new Item(2, template, 1)
+        {
+            MadeUnitId = 42,
+            DetailType = ItemDetailType.Unknown14,
+            Detail = left.Detail.ToArray()
+        };
+        var differentDetail = new Item(3, template, 1)
+        {
+            MadeUnitId = 42,
+            DetailType = ItemDetailType.Unknown14,
+            Detail = new byte[8]
+        };
+        var differentProducer = new Item(4, template, 1)
+        {
+            MadeUnitId = 43,
+            DetailType = ItemDetailType.Unknown14,
+            Detail = left.Detail.ToArray()
+        };
+
+        await Assert.That(left.CanStackWith(matching)).IsTrue();
+        await Assert.That(left.CanStackWith(differentDetail)).IsFalse();
+        await Assert.That(left.CanStackWith(differentProducer)).IsFalse();
+    }
+
+    [Test]
+    public async Task BackpackFreshness_UsesCanonicalTenByteDetail()
+    {
+        var freshnessStart = new DateTime(2026, 8, 30, 12, 34, 56, DateTimeKind.Utc);
+        var backpack = new Backpack(42, new BackpackTemplate { Id = 31840 }, 1);
+        var expected = new PacketStream();
+        expected.Write(freshnessStart);
+        expected.Write((ushort)22);
+
+        backpack.InitializeFreshness(freshnessStart, 22);
+        var hasFreshness = backpack.TryGetFreshness(out var actualStart, out var actualZoneGroupId);
+
+        await Assert.That(backpack.DetailType).IsEqualTo(ItemDetailType.BackpackFreshness);
+        await Assert.That(backpack.Detail).IsEquivalentTo(expected.GetBytes());
+        await Assert.That(backpack.Detail.Length).IsEqualTo(10);
+        await Assert.That(hasFreshness).IsTrue();
+        await Assert.That(actualStart).IsEqualTo(freshnessStart);
+        await Assert.That(actualZoneGroupId).IsEqualTo((ushort)22);
+    }
+
+    [Test]
+    public async Task BackpackFreshness_DoesNotOverwriteExistingDetail()
+    {
+        var backpack = new Backpack(42, new BackpackTemplate { Id = 31840 }, 1);
+        backpack.InitializeFreshness(new DateTime(2026, 8, 30, 12, 34, 56, DateTimeKind.Utc), 22);
+
+        await Assert.That(() => backpack.InitializeFreshness(DateTime.UtcNow, 8))
+            .Throws<InvalidOperationException>();
+    }
+
+    [Test]
+    public async Task BackpackFreshness_RejectsMalformedDetail()
+    {
+        var backpack = new Backpack
+        {
+            DetailType = ItemDetailType.BackpackFreshness,
+            Detail = new byte[9]
+        };
+
+        var result = backpack.TryGetFreshness(out _, out _);
+
+        await Assert.That(result).IsFalse();
+    }
+
+    [Test]
+    public async Task SpecialtyPackMaterializer_AppliesSourceContextOnce()
+    {
+        var template = new BackpackTemplate
+        {
+            Id = 31840,
+            BackpackType = BackpackType.TradePack,
+            FreshnessGroupId = 7,
+            SpecialtyZoneId = 22
+        };
+        var backpack = new Backpack(42, template, 1);
+        var freshnessStart = new DateTime(2026, 8, 31, 12, 34, 56, DateTimeKind.Utc);
+        var context = new SpecialtyPackProductionContext(
+            SpecialtyPackProductionSource.Craft,
+            freshnessStart,
+            22,
+            1234);
+
+        var materialized = SpecialtyPackMaterializer.TryMaterialize(backpack, context);
+        var repeated = SpecialtyPackMaterializer.TryMaterialize(backpack, context);
+        var hasFreshness = backpack.TryGetFreshness(out var actualStart, out var actualZone);
+
+        await Assert.That(materialized).IsTrue();
+        await Assert.That(repeated).IsFalse();
+        await Assert.That(backpack.MadeUnitId).IsEqualTo(1234u);
+        await Assert.That(hasFreshness).IsTrue();
+        await Assert.That(actualStart).IsEqualTo(freshnessStart);
+        await Assert.That(actualZone).IsEqualTo((ushort)22);
+    }
+
+    [Test]
+    public async Task SpecialtyPackMaterializer_RejectsMissingOrMismatchedSourceContext()
+    {
+        var template = new BackpackTemplate
+        {
+            Id = 31840,
+            BackpackType = BackpackType.TradePack,
+            FreshnessGroupId = 7,
+            SpecialtyZoneId = 22
+        };
+        var backpack = new Backpack(42, template, 1);
+        var mismatchedZone = new SpecialtyPackProductionContext(
+            SpecialtyPackProductionSource.DoodadLootItem,
+            new DateTime(2026, 8, 31, 12, 34, 56, DateTimeKind.Utc),
+            8,
+            0);
+
+        await Assert.That(SpecialtyPackMaterializer.TryMaterialize(backpack, null)).IsFalse();
+        await Assert.That(SpecialtyPackMaterializer.TryMaterialize(backpack, mismatchedZone)).IsFalse();
+        await Assert.That(backpack.HasDefaultDetail).IsTrue();
+        await Assert.That(backpack.MadeUnitId).IsEqualTo(0u);
+    }
+
+    [Test]
+    public async Task SpecialtyPackMaterializer_LeavesNonFreshBackpackUnchanged()
+    {
+        var template = new BackpackTemplate
+        {
+            Id = 32000,
+            BackpackType = BackpackType.TradePack,
+            FreshnessGroupId = 0
+        };
+        var backpack = new Backpack(42, template, 1);
+
+        var materialized = SpecialtyPackMaterializer.TryMaterialize(backpack, null);
+
+        await Assert.That(materialized).IsTrue();
+        await Assert.That(backpack.HasDefaultDetail).IsTrue();
+    }
+
     #region Constructor Tests
 
     [Test]

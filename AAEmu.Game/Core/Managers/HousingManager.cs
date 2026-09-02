@@ -1895,7 +1895,9 @@ public class HousingManager(
             if (f.ItemTemplateId > 0)
             {
                 // try to stack stackable items
-                var oldItem = returnedItems.FirstOrDefault(x => x.TemplateId == f.ItemTemplateId && x.Count < x.Template.MaxCount);
+                var oldItem = returnedItems.FirstOrDefault(x =>
+                    x.TemplateId == f.ItemTemplateId && x.HasDefaultDetail && x.MadeUnitId == 0 &&
+                    x.Count < x.Template.MaxCount);
 
                 if (oldItem != null)
                 {

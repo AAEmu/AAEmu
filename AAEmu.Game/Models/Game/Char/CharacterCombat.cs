@@ -1,9 +1,11 @@
 using System.Collections.Concurrent;
 
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Formulas;
@@ -373,6 +375,13 @@ public partial class Character
                 if (doodad == null)
                 {
                     Logger.Warn($"Doodad {backpackDoodadId}, from BackpackDoodadId could not be created");
+                    if (!Inventory.Equipment.AddOrMoveExistingItem(
+                        Items.Actions.ItemTaskType.DropBackpack,
+                        item,
+                        (int)EquipmentItemSlot.Backpack))
+                    {
+                        Logger.Error("Failed to restore backpack item {0} after doodad {1} creation failed", item.Id, backpackDoodadId);
+                    }
                     return;
                 }
 
@@ -386,8 +395,21 @@ public partial class Character
                 doodad.SetScale(1f);
                 doodad.PlantTime = DateTime.UtcNow;
                 doodad.InitDoodad();
+                if (!DoodadItemPersistence.TrySavePlacement(item, doodad))
+                {
+                    if (!Inventory.Equipment.AddOrMoveExistingItem(
+                        Items.Actions.ItemTaskType.DropBackpack,
+                        item,
+                        (int)EquipmentItemSlot.Backpack))
+                    {
+                        Logger.Error("Failed to restore backpack item {0} after its death drop could not be persisted", item.Id);
+                    }
+
+                    NonUnitObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+                    return;
+                }
+
                 doodad.Spawn();
-                doodad.Save();
 
                 if (WorldIntegration.ZoneAuthority)
                 {

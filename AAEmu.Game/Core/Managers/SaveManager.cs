@@ -249,6 +249,36 @@ public class SaveManager(
         return saved;
     }
 
+    public T ExecuteOperation<T>(Func<MySql.Data.MySqlClient.MySqlConnection, MySql.Data.MySqlClient.MySqlTransaction, T> operation)
+    {
+        ArgumentNullException.ThrowIfNull(operation);
+
+        lock (_lock)
+        {
+            using var connection = MySQL.CreateConnection();
+            using var transaction = connection.BeginTransaction();
+            try
+            {
+                var result = operation(connection, transaction);
+                transaction.Commit();
+                return result;
+            }
+            catch
+            {
+                try
+                {
+                    transaction.Rollback();
+                }
+                catch (Exception rollbackException)
+                {
+                    Logger.Error(rollbackException, "Failed to roll back database operation");
+                }
+
+                throw;
+            }
+        }
+    }
+
     public void SaveTick()
     {
         if (!_enabled)

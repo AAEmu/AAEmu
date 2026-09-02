@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
@@ -71,6 +72,13 @@ public class PutDownBackpackEffect : EffectTemplate
             if (doodad == null)
             {
                 Logger.Warn("Doodad {0}, from BackpackDoodadId could not be created", BackpackDoodadId);
+                if (!character.Inventory.Equipment.AddOrMoveExistingItem(
+                    Items.Actions.ItemTaskType.DropBackpack,
+                    item,
+                    (int)EquipmentItemSlot.Backpack))
+                {
+                    Logger.Error("Failed to restore backpack item {0} after doodad {1} creation failed", item.Id, BackpackDoodadId);
+                }
                 return;
             }
             doodad.IsPersistent = true;
@@ -92,8 +100,21 @@ public class PutDownBackpackEffect : EffectTemplate
             }
 
             doodad.InitDoodad();
+            if (!DoodadItemPersistence.TrySavePlacement(item, doodad))
+            {
+                if (!character.Inventory.Equipment.AddOrMoveExistingItem(
+                    Items.Actions.ItemTaskType.DropBackpack,
+                    item,
+                    (int)EquipmentItemSlot.Backpack))
+                {
+                    Logger.Error("Failed to restore backpack item {0} after its ground placement could not be persisted", item.Id);
+                }
+
+                NonUnitObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+                return;
+            }
+
             doodad.Spawn();
-            doodad.Save();
 
             if (WorldIntegration.ZoneAuthority)
             {
