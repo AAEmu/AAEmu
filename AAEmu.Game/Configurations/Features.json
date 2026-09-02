@@ -4,6 +4,9 @@
         // behind them is still live and never needed the client to know about it.
         "TaxItem": true,
         "BackpackProfitShare": true,
+        // Zero used_free_abil_set_activation at 00:00 UTC (and login catch-up). Only applies when
+        // compact ability_set_free_activation_count is above zero.
+        "AbilitySetFreeActivationDailyReset": true,
 
         // Shared server/client fset bitmap (SCInitialConfig opcode 0x007). Unlisted bits stay off.
         // Scalar bytes 1, 8, 10, 26 are level caps — FeaturesManager fills those at boot, not here.

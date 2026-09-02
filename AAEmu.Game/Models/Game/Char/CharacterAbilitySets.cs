@@ -1,6 +1,7 @@
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
@@ -403,6 +404,40 @@ public sealed class CharacterAbilitySets(Character owner)
             usedFree = UsedFreeActivationCount;
         }
         Owner.SendPacket(new SCAbilitySetAllInfoPacket(snapshot, usedFree));
+    }
+
+    /// <summary>
+    /// Offline catch-up when <see cref="FeaturesManager.Fsets.AbilitySetFreeActivationDailyReset"/> is on.
+    /// Uses <c>leave_time</c> like <see cref="CharacterQuests.CheckDailyResetAtLogin"/>.
+    /// </summary>
+    public void CheckDailyResetAtLogin()
+    {
+        if (!FeaturesManager.Fsets.AbilitySetFreeActivationDailyReset)
+            return;
+
+        var leaveUtc = ServerCalendar.AsUtc(Owner.LeaveTime);
+        if (leaveUtc.Date >= ServerCalendar.TodayUtc)
+            return;
+
+        ResetFreeActivationCount(syncClient: false);
+    }
+
+    /// <summary>
+    /// Clears the persisted free-activation counter for a new UTC day.
+    /// </summary>
+    public void ResetFreeActivationCount(bool syncClient)
+    {
+        lock (_sync)
+        {
+            if (UsedFreeActivationCount == 0)
+                return;
+
+            UsedFreeActivationCount = 0;
+        }
+
+        PersistCharacterColumns();
+        if (syncClient)
+            SendAllInfo();
     }
 
     private bool TryChargeActivation(byte slot)

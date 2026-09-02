@@ -3548,6 +3548,7 @@ public partial class Character : Unit, ICharacter
             Abilities.Load(connection);
             AbilitySets = new CharacterAbilitySets(this);
             AbilitySets.Load(connection);
+            AbilitySets.CheckDailyResetAtLogin();
             Actability = new CharacterActability(this);
             Actability.Load(connection);
             Skills = new CharacterSkills(this);

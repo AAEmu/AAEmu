@@ -8,7 +8,8 @@ namespace AAEmu.Game.Models.Tasks.Quests;
 /// <summary>
 /// Fires at 00:00:00 UTC every day (cron <c>0 0 0 */1 * *</c> on TaskManager's UTC clock).
 /// Resets all daily-detail completed quests (not just Path of Destiny), today-assignment state,
-/// and daily-login account rewards for online characters. Offline catch-up is leave_time based.
+/// daily-login account rewards, and skillsaver free-activation usage for online characters.
+/// Offline catch-up is leave_time based.
 /// </summary>
 public class QuestDailyResetTask : Task
 {
@@ -24,6 +25,8 @@ public class QuestDailyResetTask : Task
         {
             character.Quests.ResetDailyQuests(true);
             TimedRewardsManager.Instance.DoDailyAccountLogin(character.AccountId);
+            if (FeaturesManager.Fsets.AbilitySetFreeActivationDailyReset)
+                character.AbilitySets.ResetFreeActivationCount(syncClient: true);
         }
 
         // Today (detail 13) completion bits above; also reseed Path of Destiny UI/DB day_key state.
