@@ -99,6 +99,55 @@ public class CompactSqliteUpdaterTests
         await Assert.That(Path.GetFullPath(found!)).IsEqualTo(Path.GetFullPath(root.Scripts));
     }
 
+    [Test]
+    public async Task FindScriptsDirectory_UsesLaterRootWhenContentRootHasNone()
+    {
+        var contentRoot = Path.Combine(Path.GetTempPath(), "aaemu-compact-tests", Guid.NewGuid().ToString("N"), "game-content");
+        var worldRoot = Path.Combine(Path.GetTempPath(), "aaemu-compact-tests", Guid.NewGuid().ToString("N"), "world");
+        Directory.CreateDirectory(contentRoot);
+        var worldScripts = Path.Combine(worldRoot, "SQL", "compact");
+        Directory.CreateDirectory(worldScripts);
+        WriteScript(worldScripts, "2026-01-04_compact_world.sql", "-- compact_table: items\nSELECT 1;");
+
+        var found = CompactSqliteUpdater.FindScriptsDirectory(contentRoot, worldRoot);
+        await Assert.That(Path.GetFullPath(found!)).IsEqualTo(Path.GetFullPath(worldScripts));
+    }
+
+    [Test]
+    public async Task ApplyAt_CompactPresentScriptsMissing_Fails()
+    {
+        var isolated = Path.Combine(Path.GetTempPath(), "aaemu-compact-tests", Guid.NewGuid().ToString("N"), "isolated");
+        Directory.CreateDirectory(isolated);
+        var db = Path.Combine(isolated, "compact.sqlite3");
+        WriteDb(db, "CREATE TABLE items (id INTEGER PRIMARY KEY);");
+
+        var result = CompactSqliteUpdater.ApplyAt(db, isolated);
+        await Assert.That(result.Success).IsFalse();
+        await Assert.That(result.Errors.Count > 0).IsTrue();
+        await Assert.That(result.ScriptsApplied).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Apply_FailedStatement_RollsBackContentAndDoesNotMarkInstalled()
+    {
+        var root = NewTempRoot();
+        WriteDb(root.Db, """
+            CREATE TABLE items (id INTEGER PRIMARY KEY, max_enchantable_grade INTEGER);
+            INSERT INTO items (id, max_enchantable_grade) VALUES (1, 7);
+            """);
+        WriteScript(root.Scripts, "2026-01-05_compact_bad.sql", """
+            -- compact_table: items
+            UPDATE "items" SET "max_enchantable_grade" = 12 WHERE "id" = 1;
+            UPDATE "items" SET "no_such_column" = 1 WHERE "id" = 1;
+            """);
+
+        var result = CompactSqliteUpdater.Apply(root.Db, root.Scripts);
+        await Assert.That(result.Success).IsFalse();
+        await using var connection = Open(root.Db);
+        await Assert.That(Scalar<long>(connection, "SELECT max_enchantable_grade FROM items WHERE id = 1")).IsEqualTo(7);
+        await Assert.That(Scalar<long>(connection, $"SELECT COUNT(*) FROM {CompactSqliteUpdater.TrackingTable} WHERE installed = 1")).IsEqualTo(0);
+    }
+
     private static (string Root, string Db, string Scripts) NewTempRoot()
     {
         var root = Path.Combine(Path.GetTempPath(), "aaemu-compact-tests", Guid.NewGuid().ToString("N"));

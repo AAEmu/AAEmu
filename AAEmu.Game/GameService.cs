@@ -78,9 +78,11 @@ public sealed class GameService : IHostedService, IDisposable
         var compactUpdate = Utils.DB.CompactSqliteUpdater.ApplyDefault();
         if (!compactUpdate.Success)
         {
-            Logger.Error(
-                "CompactSqliteUpdater failed ({0} error(s)). Game will load the existing compact.sqlite3.",
-                compactUpdate.Errors.Count);
+            Logger.Fatal("CompactSqliteUpdater failed ({0} error(s))", compactUpdate.Errors.Count);
+            foreach (var error in compactUpdate.Errors)
+                Logger.Fatal("  {0}", error);
+            Logger.Fatal("Press Ctrl+C to quit");
+            return;
         }
 
         // --- ID managers ---

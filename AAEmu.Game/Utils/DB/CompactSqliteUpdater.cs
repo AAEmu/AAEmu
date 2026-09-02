@@ -30,6 +30,17 @@ public static class CompactSqliteUpdater
 
     public static CompactSqliteUpdateResult ApplyDefault()
     {
+        var compactPath = Path.Combine(FileManager.AppPath, "Data", "compact.sqlite3");
+        return ApplyAt(compactPath, FileManager.AppPath, AppContext.BaseDirectory);
+    }
+
+    /// <summary>
+    /// Apply pending compact scripts. <paramref name="searchRoots"/> are walked for
+    /// <c>SQL/compact/*_compact_*.sql</c> (Game content root first, then the process
+    /// directory so World still finds scripts copied next to the executable).
+    /// </summary>
+    public static CompactSqliteUpdateResult ApplyAt(string compactPath, params string[] searchRoots)
+    {
         var result = new CompactSqliteUpdateResult();
         if (IsSkipped())
         {
@@ -37,11 +48,19 @@ public static class CompactSqliteUpdater
             return result;
         }
 
-        var compactPath = Path.Combine(FileManager.AppPath, "Data", "compact.sqlite3");
-        var scriptsDir = FindScriptsDirectory(FileManager.AppPath);
+        if (!File.Exists(compactPath))
+        {
+            Logger.Warn("CompactSqliteUpdater: {0} not found — skipping", compactPath);
+            return result;
+        }
+
+        var scriptsDir = FindScriptsDirectory(searchRoots);
         if (string.IsNullOrEmpty(scriptsDir))
         {
-            Logger.Debug("CompactSqliteUpdater: no SQL/compact scripts found");
+            const string message =
+                "SQL/compact *_compact_*.sql not found. Copy SQL/compact next to the Game content root or the World executable.";
+            result.Errors.Add(message);
+            Logger.Error("CompactSqliteUpdater: {0}", message);
             return result;
         }
 
@@ -72,7 +91,10 @@ public static class CompactSqliteUpdater
         var scripts = Directory.GetFiles(scriptsDirectory, "*_compact_*.sql", SearchOption.TopDirectoryOnly);
         Array.Sort(scripts, StringComparer.OrdinalIgnoreCase);
         if (scripts.Length == 0)
+        {
+            result.Errors.Add($"no *_compact_*.sql files in {scriptsDirectory}");
             return result;
+        }
 
         try
         {
@@ -94,8 +116,10 @@ public static class CompactSqliteUpdater
                 try
                 {
                     var text = File.ReadAllText(scriptPath);
-                    ApplyScript(connection, text, result);
-                    Record(connection, name, installed: true, error: "");
+                    using var transaction = connection.BeginTransaction();
+                    ApplyScript(connection, text, result, transaction);
+                    Record(connection, name, installed: true, error: "", transaction);
+                    transaction.Commit();
                     result.ScriptsApplied++;
                     Logger.Info("CompactSqliteUpdater: installed {0}", name);
                 }
@@ -117,37 +141,40 @@ public static class CompactSqliteUpdater
         return result;
     }
 
-    public static string? FindScriptsDirectory(string? startDirectory = null)
+    public static string? FindScriptsDirectory(params string?[] startDirectories)
     {
-        var current = startDirectory;
-        if (string.IsNullOrWhiteSpace(current))
-            current = FileManager.AppPath;
-
-        while (!string.IsNullOrEmpty(current))
+        foreach (var start in DistinctStarts(startDirectories))
         {
-            var candidate = Path.Combine(current, "SQL", "compact");
-            if (Directory.Exists(candidate) &&
-                Directory.GetFiles(candidate, "*_compact_*.sql", SearchOption.TopDirectoryOnly).Length > 0)
+            var current = start;
+            while (!string.IsNullOrEmpty(current))
             {
-                return candidate;
-            }
+                var candidate = Path.Combine(current, "SQL", "compact");
+                if (Directory.Exists(candidate) &&
+                    Directory.GetFiles(candidate, "*_compact_*.sql", SearchOption.TopDirectoryOnly).Length > 0)
+                {
+                    return candidate;
+                }
 
-            var parent = Directory.GetParent(current);
-            if (parent == null)
-                break;
-            current = parent.FullName;
+                var parent = Directory.GetParent(current);
+                if (parent == null)
+                    break;
+                current = parent.FullName;
+            }
         }
 
         return null;
     }
 
-    internal static void ApplyScript(SqliteConnection connection, string script, CompactSqliteUpdateResult result)
+    internal static void ApplyScript(
+        SqliteConnection connection,
+        string script,
+        CompactSqliteUpdateResult result,
+        SqliteTransaction transaction)
     {
         var statements = CompactSqlScript.Parse(script);
-        using var transaction = connection.BeginTransaction();
         foreach (var statement in statements)
         {
-            if (!string.IsNullOrEmpty(statement.Table) && !TableExists(connection, statement.Table))
+            if (!string.IsNullOrEmpty(statement.Table) && !TableExists(connection, statement.Table, transaction))
             {
                 result.TablesSkippedMissing++;
                 continue;
@@ -159,13 +186,31 @@ public static class CompactSqliteUpdater
             command.ExecuteNonQuery();
             result.StatementsExecuted++;
         }
-
-        transaction.Commit();
     }
 
-    private static bool TableExists(SqliteConnection connection, string table)
+    private static IEnumerable<string> DistinctStarts(string?[]? startDirectories)
+    {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (startDirectories != null)
+        {
+            foreach (var start in startDirectories)
+            {
+                if (string.IsNullOrWhiteSpace(start))
+                    continue;
+                var full = Path.GetFullPath(start);
+                if (seen.Add(full))
+                    yield return full;
+            }
+        }
+
+        if (seen.Count == 0 && !string.IsNullOrWhiteSpace(FileManager.AppPath))
+            yield return Path.GetFullPath(FileManager.AppPath);
+    }
+
+    private static bool TableExists(SqliteConnection connection, string table, SqliteTransaction transaction)
     {
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText = "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = $name LIMIT 1";
         command.Parameters.AddWithValue("$name", table);
         return command.ExecuteScalar() != null;
@@ -194,9 +239,15 @@ public static class CompactSqliteUpdater
         return names;
     }
 
-    private static void Record(SqliteConnection connection, string scriptName, bool installed, string error)
+    private static void Record(
+        SqliteConnection connection,
+        string scriptName,
+        bool installed,
+        string error,
+        SqliteTransaction? transaction = null)
     {
         using var command = connection.CreateCommand();
+        command.Transaction = transaction;
         command.CommandText =
             $"INSERT INTO {TrackingTable} (script_name, installed, install_date, last_error) " +
             "VALUES ($name, $installed, $date, $error) " +
