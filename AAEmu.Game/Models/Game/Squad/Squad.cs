@@ -38,6 +38,11 @@ public class Squad
     public SquadMember? GetMember(uint characterId) =>
         Members.FirstOrDefault(m => m.CharacterId == characterId);
 
+    /// <summary>
+    /// Offline seats still occupy the roster. Disconnect marks <see cref="SquadMember.Offline"/>;
+    /// the leader expels if they want the slot back. Auto-drop would let a stranger take a
+    /// reconnecting member's seat.
+    /// </summary>
     public bool IsFull => MaxMembers > 0 && Members.Count >= MaxMembers;
 
     public bool AllReady => SquadRules.AllOnlineReady(Members);

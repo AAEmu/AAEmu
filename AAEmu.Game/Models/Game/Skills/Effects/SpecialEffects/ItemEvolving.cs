@@ -105,34 +105,42 @@ public class ItemEvolving : SpecialEffectAction
             return;
         }
 
-        var addExp = 0u;
-        var bonusExp = 0u;
-        foreach (var (_, materialProperty) in materials)
+        var offers = new List<(Item Item, ItemRndAttrCategoryProperty Property, uint Gain, uint Bonus, uint Offered)>(materials.Count);
+        foreach (var (materialItem, materialProperty) in materials)
         {
-            addExp += materialProperty.GainExp;
-            bonusExp += RollBonusExp(materialProperty);
+            var bonus = RollBonusExp(materialProperty);
+            offers.Add((materialItem, materialProperty, materialProperty.GainExp, bonus,
+                materialProperty.GainExp + bonus));
         }
 
-        // Labor is priced per infusion, not per cast: two in the slots cost twice one. The skill's
-        // consume_lp is that per-infusion price, so the count goes to the generic charge in EndSkill
-        // rather than being taken here.
-        skill.LaborUnits = materials.Count;
-        var laborCost = skill.Template.ConsumeLaborPower * materials.Count;
-        if (laborCost > 0 && owner.LaborPower + owner.LocalLaborPower < laborCost)
+        // Only the experience the ladder can still absorb is paid for, and only the infusions that
+        // still buy room are taken. A later slot that would be pure overflow stays in the bag.
+        var room = ItemEnchantGameData.Instance.GetExpToMaxGrade(categoryId, equipItem.Grade, equipItem.EvolvingExp);
+        var offeredEach = offers.ConvertAll(o => o.Offered);
+        if (!ItemEvolvingRules.TryTakeFeed(offeredEach, room, out var purchased, out var takeCount))
         {
-            owner.SendErrorMessage(ErrorMessageType.NotEnoughLaborPower);
+            owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
             skill.Cancelled = true;
             return;
         }
 
-        // Only the experience the ladder can still absorb is paid for. Past the top rung there is
-        // nothing left to buy, and the window says so itself - it reports the rest as overflow - so
-        // charging on the full amount bills the player for experience that is discarded on arrival.
-        var offered = addExp + bonusExp;
-        var room = ItemEnchantGameData.Instance.GetExpToMaxGrade(categoryId, equipItem.Grade, equipItem.EvolvingExp);
-        if (!ItemEvolvingRules.TryPurchase(offered, room, out var purchased))
+        var taken = offers.Take(takeCount).ToList();
+        var addExp = 0u;
+        var bonusExp = 0u;
+        foreach (var offer in taken)
         {
-            owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
+            addExp += offer.Gain;
+            bonusExp += offer.Bonus;
+        }
+
+        // Labor is priced per infusion, not per cast: two kept slots cost twice one. The skill's
+        // consume_lp is that per-infusion price, so the count goes to the generic charge in EndSkill
+        // rather than being taken here.
+        skill.LaborUnits = taken.Count;
+        var laborCost = skill.Template.ConsumeLaborPower * taken.Count;
+        if (laborCost > 0 && owner.LaborPower + owner.LocalLaborPower < laborCost)
+        {
+            owner.SendErrorMessage(ErrorMessageType.NotEnoughLaborPower);
             skill.Cancelled = true;
             return;
         }
@@ -150,7 +158,7 @@ public class ItemEvolving : SpecialEffectAction
         // Reported as the skill's own reagents, which is the task the synthesis tab watches to learn
         // its cast is over. Nothing else releases it: the infusions are spent by this effect rather
         // than by the skill engine, so without this the tab never saw a reagent task at all.
-        foreach (var (materialItem, _) in materials)
+        foreach (var (materialItem, _, _, _, _) in taken)
             materialItem._holdingContainer?.ConsumeItem(ItemTaskType.SkillReagents, materialItem.TemplateId, 1, materialItem);
 
         var beforeGrade = equipItem.Grade;
@@ -183,7 +191,7 @@ public class ItemEvolving : SpecialEffectAction
             addExp, bonusExp, 0, newAttributes));
 
         Logger.Debug("ItemEvolving: {0} fed {1} material(s) to item {2} for {3}(+{4}) exp, {9} of it spent, grade {5} -> {6}, cost {7}, labor {8}",
-            owner.Name, materials.Count, equipItem.Id, addExp, bonusExp, beforeGrade, equipItem.Grade, cost, laborCost, purchased);
+            owner.Name, taken.Count, equipItem.Id, addExp, bonusExp, beforeGrade, equipItem.Grade, cost, laborCost, purchased);
     }
 
     /// <summary>

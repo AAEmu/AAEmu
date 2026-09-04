@@ -670,7 +670,6 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
             return;
         }
 
-        var leader = characters[0];
         IPreparedIndunInstance preparedHandle;
         lock (_lock)
         {
@@ -686,39 +685,35 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
 
         // Prefer the copy matchmaking already built; fall back to a fresh request if prepare failed.
         // Admit first: Reentry + NotifyGameEnter put the client in the playing state, so a
-        // later QueuePlayer miss (daily visit limit) would leave them there with no dungeon.
+        // later QueuePlayer / RequestDungeonInstance miss (daily visit limit) would leave them
+        // there with no dungeon. A rejected member stays out; the rest of the match still enters.
+        var admitted = preparedDungeon != null
+            ? AdmitOrTellLimit(characters, preparedDungeon.CanQueuePlayer)
+            : AdmitOrTellLimit(characters, ch => CanAdmitFreshVisit(session, ch));
+
+        if (!IndunMatchEnterRules.ShouldPublishEnter(admitted.Count))
+        {
+            preparedHandle?.Discard();
+            CleanupSession(session);
+            return;
+        }
+
+        characters = admitted;
+        foreach (var ch in characters)
+        {
+            ch.SendPacket(new SCInstantGameReentryPacket(zi, session.CatalogId,
+                InstantGameWireContract.NoBattleFieldType, now));
+            SquadManager.Instance.NotifyGameEnter(ch);
+        }
+
         if (preparedDungeon != null)
         {
-            var admitted = characters.Where(preparedDungeon.CanQueuePlayer).ToList();
-            foreach (var ch in characters.Where(c => !admitted.Contains(c)))
-                ch.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
-
-            if (!IndunMatchEnterRules.ShouldPublishEnter(admitted.Count))
-            {
-                preparedHandle?.Discard();
-                CleanupSession(session);
-                return;
-            }
-
-            characters = admitted;
             foreach (var ch in characters)
-            {
-                ch.SendPacket(new SCInstantGameReentryPacket(zi, session.CatalogId,
-                    InstantGameWireContract.NoBattleFieldType, now));
-                SquadManager.Instance.NotifyGameEnter(ch);
                 preparedDungeon.QueuePlayer(ch);
-            }
         }
         else
         {
-            foreach (var ch in characters)
-            {
-                ch.SendPacket(new SCInstantGameReentryPacket(zi, session.CatalogId,
-                    InstantGameWireContract.NoBattleFieldType, now));
-                SquadManager.Instance.NotifyGameEnter(ch);
-            }
-
-            IndunManager.Instance.RequestDungeonInstance(leader, zone.Id, 0);
+            IndunManager.Instance.RequestDungeonInstance(characters[0], zone.Id, 0);
             foreach (var ch in characters.Skip(1))
                 IndunManager.Instance.RequestDungeonInstance(ch, zone.Id, 0);
         }
@@ -728,6 +723,28 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
             session.CatalogId, session.MatchingKey, characters.Count, zone.Id, worldInstanceId);
 
         CleanupSession(session);
+    }
+
+    private static List<Character> AdmitOrTellLimit(List<Character> characters, Func<Character, bool> canAdmit)
+    {
+        var admitted = characters.Where(canAdmit).ToList();
+        foreach (var ch in characters.Where(c => !admitted.Contains(c)))
+            ch.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
+        return admitted;
+    }
+
+    /// <summary>
+    /// Daily-entry dry check when matchmaking has no prepared copy to ask.
+    /// </summary>
+    private static bool CanAdmitFreshVisit(IndunMatchSession session, Character character)
+    {
+        var dungeonZone = IndunGameData.Instance.GetDungeonZoneByCatalogId(session.CatalogId);
+        if (dungeonZone == null)
+            return false;
+        return IndunMatchEnterRules.CanAdmit(
+            alreadyChargedThisCopy: false,
+            dailyEntryAllowed: IndunManager.Instance.CheckEntryAttemptCount(
+                character.Id, dungeonZone.ZoneGroupId, dungeonZone, false));
     }
 
     private void CleanupSession(IndunMatchSession session)
