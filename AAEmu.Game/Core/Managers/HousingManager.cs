@@ -809,20 +809,37 @@ public class HousingManager(
 
             house.IsDirty = true;
 
-            // Guild Residence demolish refund: 80% of the design's shop price (Contribution Shop pack
-            // 304), paid back as guild Contribution Points. Currently 0 for all 3 residence designs in
-            // the shipped data.
-            if (character?.Expedition != null && HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId)
-                && character.Expedition.ResidenceHouseId == house.Id)
+            // Guild Residence: clear the owning expedition's ResidenceHouseId on EVERY demolition path,
+            // not just the connection-driven one - resolved from the house/expedition relationship
+            // itself rather than the acting character, since the tax-expiry auto-demolish path
+            // (Demolish(null, house, true, false)) has no connection/character at all. Without this,
+            // an offline owner's tax-expired residence left the expedition's ResidenceHouseId stuck
+            // pointing at a house that no longer exists - blocking both a replacement placement (Build
+            // rejects any nonzero ResidenceHouseId) and correctly gating housing-required buff grades.
+            if (HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId))
             {
-                var residenceItemId = HousingGameData.Instance.GetItemIdByDesign(house.TemplateId);
-                var shopPrice = NpcManager.Instance.GetGoods(304)?.GetItem(residenceItemId, 0)?.Cost ?? 0;
-                var refund = (int)(shopPrice * 0.8);
-                if (refund > 0)
-                    ExpeditionManager.Instance.TryChangeContributionPoints(character, refund, false);
+                var owningExpedition = character?.Expedition?.ResidenceHouseId == house.Id
+                    ? character.Expedition
+                    : ExpeditionManager.Instance.Expeditions.FirstOrDefault(e => e.ResidenceHouseId == house.Id);
 
-                character.Expedition.ResidenceHouseId = 0;
-                ExpeditionManager.Save(character.Expedition);
+                if (owningExpedition != null)
+                {
+                    // 80% of the design's shop price (Contribution Shop pack 304), paid back as guild
+                    // Contribution Points. Currently 0 for all 3 residence designs in the shipped data.
+                    // Only refunds when the demolishing character is themselves a member of the owning
+                    // expedition - preserves existing refund semantics, independent of the id-clearing below.
+                    if (character?.Expedition == owningExpedition)
+                    {
+                        var residenceItemId = HousingGameData.Instance.GetItemIdByDesign(house.TemplateId);
+                        var shopPrice = NpcManager.Instance.GetGoods(304)?.GetItem(residenceItemId, 0)?.Cost ?? 0;
+                        var refund = (int)(shopPrice * 0.8);
+                        if (refund > 0)
+                            ExpeditionManager.Instance.TryChangeContributionPoints(character, refund, false);
+                    }
+
+                    owningExpedition.ResidenceHouseId = 0;
+                    ExpeditionManager.Save(owningExpedition);
+                }
             }
 
             // TODO: better house killing handling
@@ -843,6 +860,19 @@ public class HousingManager(
     {
         var zoneId = house.Transform?.ZoneId ?? 0;
         var houseObjId = house.ObjId;
+
+        // Same guild-residence lifecycle fix as Demolish: this path has no requesting character at
+        // all (a house dying from combat/siege damage, not a player-initiated demolish), so the owning
+        // expedition must be resolved from the residence relationship itself, not skipped entirely.
+        if (HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId))
+        {
+            var owningExpedition = ExpeditionManager.Instance.Expeditions.FirstOrDefault(e => e.ResidenceHouseId == house.Id);
+            if (owningExpedition != null)
+            {
+                owningExpedition.ResidenceHouseId = 0;
+                ExpeditionManager.Save(owningExpedition);
+            }
+        }
 
         // Remove house from housing tables
         _removedHousings.Add(house.Id);
