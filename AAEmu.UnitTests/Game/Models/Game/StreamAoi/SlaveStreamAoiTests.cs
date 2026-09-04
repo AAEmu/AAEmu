@@ -129,6 +129,28 @@ public class SlaveStreamAoiTests
     }
 
     [Test]
+    public async Task ShouldRepaintStreamedSlave_KeepsExitBandForAStreamedHull()
+    {
+        StreamAoiTable.ReplaceConfig(new StreamAoiConfig());
+        var (character, hull, world) = CreateShipAt(230f);
+        character.ArmMirrorNpcStream();
+
+        // Not streamed yet: 230 m is past enter, so a resend must not paint it.
+        await Assert.That(character.ShouldRepaintStreamedSlave(hull)).IsFalse();
+        await Assert.That(character.CanStreamSlaveNow(hull)).IsFalse();
+
+        // Streamed before the cinema and still inside exit: repaint.
+        character.MarkSlaveStreamed(hull);
+        await Assert.That(character.ShouldRepaintStreamedSlave(hull)).IsTrue();
+
+        // Past exit: gone either way.
+        hull.Transform.Local.SetPosition(249f, 0f, 0f);
+        await Assert.That(character.ShouldRepaintStreamedSlave(hull)).IsFalse();
+
+        world.Dispose();
+    }
+
+    [Test]
     public async Task TryKeepSlaveAcrossRegionLeave_DropsEquipmentParts()
     {
         StreamAoiTable.ReplaceConfig(new StreamAoiConfig());

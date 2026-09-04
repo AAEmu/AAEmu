@@ -298,6 +298,13 @@ public partial class Character : Unit, ICharacter
         return StreamAoiTable.IsInside(slave.StreamAoiCategory, d2, alreadyStreamed: true);
     }
 
+    /// <summary>
+    /// Forced repaint (cinema end, teleport end): a hull that was streamed and is still inside
+    /// its exit band keeps that eligibility. Re-testing it as a fresh 225 m entry left a hull at
+    /// 230 m missing until the player walked back inside enter.
+    /// </summary>
+    public bool ShouldRepaintStreamedSlave(Slave slave) => TryKeepSlaveAcrossRegionLeave(slave);
+
     public void EnqueuePendingSlave(Slave slave)
     {
         if (slave == null || slave.ObjId == 0)
