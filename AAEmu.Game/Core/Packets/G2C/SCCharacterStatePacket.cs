@@ -78,7 +78,7 @@ public class SCCharacterStatePacket(Character character) : GamePacket(SCOffsets.
         stream.Write(0u);                                   // dailyHonorWarPoint
         stream.Write(0L);                                   // dailyHonorWarPointDate
         stream.Write(0u);                                   // totalReportBadUser
-        stream.Write((byte)0);                              // usableAbilSetSlotCount (u8)
+        stream.Write(character.AbilitySets?.UsableSlotCount ?? CharacterAbilitySets.DefaultUsableSlots); // usableAbilSetSlotCount (u8)
 
         stream.Write(0u);                                   // _pageInfos size=0 (UnitState_SerializePageInfoList)
         stream.Write(0u);                                   // _selectPageIndex

@@ -3,10 +3,12 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
+/// <summary>
+/// Completes a skillsaver apply after the client casts skill 32189.
+/// Pending slot is stashed when <c>CSStartSkill</c> sees that skill id (from skill-object payload when present).
+/// </summary>
 public class ActivateSavedAbilitySet : SpecialEffectAction
 {
-    //protected override SpecialType SpecialEffectActionType => SpecialType.ActivateSavedAbilitySet;
-
     public override void Execute(BaseUnit caster,
         SkillCaster casterObj,
         BaseUnit target,
@@ -20,7 +22,23 @@ public class ActivateSavedAbilitySet : SpecialEffectAction
         int value3,
         int value4)
     {
-        // TODO ...
-        if (caster is Character) { Logger.Debug("Special effects: ActivateSavedAbilitySet value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is not Character character)
+            return;
+
+        // Prefer skill-object slot. DB special-effect values are all 0 and must not mean "slot 0".
+        if (character.AbilitySets.PendingActivationSlot < 0)
+        {
+            var fromObject = skillObject switch
+            {
+                SkillObjectAbilitySet abilitySet => abilitySet.SlotIndex,
+                SkillObjectUnk5 unk5 => unk5.Step,
+                SkillObjectUnk1 unk1 => unk1.Id,
+                _ => -1
+            };
+            if (fromObject >= 0)
+                character.AbilitySets.SetPendingActivationSlot(fromObject);
+        }
+
+        character.AbilitySets.TryActivatePending();
     }
 }

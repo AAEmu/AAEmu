@@ -146,6 +146,12 @@ public class FeatureSet
     /// </summary>
     public bool BackpackProfitShare { get; set; } = true;
 
+    /// <summary>
+    /// Reset skillsaver free-activation usage at the UTC day boundary.
+    /// Set from <c>Features.AbilitySetFreeActivationDailyReset</c>; read by CharacterAbilitySets.
+    /// </summary>
+    public bool AbilitySetFreeActivationDailyReset { get; set; } = true;
+
     #endregion
 
     public override string ToString()

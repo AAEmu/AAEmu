@@ -93,8 +93,20 @@ public class CharacterAbilities
         // Adding into an empty slot sends oldAbilityId = None (30). There is nothing to wipe, and
         // SCSkillsReset(None) makes the client look up ability name 30 → "invalid ability".
         var isAdding = oldAbilityId is AbilityType.None or AbilityType.General;
-        if (!isAdding)
-            Owner.Skills.Reset(oldAbilityId);
+
+        // Client CanBuyAbilityChange() always shows formula 41 gold — charge before mutating.
+        if (Owner.Ability1 != oldAbilityId &&
+            Owner.Ability2 != oldAbilityId &&
+            Owner.Ability3 != oldAbilityId)
+        {
+            Logger.Warn(
+                "SwapAbility: no slot matched old={0} new={1} (slots {2}/{3}/{4})",
+                oldAbilityId, abilityId, Owner.Ability1, Owner.Ability2, Owner.Ability3);
+            return;
+        }
+
+        if (!AbilityChangeCosts.TryChargeSwapAbility(Owner))
+            return;
 
         // 0x147 reports every slot's before/after pair, so snapshot all three before mutating.
         AbilityType[] before = [Owner.Ability1, Owner.Ability2, Owner.Ability3];
@@ -131,13 +143,6 @@ public class CharacterAbilities
                 }
             }
         }
-        else
-        {
-            Logger.Warn(
-                "SwapAbility: no slot matched old={0} new={1} (slots {2}/{3}/{4})",
-                oldAbilityId, abilityId, Owner.Ability1, Owner.Ability2, Owner.Ability3);
-            return;
-        }
 
         if (!isAdding)
             Abilities[oldAbilityId].Order = 255;
@@ -149,16 +154,27 @@ public class CharacterAbilities
             Owner.Ability1, Owner.Ability2, Owner.Ability3,
             oldAbilityId, abilityId, isAdding);
 
-        Owner.BroadcastPacket(
-            new SCAbilitySwappedPacket(
-                Owner.ObjId, before, [Owner.Ability1, Owner.Ability2, Owner.Ability3]),
-            true);
+        // Wipe server book for the old tree (no SCSkillsReset — that cancels the banner queue).
+        if (!isAdding)
+            Owner.Skills.Reset(oldAbilityId, notifyClient: false);
 
-        // Client 0x147 handler clears skills for every pair's "old" id — including unchanged
-        // Ability1 — so re-push what the server still has or the tree looks empty in the UI.
-        Owner.Skills.ResendLearnedToOwner();
+        // Client 0x147 swap path only fires ABILITY_CHANGED (msg_swap_ability + learn-ability
+        // banner) when a single leading news[] ability is valid. A full triad (all three
+        // equipped) always skips that event — which is why NPC swaps looked broken.
+        // Pad with General(0): still three wire pairs (reader requires them), r13==1.
+        // Single-slot apply replaces old→new by ability id; only that tree is wiped client-side.
+        AbilityType[] wireOld =
+        [
+            isAdding ? AbilityType.General : oldAbilityId,
+            AbilityType.General,
+            AbilityType.General
+        ];
+        AbilityType[] wireNew = [abilityId, AbilityType.General, AbilityType.General];
 
-        // Free starters, same as character-create for Ability1.
+        Owner.BroadcastPacket(new SCAbilitySwappedPacket(Owner.ObjId, wireOld, wireNew), true);
+
+        // Only the swapped tree was cleared on the client — do not ResendLearned (chat spam).
+        // When unlocking a slot, push starters with notify so the client learns just those.
         if (isAdding && abilityId is not AbilityType.None and not AbilityType.General)
         {
             foreach (var template in SkillManager.Instance.GetStartAbilitySkills(abilityId))

@@ -159,6 +159,9 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSLearnBuffPacket, 1, typeof(CSLearnBuffPacket));
         RegisterPacket(CSOffsets.CSResetSkillsPacket, 1, typeof(CSResetSkillsPacket));
         RegisterPacket(CSOffsets.CSSwapAbilityPacket, 1, typeof(CSSwapAbilityPacket));
+        RegisterPacket(CSOffsets.CSExpandAbilitySetSlotPacket, 1, typeof(CSExpandAbilitySetSlotPacket));
+        RegisterPacket(CSOffsets.CSSaveAbilitySetPacket, 1, typeof(CSSaveAbilitySetPacket));
+        RegisterPacket(CSOffsets.CSDeleteAbilitySetPacket, 1, typeof(CSDeleteAbilitySetPacket));
         RegisterPacket(CSOffsets.CSSendMailPacket, 1, typeof(CSSendMailPacket));
         RegisterPacket(CSOffsets.CSListMailPacket, 1, typeof(CSListMailPacket));
         RegisterPacket(CSOffsets.CSListMailContinuePacket, 1, typeof(CSListMailContinuePacket));
@@ -393,7 +396,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSTeamSummonGetPacket, 1, typeof(CSTeamSummonGetPacket));
         RegisterPacket(CSOffsets.CSTeamSummonReplyPacket, 1, typeof(CSTeamSummonReplyPacket));
         RegisterPacket(CSOffsets.CSFollowRespPacket, 1, typeof(CSFollowRespPacket));
-        RegisterPacket(CSOffsets.CSExpandAbilitySetSlotPacket, 1, typeof(CSExpandAbilitySetSlotPacket));
+        // CSExpandAbilitySetSlotPacket registered with the other ability-set CS packets above.
         RegisterPacket(CSOffsets.CSHeroDropoutComebackAccept, 1, typeof(CSHeroDropoutComebackAccept));
         RegisterPacket(CSOffsets.CSChangeDiceBidRulePacket, 1, typeof(CSChangeDiceBidRulePacket));
         RegisterPacket(CSOffsets.CSGetDoodadManikinSkin, 1, typeof(CSGetDoodadManikinSkin));

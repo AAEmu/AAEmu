@@ -90,10 +90,14 @@ public class CharacterSkills(Character owner)
     }
 
     /// <summary>
-    /// Try to learn a Passive Skill
+    /// Try to learn a Passive Skill.
     /// </summary>
     /// <param name="buffId"></param>
-    public void AddBuff(uint buffId)
+    /// <param name="notify">
+    /// When true, broadcasts <c>SCBuffLearned</c> (client chat "Learned …"). Use false for
+    /// skillsaver snapshot restore — the client rebuilds passives from AllInfo / AbilitySetUpdated.
+    /// </param>
+    public void AddBuff(uint buffId, bool notify = true)
     {
         // Check if what we want to learn is part of an active skill tree (or not part of one)
         var template = SkillManager.Instance.GetPassiveBuffTemplate(buffId);
@@ -124,14 +128,16 @@ public class CharacterSkills(Character owner)
         // Add Passive Buff
         var buff = new PassiveBuff { Id = buffId, Template = template };
         PassiveBuffs.Add(buff.Id, buff);
-        Owner.BroadcastPacket(new SCBuffLearnedPacket(Owner.ObjId, buff.Id), true);
+        if (notify)
+            Owner.BroadcastPacket(new SCBuffLearnedPacket(Owner.ObjId, buff.Id), true);
         buff.Apply(Owner);
     }
 
     /// <summary>
-    /// Re-send every learned skill/passive to this character. Needed after SCAbilitySwapped:
-    /// the client clears skills for each pair's <c>old</c> ability id — including unchanged
-    /// slots — so without a resync Ability1 looks wiped even though the server still has them.
+    /// Re-send every learned skill/passive to this character. Needed after <c>SCAbilitySwapped</c>
+    /// when the client wiped trees and there is no <c>SCAbilitySetUpdated(Changed)</c> path to
+    /// restore them from a saved set (e.g. NPC <see cref="CharacterAbilities.Swap"/>).
+    /// Each <c>SCSkillLearned</c> raises chat <c>SKILL_LEARNED</c> — do not use on skillsaver activate.
     /// </summary>
     public void ResendLearnedToOwner()
     {
@@ -145,7 +151,11 @@ public class CharacterSkills(Character owner)
     /// Resets all skills from a specific ability Skill Tree
     /// </summary>
     /// <param name="abilityId"></param>
-    public void Reset(AbilityType abilityId)
+    /// <param name="notifyClient">
+    /// When false, only mutates server state. Used before <c>SCAbilitySwapped</c> so a following
+    /// <c>SCSkillsReset</c> does not cancel the client's learn-ability banner queue.
+    /// </param>
+    public void Reset(AbilityType abilityId, bool notifyClient = true)
     {
         // TODO: with price...
         foreach (var skill in new List<Skill>(Skills.Values))
@@ -165,8 +175,9 @@ public class CharacterSkills(Character owner)
             _removed.Add(buff.Id);
         }
 
-        Owner.HeirSkills?.RemoveByAbility(abilityId, notifyClient: true);
-        Owner.BroadcastPacket(new SCSkillsResetPacket(Owner.ObjId, abilityId), true);
+        Owner.HeirSkills?.RemoveByAbility(abilityId, notifyClient: notifyClient);
+        if (notifyClient)
+            Owner.BroadcastPacket(new SCSkillsResetPacket(Owner.ObjId, abilityId), true);
     }
 
     /// <summary>

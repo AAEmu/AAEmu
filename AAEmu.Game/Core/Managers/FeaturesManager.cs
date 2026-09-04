@@ -35,7 +35,8 @@ public class FeaturesManager(IExperienceManager experienceManager) : Singleton<F
             UnknownTimeLimit = 0,
 
             TaxItem = config.TaxItem,
-            BackpackProfitShare = config.BackpackProfitShare
+            BackpackProfitShare = config.BackpackProfitShare,
+            AbilitySetFreeActivationDailyReset = config.AbilitySetFreeActivationDailyReset
         };
 
         ApplyConfiguredFlags(config);

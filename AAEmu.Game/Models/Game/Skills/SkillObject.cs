@@ -17,6 +17,9 @@ public enum SkillObjectType
     /// <summary>Synthesis material slots. See <see cref="SkillObjectItemEvolvingMaterials"/>.</summary>
     ItemEvolvingMaterials = 8,
 
+    /// <summary>10.0.2.13 <c>ActiveAbilitySet</c> — payload is skillsaver slot index (i32).</summary>
+    AbilitySet = 15,
+
     /// <summary>The awakening result the player picked. See <see cref="SkillObjectItemChangeMapping"/>.</summary>
     ItemChangeMapping = 26
 }
@@ -49,6 +52,7 @@ public class SkillObject : PacketMarshaler
     public static bool IsKnownType(int flagType) =>
         flagType is >= (int)SkillObjectType.Unk1 and <= (int)SkillObjectType.ItemEvolvingMaterials
             and not (int)SkillObjectType.Unk6
+            or (int)SkillObjectType.AbilitySet
             or (int)SkillObjectType.ItemChangeMapping;
 
     public static SkillObject GetByType(SkillObjectType flag)
@@ -79,6 +83,9 @@ public class SkillObject : PacketMarshaler
                 break;
             case SkillObjectType.ItemEvolvingMaterials:
                 obj = new SkillObjectItemEvolvingMaterials();
+                break;
+            case SkillObjectType.AbilitySet:
+                obj = new SkillObjectAbilitySet();
                 break;
             case SkillObjectType.ItemChangeMapping:
                 obj = new SkillObjectItemChangeMapping();

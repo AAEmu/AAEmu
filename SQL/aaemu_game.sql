@@ -17,6 +17,23 @@ CREATE TABLE IF NOT EXISTS `abilities` (
   PRIMARY KEY (`id`,`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Skillsets Exp';
 
+CREATE TABLE IF NOT EXISTS `ability_sets` (
+  `owner` int unsigned NOT NULL,
+  `slot` tinyint unsigned NOT NULL,
+  `ability1` tinyint unsigned NOT NULL DEFAULT 30,
+  `ability2` tinyint unsigned NOT NULL DEFAULT 30,
+  `ability3` tinyint unsigned NOT NULL DEFAULT 30,
+  PRIMARY KEY (`owner`, `slot`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Saved skillsaver ability triads';
+
+CREATE TABLE IF NOT EXISTS `ability_set_skills` (
+  `owner` int unsigned NOT NULL,
+  `slot` tinyint unsigned NOT NULL,
+  `skill_id` int unsigned NOT NULL,
+  `is_passive` tinyint(1) NOT NULL DEFAULT 0,
+  PRIMARY KEY (`owner`, `slot`, `skill_id`, `is_passive`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Skills/passives snapshotted into a skillsaver slot';
+
 
 CREATE TABLE IF NOT EXISTS `accounts` (
   `account_id` INT(11) NOT NULL,
@@ -208,6 +225,8 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `num_inv_slot` tinyint unsigned NOT NULL DEFAULT '50',
   `num_bank_slot` smallint unsigned NOT NULL DEFAULT '50',
   `expanded_expert` tinyint NOT NULL,
+  `usable_abil_set_slot_count` tinyint unsigned NOT NULL DEFAULT '1',
+  `used_free_abil_set_activation` tinyint unsigned NOT NULL DEFAULT '0',
   `slots` blob NOT NULL,
   `created_at` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0),
   `updated_at` datetime(0) NOT NULL DEFAULT '0001-01-01 00:00:00',

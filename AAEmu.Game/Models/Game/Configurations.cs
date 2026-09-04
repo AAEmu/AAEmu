@@ -370,6 +370,14 @@ public class FeaturesConfig
     /// Configure in <c>AAEmu.Game/Configurations/Features.json</c> under <c>Features.BackpackProfitShare</c>.
     /// </summary>
     public bool BackpackProfitShare { get; set; } = true;
+
+    /// <summary>
+    /// Zero <c>used_free_abil_set_activation</c> at the UTC day boundary and on login catch-up after
+    /// <c>leave_time</c>. Only matters when compact <c>ability_set_free_activation_count</c> is above zero.
+    /// Configure in <c>AAEmu.Game/Configurations/Features.json</c> under
+    /// <c>Features.AbilitySetFreeActivationDailyReset</c>.
+    /// </summary>
+    public bool AbilitySetFreeActivationDailyReset { get; set; } = true;
 }
 
 /// <summary>
