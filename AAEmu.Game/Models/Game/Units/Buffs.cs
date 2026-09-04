@@ -5,6 +5,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.StaticValues;
@@ -299,6 +300,8 @@ public class Buffs : IBuffs
     public void AddBuff(Buff buff, uint index = 0, int forcedDuration = 0)
     {
         var finalToleranceBuffId = 0u;
+        Buff transformFrom = null;
+        var transformBuffId = 0u;
         lock (_lock)
         {
             var owner = GetOwner();
@@ -382,10 +385,13 @@ public class Buffs : IBuffs
                 case BuffStackRule.Refresh:
                     foreach (var e in new List<Buff>(_effects))
                         if (e is { InUse: true } && e.Template.BuffId == buff.Template.BuffId)
+                        {
+                            if (!BuffStackRules.ShouldOverwriteOnRefresh(buff.Duration, e.Duration))
+                                return;
                             if (buff.GetTimeLeft() < e.GetTimeLeft())
                                 return;
-                            else
-                                last = e;
+                            last = e;
+                        }
                     break;
                 case BuffStackRule.ChargeRefresh:
                     foreach (var e in new List<Buff>(_effects))
@@ -405,7 +411,16 @@ public class Buffs : IBuffs
                     var live = FindLiveInstance(buff.Template.BuffId);
                     if (live != null)
                     {
-                        if (live.TryGrowStack(buff.Template.MaxStack))
+                        var grew = live.TryGrowStack(buff.Template.MaxStack);
+                        if (BuffStackRules.ShouldTransform(
+                                live.Stack, live.Template.MaxStack, live.Template.TransformBuffId))
+                        {
+                            transformFrom = live;
+                            transformBuffId = live.Template.TransformBuffId;
+                            break;
+                        }
+
+                        if (grew)
                             return;
 
                         // At the ceiling. A permanent family has no timer to refresh, so the extra
@@ -425,7 +440,7 @@ public class Buffs : IBuffs
 
                     break;
             }
-            if (last != null)
+            if (transformBuffId == 0 && last != null)
             {
                 // Announce the instance that survives, not the one being discarded. An index is
                 // allocated for every arrival before the stack rule decides its fate, so a displacement
@@ -436,7 +451,7 @@ public class Buffs : IBuffs
                 buff.Index = last.Index;
                 last.OverwriteWith(buff);
             }
-            else
+            else if (transformBuffId == 0)
             {
                 _effects.Add(buff);
                 buff.Triggers.SubscribeEvents();
@@ -485,10 +500,29 @@ public class Buffs : IBuffs
                 }
             }
         }
+        if (transformBuffId > 0 && transformFrom != null)
+        {
+            RemoveBuff(transformFrom.Template.BuffId);
+            var nextTemplate = SkillManager.Instance.GetBuffTemplate(transformBuffId);
+            if (nextTemplate != null)
+            {
+                AddBuff(new Buff(
+                    transformFrom.Owner,
+                    transformFrom.Caster,
+                    transformFrom.SkillCaster,
+                    nextTemplate,
+                    transformFrom.Skill,
+                    DateTime.UtcNow));
+            }
+        }
+
         if (finalToleranceBuffId > 0)
         {
             AddBuff(new Buff(buff.Owner, buff.Caster, buff.SkillCaster, SkillManager.Instance.GetBuffTemplate(finalToleranceBuffId), buff.Skill, DateTime.UtcNow));
         }
+
+        if (buff.Template.BuffId == SportFishCombat.LineBrokenBuffId && GetOwner() is Npc lineFish)
+            SportFishCombat.OnLineDropped(lineFish);
     }
 
     private uint AllocateIndex()

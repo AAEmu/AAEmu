@@ -778,10 +778,8 @@ public class SpawnManager(WorldInstance parentWorld)
                 var count = 0;
                 foreach (var spawner in DoodadSpawners.Values)
                 {
-                    // Zone takes physics ownership of each doodad World authors.
-                    var doodad = spawner.Spawn(0);
-                    if (doodad != null)
-                        WorldIntegration.RelayCreateDoodadToZone?.Invoke(doodad);
+                    // Zone Create is sent from DoodadSpawner.DoSpawn (boot and management respawn).
+                    spawner.Spawn(0);
                     count++;
                     if (count % 5000 == 0)
                         Logger.Debug($"In world {World} Doodads spawned: {count}...");
@@ -945,6 +943,19 @@ public class SpawnManager(WorldInstance parentWorld)
         {
             Despawns.Add(obj);
         }
+    }
+
+    /// <summary>
+    /// Zone was already told to retire this mirror. Force-remove it if ZWRemoveNpc never comes.
+    /// </summary>
+    public void ScheduleZoneDespawnAck(Npc npc)
+    {
+        if (npc == null)
+            return;
+
+        npc.ZoneDespawnSignaled = true;
+        npc.Despawn = DateTime.UtcNow.AddSeconds(ZoneDespawnAckSeconds);
+        AddDespawn(npc);
     }
 
     /// <summary>

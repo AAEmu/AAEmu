@@ -37,6 +37,16 @@ public class BuffStackRulesTests
     }
 
     [Test]
+    public async Task ShouldTransform_FiresAtTheCeilingWhenATransformIsNamed()
+    {
+        // Tension 5793 → line-broken 5794 at 20. Sail trim has no transform and must stay put.
+        await Assert.That(BuffStackRules.ShouldTransform(20, 20, 5794)).IsTrue();
+        await Assert.That(BuffStackRules.ShouldTransform(19, 20, 5794)).IsFalse();
+        await Assert.That(BuffStackRules.ShouldTransform(20, 20, 0)).IsFalse();
+        await Assert.That(BuffStackRules.ShouldTransform(1, 1, 5794)).IsFalse();
+    }
+
+    [Test]
     public async Task ScaledModifier_GrowsSailTrimBySixPerStack()
     {
         // Sail trim is +6 move_speed_mul per application, ceiling 60. The first tick is +6;
@@ -45,5 +55,23 @@ public class BuffStackRulesTests
         await Assert.That(BuffStackRules.ScaledModifier(6, 0, 1, 2)).IsEqualTo(12);
         await Assert.That(BuffStackRules.ScaledModifier(6, 0, 1, 60)).IsEqualTo(360);
         await Assert.That(BuffStackRules.ScaledModifier(6, 0, 1, 0)).IsEqualTo(6);
+    }
+
+    [Test]
+    public async Task Refresh_KeepsAPermanentInstance()
+    {
+        // Fishing 4053 is duration 0 / Refresh. A second apply must not overwrite.
+        await Assert.That(BuffStackRules.ShouldOverwriteOnRefresh(0, 0)).IsFalse();
+        await Assert.That(BuffStackRules.ShouldOverwriteOnRefresh(1500, 0)).IsTrue();
+        await Assert.That(BuffStackRules.ShouldOverwriteOnRefresh(0, 1500)).IsTrue();
+        await Assert.That(BuffStackRules.ShouldOverwriteOnRefresh(1500, 800)).IsTrue();
+    }
+
+    [Test]
+    public async Task DispelTask_OnlyForTimedOrTicking()
+    {
+        await Assert.That(BuffStackRules.ShouldScheduleDispel(0, 0)).IsFalse();
+        await Assert.That(BuffStackRules.ShouldScheduleDispel(1500, 0)).IsTrue();
+        await Assert.That(BuffStackRules.ShouldScheduleDispel(0, 800)).IsTrue();
     }
 }

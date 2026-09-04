@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
 
+using AAEmu.Game;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -448,6 +449,10 @@ public class DoodadSpawner : Spawner<Doodad>
         #endregion Schedule
 
         Last.Spawn(); // initialize Doodad with the initial phase and display it on the terrain
+        // Boot used to relay Create only from SpawnAll. Management respawn (6447/6448 after
+        // DoodadFuncFinal) also comes through here and must Create on Zone or the school
+        // stays gone after the 30-minute timer.
+        WorldIntegration.RelayCreateDoodadToZone?.Invoke(Last);
 
         if (Last.Transform.WorldId != WorldManager.DefaultWorldTemplateId)
         {

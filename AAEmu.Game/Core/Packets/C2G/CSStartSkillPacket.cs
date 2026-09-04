@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
@@ -327,6 +328,10 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             // Clear the local cooldown after failures that should immediately unlock the slot.
             if (skillResult is SkillResult.TooFarRange or SkillResult.TooCloseRange or SkillResult.NoTarget
                 or SkillResult.InvalidSource or SkillResult.Failure)
+                character.ResetSkillCooldown(skillId, true);
+            else if (skillResult == SkillResult.CooldownTime &&
+                     SportFishCombat.IsFishingHoldSkill(
+                         template.TargetType, SkillManager.Instance.GetSkillTags(skillId)))
                 character.ResetSkillCooldown(skillId, true);
             Logger.Warn("ZoneAuthority Use failed skillId={0} result={1} caster={2}", skillId, skillResult, casterUnit.ObjId);
             return;

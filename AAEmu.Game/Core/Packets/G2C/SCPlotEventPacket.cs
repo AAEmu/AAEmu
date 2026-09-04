@@ -19,7 +19,8 @@ public class SCPlotEventPacket(
     byte flag,
     ulong itemId = 0L,
     byte targetUnitCount = 1,
-    byte inputDirection = 0)
+    byte inputDirection = 0,
+    ushort channelingTime = 0)
     : GamePacket(SCOffsets.SCPlotEventPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
@@ -33,7 +34,7 @@ public class SCPlotEventPacket(
         stream.WriteBc(objId);
         stream.Write(castingTime);
         stream.WriteBc(0);
-        stream.Write((ushort)0); // channeling msec wire
+        stream.Write(channelingTime);
         stream.Write(targetUnitCount);
         if (targetUnitCount > 0)
         {

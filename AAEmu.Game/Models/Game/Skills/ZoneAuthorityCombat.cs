@@ -223,6 +223,16 @@ public static class ZoneAuthorityCombat
             return false;
         }
 
+        if (npc.ZoneDespawnSignaled || npc.SportFishLineDropped)
+        {
+            npc.SetBattleStateFromZone(false);
+            npc.ClearAllAggro();
+            Logger.Info(
+                "ZWClearCombat npc={0} — skip leash heal (line dropped / despawn signaled)",
+                objId);
+            return false;
+        }
+
         var beforeHp = npc.Hp;
         var beforeMp = npc.Mp;
         npc.Hp = npc.MaxHp;

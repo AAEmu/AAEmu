@@ -41,12 +41,39 @@ public class CharacterActability(Character owner)
         if (!Actabilities.TryGetValue(id, out var actability))
             return 0;
         var previousPoints = actability.Point;
-        actability.Point += point;
-
-        var template = CharacterManager.Instance.GetExpertLimit(actability.Step);
-        if (actability.Point > template.UpLimit)
-            actability.Point = template.UpLimit;
+        var template = CharacterManager.Instance.GetPointCapLimit(id, actability.Step);
+        var cap = template?.UpLimit ?? int.MaxValue;
+        actability.Point = ExpertLimitRules.AddEarnedPoints(actability.Point, point, cap);
         return actability.Point - previousPoints;
+    }
+
+    /// <summary>
+    /// GM / test helper: set points (and optional expert step) and push <see cref="SCActabilityPacket"/>.
+    /// Points are clamped to the expert-limit cap for the resulting step.
+    /// </summary>
+    public bool TrySet(uint id, int point, int? step)
+    {
+        if (!Actabilities.TryGetValue(id, out var actability))
+            return false;
+
+        if (step.HasValue)
+        {
+            var stepLimit = ExpertLimitRules.UsesLanguageLadder(id)
+                ? CharacterManager.Instance.GetLanguageExpertLimit(step.Value)
+                    ?? CharacterManager.Instance.GetExpertLimit(step.Value)
+                : CharacterManager.Instance.GetExpertLimit(step.Value);
+            if (stepLimit == null)
+                return false;
+            actability.Step = (byte)step.Value;
+        }
+
+        var template = CharacterManager.Instance.GetPointCapLimit(id, actability.Step);
+        if (template == null)
+            return false;
+
+        actability.Point = ExpertLimitRules.ClampPoints(template, point);
+        Send();
+        return true;
     }
 
     /// <summary>
@@ -59,34 +86,26 @@ public class CharacterActability(Character owner)
             return false;
         }
 
+        // Rank buttons always walk the production ladder (same index the UI uses).
         var currentTemplate = CharacterManager.Instance.GetExpertLimit(actability.Step);
-        if (currentTemplate == null)
-        {
-            Owner.SendErrorMessage(isUpgrade
-                ? ErrorMessageType.ActabilityCanUpgradeAnyMore
-                : ErrorMessageType.ActabilityCanDowngradeAnyMore);
-            return false;
-        }
-
         if (isUpgrade)
         {
-            if (actability.Point < currentTemplate.UpLimit)
-            {
-                Owner.SendErrorMessage(ErrorMessageType.ActabilityNotEnoughPoint);
-                return false;
-            }
-
             var targetStep = actability.Step + 1;
             var targetTemplate = CharacterManager.Instance.GetExpertLimit(targetStep);
-            if (targetTemplate == null)
+            var hasSlot = ExpertLimitRules.HasSelectionSlot(
+                Actabilities.Values,
+                targetTemplate,
+                targetStep,
+                Owner.ExpandedExpert,
+                actability.Template.ViewGroupId);
+            var upgradeError = ExpertLimitRules.UpgradeError(
+                currentTemplate,
+                targetTemplate,
+                actability.Point,
+                hasSlot);
+            if (upgradeError != null)
             {
-                Owner.SendErrorMessage(ErrorMessageType.ActabilityCanUpgradeAnyMore);
-                return false;
-            }
-
-            if (!HasExpertSelectionSlot(actability, targetTemplate, targetStep))
-            {
-                Owner.SendErrorMessage(ErrorMessageType.ActabilityCanUpgradeSelectionCountLimit);
+                Owner.SendErrorMessage(upgradeError.Value);
                 return false;
             }
 
@@ -97,51 +116,51 @@ public class CharacterActability(Character owner)
         }
         else
         {
-            if (actability.Step == 0)
+            var targetTemplate = actability.Step == 0
+                ? null
+                : CharacterManager.Instance.GetExpertLimit(actability.Step - 1);
+            var downgradeError = ExpertLimitRules.DowngradeError(actability.Step, currentTemplate, targetTemplate);
+            if (downgradeError != null)
             {
-                Owner.SendErrorMessage(ErrorMessageType.ActabilityCanDowngradeAnyMore);
+                Owner.SendErrorMessage(downgradeError.Value);
                 return false;
             }
 
-            var targetTemplate = CharacterManager.Instance.GetExpertLimit(actability.Step - 1);
-            if (targetTemplate == null)
+            var ticketItemId = CharacterManager.Instance.DowngradeIntensifiedExpertTicketItemId;
+            var needsTicket = ExpertLimitRules.RequiresIntensifiedDowngradeTicket(currentTemplate);
+            var hasTicket = !needsTicket || Owner.Inventory.CheckItems(
+                SlotType.Inventory, ticketItemId, ExpertLimitRules.IntensifiedDowngradeTicketCount);
+            var ticketError = ExpertLimitRules.DowngradeTicketError(currentTemplate, ticketItemId, hasTicket);
+            if (ticketError != null)
             {
-                Owner.SendErrorMessage(ErrorMessageType.ActabilityCanDowngradeAnyMore);
+                Owner.SendErrorMessage(ticketError.Value);
                 return false;
             }
 
             if (!TryPay(currentTemplate.DownCurrencyId, currentTemplate.DownPrice, autoUseAaPoint))
                 return false;
 
+            if (needsTicket)
+            {
+                var consumed = Owner.Inventory.Bag.ConsumeItem(
+                    ItemTaskType.ChangeExpertLimit,
+                    ticketItemId,
+                    ExpertLimitRules.IntensifiedDowngradeTicketCount,
+                    null);
+                if (consumed != ExpertLimitRules.IntensifiedDowngradeTicketCount)
+                {
+                    Owner.SendErrorMessage(ErrorMessageType.NotEnoughItem);
+                    return false;
+                }
+            }
+
+            // Rank is only the selected slot. Earned points stay so the same total can
+            // walk back up as long as each rank still has a free slot.
             actability.Step--;
-            actability.Point = Math.Min(actability.Point, targetTemplate.UpLimit);
         }
 
-        Owner.SendPacket(new SCExpertLimitModifiedPacket(isUpgrade, id, actability.Step));
+        Owner.SendPacket(new SCExpertLimitModifiedPacket(isUpgrade, id, actability.Point, actability.Step));
         return true;
-    }
-
-    private bool HasExpertSelectionSlot(Actability actability, ExpertLimit targetTemplate, int targetStep)
-    {
-        if (targetTemplate.UseIntensified)
-        {
-            var viewGroupId = actability.Template.ViewGroupId;
-            if (!targetTemplate.IntensifiedViewGroupLimits.TryGetValue(viewGroupId, out var groupLimit))
-                return false;
-
-            var groupCount = Actabilities.Values.Count(entry =>
-                entry.Template.CountsTowardExpertLimit &&
-                entry.Template.ViewGroupId == viewGroupId &&
-                entry.Step >= targetStep);
-            return groupCount < groupLimit;
-        }
-
-        if (targetTemplate.ExpertLimitCount == 0)
-            return true;
-
-        var selectedCount = Actabilities.Values.Count(entry =>
-            entry.Template.CountsTowardExpertLimit && entry.Step >= targetStep);
-        return selectedCount < targetTemplate.ExpertLimitCount + Owner.ExpandedExpert;
     }
 
     private bool TryPay(uint currencyId, int price, bool autoUseAaPoint)
@@ -197,21 +216,14 @@ public class CharacterActability(Character owner)
     public bool ExpandExpert()
     {
         var expand = CharacterManager.Instance.GetExpandExpertLimit(Owner.ExpandedExpert);
-        if (expand == null)
+        var hasItems = expand == null
+            || expand.ItemId == 0
+            || expand.ItemCount == 0
+            || Owner.Inventory.CheckItems(Items.SlotType.Inventory, expand.ItemId, expand.ItemCount);
+        var expandError = ExpertLimitRules.ExpandError(expand, Owner.VocationPoint, hasItems);
+        if (expandError != null)
         {
-            Owner.SendErrorMessage(ErrorMessageType.ActabilityCanUpgradeSelectionCountLimit);
-            return false;
-        }
-
-        if (expand.LifePoint > Owner.VocationPoint)
-        {
-            Owner.SendErrorMessage(ErrorMessageType.NotEnoughExpandItemAndMoney);
-            return false;
-        }
-
-        if (expand.ItemId != 0 && expand.ItemCount != 0 && !Owner.Inventory.CheckItems(Items.SlotType.Inventory, expand.ItemId, expand.ItemCount))
-        {
-            Owner.SendErrorMessage(ErrorMessageType.NotEnoughExpandItem);
+            Owner.SendErrorMessage(expandError.Value);
             return false;
         }
 

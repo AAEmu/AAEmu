@@ -1,5 +1,4 @@
 ﻿using AAEmu.Commons.Utils;
-using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
@@ -125,8 +124,6 @@ public class RadarManager : Singleton<RadarManager>, IRadarManager
 
             foreach (var (_, entry) in Registrations)
             {
-                // TODO: Make a proper GM flag
-                var gmRangeCheck = CharacterManager.Instance.GetEffectiveAccessLevel(entry.Player) >= 100 ? 100000f : 0f;
                 if (entry.Player == null)
                     continue;
 
@@ -143,7 +140,9 @@ public class RadarManager : Singleton<RadarManager>, IRadarManager
                         if (transfer.Transform.WorldId != entry.Player.Transform.WorldId || transfer.Transform.InstanceId != entry.Player.Transform.InstanceId)
                             continue;
 
-                        if (MathUtil.CalculateDistance(entry.Player, transfer, true) <= Math.Max(entry.ShowPublicTransportRange, gmRangeCheck))
+                        if (RadarRangeRules.IsInRange(
+                                MathUtil.CalculateDistance(entry.Player, transfer, true),
+                                entry.ShowPublicTransportRange))
                         {
                             inRangeTransfers.Add(transfer);
                         }
@@ -170,7 +169,9 @@ public class RadarManager : Singleton<RadarManager>, IRadarManager
                         if (fish.Transform.WorldId != entry.Player.Transform.WorldId || fish.Transform.InstanceId != entry.Player.Transform.InstanceId)
                             continue;
 
-                        if (MathUtil.CalculateDistance(entry.Player, fish, true) <= Math.Max(entry.ShowFishSchoolRange, gmRangeCheck))
+                        if (RadarRangeRules.IsInRange(
+                                MathUtil.CalculateDistance(entry.Player, fish, true),
+                                entry.ShowFishSchoolRange))
                         {
                             inRangeFish.Add(fish);
                         }
@@ -197,7 +198,9 @@ public class RadarManager : Singleton<RadarManager>, IRadarManager
                         if (ship.Transform.WorldId != entry.Player.Transform.WorldId || ship.Transform.InstanceId != entry.Player.Transform.InstanceId)
                             continue;
 
-                        if (MathUtil.CalculateDistance(entry.Player, ship, true) <= Math.Max(entry.ShowShipTelescopeRange, gmRangeCheck))
+                        if (RadarRangeRules.IsInRange(
+                                MathUtil.CalculateDistance(entry.Player, ship, true),
+                                entry.ShowShipTelescopeRange))
                         {
                             inRangeShips.Add(ship);
                         }

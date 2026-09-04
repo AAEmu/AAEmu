@@ -452,6 +452,28 @@ public class BuffTests
         await Assert.That(bonuses[0].Value).IsEqualTo(100);
     }
 
+    [Test]
+    public async Task OverwriteWith_PermanentRefresh_StaysActing()
+    {
+        var owner = new Unit();
+        var caster = new Unit();
+        var template = new BuffTemplate { Duration = 0, Tick = 0 };
+        var live = CreateBonusBuff(owner, caster, template, index: 19u);
+        live.InUse = true;
+        live.State = EffectState.Acting;
+        live.Duration = 0;
+        var incoming = CreateBonusBuff(owner, caster, template, index: 99u);
+        incoming.Duration = 0;
+
+        live.OverwriteWith(incoming);
+
+        await Assert.That(live.IsEnded()).IsFalse();
+        await Assert.That(live.State).IsEqualTo(EffectState.Acting);
+        await Assert.That(live.InUse).IsTrue();
+        await Assert.That(live.Duration).IsEqualTo(0);
+        await Assert.That(live.EndTime).IsEqualTo(DateTime.MinValue);
+    }
+
     #endregion
 
     #region Zone relay

@@ -1,6 +1,5 @@
-using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items;
@@ -22,7 +21,7 @@ public class DoodadFuncBuyFish : DoodadFuncTemplate
 
         var backpack = character.Inventory.GetEquippedBySlot(EquipmentItemSlot.Backpack);
         if (backpack is not BigFish fish || !AllowedItemIds.Contains(backpack.TemplateId) ||
-            !FishDetailsGameData.Instance.TryCalculateSalePrice(fish, out var total))
+            !FishDetailsGameData.Instance.TryCalculateSalePrice(fish, out var total) || total <= 0)
         {
             Fail(character, owner);
             return;
@@ -34,10 +33,9 @@ public class DoodadFuncBuyFish : DoodadFuncTemplate
             return;
         }
 
-        long updatedMoney;
         try
         {
-            updatedMoney = checked(character.Money + total);
+            _ = checked(character.Money + total);
         }
         catch (OverflowException)
         {
@@ -46,19 +44,24 @@ public class DoodadFuncBuyFish : DoodadFuncTemplate
             return;
         }
 
-        var removeTask = new ItemRemoveSlot(backpack);
-        if (!character.Equipment.RemoveItem(ItemTaskType.Invalid, backpack, true))
+        // Remove first (own packet). Gold is a separate money task — putting Seize and
+        // MoneyChange in the same list leaves the client wallet unchanged after the pack is gone.
+        if (!character.Equipment.RemoveItem(ItemTaskType.Fishing, backpack, true))
         {
             owner.ToNextPhase = false;
             return;
         }
 
         owner.ItemTemplateId = backpack.TemplateId;
-        character.Money = updatedMoney;
-        character.SendPacket(new SCItemTaskSuccessPacket(
-            ItemTaskType.Fishing,
-            [removeTask, new MoneyChange(total)],
-            [backpack.Id]));
+        if (!character.AddMoney(SlotType.Inventory, total, ItemTaskType.Fishing))
+        {
+            owner.ToNextPhase = false;
+            Logger.Error($"Fish sale paid {total} but the wallet update failed for {character.Name}");
+            return;
+        }
+
+        Logger.Info(
+            $"Fish stand sale {character.Name} item={backpack.TemplateId} grade={backpack.Grade} weight={fish.Weight} price={total}");
     }
 
     private static void Fail(Character character, Doodad owner)

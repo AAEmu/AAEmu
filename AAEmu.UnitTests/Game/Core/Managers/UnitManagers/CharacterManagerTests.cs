@@ -541,6 +541,35 @@ public class CharacterManagerTests
     }
 
     [Test]
+    public async Task GetLanguageExpertLimit_StepExists_ReturnsLimit()
+    {
+        var manager = CreateCharacterManager();
+        var limit = new ExpertLimit { Id = 32, UpLimit = 20000, UseLanguageType = true };
+        SetPrivateField(manager, "_languageExpertLimits", new Dictionary<int, ExpertLimit> { { 0, limit } });
+
+        var result = manager.GetLanguageExpertLimit(0);
+
+        await Assert.That(result).IsNotNull();
+        await Assert.That(result.UpLimit).IsEqualTo(20000);
+    }
+
+    [Test]
+    public async Task GetPointCapLimit_LanguageUsesLanguageCap()
+    {
+        var manager = CreateCharacterManager();
+        var production = new ExpertLimit { Id = 1, UpLimit = 10000 };
+        var language = new ExpertLimit { Id = 32, UpLimit = 20000, UseLanguageType = true };
+        SetPrivateField(manager, "_expertLimits", new Dictionary<int, ExpertLimit> { { 0, production } });
+        SetPrivateField(manager, "_languageExpertLimits", new Dictionary<int, ExpertLimit> { { 0, language } });
+
+        var fishing = manager.GetPointCapLimit((uint)ActabilityType.Fishing, 0);
+        var nuian = manager.GetPointCapLimit((uint)ActabilityType.NuianLanguage, 0);
+
+        await Assert.That(fishing.UpLimit).IsEqualTo(10000);
+        await Assert.That(nuian.UpLimit).IsEqualTo(20000);
+    }
+
+    [Test]
     public async Task GetExpandExpertLimit_NegativeStep_ReturnsNull()
     {
         // Arrange

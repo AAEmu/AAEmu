@@ -68,29 +68,15 @@ public class FishDetailsGameData : Singleton<FishDetailsGameData>, IGameDataLoad
 
     public bool TryCalculateSalePrice(BigFish fish, out long price)
     {
-        const float percentScale = 0.01f;
-
         price = 0;
-        if (fish == null || fish.Template == null || fish.Weight < 0 || !float.IsFinite(fish.Weight) ||
-            !TryGetMaxWeight(fish.TemplateId, out var maxWeight))
+        if (fish?.Template == null || !TryGetMaxWeight(fish.TemplateId, out var maxWeight))
             return false;
 
         var grade = ItemManager.Instance.GetGradeTemplate(fish.Grade);
-        if (grade == null || grade.RefundMultiplier < 0 || fish.Template.Refund < 0)
+        if (grade == null)
             return false;
 
-        // then the weight ratio. Values are non-negative, so floor(x + 0.5) is the exact native rule.
-        var adjustedBaseValue = grade.RefundMultiplier * percentScale * fish.Template.Refund;
-        if (!float.IsFinite(adjustedBaseValue))
-            return false;
-        var adjustedBase = (long)MathF.Floor(adjustedBaseValue + 0.5f);
-
-        var weightedValue = (float)adjustedBase * fish.Weight / maxWeight;
-        if (!float.IsFinite(weightedValue) || weightedValue < 0)
-            return false;
-
-        price = (long)MathF.Floor(weightedValue + 0.5f);
-        return true;
+        return FishSalePrice.TryCalculate(fish.Template.Refund, grade.RefundMultiplier, fish.Weight, maxWeight, out price);
     }
 
     public BigFish CreateTrophy(uint outputItemId, BigFish sourceFish)

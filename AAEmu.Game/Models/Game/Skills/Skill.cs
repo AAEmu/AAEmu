@@ -179,6 +179,9 @@ public class Skill
         _zoneSkillFiredRelayed = false;
         _zoneSkillEndedRelayed = false;
         _zoneSkillCaster = null;
+        var skillTags = SkillManager.Instance.GetSkillTags(Template.Id);
+        var fishingHold = character != null &&
+                          SportFishCombat.ShouldBypassSharedGcd(Template.CastingTime, Template.TargetType, skillTags);
         if (!_bypassGcd)
         {
             lock (unit.GcdLock)
@@ -191,7 +194,7 @@ public class Skill
                 if (Id == 2 || Id == 3 || Id == 4)
                     delay = character != null ? 100 : 1500;
 
-                if (unit.SkillLastUsed.AddMilliseconds(delay) > DateTime.UtcNow)
+                if (!fishingHold && unit.SkillLastUsed.AddMilliseconds(delay) > DateTime.UtcNow)
                 {
                     Logger.Trace($"Skill: CooldownTime [{delay}]!");
                     return SkillResult.CooldownTime;
@@ -199,7 +202,8 @@ public class Skill
 
                 // Instant combo hits (e.g. Fireball 24894/24895 custom_gcd=10) must not be blocked by
                 // the parent's cast GCD — they fire at the same moment as plot cast-end.
-                var comboBypassGcd = Template.CastingTime <= 0 && Template.CustomGcd > 0 && Template.CustomGcd <= 50;
+                var comboBypassGcd = fishingHold ||
+                    (Template.CastingTime <= 0 && Template.CustomGcd > 0 && Template.CustomGcd <= 50);
                 if (unit.GlobalCooldown >= DateTime.UtcNow && !Template.IgnoreGlobalCooldown && !comboBypassGcd)
                 {
                     Logger.Trace($"Skill: GlobalCooldown active for {Template.Id}");
@@ -230,6 +234,12 @@ public class Skill
             return SkillResult.NoTarget; // We should try to make sure this doesn't happen, but can happen with NPC skills
         }
 
+        if (SportFishCombat.IsUnusableTarget(target))
+        {
+            Logger.Trace($"Skill: SkillResult.InvalidTarget! - Skill {Template.Id} vs dropped-line fish {target.ObjId}");
+            return SkillResult.InvalidTarget;
+        }
+
         // Unmount character if skill asks for it
         if (character is { IsRiding: true } && Template.Unmount)
         {
@@ -250,6 +260,21 @@ public class Skill
         TlId = SkillTlIdManager.GetNextId(caster);
         // if (caster is Character)
         Logger.Debug($"Created SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
+
+        // Hold / reel kit ships a plot but is not flagged plot_only. Cast() after the plot
+        // starts EndSkill's the TlId while the graph is still on the bar.
+        if (Template.Plot != null
+            && !Template.PlotOnly
+            && !ForcePlotGraphOnly
+            && character != null
+            && SportFishCombat.ShouldRunPlotGraphOnly(
+                true,
+                true,
+                false,
+                skillTags))
+        {
+            ForcePlotGraphOnly = true;
+        }
 
         // If skill uses Plots, then start the plot
         if (Template.Plot != null)
@@ -1796,7 +1821,9 @@ AlwaysHit:
     /// </summary>
     public void ApplyPlotOnlyFireCosts(Unit unit)
     {
-        if (unit == null || !Template.PlotOnly || _bypassGcd)
+        if (unit == null || _bypassGcd)
+            return;
+        if (!Template.PlotOnly && !ForcePlotGraphOnly)
             return;
         ApplyGlobalCooldown(unit);
         // Skill cooldown is also applied in DoPlotEnd; applying early matches Cast() and blocks re-cast spam.
