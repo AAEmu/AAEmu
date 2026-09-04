@@ -306,8 +306,19 @@ CREATE TABLE IF NOT EXISTS `expedition_role_policies` (
   `manager_chat` tinyint(1) NOT NULL,
   `siege_master` tinyint(1) NOT NULL,
   `join_siege` tinyint(1) NOT NULL,
+  `use_instance` tinyint(1) NOT NULL DEFAULT '0',
   PRIMARY KEY (`expedition_id`,`role`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Guild role settings';
+
+
+-- Guild-level prestige-shop buff purchases: which grade of each expedition_buffs/expedition_buff_grades
+-- row (game data, shipped in compact.sqlite3) a guild has purchased. 0/no row = not purchased at all.
+CREATE TABLE IF NOT EXISTS `expedition_buff_purchases` (
+  `expedition_id` int unsigned NOT NULL,
+  `expedition_buff_id` int unsigned NOT NULL COMMENT 'expedition_buffs.id (game data)',
+  `grade` tinyint unsigned NOT NULL DEFAULT '0' COMMENT 'highest purchased expedition_buff_grades.grade for this buff',
+  PRIMARY KEY (`expedition_id`, `expedition_buff_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Guild-level prestige-shop buff purchases';
 
 
 CREATE TABLE IF NOT EXISTS `expeditions` (
@@ -316,6 +327,17 @@ CREATE TABLE IF NOT EXISTS `expeditions` (
   `owner_name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `name` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `mother` int NOT NULL,
+  `level` int unsigned NOT NULL DEFAULT '1',
+  `exp` int unsigned NOT NULL DEFAULT '0',
+  `notice` varchar(800) NOT NULL DEFAULT '',
+  `residence_house_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'Guild Residence house id, 0 = none placed',
+  `interest` smallint NOT NULL DEFAULT '0' COMMENT 'recruitment-board interest tag bitmask',
+  `war_enemy_expedition_id` int unsigned NOT NULL DEFAULT '0',
+  `war_declared_at` datetime NULL DEFAULT NULL,
+  `war_protected_until` datetime NULL DEFAULT NULL,
+  `war_ends_at` datetime NULL DEFAULT NULL,
+  `war_kill_score` int unsigned NOT NULL DEFAULT '0',
+  `war_is_declarer` tinyint(1) NOT NULL DEFAULT '0',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Guilds';

@@ -1,15 +1,14 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO: the body is parsed but nothing acts on it yet.
+/// Backs X2Faction:SetMyExpeditionInterest / the info panel's interest-tag icons - Interest is the new
+/// bitmask, carried onward via SCExpeditionDescPacket's "interest" field (see Expedition.Interest). TypeValue's
+/// meaning is unconfirmed and not used below.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
 public class CSExpeditionInterestUpatePacket() : GamePacket(CSOffsets.CSExpeditionInterestUpatePacket, 1)
 {
     public int TypeValue { get; private set; }
@@ -19,5 +18,8 @@ public class CSExpeditionInterestUpatePacket() : GamePacket(CSOffsets.CSExpediti
     {
         TypeValue = stream.ReadInt32();
         Interest = stream.ReadInt16();
+
+        if (Connection.ActiveChar != null)
+            ExpeditionManager.Instance.SetInterest(Connection.ActiveChar, Interest);
     }
 }

@@ -453,6 +453,11 @@ public class HousingManager(
         if (!_housesTl.TryGetValue(tlId, out var house))
             return;
 
+        SendHouseTaxInfo(connection.ActiveChar, house);
+    }
+
+    private void SendHouseTaxInfo(Character character, House house)
+    {
         CalculateBuildingTaxInfo(house.AccountId, house.Template, false, out var totalTaxAmountDue, out _, out _, out var hostileTaxRate, out _);
 
         var baseTax = (int)(house.Template.Taxation?.Tax ?? 0);
@@ -474,7 +479,7 @@ public class HousingManager(
 
         // Logger.Debug($"SCHouseTaxInfoPacket; tlId:{house.TlId}, domTaxRate: 0, deposit: {depositTax}, taxDue:{totalTaxAmountDue}, protectEnd:{house.ProtectionEndDate}, isPaid:{requiresPayment}, weeksWithoutPay:{weeksWithoutPay}, isHeavy:{house.Template.HeavyTax}");
 
-        connection.SendPacket(
+        character.SendPacket(
             new SCHouseTaxInfoPacket(
                 house.TlId,
                 0u,  // dominionTaxRate — TODO: implement when castles are added
@@ -489,6 +494,34 @@ public class HousingManager(
                 0   // TODO(v10): taxType — the binary leaves the enum unnamed
             )
         );
+    }
+
+    /// <summary>
+    /// Proactively pushes the guild residence's real TlId to one character via the same
+    /// SCHouseTaxInfoPacket the client's own on-demand request would get. This is the missing half of
+    /// the Guild Residence feature, found 2026-08-28 via decompile: the client's "do I have a guild
+    /// residence" gate (X2Faction:GetExpeditionHouseId, native global DAT_3b4f6108) starts at 0 and has
+    /// no client-native setter anywhere - the ONLY way it gets populated is by receiving a real
+    /// SCHouseTaxInfoPacket. But the client's own request for one (RequestExpeditionHouseInfo -&gt;
+    /// CSRequestHouseTaxPacket) sends that same starting-at-0 cached value as the tl to ask about, so it
+    /// always asks about tl=0, which matches no real house (HouseTaxInfo above silently no-ops), and the
+    /// loop never closes on its own. The server has to push the correct one unprompted at least once -
+    /// on placement, and again at login for members who weren't online when it was placed.
+    /// </summary>
+    public void SendExpeditionHouseInfo(Character character)
+    {
+        var houseId = character.Expedition?.ResidenceHouseId ?? 0;
+        if (houseId == 0)
+            return;
+
+        var house = GetHouseById(houseId);
+        if (house == null)
+        {
+            Logger.Warn("SendExpeditionHouseInfo: expedition {0}'s ResidenceHouseId {1} does not resolve to a loaded house", character.Expedition!.Name, houseId);
+            return;
+        }
+
+        SendHouseTaxInfo(character, house);
     }
 
     /// <summary>
@@ -532,6 +565,27 @@ public class HousingManager(
                 designId, houseTemplate.CategoryId, zone?.Name ?? "<unknown>", zoneKey);
             connection.ActiveChar.SendErrorMessage(ErrorMessageType.HouseCannotLocateInvalidArea);
             return;
+        }
+
+        if (HousingGameData.Instance.IsExpeditionResidenceTemplate(designId))
+        {
+            // 2026-08-27: Guild Residence - a universal per-guild clubhouse, unrelated to castle/dominion
+            // territory (see HousingGameData.IsExpeditionResidenceTemplate's doc comment). Any guild member
+            // may place it (no leader-only restriction was requested for this one), but only one per guild,
+            // regardless of which of the 3 color designs is chosen.
+            var expedition = connection.ActiveChar.Expedition;
+            if (expedition == null)
+            {
+                Logger.Debug("Build refused: design {0} is a Guild Residence, but {1} is not in a guild", designId, connection.ActiveChar.Name);
+                connection.ActiveChar.SendErrorMessage(ErrorMessageType.NoPerm);
+                return;
+            }
+            if (expedition.ResidenceHouseId != 0)
+            {
+                Logger.Debug("Build refused: design {0} is a Guild Residence, but {1}'s guild already has one (House {2})", designId, connection.ActiveChar.Name, expedition.ResidenceHouseId);
+                connection.ActiveChar.SendErrorMessage(ErrorMessageType.HouseCannotCreate);
+                return;
+            }
         }
 
         CalculateBuildingTaxInfo(connection.ActiveChar.AccountId, houseTemplate, true, out var totalTaxAmountDue, out _, out _, out _, out _);
@@ -644,6 +698,22 @@ public class HousingManager(
         if (WorldIntegration.ZoneAuthority)
             HousingZoneBridge.NotifyZoneHouseCreated(house);
         UpdateTaxInfo(house);
+
+        if (HousingGameData.Instance.IsExpeditionResidenceTemplate(designId) && connection.ActiveChar.Expedition != null)
+        {
+            var expedition = connection.ActiveChar.Expedition;
+            expedition.ResidenceHouseId = house.Id;
+            ExpeditionManager.Save(expedition);
+            Logger.Info("Guild Residence: {0}'s guild ({1}) placed House {2} (design {3})", connection.ActiveChar.Name, expedition.Name, house.Id, designId);
+
+            // See SendExpeditionHouseInfo's own doc comment - the client can't learn its guild's
+            // residence exists on its own, so every currently-online member needs this pushed now.
+            foreach (var member in expedition.Members)
+            {
+                if (WorldManager.Instance.GetCharacterById(member.CharacterId) is { } onlineMember)
+                    SendExpeditionHouseInfo(onlineMember);
+            }
+        }
     }
 
     /// <summary>
@@ -697,8 +767,20 @@ public class HousingManager(
             connection?.ActiveChar?.SendErrorMessage(ErrorMessageType.InvalidHouseInfo);
             return;
         }
-        // Check if owner
-        if (connection is null || house.OwnerId == connection.ActiveChar.Id)
+        // 2026-08-27: a Guild Residence is demolishable by any member of the owning guild (no leader-only
+        // restriction requested for this one), not just whoever happened to place it - matches the
+        // guild-membership (not solo-ownership) gate HousingManager.Build already enforces for placing one.
+        // Ordinary personal housing keeps its original owner-only check.
+        var character = connection?.ActiveChar;
+        var isAuthorized = connection is null;
+        if (!isAuthorized && character != null)
+        {
+            isAuthorized = HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId)
+                ? character.Expedition != null && character.Expedition.ResidenceHouseId == house.Id
+                : house.OwnerId == character.Id;
+        }
+
+        if (isAuthorized)
         {
             // VERIFY: check if tax paid, cannot manually demolish or sell a house with unpaid taxes ?
             // Note - ZeromusXYZ: I'm disabling this "feature", as it would prevent you from demolishing freshly placed buildings that you want to move 
@@ -734,6 +816,26 @@ public class HousingManager(
             SetForSaleMarkers(house, false);
 
             house.IsDirty = true;
+
+            // 2026-08-27: Guild Residence demolish refund - "철거 시 도면은 상점가 80%만큼의 원정대 공헌도로
+            // 즉시 반환됩니다" (on demolish, 80% of shop price is immediately refunded as guild Contribution
+            // Points). Reuses the same Contribution Point spend/refund path the existing Guild Contribution
+            // Shop already uses (CSBuyItemsPacket -> ExpeditionManager.TryChangeContributionPoints), rather
+            // than inventing a separate pooled-currency model. "Shop price" is merchant_goods.cost for this
+            // item in pack 304 ("Live - 공헌도 상점" / Live - Contribution Shop) - currently 0 for all 3
+            // residence designs in the shipped data, so this refunds 0 until/unless that data says otherwise.
+            if (character?.Expedition != null && HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId)
+                && character.Expedition.ResidenceHouseId == house.Id)
+            {
+                var residenceItemId = HousingGameData.Instance.GetItemIdByDesign(house.TemplateId);
+                var shopPrice = NpcManager.Instance.GetGoods(304)?.GetItem(residenceItemId, 0)?.Cost ?? 0;
+                var refund = (int)(shopPrice * 0.8);
+                if (refund > 0)
+                    ExpeditionManager.Instance.TryChangeContributionPoints(character, refund, false);
+
+                character.Expedition.ResidenceHouseId = 0;
+                ExpeditionManager.Save(character.Expedition);
+            }
 
             // TODO: better house killing handling
             _removedHousings.Add(house.Id);

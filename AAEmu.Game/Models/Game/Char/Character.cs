@@ -2414,6 +2414,66 @@ public partial class Character : Unit, ICharacter
         return ChangeAAPoint(aaPointLocation, SlotType.None, amount, itemTaskType);
     }
 
+    /// <summary>
+    /// Charges <paramref name="price"/> in the currency a content table names, reporting the shortfall to
+    /// the player. Returns false without taking anything when the balance is short or the currency is one
+    /// this server does not handle, so callers can treat it as a checked reservation and bail out before
+    /// mutating anything else.
+    /// </summary>
+    /// <param name="currencyId">A <see cref="ContentCurrencyType"/>, as content tables store it.</param>
+    /// <param name="autoUseAaPoint">
+    /// The player's "use AA points" choice, sent with the request. Gold prices are paid from AA points
+    /// instead of coin when it is set.
+    /// </param>
+    public bool TryPayCurrency(uint currencyId, long price, bool autoUseAaPoint, ItemTaskType itemTaskType)
+    {
+        if (price < 0)
+        {
+            SendErrorMessage(ErrorMessageType.Invalid);
+            return false;
+        }
+
+        if (price == 0)
+            return true;
+
+        switch ((ContentCurrencyType)currencyId)
+        {
+            case ContentCurrencyType.Gold:
+            case ContentCurrencyType.GoldWithAaPoint:
+                return autoUseAaPoint
+                    ? SubtractAAPoint(SlotType.Inventory, price, itemTaskType)
+                    : SubtractMoney(SlotType.Inventory, price, itemTaskType);
+            case ContentCurrencyType.AaPoint:
+                return SubtractAAPoint(SlotType.Inventory, price, itemTaskType);
+            case ContentCurrencyType.HonorPoint:
+                if (HonorPoint < price)
+                {
+                    SendErrorMessage(ErrorMessageType.NotEnoughHonorPoint);
+                    return false;
+                }
+                ChangeGamePoints(GamePointKind.Honor, (int)-price);
+                return true;
+            case ContentCurrencyType.LivingPoint:
+                if (VocationPoint < price)
+                {
+                    SendErrorMessage(ErrorMessageType.NotEnoughLivingPoint);
+                    return false;
+                }
+                ChangeGamePoints(GamePointKind.Vocation, (int)-price);
+                return true;
+            case ContentCurrencyType.ContributionPoint:
+                if (Expedition?.GetMember(this)?.ContributionPoint < price)
+                {
+                    SendErrorMessage(ErrorMessageType.NotEnoughRequiredItem);
+                    return false;
+                }
+                return ExpeditionManager.Instance.TryChangeContributionPoints(this, (int)-price, false);
+            default:
+                SendErrorMessage(ErrorMessageType.Invalid);
+                return false;
+        }
+    }
+
     public void ChangeLabor(short change, int actabilityId)
     {
         var actabilityChange = 0;
@@ -3813,6 +3873,42 @@ public partial class Character : Unit, ICharacter
         if (this.Transform.StickyParent != null)
             character.SendPacket(new SCHungPacket(this.ObjId,this.Transform.StickyParent.GameObject.ObjId));
         */
+
+        // Same gap as faction above, previously missing entirely: SCUnitStatePacket carries no
+        // guild id, and SCUnitExpeditionChangedPacket only ever fires on a live join/leave/kick -
+        // so an observer who starts watching a character that was ALREADY in a guild before this
+        // observer logged in never learned the guild id at all, leaving the nameplate tag blank
+        // until the guild had its next membership change. This was the likely remaining cause
+        // behind the guild-nameplate bug beyond the mid-session-creation gap fixed earlier.
+        if (Expedition != null)
+            character.SendPacket(new SCUnitExpeditionChangedPacket(
+                ObjId, Id, "", Name ?? "", 0, (uint)Expedition.Id, false));
+
+        // Guild War: the client marks enemy-guild units as war targets only when it processes
+        // SCExpeditionWarStatePacket (FUN_395ba9f0 walks the currently-loaded unit set and tags
+        // each unit whose guild id == the enemy guild). A unit unloaded on a zone change / range
+        // exit comes back untagged (green) because the tag isn't in its spawn data. Re-push the
+        // war state when the two come into view of each other so both clients re-walk and re-tag.
+        // Both directions are sent - although "this unit visible to the observing character" is
+        // guaranteed to fire here, the reverse pairing may not, which otherwise leaves one client
+        // showing the enemy green (observed live: Pny red for Wuerstl but not vice versa).
+        // Idempotent; only fires between two guilds actually at war.
+        if (Expedition != null && character.Expedition != null &&
+            Expedition.IsAtWar && !Expedition.IsProtected && !character.Expedition.IsProtected &&
+            Expedition.WarEnemyExpeditionId == (uint)character.Expedition.Id &&
+            character.Expedition.WarEnemyExpeditionId == (uint)Expedition.Id)
+        {
+            var enemyExp = character.Expedition;
+            var until = Helpers.UnixTime(enemyExp.WarEndsAt ?? enemyExp.WarProtectedUntil ?? DateTime.UtcNow);
+            var myUntil = Helpers.UnixTime(Expedition.WarEndsAt ?? Expedition.WarProtectedUntil ?? DateTime.UtcNow);
+            // observer's client: tag this unit's guild as the enemy
+            character.SendPacket(new SCExpeditionWarStatePacket(
+                (int)enemyExp.Id, (int)Expedition.Id, true, until, false));
+            // this unit's own client: tag the observer's guild as the enemy
+            SendPacket(new SCExpeditionWarStatePacket(
+                (int)Expedition.Id, (int)enemyExp.Id, true, myUntil, false));
+        }
+
         base.AddVisibleObject(character);
     }
 

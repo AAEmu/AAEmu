@@ -18,6 +18,15 @@ public class ExpeditionRolePolicy : PacketMarshaler
     public bool ManagerChat { get; set; }
     public bool SiegeMaster { get; set; }
     public bool JoinSiege { get; set; }
+    /// <summary>
+    /// Recovered 2026-08-13 via Ghidra deserializer trace of x2game-dev.dll - the client's role-policy struct
+    /// has 10 boolean permission flags, not 9. Missing this field made every 148-byte policy entry 1 byte
+    /// short on the wire, which - since SCExpeditionRolePolicyListPacket is a fixed-size count-prefixed array,
+    /// not length-delimited - desynced the client's packet parser for everything sent right after it
+    /// (SCExpeditionMemberListPacket in our send order), explaining why the member list also showed empty.
+    /// See aaemu-fixes-applied memory for the full recovery writeup.
+    /// </summary>
+    public bool UseInstance { get; set; }
 
     public void Save(MySqlConnection connection, MySqlTransaction transaction)
     {
@@ -28,8 +37,8 @@ public class ExpeditionRolePolicy : PacketMarshaler
 
             command.CommandText =
                 "REPLACE INTO " +
-                "expedition_role_policies(`expedition_id`,`role`,`name`,`dominion_declare`,`invite`,`expel`,`promote`,`dismiss`, `chat`, `manager_chat`, `siege_master`, `join_siege`) " +
-                "VALUES (@expedition_id,@role,@name,@dominion_declare,@invite,@expel,@promote,@dismiss,@chat,@manager_chat,@siege_master,@join_siege)";
+                "expedition_role_policies(`expedition_id`,`role`,`name`,`dominion_declare`,`invite`,`expel`,`promote`,`dismiss`, `chat`, `manager_chat`, `siege_master`, `join_siege`, `use_instance`) " +
+                "VALUES (@expedition_id,@role,@name,@dominion_declare,@invite,@expel,@promote,@dismiss,@chat,@manager_chat,@siege_master,@join_siege,@use_instance)";
 
             command.Parameters.AddWithValue("@expedition_id", this.ExpeditionId);
             command.Parameters.AddWithValue("@role", this.Role);
@@ -43,6 +52,7 @@ public class ExpeditionRolePolicy : PacketMarshaler
             command.Parameters.AddWithValue("@manager_chat", this.ManagerChat);
             command.Parameters.AddWithValue("@siege_master", this.SiegeMaster);
             command.Parameters.AddWithValue("@join_siege", this.JoinSiege);
+            command.Parameters.AddWithValue("@use_instance", this.UseInstance);
             command.ExecuteNonQuery();
         }
     }
@@ -61,6 +71,7 @@ public class ExpeditionRolePolicy : PacketMarshaler
         ManagerChat = stream.ReadBoolean();
         SiegeMaster = stream.ReadBoolean();
         JoinSiege = stream.ReadBoolean();
+        UseInstance = stream.ReadBoolean();
     }
 
     public override PacketStream Write(PacketStream stream)
@@ -77,6 +88,7 @@ public class ExpeditionRolePolicy : PacketMarshaler
         stream.Write(ManagerChat);
         stream.Write(SiegeMaster);
         stream.Write(JoinSiege);
+        stream.Write(UseInstance);
         return stream;
     }
 
@@ -92,7 +104,8 @@ public class ExpeditionRolePolicy : PacketMarshaler
             Chat = Chat,
             ManagerChat = ManagerChat,
             SiegeMaster = SiegeMaster,
-            JoinSiege = JoinSiege
+            JoinSiege = JoinSiege,
+            UseInstance = UseInstance
         };
         return rolePolicy;
     }

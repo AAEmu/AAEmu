@@ -80,6 +80,7 @@ public partial class Character
             {
                 enemy.HostileFactionKills++;
                 AwardPvpHonor(enemy, victimZone, conflictData, zoneState);
+                ExpeditionManager.Instance.RegisterWarKill(enemy, this);
 
                 // Mark victim as PvP death (prevents Weakened Body debuff on temple-revive)
                 DiedInPvp = true;
