@@ -342,6 +342,7 @@ public class BuffTemplate
                     var body = new PacketStream();
                     BuffCreatedWire.Write(body, buff);
                     WorldIntegration.RelayBuffCreatedToZone?.Invoke(owner.ObjId, body.GetBytes());
+                    buff.RelayedToZone = true;
                 }
                 else
                 {
@@ -455,8 +456,13 @@ public class BuffTemplate
         if (!buff.Passive && !replaced)
         {
             owner.BroadcastPacket(new SCBuffRemovedPacket(owner.ObjId, buff.Index), true);
-            if (notifyZone && WorldIntegration.ZoneAuthority && !buff.ZoneAuthored)
-                WorldIntegration.RelayBuffRemovedToZone?.Invoke(owner.ObjId, buff.Index);
+            if (notifyZone && WorldIntegration.ZoneAuthority)
+            {
+                if (BuffCreatedWire.ShouldRelayRemoved(buff, out var skipRemove))
+                    WorldIntegration.RelayBuffRemovedToZone?.Invoke(owner.ObjId, buff.Index);
+                else if (!buff.ZoneAuthored)
+                    Logger.Warn($"Not relaying buff remove {Id} index {buff.Index} to zone: {skipRemove}.");
+            }
         }
 
         // Special properties handling

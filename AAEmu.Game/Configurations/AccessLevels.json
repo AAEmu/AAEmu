@@ -3,6 +3,7 @@
         // Everyone
         // Always keep help at zero
         "help": 0,
+    "gearscore": 0,
         "fly": 0,
         
         "online": 0,

@@ -26,5 +26,17 @@
     "Y": 16014.4,
     "Z": 356.6,
     "Radius": 1024
+  },
+  "ZoneHost": {
+    "Enabled": false,
+    "Executable": "",
+    "WorkingDirectory": "",
+    "NativeDll": "",
+    "DbLocation": "game/db/game_decrypted.sqlite3",
+    "WorldIp": "127.0.0.1",
+    "WorldPort": 1240,
+    "SvPortBase": 65000,
+    "RuntimeLogRoot": "",
+    "ReadyTimeoutSeconds": 120
   }
 }

@@ -1,24 +1,12 @@
-﻿using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Units;
-
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
-public class ItemEvolvingReRoll : SpecialEffectAction
+/// <summary>
+/// Swaps one of a synthesised item's random attributes for a new roll, with the server choosing
+/// which one. This is what the plain 행운의 돌 (luck stone) materials do.
+/// </summary>
+public class ItemEvolvingReRoll : ItemEvolvingReRollBase
 {
-    public override void Execute(BaseUnit caster,
-        SkillCaster casterObj,
-        BaseUnit target,
-        SkillCastTarget targetObj,
-        CastAction castObj,
-        Skill skill,
-        SkillObject skillObject,
-        DateTime time,
-        int value1,
-        int value2,
-        int value3,
-        int value4)
-    {
-        // TODO ...
-        if (caster is Character) { Logger.Debug("Special effects: ItemEvolvingReRoll value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
-    }
+    protected override SpecialType SpecialEffectActionType => SpecialType.ItemEvolvingReRoll;
+
+    protected override bool PlayerSelects => false;
 }

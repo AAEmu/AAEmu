@@ -420,9 +420,11 @@ public class Transform : IDisposable
         if (newInstanceId != 0)
             InstanceId = newInstanceId;
         // WorldId = wsp.WorldId;
-        ZoneId = wsp.ZoneId;
+        // Position before ZoneId: OnZoneChange (WZ handoff) snapshots Transform, and
+        // setting ZoneId first left the previous continent XYZ on the new zone unit.
         Local.Position = new Vector3(wsp.X, wsp.Y, wsp.Z);
         Local.Rotation = new Vector3(wsp.Roll, wsp.Pitch, wsp.Yaw);
+        ZoneId = wsp.ZoneId;
     }
 
     /// <summary>

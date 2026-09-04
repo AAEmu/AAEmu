@@ -7,6 +7,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\AAEmu.Commons\AAEmu.Commons.csproj" />
     <ProjectReference Include="..\..\AAEmu.Game\AAEmu.Game.csproj" />
+    <InternalsVisibleTo Include="AAEmu.UnitTests" />
   </ItemGroup>
 
   <ItemGroup>

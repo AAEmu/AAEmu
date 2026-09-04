@@ -21,3 +21,6 @@ publish/
 *.sqlite3
 .server_files
 .env
+_test_obj/
+artifacts/
+*.bak-*

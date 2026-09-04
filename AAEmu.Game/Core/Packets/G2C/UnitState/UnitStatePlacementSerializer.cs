@@ -23,7 +23,7 @@ internal static class UnitStatePlacementSerializer
         stream.Write(checked((sbyte)unit.Level));
         stream.Write(checked((sbyte)unit.HeirLevel));
 
-        WriteLevelBlock(stream, context);
+        WriteLevelBlock(stream);
         WriteSlotSelectors(stream, context.BaseUnitType);
         stream.Write(unit.ModelId);
     }
@@ -39,17 +39,9 @@ internal static class UnitStatePlacementSerializer
         unit.Transform.Local.SetHeight(height);
     }
 
-    private static void WriteLevelBlock(PacketStream stream, UnitStateWireContext context)
+    private static void WriteLevelBlock(PacketStream stream)
     {
-        // other currently modelled unit types carry their normal level and no second heir value.
-        if (context.BaseUnitType == BaseUnitType.Npc)
-        {
-            stream.Write((sbyte)0);
-            stream.Write((sbyte)0);
-            return;
-        }
-
-        stream.Write(checked((sbyte)context.Unit.Level));
+        stream.Write((sbyte)0);
         stream.Write((sbyte)0);
     }
 

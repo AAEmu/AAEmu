@@ -113,9 +113,6 @@ public class Unit : BaseUnit, IUnit
 
     public UnitStateOptionalData UnitStateOptionalData { get; set; }
 
-    /// <summary>Character equipment-slot effect flags trailing the 34-slot UnitState equipment block.</summary>
-    public ulong UnitStateEquipmentFlags { get; set; }
-
     public int Hp { get; set; }
 
     public int Hpp
@@ -1378,6 +1375,27 @@ public class Unit : BaseUnit, IUnit
             foreach (var gem in ei.GemIds)
                 foreach (var template in ItemManager.Instance.GetUnitModifiers(gem))
                     AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
+
+            // Synthesis effects. The item stores the effect's group; what it is worth follows from
+            // the grade the piece is at and how far into it the piece has come, so a line grows both
+            // when a grade is gained and as the bar toward the next one fills.
+            foreach (var groupId in ei.UsedRndAttrGroupIds)
+            {
+                var modifier = ItemEnchantGameData.Instance.GetRndAttrModifier(groupId, ei.Grade, ei.EvolvingExp);
+                // Not "> 0": the reducing lines are the negative ones, and they count too.
+                if (modifier == null || modifier.Value == 0)
+                    continue;
+
+                var template = new BonusTemplate
+                {
+                    Attribute = (UnitAttribute)modifier.Attribute,
+                    ModifierType = (UnitModifierType)modifier.ModifierType,
+                    Value = modifier.Value
+                };
+                AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
+                Logger.Debug("Synthesis bonus: item {0} group {1} -> {2} {3} {4}",
+                    ei.Id, groupId, template.Attribute, template.ModifierType, template.Value);
+            }
         }
 
         // Apply Equipment Effects
@@ -1397,6 +1415,13 @@ public class Unit : BaseUnit, IUnit
             Mp = MaxMp;
         else
             Mp = Math.Min(Mp, MaxMp);
+
+        // The client counts a worn piece's synthesis effects only while its slot is marked as
+        // carrying them. That mark otherwise rides along with the unit state, which is not sent
+        // again for a piece that gains, loses or swaps an effect while being worn - so it is
+        // republished here, where every such change already passes through.
+        if (this is Character { Connection: not null } wearer && wearer.ObjId != 0)
+            wearer.SendPacket(new SCUnitEquipmentsRndAttrUnitModifierActivatedPacket(wearer));
     }
 
     private void ApplyWeaponWieldBuff()

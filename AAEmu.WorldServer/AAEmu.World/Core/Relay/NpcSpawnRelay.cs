@@ -22,10 +22,12 @@ public class NpcSpawnRelay
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     /// <summary>
-    /// Per-(zoneId, bcId) markers so multi-dedicate does not share Create state.
-    /// Clear only the disconnecting / re-joining ZoneId — never wipe sibling zones.
+    /// Per-(zoneId, instanceId, bcId) markers so multi-copy hosts do not share Create state.
+    /// Clear only the disconnecting / re-joining copy — never wipe sibling zones or copies.
     /// </summary>
-    private static readonly ConcurrentDictionary<ulong, byte> NpcStateSent = new();
+    private readonly record struct NpcStateKey(uint ZoneId, uint InstanceId, uint BcId);
+
+    private static readonly ConcurrentDictionary<NpcStateKey, byte> NpcStateSent = new();
 
     /// <summary>
     /// ObjectIds pending delayed free after ZWRemove. Dedicate ProcessFreeUnits is deferred;
@@ -58,12 +60,16 @@ public class NpcSpawnRelay
     /// <summary>sType → emit count (process lifetime).</summary>
     private static readonly ConcurrentDictionary<uint, long> SpawnerTypeEmits = new();
 
-    private static ulong MarkerKey(uint zoneId, uint bcId) => ((ulong)zoneId << 32) | bcId;
+    private static NpcStateKey MarkerKey(uint zoneId, uint instanceId, uint bcId) =>
+        new(zoneId, instanceId, bcId);
 
     /// <summary>
-    /// Drop WZNpcState markers for one zone key (Zone disconnect / ZWJoin remap).
+    /// Drop WZNpcState markers for one zone copy (Zone disconnect / ZWJoin remap).
     /// </summary>
-    public static void ResetNpcStateSentForZone(uint zoneId, string reason)
+    public static void ResetNpcStateSentForZone(uint zoneId, string reason) =>
+        ResetNpcStateSentForZone(zoneId, instanceId: uint.MaxValue, reason);
+
+    public static void ResetNpcStateSentForZone(uint zoneId, uint instanceId, string reason)
     {
         if (zoneId == 0)
         {
@@ -74,23 +80,30 @@ public class NpcSpawnRelay
         var removed = 0;
         foreach (var key in NpcStateSent.Keys)
         {
-            if ((uint)(key >> 32) != zoneId)
+            if (key.ZoneId != zoneId)
+                continue;
+            if (instanceId != uint.MaxValue && key.InstanceId != instanceId)
                 continue;
             if (NpcStateSent.TryRemove(key, out _))
                 removed++;
         }
 
-        Logger.Info("NpcStateSent cleared zoneId={0} entries={1} — {2}", zoneId, removed, reason);
+        Logger.Info(
+            "NpcStateSent cleared zoneId={0} instanceId={1} entries={2} — {3}",
+            zoneId, instanceId == uint.MaxValue ? "all" : instanceId.ToString(), removed, reason);
     }
 
     /// <summary>
     /// Drops one unit's WZNpcState marker so a later announcement of the same bcId is acknowledged
     /// again. Used when the schedule gate retires an NPC whose window closed.
     /// </summary>
-    internal static void ForgetNpcState(uint zoneId, uint bcId)
+    internal static void ForgetNpcState(uint zoneId, uint instanceId, uint bcId)
     {
-        NpcStateSent.TryRemove(MarkerKey(zoneId, bcId), out _);
+        NpcStateSent.TryRemove(MarkerKey(zoneId, instanceId, bcId), out _);
     }
+
+    internal static void ForgetNpcState(uint zoneId, uint bcId) =>
+        ForgetNpcState(zoneId, instanceId: 0, bcId);
 
     /// <summary>
     /// Delete Game NPC mirrors for this ZoneConnection. Call on TCP disconnect before
@@ -108,7 +121,7 @@ public class NpcSpawnRelay
         var skippedPlayer = 0;
         foreach (var (bcId, raw) in snap)
         {
-            NpcStateSent.TryRemove(MarkerKey(connection.ZoneId, bcId), out _);
+            NpcStateSent.TryRemove(MarkerKey(connection.ZoneId, connection.InstanceId, bcId), out _);
 
             // Player RegisterWithId stores WZUnitState bodies. World-authored dynamic NPCs store
             // their WZNpcState body, while Zone-authored mirrors store ZWSpawnNpc.
@@ -194,7 +207,7 @@ public class NpcSpawnRelay
                     bcId, raw?.Length ?? 0);
             }
 
-            if (TryMirror(connection.ZoneId, bcId, parsed))
+            if (TryMirror(connection, bcId, parsed))
             {
                 if (TrySendNpcState(connection, bcId, parsed))
                 {
@@ -259,7 +272,7 @@ public class NpcSpawnRelay
             if (NpcScheduleGate.IsClosed(parsed.SpawnerType))
                 continue;
 
-            if (TryMirror(connection.ZoneId, bcId, parsed))
+            if (TryMirror(connection, bcId, parsed))
             {
                 ok++;
                 if (TrySendNpcState(connection, bcId, parsed))
@@ -281,12 +294,13 @@ public class NpcSpawnRelay
             relay.RemirrorAll(zone);
     }
 
-    private bool TryMirror(uint zoneId, uint bcId, ZwSpawnNpcParsed parsed)
+    private bool TryMirror(ZoneConnection connection, uint bcId, ZwSpawnNpcParsed parsed)
     {
         try
         {
             var mirrored = WorldIntegration.OnZoneNpcSpawn?.Invoke(
-                zoneId, bcId, parsed.TemplateId, parsed.X, parsed.Y, parsed.Z, parsed.ZRot, parsed.Scale) ?? false;
+                connection.ZoneId, connection.InstanceId, bcId, parsed.TemplateId,
+                parsed.X, parsed.Y, parsed.Z, parsed.ZRot, parsed.Scale) ?? false;
             if (mirrored)
             {
                 _mirrorOk++;
@@ -304,7 +318,7 @@ public class NpcSpawnRelay
 
     private bool TrySendNpcState(ZoneConnection connection, uint bcId, ZwSpawnNpcParsed parsed)
     {
-        var key = MarkerKey(connection.ZoneId, bcId);
+        var key = MarkerKey(connection.ZoneId, connection.InstanceId, bcId);
         if (!NpcStateSent.TryAdd(key, 0))
         {
             var skipped = ++_npcStateSkipped;
@@ -474,7 +488,7 @@ public class NpcSpawnRelay
 
         if (trackedSpawn != null)
             ZoneNpcSpawnerCatalog.SetState(connection, trackedSpawn, active: false);
-        NpcStateSent.TryRemove(MarkerKey(connection.ZoneId, bcId), out _);
+        NpcStateSent.TryRemove(MarkerKey(connection.ZoneId, connection.InstanceId, bcId), out _);
         WorldIntegration.OnZoneNpcRemove?.Invoke(bcId);
         if (wasZoneAuthoredNpc || hadMirror)
             ScheduleObjectIdRelease(bcId);

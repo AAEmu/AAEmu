@@ -20,7 +20,7 @@ public class AccountPayment(GameConnection connection)
 
     /// <summary>
     /// Paid time left, in seconds. The client reads realPayTime through its plain int64 slot rather
-    /// than its DateTime slot (serializer at rva 0xc512a0), so this is a duration, not a timestamp -
+    /// than its DateTime slot (client serializer), so this is a duration, not a timestamp -
     /// and it was previously hardcoded to 0 on the wire.
     /// </summary>
     public long RealPayTimeSeconds

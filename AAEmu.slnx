@@ -38,7 +38,6 @@
     <File Path="Scripts/StartLoginServer.bat" />
     <File Path="Scripts/WatchGameServer.ps1" />
     <File Path="Scripts/WatchLoginServer.ps1" />
-    <File Path="Scripts/start_AAEmu_publish.bat" />
   </Folder>
   <Folder Name="/Additional Files/SQL/">
     <File Path="SQL/aaemu_game.sql" />

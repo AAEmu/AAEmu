@@ -26,6 +26,23 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
         return null;
     }
 
+    /// <summary>Resolve by <c>instances.id</c> (CS AddInstanceVisitCount type dword).</summary>
+    public IndunZone GetDungeonZoneByCatalogId(uint instanceCatalogId)
+    {
+        if (_indunZones == null || instanceCatalogId == 0)
+            return null;
+        foreach (var zone in _indunZones.Values)
+        {
+            if (zone.InstanceCatalogId == instanceCatalogId)
+                return zone;
+        }
+
+        return null;
+    }
+
+    public IReadOnlyCollection<IndunZone> GetAllDungeonZones() =>
+        _indunZones?.Values ?? (IReadOnlyCollection<IndunZone>)[];
+
     public List<IndunEvent> GetIndunEvents(uint zoneGroupId)
     {
         if (_indunEvents != null && _indunEvents.TryGetValue(zoneGroupId, out var value))
@@ -361,6 +378,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                         // 10.0.2.13: name, comment, item_id removed from indun_zones
                         LevelMin = reader.GetUInt32("level_min"),
                         LevelMax = reader.GetUInt32("level_max"),
+                        GearScore = reader.GetUInt32("gear_score"),
                         MaxPlayers = reader.GetUInt32("max_players"),
                         PvP = reader.GetBoolean("pvp", true),
                         HasGraveyard = reader.GetBoolean("has_graveyard", true),
@@ -370,14 +388,49 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                         SelectChannel = reader.GetBoolean("select_channel", true)
                     };
 
-                    // Hack for earlier versions
-                    // Exception for Mirage and Library
-                    indunZone.EnterCount = indunZone.ZoneGroupId == 49 || indunZone.SelectChannel ? 1000u : 3u;
                     indunZone.LocalizedName = LocalizationManager.Instance.Get("indun_zones", "name", indunZone.ZoneGroupId, string.Empty);
+                    // EnterCount filled from instances below (or legacy fallback if no row).
+                    indunZone.EnterCount = IndunEntryRules.ResolveEnterCount(
+                        instancesEnterCount: null,
+                        indunZone.SelectChannel,
+                        indunZone.ZoneGroupId);
 
                     _indunZones.Add(indunZone.ZoneGroupId, indunZone);
 
                 }
+            }
+        }
+
+        // 10.0.2.13: daily enter caps live on instances (target_type=IndunZone, target_id=zone_group_id).
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText =
+                "SELECT id, target_id, enter_count, reset_item_id, reset_limit, reset_item_increase_scale, permit_enter_count_item_id, " +
+                "direct_matching, matching_invitation_type_id, min_matching_time, apply_waiting_time, matching_cleanup_term, matching_intergration_level_id " +
+                "FROM instances WHERE target_type = 'IndunZone'";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var zoneGroupId = reader.GetUInt32("target_id");
+                if (_indunZones == null || !_indunZones.TryGetValue(zoneGroupId, out var zone))
+                    continue;
+
+                zone.InstanceCatalogId = reader.GetUInt32("id");
+                zone.EnterCount = reader.GetUInt32("enter_count");
+                zone.ResetItemId = reader.GetUInt32("reset_item_id", 0);
+                zone.ResetLimit = (int)reader.GetUInt32("reset_limit", 0);
+                zone.ResetItemIncreaseScale = (int)reader.GetUInt32("reset_item_increase_scale", 1);
+                if (zone.ResetItemIncreaseScale <= 0)
+                    zone.ResetItemIncreaseScale = 1;
+                zone.PermitEnterCountItemId = reader.GetUInt32("permit_enter_count_item_id", 0);
+                zone.DirectMatching = reader.GetBoolean("direct_matching");
+                zone.MatchingInvitationTypeId = (byte)reader.GetUInt32("matching_invitation_type_id", 0);
+                zone.MinMatchingTimeMs = reader.GetUInt32("min_matching_time", 0);
+                zone.ApplyWaitingTimeMs = reader.GetUInt32("apply_waiting_time", 0);
+                zone.MatchingCleanupTermMs = reader.GetUInt32("matching_cleanup_term", 0);
+                zone.MatchingIntegrationLevelId = (byte)reader.GetUInt32("matching_intergration_level_id", 0);
             }
         }
         #endregion

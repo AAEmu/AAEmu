@@ -67,6 +67,17 @@ public class Skill
     public bool ForcePlotGraphOnly { get; set; }
 
     /// <summary>
+    /// How many times over the skill's labor cost applies to this cast.
+    /// </summary>
+    /// <remarks>
+    /// <c>skills.consume_lp</c> is the price of one unit of work, and for most skills a cast is one
+    /// unit. Where a single cast does the work several times over - synthesis takes up to six
+    /// infusions at once, and the window prices it at the skill's cost per infusion - the effect sets
+    /// this to the count it actually processed. Left at 1 the charge is unchanged.
+    /// </remarks>
+    public int LaborUnits { get; set; } = 1;
+
+    /// <summary>
     /// Multiplier that can be added as an additional modifier to casting times
     /// </summary>
     public float CastTimeMultiplier { get; set; } = 1f;
@@ -1082,6 +1093,32 @@ public class Skill
         return units;
     }
 
+    /// <summary>
+    /// Whether a cast is made up purely of special effects that this build has no implementation for.
+    /// Such a cast changes nothing at all, so charging the player its reagents would be a straight
+    /// loss - awakening scrolls, for one, burn five at a time.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately narrow: as soon as one queued effect does something - any non-special effect, or
+    /// a special type that is implemented - the normal consumption path runs, so this cannot be used
+    /// to farm an effect for free.
+    /// </remarks>
+    private static bool IsPureNoOpCast(List<(BaseUnit target, SkillEffect effect)> effectsToApply)
+    {
+        var sawSpecial = false;
+
+        foreach (var (_, effect) in effectsToApply)
+        {
+            if (effect.Template is not SpecialEffect special)
+                return false;
+            if (SpecialEffect.IsImplemented(special.SpecialEffectTypeId))
+                return false;
+            sawSpecial = true;
+        }
+
+        return sawSpecial;
+    }
+
     public void ApplyEffects(BaseUnit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
     {
         if (caster is not Unit unit)
@@ -1291,7 +1328,7 @@ public class Skill
         // Using only lastAppliedEffect breaks multi-effect skills: farmer's pouch (23136) applies
         // GainLootPack (consume_source_item=t) then a conditional BuffEffect (consume=f). With a
         // life-skill buff active the buff is last → loot granted, purse never removed.
-        if (effectsToApply.Count > 0 && player != null)
+        if (effectsToApply.Count > 0 && player != null && !IsPureNoOpCast(effectsToApply))
         {
             var consumeSource = false;
             var sourceConsumeCount = 0;
@@ -1568,12 +1605,16 @@ public class Skill
 
         if (caster is Character character)
         {
-            var laborCost = Template.ConsumeLaborPower;
+            // A cast can do the work more than once - synthesis charges per infusion fed - so the
+            // skill's cost is per unit and the effect says how many units it handled.
+            var laborCost = Template.ConsumeLaborPower * Math.Max(1, LaborUnits);
             // Adjust labor cost if needed
             if (character.Actability.Actabilities.TryGetValue((byte)Template.ActabilityGroupId, out var actAbility))
             {
                 laborCost = (int)Math.Round(laborCost * actAbility.GetLaborCostMultiplier());
             }
+
+            laborCost = Math.Min(laborCost, short.MaxValue);
 
             // Lower cap at 1
             if (Template.ConsumeLaborPower > 0 && laborCost < 1)

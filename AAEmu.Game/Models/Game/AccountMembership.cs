@@ -5,7 +5,7 @@ namespace AAEmu.Game.Models.Game;
 /// <see cref="AccountAttributeKind.AccountBuff"/> attribute as a paid membership.
 /// </summary>
 /// <remarks>
-/// Read out of x2game-dev.dll at rva 0x154f00, which is the whole of the client's membership
+/// Client membership layout: the whole of the client's membership
 /// detection:
 /// <code>
 /// cmp dword ptr [rdx], 2      ; kind == AccountBuff

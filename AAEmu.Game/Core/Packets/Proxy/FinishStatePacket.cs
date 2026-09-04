@@ -83,7 +83,7 @@ public class FinishStatePacket() : GamePacket(PPOffsets.FinishStatePacket, 2)
                     AppConfiguration.Instance.Account?.ForceMaxPremiumGrade,
                     PremiumGameData.Instance.MaxGradeId,
                     Connection.Characters.Count);
-                // Wire format verified against x2game-dev.dll: the serializer at rva 0xc61e50 reads
+                // Wire format: the serializer reads
                 // {int32 point, uint8 oldPg, uint8 pg} - point through the int32 vtable slot 0xA0, both
                 // grades through the one-byte slot 0x90 - so this packet is shaped correctly. Nothing is
                 // in flight at the handshake, so the old grade IS the current one; claiming a transition

@@ -79,7 +79,7 @@ public static class WorldIntegration
     }
 
     private readonly record struct PendingZoneNpc(
-        uint ZoneId, uint BcId, uint TemplateId, float X, float Y, float Z, float ZRot, float Scale);
+        uint ZoneId, uint InstanceId, uint BcId, uint TemplateId, float X, float Y, float Z, float ZRot, float Scale);
 
     private readonly record struct WzNpcSpawnMetadata(
         uint SpawnerId,
@@ -213,12 +213,13 @@ public static class WorldIntegration
     public static Action<object> RelayCreateDoodadToZone { get; set; }
 
     /// <summary>
-    /// Zone just reached ZoneLoaded — flush World-authored doodads for this zone key.
+    /// Zone just reached ZoneLoaded — flush World-authored doodads for this zone copy.
+    /// Args: zoneId, instanceId.
     /// </summary>
-    public static Action<uint> NotifyZoneReadyForDoodads { get; set; }
+    public static Action<uint, uint> NotifyZoneReadyForDoodads { get; set; }
 
-    /// <summary>Replay World-owned gimmicks for the Zone that just loaded or reconnected.</summary>
-    public static Action<uint> NotifyZoneReadyForGimmicks { get; set; }
+    /// <summary>Replay World-owned gimmicks for the Zone that just loaded or reconnected. Args: zoneId, instanceId.</summary>
+    public static Action<uint, uint> NotifyZoneReadyForGimmicks { get; set; }
 
     /// <summary>
     /// Character crossed zone keys under ZoneAuthority: hand off presence (old→remove, new→UnitState).
@@ -226,13 +227,44 @@ public static class WorldIntegration
     /// </summary>
     public static Func<uint, uint, uint, byte[], bool> RelayCharacterZoneHandoff { get; set; }
 
-    /// <summary>Replay World-owned housing for the Zone that just loaded or reconnected.</summary>
-    public static Action<uint> NotifyZoneReadyForHousing { get; set; }
+    /// <summary>Replay World-owned housing for the Zone that just loaded or reconnected. Args: zoneId, instanceId.</summary>
+    public static Action<uint, uint> NotifyZoneReadyForHousing { get; set; }
 
     /// <summary>
     /// when race starters (Nuian 179, Firran 184, …) have no matching process.
     /// </summary>
     public static Func<uint, bool> IsZoneLoaded { get; set; }
+
+    /// <summary>True when a ZoneLoaded host exists for this dungeon copy.</summary>
+    public static Func<uint, uint, bool> IsZoneInstanceLoaded { get; set; }
+
+    /// <summary>Seconds <c>DungeonLoaderTask</c> waits for ZoneLoaded after starting a ZoneHost.</summary>
+    public static int ZoneHostReadyTimeoutSeconds { get; set; } = 120;
+
+    /// <summary>
+    /// When true, <c>DungeonLoaderTask</c> starts a ZoneHost and aborts immediately if that process
+    /// does not stay running. When false, it waits for a host launched elsewhere (Zone Manager).
+    /// </summary>
+    public static bool ZoneHostSpawnEnabled { get; set; }
+
+    /// <summary>
+    /// Start an <c>AAEmu.ZoneHost</c> process for a dungeon world. False if the host was not started.
+    /// </summary>
+    public static Func<Models.Game.World.WorldInstance, bool> TryStartInstanceZoneHost { get; set; }
+
+    /// <summary>Stop the ZoneHost process started for this world instance id.</summary>
+    public static Action<uint> StopInstanceZoneHost { get; set; }
+
+    /// <summary>
+    /// Claim a pre-warmed WorldInstance + ZoneHost for <paramref name="worldTemplateName"/>.
+    /// Owner is party id when in a party, otherwise character id. Null when the pool is empty/disabled.
+    /// </summary>
+    public static Func<string, uint, Models.Game.World.WorldInstance> TryClaimWarmDungeonWorld { get; set; }
+
+    /// <summary>
+    /// After a warm ZoneHost is up (and preferably ZoneLoaded), spawn Game dungeon content once.
+    /// </summary>
+    public static Action<Models.Game.World.WorldInstance> PreSpawnWarmDungeonContent { get; set; }
 
     /// <summary>
     /// Supplied by AAEmu.World so the shared Game Web API does not depend on the World executable.
@@ -450,8 +482,8 @@ public static class WorldIntegration
 
     public static Action<uint> OnPlayerLeave { get; set; }
 
-    /// <summary>Zone spawned an NPC — mirror into Game for SCUnitState. Args: zoneId, bcId, tpl, x,y,z,zRot,scale (zone-local xy). True if mirrored (or already present).</summary>
-    public static Func<uint, uint, uint, float, float, float, float, float, bool> OnZoneNpcSpawn { get; set; }
+    /// <summary>Zone spawned an NPC — mirror into Game for SCUnitState. Args: zoneId, instanceId, bcId, tpl, x,y,z,zRot,scale (zone-local xy). True if mirrored (or already present).</summary>
+    public static Func<uint, uint, uint, uint, float, float, float, float, float, bool> OnZoneNpcSpawn { get; set; }
 
     /// <summary>Zone removed an NPC — drop Game mirror + SCUnitsRemoved (no loot).</summary>
     public static Action<uint> OnZoneNpcRemove { get; set; }
@@ -594,10 +626,11 @@ public static class WorldIntegration
 
     /// <summary>
     /// Zone TCP lost. Return only clients whose Transform.ZoneId matches
-    /// <paramref name="zoneId"/> to character select. Sibling zones remain available.
+    /// <paramref name="zoneId"/> (and instance when <paramref name="instanceId"/> is set)
+    /// to character select. Sibling zones remain available.
     /// When zoneId is 0 (unknown), recover all in-world clients.
     /// </summary>
-    public static void NotifyZoneLost(string reason, uint zoneId = 0)
+    public static void NotifyZoneLost(string reason, uint zoneId = 0, uint instanceId = 0)
     {
         if (!ZoneAuthority)
             return;
@@ -610,9 +643,9 @@ public static class WorldIntegration
         }
 
         Logger.Error(
-            "Zone lost ({0}) zoneId={1} — returning clients in that zone to character select",
-            reason, zoneId);
-        ReturnInWorldClientsToCharacterSelect(zoneId, reason);
+            "Zone lost ({0}) zoneId={1} instanceId={2} — returning clients in that copy to character select",
+            reason, zoneId, instanceId);
+        ReturnInWorldClientsToCharacterSelect(zoneId, reason, instanceId);
     }
 
     public static byte[] BuildWzUnitStateBody(Character character)
@@ -1079,7 +1112,8 @@ public static class WorldIntegration
 
     /// <param name="onlyZoneId">0 = all in-world clients; otherwise only that Transform.ZoneId.</param>
     /// <param name="reason">Failure description written to the recovery log.</param>
-    public static void ReturnInWorldClientsToCharacterSelect(uint onlyZoneId, string reason)
+    /// <param name="onlyInstanceId">When non-zero with a zone filter, only that world copy.</param>
+    public static void ReturnInWorldClientsToCharacterSelect(uint onlyZoneId, string reason, uint onlyInstanceId = 0)
     {
         foreach (var con in GameConnectionTable.Instance.GetConnections())
         {
@@ -1087,6 +1121,12 @@ public static class WorldIntegration
                 continue;
             if (onlyZoneId != 0 && con.ActiveChar.Transform?.ZoneId != onlyZoneId)
                 continue;
+            if (onlyInstanceId != 0)
+            {
+                var copyId = con.ActiveChar.ParentWorld?.Id ?? con.ActiveChar.Transform?.InstanceId ?? 0;
+                if (copyId != onlyInstanceId)
+                    continue;
+            }
             try
             {
                 if (!EnterWorldManager.Instance.ReturnToCharacterSelect(con, reason))
@@ -1107,10 +1147,19 @@ public static class WorldIntegration
 
     /// <summary>
     /// WorldInstance that owns a zone. Mirrors and doodad pushes must target that instance,
-    /// not always MainWorld.
+    /// not always MainWorld. Non-zero <paramref name="instanceId"/> selects a dungeon copy.
     /// </summary>
-    public static Models.Game.World.WorldInstance ResolveWorldForZone(uint zoneId)
+    public static Models.Game.World.WorldInstance ResolveWorldForZone(uint zoneId, uint instanceId = 0)
     {
+        if (instanceId != 0)
+        {
+            // Do not call GetWorld — it Fatals on a miss. Copies join after World.Id exists,
+            // but continent Join iid 0 / a stale iid must fall through quietly.
+            var byId = WorldManager.Instance.GetWorlds().FirstOrDefault(w => w.Id == instanceId);
+            if (byId != null)
+                return byId;
+        }
+
         var main = WorldManager.Instance.MainWorld;
         if (zoneId == 0)
             return main;
@@ -1121,7 +1170,14 @@ public static class WorldIntegration
         if (main?.Template?.Id == template.Id)
             return main;
 
-        return Array.Find(WorldManager.Instance.GetWorlds(), w => w.Template?.Id == template.Id);
+        var matches = WorldManager.Instance.GetWorlds()
+            .Where(w => w.Template?.Id == template.Id)
+            .ToArray();
+        if (matches.Length == 1)
+            return matches[0];
+        if (instanceId != 0)
+            return matches.FirstOrDefault(w => w.Id == instanceId);
+        return matches.FirstOrDefault(w => w.Id == WorldManager.DefaultInstanceId) ?? matches.FirstOrDefault();
     }
 
     /// <summary>
@@ -1143,14 +1199,14 @@ public static class WorldIntegration
     /// Create a display-only Game NPC so clients get SCUnitState via region interest.
     /// AI is frozen — zone owns sim. XY from ZWSpawnNpc are zone-local; convert via zone origin.
     /// </summary>
-    public static bool MirrorZoneNpcSpawn(uint zoneId, uint bcId, uint templateId, float x, float y, float z, float zRot, float scale)
+    public static bool MirrorZoneNpcSpawn(uint zoneId, uint instanceId, uint bcId, uint templateId, float x, float y, float z, float zRot, float scale)
     {
         if (!ZoneAuthority || bcId == 0 || templateId == 0)
             return false;
 
         try
         {
-            var world = ResolveWorldForZone(zoneId);
+            var world = ResolveWorldForZone(zoneId, instanceId);
             if (world == null)
             {
                 // Before CreateStaticInstances there is no instance to mirror into; queue and
@@ -1158,15 +1214,15 @@ public static class WorldIntegration
                 // never instanced, and queueing would grow without bound.
                 if (WorldManager.Instance.MainWorld == null)
                 {
-                    PendingZoneNpcs.Enqueue(new PendingZoneNpc(zoneId, bcId, templateId, x, y, z, zRot, scale));
+                    PendingZoneNpcs.Enqueue(new PendingZoneNpc(zoneId, instanceId, bcId, templateId, x, y, z, zRot, scale));
                     if (PendingZoneNpcs.Count <= 3 || PendingZoneNpcs.Count % 100 == 0)
                         Logger.Warn("MirrorZoneNpcSpawn: no world instance yet — queued bc={0} tpl={1} (pending={2})", bcId, templateId, PendingZoneNpcs.Count);
                     return false;
                 }
 
                 Logger.Warn(
-                    "MirrorZoneNpcSpawn: no world instance owns zoneId={0} — dropping bc={1} tpl={2}",
-                    zoneId, bcId, templateId);
+                    "MirrorZoneNpcSpawn: no world instance owns zoneId={0} instanceId={1} — dropping bc={2} tpl={3}",
+                    zoneId, instanceId, bcId, templateId);
                 return false;
             }
 
@@ -1323,7 +1379,7 @@ public static class WorldIntegration
         var failed = 0;
         while (PendingZoneNpcs.TryDequeue(out var p))
         {
-            if (MirrorZoneNpcSpawn(p.ZoneId, p.BcId, p.TemplateId, p.X, p.Y, p.Z, p.ZRot, p.Scale))
+            if (MirrorZoneNpcSpawn(p.ZoneId, p.InstanceId, p.BcId, p.TemplateId, p.X, p.Y, p.Z, p.ZRot, p.Scale))
                 flushed++;
             else
                 failed++;

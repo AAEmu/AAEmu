@@ -60,7 +60,9 @@ public class FeaturesConfigTests
             fset.Set(Enum.Parse<Feature>(name, true), enabled);
 
         await Assert.That(fset.ToString()).IsEqualTo(
-            "13 00 00 00 d0 09 21 00 00 0c 00 88 28 00 00 00 " +
-            "00 80 0a 10 00 80 80 00 04 34 00 10 01 e0 00");
+            // All bits on except fset_7_2_unknown (snow), restriction/moderation/dev-security switches,
+            // and scalar bytes 1/8/10/26 (FeaturesManager fills those from level caps at boot).
+            "57 00 00 00 f4 9f 61 02 00 4e 00 fe bf cf 2d 00 00 ff bf " +
+            "f5 7f 9e b7 00 ec bf 00 d0 79 f2 02");
     }
 }

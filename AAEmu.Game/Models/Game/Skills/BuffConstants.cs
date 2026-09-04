@@ -11,7 +11,7 @@ public enum BuffConstants : uint
     // Native NPC spawn-state guard. Zone removes this when spawning.lua is ready to leave spawn.
     ZoneNpcSpawnProtection = 815,
     NpcReturn = 550, // NPC returning home
-    WeakenedBody = 1128, // PvE death penalty
+        WeakenedBody = 1128, // PvE death penalty
     RespawnCooldown = 2385, // 5 min cooldown after temple-revive
     WarZoneLeech = 4424, // PvP death penalty in War zones
     Cloth4P = 713,

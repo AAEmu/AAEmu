@@ -39,6 +39,17 @@ public class ItemTemplate
     public bool Disenchantable { get; set; }
     public int LivingPointPrice { get; set; }
     public byte CharGender { get; set; }
+    /// <summary>
+    /// Highest <c>enchant_scale_ratios</c> row this item can be tempered to (items.max_enchant_scale_id).
+    /// 0 means the item is not temperable.
+    /// </summary>
+    public byte MaxEnchantScaleId { get; set; }
+
+    /// <summary>
+    /// Highest <c>item_grades.id</c> this item may be regraded to (items.max_enchantable_grade).
+    /// -1, the value most items carry, means no ceiling beyond the top of the grade table.
+    /// </summary>
+    public int MaxEnchantableGrade { get; set; } = -1;
     public uint SpecialtyZoneId { get; set; }
     // Defaults to the house commission rate until the template is loaded from items.
     public AuctionSettings AuctionSettings { get; set; } = new(0, 0, 0, 0, true);

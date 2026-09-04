@@ -18,6 +18,12 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
 
     public override void Execute()
     {
+        if (!CashShopManager.Instance.IsOpenForPlayers)
+        {
+            FailBuy(ErrorMessageType.Maintenance);
+            return;
+        }
+
         #region check_costs
         var costs = new uint[(byte)CashShopCurrencyType.Max];
         foreach (var sku in shoppingCart.Select(purchase => purchase.Sku))
@@ -265,6 +271,7 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
         }
         #endregion
     }
+
 
     /// <summary>Sends a failure reply and an optional separate chat notification.</summary>
     private void FailBuy(

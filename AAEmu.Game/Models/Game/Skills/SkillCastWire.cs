@@ -51,6 +51,20 @@ public static class SkillCastWire
                 stream.Write(ig.SupportItemId);
                 stream.Write(ig.AutoUseAaPoint);
                 break;
+            // Synthesis echoes its material slots straight back. The flag byte above has already
+            // announced type 8, so this body is not optional: leaving it out makes the client read the
+            // rest of the cast packet - the cast times among them - as material ids, which costs the
+            // cast bar and the animation with it.
+            case SkillObjectType.ItemEvolvingMaterials when skillObject is SkillObjectItemEvolvingMaterials em:
+                var materialIds = em.MaterialItemIds ?? [];
+                stream.Write((ushort)(materialIds.Length * sizeof(ulong)));
+                foreach (var materialId in materialIds)
+                    stream.Write(materialId);
+                stream.Write(em.AutoUseAaPoint);
+                break;
+            case SkillObjectType.ItemChangeMapping when skillObject is SkillObjectItemChangeMapping cm:
+                stream.Write(cm.MappingId);
+                break;
         }
 
         stream.Write((byte)0); // inputDirection

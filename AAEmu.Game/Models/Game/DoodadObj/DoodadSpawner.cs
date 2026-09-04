@@ -54,6 +54,12 @@ public class DoodadSpawner : Spawner<Doodad>
     public List<uint> RelatedIds { get; set; }
 
     /// <summary>
+    /// Initial doodad phase from <c>doodad_spawns.json</c> (trap cycles often start hidden).
+    /// </summary>
+    [JsonProperty("funcGroupId")]
+    public uint FuncGroupId { get; set; }
+
+    /// <summary>
     /// Overrides Doodad template for respawns
     /// </summary>
     public uint RespawnDoodadTemplateId { get; set; }
@@ -145,12 +151,16 @@ public class DoodadSpawner : Spawner<Doodad>
         var newUnitId = RespawnDoodadTemplateId > 0 ? RespawnDoodadTemplateId : UnitId;
         RespawnDoodadTemplateId = 0; // reset it after 1 spawn
 
-        var doodad = DoodadManager.Instance.Create(ParentWorld, objId, newUnitId);
+        var overridePhase = FuncGroupId != 0;
+        var doodad = DoodadManager.Instance.Create(ParentWorld, objId, newUnitId, null, overridePhase);
         if (doodad == null)
         {
             Logger.Warn($"Doodad Temaplte {newUnitId}, used in Spawn() does not exist in db");
             return null;
         }
+
+        if (overridePhase)
+            doodad.FuncGroupId = FuncGroupId;
 
         doodad.Spawner = this;
         doodad.Transform.ApplyWorldSpawnPosition(Position);
@@ -169,6 +179,8 @@ public class DoodadSpawner : Spawner<Doodad>
 
         Last = doodad;
         DoSpawn();// schedule check and spawn
+        if (overridePhase)
+            doodad.InitDoodad();
         return doodad;
     }
 

@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Items;
@@ -53,7 +54,37 @@ public static class EquipmentSerializer
             }
         }
 
+        // Per-slot equipment flags: bit i says the synthesis effects of the piece in slot i count
+        // toward the wearer's attributes. The client unpacks the word into one byte per slot and
+        // asks that byte last, after it has already established the piece has a synthesis pool at
+        // all - and skips the whole rolled-attribute contribution when it reads zero. Everything
+        // else about the slot keeps working, which is why the character sheet totalled the piece's
+        // own stats, its rune and its lunagems correctly and left only the synthesis lines out.
+        //
+        // An occupancy mask is not the same thing and was rightly rejected before: a piece with no
+        // rolled attributes has nothing to switch on. Only pieces actually carrying effects are
+        // marked here.
         if (baseUnitType == BaseUnitType.Character)
-            stream.Write(unit.UnitStateEquipmentFlags);
+            stream.Write(BuildRndAttrActivationMask(unit));
+    }
+
+    /// <summary>
+    /// One bit per equipment slot, set where the piece in it carries synthesis effects that should
+    /// count toward the wearer's attributes.
+    /// </summary>
+    /// <remarks>
+    /// Also published on its own packet when a worn piece gains, loses or swaps an effect, since the
+    /// unit state is not sent again for a change made in place.
+    /// </remarks>
+    public static ulong BuildRndAttrActivationMask(Unit unit)
+    {
+        ulong slotFlags = 0;
+        for (var i = 0; i < SlotCount; i++)
+        {
+            if (unit.Equipment.GetItemBySlot(i) is EquipItem equipped && equipped.UsedRndAttrGroupIds.Any())
+                slotFlags |= 1UL << i;
+        }
+
+        return slotFlags;
     }
 }

@@ -74,6 +74,7 @@ public class BattlefieldGameData : Singleton<BattlefieldGameData>, IGameDataLoad
                         BattlefieldId = battlefieldId,
                         TimeEnding = reader.GetInt32("time_ending"),
                         TimePlaying = reader.GetInt32("time_playing"),
+                        TimeReady = reader.GetInt32("time_ready"),
                         VictoryScore = reader.GetInt32("victory_score")
                     };
 

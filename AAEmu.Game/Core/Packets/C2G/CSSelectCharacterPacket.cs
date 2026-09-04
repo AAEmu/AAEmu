@@ -102,7 +102,8 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
             Connection.SendPacket(new SCIncreasedFavoritePortalLimitPacket());
             Connection.SendPacket(new SCWorldRestrictOwnerChangePacket(false));
             Connection.SendPacket(new SCPlayerGameDataPacket(character));
-            Connection.SendPacket(new SCInstanceVisitCountsPacket());
+            Connection.SendPacket(new SCInstanceVisitCountsPacket(
+                IndunManager.Instance.GetVisitCountRecords(character.Id)));
             Connection.SendPacket(new SCBattleFieldRecordsPacket());
             Connection.SendPacket(new SCFavoriteCraftsPacket(character.FavoriteCrafts.GetWireCraftTypes()));
             Connection.SendPacket(new SCCharacterPrivacyStatusUpdatePacket(true, character.PrivacyStatus));

@@ -63,7 +63,7 @@ public class InstantGameManager : Singleton<InstantGameManager>, IInstantGameMan
         _log.Trace("[Matchmaking] Added player " + character.Name + " to matchmaking queue for battlefield " +
                    battlefieldId);
 
-        character.SendPacket(new SCAppliedToInstantGamePacket(battlefieldId, corps));
+        character.SendPacket(new SCAppliedToInstantGamePacket(battlefieldId));
     }
 
     public void WithdrawFromBattlefield(Character character)

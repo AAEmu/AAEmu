@@ -1,22 +1,36 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.InstantGame;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// TODO: nothing constructs this packet yet.
+/// Cancel matching queue. Wire layout and branch rules: <see cref="InstantGameWireContract"/>.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
-public class SCCancelInstantGamePacket(ushort unnamed1, ushort errorMessage, bool fromHomeland) : GamePacket(SCOffsets.SCCancelInstantGamePacket, 1)
+public class SCCancelInstantGamePacket : GamePacket
 {
+    private readonly ushort _errorMessage;
+    private readonly byte _fromHomeland;
+
+    private SCCancelInstantGamePacket(ushort errorMessage, byte fromHomeland)
+        : base(InstantGameWireContract.OpcodeCancel, 1)
+    {
+        _errorMessage = errorMessage;
+        _fromHomeland = fromHomeland;
+    }
+
+    /// <summary>Player left queue or server withdrew — clears Instance apply/queue UI.</summary>
+    public static SCCancelInstantGamePacket ClearQueue() =>
+        new(0, InstantGameWireContract.CancelBranchClearQueue);
+
+    /// <summary>Queue ended with a client error message id (Instance error branch).</summary>
+    public static SCCancelInstantGamePacket WithError(ushort errorMessageId) =>
+        new(errorMessageId, InstantGameWireContract.CancelBranchErrorOnly);
+
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(unnamed1);
-        stream.Write(errorMessage);
-        stream.Write(fromHomeland);
+        stream.Write(_errorMessage);
+        stream.Write(_fromHomeland);
         return stream;
     }
 }

@@ -4,12 +4,9 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// TODO: nothing constructs this packet yet.
+/// Updates SquadBase isStarted / gameWorld. <c>gameStarted</c> writes isStarted; <c>destination</c>
+/// writes gameWorld. Sent true on match enter and false when leaving the instance.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
 public class SCSquadSetGameInfoPacket(sbyte destination, bool gameStarted) : GamePacket(SCOffsets.SCSquadSetGameInfoPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)

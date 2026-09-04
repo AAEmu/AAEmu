@@ -798,5 +798,8 @@ public enum ErrorMessageType : short
     FriendRejectFailed = 1308,										// "friend_reject_failed";
     FriendAcceptInfoInvalid = 1309,									// "friend_accept_info_invalid";
     FriendRequestInfoInvalid = 1310,									// "friend_request_info_invalid";
+    // 10.0.2.13 ids present in the client's enum_error_messages but missing here
+    NotEnoughGearScore = 1104,									// "not_enough_gear_score";
+    TargetExpeditionGearScore = 884,							// "target_expedition_gear_score";
     BlockUserMax = 1311												// "block_user_max";
 }

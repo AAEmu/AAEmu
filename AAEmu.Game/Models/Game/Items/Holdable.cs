@@ -17,6 +17,7 @@ public class Holdable
     public int Angle { get; set; }
     public int EnchantedDps1000 { get; set; }
     public uint SlotTypeId { get; set; }
+    public int GearScoreMultiplier { get; set; }
     public int DamageScale { get; set; }
     public Formula FormulaDps { get; set; }
     public Formula FormulaMDps { get; set; }

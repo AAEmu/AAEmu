@@ -842,6 +842,25 @@ public partial class Character : Unit, ICharacter
     public CharacterCraft Craft { get; set; }
     public uint SubZoneId { get; set; } // понадобилось хранить для составления точек Memory Tome (Recall)
     public int AccessLevel { get; set; }
+
+    private int? _gearScoreCache;
+
+    /// <summary>
+    /// Server-side gear score (sum over equipped pieces, client's own formula set).
+    /// Cached until the equipment container changes.
+    /// </summary>
+    public int GearScore
+    {
+        get
+        {
+            _gearScoreCache ??= GearScoreCalculator.Evaluate(this);
+            return _gearScoreCache.Value;
+        }
+    }
+
+    /// <summary>Called when equipment changes; recomputes gear score on next read.</summary>
+    public void InvalidateGearScore() => _gearScoreCache = null;
+
     public WorldSpawnPosition LocalPingPosition { get; set; } // added as a GM command helper
     private ConcurrentDictionary<uint, DateTime> _hostilePlayers { get; set; }
     public bool IsRiding { get; set; }
@@ -917,7 +936,15 @@ public partial class Character : Unit, ICharacter
             if (_isOnline == value) return;
             // TODO - GUILD STATUS CHANGE
             FriendMananger.Instance.SendStatusChange(this, true, value);
-            if (!value) TeamManager.Instance.SetOffline(this);
+            if (!value)
+            {
+                TeamManager.Instance.SetOffline(this);
+                SquadManager.Instance.SetPresence(this, online: false);
+            }
+            else
+            {
+                SquadManager.Instance.SetPresence(this, online: true);
+            }
             _isOnline = value;
         }
     }

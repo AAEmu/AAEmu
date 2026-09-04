@@ -31,6 +31,40 @@ public static class BuffCreatedWire
         return true;
     }
 
+    /// <summary>
+    /// Only remove buffs whose Create was actually sent. A Remove for a unit/index
+    /// Zone never Created is not a no-op — it can take the Zone process down.
+    /// </summary>
+    public static bool ShouldRelayRemoved(Buff buff, out string reason)
+    {
+        if (buff == null)
+        {
+            reason = "buff is null";
+            return false;
+        }
+
+        if (buff.ZoneAuthored)
+        {
+            reason = "zone-authored";
+            return false;
+        }
+
+        if (!buff.RelayedToZone)
+        {
+            reason = "create was not relayed";
+            return false;
+        }
+
+        if (!ObjectIdManager.IsZoneUnitId(buff.Owner?.ObjId ?? 0))
+        {
+            reason = $"owner ObjId {buff.Owner?.ObjId ?? 0} is not a zone unit id";
+            return false;
+        }
+
+        reason = null;
+        return true;
+    }
+
     public static void Write(PacketStream stream, Buff buff)
     {
         stream.Write(buff.SkillCaster);

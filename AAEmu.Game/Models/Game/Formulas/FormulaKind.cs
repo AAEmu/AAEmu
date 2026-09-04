@@ -47,4 +47,21 @@ public enum FormulaKind
     EloRatingCalculation = 43,
     BlessUthstinConsumeItemNum = 44,
     BlessUthstinExtendMaxStat = 45,
+
+    /// <summary>
+    /// Coin charged per tempering step. Variables: item_level, scale_cost (the target rung's cost),
+    /// equip_slot_enchant_cost (the slot's own factor) and enchant_scale_cost_mul.
+    /// </summary>
+    EnchantScaleCost = 59,
+    // 10.0.2.13 gear-score formulas (formulas table ids)
+    GearScoreArmor = 56,
+    GearScoreAccessory = 57,
+
+    /// <summary>
+    /// Coin charged per synthesis attempt. Variables: item_evolving_value (the price already totalled
+    /// across the grades the experience travels, each at its own gold_mul), item_level, and
+    /// item_evolving_cost_mul - which is unit attribute 223 on the caster, a per-mille discount, not
+    /// anything off the pool.
+    /// </summary>
+    ItemEvolvingCost = 64,
 };
