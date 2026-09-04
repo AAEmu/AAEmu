@@ -1306,7 +1306,12 @@ public class WorldManager(
                 if (stuff is Npc npc && npc.IsZoneMirror)
                     character.ReleaseMirrorNpcSlot(npc.ObjId);
                 if (stuff is Slave slave)
-                    character.ReleaseSlaveSlot(slave.ObjId);
+                {
+                    // Keeps exit-band eligibility for a hull already streamed (230 m after a
+                    // cinema must repaint, not wait for a fresh 225 m entry).
+                    slave.ResendVisibleObject(character);
+                    continue;
+                }
                 stuff.AddVisibleObject(character);
             }
         }

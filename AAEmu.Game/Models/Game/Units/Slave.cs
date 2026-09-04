@@ -723,6 +723,28 @@ public class Slave : Unit
     }
 
     /// <summary>
+    /// Cinema / teleport resend. The client dropped what it had, so the slot is released and
+    /// the hull is sent again — at exit-band eligibility when it was already streamed and is
+    /// still inside that band, otherwise through the normal enter-band path.
+    /// </summary>
+    public void ResendVisibleObject(Character character)
+    {
+        if (character == null)
+            return;
+
+        var repaint = character.ShouldRepaintStreamedSlave(this);
+        character.ReleaseSlaveSlot(ObjId);
+        if (!repaint)
+        {
+            AddVisibleObject(character);
+            return;
+        }
+
+        SendUnitStateTo(character);
+        base.AddVisibleObject(character);
+    }
+
+    /// <summary>
     /// Hull SCUnitState + points + slave-state + faction. Marks the character's slave stream
     /// slot. Does not walk children.
     /// </summary>
