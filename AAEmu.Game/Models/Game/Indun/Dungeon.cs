@@ -191,6 +191,16 @@ public class Dungeon : IPreparedIndunInstance
     /// <param name="character"></param>
     public bool QueuePlayer(Character character)
     {
+        if (!CanQueuePlayer(character))
+        {
+            if (character != null)
+            {
+                Logger.Info($"[{World}] Player {character.Name} did too many dungeon attempts.");
+                character.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
+            }
+            return false;
+        }
+
         if (EnterRequests.Contains(character))
         {
             character.SendPacket(new SCProcessingInstancePacket((int)_zoneInstanceId.ZoneId));
@@ -220,6 +230,21 @@ public class Dungeon : IPreparedIndunInstance
             EnterRequests.Add(character);
         }
         return true;
+    }
+
+    /// <summary>
+    /// Dry daily-entry check. Already-queued or already-charged members of this copy pass.
+    /// </summary>
+    public bool CanQueuePlayer(Character character)
+    {
+        if (character == null)
+            return false;
+        if (EnterRequests.Contains(character) || _chargedEntryIds.Contains(character.Id))
+            return true;
+        return IndunMatchEnterRules.CanAdmit(
+            alreadyChargedThisCopy: false,
+            dailyEntryAllowed: IndunManager.Instance.CheckEntryAttemptCount(
+                character.Id, GetZoneGroupId, _indunZone, false));
     }
 
     /// <summary>

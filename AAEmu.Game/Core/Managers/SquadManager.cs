@@ -30,6 +30,7 @@ public interface ISquadManager : IInitializable
     void ClearWaitingFor(Character character);
     void NotifyGameEnter(Character character);
     void NotifyGameLeave(Character character);
+    void SetPresence(Character character, bool online);
     /// <summary>One-shot after login: clear a client SquadBase left over from a prior session.</summary>
     void SyncClientSquadAfterLogin(Character character);
 }
@@ -67,6 +68,30 @@ public class SquadManager : Singleton<SquadManager>, ISquadManager
         // TryWithdraw already acks when it removed queue/invite state; otherwise still clear the UI.
         if (!withdrew)
             character.SendPacket(SCCancelInstantGamePacket.ClearQueue());
+    }
+
+    public void SetPresence(Character character, bool online)
+    {
+        if (character == null)
+            return;
+
+        Squad squad;
+        ulong key;
+        lock (_lock)
+        {
+            if (!_characterSquad.TryGetValue(character.Id, out var squadId) ||
+                !_squads.TryGetValue(squadId, out squad))
+                return;
+
+            var member = squad.GetMember(character.Id);
+            if (member == null || member.Offline == !online)
+                return;
+
+            member.Offline = !online;
+            key = WorldCharKeyOf(character.Id);
+        }
+
+        BroadcastToOnlineMembers(squad, new SCConnectStateMemberPacket(unchecked((long)key), offline: !online));
     }
 
     public void NotifyGameEnter(Character character)

@@ -40,5 +40,5 @@ public class Squad
 
     public bool IsFull => MaxMembers > 0 && Members.Count >= MaxMembers;
 
-    public bool AllReady => Members.Count > 0 && Members.All(m => m.Ready);
+    public bool AllReady => SquadRules.AllOnlineReady(Members);
 }

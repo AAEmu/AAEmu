@@ -44,6 +44,29 @@ public static class SquadRules
         return true;
     }
 
+    /// <summary>
+    /// Ready is only asked of members who are still connected. An offline seat still occupies
+    /// the roster (<see cref="Squad.IsFull"/>) until the leader expels it, but it must not
+    /// freeze Register / matching.
+    /// </summary>
+    public static bool AllOnlineReady(IEnumerable<SquadMember> members)
+    {
+        if (members == null)
+            return false;
+
+        var online = 0;
+        foreach (var member in members)
+        {
+            if (member.Offline)
+                continue;
+            if (!member.Ready)
+                return false;
+            online++;
+        }
+
+        return online > 0;
+    }
+
     public static bool ShouldBeginEnterOnApply(Squad squad) =>
         squad is { EnterCommitted: false, AllReady: true };
 

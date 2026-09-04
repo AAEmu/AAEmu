@@ -165,6 +165,29 @@ public class SquadRulesTests
     }
 
     [Test]
+    public async Task OfflineMember_DoesNotBlockReadyOrRegister()
+    {
+        var squad = MakeSquad(1, 23, SquadOpenType.Public);
+        squad.Members[0].Ready = true;
+        squad.Members.Add(new SquadMember { CharacterId = 2, Name = "B", Level = 55, Ready = false, Offline = true });
+
+        await Assert.That(SquadRules.AllOnlineReady(squad.Members)).IsTrue();
+        await Assert.That(squad.AllReady).IsTrue();
+        await Assert.That(SquadRules.ShouldQueueMatchingOnApply(squad)).IsTrue();
+        await Assert.That(squad.IsFull).IsFalse();
+    }
+
+    [Test]
+    public async Task AllOffline_IsNotReady()
+    {
+        var squad = MakeSquad(1, 23, SquadOpenType.Public);
+        squad.Members[0].Ready = true;
+        squad.Members[0].Offline = true;
+        await Assert.That(SquadRules.AllOnlineReady(squad.Members)).IsFalse();
+        await Assert.That(SquadRules.ShouldQueueMatchingOnApply(squad)).IsFalse();
+    }
+
+    [Test]
     public async Task Page_RespectsPageSize()
     {
         var listed = Enumerable.Range(1, 7)

@@ -130,11 +130,16 @@ public class ItemEvolving : SpecialEffectAction
         // charging on the full amount bills the player for experience that is discarded on arrival.
         var offered = addExp + bonusExp;
         var room = ItemEnchantGameData.Instance.GetExpToMaxGrade(categoryId, equipItem.Grade, equipItem.EvolvingExp);
-        var purchased = Math.Min(offered, room);
+        if (!ItemEvolvingRules.TryPurchase(offered, room, out var purchased))
+        {
+            owner.SendErrorMessage(ErrorMessageType.ItemCannotUse);
+            skill.Cancelled = true;
+            return;
+        }
 
         // The charge is for the experience this attempt buys, and it is taken before anything is
         // granted so a player who cannot afford it keeps both their coin and their infusions.
-        var cost = EvolvingCost(owner, category, equipItem, offered);
+        var cost = EvolvingCost(owner, category, equipItem, purchased);
         if (cost > 0 && !TryCharge(owner, category, cost))
         {
             owner.SendErrorMessage(ErrorMessageType.NotEnoughMoney);
@@ -149,7 +154,7 @@ public class ItemEvolving : SpecialEffectAction
             materialItem._holdingContainer?.ConsumeItem(ItemTaskType.SkillReagents, materialItem.TemplateId, 1, materialItem);
 
         var beforeGrade = equipItem.Grade;
-        equipItem.EvolvingExp += addExp + bonusExp;
+        equipItem.EvolvingExp += purchased;
         var newAttributes = ApplyExperience(equipItem, category, categoryId);
         equipItem.IsDirty = true;
 

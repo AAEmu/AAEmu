@@ -2,6 +2,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Indun;
 using AAEmu.Game.Models.Game.Indun.Matching;
@@ -682,27 +683,41 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
         var worldInstanceId = preparedDungeon?.World?.Id ?? 0u;
         var zi = new ZoneInstanceId(session.ZoneKey, worldInstanceId);
         var now = Helpers.UnixTimeNowInMilli();
-        foreach (var ch in characters)
-        {
-            // Hand the copy over as a match already in progress rather than one being joined. A
-            // dungeon has no opening ceremony, and the join path would instead park these players on
-            // a battle field's standby screen, which also blocks them from leaving. No
-            // "waiting_instance" notice either: the copy was built while they waited on the
-            // registered screen, so entering it has nothing left to wait for.
-            ch.SendPacket(new SCInstantGameReentryPacket(zi, session.CatalogId,
-                InstantGameWireContract.NoBattleFieldType, now));
-
-            SquadManager.Instance.NotifyGameEnter(ch);
-        }
 
         // Prefer the copy matchmaking already built; fall back to a fresh request if prepare failed.
+        // Admit first: Reentry + NotifyGameEnter put the client in the playing state, so a
+        // later QueuePlayer miss (daily visit limit) would leave them there with no dungeon.
         if (preparedDungeon != null)
         {
+            var admitted = characters.Where(preparedDungeon.CanQueuePlayer).ToList();
+            foreach (var ch in characters.Where(c => !admitted.Contains(c)))
+                ch.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
+
+            if (!IndunMatchEnterRules.ShouldPublishEnter(admitted.Count))
+            {
+                preparedHandle?.Discard();
+                CleanupSession(session);
+                return;
+            }
+
+            characters = admitted;
             foreach (var ch in characters)
+            {
+                ch.SendPacket(new SCInstantGameReentryPacket(zi, session.CatalogId,
+                    InstantGameWireContract.NoBattleFieldType, now));
+                SquadManager.Instance.NotifyGameEnter(ch);
                 preparedDungeon.QueuePlayer(ch);
+            }
         }
         else
         {
+            foreach (var ch in characters)
+            {
+                ch.SendPacket(new SCInstantGameReentryPacket(zi, session.CatalogId,
+                    InstantGameWireContract.NoBattleFieldType, now));
+                SquadManager.Instance.NotifyGameEnter(ch);
+            }
+
             IndunManager.Instance.RequestDungeonInstance(leader, zone.Id, 0);
             foreach (var ch in characters.Skip(1))
                 IndunManager.Instance.RequestDungeonInstance(ch, zone.Id, 0);

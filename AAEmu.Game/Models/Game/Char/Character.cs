@@ -936,7 +936,15 @@ public partial class Character : Unit, ICharacter
             if (_isOnline == value) return;
             // TODO - GUILD STATUS CHANGE
             FriendMananger.Instance.SendStatusChange(this, true, value);
-            if (!value) TeamManager.Instance.SetOffline(this);
+            if (!value)
+            {
+                TeamManager.Instance.SetOffline(this);
+                SquadManager.Instance.SetPresence(this, online: false);
+            }
+            else
+            {
+                SquadManager.Instance.SetPresence(this, online: true);
+            }
             _isOnline = value;
         }
     }
