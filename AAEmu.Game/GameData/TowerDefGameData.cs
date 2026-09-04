@@ -26,6 +26,12 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
     /// </summary>
     private HashSet<uint> _priorityNpcTemplateIds = [];
 
+    /// <summary>
+    /// Kill-quota Npc / NpcGroup members from tower_def_prog_kill_targets (and KillNpcId).
+    /// Used with boss grade for the 1.5 km event stream — not ambient MAX priority for infantry.
+    /// </summary>
+    private HashSet<uint> _killQuotaNpcTemplateIds = [];
+
     /// <summary>Spawner template id → direct <c>Npc</c> members (portal seed unit ids).</summary>
     private Dictionary<uint, HashSet<uint>> _spawnerMemberNpcs = [];
 
@@ -42,6 +48,7 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
         _towerDefProgs = [];
         _eventSpawnerTemplateIds = [];
         _priorityNpcTemplateIds = [];
+        _killQuotaNpcTemplateIds = [];
         _spawnerMemberNpcs = [];
 
         using (var command = connection.CreateCommand())
@@ -297,8 +304,41 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
 
         _npcGroupMembers = groupMembers;
         _priorityNpcTemplateIds = priorityNpcs;
+        _killQuotaNpcTemplateIds = BuildKillQuotaNpcTemplateIds(groupMembers);
         ApplyScheduleMetadata();
         IsLoaded = true;
+    }
+
+    private HashSet<uint> BuildKillQuotaNpcTemplateIds(Dictionary<uint, HashSet<uint>> groupMembers)
+    {
+        var set = new HashSet<uint>();
+        foreach (var towerDef in _towerDefs.Values)
+        {
+            if (towerDef.KillNpcId != 0)
+                set.Add(towerDef.KillNpcId);
+            if (towerDef.Progs == null)
+                continue;
+            foreach (var prog in towerDef.Progs)
+            {
+                if (prog.KillTargets == null)
+                    continue;
+                foreach (var kill in prog.KillTargets)
+                {
+                    if (kill.KillTargetId == 0)
+                        continue;
+                    if (string.Equals(kill.KillTargetType, "Npc", StringComparison.Ordinal))
+                        set.Add(kill.KillTargetId);
+                    else if (string.Equals(kill.KillTargetType, "NpcGroup", StringComparison.Ordinal)
+                             && groupMembers.TryGetValue(kill.KillTargetId, out var members))
+                    {
+                        foreach (var id in members)
+                            set.Add(id);
+                    }
+                }
+            }
+        }
+
+        return set;
     }
 
     /// <summary>
@@ -396,6 +436,10 @@ public class TowerDefGameData : Singleton<TowerDefGameData>, IGameDataLoader
     /// </summary>
     public bool IsTowerDefEventNpc(uint npcTemplateId) =>
         IsLoaded && npcTemplateId != 0 && _priorityNpcTemplateIds.Contains(npcTemplateId);
+
+    /// <summary>True when compact lists this NPC as a tower kill-quota target (Lusca 13703).</summary>
+    public bool IsTowerDefKillQuotaNpc(uint npcTemplateId) =>
+        IsLoaded && npcTemplateId != 0 && _killQuotaNpcTemplateIds.Contains(npcTemplateId);
 
     /// <summary>
     /// Direct <c>Npc</c> members of a tower portal/wave spawner template (e.g. 9846 → 8828).

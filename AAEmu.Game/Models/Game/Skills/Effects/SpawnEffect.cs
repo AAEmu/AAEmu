@@ -1,12 +1,13 @@
-﻿using AAEmu.Game.Core.Packets;
+﻿using System.Numerics;
+using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Managers.UnitManagers;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Effects.Enums;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
@@ -29,6 +30,32 @@ public class SpawnEffect : EffectTemplate
     public bool EnableRayCast { get; set; } = true;
 
     public override bool OnActionTime => false;
+
+    /// <summary>
+    /// spawn_effects.pos_dir: 1 = target, 2 = caster. 0/3 have no separate unit — use target then caster.
+    /// </summary>
+    public static BaseUnit ResolvePositionUnit(uint posDirId, BaseUnit caster, BaseUnit target) =>
+        posDirId switch
+        {
+            1 => target,
+            2 => caster,
+            0 or 3 => target ?? caster,
+            _ => null
+        };
+
+    /// <summary>
+    /// spawn_effects.ori_dir: 1 = target, 2 = caster. 0/3 = plot facing (keep the position unit).
+    /// Lusca army rows use ori_dir 3 with pos_dir 1 and zero offset.
+    /// </summary>
+    public static BaseUnit ResolveOrientationUnit(
+        uint oriDirId, BaseUnit caster, BaseUnit target, BaseUnit positionUnit) =>
+        oriDirId switch
+        {
+            1 => target,
+            2 => caster,
+            0 or 3 => positionUnit,
+            _ => null
+        };
 
     public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
@@ -53,20 +80,9 @@ public class SpawnEffect : EffectTemplate
                         return;
                     }
 
-                    // dir id 1 = relative to target/spawner.
-                    // dir id 2 = relative to caster.
-                    var positionRelativeToUnit = PosDirId switch
-                    {
-                        1 => target,
-                        2 => caster,
-                        _ => null
-                    };
-                    var orientationRelativeToUnit = OriDirId switch
-                    {
-                        1 => target,
-                        2 => caster,
-                        _ => null
-                    };
+                    var positionRelativeToUnit = ResolvePositionUnit(PosDirId, caster, target);
+                    var orientationRelativeToUnit = ResolveOrientationUnit(
+                        OriDirId, caster, target, positionRelativeToUnit);
 
                     if (positionRelativeToUnit == null || orientationRelativeToUnit == null)
                     {
@@ -132,18 +148,9 @@ public class SpawnEffect : EffectTemplate
             return;
         }
 
-        var positionRelativeToUnit = PosDirId switch
-        {
-            1 => target,
-            2 => caster,
-            _ => null
-        };
-        var orientationRelativeToUnit = OriDirId switch
-        {
-            1 => target,
-            2 => caster,
-            _ => null
-        };
+        var positionRelativeToUnit = ResolvePositionUnit(PosDirId, caster, target);
+        var orientationRelativeToUnit = ResolveOrientationUnit(
+            OriDirId, caster, target, positionRelativeToUnit);
         if (positionRelativeToUnit?.Transform == null || orientationRelativeToUnit?.Transform == null)
         {
             Logger.Warn($"SpawnEffect: unhandled PosDirId {PosDirId} or OriDirId {OriDirId}.");
@@ -184,6 +191,9 @@ public class SpawnEffect : EffectTemplate
         if (UseSummonerFaction && caster is Unit summoner)
             npc.Faction = summoner.Faction;
 
+        Logger.Info(
+            "SpawnEffect npc={0} world=({1:F1},{2:F1},{3:F1}) posDir={4} oriDir={5}",
+            templateId, x, y, z, PosDirId, OriDirId);
         npc.IsZoneMirror = true;
         npc.Spawn();
         if (!WorldIntegration.PublishNpcSpawn(
@@ -203,6 +213,7 @@ public class SpawnEffect : EffectTemplate
 
     /// <summary>
     /// Floor Z for ground army (Crimson balls land then emerge). Aerial Z kept for fliers.
+    /// Delegates to <see cref="TerrainFloor"/> — heightmap sample + snap caps, never GeoData.
     /// </summary>
     private float ResolveSpawnZ(BaseUnit anchor, float x, float y, float rawZ, bool canFly)
     {
@@ -223,23 +234,15 @@ public class SpawnEffect : EffectTemplate
         if (zoneId == 0)
             return rawZ;
 
-        var ground = WorldManager.Instance.GetReferenceHeight(null, x, y, rawZ, zoneId);
+        var world = anchor?.ParentWorld;
+        var ground = TerrainFloor.SampleHeightmap(world, x, y);
         if (ground <= 0f)
-            ground = WorldManager.Instance.GetHeight(zoneId, x, y, rawZ);
+            ground = TerrainFloor.SampleHeightmap(zoneId, x, y);
 
-        if (ground <= 0f)
-            return rawZ;
+        var probe = new Vector3(x, y, rawZ);
+        var overWater = TerrainFloor.TryWaterSurface(world, probe, out var waterZ);
 
-        // Only correct obvious air spawns (rift is typically +40–60 m).
-        if (rawZ > ground + 3f)
-        {
-            Logger.Debug(
-                "SpawnEffect terrain snap SubType={0} rawZ={1:F1} → ground={2:F1} @({3:F1},{4:F1})",
-                SubType, rawZ, ground, x, y);
-            return ground;
-        }
-
-        return rawZ;
+        return TerrainFloor.ChooseUnitFloorZ(rawZ, ground, overWater, waterZ, SubType);
     }
 
     /// <summary>

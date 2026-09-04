@@ -488,6 +488,8 @@ public class CharacterManager(
             return;
         }
 
+        customModel.ClearUnusedVisualRaceOverride((byte)race);
+
         name = name.NormalizeName();
         var nameValidationCode = nameManager.ValidateCharacterName(name);
         if (nameValidationCode != CharacterCreateError.Ok)

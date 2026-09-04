@@ -18,6 +18,7 @@ using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Static;
+using AAEmu.Game.Models.Game.StreamAoi;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.StaticValues;
 
@@ -37,6 +38,14 @@ public class Slave : Unit
     public uint BondingObjId { get; set; } = 0;
 
     public SlaveTemplate Template { get; set; }
+
+    /// <summary>
+    /// Sea hulls (and player Leviathan kind) use Ship 225/248. Farm haulers use Ambient.
+    /// SlaveKind equipment (sails/cannons as units) is Part: no soft unit cull. Doodad sails
+    /// are not slaves — they stay until region leave.
+    /// </summary>
+    public StreamAoiCategory StreamAoiCategory =>
+        Template?.StreamAoiCategory ?? StreamAoiCategory.Ambient;
     // public Character Driver { get; set; }
     public Character Summoner { get; set; }
     public BaseUnitType OwnerType { get; init; }
@@ -703,6 +712,49 @@ public class Slave : Unit
 
     public override void AddVisibleObject(Character character)
     {
+        if (character.CanStreamSlaveNow(this))
+            SendUnitStateTo(character);
+        else
+            character.EnqueuePendingSlave(this);
+
+        // Children (sail doodads, equipment slaves) still paint with region interest.
+        // Soft hull cull must not reverse that via RemoveVisibleObject.
+        base.AddVisibleObject(character);
+    }
+
+    /// <summary>
+    /// Cinema / teleport resend. The client dropped what it had, so the slot is released and
+    /// the hull is sent again — at exit-band eligibility when it was already streamed and is
+    /// still inside that band, otherwise through the normal enter-band path.
+    /// </summary>
+    public void ResendVisibleObject(Character character)
+    {
+        if (character == null)
+            return;
+
+        var repaint = character.ShouldRepaintStreamedSlave(this);
+        character.ReleaseSlaveSlot(ObjId);
+        if (!repaint)
+        {
+            AddVisibleObject(character);
+            return;
+        }
+
+        SendUnitStateTo(character);
+        base.AddVisibleObject(character);
+    }
+
+    /// <summary>
+    /// Hull SCUnitState + points + slave-state + faction. Marks the character's slave stream
+    /// slot. Does not walk children.
+    /// </summary>
+    public void SendUnitStateTo(Character character)
+    {
+        if (character == null || ObjId == 0)
+            return;
+        if (character.StreamedSlaveIds.ContainsKey(ObjId))
+            return;
+
         character.SendPacket(new SCUnitStatePacket(this));
         character.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
         character.SendPacket(new SCSlaveStatePacket(ObjId, TlId, Summoner?.Name ?? string.Empty, Summoner?.ObjId ?? 0, Id));
@@ -714,7 +766,7 @@ public class Slave : Unit
             character.SendPacket(new SCUnitFactionChangedPacket(
                 ObjId, Name ?? "", FactionsEnum.Invalid, Faction.Id, false));
 
-        base.AddVisibleObject(character);
+        character.MarkSlaveStreamed(this);
 
         foreach (var ati in AttachedCharacters)
         {
@@ -729,6 +781,10 @@ public class Slave : Unit
 
     public override void RemoveVisibleObject(Character character)
     {
+        character.ReleaseSlaveSlot(ObjId);
+
+        // Region leave: base walks Transform.Children (sails/cannons). Soft Ship-band cull
+        // of the selectable hull must not use this path — those doodads linger commercially.
         base.RemoveVisibleObject(character);
 
         character.SendPacket(new SCUnitsRemovedPacket([ObjId]));

@@ -1305,6 +1305,13 @@ public class WorldManager(
                 // Elf starters saw an empty world until they walked far enough for new AOI entries.
                 if (stuff is Npc npc && npc.IsZoneMirror)
                     character.ReleaseMirrorNpcSlot(npc.ObjId);
+                if (stuff is Slave slave)
+                {
+                    // Keeps exit-band eligibility for a hull already streamed (230 m after a
+                    // cinema must repaint, not wait for a fresh 225 m entry).
+                    slave.ResendVisibleObject(character);
+                    continue;
+                }
                 stuff.AddVisibleObject(character);
             }
         }

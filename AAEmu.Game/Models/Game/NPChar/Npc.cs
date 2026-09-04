@@ -17,6 +17,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Skills.Static;
+using AAEmu.Game.Models.Game.StreamAoi;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -96,6 +97,12 @@ public partial class Npc : Unit
 
     /// <summary>Set from the actor model (fly_mode or MovementId 2): keeps the spawner's Z instead of terrain height.</summary>
     public bool CanFly { get; set; }
+
+    /// <summary>
+    /// WZNpcState for this unit used zone-local XYZ. ZWUnitMovements must be converted to world
+    /// for SC even when the process default is world-on-wire.
+    /// </summary>
+    public bool ZoneSimUsesLocalCoordinates { get; set; }
 
     /// <summary>
     /// The <c>flag</c> byte of the NPC id-type block in SCUnitState (0x097).
@@ -1074,7 +1081,9 @@ public partial class Npc : Unit
     /// <summary>
     /// AAEMU_DISABLE_MIRROR_NPC=1 | AAEMU_MIRROR_NPC_MAX=N (default 50; 0=unlimited) |
     /// AAEMU_MIRROR_NPC_BURST=N (0=flush all/tick) | AAEMU_MIRROR_NPC_INTERVAL_MS (0=off) |
-    /// AAEMU_MIRROR_NPC_AOI=metres | AAEMU_MIRROR_NPC_GRACE_MS
+    /// AAEMU_MIRROR_NPC_AOI=metres (ambient enter) | AAEMU_MIRROR_NPC_GRACE_MS |
+    /// AAEMU_MIRROR_LARGE_AOI_ENTER/_EXIT | AAEMU_MIRROR_SHIP_AOI_ENTER/_EXIT |
+    /// AAEMU_MIRROR_PRIORITY_AOI (event band)
     /// </summary>
     public static readonly bool DisableMirrorNpcStreaming =
         System.Environment.GetEnvironmentVariable("AAEMU_DISABLE_MIRROR_NPC") == "1";
@@ -1082,22 +1091,41 @@ public partial class Npc : Unit
     public static readonly int MirrorNpcMaxPerCharacter = ParseMirrorNpcMax();
     public static readonly int MirrorNpcImmediateBurst = ParseMirrorNpcBurst();
 
-    /// <summary>Squared soft interest radius for mirror SC (commercial AOI, not sticky region set).</summary>
-    public static readonly float MirrorNpcAoiRadiusSq = ParseMirrorNpcAoiRadiusSq();
+    /// <summary>Ambient enter squared (legacy name). Bands live in <see cref="StreamAoiTable"/>.</summary>
+    public static float MirrorNpcAoiRadiusSq =>
+        StreamAoiTable.Band(StreamAoiCategory.Ambient).EnterSq;
+
+    /// <summary>Event-band enter squared (legacy name).</summary>
+    public static float MirrorStreamPriorityAoiRadiusSq =>
+        StreamAoiTable.Band(StreamAoiCategory.Event).EnterSq;
 
     /// <summary>
-    /// Event/tower rifts fly and land far from the player’s ambient 100 m stream radius — they still
-    /// need SCUnitState so ZW→SC movement (fly-in) is visible on the map. Default 1.5 km; override
-    /// <c>AAEMU_MIRROR_PRIORITY_AOI</c> (metres).
-    /// </summary>
-    public static readonly float MirrorStreamPriorityAoiRadiusSq = ParseMirrorStreamPriorityAoiRadiusSq();
-
-    /// <summary>
-    /// Event NPCs from loaded tower-def relationships that must paint even when ambient mirrors
-    /// filled MAX first. Returns false until <see cref="TowerDefGameData"/> has loaded.
+    /// Event hellgates stay painted for fly-in. Large sea bosses steal MAX slots but cull at 248 m.
     /// </summary>
     public bool IsMirrorStreamPriority =>
-        IsZoneMirror && TowerDefGameData.Instance.IsTowerDefEventNpc(TemplateId);
+        StreamAoiCategory is StreamAoiCategory.Event or StreamAoiCategory.Large;
+
+    public StreamAoiCategory StreamAoiCategory
+    {
+        get
+        {
+            if (!IsZoneMirror)
+                return StreamAoiCategory.Ambient;
+            if (TowerDefGameData.Instance.IsTowerDefEventNpc(TemplateId))
+                return StreamAoiCategory.Event;
+            if (StreamAoiTable.IsLargeNpc(TemplateId, Template?.ModelId ?? 0))
+                return StreamAoiCategory.Large;
+            if (Template != null
+                && UsesPriorityStreamAsKillQuotaBoss(Template.NpcGradeId)
+                && TowerDefGameData.Instance.IsTowerDefKillQuotaNpc(TemplateId))
+                return StreamAoiCategory.Large;
+            return StreamAoiCategory.Ambient;
+        }
+    }
+
+    /// <summary>Boss grades whose tower kill-quota rows use the Large (225/248 m) band.</summary>
+    public static bool UsesPriorityStreamAsKillQuotaBoss(NpcGradeType grade) =>
+        grade is NpcGradeType.BossA or NpcGradeType.BossB or NpcGradeType.BossC or NpcGradeType.BossS;
 
     private static int ParseMirrorNpcMax()
     {
@@ -1115,29 +1143,8 @@ public partial class Npc : Unit
         return int.TryParse(raw, out var n) && n >= 0 ? n : 0;
     }
 
-    private static float ParseMirrorNpcAoiRadiusSq()
-    {
-        var raw = System.Environment.GetEnvironmentVariable("AAEMU_MIRROR_NPC_AOI");
-        var metres = 100f;
-        if (float.TryParse(raw, System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture, out var n) && n >= 20f)
-            metres = n;
-        return metres * metres;
-    }
-
-    private static float ParseMirrorStreamPriorityAoiRadiusSq()
-    {
-        var raw = System.Environment.GetEnvironmentVariable("AAEMU_MIRROR_PRIORITY_AOI");
-        var metres = 1500f;
-        if (float.TryParse(raw, System.Globalization.NumberStyles.Float,
-                System.Globalization.CultureInfo.InvariantCulture, out var n) && n >= 50f)
-            metres = n;
-        return metres * metres;
-    }
-
-    /// <summary>AOI for this mirror’s soft stream (priority event NPCs use a larger radius).</summary>
-    public float MirrorStreamAoiRadiusSq =>
-        IsMirrorStreamPriority ? MirrorStreamPriorityAoiRadiusSq : MirrorNpcAoiRadiusSq;
+    /// <summary>Enter-radius squared for this mirror’s category.</summary>
+    public float MirrorStreamAoiRadiusSq => StreamAoiTable.Band(StreamAoiCategory).EnterSq;
 
     public override void AddVisibleObject(Character character)
     {
@@ -1247,16 +1254,6 @@ public partial class Npc : Unit
 
     public override void RemoveVisibleObject(Character character)
     {
-        // Soft interest leave must not despawn tower / event rifts. True despawn goes through
-        // Hide/Delete (IsVisible=false) after ZWRemove, which is the only path that should SC-remove them.
-        if (IsZoneMirror && WorldIntegration.ZoneAuthority && IsMirrorStreamPriority && IsVisible)
-        {
-            Logger.Debug(
-                "Skip soft SCUnitsRemoved for priority mirror bc={0} tpl={1} char={2}",
-                ObjId, TemplateId, character?.Name);
-            return;
-        }
-
         if (IsZoneMirror && WorldIntegration.ZoneAuthority)
             character.ReleaseMirrorNpcSlot(ObjId);
 
@@ -1676,19 +1673,15 @@ public partial class Npc : Unit
     }
 
     /// <summary>
-    /// ZoneAuthority: dedic rarely starts plot_only OnSpawn for tower stage units (e.g. skill
-    /// 15298 on tpl 8830 → plot summons 8826/8834). World runs those plots so army packs appear.
-    /// Suppresses WZ skill relay so dedic does not dual-fire. Kill: <c>AAEMU_DISABLE_ONSPAWN_PLOTS=1</c>.
-    /// Gated to priority/event mirrors — not ambient plot_only on_spawn (318 rows).
+    /// ZoneAuthority: World runs OnSpawn plot graphs on tower-priority mirrors (Crimson 15298
+    /// plot_only, Lusca 29515/29320 plot with plot_only false) so army SpawnEffects fire when
+    /// the dedic is silent. When the dedic already fires OnSpawn (e.g. Grimghast), that is the
+    /// zone path; World still suppresses WZ skill relay so this fill does not dual-start the
+    /// same graph on the zone. Gated to priority/event mirrors.
     /// </summary>
     public void CastOnSpawnPlotSkills()
     {
         if (!WorldIntegration.ZoneAuthority)
-            return;
-        if (string.Equals(
-                Environment.GetEnvironmentVariable("AAEMU_DISABLE_ONSPAWN_PLOTS"),
-                "1",
-                StringComparison.Ordinal))
             return;
         if (!IsZoneMirror || !IsMirrorStreamPriority)
             return;
@@ -1703,8 +1696,13 @@ public partial class Npc : Unit
             var skill = SkillManager.Instance.GetNpSkillTemplate(npcSkill);
             if (skill?.Template == null)
                 continue;
-            // Only true plot graphs. plot_only with no plot is a no-op for army work.
-            if (skill.Template.Plot == null || !skill.Template.PlotOnly)
+            if (!OnSpawnPlotWorldGate.ShouldRun(
+                    zoneAuthority: true,
+                    isZoneMirror: true,
+                    isPriorityMirror: true,
+                    hasPlot: skill.Template.Plot != null,
+                    plotOnly: skill.Template.PlotOnly,
+                    directSkillEffectCount: skill.Template.Effects?.Count ?? 0))
                 continue;
 
             if (Cooldowns.CheckCooldown(skill.Id))
@@ -1712,9 +1710,10 @@ public partial class Npc : Unit
             if (skill.Template.CooldownTime == 0)
                 Cooldowns.AddCooldown(skill.Id, uint.MaxValue);
 
-            // skill_use_param1: delay seconds before OnSpawn graph (Crimson stage uses 1.0).
+            // skill_use_param1: delay seconds before OnSpawn graph (Crimson / Lusca stage use 1.0).
             var delaySec = npcSkill.SkillUseParam1;
             skill.SuppressZoneSkillRelay = true;
+            skill.ForcePlotGraphOnly = true;
             var caster = SkillCaster.GetByType(SkillCasterType.Unit);
             caster.ObjId = ObjId;
             var target = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
@@ -1728,14 +1727,14 @@ public partial class Npc : Unit
                 {
                     var result = skill.Use(this, caster, target, null, true, out _);
                     Logger.Info(
-                        "OnSpawn plot_only Use bc={0} tpl={1} skill={2} plot={3} result={4}",
+                        "OnSpawn plot Use bc={0} tpl={1} skill={2} plot={3} result={4}",
                         ObjId, TemplateId, skill.Id, skill.Template.Plot?.Id ?? 0, result);
                 }
                 catch (Exception ex)
                 {
                     Logger.Warn(
                         ex,
-                        "OnSpawn plot_only failed bc={0} tpl={1} skill={2}",
+                        "OnSpawn plot failed bc={0} tpl={1} skill={2}",
                         ObjId, TemplateId, skill.Id);
                 }
             }
@@ -1752,7 +1751,7 @@ public partial class Npc : Unit
                     }
                     catch (Exception ex)
                     {
-                        Logger.Warn(ex, "OnSpawn plot_only delay fire bc={0} skill={1}", ObjId, skill.Id);
+                        Logger.Warn(ex, "OnSpawn plot delay fire bc={0} skill={1}", ObjId, skill.Id);
                     }
                 });
             }
@@ -1767,7 +1766,7 @@ public partial class Npc : Unit
         if (started > 0)
         {
             Logger.Info(
-                "OnSpawn plot_only scheduled bc={0} tpl={1} count={2}",
+                "OnSpawn plot scheduled bc={0} tpl={1} count={2}",
                 ObjId, TemplateId, started);
         }
     }

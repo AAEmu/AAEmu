@@ -21,12 +21,14 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.StreamAoi;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
@@ -52,10 +54,22 @@ public partial class Character : Unit, ICharacter
     private readonly ConcurrentDictionary<uint, Npc> _pendingMirrorSpawns = new();
 
     /// <summary>
+    /// Hulls waiting for SCUnitState — queued while loading or outside the Ship/Ambient enter band.
+    /// Equipment (Part) is never queued; it paints with region interest.
+    /// </summary>
+    private readonly ConcurrentDictionary<uint, Slave> _pendingSlaves = new();
+
+    /// <summary>
     /// ObjIds that already received SCUnitState and still count toward AAEMU_MIRROR_NPC_MAX.
     /// Freed on leave-view so walking recycles slots (lifetime counter Quit'd after first N).
     /// </summary>
     public ConcurrentDictionary<uint, byte> MirrorNpcStatesSentIds { get; } = new();
+
+    /// <summary>
+    /// Hull ObjIds that already received SCUnitState. Separate from NPC mirrors so
+    /// <see cref="WorldInstance.GetNpc"/> cannot drop a boat as a missing mirror.
+    /// </summary>
+    public ConcurrentDictionary<uint, byte> StreamedSlaveIds { get; } = new();
 
     /// <summary>In-view streamed mirror count (for cap checks).</summary>
     public int MirrorNpcStatesSentCount => MirrorNpcStatesSentIds.Count;
@@ -74,6 +88,8 @@ public partial class Character : Unit, ICharacter
         MirrorNpcStreamNotBeforeTick = 0;
         MirrorNpcStatesSentIds.Clear();
         _pendingMirrorSpawns.Clear();
+        StreamedSlaveIds.Clear();
+        _pendingSlaves.Clear();
     }
 
     /// <summary>Arm mirror interest after load complete (+ optional grace ms).</summary>
@@ -100,13 +116,7 @@ public partial class Character : Unit, ICharacter
             MirrorNpcStatesSentCount >= Npc.MirrorNpcMaxPerCharacter)
             return false;
         var d2 = DistanceSq(Transform.World.Position, npc.Transform.World.Position);
-        // Same Transform.ZoneId: event rifts must still paint / show on map so dedic fly-in
-        // movements can be relayed; ambient mirrors keep the short commercial soft AOI.
-        if (npc.IsMirrorStreamPriority &&
-            npc.Transform?.ZoneId != 0 &&
-            Transform?.ZoneId == npc.Transform.ZoneId)
-            return true;
-        return d2 <= npc.MirrorStreamAoiRadiusSq;
+        return StreamAoiTable.IsInside(npc.StreamAoiCategory, d2, alreadyStreamed: false);
     }
 
     /// <summary>Queue a zone mirror for later AOI enter / post-load flush.</summary>
@@ -162,14 +172,7 @@ public partial class Character : Unit, ICharacter
             }
 
             var d2 = DistanceSq(origin, npc.Transform.World.Position);
-            // Outside soft AOI: skip for send (still pending for when player walks closer).
-            // Priority event mirrors use the larger stream radius / same-zone rule.
-            var aoi = npc.IsMirrorStreamPriority
-                ? (npc.Transform?.ZoneId != 0 && Transform?.ZoneId == npc.Transform.ZoneId
-                    ? float.MaxValue
-                    : npc.MirrorStreamAoiRadiusSq)
-                : Npc.MirrorNpcAoiRadiusSq;
-            if (d2 > aoi)
+            if (d2 > StreamAoiTable.Band(npc.StreamAoiCategory).EnterSq)
                 continue;
 
             // Event rifts always beat ambient pending at equal-or-farther distance.
@@ -196,15 +199,15 @@ public partial class Character : Unit, ICharacter
         return dx * dx + dy * dy + dz * dz;
     }
 
-    private bool IsStillInRegionInterest(Npc npc)
+    private bool IsStillInRegionInterest(GameObject obj)
     {
-        if (npc?.Region == null || Region == null)
+        if (obj?.Region == null || Region == null)
             return false;
-        if (ReferenceEquals(npc.Region, Region))
+        if (ReferenceEquals(obj.Region, Region))
             return true;
         foreach (var n in Region.GetNeighbors())
         {
-            if (ReferenceEquals(n, npc.Region))
+            if (ReferenceEquals(n, obj.Region))
                 return true;
         }
 
@@ -221,7 +224,6 @@ public partial class Character : Unit, ICharacter
             return 0;
 
         var origin = Transform.World.Position;
-        var aoiSq = Npc.MirrorNpcAoiRadiusSq;
         List<uint> remove = null;
 
         foreach (var objId in MirrorNpcStatesSentIds.Keys)
@@ -233,12 +235,8 @@ public partial class Character : Unit, ICharacter
                 continue;
             }
 
-            // Tower/event hellgates stay painted for the whole arm even if soft AOI thrash or a
-            // ZW move briefly poisons World position (seen: Grimghast 12911 flash + SCUnitsRemoved).
-            if (npc.IsMirrorStreamPriority)
-                continue;
-
-            if (DistanceSq(origin, npc.Transform.World.Position) > aoiSq)
+            var d2 = DistanceSq(origin, npc.Transform.World.Position);
+            if (!StreamAoiTable.IsInside(npc.StreamAoiCategory, d2, alreadyStreamed: true))
                 (remove ??= []).Add(objId);
         }
 
@@ -262,6 +260,162 @@ public partial class Character : Unit, ICharacter
         }
 
         return remove.Count;
+    }
+
+    /// <summary>
+    /// True when this hull may receive SCUnitState now. Equipment (Part) is always inside.
+    /// Does not share the NPC MAX cap — boats are not mirrors.
+    /// </summary>
+    public bool CanStreamSlaveNow(Slave slave)
+    {
+        if (slave == null || slave.ObjId == 0)
+            return false;
+        if (!MirrorNpcStreamReady)
+            return false;
+        if (MirrorNpcStreamNotBeforeTick != 0 &&
+            Environment.TickCount64 < MirrorNpcStreamNotBeforeTick)
+            return false;
+        if (StreamedSlaveIds.ContainsKey(slave.ObjId))
+            return false;
+        var d2 = DistanceSq(Transform.World.Position, slave.Transform.World.Position);
+        return StreamAoiTable.IsInside(slave.StreamAoiCategory, d2, alreadyStreamed: false);
+    }
+
+    /// <summary>
+    /// Region leave batches SCUnitsRemoved for the cell. Keep a streamed hull that is still
+    /// inside its exit band (same idea as event-priority NPC mirrors). Equipment Parts always
+    /// leave with the cell.
+    /// </summary>
+    public bool TryKeepSlaveAcrossRegionLeave(Slave slave)
+    {
+        if (slave == null || slave.ObjId == 0)
+            return false;
+        if (slave.StreamAoiCategory == StreamAoiCategory.Part)
+            return false;
+        if (!StreamedSlaveIds.ContainsKey(slave.ObjId))
+            return false;
+        var d2 = DistanceSq(Transform.World.Position, slave.Transform.World.Position);
+        return StreamAoiTable.IsInside(slave.StreamAoiCategory, d2, alreadyStreamed: true);
+    }
+
+    /// <summary>
+    /// Forced repaint (cinema end, teleport end): a hull that was streamed and is still inside
+    /// its exit band keeps that eligibility. Re-testing it as a fresh 225 m entry left a hull at
+    /// 230 m missing until the player walked back inside enter.
+    /// </summary>
+    public bool ShouldRepaintStreamedSlave(Slave slave) => TryKeepSlaveAcrossRegionLeave(slave);
+
+    public void EnqueuePendingSlave(Slave slave)
+    {
+        if (slave == null || slave.ObjId == 0)
+            return;
+        if (StreamedSlaveIds.ContainsKey(slave.ObjId))
+            return;
+        _pendingSlaves.TryAdd(slave.ObjId, slave);
+    }
+
+    public void MarkSlaveStreamed(Slave slave)
+    {
+        if (slave == null || slave.ObjId == 0)
+            return;
+        StreamedSlaveIds.TryAdd(slave.ObjId, 0);
+        _pendingSlaves.TryRemove(slave.ObjId, out _);
+    }
+
+    public void ReleaseSlaveSlot(uint objId)
+    {
+        StreamedSlaveIds.TryRemove(objId, out _);
+        _pendingSlaves.TryRemove(objId, out _);
+    }
+
+    public bool HasPendingSlaves => !_pendingSlaves.IsEmpty;
+
+    /// <summary>
+    /// Hull-only leave: SCUnitsRemoved for the selectable unit. Does not walk
+    /// Transform.Children — sail/cannon doodads stay until region leave.
+    /// </summary>
+    public int CullStreamedSlavesBeyondAoi()
+    {
+        if (StreamedSlaveIds.IsEmpty)
+            return 0;
+
+        var origin = Transform.World.Position;
+        List<uint> remove = null;
+
+        foreach (var objId in StreamedSlaveIds.Keys)
+        {
+            var slave = ParentWorld?.GetSlaveByObjId(objId);
+            if (slave == null || slave.ObjId == 0)
+            {
+                (remove ??= []).Add(objId);
+                continue;
+            }
+
+            var d2 = DistanceSq(origin, slave.Transform.World.Position);
+            if (!StreamAoiTable.IsInside(slave.StreamAoiCategory, d2, alreadyStreamed: true))
+                (remove ??= []).Add(objId);
+        }
+
+        if (remove == null || remove.Count == 0)
+            return 0;
+
+        foreach (var objId in remove)
+        {
+            var slave = ParentWorld?.GetSlaveByObjId(objId);
+            ReleaseSlaveSlot(objId);
+            if (slave != null && IsStillInRegionInterest(slave))
+                EnqueuePendingSlave(slave);
+        }
+
+        for (var offset = 0; offset < remove.Count; offset += SCUnitsRemovedPacket.MaxCountPerPacket)
+        {
+            var length = Math.Min(SCUnitsRemovedPacket.MaxCountPerPacket, remove.Count - offset);
+            var batch = new uint[length];
+            remove.CopyTo(offset, batch, 0, length);
+            SendPacket(new SCUnitsRemovedPacket(batch));
+        }
+
+        return remove.Count;
+    }
+
+    /// <summary>Paint pending hulls that walked into their enter band (or finished load).</summary>
+    public int TryFlushPendingSlaves()
+    {
+        if (_pendingSlaves.IsEmpty || !MirrorNpcStreamReady)
+            return 0;
+        if (MirrorNpcStreamNotBeforeTick != 0 &&
+            Environment.TickCount64 < MirrorNpcStreamNotBeforeTick)
+            return 0;
+
+        List<Slave> ready = null;
+        foreach (var kv in _pendingSlaves)
+        {
+            var slave = kv.Value;
+            if (slave == null || slave.ObjId == 0 || !slave.IsVisible)
+            {
+                _pendingSlaves.TryRemove(kv.Key, out _);
+                continue;
+            }
+
+            if (StreamedSlaveIds.ContainsKey(slave.ObjId))
+            {
+                _pendingSlaves.TryRemove(kv.Key, out _);
+                continue;
+            }
+
+            if (!CanStreamSlaveNow(slave))
+                continue;
+
+            (ready ??= []).Add(slave);
+        }
+
+        if (ready == null)
+            return 0;
+
+        foreach (var slave in ready)
+            slave.SendUnitStateTo(this);
+
+        return ready.Count;
     }
 
     /// <summary>
@@ -340,9 +494,7 @@ public partial class Character : Unit, ICharacter
 
         var origin = Transform.World.Position;
         var pD2 = DistanceSq(origin, priorityNpc.Transform.World.Position);
-        var sameZone = priorityNpc.Transform?.ZoneId != 0 &&
-                       Transform?.ZoneId == priorityNpc.Transform.ZoneId;
-        if (!sameZone && pD2 > priorityNpc.MirrorStreamAoiRadiusSq)
+        if (!StreamAoiTable.IsInside(priorityNpc.StreamAoiCategory, pD2, alreadyStreamed: false))
             return false;
 
         uint farthestId = 0;
@@ -3016,6 +3168,7 @@ public partial class Character : Unit, ICharacter
                         Hp = reader.GetInt32("hp"),
                         Mp = reader.GetInt32("mp")
                     };
+                    character.ModelParams.ClearUnusedVisualRaceOverride((byte)character.Race);
                     character._savedHp = character.Hp; // save for later
                     character._savedMp = character.Mp;
                     // character.LaborPower = reader.GetInt16("labor_power");
@@ -3136,6 +3289,7 @@ public partial class Character : Unit, ICharacter
                     character.AccessLevel = reader.GetInt32("access_level");
                     character.Race = (Race)reader.GetByte("race");
                     character.Gender = (Gender)reader.GetByte("gender");
+                    character.ModelParams.ClearUnusedVisualRaceOverride((byte)character.Race);
                     character.Level = reader.GetByte("level");
                     character.Experience = reader.GetInt32("experience");
                     character.RecoverableExp = reader.GetInt32("recoverable_exp");
@@ -3705,8 +3859,7 @@ public partial class Character : Unit, ICharacter
         // appearance
         ModelParams.Race = (byte)Race;
         ModelParams.Gender = (byte)Gender;
-        ModelParams.VisualRace = (byte)Race;
-        ModelParams.VisualGender = (byte)Gender;
+        ModelParams.ClearUnusedVisualRaceOverride((byte)Race);
         stream.Write(ModelParams);
         stream.Write((short)0);                                       // deadCount (i16)
         stream.Write(0L);                                            // deadTime

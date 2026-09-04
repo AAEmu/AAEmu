@@ -201,7 +201,7 @@ public static class ZoneAuthorityCombat
         if (world == null)
             return false;
 
-        var npc = world.GetNpc(objId);
+        var npc = world.GetNpc(objId) ?? WorldIntegration.FindUnitAcrossWorlds(objId) as Npc;
         if (npc == null)
         {
             // Player ClearCombat (common) — relay SC only; NPC HP restore waits for 11503 / NPC ClearCombat.
@@ -237,6 +237,32 @@ public static class ZoneAuthorityCombat
         Logger.Info("ZoneAuthority leash heal npc={0} hp {1}→{2} mp {3}→{4}",
             objId, beforeHp, npc.Hp, beforeMp, npc.Mp);
         return true;
+    }
+
+    /// <summary>
+    /// Unit the dedicate can put on an NPC aggro table. Cannon/equipment slaves are not zone
+    /// combat actors; their owner (or hull) is.
+    /// </summary>
+    public static uint ResolveZoneCombatActorBc(BaseUnit caster)
+    {
+        if (caster == null || caster.ObjId == 0)
+            return 0;
+        if (caster is Character)
+            return caster.ObjId;
+
+        var owner = caster.GetOwnerCharacter();
+        if (owner?.ObjId > 0)
+            return owner.ObjId;
+
+        if (caster is Slave slave)
+        {
+            if (slave.Transform?.Parent?.GameObject is Slave hull && hull.ObjId != 0)
+                return hull.ObjId;
+            if (slave.Template?.IsABoat() == true)
+                return slave.ObjId;
+        }
+
+        return caster.ObjId;
     }
 
     private static int EstimateDamage(SkillTemplate template, Unit caster, Unit target)

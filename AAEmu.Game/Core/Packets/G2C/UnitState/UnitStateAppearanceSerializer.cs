@@ -15,8 +15,7 @@ internal static class UnitStateAppearanceSerializer
         {
             appearance.Race = (byte)context.Character.Race;
             appearance.Gender = (byte)context.Character.Gender;
-            appearance.VisualRace = (byte)context.Character.Race;
-            appearance.VisualGender = (byte)context.Character.Gender;
+            appearance.ClearUnusedVisualRaceOverride((byte)context.Character.Race);
         }
         if (context.Npc is not null && appearance.BodyWeight == 0f)
             appearance.BodyWeight = 1f;

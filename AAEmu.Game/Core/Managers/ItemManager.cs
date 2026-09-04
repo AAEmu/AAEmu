@@ -87,7 +87,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
     public ItemTemplate GetTemplate(uint id)
     {
-        return _templates.GetValueOrDefault(id);
+        return _templates?.GetValueOrDefault(id);
     }
 
     public int? GetShopPrice(uint itemId, ShopCurrencyType currency)

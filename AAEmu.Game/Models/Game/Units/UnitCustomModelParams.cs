@@ -194,6 +194,20 @@ public class UnitCustomModelParams : PacketMarshaler
         return this;
     }
 
+    /// <summary>
+    /// Visual race is a race-change override. Unused means 0. Copying the real race is an active
+    /// override, and the client treats the character as transformed.
+    /// </summary>
+    public void ClearUnusedVisualRaceOverride(byte originRace)
+    {
+        if (VisualRace != 0 && VisualRace != originRace)
+            return;
+
+        VisualRace = 0;
+        VisualGender = 0;
+        VisualRaceExpiredTime = 0;
+    }
+
     public override void Read(PacketStream stream)
     {
         SetType((UnitCustomModelType)stream.ReadByte()); // ext
