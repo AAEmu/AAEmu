@@ -237,11 +237,24 @@ public class Buffs : IBuffs
             effects = _effects.ToArray();
         }
 
+        // Stacks, not instances. A multiple-stack family is one instance carrying a count, so summing
+        // instances would report 1 for a full 60-stack member and undo what the count is read for.
         var count = 0;
         foreach (var effect in effects.ToList())
             if (effect.Template.BuffId == buffId)
-                count++;
+                count += Math.Max(1, effect.Stack);
         return count;
+    }
+
+    /// <summary>The live instance of a buff family, which is the one that carries its stack count.</summary>
+    private Buff FindLiveInstance(uint buffId)
+    {
+        // The caller holds _lock.
+        foreach (var effect in _effects)
+            if (effect is { InUse: true } && effect.Template.BuffId == buffId)
+                return effect;
+
+        return null;
     }
 
     public void GetAllBuffs(List<Buff> goodBuffs, List<Buff> badBuffs, List<Buff> hiddenBuffs, bool includeAllPassives)
@@ -383,15 +396,44 @@ public class Buffs : IBuffs
                                 last = e;
                     break;
                 default:
-                    if (buff.Template.MaxStack > 0 && GetBuffCountById(buff.Template.BuffId) >= buff.Template.MaxStack)
-                        foreach (var e in new List<Buff>(_effects))
-                            if (e is { InUse: true } && e.Template.BuffId == buff.Template.BuffId)
-                                if (e.GetTimeLeft() < buff.GetTimeLeft())
-                                    last = e;
+                    // A multiple-stack family is ONE instance carrying a count, not one instance per
+                    // application. The client draws an icon per instance and takes the number on it from
+                    // the stack field, so an instance per application paints a grid of identical icons
+                    // that all read the same total — a two-sail hull showed roughly sixty of them.
+                    // Growing the live instance keeps the total effect the same (the bonus is scaled by
+                    // the count) while leaving one icon per family, and the ceiling simply stops it.
+                    var live = FindLiveInstance(buff.Template.BuffId);
+                    if (live != null)
+                    {
+                        if (live.TryGrowStack(buff.Template.MaxStack))
+                            return;
+
+                        // At the ceiling. A permanent family has no timer to refresh, so the extra
+                        // application is simply absorbed. It must not go through OverwriteWith: that
+                        // re-runs SetInUse, which schedules a dispel using the buff's remaining time —
+                        // and for a permanent buff that reads as -1, i.e. a delay in the past, so the
+                        // buff is dropped the moment it fills. A hull's sails did exactly that, losing
+                        // all sixty wind stacks the instant they topped out and rebuilding from one,
+                        // which also took the hull's speed back down with them.
+                        if (buff.Duration <= 0)
+                            return;
+
+                        // A timed family does refresh the member already there rather than adding to it,
+                        // so it cannot creep past max_stack.
+                        last = live;
+                    }
+
                     break;
             }
             if (last != null)
             {
+                // Announce the instance that survives, not the one being discarded. An index is
+                // allocated for every arrival before the stack rule decides its fate, so a displacement
+                // used to be published under the arrival's brand-new index while the live instance kept
+                // its own — leaving observers holding an index this unit does not have, and never
+                // retiring it. A ceiling-bound family therefore looked capped here and unbounded to
+                // anything downstream (a 60-stack family reached 114 published indices).
+                buff.Index = last.Index;
                 last.OverwriteWith(buff);
             }
             else

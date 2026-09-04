@@ -53,11 +53,15 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
             // Add to server pool
             WorldManager.Instance.TryAddCharacter(character);
 
-            var mySlave = Connection.ActiveChar.ParentWorld.SlaveManager.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
+            var mySlave = Connection.ActiveChar.ParentWorld?.SlaveManager
+                ?.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);
             if (mySlave != null)
             {
                 Logger.Warn($"{Connection.ActiveChar.Name}: Abort the task of disabling vehicles");
-                mySlave.CancelTokenSource.Cancel();
+                // GM / persist-across-logout hulls never start a leave-world despawn timer,
+                // so CancelTokenSource stays null. Cancel() here used to NRE and abort the
+                // rest of select (no SCShowCurrentWorld) — client fades to black and sits.
+                mySlave.CancelPendingLeave();
             }
 
             Connection.ActiveChar.Simulation = new Simulation(character);
@@ -70,6 +74,11 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
             // It must echo AppConfiguration.Id (this shard's GameServers[].Id), NOT the internal world-instance id:
             // sending Transform.WorldId (0 for main_world) leaves the client's current-world context unset, so
             // sends 0x02 because that official shard's id is 2; ours is 1.
+            // First hour packet force-applies. Bind it before ShowCurrentWorld opens the load
+            // so the ocean is built on the live hour. A spawn-time bind snaps water that is
+            // already in the scene.
+            TimeOfDayClientPackets.BindBeforeWorldLoad(Connection.SendPacket, TimeManager.Instance.GetTime);
+
             Connection.SendPacket(new SCShowCurrentWorldPacket(AppConfiguration.Instance.Id));
 
             Connection.SendPacket(new SCCharacterStatePacket(character));

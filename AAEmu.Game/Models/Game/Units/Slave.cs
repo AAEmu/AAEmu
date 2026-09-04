@@ -19,6 +19,7 @@ using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Static;
 using AAEmu.Game.Models.Game.StreamAoi;
+using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.StaticValues;
 
@@ -79,6 +80,12 @@ public class Slave : Unit
     public SlaveSpawner Spawner { get; set; }
     public Task LeaveTask { get; set; }
     public CancellationTokenSource CancelTokenSource { get; set; }
+
+    /// <summary>
+    /// Stops a pending leave-world despawn timer if one was armed.
+    /// Hulls that never started that timer (GM spawn, still-summoned boat) leave this null.
+    /// </summary>
+    public void CancelPendingLeave() => CancelTokenSource?.Cancel();
     /// <summary>Ship harpoon rope / skill-controller sync (only meaningful for harpoon cannon slaves; default struct = disengaged, no heap alloc).</summary>
     public ShipHarpoonRopeState HarpoonRope;
 
@@ -87,6 +94,184 @@ public class Slave : Unit
     /// between two headings and skill impulses land in the wrong process.
     /// </summary>
     public uint ZoneAnnouncedTo { get; set; }
+
+    private long _lastLoggedKitAddedMass = long.MinValue;
+
+    /// <summary>
+    /// Last hull pose the simulating zone reported, and the source of everything replayed to the next
+    /// simulator on a handoff — position, heading, throttle, steering, rpm and motion
+    /// (see <see cref="ShipPoseSeed"/>).
+    /// </summary>
+    public ShipMoveType SimulatedShipState { get; set; }
+
+    /// <summary>
+    /// When <see cref="SimulatedShipState"/> was last written (<see cref="Environment.TickCount64"/>).
+    /// A seam handoff freezes that report as <see cref="SeamHandoff"/> so Create and the type-4
+    /// seed both advance the same snapshot once.
+    /// </summary>
+    public long SimulatedShipStateAtMs { get; set; }
+
+    /// <summary>
+    /// The report before <see cref="SimulatedShipState"/>, used only to derive acceleration for a
+    /// seam snapshot. Null until two poses have arrived from the same stretch.
+    /// </summary>
+    public ShipMoveType PreviousSimulatedShipState { get; set; }
+
+    /// <summary>When <see cref="PreviousSimulatedShipState"/> was written.</summary>
+    public long PreviousSimulatedShipStateAtMs { get; set; }
+
+    /// <summary>
+    /// Frozen Zone-A state for the in-flight seam. Create and the type-4 seed both propagate this
+    /// once to the activation tick. Replaced (and the epoch bumped) on the next handoff.
+    /// </summary>
+    public BoatSeamHandoffSnapshot? SeamHandoff { get; set; }
+
+    /// <summary>Handoff sequence for <see cref="SeamHandoff"/>. Stale warmups from an older epoch are ignored.</summary>
+    public uint SeamHandoffEpoch { get; set; }
+
+    /// <summary>Helm stick samples taken while <see cref="SeamHandoff"/> is live.</summary>
+    public List<BoatSeamHelmSample> SeamHelmQueue { get; } = [];
+
+    /// <summary>
+    /// Last type-4 zone id / time / steering written onto <c>SCUnitMovements</c>.
+    /// Follow-switch must not change the streamed zone id (client interpolator reset)
+    /// or send a behind clock (dropped sample). See <see cref="BoatRudderSeamRules"/>.
+    /// </summary>
+    public ushort StreamedShipZoneId { get; set; }
+
+    public uint StreamedShipTime { get; set; }
+
+    public sbyte StreamedShipSteering { get; set; }
+
+    /// <summary>
+    /// Offset that maps the current simulator's body clock onto the streamed clock
+    /// (<see cref="BoatRudderSeamRules.RebasedTime"/>).
+    /// </summary>
+    public uint StreamedShipTimeOffset { get; set; }
+
+    /// <summary><see cref="Environment.TickCount64"/> when the last hull body was streamed.</summary>
+    public long StreamedShipAtMs { get; set; }
+
+    /// <summary>
+    /// Speed the simulating zone is actually making the hull travel, in metres per second, measured
+    /// from the positions it reports. Zero until two poses have arrived.
+    /// </summary>
+    public float SimulatedSpeed { get; set; }
+
+    /// <summary>
+    /// When <see cref="SimulatedSpeed"/> was measured (<see cref="Environment.TickCount64"/> scale),
+    /// so a seam restore can tell fresh way-on from a stale figure left over from before the hull
+    /// stopped or docked.
+    /// </summary>
+    public long SimulatedSpeedAtMs { get; set; }
+
+    /// <summary>
+    /// Post-seam speed samples still to be reported, so one crossing yields the speed the hull kept
+    /// rather than an impression of it. Set when a new simulator is armed, counted down as the samples
+    /// arrive.
+    /// </summary>
+    public int SeamSpeedProbes { get; set; }
+
+    /// <summary>
+    /// Speed the hull was making when simulation was handed to a new zone. Held until the receiving
+    /// body has left the interpolation window so a shortfall can be measured. Zero when nothing is
+    /// outstanding.
+    /// </summary>
+    public float SeamTargetSpeed { get; set; }
+
+    /// <summary>Zone the outstanding <see cref="SeamTargetSpeed"/> correction belongs to.</summary>
+    public uint SeamCorrectionZone { get; set; }
+
+    /// <summary>
+    /// Tick when the new dedicate was armed. Unconsumed outbound type-4 (0–0.2 m/s) is ignored
+    /// until the incoming body publishes the restored cruise.
+    /// </summary>
+    public long SeamArmedAtMs { get; set; }
+
+    /// <summary>
+    /// When the closed-loop seam impulse was sent. Zero until then. Follow waits for the
+    /// restored speed after this, not for the short pose that triggered the impulse.
+    /// </summary>
+    public long SeamImpulseAtMs { get; set; }
+
+    /// <summary>
+    /// First tick a cruise-speed body was still short of the bridged plant. Zero until then.
+    /// FollowBackstopMs is counted from this, not from arm — a slow crossing must still catch up.
+    /// </summary>
+    public long SeamBridgeBehindAtMs { get; set; }
+
+    /// <summary>
+    /// When B was given A's live pose so follow can switch. Zero until that type-4 is sent.
+    /// </summary>
+    public long SeamReplantAtMs { get; set; }
+
+    /// <summary>
+    /// Forward speed added to the incoming body so it closes its along-track gap to the streamed
+    /// one; taken back at the follow switch. Zero when no catch-up is in flight.
+    /// </summary>
+    public float SeamCatchUpSpeed { get; set; }
+
+    /// <summary>When <see cref="SeamCatchUpSpeed"/> was applied (<see cref="Environment.TickCount64"/>).</summary>
+    public long SeamCatchUpAtMs { get; set; }
+
+    /// <summary>
+    /// Follow-switch blend (<see cref="Core.Managers.World.BoatSeamBlendRules"/>): the outgoing
+    /// simulator's last streamed body, captured at the switch, and the residual to the incoming
+    /// body once its first report arrives. <see cref="SeamBlendStartMs"/> 0 = no blend running.
+    /// </summary>
+    public long SeamBlendStartMs { get; set; }
+
+    public Movements.ShipMoveType SeamBlendFrom { get; set; }
+
+    public long SeamBlendFromAtMs { get; set; }
+
+    public BoatSeamBlendRules.Offset? SeamBlendOffset { get; set; }
+
+    /// <summary>
+    /// Water-body surface Z used at Create (before any keel plant). Recover compares live Z to a
+    /// fresh sample when the world still has water; this is the fallback.
+    /// </summary>
+    public float PlantWaterSurfaceZ { get; set; } = float.NaN;
+
+    /// <summary>
+    /// Last waterline recover (<see cref="Environment.TickCount64"/>). Zero until one has run.
+    /// </summary>
+    public long WaterlineRecoverAtMs { get; set; }
+
+    /// <summary>
+    /// Zone has the hull but simulation is off (no-tube). Tube hulls resume on bind;
+    /// no-tube stays off and World drives the waterline from type-5.
+    /// </summary>
+    public bool WaterlineSimHeldOff { get; set; }
+
+    /// <summary>
+    /// Last <see cref="SlaveManager.TickHeldWaterlineDrive"/> (<see cref="Environment.TickCount64"/>).
+    /// </summary>
+    public long WaterlineDriveAtMs { get; set; }
+
+    /// <summary>
+    /// Set when <see cref="SlaveManager.Delete"/> starts the despawn portal, so a replace-summon does
+    /// not treat this hull as still active while the portal plays.
+    /// </summary>
+    public bool IsDespawning { get; set; }
+
+    /// <summary>
+    /// Set when <see cref="SlaveManager.FinalizeBoatDespawn"/> finishes withdraw + hide + id
+    /// release, so a delayed despawn tick cannot run that teardown (and free the ids) twice.
+    /// </summary>
+    public bool DespawnFinalized { get; set; }
+
+    /// <summary>
+    /// Zone key whose dedicate has been told to simulate this hull, so the enable is sent once per
+    /// zone instead of on every helm mount. See <see cref="SlaveManager.EnableBoatSimInZone"/>.
+    /// </summary>
+    public uint ZoneSimEnabledFor { get; set; }
+
+    /// <summary>
+    /// Zone waiting for a delayed sim enable. During a seam handoff this is the new dedicate while
+    /// <see cref="ZoneAnnouncedTo"/> still names the live one.
+    /// </summary>
+    public uint ZoneSimPendingFor { get; set; }
 
     public Slave()
     {
@@ -671,12 +856,22 @@ public class Slave : Unit
     {
         if (itemRemoved != null)
         {
-            // A hull can carry several copies of the same part (paired cannons), and they all resolve to the
-            // same buff, so it only goes away with the last one.
-            var removedBuff = GetEquipmentBuff(itemRemoved);
-            if (removedBuff != null && Buffs.CheckBuff(removedBuff.Id) &&
-                !Equipment.Items.Any(i => i != itemRemoved && GetEquipmentBuff(i)?.Id == removedBuff.Id))
-                Buffs.RemoveBuff(removedBuff.Id);
+            // Withdraw whichever tier is actually on the hull, not whichever the remaining piece count
+            // would now choose — those differ the moment a paired part loses one of its copies.
+            var remaining = EquippedCount(itemRemoved.TemplateId);
+            var stillEarnedId = remaining > 0 ? GetEquipmentBuff(itemRemoved)?.Id ?? 0 : 0;
+            foreach (var buffId in ItemGameData.Instance.GetItemBuffIds(itemRemoved.TemplateId, itemRemoved.Grade))
+            {
+                if (!Buffs.CheckBuff(buffId))
+                    continue;
+                if (EquipmentBuffRules.KeepWithdrawnBuff(remaining, stillEarnedId, buffId))
+                    continue;
+                Buffs.RemoveBuff(buffId);
+            }
+
+            // Re-apply at the lower tier when copies remain (a paired part dropping 2 pieces to 1).
+            if (EquippedCount(itemRemoved.TemplateId) > 0)
+                ApplyEquipmentBuff(itemRemoved);
         }
 
         if (itemAdded != null)
@@ -692,22 +887,72 @@ public class Slave : Unit
             ApplyEquipmentBuff(item);
     }
 
-    private static BuffTemplate GetEquipmentBuff(Item item)
+    /// <summary>Copies of this item template currently fitted to the hull.</summary>
+    private int EquippedCount(uint templateId) =>
+        Equipment.Items.Count(i => i != null && i.TemplateId == templateId);
+
+    /// <summary>
+    /// The buff this part grants at its grade, for the number of copies of it the hull carries.
+    /// </summary>
+    /// <remarks>
+    /// The piece count matters: a sail's one-piece row carries its <c>move_speed_mul</c> while its
+    /// two-piece row is an identically named buff with no modifiers, so ignoring it can hand a rigged
+    /// hull none of its sail bonuses.
+    /// </remarks>
+    private BuffTemplate GetEquipmentBuff(Item item)
     {
-        return ItemGameData.Instance.GetItemBuff(item.TemplateId, item.Grade) ??
+        if (item == null)
+            return null;
+
+        var count = EquippedCount(item.TemplateId);
+        if (count <= 0)
+            return null;
+
+        return ItemGameData.Instance.GetItemBuff(item.TemplateId, item.Grade, count) ??
                SkillManager.Instance.GetBuffTemplate(item.Template?.BuffId ?? 0);
     }
 
     private void ApplyEquipmentBuff(Item item)
     {
         var buffTemplate = GetEquipmentBuff(item);
-        if (buffTemplate == null || Buffs.CheckBuff(buffTemplate.Id))
+        if (buffTemplate == null)
+            return;
+
+        foreach (var otherId in ItemGameData.Instance.GetItemBuffIds(item.TemplateId))
+        {
+            if (!Buffs.CheckBuff(otherId))
+                continue;
+            var copies = CopiesEarningBuff(item.TemplateId, otherId, item);
+            if (!EquipmentBuffRules.StripOtherGrade(buffTemplate.Id, otherId, copies))
+                continue;
+            Buffs.RemoveBuff(otherId);
+        }
+
+        if (Buffs.CheckBuff(buffTemplate.Id))
             return;
 
         Buffs.AddBuff(new Buff(this, this, new SkillCasterUnit(ObjId), buffTemplate, null, DateTime.UtcNow)
         {
             AbLevel = (uint)(item.Template?.Level ?? 1)
         });
+    }
+
+    /// <summary>
+    /// Fitted copies of <paramref name="templateId"/>, other than <paramref name="except"/>,
+    /// that currently earn <paramref name="buffId"/>.
+    /// </summary>
+    private int CopiesEarningBuff(uint templateId, uint buffId, Item except)
+    {
+        var n = 0;
+        foreach (var fitted in Equipment.Items)
+        {
+            if (fitted == null || fitted.TemplateId != templateId || ReferenceEquals(fitted, except))
+                continue;
+            if (GetEquipmentBuff(fitted)?.Id == buffId)
+                n++;
+        }
+
+        return n;
     }
 
     public override void AddVisibleObject(Character character)
@@ -774,13 +1019,21 @@ public class Slave : Unit
             {
                 var player = WorldManager.Instance.GetCharacterByObjId(ati.Value.ObjId);
                 if (player != null)
-                    character.SendPacket(new SCUnitAttachedPacket(player.ObjId, ati.Key, AttachUnitReason.None, ObjId));
+                {
+                    var reason = character.ObjId == player.ObjId && ati.Key == AttachPointKind.Driver
+                        ? AttachUnitReason.NewMaster
+                        : AttachUnitReason.None;
+                    character.SendPacket(new SCUnitAttachedPacket(player.ObjId, ati.Key, reason, ObjId));
+                }
             }
         }
     }
 
     public override void RemoveVisibleObject(Character character)
     {
+        if (BoatHelmSeatRules.ShouldKeepStreamedHullForRider(character.IsRidingSlave(this)))
+            return;
+
         character.ReleaseSlaveSlot(ObjId);
 
         // Region leave: base walks Transform.Children (sails/cannons). Soft Ship-band cull
@@ -1057,24 +1310,75 @@ public class Slave : Unit
     public void UpdateSlaveGearBonuses()
     {
         Bonuses[GearBonusesIndex] = [];
-        if (Equipment == null)
-            return;
-
-        foreach (var item in Equipment.Items)
+        if (Equipment != null)
         {
-            if (item == null)
-                continue;
-
-            foreach (var template in ItemManager.Instance.GetUnitModifiers(item.TemplateId))
-                AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
-
-            if (item is EquipItem equipItem)
+            foreach (var item in Equipment.Items)
             {
-                foreach (var gem in equipItem.GemIds)
-                    foreach (var template in ItemManager.Instance.GetUnitModifiers(gem))
-                        AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
+                if (item == null)
+                    continue;
+
+                foreach (var template in ItemManager.Instance.GetUnitModifiers(item.TemplateId))
+                    AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
+
+                if (item is EquipItem equipItem)
+                {
+                    foreach (var gem in equipItem.GemIds)
+                        foreach (var template in ItemManager.Instance.GetUnitModifiers(gem))
+                            AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
+                }
             }
         }
+
+        if (AttachedSlaves != null)
+        {
+            foreach (var child in AttachedSlaves)
+            {
+                if (child?.Template?.Bonuses == null)
+                    continue;
+                foreach (var template in child.Template.Bonuses)
+                {
+                    if (template.Attribute != UnitAttribute.Mass)
+                        continue;
+                    AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
+                }
+            }
+        }
+
+        LogKitAddedMassIfChanged();
+    }
+
+    private void LogKitAddedMassIfChanged()
+    {
+        var itemMass = 0L;
+        if (Equipment != null)
+        {
+            foreach (var item in Equipment.Items)
+            {
+                if (item == null)
+                    continue;
+                itemMass += SlaveMassRules.MassFromBonuses(ItemManager.Instance.GetUnitModifiers(item.TemplateId));
+            }
+        }
+
+        var childMass = 0L;
+        if (AttachedSlaves != null)
+        {
+            foreach (var child in AttachedSlaves)
+            {
+                if (child?.Template?.Bonuses == null)
+                    continue;
+                childMass += SlaveMassRules.MassFromBonuses(child.Template.Bonuses);
+            }
+        }
+
+        var added = SlaveMassRules.KitAddedMass([itemMass], [childMass]);
+        if (added == _lastLoggedKitAddedMass)
+            return;
+
+        _lastLoggedKitAddedMass = added;
+        Logger.Info(
+            "Slave kit mass obj={0} tpl={1} added={2} items={3} children={4}",
+            ObjId, TemplateId, added, itemMass, childMass);
     }
 
     protected override void RegenTick(TimeSpan delta)
@@ -1124,9 +1428,10 @@ public class Slave : Unit
         base.OnZoneChange(lastZoneKey, newZoneKey); // Unit
 
         // WZ traffic (impulse turns, control changes) is routed by the hull's current zone key, and a
-        // announce belongs to the summon path, which sends the fully built state body.
-        if (Template?.IsABoat() == true && ZoneAnnouncedTo != 0 && ZoneAnnouncedTo != newZoneKey)
-            SlaveManager.AnnounceBoatToZone(this);
+        // announce belongs to the summon path, which sends the fully built state body. Every
+        // announced vehicle hands off, not just boats — cars are zone-simulated too (fset bit 177).
+        if (ZoneAnnouncedTo != 0 && ZoneAnnouncedTo != newZoneKey)
+            SlaveManager.CommitBoatZoneHandoff(this, lastZoneKey, newZoneKey);
 
         foreach (var passenger in AttachedCharacters)
         {

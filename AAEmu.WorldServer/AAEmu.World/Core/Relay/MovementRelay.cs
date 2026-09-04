@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Concurrent;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -193,6 +195,20 @@ public class MovementRelay
         return source.ZoneId == slave.ZoneAnnouncedTo;
     }
 
+    /// <summary>
+    /// True when this connection is the newly armed simulator World has not started following yet.
+    /// </summary>
+    private static bool IsSeamWarmup(ZoneConnection? source, uint bcId)
+    {
+        if (source == null)
+            return false;
+
+        if (WorldIntegration.FindUnitAcrossWorlds(bcId) is not Slave slave)
+            return false;
+
+        return BoatZoneSimRules.IsWarmupSource(source.ZoneId, slave.ZoneAnnouncedTo, slave.ZoneSimPendingFor);
+    }
+
     /// <summary>Copies zone-owned NPC and mate positions onto their World mirrors.</summary>
     private static void ApplyCombatUnitPosition(uint bcId, UnitMoveType move, ZoneConnection source)
     {
@@ -281,6 +297,16 @@ public class MovementRelay
         slave.Transform.FinalizeTransform();
         slave.Throttle = ship.Throttle;
         slave.Steering = ship.Steering;
+        if (slave.SimulatedShipState != null && slave.SimulatedShipStateAtMs != 0)
+        {
+            slave.PreviousSimulatedShipState = slave.SimulatedShipState;
+            slave.PreviousSimulatedShipStateAtMs = slave.SimulatedShipStateAtMs;
+        }
+
+        slave.SimulatedShipState = ship;
+        slave.SimulatedShipStateAtMs = Environment.TickCount64;
+        MeasureHullSpeed(bcId, source?.ZoneId ?? slave.ZoneAnnouncedTo, slave, ship);
+        SlaveManager.TryRecoverBoatWaterline(slave);
 
         var logged = HullSyncLogged.AddOrUpdate(bcId, 1, (_, count) => count + 1);
         if (logged <= 3 || logged % 600 == 0)
@@ -289,6 +315,159 @@ public class MovementRelay
                 "Hull position from zone bc={0} {1} ({2:F1},{3:F1},{4:F1}) → ({5:F1},{6:F1},{7:F1}) zone={8}",
                 bcId, slave.Name, before.X, before.Y, before.Z, ship.X, ship.Y, ship.Z, slave.Transform.ZoneId);
         }
+    }
+
+    /// <summary>
+    /// Keeps the speed the hull is actually making on the hull, and reports it when it is beyond what
+    /// its own thrust can reach. See <see cref="HullSpeedMonitor"/>.
+    /// </summary>
+    private static void MeasureHullSpeed(uint bcId, uint zoneId, Slave slave, ShipMoveType ship)
+    {
+        var now = Environment.TickCount64;
+        if (HullSpeedMonitor.Observe(bcId, zoneId, ship.X, ship.Y, ship.Z, now) is not { } speed)
+            return;
+
+        slave.SimulatedSpeed = speed;
+        slave.SimulatedSpeedAtMs = now;
+
+        // Judge the hull against what it can actually make with its rig, not its bare model figure:
+        // sails carry large max-speed multipliers, so the bare figure reports normal sailing as a fault.
+        var maxVelocity = ShipPoseSeed.EffectiveMaxVelocity(slave);
+
+        // The first pose the new simulator publishes is what says how much way survived the handover, so
+        // the correction is measured against it rather than guessed at arm time.
+        SlaveManager.ApplySeamSpeedCorrection(slave, zoneId, ship.ReportedSpeed);
+
+        if (slave.SeamSpeedProbes > 0)
+        {
+            var sample = SlaveManager.SeamSpeedProbeCount - slave.SeamSpeedProbes + 1;
+            slave.SeamSpeedProbes--;
+            Logger.Info(
+                "Seam speed probe obj={0} zone={1} sample={2}/{3} speed={4:F1} m/s reportedVel={5:F1} " +
+                "m/s throttle={6} steering={7}",
+                slave.ObjId, slave.ZoneAnnouncedTo, sample, SlaveManager.SeamSpeedProbeCount, speed,
+                ship.ReportedSpeed, ship.Throttle, ship.Steering);
+        }
+
+        if (!HullSpeedMonitor.IsOverspeed(speed, maxVelocity) || !HullSpeedMonitor.ShouldReport(bcId, now))
+            return;
+
+        Logger.Warn(
+            "Hull faster than its rig allows bc={0} {1} {2:F1} m/s (max {3:F1}) throttle={4} " +
+            "vel=({5},{6},{7}) zone={8}",
+            bcId, slave.Name, speed, maxVelocity, ship.Throttle, ship.VelX, ship.VelY, ship.VelZ,
+            slave.ZoneAnnouncedTo);
+    }
+
+    /// <summary>
+    /// Diagnostic (<c>AAEMU_LOG_SEAM_STREAM=1</c>): every hull body written to clients while the
+    /// hull is within <see cref="SeamStreamLogWindowMs"/> of an arm. Raw → pinned fields show what
+    /// the client interpolator is handed across a follow switch.
+    /// </summary>
+    private static readonly bool LogSeamStreamEnabled =
+        Environment.GetEnvironmentVariable("AAEMU_LOG_SEAM_STREAM") == "1";
+
+    private const long SeamStreamLogWindowMs = 8000;
+
+    private static void LogSeamStream(
+        Slave slave, ShipMoveType pinned, ZoneConnection source, ushort rawZone, uint rawTime, sbyte rawSteer)
+    {
+        if (!LogSeamStreamEnabled || slave.SeamArmedAtMs == 0)
+            return;
+        var sinceArm = Environment.TickCount64 - slave.SeamArmedAtMs;
+        if (sinceArm > SeamStreamLogWindowMs)
+            return;
+
+        var (_, _, yaw) = MathUtil.GetSlaveRotationInDegrees(pinned.RotationX, pinned.RotationY, pinned.RotationZ);
+        Logger.Info(
+            "Seam stream obj={0} src={1} +{2}ms pos=({3:F2},{4:F2},{5:F2}) yaw={6:F1} vel=({7:F2},{8:F2},{9:F2}) " +
+            "steer={10}→{11} thr={12} time={13}→{14} zoneId={15}→{16} follow={17} pending={18}",
+            slave.ObjId, source?.ZoneId ?? 0, sinceArm,
+            pinned.X, pinned.Y, pinned.Z, yaw, pinned.VelX, pinned.VelY, pinned.VelZ,
+            rawSteer, pinned.Steering, pinned.Throttle, rawTime, pinned.Time, rawZone, pinned.ZoneId,
+            slave.ZoneAnnouncedTo, slave.ZoneSimPendingFor);
+    }
+
+    /// <summary>
+    /// Follow-switch blend: for <see cref="BoatSeamBlendRules.BlendMs"/> after the switch the
+    /// streamed position/yaw start on the outgoing body's track and converge onto the incoming
+    /// body. Returns the zone's own pose so the caller can restore the mirror after the write.
+    /// </summary>
+    private static (float X, float Y, float Z, short RX, short RY, short RZ)? BlendStreamedHullPose(
+        ShipMoveType hull, Slave slave)
+    {
+        if (slave.SeamBlendStartMs == 0)
+            return null;
+
+        var now = Environment.TickCount64;
+        var age = now - slave.SeamBlendStartMs;
+        if (!BoatSeamBlendRules.IsActive(age))
+        {
+            slave.SeamBlendStartMs = 0;
+            slave.SeamBlendOffset = null;
+            slave.SeamBlendFrom = null;
+            return null;
+        }
+
+        var (_, _, toYaw) = MathUtil.GetSlaveRotationInDegrees(hull.RotationX, hull.RotationY, hull.RotationZ);
+        if (slave.SeamBlendOffset == null)
+        {
+            if (slave.SeamBlendFrom is not { } from)
+            {
+                slave.SeamBlendStartMs = 0;
+                return null;
+            }
+
+            // Where the outgoing track is right now, against the incoming body's first report.
+            var dt = Math.Clamp(now - slave.SeamBlendFromAtMs, 0, BoatSeamPredictRules.MaxPredictAgeMs) / 1000f;
+            var fromX = from.X + BoatSeamPredictRules.DecodeVelMetresPerSecond(from.VelX) * dt;
+            var fromY = from.Y + BoatSeamPredictRules.DecodeVelMetresPerSecond(from.VelY) * dt;
+            var (_, _, fromYaw) = MathUtil.GetSlaveRotationInDegrees(from.RotationX, from.RotationY, from.RotationZ);
+            slave.SeamBlendOffset = BoatSeamBlendRules.Residual(fromX, fromY, from.Z, fromYaw, hull.X, hull.Y, hull.Z, toYaw);
+            slave.SeamBlendFrom = null;
+            if (slave.SeamBlendOffset is not { } first)
+            {
+                slave.SeamBlendStartMs = 0;
+                return null;
+            }
+
+            Logger.Info(
+                "Seam blend obj={0} zone={1} residual=({2:F2},{3:F2},{4:F2}) yaw={5:F1}° over {6} ms",
+                slave.ObjId, slave.ZoneAnnouncedTo, first.X, first.Y, first.Z, first.YawDegrees, BoatSeamBlendRules.BlendMs);
+        }
+
+        var offset = slave.SeamBlendOffset.Value;
+        var w = BoatSeamBlendRules.Weight(age);
+        var restore = (hull.X, hull.Y, hull.Z, hull.RotationX, hull.RotationY, hull.RotationZ);
+        var (roll, pitch, yaw) = MathUtil.GetSlaveRotationInDegrees(hull.RotationX, hull.RotationY, hull.RotationZ);
+        hull.X += offset.X * w;
+        hull.Y += offset.Y * w;
+        hull.Z += offset.Z * w;
+        (hull.RotationX, hull.RotationY, hull.RotationZ) =
+            MathUtil.GetSlaveRotationFromDegrees(roll, pitch, yaw + offset.YawDegrees * w);
+        return restore;
+    }
+
+    /// <summary>
+    /// Pins zone id, time and steering on the body that will be written to SC. The World
+    /// mirror is restored after that write so seeds still see the zone's own report.
+    /// </summary>
+    private static void PinStreamedHullVisual(ShipMoveType hull, Slave slave)
+    {
+        var now = Environment.TickCount64;
+        var last = new BoatRudderSeamRules.StreamedShipVisual(
+            slave.StreamedShipZoneId, slave.StreamedShipTime, slave.StreamedShipSteering, slave.StreamedShipTimeOffset);
+        var elapsedMs = slave.StreamedShipAtMs == 0 ? 0 : now - slave.StreamedShipAtMs;
+        var pinned = BoatRudderSeamRules.Pin(
+            last, hull.ZoneId, hull.Time, hull.Steering, slave.SteeringRequest, elapsedMs);
+        hull.ZoneId = pinned.ZoneId;
+        hull.Time = pinned.Time;
+        hull.Steering = pinned.Steering;
+        slave.StreamedShipZoneId = pinned.ZoneId;
+        slave.StreamedShipTime = pinned.Time;
+        slave.StreamedShipSteering = pinned.Steering;
+        slave.StreamedShipTimeOffset = pinned.TimeOffset;
+        slave.StreamedShipAtMs = now;
     }
 
     public void RelayClientMoveToZone(ZoneConnection zone, uint bcId, byte[] payload)
@@ -368,14 +547,49 @@ public class MovementRelay
                     || WorldIntegration.FindUnitAcrossWorlds(bcId) is Npc { ZoneSimUsesLocalCoordinates: true };
                 ZoneCoordBoundary.ShiftLocalToWorld(zoneId, mt, localSim);
 
+                var restoreHullVisual = false;
+                ushort restoreZone = 0;
+                uint restoreTime = 0;
+                sbyte restoreSteer = 0;
+                (float X, float Y, float Z, short RX, short RY, short RZ)? restorePose = null;
+
                 if (mt is ShipMoveType hull)
                 {
-                    // Foreign copy of somebody else's hull: neither the mirror nor the clients may
-                    // see it, or the ship visibly fights itself.
-                    if (!OwnsHull(source, bcId))
+                    // Overlap: B's warmup is observed and never streamed. A stays the client body.
+                    // Replacing A with ForBridge (frozen plant) was the 1 s stop and the 186→149 fight.
+                    if (IsSeamWarmup(source, bcId))
+                    {
+                        if (WorldIntegration.FindUnitAcrossWorlds(bcId) is Slave warmup)
+                        {
+                            SlaveManager.ObserveSeamWarmupPose(
+                                warmup, source.ZoneId, hull.ReportedSpeed, hull.X, hull.Y);
+                        }
+
+                        // The report that made follow switch is B's first body the client should
+                        // see. Dropping it left a hole of one B tick plus the two zones' phase
+                        // difference (60–120 ms) right at the switch. If B now owns the hull,
+                        // fall through and stream this body.
+                        if (!OwnsHull(source, bcId))
+                            continue;
+                    }
+                    else if (!OwnsHull(source, bcId))
+                    {
                         continue;
+                    }
 
                     ApplyHullPosition(bcId, hull, source);
+                    if (WorldIntegration.FindUnitAcrossWorlds(bcId) is Slave live)
+                    {
+                        SlaveManager.TrackIncomingSeam(live);
+                        SlaveManager.TickSeamOverlap(live);
+                        restoreZone = hull.ZoneId;
+                        restoreTime = hull.Time;
+                        restoreSteer = hull.Steering;
+                        PinStreamedHullVisual(hull, live);
+                        restoreHullVisual = true;
+                        restorePose = BlendStreamedHullPose(hull, live);
+                        LogSeamStream(live, hull, source, restoreZone, restoreTime, restoreSteer);
+                    }
                 }
                 else if (mt is UnitMoveType unitMove)
                 {
@@ -402,6 +616,22 @@ public class MovementRelay
                 rewritten.WriteBc(bcId);
                 rewritten.Write(typeByte);
                 mt.Write(rewritten);
+                if (restoreHullVisual && mt is ShipMoveType streamed)
+                {
+                    streamed.ZoneId = restoreZone;
+                    streamed.Time = restoreTime;
+                    streamed.Steering = restoreSteer;
+                    if (restorePose is { } pose)
+                    {
+                        streamed.X = pose.X;
+                        streamed.Y = pose.Y;
+                        streamed.Z = pose.Z;
+                        streamed.RotationX = pose.RX;
+                        streamed.RotationY = pose.RY;
+                        streamed.RotationZ = pose.RZ;
+                    }
+                }
+
                 entries.Add((bcId, (MoveTypeEnum)typeByte, rewritten.GetBytes()));
                 if (NpcHeightDiagnostics.IsTracing(bcId))
                     (tracedZ ??= [])[bcId] = mt.Z;

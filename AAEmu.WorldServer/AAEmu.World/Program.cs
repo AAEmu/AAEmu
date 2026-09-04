@@ -128,22 +128,28 @@ public static class Program
             {
                 if (character.Transform.ZoneId != zoneId)
                     return;
-                connection.SendPacket(detailed
-                    ? new SCDetailedTimeOfDayPacket(time, speed, start, end)
-                    : new SCTimeOfDayPacket(time));
+                _ = (speed, start, end, detailed);
+                connection.SendPacket(TimeOfDayClientPackets.FromZoneReport(time));
             });
         };
         // Shared World hour crosses drive Game-Time tower arms (seamless has no ZW ToD).
         WorldIntegration.OnGameTimeAdvanced = TowerDefScheduler.OnGameTimeAdvanced;
-        WorldIntegration.RelayUnitStateToZone = (zoneId, body) =>
+        WorldIntegration.RelayUnitStateToZone = (zoneId, objId, body) =>
         {
             var zone = PlayerEnterService.ForZoneId(zoneId)
                        ?? (Environment.GetEnvironmentVariable("AAEMU_ZONE_PRIMARY_FALLBACK") == "1"
                            ? PlayerEnterService.PrimaryZone() : null);
             if (zone == null || body == null || body.Length == 0)
                 return;
+
+            // This unit is being created in the zone, so nothing it was previously told about applies.
+            // Object ids are recycled and the buff record is keyed by id, so a new unit would otherwise
+            // inherit the previous holder's entries and have its own buff Creates dropped as duplicates.
+            AAEmu.World.Core.Relay.ZoneBuffRegistry.ClearUnitEverywhere(objId);
+
             zone.SendPacket(new WZUnitStatePacket(body));
-            Logger.Info("WZUnitState (non-player) → zoneId={0} bodyLen={1}", zone.ZoneId, body.Length);
+            Logger.Info(
+                "WZUnitState (non-player) → zoneId={0} obj={1} bodyLen={2}", zone.ZoneId, objId, body.Length);
         };
         WorldIntegration.OnPlayerLeave = bcId => enter.LeaveZone(bcId);
         WorldIntegration.OnZoneNpcSpawn = WorldIntegration.MirrorZoneNpcSpawn;
@@ -226,6 +232,17 @@ public static class Program
             if (zone == null)
             {
                 Logger.Warn("RelayMoveToZone: no ZoneLoaded (bcId={0})", bcId);
+                return;
+            }
+
+            movement.RelayClientMoveToZone(zone, bcId, moveBody);
+        };
+        WorldIntegration.RelayMoveToZoneId = (zoneId, bcId, moveBody) =>
+        {
+            var zone = PlayerEnterService.ForZoneId(zoneId);
+            if (zone == null)
+            {
+                Logger.Warn("RelayMoveToZoneId: no ZoneLoaded (zoneId={0} bcId={1})", zoneId, bcId);
                 return;
             }
 
@@ -548,6 +565,7 @@ public static class Program
 
             // A forced removal has no completion callback, so release its spawn marker here.
             NpcSpawnRelay.ForgetNpcState(zone.ZoneId, zone.InstanceId, bcId);
+            AAEmu.World.Core.Relay.ZoneBuffRegistry.ClearUnit(zone.ZoneId, zone.InstanceId, bcId);
             Logger.Info("WZUnitRemoved → zone bcId={0} (forced teardown, Create marker dropped)", bcId);
         };
         WorldIntegration.RelayUnitRemovedToZoneId = (zoneId, bcId) =>
@@ -557,6 +575,8 @@ public static class Program
                 return;
 
             zone.SendPacket(new WZUnitRemovedPacket(bcId));
+            zone.Units.TryRemove(bcId);
+            AAEmu.World.Core.Relay.ZoneBuffRegistry.ClearUnit(zone.ZoneId, zone.InstanceId, bcId);
             Logger.Info("WZUnitRemoved → zoneId={0} bcId={1}", zoneId, bcId);
         };
         WorldIntegration.RelayPlotEventToZone = (tl, eventId, skillId, caster, target, itemId, objId, castTimeMs, channelingMs, conditionOk, last, targetUnitIds) =>
@@ -592,11 +612,36 @@ public static class Program
             zone.SendPacket(new WZCreateDoodadPacket(doodad));
             Logger.Debug("WZCreateDoodad → zone obj={0} tpl={1} modelId={2}", doodad.ObjId, doodad.TemplateId, modelId);
         };
+        WorldIntegration.RelayCreateDoodadToZoneId = (zoneId, doodadObj) =>
+        {
+            if (Environment.GetEnvironmentVariable("AAEMU_WZ_DOODAD") == "0")
+                return;
+            if (doodadObj is not AAEmu.Game.Models.Game.DoodadObj.Doodad doodad)
+                return;
+            var zone = PlayerEnterService.ForZoneId(zoneId);
+            if (zone == null)
+                return;
+            if (!ShouldSendWzCreateDoodad(doodad, out var modelId))
+                return;
+            zone.SendPacket(new WZCreateDoodadPacket(doodad));
+            Logger.Debug(
+                "WZCreateDoodad → zoneId={0} obj={1} tpl={2} modelId={3}",
+                zoneId, doodad.ObjId, doodad.TemplateId, modelId);
+        };
         WorldIntegration.RelayRemoveDoodadToZone = objId =>
         {
             if (Environment.GetEnvironmentVariable("AAEMU_WZ_DOODAD") == "0")
                 return;
             PlayerEnterService.ForUnit(objId)?.SendPacket(new WZRemoveDoodadPacket(objId));
+        };
+        WorldIntegration.RelayRemoveDoodadToZoneId = (zoneId, objId) =>
+        {
+            if (Environment.GetEnvironmentVariable("AAEMU_WZ_DOODAD") == "0")
+                return;
+            var zone = PlayerEnterService.ForZoneId(zoneId);
+            if (zone == null)
+                return;
+            zone.SendPacket(new WZRemoveDoodadPacket(objId));
         };
         WorldIntegration.RelayDoodadPhaseToZone = (objId, funcGroupId, data) =>
         {
@@ -632,6 +677,10 @@ public static class Program
                 "WZUnitEquipmentChanged → zone bc={0} bodyLen={1} bodyHex={2}",
                 unitId, body.Length, Convert.ToHexString(body));
         };
+        // WZBuffCreated body layout is owned by BuffCreatedWire; see TryGetBuffIndex.
+        static uint BuffIndexFromCreateBody(byte[] body) =>
+            BuffCreatedWire.TryGetBuffIndex(body, out var index) ? index : 0;
+
         WorldIntegration.RelayBuffCreatedToZone = (targetId, body) =>
         {
             if (Environment.GetEnvironmentVariable("AAEMU_WZ_BUFF") == "0")
@@ -639,7 +688,45 @@ public static class Program
             var zone = PlayerEnterService.ForUnit(targetId);
             if (zone == null || body == null)
                 return;
+
+            var buffIndex = BuffIndexFromCreateBody(body);
+            var incomingStack = BuffCreatedWire.TryGetStack(body, out var parsedStack) ? parsedStack : (uint?)null;
+            var recorded = AAEmu.World.Core.Relay.ZoneBuffRegistry.TryGetRecordedStack(
+                zone.ZoneId, zone.InstanceId, targetId, buffIndex, out var lastStack)
+                ? lastStack
+                : (uint?)null;
+            var action = AAEmu.World.Core.Relay.ZoneBuffCreateRelay.Decide(recorded, incomingStack);
+
+            // Start rebuilds a stacking family on each application (new body, new stack). An extra
+            // Create without Remove would register a second entry and multiply the effect. An Update
+            // writes the count but leaves the attributes computed on the first Create in place, so
+            // the zone would keep a single application's worth of speed. Replace (Remove then Create)
+            // keeps one entry and refolds at the new count. Same-stack rebuilds stay Skip.
+            if (action == AAEmu.World.Core.Relay.ZoneBuffCreateAction.Skip)
+            {
+                Logger.Debug(
+                    "WZBuffCreated suppressed (already created) zoneId={0} unit={1} idx={2} stack={3}",
+                    zone.ZoneId, targetId, buffIndex, incomingStack);
+                return;
+            }
+
+            if (action == AAEmu.World.Core.Relay.ZoneBuffCreateAction.Replace)
+            {
+                zone.SendPacket(new WZBuffRemovedPacket(targetId, buffIndex));
+                AAEmu.World.Core.Relay.ZoneBuffRegistry.Clear(zone.ZoneId, zone.InstanceId, targetId, buffIndex);
+                Logger.Info(
+                    "WZBuffCreated replace zoneId={0} unit={1} idx={2} stack={3}->{4}",
+                    zone.ZoneId, targetId, buffIndex, recorded, incomingStack);
+            }
+
             zone.SendPacket(new WZBuffCreatedPacket(body));
+            // The zone's ZoneBuffMan registers a buff here and nowhere else; remember it so
+            // Updates/Removes are only ever sent to zones that accepted this Create.
+            AAEmu.World.Core.Relay.ZoneBuffRegistry.MarkCreated(
+                zone.ZoneId, zone.InstanceId, targetId, buffIndex, incomingStack ?? 1);
+            Logger.Info(
+                "WZBuffCreated → zone zoneId={0} unit={1} idx={2} stack={3} bodyLen={4}",
+                zone.ZoneId, targetId, buffIndex, incomingStack, body.Length);
         };
         WorldIntegration.RelayBuffRemovedToZone = (targetId, buffId) =>
         {
@@ -651,11 +738,37 @@ public static class Program
                 return;
             }
 
-            var zone = PlayerEnterService.ForUnit(targetId);
-            if (zone == null)
+            foreach (var zone in PlayerEnterService.JoinedZones())
+            {
+                // Destroy on an unregistered index warns "invalid buff id" zone-side and leaves
+                // the sim's bookkeeping untouched — send only where the Create was accepted.
+                if (!AAEmu.World.Core.Relay.ZoneBuffRegistry.WasCreated(zone.ZoneId, zone.InstanceId, targetId, buffId))
+                    continue;
+                zone.SendPacket(new WZBuffRemovedPacket(targetId, buffId));
+                Logger.Info(
+                    "WZBuffRemoved → zone zoneId={0} target={1} buffIndex={2}",
+                    zone.ZoneId, targetId, buffId);
+                AAEmu.World.Core.Relay.ZoneBuffRegistry.Clear(zone.ZoneId, zone.InstanceId, targetId, buffId);
+            }
+        };
+        WorldIntegration.ReplayBuffCreatedToZone = (zoneKey, instanceId, targetId, body) =>
+        {
+            if (Environment.GetEnvironmentVariable("AAEMU_WZ_BUFF") == "0")
                 return;
-            zone.SendPacket(new WZBuffRemovedPacket(targetId, buffId));
-            Logger.Info("WZBuffRemoved → zone target={0} buffIndex={1}", targetId, buffId);
+            var zone = PlayerEnterService.ForZoneInstance(zoneKey, (uint)instanceId) ?? PlayerEnterService.ForZoneId(zoneKey);
+            if (zone == null || body == null)
+                return;
+            // The registry dedupe makes a replay safe on overlap paths where the same Create may
+            // already have been accepted by this zone instance.
+            if (AAEmu.World.Core.Relay.ZoneBuffRegistry.WasCreated(zone.ZoneId, zone.InstanceId, targetId, BuffIndexFromCreateBody(body)))
+                return;
+            zone.SendPacket(new WZBuffCreatedPacket(body));
+            var replayStack = BuffCreatedWire.TryGetStack(body, out var parsedReplayStack) ? parsedReplayStack : 1u;
+            AAEmu.World.Core.Relay.ZoneBuffRegistry.MarkCreated(
+                zone.ZoneId, zone.InstanceId, targetId, BuffIndexFromCreateBody(body), replayStack);
+            Logger.Info(
+                "WZBuffCreated replay → zone zoneId={0} unit={1} stack={2} bodyLen={3}",
+                zone.ZoneId, targetId, replayStack, body.Length);
         };
         WorldIntegration.RelayInteractNpcToZone = (playerId, npcId, ending) =>
         {
@@ -869,14 +982,15 @@ public static class Program
             var zone = PlayerEnterService.ForUnit(slaveId);
             if (zone == null)
                 return;
-            var local = ZoneCoordBoundary.ToZoneLocal(zone.ZoneId, new System.Numerics.Vector3(x, y, z));
+            // Continent WorldPos on the wire (same as SCEscapeSlave). The zone converts against its
+            // own origin — do not pre-subtract or the hull is placed near (0,0) ("end of world").
             zone.SendPacket(new WZEscapeSlavePacket(
                 slaveId,
-                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongX(local.X),
-                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongY(local.Y),
-                local.Z,
+                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongX(x),
+                (ulong)AAEmu.Commons.Utils.Helpers.ConvertLongY(y),
+                z,
                 rot));
-            Logger.Info("WZEscapeSlave → zone slave={0} pos=({1:F1},{2:F1},{3:F1})", slaveId, local.X, local.Y, local.Z);
+            Logger.Info("WZEscapeSlave → zone slave={0} pos=({1:F1},{2:F1},{3:F1})", slaveId, x, y, z);
         };
         WorldIntegration.RelayShipControlChangeToZone = (slaveId, control) =>
         {
@@ -885,6 +999,35 @@ public static class Program
                 return;
             zone.SendPacket(new WZShipControlChangePacket(slaveId, control));
             Logger.Info("WZShipControlChange → zone slave={0} control={1}", slaveId, control);
+        };
+        WorldIntegration.RelayShipControlChangeToZoneId = (zoneId, slaveId, control) =>
+        {
+            var zone = PlayerEnterService.ForZoneId(zoneId);
+            if (zone == null)
+            {
+                // Callers log the hand-over as done straight after this, so staying quiet here made
+                // the log claim a simulation was armed in a zone that was never loaded.
+                Logger.Warn(
+                    "WZShipControlChange dropped: zoneId={0} not loaded (slave={1} control={2})",
+                    zoneId, slaveId, control);
+                return;
+            }
+            zone.SendPacket(new WZShipControlChangePacket(slaveId, control));
+            Logger.Info("WZShipControlChange → zoneId={0} slave={1} control={2}", zoneId, slaveId, control);
+        };
+        WorldIntegration.RelaySeamImpulseToZone = (targetId, zoneId, caster, vel, angVel, impulse, angImpulse) =>
+        {
+            var zone = PlayerEnterService.ForZoneId(zoneId);
+            if (zone == null || caster == null)
+                return;
+            zone.SendPacket(new WZImpulseUnitPacket(
+                targetId, caster,
+                vel[0], vel[1], vel[2],
+                angVel[0], angVel[1], angVel[2],
+                impulse[0], impulse[1], impulse[2],
+                angImpulse[0], angImpulse[1], angImpulse[2]));
+            Logger.Info("WZImpulseUnit seam restore → zoneId={0} target={1} vel=({2:0.0},{3:0.0},{4:0.0})",
+                zoneId, targetId, vel[0], vel[1], vel[2]);
         };
         WorldIntegration.RelayQuestNpcAiToZone = (kind, npcId, playerId, pathName, pathType, commandSetId) =>
         {
@@ -914,11 +1057,17 @@ public static class Program
         {
             if (Environment.GetEnvironmentVariable("AAEMU_WZ_BUFF") == "0")
                 return;
-            var zone = PlayerEnterService.ForUnit(unitId);
-            if (zone == null)
-                return;
-            zone.SendPacket(new WZBuffUpdatedPacket(unitId, buffIndex, stack, charged, elapsedMs, reason));
-            Logger.Debug("WZBuffUpdated → zone unit={0} idx={1} stack={2} charge={3}", unitId, buffIndex, stack, charged);
+            foreach (var zone in PlayerEnterService.JoinedZones())
+            {
+                // Change on an unregistered index warns "invalid buff id" zone-side and does
+                // nothing — send only to zones that accepted the Create.
+                if (!AAEmu.World.Core.Relay.ZoneBuffRegistry.WasCreated(zone.ZoneId, zone.InstanceId, unitId, (uint)buffIndex))
+                    continue;
+                zone.SendPacket(new WZBuffUpdatedPacket(unitId, buffIndex, stack, charged, elapsedMs, reason));
+                Logger.Debug(
+                    "WZBuffUpdated → zone zoneId={0} unit={1} idx={2} stack={3} charge={4}",
+                    zone.ZoneId, unitId, buffIndex, stack, charged);
+            }
         };
         WorldIntegration.RelayRequestCombatUnitsToZone = (unitId, aroundId) =>
         {
@@ -962,6 +1111,22 @@ public static class Program
             {
                 zone.SendPacket(new WZUnitDetachedPacket(unitId));
                 Logger.Info("WZUnitDetached → zone unit={0}", unitId);
+            }
+        };
+        WorldIntegration.RelayUnitAttachToZoneId = (zoneId, unitId, targetId, attachPoint, attached) =>
+        {
+            var zone = PlayerEnterService.ForZoneId(zoneId);
+            if (zone == null)
+                return;
+            if (attached)
+            {
+                zone.SendPacket(new WZUnitAttachedPacket(unitId, targetId, attachPoint));
+                Logger.Info("WZUnitAttached → zoneId={0} unit={1} target={2} point={3}", zoneId, unitId, targetId, attachPoint);
+            }
+            else
+            {
+                zone.SendPacket(new WZUnitDetachedPacket(unitId));
+                Logger.Info("WZUnitDetached → zoneId={0} unit={1}", zoneId, unitId);
             }
         };
         WorldIntegration.RelayBondDoodadToZone = (unitId, bonding, bond) =>
@@ -1165,6 +1330,7 @@ public static class Program
             WorldIntegration.RelayUnitStateToZone = null;
             WorldIntegration.OnPlayerLeave = null;
             WorldIntegration.RelayMoveToZone = null;
+            WorldIntegration.RelayMoveToZoneId = null;
             WorldIntegration.RelayCreateSkillControllerToZone = null;
             WorldIntegration.RelaySkillControllerStateToZone = null;
             WorldIntegration.RelaySkillStartedToZone = null;
@@ -1188,6 +1354,7 @@ public static class Program
             WorldIntegration.RelayUnitExpeditionChangedToZone = null;
             WorldIntegration.RelayEscapeSlaveToZone = null;
             WorldIntegration.RelayShipControlChangeToZone = null;
+            WorldIntegration.RelayShipControlChangeToZoneId = null;
             WorldIntegration.RelayQuestNpcAiToZone = null;
             WorldIntegration.RelayBuffUpdatedToZone = null;
             WorldIntegration.RelayRequestCombatUnitsToZone = null;
@@ -1205,17 +1372,21 @@ public static class Program
             WorldIntegration.RelayPlotEventToZone = null;
             WorldIntegration.RelayGmCommandToZone = null;
             WorldIntegration.RelayCreateDoodadToZone = null;
+            WorldIntegration.RelayCreateDoodadToZoneId = null;
             WorldIntegration.NotifyZoneReadyForDoodads = null;
             WorldIntegration.NotifyZoneReadyForHousing = null;
             WorldIntegration.NotifyZoneReadyForGimmicks = null;
             WorldIntegration.RelayCharacterZoneHandoff = null;
             WorldIntegration.RelayRemoveDoodadToZone = null;
+            WorldIntegration.RelayRemoveDoodadToZoneId = null;
             WorldIntegration.RelayDoodadPhaseToZone = null;
             WorldIntegration.RelayEquipmentChangedToZone = null;
             WorldIntegration.RelayBuffCreatedToZone = null;
+            WorldIntegration.ReplayBuffCreatedToZone = null;
             WorldIntegration.RelayBuffRemovedToZone = null;
             WorldIntegration.RelayInteractNpcToZone = null;
             WorldIntegration.RelayUnitAttachToZone = null;
+            WorldIntegration.RelayUnitAttachToZoneId = null;
             WorldIntegration.RelayBondDoodadToZone = null;
             WorldIntegration.RelayHouseStateToZone = null;
             WorldIntegration.RelayHouseBuildProgressToZone = null;

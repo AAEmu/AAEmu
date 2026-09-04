@@ -24,7 +24,7 @@ public class CSInstanceLoadedPacket() : GamePacket(CSOffsets.CSInstanceLoadedPac
             Connection.SendPacket(new SCUnitFactionChangedPacket(
                 me.ObjId, me.Name ?? "", FactionsEnum.Invalid, me.Faction.Id, false));
         Connection.SendPacket(new SCCooldownsPacket(me.Cooldowns));
-        Connection.SendPacket(new SCDetailedTimeOfDayPacket(TimeManager.Instance.GetTime));
+        Connection.SendPacket(TimeOfDayClientPackets.Hour(TimeManager.Instance.GetTime));
 
         me.DisabledSetPosition = false;
 

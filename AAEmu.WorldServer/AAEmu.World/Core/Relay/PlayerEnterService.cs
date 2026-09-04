@@ -4,6 +4,7 @@ using System.Linq;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.World.Core.Network;
 using AAEmu.World.Core.Packets.Wz;
 using AAEmu.World.Core.Zone;
@@ -125,6 +126,10 @@ public class PlayerEnterService
                 "WZUnitRemoved replace ({0}) → zoneId={1} instanceId={2} bcId={3}",
                 reason, zone.ZoneId, zone.InstanceId, bcId);
         }
+
+        // Creating the unit resets whatever the zone knew about its buffs, and the record is keyed by an
+        // id the server recycles — so a stale entry would suppress this unit's own buff Creates.
+        ZoneBuffRegistry.ClearUnit(zone.ZoneId, zone.InstanceId, bcId);
 
         zone.SendPacket(new WZUnitStatePacket(unitStateBody));
         zone.Units.RegisterWithId(bcId, unitStateBody);
@@ -287,6 +292,14 @@ public class PlayerEnterService
         if (ch?.Transform == null)
             return 0;
 
+        if (ch.Transform.Parent?.GameObject is Slave hull && hull.Template?.IsABoat() == true)
+        {
+            if (hull.ZoneAnnouncedTo != 0)
+                return hull.ZoneAnnouncedTo;
+            if (hull.Transform.ZoneId != 0)
+                return hull.Transform.ZoneId;
+        }
+
         if (ch.Transform.ZoneId != 0)
             return ch.Transform.ZoneId;
 
@@ -325,7 +338,12 @@ public class PlayerEnterService
             if (unit.Transform?.ZoneId is > 0)
                 return unit.Transform.ZoneId;
         }
-        else if (unit?.Transform != null)
+        else if (unit is Slave boat && boat.Template?.IsABoat() == true && boat.ZoneAnnouncedTo != 0)
+        {
+            return boat.ZoneAnnouncedTo;
+        }
+
+        if (unit?.Transform != null)
         {
             if (unit.Transform.ZoneId != 0)
                 return unit.Transform.ZoneId;
@@ -355,6 +373,28 @@ public class PlayerEnterService
         }
 
         return 0;
+    }
+
+    /// <summary>
+    /// Every zone connection that has finished joining. Buff relays fan out over these rather than a
+    /// single <see cref="ForUnit"/> lookup, because during a handoff the old and new zone can both still
+    /// hold a copy of the unit and each keeps its own buff bookkeeping.
+    /// </summary>
+    /// <remarks>
+    /// Deliberately not filtered by <c>zone.Units</c>. That registry is only written for units created
+    /// through the player-enter and NPC-mirror paths, so a hull — which reaches a zone through the
+    /// non-player unit-state relay — was never in it, and filtering on it silently dropped every buff
+    /// Update and Remove bound for a boat. The authoritative test is
+    /// <c>ZoneBuffRegistry.WasCreated</c>, which records exactly which zone accepted which Create;
+    /// callers must apply it.
+    /// </remarks>
+    public static IEnumerable<ZoneConnection> JoinedZones()
+    {
+        foreach (var zone in ZoneSession.Instance.All)
+        {
+            if (zone.State >= ZoneConnectionState.Joined)
+                yield return zone;
+        }
     }
 
     private static uint ResolveInstanceId(Character? character, uint unitObjId)

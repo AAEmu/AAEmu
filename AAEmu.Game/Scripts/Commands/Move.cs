@@ -90,7 +90,11 @@ public class Move : ICommand
                     $"[GM] |cFFFFFFFF{character.Name}|r has moved you do position X: {newX}, Y: {newY}, Z: {newZ}");
             }
 
-            targetPlayer.DisabledSetPosition = true;
+            // Same instance: apply World Transform now. CSTeleportEnded used to
+            // only unlock movement and leave the server on the old cell.
+            var rot = targetPlayer.Transform.World.Rotation;
+            targetPlayer.SetPosition(newX, newY, newZ, rot.X, rot.Y, rot.Z);
+            targetPlayer.Transform.FinalizeTransform();
             targetPlayer.SendPacket(new SCTeleportUnitPacket(0, 0, newX, newY, newZ, 0f));
             CommandManager.SendNormalText(this, messageOutput,
                 $"|cFFFFFFFF{targetPlayer.Name}|r moved to X: {newX}, Y: {newY}, Z: {newZ}");

@@ -175,8 +175,12 @@ public enum UnitAttribute : uint // 10.0.2.13 adds unit_attribute_id 256-261 (>2
     /// This is one value for the whole hull — the per-face split lives in slave_collision_damages.
     /// </summary>
     PhysicsCollisionDamageMul = 187,
-    // 188 is not a collision attribute despite its neighbours: its owners are the Leviathan corpse
-    // weight buffs, "submerged", and the slave-backpack-loaded buffs, i.e. hull mass.
+    /// <summary>
+    /// Extra kilograms on a hull (sails, figure, engine, masts, toys). The zone adds this to
+    /// <c>ship_models.mass</c> when it folds thrust; it is not a collision multiplier despite
+    /// sitting next to those attributes.
+    /// </summary>
+    Mass = 188,
     /// <summary>
     /// Percent points of collision armour, 100 = unmodified, divides the damage. Monster figurehead
     /// grades give +10/20/35/50, the dock's Moored buff +2900.

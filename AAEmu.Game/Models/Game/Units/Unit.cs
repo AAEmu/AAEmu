@@ -933,7 +933,11 @@ public class Unit : BaseUnit, IUnit
     {
         if (criminalState)
         {
-            // Retribution (Felon) is for attacking players — not NPCs, ships, or mounts.
+            // Retribution (Felon) is for a player attacking players — not NPCs, ships, or mounts,
+            // and only a player can be the criminal. A hull's own plots put crew debuffs on its
+            // riders (anchor lowered → 21950 "move speed 0" on the crew); that is not a crime.
+            if (this is not Character)
+                return;
             if (attackedTarget is Npc and not Portal)
                 return;
             if (attackedTarget is Slave or Mate)

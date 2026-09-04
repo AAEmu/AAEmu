@@ -14,9 +14,21 @@ public class CSTeleportEndedPacket() : GamePacket(CSOffsets.CSTeleportEndedPacke
         var z = stream.ReadSingle();
         var ori = stream.ReadBytes(16); // TODO example: 00000000 00000000 00000000 0000803F
 
-        Connection.ActiveChar.DisabledSetPosition = false;
-        Logger.Warn("TeleportEnded, X: {0}, Y: {1}, Z: {2}", x, y, z);
+        var me = Connection.ActiveChar;
+        if (me == null)
+            return;
 
-        WorldManager.ResendVisibleObjectsToCharacter(Connection.ActiveChar);
+        // Same-instance GM /move and SCTeleportUnit never send CSInstanceLoaded.
+        // Clearing the movement lock without applying the arrival left World
+        // Transform on the old cell, so later GM spawns used dry-land coords
+        // while the client was already at the destination.
+        me.DisabledSetPosition = false;
+        var rot = me.Transform.World.Rotation;
+        me.SetPosition(x, y, z, rot.X, rot.Y, rot.Z);
+        me.Transform.FinalizeTransform();
+        Logger.Info("TeleportEnded applied {0} -> ({1:0.0},{2:0.0},{3:0.0}) zone={4}",
+            me.Name, x, y, z, me.Transform.ZoneId);
+
+        WorldManager.ResendVisibleObjectsToCharacter(me);
     }
 }

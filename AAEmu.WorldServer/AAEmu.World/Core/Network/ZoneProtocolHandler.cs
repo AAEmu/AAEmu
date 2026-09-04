@@ -45,6 +45,9 @@ public class ZoneProtocolHandler : BaseProtocolHandler
         }
         ZoneSession.Instance.Remove(session.SessionId);
         NpcSpawnRelay.ResetNpcStateSentForZone(zoneId, instanceId, $"zone TCP disconnect {session.Ip}");
+        // The zone process lost its buff bookkeeping with its state; forget what we told it so
+        // Updates/Removes are not sent to a registry that no longer holds those entries.
+        AAEmu.World.Core.Relay.ZoneBuffRegistry.ResetZone(zoneId, instanceId);
         Logger.Error(
             "Zone disconnect from {0} zoneId={1} instanceId={2} — returning affected clients to character select",
             session.Ip, zoneId, instanceId);
@@ -189,6 +192,9 @@ public class ZoneProtocolHandler : BaseProtocolHandler
         connection.ZoneId = (uint)join.Id;
         connection.InstanceId = join.InstanceId;
         NpcSpawnRelay.ResetNpcStateSentForZone(connection.ZoneId, connection.InstanceId, $"ZWJoin from {connection.Ip}");
+        // A fresh dedicate process starts with an empty buff registry; forget whatever the previous
+        // connection on this key was told so Creates must be re-sent before Updates/Removes.
+        AAEmu.World.Core.Relay.ZoneBuffRegistry.ResetZone(connection.ZoneId, connection.InstanceId);
         ZoneSession.Instance.IndexByZoneId(connection);
         var joinResponse = new WZJoinResponsePacket();
         connection.SendPacket(joinResponse);

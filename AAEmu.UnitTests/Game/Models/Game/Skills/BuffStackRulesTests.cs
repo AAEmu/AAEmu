@@ -1,0 +1,49 @@
+using AAEmu.Game.Models.Game.Skills;
+
+namespace AAEmu.UnitTests.Game.Models.Game.Skills;
+
+public class BuffStackRulesTests
+{
+    /// <summary>The sail-trim family ceiling: one instance per sail, sixty applications each.</summary>
+    private const int SailTrimMaxStack = 60;
+
+    [Test]
+    public async Task CanGrow_AcceptsApplicationsBelowTheCeiling()
+    {
+        await Assert.That(BuffStackRules.CanGrow(1, SailTrimMaxStack)).IsTrue();
+        await Assert.That(BuffStackRules.CanGrow(59, SailTrimMaxStack)).IsTrue();
+    }
+
+    [Test]
+    public async Task CanGrow_StopsAtTheCeiling()
+    {
+        await Assert.That(BuffStackRules.CanGrow(SailTrimMaxStack, SailTrimMaxStack)).IsFalse();
+    }
+
+    [Test]
+    public async Task CanGrow_StopsAboveTheCeiling()
+    {
+        // A member restored from a save could exceed a ceiling that has since been lowered.
+        await Assert.That(BuffStackRules.CanGrow(SailTrimMaxStack + 1, SailTrimMaxStack)).IsFalse();
+    }
+
+    [Test]
+    public async Task CanGrow_RefusesFamiliesThatDoNotStack()
+    {
+        // Ceilings of zero and one both mean "one application"; growing either would let a single-stack
+        // buff double its modifiers instead of simply refreshing.
+        await Assert.That(BuffStackRules.CanGrow(1, 0)).IsFalse();
+        await Assert.That(BuffStackRules.CanGrow(1, 1)).IsFalse();
+    }
+
+    [Test]
+    public async Task ScaledModifier_GrowsSailTrimBySixPerStack()
+    {
+        // Sail trim is +6 move_speed_mul per application, ceiling 60. The first tick is +6;
+        // sixty ticks are +360. A flat +36% on the first application is the ceiling, not the start.
+        await Assert.That(BuffStackRules.ScaledModifier(6, 0, 1, 1)).IsEqualTo(6);
+        await Assert.That(BuffStackRules.ScaledModifier(6, 0, 1, 2)).IsEqualTo(12);
+        await Assert.That(BuffStackRules.ScaledModifier(6, 0, 1, 60)).IsEqualTo(360);
+        await Assert.That(BuffStackRules.ScaledModifier(6, 0, 1, 0)).IsEqualTo(6);
+    }
+}

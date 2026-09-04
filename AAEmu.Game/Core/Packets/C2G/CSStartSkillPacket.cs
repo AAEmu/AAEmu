@@ -68,8 +68,11 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             // judged on more than one case - the nest interaction sends flag 28 and lands here too.
             // Drop to Debug once the meaning of the values is settled.
             Logger.Info(
-                "StartSkill extras: skillId={0} flag={1} values=[{2}]",
-                skillId, flag, string.Join(" ", extraValues.Values.Select(v => v.ToString("X8"))));
+                "StartSkill extras: skillId={0} flag={1} count={2} values=[{3}]",
+                skillId,
+                flag,
+                extraValues.ReadCount,
+                string.Join(" ", extraValues.Values.Take(extraValues.ReadCount).Select(v => v.ToString("X8"))));
         }
         else
         {

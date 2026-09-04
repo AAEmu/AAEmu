@@ -258,10 +258,18 @@ public class SkillObjectExtraValues : SkillObject
 
     public int[] Values { get; set; } = new int[ValueCount];
 
+    /// <summary>How many of <see cref="Values"/> the sender actually supplied.</summary>
+    public int ReadCount { get; private set; }
+
     public override void Read(PacketStream stream)
     {
         Values = new int[ValueCount];
-        for (var i = 0; i < ValueCount; i++)
+
+        // Only as many as the sender supplied: this block is not always the full thirteen. A nest
+        // interaction carries two, and reading the difference off the end of the body logged eleven
+        // stream errors per cast while contributing nothing but zeroes.
+        ReadCount = System.Math.Min(ValueCount, stream.LeftBytes / sizeof(int));
+        for (var i = 0; i < ReadCount; i++)
             Values[i] = stream.ReadInt32();
     }
 

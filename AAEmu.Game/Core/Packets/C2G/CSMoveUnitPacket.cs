@@ -1,5 +1,7 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
@@ -73,10 +75,17 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                 return;
             }
 
-            var moveBody = new PacketStream();
-            moveBody.Write((byte)_moveType.Type);
-            moveBody.Write(_moveType);
-            WorldIntegration.RelayMoveToZone(_objId, moveBody.GetBytes());
+            var seatedOnSlave = BoatHelmSeatRules.IsSeatedOnSlave(
+                character.AttachedPoint != AttachPointKind.None,
+                character.Transform.Parent?.GameObject is Slave);
+            var isSelfActorMove = _moveType is UnitMoveType && _objId == character.ObjId;
+            if (BoatHelmSeatRules.ShouldForwardActorMoveToZone(seatedOnSlave) || !isSelfActorMove)
+            {
+                var moveBody = new PacketStream();
+                moveBody.Write((byte)_moveType.Type);
+                moveBody.Write(_moveType);
+                WorldIntegration.RelayMoveToZone(_objId, moveBody.GetBytes());
+            }
 
             // Keep local transform for region/interest so CS/SC glue does not desync, but no SC broadcast.
             if (_moveType is UnitMoveType umt && _objId == character.ObjId)
@@ -87,6 +96,14 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                 // and it cleanly quits a few seconds after entering an idle area).
                 character.PhysTimeAnchor = _moveType.Time;
                 character.PhysTimeAnchorTick = Environment.TickCount64;
+
+                var jumping = umt.Flags.HasFlag(MoveTypeFlags.Jumping)
+                    || ((MoveTypeActorFlags)umt.ActorFlags).HasFlag(MoveTypeActorFlags.Jumping);
+                if (BoatHelmSeatRules.ShouldIgnoreActorMoveWhileSeated(seatedOnSlave) && !jumping)
+                {
+                    character.Transform.FinalizeTransform();
+                    return;
+                }
 
                 // Seats under zone authority: clear remove_on_move only when not bonded, or when
                 // the move is leave (walk/jump). Residual settle velocity must not unseat.
@@ -102,8 +119,6 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                 // rewrite Local world coords while still parented, or clear Parent without
                 // UnbindSlave — player stayed "on the mast" with no get-off. Jump and hang-bit
                 // drop must Unbind + SCUnhung (client hang state), not only null StickyParent.
-                var jumping = umt.Flags.HasFlag(MoveTypeFlags.Jumping)
-                    || ((MoveTypeActorFlags)umt.ActorFlags).HasFlag(MoveTypeActorFlags.Jumping);
                 var hanging = ((MoveTypeActorFlags)umt.ActorFlags).HasFlag(MoveTypeActorFlags.HangingFromObject);
                 if (jumping || (!hanging && umt.GcId == 0))
                     TryDismountSlaveOrHang(character, jumping);
@@ -185,6 +200,8 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                 // are kept for the packets that report the current helm position back to observers.
                 ship.ThrottleRequest = shipRequest.Throttle;
                 ship.SteeringRequest = shipRequest.Steering;
+                SlaveManager.NoteSeamHelm(ship);
+                SlaveManager.TickHeldWaterlineDrive(ship);
                 character.Transform.Parent = ship.Transform;
             }
 
@@ -219,6 +236,7 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
 
                     ship.ThrottleRequest = srmt.Throttle;
                     ship.SteeringRequest = srmt.Steering;
+                    SlaveManager.NoteSeamHelm(ship);
 
                     // Make sure driver is attached to the ship
                     character.Transform.Parent = ship.Transform;
