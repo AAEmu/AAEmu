@@ -13,6 +13,7 @@ public enum SkillObjectType
     Unk5 = 5,
     Unk6 = 6,
     ItemGradeEnchantingSupport = 7,
+
     /// <summary>Synthesis material slots. See <see cref="SkillObjectItemEvolvingMaterials"/>.</summary>
     ItemEvolvingMaterials = 8,
 
@@ -34,9 +35,12 @@ public class SkillObject : PacketMarshaler
     }
 
     /// <summary>
-    /// Whether the low bits of a cast's flag byte name a shape this server can read back. Reading an
-    /// unknown one would take the wrong number of bytes off the stream and desync everything after
-    /// it, so callers drop those rather than guess.
+    /// Whether this server can parse a skill-object type. Reading an unknown one would take the
+    /// wrong number of bytes off the stream and desync everything after it, so callers drop those
+    /// rather than guess.
+    /// </summary>
+    /// <summary>
+    /// Whether the low bits of a cast's flag byte name a shape this server can read back.
     /// </summary>
     /// <remarks>
     /// Six is excluded. The flag is a bit mask, and only bit 3 carries a payload, so a cast setting
@@ -261,10 +265,18 @@ public class SkillObjectExtraValues : SkillObject
 
     public int[] Values { get; set; } = new int[ValueCount];
 
+    /// <summary>How many of <see cref="Values"/> the sender actually supplied.</summary>
+    public int ReadCount { get; private set; }
+
     public override void Read(PacketStream stream)
     {
         Values = new int[ValueCount];
-        for (var i = 0; i < ValueCount; i++)
+
+        // Only as many as the sender supplied: this block is not always the full thirteen. A nest
+        // interaction carries two, and reading the difference off the end of the body logged eleven
+        // stream errors per cast while contributing nothing but zeroes.
+        ReadCount = System.Math.Min(ValueCount, stream.LeftBytes / sizeof(int));
+        for (var i = 0; i < ReadCount; i++)
             Values[i] = stream.ReadInt32();
     }
 
