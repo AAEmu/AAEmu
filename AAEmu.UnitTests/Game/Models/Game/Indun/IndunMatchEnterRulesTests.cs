@@ -23,5 +23,7 @@ public class IndunMatchEnterRulesTests
     {
         await Assert.That(IndunMatchEnterRules.ShouldPublishEnter(0)).IsFalse();
         await Assert.That(IndunMatchEnterRules.ShouldPublishEnter(2)).IsTrue();
+        await Assert.That(IndunMatchEnterRules.ShouldPublishEnter(false)).IsFalse();
+        await Assert.That(IndunMatchEnterRules.ShouldPublishEnter(true)).IsTrue();
     }
 }

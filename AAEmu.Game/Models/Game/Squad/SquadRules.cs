@@ -79,6 +79,13 @@ public static class SquadRules
         squad is { EnterCommitted: false, AllReady: true };
 
     /// <summary>
+    /// A member matchmaking could not seat reopens Register only while nobody from the squad
+    /// entered. Once a teammate is inside, the squad stays entered and the reject is personal.
+    /// </summary>
+    public static bool ShouldResetMatchingOnReject(Squad squad) =>
+        squad is { EnterCommitted: false };
+
+    /// <summary>
     /// After the team leaves the instance, matching may be applied again. Enter left these flags
     /// set, which blocked Register and left the Instance UI on Leave Recruit/Search.
     /// </summary>

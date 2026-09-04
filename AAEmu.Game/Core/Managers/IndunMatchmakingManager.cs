@@ -684,52 +684,59 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
         var now = Helpers.UnixTimeNowInMilli();
 
         // Prefer the copy matchmaking already built; fall back to a fresh request if prepare failed.
-        // Admit first: Reentry + NotifyGameEnter put the client in the playing state, so a
-        // later QueuePlayer / RequestDungeonInstance miss (daily visit limit) would leave them
-        // there with no dungeon. A rejected member stays out; the rest of the match still enters.
-        var admitted = preparedDungeon != null
-            ? AdmitOrTellLimit(characters, preparedDungeon.CanQueuePlayer)
-            : AdmitOrTellLimit(characters, ch => CanAdmitFreshVisit(session, ch));
+        // Dry-check first so a known daily lock never reaches Reentry. Then queue / request, and
+        // only publish playing-state after that call succeeds — level, gear, party, capacity, and
+        // restore-cooldown can still refuse on the fallback path after the daily check.
+        var rejected = new List<Character>();
+        var candidates = preparedDungeon != null
+            ? Partition(characters, preparedDungeon.CanQueuePlayer, rejected)
+            : Partition(characters, ch => CanAdmitFreshVisit(session, ch), rejected);
+        foreach (var ch in rejected)
+            ch.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
 
-        if (!IndunMatchEnterRules.ShouldPublishEnter(admitted.Count))
+        var entered = new List<Character>();
+        foreach (var ch in candidates)
+        {
+            var admitted = preparedDungeon != null
+                ? preparedDungeon.QueuePlayer(ch)
+                : IndunManager.Instance.RequestDungeonInstance(ch, zone.Id, 0);
+            if (!IndunMatchEnterRules.ShouldPublishEnter(admitted))
+            {
+                rejected.Add(ch);
+                continue;
+            }
+
+            ch.SendPacket(new SCInstantGameReentryPacket(zi, session.CatalogId,
+                InstantGameWireContract.NoBattleFieldType, now));
+            SquadManager.Instance.NotifyGameEnter(ch);
+            entered.Add(ch);
+        }
+
+        // After the admitted members have committed their squad, so a squad that did get in
+        // keeps its entered state while one nobody could enter is opened for a fresh Register.
+        foreach (var ch in rejected)
+            SquadManager.Instance.NotifyMatchRejected(ch);
+
+        if (!IndunMatchEnterRules.ShouldPublishEnter(entered.Count))
         {
             preparedHandle?.Discard();
             CleanupSession(session);
             return;
         }
 
-        characters = admitted;
-        foreach (var ch in characters)
-        {
-            ch.SendPacket(new SCInstantGameReentryPacket(zi, session.CatalogId,
-                InstantGameWireContract.NoBattleFieldType, now));
-            SquadManager.Instance.NotifyGameEnter(ch);
-        }
-
-        if (preparedDungeon != null)
-        {
-            foreach (var ch in characters)
-                preparedDungeon.QueuePlayer(ch);
-        }
-        else
-        {
-            IndunManager.Instance.RequestDungeonInstance(characters[0], zone.Id, 0);
-            foreach (var ch in characters.Skip(1))
-                IndunManager.Instance.RequestDungeonInstance(ch, zone.Id, 0);
-        }
-
         Logger.Info(
-            "IndunMatchmaking enter catalog={0} matchingKey={1} players={2} zoneId={3} worldInstance={4}",
-            session.CatalogId, session.MatchingKey, characters.Count, zone.Id, worldInstanceId);
+            "IndunMatchmaking enter catalog={0} matchingKey={1} players={2} rejected={5} zoneId={3} worldInstance={4}",
+            session.CatalogId, session.MatchingKey, entered.Count, zone.Id, worldInstanceId, rejected.Count);
 
         CleanupSession(session);
     }
 
-    private static List<Character> AdmitOrTellLimit(List<Character> characters, Func<Character, bool> canAdmit)
+    private static List<Character> Partition(List<Character> characters, Func<Character, bool> canAdmit,
+        List<Character> rejected)
     {
-        var admitted = characters.Where(canAdmit).ToList();
-        foreach (var ch in characters.Where(c => !admitted.Contains(c)))
-            ch.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
+        var admitted = new List<Character>();
+        foreach (var ch in characters)
+            (canAdmit(ch) ? admitted : rejected).Add(ch);
         return admitted;
     }
 

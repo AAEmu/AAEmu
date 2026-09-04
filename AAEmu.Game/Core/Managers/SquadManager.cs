@@ -30,6 +30,8 @@ public interface ISquadManager : IInitializable
     void ClearWaitingFor(Character character);
     void NotifyGameEnter(Character character);
     void NotifyGameLeave(Character character);
+    /// <summary>Matchmaking could not seat this member. Clears their queue and un-readies them.</summary>
+    void NotifyMatchRejected(Character character);
     void SetPresence(Character character, bool online);
     /// <summary>One-shot after login: clear a client SquadBase left over from a prior session.</summary>
     void SyncClientSquadAfterLogin(Character character);
@@ -68,6 +70,42 @@ public class SquadManager : Singleton<SquadManager>, ISquadManager
         // TryWithdraw already acks when it removed queue/invite state; otherwise still clear the UI.
         if (!withdrew)
             character.SendPacket(SCCancelInstantGamePacket.ClearQueue());
+    }
+
+    public void NotifyMatchRejected(Character character)
+    {
+        if (character == null)
+            return;
+
+        Squad squad = null;
+        var resetMatching = false;
+        lock (_lock)
+        {
+            if (_characterSquad.TryGetValue(character.Id, out var squadId) &&
+                _squads.TryGetValue(squadId, out squad))
+            {
+                var member = squad.GetMember(character.Id);
+                if (member != null)
+                    member.Ready = false;
+
+                resetMatching = SquadRules.ShouldResetMatchingOnReject(squad);
+                if (resetMatching)
+                {
+                    squad.MatchingApplied = false;
+                    squad.Joining = false;
+                }
+            }
+        }
+
+        // Never received Reentry, so the client is still on the registered screen; clear it.
+        character.SendPacket(SCCancelInstantGamePacket.ClearQueue());
+
+        if (squad == null)
+            return;
+
+        BroadcastReady(squad, character.Id, ready: false);
+        if (resetMatching)
+            Logger.Info("Squad match rejected id={0} char={1}; matching reopened", squad.Id, character.Name);
     }
 
     public void SetPresence(Character character, bool online)

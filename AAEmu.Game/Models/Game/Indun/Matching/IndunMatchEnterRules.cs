@@ -12,9 +12,13 @@ public static class IndunMatchEnterRules
         alreadyChargedThisCopy || dailyEntryAllowed;
 
     /// <summary>
-    /// Reentry / entered-squad state is published only after at least one member is admitted.
+    /// Reentry / entered-squad state is published only after the member is on the copy.
     /// Publishing first leaves a rejected player on the playing screen outside the dungeon.
     /// </summary>
+    public static bool ShouldPublishEnter(bool admissionSucceeded) =>
+        admissionSucceeded;
+
+    /// <inheritdoc cref="ShouldPublishEnter(bool)"/>
     public static bool ShouldPublishEnter(int admittedCount) =>
         admittedCount > 0;
 }

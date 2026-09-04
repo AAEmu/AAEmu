@@ -188,6 +188,32 @@ public class SquadRulesTests
     }
 
     [Test]
+    public async Task MatchRejected_ReopensRegisterWhenNobodyEntered()
+    {
+        var squad = MakeSquad(1, 23, SquadOpenType.Public);
+        squad.Members[0].Ready = true;
+        squad.MatchingApplied = true;
+        squad.Joining = true;
+
+        // Nobody got in: the squad must be able to Register again.
+        await Assert.That(SquadRules.ShouldResetMatchingOnReject(squad)).IsTrue();
+        squad.MatchingApplied = false;
+        squad.Joining = false;
+        squad.Members[0].Ready = true;
+        await Assert.That(SquadRules.ShouldQueueMatchingOnApply(squad)).IsTrue();
+    }
+
+    [Test]
+    public async Task MatchRejected_KeepsAnEnteredSquadEntered()
+    {
+        var squad = MakeSquad(1, 23, SquadOpenType.Public);
+        squad.EnterCommitted = true;
+
+        await Assert.That(SquadRules.ShouldResetMatchingOnReject(squad)).IsFalse();
+        await Assert.That(SquadRules.ShouldQueueMatchingOnApply(squad)).IsFalse();
+    }
+
+    [Test]
     public async Task Page_RespectsPageSize()
     {
         var listed = Enumerable.Range(1, 7)
