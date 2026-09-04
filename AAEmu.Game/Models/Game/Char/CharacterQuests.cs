@@ -1020,7 +1020,8 @@ public class CharacterQuests(Character owner)
                 Logger.Info("SphereBuff APPLY char={0} buff={1} detail={2}", Owner.Name, detail.BuffId, sphereBuffDetailId);
             }
 
-            if (SphereBuffTargets.ApplyToSlave(slaveApplicable))
+            // The helper gates hulls on slave_applicable itself; and_pet is independent of that.
+            if (SphereBuffTargets.ApplyToOwnedMounts(slaveApplicable, detail.AndPet))
                 ApplySphereBuffToOwnedMounts(detail.BuffId, detail.AndPet, add: true, sphereBuffDetailId);
             return;
         }
