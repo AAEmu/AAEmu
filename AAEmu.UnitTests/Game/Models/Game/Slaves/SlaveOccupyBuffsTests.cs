@@ -22,6 +22,26 @@ public class SphereBuffTargetsTests
         await Assert.That(SphereBuffTargets.ApplyToCharacter(slaveApplicable: false)).IsTrue();
         await Assert.That(SphereBuffTargets.ApplyToSlave(slaveApplicable: false)).IsFalse();
     }
+
+    [Test]
+    public async Task CharacterBuffWithAndPetStillReachesAnAlreadySummonedPet()
+    {
+        // sphere 2325 -> SphereBuff 15 -> buff 13789: and_pet=true, slave_applicable=false
+        await Assert.That(SphereBuffTargets.ApplyToOwnedMounts(slaveApplicable: false, andPet: true)).IsTrue();
+        await Assert.That(SphereBuffTargets.ApplyToSlave(slaveApplicable: false)).IsFalse();
+    }
+
+    [Test]
+    public async Task HullBuffRunsTheMountPassWithoutAndPet()
+    {
+        await Assert.That(SphereBuffTargets.ApplyToOwnedMounts(slaveApplicable: true, andPet: false)).IsTrue();
+    }
+
+    [Test]
+    public async Task CharacterOnlyBuffSkipsTheMountPass()
+    {
+        await Assert.That(SphereBuffTargets.ApplyToOwnedMounts(slaveApplicable: false, andPet: false)).IsFalse();
+    }
 }
 
 public class SlaveOccupyBuffsTests
