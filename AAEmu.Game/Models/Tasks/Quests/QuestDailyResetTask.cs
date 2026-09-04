@@ -26,7 +26,21 @@ public class QuestDailyResetTask : Task
             character.Quests.ResetDailyQuests(true);
             TimedRewardsManager.Instance.DoDailyAccountLogin(character.AccountId);
             if (FeaturesManager.Fsets.AbilitySetFreeActivationDailyReset)
-                character.AbilitySets.ResetFreeActivationCount(syncClient: true);
+            {
+                // Isolate client sync failures so one character cannot abort the rest of the
+                // online free-activation reset (Greptile on AAEmu#1546).
+                try
+                {
+                    character.AbilitySets.ResetFreeActivationCount(syncClient: true);
+                }
+                catch (Exception ex)
+                {
+                    Logger.Error(
+                        ex,
+                        "Failed to reset ability-set free activations for character {0}",
+                        character.Id);
+                }
+            }
         }
 
         // Today (detail 13) completion bits above; also reseed Path of Destiny UI/DB day_key state.
