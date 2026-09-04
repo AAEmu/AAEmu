@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
 /// Empty-body poll the client fires while the guild-war kill scoreboard is open (and periodically).
-/// 2026-09-02: now answered with SCExpeditionWarKillScorePacket instead of being a no-op.
+/// Answered with SCExpeditionWarKillScorePacket.
 /// </summary>
 public class CSExpeditionWarKillScorePacket() : GamePacket(CSOffsets.CSExpeditionWarKillScorePacket, 1)
 {

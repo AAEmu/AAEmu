@@ -5,15 +5,9 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// Requests purchasing/upgrading one prestige-shop buff to a specific grade. Wire format confirmed
-/// against the client dump (both construction sites, console `FUN_396be580` and UI `FUN_399857c0`):
-/// the packet carries three int32 fields, set via `FUN_39c4f500` at offsets +0x10/+0x14/+0x18 as
-/// [expeditionId][buffType][grade] - field 1 is `DAT_3b4f531c`, which is literally the client's
-/// `MyExpeditionId` cache slot (`DAT_3b4f4fb0 + 0x36c`). The old code passed field 1 (the expedition
-/// id) into TryPurchaseBuffGrade as the buff id, so every purchase failed the
-/// ExpeditionBuffGameData.GetGrade lookup with ErrorMessageType.Invalid.
-/// 2026-08-27: was fully parsed but never wired to anything, and never even registered in
-/// GameNetwork's dispatch table - same bug class as CSExpeditionLevelUpPacket.
+/// Requests purchasing/upgrading one prestige-shop buff to a specific grade. Wire: expeditionId,
+/// buffId, grade (all int32/uint32) - the old code mixed up expeditionId and buffId, so every
+/// purchase failed the grade lookup.
 /// </summary>
 public class CSExpeditionBuffGradePacket() : GamePacket(CSOffsets.CSExpeditionBuffGradePacket, 1)
 {

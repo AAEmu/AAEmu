@@ -38,14 +38,9 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
 
     /// <summary>
     /// Guild War economy, read from compact.sqlite3's content_configs (kind_id = 25), named through
-    /// enum_content_configs - same pattern as AuctionFeeSchedule. Values found live on this build:
-    /// expedition_war_initial_money_for_declaration=1000000, expedition_war_money_multiplier=5,
-    /// expedition_war_duration=3600000, expedition_war_duration_for_protection=172800,
-    /// expedition_war_reward_for_win=500, expedition_war_reward_for_lose=50, expedition_war_reward_for_draw=50.
-    /// The two duration configs have DIFFERENT units (confirmed 2026-09-02 by a live declaration logging
-    /// "ends 2026-10-14" - 41 days - from expedition_war_duration read as seconds):
-    ///   - expedition_war_duration = 3600000 is MILLISECONDS -> a 1-hour war (sane; 41 days is not).
-    ///   - expedition_war_duration_for_protection = 172800 is SECONDS -> a 48-hour re-declaration cooldown.
+    /// enum_content_configs - same pattern as AuctionFeeSchedule.
+    /// TODO: expedition_war_duration and expedition_war_duration_for_protection use different units
+    /// (milliseconds vs seconds) - do not assume they match if adding more duration configs here.
     /// </summary>
     private readonly Dictionary<string, long> _warConfig = [];
 
@@ -308,10 +303,7 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
     }
 
     /// <summary>
-    /// Sets the recruitment-board interest bitmask shown as icons in the info panel - backs
-    /// CSExpeditionInterestUpatePacket (X2Faction:SetMyExpeditionInterest). TypeValue's meaning is
-    /// unconfirmed and not required here (matches this codebase's convention elsewhere of leaving genuinely
-    /// unconfirmed fields parsed but unused).
+    /// Sets the recruitment-board interest bitmask shown as icons in the info panel.
     /// </summary>
     public void SetInterest(Character character, short interest)
     {
@@ -325,10 +317,9 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
     }
 
     /// <summary>
-    /// Backs X2Faction:SetExpeditionNotice (the info panel's guild-notice text) - mirrors SetInterest's
-    /// persist-then-resend-desc flow. No role-policy flag exists for notices specifically (the client
-    /// gates the edit control itself), so any guild member may set it, matching the member-gate used
-    /// for Guild Residence placement.
+    /// Sets the guild-notice text shown in the info panel. Any guild member may set it - no
+    /// role-policy flag exists for this specifically, matching the member-gate used for Guild
+    /// Residence placement.
     /// </summary>
     public void SetNotice(Character character, string notice)
     {
@@ -367,10 +358,8 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         expedition.Level = gameData.GetAutoLevelForExp(expedition.Level, expedition.Exp);
 
         expedition.SendPacket(new SCExpeditionExpAddPacket(amount));
-        // Always resend the full descriptor, not just on a level change - SCExpeditionExpAddPacket's own
-        // wire format was never confirmed against the real client (still flagged "nothing constructs this
-        // yet" before this session), so the guild window's displayed exp/level can only be trusted to
-        // refresh via the already Ghidra-confirmed SCExpeditionDescPacket.
+        // Always resend the full descriptor, not just on a level change - the client's displayed
+        // exp/level can only be trusted to refresh via SCExpeditionDescPacket.
         expedition.SendPacket(new SCExpeditionDescPacket(expedition));
 
         Save(expedition);
@@ -420,14 +409,11 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
     }
 
     /// <summary>
-    /// Purchases/upgrades one guild prestige-shop buff to <paramref name="targetGrade"/> - handles
-    /// CSExpeditionBuffGradePacket (2026-08-27: that packet, and its sibling CSExpeditionBuffPacket, existed
-    /// fully parsed but "nothing acts on it yet" and were never even registered in GameNetwork's dispatch
-    /// table - same class of bug as CSExpeditionLevelUpPacket). Grades must be purchased in order (can't
-    /// skip from grade 2 to grade 4); paid for via the exact same Contribution Point spend the existing
-    /// Guild Contribution Shop already uses (see CSBuyItemsPacket.Pay/ExpeditionManager.TryChangeContributionPoints)
-    /// - straight from the purchasing character's own contribution_point balance, not a separate guild-pooled
-    /// currency - but the unlocked grade applies guild-wide once purchased.
+    /// Purchases/upgrades one guild prestige-shop buff to <paramref name="targetGrade"/>. Grades must
+    /// be purchased in order (can't skip from grade 2 to grade 4); paid for the same way the existing
+    /// Guild Contribution Shop spends Contribution Points - straight from the purchasing character's
+    /// own contribution_point balance, not a separate guild-pooled currency - but the unlocked grade
+    /// applies guild-wide once purchased.
     /// </summary>
     public bool TryPurchaseBuffGrade(Character character, uint buffId, byte targetGrade)
     {
@@ -463,10 +449,7 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             return false;
         }
 
-        // 2026-09-02: expedition_buff_grades.housing (28 of 93 rows) requires the guild to already have its
-        // Guild Residence placed before this grade can be bought - a real shipped-data gate the client's own
-        // tooltip already advertises (expedition_buff_get_condition_tooltip_housing) but nothing server-side
-        // ever enforced. See ExpeditionBuffGrade.Housing's doc comment.
+        // expedition_buff_grades.housing requires the guild to already have its Guild Residence placed.
         if (grade.Housing && expedition.ResidenceHouseId == 0)
         {
             Logger.Warn("ExpeditionBuffGrade purchase rejected: buffId={0} grade={1} requires the guild to have a placed Guild Residence, expedition {2} has none",
@@ -508,15 +491,8 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             command.ExecuteNonQuery();
         }
 
-        // 2026-09-02: send order matters here, and it was backwards. The client's "EXPEDITION_BUFF_CHANGE"
-        // Lua event handler (fired by SCExpeditionBuffChangedPacket) reacts by calling RefreshLeftList(),
-        // which re-queries X2Faction:GetExpeditionBuffs() - a client-side CACHE that is only ever populated
-        // by SCExpeditionBuffsPacket's own handler (FUN_394eef30, confirmed 2026-08-28 via Frida). Sending
-        // Changed (which triggers the read) before Buffs (which writes the cache the read depends on) meant
-        // every refresh queried the cache one purchase too early - explaining why grade always showed as
-        // its OLD value (e.g. the "0/x" display) even though the change notification demonstrably fired and
-        // the server-side purchase was already correct. Buffs now goes first so the cache is current by the
-        // time Changed's event handler re-reads it.
+        // Order matters: Buffs must go out before Changed, or the client's change-notification handler
+        // re-reads its buff cache before this purchase has updated it, showing the old grade.
         expedition.SendPacket(new SCExpeditionBuffsPacket((uint)expedition.Id, expedition.PurchasedBuffGrades));
         expedition.SendPacket(new SCExpeditionBuffChangedPacket((int)expedition.Id, (int)buffId, currentGrade, targetGrade));
         expedition.ApplyBuffBonusesToAllOnline();
@@ -645,12 +621,7 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             new SCUnitExpeditionChangedPacket(owner.ObjId, owner.Id, "", owner.Name, 0, (uint)expedition.Id, false),
             true
         );
-        // unitId=0 sentinel = "this is about you" (see CSNotifyInGamePacket.cs's doc comment for the full
-        // Ghidra-confirmed trail) - primes the owner's own MyExpeditionId cache right on founding. Its native
-        // handler also resets cache+0x0 to 0 as a side effect (FUN_396b5f40) without re-populating it, but
-        // SendExpeditionInfo (below) resends SCExpeditionDescPacket right after, which repopulates cache+0x0 -
-        // no extra resend needed here (unlike CSNotifyInGamePacket.cs's login-refresh site, which had nothing
-        // else resending desc afterward).
+        // unitId=0 sentinel = "this is about you" - primes the owner's own MyExpeditionId cache right on founding.
         owner.SendPacket(
             new SCUnitExpeditionChangedPacket(0, owner.Id, "", owner.Name, 0, (uint)expedition.Id, false));
 
@@ -741,9 +712,6 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         Logger.Info("Invite: {0} sending SCExpeditionInvitationPacket to {1} (inviter.Id={2}, expedition={3}/{4})",
             inviter.Name, invited.Name, inviter.Id, (uint)inviter.Expedition.Id, inviter.Expedition.Name);
         invited.SendPacket(
-            // 2026-08-27, third pass - see SCExpeditionInvitationPacket's own doc comment for the full
-            // corrected reasoning: this field is a plain 8-byte value carrying the persistent character id
-            // (matches the "playerId" field confirmed at the same interface slot elsewhere), not an ObjId.
             new SCExpeditionInvitationPacket(inviter.Id, inviter.Name, (uint)inviter.Expedition.Id,
                 inviter.Expedition.Name)
         );
@@ -767,8 +735,6 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             new SCUnitExpeditionChangedPacket(invited.ObjId, invited.Id, "", invited.Name, 0, (uint)expedition.Id, false),
             true);
         // unitId=0 sentinel = "this is about you" - primes the accepting member's own MyExpeditionId cache.
-        // This is the fix for the member-list/invite/level-up-button-permanently-broken regression: this
-        // character never got told its own guild id, so IsExpedInfoLoaded() never passed.
         invited.SendPacket(
             new SCUnitExpeditionChangedPacket(0, invited.Id, "", invited.Name, 0, (uint)expedition.Id, false));
         SendExpeditionInfo(invited);
@@ -876,9 +842,7 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             return;
 
         changedMember.Role = newRole;
-        // 2026-09-02: corrected wire format (see SCExpeditionRoleChangedPacket's own doc comment) - this
-        // announces WHICH MEMBER'S role changed (id + name + new role id), not a role-policy definition.
-        // Still sent alongside the member-status broadcast, which the member LIST row's live refresh uses.
+        // Member LIST row refresh uses the status broadcast; RoleChanged announces the identity separately.
         expedition.SendPacket(new SCExpeditionMemberStatusChangedPacket(changedMember, 0));
         expedition.SendPacket(new SCExpeditionRoleChangedPacket(changedMember.CharacterId, changedMember.Name, newRole));
         Save(expedition);
@@ -908,8 +872,6 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
                 newOwnerMember.Name
             )
         );
-        // 2026-08-28: same correction as ChangeMemberRole - member rows refresh via the status
-        // broadcast; SCExpeditionRoleChangedPacket carries role policies, not member identity.
         expedition.SendPacket(new SCExpeditionMemberStatusChangedPacket(ownerMember, 0));
         expedition.SendPacket(new SCExpeditionMemberStatusChangedPacket(newOwnerMember, 0));
         Save(expedition);
@@ -1033,13 +995,8 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         Save(expedition);
         Save(targetExpedition);
 
-        // Broadcast server-wide, not just to the two guilds - the client's own handler for this packet
-        // (FUN_395ba9f0) has a dedicated bystander branch: when the RECIPIENT's own guild matches neither
-        // side AND started=true, it shows a plain "War declared!" banner (both guild names, no per-unit
-        // tagging) instead of the full enemy-tagging pass the two participants get. Sending only to the
-        // two guilds (as before) meant nobody else ever received the packet at all, so third parties saw
-        // neither a banner nor any indication a war had started - same idiom as EndWar's global result
-        // broadcast below.
+        // Broadcast server-wide, not just to the two guilds - bystanders get their own "War declared!"
+        // banner, same idiom as EndWar's global result broadcast below.
         var endsAtUnix = Helpers.UnixTime(endsAt);
         var declarePacket = new SCExpeditionWarStatePacket((int)expedition.Id, (int)targetExpedition.Id, true, endsAtUnix, false);
         foreach (var onlineCharacter in WorldManager.Instance.GetAllCharacters())
@@ -1135,15 +1092,8 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         var enemyId = (int)expedition.WarEnemyExpeditionId;
         var defenderUnix = defender != null ? Helpers.UnixTime(protectedUntil) : 0;
 
-        // Order matters, and it's the OPPOSITE of what a previous session tried: the client's win/lost/tied
-        // banner is computed inside the KILL-SCORE packet handler (FUN_395b6c10), not the war-state one.
-        // That handler writes the fresh totals to the client's cache and then checks a "war just ended"
-        // flag - a flag that only the terminated SCExpeditionWarStatePacket sets. If the flag isn't set
-        // yet when the kill-score packet lands, the check is skipped and the ONLY banner the player ever
-        // sees is the war-state packet's own popup, which is unconditionally hardcoded to "tied" (traced
-        // in FUN_395ba9f0 - it always resolves to the fixed DAT_39ea8258 string, no result data involved).
-        // So the terminated war-state packet must go out FIRST (arms the flag), and the final kill-score
-        // packet LAST (fires the real win/lost/tied comparison against the just-armed flag and clears it).
+        // TODO: order matters here - the terminated war-state packet must go out BEFORE the final
+        // kill-score packet, or the client only shows a generic "tied" banner instead of the real result.
         expedition.SendPacket(new SCExpeditionWarStatePacket((int)expedition.Id, enemyId, false,
             expedition.WarIsDeclarer ? 0 : defenderUnix, true));
         enemyExpedition?.SendPacket(new SCExpeditionWarStatePacket((int)expedition.Id, enemyId, false,
@@ -1152,12 +1102,9 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         if (declarer != null && defender != null)
         {
             // result: 1 = the 'id' guild (declarer) won, 2 = the 'id2' guild (defender) won, 0 = draw.
-            // SCNotifyExpeditionWarResultPacket's own handler (FUN_395b72d0) is gated to skip both actual
-            // participants - it only ever displays for bystanders not currently at war with either side -
-            // but nothing in the client decompile scopes it by faction/alliance beyond that. Broadcast it
-            // server-wide, same idiom as HeroManager.BroadcastPhaseChange (another major, realm-crossing
-            // announcement that also just does GetAllCharacters() with no faction filter). The two guilds'
-            // own members get their personal win/lost banner instead, from the kill-score packet below.
+            // This packet only ever displays for bystanders, not the two war participants themselves -
+            // broadcast server-wide, same idiom as HeroManager.BroadcastPhaseChange. The two guilds' own
+            // members get their personal win/lost banner instead, from the kill-score packet below.
             var declarerScore = declarer.WarKillScore;
             var defenderScore = defender.WarKillScore;
             byte result = declarerScore == defenderScore ? (byte)0 : declarerScore > defenderScore ? (byte)1 : (byte)2;
@@ -1346,14 +1293,8 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             character.Expedition.TotalContributionPoint,
             string.Join(",", members.Select(m => $"{m.Name}={m.ContributionPoint}")));
 
-        // 2026-08-27: REVERTED the "send last" experiment from moments earlier tonight - user confirmed it
-        // made things WORSE (the level-up button, at least visible before, disappeared entirely; role
-        // permissions broke too), not better. Most likely explanation: the client latches UI state (level-up
-        // button visibility, role-policy-driven permission enabling) eagerly as each packet in this sequence
-        // arrives, expecting Level/Exp/the 0xff sentinel to already be cached by the time RolePolicyList/
-        // MemberList are processed - delaying this packet to last meant those one-shot UI updates ran against
-        // stale/default (zero) cached values instead of the real ones, which arrived too late to matter. Back
-        // to the original order: desc first, then policies/members.
+        // TODO: send order matters - desc must go out before RolePolicyList/MemberList, or the client's
+        // level-up button and role permissions latch against stale cached values.
         character.SendPacket(new SCExpeditionDescPacket(character.Expedition));
         character.SendPacket(new SCExpeditionRolePolicyListPacket(character.Expedition.Policies));
 

@@ -321,10 +321,6 @@ public static class CSOffsets
     public const ushort CSExpeditionLevelUpPacket = 0x02D;
     public const ushort CSExpeditionRecruitmentAddPacket = 0x31;
     public const ushort CSExpeditionRecruitmentsGetPacket = 0x030;
-    // 2026-09-02: opcode 0x11 confirmed via Ghidra literal in the real client x2game.dll
-    // (FUN_395be140: local_18 = 0x11 at the CSRequestDeclarationMoneyPacket::vftable construction site,
-    // immediately adjacent to CSDeclareExpeditionWarPacket's own local_18 = 0x10). Single-Bc body
-    // (the 1-arg packed-ref writer FUN_39a8f270, vs CSDeclareExpeditionWar's 2-arg Bc+u32 writer).
     public const ushort CSRequestDeclarationMoneyPacket = 0x011;
     public const ushort CSExpelSquadMemberPacket = 0x1E1;
     public const ushort CSFactionMobilizationOrderPacket = 0x027;

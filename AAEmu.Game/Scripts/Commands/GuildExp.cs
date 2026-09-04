@@ -6,8 +6,7 @@ using AAEmu.Game.Utils.Scripts;
 namespace AAEmu.Game.Scripts.Commands;
 
 /// <summary>
-/// GM command to add exp to the caller's own guild, auto-advancing its level per expedition_levels
-/// (see ExpeditionManager.AddExp, added this session for the guild-leveling feature).
+/// GM command to add exp to the caller's own guild, auto-advancing its level per expedition_levels.
 /// </summary>
 public class GuildExp : ICommand
 {

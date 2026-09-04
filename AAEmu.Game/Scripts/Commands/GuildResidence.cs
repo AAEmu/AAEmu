@@ -7,9 +7,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 /// <summary>
 /// GM command to force-demolish the caller's guild Residence, since the client's own demolish button
-/// never appears (the whole Residence info panel is gated client-side on a cache value that's never
-/// populated - see the guild Residence display-bug thread) - there is currently no other way to test
-/// placing a fresh Residence without this.
+/// does not reliably appear - there is currently no other way to test placing a fresh Residence.
 /// </summary>
 public class GuildResidence : ICommand
 {

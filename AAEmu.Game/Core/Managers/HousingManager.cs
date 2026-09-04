@@ -498,15 +498,11 @@ public class HousingManager(
 
     /// <summary>
     /// Proactively pushes the guild residence's real TlId to one character via the same
-    /// SCHouseTaxInfoPacket the client's own on-demand request would get. This is the missing half of
-    /// the Guild Residence feature, found 2026-08-28 via decompile: the client's "do I have a guild
-    /// residence" gate (X2Faction:GetExpeditionHouseId, native global DAT_3b4f6108) starts at 0 and has
-    /// no client-native setter anywhere - the ONLY way it gets populated is by receiving a real
-    /// SCHouseTaxInfoPacket. But the client's own request for one (RequestExpeditionHouseInfo -&gt;
-    /// CSRequestHouseTaxPacket) sends that same starting-at-0 cached value as the tl to ask about, so it
-    /// always asks about tl=0, which matches no real house (HouseTaxInfo above silently no-ops), and the
-    /// loop never closes on its own. The server has to push the correct one unprompted at least once -
-    /// on placement, and again at login for members who weren't online when it was placed.
+    /// SCHouseTaxInfoPacket the client's own on-demand request would get. The client's cached "which
+    /// house is my guild residence" id starts at 0 with no client-side way to set it, and its own
+    /// request for one asks using that same starting-at-0 value - so the loop never closes on its own.
+    /// The server must push the correct id unprompted at least once: on placement, and again at login
+    /// for members who weren't online when it was placed.
     /// </summary>
     public void SendExpeditionHouseInfo(Character character)
     {
@@ -569,10 +565,8 @@ public class HousingManager(
 
         if (HousingGameData.Instance.IsExpeditionResidenceTemplate(designId))
         {
-            // 2026-08-27: Guild Residence - a universal per-guild clubhouse, unrelated to castle/dominion
-            // territory (see HousingGameData.IsExpeditionResidenceTemplate's doc comment). Any guild member
-            // may place it (no leader-only restriction was requested for this one), but only one per guild,
-            // regardless of which of the 3 color designs is chosen.
+            // Guild Residence: a per-guild clubhouse, unrelated to castle/dominion territory. Any guild
+            // member may place it, but only one per guild regardless of which color design is chosen.
             var expedition = connection.ActiveChar.Expedition;
             if (expedition == null)
             {
@@ -767,10 +761,8 @@ public class HousingManager(
             connection?.ActiveChar?.SendErrorMessage(ErrorMessageType.InvalidHouseInfo);
             return;
         }
-        // 2026-08-27: a Guild Residence is demolishable by any member of the owning guild (no leader-only
-        // restriction requested for this one), not just whoever happened to place it - matches the
-        // guild-membership (not solo-ownership) gate HousingManager.Build already enforces for placing one.
-        // Ordinary personal housing keeps its original owner-only check.
+        // A Guild Residence is demolishable by any member of the owning guild, not just whoever placed
+        // it. Ordinary personal housing keeps its original owner-only check.
         var character = connection?.ActiveChar;
         var isAuthorized = connection is null;
         if (!isAuthorized && character != null)
@@ -817,13 +809,9 @@ public class HousingManager(
 
             house.IsDirty = true;
 
-            // 2026-08-27: Guild Residence demolish refund - "철거 시 도면은 상점가 80%만큼의 원정대 공헌도로
-            // 즉시 반환됩니다" (on demolish, 80% of shop price is immediately refunded as guild Contribution
-            // Points). Reuses the same Contribution Point spend/refund path the existing Guild Contribution
-            // Shop already uses (CSBuyItemsPacket -> ExpeditionManager.TryChangeContributionPoints), rather
-            // than inventing a separate pooled-currency model. "Shop price" is merchant_goods.cost for this
-            // item in pack 304 ("Live - 공헌도 상점" / Live - Contribution Shop) - currently 0 for all 3
-            // residence designs in the shipped data, so this refunds 0 until/unless that data says otherwise.
+            // Guild Residence demolish refund: 80% of the design's shop price (Contribution Shop pack
+            // 304), paid back as guild Contribution Points. Currently 0 for all 3 residence designs in
+            // the shipped data.
             if (character?.Expedition != null && HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId)
                 && character.Expedition.ResidenceHouseId == house.Id)
             {

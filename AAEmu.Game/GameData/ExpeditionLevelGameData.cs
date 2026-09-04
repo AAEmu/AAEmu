@@ -15,8 +15,7 @@ namespace AAEmu.Game.GameData;
 /// automatically once its total_exp threshold is met, unless its require_item_id is non-zero, in
 /// which case exp keeps accumulating but the level itself waits for an explicit confirm
 /// (CSExpeditionLevelUpPacket, consuming the item) - same two-tier shape as HeirGameData's
-/// req_item_id gate, not independently wire-confirmed for Expedition but the column names mirror
-/// heir_levels closely enough that this is the best-effort reading rather than a guess from nothing.
+/// req_item_id gate.
 /// </remarks>
 [GameData]
 public class ExpeditionLevelGameData : Singleton<ExpeditionLevelGameData>, IGameDataLoader

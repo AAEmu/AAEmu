@@ -5,7 +5,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// 2026-09-02: was a fully-parsed no-op stub - see ExpeditionManager.DeclareWar's doc comment for the fix.
+/// Declares Guild War on the target's guild.
 /// </summary>
 /// <remarks>
 /// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each

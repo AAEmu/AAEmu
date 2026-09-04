@@ -3874,25 +3874,16 @@ public partial class Character : Unit, ICharacter
             character.SendPacket(new SCHungPacket(this.ObjId,this.Transform.StickyParent.GameObject.ObjId));
         */
 
-        // Same gap as faction above, previously missing entirely: SCUnitStatePacket carries no
-        // guild id, and SCUnitExpeditionChangedPacket only ever fires on a live join/leave/kick -
-        // so an observer who starts watching a character that was ALREADY in a guild before this
-        // observer logged in never learned the guild id at all, leaving the nameplate tag blank
-        // until the guild had its next membership change. This was the likely remaining cause
-        // behind the guild-nameplate bug beyond the mid-session-creation gap fixed earlier.
+        // An observer who starts watching a character already in a guild before the observer logged
+        // in never learns the guild id otherwise, leaving the nameplate tag blank.
         if (Expedition != null)
             character.SendPacket(new SCUnitExpeditionChangedPacket(
                 ObjId, Id, "", Name ?? "", 0, (uint)Expedition.Id, false));
 
-        // Guild War: the client marks enemy-guild units as war targets only when it processes
-        // SCExpeditionWarStatePacket (FUN_395ba9f0 walks the currently-loaded unit set and tags
-        // each unit whose guild id == the enemy guild). A unit unloaded on a zone change / range
-        // exit comes back untagged (green) because the tag isn't in its spawn data. Re-push the
-        // war state when the two come into view of each other so both clients re-walk and re-tag.
-        // Both directions are sent - although "this unit visible to the observing character" is
-        // guaranteed to fire here, the reverse pairing may not, which otherwise leaves one client
-        // showing the enemy green (observed live: Pny red for Wuerstl but not vice versa).
-        // Idempotent; only fires between two guilds actually at war.
+        // A unit unloaded on a zone change/range exit loses its enemy-guild (red/attackable) tag, since
+        // that tag isn't part of its spawn data - re-push the war state when the two come into view of
+        // each other so both clients re-tag. Both directions are sent since only one is guaranteed to
+        // fire here. Idempotent; only fires between two guilds actually at war.
         if (Expedition != null && character.Expedition != null &&
             Expedition.IsAtWar && !Expedition.IsProtected && !character.Expedition.IsProtected &&
             Expedition.WarEnemyExpeditionId == (uint)character.Expedition.Id &&

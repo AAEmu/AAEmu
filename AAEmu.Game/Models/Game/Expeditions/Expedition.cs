@@ -50,13 +50,9 @@ public class Expedition : SystemFaction
     }
 
     /// <summary>
-    /// Guild War state (2026-09-02: CSDeclareExpeditionWarPacket was a fully-parsed no-op stub - declaring
-    /// war never did anything). Protection is a single blanket flag, not paired to a specific enemy -
-    /// matches the client's own model (X2Faction:GetExpeditionWarState/GetMyExpeditionProtectionTime carry
-    /// no enemy id at all). It covers two real sources: the 48h cooldown after a war ends, and the "정전
-    /// 협정서"/Ceasefire Agreement item (item 52121, use_skill_id 31460 -> special effect
-    /// protection_for_expedition) - see ProtectionForExpedition.cs, which was a declared-but-empty TODO
-    /// stub found while chasing why a declared war "had no effect" (the target guild had used the item).
+    /// Guild War state. Protection is a single blanket flag, not paired to a specific enemy, and covers
+    /// two sources: the post-war cooldown, and the Ceasefire Agreement item (id 52121) - see
+    /// ProtectionForExpedition.cs.
     /// </summary>
     public uint WarEnemyExpeditionId { get; set; }
     public DateTime? WarDeclaredAt { get; set; }
@@ -73,10 +69,7 @@ public class Expedition : SystemFaction
     public Dictionary<uint, uint> WarKillsByMember { get; } = new();
 
     /// <summary>True on the guild that DECLARED the current war, false on the guild that was declared
-    /// upon. Set at DeclareWar and persisted (was in-memory only until a Greptile review caught that a
-    /// World restart mid-war lost it, defaulting BOTH sides to false and making both eligible for the
-    /// post-war protection that should only ever go to the declared-upon guild). Only the declared-upon
-    /// guild gets post-war protection.</summary>
+    /// upon. Only the declared-upon guild gets post-war protection.</summary>
     public bool WarIsDeclarer { get; set; }
 
     public bool IsAtWar => WarEndsAt.HasValue && WarEndsAt.Value > DateTime.UtcNow;
@@ -108,24 +101,11 @@ public class Expedition : SystemFaction
 
     /// <summary>
     /// Recomputes one member's prestige-shop buff stat bonuses from <see cref="PurchasedBuffGrades"/> and
-    /// pushes a fresh UnitState so the client's character sheet reflects them immediately. 2026-08-28: this
-    /// is the actual effect application - TryPurchaseBuffGrade previously only tracked/persisted the
-    /// purchase and resynced the shop UI, nothing ever touched the member's stats.
+    /// pushes a fresh UnitState so the client's character sheet reflects them.
+    /// TODO: an already-open character-info sheet only picks this up after a relog/reopen, not live -
+    /// every trigger tried for a live refresh had an unwanted side effect (a spurious buff-bar icon, or
+    /// risking wrong data in the actability-management panel). Not a data bug, just not instantaneous.
     /// </summary>
-    /// <remarks>
-    /// 2026-09-02: investigated making this live-refresh the OPEN character-info sheet (currently only
-    /// shows correctly after a relog/window reopen) - deliberately NOT done. Confirmed via the client's own
-    /// Lua (character_info.lua) that the sheet only redraws on a fixed list of named events
-    /// (UNIT_EQUIPMENT_CHANGED, LEVEL_CHANGED, ABILITY_CHANGED, BUFF_UPDATE when target=="character", etc.)
-    /// - there is no generic "stats changed" signal, and SCUnitStatePacket alone doesn't fire any of them.
-    /// Every viable trigger has an unwanted side effect for this use case: BUFF_UPDATE requires a real Buff
-    /// (would show a buff-bar icon - explicitly not wanted, this isn't meant to be a visible buff) and
-    /// ABILITY_CHANGED is fed by SCExpertLimitModifiedPacket, which is consumed by the real actability
-    /// management window (ability_change.lua, confirmed via a 10-file Lua reference check) - sending a
-    /// synthetic actability entry through it to fake the event risks showing wrong data in that real,
-    /// player-facing panel. Both were prototyped and reverted. Stats apply correctly and are visible after
-    /// a relog or closing/reopening the sheet in the meantime - not a data bug, just not instantaneous.
-    /// </remarks>
     public void ApplyBuffBonuses(Character character)
     {
         character.Bonuses[Buffs.ExpeditionBonusesIndex] = [];

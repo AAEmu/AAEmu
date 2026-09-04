@@ -407,12 +407,9 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
     }
 
     /// <summary>
-    /// housings.id 830/831/832 ("드높은 기상의 [녹색/붉은/푸른] 깃발 저택" - Green/Red/Blue Flag Residence of
-    /// High Spirit, category_id 36, item_housings 564/565/566), confirmed 2026-08-27 via direct compact.sqlite3
-    /// lookup - no dedicated game-data table exists for this set, so it's hardcoded here. A universal per-guild
-    /// clubhouse, entirely unrelated to castle/dominion territory ownership - category 36 maps to
-    /// housing_group_categories rows for groups 1/8/17 (the ordinary continent housing groups), so no special
-    /// zone unlock is needed, only the guild-membership + one-per-guild gate in HousingManager.Build.
+    /// housings.id 830/831/832 (Green/Red/Blue Flag Residence of High Spirit) - a universal per-guild
+    /// clubhouse placeable in ordinary continent housing zones, unrelated to castle/dominion territory
+    /// ownership. No dedicated game-data table exists for this set, so it's hardcoded here.
     /// </summary>
     private static readonly HashSet<uint> ExpeditionResidenceTemplateIds = [830, 831, 832];
 

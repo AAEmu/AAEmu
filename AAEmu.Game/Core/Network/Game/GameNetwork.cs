@@ -38,14 +38,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSLeaveExpeditionPacket, 1, typeof(CSLeaveExpeditionPacket));
         RegisterPacket(CSOffsets.CSKickFromExpeditionPacket, 1, typeof(CSKickFromExpeditionPacket));
         RegisterPacket(CSOffsets.CSDeclareExpeditionWarPacket, 1, typeof(CSDeclareExpeditionWarPacket));
-        // 2026-09-02: step 1 of the declare-war round trip (menu click -> RequestDeclarationMoney).
-        // Without this the client's press dispatched as UNKNOWN and the confirm dialog never opened,
-        // so CSDeclareExpeditionWarPacket was never sent - the whole reason "declaring war did nothing".
         RegisterPacket(CSOffsets.CSRequestDeclarationMoneyPacket, 1, typeof(CSRequestDeclarationMoneyPacket));
-        // 2026-08-27 fix: CSExpeditionLevelUpPacket existed (and ExpeditionManager.TryLevelUp behind it is
-        // fully implemented) but was never registered here - every guild-level-up button press silently
-        // dispatched as opcode 0x02D -> UNKNOWN (confirmed live via GameProtocolHandler's own C2S RAW warn log),
-        // so the item was never even checked, let alone consumed.
         RegisterPacket(CSOffsets.CSExpeditionLevelUpPacket, 1, typeof(CSExpeditionLevelUpPacket));
         // 0x10 unk packet
         RegisterPacket(CSOffsets.CSUpdateDominionTaxRatePacket, 1, typeof(CSUpdateDominionTaxRatePacket));
@@ -383,13 +376,8 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSReqExpdWarHistoriesPacket, 1, typeof(CSReqExpdWarHistoriesPacket));
         RegisterPacket(CSOffsets.CSCancelExpeditionProtectionPacket, 1, typeof(CSCancelExpeditionProtectionPacket));
         RegisterPacket(CSOffsets.CSExpeditionBuffUnitPacket, 1, typeof(CSExpeditionBuffUnitPacket));
-        // 2026-08-27 fix: both existed fully parsed (guild prestige-shop buff view/purchase) but were never
-        // registered - same bug class found and fixed for CSExpeditionLevelUpPacket the same night.
         RegisterPacket(CSOffsets.CSExpeditionBuffPacket, 1, typeof(CSExpeditionBuffPacket));
         RegisterPacket(CSOffsets.CSExpeditionBuffGradePacket, 1, typeof(CSExpeditionBuffGradePacket));
-        // 2026-08-27: CSExpeditionExpAddPacket already calls ExpeditionManager.AddExp - fully wired, just
-        // missing this line (found in a full-codebase audit for the same fully-parsed-but-never-registered
-        // C2G packet bug class).
         RegisterPacket(CSOffsets.CSExpeditionExpAddPacket, 1, typeof(CSExpeditionExpAddPacket));
         RegisterPacket(CSOffsets.CSExpeditionInterestUpatePacket, 1, typeof(CSExpeditionInterestUpatePacket));
         RegisterPacket(CSOffsets.CSShowResidentZoneGroupsPacket, 1, typeof(CSShowResidentZoneGroupsPacket));

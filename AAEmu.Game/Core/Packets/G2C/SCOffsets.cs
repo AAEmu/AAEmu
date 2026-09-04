@@ -633,45 +633,22 @@ public static class SCOffsets
     public const ushort SCExpeditionApplicantAddPacket = 0x43;
     public const ushort SCExpeditionApplicantDelPacket = 0x44;
     public const ushort SCExpeditionApplicantRejectPacket = 0x46;
-    // 77 0x04d -> SCExpeditionBuffsPacket, per the user-supplied community opcode dump - no packet class
-    // existed until 2026-08-27 (see SCExpeditionBuffsPacket.cs's own doc comment for the wire-format caveat).
     public const ushort SCExpeditionBuffsPacket = 0x4D;
     public const ushort SCExpeditionBuffChangedPacket = 0x4E;
-    // 79 0x04f -> SCExpeditionBuffUnitPacket, per the user-supplied community opcode dump - see
-    // SCExpeditionBuffUnitPacket.cs's own doc comment for the wire-format RE trail (2026-08-28).
     public const ushort SCExpeditionBuffUnitPacket = 0x4F;
     public const ushort SCExpeditionCreatedPacket = 0x015; // 10.0.2.13
-    // Confirmed 0x4B via two independent sources 2026-08-13: a user-supplied community opcode dump, and
-    // separately a Ghidra RTTI/constructor-literal walk of x2game-dev.dll (SCExpeditionDescPacket's ctor writes
-    // opcode 0x4b at vtable+8, cross-checked against 3 already-known opcodes' identical code shape). No packet
-    // class exists yet - the wire field layout (guild level/exp/notice, presumably) is still unconfirmed, so
-    // this is recorded as a constant only; don't guess the struct. See aaemu-siege-castle-hero-nation memory.
     public const ushort SCExpeditionDescPacket = 0x4B;
     public const ushort SCExpeditionExpAddPacket = 0x4C;
     public const ushort SCExpeditionMemberListEndPacket = 0x24;
     public const ushort SCExpeditionPortalTimerPacket = 0x373;
-    // 2026-09-02: CORRECTED 0x68 -> 0x20. Was a community-dump value; the real client's inbound
-    // dispatcher FUN_39410ef0 does handler = *(registry + 8 + opcode*8), and this packet's functor
-    // sits at registry+0x108 -> opcode 0x20. Confirmed live via frida against x2game.dll (dispatch
-    // table walk, 23/23 expedition functors located, this one at slot 0x20).
-    public const ushort SCExpeditionRejoinFailPacket = 0x20;
+    public const ushort SCExpeditionRejoinFailPacket = 0x20; // corrected from a stale 0x68
     public const ushort SCExpeditionShopHistoriesPacket = 0x01C; // 10.0.2.13
     public const ushort SCExpeditionSummonSuggestPacket = 0x4A;
-    // 2026-09-02: CORRECTED 0x78 -> 0x18 (same reason/method as SCExpeditionRejoinFailPacket above;
-    // functor at registry+0xc8 -> opcode 0x18). This one matters: ExpeditionManager.DeclareWar/EndWar
-    // actually broadcast this packet, so the bogus 0x78 was landing on an unrelated client handler.
+    // Corrected from a stale 0x78 - EndWar/DeclareWar actually broadcast this packet, so the wrong
+    // value was landing on an unrelated client handler.
     public const ushort SCExpeditionWarStatePacket = 0x18;
-    // 2026-09-02: derived from the REAL client x2game.dll inbound dispatcher FUN_39410ef0
-    //   handler = *(registry + 8 + opcode*8)   (registry singleton @ ghidra 0x3a2f2f50)
-    // functor stored at registry+0xd0 -> opcode = (0xd0-8)/8 = 0x19. LIVE-CONFIRMED via frida
-    // (dispatch table walk, [CONFIRMED] SCExpeditionWarDeclarationMoney live=0x19).
-    // Body: WriteBc(unitId) + Write(uint money). No name string - client resolves the name from unitId.
     public const ushort SCExpeditionWarDeclarationMoney = 0x19;
-    // 2026-09-02: registry+0xd8 -> opcode 0x1a (same FUN_39410ef0 dispatcher math, frida-confirmed in
-    // the 23/23 dispatch-table walk). Answers the client's CSExpeditionWarKillScorePacket poll.
     public const ushort SCExpeditionWarKillScorePacket = 0x1A;
-    // 2026-09-03: registry+0x100 -> opcode 0x1f. Win/lose/draw result banner - without it every war
-    // shows as a draw. Body {u32 id, u32 id2, u8 result} per client Unpack FUN_39a9a6d0.
     public const ushort SCNotifyExpeditionWarResultPacket = 0x1F;
     public const ushort SCFactionCompetitionUpdatePointPacket = 0x338;
     public const ushort SCFactionImmigrateLimitDataPacket = 0x51;

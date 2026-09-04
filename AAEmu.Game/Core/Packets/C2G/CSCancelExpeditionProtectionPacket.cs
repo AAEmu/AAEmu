@@ -5,7 +5,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// 2026-09-02: was a fully-parsed no-op stub - see ExpeditionManager.CancelProtection's doc comment.
+/// Cancels the caller's guild's post-war protection window early.
 /// </summary>
 /// <remarks>
 /// packet has no body. Every parameterless C2S type folds onto that one function, so the

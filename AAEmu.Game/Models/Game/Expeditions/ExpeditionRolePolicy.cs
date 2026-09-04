@@ -19,12 +19,9 @@ public class ExpeditionRolePolicy : PacketMarshaler
     public bool SiegeMaster { get; set; }
     public bool JoinSiege { get; set; }
     /// <summary>
-    /// Recovered 2026-08-13 via Ghidra deserializer trace of x2game-dev.dll - the client's role-policy struct
-    /// has 10 boolean permission flags, not 9. Missing this field made every 148-byte policy entry 1 byte
-    /// short on the wire, which - since SCExpeditionRolePolicyListPacket is a fixed-size count-prefixed array,
-    /// not length-delimited - desynced the client's packet parser for everything sent right after it
-    /// (SCExpeditionMemberListPacket in our send order), explaining why the member list also showed empty.
-    /// See aaemu-fixes-applied memory for the full recovery writeup.
+    /// The client's role-policy struct has 10 boolean permission flags, not 9. Missing this field makes
+    /// every policy entry 1 byte short on the wire, which desyncs the client's parser for everything
+    /// sent right after SCExpeditionRolePolicyListPacket (a fixed-size array, not length-delimited).
     /// </summary>
     public bool UseInstance { get; set; }
 

@@ -9,10 +9,9 @@ using Microsoft.Data.Sqlite;
 namespace AAEmu.Game.GameData;
 
 /// <summary>
-/// Guild prestige-shop buffs, loaded from <c>expedition_buffs</c> (one row per perk category, e.g. "PVE
-/// damage bonus") and <c>expedition_buff_grades</c> (purchasable tiers within a category - cost in
-/// Contribution Points, optional item cost, minimum guild level). 2026-08-27: confirmed via direct
-/// compact.sqlite3 lookup, no dedicated C# model existed for either table before this.
+/// Guild prestige-shop buffs, loaded from <c>expedition_buffs</c> (one row per perk category) and
+/// <c>expedition_buff_grades</c> (purchasable tiers within a category - cost in Contribution Points,
+/// optional item cost, minimum guild level).
 /// </summary>
 [GameData]
 public class ExpeditionBuffGameData : Singleton<ExpeditionBuffGameData>, IGameDataLoader
@@ -88,20 +87,11 @@ public class ExpeditionBuffGameData : Singleton<ExpeditionBuffGameData>, IGameDa
 
     /// <summary>
     /// Maps a purchased grade to the actual stat bonus every online guild member should receive.
-    /// 2026-08-28: expedition_buff_grades has no buff/skill-id column to key off (confirmed via direct
-    /// schema dump) - the only place the real numbers live is each grade's own "desc" text, e.g.
-    /// "힘/지능/민첩/정신/체력 + 8". These formulas are transcribed directly from that text (verified against
-    /// every grade row for each category, not guessed), not reverse-engineered from an external mapping.
-    /// Categories left unimplemented on purpose, because no existing UnitAttribute models them without
-    /// misapplying the bonus to the wrong mechanic:
-    ///  - buff 1 (PVE damage %) - only MeleeDamageMul/RangedDamageMul/SpellDamageMul exist, all-damage not
-    ///    PVE-only; applying them would wrongly buff PVP too.
-    ///  - buff 2 (guild summon-member headcount) and 14 (portal-scroll max stack) are capacity caps for
-    ///    unrelated features, not Unit stats at all.
-    ///  - buff 3 ("기다림의 기운" reduction) and buff 4 (flat Attack/Spell/Heal power) have no matching
-    ///    flat attribute in this codebase's UnitAttribute enum.
-    ///  - buff 8/9's second component (sprint-only speed, glide speed) has no attribute either - only
-    ///    their move-speed/swim-speed halves are applied below.
+    /// expedition_buff_grades has no buff/skill-id column to key off - these formulas are transcribed
+    /// from each grade row's own "desc" text.
+    /// TODO: buffs 1-4 and 14, and part of 8/9, are intentionally unimplemented - no existing
+    /// UnitAttribute models them without misapplying the bonus to the wrong mechanic (e.g. buff 1's
+    /// "PVE damage" would need to be all-damage, wrongly buffing PVP too).
     /// </summary>
     public static IEnumerable<(UnitAttribute Attribute, UnitModifierType ModifierType, long Value)> GetBonusEffects(uint buffId, byte grade)
     {
@@ -184,12 +174,7 @@ public class ExpeditionBuffGrade
     /// <summary>Minimum guild level required to purchase this specific grade.</summary>
     public uint ExpeditionLevelId { get; set; }
 
-    /// <summary>
-    /// 2026-09-02: `expedition_buff_grades.housing` (28 of 93 rows, the higher tiers of most categories) was a
-    /// real shipped-data column never read anywhere - confirmed via direct schema dump before this. The
-    /// client's own buff-shop tooltip (expedition_management_infomation_sub_view.lua's
-    /// "expedition_buff_get_condition_tooltip_housing" string) already advertises this as a real acquisition
-    /// requirement, so it needed enforcing, not just displaying. See ExpeditionManager.TryPurchaseBuffGrade.
-    /// </summary>
+    /// <summary>True when this grade requires the guild to already have its Guild Residence placed.
+    /// See ExpeditionManager.TryPurchaseBuffGrade.</summary>
     public bool Housing { get; set; }
 }

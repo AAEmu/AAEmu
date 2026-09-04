@@ -13,17 +13,13 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// the scoreboard is open + periodic) and is pushed on every war kill.
 /// </summary>
 /// <remarks>
-/// Wire layout from the real client Unpack FUN_39a9a470, cross-checked against the scoreboard Lua
-/// (expedition_war.lua FillResult / GetExpeditionWarKillScore):
-///   remainTime      (i64, +0xe8)  - ms remaining (Lua divides by 1000)
-///   ourTotalKills   (u32)         - Lua ourTotalKill  -> gauge left score
-///   enemyTotalKills (u32)         - Lua enemyTotalKill -> gauge right score
-///   10x { memberId (u64), kills (u16) }   - our side, client resolves name+ability from id;
-///                                           only members with >=1 kill, rest zero-padded
+/// Wire layout:
+///   remainMs        (i64) - ms remaining
+///   ourTotalKills   (u32)
+///   enemyTotalKills (u32)
+///   10x { memberId (u64), kills (u16) }   - our side, zero-padded, only members with >=1 kill
 ///   enemyCount (u8, 0..10)
 ///   enemyCount x { memberId (u64), name (string), kills (u16), ability0..2 (u8) }
-/// Per-row "kills" comes from these arrays (Lua FillScoreInfo -> data["kills"]); retail only lists
-/// members who have scored, so both sides are filtered to WarKillsByMember > 0.
 /// </remarks>
 public class SCExpeditionWarKillScorePacket : GamePacket
 {
