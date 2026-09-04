@@ -332,34 +332,6 @@ public class CurrencyValuesConfig
 public class SpecialtyConfig
 {
     /// <summary>
-    /// Maximum distance in metres at which a character may use a specialty outlet.
-    /// </summary>
-    public float InteractionRange { get; set; } = 3f;
-
-    /// <summary>
-    /// Base labor charged when a specialty pack is delivered, before Commerce proficiency reduction.
-    /// </summary>
-    public int SellLaborCost { get; set; } = 60;
-
-    /// <summary>
-    /// Delayed-delivery interest added to specialty proceeds, as a percentage.
-    /// </summary>
-    public int InterestRate { get; set; } = 5;
-
-    /// <summary>
-    /// Seller share when a different character crafted the pack.
-    /// </summary>
-    public float SellerShare { get; set; } = 0.8f;
-
-    /// <summary>
-    /// Maximum rate for speciality packs
-    /// </summary>
-    public int MaxSpecialtyRatio { get; set; } = 130;
-    /// <summary>
-    /// Minimum rate for speciality packs
-    /// </summary>
-    public int MinSpecialtyRatio { get; set; } = 70;
-    /// <summary>
     /// Amount the trade in rate lowers for each traded pack
     /// </summary>
     public double RatioDecreasePerPack { get; set; } = 0.5f;

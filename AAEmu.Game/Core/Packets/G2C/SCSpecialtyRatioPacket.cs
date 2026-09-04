@@ -5,8 +5,8 @@ using AAEmu.Game.Models.Game.Trading;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// A page of the specialty cargo buy list. Native opcode 0xC5 names this packet "Ratio", but the
-/// 10.0.2.13 body is a keyed, paged quote list rather than the scalar used by the 1.2 client.
+/// A page of specialty sale-price information. Native opcode 0xC5 names this packet "Ratio", but
+/// the 10.0.2.13 body is a keyed, paged quote list rather than the scalar used by the 1.2 client.
 /// </summary>
 public class SCSpecialtyRatioPacket(
     ushort zoneGroupId,
@@ -19,9 +19,9 @@ public class SCSpecialtyRatioPacket(
     public override PacketStream Write(PacketStream stream)
     {
         if (quotes.Count > 20)
-            throw new ArgumentOutOfRangeException(nameof(quotes), "A specialty buy-list page can contain at most 20 quotes.");
+            throw new ArgumentOutOfRangeException(nameof(quotes), "A specialty price-list page can contain at most 20 quotes.");
         if (eventIds.Count > 50)
-            throw new ArgumentOutOfRangeException(nameof(eventIds), "A specialty buy-list page can contain at most 50 events.");
+            throw new ArgumentOutOfRangeException(nameof(eventIds), "A specialty price-list page can contain at most 50 events.");
 
         stream.Write(zoneGroupId);
         stream.Write(npcTemplateId);

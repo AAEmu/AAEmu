@@ -217,6 +217,114 @@ public class MailManagerTests
             Mock.Of<ILocalizationManager>().Object);
     }
 
+    [Test]
+    public async Task SendBatch_InvalidSecondReceiver_PublishesNoMail()
+    {
+        var nameManager = Mock.Of<INameManager>();
+        nameManager.GetCharacterName(1).Returns("seller");
+        nameManager.GetCharacterId("seller").Returns(1u);
+        nameManager.GetCharacterName(2).Returns("crafter");
+        nameManager.GetCharacterId("wrong-name").Returns(0u);
+        var manager = CreateManager(nameManager);
+        var sellerMail = CreateMail(1001, 1, "seller");
+        var invalidCrafterMail = CreateMail(1002, 2, "wrong-name");
+
+        var sent = manager.SendBatch([sellerMail, invalidCrafterMail]);
+
+        await Assert.That(sent).IsFalse();
+        await Assert.That(manager.AllPlayerMails).IsEmpty();
+    }
+
+    [Test]
+    public async Task SendBatch_ValidBatch_PublishesEveryMail()
+    {
+        var nameManager = Mock.Of<INameManager>();
+        nameManager.GetCharacterName(1).Returns("seller");
+        nameManager.GetCharacterId("seller").Returns(1u);
+        nameManager.GetCharacterName(2).Returns("crafter");
+        nameManager.GetCharacterId("crafter").Returns(2u);
+        var manager = CreateManager(nameManager);
+        var sellerMail = CreateMail(1001, 1, "seller");
+        var crafterMail = CreateMail(1002, 2, "crafter");
+
+        var sent = manager.SendBatch([sellerMail, crafterMail]);
+
+        await Assert.That(sent).IsTrue();
+        await Assert.That(manager.AllPlayerMails.Count).IsEqualTo(2);
+        await Assert.That(manager.AllPlayerMails[1001]).IsSameReferenceAs(sellerMail);
+        await Assert.That(manager.AllPlayerMails[1002]).IsSameReferenceAs(crafterMail);
+    }
+
+    [Test]
+    public async Task SendBatch_ExistingId_PublishesNoPartOfBatch()
+    {
+        var nameManager = Mock.Of<INameManager>();
+        nameManager.GetCharacterName(1).Returns("seller");
+        nameManager.GetCharacterId("seller").Returns(1u);
+        var manager = CreateManager(nameManager);
+        var existing = CreateMail(1002, 1, "seller");
+        manager._allPlayerMails.Add(existing.Id, existing);
+
+        var sent = manager.SendBatch([
+            CreateMail(1001, 1, "seller"),
+            CreateMail(1002, 1, "seller")
+        ]);
+
+        await Assert.That(sent).IsFalse();
+        await Assert.That(manager.AllPlayerMails.Count).IsEqualTo(1);
+        await Assert.That(manager.AllPlayerMails[1002]).IsSameReferenceAs(existing);
+    }
+
+    [Test]
+    public async Task TryPrepareBatch_ValidBatch_DoesNotPublishUntilCommitted()
+    {
+        var nameManager = Mock.Of<INameManager>();
+        nameManager.GetCharacterName(1).Returns("seller");
+        nameManager.GetCharacterId("seller").Returns(1u);
+        var manager = CreateManager(nameManager);
+        var mail = CreateMail(1001, 1, "seller");
+
+        var prepared = manager.TryPrepareBatch([mail], out var batch);
+
+        await Assert.That(prepared).IsTrue();
+        await Assert.That(manager.AllPlayerMails).IsEmpty();
+        await Assert.That(manager.PublishPreparedBatch(batch, true)).IsTrue();
+        await Assert.That(manager.AllPlayerMails[1001]).IsSameReferenceAs(mail);
+        await Assert.That(mail.IsDirty).IsFalse();
+    }
+
+    [Test]
+    public async Task CancelPreparedBatch_ReleasesReservationWithoutPublishing()
+    {
+        var nameManager = Mock.Of<INameManager>();
+        nameManager.GetCharacterName(1).Returns("seller");
+        nameManager.GetCharacterId("seller").Returns(1u);
+        var manager = CreateManager(nameManager);
+        var first = CreateMail(1001, 1, "seller");
+        var second = CreateMail(1001, 1, "seller");
+
+        await Assert.That(manager.TryPrepareBatch([first], out var cancelled)).IsTrue();
+        manager.CancelPreparedBatch(cancelled);
+
+        await Assert.That(manager.AllPlayerMails).IsEmpty();
+        await Assert.That(manager.TryPrepareBatch([second], out var replacement)).IsTrue();
+        manager.CancelPreparedBatch(replacement);
+    }
+
+    private static MailManager CreateManager(Mock<INameManager> nameManager)
+    {
+        var manager = new MailManager(
+            Mock.Of<IMailIdManager>().Object,
+            nameManager.Object,
+            Mock.Of<IItemManager>().Object,
+            Mock.Of<ITaskManager>().Object,
+            Mock.Of<IWorldManager>().Object,
+            new Lazy<IHousingManager>(() => Mock.Of<IHousingManager>().Object),
+            Mock.Of<ILocalizationManager>().Object);
+        manager._allPlayerMails = [];
+        return manager;
+    }
+
     private static BaseMail CreateMail() => new()
     {
         MailType = MailType.Normal,
@@ -236,4 +344,17 @@ public class MailManagerTests
             RecvDate = DateTime.UtcNow
         }
     };
+    private static BaseMail CreateMail(long id, uint receiverId, string receiverName)
+    {
+        return new BaseMail
+        {
+            Id = id,
+            ReceiverName = receiverName,
+            Header =
+            {
+                ReceiverId = receiverId
+            },
+            Body = { RecvDate = DateTime.UtcNow.AddHours(1) }
+        };
+    }
 }

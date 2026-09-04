@@ -64,6 +64,7 @@ public interface IItemManager : ILoadable
     void LoadUserItems();
     void ReleaseId(ulong itemId);
     void ReleaseCommittedItem(ulong itemId);
+    bool TryPersistItem(Item item);
     void PublishPersistedItems(IEnumerable<Item> items);
     void DiscardUnpersistedItems(IEnumerable<Item> items);
     List<Item> LoadPlayerInventory(ICharacter character);

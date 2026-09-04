@@ -1,6 +1,7 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
+using System.Globalization;
 
 namespace AAEmu.Game.Models.Game.Mails;
 
@@ -15,62 +16,37 @@ public class MailForSpeciality : BaseMail
     private readonly int _itemCountBonus;
     private readonly int _itemCountSeller;
     private readonly int _itemCountCrafter;
-    private readonly int _interestRate;
-    private readonly string _tradePackName;
+    private readonly int _payoutBeforeInterest;
+    private readonly int _totalPayout;
+    private readonly double _interestPercent;
+    private readonly double _freshnessPercent;
+    private readonly int _sellerSharePercent;
     private readonly bool _sellerIsCrafter;
     // unused private int _itemCountTotal;
 
-    private static readonly string TradeDeliveryName = ".sellBackpack";
+    private static readonly string TradeDeliveryName = ".sellBackpackNew";
     private static readonly string TradeDeliveryTitle = "Speciality Payment";
     private static readonly string TradeDeliveryTitleSeller = "Speciality Payment [Delivery]";
     private static readonly string TradeDeliveryTitleCrafter = "Speciality Payment [Crafter]";
 
-    /*
-     * Function from LUA in Trino 1.2
-     * body = function(a, b, c, d, e, actualGain, receiverCase, coinType, crafterCoinCount, sellerCoinCount)
-     * -> function(
-     * TradePackName,     // Name string
-     * TradeinPercent,    // Trade-Rate of merchant
-     * applyPriceMoney,   // money (base x traderate) + bonus
-     * totalMoney,        // base (money or item)
-     * bargainingMoney,   // amount of bargain bonus that was used (money)
-     * actualGain,        // Net payout (money) (regardless of seller/crafter mode), if (crafter = seller), then totalMoney is used as the payout value, and this is ignored
-     * receiverCase,      // 0 = crafter payout ; 1 = seller payout ; 2 = seller is crafter
-     * coinType,          // 0 = item reward ; 1 = coins reward
-     * crafterCoinCount,  // item count for crafter (items only)
-     * sellerCoinCount)   // item count for seller (items only)
-     *
-     *
-     * Some extra info for future updates
-     * Observed text body values for trade mails in AAFree (3.5.0.3)
-     * 
-     * Gold reward (crafter = seller)
-     * body('Мятные рогалики', 130, 90086, 122968, 0, 0, 122968, 2, 1, 0, 0, 0, 0, 0, 5, 0, 100)
-     * 'Мятные рогалики' - Traded pack name
-     * 130,              - Traded % rate at outpost
-     * 90086,            - Base Price
-     * 122968,           - Total Payment
-     * 0,                - ?
-     * 0,                - ?
-     * 122968,           - Total Payment again ?
-     * 2,                - 
-     * 1,                - Coin Type (1 = gold? ; 0 = resource?)
-     * 0, 
-     * 0, 
-     * 0, 
-     * 0, 
-     * 0, 
-     * 5,                - Interest rate
-     * 0, 
-     * 100               - Special Merchant Rate % (this could be a aafree custom thing as it seems related to their patron system)
-     * 
-     * Charcoal reward (crafter = seller)
-     * body('Лавандовый чай', 130, 12, 158964, 0, 0, 158964, 2, 0, 16, 0, 0, 0, 0, 5, 0, 100)
-     * 
-     */
+    // sellBackpackNew resolves the first argument as an item template ID on the client.
 
-    public MailForSpeciality(Character seller, uint crafterId, uint tradepackTemplate, int tradeRate, uint itemRewardTemplateId,
-        int itemCountBase, int itemCountBonus, int itemCountForSeller, int itemCountForCrafter, int interestRate) : base()
+    public MailForSpeciality(
+        Character seller,
+        uint crafterId,
+        uint tradepackTemplate,
+        int tradeRate,
+        uint itemRewardTemplateId,
+        int itemCountBase,
+        int itemCountBonus,
+        int itemCountForSeller,
+        int itemCountForCrafter,
+        int payoutBeforeInterest,
+        int totalPayout,
+        DateTime transactionUtc,
+        double interestPercent,
+        double freshnessPercent,
+        int sellerSharePercent) : base()
     {
         _sender = seller;
         _sellerIsCrafter = crafterId == 0 || crafterId == seller.Id;
@@ -86,14 +62,15 @@ public class MailForSpeciality : BaseMail
         _itemCountSeller = itemCountForSeller;
         _itemCountCrafter = itemCountForCrafter;
         // unused _itemCountTotal = _itemCountCrafter + _itemCountSeller;
-        _interestRate = interestRate;
-
-        // TODO: make name localized based on activeplayer locale
-        _tradePackName = LocalizationManager.Instance.Get("items", "name", _tradedPack);
+        _payoutBeforeInterest = payoutBeforeInterest;
+        _totalPayout = totalPayout;
+        _interestPercent = interestPercent;
+        _freshnessPercent = freshnessPercent;
+        _sellerSharePercent = sellerSharePercent;
 
         MailType = MailType.SysSellBackpack;
 
-        Body.RecvDate = DateTime.UtcNow.AddMinutes(AppConfiguration.Instance.Specialty.TradePackMailDelayInMinutes);
+        Body.RecvDate = transactionUtc.AddMinutes(AppConfiguration.Instance.Specialty.TradePackMailDelayInMinutes);
     }
 
     /// <summary>
@@ -114,26 +91,20 @@ public class MailForSpeciality : BaseMail
 
         Title = _crafterId == 0 ? TradeDeliveryTitle : TradeDeliveryTitleSeller;
 
-        var payout = (int)(_itemCountBase * _tradedRate / 100f) + _itemCountBonus;
-        var payoutWithInterest = (int)(payout * (100 + _interestRate) / 100f);
-
         if (_itemToSend == Item.Coins)
         {
             // Body.Text = "Placeholder coins delivery text body";
             AttachMoney(_itemCountSeller);
 
-            Body.Text = string.Format("body('{0}', {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9})",
-                _tradePackName,               // Pack Name
-                _tradedRate,                  // Traded Rate
-                payout,                       // applyPriceMoney => money (base x traderate) + bonus
-                _sellerIsCrafter ? payoutWithInterest : _itemCountBase, // totalMoney (base)
-                _itemCountBonus,              // bargainingMoney => amount of bargain bonus that was used (money)
-                _itemCountSeller,             // actualGain => Net payout (money) (regardless of seller/crafter mode), if (crafter = seller), then totalMoney is used as the payout value, and this is ignored
-                _sellerIsCrafter ? 2 : 1,     // receiverCase => 0 = crafter payout ; 1 = seller payout ; 2 = seller is crafter
-                1, // coinType = 0 => item reward ; 1 = coins reward
-                0, // crafterCoinCount => unused for gold
-                0  // sellerCoinCount => unused for gold
-                );
+            Body.Text = BuildBody(
+                _payoutBeforeInterest,
+                _sellerIsCrafter ? _totalPayout : _itemCountBase,
+                _itemCountBonus,
+                _itemCountSeller,
+                _sellerIsCrafter ? 2 : 1,
+                1,
+                0,
+                0);
         }
         else
         {
@@ -141,25 +112,24 @@ public class MailForSpeciality : BaseMail
             var itemGrade = itemTemplate.FixedGrade;
             if (itemGrade <= 0)
                 itemGrade = 0;
-            var newItem = ItemManager.Instance.Create(_itemToSend, _itemCountSeller, (byte)itemGrade, true);
+            var newItem = ItemManager.Instance.CreateUnpersisted(_itemToSend, _itemCountSeller, (byte)itemGrade);
+            if (newItem == null)
+                return false;
             newItem.OwnerId = _sender.Id;
             newItem.SlotType = SlotType.Mail;
             Body.Attachments.Add(newItem);
 
             // Body.Text = "Placeholder resource delivery text body";
             // For item delivery, the client will calculate the total for you depending on receiverCase
-            Body.Text = string.Format("body('{0}', {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9})",
-                _tradePackName,
-                _tradedRate,
-                0, // unused
-                0, // unused
-                0, // unused
-                0, // unused
-                _sellerIsCrafter ? 2 : 1, // receiverCase => 0 = crafter payout ; 1 = seller payout ; 2 = seller is crafter
-                0, // coinType = 0 => item reward ; 1 = coins reward
+            Body.Text = BuildBody(
+                0,
+                0,
+                0,
+                0,
+                _sellerIsCrafter ? 2 : 1,
+                0,
                 _itemCountCrafter,
-                _itemCountSeller
-                );
+                _itemCountSeller);
         }
 
         return true;
@@ -186,27 +156,21 @@ public class MailForSpeciality : BaseMail
         Header.ReceiverId = _crafterId;
         ReceiverName = crafterName;
 
-        var payout = (int)(_itemCountBase * _tradedRate / 100f) + _itemCountBonus;
-        var payoutWithInterest = (int)(payout * (100 + _interestRate) / 100f);
-
         Title = TradeDeliveryTitleCrafter;
         if (_itemToSend == Item.Coins)
         {
             // Body.Text = "Placeholder coins delivery for crafter text body";
             AttachMoney(_itemCountCrafter);
 
-            Body.Text = string.Format("body('{0}', {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9})",
-                _tradePackName,
-                _tradedRate,
-                payout,
+            Body.Text = BuildBody(
+                _payoutBeforeInterest,
                 _itemCountBase,
                 _itemCountBonus,
                 _itemCountCrafter,
-                0, // 0 = crafter
-                1, // coinType 1=gold , 
-                0, // unused
-                0  // unused
-                );
+                0,
+                1,
+                0,
+                0);
 
         }
         else
@@ -217,26 +181,84 @@ public class MailForSpeciality : BaseMail
             var itemGrade = itemTemplate.FixedGrade;
             if (itemGrade <= 0)
                 itemGrade = 0;
-            var newItem = ItemManager.Instance.Create(_itemToSend, _itemCountCrafter, (byte)itemGrade, true);
-            newItem.OwnerId = _sender.Id;
+            var newItem = ItemManager.Instance.CreateUnpersisted(_itemToSend, _itemCountCrafter, (byte)itemGrade);
+            if (newItem == null)
+                return false;
+            newItem.OwnerId = _crafterId;
             newItem.SlotType = SlotType.Mail;
             Body.Attachments.Add(newItem);
 
-            Body.Text = string.Format("body('{0}', {1}, {2}, {3}, {4}, {5}, {6}, {7}, {8}, {9})",
-                _tradePackName,
-                _tradedRate,
-                0, // unused
-                0, // unused
-                0, // unused
-                0, // unused
-                0, // 0 = crafter
-                0, // coinType 0 = item
+            Body.Text = BuildBody(
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
                 _itemCountCrafter,
-                _itemCountSeller
-                );
+                _itemCountSeller);
 
         }
 
         return true;
+    }
+
+    private string BuildBody(
+        int earlyMoney,
+        int totalMoney,
+        int bargainingMoney,
+        int actualGain,
+        int receiverCase,
+        int coinType,
+        int crafterCoinCount,
+        int sellerCoinCount)
+    {
+        return BuildBody(
+            _tradedPack,
+            _tradedRate,
+            earlyMoney,
+            totalMoney,
+            bargainingMoney,
+            actualGain,
+            receiverCase,
+            coinType,
+            crafterCoinCount,
+            sellerCoinCount,
+            _interestPercent,
+            _freshnessPercent,
+            _sellerSharePercent);
+    }
+
+    internal static string BuildBody(
+        uint tradePackTemplateId,
+        int tradedRate,
+        int earlyMoney,
+        int totalMoney,
+        int bargainingMoney,
+        int actualGain,
+        int receiverCase,
+        int coinType,
+        int crafterCoinCount,
+        int sellerCoinCount,
+        double interestPercent,
+        double freshnessPercent,
+        int sellerSharePercent)
+    {
+        return string.Format(
+            CultureInfo.InvariantCulture,
+            "body({0}, {1}, {2}, {3}, {4}, 0, {5}, {6}, {7}, {8}, {9}, 0, 0, 0, {10}, {11}, 0, {12})",
+            tradePackTemplateId,
+            tradedRate,
+            earlyMoney,
+            totalMoney,
+            bargainingMoney,
+            actualGain,
+            receiverCase,
+            coinType,
+            crafterCoinCount,
+            sellerCoinCount,
+            interestPercent,
+            freshnessPercent,
+            sellerSharePercent);
     }
 }

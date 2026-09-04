@@ -769,6 +769,7 @@ public class NpcManager(
                             Repairman = reader.GetBoolean("repairman", true),
                             ActivateAiAlways = reader.GetBoolean("activate_ai_always", true),
                             Specialty = reader.GetBoolean("specialty", true),
+                            TradeGoodBuy = reader.GetBoolean("tradegood_buy", true),
                             SpecialtyCoinId = reader.GetUInt32("specialty_coin_id", 0),
                             UseRangeMod = reader.GetBoolean("use_range_mod", true),
                             NpcPostureSetId = reader.GetInt32("npc_posture_set_id"),

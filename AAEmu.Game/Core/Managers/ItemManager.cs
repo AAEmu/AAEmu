@@ -2010,6 +2010,50 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
             throw new InvalidOperationException($"Item {itemId} deletion affected more than one row.");
     }
 
+    public bool TryPersistItem(Item item)
+    {
+        if (item == null)
+            return false;
+
+        lock (_allItems)
+        {
+            if (!item.IsDirty)
+                return true;
+
+            try
+            {
+                using var connection = MySQL.CreateConnection();
+                using var transaction = connection.BeginTransaction();
+                try
+                {
+                    ItemPersistence.Save(connection, transaction, item);
+                    transaction.Commit();
+                }
+                catch
+                {
+                    try
+                    {
+                        transaction.Rollback();
+                    }
+                    catch (Exception rollbackException)
+                    {
+                        Logger.Error(rollbackException, "Failed to roll back persistence for item {0}", item.Id);
+                    }
+
+                    throw;
+                }
+
+                item.IsDirty = false;
+                return true;
+            }
+            catch (Exception exception)
+            {
+                Logger.Error(exception, "Failed to persist item {0} ({1})", item.Id, item.TemplateId);
+                return false;
+            }
+        }
+    }
+
     public (int, int, int) Save(MySqlConnection connection, MySqlTransaction transaction)
     {
         var deleteCount = 0;

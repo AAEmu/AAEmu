@@ -1,6 +1,7 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.NPChar;
@@ -43,6 +44,10 @@ public class CSInteractNPCPacket() : GamePacket(CSOffsets.CSInteractNPCPacket, 1
             npc.Template,
             QuestManager.Instance.IsQuestTalkNpc(npc.TemplateId));
         character.SendPacket(new SCNpcInteractionSkillListPacket(objId, 0, 1, 0, 0, 0, [option]));
+
+        // The cargo dialog reads the native goods cache without requesting its initial page.
+        if (npc.Template.TradeGoodBuy)
+            SpecialtyManager.Instance.SendBuyList(character, npc.ObjId);
 
         if (WorldIntegration.ZoneAuthority)
             WorldIntegration.RelayInteractNpcToZone?.Invoke(character.ObjId, objId, false);

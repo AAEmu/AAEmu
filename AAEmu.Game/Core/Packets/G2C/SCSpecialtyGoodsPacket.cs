@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Trading;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// A page of specialty packs accepted by a trade outlet.
+/// A page of cargo packs offered by a cargo outlet.
 /// </summary>
 public class SCSpecialtyGoodsPacket(
     IReadOnlyList<SpecialtyQuote> quotes,
@@ -16,9 +16,9 @@ public class SCSpecialtyGoodsPacket(
     public override PacketStream Write(PacketStream stream)
     {
         if (quotes.Count > 20)
-            throw new ArgumentOutOfRangeException(nameof(quotes), "A specialty sell-list page can contain at most 20 quotes.");
+            throw new ArgumentOutOfRangeException(nameof(quotes), "A cargo buy-list page can contain at most 20 quotes.");
         if (eventIds.Count > 50)
-            throw new ArgumentOutOfRangeException(nameof(eventIds), "A specialty sell-list page can contain at most 50 events.");
+            throw new ArgumentOutOfRangeException(nameof(eventIds), "A cargo buy-list page can contain at most 50 events.");
 
         stream.Write((uint)quotes.Count);
         stream.Write((uint)eventIds.Count);

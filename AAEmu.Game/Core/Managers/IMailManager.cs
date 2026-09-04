@@ -18,6 +18,10 @@ public interface IMailManager : ILoadable
     bool TryStageDelivery(BaseMail mail, out string targetName);
     void PublishDelivered(BaseMail mail);
     void DiscardUnpersisted(BaseMail mail);
+    bool SendBatch(IReadOnlyList<BaseMail> mails);
+    bool TryPrepareBatch(IReadOnlyList<BaseMail> mails, out PreparedMailBatch batch);
+    bool PublishPreparedBatch(PreparedMailBatch batch, bool alreadyPersisted = false);
+    void CancelPreparedBatch(PreparedMailBatch batch);
     bool TryReturnToSender(BaseMail mail);
     bool TryReturnToSenderFor(BaseMail mail, uint characterId);
     [Obsolete]
