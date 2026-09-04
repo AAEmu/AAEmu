@@ -66,6 +66,7 @@ public class Skill
     /// </summary>
     public bool ForcePlotGraphOnly { get; set; }
 
+    /// <summary>
     /// How many times over the skill's labor cost applies to this cast.
     /// </summary>
     /// <remarks>
