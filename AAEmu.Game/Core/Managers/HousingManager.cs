@@ -761,14 +761,15 @@ public class HousingManager(
             connection?.ActiveChar?.SendErrorMessage(ErrorMessageType.InvalidHouseInfo);
             return;
         }
-        // A Guild Residence is demolishable by any member of the owning guild, not just whoever placed
-        // it. Ordinary personal housing keeps its original owner-only check.
+        // A Guild Residence is demolishable only by the owning guild's leader, not any member.
+        // Ordinary personal housing keeps its original owner-only check.
         var character = connection?.ActiveChar;
         var isAuthorized = connection is null;
         if (!isAuthorized && character != null)
         {
             isAuthorized = HousingGameData.Instance.IsExpeditionResidenceTemplate(house.TemplateId)
                 ? character.Expedition != null && character.Expedition.ResidenceHouseId == house.Id
+                  && character.Id == character.Expedition.OwnerId
                 : house.OwnerId == character.Id;
         }
 
