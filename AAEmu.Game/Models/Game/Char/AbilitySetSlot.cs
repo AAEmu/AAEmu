@@ -16,4 +16,25 @@ public sealed class AbilitySetSlot
         Ability1 is not AbilityType.None and not AbilityType.General ||
         Ability2 is not AbilityType.None and not AbilityType.General ||
         Ability3 is not AbilityType.None and not AbilityType.General;
+
+    /// <summary>True when the equipped three trees match this snapshot's triad order.</summary>
+    public bool MatchesTriad(AbilityType ability1, AbilityType ability2, AbilityType ability3) =>
+        Ability1 == ability1 && Ability2 == ability2 && Ability3 == ability3;
+
+    /// <summary>
+    /// True when the equipped combat skills/passives for this triad match the snapshot lists
+    /// (order-independent). Used so same-triad activates are not treated as no-ops when the
+    /// player reallocated points or is switching between two saved builds of the same trees.
+    /// </summary>
+    public bool MatchesSkillLoadout(
+        IReadOnlyCollection<uint> equippedSkillIds,
+        IReadOnlyCollection<uint> equippedPassiveBuffIds)
+    {
+        if (SkillIds.Count != equippedSkillIds.Count ||
+            PassiveBuffIds.Count != equippedPassiveBuffIds.Count)
+            return false;
+
+        return SkillIds.ToHashSet().SetEquals(equippedSkillIds) &&
+               PassiveBuffIds.ToHashSet().SetEquals(equippedPassiveBuffIds);
+    }
 }

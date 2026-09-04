@@ -5,6 +5,7 @@ using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Utils.DB;
 
 using MySql.Data.MySqlClient;
@@ -241,12 +242,15 @@ public sealed class CharacterAbilitySets(Character owner)
 
         AbilityType[] before = [Owner.Ability1, Owner.Ability2, Owner.Ability3];
         AbilityType[] after = [saved.Ability1, saved.Ability2, saved.Ability3];
+        var triadUnchanged = saved.MatchesTriad(before[0], before[1], before[2]);
 
-        // Same triad already equipped — do not wipe/relearn (looks like a refresh) or toast "changed".
-        if (before[0] == after[0] && before[1] == after[1] && before[2] == after[2])
+        // No-op only when the complete loadout matches — triad alone is not enough.
+        // Same trees with a different skill/passive allocation (reallocate, or another
+        // saved build of the same triad) must still wipe, restore, and toast Changed.
+        if (triadUnchanged && MatchesCurrentSkillLoadout(saved))
         {
             Logger.Info(
-                "AbilitySet activate {0}: slot {1} already {2}/{3}/{4} — skip swap",
+                "AbilitySet activate {0}: slot {1} already {2}/{3}/{4} with matching skills — skip",
                 Owner.Name, slot, before[0], before[1], before[2]);
             return true;
         }
@@ -254,8 +258,10 @@ public sealed class CharacterAbilitySets(Character owner)
         if (!TryChargeActivation(slot))
             return false;
 
-        // Server-side wipe first (no SCSkillsReset). SCAbilitySwapped must not be followed by
-        // reset spam or the learn-ability banner queue is cancelled.
+        // Server-side wipe first (no SCSkillsReset). Needed even when the triad is unchanged
+        // so reallocations / other same-tree builds drop skills not in the snapshot.
+        // SCAbilitySwapped must not be followed by reset spam or the learn-ability banner
+        // queue is cancelled.
         foreach (var oldAbility in before.Distinct())
         {
             if (oldAbility is AbilityType.None or AbilityType.General)
@@ -265,9 +271,14 @@ public sealed class CharacterAbilitySets(Character owner)
                 ability.Order = 255;
         }
 
-        Owner.Ability1 = saved.Ability1;
-        Owner.Ability2 = saved.Ability2;
-        Owner.Ability3 = saved.Ability3;
+        if (!triadUnchanged)
+        {
+            Owner.Ability1 = saved.Ability1;
+            Owner.Ability2 = saved.Ability2;
+            Owner.Ability3 = saved.Ability3;
+        }
+
+        // Always re-stamp sheet order — the wipe above sets Order=255 on every old tree.
         Owner.Abilities.SetAbility(saved.Ability1, 0);
         Owner.Abilities.SetAbility(saved.Ability2, 1);
         Owner.Abilities.SetAbility(saved.Ability3, 2);
@@ -280,15 +291,75 @@ public sealed class CharacterAbilitySets(Character owner)
         // (each SCSkillLearned posts "Learned …" chat). Full triad 0x147 also skips
         // ABILITY_CHANGED (msg_swap_ability / learn-ability banner); that event only
         // fires when a single leading news[] ability is valid.
-        Owner.BroadcastPacket(new SCAbilitySwappedPacket(Owner.ObjId, before, after), true);
+        // Same-triad restores skip 0x147 — trees did not change; Changed alone drives the
+        // client rebuild from the saved slot snapshot.
+        if (!triadUnchanged)
+            Owner.BroadcastPacket(new SCAbilitySwappedPacket(Owner.ObjId, before, after), true);
         SendUpdated(AbilitySetResponseType.Changed, slot);
         Logger.Info(
-            "AbilitySet activate {0}: slot {1} {2}/{3}/{4} → {5}/{6}/{7} (skills={8})",
+            "AbilitySet activate {0}: slot {1} {2}/{3}/{4} → {5}/{6}/{7} (skills={8}, triadUnchanged={9})",
             Owner.Name, slot,
             before[0], before[1], before[2],
             after[0], after[1], after[2],
-            saved.SkillIds.Count);
+            saved.SkillIds.Count,
+            triadUnchanged);
         return true;
+    }
+
+    /// <summary>
+    /// Seeds an occupied slot in memory for unit tests (skips MySQL persist).
+    /// </summary>
+    internal void SeedSlotForTests(AbilitySetSlot snapshot, byte usableSlotCount = MaxSlots)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        lock (_sync)
+        {
+            UsableSlotCount = Math.Clamp(usableSlotCount, (byte)1, MaxSlots);
+            _slots[snapshot.SlotIndex] = snapshot;
+        }
+    }
+
+    /// <summary>
+    /// When true, <see cref="TryChargeActivation"/> succeeds without gold or free-counter mutation.
+    /// </summary>
+    internal bool BypassActivationChargeForTests { get; set; }
+
+    private Dictionary<uint, SkillTemplate> _testSkillTemplates;
+
+    /// <summary>Unit-test seam: skill templates for <see cref="ApplySnapshotSkills"/> without SkillManager DI.</summary>
+    internal void SeedSkillTemplateForTests(SkillTemplate template)
+    {
+        ArgumentNullException.ThrowIfNull(template);
+        _testSkillTemplates ??= [];
+        _testSkillTemplates[template.Id] = template;
+    }
+
+    private SkillTemplate ResolveSkillTemplate(uint skillId)
+    {
+        if (_testSkillTemplates != null && _testSkillTemplates.TryGetValue(skillId, out var seeded))
+            return seeded;
+        return SkillManager.Instance.GetSkillTemplate(skillId);
+    }
+
+    private bool MatchesCurrentSkillLoadout(AbilitySetSlot saved)
+    {
+        var equippedSkills = new List<uint>();
+        foreach (var skill in Owner.Skills.Skills.Values)
+        {
+            var abilityId = skill.Template?.AbilityId ?? AbilityType.General;
+            if (abilityId == saved.Ability1 || abilityId == saved.Ability2 || abilityId == saved.Ability3)
+                equippedSkills.Add(skill.Id);
+        }
+
+        var equippedPassives = new List<uint>();
+        foreach (var buff in Owner.Skills.PassiveBuffs.Values)
+        {
+            var abilityId = buff.Template?.AbilityId ?? AbilityType.General;
+            if (abilityId == saved.Ability1 || abilityId == saved.Ability2 || abilityId == saved.Ability3)
+                equippedPassives.Add(buff.Id);
+        }
+
+        return saved.MatchesSkillLoadout(equippedSkills, equippedPassives);
     }
 
     public void Load(MySqlConnection connection)
@@ -442,6 +513,9 @@ public sealed class CharacterAbilitySets(Character owner)
 
     private bool TryChargeActivation(byte slot)
     {
+        if (BypassActivationChargeForTests)
+            return true;
+
         lock (_sync)
         {
             if (UsedFreeActivationCount < MaxFreeActivations)
@@ -492,7 +566,7 @@ public sealed class CharacterAbilitySets(Character owner)
         {
             if (Owner.Skills.Skills.ContainsKey(skillId))
                 continue;
-            var template = SkillManager.Instance.GetSkillTemplate(skillId);
+            var template = ResolveSkillTemplate(skillId);
             if (template != null)
                 Owner.Skills.AddSkill(template, 1, false);
         }
