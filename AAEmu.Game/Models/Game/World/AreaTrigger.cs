@@ -34,6 +34,12 @@ public class AreaTrigger
     public int TickRate { get; set; }
     private DateTime _lastTick = DateTime.MinValue;
 
+    /// <summary>
+    /// True while at least one unit still has this trigger's inside-buff. The owner region may
+    /// already be idle (player teleported away); the manager must keep ticking until leave runs.
+    /// </summary>
+    public bool HasOccupants => TriggeredUnits.Count > 0;
+
     private void UpdateUnits()
     {
         if (Owner == null || Shape == null || !Owner.IsVisible)
@@ -43,11 +49,7 @@ public class AreaTrigger
         }
 
         // Get units currently in the shape
-        var currentUnitsInShape = WorldManager.GetAroundByShape<Unit>(Owner, Shape);
-        if (currentUnitsInShape == null)
-        {
-            return;
-        }
+        var currentUnitsInShape = WorldManager.GetAroundByShape<Unit>(Owner, Shape) ?? [];
 
         // Check who left since last check
         var leftUnits = Units?.Where(oldU => currentUnitsInShape.All(newU => oldU.ObjId != newU.ObjId)) ?? [];

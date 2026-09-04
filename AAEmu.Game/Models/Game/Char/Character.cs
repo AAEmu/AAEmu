@@ -2513,6 +2513,11 @@ public partial class Character : Unit, ICharacter
     {
         base.OnZoneChange(lastZoneKey, newZoneKey); // Unit
 
+        // SphereBuff volumes (dock Moored / Ezi / shipyard) are position-based. A zone-key change
+        // from teleport can leave the old volume without waiting for the next sphere tick.
+        if (lastZoneKey != newZoneKey)
+            Quests?.ReconcileQuestAreaSpheres();
+
         var lastZone = ZoneManager.Instance.GetZoneByKey(lastZoneKey);
         var lastZoneGroupId = (short)(lastZone?.GroupId ?? 0);
         var newZone = ZoneManager.Instance.GetZoneByKey(newZoneKey);

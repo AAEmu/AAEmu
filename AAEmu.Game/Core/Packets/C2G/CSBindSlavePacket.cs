@@ -42,6 +42,6 @@ public class CSBindSlavePacket() : GamePacket(CSOffsets.CSBindSlavePacket, 1)
         // Client Tl picks hull (helm) or equipment sail (SlaveKind=8). Seat is always Driver
         // for CSBindSlave; doodad attachments pass AttachPointKind via BindSlave overload.
         character.ParentWorld.SlaveManager.BindSlave(
-            character, slave.ObjId, AttachPointKind.Driver, AttachUnitReason.NewMaster);
+            character, slave.ObjId, AttachPointKind.Driver, AttachUnitReason.NewMaster, skillType);
     }
 }

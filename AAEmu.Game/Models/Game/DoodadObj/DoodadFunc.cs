@@ -20,7 +20,8 @@ public class DoodadFunc
     public void Use(BaseUnit caster, Doodad owner, uint skillId = 0, int nextPhase = 0)
     {
         var template = DoodadManager.Instance.GetFuncTemplate(FuncId, FuncType);
-
-        template?.Use(caster, owner, skillId, nextPhase);
+        // Helm attachments store occupy skill on doodad_funcs.func_skill_id; F-use often arrives with skillId 0.
+        var appliedSkill = skillId != 0 ? skillId : SkillId;
+        template?.Use(caster, owner, appliedSkill, nextPhase);
     }
 }
