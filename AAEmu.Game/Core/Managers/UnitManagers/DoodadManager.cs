@@ -2675,14 +2675,7 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
             }
 
             var funcTemplate = GetFuncTemplate(func.FuncId, func.FuncType);
-            // Special handler for fake use skill id
-            if (funcTemplate is DoodadFuncFakeUse { FakeSkillId: > 0 } fakeUseTemplate && fakeUseTemplate.FakeSkillId == skillId)
-            {
-                return func;
-            }
-
-            // Special handler for use (func) skill id
-            if (funcTemplate is DoodadFuncUse { SkillId: > 0 } useTemplate && useTemplate.SkillId == skillId)
+            if (DoodadFuncIncomingSkill.TemplateAccepts(funcTemplate, skillId))
             {
                 return func;
             }

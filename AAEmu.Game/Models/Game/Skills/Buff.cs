@@ -109,7 +109,7 @@ public class Buff
                 _count = -1;
             EffectTaskManager.Instance.AddDispelTask(this, Tick);
         }
-        else
+        else if (BuffStackRules.ShouldScheduleDispel(Duration, Tick))
             EffectTaskManager.Instance.AddDispelTask(this, GetTimeLeft());
     }
 
@@ -142,7 +142,7 @@ public class Buff
                             _count = -1;
                         EffectTaskManager.Instance.AddDispelTask(this, Tick);
                     }
-                    else
+                    else if (BuffStackRules.ShouldScheduleDispel(Duration, Tick))
                         EffectTaskManager.Instance.AddDispelTask(this, GetTimeLeft());
 
                     if (Template.FactionId > 0 && Owner is Unit owner)
@@ -244,20 +244,25 @@ public class Buff
                 Duration = newBuff.Duration;
             }
 
-            // Recalculate EndTime based on the new StartTime and Duration.
-            EndTime = StartTime.AddMilliseconds(Duration);
-
-            // Remove any tasks associated with this buff using a predicate.
-            TaskManager.Instance.RemoveTasks(task =>
+            if (!BuffStackRules.ShouldScheduleDispel(Duration, Template.Tick))
             {
-                if (task is DispelTask dt && dt.Effect.Target is Buff buff)
+                // Permanent refresh: keep Acting. SetInUse(update) would queue a
+                // -1 ms dispel and the instance would finish on the next tick.
+                EndTime = DateTime.MinValue;
+                InUse = true;
+                State = EffectState.Acting;
+            }
+            else
+            {
+                EndTime = StartTime.AddMilliseconds(Duration);
+                TaskManager.Instance.RemoveTasks(task =>
                 {
-                    // Remove tasks if they are for this buff.
-                    return buff == this;
-                }
-                return false;
-            });
-            SetInUse(true, true);
+                    if (task is DispelTask dt && dt.Effect.Target is Buff existing)
+                        return existing == this;
+                    return false;
+                });
+                SetInUse(true, true);
+            }
         }
 
         NotifyUpdated(reason: 1); // refresh/overwrite

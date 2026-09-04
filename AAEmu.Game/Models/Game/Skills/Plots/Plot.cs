@@ -1,6 +1,8 @@
-﻿using AAEmu.Game.Core.Packets.G2C;
+﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Units;
 
@@ -21,13 +23,23 @@ public class Plot
         if (caster is not Unit casterUnit)
             return;
 
-        // New cast-time plot while still casting: cancel the previous cast bar/plot so anims don't stack.
-        // In-flight (post-cast) plots keep running for projectile/damage; only casting ones are interrupted.
+        // New cast-time or channel plot while the previous one is still on the bar: cancel so
+        // anims / projectiles do not stack. Sport-fish holds replace each other immediately but
+        // must not tear down the rod channel (plots 809 / 821).
         var prev = casterUnit.ActivePlotState;
-        if (prev != null && !ReferenceEquals(prev.ActiveSkill, skill) && prev.IsCasting &&
-            skill.Template.CastingTime > 0)
+        if (prev != null && !ReferenceEquals(prev.ActiveSkill, skill))
         {
-            prev.RequestCancellation();
+            var incomingTags = SkillManager.Instance.GetSkillTags(skill.Id);
+            var prevSkill = prev.ActiveSkill;
+            var prevTags = prevSkill != null ? SkillManager.Instance.GetSkillTags(prevSkill.Id) : null;
+            var incomingHold = SportFishCombat.IsFishingHoldSkill(skill.Template.TargetType, incomingTags);
+            var prevHold = prevSkill?.Template != null &&
+                           SportFishCombat.IsFishingHoldSkill(prevSkill.Template.TargetType, prevTags);
+            if (SportFishCombat.ShouldCancelPreviousPlot(
+                    prev.IsCasting || prev.IsChanneling,
+                    prevHold,
+                    incomingHold))
+                prev.RequestCancellation();
         }
 
         var state = new PlotState(caster, casterCaster, target, targetCaster, skillObject, skill);

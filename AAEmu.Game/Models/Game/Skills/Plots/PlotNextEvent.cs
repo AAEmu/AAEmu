@@ -25,9 +25,9 @@ public class PlotNextEvent
     public bool UseExeTime { get; set; }
     public bool Fail { get; set; }
 
-    private int GetAnimDelay(IEnumerable<PlotEventEffect> effects)
+    public static int AnimCsTimeMs(IEnumerable<PlotEventEffect> effects)
     {
-        if (!AddAnimCsTime)
+        if (effects == null)
             return 0;
 
         foreach (var effect in effects)
@@ -40,10 +40,19 @@ public class PlotNextEvent
                 continue;
 
             var anim = AnimationManager.Instance.GetAnimation((uint)specialEffect.Value1);
+            if (anim == null)
+                continue;
             return anim.CombatSyncTime;
         }
 
         return 0;
+    }
+
+    private int GetAnimDelay(IEnumerable<PlotEventEffect> effects)
+    {
+        if (!AddAnimCsTime)
+            return 0;
+        return AnimCsTimeMs(effects);
     }
 
     private int GetProjectileDelay(BaseUnit caster, BaseUnit target)

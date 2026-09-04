@@ -980,6 +980,7 @@ public static class WorldIntegration
             // Keep the mirror and its id reserved until ZWRemoveNpc confirms the authority has
             // retired the unit. Releasing earlier could recycle the bc while Zone still owns it.
             PublishNpcDespawn(npc);
+            npc.ParentWorld?.SpawnManager?.ScheduleZoneDespawnAck(npc);
             return;
         }
 

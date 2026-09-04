@@ -1,5 +1,6 @@
 ﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
@@ -25,6 +26,8 @@ public class NpcDespawn : SpecialEffectAction
         // zero in all seven value fields. The selected source is therefore the only operand.
         if (caster is not Npc npc)
             return;
+
+        SportFishCombat.OnLineDropped(npc);
 
         if (WorldIntegration.ZoneAuthority)
         {

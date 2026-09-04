@@ -340,6 +340,7 @@ public class Doodad : BaseUnit
     public DateTime OverridePhaseTime { get; set; } = DateTime.MinValue;
 
     private bool _deleted;
+    public bool IsDeleted => _deleted;
 
     /// <summary>
     /// Re-entrancy cap for <see cref="DoPhaseFuncs"/>. Phase graphs must settle; without this,
@@ -960,12 +961,11 @@ public class Doodad : BaseUnit
         var funcs = DoodadManager.Instance.GetFuncsForGroup(FuncGroupId);
         if (funcs == null) { return; }
 
-        // ReSharper disable once UnusedVariable
-        foreach (var func in funcs.Where(func => func.FuncType == "DoodadFuncSkillHit"))
-        {
-            // func.Use(caster, this, skillId);
+        // One Use: GetFunc picks the SkillHit whose template skill matches. Calling Use once per
+        // SkillHit row re-entered the new phase (or the first unmatched row) and skipped later
+        // chum skills in the same idle group.
+        if (funcs.Exists(func => func.FuncType == "DoodadFuncSkillHit"))
             Use(caster, skillId);
-        }
     }
 
     /// <summary>
@@ -1064,6 +1064,12 @@ public class Doodad : BaseUnit
     public override void BroadcastPacket(GamePacket packet, bool self)
     {
         base.BroadcastPacket(packet, false);
+    }
+
+    public override void Spawn()
+    {
+        base.Spawn();
+        FishSchoolManager.Instance.Track(this);
     }
 
     /// <summary>
@@ -1187,6 +1193,19 @@ public class Doodad : BaseUnit
 
         // Mark as deleted early to avoid re-entry/races (e.g. concurrent packet handlers).
         _deleted = true;
+        FishSchoolManager.Instance.Untrack(this);
+
+        // Tell Zone while Transform.ZoneId is still valid. ForUnit after RemoveObject misses
+        // doodads (they are not in the unit table), which left the Zone mesh in the water
+        // after the 30-minute school timer and never put a replacement back.
+        var zoneId = Transform?.ZoneId ?? 0;
+        if (WorldIntegration.ZoneAuthority)
+        {
+            if (zoneId != 0)
+                WorldIntegration.RelayRemoveDoodadToZoneId?.Invoke(zoneId, ObjId);
+            else
+                WorldIntegration.RelayRemoveDoodadToZone?.Invoke(ObjId);
+        }
 
         base.Delete();
         var triggersToRemove = new List<AreaTrigger>(AttachAreaTriggers);
@@ -1196,9 +1215,6 @@ public class Doodad : BaseUnit
         }
 
         AttachAreaTriggers.Clear();
-
-        if (WorldIntegration.ZoneAuthority)
-            WorldIntegration.RelayRemoveDoodadToZone?.Invoke(ObjId);
 
         // Delete associated item if expired
         if (ItemId > 0)

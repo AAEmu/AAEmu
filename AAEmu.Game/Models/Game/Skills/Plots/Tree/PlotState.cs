@@ -1,7 +1,22 @@
 ﻿using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.Skills.Plots;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.Tree;
+
+public sealed class PlotClientEvent
+{
+    public ushort Tl { get; init; }
+    public uint EventId { get; init; }
+    public uint SkillId { get; init; }
+    public PlotObject Caster { get; init; }
+    public PlotObject Target { get; init; }
+    public uint UnkId { get; init; }
+    public ushort CastWire { get; init; }
+    public byte Flag { get; init; }
+    public byte TargetCount { get; init; }
+    public ushort ChannelWire { get; init; }
+}
 
 public class PlotState(
     BaseUnit caster,
@@ -23,6 +38,8 @@ public class PlotState(
     public byte CombatDiceRoll { get; set; }
     public bool IsCasting { get; set; }
     public bool IsChanneling { get; set; }
+    public PlotClientEvent LastClientEvent { get; set; }
+    public DateTime LastIgnoredStopRefreshUtc { get; set; }
 
     public Skill ActiveSkill { get; set; } = skill;
     public Unit Caster { get; set; } = caster as Unit;

@@ -52,8 +52,16 @@ public class CharacterManager(
     private readonly Dictionary<uint, ActabilityTemplate> _actabilities = [];
     private readonly Dictionary<uint, ActabilityCategoriesTemplate> _actabilitiesCategories = [];
     private readonly Dictionary<int, ExpertLimit> _expertLimits = [];
+    private readonly Dictionary<int, ExpertLimit> _languageExpertLimits = [];
     private readonly Dictionary<int, ExpandExpertLimit> _expandExpertLimits = [];
+    private uint _downgradeIntensifiedExpertTicketItemId;
     private readonly object _characterDeletionLock = new();
+
+    /// <summary>
+    /// <c>content_configs.downgrade_intensified_expert_ticket</c> — spent when leaving a
+    /// <see cref="ExpertLimit.UseIntensified"/> rank.
+    /// </summary>
+    public uint DowngradeIntensifiedExpertTicketItemId => _downgradeIntensifiedExpertTicketItemId;
 
     public CharacterTemplate GetTemplate(Race race, Gender gender)
     {
@@ -101,6 +109,25 @@ public class CharacterManager(
         if (_expertLimits.TryGetValue(step, out var limit))
             return limit;
         return null;
+    }
+
+    public ExpertLimit GetLanguageExpertLimit(int step)
+    {
+        if (_languageExpertLimits.TryGetValue(step, out var limit))
+            return limit;
+        return null;
+    }
+
+    public ExpertLimit GetPointCapLimit(uint actabilityId, int step)
+    {
+        if (ExpertLimitRules.UsesLanguageLadder(actabilityId))
+        {
+            var language = GetLanguageExpertLimit(0);
+            if (language != null)
+                return language;
+        }
+
+        return GetExpertLimit(step);
     }
 
     public ExpandExpertLimit GetExpandExpertLimit(int step)
@@ -356,13 +383,12 @@ public class CharacterManager(
 
             using (var command = connection.CreateCommand())
             {
-                // Actability.Step is the zero-based native expert-limit sequence. IDs are the sequence;
-                // ordering by up_limit incorrectly inserts the language-only id 32 between ids 2 and 3.
-                command.CommandText = "SELECT * FROM expert_limits ORDER BY id ASC";
+                // Shown rows only, ordered by point cap. Language-flagged rows go to their own
+                // map so they cannot sit between production ranks.
+                command.CommandText = "SELECT * FROM expert_limits ORDER BY up_limit ASC, id ASC";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
-                    var step = 0;
                     while (reader.Read())
                     {
                         var template = new ExpertLimit
@@ -376,9 +402,11 @@ public class CharacterManager(
                             UpPrice = reader.GetInt32("up_price"),
                             DownCurrencyId = reader.GetUInt32("down_currency_id", 0),
                             DownPrice = reader.GetInt32("down_price"),
+                            Show = reader.GetBoolean("show"),
+                            UseLanguageType = reader.GetBoolean("use_language_type"),
                             UseIntensified = reader.GetBoolean("use_intensified")
                         };
-                        _expertLimits.Add(step++, template);
+                        ExpertLimitRules.IndexShownRow(template, _expertLimits, _languageExpertLimits);
                     }
                 }
             }
@@ -393,7 +421,8 @@ public class CharacterManager(
                 while (reader.Read())
                 {
                     var expertLimitId = reader.GetUInt32("expert_limit_id");
-                    var template = _expertLimits.Values.FirstOrDefault(limit => limit.Id == expertLimitId);
+                    var template = _expertLimits.Values.FirstOrDefault(limit => limit.Id == expertLimitId)
+                        ?? _languageExpertLimits.Values.FirstOrDefault(limit => limit.Id == expertLimitId);
                     if (template == null)
                         continue;
 
@@ -422,6 +451,23 @@ public class CharacterManager(
                         _expandExpertLimits.Add(step++, template);
                     }
                 }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "SELECT c.value FROM content_configs c " +
+                    "JOIN enum_content_configs e ON e.id = c.id " +
+                    "WHERE e.name = 'downgrade_intensified_expert_ticket'";
+                command.Prepare();
+                var value = command.ExecuteScalar();
+                if (value == null || value == DBNull.Value)
+                    throw new InvalidDataException("Missing required content config 'downgrade_intensified_expert_ticket'.");
+
+                var ticketItemId = Convert.ToUInt32(value);
+                if (ticketItemId == 0)
+                    throw new InvalidDataException("Invalid downgrade_intensified_expert_ticket value 0.");
+                _downgradeIntensifiedExpertTicketItemId = ticketItemId;
             }
         }
 

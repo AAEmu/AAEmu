@@ -1,7 +1,6 @@
 ﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.StaticValues;
 
 using NLog;
 
@@ -23,42 +22,73 @@ public class FishSchoolManager : Singleton<FishSchoolManager>, IFishSchoolManage
 
     public void Load(WorldInstance world)
     {
-        var fishSchool = new List<Doodad>();
         Logger.Info("Loading FishSchool...");
-        var doodads = world.GetAllDoodads();
+        var fishSchool = new List<Doodad>();
+        var doodads = world?.GetAllDoodads();
         if (doodads != null)
         {
             foreach (var d in doodads)
             {
-                // ID=6447, "Freshwater Fish School", ID=6448, "Saltwater Fish School"
-                if (d.TemplateId == DoodadConstants.FreshwaterFishSchool || d.TemplateId == DoodadConstants.SaltwaterFishSchool)
+                if (FishSchoolLookup.IsSchool(d))
                     fishSchool.Add(d);
             }
-
-            lock (FishSchools)
-            {
-                if (fishSchool.Count > 0)
-                {
-                    if (!FishSchools.TryGetValue(world.Id, out var worldFishList))
-                    {
-                        worldFishList = [];
-                        FishSchools.Add(world.Id, worldFishList);
-                    }
-
-                    worldFishList.AddRange(fishSchool);
-                }
-            }
         }
+
+        lock (FishSchools)
+        {
+            var worldId = world?.Id ?? 0;
+            FishSchools[worldId] = fishSchool;
+        }
+
         Logger.Info($"Loaded {fishSchool.Count} FishSchool for world {world} ...");
+    }
+
+    public void Track(Doodad doodad)
+    {
+        if (!FishSchoolLookup.IsSchool(doodad))
+            return;
+
+        var worldId = doodad.ParentWorld?.Id ?? 0;
+        lock (FishSchools)
+        {
+            if (!FishSchools.TryGetValue(worldId, out var worldFishList))
+            {
+                worldFishList = [];
+                FishSchools[worldId] = worldFishList;
+            }
+
+            if (!worldFishList.Contains(doodad))
+                worldFishList.Add(doodad);
+        }
+    }
+
+    public void Untrack(Doodad doodad)
+    {
+        if (doodad == null)
+            return;
+
+        lock (FishSchools)
+        {
+            foreach (var worldFishList in FishSchools.Values)
+                worldFishList.Remove(doodad);
+        }
     }
 
     public List<Doodad> GetAllFishSchools()
     {
         var res = new List<Doodad>();
-        foreach (var (world, doodads) in FishSchools)
+        lock (FishSchools)
         {
-            res.AddRange(doodads);
+            foreach (var doodads in FishSchools.Values)
+            {
+                foreach (var doodad in doodads)
+                {
+                    if (FishSchoolLookup.IsPresent(doodad))
+                        res.Add(doodad);
+                }
+            }
         }
+
         return res;
     }
 }

@@ -1,6 +1,8 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game;
 
@@ -31,6 +33,21 @@ public class CSStopCastingPacket() : GamePacket(CSOffsets.CSStopCastingPacket, 1
         {
             if (Connection.ActiveChar.ActivePlotState.ActiveSkill.TlId == plotTlId)
             {
+                var active = Connection.ActiveChar.ActivePlotState.ActiveSkill;
+                var template = active.Template;
+                if (template != null &&
+                    SportFishCombat.ShouldIgnoreClientStopCasting(
+                        template.Plot?.Id ?? 0,
+                        template.CastingCancelable,
+                        template.ChannelingCancelable))
+                {
+                    Logger.Debug(
+                        "StopCasting ignored rod plot tl={0} skill={1} char={2}",
+                        plotTlId, active.Id, Connection.ActiveChar.Name);
+                    RefreshIgnoredRodPlot(Connection.ActiveChar.ActivePlotState);
+                    return;
+                }
+
                 Connection.ActiveChar.ActivePlotState.RequestCancellation();
             }
             else
@@ -70,5 +87,38 @@ public class CSStopCastingPacket() : GamePacket(CSOffsets.CSStopCastingPacket, 1
             skillTask.Skill.Stop(Connection.ActiveChar);
 
         Logger.Info("StopCasting cancelled tl={0} skill={1} char={2}", tlId, skillTask.Skill.Id, Connection.ActiveChar.Name);
+    }
+
+    private void RefreshIgnoredRodPlot(PlotState state)
+    {
+        if (state?.Caster == null)
+            return;
+
+        var last = state.LastClientEvent;
+        var now = DateTime.UtcNow;
+        if (!PlotChannelingRules.ShouldRefreshPlotAfterIgnoredStop(
+                last != null,
+                state.LastIgnoredStopRefreshUtc,
+                now))
+            return;
+
+        state.LastIgnoredStopRefreshUtc = now;
+        Logger.Debug(
+            "StopCasting refreshed rod plot tl={0} event={1} skill={2} char={3}",
+            last.Tl, last.EventId, last.SkillId, Connection.ActiveChar.Name);
+        state.Caster.BroadcastPacket(
+            new SCPlotEventPacket(
+                last.Tl,
+                last.EventId,
+                last.SkillId,
+                last.Caster,
+                last.Target,
+                last.UnkId,
+                last.CastWire,
+                last.Flag,
+                0,
+                last.TargetCount,
+                channelingTime: last.ChannelWire),
+            true);
     }
 }

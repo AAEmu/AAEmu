@@ -1,8 +1,11 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
+
+using WorldIntegration = AAEmu.Game.WorldIntegration;
 
 namespace AAEmu.Game.Models.Game.NPChar;
 
@@ -153,12 +156,19 @@ public partial class Npc
                 ? npc.CurrentTarget.ObjId
                 : npc.ObjId;
 
+            if (!SportFishCombat.ShouldWorldApplyInCombatSkill(
+                    WorldIntegration.ZoneAuthority, npc.IsZoneMirror, skill.Id))
+                continue;
+
             if (npc.Cooldowns.CheckCooldown(skill.Id)) { continue; }
 
             if (skill.Template.CooldownTime == 0)
             {
                 npc.Cooldowns.AddCooldown(skill.Id, uint.MaxValue); // Run once / выполняем один раз
             }
+
+            if (WorldIntegration.ZoneAuthority && npc.IsZoneMirror)
+                skill.SuppressZoneSkillRelay = true;
 
             Logger.Trace($"Npc={npc.ObjId}:{npc.TemplateId} using skill={skill.Id}");
             skill.Use(npc, skillCaster, skillTarget, null, false, out _);

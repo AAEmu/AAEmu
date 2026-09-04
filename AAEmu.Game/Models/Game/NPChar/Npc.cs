@@ -52,6 +52,11 @@ public partial class Npc : Unit
     public bool ZoneDespawnSignaled { get; set; }
 
     /// <summary>
+    /// Sport fish whose line is gone (timeout, 20 tension, or flee 21616). Skills must miss it.
+    /// </summary>
+    public bool SportFishLineDropped { get; set; }
+
+    /// <summary>
     /// This is the "Idle Animation Id" that is used in UnitModelChangePosture, it can change depending on the time of the day
     /// </summary>
     public uint AnimActionId

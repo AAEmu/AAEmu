@@ -5,7 +5,6 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
-using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -25,7 +24,13 @@ public class SpawnFishEffect : EffectTemplate
     {
         if (caster is not Character player) return;
 
-        var fishSpawnerId = GetFishSpawnerId(player);
+        if (SportFishCombat.HasActiveHook(player.Id))
+        {
+            Logger.Info("Skipped SpawnFish for {0}: a hooked fish is still on the line", player.Name);
+            return;
+        }
+
+        var fishSpawnerId = GetFishSpawnerId(player, target);
         if (fishSpawnerId == 0)
         {
             Logger.Debug($"Fish Spawner ID not found for player {player.Name}.");
@@ -39,10 +44,7 @@ public class SpawnFishEffect : EffectTemplate
             return;
         }
 
-        // Weighted random fish selection
-        NpcSpawnerNpc npcTemplateEntry = template.Npcs.Count == 1
-            ? template.Npcs[0]
-            : SelectWeightedRandom(template.Npcs);
+        var npcTemplateEntry = FishSchoolLookup.SelectWeighted(template.Npcs, Random.Shared.NextDouble());
 
         if (npcTemplateEntry == null)
         {
@@ -82,6 +84,7 @@ public class SpawnFishEffect : EffectTemplate
             // Register so that Despawn() -> RemoveNpcFromSpawnedList doesn't log a false warning
             tempSpawner.SpawnedNpcs.TryAdd(fishSpawnerId, spawnedList);
             var fish = spawnedList.First();
+            SportFishCombat.RegisterHook(player.Id, fish.ObjId);
             // Aggro & targeting
             fish.CurrentTarget = player;
             fish.AddUnitAggro(AggroKind.Damage, player, 10000);
@@ -123,7 +126,11 @@ public class SpawnFishEffect : EffectTemplate
             fish.OwnerId = player.Id;
             fish.Transform = target.Transform.CloneDetached(fish);
             fish.IsZoneMirror = true;
+            // NpcManager.Create does not register np_skills. The non-ZA path goes through
+            // NpcSpawnerNpc.Spawn, which does — bite / OnDeath school-count need the same hook.
+            fish.RegisterNpcEvents();
             fish.Spawn();
+            SportFishCombat.RegisterHook(player.Id, fish.ObjId);
 
             void CompleteCombatHandoff()
             {
@@ -148,9 +155,12 @@ public class SpawnFishEffect : EffectTemplate
                     fish.CurrentTarget = player;
                     WorldIntegration.RelayTargetChangedToZone?.Invoke(fish.ObjId, player.ObjId, true);
                     player.CurrentTarget = fish;
+                    player.SendPacket(new SCTargetChangedPacket(player.ObjId, fish.ObjId));
                     WorldIntegration.RelayTargetChangedToZone?.Invoke(player.ObjId, fish.ObjId, true);
                     WorldIntegration.PublishAggro(fish, player, 10000, castAction);
-                    fish.IsInBattle = true;
+                    // Must run before IsInBattle is set: OnCombatStarted no-ops when already in battle.
+                    // Under ZoneAuthority this only applies bite 21608 (plot 821 / tag 1090).
+                    fish.Events.OnCombatStarted(fish, new OnCombatStartedArgs { Owner = fish, Target = player });
                     player.IsInBattle = true;
                     Logger.Debug(
                         $"Successfully handed fish {npcTemplateEntry.MemberId} (owner {player.Id}) to Zone at the bobber.");
@@ -199,45 +209,33 @@ public class SpawnFishEffect : EffectTemplate
             Logger.Error(ex, $"Error handing fish template {npcTemplateEntry.MemberId} to Zone.");
         }
     }
-    private NpcSpawnerNpc SelectWeightedRandom(List<NpcSpawnerNpc> npcs)
-    {
-        var totalWeight = npcs.Sum(x => x.Weight);
-        if (totalWeight <= 0) return npcs[0];
-
-        var roll = Random.Shared.NextDouble() * totalWeight;
-        var current = 0.0;
-
-        foreach (var entry in npcs)
-        {
-            current += entry.Weight;
-            if (roll < current)
-                return entry;
-        }
-        return npcs[0];
-    }
 
     /// <summary>
     /// Finds the school the bobber landed in and returns the npc_spawners id its current phase feeds
     /// from. Only the chummed phase carries a <see cref="DoodadFuncFishSchool"/> — freshwater 6447
     /// holds it on 26363 and not on the idle 26362 — so an un-chummed school correctly yields 0.
     /// </summary>
-    private uint GetFishSpawnerId(Character player)
+    private uint GetFishSpawnerId(Character player, BaseUnit origin)
     {
         // spawn_fish_effects.range is millimetres, as in ScopedFEffect: 50000 -> 50m for the school
         // effects plot 821 and 809 use, 25000 -> 25m for effect 1.
-        var doodads = WorldManager.GetAround<Doodad>(player, Range / 1000f);
+        var searchOrigin = origin ?? player;
+        if (searchOrigin == null)
+            return 0;
+
+        var rangeMeters = Range / 1000f;
+        var doodads = WorldManager.GetAround<Doodad>(searchOrigin, rangeMeters);
+        var schools = new List<(float X, float Y, uint SpawnerId)>(doodads.Count);
         foreach (var doodad in doodads)
         {
-            if (doodad.Template.GroupId == 65)
-            {
-                foreach (var func in doodad.CurrentPhaseFuncs)
-                {
-                    var funcTemplate = DoodadManager.Instance.GetPhaseFuncTemplate(func.FuncId, func.FuncType);
-                    if (funcTemplate is DoodadFuncFishSchool schoolFunc)
-                        return schoolFunc.NpcSpawnerId;
-                }
-            }
+            var spawnerId = FishSchoolLookup.ReadActiveSpawnerId(
+                doodad,
+                DoodadManager.Instance.GetPhaseFuncTemplate);
+            var pos = doodad.Transform.World.Position;
+            schools.Add((pos.X, pos.Y, spawnerId));
         }
-        return 0;
+
+        var originPos = searchOrigin.Transform.World.Position;
+        return FishSchoolLookup.ResolveNearestSpawnerId(schools, originPos.X, originPos.Y, rangeMeters);
     }
 }

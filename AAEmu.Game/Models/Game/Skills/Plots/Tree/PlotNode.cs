@@ -2,6 +2,7 @@
 using AAEmu.Game;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Static;
 
 using NLog;
@@ -65,11 +66,28 @@ public class PlotNode
             }
         }
 
-        double castTime = Event.NextEvents
-             .Where(nextEvent => nextEvent.Casting || nextEvent.Channeling)
-             .Max(nextEvent => nextEvent.Delay / 10 as int?) ?? 0;
-        castTime = state.Caster.ApplySkillModifiers(state.ActiveSkill, SkillAttribute.CastTime, castTime) * state.Caster.CastTimeMul;
+        var (castingMs, channelingMs) = PlotChannelingRules.NextEdgeDurations(
+            Event.NextEvents.Select(nextEvent => (nextEvent.Casting, nextEvent.Channeling, nextEvent.Delay)));
+        var animCs = PlotNextEvent.AnimCsTimeMs(Event.Effects);
+        var addAnimToCast = false;
+        var addAnimToChannel = false;
+        foreach (var nextEvent in Event.NextEvents)
+        {
+            if (!nextEvent.AddAnimCsTime)
+                continue;
+            if (nextEvent.Casting)
+                addAnimToCast = true;
+            if (nextEvent.Channeling)
+                addAnimToChannel = true;
+        }
+
+        var castTime = state.Caster.ApplySkillModifiers(state.ActiveSkill, SkillAttribute.CastTime, castingMs) *
+                       state.Caster.CastTimeMul;
         castTime = Math.Max(castTime, 0);
+        castTime = PlotChannelingRules.IncludeAnimCsTime((int)castTime, addAnimToCast, animCs);
+        channelingMs = PlotChannelingRules.IncludeAnimCsTime(channelingMs, addAnimToChannel, animCs);
+        var castWire = PlotChannelingRules.ToPlotWireTime((int)castTime);
+        var channelWire = PlotChannelingRules.ToPlotWireTime(channelingMs);
 
         if (castTime > 0)
             state.IsCasting = true;
@@ -86,7 +104,7 @@ public class PlotNode
         else
             state.IsChanneling = true;
 
-        if (Event.HasSpecialEffects() || castTime > 0 || Event.Conditions.Count > 0)
+        if (Event.HasSpecialEffects() || castTime > 0 || channelingMs > 0 || Event.Conditions.Count > 0)
         {
             var skill = state.ActiveSkill;
             var unkId = (ParentNextEvent?.Casting ?? false) || (ParentNextEvent?.Channeling ?? false) ? state.Caster.ObjId : 0;
@@ -106,7 +124,20 @@ public class PlotNode
             var targetCount = (byte)targetInfo.EffectedTargets.Count;
 
             var packet = new SCPlotEventPacket(skill.TlId, Event.Id, skill.Template.Id, casterPlotObj,
-                targetPlotObj, unkId, (ushort)castTime, flag, 0, targetCount);
+                targetPlotObj, unkId, castWire, flag, 0, targetCount, channelingTime: channelWire);
+            state.LastClientEvent = new PlotClientEvent
+            {
+                Tl = skill.TlId,
+                EventId = Event.Id,
+                SkillId = skill.Template.Id,
+                Caster = casterPlotObj,
+                Target = targetPlotObj,
+                UnkId = unkId,
+                CastWire = castWire,
+                Flag = flag,
+                TargetCount = targetCount,
+                ChannelWire = channelWire
+            };
 
             if (packets != null)
                 packets.AddPacket(packet);
@@ -114,7 +145,7 @@ public class PlotNode
             {
                 state.Caster.BroadcastPacket(packet, true);
                 RelayPlotEventToZoneIfNeeded(skill.TlId, Event.Id, skill.Template.Id, casterPlotObj, targetPlotObj,
-                    0ul, unkId, (ushort)castTime, flag, targetCount, targetInfo);
+                    0ul, unkId, (uint)castTime, (uint)channelingMs, flag, targetCount, targetInfo);
             }
 
             Logger.Trace($"Execute Took {stopwatch.ElapsedMilliseconds} to finish.");
@@ -144,7 +175,8 @@ public class PlotNode
         PlotObject targetPlotObj,
         ulong itemId,
         uint objId,
-        ushort castingTime,
+        uint castTimeMs,
+        uint channelingTimeMs,
         byte flag,
         byte targetUnitCount,
         PlotTargetInfo targetInfo)
@@ -177,8 +209,8 @@ public class PlotNode
             targetPlotObj,
             itemId,
             objId,
-            castingTime,
-            0u,
+            castTimeMs,
+            channelingTimeMs,
             true,
             false,
             targetIds.ToArray());
