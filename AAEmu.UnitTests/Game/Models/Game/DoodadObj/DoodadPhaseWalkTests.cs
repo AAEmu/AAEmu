@@ -11,18 +11,38 @@ public class DoodadPhaseWalkTests
     private const uint Land = 10992;
 
     [Test]
-    public async Task MailboxOwl_EachTimerHop_MayRevisitFlyAway()
+    public async Task ChangePhaseWalk_EachTimerHop_MayRevisitFlyAway()
     {
-        var visited = new List<uint>();
+        var visited = new List<uint> { Sit };
 
         foreach (var phase in new[] { Sit, FlyAway, Empty, Land, Sit })
         {
-            DoodadPhaseWalk.Begin(visited);
-            await Assert.That(DoodadPhaseWalk.TryVisit(visited, phase)).IsTrue();
+            var accepted = DoodadPhaseWalk.Run(visited, () => DoodadPhaseWalk.TryVisit(visited, phase));
+            await Assert.That(accepted).IsTrue();
+            await Assert.That(visited.Count).IsEqualTo(0);
         }
 
-        DoodadPhaseWalk.Begin(visited);
-        await Assert.That(DoodadPhaseWalk.TryVisit(visited, FlyAway)).IsTrue();
+        var again = DoodadPhaseWalk.Run(visited, () => DoodadPhaseWalk.TryVisit(visited, FlyAway));
+        await Assert.That(again).IsTrue();
+        await Assert.That(visited.Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task ChangePhaseWalk_ClearsEvenWhenTheHopThrows()
+    {
+        var visited = new List<uint> { Sit };
+        try
+        {
+            DoodadPhaseWalk.Run<int>(visited, () => throw new InvalidOperationException("hop"));
+            throw new Exception("expected hop throw");
+        }
+        catch (InvalidOperationException)
+        {
+        }
+
+        await Assert.That(visited.Count).IsEqualTo(0);
+        var again = DoodadPhaseWalk.Run(visited, () => DoodadPhaseWalk.TryVisit(visited, FlyAway));
+        await Assert.That(again).IsTrue();
     }
 
     [Test]

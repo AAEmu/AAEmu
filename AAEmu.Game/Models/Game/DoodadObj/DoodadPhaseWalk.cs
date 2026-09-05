@@ -13,6 +13,23 @@ public static class DoodadPhaseWalk
         visited.Clear();
     }
 
+    /// <summary>
+    /// One <see cref="Doodad.DoChangePhase"/> walk: clear, run the hop, clear again
+    /// so the next timer hop can revisit a looping phase.
+    /// </summary>
+    public static T Run<T>(ICollection<uint> visited, Func<T> body)
+    {
+        Begin(visited);
+        try
+        {
+            return body();
+        }
+        finally
+        {
+            Begin(visited);
+        }
+    }
+
     /// <returns>
     /// <c>false</c> if <paramref name="phase"/> was already visited on this walk
     /// (caller must stop; the set is cleared).

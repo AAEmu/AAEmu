@@ -878,19 +878,21 @@ public class Doodad : BaseUnit
             Logger.Trace($"DoChangePhase: TemplateId {TemplateId}, ObjId {ObjId}, nextPhase {nextPhase}");
         }
 
-        DoodadPhaseWalk.Begin(ListGroupId);
+        var phase = nextPhase;
         try
         {
-            var stop = DoPhaseFuncs(caster, ref nextPhase);
+            return DoodadPhaseWalk.Run(ListGroupId, () =>
+            {
+                var stop = DoPhaseFuncs(caster, ref phase);
 
-            // the phase change packet call must be after the phase functions to have the correct FuncGroupId in the packet
-            BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true); // change the phase to display doodad
+                // the phase change packet call must be after the phase functions to have the correct FuncGroupId in the packet
+                BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true); // change the phase to display doodad
 
-            return stop; // if true, it did not pass the check for the quest (it must be aborted)
+                return stop; // if true, it did not pass the check for the quest (it must be aborted)
+            });
         }
         finally
         {
-            DoodadPhaseWalk.Begin(ListGroupId);
             _phaseDepth = 0;
         }
     }
