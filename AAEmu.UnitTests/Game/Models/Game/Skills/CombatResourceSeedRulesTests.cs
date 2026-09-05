@@ -43,4 +43,22 @@ public class CombatResourceSeedRulesTests
         await Assert.That(CombatResourceSeedRules.ShouldSeed(6, pleasure)).IsFalse();
         await Assert.That(CombatResourceSeedRules.ShouldSeed(26, null)).IsFalse();
     }
+
+    [Test]
+    public async Task HeldToDrop_ClearsPleasureAndDeathWhenTheNewKitDoesNotOwnThem()
+    {
+        var fight = new HashSet<int> { 1 };
+        var pleasure = new HashSet<int> { 26, 27 };
+        var held = new[] { 1, 6, 26, 27 };
+
+        var dropFight = CombatResourceSeedRules.HeldToDrop(held, fight);
+        await Assert.That(dropFight.ToHashSet().SetEquals([6, 26, 27])).IsTrue();
+        await Assert.That(CombatResourceSeedRules.ShouldDrop(26, fight)).IsTrue();
+        await Assert.That(CombatResourceSeedRules.ShouldDrop(1, fight)).IsFalse();
+
+        var dropPleasure = CombatResourceSeedRules.HeldToDrop(held, pleasure);
+        await Assert.That(dropPleasure.ToHashSet().SetEquals([1, 6])).IsTrue();
+        await Assert.That(CombatResourceSeedRules.HeldToDrop(held, null)).IsEmpty();
+        await Assert.That(CombatResourceSeedRules.HeldToDrop(null, fight)).IsEmpty();
+    }
 }

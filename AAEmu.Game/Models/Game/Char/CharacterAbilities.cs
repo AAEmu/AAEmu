@@ -180,6 +180,8 @@ public class CharacterAbilities
             foreach (var template in SkillManager.Instance.GetStartAbilitySkills(abilityId))
                 Owner.Skills.AddSkill(template, 1, true);
         }
+
+        Owner.InitializeCombatResources();
     }
 
     public void Load(MySqlConnection connection)

@@ -26,6 +26,28 @@ public static class CombatResourceSeedRules
     public static bool ShouldSeed(int resourceId, IReadOnlySet<int> ownedResourceIds) =>
         ownedResourceIds != null && ownedResourceIds.Contains(resourceId);
 
+    public static bool ShouldDrop(int resourceId, IReadOnlySet<int> ownedResourceIds) =>
+        ownedResourceIds != null && !ownedResourceIds.Contains(resourceId);
+
+    /// <summary>
+    /// Pools to clear when the current abilities no longer own them (Pleasure
+    /// or Death's brand leftover after a swap).
+    /// </summary>
+    public static IReadOnlyList<int> HeldToDrop(IEnumerable<int> heldIds, IReadOnlySet<int> ownedResourceIds)
+    {
+        if (ownedResourceIds == null || heldIds == null)
+            return [];
+
+        List<int> drop = null;
+        foreach (var id in heldIds)
+        {
+            if (ShouldDrop(id, ownedResourceIds))
+                (drop ??= []).Add(id);
+        }
+
+        return drop ?? [];
+    }
+
     private static void Add(ISet<int> owned, int id)
     {
         if (owned != null && id > 0)

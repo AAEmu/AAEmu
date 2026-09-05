@@ -352,6 +352,9 @@ public class Unit : BaseUnit, IUnit
             owned = CombatResourceGameData.Instance.ResourceIdsForAbilities(
                 (int)character.Ability1, (int)character.Ability2, (int)character.Ability3);
 
+        foreach (var id in CombatResourceSeedRules.HeldToDrop(CombatResources.Keys, owned))
+            DropCombatResource(id);
+
         foreach (var resource in CombatResourceGameData.Instance.WithDefaultPoint)
         {
             if (owned != null && !CombatResourceSeedRules.ShouldSeed(resource.Id, owned))
@@ -362,6 +365,16 @@ public class Unit : BaseUnit, IUnit
             ArmCombatResourceDecay(resource.Id, CombatResources[resource.Id], restart: true);
             SyncCombatResourceBuff(resource.Id, CombatResources[resource.Id]);
         }
+    }
+
+    private void DropCombatResource(int resourceId)
+    {
+        CombatResources.Remove(resourceId);
+        _combatResourceDecayAt.Remove(resourceId);
+        SyncCombatResourceBuff(resourceId, 0);
+        var resource = CombatResourceGameData.Instance.Get(resourceId);
+        if (resource != null)
+            BroadcastCombatResource(resource, 0, updateTimeMs: 0);
     }
 
     /// <summary>
