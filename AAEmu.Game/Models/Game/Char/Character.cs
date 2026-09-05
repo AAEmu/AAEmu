@@ -581,6 +581,9 @@ public partial class Character : Unit, ICharacter
     public uint CurrentPhysTime => PhysTimeAnchor + (uint)(Environment.TickCount64 - PhysTimeAnchorTick);
 
     private readonly Dictionary<ushort, string> _options;
+    private readonly object _optionsLock = new();
+    private readonly object _uiDataSaveLock = new();
+    private readonly ICharacterOptionStore _optionStore;
 
     public List<IDisposable> Subscribers { get; set; }
     public override CharacterEvents Events { get; } = new();
@@ -2084,9 +2087,10 @@ public partial class Character : Unit, ICharacter
     /// </summary>
     public DateTime LastPacketActivityTime { get; set; } = DateTime.UtcNow;
 
-    public Character(UnitCustomModelParams modelParams)
+    public Character(UnitCustomModelParams modelParams, ICharacterOptionStore optionStore = null)
     {
         _options = [];
+        _optionStore = optionStore ?? new CharacterOptionStore();
         _hostilePlayers = new ConcurrentDictionary<uint, DateTime>();
         Breath = LungCapacity;
         ModelParams = modelParams;
@@ -2952,14 +2956,44 @@ public partial class Character : Unit, ICharacter
 
     public void SetOption(ushort key, string value)
     {
-        _options[key] = value;
+        lock (_optionsLock)
+            _options[key] = value;
     }
 
     public string GetOption(ushort key)
     {
-        if (_options.TryGetValue(key, out var option))
-            return option;
-        return "";
+        lock (_optionsLock)
+            return _options.GetValueOrDefault(key, "");
+    }
+
+    public bool TrySaveUiData(ushort key, string value)
+    {
+        if (!UiData.IsSupported(key) || !UiData.TryEncode(value, out _))
+            return false;
+
+        // Order UI commits without blocking bulk snapshots while waiting for a database connection.
+        lock (_uiDataSaveLock)
+        {
+            try
+            {
+                _optionStore.Save(Id, key, value);
+                lock (_optionsLock)
+                    _options[key] = value;
+                return true;
+            }
+            catch (Exception exception)
+            {
+                Logger.Error(exception, "Failed to persist UI data: characterId={0}, type={1}", Id, key);
+                return false;
+            }
+        }
+    }
+
+    internal KeyValuePair<ushort, string>[] GetOptionsForSave()
+    {
+        // UI sections are committed independently; bulk saves must not replay stale snapshots.
+        lock (_optionsLock)
+            return _options.Where(pair => !UiData.IsSupported(pair.Key)).ToArray();
     }
 
     public void PushSubscriber(IDisposable disposable)
@@ -3818,7 +3852,7 @@ public partial class Character : Unit, ICharacter
                 command.Connection = connection;
                 command.Transaction = transaction;
 
-                foreach (var pair in _options)
+                foreach (var pair in GetOptionsForSave())
                 {
                     command.CommandText =
                         "REPLACE INTO `options` (`key`,`value`,`owner`) VALUES (@key,@value,@owner)";
