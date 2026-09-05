@@ -12,12 +12,14 @@ namespace AAEmu.Game.GameData;
 public class CommonFarmGameData : Singleton<CommonFarmGameData>, IGameDataLoader
 {
     private Dictionary<uint, FarmGroup> _farmGroup;
+    private Dictionary<uint, CommonFarm> _commonFarm;
     private Dictionary<uint, FarmGroupDoodads> _farmGroupDoodads;
 
     public void Load(SqliteConnection connection)
     {
         _farmGroup = [];
         _farmGroupDoodads = [];
+        _commonFarm = [];
 
         using (var command = connection.CreateCommand())
         {
@@ -27,9 +29,14 @@ public class CommonFarmGameData : Singleton<CommonFarmGameData>, IGameDataLoader
             using var reader = new SQLiteWrapperReader(sqliteReader);
             while (reader.Read())
             {
-                var template = new FarmGroup { Id = reader.GetUInt32("id"), Count = reader.GetUInt32("count") };
+                var template = new CommonFarm()
+                {
+                    Id = reader.GetUInt32("id"),
+                    FarmGroupId = reader.GetUInt32("farm_group_id"),
+                    GuardTime = reader.GetUInt32("guard_time")
+                };
 
-                _farmGroup.TryAdd(template.Id, template);
+                _commonFarm.TryAdd(template.Id, template);
             }
         }
 

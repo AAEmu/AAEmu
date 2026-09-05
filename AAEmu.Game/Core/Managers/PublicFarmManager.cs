@@ -142,14 +142,15 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
 
     public void Load()
     {
-        //common farm subzone ID's
+        // Common farm subzone ID's
+        // We have no idea where the client is actually pulling this data from
         _farmZones = new Dictionary<uint, FarmType>
         {
-            { 998, FarmType.Farm },
             { 966, FarmType.Farm },
-            { 968, FarmType.Nursery },
             { 967, FarmType.Ranch },
-            { 974, FarmType.Stable }
+            { 968, FarmType.Nursery },
+            { 974, FarmType.Stable }, 
+            { 998, FarmType.Farm },
         };
     }
 
