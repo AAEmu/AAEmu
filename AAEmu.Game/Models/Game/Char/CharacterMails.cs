@@ -536,19 +536,15 @@ public class CharacterMails
             return;
         }
 
-        var wasUnread = thisMail.Header.Status != MailStatus.Read;
-        var mailType = thisMail.MailType;
-
         if (!thisMail.ReturnToSenderFor(Self.Id))
         {
             Self.SendPacket(new SCMailFailedPacket(MailResult.ReturnsNotAllowed, [], false));
             return;
         }
 
-        // It is the sender's mail now, so it leaves this inbox and its counters.
-        UnreadMailCount.AddTotal(mailType, -1);
-        if (wasUnread)
-            UnreadMailCount.UpdateReceived(mailType, -1);
+        // TryReturnToSenderCore already refreshed the counters authoritatively (the letter is no
+        // longer addressed to this inbox, so it is excluded) for the SCMailReturnedPacket above.
+        // Adjusting again here would double-count the return; just publish the refreshed totals.
         SendUnreadMailCount();
     }
 }
