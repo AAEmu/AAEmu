@@ -667,7 +667,7 @@ public class CharacterManager(
         character.Skills = new CharacterSkills(character);
         character.SkillActiveTypes = new CharacterSkillActiveTypes(character);
         character.HeirSkills = new CharacterHeirSkills(character);
-        foreach (var skill in skillManager.GetDefaultSkills())
+        foreach (var skill in skillManager.GetDefaultSkills(character.Race, character.Gender))
         {
             if (!skill.AddToSlot)
                 continue;

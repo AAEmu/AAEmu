@@ -180,7 +180,7 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             skill = Connection.ActiveChar.AutoAttackTask.Skill;
             skillResult = SkillResult.Success;
         }
-        else if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && skillCaster is not SkillItem)
+        else if (SkillManager.Instance.IsDefaultSkill(skillId, Connection.ActiveChar.Race, Connection.ActiveChar.Gender) || SkillManager.Instance.IsCommonSkill(skillId) && skillCaster is not SkillItem)
         {
             // Is it a common skill?
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...
