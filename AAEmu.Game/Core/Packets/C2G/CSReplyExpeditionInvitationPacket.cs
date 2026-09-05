@@ -11,9 +11,11 @@ public class CSReplyExpeditionInvitationPacket() : GamePacket(CSOffsets.CSReplyE
     {
         var id = (FactionsEnum)stream.ReadUInt32(); // type(id)
         var id2 = stream.ReadUInt32(); // type(id)
-        var join = stream.ReadBoolean();
+        var wireFlag = stream.ReadBoolean();
 
-        Logger.Debug("ReplyExpeditionInvitation, Id: {0}, Id2: {1}, Join: {2}", id, id2, join);
-        ExpeditionManager.Instance.ReplyInvite(Connection, id, id2, join);
+        Logger.Debug("ReplyExpeditionInvitation, Id: {0}, Id2: {1}, wireFlag: {2}", id, id2, wireFlag);
+        // TODO: wireFlag's polarity is inverted here based on observed Accept clicks (both sent false);
+        // not yet confirmed against a real decline case.
+        ExpeditionManager.Instance.ReplyInvite(Connection, id, id2, !wireFlag);
     }
 }

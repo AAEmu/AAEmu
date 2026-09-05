@@ -17,8 +17,9 @@ public class SCUnitExpeditionChangedPacket(
 
     public override PacketStream Write(PacketStream stream)
     {
+        // characterId is a plain 8-byte value, not 4 bytes.
         stream.WriteBc(unitId);
-        stream.Write(characterId);
+        stream.Write((ulong)characterId);
         stream.Write(kicker);
         stream.Write(unitName);
         stream.Write(id);

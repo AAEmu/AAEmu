@@ -407,6 +407,15 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
     }
 
     /// <summary>
+    /// housings.id 830/831/832 (Green/Red/Blue Flag Residence of High Spirit) - a universal per-guild
+    /// clubhouse placeable in ordinary continent housing zones, unrelated to castle/dominion territory
+    /// ownership. No dedicated game-data table exists for this set, so it's hardcoded here.
+    /// </summary>
+    private static readonly HashSet<uint> ExpeditionResidenceTemplateIds = [830, 831, 832];
+
+    public bool IsExpeditionResidenceTemplate(uint templateId) => ExpeditionResidenceTemplateIds.Contains(templateId);
+
+    /// <summary>
     /// Gets data for the item for a housing decoration
     /// </summary>
     /// <param name="decoDesignId"></param>

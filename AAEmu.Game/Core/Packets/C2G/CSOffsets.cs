@@ -321,6 +321,7 @@ public static class CSOffsets
     public const ushort CSExpeditionLevelUpPacket = 0x02D;
     public const ushort CSExpeditionRecruitmentAddPacket = 0x31;
     public const ushort CSExpeditionRecruitmentsGetPacket = 0x030;
+    public const ushort CSRequestDeclarationMoneyPacket = 0x011;
     public const ushort CSExpelSquadMemberPacket = 0x1E1;
     public const ushort CSFactionMobilizationOrderPacket = 0x027;
     public const ushort CSFactionRelationRequestPacket = 0x2A;

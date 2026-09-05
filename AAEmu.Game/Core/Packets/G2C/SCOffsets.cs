@@ -633,15 +633,23 @@ public static class SCOffsets
     public const ushort SCExpeditionApplicantAddPacket = 0x43;
     public const ushort SCExpeditionApplicantDelPacket = 0x44;
     public const ushort SCExpeditionApplicantRejectPacket = 0x46;
+    public const ushort SCExpeditionBuffsPacket = 0x4D;
     public const ushort SCExpeditionBuffChangedPacket = 0x4E;
+    public const ushort SCExpeditionBuffUnitPacket = 0x4F;
     public const ushort SCExpeditionCreatedPacket = 0x015; // 10.0.2.13
+    public const ushort SCExpeditionDescPacket = 0x4B;
     public const ushort SCExpeditionExpAddPacket = 0x4C;
     public const ushort SCExpeditionMemberListEndPacket = 0x24;
     public const ushort SCExpeditionPortalTimerPacket = 0x373;
-    public const ushort SCExpeditionRejoinFailPacket = 0x68;
+    public const ushort SCExpeditionRejoinFailPacket = 0x20; // corrected from a stale 0x68
     public const ushort SCExpeditionShopHistoriesPacket = 0x01C; // 10.0.2.13
     public const ushort SCExpeditionSummonSuggestPacket = 0x4A;
-    public const ushort SCExpeditionWarStatePacket = 0x78;
+    // Corrected from a stale 0x78 - EndWar/DeclareWar actually broadcast this packet, so the wrong
+    // value was landing on an unrelated client handler.
+    public const ushort SCExpeditionWarStatePacket = 0x18;
+    public const ushort SCExpeditionWarDeclarationMoney = 0x19;
+    public const ushort SCExpeditionWarKillScorePacket = 0x1A;
+    public const ushort SCNotifyExpeditionWarResultPacket = 0x1F;
     public const ushort SCFactionCompetitionUpdatePointPacket = 0x338;
     public const ushort SCFactionImmigrateLimitDataPacket = 0x51;
     public const ushort SCFactionMobilizationOrderPacket = 0x3D;

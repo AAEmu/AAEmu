@@ -1,15 +1,13 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO: the body is parsed but nothing acts on it yet.
+/// Opens/refreshes the prestige-shop buff view - resent unconditionally on every request rather than
+/// gated on Enter, since the client doesn't reliably set that flag.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
 public class CSExpeditionBuffPacket() : GamePacket(CSOffsets.CSExpeditionBuffPacket, 1)
 {
     public int TypeValue { get; private set; }
@@ -21,5 +19,8 @@ public class CSExpeditionBuffPacket() : GamePacket(CSOffsets.CSExpeditionBuffPac
         TypeValue = stream.ReadInt32();
         Enter = stream.ReadBoolean();
         ResponseOnly = stream.ReadBoolean();
+
+        if (Connection.ActiveChar?.Expedition != null)
+            ExpeditionManager.Instance.SendExpeditionBuffs(Connection.ActiveChar);
     }
 }

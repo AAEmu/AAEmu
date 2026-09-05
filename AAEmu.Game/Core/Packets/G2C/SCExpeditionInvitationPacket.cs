@@ -8,7 +8,8 @@ public class SCExpeditionInvitationPacket(uint invitorId, string invitorName, ui
 {
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(invitorId);
+        // invitorId is a plain 8-byte persistent Character.Id, not a Bc-encoded reference and not ObjId.
+        stream.Write((ulong)invitorId);
         stream.Write(invitorName);
         stream.Write(factionId);
         stream.Write(factionName);

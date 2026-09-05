@@ -1,0 +1,5 @@
+USE aaemu_game;
+
+ALTER TABLE `expeditions` ADD COLUMN `level` INT UNSIGNED NOT NULL DEFAULT '1' AFTER `mother`;
+ALTER TABLE `expeditions` ADD COLUMN `exp` INT UNSIGNED NOT NULL DEFAULT '0' AFTER `level`;
+ALTER TABLE `expeditions` ADD COLUMN `notice` VARCHAR(800) NOT NULL DEFAULT '' AFTER `exp`;

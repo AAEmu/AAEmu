@@ -38,6 +38,8 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSLeaveExpeditionPacket, 1, typeof(CSLeaveExpeditionPacket));
         RegisterPacket(CSOffsets.CSKickFromExpeditionPacket, 1, typeof(CSKickFromExpeditionPacket));
         RegisterPacket(CSOffsets.CSDeclareExpeditionWarPacket, 1, typeof(CSDeclareExpeditionWarPacket));
+        RegisterPacket(CSOffsets.CSRequestDeclarationMoneyPacket, 1, typeof(CSRequestDeclarationMoneyPacket));
+        RegisterPacket(CSOffsets.CSExpeditionLevelUpPacket, 1, typeof(CSExpeditionLevelUpPacket));
         // 0x10 unk packet
         RegisterPacket(CSOffsets.CSUpdateDominionTaxRatePacket, 1, typeof(CSUpdateDominionTaxRatePacket));
         RegisterPacket(CSOffsets.CSFactionMobilizationOrderPacket, 1, typeof(CSFactionMobilizationOrderPacket));
@@ -374,17 +376,24 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSReqExpdWarHistoriesPacket, 1, typeof(CSReqExpdWarHistoriesPacket));
         RegisterPacket(CSOffsets.CSCancelExpeditionProtectionPacket, 1, typeof(CSCancelExpeditionProtectionPacket));
         RegisterPacket(CSOffsets.CSExpeditionBuffUnitPacket, 1, typeof(CSExpeditionBuffUnitPacket));
+        RegisterPacket(CSOffsets.CSExpeditionBuffPacket, 1, typeof(CSExpeditionBuffPacket));
+        RegisterPacket(CSOffsets.CSExpeditionBuffGradePacket, 1, typeof(CSExpeditionBuffGradePacket));
+        RegisterPacket(CSOffsets.CSExpeditionExpAddPacket, 1, typeof(CSExpeditionExpAddPacket));
+        RegisterPacket(CSOffsets.CSExpeditionInterestUpatePacket, 1, typeof(CSExpeditionInterestUpatePacket));
         RegisterPacket(CSOffsets.CSShowResidentZoneGroupsPacket, 1, typeof(CSShowResidentZoneGroupsPacket));
         RegisterPacket(CSOffsets.CSResidentBalanceAllPacket, 1, typeof(CSResidentBalanceAllPacket));
         RegisterPacket(CSOffsets.CSFactionRelationHistoryGetPacket, 1, typeof(CSFactionRelationHistoryGetPacket));
         RegisterPacket(CSOffsets.CSFactionRelationCountGetPacket, 1, typeof(CSFactionRelationCountGetPacket));
         RegisterPacket(CSOffsets.CSExpeditionNoticeUpatePacket, 1, typeof(CSExpeditionNoticeUpatePacket));
         RegisterPacket(CSOffsets.CSExpeditionRecruitmentsGetPacket, 1, typeof(CSExpeditionRecruitmentsGetPacket));
+        RegisterPacket(CSOffsets.CSExpeditionRecruitmentAddPacket, 1, typeof(CSExpeditionRecruitmentAddPacket));
         RegisterPacket(CSOffsets.CSExpeditionRecruitmentDelPacket, 1, typeof(CSExpeditionRecruitmentDelPacket));
         RegisterPacket(CSOffsets.CSExpeditionApplicantsGetPacket, 1, typeof(CSExpeditionApplicantsGetPacket));
         RegisterPacket(CSOffsets.CSExpeditionApplicantAddPacket, 1, typeof(CSExpeditionApplicantAddPacket));
+        RegisterPacket(CSOffsets.CSExpeditionApplicantDelPacket, 1, typeof(CSExpeditionApplicantDelPacket));
         RegisterPacket(CSOffsets.CSExpeditionApplicantAcceptPacket, 1, typeof(CSExpeditionApplicantAcceptPacket));
         RegisterPacket(CSOffsets.CSExpeditionApplicantRejectPacket, 1, typeof(CSExpeditionApplicantRejectPacket));
+        RegisterPacket(CSOffsets.CSDeleteExpeditionPortalPacket, 1, typeof(CSDeleteExpeditionPortalPacket));
         RegisterPacket(CSOffsets.CSExpeditionSummonGetPacket, 1, typeof(CSExpeditionSummonGetPacket));
         RegisterPacket(CSOffsets.CSExpeditionSummonReplyPacket, 1, typeof(CSExpeditionSummonReplyPacket));
         RegisterPacket(CSOffsets.CSFamilyNameSetPacket, 1, typeof(CSFamilyNameSetPacket));

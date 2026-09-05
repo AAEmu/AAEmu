@@ -60,6 +60,11 @@ public class BaseUnit : GameObject, IBaseUnit
         var me = this as Character;
         var targetOtherOwner = target.GetOwnerCharacter();
 
+        // Guild War: declared war enemies stay mutually attackable everywhere PvP is possible,
+        // including each other's faction-protected home zones - that is the point of declaring.
+        // (The war's own protection window is already accounted for inside AreGuildWarEnemies.)
+        var guildWarEnemy = AreGuildWarEnemies(this, target);
+
         var zone = ZoneManager.Instance.GetZoneByKey(target.Transform.ZoneId);
         var zoneFactionId = zone?.FactionId ?? FactionsEnum.Neutral;
         if (zoneFactionId <= 0)
@@ -72,7 +77,7 @@ public class BaseUnit : GameObject, IBaseUnit
             zoneFaction = FactionManager.Instance.GetFaction(FactionsEnum.Neutral);
         }
         var targetMotherFaction = target.Faction?.MotherId ?? 0;
-        if (this is Character && targetMotherFaction != 0 && (targetMotherFaction == zoneFaction.MotherId || targetMotherFaction == zoneFaction.Id))
+        if (this is Character && !guildWarEnemy && targetMotherFaction != 0 && (targetMotherFaction == zoneFaction.MotherId || targetMotherFaction == zoneFaction.Id))
         {
             // Target is protected by mother zone, can't attack it
             return false;
@@ -83,7 +88,8 @@ public class BaseUnit : GameObject, IBaseUnit
             var trgIsFlagged = targetOtherOwner.Buffs.CheckBuff((uint)BuffConstants.Retribution);
 
             // Check Safe-zone
-            if (targetOtherOwner.Faction.MotherId != 0 &&
+            if (!guildWarEnemy &&
+                targetOtherOwner.Faction.MotherId != 0 &&
                 targetOtherOwner.Faction.MotherId == zoneFactionId
                 && !me.IsActivelyHostile(targetOtherOwner) &&
                 !trgIsFlagged)
@@ -138,7 +144,35 @@ public class BaseUnit : GameObject, IBaseUnit
         return !target.Buffs.CheckBuffTag((uint)TagsEnum.Stealth);
     }
 
-    public RelationState GetRelationStateTo(BaseUnit unit) => this.Faction?.GetRelationState(unit.Faction) ?? RelationState.Neutral;
+    public RelationState GetRelationStateTo(BaseUnit unit)
+    {
+        // Guild War: members of two expeditions at war with each other are mutually hostile for the
+        // war's duration, overriding their normal (usually identical) faction relation.
+        if (AreGuildWarEnemies(this, unit))
+            return RelationState.Hostile;
+        return this.Faction?.GetRelationState(unit.Faction) ?? RelationState.Neutral;
+    }
+
+    /// <summary>
+    /// True when <paramref name="a"/> and <paramref name="b"/> are owned by characters whose
+    /// expeditions have declared war on each other and neither guild is currently under war
+    /// protection. Additive only - it can promote Friendly/Neutral to Hostile between exactly
+    /// these two guilds and changes nothing else. Pets/summons/siege resolve via their owner.
+    /// </summary>
+    private static bool AreGuildWarEnemies(BaseUnit a, BaseUnit b)
+    {
+        var ca = a?.GetOwnerCharacter();
+        var cb = b?.GetOwnerCharacter();
+        if (ca == null || cb == null)
+            return false;
+        var ea = ca.Expedition;
+        var eb = cb.Expedition;
+        if (ea == null || eb == null || ea.Id == eb.Id)
+            return false;
+        return ea.IsAtWar && !ea.IsProtected && !eb.IsProtected
+            && ea.WarEnemyExpeditionId == (uint)eb.Id
+            && eb.WarEnemyExpeditionId == (uint)ea.Id;
+    }
 
     public virtual void AddBonus(uint bonusIndex, Bonus bonus)
     {

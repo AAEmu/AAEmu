@@ -1,15 +1,15 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO: the body is parsed but nothing acts on it yet.
+/// The client only ever sends this once per day as a "new day, refresh" heartbeat with Addexp
+/// hardcoded to 0, not a genuine EXP submission. The client-supplied amount must never be trusted
+/// directly into guild EXP - any guild member could otherwise submit an arbitrary amount and
+/// instantly level their guild. Discarded entirely below rather than guessed at.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
 public class CSExpeditionExpAddPacket() : GamePacket(CSOffsets.CSExpeditionExpAddPacket, 1)
 {
     public int TypeValue { get; private set; }
@@ -19,5 +19,6 @@ public class CSExpeditionExpAddPacket() : GamePacket(CSOffsets.CSExpeditionExpAd
     {
         TypeValue = stream.ReadInt32();
         Addexp = stream.ReadUInt32();
+        // Intentionally discarded - see class summary.
     }
 }

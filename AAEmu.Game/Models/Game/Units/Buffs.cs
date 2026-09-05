@@ -29,6 +29,9 @@ public class Buffs : IBuffs
     public const uint GearBonusesIndex = 1;
     private const uint FirstBuffIndex = GearBonusesIndex + 1;
 
+    // Reserved fixed slot for guild prestige-shop buff bonuses (see Expedition.ApplyBuffBonuses).
+    public const uint ExpeditionBonusesIndex = 0;
+
     // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
     private readonly object _lock = new();
     private uint _nextIndex;
