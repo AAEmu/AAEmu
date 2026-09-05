@@ -47,6 +47,8 @@ public static class AccountAttributePublisher
             }
         }
 
+        AccountAttributeGrantRules.EnsureListingGrant(attributes, connection.AccountId);
+
         if (attributes.Count == 0)
         {
             connection.SendPacket(new SCAccountAttributeListPacket([]));

@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Chat;
@@ -111,6 +112,11 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
 
         // Daily schedule: load persisted contracts for today, then reset-count budget.
         TodayAssignmentManager.Instance.OnCharacterEnterWorld(Connection.ActiveChar);
+
+        // Lobby already sent these during FinishState 0, but the in-world player object
+        // is built later and does not keep that map. Listing authority is read here.
+        Connection.SendPacket(new SCAccountAttributeConfigPacket());
+        AccountAttributePublisher.Send(Connection);
 
         // Mirror interest armed on NotifyInGameCompleted — not here during load.
         Logger.Info($"NotifyInGame: {Connection.ActiveChar?.Name} ({Connection.ActiveChar?.Id}) zoneAuth={WorldIntegration.ZoneAuthority}");

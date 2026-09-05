@@ -4,22 +4,24 @@ namespace AAEmu.Game.Models.Game.Auction.Templates;
 
 public class AuctionSearch : PacketMarshaler
 {
-    public string Keyword { get; set; }
+    public string Keyword { get; set; } = string.Empty;
     public bool ExactMatch { get; set; }
     public byte Grade { get; set; }
     public byte CategoryA { get; set; }
     public byte CategoryB { get; set; }
     public byte CategoryC { get; set; }
-    public uint ClientId { get; set; }
     public int Page { get; set; }
+    public ulong ClientId { get; set; }
     public int Filter { get; set; }
+    public int ItemListCount { get; set; }
     public byte WorldId { get; set; }
-    public byte MinItemLevel { get; set; }
-    public byte MaxItemLevel { get; set; }
-    //public uint MinMoneyAmount { get; set; } // added in 3+
-    //public uint MaxMoneyAmount { get; set; } // added in 3+
+    public sbyte MinItemLevel { get; set; }
+    public sbyte MaxItemLevel { get; set; }
+    public long MinPrice { get; set; }
+    public long MaxPrice { get; set; }
     public AuctionSearchSortKind SortKind { get; set; }
     public AuctionSearchSortOrder SortOrder { get; set; }
+    public List<uint> ItemTemplateIds { get; set; } = [];
 
     public override void Read(PacketStream stream)
     {
@@ -30,20 +32,32 @@ public class AuctionSearch : PacketMarshaler
         CategoryB = stream.ReadByte();
         CategoryC = stream.ReadByte();
         Page = stream.ReadInt32();
-        ClientId = stream.ReadUInt32();
+        ClientId = stream.ReadUInt64();
         Filter = stream.ReadInt32();
+        ItemListCount = stream.ReadInt32();
         WorldId = stream.ReadByte();
-        MinItemLevel = stream.ReadByte();
-        MaxItemLevel = stream.ReadByte();
-        //MinMoneyAmount = stream.ReadUInt32(); // moneyAmount
-        //MaxMoneyAmount = stream.ReadUInt32(); // moneyAmount
+        MinItemLevel = stream.ReadSByte();
+        MaxItemLevel = stream.ReadSByte();
+        MinPrice = stream.ReadInt64();
+        MaxPrice = stream.ReadInt64();
         SortKind = (AuctionSearchSortKind)stream.ReadByte();
         SortOrder = (AuctionSearchSortOrder)stream.ReadByte();
     }
 
+    public void ReadItemTemplateIds(PacketStream stream)
+    {
+        var count = stream.ReadInt32();
+        if (count > AuctionHouseRules.MultilingualItemIdLimit)
+            count = AuctionHouseRules.MultilingualItemIdLimit;
+        ItemListCount = count;
+        ItemTemplateIds = new List<uint>(count);
+        for (var i = 0; i < count; i++)
+            ItemTemplateIds.Add(stream.ReadUInt32());
+    }
+
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(Keyword);
+        stream.Write(Keyword ?? string.Empty);
         stream.Write(ExactMatch);
         stream.Write(Grade);
         stream.Write(CategoryA);
@@ -52,11 +66,12 @@ public class AuctionSearch : PacketMarshaler
         stream.Write(Page);
         stream.Write(ClientId);
         stream.Write(Filter);
+        stream.Write(ItemListCount);
         stream.Write(WorldId);
         stream.Write(MinItemLevel);
         stream.Write(MaxItemLevel);
-        //stream.Write(MinMoneyAmount); // moneyAmount
-        //stream.Write(MaxMoneyAmount); // moneyAmount
+        stream.Write(MinPrice);
+        stream.Write(MaxPrice);
         stream.Write((byte)SortKind);
         stream.Write((byte)SortOrder);
         return stream;

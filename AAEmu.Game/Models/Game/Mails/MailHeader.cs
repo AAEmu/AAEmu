@@ -4,13 +4,24 @@ namespace AAEmu.Game.Models.Game.Mails;
 
 public class MailHeader(BaseMail parent) : PacketMarshaler
 {
+    private MailStatus _status;
+    private byte _attachments;
+
     public long MailId { get => parent.Id; }
     public MailType Type { get => parent.MailType; }
-    public MailStatus Status { get; set; }
+    public MailStatus Status
+    {
+        get => _status;
+        set { _status = value; parent.IsDirty = true; }
+    }
     public string Title { get => parent.Title; } // TODO max length 400
     public uint SenderId { get; set; }
     public string SenderName { get; set; } // TODO max length 128
-    public byte Attachments { get; set; }
+    public byte Attachments
+    {
+        get => _attachments;
+        set { _attachments = value; parent.IsDirty = true; }
+    }
     public uint ReceiverId { get; set; }
     public string ReceiverName { get => parent.ReceiverName; } // TODO max length 128
     public DateTime OpenDate { get => parent.OpenDate; }

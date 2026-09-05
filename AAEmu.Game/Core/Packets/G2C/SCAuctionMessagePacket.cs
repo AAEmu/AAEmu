@@ -1,23 +1,17 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Auction;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-/// <summary>
-/// TODO: nothing constructs this packet yet.
-/// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
-public class SCAuctionMessagePacket(sbyte unnamed1, sbyte msgType, int @type, ulong moneyAmount) : GamePacket(SCOffsets.SCAuctionMessagePacket, 1)
+public class SCAuctionMessagePacket(AuctionMessageKind kind, uint itemTemplateId, long money)
+    : GamePacket(SCOffsets.SCAuctionMessagePacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(unnamed1);
-        stream.Write(msgType);
-        stream.Write(@type);
-        stream.Write(moneyAmount);
+        stream.Write((byte)kind);
+        stream.Write(itemTemplateId);
+        stream.Write(money);
         return stream;
     }
 }

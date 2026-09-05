@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
+using Microsoft.Extensions.DependencyInjection;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -86,6 +87,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             _allPlayerMails.Add(mail.Id, mail);
         }
         NotifyNewMailByNameIfOnline(mail, targetName);
+        PersistNow();
         return true;
     }
 
@@ -156,6 +158,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             originalReceiver.SendPacket(new SCMailReturnedPacket(mail.Id, mail.Header));
 
         NotifyNewMailByNameIfOnline(mail, destinationName);
+        PersistNow();
         return true;
     }
 
@@ -174,8 +177,13 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                 _deletedMailIds.Add(id);
             mailIdManager.ReleaseId((uint)id);
         }
+
+        bool removed;
         lock (_allPlayerMails)
-            return _allPlayerMails.Remove(id);
+            removed = _allPlayerMails.Remove(id);
+
+        PersistNow();
+        return removed;
     }
 
     public bool DeleteMail(BaseMail mail, bool trashItems = false)
@@ -187,7 +195,15 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                 try
                 {
                     var item = mail.Body.Attachments[i];
-                    item._holdingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
+                    if (item == null)
+                        continue;
+
+                    // WebAPI / GM Create never parents the item, so there is no container
+                    // to remove from. Release the id instead of dereferencing null.
+                    if (item._holdingContainer != null)
+                        item._holdingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
+                    else
+                        itemManager.ReleaseId(item.Id);
                 }
                 catch (Exception ex)
                 {
@@ -249,10 +265,16 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                             if (itemId > 0)
                             {
                                 var item = itemManager.GetItemByItemId(itemId);
-                                if (item != null)
+                                if (MailAttachmentLoadRules.CanReload(item))
                                 {
                                     item.OwnerId = tempMail.Header.ReceiverId;
                                     tempMail.Body.Attachments.Add(item);
+                                }
+                                else if (item != null)
+                                {
+                                    Logger.Warn(
+                                        "Skipping mail {0} attachment item {1}: already claimed (slot={2})",
+                                        tempMail.Id, itemId, item.SlotType);
                                 }
                                 else
                                 {
@@ -372,6 +394,22 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
         return (updatedCount, deletedCount);
     }
 
+    /// <summary>
+    /// Writes dirty mail (and the rest of the World snapshot) immediately.
+    /// Claim/send/delete used to wait for the 5-minute tick; a killed World
+    /// then reloaded the pre-claim row and the letter came back unclaimed.
+    /// No-ops in tests that do not register <see cref="ISaveManager"/>.
+    /// </summary>
+    public void PersistNow()
+    {
+        var saver = SingletonContainer.ServiceProvider?.GetService<ISaveManager>();
+        if (saver == null)
+            return;
+
+        if (!saver.DoSave())
+            Logger.Warn("Mail persist skipped or failed (save already running?)");
+    }
+
     #endregion
 
     
@@ -424,6 +462,11 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                 player.Mails.UnreadMailCount.UpdateReceived(m.MailType, 1);
 
                 player.SendPacket(new SCGotMailPacket(m.Header, player.Mails.UnreadMailCount, addBody ? m.Body : null));
+                // Charged mail only publishes the goods-mailbox event. The portrait
+                // envelope listens to the normal inbox event, so close the inbox
+                // listing (kind 1) to refresh that icon after a shop delivery.
+                if (m.MailType is MailType.Charged or MailType.Promotion)
+                    player.SendPacket(new SCMailListEndPacket(1, player.Mails.UnreadMailCount));
                 m.IsDelivered = true;
                 return true;
             }

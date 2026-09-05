@@ -110,4 +110,33 @@ public sealed class MailTests
         await Assert.That(_mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, extra, itemSlots)).IsNotEqualTo(MailResult.Success);
         await Assert.That(_character.Money).IsEqualTo(1000);
     }
+
+    [Test]
+    public async Task GetAttached_MissingMail_ReturnsFalse()
+    {
+        await Assert.That(_mails.GetAttached(999, true, true, true)).IsFalse();
+    }
+
+    [Test]
+    public async Task ReadMail_MissingMail_DoesNotThrow()
+    {
+        _mails.ReadMail(false, 999);
+        await Assert.That(_mailManager._allPlayerMails.ContainsKey(999)).IsFalse();
+    }
+
+    [Test]
+    public async Task DeleteMail_TrashAttachmentWithoutContainer_StillRemovesMail()
+    {
+        var mail = new BaseMail
+        {
+            Id = 42,
+            ReceiverName = "tester",
+            Header = { ReceiverId = 1, SenderId = 0 },
+        };
+        mail.Body.Attachments.Add(new Item(99) { SlotType = SlotType.Mail });
+        _mailManager._allPlayerMails[42] = mail;
+
+        await Assert.That(_mailManager.DeleteMail(mail, trashItems: true)).IsTrue();
+        await Assert.That(_mailManager._allPlayerMails.ContainsKey(42)).IsFalse();
+    }
 }

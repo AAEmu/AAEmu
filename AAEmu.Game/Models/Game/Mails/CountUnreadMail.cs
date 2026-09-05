@@ -55,7 +55,13 @@ public class CountUnreadMail : PacketMarshaler
     public void UpdateReceived(MailType mailType, int amount)
     {
         if (mailType is MailType.Charged or MailType.Promotion)
+        {
             CommercialReceived += amount;
+            // Shop / cash-shop mail is its own mailbox, but the character-card
+            // envelope only reads the normal unread counter. Count it there too
+            // so a marketplace delivery lights the same HUD icon as a letter.
+            Received += amount;
+        }
         else if (mailType == MailType.MiaRecv)
             MiaReceived += amount;
         else
