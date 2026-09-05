@@ -49,4 +49,20 @@ public class DefaultSkillAssignRulesTests
         await Assert.That(DefaultSkillAssignRules.AppliesToCharacter(33984, RaceAssigned, warborn)).IsTrue();
         await Assert.That(DefaultSkillAssignRules.AppliesToCharacter(33984, RaceAssigned, Nuian)).IsFalse();
     }
+
+    [Test]
+    public async Task AllowDefaultCast_RejectsAnotherRacesRacialOnBothPaths()
+    {
+        await Assert.That(DefaultSkillAssignRules.AllowDefaultCast(false, false)).IsTrue();
+        await Assert.That(DefaultSkillAssignRules.AllowDefaultCast(true, true)).IsTrue();
+        await Assert.That(DefaultSkillAssignRules.AllowDefaultCast(
+            isListedDefault: true,
+            appliesToThisRaceGender: DefaultSkillAssignRules.AppliesToCharacter(35423, RaceAssigned, Nuian))).IsFalse();
+        await Assert.That(DefaultSkillAssignRules.AllowDefaultCast(
+            isListedDefault: true,
+            appliesToThisRaceGender: DefaultSkillAssignRules.AppliesToCharacter(2, RaceAssigned, Nuian))).IsTrue();
+        await Assert.That(DefaultSkillAssignRules.AllowDefaultCast(
+            isListedDefault: true,
+            appliesToThisRaceGender: DefaultSkillAssignRules.AppliesToCharacter(35420, RaceAssigned, null))).IsFalse();
+    }
 }

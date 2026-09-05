@@ -22,4 +22,11 @@ public static class DefaultSkillAssignRules
             return true;
         return skillIdsForThisRaceGender != null && skillIdsForThisRaceGender.Contains(skillId);
     }
+
+    /// <summary>
+    /// StartSkill may run a listed default only when it applies to this race/gender.
+    /// Skills that are not defaults (learned, items, mounts) are decided later.
+    /// </summary>
+    public static bool AllowDefaultCast(bool isListedDefault, bool appliesToThisRaceGender) =>
+        !isListedDefault || appliesToThisRaceGender;
 }
