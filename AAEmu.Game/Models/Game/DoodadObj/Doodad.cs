@@ -770,13 +770,10 @@ public class Doodad : BaseUnit
         if (WorldIntegration.ZoneAuthority)
             WorldIntegration.RelayDoodadPhaseToZone?.Invoke(ObjId, FuncGroupId, Data);
 
-        if (!ListGroupId.Contains((uint)nextPhase))
+        if (!DoodadPhaseWalk.TryVisit(ListGroupId, (uint)nextPhase))
         {
-            ListGroupId.Add((uint)nextPhase); // to check CheckPhase()
-        }
-        else
-        {
-            // Cycle detected: always abort. (Previously empty funcs fell through and infinite-looped.)
+            // Same-walk cycle only. Timer hops begin a new walk in DoChangePhase so
+            // sit→fly→empty→land→sit can run again (town mailbox owl).
             if (caster is Character)
             {
                 Logger.Debug($"DoPhase: Finished execution with recurse: TemplateId {TemplateId}, Using phase {FuncGroupId}");
@@ -786,7 +783,6 @@ public class Doodad : BaseUnit
                 Logger.Trace($"DoPhase: Finished execution with recurse: TemplateId {TemplateId}, Using phase {FuncGroupId}");
             }
 
-            ListGroupId.Clear();
             return true;
         }
 
@@ -882,12 +878,21 @@ public class Doodad : BaseUnit
             Logger.Trace($"DoChangePhase: TemplateId {TemplateId}, ObjId {ObjId}, nextPhase {nextPhase}");
         }
 
-        var stop = DoPhaseFuncs(caster, ref nextPhase);
+        DoodadPhaseWalk.Begin(ListGroupId);
+        try
+        {
+            var stop = DoPhaseFuncs(caster, ref nextPhase);
 
-        // the phase change packet call must be after the phase functions to have the correct FuncGroupId in the packet
-        BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true); // change the phase to display doodad
+            // the phase change packet call must be after the phase functions to have the correct FuncGroupId in the packet
+            BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true); // change the phase to display doodad
 
-        return stop; // if true, it did not pass the check for the quest (it must be aborted)
+            return stop; // if true, it did not pass the check for the quest (it must be aborted)
+        }
+        finally
+        {
+            DoodadPhaseWalk.Begin(ListGroupId);
+            _phaseDepth = 0;
+        }
     }
 
     /// <summary>
