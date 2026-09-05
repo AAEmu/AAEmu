@@ -357,7 +357,8 @@ public class Unit : BaseUnit, IUnit
 
         foreach (var resource in CombatResourceGameData.Instance.WithDefaultPoint)
         {
-            if (owned != null && !CombatResourceSeedRules.ShouldSeed(resource.Id, owned))
+            if (!CombatResourceSeedRules.ShouldWriteDefault(
+                    resource.Id, owned, CombatResources.ContainsKey(resource.Id)))
                 continue;
             CombatResources[resource.Id] = resource.Max > 0
                 ? Math.Min(resource.DefaultPoint, resource.Max)

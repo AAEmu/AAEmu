@@ -61,4 +61,16 @@ public class CombatResourceSeedRulesTests
         await Assert.That(CombatResourceSeedRules.HeldToDrop(held, null)).IsEmpty();
         await Assert.That(CombatResourceSeedRules.HeldToDrop(null, fight)).IsEmpty();
     }
+
+    [Test]
+    public async Task ShouldWriteDefault_KeepsAHeldPoolOnTheUnchangedTree()
+    {
+        var fightAndDeath = new HashSet<int> { 1, 5, 6 };
+
+        await Assert.That(CombatResourceSeedRules.ShouldWriteDefault(6, fightAndDeath, alreadyHeld: true)).IsFalse();
+        await Assert.That(CombatResourceSeedRules.ShouldWriteDefault(26, fightAndDeath, alreadyHeld: false)).IsFalse();
+        await Assert.That(CombatResourceSeedRules.ShouldWriteDefault(6, fightAndDeath, alreadyHeld: false)).IsTrue();
+        await Assert.That(CombatResourceSeedRules.ShouldWriteDefault(26, null, alreadyHeld: false)).IsTrue();
+        await Assert.That(CombatResourceSeedRules.ShouldWriteDefault(26, null, alreadyHeld: true)).IsFalse();
+    }
 }

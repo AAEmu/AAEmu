@@ -26,6 +26,19 @@ public static class CombatResourceSeedRules
     public static bool ShouldSeed(int resourceId, IReadOnlySet<int> ownedResourceIds) =>
         ownedResourceIds != null && ownedResourceIds.Contains(resourceId);
 
+    /// <summary>
+    /// Login writes the default. A later swap must not reset a pool the
+    /// character still owns and has already been using.
+    /// </summary>
+    public static bool ShouldWriteDefault(int resourceId, IReadOnlySet<int> ownedResourceIds, bool alreadyHeld)
+    {
+        if (alreadyHeld)
+            return false;
+        if (ownedResourceIds == null)
+            return true;
+        return ShouldSeed(resourceId, ownedResourceIds);
+    }
+
     public static bool ShouldDrop(int resourceId, IReadOnlySet<int> ownedResourceIds) =>
         ownedResourceIds != null && !ownedResourceIds.Contains(resourceId);
 
