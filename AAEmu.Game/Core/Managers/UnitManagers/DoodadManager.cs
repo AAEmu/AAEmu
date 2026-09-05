@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.CommonFarm;
 using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Details;
@@ -46,6 +47,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
     private Dictionary<string, Dictionary<uint, DoodadPhaseFuncTemplate>> _phaseFuncTemplates;
 
     private Dictionary<uint, DoodadTemplate> _templates;
+    private Dictionary<uint, DoodadGroups> _doodadGroups;
 
     // ReSharper disable once FieldCanBeMadeReadOnly.Local
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
@@ -80,6 +82,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
         _phaseFuncs = [];
         _funcTemplates = [];
         _phaseFuncTemplates = [];
+        _doodadGroups = [];
         foreach (var type in Helpers.GetTypesInNamespace(Assembly.GetAssembly(GetType()),
                      "AAEmu.Game.Models.Game.DoodadObj.Funcs"))
         {
@@ -2630,6 +2633,26 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                     }
                 }
             }
+            
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_groups";
+                command.Prepare();
+                using var sqliteReader = command.ExecuteReader();
+                using var reader = new SQLiteWrapperReader(sqliteReader);
+                while (reader.Read())
+                {
+                    var template = new DoodadGroups
+                    {
+                        Id = reader.GetUInt32("id"),
+                        GuardOnFieldTime = reader.GetUInt32("guard_on_field_time"),
+                        IsExport = reader.GetBoolean("is_export"),
+                        RemovedByHouse = reader.GetBoolean("removed_by_house")
+                    };
+
+                    _doodadGroups.TryAdd(template.Id, template);
+                }
+            }
 
             // Then Load actual doodads
             using (var command = connection.CreateCommand())
@@ -2661,6 +2684,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                         template.ForceTodTopPriority = reader.GetBoolean("force_tod_top_priority", true);
                         template.MilestoneId = reader.GetUInt32("milestone_id", 0);
                         template.GroupId = reader.GetUInt32("group_id");
+                        template.Group = _doodadGroups.GetValueOrDefault(template.GroupId);
                         template.UseTargetDecal = reader.GetBoolean("use_target_decal", true);
                         template.UseTargetSilhouette = reader.GetBoolean("use_target_silhouette", true);
                         template.UseTargetHighlight = reader.GetBoolean("use_target_highlight", true);

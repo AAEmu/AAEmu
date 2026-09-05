@@ -1,6 +1,6 @@
 ﻿namespace AAEmu.Game.Models.Game.CommonFarm;
 
-internal class DoodadGroups
+public class DoodadGroups
 {
     public uint Id { get; set; }
     public uint GuardOnFieldTime { get; set; }

@@ -13,13 +13,25 @@ public class CommonFarmGameData : Singleton<CommonFarmGameData>, IGameDataLoader
 {
     private Dictionary<uint, FarmGroup> _farmGroup;
     private Dictionary<uint, FarmGroupDoodads> _farmGroupDoodads;
-    private Dictionary<uint, DoodadGroups> _doodadGroups;
 
     public void Load(SqliteConnection connection)
     {
         _farmGroup = [];
         _farmGroupDoodads = [];
-        _doodadGroups = [];
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM common_farms";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var template = new FarmGroup { Id = reader.GetUInt32("id"), Count = reader.GetUInt32("count") };
+
+                _farmGroup.TryAdd(template.Id, template);
+            }
+        }
 
         using (var command = connection.CreateCommand())
         {
@@ -55,35 +67,12 @@ public class CommonFarmGameData : Singleton<CommonFarmGameData>, IGameDataLoader
             }
         }
 
-        using (var command = connection.CreateCommand())
-        {
-            command.CommandText = "SELECT * FROM doodad_groups";
-            command.Prepare();
-            using var sqliteReader = command.ExecuteReader();
-            using var reader = new SQLiteWrapperReader(sqliteReader);
-            while (reader.Read())
-            {
-                var template = new DoodadGroups
-                {
-                    Id = reader.GetUInt32("id"),
-                    GuardOnFieldTime = reader.GetUInt32("guard_on_field_time"),
-                    IsExport = reader.GetBoolean("is_export"),
-                    RemovedByHouse = reader.GetBoolean("removed_by_house")
-                };
-
-                _doodadGroups.TryAdd(template.Id, template);
-            }
-        }
+        
     }
 
     public uint GetFarmGroupMaxCount(FarmType farmType)
     {
         return _farmGroup.TryGetValue((uint)farmType, out var farm) ? farm.Count : 0;
-    }
-
-    public uint GetDoodadGuardTime(uint groupId)
-    {
-        return _doodadGroups.TryGetValue(groupId, out var farm) ? farm.GuardOnFieldTime : 0;
     }
 
     public List<uint> GetAllowedDoodads(FarmType farmType)

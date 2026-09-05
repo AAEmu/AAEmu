@@ -43,8 +43,7 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
             if (doodad is null)
                 continue;
             if (doodad.FarmType == FarmType.Invalid) { continue; }
-            var guardTime = CommonFarmGameData.Instance.GetDoodadGuardTime(doodad.Template.GroupId);
-            if (DateTime.UtcNow < doodad.PlantTime.AddSeconds(guardTime)) { continue; }
+            if (DateTime.UtcNow < doodad.PlantTime.AddSeconds(doodad.Template.Group.GuardOnFieldTime)) { continue; }
 
             // defense time is up
             doodad.OwnerId = 0;
@@ -136,8 +135,7 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
 
     public static bool IsProtected(Doodad doodad)
     {
-        var guardTime = CommonFarmGameData.Instance.GetDoodadGuardTime(doodad.Template.GroupId);
-        var protectionTime = doodad.PlantTime.AddSeconds(guardTime);
+        var protectionTime = doodad.PlantTime.AddSeconds(doodad.Template.Group.GuardOnFieldTime);
 
         return doodad.PlantTime < protectionTime;
     }
