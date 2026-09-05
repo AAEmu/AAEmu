@@ -341,13 +341,21 @@ public class Unit : BaseUnit, IUnit
     }
 
     /// <summary>
-    /// Seeds <c>combat_resources.default_point</c>. Called once when a unit enters the world — 죽음의 낙인
-    /// starts at 6 and 기쁨 / 슬픔 at 5, and until this ran every ability that reads them saw 0.
+    /// Seeds <c>combat_resources.default_point</c> for resources this unit owns.
+    /// Death's brand starts at 6 and Pleasure's joy/sorrow at 5; other classes must
+    /// not receive those pools or their bar buffs.
     /// </summary>
     public void InitializeCombatResources()
     {
+        IReadOnlySet<int> owned = null;
+        if (this is Character character)
+            owned = CombatResourceGameData.Instance.ResourceIdsForAbilities(
+                (int)character.Ability1, (int)character.Ability2, (int)character.Ability3);
+
         foreach (var resource in CombatResourceGameData.Instance.WithDefaultPoint)
         {
+            if (owned != null && !CombatResourceSeedRules.ShouldSeed(resource.Id, owned))
+                continue;
             CombatResources[resource.Id] = resource.Max > 0
                 ? Math.Min(resource.DefaultPoint, resource.Max)
                 : resource.DefaultPoint;

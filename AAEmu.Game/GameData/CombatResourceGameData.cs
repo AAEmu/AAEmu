@@ -1,5 +1,6 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Utils.DB;
 
 using Microsoft.Data.Sqlite;
@@ -84,36 +85,69 @@ public class CombatResourceGameData : Singleton<CombatResourceGameData>, IGameDa
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<int, CombatResource> _resources;
+    private Dictionary<int, HashSet<int>> _resourceIdsByAbility;
 
     public void Load(SqliteConnection connection)
     {
         _resources = [];
+        _resourceIdsByAbility = [];
 
-        using var command = connection.CreateCommand();
-        command.CommandText = "SELECT * FROM combat_resources";
-        command.Prepare();
-        using var sqliteReader = command.ExecuteReader();
-        using var reader = new SQLiteWrapperReader(sqliteReader);
-        while (reader.Read())
+        using (var command = connection.CreateCommand())
         {
-            var resource = new CombatResource
+            command.CommandText = "SELECT * FROM combat_resources";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
             {
-                Id = reader.GetInt32("id"),
-                Name = reader.GetString("name"),
-                Max = reader.GetInt32("max"),
-                DefaultPoint = reader.GetInt32("default_point"),
-                // Column is spelled "resouece_send_type_id" in the shipped schema.
-                SendTypeId = reader.GetInt32("resouece_send_type_id"),
-                RecoveryCycle = reader.GetInt32("recovery_cycle", 0),
-                PeaceRecoveryAmount = reader.GetInt32("peace_recovery_amount", 0),
-                CombatRecoveryAmount = reader.GetInt32("combat_recovery_amount", 0),
-                EtcRecoveryStateId = reader.GetInt32("etc_recovery_state_id", 1),
-                EtcRecoveryAmount = reader.GetInt32("etc_recovery_amount", 0),
-                BuffId = reader.GetUInt32("buff_id", 0),
-                BuffCondition = (CombatResourceBuffCondition)reader.GetInt32("resource_buff_condition_id", 1)
-            };
+                var resource = new CombatResource
+                {
+                    Id = reader.GetInt32("id"),
+                    Name = reader.GetString("name"),
+                    Max = reader.GetInt32("max"),
+                    DefaultPoint = reader.GetInt32("default_point"),
+                    // Column is spelled "resouece_send_type_id" in the shipped schema.
+                    SendTypeId = reader.GetInt32("resouece_send_type_id"),
+                    RecoveryCycle = reader.GetInt32("recovery_cycle", 0),
+                    PeaceRecoveryAmount = reader.GetInt32("peace_recovery_amount", 0),
+                    CombatRecoveryAmount = reader.GetInt32("combat_recovery_amount", 0),
+                    EtcRecoveryStateId = reader.GetInt32("etc_recovery_state_id", 1),
+                    EtcRecoveryAmount = reader.GetInt32("etc_recovery_amount", 0),
+                    BuffId = reader.GetUInt32("buff_id", 0),
+                    BuffCondition = (CombatResourceBuffCondition)reader.GetInt32("resource_buff_condition_id", 1)
+                };
 
-            _resources[resource.Id] = resource;
+                _resources[resource.Id] = resource;
+            }
+        }
+
+        using (var groupCommand = connection.CreateCommand())
+        {
+            groupCommand.CommandText =
+                "SELECT ability_id, combat_resource_1_id, combat_resource_2_id, " +
+                "change_combat_resource_1_id, change_combat_resource_2_id " +
+                "FROM combat_resource_groups";
+            groupCommand.Prepare();
+            using var sqliteReader = groupCommand.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var abilityId = reader.GetInt32("ability_id", 0);
+                if (abilityId <= 0)
+                    continue;
+                if (!_resourceIdsByAbility.TryGetValue(abilityId, out var owned))
+                {
+                    owned = [];
+                    _resourceIdsByAbility[abilityId] = owned;
+                }
+
+                CombatResourceSeedRules.AddGroupResourceIds(
+                    owned,
+                    reader.GetInt32("combat_resource_1_id", 0),
+                    reader.GetInt32("combat_resource_2_id", 0),
+                    reader.GetInt32("change_combat_resource_1_id", 0),
+                    reader.GetInt32("change_combat_resource_2_id", 0));
+            }
         }
 
         Logger.Info("Loaded {0} combat resources", _resources.Count);
@@ -133,4 +167,22 @@ public class CombatResourceGameData : Singleton<CombatResourceGameData>, IGameDa
 
     /// <summary>Resources that start non-empty, so a unit only has to be seeded with those.</summary>
     public IEnumerable<CombatResource> WithDefaultPoint => All.Where(r => r.DefaultPoint > 0);
+
+    /// <summary>
+    /// Resource ids listed on <c>combat_resource_groups</c> for the given abilities,
+    /// including the change-resource columns (Death's brand sits there, not on column 1).
+    /// </summary>
+    public IReadOnlySet<int> ResourceIdsForAbilities(params int[] abilityIds)
+    {
+        var owned = new HashSet<int>();
+        if (_resourceIdsByAbility == null || abilityIds == null)
+            return owned;
+        foreach (var abilityId in abilityIds)
+        {
+            if (_resourceIdsByAbility.TryGetValue(abilityId, out var ids))
+                owned.UnionWith(ids);
+        }
+
+        return owned;
+    }
 }
