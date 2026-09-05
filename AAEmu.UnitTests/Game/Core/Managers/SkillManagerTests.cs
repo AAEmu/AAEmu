@@ -358,6 +358,36 @@ public class SkillManagerTests
         await Assert.That(result.Count).IsEqualTo(2);
     }
 
+    [Test]
+    public async Task GetDefaultSkills_ForRace_DropsTheOtherRacesRacial()
+    {
+        var manager = new SkillManager(Mock.Of<IAnimationManager>().Object, Mock.Of<IPlotManager>().Object);
+        var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+        typeof(SkillManager).GetField("_defaultSkills", flags)?.SetValue(manager, new Dictionary<uint, DefaultSkill>
+        {
+            { 2, new DefaultSkill { Template = new SkillTemplate { Id = 2 }, Slot = 13, AddToSlot = true } },
+            { 35420, new DefaultSkill { Template = new SkillTemplate { Id = 35420 }, Slot = 17, AddToSlot = true } },
+            { 35423, new DefaultSkill { Template = new SkillTemplate { Id = 35423 }, Slot = 17, AddToSlot = true } }
+        });
+        typeof(SkillManager).GetField("_raceAssignedDefaultSkillIds", flags)
+            ?.SetValue(manager, new HashSet<uint> { 35420, 35423 });
+        typeof(SkillManager).GetField("_defaultSkillIdsByRaceGender", flags)?.SetValue(manager,
+            new Dictionary<(byte Race, byte Gender), HashSet<uint>>
+            {
+                { ((byte)Race.Nuian, (byte)Gender.Male), [35420] },
+                { ((byte)Race.Hariharan, (byte)Gender.Male), [35423] }
+            });
+
+        var nuian = manager.GetDefaultSkills(Race.Nuian, Gender.Male);
+        var hariharan = manager.GetDefaultSkills(Race.Hariharan, Gender.Male);
+
+        await Assert.That(nuian.Select(s => s.Template.Id).ToHashSet().SetEquals([2u, 35420u])).IsTrue();
+        await Assert.That(hariharan.Select(s => s.Template.Id).ToHashSet().SetEquals([2u, 35423u])).IsTrue();
+        await Assert.That(manager.IsDefaultSkill(35420, Race.Nuian, Gender.Male)).IsTrue();
+        await Assert.That(manager.IsDefaultSkill(35423, Race.Nuian, Gender.Male)).IsFalse();
+        await Assert.That(manager.IsDefaultSkill(2, Race.Nuian, Gender.Male)).IsTrue();
+    }
+
     #endregion
 
     #region GetModifiersByOwnerId Tests

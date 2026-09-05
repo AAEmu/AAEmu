@@ -29,6 +29,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     private Dictionary<uint, SkillTemplate> _skills = [];
     private readonly Dictionary<string, uint> _constSkillTypes = [];
     private Dictionary<uint, DefaultSkill> _defaultSkills = [];
+    private HashSet<uint> _raceAssignedDefaultSkillIds = [];
+    private Dictionary<(byte Race, byte Gender), HashSet<uint>> _defaultSkillIdsByRaceGender = [];
     private List<uint> _commonSkills = [];
     private Dictionary<AbilityType, List<SkillTemplate>> _startAbilitySkills = [];
     private Dictionary<uint, PassiveBuffTemplate> _passiveBuffs = [];
@@ -105,6 +107,14 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         return _defaultSkills.ContainsKey(id);
     }
 
+    public bool IsDefaultSkill(uint id, Race race, Gender gender)
+    {
+        if (!_defaultSkills.ContainsKey(id))
+            return false;
+        _defaultSkillIdsByRaceGender.TryGetValue(((byte)race, (byte)gender), out var owned);
+        return DefaultSkillAssignRules.AppliesToCharacter(id, _raceAssignedDefaultSkillIds, owned);
+    }
+
     public bool IsCommonSkill(uint id)
     {
         return _commonSkills.Contains(id);
@@ -120,6 +130,13 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     public List<DefaultSkill> GetDefaultSkills()
     {
         return [.. _defaultSkills.Values];
+    }
+
+    public List<DefaultSkill> GetDefaultSkills(Race race, Gender gender)
+    {
+        _defaultSkillIdsByRaceGender.TryGetValue(((byte)race, (byte)gender), out var owned);
+        return [.. _defaultSkills.Values.Where(skill =>
+            DefaultSkillAssignRules.AppliesToCharacter(skill.Template.Id, _raceAssignedDefaultSkillIds, owned))];
     }
 
     public BuffTemplate GetBuffTemplate(uint id)
@@ -270,6 +287,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
         _skills = [];
         _defaultSkills = [];
+        _raceAssignedDefaultSkillIds = [];
+        _defaultSkillIdsByRaceGender = [];
         _commonSkills = [];
         _startAbilitySkills = [];
         _passiveBuffs = [];
@@ -532,6 +551,35 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             AddToSlot = reader.GetBoolean("add_to_slot", true)
                         };
                         _defaultSkills[skill.Template.Id] = skill; // 10.0.2.13 default_skills has duplicate skill_ids (e.g. 33984) -> overwrite, don't crash
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "SELECT ch.char_race_id, ch.char_gender_id, ds.skill_id " +
+                    "FROM character_default_skills cds " +
+                    "JOIN default_skills ds ON ds.id = cds.default_skill_id " +
+                    "JOIN characters ch ON ch.id = cds.character_id";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        var skillId = (uint)reader.GetInt32("skill_id", 0);
+                        if (skillId == 0 || !_defaultSkills.ContainsKey(skillId))
+                            continue;
+                        var key = ((byte)reader.GetInt32("char_race_id", 0), (byte)reader.GetInt32("char_gender_id", 0));
+                        _raceAssignedDefaultSkillIds.Add(skillId);
+                        if (!_defaultSkillIdsByRaceGender.TryGetValue(key, out var owned))
+                        {
+                            owned = [];
+                            _defaultSkillIdsByRaceGender[key] = owned;
+                        }
+
+                        owned.Add(skillId);
                     }
                 }
             }
