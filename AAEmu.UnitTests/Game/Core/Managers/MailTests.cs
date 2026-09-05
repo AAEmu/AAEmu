@@ -120,6 +120,51 @@ public sealed class MailTests
         await Assert.That(committedMails).IsEquivalentTo([1]);
     }
 
+    /// <summary>
+    /// A save asked for on another thread while a letter is between "stored" and "paid for"
+    /// must wait for the operation to finish, and the operation's own flush must not be lost
+    /// when it finds that save running.
+    /// </summary>
+    [Test]
+    public async Task DeferPersist_SaveOnAnotherThread_WaitsForTheOperationToFinish()
+    {
+        var committed = new List<(long money, int mails)>();
+        _saves.OnSave = () =>
+        {
+            lock (committed)
+                committed.Add((_character.Money, _mailManager._allPlayerMails.Count));
+        };
+
+        using var mailStored = new ManualResetEventSlim();
+        using var proceed = new ManualResetEventSlim();
+
+        var operation = Task.Run(() =>
+        {
+            using var scope = _mailManager.DeferPersist();
+            var mail = new MailPlayerToPlayer(_character, "tester".NormalizeName()) { MailType = MailType.Express, Title = "t" };
+            mail.AttachMoney(500, 0, 0);
+            if (!mail.Send())
+                throw new InvalidOperationException("send failed");
+            mailStored.Set();
+            proceed.Wait();
+            _character.SubtractMoney(SlotType.Inventory, 600);
+        });
+
+        mailStored.Wait();
+        var save = Task.Run(() => _saves.DoSave());
+        await Assert.That(save.Wait(200)).IsFalse();
+        await Assert.That(_saves.SaveCount).IsEqualTo(0);
+
+        proceed.Set();
+        await Task.WhenAll(operation, save);
+
+        await Assert.That(_character.Money).IsEqualTo(400);
+        await Assert.That(_saves.SaveCount).IsGreaterThanOrEqualTo(1);
+        await Assert.That(_saves.SaveCount + _saves.BusySkips).IsEqualTo(2);
+        foreach (var snapshot in committed)
+            await Assert.That(snapshot).IsEqualTo((400L, 1));
+    }
+
     [Test]
     public async Task DeferPersist_NestedScopes_FlushOnceAtTheOutermost()
     {

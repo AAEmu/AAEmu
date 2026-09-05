@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Auction;
+using AAEmu.Game.Models.Game.Features;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.UnitTests.Utils.Mocks;
@@ -38,8 +39,10 @@ public sealed class AuctionManagerSettleTests
     private SequentialMailIdManager _mailIds;
     private RecordingSaveManager _saves;
     private Item _item;
+    private Item _slice;
     private CharacterMock _alice;
     private CharacterMock _bob;
+    private FeatureSet _previousFeatures;
 
     [Before(Test)]
     public void Setup()
@@ -70,8 +73,12 @@ public sealed class AuctionManagerSettleTests
             SlotType = SlotType.Auction
         };
 
+        // The stack a partial buyout splits off. Grade 0 matches the listed item.
+        _slice = new Item(0) { Id = ItemId + 1, TemplateId = ItemTemplateId, Count = 1, OwnerId = SellerId };
+
         var items = Mock.Of<IItemManager>();
         items.GetItemByItemId(ItemId).Returns(_item);
+        items.Create(ItemTemplateId, 1, (byte)0, true).Returns(_slice);
         var auctionIds = Mock.Of<IAuctionIdManager>();
         auctionIds.GetNextId().Returns(LotId);
 
@@ -103,13 +110,13 @@ public sealed class AuctionManagerSettleTests
         _alice = new CharacterMock { AccountId = 3, Id = AliceId, Name = AliceName, Money = StartingMoney };
         _bob = new CharacterMock { AccountId = 2, Id = BobId, Name = BobName, Money = StartingMoney };
 
-        _house.AddAuctionLot(_house.CreateAuctionLot(
-            SellerId, SellerName, _item, StartPrice, BuyoutPrice, AuctionDuration.AuctionDuration48Hours));
+        _previousFeatures = FeaturesManager.Fsets;
     }
 
     [After(Test)]
     public void Teardown()
     {
+        SetFeatures(_previousFeatures);
         SingletonContainer.ServiceProvider = null;
         ResetSingletons();
         _house = null;
@@ -117,13 +124,36 @@ public sealed class AuctionManagerSettleTests
         _mailIds = null;
         _saves = null;
         _item = null;
+        _slice = null;
         _alice = null;
         _bob = null;
+    }
+
+    private void ListItem(int count = 1, int minStack = 1, int maxStack = 1)
+    {
+        _item.Count = count;
+        _house.AddAuctionLot(_house.CreateAuctionLot(
+            SellerId, SellerName, _item, StartPrice, BuyoutPrice, AuctionDuration.AuctionDuration48Hours, minStack, maxStack));
+    }
+
+    private static void SetFeatures(FeatureSet features)
+    {
+        typeof(FeaturesManager)
+            .GetProperty(nameof(FeaturesManager.Fsets), BindingFlags.Static | BindingFlags.Public)
+            ?.SetValue(null, features);
+    }
+
+    private static void EnablePartialBuy()
+    {
+        var features = new FeatureSet();
+        features.Set(Feature.auctionPartialBuy, true);
+        SetFeatures(features);
     }
 
     [Test]
     public async Task FullBuyout_BuyerMailFails_RestoresLotWithoutTheRefundedBid_AndExpiryReturnsItemToSeller()
     {
+        ListItem();
         _house.BidOnAuctionLot(_alice, Bid(150));
         var lot = _house.AuctionLots[LotId];
         await Assert.That(lot.BidderId).IsEqualTo(AliceId);
@@ -160,6 +190,7 @@ public sealed class AuctionManagerSettleTests
     [Test]
     public async Task SelfBuyout_BuyerMailFails_RefundsTheWholePriceAndRestoresLotWithoutABid()
     {
+        ListItem();
         _house.BidOnAuctionLot(_bob, Bid(150));
         await Assert.That(_bob.Money).IsEqualTo(StartingMoney - 150);
 
@@ -177,12 +208,48 @@ public sealed class AuctionManagerSettleTests
     }
 
     /// <summary>
+    /// The standing bidder buys one item of a ten-stack and the letter fails. The whole buyout
+    /// is refunded, so the bid that was folded into it must leave the stack too.
+    /// </summary>
+    [Test]
+    public async Task PartialSelfBuyout_BuyerMailFails_KeepsTheStackWithoutTheRefundedBid_AndExpiryReturnsItToSeller()
+    {
+        EnablePartialBuy();
+        ListItem(count: 10, minStack: 1, maxStack: 10);
+        _house.BidOnAuctionLot(_bob, Bid(150));
+        await Assert.That(_bob.Money).IsEqualTo(StartingMoney - 150);
+
+        BlockNextMailIdAfter(0);
+        _house.BidOnAuctionLot(_bob, new AuctionBid { LotId = LotId, Money = BuyoutPrice, StackSize = 1 });
+
+        var lot = _house.AuctionLots[LotId];
+        await Assert.That(lot.BidderId).IsEqualTo(0u);
+        await Assert.That(lot.BidMoney).IsEqualTo(0L);
+        await Assert.That(_item.Count).IsEqualTo(10);
+        await Assert.That(_item.SlotType).IsEqualTo(SlotType.Auction);
+        await Assert.That(_bob.Money).IsEqualTo(StartingMoney - BuyoutPrice);
+        await Assert.That(RefundMailCopper(BobId)).IsEquivalentTo([(int)BuyoutPrice]);
+
+        lot.EndTime = DateTime.UtcNow.AddSeconds(-1);
+        _house.UpdateAuctionHouse();
+
+        await Assert.That(_house.AuctionLots.ContainsKey(LotId)).IsFalse();
+        await Assert.That(MailsOfType(MailType.AucBidWin)).IsEmpty();
+        var returned = MailsOfType(MailType.AucOffFail);
+        await Assert.That(returned.Count).IsEqualTo(1);
+        await Assert.That(returned[0].Header.ReceiverId).IsEqualTo(SellerId);
+        await Assert.That(returned[0].Body.Attachments).Contains(_item);
+        await Assert.That(_item.Count).IsEqualTo(10);
+    }
+
+    /// <summary>
     /// The save an outbid forces must already show the replacement bidder. Saving from inside
     /// the refund letter committed the bid that letter had just returned.
     /// </summary>
     [Test]
     public async Task Outbid_PersistsOnceWithTheReplacementBidStanding()
     {
+        ListItem();
         var lot = _house.AuctionLots[LotId];
         var committed = new List<(uint bidder, long bid, int mails, long aliceMoney, long bobMoney)>();
         _saves.OnSave = () => committed.Add(

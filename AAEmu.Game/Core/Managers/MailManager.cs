@@ -399,15 +399,19 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
     [ThreadStatic] private static bool t_persistRequested;
 
     /// <summary>
-    /// Holds every <see cref="PersistNow"/> request made on this thread until the outermost
-    /// scope is disposed. A money operation that sends mail (player mail with coin, an outbid
-    /// refund, a buyout settle) then reaches the database as one snapshot taken after all of
-    /// its balance, item, lot and mail mutations, instead of a save issued from inside
-    /// <see cref="Send"/> that still shows the sender's pre-charge balance or the bid that was
-    /// just refunded. Requests from other threads are not deferred.
+    /// Marks a money operation. Holds every <see cref="PersistNow"/> request made on this
+    /// thread until the outermost scope is disposed, and holds <see cref="PersistenceGate"/>
+    /// shared so no save on any thread snapshots the operation halfway. A money operation that
+    /// sends mail (player mail with coin, an outbid refund, a buyout settle) then reaches the
+    /// database as one snapshot taken after all of its balance, item, lot and mail mutations,
+    /// instead of a save issued from inside <see cref="Send"/> that still shows the sender's
+    /// pre-charge balance or the bid that was just refunded.
+    /// Open the scope before taking any lock a save also takes (the house lock, for one).
     /// </summary>
     public IDisposable DeferPersist()
     {
+        if (t_persistDeferDepth == 0)
+            PersistenceGate.EnterOperation();
         t_persistDeferDepth++;
         return new PersistScope(this);
     }
@@ -436,8 +440,10 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
         if (saver == null)
             return;
 
+        // A save that is already running took the gate after this operation released it, so
+        // it carries everything the operation wrote. Nothing is lost by not saving twice.
         if (!saver.DoSave())
-            Logger.Warn("Mail persist skipped or failed (save already running?); the next save tick carries it");
+            Logger.Debug("Mail persist folded into the save already in progress");
     }
 
     private sealed class PersistScope(MailManager owner) : IDisposable
@@ -452,7 +458,12 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
 
             if (t_persistDeferDepth > 0)
                 t_persistDeferDepth--;
-            if (t_persistDeferDepth > 0 || !t_persistRequested)
+            if (t_persistDeferDepth > 0)
+                return;
+
+            // Release the gate before saving: the save needs it exclusively.
+            PersistenceGate.ExitOperation();
+            if (!t_persistRequested)
                 return;
 
             t_persistRequested = false;

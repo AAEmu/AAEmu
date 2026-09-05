@@ -236,10 +236,7 @@ public class AuctionManager(
         var buyerId = nameManager.GetCharacterId(buyer);
         if (sold == null || buyerId == 0 || !AuctionHouseRules.IsHeldByHouse(sold))
         {
-            MergeHouseStack(leftover, sold);
-            if (buyerId != 0)
-                SendBidRefund(buyerId, lot, soldAmount);
-            Logger.Error("Partial sale aborted lot={0} buyer={1}: slice is not in house escrow", lot.Id, buyer);
+            AbortSliceDelivery_NoLock(lot, leftover, sold, buyerId, soldAmount, "slice is not in house escrow");
             return;
         }
 
@@ -247,18 +244,14 @@ public class AuctionManager(
         var buyMail = new MailForAuction(sold, lot.ClientId, soldAmount, listingDeposit);
         if (!buyMail.FinalizeForSaleBuyer(buyerId))
         {
-            MergeHouseStack(leftover, sold);
-            SendBidRefund(buyerId, lot, soldAmount);
-            Logger.Error("Partial sale aborted lot={0} buyer={1}: buyer name", lot.Id, buyerId);
+            AbortSliceDelivery_NoLock(lot, leftover, sold, buyerId, soldAmount, "buyer name");
             return;
         }
 
         if (!buyMail.Send())
         {
             buyMail.RevertBuyerClaim();
-            MergeHouseStack(leftover, sold);
-            SendBidRefund(buyerId, lot, soldAmount);
-            Logger.Error("Partial sale aborted lot={0} buyer={1}: buyer mail", lot.Id, buyerId);
+            AbortSliceDelivery_NoLock(lot, leftover, sold, buyerId, soldAmount, "buyer mail");
             return;
         }
 
@@ -345,6 +338,20 @@ public class AuctionManager(
         Logger.Error("Sale aborted lot={0} buyer={1}: {2}; listing restored without a bid", lot.Id, buyerId, reason);
     }
 
+    /// <summary>
+    /// Partial-buyout counterpart of <see cref="AbortSaleDelivery_NoLock"/>. The lot never left
+    /// the house; the slice is merged back and, since the buyer's whole
+    /// <paramref name="soldAmount"/> is refunded, a standing bid of theirs on the stack is
+    /// cleared with it.
+    /// </summary>
+    private void AbortSliceDelivery_NoLock(AuctionLot lot, Item leftover, Item slice, uint buyerId, long soldAmount, string reason)
+    {
+        MergeHouseStack(leftover, slice);
+        SendBidRefund(buyerId, lot, soldAmount);
+        AuctionHouseRules.ClearStandingBid(lot);
+        Logger.Error("Partial sale aborted lot={0} buyer={1}: {2}; stack kept without a bid", lot.Id, buyerId, reason);
+    }
+
     private void SettleExpire_NoLock(AuctionLot lot)
     {
         if (lot.BidderId != 0)
@@ -382,9 +389,9 @@ public class AuctionManager(
             return;
         }
 
+        using var persist = MailManager.Instance.DeferPersist();
         lock (_houseLock)
         {
-            using var persist = MailManager.Instance.DeferPersist();
             var auctionLot = GetAuctionLotFromId(auctionId);
             if (auctionLot == null)
             {
@@ -461,12 +468,13 @@ public class AuctionManager(
             return;
         }
 
+        // One snapshot after the charge, the refund letter, the bid replacement or the
+        // settle. The refund mail alone used to force a save that still held the bid it
+        // had just refunded. Opened before the house lock: a save takes the gate first and
+        // the house lock inside Save().
+        using var persist = MailManager.Instance.DeferPersist();
         lock (_houseLock)
         {
-            // One snapshot after the charge, the refund letter, the bid replacement or the
-            // settle. The refund mail alone used to force a save that still held the bid it
-            // had just refunded.
-            using var persist = MailManager.Instance.DeferPersist();
             var auctionLot = GetAuctionLotFromId(bid.LotId);
             if (auctionLot?.Item == null || DateTime.UtcNow >= auctionLot.EndTime)
             {
@@ -649,10 +657,10 @@ public class AuctionManager(
 
     public void UpdateAuctionHouse()
     {
+        using var persist = MailManager.Instance.DeferPersist();
         lock (_houseLock)
         {
             Logger.Trace("Updating Auction House");
-            using var persist = MailManager.Instance.DeferPersist();
             var itemsToRemove = AuctionLots.Values.Where(c => DateTime.UtcNow > c.EndTime).ToList();
             foreach (var lot in itemsToRemove)
             {
