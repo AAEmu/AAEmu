@@ -24,5 +24,6 @@ public interface IMailManager : ILoadable
     List<BaseMail> GetMyHouseMails(uint houseId);
     (int, int) Save(MySqlConnection connection, MySqlTransaction transaction);
     void PersistNow();
+    IDisposable DeferPersist();
     Dictionary<long, BaseMail> AllPlayerMails { get; }
 }

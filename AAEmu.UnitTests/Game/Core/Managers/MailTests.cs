@@ -17,10 +17,12 @@ public sealed class MailTests
     private CharacterMock _character;
     private CharacterMails _mails;
     private MailManager _mailManager;
+    private RecordingSaveManager _saves;
 
     [Before(Test)]
     public void Setup()
     {
+        _saves = new RecordingSaveManager();
         _character = new CharacterMock { AccountId = 1, Id = 1, Name = "tester", Money = 1000 };
 
         _mails = new CharacterMails(_character);
@@ -52,6 +54,7 @@ public sealed class MailTests
         var services = new ServiceCollection();
         services.AddSingleton(_mailManager);
         services.AddSingleton(nameManager);
+        services.AddSingleton<ISaveManager>(_saves);
         SingletonContainer.ServiceProvider = services.BuildServiceProvider();
 
         _mailManager._allPlayerMails = [];
@@ -63,6 +66,7 @@ public sealed class MailTests
         _character = null;
         _mails = null;
         _mailManager = null;
+        _saves = null;
 
         SingletonContainer.ServiceProvider = null;
         typeof(Singleton<MailManager>)
@@ -89,6 +93,54 @@ public sealed class MailTests
 
         await Assert.That(_mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, extra, itemSlots)).IsEqualTo(MailResult.Success);
         await Assert.That(_character.Money).IsEqualTo(400);
+    }
+
+    /// <summary>
+    /// The save a sent letter forces must see the sender already charged. Saving from inside
+    /// Send() committed the paid letter next to the pre-charge balance, and a restart before the
+    /// next tick gave the sender their coin back while the recipient kept the letter.
+    /// </summary>
+    [Test]
+    public async Task SendMailToPlayer_PersistsOnceAfterTheFeeIsCharged()
+    {
+        var committedMoney = new List<long>();
+        var committedMails = new List<int>();
+        _saves.OnSave = () =>
+        {
+            committedMoney.Add(_character.Money);
+            committedMails.Add(_mailManager._allPlayerMails.Count);
+        };
+
+        var result = _mails.SendMailToPlayer(
+            MailType.Express, "tester".NormalizeName(), "test", "test", 0, 500, 0, 0, 0, []);
+
+        await Assert.That(result).IsEqualTo(MailResult.Success);
+        await Assert.That(_saves.SaveCount).IsEqualTo(1);
+        await Assert.That(committedMoney).IsEquivalentTo([400L]);
+        await Assert.That(committedMails).IsEquivalentTo([1]);
+    }
+
+    [Test]
+    public async Task DeferPersist_NestedScopes_FlushOnceAtTheOutermost()
+    {
+        using (_mailManager.DeferPersist())
+        {
+            _mailManager.PersistNow();
+            using (_mailManager.DeferPersist())
+                _mailManager.PersistNow();
+            await Assert.That(_saves.SaveCount).IsEqualTo(0);
+        }
+
+        await Assert.That(_saves.SaveCount).IsEqualTo(1);
+
+        using (_mailManager.DeferPersist())
+        {
+        }
+
+        await Assert.That(_saves.SaveCount).IsEqualTo(1);
+
+        _mailManager.PersistNow();
+        await Assert.That(_saves.SaveCount).IsEqualTo(2);
     }
 
     [Test]

@@ -329,12 +329,20 @@ public class AuctionManager(
             AuctionHouseRules.ReturnToHouseEscrow(slice, leftover?.OwnerId ?? slice.OwnerId);
     }
 
+    /// <summary>
+    /// Undo a delivery that never reached the buyer. By this point every copper bid on the
+    /// lot has been refunded: an outbid bidder in <see cref="BidOnAuctionLot"/>, the buyer's
+    /// own earlier bid inside <paramref name="soldAmount"/>, or the expiry winner here. The
+    /// restored listing must therefore carry no standing bid, or expiry would hand the item
+    /// to a bidder who already has their money back.
+    /// </summary>
     private void AbortSaleDelivery_NoLock(AuctionLot lot, Item item, uint buyerId, long soldAmount, string reason)
     {
         SendBidRefund(buyerId, lot, soldAmount);
         AuctionHouseRules.ReturnToHouseEscrow(item, lot.ClientId);
+        AuctionHouseRules.ClearStandingBid(lot);
         RestoreLot_NoLock(lot);
-        Logger.Error("Sale aborted lot={0} buyer={1}: {2}; listing restored", lot.Id, buyerId, reason);
+        Logger.Error("Sale aborted lot={0} buyer={1}: {2}; listing restored without a bid", lot.Id, buyerId, reason);
     }
 
     private void SettleExpire_NoLock(AuctionLot lot)
@@ -376,6 +384,7 @@ public class AuctionManager(
 
         lock (_houseLock)
         {
+            using var persist = MailManager.Instance.DeferPersist();
             var auctionLot = GetAuctionLotFromId(auctionId);
             if (auctionLot == null)
             {
@@ -454,6 +463,10 @@ public class AuctionManager(
 
         lock (_houseLock)
         {
+            // One snapshot after the charge, the refund letter, the bid replacement or the
+            // settle. The refund mail alone used to force a save that still held the bid it
+            // had just refunded.
+            using var persist = MailManager.Instance.DeferPersist();
             var auctionLot = GetAuctionLotFromId(bid.LotId);
             if (auctionLot?.Item == null || DateTime.UtcNow >= auctionLot.EndTime)
             {
@@ -513,8 +526,9 @@ public class AuctionManager(
                 SendHouseMessage(previousBidderId, AuctionMessageKind.Outbid, auctionLot.Item.TemplateId, previousBid);
                 Logger.Info("Outbid lot={0} previous={1} refund={2} by {3} ({4})",
                     auctionLot.Id, previousBidderId, previousBid, player.Name, player.Id);
-                if (isBuyout && stack < liveItem.Count)
-                    AuctionHouseRules.ClearStandingBid(auctionLot);
+                // The refunded bid must not survive on the lot: a leftover stack is a fresh
+                // listing, and a full buyout that fails delivery is restored as one.
+                AuctionHouseRules.ClearStandingBid(auctionLot);
             }
 
             var standing = isBuyout ? auctionLot.DirectMoney : bid.Money;
@@ -567,6 +581,7 @@ public class AuctionManager(
             Logger.Info("Bid lot={0} bidder={1} ({2}) standing={3} charged={4}",
                 auctionLot.Id, player.Name, player.Id, standing, charge);
             player.SendPacket(new SCAuctionBidPacket(bid, false, liveItem.TemplateId));
+            MailManager.Instance.PersistNow();
         }
     }
 
@@ -637,6 +652,7 @@ public class AuctionManager(
         lock (_houseLock)
         {
             Logger.Trace("Updating Auction House");
+            using var persist = MailManager.Instance.DeferPersist();
             var itemsToRemove = AuctionLots.Values.Where(c => DateTime.UtcNow > c.EndTime).ToList();
             foreach (var lot in itemsToRemove)
             {

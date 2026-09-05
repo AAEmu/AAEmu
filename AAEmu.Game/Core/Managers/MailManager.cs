@@ -395,20 +395,69 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
         return (updatedCount, deletedCount);
     }
 
+    [ThreadStatic] private static int t_persistDeferDepth;
+    [ThreadStatic] private static bool t_persistRequested;
+
     /// <summary>
-    /// Writes dirty mail (and the rest of the World snapshot) immediately.
+    /// Holds every <see cref="PersistNow"/> request made on this thread until the outermost
+    /// scope is disposed. A money operation that sends mail (player mail with coin, an outbid
+    /// refund, a buyout settle) then reaches the database as one snapshot taken after all of
+    /// its balance, item, lot and mail mutations, instead of a save issued from inside
+    /// <see cref="Send"/> that still shows the sender's pre-charge balance or the bid that was
+    /// just refunded. Requests from other threads are not deferred.
+    /// </summary>
+    public IDisposable DeferPersist()
+    {
+        t_persistDeferDepth++;
+        return new PersistScope(this);
+    }
+
+    /// <summary>
+    /// Writes dirty mail (and the rest of the World snapshot) immediately, or at the end of
+    /// the enclosing <see cref="DeferPersist"/> scope.
     /// Claim/send/delete used to wait for the 5-minute tick; a killed World
     /// then reloaded the pre-claim row and the letter came back unclaimed.
     /// No-ops in tests that do not register <see cref="ISaveManager"/>.
     /// </summary>
     public void PersistNow()
     {
+        if (t_persistDeferDepth > 0)
+        {
+            t_persistRequested = true;
+            return;
+        }
+
+        FlushPersist();
+    }
+
+    private void FlushPersist()
+    {
         var saver = SingletonContainer.ServiceProvider?.GetService<ISaveManager>();
         if (saver == null)
             return;
 
         if (!saver.DoSave())
-            Logger.Warn("Mail persist skipped or failed (save already running?)");
+            Logger.Warn("Mail persist skipped or failed (save already running?); the next save tick carries it");
+    }
+
+    private sealed class PersistScope(MailManager owner) : IDisposable
+    {
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+            _disposed = true;
+
+            if (t_persistDeferDepth > 0)
+                t_persistDeferDepth--;
+            if (t_persistDeferDepth > 0 || !t_persistRequested)
+                return;
+
+            t_persistRequested = false;
+            owner.FlushPersist();
+        }
     }
 
     #endregion

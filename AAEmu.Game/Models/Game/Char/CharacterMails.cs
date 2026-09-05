@@ -326,7 +326,10 @@ public class CharacterMails
         if (mailType == MailType.Normal)
             mail.Body.RecvDate = DateTime.UtcNow + MailManager.NormalMailDelay;
 
-        // Send it
+        // Send it. The save that Send requests runs when this scope closes, i.e. after the
+        // fee and attached coin have left the sender's wallet; a restart cannot restore the
+        // sender's balance while the recipient already holds the letter.
+        using var persist = MailManager.Instance.DeferPersist();
         if (mail.Send())
         {
             Self.SendPacket(new SCMailSentPacket(mail.Header, itemSlots.ToArray()));
