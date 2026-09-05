@@ -82,13 +82,14 @@ public sealed class MailTests
         var title = "test";
         var text = "test";
         var attachments = (byte)0;
-        var money0 = 500;
-        var money1 = 0;
-        var money2 = 0;
+        var money0 = 500ul;
+        var money1 = 0ul;
+        var money2 = 0ul;
+        var money3 = 0u;
         var extra = 0;
         var itemSlots = new List<(SlotType slotType, byte slot)>();
 
-        await Assert.That(_mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, extra, itemSlots)).IsEqualTo(MailResult.Success);
+        await Assert.That(_mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, money3, extra, itemSlots)).IsEqualTo(MailResult.Success);
         await Assert.That(_character.Money).IsEqualTo(400);
     }
 
@@ -101,13 +102,14 @@ public sealed class MailTests
         var title = "test";
         var text = "test";
         var attachments = (byte)0;
-        var money0 = 500;
-        var money1 = 0;
-        var money2 = 0;
+        var money0 = 500ul;
+        var money1 = 0ul;
+        var money2 = 0ul;
+        var money3 = 0u;
         var extra = 0;
         var itemSlots = new List<(SlotType slotType, byte slot)>();
 
-        await Assert.That(_mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, extra, itemSlots)).IsNotEqualTo(MailResult.Success);
+        await Assert.That(_mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, money3, extra, itemSlots)).IsNotEqualTo(MailResult.Success);
         await Assert.That(_character.Money).IsEqualTo(1000);
     }
 }

@@ -153,7 +153,12 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
 
         var originalReceiver = worldManager.GetCharacterById(originalReceiverId);
         if (originalReceiver is { IsOnline: true })
-            originalReceiver.SendPacket(new SCMailReturnedPacket(mail.Id, mail.Header));
+        {
+            // The client's SCMailReturned reader (FUN_39a9f110) expects a CountUnreadMail after the
+            // header; refresh so the toast carries current counters.
+            originalReceiver.Mails.RefreshAllMailCounts();
+            originalReceiver.SendPacket(new SCMailReturnedPacket(mail.Id, mail.Header, originalReceiver.Mails.UnreadMailCount));
+        }
 
         NotifyNewMailByNameIfOnline(mail, destinationName);
         return true;

@@ -15,9 +15,14 @@ public class CharacterMails
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    /// <summary>Capacity of the mails.title / mails.text columns, which are MySQL text.</summary>
-    private const int MaxMailTitleBytes = 65535;
-    private const int MaxMailTextBytes = 65535;
+    /// <summary>Retail mail caps, recovered from the 10.0.2 client: the send gate (FUN_39bdf190)
+    /// requires XlStringLen(title) &lt; 300 and XlStringLen(text) &lt; 400, and the wire structs cap
+    /// title at 0x4b0 (1200) bytes and text at 0x640 (1600) bytes. Both columns are MySQL text, so
+    /// the byte caps also keep the mails-row INSERT safe.</summary>
+    private const int MaxMailTitleChars = 300;
+    private const int MaxMailTitleBytes = 1200;
+    private const int MaxMailTextChars = 400;
+    private const int MaxMailTextBytes = 1600;
 
     private Character Self { get; set; }
     public CountUnreadMail UnreadMailCount { get; set; }
@@ -212,7 +217,7 @@ public class CharacterMails
         RefreshAllMailCounts();
     }
 
-    public MailResult SendMailToPlayer(MailType mailType, string receiverName, string title, string text, byte attachments, int money0, int money1, int money2, long extra, List<(SlotType, byte)> itemSlots)
+    public MailResult SendMailToPlayer(MailType mailType, string receiverName, string title, string text, byte attachments, ulong money0, ulong money1, ulong money2, uint money3, long extra, List<(SlotType, byte)> itemSlots, bool groupMail = false, List<ulong> userList = null)
     {
 
         if (string.IsNullOrWhiteSpace(receiverName) || NameManager.Instance.GetCharacterId(receiverName) == 0)
@@ -220,33 +225,53 @@ public class CharacterMails
             return MailResult.UnableToFindRecipient;
         }
 
-        // The three money fields come off the wire as signed ints and were used unchecked.
+        // The server has no group-mail (bulk) support: the client appends a groupMoney u64, a
+        // userCount u32 and a u64 recipient list (FUN_39a965d0) when groupMail is set. Refuse cleanly
+        // rather than delivering only to the single named receiver.
+        if (groupMail || (userList != null && userList.Count > 0))
+        {
+            Logger.Warn($"{Self.Name} ({Self.Id}) attempted group mail to {userList?.Count ?? 0} recipients, which is not supported");
+            return MailResult.CanNotBeMailed;
+        }
+
+        // The three money fields come off the wire as unsigned 64-bit values (FUN_39bdeb70 reads them
+        // with the u64 helper, same as the S2C mail-body money fields). Range-check before the int cast
+        // below so a crafted value can neither wrap the affordability check nor overflow MailBody storage.
         //
-        // Negative amounts made the affordability test below trivially true and then bounced off
-        // SubtractMoney's own "amount < 0" guard, so the mail went out free of charge carrying a negative
-        // balance the recipient could never take - and since GetTotalAttachmentCount counts any non-zero
-        // coin value, the mail kept an attachment forever and could never be deleted.
-        //
-        // Large positive amounts were worse: "mailFee + money0" overflowed int, compared as a negative
-        // against the sender's balance, passed, and was then rejected by SubtractMoney for being negative,
-        // so nothing was charged at all. The recipient still collected the full sum through ChangeMoney,
-        // which adds to Money unchecked. That minted currency out of nothing.
-        if (money0 < 0 || money1 < 0 || money2 < 0)
+        // The original int-overflow history: negative amounts made the affordability test trivially true
+        // and then bounced off SubtractMoney's own "amount < 0" guard, so the mail went out free of charge
+        // carrying a negative balance the recipient could never take - and since GetTotalAttachmentCount
+        // counts any non-zero coin value, the mail kept an attachment forever and could never be deleted.
+        // Large positive amounts overflowed "mailFee + money0" to negative, passed the balance check, and
+        // were then rejected by SubtractMoney, so nothing was charged at all. The recipient still collected
+        // the full sum through ChangeMoney, which adds to Money unchecked. That minted currency.
+        if (money0 > int.MaxValue || money1 > int.MaxValue || money2 > int.MaxValue)
         {
             return MailResult.CanNotBeMailed;
         }
 
-        // title and text were written to the mails row unbounded. Both columns are MySQL text, so anything
-        // past 65535 bytes fails the INSERT on the save tick - and that tick batches every dirty mail on the
-        // server, so one oversized letter takes the whole save down, not just its sender.
-        // TODO(v10): the retail subject and body caps are not yet recovered from the client; CSSendMail notes
-        // 1600 for the body. These bounds only keep the column safe, they are not the client's own limits.
-        if (title != null && Encoding.UTF8.GetByteCount(title) > MaxMailTitleBytes)
+        // The fourth money field (u32 after the three u64 amounts) is the honor-point
+        // attachment (client GetCurrentMailHonorPointStr reads body+0xB98 as u32; money0 is copper,
+        // money1 the charge/COD amount, money2 AA points). It has no server-side storage - the mails
+        // table only has money_amount_1..3 - and no producer yet (the compose UI offers copper/AA
+        // only). Never silently drop player currency: refuse mail carrying any.
+        if (money3 != 0)
+        {
+            Logger.Warn($"{Self.Name} ({Self.Id}) attempted to send mail with honor amount {money3}");
+            return MailResult.CanNotBeMailed;
+        }
+
+        // Retail caps recovered from the 10.0.2 client: the send gate (FUN_39bdf190) requires
+        // XlStringLen(title) &lt; 300 and XlStringLen(text) &lt; 400, and the wire structs cap title at
+        // 1200 bytes and text at 1600 bytes. Enforce both, so a malicious packet can neither desync the
+        // client's bounded-string reads nor fail the mails-row INSERT (that save tick batches every
+        // dirty mail on the server, so one oversized letter would take the whole save down).
+        if (title != null && (title.Length > MaxMailTitleChars || Encoding.UTF8.GetByteCount(title) > MaxMailTitleBytes))
         {
             return MailResult.SubjectLengthLimited;
         }
 
-        if (text != null && Encoding.UTF8.GetByteCount(text) > MaxMailTextBytes)
+        if (text != null && (text.Length > MaxMailTextChars || Encoding.UTF8.GetByteCount(text) > MaxMailTextBytes))
         {
             return MailResult.TextLengthLimited;
         }
@@ -266,7 +291,7 @@ public class CharacterMails
             }
         };
 
-        mail.AttachMoney(money0, money1, money2);
+        mail.AttachMoney((int)money0, (int)money1, (int)money2);
 
         // First verify source items, and add them to the attachments of body
         if (!mail.PrepareAttachmentItems(itemSlots))
@@ -276,9 +301,10 @@ public class CharacterMails
         }
 
         // With attachments in place, we can calculate the send fee.
-        // Widened to long so the sum cannot wrap past the balance check.
+        // Widened to long so the sum cannot wrap past the balance check (money0 is range-checked
+        // to int above, so the cast back down is safe).
         var mailFee = mail.GetMailFee();
-        var totalCost = (long)mailFee + money0;
+        var totalCost = (long)mailFee + (long)money0;
         if (totalCost > Self.Money)
         {
             // Self.SendErrorMessage(ErrorMessageType.MailNotEnoughMoney);
@@ -295,7 +321,10 @@ public class CharacterMails
         // Send it
         if (mail.Send())
         {
-            Self.SendPacket(new SCMailSentPacket(mail.Header, itemSlots.ToArray()));
+            // The client's SCMailSent reader (FUN_39a9ecf0) expects the group flag and the mailbox
+            // counters after the header; refresh so they are current.
+            RefreshAllMailCounts();
+            Self.SendPacket(new SCMailSentPacket(false, mail.Header, UnreadMailCount, itemSlots.ToArray()));
             // Take the fee. totalCost is bounded by the balance check above, so the cast is safe.
             Self.SubtractMoney(SlotType.Inventory, (int)totalCost);
             return MailResult.Success;
