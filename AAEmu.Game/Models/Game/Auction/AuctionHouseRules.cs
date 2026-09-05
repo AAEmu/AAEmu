@@ -174,6 +174,21 @@ public static class AuctionHouseRules
         item.SlotType = SlotType.Auction;
     }
 
+    /// <summary>
+    /// A leftover stack after a partial buyout is a new listing. A refunded
+    /// standing bid must not stay on it or cancel/expire will treat it as live.
+    /// </summary>
+    public static void ClearStandingBid(AuctionLot lot)
+    {
+        if (lot == null)
+            return;
+        lot.BidderId = 0;
+        lot.BidderName = string.Empty;
+        lot.BidMoney = 0;
+        lot.BidWorldId = UnsetWorldId;
+        lot.IsDirty = true;
+    }
+
     public static long DisplayPrice(AuctionLot lot)
     {
         if (lot == null)

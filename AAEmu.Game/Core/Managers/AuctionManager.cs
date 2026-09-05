@@ -278,6 +278,7 @@ public class AuctionManager(
             lot.Id, lot.ClientName, lot.ClientId, buyer, soldAmount, leftover?.Count ?? 0, moneyAfterFee, saleCharge);
         SendHouseMessage(lot.ClientId, AuctionMessageKind.Sold, sold.TemplateId, soldAmount);
         RecordSale(lot, soldAmount, sold);
+        AuctionHouseRules.ClearStandingBid(lot);
         if (leftover != null)
         {
             var stacks = AuctionHouseRules.ClampStacks(leftover.Count, lot.MinStack, lot.MaxStack, AllowPartialBuy);
@@ -512,6 +513,8 @@ public class AuctionManager(
                 SendHouseMessage(previousBidderId, AuctionMessageKind.Outbid, auctionLot.Item.TemplateId, previousBid);
                 Logger.Info("Outbid lot={0} previous={1} refund={2} by {3} ({4})",
                     auctionLot.Id, previousBidderId, previousBid, player.Name, player.Id);
+                if (isBuyout && stack < liveItem.Count)
+                    AuctionHouseRules.ClearStandingBid(auctionLot);
             }
 
             var standing = isBuyout ? auctionLot.DirectMoney : bid.Money;

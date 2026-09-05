@@ -171,6 +171,25 @@ public class AuctionHouseRulesTests
     }
 
     [Test]
+    public async Task ClearStandingBid_DropsTheRefundedBidderFromTheLeftoverLot()
+    {
+        var lot = Lot("ore", 1, 0, 0, 0, 0, 500);
+        lot.BidderId = 9;
+        lot.BidderName = "OldBid";
+        lot.BidMoney = 150;
+        lot.BidWorldId = 1;
+        lot.IsDirty = false;
+
+        AuctionHouseRules.ClearStandingBid(lot);
+        await Assert.That(lot.BidderId).IsEqualTo(0u);
+        await Assert.That(lot.BidderName).IsEqualTo(string.Empty);
+        await Assert.That(lot.BidMoney).IsEqualTo(0L);
+        await Assert.That(lot.BidWorldId).IsEqualTo(AuctionHouseRules.UnsetWorldId);
+        await Assert.That(lot.IsDirty).IsTrue();
+        AuctionHouseRules.ClearStandingBid(null);
+    }
+
+    [Test]
     public async Task Matches_FiltersSellerWorldKeywordGradeLevelAndPrice()
     {
         var lot = Lot("iron ore", 10, 2, 1, 2, 3, 500);
