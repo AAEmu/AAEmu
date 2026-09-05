@@ -301,8 +301,9 @@ public class CharacterMails
         }
 
         // With attachments in place, we can calculate the send fee.
-        // Widened to long so the sum cannot wrap past the balance check (money0 is range-checked
-        // to int above, so the cast back down is safe).
+        // Everything stays long end to end: money0 is range-checked to int above (AttachMoney and
+        // MailBody store ints), but fee + money0 can still exceed int.MaxValue, and narrowing it back
+        // for the charge would wrap negative and send the mail for free.
         var mailFee = mail.GetMailFee();
         var totalCost = (long)mailFee + (long)money0;
         if (totalCost > Self.Money)
@@ -325,8 +326,8 @@ public class CharacterMails
             // counters after the header; refresh so they are current.
             RefreshAllMailCounts();
             Self.SendPacket(new SCMailSentPacket(false, mail.Header, UnreadMailCount, itemSlots.ToArray()));
-            // Take the fee. totalCost is bounded by the balance check above, so the cast is safe.
-            Self.SubtractMoney(SlotType.Inventory, (int)totalCost);
+            // Take the fee + attached copper. SubtractMoney takes long, so no narrowing.
+            Self.SubtractMoney(SlotType.Inventory, totalCost);
             return MailResult.Success;
         }
         else
