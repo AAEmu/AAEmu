@@ -112,6 +112,18 @@ public class AuctionHousePacketTests
     }
 
     [Test]
+    public async Task MultilingualSearch_NegativeCountIsEmpty()
+    {
+        var stream = new PacketStream();
+        stream.Write(-4);
+
+        var search = new AuctionSearch();
+        search.ReadItemTemplateIds(new PacketStream(stream.GetBytes()));
+        await Assert.That(search.ItemTemplateIds.Count).IsEqualTo(0);
+        await Assert.That(search.ItemListCount).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task Message_IsKindTemplateAndMoney()
     {
         var body = new SCAuctionMessagePacket(AuctionMessageKind.Outbid, 27501, 12_000)

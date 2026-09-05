@@ -102,6 +102,19 @@ public class MailForAuction : BaseMail
     }
 
     /// <summary>
+    /// Undo <see cref="FinalizeForSaleBuyer"/> when the buyer letter never left
+    /// the house. The stack goes back to auction escrow under the seller.
+    /// </summary>
+    public void RevertBuyerClaim()
+    {
+        if (_item == null)
+            return;
+
+        Body.Attachments.Remove(_item);
+        AuctionHouseRules.ReturnToHouseEscrow(_item, _sellerId);
+    }
+
+    /// <summary>
     /// Prepare mail for the person selling the item
     /// </summary>
     /// <returns></returns>

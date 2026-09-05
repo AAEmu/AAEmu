@@ -85,12 +85,13 @@ public class AuctionManager(
         player.SendPacket(new SCAuctionSearchedPacket(page, lots, (short)error, DateTime.UtcNow));
     }
 
-    private void RecordSale(AuctionLot lot, long soldAmount)
+    private void RecordSale(AuctionLot lot, long soldAmount, Item sold = null)
     {
-        if (lot?.Item == null || soldAmount <= 0)
+        var item = sold ?? lot?.Item;
+        if (item == null || soldAmount <= 0)
             return;
 
-        var sale = new AuctionSale(lot.Item.TemplateId, lot.Item.Grade, DateTime.UtcNow, soldAmount, lot.Item.Count);
+        var sale = new AuctionSale(item.TemplateId, item.Grade, DateTime.UtcNow, soldAmount, item.Count);
         lock (_soldLock)
         {
             _soldRecords.Add(sale);
@@ -197,22 +198,21 @@ public class AuctionManager(
 
         var listingDeposit = Fees.GetListingDeposit(lot.DirectMoney, lot.Duration);
         var buyMail = new MailForAuction(item, lot.ClientId, soldAmount, listingDeposit);
-        if (!buyMail.FinalizeForSaleBuyer(buyerId) || !buyMail.Send())
+        if (!buyMail.FinalizeForSaleBuyer(buyerId))
         {
-            SendBidRefund(buyerId, lot, soldAmount);
-            if (AuctionHouseRules.IsHeldByHouse(item) && !string.IsNullOrEmpty(lot.ClientName))
-            {
-                var failMail = new MailForAuction(item, lot.ClientId, lot.DirectMoney, listingDeposit);
-                if (failMail.FinalizeForFail())
-                    failMail.Send();
-            }
-
-            Logger.Error("Buyer mail failed lot={0} buyer={1}; bid refunded", lot.Id, buyerId);
-            ForgetLot_NoLock(lot);
+            AbortSaleDelivery_NoLock(lot, item, buyerId, soldAmount, "buyer name");
             return;
         }
 
-        var saleCharge = Fees.GetSaleCharge(soldAmount, item.Template?.AuctionSettings?.EffectiveChargeRate ?? 0);
+        if (!buyMail.Send())
+        {
+            buyMail.RevertBuyerClaim();
+            AbortSaleDelivery_NoLock(lot, item, buyerId, soldAmount, "buyer mail");
+            return;
+        }
+
+        var saleCharge = AuctionHouseRules.SaleChargeForLot(
+            Fees, soldAmount, lot.ChargePercent, item.Template?.AuctionSettings?.EffectiveChargeRate ?? 0);
         var moneyAfterFee = soldAmount - saleCharge;
         if (!string.IsNullOrEmpty(lot.ClientName))
         {
@@ -226,8 +226,114 @@ public class AuctionManager(
         Logger.Info("Sale settle lot={0} seller={1} ({2}) buyer={3} sold={4} net={5} charge={6}",
             lot.Id, lot.ClientName, lot.ClientId, buyer, soldAmount, moneyAfterFee, saleCharge);
         SendHouseMessage(lot.ClientId, AuctionMessageKind.Sold, item.TemplateId, soldAmount);
-        RecordSale(lot, soldAmount);
+        RecordSale(lot, soldAmount, item);
         ForgetLot_NoLock(lot);
+    }
+
+    private void SettleSoldSlice_NoLock(AuctionLot lot, Item sold, string buyer, long soldAmount)
+    {
+        var leftover = lot.Item != null ? itemManager.GetItemByItemId(lot.Item.Id) : null;
+        var buyerId = nameManager.GetCharacterId(buyer);
+        if (sold == null || buyerId == 0 || !AuctionHouseRules.IsHeldByHouse(sold))
+        {
+            MergeHouseStack(leftover, sold);
+            if (buyerId != 0)
+                SendBidRefund(buyerId, lot, soldAmount);
+            Logger.Error("Partial sale aborted lot={0} buyer={1}: slice is not in house escrow", lot.Id, buyer);
+            return;
+        }
+
+        var listingDeposit = Fees.GetListingDeposit(lot.DirectMoney, lot.Duration);
+        var buyMail = new MailForAuction(sold, lot.ClientId, soldAmount, listingDeposit);
+        if (!buyMail.FinalizeForSaleBuyer(buyerId))
+        {
+            MergeHouseStack(leftover, sold);
+            SendBidRefund(buyerId, lot, soldAmount);
+            Logger.Error("Partial sale aborted lot={0} buyer={1}: buyer name", lot.Id, buyerId);
+            return;
+        }
+
+        if (!buyMail.Send())
+        {
+            buyMail.RevertBuyerClaim();
+            MergeHouseStack(leftover, sold);
+            SendBidRefund(buyerId, lot, soldAmount);
+            Logger.Error("Partial sale aborted lot={0} buyer={1}: buyer mail", lot.Id, buyerId);
+            return;
+        }
+
+        var saleCharge = AuctionHouseRules.SaleChargeForLot(
+            Fees, soldAmount, lot.ChargePercent, sold.Template?.AuctionSettings?.EffectiveChargeRate ?? 0);
+        var moneyAfterFee = soldAmount - saleCharge;
+        if (!string.IsNullOrEmpty(lot.ClientName))
+        {
+            var sellMail = new MailForAuction(sold, lot.ClientId, soldAmount, listingDeposit);
+            if (sellMail.FinalizeForSaleSeller(moneyAfterFee, saleCharge))
+                sellMail.Send();
+            else
+                Logger.Error("Seller mail failed lot={0} seller={1} after a partial delivery", lot.Id, lot.ClientId);
+        }
+
+        Logger.Info("Partial sale settle lot={0} seller={1} ({2}) buyer={3} sold={4} leftover={5} net={6} charge={7}",
+            lot.Id, lot.ClientName, lot.ClientId, buyer, soldAmount, leftover?.Count ?? 0, moneyAfterFee, saleCharge);
+        SendHouseMessage(lot.ClientId, AuctionMessageKind.Sold, sold.TemplateId, soldAmount);
+        RecordSale(lot, soldAmount, sold);
+        if (leftover != null)
+        {
+            var stacks = AuctionHouseRules.ClampStacks(leftover.Count, lot.MinStack, lot.MaxStack, AllowPartialBuy);
+            lot.MinStack = stacks.minStack;
+            lot.MaxStack = stacks.maxStack;
+            lot.IsDirty = true;
+        }
+    }
+
+    private Item TrySplitHouseStack(Item source, int amount)
+    {
+        if (source == null || !ItemSplitRules.IsSplitAmount(source.Count, amount))
+            return null;
+
+        var split = itemManager.Create(source.TemplateId, amount, source.Grade);
+        if (split == null)
+            return null;
+
+        ItemSplitRules.CopyStackFields(source, split);
+        split.TemplateId = source.TemplateId;
+        split.Template = source.Template;
+        split.Grade = source.Grade;
+        split.Count = amount;
+        var before = source.Count;
+        source.Count -= amount;
+        if (!ItemSplitRules.ConservesCount(before, amount, source.Count, split.Count))
+        {
+            source.Count = before;
+            itemManager.ReleaseId(split.Id);
+            return null;
+        }
+
+        AuctionHouseRules.ReturnToHouseEscrow(split, source.OwnerId);
+        return split;
+    }
+
+    private void MergeHouseStack(Item leftover, Item slice)
+    {
+        if (leftover != null && slice != null && leftover.Id != slice.Id)
+        {
+            leftover.Count += slice.Count;
+            AuctionHouseRules.ReturnToHouseEscrow(leftover, leftover.OwnerId);
+            itemManager.ReleaseId(slice.Id);
+            return;
+        }
+
+        if (slice != null)
+            AuctionHouseRules.ReturnToHouseEscrow(slice, leftover?.OwnerId ?? slice.OwnerId);
+    }
+
+    private void AbortSaleDelivery_NoLock(AuctionLot lot, Item item, uint buyerId, long soldAmount, string reason)
+    {
+        SendBidRefund(buyerId, lot, soldAmount);
+        AuctionHouseRules.ReturnToHouseEscrow(item, lot.ClientId);
+        RestoreLot_NoLock(lot);
+        Logger.Error("Sale aborted lot={0} buyer={1}: {2}; listing restored", lot.Id, buyerId, reason);
     }
 
     private void SettleExpire_NoLock(AuctionLot lot)
@@ -388,6 +494,10 @@ public class AuctionManager(
                 return;
             }
 
+            var stack = AuctionHouseRules.ResolveBidStack(
+                bid.StackSize, liveItem.Count, auctionLot.MinStack, auctionLot.MaxStack, AllowPartialBuy);
+            bid.StackSize = stack;
+
             if (!player.SubtractMoney(SlotType.Inventory, charge, ItemTaskType.Auction))
             {
                 player.SendErrorMessage(ErrorMessageType.NotEnoughMoney);
@@ -410,10 +520,27 @@ public class AuctionManager(
             bid.BidderId = player.Id;
             bid.WorldId = ServerWorldId;
             bid.Money = standing;
-            bid.StackSize = liveItem.Count;
 
             if (isBuyout)
             {
+                var delivered = liveItem;
+                if (stack < liveItem.Count)
+                {
+                    delivered = TrySplitHouseStack(liveItem, stack);
+                    if (delivered == null)
+                    {
+                        player.AddMoney(SlotType.Inventory, charge, ItemTaskType.Auction);
+                        player.SendErrorMessage(ErrorMessageType.AucInternalError);
+                        return;
+                    }
+
+                    Logger.Info("Partial buyout lot={0} buyer={1} ({2}) stack={3} leftover={4} price={5}",
+                        auctionLot.Id, player.Name, player.Id, stack, liveItem.Count, standing);
+                    player.SendPacket(new SCAuctionBidPacket(bid, true, delivered.TemplateId));
+                    SettleSoldSlice_NoLock(auctionLot, delivered, player.Name, standing);
+                    return;
+                }
+
                 if (!TryDetachLot_NoLock(auctionLot.Id, out auctionLot))
                 {
                     player.AddMoney(SlotType.Inventory, charge, ItemTaskType.Auction);
@@ -702,21 +829,35 @@ public class AuctionManager(
 
         if (!_deletedAuctionItemIds.IsEmpty)
         {
-            var ids = _deletedAuctionItemIds.ToArray();
-            _deletedAuctionItemIds.Clear();
-            using var command = connection.CreateCommand();
-            command.Connection = connection;
-            command.Transaction = transaction;
-            var names = new string[ids.Length];
-            for (var i = 0; i < ids.Length; i++)
-            {
-                names[i] = "@d" + i;
-                command.Parameters.AddWithValue(names[i], ids[i]);
-            }
+            var ids = new List<long>();
+            while (_deletedAuctionItemIds.TryTake(out var id))
+                ids.Add(id);
 
-            command.CommandText = "DELETE FROM auction_house WHERE `id` IN(" + string.Join(",", names) + ")";
-            command.Prepare();
-            deletedCount = command.ExecuteNonQuery();
+            if (ids.Count > 0)
+            {
+                try
+                {
+                    using var command = connection.CreateCommand();
+                    command.Connection = connection;
+                    command.Transaction = transaction;
+                    var names = new string[ids.Count];
+                    for (var i = 0; i < ids.Count; i++)
+                    {
+                        names[i] = "@d" + i;
+                        command.Parameters.AddWithValue(names[i], ids[i]);
+                    }
+
+                    command.CommandText = "DELETE FROM auction_house WHERE `id` IN(" + string.Join(",", names) + ")";
+                    command.Prepare();
+                    deletedCount = command.ExecuteNonQuery();
+                }
+                catch
+                {
+                    foreach (var id in ids)
+                        _deletedAuctionItemIds.Add(id);
+                    throw;
+                }
+            }
         }
 
         foreach (var lot in AuctionLots.Values.Where(c => c.IsDirty))
@@ -920,7 +1061,10 @@ public class AuctionManager(
             }
 
             var lot = CreateAuctionLot(player.Id, player.Name, item, startPrice, buyoutPrice, duration, minStack, maxStack);
-            lot.ChargePercent = AuctionFeeSchedule.ApplyPercentDiscount(Fees.SaleChargeRate, ChargeDiscount(player));
+            lot.ChargePercent = AuctionHouseRules.ListingChargeRate(
+                Fees.SaleChargeRate,
+                item.Template?.AuctionSettings?.EffectiveChargeRate ?? 0,
+                ChargeDiscount(player));
             lot.DepositPercent = AuctionFeeSchedule.ApplyPercentDiscount(Fees.GetDepositRate(duration), DepositDiscount(player));
 
             var auctionFee = Fees.GetListingDeposit(lot.DirectMoney, duration, DepositDiscount(player));

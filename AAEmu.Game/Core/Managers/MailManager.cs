@@ -22,7 +22,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    public Dictionary<long, BaseMail> _allPlayerMails;
+    public Dictionary<long, BaseMail> _allPlayerMails = [];
     public Dictionary<long, BaseMail> AllPlayerMails => _allPlayerMails;
     private List<long> _deletedMailIds = [];
     // Unused: private object _lock = new();
@@ -76,6 +76,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             Logger.Trace("Send() - Assign new mail Id");
             mail.Id = GetNewMailId();
         }
+        _allPlayerMails ??= [];
         lock (_allPlayerMails)
         {
             if (_allPlayerMails.ContainsKey(mail.Id))

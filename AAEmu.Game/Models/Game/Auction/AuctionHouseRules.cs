@@ -121,6 +121,59 @@ public static class AuctionHouseRules
         return (min, max);
     }
 
+    /// <summary>
+    /// How many of a listed stack this bid takes. Partial buy is off unless the
+    /// house feature is on; a missing or zero request then takes the full stack.
+    /// </summary>
+    public static int ResolveBidStack(int requested, int itemCount, int minStack, int maxStack, bool allowPartial)
+    {
+        var count = Math.Max(1, itemCount);
+        var (min, max) = ClampStacks(count, minStack, maxStack, allowPartial);
+        if (!allowPartial)
+            return count;
+
+        var want = requested <= 0 ? max : requested;
+        return Math.Clamp(want, min, max);
+    }
+
+    public static int ClampMultilingualCount(int count)
+    {
+        if (count <= 0)
+            return 0;
+        return Math.Min(count, MultilingualItemIdLimit);
+    }
+
+    /// <summary>
+    /// Listing-time commission rate. Item overrides beat the house default; the
+    /// account-buff discount is applied once here and stored on the lot.
+    /// </summary>
+    public static int ListingChargeRate(int saleChargeRate, int itemChargeRate, int discountPercent)
+    {
+        var rate = itemChargeRate > 0 ? itemChargeRate : saleChargeRate;
+        return AuctionFeeSchedule.ApplyPercentDiscount(rate, discountPercent);
+    }
+
+    /// <summary>
+    /// Settlement uses the stored listing rate when the lot has one. Older rows
+    /// with <c>charge_percent = 0</c> fall back to the item / house rate.
+    /// </summary>
+    public static long SaleChargeForLot(AuctionFeeSchedule fees, long soldAmount, int storedChargePercent, int itemChargeRate)
+    {
+        if (fees == null)
+            return 0;
+        if (storedChargePercent > 0)
+            return fees.GetSaleCharge(soldAmount, storedChargePercent);
+        return fees.GetSaleCharge(soldAmount, itemChargeRate);
+    }
+
+    public static void ReturnToHouseEscrow(Item item, ulong sellerId)
+    {
+        if (item == null)
+            return;
+        item.OwnerId = sellerId;
+        item.SlotType = SlotType.Auction;
+    }
+
     public static long DisplayPrice(AuctionLot lot)
     {
         if (lot == null)

@@ -43,10 +43,10 @@ public sealed class MailTests
 
         // Reset singleton caches so Instance properties resolve via ServiceProvider
         typeof(Singleton<MailManager>)
-            .GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic)
+            .GetField("s_instance", BindingFlags.Static | BindingFlags.NonPublic)
             ?.SetValue(null, null);
         typeof(Singleton<NameManager>)
-            .GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic)
+            .GetField("s_instance", BindingFlags.Static | BindingFlags.NonPublic)
             ?.SetValue(null, null);
 
         var services = new ServiceCollection();
@@ -60,17 +60,16 @@ public sealed class MailTests
     [After(Test)]
     public void Teardown()
     {
-        _mailManager._allPlayerMails = null;
         _character = null;
         _mails = null;
         _mailManager = null;
 
         SingletonContainer.ServiceProvider = null;
         typeof(Singleton<MailManager>)
-            .GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic)
+            .GetField("s_instance", BindingFlags.Static | BindingFlags.NonPublic)
             ?.SetValue(null, null);
         typeof(Singleton<NameManager>)
-            .GetField("_instance", BindingFlags.Static | BindingFlags.NonPublic)
+            .GetField("s_instance", BindingFlags.Static | BindingFlags.NonPublic)
             ?.SetValue(null, null);
     }
 

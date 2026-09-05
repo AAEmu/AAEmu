@@ -46,9 +46,7 @@ public class AuctionSearch : PacketMarshaler
 
     public void ReadItemTemplateIds(PacketStream stream)
     {
-        var count = stream.ReadInt32();
-        if (count > AuctionHouseRules.MultilingualItemIdLimit)
-            count = AuctionHouseRules.MultilingualItemIdLimit;
+        var count = AuctionHouseRules.ClampMultilingualCount(stream.ReadInt32());
         ItemListCount = count;
         ItemTemplateIds = new List<uint>(count);
         for (var i = 0; i < count; i++)

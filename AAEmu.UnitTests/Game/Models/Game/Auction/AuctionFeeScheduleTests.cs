@@ -35,4 +35,14 @@ public class AuctionFeeScheduleTests
         await Assert.That(fees.GetSaleCharge(10_000, 0, 25)).IsEqualTo(150);
         await Assert.That(fees.GetListingDeposit(100_000, AuctionDuration.AuctionDuration12Hours, 50)).IsEqualTo(500);
     }
+
+    [Test]
+    public async Task SaleCharge_StoredListingRateIsNotDiscountedAgain()
+    {
+        var fees = new AuctionFeeSchedule();
+        var stored = AuctionHouseRules.ListingChargeRate(fees.SaleChargeRate, 0, 25);
+        await Assert.That(stored).IsEqualTo(150);
+        await Assert.That(AuctionHouseRules.SaleChargeForLot(fees, 10_000, stored, 0)).IsEqualTo(150);
+        await Assert.That(fees.GetSaleCharge(10_000, 0, 25)).IsEqualTo(150);
+    }
 }

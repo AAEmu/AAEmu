@@ -124,6 +124,53 @@ public class AuctionHouseRulesTests
     }
 
     [Test]
+    public async Task ResolveBidStack_TakesTheRequestedSliceWhenPartialBuyIsOn()
+    {
+        await Assert.That(AuctionHouseRules.ResolveBidStack(3, 20, 1, 10, false)).IsEqualTo(20);
+        await Assert.That(AuctionHouseRules.ResolveBidStack(3, 20, 1, 10, true)).IsEqualTo(3);
+        await Assert.That(AuctionHouseRules.ResolveBidStack(0, 20, 1, 10, true)).IsEqualTo(10);
+        await Assert.That(AuctionHouseRules.ResolveBidStack(15, 20, 1, 10, true)).IsEqualTo(10);
+        await Assert.That(AuctionHouseRules.ResolveBidStack(-4, 20, 2, 8, true)).IsEqualTo(8);
+    }
+
+    [Test]
+    public async Task ClampMultilingualCount_DropsNegativeAndCapsTheWireLimit()
+    {
+        await Assert.That(AuctionHouseRules.ClampMultilingualCount(-3)).IsEqualTo(0);
+        await Assert.That(AuctionHouseRules.ClampMultilingualCount(0)).IsEqualTo(0);
+        await Assert.That(AuctionHouseRules.ClampMultilingualCount(4)).IsEqualTo(4);
+        await Assert.That(AuctionHouseRules.ClampMultilingualCount(AuctionHouseRules.MultilingualItemIdLimit + 8))
+            .IsEqualTo(AuctionHouseRules.MultilingualItemIdLimit);
+    }
+
+    [Test]
+    public async Task ListingChargeRate_AppliesTheAccountDiscountOnce()
+    {
+        await Assert.That(AuctionHouseRules.ListingChargeRate(200, 0, 50)).IsEqualTo(100);
+        await Assert.That(AuctionHouseRules.ListingChargeRate(200, 1000, 50)).IsEqualTo(500);
+        await Assert.That(AuctionHouseRules.ListingChargeRate(200, 0, 0)).IsEqualTo(200);
+    }
+
+    [Test]
+    public async Task SaleChargeForLot_PrefersTheStoredListingRate()
+    {
+        var fees = new AuctionFeeSchedule();
+        await Assert.That(AuctionHouseRules.SaleChargeForLot(fees, 10_000, 100, 1000)).IsEqualTo(100);
+        await Assert.That(AuctionHouseRules.SaleChargeForLot(fees, 10_000, 0, 1000)).IsEqualTo(1_000);
+        await Assert.That(AuctionHouseRules.SaleChargeForLot(null, 10_000, 100, 0)).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task ReturnToHouseEscrow_PutsTheStackBackOnTheSeller()
+    {
+        var item = new Item(0) { OwnerId = 9, SlotType = SlotType.Mail, Count = 2 };
+        AuctionHouseRules.ReturnToHouseEscrow(item, 39);
+        await Assert.That(item.OwnerId).IsEqualTo(39u);
+        await Assert.That(item.SlotType).IsEqualTo(SlotType.Auction);
+        AuctionHouseRules.ReturnToHouseEscrow(null, 39);
+    }
+
+    [Test]
     public async Task Matches_FiltersSellerWorldKeywordGradeLevelAndPrice()
     {
         var lot = Lot("iron ore", 10, 2, 1, 2, 3, 500);
