@@ -1,6 +1,7 @@
 ﻿using AAEmu.Game.Core.Managers;
 using System.Linq;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mails;
@@ -114,8 +115,12 @@ public class CharacterMails
     public void RefreshAllMailCounts()
     {
         UnreadMailCount.ResetAll();
+        var store = MailManager.Instance?.AllPlayerMails;
+        if (store == null)
+            return;
+
         var now = DateTime.UtcNow;
-        foreach (var (_, mail) in MailManager.Instance.AllPlayerMails)
+        foreach (var (_, mail) in store)
         {
             var isForMe = mail.Header.ReceiverId == Self.Id;
             var isFromMe = mail.Header.SenderId == Self.Id && mail.Header.SenderId != 0;
@@ -168,21 +173,50 @@ public class CharacterMails
         return true;
     }
 
+    private static bool TryFindStoredMail(long id, out BaseMail mail)
+    {
+        mail = null;
+        var store = MailManager.Instance?.AllPlayerMails;
+        return store != null && store.TryGetValue(id, out mail);
+    }
+
+    /// <summary>
+    /// Open and take-all wait for a body or attachment packet. A missing row used to
+    /// send nothing (or throw), so the mailbox spinner never cleared.
+    /// </summary>
+    private void NotifyMailGone(long id)
+    {
+        RefreshUnreadCount();
+        Self.SendErrorMessage(ErrorMessageType.MailInvalid);
+        Self.SendPacket(new SCMailDeletedPacket(false, id, true, UnreadMailCount));
+        SendUnreadMailCount();
+    }
+
     public void ReadMail(bool isSent, long id)
     {
-        if (TryGetOwnMail(id, isSent, out var mail))
+        if (!TryFindStoredMail(id, out _))
         {
-            if (mail.Header.Status == MailStatus.Unread && !isSent)
-            {
-                UnreadMailCount.UpdateReceived(mail.MailType, -1);
-                mail.OpenDate = DateTime.UtcNow;
-                mail.Header.Status = MailStatus.Read;
-                mail.IsDelivered = true;
-            }
-            Self.SendPacket(new SCMailBodyPacket(false, isSent, mail.Body, true, UnreadMailCount));
-            Self.SendPacket(new SCMailStatusUpdatedPacket(isSent, id, mail.Header.Status));
-            SendUnreadMailCount();
+            NotifyMailGone(id);
+            return;
         }
+
+        if (!TryGetOwnMail(id, isSent, out var mail))
+        {
+            Self.SendErrorMessage(ErrorMessageType.MailInvalid);
+            return;
+        }
+
+        if (mail.Header.Status == MailStatus.Unread && !isSent)
+        {
+            UnreadMailCount.UpdateReceived(mail.MailType, -1);
+            mail.OpenDate = DateTime.UtcNow;
+            mail.Header.Status = MailStatus.Read;
+            mail.IsDelivered = true;
+        }
+        Self.SendPacket(new SCMailBodyPacket(false, isSent, mail.Body, true, UnreadMailCount));
+        Self.SendPacket(new SCMailStatusUpdatedPacket(isSent, id, mail.Header.Status));
+        SendUnreadMailCount();
+        MailManager.Instance.PersistNow();
     }
 
     public void SendUnreadMailCount()
@@ -292,7 +326,10 @@ public class CharacterMails
         if (mailType == MailType.Normal)
             mail.Body.RecvDate = DateTime.UtcNow + MailManager.NormalMailDelay;
 
-        // Send it
+        // Send it. The save that Send requests runs when this scope closes, i.e. after the
+        // fee and attached coin have left the sender's wallet; a restart cannot restore the
+        // sender's balance while the recipient already holds the letter.
+        using var persist = MailManager.Instance.DeferPersist();
         if (mail.Send())
         {
             Self.SendPacket(new SCMailSentPacket(mail.Header, itemSlots.ToArray()));
@@ -309,10 +346,20 @@ public class CharacterMails
     public bool GetAttached(long mailId, bool takeMoney, bool takeItems, bool takeAllSelected, ulong specifiedItemId = 0)
     {
         var res = true;
-        // Attachments only ever come out of the inbox side, never the sent side.
-        if (TryGetOwnMail(mailId, false, out var thisMail))
+        if (!TryFindStoredMail(mailId, out _))
         {
-            var tookMoney = false;
+            NotifyMailGone(mailId);
+            return false;
+        }
+
+        // Attachments only ever come out of the inbox side, never the sent side.
+        if (!TryGetOwnMail(mailId, false, out var thisMail))
+        {
+            Self.SendErrorMessage(ErrorMessageType.MailInvalid);
+            return false;
+        }
+
+        var tookMoney = false;
             if (thisMail.MailType == MailType.AucOffSuccess && thisMail.Body.CopperCoins > 0 && takeMoney)
             {
                 // Both pools pay; see Character.ChangeLabor.
@@ -456,9 +503,8 @@ public class CharacterMails
             // TODO: Make sure attachment settings and mail info is sent back correctly 
             // taking all attachments sometimes doesn't enable the delete button when getting attachments using "GetAllSelected"
 
-            // TODO: if source player is online, update their mail info (sent tab)
-        }
-
+        // TODO: if source player is online, update their mail info (sent tab)
+        MailManager.Instance.PersistNow();
         return res;
     }
 

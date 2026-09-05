@@ -20,7 +20,7 @@ public class CSSplitBagItemPacket() : GamePacket(CSOffsets.CSSplitBagItemPacket,
 
         var count = stream.ReadInt32();
 
-        Connection.ActiveChar.Inventory.SplitOrMoveItem(ItemTaskType.SwapItems, fromItemId, fromSlotType, fromSlot, toItemId, toSlotType, toSlot, count);
+        Connection.ActiveChar.Inventory.SplitOrMoveItem(ItemTaskType.Split, fromItemId, fromSlotType, fromSlot, toItemId, toSlotType, toSlot, count);
         //Connection.ActiveChar.Inventory.Move(fromItemId, fromSlotType, fromSlot, toItemId, toSlotType, toSlot, count);
     }
 }

@@ -88,16 +88,38 @@ CREATE TABLE IF NOT EXISTS `auction_house` (
 	`world_id` TINYINT(4) NOT NULL,
 	`client_id` INT(11) NOT NULL,
 	`client_name` VARCHAR(45) NOT NULL COLLATE 'utf8mb4_general_ci',
-	`start_money` INT(11) NOT NULL,
-	`direct_money` INT(11) NOT NULL,
+	`start_money` BIGINT(20) NOT NULL,
+	`direct_money` BIGINT(20) NOT NULL,
+	`asked` BIGINT(20) UNSIGNED NOT NULL DEFAULT 0,
+	`charge_percent` INT(11) NOT NULL DEFAULT 0,
+	`deposit_percent` INT(11) NOT NULL DEFAULT 0,
+	`service_kind` TINYINT(4) NOT NULL DEFAULT 0,
 	`bid_world_id` INT(11) NOT NULL,
 	`bidder_id` INT(11) NOT NULL,
 	`bidder_name` VARCHAR(45) NOT NULL COLLATE 'utf8mb4_general_ci',
-	`bid_money` INT(11) NOT NULL,
-	`extra` INT(11) NOT NULL,
+	`bid_money` BIGINT(20) NOT NULL,
+	`extra` BIGINT(20) NOT NULL,
+	`min_stack` INT(11) NOT NULL DEFAULT 1,
+	`max_stack` INT(11) NOT NULL DEFAULT 1,
 	PRIMARY KEY (`id`) USING BTREE
 )
 COMMENT='Listed AH Items'
+COLLATE='utf8mb4_general_ci'
+ENGINE=InnoDB
+ROW_FORMAT=DYNAMIC
+;
+
+CREATE TABLE IF NOT EXISTS `auction_sold_records` (
+	`id` BIGINT(20) NOT NULL AUTO_INCREMENT,
+	`item_template_id` INT UNSIGNED NOT NULL,
+	`item_grade` TINYINT UNSIGNED NOT NULL,
+	`sold_at` DATETIME NOT NULL,
+	`price` BIGINT(20) NOT NULL,
+	`stack` INT(11) NOT NULL,
+	PRIMARY KEY (`id`) USING BTREE,
+	INDEX `idx_sold_lookup` (`item_template_id`, `item_grade`, `sold_at`)
+)
+COMMENT='Auction house sold-price history'
 COLLATE='utf8mb4_general_ci'
 ENGINE=InnoDB
 ROW_FORMAT=DYNAMIC

@@ -8,12 +8,7 @@ public class CSAuctionMyBidListPacket() : GamePacket(CSOffsets.CSAuctionMyBidLis
 {
     public override void Read(PacketStream stream)
     {
-        var auctioneerId = stream.ReadBc();
-        var auctioneerId2 = stream.ReadBc();
         var page = stream.ReadInt32();
-
-        Logger.Warn($"AuctionMyBidList, auctioneerId: {auctioneerId}, auctioneerId2: {auctioneerId2}, Page: {page}");
-
         AuctionManager.Instance.GetBidAuctionLots(Connection.ActiveChar, page);
     }
 }

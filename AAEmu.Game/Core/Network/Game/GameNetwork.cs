@@ -199,6 +199,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSAuctionMyBidListPacket, 1, typeof(CSAuctionMyBidListPacket));
         RegisterPacket(CSOffsets.CSAuctionLowestPricePacket, 1, typeof(CSAuctionLowestPricePacket));
         RegisterPacket(CSOffsets.CSSearchAuctionSoldRecordPacket, 1, typeof(CSSearchAuctionSoldRecordPacket));
+        RegisterPacket(CSOffsets.CSAuctionSearchForMultilingualPacket, 1, typeof(CSAuctionSearchForMultilingualPacket));
         RegisterPacket(CSOffsets.CSRollDicePacket, 1, typeof(CSRollDicePacket));
         //0xbf CSRequestNpcSpawnerList
         //0xc8 CSRemoveAllFieldSlaves

@@ -20,7 +20,7 @@
             "nexonPcRoom": true,
             "ranking": true,
             "customsaveload": true,
-            "aaPoint": true,
+            "aaPoint": false,               // no AA Point wallet / shop convert; AH stays gold
             "butler": true,
             "freeLpRaise": true,
             "use_slash_open_chat": true,
@@ -151,7 +151,7 @@
             "fset_20_2_unknown": true,      // ScriptBindCustomizingUnit — appearance preview mannequin Lua API
             "fset_20_5_unknown": true,      // Lua Item object from catalog template id (look-convert / preview slots)
             "fset_24_3_unknown": true,      // housing builder rotation (HouseBuilder::UpdateRotating)
-            "fset_24_7_unknown": true,      // ui_eventProfile content-info panel
+            "fset_24_7_unknown": false,     // ui_eventProfile + fgt (encyclopedia / AH / craft)
             "fset_25_1_unknown": true,      // Bless Uthstin page copy/expand CS packets
             "fset_25_3_unknown": true,      // notice / event board record (title, body, schedule)
             "fset_28_6_unknown": true,      // multilingual auction search packet

@@ -2,6 +2,7 @@ using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 
@@ -43,9 +44,9 @@ public class CSSpawnSlavePacket() : GamePacket(CSOffsets.CSSpawnSlavePacket, 1)
         // The summon item is authoritative for what gets spawned — the client supplies the slave
         // id, but taking it on trust would let any item summon any slave.
         var item = ItemManager.Instance.GetItemByItemId(itemId);
-        if (item == null || item.OwnerId != character.Id)
+        if (item == null || item.OwnerId != character.Id || !AuctionHouseRules.IsPlayerHeldItem(item))
         {
-            Logger.Warn("SpawnSlave: {0} does not own item {1}", character.Name, itemId);
+            Logger.Warn("SpawnSlave: {0} does not hold item {1}", character.Name, itemId);
             return;
         }
 

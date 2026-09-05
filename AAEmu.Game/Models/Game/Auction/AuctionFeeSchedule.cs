@@ -77,33 +77,48 @@ public class AuctionFeeSchedule
 
         // A duration byte off the wire that is not one of the four shipped steps has no deposit row; charge
         // the longest listing rather than falling through to a free one.
-        return key == null ? Get("auction_deposit_48", 20) : Get(key, 0);
-    }
-
-    /// <summary>
-    /// Deposit taken when a lot is listed, worked out from the buyout price and capped by auction_deposit_max.
-    /// </summary>
-    public int GetListingDeposit(int buyoutPrice, AuctionDuration duration)
-    {
-        if (buyoutPrice <= 0)
-            return 0;
-
-        var deposit = (long)buyoutPrice * GetDepositRate(duration) / DepositRateDivisor;
-        return (int)Math.Clamp(deposit, 0, DepositMax);
+        return key == null
+            ? Get("auction_deposit_48", 20)
+            : Get(key, duration switch
+            {
+                AuctionDuration.AuctionDuration6Hours => 5,
+                AuctionDuration.AuctionDuration12Hours => 10,
+                AuctionDuration.AuctionDuration24Hours => 15,
+                _ => 20
+            });
     }
 
     /// <summary>
     /// Commission the house keeps from a completed sale. <paramref name="itemChargeRate"/> is
     /// <c>items.auction_charge</c> when that item overrides the global rate, 0 to use the default.
     /// </summary>
-    public int GetSaleCharge(int soldAmount, int itemChargeRate = 0)
+    public long GetSaleCharge(long soldAmount, int itemChargeRate = 0, int discountPercent = 0)
     {
         if (soldAmount <= 0)
             return 0;
 
         var rate = itemChargeRate > 0 ? itemChargeRate : SaleChargeRate;
-        var charge = (long)soldAmount * rate / ChargeRateDivisor;
-        return (int)Math.Clamp(charge, 0, soldAmount);
+        rate = ApplyPercentDiscount(rate, discountPercent);
+        var charge = soldAmount * rate / ChargeRateDivisor;
+        return Math.Clamp(charge, 0, soldAmount);
+    }
+
+    public long GetListingDeposit(long buyoutPrice, AuctionDuration duration, int discountPercent = 0)
+    {
+        if (buyoutPrice <= 0)
+            return 0;
+
+        var rate = ApplyPercentDiscount(GetDepositRate(duration), discountPercent);
+        var deposit = buyoutPrice * rate / DepositRateDivisor;
+        return Math.Clamp(deposit, 0, DepositMax);
+    }
+
+    public static int ApplyPercentDiscount(int rate, int discountPercent)
+    {
+        if (rate <= 0 || discountPercent <= 0)
+            return rate;
+        var discounted = (long)rate * (DiscountDivisor - Math.Clamp(discountPercent, 0, DiscountDivisor)) / DiscountDivisor;
+        return (int)Math.Max(0, discounted);
     }
 
     public void Load()

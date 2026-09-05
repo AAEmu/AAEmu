@@ -138,7 +138,7 @@ public enum Feature
 
     // ---- fset[19] ----
     heroBonus = 152,
-    fset_19_2_unknown = 154,  // native only - doodad world-map text (SCDoodadWorldmapText*)
+    fset_19_2_unknown = 154,  // native only - doodad world-map text (SCDoodadWorldmapText*) + doodad smart-positioning loop
     hairTwoTone = 156,
     socketChange = 157,
     mate_type_summon = 158,
@@ -178,7 +178,7 @@ public enum Feature
     auctionPartialBuy = 196,
     equipSlotEnchantment = 197,
     loadingTipOfDay = 198,
-    fset_24_7_unknown = 199,  // native only - ui_eventProfile content info
+    fset_24_7_unknown = 199,  // native only - fgt permission pack (encyclopedia / AH / craft) via ui_eventProfile UIC loader
 
     // ---- fset[25] ----
     itemGradeEnchant = 200,

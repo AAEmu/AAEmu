@@ -1,6 +1,7 @@
 ﻿using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
+using Microsoft.Extensions.DependencyInjection;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -21,7 +22,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    public Dictionary<long, BaseMail> _allPlayerMails;
+    public Dictionary<long, BaseMail> _allPlayerMails = [];
     public Dictionary<long, BaseMail> AllPlayerMails => _allPlayerMails;
     private List<long> _deletedMailIds = [];
     // Unused: private object _lock = new();
@@ -75,6 +76,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             Logger.Trace("Send() - Assign new mail Id");
             mail.Id = GetNewMailId();
         }
+        _allPlayerMails ??= [];
         lock (_allPlayerMails)
         {
             if (_allPlayerMails.ContainsKey(mail.Id))
@@ -86,6 +88,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             _allPlayerMails.Add(mail.Id, mail);
         }
         NotifyNewMailByNameIfOnline(mail, targetName);
+        PersistNow();
         return true;
     }
 
@@ -156,6 +159,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             originalReceiver.SendPacket(new SCMailReturnedPacket(mail.Id, mail.Header));
 
         NotifyNewMailByNameIfOnline(mail, destinationName);
+        PersistNow();
         return true;
     }
 
@@ -174,8 +178,13 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                 _deletedMailIds.Add(id);
             mailIdManager.ReleaseId((uint)id);
         }
+
+        bool removed;
         lock (_allPlayerMails)
-            return _allPlayerMails.Remove(id);
+            removed = _allPlayerMails.Remove(id);
+
+        PersistNow();
+        return removed;
     }
 
     public bool DeleteMail(BaseMail mail, bool trashItems = false)
@@ -187,7 +196,15 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                 try
                 {
                     var item = mail.Body.Attachments[i];
-                    item._holdingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
+                    if (item == null)
+                        continue;
+
+                    // WebAPI / GM Create never parents the item, so there is no container
+                    // to remove from. Release the id instead of dereferencing null.
+                    if (item._holdingContainer != null)
+                        item._holdingContainer.RemoveItem(ItemTaskType.Invalid, item, true);
+                    else
+                        itemManager.ReleaseId(item.Id);
                 }
                 catch (Exception ex)
                 {
@@ -249,10 +266,16 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                             if (itemId > 0)
                             {
                                 var item = itemManager.GetItemByItemId(itemId);
-                                if (item != null)
+                                if (MailAttachmentLoadRules.CanReload(item))
                                 {
                                     item.OwnerId = tempMail.Header.ReceiverId;
                                     tempMail.Body.Attachments.Add(item);
+                                }
+                                else if (item != null)
+                                {
+                                    Logger.Warn(
+                                        "Skipping mail {0} attachment item {1}: already claimed (slot={2})",
+                                        tempMail.Id, itemId, item.SlotType);
                                 }
                                 else
                                 {
@@ -372,6 +395,82 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
         return (updatedCount, deletedCount);
     }
 
+    [ThreadStatic] private static int t_persistDeferDepth;
+    [ThreadStatic] private static bool t_persistRequested;
+
+    /// <summary>
+    /// Marks a money operation. Holds every <see cref="PersistNow"/> request made on this
+    /// thread until the outermost scope is disposed, and holds <see cref="PersistenceGate"/>
+    /// shared so no save on any thread snapshots the operation halfway. A money operation that
+    /// sends mail (player mail with coin, an outbid refund, a buyout settle) then reaches the
+    /// database as one snapshot taken after all of its balance, item, lot and mail mutations,
+    /// instead of a save issued from inside <see cref="Send"/> that still shows the sender's
+    /// pre-charge balance or the bid that was just refunded.
+    /// Open the scope before taking any lock a save also takes (the house lock, for one).
+    /// </summary>
+    public IDisposable DeferPersist()
+    {
+        if (t_persistDeferDepth == 0)
+            PersistenceGate.EnterOperation();
+        t_persistDeferDepth++;
+        return new PersistScope(this);
+    }
+
+    /// <summary>
+    /// Writes dirty mail (and the rest of the World snapshot) immediately, or at the end of
+    /// the enclosing <see cref="DeferPersist"/> scope.
+    /// Claim/send/delete used to wait for the 5-minute tick; a killed World
+    /// then reloaded the pre-claim row and the letter came back unclaimed.
+    /// No-ops in tests that do not register <see cref="ISaveManager"/>.
+    /// </summary>
+    public void PersistNow()
+    {
+        if (t_persistDeferDepth > 0)
+        {
+            t_persistRequested = true;
+            return;
+        }
+
+        FlushPersist();
+    }
+
+    private void FlushPersist()
+    {
+        var saver = SingletonContainer.ServiceProvider?.GetService<ISaveManager>();
+        if (saver == null)
+            return;
+
+        // A save that is already running took the gate after this operation released it, so
+        // it carries everything the operation wrote. Nothing is lost by not saving twice.
+        if (!saver.DoSave())
+            Logger.Debug("Mail persist folded into the save already in progress");
+    }
+
+    private sealed class PersistScope(MailManager owner) : IDisposable
+    {
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+            _disposed = true;
+
+            if (t_persistDeferDepth > 0)
+                t_persistDeferDepth--;
+            if (t_persistDeferDepth > 0)
+                return;
+
+            // Release the gate before saving: the save needs it exclusively.
+            PersistenceGate.ExitOperation();
+            if (!t_persistRequested)
+                return;
+
+            t_persistRequested = false;
+            owner.FlushPersist();
+        }
+    }
+
     #endregion
 
     
@@ -424,6 +523,11 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                 player.Mails.UnreadMailCount.UpdateReceived(m.MailType, 1);
 
                 player.SendPacket(new SCGotMailPacket(m.Header, player.Mails.UnreadMailCount, addBody ? m.Body : null));
+                // Charged mail only publishes the goods-mailbox event. The portrait
+                // envelope listens to the normal inbox event, so close the inbox
+                // listing (kind 1) to refresh that icon after a shop delivery.
+                if (m.MailType is MailType.Charged or MailType.Promotion)
+                    player.SendPacket(new SCMailListEndPacket(1, player.Mails.UnreadMailCount));
                 m.IsDelivered = true;
                 return true;
             }
