@@ -49,7 +49,7 @@ public static class MySQL
             MinimumPoolSize = 0,
             MaximumPoolSize = 10,
             ConnectionLifeTime = 600,
-            CharacterSet = "utf8",
+            CharacterSet = "utf8mb4",
             AllowZeroDateTime = true,
             ConvertZeroDateTime = true,
             DefaultCommandTimeout = 180,

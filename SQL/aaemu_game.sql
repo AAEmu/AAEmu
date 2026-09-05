@@ -483,7 +483,7 @@ CREATE TABLE IF NOT EXISTS `mates` (
 
 CREATE TABLE IF NOT EXISTS `options` (
   `key` varchar(100) NOT NULL,
-  `value` text NOT NULL,
+  `value` text CHARACTER SET utf8mb4 NOT NULL,
   `owner` int unsigned NOT NULL,
   PRIMARY KEY (`key`,`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Settings that the client stores on the server';
