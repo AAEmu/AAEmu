@@ -294,7 +294,10 @@ public sealed class CharacterAbilitySets(Character owner)
         // Same-triad restores skip 0x147 — trees did not change; Changed alone drives the
         // client rebuild from the saved slot snapshot.
         if (!triadUnchanged)
+        {
             Owner.BroadcastPacket(new SCAbilitySwappedPacket(Owner.ObjId, before, after), true);
+            Owner.SyncCombatResourcesAfterAbilityChange();
+        }
         SendUpdated(AbilitySetResponseType.Changed, slot);
         Logger.Info(
             "AbilitySet activate {0}: slot {1} {2}/{3}/{4} → {5}/{6}/{7} (skills={8}, triadUnchanged={9})",
