@@ -168,6 +168,28 @@ public class CombatResourceGameData : Singleton<CombatResourceGameData>, IGameDa
     /// <summary>Resources that start non-empty, so a unit only has to be seeded with those.</summary>
     public IEnumerable<CombatResource> WithDefaultPoint => All.Where(r => r.DefaultPoint > 0);
 
+    /// <summary>Replaces loaded tables so unit tests can drive seed/publish without SQLite.</summary>
+    internal void SeedForTests(
+        IEnumerable<CombatResource> resources,
+        IReadOnlyDictionary<int, HashSet<int>> resourceIdsByAbility)
+    {
+        _resources = [];
+        foreach (var resource in resources ?? [])
+            _resources[resource.Id] = resource;
+
+        _resourceIdsByAbility = [];
+        if (resourceIdsByAbility == null)
+            return;
+        foreach (var (abilityId, ids) in resourceIdsByAbility)
+            _resourceIdsByAbility[abilityId] = ids != null ? [..ids] : [];
+    }
+
+    internal void ClearForTests()
+    {
+        _resources = [];
+        _resourceIdsByAbility = [];
+    }
+
     /// <summary>
     /// Resource ids listed on <c>combat_resource_groups</c> for the given abilities,
     /// including the change-resource columns (Death's brand sits there, not on column 1).

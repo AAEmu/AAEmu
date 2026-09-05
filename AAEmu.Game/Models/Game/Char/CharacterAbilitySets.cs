@@ -296,7 +296,7 @@ public sealed class CharacterAbilitySets(Character owner)
         if (!triadUnchanged)
         {
             Owner.BroadcastPacket(new SCAbilitySwappedPacket(Owner.ObjId, before, after), true);
-            Owner.InitializeCombatResources();
+            Owner.SyncCombatResourcesAfterAbilityChange();
         }
         SendUpdated(AbilitySetResponseType.Changed, slot);
         Logger.Info(

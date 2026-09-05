@@ -341,6 +341,17 @@ public class Unit : BaseUnit, IUnit
     }
 
     /// <summary>
+    /// After an ability swap or skillsaver activate: write newly owned defaults, then
+    /// publish every non-empty total. Login uses the same two steps. Held amounts and
+    /// decay timers stay as <see cref="InitializeCombatResources"/> left them.
+    /// </summary>
+    public void SyncCombatResourcesAfterAbilityChange()
+    {
+        InitializeCombatResources();
+        SendAllCombatResources();
+    }
+
+    /// <summary>
     /// Seeds <c>combat_resources.default_point</c> for resources this unit owns.
     /// Death's brand starts at 6 and Pleasure's joy/sorrow at 5; other classes must
     /// not receive those pools or their bar buffs.
@@ -489,6 +500,10 @@ public class Unit : BaseUnit, IUnit
         Buffs.RemoveBuff(resource.BuffId);
     }
 
+    internal List<(int Id, int Amount)> CombatResourcePointLog { get; private set; }
+
+    internal void StartCombatResourcePointLog() => CombatResourcePointLog = [];
+
     /// <summary>
     /// Pushes a resource total to whoever combat_resources.resouece_send_type_id says should see it
     /// (1 Self, 2 Broadcast).
@@ -497,6 +512,8 @@ public class Unit : BaseUnit, IUnit
     {
         if (resource == null)
             return;
+
+        CombatResourcePointLog?.Add((resource.Id, amount));
 
         var packet = new SCCombatResourcePointPacket(ObjId, resource.Id, (ulong)Math.Max(0, amount), updateTimeMs);
         if (resource.SendTypeId == 2)
