@@ -32,7 +32,7 @@ public class CommonFarmGameData : Singleton<CommonFarmGameData>, IGameDataLoader
                 var template = new CommonFarm()
                 {
                     Id = reader.GetUInt32("id"),
-                    Name = reader.GetString("name"),
+                    // Name = reader.GetString("name"),
                     FarmId = (FarmType)reader.GetUInt32("farm_group_id"),
                     GuardTime = reader.GetUInt32("guard_time"),
                     Comments = reader.GetString("comments")
@@ -106,10 +106,9 @@ public class CommonFarmGameData : Singleton<CommonFarmGameData>, IGameDataLoader
         // TODO: Find the actual correct way to identify the related public farm entry, Now all entries have the same time anyway, so should generally not matter, but it limits customization
         // For now use the comments entry to at least hit the correct zone to get a value from.
         // This can still be wrong if a zone has multiple public farms of the same time.
-        var commonFarm = _commonFarm.Values.FirstOrDefault(x => x.FarmId == farmType && x.Comments.Contains(zoneKey.ToString()));
-        // Fallback to farm type only
-        if (commonFarm == null)
-            commonFarm = _commonFarm.Values.FirstOrDefault(x => x.FarmId == farmType);
+        var commonFarm = _commonFarm.Values.FirstOrDefault(x => x.FarmId == farmType && x.Comments.Contains(zoneKey.ToString())) ??
+                         // Fallback to farm type only
+                         _commonFarm.Values.FirstOrDefault(x => x.FarmId == farmType);
         // Still nothing, then just return zero
         if (commonFarm == null)
             return 0;

@@ -4,9 +4,9 @@ namespace AAEmu.Game.Models.Game.CommonFarm;
 
 internal class CommonFarm
 {
-    public uint Id { get; set; }
-    public string Name { get; set; }
-    public FarmType FarmId { get; set; }
-    public uint GuardTime { get; set; }
-    public string Comments { get; set; }
+    public uint Id { get; init; }
+    // public string Name { get; set; }
+    public FarmType FarmId { get; init; }
+    public uint GuardTime { get; init; }
+    public string Comments { get; init; }
 }
