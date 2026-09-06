@@ -10,14 +10,12 @@ public class CSAuctionPostPacket() : GamePacket(CSOffsets.CSAuctionPostPacket, 1
 {
     public override void Read(PacketStream stream)
     {
-        var auctioneerId = stream.ReadBc();
-        var auctioneerId2 = stream.ReadBc();
         var itemId = stream.ReadUInt64();
-        var startPrice = stream.ReadInt32();
-        var buyoutPrice = stream.ReadInt32();
+        var startPrice = stream.ReadInt64();
+        var buyoutPrice = stream.ReadInt64();
         var duration = (AuctionDuration)stream.ReadByte();
-
-        Logger.Warn($"AuctionMyBidList, auctioneerId: {auctioneerId}, auctioneerId2: {auctioneerId2}, itemId: {itemId}, startPrice: {startPrice}, buyoutPrice: {buyoutPrice}, duration: {duration}");
+        var minStack = stream.ReadInt32();
+        var maxStack = stream.ReadInt32();
 
         var character = Connection.ActiveChar;
         if (character == null)
@@ -31,6 +29,6 @@ public class CSAuctionPostPacket() : GamePacket(CSOffsets.CSAuctionPostPacket, 1
             return;
         }
 
-        AuctionManager.Instance.PostLotOnAuction(character, auctioneerId, auctioneerId2, itemId, startPrice, buyoutPrice, duration);
+        AuctionManager.Instance.PostLotOnAuction(character, itemId, startPrice, buyoutPrice, duration, minStack, maxStack);
     }
 }

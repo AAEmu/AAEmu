@@ -438,21 +438,7 @@ public class TradeManager(ITradeIdManager tradeIdManager, IWorldManager worldMan
         if (split == null)
             return null;
 
-        split.ItemFlags = source.ItemFlags;
-        split.LifespanMins = source.LifespanMins;
-        split.MadeUnitId = source.MadeUnitId;
-        split.CreateTime = source.CreateTime;
-        split.UnsecureTime = source.UnsecureTime;
-        split.UnpackTime = source.UnpackTime;
-        split.ImageItemTemplateId = source.ImageItemTemplateId;
-        split.UccId = source.UccId;
-        split.ExpirationTime = source.ExpirationTime;
-        split.ExpirationOnlineMinutesLeft = source.ExpirationOnlineMinutesLeft;
-        split.ChargeStartTime = source.ChargeStartTime;
-        split.ChargeCount = source.ChargeCount;
-        split.ChargeUseSkillTime = source.ChargeUseSkillTime;
-        split.DetailType = source.DetailType;
-        split.Detail = source.Detail?.ToArray();
+        ItemSplitRules.CopyStackFields(source, split);
         return split;
     }
 

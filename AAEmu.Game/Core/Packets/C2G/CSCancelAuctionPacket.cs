@@ -9,14 +9,8 @@ public class CSCancelAuctionPacket() : GamePacket(CSOffsets.CSCancelAuctionPacke
 {
     public override void Read(PacketStream stream)
     {
-        var auctioneerId = stream.ReadBc();
-        var auctioneerId2 = stream.ReadBc();
-
         var lot = new AuctionLot();
         stream.Read(lot);
-
-        Logger.Warn($"AuctionCancel, auctioneerId: {auctioneerId}, auctioneerId2: {auctioneerId2}, ClientName: {lot.ClientName}, LotId: {lot.Id}");
-
         AuctionManager.Instance.CancelAuctionLot(Connection.ActiveChar, lot.Id);
     }
 }

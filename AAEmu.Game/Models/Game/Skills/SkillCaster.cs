@@ -1,5 +1,6 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Models.Game.Skills;
@@ -98,7 +99,8 @@ public class SkillItem : SkillCaster
             _itemId = value;
             if (_itemId > 0)
             {
-                SkillSourceItem = ItemManager.Instance.GetItemByItemId(value);
+                var found = ItemManager.Instance.GetItemByItemId(value);
+                SkillSourceItem = AuctionHouseRules.IsPlayerHeldItem(found) ? found : null;
                 ItemTemplateId = SkillSourceItem?.TemplateId ?? 0;
             }
         }

@@ -104,6 +104,16 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             return;
         }
 
+        // Racial defaults live in character_default_skills. Gate them before the
+        // Zone-authority return so HandleZoneAuthorityCast cannot cast another race's kit.
+        if (!DefaultSkillAssignRules.AllowDefaultCast(
+                SkillManager.Instance.IsDefaultSkill(skillId),
+                SkillManager.Instance.IsDefaultSkill(skillId, activeCharacter.Race, activeCharacter.Gender)))
+        {
+            Logger.Warn("StartSkill rejected other-race default {0} for {1}", skillId, activeCharacter.Name);
+            return;
+        }
+
         var world = Connection.ActiveChar?.ParentWorld ?? WorldManager.Instance.GetWorld(WorldManager.DefaultInstanceId);
 
         Logger.Info($"StartSkill: Id {skillId}, flag {flag}, caster={skillCaster.ObjId}, target={skillCastTarget.ObjId}");
@@ -180,7 +190,7 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             skill = Connection.ActiveChar.AutoAttackTask.Skill;
             skillResult = SkillResult.Success;
         }
-        else if (SkillManager.Instance.IsDefaultSkill(skillId) || SkillManager.Instance.IsCommonSkill(skillId) && skillCaster is not SkillItem)
+        else if (SkillManager.Instance.IsDefaultSkill(skillId, Connection.ActiveChar.Race, Connection.ActiveChar.Gender) || SkillManager.Instance.IsCommonSkill(skillId) && skillCaster is not SkillItem)
         {
             // Is it a common skill?
             skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId)); // TODO: переделать / rewrite ...

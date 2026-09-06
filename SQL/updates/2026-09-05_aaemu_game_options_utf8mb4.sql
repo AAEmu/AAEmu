@@ -1,0 +1,2 @@
+ALTER TABLE `options`
+    MODIFY `value` TEXT CHARACTER SET utf8mb4 NOT NULL;

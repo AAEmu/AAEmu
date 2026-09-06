@@ -305,6 +305,7 @@ internal class MailController : BaseController
             return BadRequestJson("Verification failed.");
         }
 
+        MailManager.Instance.NotifyDeleteMailByNameIfOnline(mail, mail.ReceiverName);
         if (!MailManager.Instance.DeleteMail(mail, deleteRequest.TrashItems))
         {
             return BadRequestJson(new { message = "Mail could not be deleted.", mailId = mail.Id });

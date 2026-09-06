@@ -303,6 +303,8 @@ public static class SCOffsets
     public const ushort SCAuctionBidPacket = 0x174; // 10.0.2.13
     public const ushort SCAuctionCanceledPacket = 0x175; // 10.0.2.13
     public const ushort SCAuctionMessagePacket = 0x176; // 10.0.2.13
+    public const ushort SCAuctionSoldRecordSearchedPacket = 0x177; // 10.0.2.13
+    public const ushort SCAuctionLimitedPricePacket = 0x178; // 10.0.2.13
     public const ushort SCDiceValuePacket = 0x179; // 10.0.2.13
     public const ushort SCDiceBidRuleChangedPacket = 0x17A; // 10.0.2.13
     public const ushort SCNpcSpawnerPacket = 0x135;

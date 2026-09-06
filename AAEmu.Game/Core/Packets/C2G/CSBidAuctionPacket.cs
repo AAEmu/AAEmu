@@ -10,16 +10,10 @@ public class CSBidAuctionPacket() : GamePacket(CSOffsets.CSBidAuctionPacket, 1)
 {
     public override void Read(PacketStream stream)
     {
-        var auctioneerId = stream.ReadBc();
-        var auctioneerId2 = stream.ReadBc();
-
-        var display = new AuctionDisplay();
-        stream.Read(display);
-
+        var lot = new AuctionLot();
+        stream.Read(lot);
         var bid = new AuctionBid();
         stream.Read(bid);
-
-        Logger.Warn($"AuctionBid, auctioneerId: {auctioneerId}, auctioneerId2: {auctioneerId2}, BidderName: {bid.BidderName}, LotId: {display.Lot.Id}:{bid.LotId}, Money: {bid.Money}");
 
         var character = Connection.ActiveChar;
         if (character == null)
@@ -33,6 +27,9 @@ public class CSBidAuctionPacket() : GamePacket(CSOffsets.CSBidAuctionPacket, 1)
             return;
         }
 
-        AuctionManager.Instance.BidOnAuctionLot(character, auctioneerId, auctioneerId2, display.Lot, bid);
+        if (bid.LotId == 0)
+            bid.LotId = lot.Id;
+
+        AuctionManager.Instance.BidOnAuctionLot(character, bid);
     }
 }

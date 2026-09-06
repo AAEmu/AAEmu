@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Models.Game.Skills;
+﻿using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 
@@ -15,6 +16,7 @@ public interface ISkillManager : ILoadable
     List<BuffTriggerTemplate> GetBuffTriggerTemplates(uint buffId);
     List<CombatBuffTemplate> GetCombatBuffs(uint reqBuffId);
     List<DefaultSkill> GetDefaultSkills();
+    List<DefaultSkill> GetDefaultSkills(Race race, Gender gender);
     EffectTemplate GetEffectTemplate(uint id);
     EffectTemplate GetEffectTemplate(uint id, string type);
     List<SkillModifier> GetModifiersByOwnerId(uint id);
@@ -27,6 +29,7 @@ public interface ISkillManager : ILoadable
     List<SkillTemplate> GetStartAbilitySkills(AbilityType ability);
     bool IsCommonSkill(uint id);
     bool IsDefaultSkill(uint id);
+    bool IsDefaultSkill(uint id, Race race, Gender gender);
     // ushort NextId();
     // void ReleaseId(ushort id);
 }

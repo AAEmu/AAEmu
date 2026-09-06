@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
@@ -1659,7 +1660,9 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                     invalidItemCount++;
                     i.Value.Name = "invalid_item_" + i.Value.Id;
                 }
-                i.Value.searchString = (i.Value.Name + " " + localizationManager.Get("items", "name", i.Value.Id)).ToLower();
+                i.Value.searchString = LocalizedTextSearchRules.BuildSearchString(
+                    i.Value.Name,
+                    localizationManager.GetAll("items", "name", i.Value.Id));
             }
 
             Logger.Info($"Loaded {_templates.Count} item templates (with {invalidItemCount} unused) ...");

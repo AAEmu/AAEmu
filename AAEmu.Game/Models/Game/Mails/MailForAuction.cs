@@ -1,5 +1,7 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Templates;
 
 namespace AAEmu.Game.Models.Game.Mails;
 
@@ -9,10 +11,10 @@ public class MailForAuction : BaseMail
     private readonly uint _sellerId;
     private readonly Item _item;
     private readonly string _itemName;
-    private readonly int _itemBuyoutPrice;
-    private int _sellerShare;
-    private readonly int _listingFee;
-    private int _tradeTaxFee;
+    private readonly long _itemBuyoutPrice;
+    private long _sellerShare;
+    private readonly long _listingFee;
+    private long _tradeTaxFee;
 
     private static readonly string AuctionName = "Auctioneer";
     // TODO: verify title names
@@ -24,7 +26,7 @@ public class MailForAuction : BaseMail
 
     // Mail examples for 1.2
 
-    public MailForAuction(Item itemToSell, uint sellerId, int buyoutPrice, int listingFee) : base()
+    public MailForAuction(Item itemToSell, uint sellerId, long buyoutPrice, long listingFee) : base()
     {
         _buyerId = 0;
         _sellerId = sellerId;
@@ -50,7 +52,7 @@ public class MailForAuction : BaseMail
     /// <param name="sellerId"></param>
     /// <param name="buyoutPrice"></param>
     /// <param name="listingFee"></param>
-    public MailForAuction(uint itemTemplateIdToSell, uint sellerId, int buyoutPrice, int listingFee) : base()
+    public MailForAuction(uint itemTemplateIdToSell, uint sellerId, long buyoutPrice, long listingFee) : base()
     {
         _buyerId = 0;
         _sellerId = sellerId;
@@ -90,6 +92,8 @@ public class MailForAuction : BaseMail
         Header.ReceiverId = _buyerId;
 
         Body.Text = string.Format("body('{0}', {1}, {2})", _itemName, _item.Count, _itemBuyoutPrice);
+        if (_item.Template?.BindType == ItemBindType.BindOnAuctionWin)
+            _item.SetFlag(ItemFlag.SoulBound);
         _item.OwnerId = _buyerId;
         _item.SlotType = SlotType.Mail;
         Body.Attachments.Add(_item);
@@ -98,10 +102,23 @@ public class MailForAuction : BaseMail
     }
 
     /// <summary>
+    /// Undo <see cref="FinalizeForSaleBuyer"/> when the buyer letter never left
+    /// the house. The stack goes back to auction escrow under the seller.
+    /// </summary>
+    public void RevertBuyerClaim()
+    {
+        if (_item == null)
+            return;
+
+        Body.Attachments.Remove(_item);
+        AuctionHouseRules.ReturnToHouseEscrow(_item, _sellerId);
+    }
+
+    /// <summary>
     /// Prepare mail for the person selling the item
     /// </summary>
     /// <returns></returns>
-    public bool FinalizeForSaleSeller(int sellerShare, int tradeTaxFee)
+    public bool FinalizeForSaleSeller(long sellerShare, long tradeTaxFee)
     {
         // /testmail 14 .auctionOffSuccess AHBuy "body('My Sold Item',7, 364000, 400000, 40000, 4000)"
         _sellerShare = sellerShare;
@@ -121,7 +138,7 @@ public class MailForAuction : BaseMail
         Body.Text = string.Format("body('{0}', {1}, {2}, {3}, {4}, {5})",
             _itemName, _item.Count, _sellerShare, _itemBuyoutPrice, _tradeTaxFee, _listingFee);
 
-        AttachMoney(sellerShare);
+        AttachMoney(AuctionHouseRules.ToMailCopper(sellerShare));
 
         return true;
     }
@@ -184,7 +201,7 @@ public class MailForAuction : BaseMail
     /// Prepare mail for the person who was outbid
     /// </summary>
     /// <returns></returns>
-    public bool FinalizeForBidFail(uint previousBuyerId, int previousBid)
+    public bool FinalizeForBidFail(uint previousBuyerId, long previousBid)
     {
         // /testmail 17 .auctionBidFail AHBidFail "body('My Sold Item')"
         _buyerId = previousBuyerId;
@@ -197,12 +214,12 @@ public class MailForAuction : BaseMail
         Header.ReceiverId = _buyerId;
         ReceiverName = nameBuyer;
 
-        MailType = MailType.AucOffFail;
+        MailType = MailType.AucBidFail;
         Title = TitleBidLost;
 
         Body.Text = string.Format("body('{0}')", _itemName);
 
-        AttachMoney(previousBid);
+        AttachMoney(AuctionHouseRules.ToMailCopper(previousBid));
 
         return true;
     }

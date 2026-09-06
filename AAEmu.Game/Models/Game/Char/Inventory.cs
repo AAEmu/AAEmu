@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
@@ -302,6 +303,16 @@ public class Inventory
     {
         Logger.Trace($"SplitOrMoveItem({fromItemId} {fromType}:{fromSlot} => {toItemId} {toType}:{toSlot} - {count})");
 
+        if (AuctionHouseRules.IsEscrowSlot(fromType) || AuctionHouseRules.IsEscrowSlot(toType) ||
+            AuctionHouseRules.IsEscrowSlot(sourceContainer?.ContainerType ?? SlotType.None) ||
+            AuctionHouseRules.IsEscrowSlot(targetContainer?.ContainerType ?? SlotType.None))
+        {
+            Logger.Warn(
+                "SplitOrMoveItem refused escrow move {0} {1}:{2} => {3} {4}:{5}",
+                fromItemId, fromType, fromSlot, toItemId, toType, toSlot);
+            return false;
+        }
+
         // Try to grab the actual source item
         var fromItem = ItemManager.Instance.GetItemByItemId(fromItemId);
         if (fromItem == null && fromItemId != 0)
@@ -551,13 +562,24 @@ public class Inventory
                 }
                 break;
             case SwapAction.doSplit:
-                fromItem.Count -= count;
-                itemTasks.Add(new ItemCountUpdate(fromItem, -count));
+                if (!ItemSplitRules.IsSplitAmount(fromItem.Count, count))
+                    return false;
                 var ni = ItemManager.Instance.Create(fromItem.TemplateId, count, fromItem.Grade, true);
-                ni.SlotType = toType;
-                ni.Slot = toSlot;
+                if (ni == null)
+                    return false;
+                ItemSplitRules.CopyStackFields(fromItem, ni);
+                ItemSplitRules.PlaceNewStack(ni, targetContainer?.OwnerId ?? fromItem.OwnerId, toType, toSlot);
                 ni._holdingContainer = targetContainer;
+                var sourceBefore = fromItem.Count;
+                fromItem.Count -= count;
+                if (!ItemSplitRules.ConservesCount(sourceBefore, count, fromItem.Count, ni.Count))
+                {
+                    fromItem.Count = sourceBefore;
+                    ItemManager.Instance.ReleaseId(ni.Id);
+                    return false;
+                }
                 targetContainer.Items.Add(ni);
+                itemTasks.Add(new ItemCountUpdate(fromItem, -count));
                 itemTasks.Add(new ItemAdd(ni));
                 if (targetContainer != sourceContainer)
                     targetContainer.UpdateFreeSlotCount();
@@ -632,9 +654,10 @@ public class Inventory
         if (itemInTargetSlot != null)
             itemInTargetSlot.OwnerId = targetContainer?.OwnerId ?? 0;
 
-        // Send Item manipulation packet 
-        if (taskType != ItemTaskType.Invalid && itemTasks.Count > 0)
-            Owner.SendPacket(new SCItemTaskSuccessPacket(taskType, itemTasks, []));
+        // Send Item manipulation packet
+        var reportType = ItemSplitRules.ReportTaskType(action == SwapAction.doSplit, taskType);
+        if (reportType != ItemTaskType.Invalid && itemTasks.Count > 0)
+            Owner.SendPacket(new SCItemTaskSuccessPacket(reportType, itemTasks, []));
 
         // Send ItemContainer events
         if (sourceContainer != targetContainer)

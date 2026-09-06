@@ -387,7 +387,8 @@ public static class CSOffsets
     public const ushort CSSailingActivityLeavePacket = 0x213;
     public const ushort CSSailingActivityRequestDataPacket = 0x215;
     public const ushort CSSaveAbilitySetPacket = 0x0D7;
-    public const ushort CSSearchAuctionSoldRecordPacket = 0xFE;
+    public const ushort CSSearchAuctionSoldRecordPacket = 0x0FE;
+    public const ushort CSAuctionSearchForMultilingualPacket = 0x20F;
     public const ushort CSSetAccountPrivilegePacket = 0x10C;
     public const ushort CSSetAppellationStampPacket = 0x14D;
     public const ushort CSShowCommonFarmAreaPacket = 0x15E;

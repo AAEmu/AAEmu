@@ -10,13 +10,8 @@ public class CSAuctionSearchPacket() : GamePacket(CSOffsets.CSAuctionSearchPacke
 {
     public override void Read(PacketStream stream)
     {
-        var auctioneerId = stream.ReadBc();
-        var auctioneerId2 = stream.ReadBc();
-
         var auctionSearch = new AuctionSearch();
         stream.Read(auctionSearch);
-
-        Logger.Warn($"AuctionSearch, auctioneerId: {auctioneerId}, auctioneerId: {auctioneerId2}, Keyword: {auctionSearch.Keyword}");
 
         var character = Connection.ActiveChar;
         if (character == null)

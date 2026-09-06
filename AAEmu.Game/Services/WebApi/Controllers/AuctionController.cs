@@ -6,8 +6,6 @@ using System.Text.RegularExpressions;
 using NLog;
 using System.Web;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Actions;
 
 namespace AAEmu.Game.Services.WebApi.Controllers;
 
@@ -35,12 +33,10 @@ internal class AuctionController : BaseController, IController
             return BadRequestJson(new { error = "Invalid parameters" });
         }
 
-        var itemId = itemIdElement.GetUInt32();
-        var quantity = quantityElement.GetInt32();
-        var price = priceElement.GetInt32();
+        var itemId = itemIdElement.GetUInt64();
+        var price = priceElement.GetInt64();
         var duration = (AuctionDuration)durationElement.GetInt32();
         var clientId = clientIdElement.GetUInt32();
-        var clientName = clientNameElement.GetString();
 
         try
         {
@@ -50,13 +46,12 @@ internal class AuctionController : BaseController, IController
             {
                 return BadRequestJson(new { error = "Internal server error", details = "Item not found!" });
             }
-            // Create a new auction item
-            var newAuctionItem = AuctionManager.Instance.CreateAuctionLot(player.Id, player.Name, item, price, price, duration, 1, quantity);
 
-            // Add the auction item to the auction house
-            AuctionManager.Instance.AddAuctionLot(newAuctionItem);
-            Logger.Info($"Added auction item: {newAuctionItem}");
-            return OkJson(new { message = "Auction item added successfully", item = newAuctionItem });
+            if (!AuctionManager.Instance.PostLotOnAuction(player, item.Id, price, price, duration, 1, item.Count))
+                return BadRequestJson(new { error = "Listing refused" });
+
+            Logger.Info("Listed item {0} for {1} through the auction API", item.Id, player.Name);
+            return OkJson(new { message = "Auction item added successfully" });
         }
         catch (Exception ex)
         {
@@ -110,12 +105,12 @@ internal class AuctionController : BaseController, IController
             }
             if (queryParams["DirectMoney"] != null)
             {
-                var directMoney = int.Parse(queryParams["DirectMoney"]);
+                var directMoney = long.Parse(queryParams["DirectMoney"]);
                 query = query.Where(item => item.DirectMoney == directMoney);
             }
             if (queryParams["BidMoney"] != null)
             {
-                var bidMoney = int.Parse(queryParams["BidMoney"]);
+                var bidMoney = long.Parse(queryParams["BidMoney"]);
                 query = query.Where(item => item.BidMoney == bidMoney);
             }
             if (queryParams["BidderName"] != null)
@@ -160,58 +155,17 @@ internal class AuctionController : BaseController, IController
         }
 
         var itemTemplateId = itemElement.GetUInt32();
-        var quantity = quantityElement.GetInt32();
-        var gradeId = gradeElement.GetByte();
-        var buyNowPrice = buyNowPriceElement.GetInt32();
-        var startPrice = startPriceElement.GetInt32();
-        var duration = (AuctionDuration)durationElement.GetInt32();
         var clientId = clientIdElement.GetUInt32();
         var clientName = clientNameElement.GetString();
+        _ = quantityElement;
+        _ = gradeElement;
+        _ = buyNowPriceElement;
+        _ = startPriceElement;
+        _ = durationElement;
 
-        try
-        {
-            var playerAhContainer = ItemManager.Instance.GetItemContainerForCharacter(clientId, SlotType.Auction, null, 0);
-            if (!playerAhContainer.AcquireDefaultItemEx(ItemTaskType.Invalid, itemTemplateId, quantity,
-                    gradeId, out var newItems, out _, 0, -1))
-            {
-                var err = $"Unable to create new item {itemTemplateId} for character {clientName} ({clientId})";
-                Logger.Warn(err);
-                return BadRequestJson(err);
-            }
-
-            if (newItems.Count != 1)
-            {
-                Logger.Warn($"Generate auction item request generated more than one entry! ({newItems.Count})");
-            }
-
-            if (newItems.Count < 1)
-            {
-                var err = $"No item was generated with template {itemTemplateId} for character {clientName} ({clientId})";
-                Logger.Warn(err);
-                return BadRequestJson(err);
-            }
-            
-            var newItem = newItems[0]; 
-            
-            var player = NameManager.Instance.GetCharacterName(clientId);
-            var itemTemplate = ItemManager.Instance.GetItemTemplateFromItemId(itemTemplateId);
-            if (player == null || itemTemplate == null)
-            {
-                return BadRequestJson(new { error = "Internal server error", details = "Item not found!" });
-            }
-            // Create a new auction item
-            var newAuctionItem = AuctionManager.Instance.CreateAuctionLot(clientId, clientName, newItem, startPrice, buyNowPrice, duration, 1, quantity);
-
-            // Add the auction item to the auction house
-            AuctionManager.Instance.AddAuctionLot(newAuctionItem);
-            Logger.Info($"Added auction item: {newAuctionItem}");
-            return OkJson(new { message = "Auction item generated successfully", item = newAuctionItem });
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, "Error adding auction item");
-            return BadRequestJson(new { error = "Internal server error", details = ex.Message });
-        }
+        Logger.Warn("Refused auction generate for template {0} by {1} ({2}): minting through this API is disabled",
+            itemTemplateId, clientName, clientId);
+        return BadRequestJson(new { error = "Auction generate is disabled. List an existing bag item through /api/auction/add." });
     }
 
 }

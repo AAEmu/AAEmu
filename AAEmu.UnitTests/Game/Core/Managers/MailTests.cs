@@ -18,10 +18,12 @@ public sealed class MailTests
     private CharacterMails _mails;
     private MailManager _mailManager;
     private Mock<IWorldManager> _mockWorldManager;
+    private RecordingSaveManager _saves;
 
     [Before(Test)]
     public void Setup()
     {
+        _saves = new RecordingSaveManager();
         _character = new CharacterMock { AccountId = 1, Id = 1, Name = "tester", Money = 1000 };
 
         _mails = new CharacterMails(_character);
@@ -55,6 +57,7 @@ public sealed class MailTests
         var services = new ServiceCollection();
         services.AddSingleton(_mailManager);
         services.AddSingleton(nameManager);
+        services.AddSingleton<ISaveManager>(_saves);
         SingletonContainer.ServiceProvider = services.BuildServiceProvider();
 
         _mailManager._allPlayerMails = [];
@@ -63,11 +66,11 @@ public sealed class MailTests
     [After(Test)]
     public void Teardown()
     {
-        _mailManager._allPlayerMails = null;
         _character = null;
         _mails = null;
         _mailManager = null;
         _mockWorldManager = null;
+        _saves = null;
 
         SingletonContainer.ServiceProvider = null;
         typeof(Singleton<MailManager>)
@@ -95,6 +98,99 @@ public sealed class MailTests
 
         await Assert.That(_mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, money3, extra, itemSlots)).IsEqualTo(MailResult.Success);
         await Assert.That(_character.Money).IsEqualTo(400);
+    }
+
+    /// <summary>
+    /// The save a sent letter forces must see the sender already charged. Saving from inside
+    /// Send() committed the paid letter next to the pre-charge balance, and a restart before the
+    /// next tick gave the sender their coin back while the recipient kept the letter.
+    /// </summary>
+    [Test]
+    public async Task SendMailToPlayer_PersistsOnceAfterTheFeeIsCharged()
+    {
+        var committedMoney = new List<long>();
+        var committedMails = new List<int>();
+        _saves.OnSave = () =>
+        {
+            committedMoney.Add(_character.Money);
+            committedMails.Add(_mailManager._allPlayerMails.Count);
+        };
+
+        var result = _mails.SendMailToPlayer(
+            MailType.Express, "tester".NormalizeName(), "test", "test", 0, 500, 0, 0, 0, 0, []);
+
+        await Assert.That(result).IsEqualTo(MailResult.Success);
+        await Assert.That(_saves.SaveCount).IsEqualTo(1);
+        await Assert.That(committedMoney).IsEquivalentTo([400L]);
+        await Assert.That(committedMails).IsEquivalentTo([1]);
+    }
+
+    /// <summary>
+    /// A save asked for on another thread while a letter is between "stored" and "paid for"
+    /// must wait for the operation to finish, and the operation's own flush must not be lost
+    /// when it finds that save running.
+    /// </summary>
+    [Test]
+    public async Task DeferPersist_SaveOnAnotherThread_WaitsForTheOperationToFinish()
+    {
+        var committed = new List<(long money, int mails)>();
+        _saves.OnSave = () =>
+        {
+            lock (committed)
+                committed.Add((_character.Money, _mailManager._allPlayerMails.Count));
+        };
+
+        using var mailStored = new ManualResetEventSlim();
+        using var proceed = new ManualResetEventSlim();
+
+        var operation = Task.Run(() =>
+        {
+            using var scope = _mailManager.DeferPersist();
+            var mail = new MailPlayerToPlayer(_character, "tester".NormalizeName()) { MailType = MailType.Express, Title = "t" };
+            mail.AttachMoney(500, 0, 0);
+            if (!mail.Send())
+                throw new InvalidOperationException("send failed");
+            mailStored.Set();
+            proceed.Wait();
+            _character.SubtractMoney(SlotType.Inventory, 600);
+        });
+
+        mailStored.Wait();
+        var save = Task.Run(() => _saves.DoSave());
+        await Assert.That(save.Wait(200)).IsFalse();
+        await Assert.That(_saves.SaveCount).IsEqualTo(0);
+
+        proceed.Set();
+        await Task.WhenAll(operation, save);
+
+        await Assert.That(_character.Money).IsEqualTo(400);
+        await Assert.That(_saves.SaveCount).IsGreaterThanOrEqualTo(1);
+        await Assert.That(_saves.SaveCount + _saves.BusySkips).IsEqualTo(2);
+        foreach (var snapshot in committed)
+            await Assert.That(snapshot).IsEqualTo((400L, 1));
+    }
+
+    [Test]
+    public async Task DeferPersist_NestedScopes_FlushOnceAtTheOutermost()
+    {
+        using (_mailManager.DeferPersist())
+        {
+            _mailManager.PersistNow();
+            using (_mailManager.DeferPersist())
+                _mailManager.PersistNow();
+            await Assert.That(_saves.SaveCount).IsEqualTo(0);
+        }
+
+        await Assert.That(_saves.SaveCount).IsEqualTo(1);
+
+        using (_mailManager.DeferPersist())
+        {
+        }
+
+        await Assert.That(_saves.SaveCount).IsEqualTo(1);
+
+        _mailManager.PersistNow();
+        await Assert.That(_saves.SaveCount).IsEqualTo(2);
     }
 
     [Test]
@@ -197,5 +293,34 @@ public sealed class MailTests
         await Assert.That(_character.Mails.UnreadMailCount.TotalReceived).IsEqualTo(1);
         await Assert.That(_character.Mails.UnreadMailCount.Received).IsEqualTo(1);
         await Assert.That(remaining.Header.ReceiverId).IsEqualTo(_character.Id);
+    }
+
+    [Test]
+    public async Task GetAttached_MissingMail_ReturnsFalse()
+    {
+        await Assert.That(_mails.GetAttached(999, true, true, true)).IsFalse();
+    }
+
+    [Test]
+    public async Task ReadMail_MissingMail_DoesNotThrow()
+    {
+        _mails.ReadMail(false, 999);
+        await Assert.That(_mailManager._allPlayerMails.ContainsKey(999)).IsFalse();
+    }
+
+    [Test]
+    public async Task DeleteMail_TrashAttachmentWithoutContainer_StillRemovesMail()
+    {
+        var mail = new BaseMail
+        {
+            Id = 42,
+            ReceiverName = "tester",
+            Header = { ReceiverId = 1, SenderId = 0 },
+        };
+        mail.Body.Attachments.Add(new Item(99) { SlotType = SlotType.Mail });
+        _mailManager._allPlayerMails[42] = mail;
+
+        await Assert.That(_mailManager.DeleteMail(mail, trashItems: true)).IsTrue();
+        await Assert.That(_mailManager._allPlayerMails.ContainsKey(42)).IsFalse();
     }
 }

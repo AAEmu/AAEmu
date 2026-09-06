@@ -1,5 +1,7 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Items;
+
 using Newtonsoft.Json;
 
 namespace AAEmu.Game.Models.Game.Auction;
@@ -11,7 +13,7 @@ public class AuctionLot : PacketMarshaler
     public ulong Id { get; set; }
 
     [JsonProperty]
-    public AuctionDuration Duration { get; set; } // 0 is 6 hours, 1 is 12 hours, 2 is 24 hours, 3 is 48 hours
+    public AuctionDuration Duration { get; set; }
 
     [JsonProperty]
     public Item Item { get; set; }
@@ -19,11 +21,8 @@ public class AuctionLot : PacketMarshaler
     [JsonProperty]
     public DateTime EndTime { get; set; }
 
-    /// <summary>
-    /// Seconds left
-    /// </summary>
     [JsonProperty]
-    public ulong TimeLeft { get => (ulong)EndTime.Subtract(DateTime.UtcNow).TotalSeconds; }
+    public ulong TimeLeft => (ulong)Math.Max(0, EndTime.Subtract(DateTime.UtcNow).TotalSeconds);
 
     [JsonProperty]
     public byte WorldId { get; set; }
@@ -32,40 +31,49 @@ public class AuctionLot : PacketMarshaler
     public uint ClientId { get; set; }
 
     [JsonProperty]
-    public string ClientName { get; set; }
+    public string ClientName { get; set; } = string.Empty;
 
     [JsonProperty]
-    public int StartMoney { get; set; }
+    public long StartMoney { get; set; }
 
     [JsonProperty]
-    public int DirectMoney { get; set; }
+    public long DirectMoney { get; set; }
 
     [JsonProperty]
     public DateTime PostDate { get; set; }
 
-    // [JsonProperty]
-    // public int ChargePercent { get; set; } // added in 3+
+    [JsonProperty]
+    public ulong Asked { get; set; }
 
     [JsonProperty]
-    public byte BidWorldId { get; set; }
+    public int ChargePercent { get; set; }
+
+    [JsonProperty]
+    public int DepositPercent { get; set; }
+
+    [JsonProperty]
+    public byte ServiceKind { get; set; }
+
+    [JsonProperty]
+    public byte BidWorldId { get; set; } = AuctionHouseRules.UnsetWorldId;
 
     [JsonProperty]
     public uint BidderId { get; set; }
 
     [JsonProperty]
-    public string BidderName { get; set; }
+    public string BidderName { get; set; } = string.Empty;
 
     [JsonProperty]
-    public int BidMoney { get; set; }
+    public long BidMoney { get; set; }
 
     [JsonProperty]
-    public int Extra { get; set; }
+    public long ExtraMoney { get; set; }
 
-    // [JsonProperty]
-    // public int MinStack { get; set; } // added in 3+
+    [JsonProperty]
+    public int MinStack { get; set; } = 1;
 
-    // [JsonProperty]
-    // public int MaxStack { get; set; } // added in 3+
+    [JsonProperty]
+    public int MaxStack { get; set; } = 1;
 
     [JsonIgnore]
     public bool IsDirty { get; set; }
@@ -74,47 +82,50 @@ public class AuctionLot : PacketMarshaler
     {
         Id = stream.ReadUInt64();
         Duration = (AuctionDuration)stream.ReadByte();
-
-        Item = new Item();
+        Item = new Item(0);
         Item.Read(stream);
-
         WorldId = stream.ReadByte();
-        ClientId = stream.ReadUInt32();
+        ClientId = (uint)stream.ReadUInt64();
         ClientName = stream.ReadString();
-        StartMoney = stream.ReadInt32();
-        DirectMoney = stream.ReadInt32();
-        PostDate = DateTime.FromBinary(stream.ReadInt64());
-        //ChargePercent = stream.ReadInt32();
+        StartMoney = stream.ReadInt64();
+        DirectMoney = stream.ReadInt64();
+        Asked = stream.ReadUInt64();
+        ChargePercent = stream.ReadInt32();
+        DepositPercent = stream.ReadInt32();
+        ServiceKind = stream.ReadByte();
         BidWorldId = stream.ReadByte();
-        BidderId = stream.ReadUInt32();
+        BidderId = (uint)stream.ReadUInt64();
         BidderName = stream.ReadString();
-        BidMoney = stream.ReadInt32();
-        Extra = stream.ReadInt32();
-        //MinStack = stream.ReadInt32();
-        //MaxStack = stream.ReadInt32();
+        BidMoney = stream.ReadInt64();
+        ExtraMoney = stream.ReadInt64();
+        MinStack = stream.ReadInt32();
+        MaxStack = stream.ReadInt32();
     }
 
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write(Id);
         stream.Write((byte)Duration);
-
-        stream.Write(Item);
-
+        if (Item == null)
+            stream.Write(0u);
+        else
+            stream.Write(Item);
         stream.Write(WorldId);
-        stream.Write(ClientId);
-        stream.Write(ClientName);
+        stream.Write((ulong)ClientId);
+        stream.Write(ClientName ?? string.Empty);
         stream.Write(StartMoney);
         stream.Write(DirectMoney);
-        stream.Write(PostDate);
-        //stream.Write(ChargePercent);
+        stream.Write(Asked != 0 ? Asked : (ulong)Helpers.UnixTime(PostDate));
+        stream.Write(ChargePercent);
+        stream.Write(DepositPercent);
+        stream.Write(ServiceKind);
         stream.Write(BidWorldId);
-        stream.Write(BidderId);
-        stream.Write(BidderName);
+        stream.Write((ulong)BidderId);
+        stream.Write(BidderName ?? string.Empty);
         stream.Write(BidMoney);
-        stream.Write(Extra);
-        //stream.Write(MinStack);
-        //stream.Write(MaxStack);
+        stream.Write(ExtraMoney);
+        stream.Write(MinStack);
+        stream.Write(MaxStack);
         return stream;
     }
 }

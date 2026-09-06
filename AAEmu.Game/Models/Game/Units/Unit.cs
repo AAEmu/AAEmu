@@ -341,19 +341,52 @@ public class Unit : BaseUnit, IUnit
     }
 
     /// <summary>
-    /// Seeds <c>combat_resources.default_point</c>. Called once when a unit enters the world — 죽음의 낙인
-    /// starts at 6 and 기쁨 / 슬픔 at 5, and until this ran every ability that reads them saw 0.
+    /// After an ability swap or skillsaver activate: write newly owned defaults, then
+    /// publish every non-empty total. Login uses the same two steps. Held amounts and
+    /// decay timers stay as <see cref="InitializeCombatResources"/> left them.
+    /// </summary>
+    public void SyncCombatResourcesAfterAbilityChange()
+    {
+        InitializeCombatResources();
+        SendAllCombatResources();
+    }
+
+    /// <summary>
+    /// Seeds <c>combat_resources.default_point</c> for resources this unit owns.
+    /// Death's brand starts at 6 and Pleasure's joy/sorrow at 5; other classes must
+    /// not receive those pools or their bar buffs.
     /// </summary>
     public void InitializeCombatResources()
     {
+        IReadOnlySet<int> owned = null;
+        if (this is Character character)
+            owned = CombatResourceGameData.Instance.ResourceIdsForAbilities(
+                (int)character.Ability1, (int)character.Ability2, (int)character.Ability3);
+
+        foreach (var id in CombatResourceSeedRules.HeldToDrop(CombatResources.Keys, owned))
+            DropCombatResource(id);
+
         foreach (var resource in CombatResourceGameData.Instance.WithDefaultPoint)
         {
+            if (!CombatResourceSeedRules.ShouldWriteDefault(
+                    resource.Id, owned, CombatResources.ContainsKey(resource.Id)))
+                continue;
             CombatResources[resource.Id] = resource.Max > 0
                 ? Math.Min(resource.DefaultPoint, resource.Max)
                 : resource.DefaultPoint;
             ArmCombatResourceDecay(resource.Id, CombatResources[resource.Id], restart: true);
             SyncCombatResourceBuff(resource.Id, CombatResources[resource.Id]);
         }
+    }
+
+    private void DropCombatResource(int resourceId)
+    {
+        CombatResources.Remove(resourceId);
+        _combatResourceDecayAt.Remove(resourceId);
+        SyncCombatResourceBuff(resourceId, 0);
+        var resource = CombatResourceGameData.Instance.Get(resourceId);
+        if (resource != null)
+            BroadcastCombatResource(resource, 0, updateTimeMs: 0);
     }
 
     /// <summary>
@@ -467,6 +500,10 @@ public class Unit : BaseUnit, IUnit
         Buffs.RemoveBuff(resource.BuffId);
     }
 
+    internal List<(int Id, int Amount)> CombatResourcePointLog { get; private set; }
+
+    internal void StartCombatResourcePointLog() => CombatResourcePointLog = [];
+
     /// <summary>
     /// Pushes a resource total to whoever combat_resources.resouece_send_type_id says should see it
     /// (1 Self, 2 Broadcast).
@@ -475,6 +512,8 @@ public class Unit : BaseUnit, IUnit
     {
         if (resource == null)
             return;
+
+        CombatResourcePointLog?.Add((resource.Id, amount));
 
         var packet = new SCCombatResourcePointPacket(ObjId, resource.Id, (ulong)Math.Max(0, amount), updateTimeMs);
         if (resource.SendTypeId == 2)

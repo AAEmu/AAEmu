@@ -13,6 +13,9 @@ public class CharacterAbilities
     public Dictionary<AbilityType, Ability> Abilities { get; set; }
     public Character Owner { get; set; }
 
+    /// <summary>When true, <see cref="Swap"/> skips the gold charge so unit tests can exercise the kit change.</summary>
+    internal bool BypassSwapChargeForTests { get; set; }
+
     public CharacterAbilities(Character owner)
     {
         Owner = owner;
@@ -105,7 +108,7 @@ public class CharacterAbilities
             return;
         }
 
-        if (!AbilityChangeCosts.TryChargeSwapAbility(Owner))
+        if (!BypassSwapChargeForTests && !AbilityChangeCosts.TryChargeSwapAbility(Owner))
             return;
 
         // 0x147 reports every slot's before/after pair, so snapshot all three before mutating.
@@ -180,6 +183,8 @@ public class CharacterAbilities
             foreach (var template in SkillManager.Instance.GetStartAbilitySkills(abilityId))
                 Owner.Skills.AddSkill(template, 1, true);
         }
+
+        Owner.SyncCombatResourcesAfterAbilityChange();
     }
 
     public void Load(MySqlConnection connection)

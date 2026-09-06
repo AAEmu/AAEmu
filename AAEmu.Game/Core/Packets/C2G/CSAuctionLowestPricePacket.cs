@@ -8,13 +8,8 @@ public class CSAuctionLowestPricePacket() : GamePacket(CSOffsets.CSAuctionLowest
 {
     public override void Read(PacketStream stream)
     {
-        var auctioneerId = stream.ReadBc();
-        var auctioneerId2 = stream.ReadBc();
         var itemTemplateId = stream.ReadUInt32();
         var itemGrade = stream.ReadByte();
-
-        Logger.Warn($"AuctionLowestPrice, auctioneerId: {auctioneerId}, auctioneerId2: {auctioneerId2}, TemplateId: {itemTemplateId}, Grade: {itemGrade}");
-
         AuctionManager.Instance.CheapestAuctionLot(Connection.ActiveChar, itemTemplateId, itemGrade);
     }
 }

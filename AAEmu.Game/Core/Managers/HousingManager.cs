@@ -16,6 +16,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -1783,7 +1784,7 @@ public class HousingManager(
 
         // Check Item
         var item = itemManager.GetItemByItemId(itemId);
-        if (item == null || item.OwnerId != player.Id)
+        if (item == null || item.OwnerId != player.Id || !AuctionHouseRules.IsPlayerHeldItem(item))
         {
             // Invalid Item
             return false;

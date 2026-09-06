@@ -4,11 +4,14 @@ using System.Text;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Features;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mails;
@@ -19,401 +22,707 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class AuctionManager(IItemManager itemManager, INameManager nameManager, IAuctionIdManager auctionIdManager, ILocalizationManager localizationManager, ITaskManager taskManager) : Singleton<AuctionManager>, IAuctionManager
+public class AuctionManager(
+    IItemManager itemManager,
+    INameManager nameManager,
+    IAuctionIdManager auctionIdManager,
+    ILocalizationManager localizationManager,
+    ITaskManager taskManager) : Singleton<AuctionManager>, IAuctionManager
 {
-    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    private static Logger Logger { get; } = LogManager.GetLogger("AuctionHouse");
 
     public ConcurrentDictionary<ulong, AuctionLot> AuctionLots { get; } = [];
     public ConcurrentBag<long> _deletedAuctionItemIds { get; } = [];
 
-    /// <summary>Listing deposit and sale commission, read from content_configs. See <see cref="AuctionFeeSchedule"/>.</summary>
     public AuctionFeeSchedule Fees { get; } = new();
 
-    private void RemoveAuctionLotSold(AuctionLot itemToRemove, string buyer, int soldAmount)
+    private readonly List<AuctionSale> _soldRecords = [];
+    private readonly object _soldLock = new();
+    private readonly object _houseLock = new();
+    private readonly HashSet<ulong> _listedItemIds = [];
+    private bool? _houseHasExtendedColumns;
+    private bool _tickStarted;
+
+    private bool HouseIsOpen => AppConfiguration.Instance.InitialConfig.CanUseAuction;
+
+    private bool AllowPartialBuy =>
+        FeaturesManager.Fsets != null && FeaturesManager.Fsets.Check(Feature.auctionPartialBuy);
+
+    private bool HasAuctionPostBuff(Character player)
     {
-        if (AuctionLots.ContainsKey(itemToRemove.Id))
+        if (player == null)
+            return false;
+        var worldId = AppConfiguration.Instance.Id;
+        return AccountAttributeManager.Instance.Get(player.AccountId, worldId)
+            .Any(a => a.KindId == (uint)AccountAttributeKind.AuctionPost);
+    }
+
+    private int ChargeDiscount(Character player) =>
+        HasAuctionPostBuff(player) ? Fees.SaleChargeAccountBuffDiscount : 0;
+
+    private int DepositDiscount(Character player) =>
+        HasAuctionPostBuff(player) ? Fees.DepositAccountBuffDiscount : 0;
+
+    private string LocalizedItemName(uint templateId)
+    {
+        var template = itemManager.GetTemplate(templateId);
+        return localizationManager.Get("items", "name", templateId, template?.Name ?? string.Empty);
+    }
+
+    private IReadOnlyList<string> LocalizedItemNames(uint templateId) =>
+        localizationManager.GetAll("items", "name", templateId) ?? [];
+
+    private static byte ServerWorldId => AppConfiguration.Instance.Id;
+
+    private void SendHouseMessage(uint characterId, AuctionMessageKind kind, uint templateId, long money)
+    {
+        var online = WorldManager.Instance.GetCharacterById(characterId);
+        online?.SendPacket(new SCAuctionMessagePacket(kind, templateId, money));
+    }
+
+    private void SendSearchPage(Character player, int page, IReadOnlyList<AuctionLot> lots, ErrorMessageType error = ErrorMessageType.NoErrorMessage)
+    {
+        player.SendPacket(new SCAuctionSearchedPacket(page, lots, (short)error, DateTime.UtcNow));
+    }
+
+    private void RecordSale(AuctionLot lot, long soldAmount, Item sold = null)
+    {
+        var item = sold ?? lot?.Item;
+        if (item == null || soldAmount <= 0)
+            return;
+
+        var sale = new AuctionSale(item.TemplateId, item.Grade, DateTime.UtcNow, soldAmount, item.Count);
+        lock (_soldLock)
         {
-            var newItem = itemManager.GetItemByItemId(itemToRemove.Item.Id);
-            if (newItem != null)
-            {
-                /*
-                var itemList = new Item[10].ToList();
-                itemList[0] = newItem;
-                */
+            _soldRecords.Add(sale);
+            TrimSoldRecordsLocked(DateTime.UtcNow);
+        }
 
-                // A handful of items bill a commission of their own instead of the house rate.
-                var saleCharge = Fees.GetSaleCharge(soldAmount, newItem.Template?.AuctionSettings?.EffectiveChargeRate ?? 0);
-                var moneyAfterFee = soldAmount - saleCharge;
-
-                var recalculatedFee = Fees.GetListingDeposit(itemToRemove.DirectMoney, itemToRemove.Duration);
-
-                if (itemToRemove.ClientName != "")
-                {
-                    var sellMail = new MailForAuction(newItem, itemToRemove.ClientId, soldAmount, recalculatedFee);
-                    sellMail.FinalizeForSaleSeller(moneyAfterFee, saleCharge);
-                    sellMail.Send();
-                }
-
-                var buyMail = new MailForAuction(newItem, itemToRemove.ClientId, soldAmount, recalculatedFee);
-                var buyerId = nameManager.GetCharacterId(buyer);
-                buyMail.FinalizeForSaleBuyer(buyerId);
-                buyMail.Send();
-            }
-
-            RemoveAuctionLot(itemToRemove);
+        try
+        {
+            using var connection = MySQL.CreateConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                "INSERT INTO auction_sold_records (item_template_id, item_grade, sold_at, price, stack) " +
+                "VALUES (@template, @grade, @sold_at, @price, @stack)";
+            command.Parameters.AddWithValue("@template", sale.ItemTemplateId);
+            command.Parameters.AddWithValue("@grade", sale.Grade);
+            command.Parameters.AddWithValue("@sold_at", sale.SoldAt);
+            command.Parameters.AddWithValue("@price", sale.Price);
+            command.Parameters.AddWithValue("@stack", sale.Stack);
+            command.Prepare();
+            command.ExecuteNonQuery();
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to persist sold record template={0} grade={1} price={2}",
+                sale.ItemTemplateId, sale.Grade, sale.Price);
         }
     }
 
-    private void RemoveAuctionLotFail(AuctionLot itemToRemove)
+    private void TrimSoldRecordsLocked(DateTime utcNow)
     {
-        if (!AuctionLots.ContainsKey(itemToRemove.Id))
+        var cutoff = utcNow.Date.AddDays(1 - AuctionHouseRules.SoldRecordDays);
+        _soldRecords.RemoveAll(s => s.SoldAt < cutoff);
+    }
+
+    private void UntrackItem(ulong itemId)
+    {
+        if (itemId != 0)
+            _listedItemIds.Remove(itemId);
+    }
+
+    private bool TryAddLot_NoLock(AuctionLot lot)
+    {
+        if (lot?.Item == null || !AuctionHouseRules.IsHeldByHouse(lot.Item))
+            return false;
+        if (!_listedItemIds.Add(lot.Item.Id))
+        {
+            Logger.Warn("Refuse lot {0}: item {1} is already listed", lot.Id, lot.Item.Id);
+            return false;
+        }
+
+        if (AuctionLots.TryAdd(lot.Id, lot))
+            return true;
+
+        UntrackItem(lot.Item.Id);
+        Logger.Warn("Unable to add lot {0}, possible duplicate Id", lot.Id);
+        return false;
+    }
+
+    private bool TryDetachLot_NoLock(ulong lotId, out AuctionLot lot)
+    {
+        if (!AuctionLots.TryRemove(lotId, out lot))
+            return false;
+        if (lot.Item != null)
+            UntrackItem(lot.Item.Id);
+        return true;
+    }
+
+    private void ForgetLot_NoLock(AuctionLot lot)
+    {
+        if (lot.Item != null)
+            UntrackItem(lot.Item.Id);
+        auctionIdManager.ReleaseId((uint)lot.Id);
+        _deletedAuctionItemIds.Add((long)lot.Id);
+    }
+
+    private void RestoreLot_NoLock(AuctionLot lot)
+    {
+        if (!TryAddLot_NoLock(lot))
+            Logger.Error("Failed to restore lot {0} after an aborted settle", lot.Id);
+    }
+
+    private void SendBidRefund(uint bidderId, AuctionLot lot, long amount)
+    {
+        if (bidderId == 0 || amount <= 0)
             return;
 
-        if (itemToRemove.BidderName != "") // Player won the bid
+        var mail = new MailForAuction(lot.Item?.TemplateId ?? 0, lot.ClientId, lot.DirectMoney, 0);
+        if (mail.FinalizeForBidFail(bidderId, amount))
+            mail.Send();
+    }
+
+    private void SettleSold_NoLock(AuctionLot lot, string buyer, long soldAmount)
+    {
+        var item = lot.Item != null ? itemManager.GetItemByItemId(lot.Item.Id) : null;
+        var buyerId = nameManager.GetCharacterId(buyer);
+        if (item == null || buyerId == 0 || !AuctionHouseRules.IsHeldByHouse(item))
         {
-            RemoveAuctionLotSold(itemToRemove, itemToRemove.BidderName, itemToRemove.BidMoney);
+            if (buyerId != 0)
+                SendBidRefund(buyerId, lot, soldAmount);
+            Logger.Error("Sale aborted lot={0} buyer={1}: item is not in house escrow", lot.Id, buyer);
+            ForgetLot_NoLock(lot);
             return;
         }
 
-        // Item did not sell by end of the timer.
-        var newItem = itemManager.GetItemByItemId(itemToRemove.Item.Id);
-        if (newItem != null)
+        var listingDeposit = Fees.GetListingDeposit(lot.DirectMoney, lot.Duration);
+        var buyMail = new MailForAuction(item, lot.ClientId, soldAmount, listingDeposit);
+        if (!buyMail.FinalizeForSaleBuyer(buyerId))
         {
-            // var itemList = new Item[10].ToList();
-            // itemList[0] = newItem;
+            AbortSaleDelivery_NoLock(lot, item, buyerId, soldAmount, "buyer name");
+            return;
+        }
 
-            var recalculatedFee = Fees.GetListingDeposit(itemToRemove.DirectMoney, itemToRemove.Duration);
+        if (!buyMail.Send())
+        {
+            buyMail.RevertBuyerClaim();
+            AbortSaleDelivery_NoLock(lot, item, buyerId, soldAmount, "buyer mail");
+            return;
+        }
 
-            if (itemToRemove.ClientName != "")
-            {
-                var failMail = new MailForAuction(newItem, itemToRemove.ClientId, itemToRemove.DirectMoney,
-                    recalculatedFee);
-                failMail.FinalizeForFail();
+        var saleCharge = AuctionHouseRules.SaleChargeForLot(
+            Fees, soldAmount, lot.ChargePercent, item.Template?.AuctionSettings?.EffectiveChargeRate ?? 0);
+        var moneyAfterFee = soldAmount - saleCharge;
+        if (!string.IsNullOrEmpty(lot.ClientName))
+        {
+            var sellMail = new MailForAuction(item, lot.ClientId, soldAmount, listingDeposit);
+            if (sellMail.FinalizeForSaleSeller(moneyAfterFee, saleCharge))
+                sellMail.Send();
+            else
+                Logger.Error("Seller mail failed lot={0} seller={1} after the item was delivered", lot.Id, lot.ClientId);
+        }
+
+        Logger.Info("Sale settle lot={0} seller={1} ({2}) buyer={3} sold={4} net={5} charge={6}",
+            lot.Id, lot.ClientName, lot.ClientId, buyer, soldAmount, moneyAfterFee, saleCharge);
+        SendHouseMessage(lot.ClientId, AuctionMessageKind.Sold, item.TemplateId, soldAmount);
+        RecordSale(lot, soldAmount, item);
+        ForgetLot_NoLock(lot);
+    }
+
+    private void SettleSoldSlice_NoLock(AuctionLot lot, Item sold, string buyer, long soldAmount)
+    {
+        var leftover = lot.Item != null ? itemManager.GetItemByItemId(lot.Item.Id) : null;
+        var buyerId = nameManager.GetCharacterId(buyer);
+        if (sold == null || buyerId == 0 || !AuctionHouseRules.IsHeldByHouse(sold))
+        {
+            AbortSliceDelivery_NoLock(lot, leftover, sold, buyerId, soldAmount, "slice is not in house escrow");
+            return;
+        }
+
+        var listingDeposit = Fees.GetListingDeposit(lot.DirectMoney, lot.Duration);
+        var buyMail = new MailForAuction(sold, lot.ClientId, soldAmount, listingDeposit);
+        if (!buyMail.FinalizeForSaleBuyer(buyerId))
+        {
+            AbortSliceDelivery_NoLock(lot, leftover, sold, buyerId, soldAmount, "buyer name");
+            return;
+        }
+
+        if (!buyMail.Send())
+        {
+            buyMail.RevertBuyerClaim();
+            AbortSliceDelivery_NoLock(lot, leftover, sold, buyerId, soldAmount, "buyer mail");
+            return;
+        }
+
+        var saleCharge = AuctionHouseRules.SaleChargeForLot(
+            Fees, soldAmount, lot.ChargePercent, sold.Template?.AuctionSettings?.EffectiveChargeRate ?? 0);
+        var moneyAfterFee = soldAmount - saleCharge;
+        if (!string.IsNullOrEmpty(lot.ClientName))
+        {
+            var sellMail = new MailForAuction(sold, lot.ClientId, soldAmount, listingDeposit);
+            if (sellMail.FinalizeForSaleSeller(moneyAfterFee, saleCharge))
+                sellMail.Send();
+            else
+                Logger.Error("Seller mail failed lot={0} seller={1} after a partial delivery", lot.Id, lot.ClientId);
+        }
+
+        Logger.Info("Partial sale settle lot={0} seller={1} ({2}) buyer={3} sold={4} leftover={5} net={6} charge={7}",
+            lot.Id, lot.ClientName, lot.ClientId, buyer, soldAmount, leftover?.Count ?? 0, moneyAfterFee, saleCharge);
+        SendHouseMessage(lot.ClientId, AuctionMessageKind.Sold, sold.TemplateId, soldAmount);
+        RecordSale(lot, soldAmount, sold);
+        AuctionHouseRules.ClearStandingBid(lot);
+        if (leftover != null)
+        {
+            var stacks = AuctionHouseRules.ClampStacks(leftover.Count, lot.MinStack, lot.MaxStack, AllowPartialBuy);
+            lot.MinStack = stacks.minStack;
+            lot.MaxStack = stacks.maxStack;
+            lot.IsDirty = true;
+        }
+    }
+
+    private Item TrySplitHouseStack(Item source, int amount)
+    {
+        if (source == null || !ItemSplitRules.IsSplitAmount(source.Count, amount))
+            return null;
+
+        var split = itemManager.Create(source.TemplateId, amount, source.Grade);
+        if (split == null)
+            return null;
+
+        ItemSplitRules.CopyStackFields(source, split);
+        split.TemplateId = source.TemplateId;
+        split.Template = source.Template;
+        split.Grade = source.Grade;
+        split.Count = amount;
+        var before = source.Count;
+        source.Count -= amount;
+        if (!ItemSplitRules.ConservesCount(before, amount, source.Count, split.Count))
+        {
+            source.Count = before;
+            itemManager.ReleaseId(split.Id);
+            return null;
+        }
+
+        AuctionHouseRules.ReturnToHouseEscrow(split, source.OwnerId);
+        return split;
+    }
+
+    private void MergeHouseStack(Item leftover, Item slice)
+    {
+        if (leftover != null && slice != null && leftover.Id != slice.Id)
+        {
+            leftover.Count += slice.Count;
+            AuctionHouseRules.ReturnToHouseEscrow(leftover, leftover.OwnerId);
+            itemManager.ReleaseId(slice.Id);
+            return;
+        }
+
+        if (slice != null)
+            AuctionHouseRules.ReturnToHouseEscrow(slice, leftover?.OwnerId ?? slice.OwnerId);
+    }
+
+    /// <summary>
+    /// Undo a delivery that never reached the buyer. By this point every copper bid on the
+    /// lot has been refunded: an outbid bidder in <see cref="BidOnAuctionLot"/>, the buyer's
+    /// own earlier bid inside <paramref name="soldAmount"/>, or the expiry winner here. The
+    /// restored listing must therefore carry no standing bid, or expiry would hand the item
+    /// to a bidder who already has their money back.
+    /// </summary>
+    private void AbortSaleDelivery_NoLock(AuctionLot lot, Item item, uint buyerId, long soldAmount, string reason)
+    {
+        SendBidRefund(buyerId, lot, soldAmount);
+        AuctionHouseRules.ReturnToHouseEscrow(item, lot.ClientId);
+        AuctionHouseRules.ClearStandingBid(lot);
+        RestoreLot_NoLock(lot);
+        Logger.Error("Sale aborted lot={0} buyer={1}: {2}; listing restored without a bid", lot.Id, buyerId, reason);
+    }
+
+    /// <summary>
+    /// Partial-buyout counterpart of <see cref="AbortSaleDelivery_NoLock"/>. The lot never left
+    /// the house; the slice is merged back and, since the buyer's whole
+    /// <paramref name="soldAmount"/> is refunded, a standing bid of theirs on the stack is
+    /// cleared with it.
+    /// </summary>
+    private void AbortSliceDelivery_NoLock(AuctionLot lot, Item leftover, Item slice, uint buyerId, long soldAmount, string reason)
+    {
+        MergeHouseStack(leftover, slice);
+        SendBidRefund(buyerId, lot, soldAmount);
+        AuctionHouseRules.ClearStandingBid(lot);
+        Logger.Error("Partial sale aborted lot={0} buyer={1}: {2}; stack kept without a bid", lot.Id, buyerId, reason);
+    }
+
+    private void SettleExpire_NoLock(AuctionLot lot)
+    {
+        if (lot.BidderId != 0)
+        {
+            SettleSold_NoLock(lot, lot.BidderName, lot.BidMoney);
+            return;
+        }
+
+        var item = lot.Item != null ? itemManager.GetItemByItemId(lot.Item.Id) : null;
+        if (item != null && AuctionHouseRules.IsHeldByHouse(item) && !string.IsNullOrEmpty(lot.ClientName))
+        {
+            var listingDeposit = Fees.GetListingDeposit(lot.DirectMoney, lot.Duration);
+            var failMail = new MailForAuction(item, lot.ClientId, lot.DirectMoney, listingDeposit);
+            if (failMail.FinalizeForFail())
                 failMail.Send();
-            }
+            Logger.Info("Expire unsold lot={0} seller={1} ({2}) item={3}",
+                lot.Id, lot.ClientName, lot.ClientId, item.Id);
+        }
+        else
+        {
+            Logger.Warn("Expire lot={0} with no escrowed item", lot.Id);
         }
 
-        RemoveAuctionLot(itemToRemove);
+        ForgetLot_NoLock(lot);
     }
 
     public void CancelAuctionLot(Character player, ulong auctionId)
     {
-        var auctionLot = GetAuctionLotFromId(auctionId);
-        if (auctionLot == null)
+        if (player == null)
+            return;
+
+        if (!HouseIsOpen)
         {
-            Logger.Warn($"AuctionLot with ID {auctionId} not found.");
+            player.SendErrorMessage(ErrorMessageType.AucPermissionDeny);
             return;
         }
 
-        // auctionId arrives from the client and was only ever looked up, never checked against the caller,
-        // so any player could cancel any listing on the server by walking the id space.
-        if (auctionLot.ClientId != player.Id)
+        using var persist = MailManager.Instance.DeferPersist();
+        lock (_houseLock)
         {
-            Logger.Warn($"{player.Name} ({player.Id}) tried to cancel auction {auctionId}, listed by {auctionLot.ClientId}");
-            return;
+            var auctionLot = GetAuctionLotFromId(auctionId);
+            if (auctionLot == null)
+            {
+                Logger.Warn("Cancel refused {0} ({1}): lot {2} missing", player.Name, player.Id, auctionId);
+                player.SendErrorMessage(ErrorMessageType.AucRefreshDisplay);
+                return;
+            }
+
+            if (auctionLot.ClientId != player.Id)
+            {
+                Logger.Warn("Cancel refused {0} ({1}): lot {2} owned by {3}",
+                    player.Name, player.Id, auctionId, auctionLot.ClientId);
+                player.SendErrorMessage(ErrorMessageType.AucPermissionDeny);
+                return;
+            }
+
+            if (auctionLot.BidderId != 0 || auctionLot.BidMoney > 0)
+            {
+                Logger.Info("Cancel refused {0} ({1}): lot {2} already has a bid", player.Name, player.Id, auctionId);
+                player.SendErrorMessage(ErrorMessageType.AucCannotCancelIfBid);
+                return;
+            }
+
+            if (!TryDetachLot_NoLock(auctionId, out auctionLot))
+            {
+                player.SendErrorMessage(ErrorMessageType.AucRefreshDisplay);
+                return;
+            }
+
+            var listedItem = auctionLot.Item != null ? itemManager.GetItemByItemId(auctionLot.Item.Id) : null;
+            if (listedItem == null || !AuctionHouseRules.IsHeldByHouse(listedItem))
+            {
+                Logger.Error("Cancel lot={0} had no escrowed item", auctionId);
+                ForgetLot_NoLock(auctionLot);
+                player.SendErrorMessage(ErrorMessageType.AucRefreshDisplay);
+                return;
+            }
+
+            var listingDeposit = Fees.GetListingDeposit(auctionLot.DirectMoney, auctionLot.Duration);
+            if (!player.Inventory.MailAttachments.AddOrMoveExistingItem(ItemTaskType.Auction, listedItem))
+            {
+                RestoreLot_NoLock(auctionLot);
+                player.SendErrorMessage(ErrorMessageType.AucInternalError);
+                return;
+            }
+
+            var cancelMail = new MailForAuction(listedItem, auctionLot.ClientId, auctionLot.DirectMoney, listingDeposit);
+            if (!cancelMail.FinalizeForCancel() || !cancelMail.Send())
+            {
+                player.Inventory.AuctionAttachments.AddOrMoveExistingItem(ItemTaskType.Auction, listedItem);
+                RestoreLot_NoLock(auctionLot);
+                player.SendErrorMessage(ErrorMessageType.AucInternalError);
+                return;
+            }
+
+            Logger.Info("Cancel lot={0} seller={1} ({2}) item={3}",
+                auctionLot.Id, player.Name, player.Id, listedItem.Id);
+            ForgetLot_NoLock(auctionLot);
+            player.SendPacket(new SCAuctionCanceledPacket(auctionLot));
         }
-
-        if (auctionLot.BidderName != "") // Someone has already bid on the item and we do not want to remove it
-        {
-            Logger.Warn($"AuctionLot with ID {auctionId} has already been bid on.");
-            return;
-        }
-
-        // Hand back the item that was listed, not a fresh copy of its template.
-        //
-        // itemManager.Create minted a new item from templateId/count/grade alone, so everything else the
-        // player owned was destroyed on cancel: enchantment level, gems, dye, lifespan, crafter, the item id
-        // itself. It also stranded the original, which is still sitting in the seller's AuctionAttachments
-        // container from when the lot was posted, so each cancellation leaked one item and handed back a
-        // duplicate id. RemoveAuctionLotSold already resolves the real item this way.
-        var listedItem = itemManager.GetItemByItemId(auctionLot.Item.Id);
-        if (listedItem != null)
-        {
-            var recalculatedFee = Fees.GetListingDeposit(auctionLot.DirectMoney, auctionLot.Duration);
-
-            // Move it out of the auction hold and into the mail container it is about to be attached to, so
-            // the item's container membership matches where the mail says it is.
-            player.Inventory.MailAttachments.AddOrMoveExistingItem(ItemTaskType.Auction, listedItem);
-
-            var cancelMail = new MailForAuction(listedItem, auctionLot.ClientId, auctionLot.DirectMoney,
-                recalculatedFee);
-            cancelMail.FinalizeForCancel();
-            cancelMail.Send();
-        }
-
-        //MailManager.Instance.SendMail(0, auctionItem.ClientName, "AuctionHouse", "Cancelled Listing", "See attached.", 1, new int[3], 0, itemList);
-
-        RemoveAuctionLot(auctionLot);
-        player.SendPacket(new SCAuctionCanceledPacket(auctionLot));
     }
 
-    private AuctionLot GetAuctionLotFromId(ulong auctionId)
-    {
-        return AuctionLots.GetValueOrDefault(auctionId);
-    }
+    private AuctionLot GetAuctionLotFromId(ulong auctionId) =>
+        AuctionLots.GetValueOrDefault(auctionId);
 
-    public void BidOnAuctionLot(Character player, uint auctioneerId, uint auctioneerId2, AuctionLot lot, AuctionBid bid)
+    public void BidOnAuctionLot(Character player, AuctionBid bid)
     {
-        if (player == null || lot == null || bid == null)
+        if (player == null || bid == null)
+            return;
+
+        if (!HouseIsOpen)
         {
-            Logger.Warn("Invalid arguments passed to BidOnAuctionLot.");
+            player.SendErrorMessage(ErrorMessageType.AucPermissionDeny);
             return;
         }
 
-        var auctionLot = GetAuctionLotFromId(lot.Id);
-        if (auctionLot == null)
+        // One snapshot after the charge, the refund letter, the bid replacement or the
+        // settle. The refund mail alone used to force a save that still held the bid it
+        // had just refunded. Opened before the house lock: a save takes the gate first and
+        // the house lock inside Save().
+        using var persist = MailManager.Instance.DeferPersist();
+        lock (_houseLock)
         {
-            Logger.Warn("Invalid auctionItem passed to BidOnAuctionLot.");
-            Logger.Warn($"AuctionLot with ID {lot.Id} not found in the list.");
-            return;
-        }
+            var auctionLot = GetAuctionLotFromId(bid.LotId);
+            if (auctionLot?.Item == null || DateTime.UtcNow >= auctionLot.EndTime)
+            {
+                Logger.Warn("Bid refused {0} ({1}): lot {2} missing or expired", player.Name, player.Id, bid.LotId);
+                player.SendErrorMessage(ErrorMessageType.AucRefreshDisplay);
+                return;
+            }
 
-        if (bid.Money >= auctionLot.DirectMoney && auctionLot.DirectMoney != 0) // Buy now
-        {
-            // Take payment before anything else. SubtractMoney reports whether it actually took the coin, and
-            // that result used to be discarded: a buyer who could not afford the lot still had it handed over
-            // and any standing bidder was still refunded, so the sale both gave away the item and minted the
-            // refund. Order matters too - the outbid mail below must not go out on a purchase that fails.
-            if (!player.SubtractMoney(SlotType.Inventory, auctionLot.DirectMoney, ItemTaskType.Auction))
+            var liveItem = itemManager.GetItemByItemId(auctionLot.Item.Id);
+            if (!AuctionHouseRules.IsHeldByHouse(liveItem))
+            {
+                Logger.Warn("Bid refused {0} ({1}): lot {2} item is not in escrow", player.Name, player.Id, bid.LotId);
+                player.SendErrorMessage(ErrorMessageType.AucRefreshDisplay);
+                return;
+            }
+
+            if (auctionLot.ClientId == player.Id)
+            {
+                player.SendErrorMessage(ErrorMessageType.AucBidSelf);
+                return;
+            }
+
+            var bidderIsCurrent = auctionLot.BidderId == player.Id;
+            if (!AuctionHouseRules.TryGetBidCharge(
+                    bid.Money,
+                    auctionLot.StartMoney,
+                    auctionLot.BidMoney,
+                    auctionLot.DirectMoney,
+                    bidderIsCurrent,
+                    out var charge,
+                    out var isBuyout))
+            {
+                if (AuctionHouseRules.IsBuyoutOffer(bid.Money, auctionLot.DirectMoney))
+                    player.SendErrorMessage(ErrorMessageType.AuctionInvalidBidPrice);
+                else if (auctionLot.StartMoney > 0 && bid.Money < auctionLot.StartMoney)
+                    player.SendErrorMessage(ErrorMessageType.AucBidMoneyUnderStartMoney);
+                else
+                    player.SendErrorMessage(ErrorMessageType.AucBidMoneyUnderTopMost);
+                return;
+            }
+
+            var stack = AuctionHouseRules.ResolveBidStack(
+                bid.StackSize, liveItem.Count, auctionLot.MinStack, auctionLot.MaxStack, AllowPartialBuy);
+            bid.StackSize = stack;
+
+            if (!player.SubtractMoney(SlotType.Inventory, charge, ItemTaskType.Auction))
             {
                 player.SendErrorMessage(ErrorMessageType.NotEnoughMoney);
                 return;
             }
 
-            if (auctionLot.BidderId != 0) // send mail to person who bid if item was bought at full price.
+            var previousBidderId = auctionLot.BidderId;
+            var previousBid = auctionLot.BidMoney;
+            if (previousBidderId != 0 && previousBidderId != player.Id)
             {
-                var newMail = new MailForAuction(auctionLot.Item.TemplateId, auctionLot.ClientId, auctionLot.DirectMoney, 0);
-                newMail.FinalizeForBidFail(auctionLot.BidderId, auctionLot.BidMoney);
-                newMail.Send();
+                SendBidRefund(previousBidderId, auctionLot, previousBid);
+                SendHouseMessage(previousBidderId, AuctionMessageKind.Outbid, auctionLot.Item.TemplateId, previousBid);
+                Logger.Info("Outbid lot={0} previous={1} refund={2} by {3} ({4})",
+                    auctionLot.Id, previousBidderId, previousBid, player.Name, player.Id);
+                // The refunded bid must not survive on the lot: a leftover stack is a fresh
+                // listing, and a full buyout that fails delivery is restored as one.
+                AuctionHouseRules.ClearStandingBid(auctionLot);
             }
 
-            RemoveAuctionLotSold(auctionLot, player.Name, auctionLot.DirectMoney);
-        }
-        else if (bid.Money > auctionLot.BidMoney) // Bid
-        {
-            // bid.Money is client supplied; a bid at or below zero can never outrank a standing bid, but guard
-            // it anyway so a malformed packet cannot reach SubtractMoney's own negative check.
-            if (bid.Money <= 0)
-            {
-                return;
-            }
-
-            // Same discarded-result bug as buy-now, and worse here: the old bidder's refund went out first, so
-            // a bid the player could not pay for still returned the previous bidder's coin and left the lot
-            // held by someone who paid nothing.
-            if (!player.SubtractMoney(SlotType.Inventory, bid.Money, ItemTaskType.Auction))
-            {
-                player.SendErrorMessage(ErrorMessageType.NotEnoughMoney);
-                return;
-            }
-
-            if (auctionLot.BidderName != "" && auctionLot.BidderId != 0) // Send mail to old bidder.
-            {
-                var recalculatedFee = Fees.GetListingDeposit(auctionLot.DirectMoney, auctionLot.Duration);
-
-                var cancelMail = new MailForAuction(auctionLot.Item.TemplateId, auctionLot.ClientId, auctionLot.DirectMoney, recalculatedFee);
-                cancelMail.FinalizeForBidFail(auctionLot.BidderId, auctionLot.BidMoney);
-                cancelMail.Send();
-            }
-
-            // Set info to new bidders info
-            auctionLot.BidderName = player.Name;
-            auctionLot.BidderId = player.Id;
-            auctionLot.BidWorldId = (byte)player.Transform.WorldId;
-            auctionLot.BidMoney = bid.Money;
-
+            var standing = isBuyout ? auctionLot.DirectMoney : bid.Money;
+            bid.LotId = auctionLot.Id;
             bid.BidderName = player.Name;
             bid.BidderId = player.Id;
-            bid.WorldId = (byte)player.Transform.WorldId;
+            bid.WorldId = ServerWorldId;
+            bid.Money = standing;
 
-            player.SendPacket(new SCAuctionBidPacket(bid, false, auctionLot.Item.TemplateId));
+            if (isBuyout)
+            {
+                var delivered = liveItem;
+                if (stack < liveItem.Count)
+                {
+                    delivered = TrySplitHouseStack(liveItem, stack);
+                    if (delivered == null)
+                    {
+                        player.AddMoney(SlotType.Inventory, charge, ItemTaskType.Auction);
+                        player.SendErrorMessage(ErrorMessageType.AucInternalError);
+                        return;
+                    }
+
+                    Logger.Info("Partial buyout lot={0} buyer={1} ({2}) stack={3} leftover={4} price={5}",
+                        auctionLot.Id, player.Name, player.Id, stack, liveItem.Count, standing);
+                    player.SendPacket(new SCAuctionBidPacket(bid, true, delivered.TemplateId));
+                    SettleSoldSlice_NoLock(auctionLot, delivered, player.Name, standing);
+                    return;
+                }
+
+                if (!TryDetachLot_NoLock(auctionLot.Id, out auctionLot))
+                {
+                    player.AddMoney(SlotType.Inventory, charge, ItemTaskType.Auction);
+                    player.SendErrorMessage(ErrorMessageType.AucRefreshDisplay);
+                    return;
+                }
+
+                Logger.Info("Buyout lot={0} buyer={1} ({2}) price={3} charged={4} item={5}",
+                    auctionLot.Id, player.Name, player.Id, standing, charge, liveItem.Id);
+                player.SendPacket(new SCAuctionBidPacket(bid, true, liveItem.TemplateId));
+                SettleSold_NoLock(auctionLot, player.Name, standing);
+                return;
+            }
+
+            auctionLot.BidderName = player.Name;
+            auctionLot.BidderId = player.Id;
+            auctionLot.BidWorldId = ServerWorldId;
+            auctionLot.BidMoney = standing;
             auctionLot.IsDirty = true;
 
-            // Обновление данных в списке AuctionLots
-            UpdateAuctionLotInList(auctionLot);
-        }
-    }
-
-    private void UpdateAuctionLotInList(AuctionLot auctionLot)
-    {
-        if (auctionLot == null)
-        {
-            Logger.Warn("Invalid auctionItem passed to UpdateAuctionLotInList.");
-            return;
-        }
-
-        var existingLot = AuctionLots.GetValueOrDefault(auctionLot.Id);
-        if (existingLot != null)
-        {
-            // Update lot data
-            existingLot.BidderName = auctionLot.BidderName;
-            existingLot.BidderId = auctionLot.BidderId;
-            existingLot.BidWorldId = auctionLot.BidWorldId;
-            existingLot.BidMoney = auctionLot.BidMoney;
-            existingLot.Item = auctionLot.Item;
-            existingLot.IsDirty = auctionLot.IsDirty;
-        }
-        else
-        {
-            Logger.Warn($"AuctionLot with ID {auctionLot.Id} not found in the list.");
+            Logger.Info("Bid lot={0} bidder={1} ({2}) standing={3} charged={4}",
+                auctionLot.Id, player.Name, player.Id, standing, charge);
+            player.SendPacket(new SCAuctionBidPacket(bid, false, liveItem.TemplateId));
+            MailManager.Instance.PersistNow();
         }
     }
 
     public void GetBidAuctionLots(Character player, int page)
     {
-        var searchedArticles = AuctionLots.Values.Where(lot => lot.BidderId == player.Id).ToList();
-        if (searchedArticles.Count <= 0)
+        if (player == null)
+            return;
+
+        if (!HouseIsOpen)
         {
-            player.SendPacket(new SCAuctionSearchedPacket(0, 0, [], (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
+            SendSearchPage(player, page, [], ErrorMessageType.AucPermissionDeny);
             return;
         }
 
-        var articles = SortArticles(searchedArticles, AuctionSearchSortKind.Default, AuctionSearchSortOrder.Asc).ToArray();
-        var dividedLists = Helpers.SplitArray(articles, 9); // Разделяем массив на массивы по 9 значений
-           
-        if (page < 0 || page >= dividedLists.Length) //Stops client DC when requesting an out-of-bounds page
-        {
-            Logger.Warn($"[AH-BIDS] {player.Name} requested an out-of-bounds page: {page}/{dividedLists.Length - 1}");
-            player.SendPacket(new SCAuctionSearchedPacket(page, 0, [], (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
-            return;
-        }
-        player.SendPacket(new SCAuctionSearchedPacket(page, dividedLists[page].Length, dividedLists[page].ToList(), (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
-    }
-
-    private AuctionLot GetCheapestAuctionLot(uint templateId)
-    {
-        var tempList = AuctionLots.Values.Where(lot => lot.Item.TemplateId == templateId).ToList();
-        if (tempList.Count <= 0)
-        {
-            return null;
-        }
-
-        tempList = tempList.OrderBy(x => x.DirectMoney).ToList();
-
-        return tempList.First();
+        var mine = AuctionLots.Values.Where(lot => lot.BidderId == player.Id).ToList();
+        var sorted = AuctionHouseRules.Sort(mine, AuctionSearchSortKind.Default, AuctionSearchSortOrder.Asc).ToList();
+        SendSearchPage(player, page, AuctionHouseRules.Page(sorted, page));
     }
 
     public void CheapestAuctionLot(Character player, uint templateId, byte itemGrade = 0)
     {
-        var DirectMoney = 0;
-        var cheapestItem = GetCheapestAuctionLot(templateId);
-        if (cheapestItem != null)
-        {
-            DirectMoney = cheapestItem.DirectMoney;
-        }
-
-        player.SendPacket(new SCAuctionLowestPricePacket(templateId, itemGrade, DirectMoney));
-    }
-
-    private string GetLocalizedItemNameById(uint id)
-    {
-        return localizationManager.Get("items", "name", id, itemManager.GetTemplate(id).Name ?? "");
-    }
-
-    /* Unused
-
-    private ulong GetNextId()
-    {
-        if (AuctionLots.Count == 0)
-            return 1;
-
-        var maxId = AuctionLots.Max(item => item.Id);
-        if (maxId == ulong.MaxValue)
-            throw new OverflowException("No more IDs available.");
-
-        return maxId + 1;
-    }
-    */
-
-    private void RemoveAuctionLot(AuctionLot itemToRemove)
-    {
-        var copyOfLots = AuctionLots.ToList();
-        if (!AuctionLots.ContainsKey(itemToRemove.Id))
-        {
+        if (player == null)
             return;
+
+        if (!HouseIsOpen)
+            return;
+
+        var cheapest = AuctionLots.Values
+            .Where(lot => lot.Item != null
+                          && lot.Item.TemplateId == templateId
+                          && (itemGrade == 0 || lot.Item.Grade == itemGrade))
+            .OrderBy(AuctionHouseRules.DisplayPrice)
+            .FirstOrDefault();
+
+        player.SendPacket(new SCAuctionLowestPricePacket(templateId, itemGrade, cheapest == null ? 0 : AuctionHouseRules.DisplayPrice(cheapest)));
+    }
+
+    public void SearchSoldRecords(Character player, uint templateId, byte grade, bool askMarketPriceUi)
+    {
+        if (player == null)
+            return;
+
+        if (!HouseIsOpen)
+            return;
+
+        List<AuctionSale> snapshot;
+        lock (_soldLock)
+        {
+            TrimSoldRecordsLocked(DateTime.UtcNow);
+            snapshot = _soldRecords.ToList();
         }
 
-        auctionIdManager.ReleaseId((uint)itemToRemove.Id);
-        _deletedAuctionItemIds.Add((long)itemToRemove.Id);
-        if (!AuctionLots.TryRemove(itemToRemove.Id, out _))
-        {
-            Logger.Warn($"Unable to remove Auction Lot with Id {itemToRemove?.Id}");
-        }
+        var days = AuctionSoldRecordRules.BuildDays(snapshot, templateId, grade, DateTime.UtcNow);
+        player.SendPacket(new SCAuctionSoldRecordSearchedPacket(templateId, grade, askMarketPriceUi, days));
     }
 
     public void AddAuctionLot(AuctionLot lot)
     {
-        if (!AuctionLots.TryAdd(lot.Id, lot))
+        lock (_houseLock)
         {
-            Logger.Warn($"Unable to add Auction Lot with Id {lot.Id}, possible duplicate Id");
+            if (!TryAddLot_NoLock(lot))
+                auctionIdManager.ReleaseId((uint)lot.Id);
         }
     }
 
     public void UpdateAuctionHouse()
     {
-        Logger.Trace("Updating Auction House!");
-        var itemsToRemove = AuctionLots.Values.Where(c => DateTime.UtcNow > c.EndTime).ToList();
-
-        foreach (var item in itemsToRemove)
+        using var persist = MailManager.Instance.DeferPersist();
+        lock (_houseLock)
         {
-            if (item.BidderId != 0)
-                RemoveAuctionLotSold(item, item.BidderName, item.BidMoney);
-            else
-                RemoveAuctionLotFail(item);
+            Logger.Trace("Updating Auction House");
+            var itemsToRemove = AuctionLots.Values.Where(c => DateTime.UtcNow > c.EndTime).ToList();
+            foreach (var lot in itemsToRemove)
+            {
+                if (!TryDetachLot_NoLock(lot.Id, out var detached))
+                    continue;
+                SettleExpire_NoLock(detached);
+            }
         }
     }
 
-    public AuctionLot CreateAuctionLot(uint playerId, string playerName, Item itemToList, int startPrice, int buyoutPrice, AuctionDuration duration, int minStack = 1, int maxStack = 1)
+    public AuctionLot CreateAuctionLot(
+        uint playerId,
+        string playerName,
+        Item itemToList,
+        long startPrice,
+        long buyoutPrice,
+        AuctionDuration duration,
+        int minStack = 1,
+        int maxStack = 1)
     {
-        ulong timeLeft;
-        switch (duration)
+        var now = DateTime.UtcNow;
+        var stacks = AuctionHouseRules.ClampStacks(itemToList?.Count ?? 1, minStack, maxStack, AllowPartialBuy);
+        return new AuctionLot
         {
-            case AuctionDuration.AuctionDuration6Hours:
-                timeLeft = 6; // 6 hours
-                break;
-            case AuctionDuration.AuctionDuration12Hours:
-                timeLeft = 12;
-                break;
-            case AuctionDuration.AuctionDuration24Hours:
-                timeLeft = 24; // 24 hours
-                break;
-            case AuctionDuration.AuctionDuration48Hours:
-                timeLeft = 48; // 48 hours
-                break;
-            default:
-                timeLeft = 6; // default to 6 hours
-                break;
-        }
-
-        var newAuctionLot = new AuctionLot
-        {
-            Id = auctionIdManager.GetNextId(), Duration = duration, Item = itemToList, EndTime = DateTime.UtcNow.AddHours(timeLeft),
-            WorldId = 1,
+            Id = auctionIdManager.GetNextId(),
+            Duration = duration,
+            Item = itemToList,
+            EndTime = now.AddHours(AuctionHouseRules.HoursFor(duration)),
+            WorldId = ServerWorldId,
             ClientId = playerId,
-            ClientName = playerName,
+            ClientName = playerName ?? string.Empty,
             StartMoney = startPrice,
             DirectMoney = buyoutPrice,
-            PostDate = DateTime.UtcNow,
-            //ChargePercent = 100, // added in 5+
-            BidWorldId = 255,
+            PostDate = now,
+            Asked = (ulong)Helpers.UnixTime(now),
+            ChargePercent = Fees.SaleChargeRate,
+            DepositPercent = Fees.GetDepositRate(duration),
+            ServiceKind = 0,
+            BidWorldId = AuctionHouseRules.UnsetWorldId,
             BidderId = 0,
-            BidderName = "",
+            BidderName = string.Empty,
             BidMoney = 0,
-            Extra = 0,
-            //MinStack = minStack, // added in 5+
-            //MaxStack = maxStack, // added in 5+
+            ExtraMoney = 0,
+            MinStack = stacks.minStack,
+            MaxStack = stacks.maxStack,
             IsDirty = true
         };
-
-        return newAuctionLot;
     }
 
     public void Load()
     {
         try
         {
-            AuctionLots.Clear();
-            _deletedAuctionItemIds.Clear();
+            lock (_houseLock)
+            {
+                AuctionLots.Clear();
+                _listedItemIds.Clear();
+                _deletedAuctionItemIds.Clear();
+            }
+
+            lock (_soldLock)
+                _soldRecords.Clear();
 
             Fees.Load();
 
@@ -423,45 +732,122 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
                 {
                     command.CommandText = "SELECT * FROM auction_house";
                     command.Prepare();
-                    using (var reader = command.ExecuteReader())
+                    using var reader = command.ExecuteReader();
+                    while (reader.Read())
                     {
-                        while (reader.Read())
+                        var itemId = reader.GetUInt64("item_id");
+                        var auctionLot = new AuctionLot
                         {
-                            var auctionLot = new AuctionLot
-                            {
-                                Id = reader.GetUInt64("id"),
-                                Duration = (AuctionDuration)reader.GetByte("duration"), // 8 is 6 hours, 9 is 12 hours, 10 is 24 hours, 11 is 48 hours
-                                Item = itemManager.GetItemByItemId(reader.GetUInt32("item_id")),
-                                PostDate = reader.GetDateTime("post_date"),
-                                EndTime = reader.GetDateTime("end_time"),
-                                WorldId = reader.GetByte("world_id"),
-                                ClientId = reader.GetUInt32("client_id"),
-                                ClientName = reader.GetString("client_name"),
-                                StartMoney = reader.GetInt32("start_money"),
-                                DirectMoney = reader.GetInt32("direct_money"),
-                                //ChargePercent = reader.GetInt32("charge_percent"), // added in 5+
-                                BidWorldId = (byte)reader.GetInt32("bid_world_id"),
-                                BidderId = reader.GetUInt32("bidder_id"),
-                                BidderName = reader.GetString("bidder_name"),
-                                BidMoney = reader.GetInt32("bid_money"),
-                                Extra = reader.GetInt32("extra"),
-                                //MinStack = reader.GetInt32("min_stack"), // added in 5+
-                                //MaxStack = reader.GetInt32("max_stack") // added in 5+
-                            };
+                            Id = reader.GetUInt64("id"),
+                            Duration = (AuctionDuration)reader.GetByte("duration"),
+                            Item = itemManager.GetItemByItemId(itemId),
+                            PostDate = reader.GetDateTime("post_date"),
+                            EndTime = reader.GetDateTime("end_time"),
+                            WorldId = reader.GetByte("world_id"),
+                            ClientId = reader.GetUInt32("client_id"),
+                            ClientName = reader.GetString("client_name"),
+                            StartMoney = reader.GetInt64("start_money"),
+                            DirectMoney = reader.GetInt64("direct_money"),
+                            Asked = ReadOptionalUInt64(reader, "asked"),
+                            ChargePercent = ReadOptionalInt32(reader, "charge_percent"),
+                            DepositPercent = ReadOptionalInt32(reader, "deposit_percent"),
+                            ServiceKind = ReadOptionalByte(reader, "service_kind"),
+                            BidWorldId = (byte)reader.GetInt32("bid_world_id"),
+                            BidderId = reader.GetUInt32("bidder_id"),
+                            BidderName = reader.GetString("bidder_name"),
+                            BidMoney = reader.GetInt64("bid_money"),
+                            ExtraMoney = reader.GetInt64("extra"),
+                            MinStack = ReadOptionalInt32(reader, "min_stack", 1),
+                            MaxStack = ReadOptionalInt32(reader, "max_stack", 1),
+                        };
+                        if (auctionLot.Asked == 0)
+                            auctionLot.Asked = (ulong)Helpers.UnixTime(auctionLot.PostDate);
+                        if (auctionLot.Item == null || !AuctionHouseRules.IsHeldByHouse(auctionLot.Item))
+                        {
+                            Logger.Warn("Skip lot {0}: item {1} is not in house escrow", auctionLot.Id, itemId);
+                            _deletedAuctionItemIds.Add((long)auctionLot.Id);
+                            auctionIdManager.ReleaseId((uint)auctionLot.Id);
+                            continue;
+                        }
 
-                            AddAuctionLot(auctionLot);
+                        lock (_houseLock)
+                        {
+                            if (!TryAddLot_NoLock(auctionLot))
+                            {
+                                Logger.Warn("Skip lot {0}: item {1} is already listed", auctionLot.Id, itemId);
+                                _deletedAuctionItemIds.Add((long)auctionLot.Id);
+                                auctionIdManager.ReleaseId((uint)auctionLot.Id);
+                            }
                         }
                     }
                 }
+
+                LoadSoldRecords(connection);
             }
-            var auctionTask = new AuctionHouseTask();
-            taskManager.Schedule(auctionTask, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+
+            if (!_tickStarted)
+            {
+                taskManager.Schedule(new AuctionHouseTask(), TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+                _tickStarted = true;
+            }
+
+            Logger.Info("Loaded {0} lots", AuctionLots.Count);
         }
         catch (Exception ex)
         {
-            Logger.Error($"Failed to load auction data: {ex.Message}");
+            Logger.Error(ex, "Failed to load auction data");
         }
     }
+
+    private void LoadSoldRecords(MySqlConnection connection)
+    {
+        try
+        {
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                "SELECT item_template_id, item_grade, sold_at, price, stack FROM auction_sold_records " +
+                "WHERE sold_at >= @cutoff";
+            command.Parameters.AddWithValue("@cutoff", DateTime.UtcNow.Date.AddDays(1 - AuctionHouseRules.SoldRecordDays));
+            command.Prepare();
+            using var reader = command.ExecuteReader();
+            lock (_soldLock)
+            {
+                while (reader.Read())
+                {
+                    _soldRecords.Add(new AuctionSale(
+                        reader.GetUInt32("item_template_id"),
+                        reader.GetByte("item_grade"),
+                        reader.GetDateTime("sold_at"),
+                        reader.GetInt64("price"),
+                        reader.GetInt32("stack")));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, "auction_sold_records is missing or unreadable; sold history stays empty until the table exists");
+        }
+    }
+
+    private static bool HasColumn(MySqlDataReader reader, string name)
+    {
+        for (var i = 0; i < reader.FieldCount; i++)
+        {
+            if (string.Equals(reader.GetName(i), name, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static int ReadOptionalInt32(MySqlDataReader reader, string name, int fallback = 0) =>
+        HasColumn(reader, name) && !reader.IsDBNull(reader.GetOrdinal(name)) ? reader.GetInt32(name) : fallback;
+
+    private static byte ReadOptionalByte(MySqlDataReader reader, string name, byte fallback = 0) =>
+        HasColumn(reader, name) && !reader.IsDBNull(reader.GetOrdinal(name)) ? reader.GetByte(name) : fallback;
+
+    private static ulong ReadOptionalUInt64(MySqlDataReader reader, string name, ulong fallback = 0) =>
+        HasColumn(reader, name) && !reader.IsDBNull(reader.GetOrdinal(name)) ? reader.GetUInt64(name) : fallback;
 
     public (int, int) Save(MySqlConnection connection, MySqlTransaction transaction)
     {
@@ -470,19 +856,38 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
 
         if (!_deletedAuctionItemIds.IsEmpty)
         {
-            using (var command = connection.CreateCommand())
+            var ids = new List<long>();
+            while (_deletedAuctionItemIds.TryTake(out var id))
+                ids.Add(id);
+
+            if (ids.Count > 0)
             {
-                command.Connection = connection;
-                command.Transaction = transaction;
-                command.CommandText = "DELETE FROM auction_house WHERE `id` IN(" + string.Join(",", _deletedAuctionItemIds) + ")";
-                command.Prepare();
-                deletedCount = command.ExecuteNonQuery();
+                try
+                {
+                    using var command = connection.CreateCommand();
+                    command.Connection = connection;
+                    command.Transaction = transaction;
+                    var names = new string[ids.Count];
+                    for (var i = 0; i < ids.Count; i++)
+                    {
+                        names[i] = "@d" + i;
+                        command.Parameters.AddWithValue(names[i], ids[i]);
+                    }
+
+                    command.CommandText = "DELETE FROM auction_house WHERE `id` IN(" + string.Join(",", names) + ")";
+                    command.Prepare();
+                    deletedCount = command.ExecuteNonQuery();
+                }
+                catch
+                {
+                    foreach (var id in ids)
+                        _deletedAuctionItemIds.Add(id);
+                    throw;
+                }
             }
-            _deletedAuctionItemIds.Clear();
         }
 
-        var dirtyItems = AuctionLots.Values.Where(c => c.IsDirty == true);
-        foreach (var lot in dirtyItems)
+        foreach (var lot in AuctionLots.Values.Where(c => c.IsDirty))
         {
             if (lot.Item == null)
                 continue;
@@ -493,60 +898,78 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
                     continue;
 
                 if (lot.Item._holdingContainer != null)
-                {
                     lot.Item.SlotType = itemManager.GetContainerSlotTypeByContainerId(lot.Item._holdingContainer.ContainerId);
-                }
 
                 if (lot.Item.SlotType != SlotType.None)
-                {
-                    Logger.Warn($"Slot type for {lot.Item.Id} was None, changing to {lot.Item.SlotType}");
-                }
+                    Logger.Warn("Slot type for {0} was None, changing to {1}", lot.Item.Id, lot.Item.SlotType);
                 else
-                {
                     continue;
-                }
             }
+
             if (!Enum.IsDefined(typeof(SlotType), lot.Item.SlotType))
             {
-                Logger.Warn($"Found SlotType.{lot.Item.SlotType} in itemslist, skipping ID:{lot.Item.Id} - Template:{lot.Item.TemplateId}");
+                Logger.Warn("Found SlotType.{0} in itemslist, skipping ID:{1} - Template:{2}",
+                    lot.Item.SlotType, lot.Item.Id, lot.Item.TemplateId);
                 continue;
             }
 
-            var details = new Commons.Network.PacketStream();
-            lot.Item.WriteDetails(details);
-
-            using (var command = connection.CreateCommand())
-            {
-                command.Connection = connection;
-                command.Transaction = transaction;
-                command.CommandText = BuildInsertQuery(lot);
-                AddParametersToCommand(command, lot);
-                command.Prepare();
-                updatedCount += command.ExecuteNonQuery();
-                lot.IsDirty = false;
-            }
+            using var command = connection.CreateCommand();
+            command.Connection = connection;
+            command.Transaction = transaction;
+            var extended = HouseHasExtendedColumns(connection, transaction);
+            command.CommandText = BuildInsertQuery(extended);
+            AddParametersToCommand(command, lot, extended);
+            command.Prepare();
+            updatedCount += command.ExecuteNonQuery();
+            lot.IsDirty = false;
         }
 
         return (updatedCount, deletedCount);
     }
 
-    private string BuildInsertQuery(AuctionLot lot)
+    private bool HouseHasExtendedColumns(MySqlConnection connection, MySqlTransaction transaction)
+    {
+        if (_houseHasExtendedColumns.HasValue)
+            return _houseHasExtendedColumns.Value;
+
+        using var command = connection.CreateCommand();
+        command.Connection = connection;
+        command.Transaction = transaction;
+        command.CommandText =
+            "SELECT COUNT(*) FROM information_schema.COLUMNS " +
+            "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'auction_house' AND COLUMN_NAME = 'charge_percent'";
+        command.Prepare();
+        var found = Convert.ToInt32(command.ExecuteScalar()) > 0;
+        _houseHasExtendedColumns = found;
+        if (!found)
+            Logger.Warn("auction_house is missing the 10.0 listing columns; apply SQL/updates/2026-09-05_aaemu_game_auction_house_10_0.sql");
+        return found;
+    }
+
+    private static string BuildInsertQuery(bool extended)
     {
         var sb = new StringBuilder();
         sb.Append("REPLACE INTO auction_house(");
         sb.Append("`id`, `duration`, `item_id`, `post_date`, `stack_size`, `end_time`, ");
         sb.Append("`world_id`, `client_id`, `client_name`, `start_money`, `direct_money`, ");
+        if (extended)
+            sb.Append("`asked`, `charge_percent`, `deposit_percent`, `service_kind`, ");
         sb.Append("`bid_world_id`, `bidder_id`, `bidder_name`, `bid_money`, `extra`");
+        if (extended)
+            sb.Append(", `min_stack`, `max_stack`");
         sb.Append(") VALUES (");
         sb.Append("@id, @duration, @item_id, @post_date, @stack_size, @end_time, ");
         sb.Append("@world_id, @client_id, @client_name, @start_money, @direct_money, ");
+        if (extended)
+            sb.Append("@asked, @charge_percent, @deposit_percent, @service_kind, ");
         sb.Append("@bid_world_id, @bidder_id, @bidder_name, @bid_money, @extra");
+        if (extended)
+            sb.Append(", @min_stack, @max_stack");
         sb.Append(" )");
-
         return sb.ToString();
     }
 
-    private void AddParametersToCommand(MySqlCommand command, AuctionLot lot)
+    private static void AddParametersToCommand(MySqlCommand command, AuctionLot lot, bool extended)
     {
         command.Parameters.AddWithValue("@id", lot.Id);
         command.Parameters.AddWithValue("@duration", (byte)lot.Duration);
@@ -559,224 +982,153 @@ public class AuctionManager(IItemManager itemManager, INameManager nameManager, 
         command.Parameters.AddWithValue("@client_name", lot.ClientName);
         command.Parameters.AddWithValue("@start_money", lot.StartMoney);
         command.Parameters.AddWithValue("@direct_money", lot.DirectMoney);
-        //command.Parameters.AddWithValue("@charge_percent", lot.ChargePercent); // added in 5+
+        if (extended)
+        {
+            command.Parameters.AddWithValue("@asked", lot.Asked != 0 ? lot.Asked : (ulong)Helpers.UnixTime(lot.PostDate));
+            command.Parameters.AddWithValue("@charge_percent", lot.ChargePercent);
+            command.Parameters.AddWithValue("@deposit_percent", lot.DepositPercent);
+            command.Parameters.AddWithValue("@service_kind", lot.ServiceKind);
+        }
         command.Parameters.AddWithValue("@bid_world_id", lot.BidWorldId);
         command.Parameters.AddWithValue("@bidder_id", lot.BidderId);
         command.Parameters.AddWithValue("@bidder_name", lot.BidderName);
         command.Parameters.AddWithValue("@bid_money", lot.BidMoney);
-        command.Parameters.AddWithValue("@extra", lot.Extra);
-        //command.Parameters.AddWithValue("@min_stack", lot.MinStack); // added in 5+
-        //command.Parameters.AddWithValue("@max_stack", lot.MaxStack); // added in 5+
-    }
-
-    private List<AuctionLot> SortArticles(List<AuctionLot> articles, AuctionSearchSortKind kind, AuctionSearchSortOrder order)
-    {
-        var sortedArticles = articles.AsQueryable();
-
-        switch (kind)
+        command.Parameters.AddWithValue("@extra", lot.ExtraMoney);
+        if (extended)
         {
-            case AuctionSearchSortKind.BidPrice:
-                sortedArticles = order == AuctionSearchSortOrder.Asc
-                    ? sortedArticles.OrderBy(o => o.BidMoney)
-                    : sortedArticles.OrderByDescending(o => o.BidMoney);
-                break;
-            case AuctionSearchSortKind.DirectPrice:
-                sortedArticles = order == AuctionSearchSortOrder.Asc
-                    ? sortedArticles.OrderBy(o => o.DirectMoney)
-                    : sortedArticles.OrderByDescending(o => o.DirectMoney);
-                break;
-            case AuctionSearchSortKind.ExpireDate:
-                sortedArticles = order == AuctionSearchSortOrder.Asc
-                    ? sortedArticles.OrderBy(o => o.PostDate)
-                    : sortedArticles.OrderByDescending(o => o.PostDate);
-                break;
-            case AuctionSearchSortKind.ItemLevel:
-                sortedArticles = order == AuctionSearchSortOrder.Asc
-                    ? sortedArticles.OrderBy(o => o.Item.Template.Level)
-                    : sortedArticles.OrderByDescending(o => o.Item.Template.Level);
-                break;
+            command.Parameters.AddWithValue("@min_stack", lot.MinStack);
+            command.Parameters.AddWithValue("@max_stack", lot.MaxStack);
         }
-
-        return sortedArticles.ToList();
     }
 
     public void SearchAuctionLots(Character player, AuctionSearch search)
     {
-        var searchedArticles = new List<AuctionLot>();
+        if (player == null || search == null)
+            return;
 
-        var detectedLanguage = LanguageDetector.DetectLanguage(search.Keyword);
-        Logger.Info($"Detected language for keyword '{search.Keyword}': {detectedLanguage}");
-
-        foreach (var (lotId, lot) in AuctionLots)
+        if (!HouseIsOpen)
         {
-            var template = lot.Item.Template;
-            var settings = template.AuctionSettings;
+            SendSearchPage(player, search.Page, [], ErrorMessageType.AucPermissionDeny);
+            return;
+        }
 
-            template.Name = GetLocalizedItemNameById(template.Id);
-
-            // Проверка по ClientId
-            if (search.ClientId != 0 && lot.ClientId != search.ClientId)
-            {
+        var matched = new List<AuctionLot>();
+        foreach (var lot in AuctionLots.Values)
+        {
+            if (lot.Item?.Template == null)
                 continue;
+
+            var names = LocalizedItemNames(lot.Item.TemplateId);
+            if (AuctionHouseRules.Matches(lot, search, search.ItemTemplateIds, names))
+                matched.Add(lot);
+        }
+
+        var sorted = AuctionHouseRules.Sort(matched, search.SortKind, search.SortOrder).ToList();
+        SendSearchPage(player, search.Page, AuctionHouseRules.Page(sorted, search.Page));
+    }
+
+    public bool PostLotOnAuction(
+        Character player,
+        ulong itemId,
+        long startPrice,
+        long buyoutPrice,
+        AuctionDuration duration,
+        int minStack,
+        int maxStack)
+    {
+        if (player == null)
+            return false;
+
+        if (!HouseIsOpen)
+        {
+            player.SendErrorMessage(ErrorMessageType.AucPermissionDeny);
+            Logger.Info("Post refused {0} ({1}): house closed", player.Name, player.Id);
+            return false;
+        }
+
+        if (!AuctionHouseRules.IsValidDuration(duration))
+        {
+            Logger.Info("Post refused {0} ({1}): duration {2} is not a house step", player.Name, player.Id, (byte)duration);
+            player.SendErrorMessage(ErrorMessageType.AucWrongDirectMoney);
+            return false;
+        }
+
+        lock (_houseLock)
+        {
+            var item = player.Inventory?.Bag?.GetItemByItemId(itemId);
+            if (item == null || !AuctionHouseRules.IsOwnedInBag(item, player.Id))
+            {
+                Logger.Info("Post refused {0} ({1}): item {2} missing or not in bag", player.Name, player.Id, itemId);
+                player.SendErrorMessage(ErrorMessageType.AucInvalidItemOrNotInYourBag);
+                return false;
             }
 
-            // Проверка по ключевому слову
-            if (!string.IsNullOrEmpty(search.Keyword))
+            if (_listedItemIds.Contains(item.Id))
             {
-                var itemName = template.Name.ToLower();
-                var keyword = search.Keyword.ToLower();
+                Logger.Warn("Post refused {0} ({1}): item {2} is already listed", player.Name, player.Id, item.Id);
+                player.SendErrorMessage(ErrorMessageType.AucInvalidItemOrNotInYourBag);
+                return false;
+            }
 
-                if (search.ExactMatch)
-                {
-                    if (itemName != keyword)
-                    {
-                        continue;
-                    }
-                }
+            if (!AuctionHouseRules.IsListableItem(item))
+            {
+                if (AuctionHouseRules.IsSoulBound(item))
+                    player.SendErrorMessage(ErrorMessageType.AucSoulBoundItem);
+                else if (AuctionHouseRules.HasUcc(item))
+                    player.SendErrorMessage(ErrorMessageType.AuctionUccPost);
                 else
-                {
-                    if (!itemName.Contains(keyword))
-                    {
-                        continue;
-                    }
-                }
+                    player.SendErrorMessage(ErrorMessageType.AucNotSellable);
+                return false;
             }
-            // Keyword and item filters are cumulative. A keyword search must not bypass
-            // the selected category, grade, or level range.
-            if (settings.CategoryA != search.CategoryA && search.CategoryA != 0)
+
+            if (!AuctionHouseRules.PricesAreListable(startPrice, buyoutPrice))
             {
-                continue;
+                player.SendErrorMessage(ErrorMessageType.AucWrongDirectMoney);
+                return false;
             }
 
-            if (settings.CategoryB != search.CategoryB && search.CategoryB != 0)
+            var lot = CreateAuctionLot(player.Id, player.Name, item, startPrice, buyoutPrice, duration, minStack, maxStack);
+            lot.ChargePercent = AuctionHouseRules.ListingChargeRate(
+                Fees.SaleChargeRate,
+                item.Template?.AuctionSettings?.EffectiveChargeRate ?? 0,
+                ChargeDiscount(player));
+            lot.DepositPercent = AuctionFeeSchedule.ApplyPercentDiscount(Fees.GetDepositRate(duration), DepositDiscount(player));
+
+            var auctionFee = Fees.GetListingDeposit(lot.DirectMoney, duration, DepositDiscount(player));
+            if (auctionFee > 0 && !player.SubtractMoney(SlotType.Inventory, auctionFee, ItemTaskType.Auction))
             {
-                continue;
+                auctionIdManager.ReleaseId((uint)lot.Id);
+                Logger.Info("Post refused {0} ({1}): cannot pay deposit {2}", player.Name, player.Id, auctionFee);
+                player.SendErrorMessage(ErrorMessageType.CanNotPutupMoney);
+                return false;
             }
 
-            if (settings.CategoryC != search.CategoryC && search.CategoryC != 0)
+            if (!player.Inventory.AuctionAttachments.AddOrMoveExistingItem(ItemTaskType.Auction, item))
             {
-                continue;
+                if (auctionFee > 0)
+                    player.AddMoney(SlotType.Inventory, auctionFee, ItemTaskType.Auction);
+                auctionIdManager.ReleaseId((uint)lot.Id);
+                Logger.Warn("Post refused {0} ({1}): could not move item {2} into escrow", player.Name, player.Id, item.Id);
+                player.SendErrorMessage(ErrorMessageType.AucInternalError);
+                return false;
             }
 
-            if (lot.Item.Grade != search.Grade && search.Grade != 0)
+            if (!TryAddLot_NoLock(lot))
             {
-                continue;
+                player.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.Auction, item);
+                if (auctionFee > 0)
+                    player.AddMoney(SlotType.Inventory, auctionFee, ItemTaskType.Auction);
+                auctionIdManager.ReleaseId((uint)lot.Id);
+                player.SendErrorMessage(ErrorMessageType.AucInternalError);
+                return false;
             }
 
-            if (template.Level > search.MaxItemLevel && search.MaxItemLevel != 0)
-            {
-                continue;
-            }
-
-            if (template.Level < search.MinItemLevel && search.MinItemLevel != 0)
-            {
-                continue;
-            }
-
-            searchedArticles.Add(lot);
-        }
-
-        if (searchedArticles.Count == 0)
-        {
-            player.SendPacket(new SCAuctionSearchedPacket(0, 0, [], (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
-            return;
-        }
-
-        var articles = SortArticles(searchedArticles, search.SortKind, search.SortOrder).ToArray();
-        var dividedLists = Helpers.SplitArray(articles, 9); // Разделяем массив на массивы по 9 значений
-
-        if (search.Page < 0 || search.Page >= dividedLists.Length) // Stops client DC when requesting an out-of-bounds page
-        {
-            Logger.Warn($"[AH] {player.Name} requested an out-of-bounds page: {search.Page}/{dividedLists.Length - 1}");
-            player.SendPacket(new SCAuctionSearchedPacket(search.Page, 0, [], (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
-            return;
-        }
-        player.SendPacket(new SCAuctionSearchedPacket(search.Page, dividedLists[search.Page].Length, dividedLists[search.Page].ToList(), (short)ErrorMessageType.NoErrorMessage, DateTime.UtcNow));
-    }
-
-    public void PostLotOnAuction(Character player, uint npcId, uint npcId2, ulong itemId, int startPrice, int buyoutPrice, AuctionDuration duration)
-    {
-        var item = itemManager.GetItemByItemId(itemId);
-        if (item == null)
-        {
-            return;
-        }
-
-        // itemId comes off the wire and was resolved straight out of the global item store, so a crafted
-        // packet could list an item belonging to somebody else - the lot, and the proceeds, went to whoever
-        // sent the packet. Require the item to actually be sitting in this player's own bag.
-        if (player == null || item.OwnerId != player.Id || item.SlotType != SlotType.Inventory)
-        {
-            Logger.Warn($"{player?.Name} ({player?.Id}) tried to list item {itemId} owned by {item.OwnerId} in {item.SlotType}");
-            player?.SendErrorMessage(ErrorMessageType.CanNotPutupItem);
-            return;
-        }
-
-        // Prices are client supplied ints. A negative buyout produced a negative deposit, and the fee was
-        // charged as ChangeMoney(-fee) - negating a negative added the money to the seller's purse instead of
-        // taking it, so listing at a negative price minted currency.
-        if (startPrice < 0 || buyoutPrice < 0 || (startPrice == 0 && buyoutPrice == 0))
-        {
-            player.SendErrorMessage(ErrorMessageType.CanNotPutupMoney);
-            return;
-        }
-
-        var lot = CreateAuctionLot(player.Id, player.Name, item, startPrice, buyoutPrice, duration);
-        if (lot == null)
-        {
-            return;
-        }
-
-        var auctionFee = Fees.GetListingDeposit(lot.DirectMoney, duration);
-
-        // Deduct AH fee
-        if (!player.SubtractMoney(SlotType.Inventory, auctionFee, ItemTaskType.Auction))
-        {
-            player.SendErrorMessage(ErrorMessageType.CanNotPutupMoney);
-            return;
-        }
-
-        player?.Inventory.AuctionAttachments.AddOrMoveExistingItem(ItemTaskType.Auction, item);
-
-        AddAuctionLot(lot);
-        player?.SendPacket(new SCAuctionPostedPacket(lot));
-    }
-
-    private class LanguageDetector
-    {
-        // private static readonly string[] CyrillicLanguages = ["ru", "uk", "bg", "sr", "mk"];
-        // private static readonly string[] LatinLanguages = ["en", "es", "fr", "de", "it"];
-
-        public static string DetectLanguage(string text)
-        {
-            if (string.IsNullOrEmpty(text))
-            {
-                return "unknown";
-            }
-
-            // Проверка на кириллицу
-            if (text.Any(c => IsCyrillic(c)))
-            {
-                return "ru"; // Предполагаем русский язык, если есть кириллические символы
-            }
-
-            // Проверка на латиницу
-            if (text.Any(c => IsLatin(c)))
-            {
-                return "en"; // Предполагаем английский язык, если есть латинские символы
-            }
-
-            return "unknown";
-        }
-
-        private static bool IsCyrillic(char c)
-        {
-            return (c >= '\u0400' && c <= '\u04FF') || (c >= '\u0500' && c <= '\u052F');
-        }
-
-        private static bool IsLatin(char c)
-        {
-            return (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z');
+            player.SendPacket(new SCAuctionPostedPacket(lot));
+            Logger.Info(
+                "Post lot={0} seller={1} ({2}) item={3} tpl={4} stack={5} start={6} buyout={7} duration={8} deposit={9} charge%={10} deposit%={11}",
+                lot.Id, player.Name, player.Id, item.Id, item.TemplateId, item.Count,
+                startPrice, buyoutPrice, duration, auctionFee, lot.ChargePercent, lot.DepositPercent);
+            return true;
         }
     }
 }

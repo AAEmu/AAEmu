@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 
@@ -25,7 +26,8 @@ public class CSDestroyItemPacket() : GamePacket(CSOffsets.CSDestroyItemPacket, 1
         var item = Connection.ActiveChar.Inventory.GetItem(slotType, slot)
                    ?? Connection.ActiveChar.Inventory.GetItemById(itemId);
 
-        if (item == null || item.Id != itemId || amount == 0 || amount > int.MaxValue || (int)amount > item.Count)
+        if (item == null || item.Id != itemId || amount == 0 || amount > int.MaxValue || (int)amount > item.Count
+            || AuctionHouseRules.IsEscrowSlot(item.SlotType) || AuctionHouseRules.IsEscrowSlot(slotType))
         {
             Logger.Warn($"DestroyItem: Invalid item, itemId {itemId}, slotType {slotType}, slot {slot}, amount {amount}, found {(item == null ? "none" : $"id {item.Id} count {item.Count}")}");
             return;

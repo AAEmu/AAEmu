@@ -1,5 +1,6 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
@@ -8,11 +9,23 @@ public class SCResponseUIDataPacket(uint characterId, ushort uiDataType, string 
 {
     public override PacketStream Write(PacketStream stream)
     {
-        // type(i64 charId) | uiDataType(u16) | uiData(length-prefixed string) | size(u32).
+        if (!UiData.IsSupported(uiDataType))
+            throw new ArgumentOutOfRangeException(nameof(uiDataType));
+
+        if (!UiData.TryEncode(uiData, out var bytes))
+        {
+            // Keep invalid persisted data intact; only send a safe empty response.
+            Logger.Warn("Invalid stored UI data: characterId={0}, type={1}; sending empty data",
+                characterId, uiDataType);
+        }
+
         stream.Write((ulong)characterId);
         stream.Write(uiDataType);
-        stream.Write(uiData);
-        stream.Write(uiData.Length + 1);
+        stream.Write((ushort)bytes.Length);
+        stream.Write(bytes, false);
+        stream.Write((uint)bytes.Length);
+        Logger.Debug("UI response: characterId={0}, type={1}, bytes={2}",
+            characterId, uiDataType, bytes.Length);
         return stream;
     }
 }
