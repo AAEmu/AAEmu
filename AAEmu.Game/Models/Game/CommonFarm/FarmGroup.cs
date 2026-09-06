@@ -2,6 +2,6 @@
 
 internal class FarmGroup
 {
-    public uint Id { get; set; }
-    public uint Count { get; set; }
+    public uint Id { get; init; }
+    public uint Count { get; init; }
 }

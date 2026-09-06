@@ -43,7 +43,9 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
             if (doodad is null)
                 continue;
             if (doodad.FarmType == FarmType.Invalid) { continue; }
-            if (DateTime.UtcNow < doodad.PlantTime.AddSeconds(doodad.Template.Group.GuardOnFieldTime)) { continue; }
+
+            var guardTime = CommonFarmGameData.Instance.GetFarmGuardTime(doodad.FarmType, doodad.Transform.ZoneId);
+            if (DateTime.UtcNow < doodad.PlantTime.AddMilliseconds(guardTime)) { continue; }
 
             // defense time is up
             doodad.OwnerId = 0;

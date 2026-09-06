@@ -32,8 +32,10 @@ public class CommonFarmGameData : Singleton<CommonFarmGameData>, IGameDataLoader
                 var template = new CommonFarm()
                 {
                     Id = reader.GetUInt32("id"),
-                    FarmGroupId = reader.GetUInt32("farm_group_id"),
-                    GuardTime = reader.GetUInt32("guard_time")
+                    Name = reader.GetString("name"),
+                    FarmId = (FarmType)reader.GetUInt32("farm_group_id"),
+                    GuardTime = reader.GetUInt32("guard_time"),
+                    Comments = reader.GetString("comments")
                 };
 
                 _commonFarm.TryAdd(template.Id, template);
@@ -48,7 +50,11 @@ public class CommonFarmGameData : Singleton<CommonFarmGameData>, IGameDataLoader
             using var reader = new SQLiteWrapperReader(sqliteReader);
             while (reader.Read())
             {
-                var template = new FarmGroup { Id = reader.GetUInt32("id"), Count = reader.GetUInt32("count") };
+                var template = new FarmGroup
+                {
+                    Id = reader.GetUInt32("id"),
+                    Count = reader.GetUInt32("count")
+                };
 
                 _farmGroup.TryAdd(template.Id, template);
             }
@@ -65,7 +71,7 @@ public class CommonFarmGameData : Singleton<CommonFarmGameData>, IGameDataLoader
                 var template = new FarmGroupDoodads
                 {
                     Id = reader.GetUInt32("id"),
-                    FarmGroupId = (FarmType)reader.GetUInt32("farm_group_id"),
+                    FarmId = (FarmType)reader.GetUInt32("farm_group_id"),
                     DoodadId = reader.GetUInt32("doodad_id"),
                     ItemId = reader.GetUInt32("item_id")
                 };
@@ -85,8 +91,29 @@ public class CommonFarmGameData : Singleton<CommonFarmGameData>, IGameDataLoader
     public List<uint> GetAllowedDoodads(FarmType farmType)
     {
         return (from item in _farmGroupDoodads
-                where item.Value.FarmGroupId == farmType
+                where item.Value.FarmId == farmType
                 select item.Value.DoodadId).ToList();
+    }
+
+    /// <summary>
+    /// Gets the default guard time for a public farm
+    /// </summary>
+    /// <param name="farmType"></param>
+    /// <param name="zoneKey"></param>
+    /// <returns>Returns default guard time for a farm type in a given zone in milliseconds, or 0 if not available</returns>
+    public uint GetFarmGuardTime(FarmType farmType, uint zoneKey)
+    {
+        // TODO: Find the actual correct way to identify the related public farm entry, Now all entries have the same time anyway, so should generally not matter, but it limits customization
+        // For now use the comments entry to at least hit the correct zone to get a value from.
+        // This can still be wrong if a zone has multiple public farms of the same time.
+        var commonFarm = _commonFarm.Values.FirstOrDefault(x => x.FarmId == farmType && x.Comments.Contains(zoneKey.ToString()));
+        // Fallback to farm type only
+        if (commonFarm == null)
+            commonFarm = _commonFarm.Values.FirstOrDefault(x => x.FarmId == farmType);
+        // Still nothing, then just return zero
+        if (commonFarm == null)
+            return 0;
+        return commonFarm.GuardTime;
     }
 
     public void PostLoad()
