@@ -246,7 +246,7 @@ public class Doodad : BaseUnit
     /// <summary>
     /// Set to the type of public farm this Doodad is part of
     /// </summary>
-    public FarmType FarmType { get; set; }
+    public FarmGroupKind FarmType { get; set; }
 
     /// <summary>
     /// Set to 1 if this doodad is part of your quest

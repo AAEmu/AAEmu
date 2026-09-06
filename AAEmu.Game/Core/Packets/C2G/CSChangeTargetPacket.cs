@@ -56,7 +56,7 @@ public class CSChangeTargetPacket() : GamePacket(CSOffsets.CSChangeTargetPacket,
         else if (Connection.ActiveChar.CurrentTarget is Slave slave)
             Connection.ActiveChar.SendDebugMessage($"ObjId: {slave.ObjId}, Slave TemplateId: {slave.TemplateId}, Id: {slave.Id}, Owner: {slave.Summoner?.Name}\nPos: {slave.Transform}");
         else if (Connection.ActiveChar.CurrentTarget is Character character)
-            Connection.ActiveChar.SendDebugMessage($"ObjId: {targetId}, CharacterId: {character.Id}, \nPos: {character.Transform.ToFullString(true, true)}, ZoneKey: {character.Transform.ZoneId}, Sub-Zone: {character.SubZoneId}");
+            Connection.ActiveChar.SendDebugMessage($"ObjId: {targetId}, CharacterId: {character.Id}, \nPos: {character.Transform.ToFullString(true, true)}");
         else
             Connection.ActiveChar.SendDebugMessage($"ObjId: {targetId}, Pos: {Connection.ActiveChar.CurrentTarget.Transform}, {Connection.ActiveChar.CurrentTarget.Name}");
     }

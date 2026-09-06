@@ -285,7 +285,7 @@ public class CrimeManager() : Singleton<CrimeManager>, ICrimeManager
     {
         // TODO: floor/water surface the bloodstain Z height?
         return DoodadManager.Instance.CreatePlayerDoodad(criminal, evidenceDoodadTemplateId,
-            targetLocation.X, targetLocation.Y, targetLocation.Z, targetRotation.Z, 1f, 0, FarmType.Invalid, sourceDoodadTemplateId, (int)victimPlayerId, true);
+            targetLocation.X, targetLocation.Y, targetLocation.Z, targetRotation.Z, 1f, 0, FarmGroupKind.Invalid, sourceDoodadTemplateId, (int)victimPlayerId, true);
     }
 
     /// <summary>

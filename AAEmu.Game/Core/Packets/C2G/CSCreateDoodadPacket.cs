@@ -44,15 +44,15 @@ public class CSCreateDoodadPacket() : GamePacket(CSOffsets.CSCreateDoodadPacket,
         var inPublicFarm = PublicFarmManager.Instance.InPublicFarm(Connection.ActiveChar.ParentWorld.Template, pos);
         var farmType = inPublicFarm
             ? PublicFarmManager.Instance.GetFarmType(Connection.ActiveChar.ParentWorld, pos)
-            : FarmType.Invalid;
+            : FarmGroupKind.Invalid;
 
         // Validate public farm
-        if (farmType != FarmType.Invalid)
+        if (farmType != FarmGroupKind.Invalid)
         {
             if (!PublicFarmManager.Instance.CanPlace(Connection.ActiveChar, farmType, id))
             {
                 // Invalid public farm
-                Logger.Warn($"CreateDoodad, ItemId: {itemId}, Invalid FarmType: {farmType}");
+                Logger.Warn($"CreateDoodad, ItemId: {itemId}, Invalid FarmGroupKind: {farmType}");
                 return;
             }
             laborCost = 0;

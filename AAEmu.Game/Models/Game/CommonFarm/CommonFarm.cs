@@ -6,7 +6,7 @@ internal class CommonFarm
 {
     public uint Id { get; init; }
     // public string Name { get; set; }
-    public FarmType FarmId { get; init; }
+    public FarmGroupKind FarmId { get; init; }
     public uint GuardTime { get; init; }
     public string Comments { get; init; }
 }

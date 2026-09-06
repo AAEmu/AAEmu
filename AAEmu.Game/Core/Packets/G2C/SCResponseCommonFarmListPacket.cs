@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCResponseCommonFarmListPacket(Dictionary<FarmType, List<Doodad>> allPlanted)
+public class SCResponseCommonFarmListPacket(Dictionary<FarmGroupKind, List<Doodad>> allPlanted)
     : GamePacket(SCOffsets.SCResponseCommonFarmListPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
@@ -15,7 +15,7 @@ public class SCResponseCommonFarmListPacket(Dictionary<FarmType, List<Doodad>> a
         stream.Write(allPlanted.Values.Sum(l => l.Count));
         stream.Write(allPlanted.Values.Sum(l => l.Count));
 
-        foreach (var type in Enum.GetValues<FarmType>())
+        foreach (var type in Enum.GetValues<FarmGroupKind>())
         {
             if (allPlanted.TryGetValue(type, out var doodadList))
             {

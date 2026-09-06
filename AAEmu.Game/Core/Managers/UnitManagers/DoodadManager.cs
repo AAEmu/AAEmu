@@ -1,5 +1,5 @@
 ﻿using System.Reflection;
-
+using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.Creatures;
 using AAEmu.Game.Core.Managers.Id;
@@ -2684,7 +2684,9 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                         template.ForceTodTopPriority = reader.GetBoolean("force_tod_top_priority", true);
                         template.MilestoneId = reader.GetUInt32("milestone_id", 0);
                         template.GroupId = reader.GetUInt32("group_id");
-                        template.Group = _doodadGroups.GetValueOrDefault(template.GroupId);
+                        if (!_doodadGroups.TryGetValue(template.GroupId, out var doodadGroup))
+                            throw new GameException($"Invalid doodad group {template.GroupId} for doodad {templateId}");
+                        template.Group = doodadGroup;
                         template.UseTargetDecal = reader.GetBoolean("use_target_decal", true);
                         template.UseTargetSilhouette = reader.GetBoolean("use_target_silhouette", true);
                         template.UseTargetHighlight = reader.GetBoolean("use_target_highlight", true);
@@ -3009,7 +3011,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
     /// <summary>
     /// Saves and creates a doodad
     /// </summary>
-    public Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId, FarmType farmType = FarmType.Invalid, uint itemTemplateId = 0, int customData = 0, bool ignoreHouses = false)
+    public Doodad CreatePlayerDoodad(Character character, uint id, float x, float y, float z, float zRot, float scale, ulong itemId, FarmGroupKind farmGroupKind = FarmGroupKind.Invalid, uint itemTemplateId = 0, int customData = 0, bool ignoreHouses = false)
     {
         Logger.Warn($"{character.Name} is placing a doodad {id} at position {x} {y} {z}");
 
@@ -3026,7 +3028,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
         // doodad.Transform.WorldId = world.Template.Id;
         doodad.ItemId = itemId;
         doodad.PlantTime = DateTime.UtcNow;
-        doodad.FarmType = farmType;
+        doodad.FarmType = farmGroupKind;
         doodad.ItemTemplateId = itemTemplateId;
         doodad.Data = customData;
         if (targetHouse != null)
