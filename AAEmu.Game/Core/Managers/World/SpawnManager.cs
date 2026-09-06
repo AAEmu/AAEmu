@@ -724,7 +724,7 @@ public class SpawnManager(WorldInstance parentWorld)
                     var itemTemplateId = reader.GetUInt32("item_template_id");
                     var itemContainerId = reader.GetUInt64("item_container_id");
                     var data = reader.GetInt32("data");
-                    var farmType = (FarmType)reader.GetUInt32("farm_type");
+                    var farmType = (FarmGroupKind)reader.GetUInt32("farm_type");
 
                     var doodad = DoodadManager.Instance.Create(World, 0, templateId, null, true);
 

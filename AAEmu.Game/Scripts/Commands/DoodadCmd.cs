@@ -24,6 +24,7 @@ public class DoodadCmd : SubCommandBase, ICommand
         Register(new DoodadSpawnSubCommand(), "spawn");
         Register(new DoodadRemoveSubCommand(), "remove");
         Register(new DoodadRemovesSubCommand(), "removes");
+        Register(new DoodadSetAgeCommand(), "age", "setage");
     }
 
     public void OnLoad()

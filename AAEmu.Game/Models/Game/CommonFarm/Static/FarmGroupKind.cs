@@ -1,6 +1,6 @@
 ﻿namespace AAEmu.Game.Models.Game.CommonFarm.Static;
 
-public enum FarmType
+public enum FarmGroupKind : uint
 {
     Invalid = 0,
     Farm = 1,

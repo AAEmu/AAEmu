@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Models.Game.World.Zones;
+﻿using AAEmu.Game.Models.Game.CommonFarm;
+using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -17,6 +18,8 @@ public class DoodadTemplate
     public bool ForceTodTopPriority { get; set; }
     public uint MilestoneId { get; set; }
     public uint GroupId { get; set; }
+    /// <summary>Actual group data for GroupId</summary>
+    public DoodadGroups Group { get; set;}
     public bool UseTargetDecal { get; set; }
     public bool UseTargetSilhouette { get; set; }
     public bool UseTargetHighlight { get; set; }

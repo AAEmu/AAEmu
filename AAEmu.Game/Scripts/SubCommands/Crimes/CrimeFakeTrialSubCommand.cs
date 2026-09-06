@@ -123,7 +123,7 @@ public class CrimeFakeTrialSubCommand : SubCommandBase
                 case 1: evidence = CrimeManager.Instance.GenerateEvidenceFromKill(targetCharacter, victimCharacter);
                     break;
                 case 2:
-                    fakePine = DoodadManager.Instance.CreatePlayerDoodad(victimCharacter, 398, pos.X, pos.Y, pos.Z, 0, 1f, 0, FarmType.Invalid, 14898, 0, true);
+                    fakePine = DoodadManager.Instance.CreatePlayerDoodad(victimCharacter, 398, pos.X, pos.Y, pos.Z, 0, 1f, 0, FarmGroupKind.Invalid, 14898, 0, true);
                     fakePine.Spawn();
                     skillId = 13789; // uproot
                     evidence = CrimeManager.Instance.GenerateEvidenceFromTheft(targetCharacter, fakePine);
