@@ -95,10 +95,16 @@ public class MailPlayerToPlayer : BaseMail
         for (var i = 0; i < Body.Attachments.Count; i++)
         {
             var tempItem = Body.Attachments[i];
+            // Snapshot the source coordinates BEFORE the move: AddOrMoveExistingItem runs with
+            // ItemTaskType.Invalid (so it sends nothing itself) and rewrites SlotType/Slot onto the
+            // mail container. Building the Seize from the item afterwards would target the mail slot
+            // the client never saw, leaving a ghost of the item in the sender's bag.
+            var sourceSlotType = tempItem.SlotType;
+            var sourceSlot = (byte)tempItem.Slot;
             // Move Item to sender's Mail ItemContainer, technically speaking this can never fail
             if (_sender.Inventory.MailAttachments.AddOrMoveExistingItem(ItemTaskType.Invalid, tempItem))
             {
-                _sender.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Mail, [new ItemRemove(tempItem)], []));
+                _sender.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Mail, [new ItemRemoveSlot(tempItem.Id, sourceSlotType, sourceSlot)], []));
                 // Technically not needed, I just want to sync it up
                 tempItem.SlotType = SlotType.Mail;
                 tempItem.Slot = i;

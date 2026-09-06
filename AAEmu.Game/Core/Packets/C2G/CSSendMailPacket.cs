@@ -19,16 +19,29 @@ public class CSSendMailPacket() : GamePacket(CSOffsets.CSSendMailPacket, 1)
 
         Logger.Debug($"SendMail by {character.Name}");
 
+        // Wire layout from the 10.0.2 client: the sender builds CSSendMailPacket (opcode 0xDB,
+        // part_26025.c) from the struct read by FUN_39bdeb70 with the group-mail tail appended by
+        // FUN_39a965d0 and the whole packet read back by FUN_39ac17e0 (part_38658.c):
+        //   u8 type, str receiverCharName (cap 128), u64 receiverRefId, str title (cap 0x4b0),
+        //   str text (cap 0x640), u8 attachments, u64 money x3, u32 money3, u64 extra,
+        //   bool groupMail, 10 x (u8 slotType, u8 slot), u32 doodadId (Bc),
+        //   u64 groupMoney, u32 userCount, u64 userList[userCount, max 100].
+        //
+        // The money widths matter: the three main amounts are u64 on the wire (same helpers as
+        // the S2C mail-body money fields), followed by a fourth u32 amount. Reading them as i32
+        // shifted every later field and made the mailbox doodad check fail for every send.
         var type = (MailType)stream.ReadByte();
         var receiverCharName = stream.ReadString();
-        var unkId = stream.ReadUInt32(); //could be status
+        var receiverRefId = stream.ReadUInt64();
         var title = stream.ReadString();
-        var text = stream.ReadString(); // TODO max length 1600
+        var text = stream.ReadString();
         var attachments = stream.ReadByte();
-        var money0 = stream.ReadInt32();
-        var money1 = stream.ReadInt32();
-        var money2 = stream.ReadInt32();
+        var money0 = stream.ReadUInt64();
+        var money1 = stream.ReadUInt64();
+        var money2 = stream.ReadUInt64();
+        var money3 = stream.ReadUInt32();
         var extra = stream.ReadInt64();
+        var groupMail = stream.ReadBoolean();
         var itemSlots = new List<(SlotType slotType, byte slot)>();
         for (var i = 0; i < 10; i++)
         {
@@ -41,6 +54,14 @@ public class CSSendMailPacket() : GamePacket(CSOffsets.CSSendMailPacket, 1)
         }
 
         var doodadObjId = stream.ReadBc();
+        var groupMoney = stream.ReadUInt64();
+        var userCount = stream.ReadUInt32();
+        var userList = new List<ulong>();
+        for (var i = 0; i < userCount && i < 100; i++)
+            userList.Add(stream.ReadUInt64());
+
+        Logger.Debug($"SendMail by {character.Name} to {receiverCharName} (ref {receiverRefId}), group={groupMail}, extraUsers={userList.Count}, groupMoney={groupMoney}");
+
         if (character.Level + character.HeirLevel < AppConfiguration.Instance.LevelRestrictions.MailLevel)
         {
             character.SendErrorMessage(ErrorMessageType.MailCannotSendSinceLevelLow);
@@ -72,7 +93,7 @@ public class CSSendMailPacket() : GamePacket(CSOffsets.CSSendMailPacket, 1)
 
         if (mailCheckOK)
         {
-            var mailResult = character.Mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, extra, itemSlots);
+            var mailResult = character.Mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, money3, extra, itemSlots, groupMail, userList);
             if (mailResult == MailResult.Success)
             {
                 character.SendErrorMessage(ErrorMessageType.MailSuccess);
