@@ -507,7 +507,7 @@ public class Doodad : BaseUnit
             // CrimePoint > 0 as an *additional* explicit-crime signal when an actual skill is involved.
             var isExplicitCrimeSkill = startedSkillTemplate?.CrimePoint > 0;
             var isSkillLessPickup = startedSkillId == 0;
-            var isPublicPropertyByAge = Template.Group.GuardOnFieldTime > 0 && (PlantTime.AddSeconds(Template.Group.GuardOnFieldTime) < DateTime.UtcNow);
+            var isPublicPropertyByAge = IsPublicPropertyByAge(DateTime.UtcNow);
             var shouldGenerateTheftEvidence = isDifferentCharacterOwner && (isSkillLessPickup || isExplicitCrimeSkill) && (!isPublicPropertyByAge);
 
             if (shouldGenerateTheftEvidence)
@@ -516,7 +516,7 @@ public class Doodad : BaseUnit
                 // TODO: Enforce theft minimum level
                 // TODO: Faction check (or make this optional)
                 // TODO: Move/change this to better take into account functions that are marked as criminal
-                var newFootprint = CrimeManager.Instance.GenerateEvidenceFromTheft(casterOwningCharacter, this);
+                var newFootprint = GenerateTheftEvidence(casterOwningCharacter);
                 Logger.Debug($"Created footprint evidence at {newFootprint?.Transform} for {casterOwningCharacter?.Name}, doodad {TemplateId}");
             }
 
@@ -540,6 +540,16 @@ public class Doodad : BaseUnit
 
             skillId = 0;
         }
+    }
+
+    internal bool IsPublicPropertyByAge(DateTime now)
+    {
+        return Template.Group.GuardOnFieldTime > 0 && PlantTime.AddSeconds(Template.Group.GuardOnFieldTime) < now;
+    }
+
+    internal virtual Doodad GenerateTheftEvidence(Character criminal)
+    {
+        return CrimeManager.Instance.GenerateEvidenceFromTheft(criminal, this);
     }
 
     /// <summary>

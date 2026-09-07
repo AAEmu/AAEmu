@@ -136,13 +136,18 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
 
     public static bool IsProtectedByPublicFarm(Doodad doodad)
     {
+        return IsProtectedByPublicFarm(doodad, DateTime.UtcNow);
+    }
+
+    internal static bool IsProtectedByPublicFarm(Doodad doodad, DateTime now)
+    {
         var guardTime = CommonFarmGameData.Instance.GetFarmGuardTime(doodad.FarmType, doodad.Transform.ZoneId);
         if (guardTime == 0)
             return false;
 
         var protectionTime = doodad.PlantTime.AddMilliseconds(guardTime);
 
-        return DateTime.UtcNow < protectionTime;
+        return now < protectionTime;
     }
 
     public void Load()
