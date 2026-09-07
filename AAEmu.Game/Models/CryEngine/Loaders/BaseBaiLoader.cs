@@ -248,7 +248,18 @@ public class BaseBaiLoader(WorldTemplate parentWorldTemplate)
         NetMissionReaders.Clear();
         VertexMissionReaders.Clear();
         HideMissionReaders.Clear();
+        InvalidateNavEdgeIndex();
     }
+
+    /// <summary>
+    /// Lazy XY edge grid for <see cref="NavSurfaceSampler"/> (Greptile P2).
+    /// </summary>
+    private NavEdgeSpatialIndex _navEdgeIndex;
+
+    public NavEdgeSpatialIndex NavEdgeIndex =>
+        _navEdgeIndex ??= NavEdgeSpatialIndex.Build(this);
+
+    public void InvalidateNavEdgeIndex() => _navEdgeIndex = null;
 
     public NodeDescriptor FindClosestNetMissionNode(Vector3 pos)
     {
