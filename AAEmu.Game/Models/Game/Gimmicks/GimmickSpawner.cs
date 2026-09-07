@@ -90,7 +90,10 @@ public class GimmickSpawner : Spawner<Gimmick>
             case OffsetCoordinateType.Unk1:
                 break;
             case OffsetCoordinateType.Unk2:
-                gimmick.Transform.Local.AddDistance(OffsetX, OffsetY, OffsetZ);
+                // offset_coordiate_id = 2 => local right/front/up offset (not raw world XYZ)
+                gimmick.Transform.Local.AddDistanceToRight(OffsetX);
+                gimmick.Transform.Local.AddDistanceToFront(OffsetY);
+                gimmick.Transform.Local.Translate(new Vector3(0f, 0f, OffsetZ));
                 //var (newX, newY, newZ) = PositionAndRotation.AddDistanceToFront(1, 1, gimmick.Transform.World.Position, gimmick.Transform.World.Position);
                 //gimmick.Transform.World.Position = new Vector3(newX, newY, newZ + OffsetZ);
                 break;
@@ -103,6 +106,19 @@ public class GimmickSpawner : Spawner<Gimmick>
         }
 
         gimmick.SetScale(Scale);
+        if (VelocityCoordinateId == VelocityCoordinateType.Unk2)
+        {
+            // velocity_coordiate_id = 2 => local right/front/up velocity, rotate by caster yaw into world XY
+            var yaw = gimmick.Transform.World.Rotation.Z; // radians
+            gimmick.Vel = new Vector3(
+                (MathF.Cos(yaw) * VelocityX) + (-MathF.Sin(yaw) * VelocityY),
+                (MathF.Sin(yaw) * VelocityX) + (MathF.Cos(yaw) * VelocityY),
+                VelocityZ);
+        }
+        else
+        {
+            gimmick.Vel = new Vector3(VelocityX, VelocityY, VelocityZ);
+        }
         gimmick.Spawn(); // добавляем в мир
         ParentWorld.GimmickManager.AddActiveGimmick(gimmick);
 

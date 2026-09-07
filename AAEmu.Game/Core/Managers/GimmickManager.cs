@@ -51,7 +51,7 @@ public class GimmickManager(WorldInstance parentWorld)
             Faction = new SystemFaction()
         };
         gimmick.Transform.ApplyWorldSpawnPosition(spawner.Position);
-        gimmick.Vel = new Vector3(0f, 0f, 0f);
+        gimmick.Vel = new Vector3(spawner.VelocityX, spawner.VelocityY, spawner.VelocityZ);
         var spawnRotation = new Quaternion(spawner.RotationX, spawner.RotationY, spawner.RotationZ, spawner.RotationW);
         // Apply Gimmick setting's rotation to the GameObject.Transform
         gimmick.Transform.Local.ApplyFromQuaternion(spawnRotation);
@@ -77,12 +77,25 @@ public class GimmickManager(WorldInstance parentWorld)
             // Elevators defined in gimmick_spawns.json
             gimmick.MovementHandler = new GimmickMovementElevator(gimmick);
         }
-        else
-            // TODO: Add decent Physics system to handle movement
         if (gimmick.TemplateId == 37)
         {
             // Recovered Treasure Chest
             gimmick.MovementHandler = new GimmickMovementFloatToSurface(gimmick);
+        }
+        else if (gimmick.Template != null)
+        {
+            var hasInitialVelocity = gimmick.Vel.LengthSquared() > 0.0001f;
+            var hasGravity = MathF.Abs(gimmick.Template.Gravity) > 0.0001f;
+            var hasAirResistance = MathF.Abs(gimmick.Template.AirResistance) > 0.0001f;
+            if (hasInitialVelocity || hasGravity || hasAirResistance)
+                gimmick.MovementHandler ??= new GimmickMovementProjectile(gimmick);
+        }
+
+        // Prevent first-tick "cosmic velocity" caused by default LastPos/LastRot = 0
+        if (gimmick.Transform?.World != null)
+        {
+            gimmick.LastPos = gimmick.Transform.World.Position;
+            gimmick.LastRot = gimmick.Transform.World.Rotation;
         }
 
         gimmick.Time = (uint)(DateTime.UtcNow - DateTime.UtcNow.Date).TotalMilliseconds;
