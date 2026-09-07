@@ -9,9 +9,20 @@ public class CTUccCharacterNamePacket() : StreamPacket(CTOffsets.CTUccCharacterN
 {
     public override void Read(PacketStream stream)
     {
-        var id = stream.ReadUInt32();
+        if (stream.LeftBytes != sizeof(ulong))
+        {
+            Logger.Warn("UccCharacterName request has invalid size: {0}", stream.LeftBytes);
+            return;
+        }
 
-        var name = NameManager.Instance.GetCharacterName(id);
+        var id = stream.ReadUInt64();
+        if (id > uint.MaxValue)
+        {
+            Logger.Warn("UccCharacterName request has invalid character Id: {0}", id);
+            return;
+        }
+
+        var name = NameManager.Instance.GetCharacterName((uint)id);
         if (name != null)
             Connection.SendPacket(new TCUccCharNamePacket(id, name));
 
