@@ -6,7 +6,6 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.CommonFarm;
 using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Details;
@@ -2633,7 +2632,7 @@ public class DoodadManager(IObjectIdManager objectIdManager, IDoodadIdManager do
                     }
                 }
             }
-            
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM doodad_groups";

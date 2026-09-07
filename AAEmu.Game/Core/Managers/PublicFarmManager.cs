@@ -154,7 +154,7 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
             { 966, FarmGroupKind.Farm },
             { 967, FarmGroupKind.Ranch },
             { 968, FarmGroupKind.Nursery },
-            { 974, FarmGroupKind.Stable }, 
+            { 974, FarmGroupKind.Stable },
             { 998, FarmGroupKind.Farm },
         };
     }
