@@ -20,6 +20,7 @@ public interface IMailManager : ILoadable
     void DiscardUnpersisted(BaseMail mail);
     bool SendBatch(IReadOnlyList<BaseMail> mails);
     bool TryPrepareBatch(IReadOnlyList<BaseMail> mails, out PreparedMailBatch batch);
+    void PersistPreparedBatch(IReadOnlyList<BaseMail> mails, MySqlConnection connection, MySqlTransaction transaction);
     bool PublishPreparedBatch(PreparedMailBatch batch, bool alreadyPersisted = false);
     void CancelPreparedBatch(PreparedMailBatch batch);
     bool TryReturnToSender(BaseMail mail);

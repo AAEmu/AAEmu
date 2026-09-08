@@ -22,7 +22,7 @@ public class AddCargoMaterials : ICommand
 
     public string GetCommandHelpText()
     {
-        return "Adds test stock to each authored cargo material bucket. With no amounts, adds one complete recipe batch.";
+        return "Adds test stock to each authored cargo material queue, attributed to its lowest-ID matching specialty item. With no amounts, adds one complete recipe batch.";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)

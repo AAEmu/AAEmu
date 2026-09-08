@@ -332,21 +332,14 @@ public class CurrencyValuesConfig
 public class SpecialtyConfig
 {
     /// <summary>
-    /// Amount the trade in rate lowers for each traded pack
+    /// Enables an additional time-based specialty demand-ratio recovery step.
     /// </summary>
-    public double RatioDecreasePerPack { get; set; } = 0.5f;
+    public bool EnableTimedRatioRecovery { get; set; } = false;
+
     /// <summary>
-    /// Number of % a trade recovers every X time
+    /// Delay before the first time-based recovery and interval between subsequent recoveries.
     /// </summary>
-    public double RatioIncreasePerTick { get; set; } = 5.0;
-    /// <summary>
-    /// Number of minutes between trade rate updates when selling packs
-    /// </summary>
-    public double RatioDecreaseTickMinutes { get; set; } = 1f;
-    /// <summary>
-    /// Time in minutes before a traded pack is no longer counted towards the trade rate calculation
-    /// </summary>
-    public double RatioRegenTickMinutes { get; set; } = 60f;
+    public double RatioRecoveryIntervalMinutes { get; set; } = 60.0;
 
     /// <summary>
     /// Time in minutes to delay trade pack reward mail delivery. Default is 8 hours.

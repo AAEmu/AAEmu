@@ -1,9 +1,9 @@
 ﻿using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
-using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
@@ -60,9 +60,11 @@ public class AddGold : ICommand
 
         if (argTotal != 0)
         {
-            targetPlayer.Money += argTotal;
-            targetPlayer.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem,
-                [new MoneyChange(argTotal)], []));
+            if (!targetPlayer.ChangeMoney(SlotType.Inventory, argTotal, ItemTaskType.AutoLootDoodadItem))
+            {
+                CommandManager.SendErrorText(this, messageOutput, "Money change was rejected");
+                return;
+            }
             if (character.Id != targetPlayer.Id)
             {
                 CommandManager.SendNormalText(this, messageOutput,

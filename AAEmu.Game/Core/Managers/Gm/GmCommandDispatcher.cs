@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Teleport;
@@ -449,8 +450,8 @@ public static class GmCommandDispatcher
         var ch = ResolveChar(me, unitId, []);
         if (!TryInt(args, 0, out var money))
             return "need money (copper)";
-        ch.Money += money;
-        ch.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Gm, [new MoneyChange(money)], []));
+        if (!ch.ChangeMoney(SlotType.Inventory, money, ItemTaskType.Gm))
+            return "money change rejected";
         return $"{ch.Name} money Δ{money} → {ch.Money}";
     }
 

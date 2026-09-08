@@ -1,8 +1,8 @@
 ﻿using System.Drawing;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Utils.Scripts;
 using AAEmu.Game.Utils.Scripts.SubCommands;
@@ -74,9 +74,11 @@ public class GoldSetSubCommand : SubCommandBase
 
         if (totalAmount != 0)
         {
-            targetCharacter.Money += totalAmount;
-            targetCharacter.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.AutoLootDoodadItem,
-                [new MoneyChange(totalAmount)], []));
+            if (!targetCharacter.ChangeMoney(SlotType.Inventory, totalAmount, ItemTaskType.AutoLootDoodadItem))
+            {
+                SendColorMessage(messageOutput, Color.Red, "Money change was rejected");
+                return;
+            }
             SendMessage(messageOutput,
                 $"Changed {targetCharacter.Name}'s money by {goldAmount}g {silverAmount}s {copperAmount}c");
             if (selfCharacter.Id != targetCharacter.Id)

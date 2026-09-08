@@ -26,6 +26,7 @@ public class SpecialtySaleCommitterTests
     [Test]
     [Arguments(SpecialtySaleCommitResult.PackNotPersisted)]
     [Arguments(SpecialtySaleCommitResult.LaborConflict)]
+    [Arguments(SpecialtySaleCommitResult.MarketConflict)]
     public async Task Commit_Noncommitted_DiscardsWithoutPublishing(SpecialtySaleCommitResult storeResult)
     {
         var store = new FakeSpecialtySaleStore { Result = storeResult };
@@ -110,7 +111,8 @@ public class SpecialtySaleCommitterTests
             90,
             50,
             40,
-            []);
+            [],
+            new SpecialtyMarketWrite(new SpecialtyMarketState(), new SpecialtyMarketState { Revision = 1 }));
     }
 
     private sealed class FakeSpecialtySaleStore : ISpecialtySaleStore

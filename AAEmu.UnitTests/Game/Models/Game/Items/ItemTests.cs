@@ -588,6 +588,21 @@ public class ItemTests
         await Assert.That(item.IsDirty).IsTrue();
     }
 
+    [Test]
+    public async Task SettingDetailState_SetsIsDirtyTrue()
+    {
+        var item = new Item { IsDirty = false };
+
+        item.DetailType = ItemDetailType.BackpackFreshness;
+
+        await Assert.That(item.IsDirty).IsTrue();
+        item.IsDirty = false;
+
+        item.Detail = [1, 2, 3];
+
+        await Assert.That(item.IsDirty).IsTrue();
+    }
+
     #endregion
 
     #region CompareTo Tests

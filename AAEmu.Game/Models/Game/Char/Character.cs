@@ -2352,6 +2352,17 @@ public partial class Character : Unit, ICharacter
         long aaPointAmount,
         ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
     {
+        lock (_stateSyncRoot)
+            return ChangeWalletsCore(typeFrom, typeTo, moneyAmount, aaPointAmount, itemTaskType);
+    }
+
+    private bool ChangeWalletsCore(
+        SlotType typeFrom,
+        SlotType typeTo,
+        long moneyAmount,
+        long aaPointAmount,
+        ItemTaskType itemTaskType)
+    {
         if (moneyAmount == 0 && aaPointAmount == 0)
             return true;
 

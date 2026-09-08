@@ -187,7 +187,7 @@ public class Item : PacketMarshaler, IComparable<Item>
         set
         {
             _detailType = value;
-            _isDirty = true;
+            MarkDirty();
         }
     }
 
@@ -198,7 +198,7 @@ public class Item : PacketMarshaler, IComparable<Item>
         set
         {
             _detail = value;
-            _isDirty = true;
+            MarkDirty();
         }
     }
 

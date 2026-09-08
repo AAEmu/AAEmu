@@ -15,7 +15,8 @@ public sealed record SpecialtySaleWrite(
     int NewLabor,
     int ExpectedLocalLabor,
     int NewLocalLabor,
-    IReadOnlyList<BaseMail> PayoutMails)
+    IReadOnlyList<BaseMail> PayoutMails,
+    SpecialtyMarketWrite Market)
 {
     public int PackCount { get; } = 1;
 }

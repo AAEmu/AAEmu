@@ -274,6 +274,8 @@ public static class Program
                 services.AddSingleton<SaveManager>();
                 services.AddSingleton<ISaveManager>(sp => sp.GetRequiredService<SaveManager>());
 
+                services.AddSingleton<ISpecialtyMarketStore, MySqlSpecialtyMarketStore>();
+                services.AddSingleton<ISpecialtyPurchaseStore, MySqlSpecialtyPurchaseStore>();
                 services.AddSingleton<ISpecialtySaleStore, MySqlSpecialtySaleStore>();
                 services.AddSingleton<SpecialtySaleCommitter>();
 

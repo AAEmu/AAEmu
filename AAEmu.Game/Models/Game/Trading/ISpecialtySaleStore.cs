@@ -4,7 +4,8 @@ public enum SpecialtySaleCommitResult
 {
     Committed,
     PackNotPersisted,
-    LaborConflict
+    LaborConflict,
+    MarketConflict
 }
 
 public interface ISpecialtySaleStore

@@ -7,13 +7,19 @@ namespace AAEmu.Game.Models.Game.Items;
 internal static class ItemPersistence
 {
     public static void Save(MySqlConnection connection, MySqlTransaction transaction, Item item)
+        => Write(connection, transaction, item, false);
+
+    public static void Insert(MySqlConnection connection, MySqlTransaction transaction, Item item)
+        => Write(connection, transaction, item, true);
+
+    private static void Write(MySqlConnection connection, MySqlTransaction transaction, Item item, bool insert)
     {
         var details = new PacketStream();
         item.WriteDetails(details);
 
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = "REPLACE INTO items (" +
+        command.CommandText = (insert ? "INSERT" : "REPLACE") + " INTO items (" +
             "`id`,`type`,`template_id`,`container_id`,`slot_type`,`slot`,`count`,`detail_type`,`details`,`lifespan_mins`,`made_unit_id`," +
             "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`,`flags`,`ucc`," +
             "`expire_time`,`expire_online_minutes`,`charge_time`,`charge_count`) VALUES (" +

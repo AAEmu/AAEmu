@@ -593,15 +593,11 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             return;
         }
 
-        owner.Money -= AppConfiguration.Instance.Expedition.Create.Cost;
-        owner.SendPacket(
-            new SCItemTaskSuccessPacket(
-                ItemTaskType.ExpeditionCreation,
-                [
-                    new MoneyChange(-AppConfiguration.Instance.Expedition.Create.Cost)
-                ],
-                [])
-        );
+        if (!owner.SubtractMoney(
+                SlotType.Inventory,
+                AppConfiguration.Instance.Expedition.Create.Cost,
+                ItemTaskType.ExpeditionCreation))
+            return;
         // -----------------
 
         var expedition = Create(name, owner);

@@ -1,16 +1,21 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Trading;
 using AAEmu.Game.Models.StaticValues;
+using AAEmu.Game.Models.Tasks.Specialty;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Options;
+using AaEmuTask = AAEmu.Game.Models.Tasks.Task;
 
 namespace AAEmu.UnitTests.Game.Core.Managers.World;
 
-public class SpecialtyManagerTests
+public partial class SpecialtyManagerTests
 {
     [Test]
     public async Task Constructor_DoesNotCallDependencies()
@@ -22,12 +27,20 @@ public class SpecialtyManagerTests
         var mailManager = Mock.Of<IMailManager>();
 
         var saleStore = Mock.Of<ISpecialtySaleStore>();
+        var marketStore = Mock.Of<ISpecialtyMarketStore>();
+        var purchaseStore = Mock.Of<ISpecialtyPurchaseStore>();
+        var taskManager = Mock.Of<ITaskManager>();
+        var options = Mock.Of<IOptions<AppConfiguration>>();
         var manager = new SpecialtyManager(
             itemManager.Object,
             skillManager.Object,
             zoneManager.Object,
             mailManager.Object,
-            new SpecialtySaleCommitter(saleStore.Object));
+            new SpecialtySaleCommitter(saleStore.Object),
+            marketStore.Object,
+            purchaseStore.Object,
+            taskManager.Object,
+            options.Object);
 
         await Assert.That(manager).IsNotNull();
         Mock.VerifyNoOtherCalls(itemManager);
@@ -35,6 +48,52 @@ public class SpecialtyManagerTests
         Mock.VerifyNoOtherCalls(zoneManager);
         Mock.VerifyNoOtherCalls(mailManager);
         Mock.VerifyNoOtherCalls(saleStore);
+        Mock.VerifyNoOtherCalls(marketStore);
+        Mock.VerifyNoOtherCalls(purchaseStore);
+        Mock.VerifyNoOtherCalls(taskManager);
+        Mock.VerifyNoOtherCalls(options);
+    }
+
+    [Test]
+    public void Initialize_DoesNotScheduleTimedRecoveryWhenDisabled()
+    {
+        var taskManager = Mock.Of<ITaskManager>();
+        var manager = CreateManager(null, taskManager: taskManager.Object, options: CreateOptions());
+
+        manager.Initialize();
+
+        taskManager.Schedule(Any<AaEmuTask>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>())
+            .WasCalled(Times.Never);
+    }
+
+    [Test]
+    public void Initialize_SchedulesTimedRecoveryAtConfiguredInterval()
+    {
+        var taskManager = Mock.Of<ITaskManager>();
+        taskManager.Schedule(Any<AaEmuTask>(), Any<TimeSpan?>(), Any<TimeSpan?>(), Any<int>()).Returns(true);
+        var manager = CreateManager(
+            null,
+            taskManager: taskManager.Object,
+            options: CreateOptions(enableTimedRecovery: true, recoveryIntervalMinutes: 15.5));
+
+        manager.Initialize();
+
+        var interval = TimeSpan.FromMinutes(15.5);
+        taskManager.Schedule(Is<AaEmuTask>(task => task is SpecialtyRatioRegenTask), interval, interval, -1)
+            .WasCalled(Times.Once);
+    }
+
+    [Test]
+    [Arguments(0d)]
+    [Arguments(-1d)]
+    [Arguments(0.000000000001d)]
+    public async Task Initialize_RejectsInvalidTimedRecoveryInterval(double intervalMinutes)
+    {
+        var manager = CreateManager(
+            null,
+            options: CreateOptions(enableTimedRecovery: true, recoveryIntervalMinutes: intervalMinutes));
+
+        await Assert.That(manager.Initialize).Throws<InvalidDataException>();
     }
 
     [Test]
@@ -94,6 +153,14 @@ public class SpecialtyManagerTests
     public async Task DecodeSellerShare_UsesTenths(int contentValue, double expected)
     {
         await Assert.That(SpecialtyManager.DecodeSellerShare(contentValue)).IsEqualTo(expected);
+    }
+
+    [Test]
+    public async Task RecoverRatioUnits_RoundsFinalCompoundedResultAwayFromZero()
+    {
+        await Assert.That(SpecialtyManager.RecoverRatioUnits(99, 100, 50, 1)).IsEqualTo(100);
+        await Assert.That(SpecialtyManager.RecoverRatioUnits(9000, 13000, 25, 5)).IsEqualTo(12051);
+        await Assert.That(SpecialtyManager.RecoverRatioUnits(12999, 13000, 25, 1)).IsEqualTo(13000);
     }
 
     [Test]
@@ -244,8 +311,10 @@ public class SpecialtyManagerTests
     public async Task AddTradeGoodMaterials_DefaultsToOneCompleteAuthoredBatch()
     {
         using var connection = CreateTradeGoodDatabase();
-        var manager = CreateManager(CreateCargoItem());
+        using var specialty = CreateSpecialtySaleDatabase();
+        var manager = CreateCargoMaterialAdminManager();
         manager.LoadTradeGoodData(connection);
+        manager.LoadSpecialtySaleData(specialty);
 
         var result = manager.AddTradeGoodMaterials(8, 1, null);
 
@@ -260,14 +329,20 @@ public class SpecialtyManagerTests
     public async Task AddTradeGoodMaterials_OneAmountIncrementsEveryMaterial()
     {
         using var connection = CreateTradeGoodDatabase();
-        var manager = CreateManager(CreateCargoItem());
+        using var specialty = CreateSpecialtySaleDatabase();
+        var manager = CreateCargoMaterialAdminManager();
         manager.LoadTradeGoodData(connection);
+        manager.LoadSpecialtySaleData(specialty);
 
         var result = manager.AddTradeGoodMaterials(8, 1, [2]);
 
         await Assert.That(result.Success).IsTrue();
         await Assert.That(result.Produced).IsEqualTo(0u);
         await Assert.That(result.Materials.Select(x => x.Stock)).IsEquivalentTo(new uint[] { 2, 2, 2 });
+        var contributions = MarketState(manager).MaterialContributions;
+        await Assert.That(contributions[(8, 3361)][0].ItemId).IsEqualTo(31832u);
+        await Assert.That(contributions[(8, 3362)][0].ItemId).IsEqualTo(31894u);
+        await Assert.That(contributions[(8, 3363)][0].ItemId).IsEqualTo(49064u);
     }
 
     [Test]
@@ -581,6 +656,19 @@ public class SpecialtyManagerTests
     }
 
     [Test]
+    [Arguments(196, 2)]
+    [Arguments(197, 101)]
+    [Arguments(210, 5)]
+    public async Task LoadSpecialtySaleData_RejectsUnsupportedMarketCycleValues(int contentId, int value)
+    {
+        using var connection = CreateSpecialtySaleDatabase();
+        Execute(connection, $"UPDATE content_configs SET value = {value} WHERE id = {contentId}");
+
+        await Assert.That(() => CreateSpecialtySaleManager().LoadSpecialtySaleData(connection))
+            .Throws<InvalidDataException>();
+    }
+
+    [Test]
     public async Task LoadSpecialtySaleData_RejectsMissingSaleSkill()
     {
         using var connection = CreateSpecialtySaleDatabase();
@@ -598,11 +686,34 @@ public class SpecialtyManagerTests
         BackpackType = BackpackType.TradeGoods
     };
 
+    private static SpecialtyManager CreateCargoMaterialAdminManager()
+    {
+        var manager = CreateManager(CreateCargoItem(), itemTags: new Dictionary<uint, uint>
+        {
+            [31832] = 3361,
+            [31833] = 3361,
+            [31894] = 3362,
+            [49064] = 3363
+        });
+        var mappings = MarketField<Dictionary<uint, Dictionary<uint, SpecialtyBundleItem>>>(manager, "_specialtyBundleItemsMapped");
+        foreach (var itemId in new uint[] { 31832, 31833, 31894, 49064 })
+        {
+            var bundle = CreateMarketBundle(itemId);
+            mappings.Add(itemId, new() { [bundle.SpecialtyBundleId] = bundle });
+        }
+        return manager;
+    }
+
     private static SpecialtyManager CreateManager(
         BackpackTemplate item,
         bool includePurchaseSkill = true,
         bool includeSaleSkill = true,
-        IReadOnlyDictionary<uint, uint> itemTags = null)
+        IReadOnlyDictionary<uint, uint> itemTags = null,
+        ISpecialtyMarketStore marketStore = null,
+        IZoneManager zoneManager = null,
+        bool ambiguousMaterialTags = false,
+        ITaskManager taskManager = null,
+        IOptions<AppConfiguration> options = null)
     {
         var itemManager = Mock.Of<IItemManager>();
         if (item != null)
@@ -615,6 +726,8 @@ public class SpecialtyManagerTests
             foreach (var (itemId, tagId) in itemTags)
                 itemManager.HasItemTag(itemId, tagId).Returns(true);
         }
+        if (ambiguousMaterialTags)
+            itemManager.HasItemTag(31832, 3362).Returns(true);
         var skillManager = Mock.Of<ISkillManager>();
         skillManager.GetSkillTemplate(SkillsEnum.UseTradeGoodStore).Returns(new SkillTemplate
         {
@@ -623,6 +736,13 @@ public class SpecialtyManagerTests
         });
         if (includeSaleSkill)
         {
+            skillManager.GetSkillTemplate(SkillsEnum.SellBackpack).Returns(new SkillTemplate
+            {
+                Id = SkillsEnum.SellBackpack,
+                MaxRange = 4,
+                ConsumeLaborPower = 70,
+                ActabilityGroupId = 31
+            });
             skillManager.GetSkillTemplate(SkillsEnum.SellTradeGood).Returns(new SkillTemplate
             {
                 Id = SkillsEnum.SellTradeGood,
@@ -644,9 +764,13 @@ public class SpecialtyManagerTests
         return new SpecialtyManager(
             itemManager.Object,
             skillManager.Object,
-            Mock.Of<IZoneManager>().Object,
+            zoneManager ?? Mock.Of<IZoneManager>().Object,
             Mock.Of<IMailManager>().Object,
-            CreateSaleCommitter());
+            CreateSaleCommitter(),
+            marketStore ?? CreateMarketStore(),
+            Mock.Of<ISpecialtyPurchaseStore>().Object,
+            taskManager ?? Mock.Of<ITaskManager>().Object,
+            options ?? CreateOptions());
     }
 
     private static SpecialtyManager CreateFreshnessManager(params BackpackTemplate[] backpackTemplates)
@@ -658,7 +782,11 @@ public class SpecialtyManagerTests
             Mock.Of<ISkillManager>().Object,
             Mock.Of<IZoneManager>().Object,
             Mock.Of<IMailManager>().Object,
-            CreateSaleCommitter());
+            CreateSaleCommitter(),
+            CreateMarketStore(),
+            Mock.Of<ISpecialtyPurchaseStore>().Object,
+            Mock.Of<ITaskManager>().Object,
+            CreateOptions());
     }
 
     private static SpecialtyManager CreateSpecialtySaleManager(bool includeSaleSkill = true)
@@ -679,11 +807,34 @@ public class SpecialtyManagerTests
             skillManager.Object,
             Mock.Of<IZoneManager>().Object,
             Mock.Of<IMailManager>().Object,
-            CreateSaleCommitter());
+            CreateSaleCommitter(),
+            CreateMarketStore(),
+            Mock.Of<ISpecialtyPurchaseStore>().Object,
+            Mock.Of<ITaskManager>().Object,
+            CreateOptions());
     }
+
+    private static IOptions<AppConfiguration> CreateOptions(
+        bool enableTimedRecovery = false,
+        double recoveryIntervalMinutes = 60.0) =>
+        Options.Create(new AppConfiguration
+        {
+            Specialty = new SpecialtyConfig
+            {
+                EnableTimedRatioRecovery = enableTimedRecovery,
+                RatioRecoveryIntervalMinutes = recoveryIntervalMinutes
+            }
+        });
 
     private static SpecialtySaleCommitter CreateSaleCommitter() =>
         new(Mock.Of<ISpecialtySaleStore>().Object);
+
+    private static ISpecialtyMarketStore CreateMarketStore()
+    {
+        var store = Mock.Of<ISpecialtyMarketStore>();
+        store.Commit(Any<SpecialtyMarketWrite>()).Callback((SpecialtyMarketWrite _) => { });
+        return store.Object;
+    }
 
     private static void Execute(SqliteConnection connection, string sql)
     {

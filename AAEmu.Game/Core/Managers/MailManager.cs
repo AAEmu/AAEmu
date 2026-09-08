@@ -391,6 +391,30 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
         return true;
     }
 
+    public void PersistPreparedBatch(
+        IReadOnlyList<BaseMail> mails,
+        MySqlConnection connection,
+        MySqlTransaction transaction)
+    {
+        ArgumentNullException.ThrowIfNull(mails);
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(transaction);
+
+        lock (_allPlayerMails)
+        {
+            if (mails.Count == 0 || mails.Any(mail =>
+                    mail == null || !_reservedMailIds.Contains(mail.Id) || _allPlayerMails.ContainsKey(mail.Id)))
+                throw new InvalidOperationException("Mail batch is not reserved for persistence");
+        }
+
+        foreach (var mail in mails)
+        {
+            MailDeliveryRules.PrepareAttachments(mail);
+            WriteMail(mail, connection, transaction);
+            PersistMailAttachments(mail, connection, transaction);
+        }
+    }
+
     public bool PublishPreparedBatch(PreparedMailBatch batch, bool alreadyPersisted = false)
     {
         if (batch == null || batch.IsCompleted)
