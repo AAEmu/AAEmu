@@ -69,6 +69,8 @@ public abstract class Behavior
             }
             var skillSelfId = skills[Random.Shared.Next(skills.Count)].SkillId;
             var skillTemplateSelf = SkillManager.Instance.GetSkillTemplate(skillSelfId);
+            if (skillTemplateSelf == null)
+                return res;
             var skillSelf = new Skill(skillTemplateSelf);
 
             var delay1 = (int)(Ai.Owner.Template.BaseSkillDelay * 1000);
@@ -100,6 +102,8 @@ public abstract class Behavior
             return SkillResult.TooFarRange;
         }
         var skillTemplate = SkillManager.Instance.GetSkillTemplate(pickedSkillId);
+        if (skillTemplate == null)
+            return res;
         var skill = new Skill(skillTemplate);
 
         SetWeaponRange(skill, target); // set the maximum distance for the skill attack
