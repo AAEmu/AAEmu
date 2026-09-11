@@ -153,6 +153,7 @@ public static class SCOffsets
     public const ushort SCSpecialtyRatioPacket = 0xC5; // 10.0.2.13
     public const ushort SCSpecialtyGoodsPacket = 0xC6; // 10.0.2.13
     public const ushort SCSpecialtyRecordsPacket = 0xC7; // 10.0.2.13
+    public const ushort SCSpecialtyEventMsgPacket = 0xC8; // 10.0.2.13
     public const ushort SCGradeEnchantResultPacket = 0xC9; // 10.0.2.13
     public const ushort SCItemSocketingLunastoneResultPacket = 0x9e;
     public const ushort SCGradeEnchantBroadcastPacket = 0xD0; // 10.0.2.13

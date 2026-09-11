@@ -10,6 +10,8 @@ public sealed class SpecialtyMarketState
     public Dictionary<(uint ZoneGroupId, uint TagId), List<SpecialtyMaterialContribution>> MaterialContributions { get; init; } = [];
     public Dictionary<(uint ZoneGroupId, uint TradeGoodId), uint> CargoStock { get; init; } = [];
     public Dictionary<(uint ItemId, uint ZoneGroupId), List<SpecialtyMarketRecord>> Records { get; init; } = [];
+    public Dictionary<uint, long> StockEventNextChecks { get; init; } = [];
+    public Dictionary<uint, SpecialtyStockEventActivation> StockEventActivations { get; init; } = [];
 
     public SpecialtyMarketState Clone() => new()
     {
@@ -23,6 +25,9 @@ public sealed class SpecialtyMarketState
                 contribution.Amount)).ToList()),
         CargoStock = new(CargoStock),
         Records = Records.ToDictionary(entry => entry.Key,
-            entry => entry.Value.Select(record => new SpecialtyMarketRecord(record.Ratio, record.Recorded)).ToList())
+            entry => entry.Value.Select(record => new SpecialtyMarketRecord(record.Ratio, record.Recorded)).ToList()),
+        StockEventNextChecks = new(StockEventNextChecks),
+        StockEventActivations = StockEventActivations.ToDictionary(entry => entry.Key,
+            entry => new SpecialtyStockEventActivation(entry.Value.StartedAt, entry.Value.ExpiresAt))
     };
 }

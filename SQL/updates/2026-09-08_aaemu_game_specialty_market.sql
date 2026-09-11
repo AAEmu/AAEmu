@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS `specialty_market_routes` (
   `demand_remainder` int NOT NULL DEFAULT 0,
   PRIMARY KEY (`item_id`, `zone_group_id`),
   CHECK (`item_id` > 0 AND `zone_group_id` > 0),
-  CHECK (`ratio` >= 0 AND `demand_remainder` BETWEEN 0 AND 3)
+  CHECK (`ratio` >= 0 AND `demand_remainder` >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `specialty_market_contributions` (

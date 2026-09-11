@@ -332,6 +332,17 @@ public class CurrencyValuesConfig
 public class SpecialtyConfig
 {
     /// <summary>
+    /// Enables manual and authored automatic specialty events, lifecycle messages,
+    /// price effects, and active IDs in specialty list packets.
+    /// </summary>
+    public bool EnableEvents { get; set; } = false;
+
+    /// <summary>
+    /// Default duration used by the specialty-event GM command when no duration is supplied.
+    /// </summary>
+    public uint ManualEventDurationSeconds { get; set; } = 300;
+
+    /// <summary>
     /// Enables an additional time-based specialty demand-ratio recovery step.
     /// </summary>
     public bool EnableTimedRatioRecovery { get; set; } = false;

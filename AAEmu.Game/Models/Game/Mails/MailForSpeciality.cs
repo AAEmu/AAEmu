@@ -20,6 +20,7 @@ public class MailForSpeciality : BaseMail
     private readonly int _totalPayout;
     private readonly double _interestPercent;
     private readonly double _freshnessPercent;
+    private readonly int _specialtyMerchantRatioPercent;
     private readonly int _sellerSharePercent;
     private readonly bool _sellerIsCrafter;
     // unused private int _itemCountTotal;
@@ -46,6 +47,7 @@ public class MailForSpeciality : BaseMail
         DateTime transactionUtc,
         double interestPercent,
         double freshnessPercent,
+        int specialtyMerchantRatioPercent,
         int sellerSharePercent) : base()
     {
         _sender = seller;
@@ -66,6 +68,7 @@ public class MailForSpeciality : BaseMail
         _totalPayout = totalPayout;
         _interestPercent = interestPercent;
         _freshnessPercent = freshnessPercent;
+        _specialtyMerchantRatioPercent = specialtyMerchantRatioPercent;
         _sellerSharePercent = sellerSharePercent;
 
         MailType = MailType.SysSellBackpack;
@@ -226,6 +229,7 @@ public class MailForSpeciality : BaseMail
             sellerCoinCount,
             _interestPercent,
             _freshnessPercent,
+            _specialtyMerchantRatioPercent,
             _sellerSharePercent);
     }
 
@@ -242,11 +246,12 @@ public class MailForSpeciality : BaseMail
         int sellerCoinCount,
         double interestPercent,
         double freshnessPercent,
+        int specialtyMerchantRatioPercent,
         int sellerSharePercent)
     {
         return string.Format(
             CultureInfo.InvariantCulture,
-            "body({0}, {1}, {2}, {3}, {4}, 0, {5}, {6}, {7}, {8}, {9}, 0, 0, 0, {10}, {11}, 0, {12})",
+            "body({0}, {1}, {2}, {3}, {4}, 0, {5}, {6}, {7}, {8}, {9}, 0, 0, 0, {10}, {11}, {12}, {13})",
             tradePackTemplateId,
             tradedRate,
             earlyMoney,
@@ -259,6 +264,7 @@ public class MailForSpeciality : BaseMail
             sellerCoinCount,
             interestPercent,
             freshnessPercent,
+            specialtyMerchantRatioPercent,
             sellerSharePercent);
     }
 }

@@ -19,6 +19,8 @@ public class SpecialtyMarketStateTests
         await Assert.That(ReferenceEquals(clone.MaterialContributions[(2, 3)], original.MaterialContributions[(2, 3)])).IsFalse();
         await Assert.That(ReferenceEquals(clone.MaterialContributions[(2, 3)][0], original.MaterialContributions[(2, 3)][0])).IsFalse();
         await Assert.That(ReferenceEquals(clone.CargoStock, original.CargoStock)).IsFalse();
+        await Assert.That(ReferenceEquals(clone.StockEventNextChecks, original.StockEventNextChecks)).IsFalse();
+        await Assert.That(ReferenceEquals(clone.StockEventActivations, original.StockEventActivations)).IsFalse();
         await Assert.That(ReferenceEquals(clone.Records, original.Records)).IsFalse();
         await Assert.That(ReferenceEquals(clone.Records[(1, 2)][0], original.Records[(1, 2)][0])).IsFalse();
         await Assert.That(clone.Records[(1, 2)][0].Ratio).IsEqualTo(100);
@@ -29,6 +31,8 @@ public class SpecialtyMarketStateTests
         clone.DemandRemainders[1][2]++;
         clone.MaterialContributions[(2, 3)][0] = new SpecialtyMaterialContribution(1, 9, 5);
         clone.CargoStock[(2, 4)]++;
+        clone.StockEventNextChecks[1]++;
+        clone.StockEventActivations[2] = new SpecialtyStockEventActivation(20, 40);
         clone.Records[(1, 2)].Add(new SpecialtyMarketRecord(50, 11));
 
         await Assert.That(original.Revision).IsEqualTo(7L);
@@ -36,6 +40,8 @@ public class SpecialtyMarketStateTests
         await Assert.That(original.DemandRemainders[1][2]).IsEqualTo(3);
         await Assert.That(original.MaterialContributions[(2, 3)][0].Amount).IsEqualTo(4U);
         await Assert.That(original.CargoStock[(2, 4)]).IsEqualTo(5U);
+        await Assert.That(original.StockEventNextChecks[1]).IsEqualTo(20L);
+        await Assert.That(original.StockEventActivations[2]).IsEqualTo(new SpecialtyStockEventActivation(10, 30));
         await Assert.That(original.Records[(1, 2)].Count).IsEqualTo(1);
     }
 
@@ -49,6 +55,8 @@ public class SpecialtyMarketStateTests
         first.DemandRemainders.Add(1, []);
         first.MaterialContributions.Add((2, 3), [new SpecialtyMaterialContribution(1, 1, 1)]);
         first.CargoStock.Add((2, 4), 0);
+        first.StockEventNextChecks.Add(1, 20);
+        first.StockEventActivations.Add(2, new SpecialtyStockEventActivation(10, 30));
         first.Records.Add((1, 2), []);
 
         foreach (var state in new[] { second, clone })
@@ -58,13 +66,15 @@ public class SpecialtyMarketStateTests
             await Assert.That(state.DemandRemainders.Count).IsEqualTo(0);
             await Assert.That(state.MaterialContributions.Count).IsEqualTo(0);
             await Assert.That(state.CargoStock.Count).IsEqualTo(0);
+            await Assert.That(state.StockEventNextChecks.Count).IsEqualTo(0);
+            await Assert.That(state.StockEventActivations.Count).IsEqualTo(0);
             await Assert.That(state.Records.Count).IsEqualTo(0);
         }
     }
 
     [Test]
     [Arguments("negative-ratio")]
-    [Arguments("oversized-remainder")]
+    [Arguments("negative-remainder")]
     [Arguments("orphan-pending-item")]
     [Arguments("orphan-zero-pending-zone")]
     [Arguments("zero-ratio-item")]
@@ -93,13 +103,18 @@ public class SpecialtyMarketStateTests
     [Arguments("null-pending")]
     [Arguments("null-history")]
     [Arguments("null-record")]
+    [Arguments("zero-stock-trigger")]
+    [Arguments("negative-next-check")]
+    [Arguments("zero-stock-event")]
+    [Arguments("null-stock-event")]
+    [Arguments("invalid-stock-event-time")]
     public void InvalidState_IsRejectedInBothSnapshotsBeforeDatabaseAccess(string corruption)
     {
         var invalid = CreateState();
         switch (corruption)
         {
             case "negative-ratio": invalid.PriceRatios[1][2] = -1; break;
-            case "oversized-remainder": invalid.DemandRemainders[1][2] = 4; break;
+            case "negative-remainder": invalid.DemandRemainders[1][2] = -1; break;
             case "orphan-pending-item": invalid.DemandRemainders[9] = new() { [2] = 1 }; break;
             case "orphan-zero-pending-zone": invalid.DemandRemainders[1][9] = 0; break;
             case "zero-ratio-item": invalid.PriceRatios[0] = []; break;
@@ -128,6 +143,11 @@ public class SpecialtyMarketStateTests
             case "null-pending": invalid.DemandRemainders[1] = null; break;
             case "null-history": invalid.Records[(1, 2)] = null; break;
             case "null-record": invalid.Records[(1, 2)].Add(null); break;
+            case "zero-stock-trigger": invalid.StockEventNextChecks[0] = 10; break;
+            case "negative-next-check": invalid.StockEventNextChecks[1] = -1; break;
+            case "zero-stock-event": invalid.StockEventActivations[0] = new(10, 20); break;
+            case "null-stock-event": invalid.StockEventActivations[1] = null; break;
+            case "invalid-stock-event-time": invalid.StockEventActivations[1] = new(20, 20); break;
             default: throw new ArgumentOutOfRangeException(nameof(corruption));
         }
 
@@ -154,7 +174,9 @@ public class SpecialtyMarketStateTests
             new() { Revision = 1, DemandRemainders = null },
             new() { Revision = 1, MaterialContributions = null },
             new() { Revision = 1, CargoStock = null },
-            new() { Revision = 1, Records = null }
+            new() { Revision = 1, Records = null },
+            new() { Revision = 1, StockEventNextChecks = null },
+            new() { Revision = 1, StockEventActivations = null }
         ];
         foreach (var invalid in invalidStates)
             Assert.Throws<ArgumentException>(() => store.Commit(new(new(), invalid)));
@@ -227,6 +249,8 @@ public class SpecialtyMarketStateTests
         DemandRemainders = new() { [1] = new() { [2] = 3 } },
         MaterialContributions = new() { [(2, 3)] = [new SpecialtyMaterialContribution(1, 1, 4)] },
         CargoStock = new() { [(2, 4)] = 5 },
+        StockEventNextChecks = new() { [1] = 20 },
+        StockEventActivations = new() { [2] = new SpecialtyStockEventActivation(10, 30) },
         Records = new() { [(1, 2)] = [new SpecialtyMarketRecord(100, 10)] }
     };
 }

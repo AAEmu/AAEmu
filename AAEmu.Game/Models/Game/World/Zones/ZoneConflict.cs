@@ -7,12 +7,18 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.World.Zones;
 
-public class ZoneConflict(ZoneGroup owner)
+public class ZoneConflict(
+    ZoneGroup owner,
+    Action<ushort, ZoneConflictType, ZoneConflictType> stateChanged = null)
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
+    private readonly object _stateLock = new();
     // ReSharper disable once NotAccessedField.Local
     private ZoneGroup _owner = owner;
+    private readonly Action<ushort, ZoneConflictType, ZoneConflictType> _stateChanged = stateChanged;
+    private ZoneConflictType _currentZoneState = ZoneConflictType.Tension;
+    private DateTime _nextStateTime = DateTime.MinValue;
     public ushort ZoneGroupId { get; set; }
     public int[] NumKills { get; } = new int[5];
     public int[] NoKillMin { get; } = new int[5];
@@ -28,8 +34,26 @@ public class ZoneConflict(ZoneGroup owner)
     public uint PeaceTowerDefId { get; set; } // 10.0.2.13: conflict_zones.peace_tower_def_id present again
     public bool Closed { get; set; } = false;
 
-    public ZoneConflictType CurrentZoneState { get; protected set; } = ZoneConflictType.Tension;
-    public DateTime NextStateTime { get; protected set; } = DateTime.MinValue;
+    public ZoneConflictType CurrentZoneState
+    {
+        get
+        {
+            lock (_stateLock)
+                return _currentZoneState;
+        }
+        protected set => _currentZoneState = value;
+    }
+
+    public DateTime NextStateTime
+    {
+        get
+        {
+            lock (_stateLock)
+                return _nextStateTime;
+        }
+        protected set => _nextStateTime = value;
+    }
+
     public uint KillCount { get; protected set; }
 
     /// <summary>
@@ -37,141 +61,178 @@ public class ZoneConflict(ZoneGroup owner)
     /// </summary>
     public void AddZoneKill(uint NumberOfKills = 1)
     {
-        // Ignore when in conflict, war or peace
-        if (CurrentZoneState >= ZoneConflictType.Conflict)
-            return;
+        lock (_stateLock)
+        {
+            // Ignore when in conflict, war or peace
+            if (CurrentZoneState >= ZoneConflictType.Conflict)
+                return;
 
-        // Ignore if this zone doesn't have a kill counter mechanic
-        if (NumKills[0] == 0 && NumKills[1] == 0 && NumKills[2] == 0 && NumKills[3] == 0 && NumKills[4] == 0)
-            return;
+            // Ignore if this zone doesn't have a kill counter mechanic
+            if (NumKills[0] == 0 && NumKills[1] == 0 && NumKills[2] == 0 && NumKills[3] == 0 && NumKills[4] == 0)
+                return;
 
-        var LastState = CurrentZoneState;
-        KillCount += NumberOfKills;
+            var LastState = CurrentZoneState;
+            KillCount += NumberOfKills;
 
-        if (CurrentZoneState == ZoneConflictType.Tension && KillCount > NumKills[0])
-        {
-            CurrentZoneState = ZoneConflictType.Danger;
-            NextStateTime = DateTime.MinValue;
-        }
-        if (CurrentZoneState == ZoneConflictType.Danger && KillCount > NumKills[1])
-        {
-            CurrentZoneState = ZoneConflictType.Dispute;
-            NextStateTime = DateTime.MinValue;
-        }
-        if (CurrentZoneState == ZoneConflictType.Dispute && KillCount > NumKills[2])
-        {
-            CurrentZoneState = ZoneConflictType.Unrest;
-            NextStateTime = DateTime.MinValue;
-        }
-        if (CurrentZoneState == ZoneConflictType.Unrest && KillCount > NumKills[3])
-        {
-            CurrentZoneState = ZoneConflictType.Crisis;
-            NextStateTime = DateTime.MinValue;
-        }
-        if (CurrentZoneState == ZoneConflictType.Crisis && KillCount > NumKills[4])
-        {
-            CurrentZoneState = ZoneConflictType.Conflict;
-            NextStateTime = DateTime.UtcNow.AddMinutes(ConflictMin);
-            KillCount = 0;
-        }
-        if (LastState != CurrentZoneState)
-        {
-            SendSwitchZoneState();
+            if (CurrentZoneState == ZoneConflictType.Tension && KillCount > NumKills[0])
+            {
+                CurrentZoneState = ZoneConflictType.Danger;
+                NextStateTime = DateTime.MinValue;
+            }
+            if (CurrentZoneState == ZoneConflictType.Danger && KillCount > NumKills[1])
+            {
+                CurrentZoneState = ZoneConflictType.Dispute;
+                NextStateTime = DateTime.MinValue;
+            }
+            if (CurrentZoneState == ZoneConflictType.Dispute && KillCount > NumKills[2])
+            {
+                CurrentZoneState = ZoneConflictType.Unrest;
+                NextStateTime = DateTime.MinValue;
+            }
+            if (CurrentZoneState == ZoneConflictType.Unrest && KillCount > NumKills[3])
+            {
+                CurrentZoneState = ZoneConflictType.Crisis;
+                NextStateTime = DateTime.MinValue;
+            }
+            if (CurrentZoneState == ZoneConflictType.Crisis && KillCount > NumKills[4])
+            {
+                CurrentZoneState = ZoneConflictType.Conflict;
+                NextStateTime = DateTime.UtcNow.AddMinutes(ConflictMin);
+                KillCount = 0;
+            }
+            if (LastState != CurrentZoneState)
+            {
+                NotifyStateChanged(LastState);
+                SendSwitchZoneState();
+            }
         }
     }
 
     public void SetTimerTask()
     {
-        if (NextStateTime > DateTime.MinValue)
+        lock (_stateLock)
         {
-            var lpConflictStartTask = new ZoneStateChangeTask(this);
-            var delay = NextStateTime - DateTime.UtcNow;
-            Logger.Debug($"ZoneGroup {ZoneGroupId}: scheduling next state check in {delay.TotalMinutes:F1} min (NextStateTime={NextStateTime:HH:mm:ss})");
-            TaskManager.Instance.Schedule(lpConflictStartTask, delay);
-        }
-        else
-        {
-            Logger.Debug($"ZoneGroup {ZoneGroupId}: no NextStateTime set — timer chain stopped.");
+            if (NextStateTime > DateTime.MinValue)
+            {
+                var lpConflictStartTask = new ZoneStateChangeTask(this);
+                var delay = NextStateTime - DateTime.UtcNow;
+                Logger.Debug($"ZoneGroup {ZoneGroupId}: scheduling next state check in {delay.TotalMinutes:F1} min (NextStateTime={NextStateTime:HH:mm:ss})");
+                TaskManager.Instance.Schedule(lpConflictStartTask, delay);
+            }
+            else
+            {
+                Logger.Debug($"ZoneGroup {ZoneGroupId}: no NextStateTime set — timer chain stopped.");
+            }
         }
     }
 
     public void SendSwitchZoneState()
     {
-        // Schedule the next timer FIRST, before broadcasting to clients.
-        // This guarantees the timer chain is preserved even if BroadcastPacketToServer
-        // throws (e.g. transient connection issue, packet encode error).
-        SetTimerTask();
+        lock (_stateLock)
+        {
+            // Schedule the next timer FIRST, before broadcasting to clients.
+            // This guarantees the timer chain is preserved even if BroadcastPacketToServer
+            // throws (e.g. transient connection issue, packet encode error).
+            SetTimerTask();
 
-        try
-        {
-            WorldManager.Instance.BroadcastPacketToServer(new SCConflictZoneStatePacket(ZoneGroupId, CurrentZoneState, NextStateTime));
-        }
-        catch (Exception ex)
-        {
-            Logger.Error(ex, $"SendSwitchZoneState: Failed to broadcast zone state for ZoneGroup {ZoneGroupId}, State={CurrentZoneState}");
+            try
+            {
+                WorldManager.Instance.BroadcastPacketToServer(new SCConflictZoneStatePacket(ZoneGroupId, CurrentZoneState, NextStateTime));
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, $"SendSwitchZoneState: Failed to broadcast zone state for ZoneGroup {ZoneGroupId}, State={CurrentZoneState}");
+            }
         }
     }
 
     public void CheckTimer()
     {
-        if (NextStateTime > DateTime.MinValue && DateTime.UtcNow >= NextStateTime)
+        lock (_stateLock)
         {
-            Logger.Debug($"ZoneGroup {ZoneGroupId}: timer elapsed, current state={CurrentZoneState}, advancing...");
-            ForceNextState();
+            if (NextStateTime > DateTime.MinValue && DateTime.UtcNow >= NextStateTime)
+            {
+                Logger.Debug($"ZoneGroup {ZoneGroupId}: timer elapsed, current state={CurrentZoneState}, advancing...");
+                ForceNextState();
+            }
         }
     }
 
     public void SetState(ZoneConflictType ct)
     {
-        if (ct == CurrentZoneState)
-            return;
-
-        var previousState = CurrentZoneState;
-
-        switch (ct)
+        lock (_stateLock)
         {
-            case ZoneConflictType.Conflict:
-                KillCount = 0;
-                NextStateTime = DateTime.UtcNow.AddMinutes(ConflictMin);
-                break;
-            case ZoneConflictType.War:
-                KillCount = 0;
-                NextStateTime = DateTime.UtcNow.AddMinutes(WarMin);
-                break;
-            case ZoneConflictType.Peace:
-                KillCount = 0;
-                NextStateTime = DateTime.UtcNow.AddMinutes(PeaceMin);
-                break;
-            default:
-                NextStateTime = DateTime.MinValue;
-                break;
+            if (ct == CurrentZoneState)
+                return;
+
+            var previousState = CurrentZoneState;
+
+            switch (ct)
+            {
+                case ZoneConflictType.Conflict:
+                    KillCount = 0;
+                    NextStateTime = DateTime.UtcNow.AddMinutes(ConflictMin);
+                    break;
+                case ZoneConflictType.War:
+                    KillCount = 0;
+                    NextStateTime = DateTime.UtcNow.AddMinutes(WarMin);
+                    break;
+                case ZoneConflictType.Peace:
+                    KillCount = 0;
+                    NextStateTime = DateTime.UtcNow.AddMinutes(PeaceMin);
+                    break;
+                default:
+                    NextStateTime = DateTime.MinValue;
+                    break;
+            }
+            CurrentZoneState = ct;
+            Logger.Info($"ZoneGroup {ZoneGroupId} changed from {previousState} → {ct} (next state at {NextStateTime:HH:mm:ss})");
+            NotifyStateChanged(previousState);
+            SendSwitchZoneState();
         }
-        CurrentZoneState = ct;
-        Logger.Info($"ZoneGroup {ZoneGroupId} changed from {previousState} → {ct} (next state at {NextStateTime:HH:mm:ss})");
-        SendSwitchZoneState();
+    }
+
+    private void NotifyStateChanged(ZoneConflictType previousState)
+    {
+        try
+        {
+            _stateChanged?.Invoke(ZoneGroupId, previousState, CurrentZoneState);
+        }
+        catch (Exception exception)
+        {
+            Logger.Error(
+                exception,
+                "ZoneGroup {0}: state-change callback failed for {1} -> {2}",
+                ZoneGroupId,
+                previousState,
+                CurrentZoneState);
+        }
     }
 
     public void ForceNextState()
     {
-        if (CurrentZoneState < ZoneConflictType.Peace)
+        lock (_stateLock)
         {
-            if (CurrentZoneState == ZoneConflictType.War && PeaceMin <= 0)
+            if (CurrentZoneState < ZoneConflictType.Peace)
             {
-                SetState(ZoneConflictType.Conflict);
+                if (CurrentZoneState == ZoneConflictType.War && PeaceMin <= 0)
+                {
+                    SetState(ZoneConflictType.Conflict);
+                }
+                else
+                {
+                    SetState(CurrentZoneState + 1);
+                }
             }
             else
+            if (CurrentZoneState >= ZoneConflictType.Peace)
             {
-                SetState(CurrentZoneState + 1);
+                // If it doesn't have a killcounter, go directly back to conflict (ocean areas)
+                if (NumKills[0] == 0 && NumKills[1] == 0 && NumKills[2] == 0 && NumKills[3] == 0 && NumKills[4] == 0)
+                    SetState(ZoneConflictType.Conflict);
+                else
+                    SetState(ZoneConflictType.Tension);
             }
-        }
-        else
-        if (CurrentZoneState >= ZoneConflictType.Peace)
-        {
-            // If it doesn't have a killcounter, go directly back to conflict (ocean areas)
-            if (NumKills[0] == 0 && NumKills[1] == 0 && NumKills[2] == 0 && NumKills[3] == 0 && NumKills[4] == 0)
-                SetState(ZoneConflictType.Conflict);
-            else
-                SetState(ZoneConflictType.Tension);
         }
     }
 }

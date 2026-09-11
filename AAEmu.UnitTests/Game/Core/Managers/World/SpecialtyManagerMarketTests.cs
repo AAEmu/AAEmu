@@ -139,7 +139,21 @@ public partial class SpecialtyManagerTests
     }
 
     [Test]
-    public async Task RecoverTimedRatios_StacksWithCargoProductionRecovery()
+    public async Task RecoverTimedRatios_UsesContentRecoveryRate()
+    {
+        var store = new InMemoryMarketStore(new SpecialtyMarketState
+        {
+            PriceRatios = new() { [31832] = new() { [8] = 10000 } }
+        });
+        var manager = CreateRestoredMarketManager(store, priceRecoverRate: 50);
+
+        await Assert.That(manager.RecoverTimedRatios()).IsTrue();
+
+        await Assert.That(store.Load().PriceRatios[31832][8]).IsEqualTo(11500);
+    }
+
+    [Test]
+    public async Task RecoverTimedRatios_StacksWithFifoQuantityRecovery()
     {
         var seed = new SpecialtyMarketState
         {
@@ -167,8 +181,28 @@ public partial class SpecialtyManagerTests
 
         var recovered = store.Load();
         await Assert.That(recovered.Revision).IsEqualTo(9L);
-        await Assert.That(recovered.PriceRatios[31832][8]).IsEqualTo(12288);
-        await Assert.That(recovered.PriceRatios[31894][8]).IsEqualTo(12466);
+        await Assert.That(recovered.PriceRatios[31832][8]).IsEqualTo(13000);
+        await Assert.That(recovered.PriceRatios[31894][8]).IsEqualTo(12500);
+    }
+
+    [Test]
+    public async Task RecordTradeGoodDelivery_AfterTimedRecoveryStillAppliesNewSalePressure()
+    {
+        var store = new InMemoryMarketStore(new SpecialtyMarketState
+        {
+            PriceRatios = new() { [31832] = new() { [8] = 5000 } },
+            DemandRemainders = new() { [31832] = new() { [8] = 3 } },
+            MaterialContributions = CreateMaterialContributions((8, 3361, 31832, 47))
+        });
+        var manager = CreateRestoredMarketManager(store);
+
+        await Assert.That(manager.RecoverTimedRatios()).IsTrue();
+        await Assert.That(manager.RecordTradeGoodDelivery(8, 1, 31832)).IsEqualTo(0u);
+
+        var committed = store.Load();
+        await Assert.That(committed.PriceRatios[31832][8]).IsEqualTo(6750);
+        await Assert.That(committed.DemandRemainders[31832][8]).IsEqualTo(0);
+        await Assert.That(manager.BuildSellQuote(CreateMarketBundle(), 8).Stock).IsEqualTo(48u);
     }
 
     [Test]
@@ -216,6 +250,98 @@ public partial class SpecialtyManagerTests
         foreach (var tag in new uint[] { 3361, 3362, 3363 })
             await Assert.That(restarted.GetTradeGoodMaterialStock(8, tag)).IsEqualTo(1u);
         await AssertMarketEquals(MarketState(restarted), MarketState(manager));
+    }
+
+    [Test]
+    public async Task AddTradeGoodMaterials_ClampsMaterialStockAndDiscardsExcess()
+    {
+        var store = new InMemoryMarketStore();
+        var manager = CreateRestoredMarketManager(store);
+
+        var grant = manager.AddTradeGoodMaterials(8, 1, [2000, 0, 0]);
+
+        await Assert.That(grant.Success).IsTrue();
+        await Assert.That(grant.Produced).IsEqualTo(0u);
+        await Assert.That(manager.GetTradeGoodMaterialStock(8, 3361)).IsEqualTo(1500u);
+        await Assert.That(store.Load().MaterialContributions[(8, 3361)][0].Amount).IsEqualTo(1500u);
+    }
+
+    [Test]
+    public async Task AddTradeGoodMaterials_WhenMaterialStockIsFull_DoesNotMoveDemand()
+    {
+        var store = new InMemoryMarketStore(new SpecialtyMarketState
+        {
+            PriceRatios = new() { [31832] = new() { [8] = 10000 } },
+            DemandRemainders = new() { [31832] = new() { [8] = 0 } },
+            MaterialContributions = CreateMaterialContributions((8, 3361, 31832, 1500))
+        });
+        var manager = CreateRestoredMarketManager(store);
+
+        var grant = manager.AddTradeGoodMaterials(8, 1, [1, 0, 0]);
+
+        await Assert.That(grant.Success).IsTrue();
+        await Assert.That(grant.Produced).IsEqualTo(0u);
+        var committed = store.Load();
+        await Assert.That(committed.PriceRatios[31832][8]).IsEqualTo(10000);
+        await Assert.That(committed.DemandRemainders[31832][8]).IsEqualTo(0);
+        await Assert.That(manager.GetTradeGoodMaterialStock(8, 3361)).IsEqualTo(1500u);
+    }
+
+    [Test]
+    public async Task CargoProduction_ClampsPartialBatchAtStockLimit()
+    {
+        var seed = CreatePersistedMarket();
+        seed.CargoStock[(8, 12)] = 199;
+        seed.MaterialContributions.Clear();
+        var store = new InMemoryMarketStore(seed);
+        var manager = CreateRestoredMarketManager(store);
+
+        var grant = manager.AddTradeGoodMaterials(8, 1, null);
+
+        await Assert.That(grant.Success).IsTrue();
+        await Assert.That(grant.Produced).IsEqualTo(1u);
+        await Assert.That(grant.CargoStock).IsEqualTo(200u);
+        await Assert.That(grant.Materials.Select(x => x.Stock)).IsEquivalentTo(new uint[] { 0, 0, 0 });
+        await Assert.That(store.Load().CargoStock[(8, 12)]).IsEqualTo(200u);
+    }
+
+    [Test]
+    public async Task RestoreMarketState_ClampsPersistedStockInOneDurableRevision()
+    {
+        var seed = CreatePersistedMarket();
+        seed.MaterialContributions[(8, 3361)] =
+        [
+            new SpecialtyMaterialContribution(1, 31832, 1000),
+            new SpecialtyMaterialContribution(2, 31833, 1000)
+        ];
+        seed.CargoStock[(8, 12)] = 999;
+        var store = new InMemoryMarketStore(seed);
+
+        var manager = CreateRestoredMarketManager(store);
+
+        await Assert.That(manager.GetTradeGoodMaterialStock(8, 3361)).IsEqualTo(1500u);
+        await Assert.That(manager.GetTradeGoodCargoStock(8, 12)).IsEqualTo(200u);
+        await Assert.That(MarketState(manager).Revision).IsEqualTo(8L);
+        await Assert.That(store.CommitAttempts).IsEqualTo(1);
+        var persisted = store.Load();
+        await Assert.That(persisted.MaterialContributions[(8, 3361)][1].Amount).IsEqualTo(500u);
+        await Assert.That(persisted.CargoStock[(8, 12)]).IsEqualTo(200u);
+        await Assert.That(persisted.DemandRemainders[31832][8]).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task RestoreMarketState_ReconcilesPersistedRemainderFromFifoQuantity()
+    {
+        var seed = CreatePersistedMarket();
+        seed.DemandRemainders[31832][8] = 3;
+        var store = new InMemoryMarketStore(seed);
+
+        var manager = CreateRestoredMarketManager(store);
+
+        await Assert.That(MarketState(manager).DemandRemainders[31832][8]).IsEqualTo(1);
+        await Assert.That(MarketState(manager).Revision).IsEqualTo(8L);
+        await Assert.That(store.CommitAttempts).IsEqualTo(1);
+        await Assert.That(store.Load().DemandRemainders[31832][8]).IsEqualTo(1);
     }
 
     [Test]
@@ -289,7 +415,27 @@ public partial class SpecialtyManagerTests
     }
 
     [Test]
-    public async Task PrepareSaleMarketWrite_RecoveryCompoundsProducedCargoAfterDemandDecrease()
+    public async Task PrepareSaleMarketWrite_UsesConfiguredGoodsRatioCount()
+    {
+        var store = new InMemoryMarketStore(new SpecialtyMarketState
+        {
+            PriceRatios = new() { [31832] = new() { [8] = 10000 } }
+        });
+
+        for (var delivery = 0; delivery < 5; delivery++)
+        {
+            var manager = CreateRestoredMarketManager(store, goodsRatioCount: 5);
+            store.Commit(manager.PrepareSaleMarketWrite(31832, 8));
+        }
+
+        var committed = store.Load();
+        await Assert.That(committed.PriceRatios[31832][8]).IsEqualTo(9750);
+        await Assert.That(committed.DemandRemainders[31832][8]).IsEqualTo(0);
+        await Assert.That(committed.MaterialContributions[(8, 3361)][0].Amount).IsEqualTo(5u);
+    }
+
+    [Test]
+    public async Task PrepareSaleMarketWrite_WhenTimedRecoveryDisabled_RecoversFromFinalFifoQuantities()
     {
         var seed = new SpecialtyMarketState
         {
@@ -301,8 +447,8 @@ public partial class SpecialtyManagerTests
             },
             DemandRemainders = new()
             {
-                [31832] = new() { [8] = 3 },
-                [31894] = new() { [8] = 0 }
+                [31832] = new() { [8] = 1 },
+                [31894] = new() { [8] = 3 }
             },
             MaterialContributions = CreateMaterialContributions(
                 (8, 3361, 31832, 49),
@@ -321,23 +467,23 @@ public partial class SpecialtyManagerTests
 
         await Assert.That(write.Updated.DemandRemainders[31832][8]).IsEqualTo(0);
         await Assert.That(write.Updated.CargoStock[(8, 12)]).IsEqualTo(5u);
-        await Assert.That(write.Updated.PriceRatios[31832][8]).IsEqualTo(11991);
-        await Assert.That(write.Updated.PriceRatios[31894][8]).IsEqualTo(12288);
+        await Assert.That(write.Updated.PriceRatios[31832][8]).IsEqualTo(12000);
+        await Assert.That(write.Updated.PriceRatios[31894][8]).IsEqualTo(11750);
         await Assert.That(write.Updated.Records[(31832, 8)].Select(x => x.Ratio))
-            .IsEquivalentTo(new[] { 900, 875, 1199 });
+            .IsEquivalentTo(new[] { 900, 1200 });
         await Assert.That(write.Updated.Records[(31894, 8)].Select(x => x.Ratio))
-            .IsEquivalentTo(new[] { 1000, 1228 });
+            .IsEquivalentTo(new[] { 1000, 1175 });
         await AssertMarketEquals(MarketState(manager), seed);
     }
 
     [Test]
-    public async Task BuildSellQuote_UsesFractionalRatioAndIndependentDurableItemStock()
+    public async Task BuildSellQuote_UsesDisplayedRatioAndIndependentDurableItemStock()
     {
         var store = new InMemoryMarketStore(new SpecialtyMarketState
         {
             Revision = 7,
             PriceRatios = new() { [31832] = new() { [8] = 12051 } },
-            DemandRemainders = new() { [31832] = new() { [8] = 3 } },
+            DemandRemainders = new() { [31832] = new() { [8] = 1 } },
             MaterialContributions = new()
             {
                 [(8, 3361)] =
@@ -352,7 +498,7 @@ public partial class SpecialtyManagerTests
 
         var quote = manager.BuildSellQuote(CreateMarketBundle(), 8);
 
-        await Assert.That(quote.Refund).IsEqualTo(120510ul);
+        await Assert.That(quote.Refund).IsEqualTo(120000ul);
         await Assert.That(quote.Ratio).IsEqualTo(120u);
         await Assert.That(quote.Stock).IsEqualTo(49u);
         await Assert.That(manager.BuildSellQuote(CreateMarketBundle(31833), 8).Stock).IsEqualTo(7u);
@@ -360,10 +506,38 @@ public partial class SpecialtyManagerTests
     }
 
     [Test]
+    public async Task BuildSellQuote_ChangesGoldOnlyWhenDisplayedRatioChanges()
+    {
+        var store = new InMemoryMarketStore(new SpecialtyMarketState
+        {
+            PriceRatios = new() { [31832] = new() { [8] = 12001 } }
+        });
+        var manager = CreateRestoredMarketManager(store);
+        var bundle = CreateMarketBundle();
+
+        var first = manager.BuildSellQuote(bundle, 8);
+        MarketState(manager).PriceRatios[31832][8] = 12099;
+        var sameDisplayedRatio = manager.BuildSellQuote(bundle, 8);
+        MarketState(manager).PriceRatios[31832][8] = 12100;
+        var nextDisplayedRatio = manager.BuildSellQuote(bundle, 8);
+
+        await Assert.That((first.Ratio, first.Refund)).IsEqualTo((120u, 120000ul));
+        await Assert.That((sameDisplayedRatio.Ratio, sameDisplayedRatio.Refund)).IsEqualTo((120u, 120000ul));
+        await Assert.That((nextDisplayedRatio.Ratio, nextDisplayedRatio.Refund)).IsEqualTo((121u, 121000ul));
+    }
+
+    [Test]
     public async Task RecipeConversion_ConsumesInterleavedItemContributionsInFifoOrderAcrossRestart()
     {
         var seed = new SpecialtyMarketState
         {
+            PriceRatios = new()
+            {
+                [31832] = new() { [8] = 10000 },
+                [31833] = new() { [8] = 10000 },
+                [31894] = new() { [8] = 10000 },
+                [49064] = new() { [8] = 10000 }
+            },
             MaterialContributions = new()
             {
                 [(8, 3361)] =
@@ -393,6 +567,29 @@ public partial class SpecialtyManagerTests
         await Assert.That(restarted.GetTradeGoodMaterialStock(8, 3361)).IsEqualTo(15u);
         await Assert.That(restarted.GetTradeGoodMaterialStock(8, 3362)).IsEqualTo(0u);
         await Assert.That(restarted.GetTradeGoodMaterialStock(8, 3363)).IsEqualTo(0u);
+        await Assert.That(MarketState(restarted).PriceRatios[31832][8]).IsEqualTo(11750);
+        await Assert.That(MarketState(restarted).PriceRatios[31833][8]).IsEqualTo(11250);
+        await Assert.That(MarketState(restarted).PriceRatios[31894][8]).IsEqualTo(11750);
+        await Assert.That(MarketState(restarted).PriceRatios[49064][8]).IsEqualTo(10500);
+    }
+
+    [Test]
+    public async Task RecipeConversion_RecoversEachCrossedQtyBucketFromDemandFloor()
+    {
+        var store = new InMemoryMarketStore(new SpecialtyMarketState
+        {
+            PriceRatios = new() { [31832] = new() { [8] = 5000 } },
+            MaterialContributions = CreateMaterialContributions(
+                (8, 3361, 31832, 200),
+                (8, 3362, 31894, 30),
+                (8, 3363, 49064, 9))
+        });
+        var manager = CreateRestoredMarketManager(store);
+
+        await Assert.That(manager.RecordTradeGoodDelivery(8, 1, 49064)).IsEqualTo(5u);
+
+        await Assert.That(manager.BuildSellQuote(CreateMarketBundle(31832), 8).Stock).IsEqualTo(150u);
+        await Assert.That(MarketState(manager).PriceRatios[31832][8]).IsEqualTo(8250);
     }
 
     [Test]
@@ -424,14 +621,14 @@ public partial class SpecialtyManagerTests
         await Assert.That(write.Expected).IsSameReferenceAs(live);
         await Assert.That(write.Updated.Revision).IsEqualTo(8L);
         await Assert.That(write.Updated.PriceRatios[31832][8]).IsEqualTo(13000);
-        await Assert.That(write.Updated.DemandRemainders[31832][8]).IsEqualTo(1);
+        await Assert.That(write.Updated.DemandRemainders[31832][8]).IsEqualTo(0);
         await Assert.That(write.Updated.Records[(31832, 8)].Count).IsEqualTo(1);
         await Assert.That(write.Updated.Records[(31832, 8)][0].Ratio).IsEqualTo(1300);
         await Assert.That(write.Updated.CargoStock[(8, 12)]).IsEqualTo(5u);
         await Assert.That(write.Updated.MaterialContributions.ContainsKey((8, 3361))).IsFalse();
         await Assert.That(write.Updated.MaterialContributions[(8, 3362)][0].Amount).IsEqualTo(1u);
         await Assert.That(write.Updated.MaterialContributions[(8, 3363)][0].Amount).IsEqualTo(1u);
-        await Assert.That(duplicate.Updated.DemandRemainders[31832][8]).IsEqualTo(1);
+        await Assert.That(duplicate.Updated.DemandRemainders[31832][8]).IsEqualTo(0);
         await Assert.That(store.CommitAttempts).IsEqualTo(0);
         await Assert.That(MarketState(manager)).IsSameReferenceAs(live);
         await AssertMarketEquals(live, seed);
@@ -445,8 +642,6 @@ public partial class SpecialtyManagerTests
     }
 
     [Test]
-    [Arguments("material")]
-    [Arguments("cargo")]
     [Arguments("sequence")]
     [Arguments("ambiguous-tags")]
     public async Task PrepareSaleMarketWrite_InvalidDeliveryThrowsWithoutDroppingCountsOrChangingCache(string failure)
@@ -454,13 +649,14 @@ public partial class SpecialtyManagerTests
         var seed = CreatePersistedMarket();
         switch (failure)
         {
-            case "material":
-                seed.MaterialContributions[(8, 3361)] = [new SpecialtyMaterialContribution(1, 31832, uint.MaxValue)];
-                seed.MaterialContributions.Remove((8, 3362));
+            case "sequence":
+                seed.MaterialContributions[(8, 3361)] = [new SpecialtyMaterialContribution(ulong.MaxValue, 31833, 49)];
+                seed.DemandRemainders[31832][8] = 0;
                 break;
-            case "cargo": seed.CargoStock[(8, 12)] = uint.MaxValue; break;
-            case "sequence": seed.MaterialContributions[(8, 3361)] = [new SpecialtyMaterialContribution(ulong.MaxValue, 31833, 49)]; break;
-            case "ambiguous-tags": seed.MaterialContributions.Remove((8, 3361)); break;
+            case "ambiguous-tags":
+                seed.MaterialContributions.Remove((8, 3361));
+                seed.DemandRemainders[31832][8] = 0;
+                break;
         }
         var store = new InMemoryMarketStore(seed);
         var manager = CreateRestoredMarketManager(store, ambiguousMaterialTags: failure == "ambiguous-tags");
@@ -483,11 +679,11 @@ public partial class SpecialtyManagerTests
     [Arguments("bundle")]
     [Arguments("ratio-low")]
     [Arguments("ratio-high")]
+    [Arguments("demand-remainder")]
     [Arguments("material-zone")]
     [Arguments("material-category")]
     [Arguments("material-tag")]
     [Arguments("material-item")]
-    [Arguments("material-complete-recipe")]
     [Arguments("cargo-zone")]
     [Arguments("cargo-category")]
     [Arguments("cargo-recipe")]
@@ -508,18 +704,11 @@ public partial class SpecialtyManagerTests
                 break;
             case "ratio-low": invalid.PriceRatios[31832][8] = 4999; break;
             case "ratio-high": invalid.PriceRatios[31832][8] = 13001; break;
+            case "demand-remainder": invalid.DemandRemainders[31832][8] = 4; break;
             case "material-zone": invalid.MaterialContributions[(99, 3361)] = [new(1, 31832, 1)]; break;
             case "material-category": invalid.MaterialContributions[(9, 3361)] = [new(1, 31832, 1)]; break;
             case "material-tag": invalid.MaterialContributions[(8, 99999)] = [new(1, 31832, 1)]; break;
             case "material-item": invalid.MaterialContributions[(8, 3361)] = [new(1, 31894, 1)]; break;
-            case "material-complete-recipe":
-                invalid.MaterialContributions.Clear();
-                foreach (var contribution in CreateMaterialContributions(
-                    (8, 3361, 31832, 50),
-                    (8, 3362, 31894, 30),
-                    (8, 3363, 49064, 10)))
-                    invalid.MaterialContributions.Add(contribution.Key, contribution.Value);
-                break;
             case "cargo-zone": invalid.CargoStock[(99, 12)] = 1; break;
             case "cargo-category": invalid.CargoStock[(9, 12)] = 1; break;
             case "cargo-recipe": invalid.CargoStock[(8, 99999)] = 1; break;
@@ -533,7 +722,11 @@ public partial class SpecialtyManagerTests
         await AssertMarketEquals(store.Load(), invalid);
     }
 
-    private static SpecialtyManager CreateRestoredMarketManager(InMemoryMarketStore store, bool ambiguousMaterialTags = false)
+    private static SpecialtyManager CreateRestoredMarketManager(
+        InMemoryMarketStore store,
+        bool ambiguousMaterialTags = false,
+        int? priceRecoverRate = null,
+        int? goodsRatioCount = null)
     {
         var zones = Mock.Of<IZoneManager>();
         zones.GetZoneGroupById(8).Returns(new ZoneGroup { Id = 8, FactionChatRegionId = 2 });
@@ -556,6 +749,10 @@ public partial class SpecialtyManagerTests
             """);
         manager.LoadTradeGoodData(tradeGoods);
         using var specialty = CreateSpecialtySaleDatabase();
+        if (priceRecoverRate.HasValue)
+            Execute(specialty, $"UPDATE content_configs SET value = {priceRecoverRate.Value} WHERE id = 197");
+        if (goodsRatioCount.HasValue)
+            Execute(specialty, $"UPDATE content_configs SET value = {goodsRatioCount.Value} WHERE id = 210");
         manager.LoadSpecialtySaleData(specialty);
         var bundle = CreateMarketBundle();
         var sameMaterialBundle = CreateMarketBundle(31833);
@@ -582,7 +779,7 @@ public partial class SpecialtyManagerTests
     {
         Revision = 7,
         PriceRatios = new() { [31832] = new() { [8] = 10000 } },
-        DemandRemainders = new() { [31832] = new() { [8] = 3 } },
+        DemandRemainders = new() { [31832] = new() { [8] = 1 } },
         MaterialContributions = CreateMaterialContributions(
             (8, 3361, 31832, 49),
             (8, 3362, 31894, 31),
@@ -613,6 +810,8 @@ public partial class SpecialtyManagerTests
                 .IsEquivalentTo(contributions.Select(x => (x.Sequence, x.ItemId, x.Amount)));
         }
         await Assert.That(actual.CargoStock).IsEquivalentTo(expected.CargoStock);
+        await Assert.That(actual.StockEventNextChecks).IsEquivalentTo(expected.StockEventNextChecks);
+        await Assert.That(actual.StockEventActivations).IsEquivalentTo(expected.StockEventActivations);
         await Assert.That(actual.Records.Keys).IsEquivalentTo(expected.Records.Keys);
         foreach (var (route, records) in expected.Records)
         {

@@ -696,7 +696,7 @@ CREATE TABLE IF NOT EXISTS `specialty_market_routes` (
   `demand_remainder` int NOT NULL DEFAULT 0,
   PRIMARY KEY (`item_id`, `zone_group_id`),
   CHECK (`item_id` > 0 AND `zone_group_id` > 0),
-  CHECK (`ratio` >= 0 AND `demand_remainder` BETWEEN 0 AND 3)
+  CHECK (`ratio` >= 0 AND `demand_remainder` >= 0)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 CREATE TABLE IF NOT EXISTS `specialty_market_contributions` (
@@ -727,6 +727,22 @@ CREATE TABLE IF NOT EXISTS `specialty_market_history` (
   PRIMARY KEY (`item_id`, `zone_group_id`, `sequence`),
   CHECK (`item_id` > 0 AND `zone_group_id` > 0),
   CHECK (`ratio` >= 0 AND `recorded` >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `specialty_market_stock_event_checks` (
+  `trigger_id` int unsigned NOT NULL,
+  `next_check` bigint NOT NULL,
+  PRIMARY KEY (`trigger_id`),
+  CHECK (`trigger_id` > 0 AND `next_check` >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `specialty_market_stock_events` (
+  `event_id` int unsigned NOT NULL,
+  `started_at` bigint NOT NULL,
+  `expires_at` bigint NOT NULL,
+  PRIMARY KEY (`event_id`),
+  CHECK (`event_id` > 0),
+  CHECK (`started_at` >= 0 AND `expires_at` > `started_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 

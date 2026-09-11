@@ -21,6 +21,8 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
     private Dictionary<uint, ZoneGroupBannedTag> _groupBannedTags;
     private Dictionary<uint, ZoneClimateElem> _climateElem;
 
+    public event Action<ushort, ZoneConflictType, ZoneConflictType> ZoneConflictStateChanged;
+
     public ZoneConflict[] GetConflicts() => _conflicts.Values.ToArray();
 
     public Zone GetZoneById(uint zoneId)
@@ -130,7 +132,10 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
                         var zoneGroupId = reader.GetUInt16("zone_group_id");
                         if (_groups.ContainsKey(zoneGroupId))
                         {
-                            var template = new ZoneConflict(_groups[zoneGroupId]) { ZoneGroupId = zoneGroupId };
+                            var template = new ZoneConflict(_groups[zoneGroupId], OnZoneConflictStateChanged)
+                            {
+                                ZoneGroupId = zoneGroupId
+                            };
 
                             for (var i = 0; i < 5; i++)
                             {
@@ -199,6 +204,33 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
             }
 
             Logger.Info("Loaded {0} climate elems", _climateElem.Count);
+        }
+    }
+
+    private void OnZoneConflictStateChanged(
+        ushort zoneGroupId,
+        ZoneConflictType previousState,
+        ZoneConflictType currentState)
+    {
+        var listeners = ZoneConflictStateChanged;
+        if (listeners == null)
+            return;
+
+        foreach (Action<ushort, ZoneConflictType, ZoneConflictType> listener in listeners.GetInvocationList())
+        {
+            try
+            {
+                listener(zoneGroupId, previousState, currentState);
+            }
+            catch (Exception exception)
+            {
+                Logger.Error(
+                    exception,
+                    "ZoneGroup {0}: state-change listener failed for {1} -> {2}",
+                    zoneGroupId,
+                    previousState,
+                    currentState);
+            }
         }
     }
 

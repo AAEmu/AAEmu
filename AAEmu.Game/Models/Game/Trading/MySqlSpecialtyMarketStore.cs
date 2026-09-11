@@ -85,6 +85,22 @@ public sealed class MySqlSpecialtyMarketStore(ISaveManager saveManager) : ISpeci
             }
         }
 
+        command.CommandText = "SELECT trigger_id, next_check FROM specialty_market_stock_event_checks";
+        using (var reader = command.ExecuteReader())
+        {
+            while (reader.Read())
+                state.StockEventNextChecks.Add(reader.GetUInt32(0), reader.GetInt64(1));
+        }
+
+        command.CommandText = "SELECT event_id, started_at, expires_at FROM specialty_market_stock_events";
+        using (var reader = command.ExecuteReader())
+        {
+            while (reader.Read())
+                state.StockEventActivations.Add(
+                    reader.GetUInt32(0),
+                    new SpecialtyStockEventActivation(reader.GetInt64(1), reader.GetInt64(2)));
+        }
+
         try
         {
             ValidateState(state);
@@ -144,6 +160,8 @@ public sealed class MySqlSpecialtyMarketStore(ISaveManager saveManager) : ISpeci
 
         ApplyContributions(connection, transaction, write.Expected.MaterialContributions, write.Updated.MaterialContributions);
         ApplyStock(connection, transaction, "specialty_market_cargo", "trade_good_id", write.Expected.CargoStock, write.Updated.CargoStock);
+        ApplyStockEventChecks(connection, transaction, write.Expected.StockEventNextChecks, write.Updated.StockEventNextChecks);
+        ApplyStockEvents(connection, transaction, write.Expected.StockEventActivations, write.Updated.StockEventActivations);
 
         foreach (var key in write.Expected.Records.Keys.Union(write.Updated.Records.Keys))
         {
@@ -239,6 +257,63 @@ public sealed class MySqlSpecialtyMarketStore(ISaveManager saveManager) : ISpeci
         }
     }
 
+    private static void ApplyStockEventChecks(
+        MySqlConnection connection,
+        MySqlTransaction transaction,
+        Dictionary<uint, long> expected,
+        Dictionary<uint, long> updated)
+    {
+        foreach (var triggerId in expected.Keys.Union(updated.Keys))
+        {
+            var hadRow = expected.TryGetValue(triggerId, out var oldNextCheck);
+            var hasRow = updated.TryGetValue(triggerId, out var nextCheck);
+            if (hadRow && hasRow && oldNextCheck == nextCheck)
+                continue;
+            if (!hasRow)
+            {
+                Execute(connection, transaction,
+                    "DELETE FROM specialty_market_stock_event_checks WHERE trigger_id = @trigger",
+                    ("@trigger", triggerId));
+            }
+            else
+            {
+                Execute(connection, transaction,
+                    "INSERT INTO specialty_market_stock_event_checks (trigger_id, next_check) VALUES (@trigger, @next) " +
+                    "ON DUPLICATE KEY UPDATE next_check = @next",
+                    ("@trigger", triggerId), ("@next", nextCheck));
+            }
+        }
+    }
+
+    private static void ApplyStockEvents(
+        MySqlConnection connection,
+        MySqlTransaction transaction,
+        Dictionary<uint, SpecialtyStockEventActivation> expected,
+        Dictionary<uint, SpecialtyStockEventActivation> updated)
+    {
+        foreach (var eventId in expected.Keys.Union(updated.Keys))
+        {
+            var hadRow = expected.TryGetValue(eventId, out var oldActivation);
+            var hasRow = updated.TryGetValue(eventId, out var activation);
+            if (hadRow && hasRow && oldActivation == activation)
+                continue;
+            if (!hasRow)
+            {
+                Execute(connection, transaction,
+                    "DELETE FROM specialty_market_stock_events WHERE event_id = @event",
+                    ("@event", eventId));
+            }
+            else
+            {
+                Execute(connection, transaction,
+                    "INSERT INTO specialty_market_stock_events (event_id, started_at, expires_at) " +
+                    "VALUES (@event, @started, @expires) " +
+                    "ON DUPLICATE KEY UPDATE started_at = @started, expires_at = @expires",
+                    ("@event", eventId), ("@started", activation.StartedAt), ("@expires", activation.ExpiresAt));
+            }
+        }
+    }
+
     private static Dictionary<(uint ZoneGroupId, uint TagId, ulong Sequence), SpecialtyMaterialContribution>
         NormalizeContributions(Dictionary<(uint ZoneGroupId, uint TagId), List<SpecialtyMaterialContribution>> queues)
     {
@@ -276,7 +351,8 @@ public sealed class MySqlSpecialtyMarketStore(ISaveManager saveManager) : ISpeci
         if (state.Revision < 0)
             throw new ArgumentException("Market revision must be nonnegative.", nameof(state));
         if (state.PriceRatios == null || state.DemandRemainders == null || state.MaterialContributions == null ||
-            state.CargoStock == null || state.Records == null)
+            state.CargoStock == null || state.Records == null || state.StockEventNextChecks == null ||
+            state.StockEventActivations == null)
             throw new ArgumentException("Market dictionaries must not be null.", nameof(state));
 
         foreach (var (itemId, ratios) in state.PriceRatios)
@@ -296,9 +372,9 @@ public sealed class MySqlSpecialtyMarketStore(ISaveManager saveManager) : ISpeci
                 throw new ArgumentException("Market item keys must be positive and remainder dictionaries must not be null.", nameof(state));
             foreach (var (zoneGroupId, remainder) in remainders)
             {
-                if (zoneGroupId == 0 || remainder is < 0 or > 3 ||
+                if (zoneGroupId == 0 || remainder < 0 ||
                     !state.PriceRatios.TryGetValue(itemId, out var ratios) || !ratios.ContainsKey(zoneGroupId))
-                    throw new ArgumentException("Demand remainders must be between zero and three and have a matching ratio route.", nameof(state));
+                    throw new ArgumentException("Demand remainders must be nonnegative and have a matching ratio route.", nameof(state));
             }
         }
 
@@ -337,6 +413,18 @@ public sealed class MySqlSpecialtyMarketStore(ISaveManager saveManager) : ISpeci
                     throw new ArgumentException("History ratios and times must be nonnegative, with times in nondecreasing order.", nameof(state));
                 previousTime = record.Recorded;
             }
+        }
+
+        foreach (var (triggerId, nextCheck) in state.StockEventNextChecks)
+        {
+            if (triggerId == 0 || nextCheck < 0)
+                throw new ArgumentException("Stock event check identifiers must be positive and times must be nonnegative.", nameof(state));
+        }
+
+        foreach (var (eventId, activation) in state.StockEventActivations)
+        {
+            if (eventId == 0 || activation == null || activation.StartedAt < 0 || activation.ExpiresAt <= activation.StartedAt)
+                throw new ArgumentException("Stock event activations must have positive identifiers and valid times.", nameof(state));
         }
     }
 }

@@ -60,6 +60,8 @@
         "setfaction": 100,
         "setlevel": 100,
         "settitle": 100,
+		"dump_specialty_events": 100,
+		"set_specialty_event": 100,
         "snow": 100,
         "spawngrid": 100,
         "testauctionhouse": 100,

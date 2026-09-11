@@ -1,3 +1,5 @@
+﻿using System.Collections.ObjectModel;
+using System.Text;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
@@ -13,6 +15,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Trading;
+using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Specialty;
 using AAEmu.Game.Utils;
@@ -25,28 +28,33 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public class SpecialtyManager(
     IItemManager itemManager,
+    ILocalizationManager localizationManager,
     ISkillManager skillManager,
     IZoneManager zoneManager,
     IMailManager mailManager,
     SpecialtySaleCommitter saleCommitter,
     ISpecialtyMarketStore marketStore,
     ISpecialtyPurchaseStore purchaseStore,
+    IWorldManager worldManager,
     ITaskManager taskManager,
+    TimeProvider timeProvider,
     IOptions<AppConfiguration> options) : Singleton<SpecialtyManager>, ISpecialtyManager
 {
     private const int RatioUnitsPerPercent = 100;
     private const int RatioUnitsPerWireUnit = 10;
     private const uint NeutralWireRatio = 1000;
-    private const uint MoneyUnitsPerCoin = 10000;
     private const uint FirstLandFactionChatRegionId = 2;
     private const uint LastLandFactionChatRegionId = 4;
     private const int MaxCurrentRatios = 128;
     private const int MaxHistoryRecords = 256;
     private const int QuotesPerPage = 20;
+    private const int EventIdsPerPage = 50;
 
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private readonly object _marketLock = new();
+    private readonly object _eventLock = new();
+    private readonly SpecialtyEventRuntimePolicy _specialtyEventRuntimePolicy = CaptureSpecialtyEventRuntimePolicy(options);
     private Dictionary<uint, Specialty> _specialties = [];
     private Dictionary<uint, SpecialtyBundleItem> _specialtyBundleItems = [];
     private Dictionary<uint, SpecialtyNpc> _specialtyNpcs = [];
@@ -65,7 +73,19 @@ public class SpecialtyManager(
     private SkillTemplate _tradeGoodPurchaseSkill;
     private int _tradeGoodSellLevelLimit;
     private int _tradeGoodMailInterest;
+    private int _tradeGoodCoinPerGoldRatio;
     private int _tradeGoodBuyLevelLimit;
+    private uint _goodsStockLimit;
+    private uint _tradeGoodStockLimit;
+    private SpecialtyEventCatalog _specialtyEventCatalog = SpecialtyEventCatalog.Empty;
+    private Dictionary<(uint EventId, SpecialtyEventActivationSource Source), ActiveSpecialtyEventState> _activeSpecialtyEvents = [];
+    private long _specialtyEventActivationToken;
+    private bool _subscribedToZoneConflictStateChanges;
+    private bool _initialized;
+    private bool _reconcilingMarketConflict;
+    private long _stockEventScheduleGeneration;
+    private readonly Dictionary<uint, SpecialtyStockEventCheckTask> _scheduledStockEventChecks = [];
+    private SpecialtyRatioRegenTask _timedRatioRecoveryTask;
 
     // Specialty item -> destination zone group -> hundredths of a percentage point.
     private SpecialtyMarketState _market = new();
@@ -83,6 +103,10 @@ public class SpecialtyManager(
 
     public void Load()
     {
+        var reinitialize = _initialized;
+        ClearScheduledStockEventChecks();
+        ClearActiveSpecialtyEvents();
+        ClearTimedRatioRecoveryTask();
         lock (_marketLock)
         {
             _specialties = [];
@@ -103,7 +127,11 @@ public class SpecialtyManager(
             _tradeGoodPurchaseSkill = null;
             _tradeGoodSellLevelLimit = 0;
             _tradeGoodMailInterest = 0;
+            _tradeGoodCoinPerGoldRatio = 0;
             _tradeGoodBuyLevelLimit = 0;
+            _goodsStockLimit = 0;
+            _tradeGoodStockLimit = 0;
+            _specialtyEventCatalog = SpecialtyEventCatalog.Empty;
             _market = new();
             _subscriptions = [];
         }
@@ -175,6 +203,7 @@ public class SpecialtyManager(
         LoadFreshnessData(connection);
         LoadSpecialtySaleData(connection);
         LoadTradeGoodData(connection);
+        LoadSpecialtyEventData(connection);
 
         foreach (var bundleItem in _specialtyBundleItems.Values)
         {
@@ -186,22 +215,941 @@ public class SpecialtyManager(
 
         RestoreMarketState();
 
+        if (reinitialize)
+            Initialize();
+
         Logger.Info(
-            "Loaded {0} routes, {1} bundle items, {2} NPCs, {3} freshness groups, {4} cargo categories, {5} cargo goods and {6} price indices",
+            "Loaded {0} routes, {1} bundle items, {2} NPCs, {3} freshness groups, {4} cargo categories, {5} cargo goods, {6} price indices and {7} specialty event descriptors",
             _specialties.Count,
             _specialtyBundleItems.Count,
             _specialtyNpcs.Count,
             _freshnessGroups.Count,
             _tradeGoodCategories.Count,
             _tradeGoods.Count,
-            _tradeGoodPriceIndices.Count);
+            _tradeGoodPriceIndices.Count,
+            _specialtyEventCatalog.Events.Count);
+    }
+
+    public SpecialtyEventCatalog SpecialtyEventCatalog => _specialtyEventCatalog;
+
+    public bool SpecialtyEventsEnabled => _specialtyEventRuntimePolicy.Enabled;
+    public uint DefaultManualSpecialtyEventDurationSeconds => _specialtyEventRuntimePolicy.DefaultManualDurationSeconds;
+
+    public IReadOnlyList<ActiveSpecialtyEvent> GetActiveSpecialtyEvents()
+    {
+        lock (_eventLock)
+        {
+            var now = timeProvider.GetUtcNow();
+            return _activeSpecialtyEvents.Values
+                .Select(x => x.Activation)
+                .Where(x => x.ExpiresAt > now)
+                .GroupBy(x => x.EventId)
+                .Select(x => x.OrderByDescending(y => y.ExpiresAt).First())
+                .OrderBy(x => x.EventId)
+                .ToArray();
+        }
+    }
+
+    public bool TryActivateSpecialtyEvent(
+        uint eventId,
+        TimeSpan duration,
+        uint activatedByCharacterId,
+        out ActiveSpecialtyEvent activation,
+        out string error)
+    {
+        activation = null;
+        error = null;
+        if (!_specialtyEventCatalog.Events.TryGetValue(eventId, out var descriptor))
+        {
+            error = $"Unknown specialty event {eventId}.";
+            return false;
+        }
+        if (duration <= TimeSpan.Zero)
+        {
+            error = "Specialty event duration must be positive.";
+            return false;
+        }
+
+        var broadcastStart = false;
+        lock (_eventLock)
+        {
+            if (!SpecialtyEventsEnabled)
+            {
+                error = "Specialty events are disabled by configuration.";
+                return false;
+            }
+            var startedAt = timeProvider.GetUtcNow();
+            DateTimeOffset expiresAt;
+            try
+            {
+                expiresAt = startedAt.Add(duration);
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                error = "Specialty event duration is too large.";
+                return false;
+            }
+            var token = ++_specialtyEventActivationToken;
+            var expiryTask = new SpecialtyEventExpiryTask(
+                this,
+                eventId,
+                token,
+                SpecialtyEventActivationSource.Manual);
+            if (!taskManager.Schedule(expiryTask, duration))
+            {
+                error = $"Failed to schedule expiry for specialty event {eventId}.";
+                return false;
+            }
+
+            activation = new ActiveSpecialtyEvent(eventId, startedAt, expiresAt, activatedByCharacterId);
+            var key = (eventId, SpecialtyEventActivationSource.Manual);
+            var triggerWasActive = IsSpecialtyEventTriggerActiveNoLock(descriptor.Trigger.Id);
+            _activeSpecialtyEvents.TryGetValue(key, out var previous);
+            _activeSpecialtyEvents[key] = new ActiveSpecialtyEventState(activation, token, expiryTask);
+            if (previous != null)
+                taskManager.Cancel(previous.ExpiryTask);
+            broadcastStart = !triggerWasActive;
+        }
+        if (broadcastStart)
+            BroadcastSpecialtyEventMessage(descriptor, descriptor.Trigger.StartMessage);
+        return true;
+    }
+
+    public bool TryDeactivateSpecialtyEvent(uint eventId, out ActiveSpecialtyEvent activation, out string error)
+    {
+        activation = null;
+        error = null;
+        ActiveSpecialtyEventState state;
+        SpecialtyEventDescriptor descriptor = null;
+        var broadcastEnd = false;
+        lock (_eventLock)
+        {
+            var key = (eventId, SpecialtyEventActivationSource.Manual);
+            if (!_activeSpecialtyEvents.Remove(key, out state))
+            {
+                error = $"Specialty event {eventId} is not manually active.";
+                return false;
+            }
+            activation = state.Activation;
+            taskManager.Cancel(state.ExpiryTask);
+            if (SpecialtyEventsEnabled &&
+                _specialtyEventCatalog.Events.TryGetValue(eventId, out descriptor) &&
+                !IsSpecialtyEventTriggerActiveNoLock(descriptor.Trigger.Id))
+                broadcastEnd = true;
+        }
+        if (broadcastEnd)
+            BroadcastSpecialtyEventMessage(descriptor, descriptor.Trigger.EndMessage);
+        return true;
+    }
+
+    internal void ExpireSpecialtyEvent(
+        uint eventId,
+        long activationToken,
+        SpecialtyEventActivationSource source)
+    {
+        if (source == SpecialtyEventActivationSource.StockCount)
+        {
+            ExpirePersistedStockEvent(eventId, activationToken);
+            return;
+        }
+
+        SpecialtyEventDescriptor descriptor = null;
+        var broadcastEnd = false;
+        lock (_eventLock)
+        {
+            var key = (eventId, source);
+            if (!_activeSpecialtyEvents.TryGetValue(key, out var state) ||
+                state.ActivationToken != activationToken ||
+                state.Activation.ExpiresAt > timeProvider.GetUtcNow())
+                return;
+            _activeSpecialtyEvents.Remove(key);
+            _specialtyEventCatalog.Events.TryGetValue(eventId, out descriptor);
+            if (descriptor != null &&
+                SpecialtyEventsEnabled &&
+                !IsSpecialtyEventTriggerActiveNoLock(descriptor.Trigger.Id))
+                broadcastEnd = true;
+        }
+        if (broadcastEnd)
+            BroadcastSpecialtyEventMessage(descriptor, descriptor.Trigger.EndMessage);
+    }
+
+    private void ExpirePersistedStockEvent(uint eventId, long activationToken)
+    {
+        SpecialtyEventDescriptor descriptor = null;
+        var broadcastEnd = false;
+        lock (_marketLock)
+        lock (_eventLock)
+        {
+            var key = (eventId, SpecialtyEventActivationSource.StockCount);
+            if (!_activeSpecialtyEvents.TryGetValue(key, out var state) ||
+                state.ActivationToken != activationToken ||
+                state.Activation.ExpiresAt > timeProvider.GetUtcNow())
+                return;
+
+            var write = PrepareMarketWrite(() => _market.StockEventActivations.Remove(eventId));
+            CommitMarketWrite(write);
+            _activeSpecialtyEvents.Remove(key);
+            _specialtyEventCatalog.Events.TryGetValue(eventId, out descriptor);
+            if (descriptor != null &&
+                SpecialtyEventsEnabled &&
+                !IsSpecialtyEventTriggerActiveNoLock(descriptor.Trigger.Id))
+                broadcastEnd = true;
+        }
+        if (broadcastEnd)
+            BroadcastSpecialtyEventMessage(descriptor, descriptor.Trigger.EndMessage);
+    }
+
+    private void OnZoneConflictStateChanged(
+        ushort zoneGroupId,
+        ZoneConflictType previousState,
+        ZoneConflictType currentState)
+    {
+        Logger.Debug(
+            "Reconciling specialty events for ZoneGroup {0} state {1} -> {2}",
+            zoneGroupId,
+            previousState,
+            currentState);
+        ReconcileZoneConflictEvents(zoneGroupId, currentState);
+    }
+
+    internal void ReconcileZoneConflictEvents(ushort zoneGroupId, ZoneConflictType currentState)
+    {
+        if (!SpecialtyEventsEnabled)
+            return;
+
+        var triggerGroups = _specialtyEventCatalog.Events.Values
+            .Where(x =>
+                x.Trigger.Type == SpecialtyEventTriggerType.ZoneConflictState &&
+                x.Trigger.ZoneGroupId == zoneGroupId)
+            .GroupBy(x => x.Trigger.Id)
+            .ToArray();
+        foreach (var triggerGroup in triggerGroups)
+            ReconcileZoneConflictTrigger(triggerGroup.ToArray(), currentState);
+    }
+
+    internal void CheckStockEventTrigger(uint triggerId, int roll) =>
+        CheckStockEventTrigger(triggerId, roll, null);
+
+    private void CheckStockEventTrigger(uint triggerId, int roll, long? scheduleGeneration)
+    {
+        if (roll is < 0 or >= 1000)
+            throw new ArgumentOutOfRangeException(nameof(roll));
+        if (!SpecialtyEventsEnabled)
+            return;
+
+        var descriptors = _specialtyEventCatalog.Events.Values
+            .Where(x => x.Trigger.Id == triggerId && x.Trigger.Type == SpecialtyEventTriggerType.StockCount)
+            .OrderBy(x => x.Id)
+            .ToArray();
+        if (descriptors.Length == 0)
+            return;
+
+        var trigger = descriptors[0].Trigger;
+        if (!TryGetStockEventCargoStock(trigger, out var stock))
+            return;
+
+        if (stock < checked((uint)trigger.Value1) || stock > checked((uint)trigger.Value2) ||
+            roll >= trigger.EventRate)
+            return;
+
+        ActivateStockEventTrigger(descriptors, scheduleGeneration);
+    }
+
+    internal void RunStockEventCheck(uint triggerId, int roll) =>
+        RunStockEventCheck(triggerId, roll, Interlocked.Read(ref _stockEventScheduleGeneration));
+
+    internal void RunStockEventCheck(uint triggerId, int roll, long scheduleGeneration)
+    {
+        if (scheduleGeneration != Interlocked.Read(ref _stockEventScheduleGeneration))
+            return;
+        if (!_specialtyEventCatalog.Triggers.TryGetValue(triggerId, out var trigger) ||
+            trigger.Type != SpecialtyEventTriggerType.StockCount)
+            return;
+
+        lock (_marketLock)
+        {
+            if (scheduleGeneration != Interlocked.Read(ref _stockEventScheduleGeneration))
+                return;
+            var nextCheck = timeProvider.GetUtcNow().AddSeconds(trigger.CheckTime).ToUnixTimeSeconds();
+            var write = PrepareMarketWrite(() => _market.StockEventNextChecks[triggerId] = nextCheck);
+            CommitMarketWrite(write);
+        }
+        CheckStockEventTrigger(triggerId, roll, scheduleGeneration);
+    }
+
+    private void ActivateStockEventTrigger(
+        SpecialtyEventDescriptor[] descriptors,
+        long? scheduleGeneration)
+    {
+        var trigger = descriptors[0].Trigger;
+        var duration = TimeSpan.FromSeconds(trigger.EventTime);
+        var broadcastStart = false;
+
+        lock (_marketLock)
+        lock (_eventLock)
+        {
+            if (scheduleGeneration.HasValue &&
+                scheduleGeneration.Value != Interlocked.Read(ref _stockEventScheduleGeneration))
+                return;
+            var missingDescriptors = descriptors
+                .Where(x => !_activeSpecialtyEvents.ContainsKey((x.Id, SpecialtyEventActivationSource.StockCount)))
+                .ToArray();
+            if (missingDescriptors.Length == 0)
+                return;
+
+            var triggerWasActive = IsSpecialtyEventTriggerActiveNoLock(trigger.Id);
+            var startedAt = timeProvider.GetUtcNow();
+            var pending = new List<((uint EventId, SpecialtyEventActivationSource Source) Key, ActiveSpecialtyEventState State)>();
+            foreach (var descriptor in missingDescriptors)
+            {
+                var token = ++_specialtyEventActivationToken;
+                var expiryTask = new SpecialtyEventExpiryTask(
+                    this,
+                    descriptor.Id,
+                    token,
+                    SpecialtyEventActivationSource.StockCount);
+                if (!taskManager.Schedule(expiryTask, duration))
+                {
+                    foreach (var entry in pending)
+                        taskManager.Cancel(entry.State.ExpiryTask);
+                    Logger.Error(
+                        "Failed to schedule automatic expiry for specialty event {0} from stock trigger {1}",
+                        descriptor.Id,
+                        trigger.Id);
+                    return;
+                }
+
+                var activation = new ActiveSpecialtyEvent(
+                    descriptor.Id,
+                    startedAt,
+                    startedAt.Add(duration),
+                    0);
+                pending.Add((
+                    (descriptor.Id, SpecialtyEventActivationSource.StockCount),
+                    new ActiveSpecialtyEventState(activation, token, expiryTask)));
+            }
+
+            try
+            {
+                var persisted = new SpecialtyStockEventActivation(
+                    startedAt.ToUnixTimeSeconds(),
+                    startedAt.Add(duration).ToUnixTimeSeconds());
+                var write = PrepareMarketWrite(() =>
+                {
+                    foreach (var descriptor in missingDescriptors)
+                        _market.StockEventActivations[descriptor.Id] = persisted;
+                });
+                CommitMarketWrite(write);
+            }
+            catch
+            {
+                foreach (var entry in pending)
+                    taskManager.Cancel(entry.State.ExpiryTask);
+                throw;
+            }
+
+            foreach (var entry in pending)
+                _activeSpecialtyEvents[entry.Key] = entry.State;
+            broadcastStart = !triggerWasActive && IsSpecialtyEventTriggerActiveNoLock(trigger.Id);
+        }
+
+        if (broadcastStart)
+            BroadcastSpecialtyEventMessage(descriptors[0], trigger.StartMessage);
+    }
+
+    private void ReconcileZoneConflictTrigger(
+        SpecialtyEventDescriptor[] descriptors,
+        ZoneConflictType currentState)
+    {
+        var trigger = descriptors[0].Trigger;
+        var shouldActivate =
+            trigger.SubjectType == SpecialtyEventTriggerSubjectType.EnumHonorPointWarState &&
+            trigger.SubjectId == (uint)currentState;
+        var broadcastStart = false;
+        var broadcastEnd = false;
+
+        lock (_eventLock)
+        {
+            var triggerWasActive = IsSpecialtyEventTriggerActiveNoLock(trigger.Id);
+            if (shouldActivate)
+            {
+                var duration = TimeSpan.FromSeconds(trigger.EventTime);
+                foreach (var descriptor in descriptors)
+                {
+                    var key = (descriptor.Id, SpecialtyEventActivationSource.ZoneConflict);
+                    if (_activeSpecialtyEvents.ContainsKey(key))
+                        continue;
+
+                    var startedAt = timeProvider.GetUtcNow();
+                    var token = ++_specialtyEventActivationToken;
+                    var expiryTask = new SpecialtyEventExpiryTask(
+                        this,
+                        descriptor.Id,
+                        token,
+                        SpecialtyEventActivationSource.ZoneConflict);
+                    if (!taskManager.Schedule(expiryTask, duration))
+                    {
+                        Logger.Error(
+                            "Failed to schedule automatic expiry for specialty event {0} from zone conflict trigger {1}",
+                            descriptor.Id,
+                            trigger.Id);
+                        continue;
+                    }
+
+                    var activation = new ActiveSpecialtyEvent(
+                        descriptor.Id,
+                        startedAt,
+                        startedAt.Add(duration),
+                        0);
+                    _activeSpecialtyEvents[key] = new ActiveSpecialtyEventState(activation, token, expiryTask);
+                }
+            }
+            else
+            {
+                foreach (var descriptor in descriptors)
+                {
+                    var key = (descriptor.Id, SpecialtyEventActivationSource.ZoneConflict);
+                    if (!_activeSpecialtyEvents.Remove(key, out var state))
+                        continue;
+                    taskManager.Cancel(state.ExpiryTask);
+                }
+            }
+
+            var triggerIsActive = IsSpecialtyEventTriggerActiveNoLock(trigger.Id);
+            broadcastStart = !triggerWasActive && triggerIsActive;
+            broadcastEnd = triggerWasActive && !triggerIsActive;
+        }
+
+        if (broadcastStart)
+            BroadcastSpecialtyEventMessage(descriptors[0], trigger.StartMessage);
+        if (broadcastEnd)
+            BroadcastSpecialtyEventMessage(descriptors[0], trigger.EndMessage);
+    }
+
+    private bool IsSpecialtyEventTriggerActiveNoLock(uint triggerId) =>
+        _activeSpecialtyEvents.Keys.Any(x =>
+            _specialtyEventCatalog.Events.TryGetValue(x.EventId, out var descriptor) &&
+            descriptor.Trigger.Id == triggerId);
+
+    internal IReadOnlyList<uint> GetActiveSpecialtyEventIds(uint zoneGroupId, IReadOnlyCollection<uint> itemIds)
+        => GetActiveSpecialtyEventIds(CaptureSpecialtyEventSnapshot(), zoneGroupId, itemIds);
+
+    private static uint[] GetActiveSpecialtyEventIds(
+        SpecialtyEventSnapshot snapshot,
+        uint zoneGroupId,
+        IReadOnlyCollection<uint> itemIds)
+    {
+        var itemIdSet = itemIds.ToHashSet();
+        return snapshot.Descriptors
+            .Where(descriptor =>
+                descriptor.Trigger.ZoneGroupId == zoneGroupId &&
+                descriptor.TargetItemIds.Any(itemIdSet.Contains))
+            .Select(x => x.Id)
+            .ToArray();
+    }
+
+    private float GetActiveSpecialtyEventMultiplier(
+        uint zoneGroupId,
+        uint itemId,
+        SpecialtyEventType eventType) =>
+        GetActiveSpecialtyEventMultiplier(CaptureSpecialtyEventSnapshot(), zoneGroupId, itemId, eventType);
+
+    private static float GetActiveSpecialtyEventMultiplier(
+        SpecialtyEventSnapshot snapshot,
+        uint zoneGroupId,
+        uint itemId,
+        SpecialtyEventType eventType)
+    {
+        var multiplier = 1f;
+        foreach (var descriptor in snapshot.Descriptors)
+        {
+            if (descriptor.Type != eventType ||
+                descriptor.Trigger.ZoneGroupId != zoneGroupId ||
+                !descriptor.TargetItemIds.Contains(itemId))
+                continue;
+            multiplier *= descriptor.Value / 1000f;
+        }
+
+        if (!float.IsFinite(multiplier) || multiplier <= 0)
+            throw new OverflowException(
+                $"Active specialty event multiplier is invalid for item {itemId} in zone {zoneGroupId}.");
+        return multiplier;
+    }
+
+    private SpecialtyEventSnapshot CaptureSpecialtyEventSnapshot()
+    {
+        if (!SpecialtyEventsEnabled)
+            return SpecialtyEventSnapshot.Empty;
+
+        lock (_eventLock)
+        {
+            var now = timeProvider.GetUtcNow();
+            var descriptors = _activeSpecialtyEvents.Values
+                .Select(x => x.Activation)
+                .Where(x => x.ExpiresAt > now)
+                .Select(x => x.EventId)
+                .Distinct()
+                .Select(x => _specialtyEventCatalog.Events.GetValueOrDefault(x))
+                .Where(x => x != null)
+                .OrderBy(x => x.Id)
+                .ToArray();
+            return new SpecialtyEventSnapshot(descriptors);
+        }
+    }
+
+    private void ClearActiveSpecialtyEvents()
+    {
+        SpecialtyEventExpiryTask[] expiryTasks;
+        lock (_eventLock)
+        {
+            expiryTasks = _activeSpecialtyEvents.Values.Select(x => x.ExpiryTask).ToArray();
+            _activeSpecialtyEvents = [];
+        }
+        foreach (var expiryTask in expiryTasks)
+            taskManager.Cancel(expiryTask);
+    }
+
+    private void ClearActiveStockEvents()
+    {
+        SpecialtyEventExpiryTask[] expiryTasks;
+        lock (_eventLock)
+        {
+            var keys = _activeSpecialtyEvents.Keys
+                .Where(x => x.Source == SpecialtyEventActivationSource.StockCount)
+                .ToArray();
+            expiryTasks = keys.Select(x => _activeSpecialtyEvents[x].ExpiryTask).ToArray();
+            foreach (var key in keys)
+                _activeSpecialtyEvents.Remove(key);
+        }
+        foreach (var expiryTask in expiryTasks)
+            taskManager.Cancel(expiryTask);
+    }
+
+    private void ClearScheduledStockEventChecks()
+    {
+        SpecialtyStockEventCheckTask[] tasks;
+        lock (_marketLock)
+        lock (_eventLock)
+        {
+            Interlocked.Increment(ref _stockEventScheduleGeneration);
+            tasks = _scheduledStockEventChecks.Values.ToArray();
+            _scheduledStockEventChecks.Clear();
+        }
+        foreach (var task in tasks)
+            taskManager.Cancel(task);
+    }
+
+    private void RestoreStockEventActivations()
+    {
+        var now = timeProvider.GetUtcNow();
+        lock (_marketLock)
+        lock (_eventLock)
+        {
+            foreach (var key in _activeSpecialtyEvents.Keys
+                         .Where(x => x.Source == SpecialtyEventActivationSource.StockCount)
+                         .ToArray())
+            {
+                taskManager.Cancel(_activeSpecialtyEvents[key].ExpiryTask);
+                _activeSpecialtyEvents.Remove(key);
+            }
+
+            var staleEventIds = new List<uint>();
+            var pending = new List<((uint EventId, SpecialtyEventActivationSource Source) Key, ActiveSpecialtyEventState State)>();
+            foreach (var (eventId, persisted) in _market.StockEventActivations.OrderBy(x => x.Key))
+            {
+                if (!_specialtyEventCatalog.Events.TryGetValue(eventId, out var descriptor) ||
+                    descriptor.Trigger.Type != SpecialtyEventTriggerType.StockCount ||
+                    !TryReadPersistedActivation(persisted, out var startedAt, out var expiresAt) ||
+                    expiresAt <= now)
+                {
+                    staleEventIds.Add(eventId);
+                    continue;
+                }
+
+                var token = ++_specialtyEventActivationToken;
+                var expiryTask = new SpecialtyEventExpiryTask(
+                    this,
+                    eventId,
+                    token,
+                    SpecialtyEventActivationSource.StockCount);
+                if (!taskManager.Schedule(expiryTask, expiresAt - now))
+                {
+                    foreach (var entry in pending)
+                        taskManager.Cancel(entry.State.ExpiryTask);
+                    throw new InvalidOperationException($"Failed to restore expiry for specialty stock event {eventId}.");
+                }
+                pending.Add((
+                    (eventId, SpecialtyEventActivationSource.StockCount),
+                    new ActiveSpecialtyEventState(
+                        new ActiveSpecialtyEvent(eventId, startedAt, expiresAt, 0),
+                        token,
+                        expiryTask)));
+            }
+
+            if (staleEventIds.Count > 0)
+            {
+                var write = PrepareMarketWrite(() =>
+                {
+                    foreach (var eventId in staleEventIds)
+                        _market.StockEventActivations.Remove(eventId);
+                });
+                try
+                {
+                    CommitMarketWrite(write);
+                }
+                catch
+                {
+                    foreach (var entry in pending)
+                        taskManager.Cancel(entry.State.ExpiryTask);
+                    throw;
+                }
+            }
+
+            foreach (var entry in pending)
+                _activeSpecialtyEvents[entry.Key] = entry.State;
+        }
+    }
+
+    private static bool TryReadPersistedActivation(
+        SpecialtyStockEventActivation persisted,
+        out DateTimeOffset startedAt,
+        out DateTimeOffset expiresAt)
+    {
+        try
+        {
+            startedAt = DateTimeOffset.FromUnixTimeSeconds(persisted.StartedAt);
+            expiresAt = DateTimeOffset.FromUnixTimeSeconds(persisted.ExpiresAt);
+            return expiresAt > startedAt;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            startedAt = default;
+            expiresAt = default;
+            return false;
+        }
+    }
+
+    private void BroadcastSpecialtyEventMessage(SpecialtyEventDescriptor descriptor, string message)
+    {
+        if (descriptor.Trigger.MessageScope == null || string.IsNullOrEmpty(message))
+            return;
+
+        foreach (var player in worldManager.GetAllCharacters() ?? [])
+        {
+            if (!player.IsOnline)
+                continue;
+            if (descriptor.Trigger.MessageScope == SpecialtyEventMessageScope.Zone &&
+                zoneManager.GetZoneByKey(player.Transform.ZoneId)?.GroupId != descriptor.Trigger.ZoneGroupId)
+                continue;
+            try
+            {
+                player.SendPacket(new SCSpecialtyEventMsgPacket(message));
+            }
+            catch (Exception exception)
+            {
+                Logger.Warn(exception, "Failed to send specialty event {0} message to character {1}", descriptor.Id, player.Id);
+            }
+        }
+    }
+
+    private static SpecialtyEventRuntimePolicy CaptureSpecialtyEventRuntimePolicy(IOptions<AppConfiguration> options)
+    {
+        var config = options.Value.Specialty;
+        return new SpecialtyEventRuntimePolicy(config.EnableEvents, config.ManualEventDurationSeconds);
+    }
+
+    internal void LoadSpecialtyEventData(SqliteConnection connection)
+    {
+        var questContextGroupIds = new HashSet<uint>();
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT id FROM quest_context_groups";
+            command.Prepare();
+            using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+            while (reader.Read())
+                questContextGroupIds.Add(ReadId(reader, "quest_context_groups", "id"));
+        }
+
+        var triggers = new Dictionary<uint, SpecialtyEventTriggerDescriptor>();
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText =
+                "SELECT id, zone_group_id, trigger_type, trigger_value_1, trigger_value_2, check_time, " +
+                "event_rate, event_time, msg_type, msg_start, msg_end, trigger_subject_id, trigger_subject_type " +
+                "FROM specialty_event_triggers ORDER BY id";
+            command.Prepare();
+            using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+            while (reader.Read())
+            {
+                var id = ReadId(reader, "specialty_event_triggers", "id");
+                var zoneGroupId = ReadId(reader, "specialty_event_triggers", "zone_group_id", id);
+                if (zoneManager.GetZoneGroupById(zoneGroupId) == null)
+                    throw new InvalidDataException(
+                        $"specialty_event_triggers row {id} references missing zone group {zoneGroupId}.");
+
+                var typeValue = ReadInt32(reader, "specialty_event_triggers", "trigger_type", id);
+                if (!Enum.IsDefined(typeof(SpecialtyEventTriggerType), typeValue))
+                    throw new InvalidDataException(
+                        $"specialty_event_triggers row {id} has unknown trigger_type {typeValue}.");
+                var triggerType = (SpecialtyEventTriggerType)typeValue;
+                var subjectType = ParseTriggerSubjectType(reader.GetString("trigger_subject_type"), id);
+                var subjectId = ReadId(
+                    reader,
+                    "specialty_event_triggers",
+                    "trigger_subject_id",
+                    id,
+                    subjectType == SpecialtyEventTriggerSubjectType.EnumHonorPointWarState);
+                var subjectItemIds = ResolveEventItemIds(subjectType, subjectId, questContextGroupIds, id);
+                var value1 = ReadInt32(reader, "specialty_event_triggers", "trigger_value_1", id);
+                var value2 = ReadInt32(reader, "specialty_event_triggers", "trigger_value_2", id);
+                var checkTime = ReadInt32(reader, "specialty_event_triggers", "check_time", id);
+                var eventRate = ReadInt32(reader, "specialty_event_triggers", "event_rate", id);
+                var eventTime = ReadInt32(reader, "specialty_event_triggers", "event_time", id);
+                if (triggerType == SpecialtyEventTriggerType.ZoneConflictState)
+                {
+                    if (subjectType != SpecialtyEventTriggerSubjectType.EnumHonorPointWarState)
+                        throw new InvalidDataException(
+                            $"specialty_event_triggers row {id} has a zone-conflict trigger with subject type {subjectType}.");
+                    if (eventTime <= 0)
+                        throw new InvalidDataException(
+                            $"specialty_event_triggers row {id} has non-positive event_time {eventTime}.");
+                }
+                else if (triggerType == SpecialtyEventTriggerType.StockCount)
+                {
+                    if (subjectType != SpecialtyEventTriggerSubjectType.Item)
+                        throw new InvalidDataException(
+                            $"specialty_event_triggers row {id} has a stock-count trigger with subject type {subjectType}.");
+                    if (value1 < 0 || value2 <= 0 || value1 > value2)
+                        throw new InvalidDataException(
+                            $"specialty_event_triggers row {id} has invalid stock bounds {value1}..{value2}.");
+                    if (checkTime <= 0 || eventTime <= 0)
+                        throw new InvalidDataException(
+                            $"specialty_event_triggers row {id} has non-positive timing values {checkTime}/{eventTime}.");
+                    if (eventRate is < 0 or > 1000)
+                        throw new InvalidDataException(
+                            $"specialty_event_triggers row {id} has event_rate {eventRate} outside 0..1000.");
+                    if (_tradeGoodStockLimit > 0 && value2 > _tradeGoodStockLimit)
+                        throw new InvalidDataException(
+                            $"specialty_event_triggers row {id} upper stock bound {value2} exceeds tradegoods_stock_limit {_tradeGoodStockLimit}.");
+                }
+
+                SpecialtyEventMessageScope? messageScope = null;
+                if (!reader.IsDBNull("msg_type"))
+                {
+                    var scopeValue = ReadInt32(reader, "specialty_event_triggers", "msg_type", id);
+                    if (!Enum.IsDefined(typeof(SpecialtyEventMessageScope), scopeValue))
+                        throw new InvalidDataException(
+                            $"specialty_event_triggers row {id} has unknown msg_type {scopeValue}.");
+                    messageScope = (SpecialtyEventMessageScope)scopeValue;
+                }
+
+                var trigger = new SpecialtyEventTriggerDescriptor
+                {
+                    Id = id,
+                    ZoneGroupId = zoneGroupId,
+                    Type = triggerType,
+                    Value1 = value1,
+                    Value2 = value2,
+                    CheckTime = checkTime,
+                    EventRate = eventRate,
+                    EventTime = eventTime,
+                    MessageScope = messageScope,
+                    StartMessage = ReadEventMessage(reader, id, "msg_start"),
+                    EndMessage = ReadEventMessage(reader, id, "msg_end"),
+                    SubjectId = subjectId,
+                    SubjectType = subjectType,
+                    SubjectItemIds = subjectItemIds
+                };
+                if (!triggers.TryAdd(id, trigger))
+                    throw new InvalidDataException($"specialty_event_triggers contains duplicate row id {id}.");
+            }
+        }
+
+        var events = new Dictionary<uint, SpecialtyEventDescriptor>();
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText =
+                "SELECT id, specialty_event_trigger_id, event_type, event_value, event_object_id, " +
+                "event_object_type, tooltip_text FROM specialty_events ORDER BY id";
+            command.Prepare();
+            using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+            while (reader.Read())
+            {
+                var id = ReadId(reader, "specialty_events", "id");
+                var triggerId = ReadId(reader, "specialty_events", "specialty_event_trigger_id", id);
+                if (!triggers.TryGetValue(triggerId, out var trigger))
+                    throw new InvalidDataException(
+                        $"specialty_events row {id} references missing specialty event trigger {triggerId}.");
+
+                var typeValue = ReadInt32(reader, "specialty_events", "event_type", id);
+                if (!Enum.IsDefined(typeof(SpecialtyEventType), typeValue))
+                    throw new InvalidDataException($"specialty_events row {id} has unknown event_type {typeValue}.");
+                var eventType = (SpecialtyEventType)typeValue;
+                var eventValue = ReadInt32(reader, "specialty_events", "event_value", id);
+                if (eventType is (SpecialtyEventType.SaleRate or SpecialtyEventType.OverchargeRate) && eventValue <= 0)
+                    throw new InvalidDataException(
+                        $"specialty_events row {id} has non-positive price multiplier {eventValue}.");
+                var objectType = ParseEventObjectType(reader.GetString("event_object_type"), id);
+                var objectId = ReadId(reader, "specialty_events", "event_object_id", id);
+                var targetItemIds = ResolveEventItemIds(objectType, objectId, id);
+
+                var specialtyEvent = new SpecialtyEventDescriptor
+                {
+                    Id = id,
+                    Type = eventType,
+                    Value = eventValue,
+                    ObjectId = objectId,
+                    ObjectType = objectType,
+                    TooltipText = reader.IsDBNull("tooltip_text") ? null : reader.GetString("tooltip_text"),
+                    Trigger = trigger,
+                    TargetItemIds = targetItemIds
+                };
+                if (!events.TryAdd(id, specialtyEvent))
+                    throw new InvalidDataException($"specialty_events contains duplicate row id {id}.");
+            }
+        }
+
+        _specialtyEventCatalog = new SpecialtyEventCatalog(triggers, events);
+    }
+
+    private ReadOnlyCollection<uint> ResolveEventItemIds(
+        SpecialtyEventObjectType objectType,
+        uint objectId,
+        uint rowId)
+    {
+        if (objectType == SpecialtyEventObjectType.Item)
+        {
+            if (itemManager.GetTemplate(objectId) == null)
+                throw new InvalidDataException($"specialty_events row {rowId} references missing item {objectId}.");
+            return Array.AsReadOnly(new[] { objectId });
+        }
+
+        return ResolveItemSet(objectId, "specialty_events", rowId);
+    }
+
+    private ReadOnlyCollection<uint> ResolveEventItemIds(
+        SpecialtyEventTriggerSubjectType subjectType,
+        uint subjectId,
+        HashSet<uint> questContextGroupIds,
+        uint rowId)
+    {
+        switch (subjectType)
+        {
+            case SpecialtyEventTriggerSubjectType.Item:
+                if (itemManager.GetTemplate(subjectId) == null)
+                    throw new InvalidDataException(
+                        $"specialty_event_triggers row {rowId} references missing item {subjectId}.");
+                return Array.AsReadOnly(new[] { subjectId });
+            case SpecialtyEventTriggerSubjectType.ItemSet:
+                return ResolveItemSet(subjectId, "specialty_event_triggers", rowId);
+            case SpecialtyEventTriggerSubjectType.QuestContextGroup:
+                if (!questContextGroupIds.Contains(subjectId))
+                    throw new InvalidDataException(
+                        $"specialty_event_triggers row {rowId} references missing quest context group {subjectId}.");
+                return Array.AsReadOnly(Array.Empty<uint>());
+            case SpecialtyEventTriggerSubjectType.EnumHonorPointWarState:
+                if (subjectId > (uint)ZoneConflictType.Peace)
+                    throw new InvalidDataException(
+                        $"specialty_event_triggers row {rowId} references unknown honor point war state {subjectId}.");
+                return Array.AsReadOnly(Array.Empty<uint>());
+            default:
+                throw new InvalidDataException(
+                    $"specialty_event_triggers row {rowId} has unsupported subject type {subjectType}.");
+        }
+    }
+
+    private ReadOnlyCollection<uint> ResolveItemSet(uint itemSetId, string table, uint rowId)
+    {
+        var itemSet = itemManager.GetItemSet(itemSetId);
+        if (itemSet == null)
+            throw new InvalidDataException($"{table} row {rowId} references missing item set {itemSetId}.");
+        if (itemSet.Items.Count == 0)
+            throw new InvalidDataException($"{table} row {rowId} references empty item set {itemSetId}.");
+        foreach (var member in itemSet.Items.Values)
+        {
+            if (itemManager.GetTemplate(member.ItemId) == null)
+                throw new InvalidDataException(
+                    $"{table} row {rowId} references item set {itemSetId} with missing item {member.ItemId}.");
+        }
+        return Array.AsReadOnly(itemSet.Items.Values.Select(x => x.ItemId).Distinct().Order().ToArray());
+    }
+
+    private static SpecialtyEventObjectType ParseEventObjectType(string value, uint rowId) => value switch
+    {
+        "Item" => SpecialtyEventObjectType.Item,
+        "ItemSet" => SpecialtyEventObjectType.ItemSet,
+        _ => throw new InvalidDataException($"specialty_events row {rowId} has unknown event_object_type '{value}'.")
+    };
+
+    private static SpecialtyEventTriggerSubjectType ParseTriggerSubjectType(string value, uint rowId) => value switch
+    {
+        "Item" => SpecialtyEventTriggerSubjectType.Item,
+        "ItemSet" => SpecialtyEventTriggerSubjectType.ItemSet,
+        "QuestContextGroup" => SpecialtyEventTriggerSubjectType.QuestContextGroup,
+        "EnumHonorPointWarState" => SpecialtyEventTriggerSubjectType.EnumHonorPointWarState,
+        _ => throw new InvalidDataException(
+            $"specialty_event_triggers row {rowId} has unknown trigger_subject_type '{value}'.")
+    };
+
+    private string ReadEventMessage(SQLiteWrapperReader reader, uint rowId, string column)
+    {
+        if (reader.IsDBNull(column))
+            throw new InvalidDataException($"specialty_event_triggers row {rowId} has null {column}.");
+        var fallback = reader.GetString(column);
+        var message = localizationManager.Get("specialty_event_triggers", column, rowId, fallback);
+        if (Encoding.UTF8.GetByteCount(message) > byte.MaxValue)
+            throw new InvalidDataException(
+                $"specialty_event_triggers row {rowId} has {column} longer than 255 bytes.");
+        return message;
+    }
+
+    private static int ReadInt32(SQLiteWrapperReader reader, string table, string column, uint rowId)
+    {
+        if (reader.IsDBNull(column))
+            throw new InvalidDataException($"{table} row {rowId} has null {column}.");
+        var value = reader.GetInt64(column);
+        if (value < int.MinValue || value > int.MaxValue)
+            throw new InvalidDataException($"{table} row {rowId} has invalid {column} {value}.");
+        return (int)value;
+    }
+
+    private static uint ReadId(
+        SQLiteWrapperReader reader,
+        string table,
+        string column,
+        uint? rowId = null,
+        bool allowZero = false)
+    {
+        if (reader.IsDBNull(column))
+            throw new InvalidDataException(
+                rowId.HasValue
+                    ? $"{table} row {rowId} has null {column}."
+                    : $"{table} has null {column}.");
+        var value = reader.GetInt64(column);
+        if (value < (allowZero ? 0 : 1) || value > uint.MaxValue)
+            throw new InvalidDataException(
+                rowId.HasValue
+                    ? $"{table} row {rowId} has invalid {column} {value}."
+                    : $"{table} has invalid {column} {value}.");
+        return (uint)value;
     }
 
     internal void RestoreMarketState()
     {
         lock (_marketLock)
         {
-            var state = marketStore.Load();
+            var loaded = marketStore.Load();
+            var state = loaded.Clone();
+            var clamped = false;
+            foreach (var contributions in state.MaterialContributions.Values)
+                clamped |= ClampMaterialContributions(contributions, _goodsStockLimit);
+            foreach (var key in state.CargoStock.Keys.ToArray())
+            {
+                if (state.CargoStock[key] <= _tradeGoodStockLimit)
+                    continue;
+                state.CargoStock[key] = _tradeGoodStockLimit;
+                clamped = true;
+            }
             foreach (var (itemId, ratios) in state.PriceRatios)
             foreach (var (zoneGroupId, ratio) in ratios)
             {
@@ -212,6 +1160,14 @@ public class SpecialtyManager(
                     ratio < checked(_specialtyContentSettings.MinPriceRatio * RatioUnitsPerPercent) ||
                     ratio > checked(_specialtyContentSettings.MaxPriceRatio * RatioUnitsPerPercent))
                     throw new InvalidDataException($"Invalid persisted specialty route/ratio: item {itemId}, zone {zoneGroupId}, ratio {ratio}.");
+            }
+
+            foreach (var (itemId, remainders) in state.DemandRemainders)
+            foreach (var (zoneGroupId, remainder) in remainders)
+            {
+                if (remainder < 0 || remainder >= _specialtyContentSettings.GoodsRatioCount)
+                    throw new InvalidDataException(
+                        $"Invalid persisted specialty demand remainder: item {itemId}, zone {zoneGroupId}, remainder {remainder}.");
             }
 
             foreach (var ((zoneGroupId, tagId), contributions) in state.MaterialContributions)
@@ -230,20 +1186,6 @@ public class SpecialtyManager(
                 }
             }
 
-            foreach (var zoneGroupId in state.MaterialContributions.Keys.Select(x => x.ZoneGroupId).Distinct())
-            {
-                TryGetTradeGoodCategory(zoneGroupId, out var categoryId);
-                foreach (var tradeGood in _tradeGoodsByCategory[categoryId])
-                {
-                    var complete = _tradeGoodMaterialsByTradeGoodId[tradeGood.Id].All(material =>
-                        state.MaterialContributions.TryGetValue((zoneGroupId, material.TagId), out var contributions) &&
-                        SumMaterialContributions(contributions) >= material.RequiredCount);
-                    if (complete)
-                        throw new InvalidDataException(
-                            $"Persisted cargo contributions contain an unconverted recipe: zone {zoneGroupId}, tradegood {tradeGood.Id}.");
-                }
-            }
-
             foreach (var (zoneGroupId, tradeGoodId) in state.CargoStock.Keys)
             {
                 if (!TryGetTradeGoodCategory(zoneGroupId, out var categoryId) ||
@@ -256,8 +1198,82 @@ public class SpecialtyManager(
                 if (!state.PriceRatios.TryGetValue(key.ItemId, out var ratios) || !ratios.ContainsKey(key.ZoneGroupId))
                     throw new InvalidDataException($"Orphan specialty history: item {key.ItemId}, zone {key.ZoneGroupId}.");
             }
+
+            clamped |= ReconcileFifoDemandRemainders(state);
+
+            if (clamped)
+            {
+                state.Revision = checked(loaded.Revision + 1);
+                marketStore.Commit(new SpecialtyMarketWrite(loaded, state));
+            }
             _market = state;
         }
+    }
+
+    private bool ReconcileFifoDemandRemainders(SpecialtyMarketState state)
+    {
+        if (_specialtyContentSettings == null)
+            return false;
+
+        var changed = false;
+        var bucketSize = checked((uint)_specialtyContentSettings.GoodsRatioCount);
+        foreach (var (itemId, ratios) in state.PriceRatios)
+        {
+            if (!state.DemandRemainders.TryGetValue(itemId, out var remainders))
+                continue;
+
+            foreach (var zoneGroupId in ratios.Keys)
+            {
+                if (!remainders.TryGetValue(zoneGroupId, out var remainder))
+                    continue;
+
+                var quantity = SumMaterialContributions(state.MaterialContributions
+                    .Where(x => x.Key.ZoneGroupId == zoneGroupId)
+                    .SelectMany(x => x.Value)
+                    .Where(x => x.ItemId == itemId));
+                if (quantity == 0 && remainder == 0)
+                    continue;
+                if (quantity == 0 &&
+                    (!TryGetTradeGoodCategory(zoneGroupId, out var categoryId) ||
+                     !TryResolveTradeGoodMaterial(categoryId, itemId, out _, out _)))
+                    continue;
+
+                var expected = checked((int)(quantity % bucketSize));
+                if (remainder == expected)
+                    continue;
+                remainders[zoneGroupId] = expected;
+                changed = true;
+            }
+        }
+        return changed;
+    }
+
+    private static bool ClampMaterialContributions(
+        List<SpecialtyMaterialContribution> contributions,
+        uint limit)
+    {
+        ulong retained = 0;
+        for (var index = 0; index < contributions.Count; index++)
+        {
+            var contribution = contributions[index];
+            var capacity = (ulong)limit - retained;
+            if (contribution.Amount <= capacity)
+            {
+                retained += contribution.Amount;
+                continue;
+            }
+
+            if (capacity > 0)
+                contributions[index] = new SpecialtyMaterialContribution(
+                    contribution.Sequence,
+                    contribution.ItemId,
+                    (uint)capacity);
+            else
+                index--;
+            contributions.RemoveRange(index + 1, contributions.Count - index - 1);
+            return true;
+        }
+        return false;
     }
 
     // Mutations run on a private copy under _marketLock. Readers only see the committed snapshot.
@@ -285,10 +1301,34 @@ public class SpecialtyManager(
         }
         catch (SpecialtyMarketConflictException)
         {
-            RestoreMarketState();
+            RestoreMarketAndEventRuntime();
             throw;
         }
         _market = write.Updated;
+    }
+
+    private void RestoreMarketAndEventRuntime()
+    {
+        RestoreMarketState();
+        if (!_initialized || !SpecialtyEventsEnabled || _reconcilingMarketConflict)
+            return;
+
+        _reconcilingMarketConflict = true;
+        try
+        {
+            RestoreStockEventActivations();
+            ScheduleStockEventChecks(false);
+        }
+        catch (Exception exception)
+        {
+            ClearActiveStockEvents();
+            ClearScheduledStockEventChecks();
+            Logger.Error(exception, "Failed to reconcile specialty stock event runtime after a market reload");
+        }
+        finally
+        {
+            _reconcilingMarketConflict = false;
+        }
     }
 
     internal void LoadFreshnessData(SqliteConnection connection)
@@ -420,7 +1460,6 @@ public class SpecialtyManager(
             AdjustRatioPerTrade = LoadRequiredContentValue(connection, "adjust_ratio_per_trade"),
             SellerShareRatio = LoadRequiredContentValue(connection, "seller_share_ratio"),
             SellBackpackLevelLimit = LoadRequiredContentValue(connection, "sell_backpack_level_limit"),
-            PriceTradeGoodsCount = LoadRequiredContentValue(connection, "specialty_price_tradegoods_count"),
             PriceRecoverRate = LoadRequiredContentValue(connection, "specialty_price_recover_rate"),
             MailInterest = LoadRequiredContentValue(connection, "specialty_mail_interest"),
             GoodsRatioCount = LoadRequiredContentValue(connection, "specialty_goods_ratio_count")
@@ -438,10 +1477,9 @@ public class SpecialtyManager(
             throw new InvalidDataException(
                 $"content config 'sell_backpack_level_limit' has negative value {_specialtyContentSettings.SellBackpackLevelLimit}.");
         if (_specialtyContentSettings.AdjustRatioPerTrade <= 0 ||
-            _specialtyContentSettings.PriceTradeGoodsCount != 1 ||
             _specialtyContentSettings.PriceRecoverRate is <= 0 or > 100 ||
             _specialtyContentSettings.MailInterest < 0 ||
-            _specialtyContentSettings.GoodsRatioCount != 4)
+            _specialtyContentSettings.GoodsRatioCount <= 0)
             throw new InvalidDataException("specialty content configs contain an invalid market or payout value.");
     }
 
@@ -458,6 +1496,7 @@ public class SpecialtyManager(
         _tradeGoodSaleSkill = null;
         _tradeGoodSellLevelLimit = 0;
         _tradeGoodMailInterest = 0;
+        _tradeGoodCoinPerGoldRatio = 0;
 
         using (var command = connection.CreateCommand())
         {
@@ -612,7 +1651,16 @@ public class SpecialtyManager(
         if (_tradeGoodMailInterest < 0)
             throw new InvalidDataException(
                 $"content config 'tradegoods_mail_interest' has negative value {_tradeGoodMailInterest}.");
+        _tradeGoodCoinPerGoldRatio = LoadRequiredContentValue(connection, "tradegoods_coin_per_gold_ratio");
+        if (_tradeGoodCoinPerGoldRatio <= 0)
+            throw new InvalidDataException(
+                $"content config 'tradegoods_coin_per_gold_ratio' has non-positive value {_tradeGoodCoinPerGoldRatio}.");
         _tradeGoodBuyLevelLimit = LoadTradeGoodBuyLevelLimit(connection);
+        _goodsStockLimit = LoadPositiveContentLimit(connection, "goods_stock_limit");
+        _tradeGoodStockLimit = LoadPositiveContentLimit(connection, "tradegoods_stock_limit");
+        if (_tradeGoodPriceIndices.Any(x => x.Stock >= _tradeGoodStockLimit))
+            throw new InvalidDataException(
+                $"tradegood_priceindices contains a threshold at or above tradegoods_stock_limit {_tradeGoodStockLimit}.");
 
         foreach (var tradeGood in _tradeGoods.Values)
         {
@@ -692,6 +1740,14 @@ public class SpecialtyManager(
         return value;
     }
 
+    private static uint LoadPositiveContentLimit(SqliteConnection connection, string name)
+    {
+        var value = LoadRequiredContentValue(connection, name);
+        if (value <= 0)
+            throw new InvalidDataException($"content config '{name}' has non-positive value {value}.");
+        return checked((uint)value);
+    }
+
     private static int LoadRequiredContentValue(SqliteConnection connection, string name)
     {
         using var command = connection.CreateCommand();
@@ -745,9 +1801,16 @@ public class SpecialtyManager(
 
     public void Initialize()
     {
+        InitializeZoneConflictEvents();
+        InitializeStockCountEvents();
+        ClearTimedRatioRecoveryTask();
+
         var config = options.Value.Specialty;
         if (!config.EnableTimedRatioRecovery)
+        {
+            _initialized = true;
             return;
+        }
         if (!double.IsFinite(config.RatioRecoveryIntervalMinutes) ||
             config.RatioRecoveryIntervalMinutes <= 0 ||
             config.RatioRecoveryIntervalMinutes > TimeSpan.MaxValue.TotalMinutes)
@@ -758,8 +1821,144 @@ public class SpecialtyManager(
         if (interval <= TimeSpan.Zero)
             throw new InvalidDataException(
                 $"Specialty.RatioRecoveryIntervalMinutes is below the minimum representable interval; got {config.RatioRecoveryIntervalMinutes}.");
-        if (!taskManager.Schedule(new SpecialtyRatioRegenTask(this), interval, interval))
+        var task = new SpecialtyRatioRegenTask(this);
+        if (!taskManager.Schedule(task, interval, interval))
             Logger.Error("Failed to schedule timed specialty ratio recovery");
+        else
+            _timedRatioRecoveryTask = task;
+        _initialized = true;
+    }
+
+    private void ClearTimedRatioRecoveryTask()
+    {
+        if (_timedRatioRecoveryTask == null)
+            return;
+        taskManager.Cancel(_timedRatioRecoveryTask);
+        _timedRatioRecoveryTask = null;
+    }
+
+    private void InitializeZoneConflictEvents()
+    {
+        if (!SpecialtyEventsEnabled)
+            return;
+
+        var subscribe = false;
+        lock (_eventLock)
+        {
+            if (!_subscribedToZoneConflictStateChanges)
+            {
+                _subscribedToZoneConflictStateChanges = true;
+                subscribe = true;
+            }
+        }
+
+        if (subscribe)
+            zoneManager.ZoneConflictStateChanged += OnZoneConflictStateChanged;
+        ReconcileCurrentZoneConflictEvents();
+    }
+
+    private void InitializeStockCountEvents()
+    {
+        if (!SpecialtyEventsEnabled)
+        {
+            ClearScheduledStockEventChecks();
+            return;
+        }
+
+        RestoreStockEventActivations();
+        ScheduleStockEventChecks(true);
+    }
+
+    private void ScheduleStockEventChecks(bool persistCadence)
+    {
+        ClearScheduledStockEventChecks();
+
+        var triggers = _specialtyEventCatalog.Events.Values
+            .Where(x => x.Trigger.Type == SpecialtyEventTriggerType.StockCount)
+            .Select(x => x.Trigger)
+            .DistinctBy(x => x.Id)
+            .OrderBy(x => x.Id)
+            .ToArray();
+        var availableTriggers = new List<SpecialtyEventTriggerDescriptor>();
+        foreach (var trigger in triggers)
+        {
+            if (!TryGetStockEventCargoStock(trigger, out _))
+            {
+                Logger.Warn(
+                    "Skipping specialty stock trigger {0}: cargo item {1} is unavailable in ZoneGroup {2}",
+                    trigger.Id,
+                    trigger.SubjectId,
+                    trigger.ZoneGroupId);
+                continue;
+            }
+            availableTriggers.Add(trigger);
+        }
+
+        var triggerIds = availableTriggers.Select(x => x.Id).ToHashSet();
+        var now = timeProvider.GetUtcNow();
+        Dictionary<uint, long> nextChecks;
+        lock (_marketLock)
+        {
+            var staleTriggerIds = _market.StockEventNextChecks.Keys.Where(x => !triggerIds.Contains(x)).ToArray();
+            var missingTriggers = availableTriggers.Where(x => !_market.StockEventNextChecks.ContainsKey(x.Id)).ToArray();
+            if (persistCadence && (staleTriggerIds.Length > 0 || missingTriggers.Length > 0))
+            {
+                var write = PrepareMarketWrite(() =>
+                {
+                    foreach (var triggerId in staleTriggerIds)
+                        _market.StockEventNextChecks.Remove(triggerId);
+                    foreach (var trigger in missingTriggers)
+                        _market.StockEventNextChecks[trigger.Id] = now.AddSeconds(trigger.CheckTime).ToUnixTimeSeconds();
+                });
+                CommitMarketWrite(write);
+            }
+            nextChecks = new Dictionary<uint, long>(_market.StockEventNextChecks);
+            foreach (var trigger in availableTriggers)
+                nextChecks.TryAdd(trigger.Id, now.AddSeconds(trigger.CheckTime).ToUnixTimeSeconds());
+        }
+
+        foreach (var trigger in availableTriggers)
+        {
+            var interval = TimeSpan.FromSeconds(trigger.CheckTime);
+            var delay = TimeSpan.FromSeconds(Math.Max(0, nextChecks[trigger.Id] - now.ToUnixTimeSeconds()));
+            var task = new SpecialtyStockEventCheckTask(
+                this,
+                trigger.Id,
+                Interlocked.Read(ref _stockEventScheduleGeneration));
+            if (taskManager.Schedule(task, delay, interval))
+            {
+                lock (_eventLock)
+                    _scheduledStockEventChecks[trigger.Id] = task;
+                continue;
+            }
+            Logger.Error("Failed to schedule checks for specialty stock trigger {0}", trigger.Id);
+        }
+    }
+
+    private bool TryGetStockEventCargoStock(SpecialtyEventTriggerDescriptor trigger, out uint stock)
+    {
+        lock (_marketLock)
+        {
+            stock = 0;
+            if (!TryGetTradeGoodCategory(trigger.ZoneGroupId, out var categoryId) ||
+                !_tradeGoodsByCategoryAndItem.TryGetValue((categoryId, trigger.SubjectId), out var tradeGood))
+                return false;
+            stock = _tradeGoodCargoStock.GetValueOrDefault((trigger.ZoneGroupId, tradeGood.Id));
+            return true;
+        }
+    }
+
+    private void ReconcileCurrentZoneConflictEvents()
+    {
+        foreach (var conflict in zoneManager.GetConflicts() ?? [])
+        {
+            ZoneConflictType observedState;
+            do
+            {
+                observedState = conflict.CurrentZoneState;
+                ReconcileZoneConflictEvents(conflict.ZoneGroupId, observedState);
+            } while (conflict.CurrentZoneState != observedState);
+        }
     }
 
     public void SendBuyList(Character player, uint npcObjId)
@@ -768,6 +1967,7 @@ public class SpecialtyManager(
         Npc npc;
         uint authoritativeZoneGroupId;
         uint categoryId;
+        var eventSnapshot = CaptureSpecialtyEventSnapshot();
         lock (_marketLock)
         {
             if (!TryResolveTradeGoodOutlet(
@@ -780,7 +1980,7 @@ public class SpecialtyManager(
                     out categoryId))
                 return;
 
-            quotes = BuildBuyQuotes(categoryId, authoritativeZoneGroupId);
+            quotes = BuildBuyQuotes(categoryId, authoritativeZoneGroupId, eventSnapshot);
         }
 
         Logger.Debug(
@@ -791,7 +1991,7 @@ public class SpecialtyManager(
             authoritativeZoneGroupId,
             quotes.FirstOrDefault()?.Stock ?? 0,
             quotes.Any(x => x.CanProduce));
-        SendGoodsPages(player, quotes);
+        SendGoodsPages(player, authoritativeZoneGroupId, quotes, eventSnapshot);
     }
 
     public void SendRatioList(Character player, ushort zoneGroupId, uint npcTemplateId)
@@ -849,12 +2049,13 @@ public class SpecialtyManager(
         }
 
         List<SpecialtyQuote> quotes;
+        var eventSnapshot = CaptureSpecialtyEventSnapshot();
         var equippedBackpack = player.Inventory.Equipment.GetItemBySlot((int)EquipmentItemSlot.Backpack);
         var acceptsEquippedBackpack = false;
         var quotedEquippedBackpack = false;
         lock (_marketLock)
         {
-            quotes = BuildSellQuotes(specialtyNpc, authoritativeZoneGroupId);
+            quotes = BuildSellQuotes(specialtyNpc, authoritativeZoneGroupId, eventSnapshot);
             acceptsEquippedBackpack = equippedBackpack != null &&
                                        TryGetAcceptedBundleItem(
                                            equippedBackpack.TemplateId,
@@ -881,7 +2082,7 @@ public class SpecialtyManager(
                 acceptsEquippedBackpack,
                 quotedEquippedBackpack);
         }
-        SendRatioPages(player, checked((ushort)authoritativeZoneGroupId), npc.TemplateId, quotes);
+        SendRatioPages(player, checked((ushort)authoritativeZoneGroupId), npc.TemplateId, quotes, eventSnapshot);
     }
 
     public bool CanStartTradeGoodInteraction(Character player, Npc npc)
@@ -913,12 +2114,15 @@ public class SpecialtyManager(
         }
     }
 
-    private List<SpecialtyQuote> BuildSellQuotes(SpecialtyNpc specialtyNpc, uint zoneGroupId) =>
+    private List<SpecialtyQuote> BuildSellQuotes(
+        SpecialtyNpc specialtyNpc,
+        uint zoneGroupId,
+        SpecialtyEventSnapshot eventSnapshot) =>
         _specialtyBundleItems.Values
             .Where(x => x.SpecialtyBundleId == specialtyNpc.SpecialtyBundleId)
             .Where(x => x.Item != null)
             .OrderBy(x => x.ItemId)
-            .Select(x => BuildSellQuote(x, zoneGroupId))
+            .Select(x => BuildSellQuote(x, zoneGroupId, eventSnapshot))
             .Where(x => x != null)
             .ToList();
 
@@ -941,117 +2145,117 @@ public class SpecialtyManager(
 
         using var persistence = mailManager.DeferPersist();
         lock (_marketLock)
-        lock (player.StateSyncRoot)
-        {
-            if (!TryResolveTradeGoodOutlet(
-                    player,
-                    npcObjId,
-                    _tradeGoodPurchaseSkill,
-                    true,
-                    out _,
-                    out var zoneGroupId,
-                    out var categoryId))
-                return false;
+            lock (player.StateSyncRoot)
+            {
+                if (!TryResolveTradeGoodOutlet(
+                        player,
+                        npcObjId,
+                        _tradeGoodPurchaseSkill,
+                        true,
+                        out _,
+                        out var zoneGroupId,
+                        out var categoryId))
+                    return false;
 
-            if (player.Level < _tradeGoodBuyLevelLimit)
-            {
-                player.SendErrorMessage(ErrorMessageType.SpecialtyNotBuyNow);
-                return false;
-            }
-            if (!player.Inventory.CanReplaceGliderInBackpackSlot())
-            {
-                player.SendErrorMessage(ErrorMessageType.SpecialtyNotBuyNow);
-                return false;
-            }
-            if (!_tradeGoodsByCategoryAndItem.TryGetValue((categoryId, clientQuote.ItemId), out var tradeGood))
-            {
-                player.SendErrorMessage(ErrorMessageType.SpecialtyNotBuyNow);
-                return false;
-            }
-
-            var stock = _tradeGoodCargoStock.GetValueOrDefault((zoneGroupId, tradeGood.Id));
-            var authoritativeQuote = BuildBuyQuote(tradeGood, stock);
-            if (!authoritativeQuote.CanProduce || !authoritativeQuote.Equals(clientQuote) ||
-                authoritativeQuote.Refund > long.MaxValue)
-            {
-                player.SendErrorMessage(ErrorMessageType.SpecialtyNotBuyNow);
-                return false;
-            }
-            if (!TryGetTradeGoodPurchaseLaborCost(player, out var laborCost))
-                return false;
-            if (player.LaborPower + player.LocalLaborPower < laborCost)
-            {
-                player.SendErrorMessage(ErrorMessageType.NotEnoughLaborPower);
-                return false;
-            }
-            var price = checked((long)authoritativeQuote.Refund);
-            if (player.Money < price)
-            {
-                player.SendErrorMessage(ErrorMessageType.NotEnoughMoney);
-                return false;
-            }
-            var previous = player.Inventory.GetEquippedBySlot(EquipmentItemSlot.Backpack);
-            var bagSlot = previous == null ? -1 : player.Inventory.Bag.GetUnusedSlot(-1);
-            if (previous != null && (bagSlot < 0 || !EnsurePackPersisted(itemManager, previous)))
-            {
-                player.SendErrorMessage(ErrorMessageType.SpecialtyNotBuyNow);
-                return false;
-            }
-
-            var cargo = itemManager.CreateUnpersisted(authoritativeQuote.ItemId, 1, 0);
-            if (cargo == null)
-                return false;
-            SpecialtyPurchaseWrite write;
-            try
-            {
-                cargo.OwnerId = player.Id;
-                cargo.SlotType = SlotType.Equipment;
-                cargo.Slot = (int)EquipmentItemSlot.Backpack;
-                cargo._holdingContainer = player.Inventory.Equipment;
-                if (cargo.Template.BindType is ItemBindType.BindOnPickup or ItemBindType.BindOnEquip)
-                    cargo.SetFlag(ItemFlag.SoulBound);
-                if (cargo.Template.ExpAbsLifetime > 0)
-                    cargo.ExpirationTime = cargo.CreateTime.AddMinutes(cargo.Template.ExpAbsLifetime);
-                if (cargo.Template.ExpDate > DateTime.MinValue)
-                    cargo.ExpirationTime = cargo.Template.ExpDate;
-                if (cargo.Template.ExpOnlineLifetime > 0)
-                    cargo.ExpirationOnlineMinutesLeft = cargo.Template.ExpOnlineLifetime;
-
-                var expectedLabor = player.LaborPower;
-                var expectedLocalLabor = player.LocalLaborPower;
-                var fromAccount = Math.Min(laborCost, Math.Max(0, (int)expectedLabor));
-                var market = PrepareMarketWrite(() => _tradeGoodCargoStock[(zoneGroupId, tradeGood.Id)] = stock - 1);
-                write = new SpecialtyPurchaseWrite(
-                    player.Id, player.AccountId, player.Money, player.Money - price,
-                    expectedLabor, expectedLabor - fromAccount,
-                    expectedLocalLabor, expectedLocalLabor - (laborCost - fromAccount),
-                    cargo, previous, player.Inventory.Bag.ContainerId, bagSlot, market);
-                if (!purchaseStore.Commit(write))
+                if (player.Level < _tradeGoodBuyLevelLimit)
                 {
-                    itemManager.DiscardUnpersistedItems([cargo]);
-                    RestoreMarketAfterRejectedPurchase();
                     player.SendErrorMessage(ErrorMessageType.SpecialtyNotBuyNow);
                     return false;
                 }
-            }
-            catch (Exception exception)
-            {
-                itemManager.DiscardUnpersistedItems([cargo]);
-                Logger.Error(exception, "Failed to commit cargo purchase for character {0}", player.Id);
-                player.SendErrorMessage(ErrorMessageType.SpecialtyNotBuyNow);
-                return false;
-            }
+                if (!player.Inventory.CanReplaceGliderInBackpackSlot())
+                {
+                    player.SendErrorMessage(ErrorMessageType.SpecialtyNotBuyNow);
+                    return false;
+                }
+                if (!_tradeGoodsByCategoryAndItem.TryGetValue((categoryId, clientQuote.ItemId), out var tradeGood))
+                {
+                    player.SendErrorMessage(ErrorMessageType.SpecialtyNotBuyNow);
+                    return false;
+                }
 
-            PublishCommittedPurchase(player, write, laborCost);
-            return true;
-        }
+                var stock = _tradeGoodCargoStock.GetValueOrDefault((zoneGroupId, tradeGood.Id));
+                var authoritativeQuote = BuildBuyQuote(tradeGood, stock, zoneGroupId);
+                if (!authoritativeQuote.CanProduce || !authoritativeQuote.Equals(clientQuote) ||
+                    authoritativeQuote.Refund > long.MaxValue)
+                {
+                    player.SendErrorMessage(ErrorMessageType.SpecialtyNotBuyNow);
+                    return false;
+                }
+                if (!TryGetTradeGoodPurchaseLaborCost(player, out var laborCost))
+                    return false;
+                if (player.LaborPower + player.LocalLaborPower < laborCost)
+                {
+                    player.SendErrorMessage(ErrorMessageType.NotEnoughLaborPower);
+                    return false;
+                }
+                var price = checked((long)authoritativeQuote.Refund);
+                if (player.Money < price)
+                {
+                    player.SendErrorMessage(ErrorMessageType.NotEnoughMoney);
+                    return false;
+                }
+                var previous = player.Inventory.GetEquippedBySlot(EquipmentItemSlot.Backpack);
+                var bagSlot = previous == null ? -1 : player.Inventory.Bag.GetUnusedSlot(-1);
+                if (previous != null && (bagSlot < 0 || !EnsurePackPersisted(itemManager, previous)))
+                {
+                    player.SendErrorMessage(ErrorMessageType.SpecialtyNotBuyNow);
+                    return false;
+                }
+
+                var cargo = itemManager.CreateUnpersisted(authoritativeQuote.ItemId, 1, 0);
+                if (cargo == null)
+                    return false;
+                SpecialtyPurchaseWrite write;
+                try
+                {
+                    cargo.OwnerId = player.Id;
+                    cargo.SlotType = SlotType.Equipment;
+                    cargo.Slot = (int)EquipmentItemSlot.Backpack;
+                    cargo._holdingContainer = player.Inventory.Equipment;
+                    if (cargo.Template.BindType is ItemBindType.BindOnPickup or ItemBindType.BindOnEquip)
+                        cargo.SetFlag(ItemFlag.SoulBound);
+                    if (cargo.Template.ExpAbsLifetime > 0)
+                        cargo.ExpirationTime = cargo.CreateTime.AddMinutes(cargo.Template.ExpAbsLifetime);
+                    if (cargo.Template.ExpDate > DateTime.MinValue)
+                        cargo.ExpirationTime = cargo.Template.ExpDate;
+                    if (cargo.Template.ExpOnlineLifetime > 0)
+                        cargo.ExpirationOnlineMinutesLeft = cargo.Template.ExpOnlineLifetime;
+
+                    var expectedLabor = player.LaborPower;
+                    var expectedLocalLabor = player.LocalLaborPower;
+                    var fromAccount = Math.Min(laborCost, Math.Max(0, (int)expectedLabor));
+                    var market = PrepareMarketWrite(() => _tradeGoodCargoStock[(zoneGroupId, tradeGood.Id)] = stock - 1);
+                    write = new SpecialtyPurchaseWrite(
+                        player.Id, player.AccountId, player.Money, player.Money - price,
+                        expectedLabor, expectedLabor - fromAccount,
+                        expectedLocalLabor, expectedLocalLabor - (laborCost - fromAccount),
+                        cargo, previous, player.Inventory.Bag.ContainerId, bagSlot, market);
+                    if (!purchaseStore.Commit(write))
+                    {
+                        itemManager.DiscardUnpersistedItems([cargo]);
+                        RestoreMarketAfterRejectedPurchase();
+                        player.SendErrorMessage(ErrorMessageType.SpecialtyNotBuyNow);
+                        return false;
+                    }
+                }
+                catch (Exception exception)
+                {
+                    itemManager.DiscardUnpersistedItems([cargo]);
+                    Logger.Error(exception, "Failed to commit cargo purchase for character {0}", player.Id);
+                    player.SendErrorMessage(ErrorMessageType.SpecialtyNotBuyNow);
+                    return false;
+                }
+
+                PublishCommittedPurchase(player, write, laborCost);
+                return true;
+            }
     }
 
     private void RestoreMarketAfterRejectedPurchase()
     {
         try
         {
-            RestoreMarketState();
+            RestoreMarketAndEventRuntime();
         }
         catch (Exception exception)
         {
@@ -1123,8 +2327,8 @@ public class SpecialtyManager(
         // serialized with it and with all other state changes for this character.
         bool sold;
         lock (_marketLock)
-        lock (player.StateSyncRoot)
-            sold = SellSpecialtyLocked(player, npcObjId);
+            lock (player.StateSyncRoot)
+                sold = SellSpecialtyLocked(player, npcObjId);
         if (sold)
             BroadcastCurrentRatios();
         return sold;
@@ -1156,7 +2360,7 @@ public class SpecialtyManager(
             player.SendErrorMessage(ErrorMessageType.SpecialtyNotBuyNow);
             return false;
         }
-        var transactionUtc = DateTime.UtcNow;
+        var transactionUtc = timeProvider.GetUtcNow().UtcDateTime;
         FreshnessGroupItem freshnessRow = null;
         if (SpecialtyPackMaterializer.RequiresProductionContext(backpack.Template) &&
             (backpack is not Backpack freshnessBackpack ||
@@ -1209,8 +2413,7 @@ public class SpecialtyManager(
         }
 
         var basePrice = GetBasePrice(bundleItem);
-        var priceRatioUnits = GetRatioUnitsForItem(backpack.TemplateId, destinationZoneGroupId);
-        var priceRatio = priceRatioUnits / RatioUnitsPerPercent;
+        var priceRatio = GetDisplayedRatioPercent(backpack.TemplateId, destinationZoneGroupId);
         if (basePrice <= 0)
         {
             player.SendErrorMessage(ErrorMessageType.Invalid);
@@ -1239,23 +2442,30 @@ public class SpecialtyManager(
         }
 
         var crafterId = backpack.MadeUnitId != player.Id ? backpack.MadeUnitId : 0;
-        var finalPriceNoInterest = basePrice * (priceRatioUnits / 10000d);
+        var eventMultiplier = GetActiveSpecialtyEventMultiplier(
+            destinationZoneGroupId,
+            backpack.TemplateId,
+            SpecialtyEventType.OverchargeRate);
         var interestPercent = DecodeMailInterestPercent(
             isCargo ? _tradeGoodMailInterest : _specialtyContentSettings.MailInterest);
-        var interest = finalPriceNoInterest * (interestPercent / 100d);
-        var finalPrice = finalPriceNoInterest + interest;
+        var payout = CalculateSpecialtyPayout(
+            basePrice,
+            priceRatio,
+            freshnessRow?.RewardRate ?? NeutralWireRatio,
+            eventMultiplier,
+            interestPercent);
 
         var itemTypeToDeliver = npc.Template.SpecialtyCoinId == 0 ? Item.Coins : npc.Template.SpecialtyCoinId;
-        var totalPayout = checked((int)Math.Round(finalPrice, MidpointRounding.AwayFromZero));
+        var totalPayout = npc.Template.SpecialtyCoinId == 0
+            ? checked((int)payout.Total)
+            : ConvertMoneyToTradeGoodCoinCount(payout.Total, _tradeGoodCoinPerGoldRatio);
         var sellerPayout = totalPayout;
         var crafterPayout = 0;
         var basePayout = basePrice;
 
         if (npc.Template.SpecialtyCoinId != 0)
         {
-            totalPayout = checked((int)Math.Round(totalPayout / (double)MoneyUnitsPerCoin, MidpointRounding.AwayFromZero));
-            sellerPayout = totalPayout;
-            basePayout = checked((int)Math.Round(basePrice / (double)MoneyUnitsPerCoin, MidpointRounding.AwayFromZero));
+            basePayout = ConvertMoneyToTradeGoodCoinCount(basePrice, _tradeGoodCoinPerGoldRatio);
         }
 
         var sellerShareRatio = freshnessRow?.SellerShareRatio ?? _specialtyContentSettings.SellerShareRatio;
@@ -1267,11 +2477,12 @@ public class SpecialtyManager(
             crafterPayout = totalPayout - sellerPayout;
         }
 
-        var mailPayoutBeforeInterest = (int)(basePayout * (priceRatioUnits / 10000d));
-        var mailTotalPayout = checked((int)Math.Round(
-            mailPayoutBeforeInterest * (100d + interestPercent) / 100d,
-            MidpointRounding.AwayFromZero));
+        var mailPayoutBeforeInterest = npc.Template.SpecialtyCoinId == 0
+            ? checked((int)payout.BeforeInterest)
+            : ConvertMoneyToTradeGoodCoinCount(payout.BeforeInterest, _tradeGoodCoinPerGoldRatio);
+        var mailTotalPayout = totalPayout;
         var freshnessPercent = freshnessRow?.RewardRate / 10d ?? 0d;
+        var specialtyMerchantRatioPercent = GetSpecialtyMerchantRatioPercent(eventMultiplier);
         var sellerSharePercent = sellerShareRatio * 10;
 
         var payoutMails = new List<BaseMail>(2);
@@ -1292,6 +2503,7 @@ public class SpecialtyManager(
                 transactionUtc,
                 interestPercent,
                 freshnessPercent,
+                specialtyMerchantRatioPercent,
                 sellerSharePercent);
             if (!sellerMail.FinalizeForSeller())
             {
@@ -1319,6 +2531,7 @@ public class SpecialtyManager(
                 transactionUtc,
                 interestPercent,
                 freshnessPercent,
+                specialtyMerchantRatioPercent,
                 sellerSharePercent);
             if (!crafterMail.FinalizeForCrafter())
             {
@@ -1392,7 +2605,7 @@ public class SpecialtyManager(
             {
                 try
                 {
-                    RestoreMarketState();
+                    RestoreMarketAndEventRuntime();
                 }
                 catch (Exception exception)
                 {
@@ -1416,27 +2629,14 @@ public class SpecialtyManager(
         lock (_marketLock)
             return PrepareMarketWrite(() =>
             {
-                if (!_priceRatios.TryGetValue(itemId, out var ratios))
-                    _priceRatios.Add(itemId, ratios = []);
-                var maxRatioUnits = checked(_specialtyContentSettings.MaxPriceRatio * RatioUnitsPerPercent);
-                if (ratios.TryAdd(destinationZoneGroupId, maxRatioUnits))
-                    RecordRatio(itemId, destinationZoneGroupId, maxRatioUnits);
-                if (!_demandRemainders.TryGetValue(itemId, out var remainders))
-                    _demandRemainders.Add(itemId, remainders = []);
-                var deliveryCount = checked(remainders.GetValueOrDefault(destinationZoneGroupId) + 1);
-                var adjustments = deliveryCount / _specialtyContentSettings.GoodsRatioCount;
-                remainders[destinationZoneGroupId] = deliveryCount % _specialtyContentSettings.GoodsRatioCount;
-                if (adjustments > 0)
+                if (TryGetTradeGoodCategory(destinationZoneGroupId, out var categoryId) &&
+                    TryResolveTradeGoodMaterial(categoryId, itemId, out _, out _))
                 {
-                    var minRatioUnits = checked(_specialtyContentSettings.MinPriceRatio * RatioUnitsPerPercent);
-                    var adjustedRatio = Math.Max(
-                        minRatioUnits,
-                        ratios[destinationZoneGroupId] - checked(adjustments * _specialtyContentSettings.AdjustRatioPerTrade));
-                    ratios[destinationZoneGroupId] = adjustedRatio;
-                    RecordRatio(itemId, destinationZoneGroupId, adjustedRatio);
-                }
-                if (TryGetTradeGoodCategory(destinationZoneGroupId, out var categoryId))
                     RecordTradeGoodDeliveryCore(destinationZoneGroupId, categoryId, itemId);
+                    return;
+                }
+
+                RecordUnqueuedSpecialtyDelivery(itemId, destinationZoneGroupId);
             });
     }
 
@@ -1510,7 +2710,7 @@ public class SpecialtyManager(
             return 0;
         var zoneGroupId = ZoneManager.Instance.GetZoneByKey(player.Transform.ZoneId)?.GroupId ?? 0;
         lock (_marketLock)
-            return GetRatioUnitsForItem(backpack.TemplateId, zoneGroupId) / RatioUnitsPerPercent;
+            return GetDisplayedRatioPercent(backpack.TemplateId, zoneGroupId);
     }
 
     public List<(uint, uint)> GetRatiosForTargetRoute(uint fromZoneGroupId, uint toZoneGroupId)
@@ -1662,6 +2862,48 @@ public class SpecialtyManager(
 
     internal static double DecodeSellerShare(int contentValue) => contentValue / 10d;
 
+    internal static (long BeforeInterest, long Total) CalculateSpecialtyPayout(
+        int basePrice,
+        int displayedRatioPercent,
+        uint freshnessRewardRate,
+        float eventMultiplier,
+        double interestPercent)
+    {
+        if (basePrice < 0)
+            throw new ArgumentOutOfRangeException(nameof(basePrice));
+        if (displayedRatioPercent < 0)
+            throw new ArgumentOutOfRangeException(nameof(displayedRatioPercent));
+        if (freshnessRewardRate == 0)
+            throw new ArgumentOutOfRangeException(nameof(freshnessRewardRate));
+        if (!float.IsFinite(eventMultiplier) || eventMultiplier <= 0)
+            throw new ArgumentOutOfRangeException(nameof(eventMultiplier));
+        if (!double.IsFinite(interestPercent) || interestPercent < 0)
+            throw new ArgumentOutOfRangeException(nameof(interestPercent));
+
+        var beforeInterest =
+            basePrice *
+            (displayedRatioPercent / 100m) *
+            (freshnessRewardRate / (decimal)NeutralWireRatio) *
+            (decimal)eventMultiplier;
+        var total = beforeInterest * (100m + (decimal)interestPercent) / 100m;
+        return (
+            checked((long)decimal.Round(beforeInterest, 0, MidpointRounding.AwayFromZero)),
+            checked((long)decimal.Round(total, 0, MidpointRounding.AwayFromZero)));
+    }
+
+    internal static int ConvertMoneyToTradeGoodCoinCount(long moneyAmount, int moneyUnitsPerCoin)
+    {
+        if (moneyAmount < 0)
+            throw new ArgumentOutOfRangeException(nameof(moneyAmount));
+        if (moneyUnitsPerCoin <= 0)
+            throw new ArgumentOutOfRangeException(nameof(moneyUnitsPerCoin));
+
+        var rounded = MathF.Floor((float)moneyAmount / moneyUnitsPerCoin + 0.5f);
+        if (!float.IsFinite(rounded) || rounded >= int.MaxValue)
+            throw new OverflowException($"Specialty coin payout {rounded} is outside the supported range.");
+        return (int)rounded;
+    }
+
     private bool TryGetAcceptedBundleItem(
         uint itemId,
         uint specialtyBundleId,
@@ -1770,7 +3012,10 @@ public class SpecialtyManager(
         return true;
     }
 
-    private List<SpecialtyQuote> BuildBuyQuotes(uint categoryId, uint zoneGroupId)
+    private List<SpecialtyQuote> BuildBuyQuotes(
+        uint categoryId,
+        uint zoneGroupId,
+        SpecialtyEventSnapshot eventSnapshot)
     {
         if (!_tradeGoodsByCategory.TryGetValue(categoryId, out var tradeGoods))
             return [];
@@ -1778,20 +3023,34 @@ public class SpecialtyManager(
         return tradeGoods
             .Select(tradeGood => BuildBuyQuote(
                 tradeGood,
-                _tradeGoodCargoStock.GetValueOrDefault((zoneGroupId, tradeGood.Id))))
+                _tradeGoodCargoStock.GetValueOrDefault((zoneGroupId, tradeGood.Id)),
+                zoneGroupId,
+                eventSnapshot))
             .ToList();
     }
 
-    internal SpecialtyQuote BuildBuyQuote(TradeGood tradeGood, uint stock)
+    internal SpecialtyQuote BuildBuyQuote(TradeGood tradeGood, uint stock, uint zoneGroupId) =>
+        BuildBuyQuote(tradeGood, stock, zoneGroupId, CaptureSpecialtyEventSnapshot());
+
+    private SpecialtyQuote BuildBuyQuote(
+        TradeGood tradeGood,
+        uint stock,
+        uint zoneGroupId,
+        SpecialtyEventSnapshot eventSnapshot)
     {
         var priceIndex = SelectTradeGoodPriceIndex(_tradeGoodPriceIndices, stock);
-        var basePrice = checked(
-            (ulong)tradeGood.Item.Refund +
-            (ulong)tradeGood.Profit * tradeGood.Ratio / NeutralWireRatio);
-        var currentPrice = checked((ulong)decimal.Round(
-            basePrice * (decimal)priceIndex.PriceIndex / priceIndex.Charge,
-            0,
-            MidpointRounding.AwayFromZero));
+        var rawPrice = tradeGood.Item.Refund + (tradeGood.Ratio / 1000f * tradeGood.Profit);
+        var basePrice = RoundPositivePrice(rawPrice);
+        var eventMultiplier = GetActiveSpecialtyEventMultiplier(
+            eventSnapshot,
+            zoneGroupId,
+            tradeGood.ItemId,
+            SpecialtyEventType.SaleRate);
+        var currentPrice = RoundPositivePrice(
+            rawPrice *
+            (priceIndex.PriceIndex / 1000f) *
+            (priceIndex.Charge / 1000f) *
+            eventMultiplier);
 
         return new SpecialtyQuote
         {
@@ -1834,19 +3093,16 @@ public class SpecialtyManager(
                 return 0;
             }
 
+            var quantitiesBefore = GetTradeGoodItemQuantities(zoneGroupId, matchedTradeGood);
             var materialKey = (zoneGroupId, matchedMaterial.TagId);
             var materialStock = GetMaterialStock(materialKey);
-            if (materialStock == uint.MaxValue)
-            {
-                Logger.Fatal(
-                    "Cargo material stock reached its limit for zone {0}, tag {1}",
-                    zoneGroupId,
-                    matchedMaterial.TagId);
-                throw new OverflowException($"Cargo material stock overflow: zone {zoneGroupId}, tag {matchedMaterial.TagId}.");
-            }
-            var materialStockAfterDelivery = materialStock + 1;
-            EnqueueMaterialContribution(materialKey, itemId, 1);
+            var accepted = EnqueueMaterialContribution(materialKey, itemId, 1);
+            var materialStockAfterDelivery = materialStock + accepted;
             var produced = ProduceAvailableTradeGoods(zoneGroupId, matchedTradeGood);
+            ApplyDemandQuantityChanges(
+                zoneGroupId,
+                quantitiesBefore,
+                GetTradeGoodItemQuantities(zoneGroupId, matchedTradeGood));
             Logger.Debug(
                 "Counted specialty item {0} for cargo recipe {1} in zone {2}: tag {3} stock {4}/{5}, produced {6}, cargo stock {7}",
                 itemId,
@@ -1869,17 +3125,15 @@ public class SpecialtyManager(
         if (batches == 0)
             return 0;
 
-        var produced = (ulong)batches * tradeGood.OutputCount;
         var cargoKey = (zoneGroupId, tradeGood.Id);
         var cargoStock = _tradeGoodCargoStock.GetValueOrDefault(cargoKey);
-        if (produced > uint.MaxValue || produced > uint.MaxValue - cargoStock)
-        {
-            Logger.Fatal(
-                "Cargo production exceeds stock capacity for zone {0}, tradegood {1}",
-                zoneGroupId,
-                tradeGood.Id);
-            throw new OverflowException($"Cargo production overflow: zone {zoneGroupId}, tradegood {tradeGood.Id}.");
-        }
+        if (cargoStock >= _tradeGoodStockLimit)
+            return 0;
+
+        var capacity = _tradeGoodStockLimit - cargoStock;
+        var batchesForCapacity = checked((uint)(((ulong)capacity + tradeGood.OutputCount - 1) / tradeGood.OutputCount));
+        batches = Math.Min(batches, batchesForCapacity);
+        var produced = Math.Min((ulong)batches * tradeGood.OutputCount, capacity);
 
         foreach (var material in materials)
         {
@@ -1888,36 +3142,29 @@ public class SpecialtyManager(
         }
 
         _tradeGoodCargoStock[cargoKey] = cargoStock + (uint)produced;
-        RecoverSpecialtyRatios(zoneGroupId, tradeGood, (uint)produced);
         return (uint)produced;
     }
 
-    private void RecoverSpecialtyRatios(uint zoneGroupId, TradeGood tradeGood, uint produced)
+    private void RecordUnqueuedSpecialtyDelivery(uint itemId, uint zoneGroupId)
     {
-        if (produced == 0 || _specialtyBundleItemsMapped.Count == 0)
-            return;
-        var recoverySteps = produced / checked((uint)_specialtyContentSettings.PriceTradeGoodsCount);
-        if (recoverySteps == 0)
-            return;
-
-        var materialTags = _tradeGoodMaterialsByTradeGoodId[tradeGood.Id].Select(x => x.TagId).ToHashSet();
         var maxRatioUnits = checked(_specialtyContentSettings.MaxPriceRatio * RatioUnitsPerPercent);
-        foreach (var itemId in _specialtyBundleItemsMapped.Keys)
-        {
-            if (!materialTags.Any(tagId => itemManager.HasItemTag(itemId, tagId)) ||
-                !_priceRatios.TryGetValue(itemId, out var byZone) ||
-                !byZone.TryGetValue(zoneGroupId, out var ratioUnits) ||
-                ratioUnits >= maxRatioUnits)
-                continue;
+        if (!_priceRatios.TryGetValue(itemId, out var ratios))
+            _priceRatios.Add(itemId, ratios = []);
+        ratios.TryAdd(zoneGroupId, maxRatioUnits);
+        if (!_demandRemainders.TryGetValue(itemId, out var remainders))
+            _demandRemainders.Add(itemId, remainders = []);
 
-            var recovered = RecoverRatioUnits(
-                ratioUnits,
-                maxRatioUnits,
-                _specialtyContentSettings.PriceRecoverRate,
-                recoverySteps);
-            byZone[zoneGroupId] = recovered;
-            RecordRatio(itemId, zoneGroupId, recovered);
+        var deliveryCount = checked(remainders.GetValueOrDefault(zoneGroupId) + 1);
+        var adjustments = deliveryCount / _specialtyContentSettings.GoodsRatioCount;
+        remainders[zoneGroupId] = deliveryCount % _specialtyContentSettings.GoodsRatioCount;
+        if (adjustments > 0)
+        {
+            var minRatioUnits = checked(_specialtyContentSettings.MinPriceRatio * RatioUnitsPerPercent);
+            ratios[zoneGroupId] = Math.Max(
+                minRatioUnits,
+                ratios[zoneGroupId] - checked(adjustments * _specialtyContentSettings.AdjustRatioPerTrade));
         }
+        RecordRatio(itemId, zoneGroupId, ratios[zoneGroupId]);
     }
 
     internal bool RecoverTimedRatios()
@@ -2032,7 +3279,7 @@ public class SpecialtyManager(
                 result = (false, "Cargo material grant could not be committed.", 0, 0, 0, []);
             }
         }
-        if (result.Success && result.Produced > 0)
+        if (result.Success)
             BroadcastCurrentRatios();
         return result;
     }
@@ -2076,7 +3323,6 @@ public class SpecialtyManager(
             var representativeItems = new uint[materials.Count];
             for (var i = 0; i < materials.Count; i++)
             {
-                var key = (zoneGroupId, materials[i].TagId);
                 var representativeItem = _specialtyBundleItemsMapped.Keys
                     .Order()
                     .FirstOrDefault(itemId =>
@@ -2091,16 +3337,9 @@ public class SpecialtyManager(
                         _tradeGoodCargoStock.GetValueOrDefault((zoneGroupId, tradeGood.Id)),
                         []);
                 representativeItems[i] = representativeItem;
-                if (amounts[i] > uint.MaxValue - GetMaterialStock(key))
-                    return (
-                        false,
-                        $"Adding {amounts[i]} would overflow material tag {materials[i].TagId}.",
-                        tradeGood.Id,
-                        0,
-                        _tradeGoodCargoStock.GetValueOrDefault((zoneGroupId, tradeGood.Id)),
-                        []);
             }
 
+            var quantitiesBefore = GetTradeGoodItemQuantities(zoneGroupId, tradeGood);
             for (var i = 0; i < materials.Count; i++)
             {
                 var key = (zoneGroupId, materials[i].TagId);
@@ -2108,6 +3347,10 @@ public class SpecialtyManager(
             }
 
             var produced = ProduceAvailableTradeGoods(zoneGroupId, tradeGood);
+            ApplyDemandQuantityChanges(
+                zoneGroupId,
+                quantitiesBefore,
+                GetTradeGoodItemQuantities(zoneGroupId, tradeGood));
             var materialStocks = materials
                 .Select(x => (
                     x.TagId,
@@ -2124,14 +3367,29 @@ public class SpecialtyManager(
         }
     }
 
-    internal SpecialtyQuote BuildSellQuote(SpecialtyBundleItem bundleItem, uint zoneGroupId)
+    internal SpecialtyQuote BuildSellQuote(SpecialtyBundleItem bundleItem, uint zoneGroupId) =>
+        BuildSellQuote(bundleItem, zoneGroupId, CaptureSpecialtyEventSnapshot());
+
+    private SpecialtyQuote BuildSellQuote(
+        SpecialtyBundleItem bundleItem,
+        uint zoneGroupId,
+        SpecialtyEventSnapshot eventSnapshot)
     {
         var basePrice = GetBasePrice(bundleItem);
         if (basePrice <= 0)
             return null;
-        var ratioUnits = GetRatioUnitsForItem(bundleItem.ItemId, zoneGroupId);
+        var displayedRatioPercent = GetDisplayedRatioPercent(bundleItem.ItemId, zoneGroupId);
+        var noEventPriceValue = basePrice * (displayedRatioPercent / 100d);
+        var noEventPrice = checked((ulong)Math.Round(
+            noEventPriceValue,
+            MidpointRounding.AwayFromZero));
+        var eventMultiplier = GetActiveSpecialtyEventMultiplier(
+            eventSnapshot,
+            zoneGroupId,
+            bundleItem.ItemId,
+            SpecialtyEventType.OverchargeRate);
         var currentPrice = checked((ulong)Math.Round(
-            basePrice * (ratioUnits / 10000d),
+            noEventPriceValue * eventMultiplier,
             MidpointRounding.AwayFromZero));
         var stock = GetMaterialStockForItem(zoneGroupId, bundleItem.ItemId);
 
@@ -2139,8 +3397,8 @@ public class SpecialtyManager(
         {
             ItemId = bundleItem.ItemId,
             Refund = currentPrice,
-            NoEventRefund = 0,
-            Ratio = checked((uint)(ratioUnits / RatioUnitsPerPercent)),
+            NoEventRefund = currentPrice == noEventPrice ? 0 : noEventPrice,
+            Ratio = checked((uint)displayedRatioPercent),
             Stock = stock,
             CanProduce = true,
             Currency = ShopCurrencyType.Money,
@@ -2200,6 +3458,56 @@ public class SpecialtyManager(
             : 0;
     }
 
+    private Dictionary<uint, uint> GetTradeGoodItemQuantities(uint zoneGroupId, TradeGood tradeGood)
+    {
+        var quantities = new Dictionary<uint, uint>();
+        foreach (var material in _tradeGoodMaterialsByTradeGoodId[tradeGood.Id])
+        {
+            if (!_tradeGoodMaterialContributions.TryGetValue((zoneGroupId, material.TagId), out var contributions))
+                continue;
+            foreach (var contribution in contributions)
+                quantities[contribution.ItemId] = checked(
+                    quantities.GetValueOrDefault(contribution.ItemId) + contribution.Amount);
+        }
+        return quantities;
+    }
+
+    private void ApplyDemandQuantityChanges(
+        uint zoneGroupId,
+        IReadOnlyDictionary<uint, uint> quantitiesBefore,
+        IReadOnlyDictionary<uint, uint> quantitiesAfter)
+    {
+        if (_specialtyContentSettings == null)
+            return;
+
+        var maxRatioUnits = checked(_specialtyContentSettings.MaxPriceRatio * RatioUnitsPerPercent);
+        var minRatioUnits = checked(_specialtyContentSettings.MinPriceRatio * RatioUnitsPerPercent);
+        foreach (var itemId in quantitiesBefore.Keys.Union(quantitiesAfter.Keys))
+        {
+            var oldQuantity = quantitiesBefore.GetValueOrDefault(itemId);
+            var newQuantity = quantitiesAfter.GetValueOrDefault(itemId);
+            if (oldQuantity == newQuantity)
+                continue;
+
+            if (!_priceRatios.TryGetValue(itemId, out var ratios))
+                _priceRatios.Add(itemId, ratios = []);
+            var currentRatioUnits = ratios.GetValueOrDefault(zoneGroupId, maxRatioUnits);
+            var oldBuckets = oldQuantity / checked((uint)_specialtyContentSettings.GoodsRatioCount);
+            var newBuckets = newQuantity / checked((uint)_specialtyContentSettings.GoodsRatioCount);
+            var bucketDelta = (long)newBuckets - oldBuckets;
+            var adjustedRatioUnits = checked((int)Math.Clamp(
+                currentRatioUnits - bucketDelta * _specialtyContentSettings.AdjustRatioPerTrade,
+                minRatioUnits,
+                maxRatioUnits));
+            ratios[zoneGroupId] = adjustedRatioUnits;
+
+            if (!_demandRemainders.TryGetValue(itemId, out var remainders))
+                _demandRemainders.Add(itemId, remainders = []);
+            remainders[zoneGroupId] = checked((int)(newQuantity % (uint)_specialtyContentSettings.GoodsRatioCount));
+            RecordRatio(itemId, zoneGroupId, adjustedRatioUnits);
+        }
+    }
+
     private bool TryResolveTradeGoodMaterial(
         uint categoryId,
         uint itemId,
@@ -2247,13 +3555,14 @@ public class SpecialtyManager(
         return checked((uint)total);
     }
 
-    private void EnqueueMaterialContribution((uint ZoneGroupId, uint TagId) key, uint itemId, uint amount)
+    private uint EnqueueMaterialContribution((uint ZoneGroupId, uint TagId) key, uint itemId, uint amount)
     {
         if (amount == 0)
-            return;
+            return 0;
         var stock = GetMaterialStock(key);
-        if (amount > uint.MaxValue - stock)
-            throw new OverflowException($"Cargo material stock overflow: zone {key.ZoneGroupId}, tag {key.TagId}.");
+        amount = Math.Min(amount, _goodsStockLimit - Math.Min(stock, _goodsStockLimit));
+        if (amount == 0)
+            return 0;
 
         if (!_tradeGoodMaterialContributions.TryGetValue(key, out var contributions))
         {
@@ -2264,11 +3573,12 @@ public class SpecialtyManager(
         {
             var tail = contributions[^1];
             contributions[^1] = new SpecialtyMaterialContribution(tail.Sequence, itemId, checked(tail.Amount + amount));
-            return;
+            return amount;
         }
 
         var sequence = contributions.Count == 0 ? 1UL : checked(contributions[^1].Sequence + 1);
         contributions.Add(new SpecialtyMaterialContribution(sequence, itemId, amount));
+        return amount;
     }
 
     private void ConsumeMaterialContributions((uint ZoneGroupId, uint TagId) key, uint amount)
@@ -2309,6 +3619,9 @@ public class SpecialtyManager(
             : checked(_specialtyContentSettings.MaxPriceRatio * RatioUnitsPerPercent);
     }
 
+    private int GetDisplayedRatioPercent(uint itemId, uint zoneGroupId) =>
+        GetRatioUnitsForItem(itemId, zoneGroupId) / RatioUnitsPerPercent;
+
     private void RecordRatio(uint itemId, uint zoneGroupId, int ratioUnits)
     {
         var wireRatio = ratioUnits / RatioUnitsPerWireUnit;
@@ -2348,37 +3661,77 @@ public class SpecialtyManager(
         }
     }
 
-    private static void SendRatioPages(
+    private void SendRatioPages(
         Character player,
         ushort zoneGroupId,
         uint npcTemplateId,
-        List<SpecialtyQuote> quotes)
+        List<SpecialtyQuote> quotes,
+        SpecialtyEventSnapshot eventSnapshot)
     {
-        var pageCount = Math.Max(1, (quotes.Count + QuotesPerPage - 1) / QuotesPerPage);
+        var eventIds = GetActiveSpecialtyEventIds(eventSnapshot, zoneGroupId, quotes.Select(x => x.ItemId).ToArray());
+        var quotePageCount = (quotes.Count + QuotesPerPage - 1) / QuotesPerPage;
+        var eventPageCount = (eventIds.Length + EventIdsPerPage - 1) / EventIdsPerPage;
+        var pageCount = Math.Max(1, Math.Max(quotePageCount, eventPageCount));
         for (var page = 0; page < pageCount; page++)
         {
             var pageQuotes = quotes.Skip(page * QuotesPerPage).Take(QuotesPerPage).ToList();
+            var pageEventIds = eventIds.Skip(page * EventIdsPerPage).Take(EventIdsPerPage).ToList();
             player.SendPacket(new SCSpecialtyRatioPacket(
                 zoneGroupId,
                 npcTemplateId,
                 pageQuotes,
-                [],
+                pageEventIds,
                 page == 0,
                 page == pageCount - 1));
         }
     }
 
-    private static void SendGoodsPages(Character player, List<SpecialtyQuote> quotes)
+    private void SendGoodsPages(
+        Character player,
+        uint zoneGroupId,
+        List<SpecialtyQuote> quotes,
+        SpecialtyEventSnapshot eventSnapshot)
     {
-        var pageCount = Math.Max(1, (quotes.Count + QuotesPerPage - 1) / QuotesPerPage);
+        var eventIds = GetActiveSpecialtyEventIds(eventSnapshot, zoneGroupId, quotes.Select(x => x.ItemId).ToArray());
+        var quotePageCount = (quotes.Count + QuotesPerPage - 1) / QuotesPerPage;
+        var eventPageCount = (eventIds.Length + EventIdsPerPage - 1) / EventIdsPerPage;
+        var pageCount = Math.Max(1, Math.Max(quotePageCount, eventPageCount));
         for (var page = 0; page < pageCount; page++)
         {
             var pageQuotes = quotes.Skip(page * QuotesPerPage).Take(QuotesPerPage).ToList();
+            var pageEventIds = eventIds.Skip(page * EventIdsPerPage).Take(EventIdsPerPage).ToList();
             player.SendPacket(new SCSpecialtyGoodsPacket(
                 pageQuotes,
-                [],
+                pageEventIds,
                 page == 0,
                 page == pageCount - 1));
         }
     }
+
+    private static ulong RoundPositivePrice(float value)
+    {
+        const float SignedLongLimit = 9223372036854775808f;
+        if (!float.IsFinite(value) || value < 0 || value >= SignedLongLimit)
+            throw new OverflowException($"Specialty price {value} is outside the supported range.");
+        return checked((ulong)MathF.Floor(value + 0.5f));
+    }
+
+    internal static int GetSpecialtyMerchantRatioPercent(float eventMultiplier)
+    {
+        if (eventMultiplier == 1f)
+            return 0;
+        return checked((int)MathF.Round(eventMultiplier * 100f, MidpointRounding.AwayFromZero));
+    }
+
+    private sealed record ActiveSpecialtyEventState(
+        ActiveSpecialtyEvent Activation,
+        long ActivationToken,
+        SpecialtyEventExpiryTask ExpiryTask);
+
+    private sealed record SpecialtyEventSnapshot(SpecialtyEventDescriptor[] Descriptors)
+    {
+        public static SpecialtyEventSnapshot Empty { get; } = new([]);
+    }
+
+    private readonly record struct SpecialtyEventRuntimePolicy(bool Enabled, uint DefaultManualDurationSeconds);
 }

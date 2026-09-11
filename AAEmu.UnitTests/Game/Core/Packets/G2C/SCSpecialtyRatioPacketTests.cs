@@ -76,4 +76,46 @@ public class SCSpecialtyRatioPacketTests
         await Assert.That(stream.ReadSByte()).IsEqualTo((sbyte)0);
         await Assert.That(stream.Pos).IsEqualTo(stream.Count);
     }
+
+    [Test]
+    public async Task SpecialtyLists_WriteActiveEventIds()
+    {
+        var ratioStream = new PacketStream();
+        var goodsStream = new PacketStream();
+
+        new SCSpecialtyRatioPacket(8, 17958, [], [14, 30], true, true).Write(ratioStream);
+        new SCSpecialtyGoodsPacket([], [14, 30], true, true).Write(goodsStream);
+
+        ratioStream.Rollback();
+        await Assert.That(ratioStream.ReadUInt16()).IsEqualTo((ushort)8);
+        await Assert.That(ratioStream.ReadUInt32()).IsEqualTo(17958u);
+        await Assert.That(ratioStream.ReadUInt32()).IsEqualTo(0u);
+        await Assert.That(ratioStream.ReadUInt32()).IsEqualTo(2u);
+        await Assert.That(ratioStream.ReadBoolean()).IsTrue();
+        await Assert.That(ratioStream.ReadBoolean()).IsTrue();
+        await Assert.That(ratioStream.ReadUInt32()).IsEqualTo(14u);
+        await Assert.That(ratioStream.ReadUInt32()).IsEqualTo(30u);
+        await Assert.That(ratioStream.Pos).IsEqualTo(ratioStream.Count);
+
+        goodsStream.Rollback();
+        await Assert.That(goodsStream.ReadUInt32()).IsEqualTo(0u);
+        await Assert.That(goodsStream.ReadUInt32()).IsEqualTo(2u);
+        await Assert.That(goodsStream.ReadBoolean()).IsTrue();
+        await Assert.That(goodsStream.ReadBoolean()).IsTrue();
+        await Assert.That(goodsStream.ReadUInt32()).IsEqualTo(14u);
+        await Assert.That(goodsStream.ReadUInt32()).IsEqualTo(30u);
+        await Assert.That(goodsStream.Pos).IsEqualTo(goodsStream.Count);
+    }
+
+    [Test]
+    public async Task SpecialtyEventMessage_WritesMessage()
+    {
+        var stream = new PacketStream();
+
+        new SCSpecialtyEventMsgPacket("Event started").Write(stream);
+
+        stream.Rollback();
+        await Assert.That(stream.ReadString()).IsEqualTo("Event started");
+        await Assert.That(stream.Pos).IsEqualTo(stream.Count);
+    }
 }

@@ -1,5 +1,7 @@
 {
 	"Specialty": {
+		"EnableEvents": false,
+		"ManualEventDurationSeconds": 300,
 		"EnableTimedRatioRecovery": false,
 		"RatioRecoveryIntervalMinutes": 60.0,
 		"TradePackMailDelayInMinutes": 480.0
