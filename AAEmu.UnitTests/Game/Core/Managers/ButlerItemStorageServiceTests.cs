@@ -40,8 +40,11 @@ public sealed class ButlerItemStorageServiceTests
         await Assert.That(butler.ReadByte()).IsEqualTo((byte)7);
         await Assert.That(butler.ReadByte()).IsEqualTo((byte)ItemTaskType.SwapButlerItem);
         await Assert.That(butler.ReadByte()).IsEqualTo((byte)1);
-        await Assert.That(butler.ReadByte()).IsEqualTo((byte)ItemAction.Take);
+        await Assert.That(butler.ReadByte()).IsEqualTo((byte)0x15);
         await Assert.That(butler.ReadByte()).IsEqualTo((byte)0);
+        await Assert.That(butler.ReadByte()).IsEqualTo((byte)7);
+        await Assert.That(butler.ReadByte()).IsEqualTo((byte)SlotType.Inventory);
+        await Assert.That(butler.ReadByte()).IsEqualTo((byte)4);
         await Assert.That(butler.ReadByte()).IsEqualTo((byte)SlotType.Inventory);
         await Assert.That(butler.ReadByte()).IsEqualTo((byte)0);
         await Assert.That(butler.ReadUInt32()).IsEqualTo(item.TemplateId);

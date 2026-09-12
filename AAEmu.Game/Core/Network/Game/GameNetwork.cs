@@ -473,6 +473,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSSwapButlerItemPacket, 1, typeof(CSSwapButlerItemPacket));
         RegisterPacket(CSOffsets.CSRequestButlerHarvestJobPacket, 1, typeof(CSRequestButlerHarvestJobPacket));
         RegisterPacket(CSOffsets.CSExpandButlerUsableSlotPacket, 1, typeof(CSExpandButlerUsableSlotPacket));
+        RegisterPacket(CSOffsets.CSChargeButlerWorldResourcePacket, 1, typeof(CSChargeButlerWorldResourcePacket));
         RegisterPacket(CSOffsets.CSChangeButlerNamePacket, 1, typeof(CSChangeButlerNamePacket));
         RegisterPacket(CSOffsets.CSArchePassGetRewardItemPacket, 1, typeof(CSArchePassGetRewardItemPacket));
         RegisterPacket(CSOffsets.CSArchePassRemovePacket, 1, typeof(CSArchePassRemovePacket));

@@ -2,7 +2,8 @@ namespace AAEmu.Game.Models.Game.Items.Actions;
 
 /// <summary>
 /// Wire bodies differ by case: 4 = template+amount only; 5 = slot+id+amount+template;
-/// 6/7/0x10 = slot + full Item; 9 = SwapSlot; 8 = reservation-style.
+/// 6/7/0x10 = slot + full Item; 9 = SwapSlot; 8 = reservation-style;
+/// 0x15 = owner + source/destination slots + full Item + Butler transfer ids.
 /// </summary>
 public enum ItemAction
 {
@@ -27,4 +28,5 @@ public enum ItemAction
     ChangeBankAaPoint = 18,
     ChangeAutoUseAaPoint = 19,
     UpdateChargeUseSkillTime = 20,
+    ButlerItemSwap = 21,
 }

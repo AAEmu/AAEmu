@@ -146,7 +146,12 @@ public sealed class ButlerItemSwapPublisher : IButlerItemSwapPublisher
             PlayerOwnerType),
         new SCItemTaskSuccessPacket(
             ItemTaskType.SwapButlerItem,
-            new ItemAddAtLocation(item, SlotType.Inventory, 0),
+            new ButlerItemAdd(
+                item,
+                request.BagType,
+                request.BagIndex,
+                request.ButlerType,
+                request.ButlerIndex),
             NoForceRemove,
             ButlerOwnerType),
         CreateAcknowledgement(request));
