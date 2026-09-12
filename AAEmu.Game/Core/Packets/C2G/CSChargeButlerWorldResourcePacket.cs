@@ -12,13 +12,16 @@ namespace AAEmu.Game.Core.Packets.C2G;
 /// </remarks>
 public class CSChargeButlerWorldResourcePacket() : GamePacket(CSOffsets.CSChargeButlerWorldResourcePacket, 1)
 {
-    public sbyte Unnamed1 { get; private set; }
+    private const int BodySize = sizeof(sbyte) + sizeof(uint);
+
     public sbyte ChargeKind { get; private set; }
     public uint Amount { get; private set; }
 
     public override void Read(PacketStream stream)
     {
-        Unnamed1 = stream.ReadSByte();
+        if (stream.LeftBytes != BodySize)
+            throw new InvalidDataException($"Expected a {BodySize}-byte butler resource-charge body, got {stream.LeftBytes} bytes.");
+
         ChargeKind = stream.ReadSByte();
         Amount = stream.ReadUInt32();
     }

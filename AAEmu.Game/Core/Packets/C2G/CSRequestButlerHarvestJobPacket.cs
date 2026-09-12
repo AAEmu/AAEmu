@@ -12,18 +12,21 @@ namespace AAEmu.Game.Core.Packets.C2G;
 /// </remarks>
 public class CSRequestButlerHarvestJobPacket() : GamePacket(CSOffsets.CSRequestButlerHarvestJobPacket, 1)
 {
-    public sbyte Unnamed1 { get; private set; }
+    private const int BodySize = sizeof(sbyte) + sizeof(long) + sizeof(int) + sizeof(short);
+
     public sbyte JobKind { get; private set; }
     public long DbHarvestId { get; private set; }
-    public int TypeValue { get; private set; }
+    public int HarvestId { get; private set; }
     public short Amount { get; private set; }
 
     public override void Read(PacketStream stream)
     {
-        Unnamed1 = stream.ReadSByte();
+        if (stream.LeftBytes != BodySize)
+            throw new InvalidDataException($"Expected a {BodySize}-byte butler harvest-job body, got {stream.LeftBytes} bytes.");
+
         JobKind = stream.ReadSByte();
         DbHarvestId = stream.ReadInt64();
-        TypeValue = stream.ReadInt32();
+        HarvestId = stream.ReadInt32();
         Amount = stream.ReadInt16();
     }
 }
