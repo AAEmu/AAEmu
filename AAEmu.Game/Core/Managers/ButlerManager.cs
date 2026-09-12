@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models;
 using MySql.Data.MySqlClient;
 using NLog;
 
@@ -24,6 +25,7 @@ public sealed class ButlerManager : Singleton<ButlerManager>, IButlerManager, IL
     private readonly IItemManager _itemManager;
     private readonly Action<Character, GamePacket> _publishPacket;
     private readonly Func<uint, Character> _characterResolver;
+    private readonly Func<byte> _serverWorldId;
 
     public ButlerManager() : this(new MySqlButlerRepository())
     {
@@ -55,13 +57,15 @@ public sealed class ButlerManager : Singleton<ButlerManager>, IButlerManager, IL
         IButlerUnbindService unbindService,
         IItemManager itemManager = null,
         Action<Character, GamePacket> publishPacket = null,
-        Func<uint, Character> characterResolver = null)
+        Func<uint, Character> characterResolver = null,
+        Func<byte> serverWorldId = null)
     {
         this.repository = repository ?? throw new ArgumentNullException(nameof(repository));
         _unbindService = unbindService ?? throw new ArgumentNullException(nameof(unbindService));
         _itemManager = itemManager ?? ItemManager.Instance;
         _publishPacket = publishPacket ?? (static (character, packet) => character.SendPacket(packet));
         _characterResolver = characterResolver ?? (id => WorldManager.Instance.GetCharacterById(id));
+        _serverWorldId = serverWorldId ?? (static () => AppConfiguration.Instance.Id);
     }
 
     public void Load()
@@ -463,7 +467,12 @@ public sealed class ButlerManager : Singleton<ButlerManager>, IButlerManager, IL
     {
         var wire = ButlerInfoWire.Empty(
             ownerId,
-            CharacterBlocked.LocalWorldId,
+            includeResidenceState
+                // 10.0.2.13 FUN_3918C830 exposes bound state only when this byte matches the
+                // current game-server shard byte set by SCShowCurrentWorld. It is not a world
+                // template or instance id. FUN_390CEF60 stores the signed wire byte unchanged.
+                ? unchecked((sbyte)_serverWorldId())
+                : CharacterButler.UnboundWorldId,
             butler.Name,
             houseTlId,
             butler.LaborPower,

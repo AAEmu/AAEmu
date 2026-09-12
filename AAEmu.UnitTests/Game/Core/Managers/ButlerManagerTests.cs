@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -17,7 +18,8 @@ public class ButlerManagerTests
     public async Task Bind_PersistsOwnedFinishedEligibleHouseBeforePublishingAssociation()
     {
         var repository = new RecordingRepository();
-        var manager = CreateManager(repository);
+        const byte serverWorldId = 7;
+        var manager = CreateManager(repository, serverWorldId: serverWorldId);
         var character = CreateCharacter(10);
         var house = CreateHouse(20, character.Id, true, 40);
 
@@ -34,7 +36,7 @@ public class ButlerManagerTests
         var presentation = manager.GetPresentation(character, _ => house);
         await Assert.That(presentation.IsBound).IsTrue();
         await Assert.That(presentation.Info.OwnerId).IsEqualTo((ulong)character.Id);
-        await Assert.That(presentation.Info.WorldId).IsEqualTo(CharacterBlocked.LocalWorldId);
+        await Assert.That(presentation.Info.WorldId).IsEqualTo(unchecked((sbyte)serverWorldId));
         await Assert.That(presentation.Info.Name).IsEqualTo(string.Empty);
         await Assert.That(presentation.Info.HouseTlId).IsEqualTo(house.TlId);
         await Assert.That(presentation.HouseName).IsEqualTo(house.Name);
@@ -227,7 +229,7 @@ public class ButlerManagerTests
         var freePresentation = manager.GetPresentation(character, _ => null);
         await Assert.That(freePresentation.IsBound).IsFalse();
         await Assert.That(freePresentation.Info.OwnerId).IsEqualTo((ulong)0);
-        await Assert.That(freePresentation.Info.WorldId).IsEqualTo(CharacterBlocked.LocalWorldId);
+        await Assert.That(freePresentation.Info.WorldId).IsEqualTo(CharacterButler.UnboundWorldId);
         await Assert.That(freePresentation.Info.Name).IsEqualTo("Mira");
         await Assert.That(freePresentation.Info.HouseTlId).IsEqualTo((ushort)0);
         await Assert.That(freePresentation.Info.LaborPower).IsEqualTo((uint)1234);
@@ -245,7 +247,7 @@ public class ButlerManagerTests
         await Assert.That(presentation.IsBound).IsFalse();
         await Assert.That(presentation.HouseName).IsEqualTo(string.Empty);
         await Assert.That(presentation.Info.OwnerId).IsEqualTo((ulong)0);
-        await Assert.That(presentation.Info.WorldId).IsEqualTo(CharacterBlocked.LocalWorldId);
+        await Assert.That(presentation.Info.WorldId).IsEqualTo(CharacterButler.UnboundWorldId);
         await Assert.That(presentation.Info.HouseTlId).IsEqualTo((ushort)0);
     }
 
@@ -264,6 +266,48 @@ public class ButlerManagerTests
         await Assert.That(manager.IsHouseBound(house.Id)).IsFalse();
         await Assert.That(manager.GetOrCreate(character.Id).HouseId).IsEqualTo((uint)0);
         await Assert.That(repository.Saved[^1].HouseId).IsEqualTo((uint)0);
+    }
+
+    [Test]
+    public async Task Bind_QueuesConfiguredShardByteAndPreservesHighBitPattern()
+    {
+        const byte serverWorldId = 0xfe;
+        SCButlerBoundPacket published = null;
+        var repository = new RecordingRepository();
+        var manager = CreateManager(
+            repository,
+            (_, packet) => published = packet as SCButlerBoundPacket,
+            serverWorldId);
+        var character = CreateCharacter(10);
+        var house = CreateHouse(20, character.Id, true, 40);
+
+        var result = manager.Bind(character, house, _ => house, notifyOwner: true);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(published).IsNotNull();
+        var stream = published.Write(new PacketStream());
+        stream.Rollback();
+        await Assert.That(stream.ReadUInt64()).IsEqualTo((ulong)character.Id);
+        await Assert.That(stream.ReadSByte()).IsEqualTo(unchecked((sbyte)serverWorldId));
+    }
+
+    [Test]
+    public async Task Presentation_LoadedBoundStateUsesConfiguredShardWhileFreeStateUsesResetSentinel()
+    {
+        const byte serverWorldId = 7;
+        var initial = new CharacterButlerRecord(10, 20, "Mira", 1234, 56, 78);
+        var repository = new RecordingRepository([initial]);
+        var manager = CreateManager(repository, serverWorldId: serverWorldId);
+        manager.Load();
+        var character = CreateCharacter(10);
+        var house = CreateHouse(20, character.Id, true, 40);
+
+        var bound = manager.GetPresentation(character, _ => house);
+        await Assert.That(bound.Info.WorldId).IsEqualTo(unchecked((sbyte)serverWorldId));
+
+        await Assert.That(manager.Unbind(character).Success).IsTrue();
+        var free = manager.GetPresentation(character, _ => null);
+        await Assert.That(free.Info.WorldId).IsEqualTo(CharacterButler.UnboundWorldId);
     }
 
     [Test]
@@ -463,13 +507,15 @@ public class ButlerManagerTests
 
     private static ButlerManager CreateManager(
         RecordingRepository repository,
-        Action<Character, GamePacket> publishPacket = null) =>
+        Action<Character, GamePacket> publishPacket = null,
+        byte serverWorldId = 7) =>
         new(
             repository,
             new RecordingUnbindService(repository),
             Mock.Of<IItemManager>().Object,
             publishPacket,
-            _ => null);
+            _ => null,
+            () => serverWorldId);
 
     private static House CreateHouse(uint id, uint ownerId, bool finished, ushort butlerGardenSize)
     {

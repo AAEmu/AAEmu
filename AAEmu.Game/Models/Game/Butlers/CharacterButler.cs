@@ -1,11 +1,13 @@
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Models.Game.Butlers;
 
 /// <summary>Persistent, character-owned farmhand state.</summary>
 public sealed class CharacterButler(uint characterId)
 {
+    /// <summary>The native reset value for a farmhand with no bound owner or residence.</summary>
+    public const sbyte UnboundWorldId = -1;
+
     private readonly Dictionary<sbyte, ulong> _permanentDatas = [];
     private readonly Dictionary<long, ButlerHarvestJob> _harvestJobs = [];
     private readonly Dictionary<ulong, ButlerStoredItem> _storedItems = [];
@@ -86,10 +88,10 @@ public sealed class CharacterButler(uint characterId)
         ButlerManager.Instance.Save(this, connection, transaction);
 
     public static ButlerInfoWire ResetWire =>
-        ButlerInfoWire.Empty(0, CharacterBlocked.LocalWorldId, string.Empty, 0, 0, 0, 0);
+        ButlerInfoWire.Empty(0, UnboundWorldId, string.Empty, 0, 0, 0, 0);
 
     internal ButlerInfoWire FreeWire =>
-        ButlerInfoWire.Empty(0, CharacterBlocked.LocalWorldId, Name, 0, LaborPower, LpChargedAmount, 0);
+        ButlerInfoWire.Empty(0, UnboundWorldId, Name, 0, LaborPower, LpChargedAmount, 0);
 }
 
 public readonly record struct CharacterButlerRecord(
