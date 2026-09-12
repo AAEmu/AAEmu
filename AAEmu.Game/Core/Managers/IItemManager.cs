@@ -29,6 +29,9 @@ public interface IItemManager : ILoadable
     bool TryGetFishConversion(uint functionId, uint sourceItemId, out uint outputItemId);
     GradeDistributions GetGradeDistributions(byte id);
     uint GetSocketChance(uint numSockets);
+    uint GetSocketChangeTarget(uint enchantItemTemplateId, uint sourceGemTemplateId);
+    bool IsSocketChangeStone(uint enchantItemTemplateId);
+    uint GetSocketLevelLimit(uint gemTemplateId);
     float GetDurabilityRepairCostFactor();
     float GetDurabilityConst();
     float GetHoldableDurabilityConst();

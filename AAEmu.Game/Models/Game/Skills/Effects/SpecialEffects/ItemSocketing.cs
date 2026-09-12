@@ -93,6 +93,15 @@ public class ItemSocketing : SpecialEffectAction
                 return;
             }
 
+            // item_socket_level_limits: a gem may only be seated into a piece of at least its level
+            // (the socket_target_level refusal). Zero, which most gems carry, means no restriction.
+            var levelLimit = ItemManager.Instance.GetSocketLevelLimit(gemItem.TemplateId);
+            if (levelLimit > 0 && (equipItem.Template?.Level ?? 0) < levelLimit)
+            {
+                owner.SendErrorMessage(ErrorMessageType.SocketTargetLevel);
+                return;
+            }
+
             // Formula 38 prices the attempt: it climbs with the gear's level, the gem's own level and
             // how many sockets are already filled. Charged before the roll, so a player who cannot
             // cover it keeps both their coin and their gem - and a failure that clears the item is

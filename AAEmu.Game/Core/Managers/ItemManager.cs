@@ -67,6 +67,21 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
     /// <summary>Which chance row a lunagem is seated under, by its item template.</summary>
     private Dictionary<uint, uint> _gemSocketChanceRow;
+
+    /// <summary>
+    /// Socket changes (<c>item_socket_changes</c>): a conversion or upgrade stone turns one seated gem
+    /// into another. Keyed by (stone template, seated gem template); the value is the gem it becomes.
+    /// </summary>
+    private Dictionary<(uint enchantItem, uint sourceGem), uint> _socketChanges;
+
+    /// <summary>Stones that change at least one gem, for a cheap "is this a socket change item" check.</summary>
+    private HashSet<uint> _socketChangeStones;
+
+    /// <summary>
+    /// The lowest equipment level a lunagem may be seated into (<c>item_socket_level_limits</c>), by
+    /// gem template. Zero means no limit.
+    /// </summary>
+    private Dictionary<uint, uint> _socketLevelLimits;
     private Dictionary<uint, List<BonusTemplate>> _itemUnitModifiers;
 
     // Loot related
@@ -235,6 +250,27 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     {
         return !_gemSocketChanceRow.TryGetValue(gemTemplateId, out var rowId) ||
                _socketChanceFailBreaks.Contains(rowId);
+    }
+
+    /// <summary>
+    /// What the seated gem <paramref name="sourceGemTemplateId"/> becomes when the stone
+    /// <paramref name="enchantItemTemplateId"/> is used on it, or 0 when that stone does not touch it.
+    /// </summary>
+    public uint GetSocketChangeTarget(uint enchantItemTemplateId, uint sourceGemTemplateId)
+    {
+        return _socketChanges.GetValueOrDefault((enchantItemTemplateId, sourceGemTemplateId), 0u);
+    }
+
+    /// <summary>Whether an item template is a socket change stone at all.</summary>
+    public bool IsSocketChangeStone(uint enchantItemTemplateId)
+    {
+        return _socketChangeStones.Contains(enchantItemTemplateId);
+    }
+
+    /// <summary>The lowest equipment level this gem may be seated into; 0 when unrestricted.</summary>
+    public uint GetSocketLevelLimit(uint gemTemplateId)
+    {
+        return _socketLevelLimits.GetValueOrDefault(gemTemplateId, 0u);
     }
 
     public float GetDurabilityRepairCostFactor()
@@ -482,6 +518,9 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         _socketNumLimits = [];
         _socketChanceFailBreaks = [];
         _gemSocketChanceRow = [];
+        _socketChanges = [];
+        _socketChangeStones = [];
+        _socketLevelLimits = [];
         _itemLookConverts = [];
         _holdableItemLookConverts = [];
         _wearableItemLookConverts = [];
@@ -1392,6 +1431,42 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                         _gemSocketChanceRow[gemTemplateId] = reader.GetUInt32("item_socket_chance_id", 0);
                 }
             }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT enchant_item_id, source_item_id, target_item_id FROM item_socket_changes";
+                command.Prepare();
+                using var sqliteReader = command.ExecuteReader();
+                using var reader = new SQLiteWrapperReader(sqliteReader);
+                while (reader.Read())
+                {
+                    var stone = reader.GetUInt32("enchant_item_id", 0);
+                    var source = reader.GetUInt32("source_item_id", 0);
+                    var target = reader.GetUInt32("target_item_id", 0);
+                    if (stone == 0 || source == 0 || target == 0)
+                        continue;
+                    _socketChanges[(stone, source)] = target;
+                    _socketChangeStones.Add(stone);
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT item_id, level FROM item_socket_level_limits";
+                command.Prepare();
+                using var sqliteReader = command.ExecuteReader();
+                using var reader = new SQLiteWrapperReader(sqliteReader);
+                while (reader.Read())
+                {
+                    var gemTemplateId = reader.GetUInt32("item_id", 0);
+                    var level = reader.GetUInt32("level", 0);
+                    if (gemTemplateId != 0 && level > 0)
+                        _socketLevelLimits[gemTemplateId] = level;
+                }
+            }
+
+            Logger.Info("Loaded {0} socket changes for {1} stones and {2} socket level limits",
+                _socketChanges.Count, _socketChangeStones.Count, _socketLevelLimits.Count);
 
             // Load main item templates
 
