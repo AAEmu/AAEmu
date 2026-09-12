@@ -14,6 +14,10 @@ namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class ButlerManagerTests
 {
+    private static readonly TimeSpan WorkerStartTimeout = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan WorkerTeardownTimeout = TimeSpan.FromSeconds(5);
+    private static readonly TimeSpan BlockedWorkerObservation = TimeSpan.FromMilliseconds(250);
+
     [Test]
     public async Task Bind_PersistsOwnedFinishedEligibleHouseBeforePublishingAssociation()
     {
@@ -93,7 +97,7 @@ public class ButlerManagerTests
     [Test]
     public async Task Bind_DoesNotHoldRegistryLockWhileDurableWriteWaits()
     {
-        using var writeEntered = new ManualResetEventSlim();
+        var writeEntered = NewSignal();
         using var continueWrite = new ManualResetEventSlim();
         var repository = new RecordingRepository
         {
@@ -103,20 +107,26 @@ public class ButlerManagerTests
         var manager = CreateManager(repository);
         var character = CreateCharacter(10);
         var house = CreateHouse(20, character.Id, true, 40);
-        var bind = Task.Run(() => manager.Bind(character, house, _ => house));
+        var bind = RunOnDedicatedThread(() => manager.Bind(character, house, _ => house));
+        Task<CharacterButler> registryLookup = null;
 
         try
         {
-            await Assert.That(writeEntered.Wait(TimeSpan.FromSeconds(2))).IsTrue();
-            var registryLookup = Task.Run(() => manager.GetOrCreate(99));
-            var completed = await Task.WhenAny(registryLookup, Task.Delay(TimeSpan.FromSeconds(2)));
-
-            await Assert.That(ReferenceEquals(completed, registryLookup)).IsTrue();
-            await Assert.That(await registryLookup).IsNotNull();
+            await writeEntered.Task.WaitAsync(WorkerStartTimeout);
+            var registryLookupStarted = NewSignal();
+            registryLookup = RunOnDedicatedThread(() =>
+            {
+                registryLookupStarted.TrySetResult(true);
+                return manager.GetOrCreate(99);
+            });
+            await registryLookupStarted.Task.WaitAsync(WorkerStartTimeout);
+            await Assert.That(await registryLookup.WaitAsync(WorkerStartTimeout)).IsNotNull();
         }
         finally
         {
             continueWrite.Set();
+            await Task.WhenAll(bind, registryLookup is null ? Task.CompletedTask : registryLookup)
+                .WaitAsync(WorkerTeardownTimeout);
         }
 
         await Assert.That((await bind).Success).IsTrue();
@@ -129,23 +139,40 @@ public class ButlerManagerTests
         var manager = CreateManager(repository);
         var character = CreateCharacter(10);
         var house = CreateHouse(20, character.Id, true, 40);
-        using var transitionEntered = new ManualResetEventSlim();
+        var transitionEntered = NewSignal();
         using var finishTransition = new ManualResetEventSlim();
-        var transition = Task.Run(() =>
+        var transition = RunOnDedicatedThread(() =>
         {
             lock (house.LifecycleSyncRoot)
             {
-                transitionEntered.Set();
-                finishTransition.Wait();
+                transitionEntered.TrySetResult(true);
+                if (!finishTransition.Wait(WorkerTeardownTimeout))
+                    throw new TimeoutException("Timed out waiting to finish the house lifecycle transition.");
                 house.OwnerId = 11;
             }
         });
-        transitionEntered.Wait();
-
-        var bind = Task.Run(() => manager.Bind(character, house, _ => house));
-        finishTransition.Set();
-        await transition;
-        var result = await bind;
+        Task<ButlerOperationResult> bind = null;
+        ButlerOperationResult result;
+        try
+        {
+            await transitionEntered.Task.WaitAsync(WorkerStartTimeout);
+            var bindStarted = NewSignal();
+            bind = RunOnDedicatedThread(() =>
+            {
+                bindStarted.TrySetResult(true);
+                return manager.Bind(character, house, _ => house);
+            });
+            await bindStarted.Task.WaitAsync(WorkerStartTimeout);
+            finishTransition.Set();
+            await transition.WaitAsync(WorkerTeardownTimeout);
+            result = await bind.WaitAsync(WorkerTeardownTimeout);
+        }
+        finally
+        {
+            finishTransition.Set();
+            await Task.WhenAll(transition, bind is null ? Task.CompletedTask : bind)
+                .WaitAsync(WorkerTeardownTimeout);
+        }
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(result.Error).IsEqualTo(ErrorMessageType.InteractionPermissionDeny);
@@ -159,23 +186,40 @@ public class ButlerManagerTests
         var manager = CreateManager(repository);
         var character = CreateCharacter(10);
         var house = CreateHouse(20, character.Id, true, 40);
-        using var transitionEntered = new ManualResetEventSlim();
+        var transitionEntered = NewSignal();
         using var finishTransition = new ManualResetEventSlim();
-        var removal = Task.Run(() =>
+        var removal = RunOnDedicatedThread(() =>
         {
             lock (house.LifecycleSyncRoot)
             {
-                transitionEntered.Set();
-                finishTransition.Wait();
+                transitionEntered.TrySetResult(true);
+                if (!finishTransition.Wait(WorkerTeardownTimeout))
+                    throw new TimeoutException("Timed out waiting to finish the house removal transition.");
                 house.IsRemovedFromWorld = true;
             }
         });
-        transitionEntered.Wait();
-
-        var bind = Task.Run(() => manager.Bind(character, house, _ => null));
-        finishTransition.Set();
-        await removal;
-        var result = await bind;
+        Task<ButlerOperationResult> bind = null;
+        ButlerOperationResult result;
+        try
+        {
+            await transitionEntered.Task.WaitAsync(WorkerStartTimeout);
+            var bindStarted = NewSignal();
+            bind = RunOnDedicatedThread(() =>
+            {
+                bindStarted.TrySetResult(true);
+                return manager.Bind(character, house, _ => null);
+            });
+            await bindStarted.Task.WaitAsync(WorkerStartTimeout);
+            finishTransition.Set();
+            await removal.WaitAsync(WorkerTeardownTimeout);
+            result = await bind.WaitAsync(WorkerTeardownTimeout);
+        }
+        finally
+        {
+            finishTransition.Set();
+            await Task.WhenAll(removal, bind is null ? Task.CompletedTask : bind)
+                .WaitAsync(WorkerTeardownTimeout);
+        }
 
         await Assert.That(result.Success).IsFalse();
         await Assert.That(repository.Saved).IsEmpty();
@@ -313,7 +357,7 @@ public class ButlerManagerTests
     [Test]
     public async Task Unbind_QueuesSuccessBeforeConcurrentRebindCanQueueBound()
     {
-        using var unboundPublisherEntered = new ManualResetEventSlim();
+        var unboundPublisherEntered = NewSignal();
         using var releaseUnboundPublisher = new ManualResetEventSlim();
         var published = new ConcurrentQueue<string>();
         var repository = new RecordingRepository();
@@ -327,8 +371,8 @@ public class ButlerManagerTests
                 case SCButlerUnboundPacket _:
                     unboundPublishedUnderOperationLock = Monitor.IsEntered(butler.OperationSyncRoot);
                     published.Enqueue("unbound");
-                    unboundPublisherEntered.Set();
-                    if (!releaseUnboundPublisher.Wait(TimeSpan.FromSeconds(5)))
+                    unboundPublisherEntered.TrySetResult(true);
+                    if (!releaseUnboundPublisher.Wait(WorkerTeardownTimeout))
                         throw new TimeoutException("Timed out waiting to release the unbound publisher.");
                     break;
                 case SCButlerBoundPacket _:
@@ -342,18 +386,27 @@ public class ButlerManagerTests
         var house = CreateHouse(20, character.Id, true, 40);
         await Assert.That(manager.Bind(character, house, _ => house).Success).IsTrue();
 
-        var unbind = Task.Run(() => manager.Unbind(character, notifyOwner: true));
-        await Assert.That(unboundPublisherEntered.Wait(TimeSpan.FromSeconds(2))).IsTrue();
-        var rebind = Task.Run(() => manager.Bind(character, house, _ => house, notifyOwner: true));
+        var unbind = RunOnDedicatedThread(() => manager.Unbind(character, notifyOwner: true));
+        Task<ButlerOperationResult> rebind = null;
 
         try
         {
-            var completed = await Task.WhenAny(rebind, Task.Delay(TimeSpan.FromMilliseconds(250)));
+            await unboundPublisherEntered.Task.WaitAsync(WorkerStartTimeout);
+            var rebindStarted = NewSignal();
+            rebind = RunOnDedicatedThread(() =>
+            {
+                rebindStarted.TrySetResult(true);
+                return manager.Bind(character, house, _ => house, notifyOwner: true);
+            });
+            await rebindStarted.Task.WaitAsync(WorkerStartTimeout);
+            var completed = await Task.WhenAny(rebind, Task.Delay(BlockedWorkerObservation));
             await Assert.That(ReferenceEquals(completed, rebind)).IsFalse();
         }
         finally
         {
             releaseUnboundPublisher.Set();
+            await Task.WhenAll(unbind, rebind is null ? Task.CompletedTask : rebind)
+                .WaitAsync(WorkerTeardownTimeout);
         }
 
         await Assert.That((await unbind).Success).IsTrue();
@@ -370,7 +423,7 @@ public class ButlerManagerTests
     [Test]
     public async Task Presentation_QueuesInitUnderStateLockBeforeConcurrentUpdate()
     {
-        using var initPublisherEntered = new ManualResetEventSlim();
+        var initPublisherEntered = NewSignal();
         using var releaseInitPublisher = new ManualResetEventSlim();
         var published = new ConcurrentQueue<string>();
         var manager = CreateManager(new RecordingRepository());
@@ -378,30 +431,34 @@ public class ButlerManagerTests
         var butler = manager.GetOrCreate(character.Id);
         var publishedUnderStateLock = false;
 
-        var init = Task.Run(() => manager.GetPresentation(character, _ => null, _ =>
+        var init = RunOnDedicatedThread(() => manager.GetPresentation(character, _ => null, _ =>
         {
             publishedUnderStateLock = Monitor.IsEntered(butler.SyncRoot);
             published.Enqueue("init");
-            initPublisherEntered.Set();
-            if (!releaseInitPublisher.Wait(TimeSpan.FromSeconds(5)))
+            initPublisherEntered.TrySetResult(true);
+            if (!releaseInitPublisher.Wait(WorkerTeardownTimeout))
                 throw new TimeoutException("Timed out waiting to release the init publisher.");
         }));
-        await Assert.That(initPublisherEntered.Wait(TimeSpan.FromSeconds(2))).IsTrue();
-
-        var update = Task.Run(() =>
-        {
-            lock (butler.OperationSyncRoot)
-            lock (butler.SyncRoot)
-                published.Enqueue("update");
-        });
+        Task update = null;
         try
         {
-            var completed = await Task.WhenAny(update, Task.Delay(TimeSpan.FromMilliseconds(250)));
+            await initPublisherEntered.Task.WaitAsync(WorkerStartTimeout);
+            var updateStarted = NewSignal();
+            update = RunOnDedicatedThread(() =>
+            {
+                updateStarted.TrySetResult(true);
+                lock (butler.OperationSyncRoot)
+                lock (butler.SyncRoot)
+                    published.Enqueue("update");
+            });
+            await updateStarted.Task.WaitAsync(WorkerStartTimeout);
+            var completed = await Task.WhenAny(update, Task.Delay(BlockedWorkerObservation));
             await Assert.That(ReferenceEquals(completed, update)).IsFalse();
         }
         finally
         {
             releaseInitPublisher.Set();
+            await Task.WhenAll(init, update ?? Task.CompletedTask).WaitAsync(WorkerTeardownTimeout);
         }
 
         await init;
@@ -417,7 +474,7 @@ public class ButlerManagerTests
     [Test]
     public async Task Presentation_QueuesStaleCleanupInitBeforeConcurrentRebindBound()
     {
-        using var initPublisherEntered = new ManualResetEventSlim();
+        var initPublisherEntered = NewSignal();
         using var releaseInitPublisher = new ManualResetEventSlim();
         var published = new ConcurrentQueue<string>();
         var initial = new CharacterButlerRecord(10, 20, "Mira", 1234, 56, 78);
@@ -431,24 +488,33 @@ public class ButlerManagerTests
         var character = CreateCharacter(10);
         var house = CreateHouse(20, character.Id, true, 40);
 
-        var init = Task.Run(() => manager.GetPresentation(character, _ => null, _ =>
+        var init = RunOnDedicatedThread(() => manager.GetPresentation(character, _ => null, _ =>
         {
             published.Enqueue("init");
-            initPublisherEntered.Set();
-            if (!releaseInitPublisher.Wait(TimeSpan.FromSeconds(5)))
+            initPublisherEntered.TrySetResult(true);
+            if (!releaseInitPublisher.Wait(WorkerTeardownTimeout))
                 throw new TimeoutException("Timed out waiting to release the stale-cleanup init publisher.");
         }));
-        await Assert.That(initPublisherEntered.Wait(TimeSpan.FromSeconds(2))).IsTrue();
-        var rebind = Task.Run(() => manager.Bind(character, house, _ => house, notifyOwner: true));
+        Task<ButlerOperationResult> rebind = null;
 
         try
         {
-            var completed = await Task.WhenAny(rebind, Task.Delay(TimeSpan.FromMilliseconds(250)));
+            await initPublisherEntered.Task.WaitAsync(WorkerStartTimeout);
+            var rebindStarted = NewSignal();
+            rebind = RunOnDedicatedThread(() =>
+            {
+                rebindStarted.TrySetResult(true);
+                return manager.Bind(character, house, _ => house, notifyOwner: true);
+            });
+            await rebindStarted.Task.WaitAsync(WorkerStartTimeout);
+            var completed = await Task.WhenAny(rebind, Task.Delay(BlockedWorkerObservation));
             await Assert.That(ReferenceEquals(completed, rebind)).IsFalse();
         }
         finally
         {
             releaseInitPublisher.Set();
+            await Task.WhenAll(init, rebind is null ? Task.CompletedTask : rebind)
+                .WaitAsync(WorkerTeardownTimeout);
         }
 
         await Assert.That((await init).Error).IsEqualTo(ErrorMessageType.NoErrorMessage);
@@ -503,6 +569,17 @@ public class ButlerManagerTests
         await Assert.That(repository.Saved).IsEmpty();
     }
 
+    private static TaskCompletionSource<bool> NewSignal() =>
+        new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+    // These tests intentionally block workers while asserting lock ordering. Dedicated threads
+    // keep those workers from starving the test runner's shared pool during parallel coverage runs.
+    private static Task RunOnDedicatedThread(Action action) =>
+        Task.Factory.StartNew(action, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+
+    private static Task<T> RunOnDedicatedThread<T>(Func<T> action) =>
+        Task.Factory.StartNew(action, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+
     private static Character CreateCharacter(uint id) => new(new UnitCustomModelParams()) { Id = id };
 
     private static ButlerManager CreateManager(
@@ -543,7 +620,7 @@ public class ButlerManagerTests
         public List<bool> OperationHeldDuringWrites { get; } = [];
         public bool ThrowOnSave { get; init; }
         public bool ReturnFalseOnSave { get; set; }
-        public ManualResetEventSlim WriteEntered { get; init; }
+        public TaskCompletionSource<bool> WriteEntered { get; init; }
         public ManualResetEventSlim ContinueWrite { get; init; }
 
         public IReadOnlyList<CharacterButlerRecord> LoadAll() => initial ?? [];
@@ -551,8 +628,8 @@ public class ButlerManagerTests
         public bool TryChangeHouse(CharacterButlerRecord record, uint expectedHouseId)
         {
             OperationHeldDuringWrites.Add(PersistenceGate.IsOperationHeld);
-            WriteEntered?.Set();
-            if (ContinueWrite != null && !ContinueWrite.Wait(TimeSpan.FromSeconds(5)))
+            WriteEntered?.TrySetResult(true);
+            if (ContinueWrite != null && !ContinueWrite.Wait(WorkerTeardownTimeout))
                 throw new TimeoutException("Timed out waiting to release the simulated durable write.");
             if (ThrowOnSave)
                 throw new InvalidOperationException("Simulated durable write failure");
