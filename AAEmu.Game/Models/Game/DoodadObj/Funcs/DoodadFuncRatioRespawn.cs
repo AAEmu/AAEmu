@@ -10,10 +10,12 @@ public class DoodadFuncRatioRespawn : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        Logger.Trace("DoodadFuncRatioRespawn : Ratio {0}, SpawnDoodadId {1}", Ratio, SpawnDoodadId);
+        var selected = owner.TrySelectPhaseRatio(Ratio);
+        Logger.Trace("DoodadFuncRatioRespawn: Weight {0}, Roll {1}, UpperBound {2}, SpawnDoodadId {3}",
+            Ratio, owner.PhaseRatio, owner.CumulativePhaseRatio, SpawnDoodadId);
 
         // Doodad spawn
-        if (owner.PhaseRatio <= Ratio && (owner.Spawner?.Id ?? 0) > 0)
+        if (selected && (owner.Spawner?.Id ?? 0) > 0)
         {
             /*
             var doodad = DoodadManager.Instance.Create(0, SpawnDoodadId);
@@ -26,7 +28,6 @@ public class DoodadFuncRatioRespawn : DoodadPhaseFuncTemplate
             return true; // Interrupt the PhaseFunc as new doodad is spawned
         }
 
-        owner.CumulativePhaseRatio -= Ratio;
         return false;
     }
 }

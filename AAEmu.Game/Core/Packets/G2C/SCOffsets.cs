@@ -595,7 +595,10 @@ public static class SCOffsets
     public const ushort SCBlockInstanceNotifyPacket = 0x210;
     public const ushort SCBlockItemSellFaileMessagePacket = 0x36F;
     public const ushort SCBossTelescopeToggledPacket = 0x226;
+    public const ushort SCButlerBoundPacket = 0x346;
     public const ushort SCButlerDespawnedPacket = 0x349;
+    public const ushort SCButlerInfoUpdatedPacket = 0x34B;
+    public const ushort SCButlerInitInfoPacket = 0x345;
     public const ushort SCButlerLookChangedPacket = 0x34D;
     public const ushort SCButlerSpawnedPacket = 0x347;
     public const ushort SCChangeAbilitySetPassiveBuffPacket = 0x14C;

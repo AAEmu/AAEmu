@@ -2921,8 +2921,14 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
     {
         Logger.Warn($"{character.Name} is placing a doodad {id} at position {x} {y} {z}");
 
-        // NOTE: If you would ever want to use player housing outside of main_world, you'll need to modify this
-        var targetHouse = !ignoreHouses ? housingManager.Value.GetHouseAtLocation(x, y) : null;
+        var targetHouse = !ignoreHouses
+            ? housingManager.Value.GetHouseAtLocation(character.ParentWorld, x, y)
+            : null;
+        if (targetHouse != null && !targetHouse.AllowedToInteract(character))
+        {
+            character.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
+            return null;
+        }
 
         // Create doodad
         var doodad = Instance.Create(character.ParentWorld, 0, id, character, true);

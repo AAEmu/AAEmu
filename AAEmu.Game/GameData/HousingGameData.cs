@@ -22,7 +22,7 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
     private List<ItemHousingDecoration> _housingItemHousingDecorations = [];
     private List<HousingItemHousings> _housingItemHousings = [];
     private Dictionary<uint, HousingTemplate> _housingTemplates = [];
-    private Dictionary<uint, float> _housingGardenRadii = [];
+    private Dictionary<uint, HousingSize> _housingSizes = [];
     /// <summary>
     /// <c>dominion_housings.housing_id</c> — the unique territory buildings (farm, workshop, warehouse,
     /// supervision post, altar, and their grade-2 rows). The client only loads this table.
@@ -35,6 +35,7 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
         _housingItemHousings = [];
         _housingDecorations = [];
         _housingItemHousingDecorations = [];
+        _housingSizes = [];
 
         // var houseTaxes = new Dictionary<uint, HouseTax>();
 
@@ -91,16 +92,7 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
             }
         }
 
-        using (var command = connection.CreateCommand())
-        {
-            command.CommandText = "SELECT * FROM housing_sizes";
-            command.Prepare();
-            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-            {
-                while (reader.Read())
-                    _housingGardenRadii[reader.GetUInt32("id")] = reader.GetFloat("garden_radius");
-            }
-        }
+        _housingSizes = LoadHousingSizes(connection);
 
         using (var command = connection.CreateCommand())
         {
@@ -322,10 +314,33 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
         {
             template.Name = LocalizationManager.Instance.Get("housings", "name", template.Id, template.Name);
             template.Taxation = TaxationsManager.Instance.taxations.GetValueOrDefault(template.TaxationId);
-            template.GardenRadius = _housingGardenRadii.GetValueOrDefault(template.HousingSizeId);
+            template.HousingSize = _housingSizes.GetValueOrDefault(template.HousingSizeId);
         }
 
         ResolveBindingPositionsFromClientData();
+    }
+
+    internal static Dictionary<uint, HousingSize> LoadHousingSizes(SqliteConnection connection)
+    {
+        var sizes = new Dictionary<uint, HousingSize>();
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT id, butler_garden_size, garden_radius, housing_view_size_id FROM housing_sizes";
+        command.Prepare();
+        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+        while (reader.Read())
+        {
+            var size = new HousingSize
+            {
+                Id = reader.GetUInt32("id"),
+                ButlerGardenSize = reader.GetUInt16("butler_garden_size"),
+                GardenRadius = reader.GetFloat("garden_radius"),
+                HousingViewSizeId = reader.GetUInt32("housing_view_size_id")
+            };
+            sizes.Add(size.Id, size);
+        }
+
+        return sizes;
     }
 
     /// <summary>

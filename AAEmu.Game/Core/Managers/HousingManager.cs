@@ -2687,16 +2687,21 @@ public class HousingManager(
     /// <summary>
     /// Returns a house where the given position falls within boundaries of the house 
     /// </summary>
+    /// <param name="world">World instance containing the position.</param>
     /// <param name="x"></param>
     /// <param name="y"></param>
     /// <returns>Target House or Null</returns>
-    public House GetHouseAtLocation(float x, float y)
+    public House GetHouseAtLocation(WorldInstance world, float x, float y)
     {
+        if (world == null)
+            return null;
+
         // TODO: Check if all houses actually use a square shape aligned to grid
-        // TODO: Add world and/or instance checks
         foreach (var h in _houses)
         {
             var house = h.Value;
+            if (house.ParentWorld != world)
+                continue;
             // 10.x: plot bounds from housing_sizes.garden_radius
             var r = house.Template?.GardenRadius ?? 0f;
             var bounds = new RectangleF(house.Transform.World.Position.X - r, house.Transform.World.Position.Y - r,
@@ -2707,6 +2712,4 @@ public class HousingManager(
         return null;
     }
 }
-
-
 

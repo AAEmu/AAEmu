@@ -6,6 +6,9 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Details;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.UnitTests.Game.Core.Managers.UnitManagers;
@@ -961,6 +964,45 @@ public class DoodadManagerTests
         await Assert.That(result3).IsNotNull();
         await Assert.That(result2.Id).IsEqualTo(result1.Id);
         await Assert.That(result3.Id).IsEqualTo(result2.Id);
+    }
+
+    [Test]
+    public async Task CreatePlayerDoodad_PrivateHouseDenied_DoesNotCreateOrConsumeResources()
+    {
+        var mockObjId = Mock.Of<INonUnitObjectIdManager>();
+        var mockDoodadId = Mock.Of<IDoodadIdManager>();
+        var mockItem = Mock.Of<IItemManager>();
+        var mockHousing = Mock.Of<IHousingManager>();
+        var mockSus = Mock.Of<ISusManager>();
+        var manager = CreateManager(mockObjId.Object, mockDoodadId.Object, mockItem.Object,
+            new Lazy<IHousingManager>(() => mockHousing.Object), mockSus.Object);
+        var world = new WorldInstance(new WorldTemplate { Name = "test" }, 0, true, 12);
+        var character = new Character(new UnitCustomModelParams())
+        {
+            Id = 100,
+            AccountId = 100,
+            Name = "Planter"
+        };
+        typeof(GameObject).GetField("_parentWorld",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .SetValue(character, world);
+        var house = new House
+        {
+            OwnerId = 200,
+            Permission = HousingPermission.Private,
+            Template = new HousingTemplate { AlwaysPublic = false }
+        };
+        SetPrivateField(house, "_currentStep", -1);
+        mockHousing.GetHouseAtLocation(world, 10f, 20f).Returns(house);
+        var laborBefore = character.LaborPower;
+
+        var result = manager.CreatePlayerDoodad(character, 500, 10f, 20f, 3f, 0f, 1f, 900);
+
+        await Assert.That(result).IsNull();
+        await Assert.That(character.LaborPower).IsEqualTo(laborBefore);
+        Mock.VerifyNoOtherCalls(mockObjId);
+        Mock.VerifyNoOtherCalls(mockDoodadId);
+        Mock.VerifyNoOtherCalls(mockItem);
     }
 
     #endregion

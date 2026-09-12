@@ -351,6 +351,21 @@ public class Doodad : BaseUnit
     /// </summary>
     public int CumulativePhaseRatio { get; set; }
 
+    internal const int PhaseRatioScale = 10000;
+
+    internal void BeginPhaseRatioSelection(int phaseRatio)
+    {
+        PhaseRatio = phaseRatio;
+        CumulativePhaseRatio = 0;
+    }
+
+    internal bool TrySelectPhaseRatio(int ratio)
+    {
+        var lowerBound = CumulativePhaseRatio;
+        CumulativePhaseRatio += ratio;
+        return PhaseRatio >= lowerBound && PhaseRatio < CumulativePhaseRatio;
+    }
+
     /// <summary>
     /// Used to indicate the starting phase of the doodad should be overriden when loading player doodads
     /// </summary>
@@ -926,15 +941,13 @@ public class Doodad : BaseUnit
             return false; // no phase functions for FuncGroupId
         }
 
-        //CumulativePhaseRatio = 0; // не требуется
+        BeginPhaseRatioSelection(Random.Shared.Next(PhaseRatioScale));
         var stop = false;
 
         // Perform the phase functions one after the other
         foreach (var phaseFunc in phaseFuncs)
         {
             if (phaseFunc == null) { continue; }
-
-            PhaseRatio = Random.Shared.Next(0, 10000); // проверяем шанс для каждой фазовой функции
 
             stop = phaseFunc.Use(caster, this);
             if (stop)
