@@ -190,6 +190,11 @@ public static class Program
                 services.AddSingleton<HeroManager>();
                 services.AddSingleton<IHeroManager>(sp => sp.GetRequiredService<HeroManager>());
 
+                services.AddSingleton<MySqlButlerRepository>();
+                services.AddSingleton<IButlerRepository>(sp => sp.GetRequiredService<MySqlButlerRepository>());
+                services.AddSingleton<ButlerManager>();
+                services.AddSingleton<IButlerManager>(sp => sp.GetRequiredService<ButlerManager>());
+
                 services.AddSingleton<HousingManager>();
                 services.AddSingleton<IHousingManager>(sp => sp.GetRequiredService<HousingManager>());
 

@@ -22,6 +22,8 @@ public sealed class House : Unit
     public override BaseUnitType BaseUnitType => BaseUnitType.Housing;
     public override ModelPostureType ModelPostureType { get => ModelPostureType.HouseState; }
     private readonly object _lock = new();
+    internal object LifecycleSyncRoot { get; } = new();
+    internal bool IsRemovedFromWorld { get; set; }
     private HousingTemplate _template;
     private int _currentStep;
     private bool _isBeingLoadedFromDb;
@@ -387,7 +389,7 @@ public sealed class House : Unit
         stream.Write(0u);                                       // TODO(v10): expandedDecoLimit — no server-side source yet
         stream.Write(0);                                        // unnamed i32 at struct +0x80
         stream.Write(Permission == HousingPermission.Public);   // isPublic (bool)
-        stream.Write(false);                                    // TODO(v10): isBoundButler — butlers are not modelled yet
+        stream.Write(ButlerManager.Instance.IsHouseBound(Id));   // isBoundButler
         stream.Write(0);                                        // unnamed i32 at struct +0x82
 
         // Five ucc slots, each houseId + u64 + kind + position. Empty until user-created content

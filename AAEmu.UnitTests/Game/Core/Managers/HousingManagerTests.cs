@@ -27,6 +27,7 @@ public class HousingManagerTests
         var mockZone = Mock.Of<IZoneManager>();
         var mockDoodad = Mock.Of<IDoodadManager>();
         var mockUcc = Mock.Of<IUccManager>();
+        var mockButler = Mock.Of<IButlerManager>();
         var mockDominion = Mock.Of<IDominionManager>();
         var mockGuildDominion = Mock.Of<IGuildDominionManager>();
 
@@ -45,6 +46,7 @@ public class HousingManagerTests
             mockZone.Object,
             mockDoodad.Object,
             mockUcc.Object,
+            mockButler.Object,
             mockDominion.Object,
             mockGuildDominion.Object);
 
@@ -63,6 +65,7 @@ public class HousingManagerTests
         Mock.VerifyNoOtherCalls(mockZone);
         Mock.VerifyNoOtherCalls(mockDoodad);
         Mock.VerifyNoOtherCalls(mockUcc);
+        Mock.VerifyNoOtherCalls(mockButler);
         Mock.VerifyNoOtherCalls(mockDominion);
         Mock.VerifyNoOtherCalls(mockGuildDominion);
     }
@@ -99,6 +102,36 @@ public class HousingManagerTests
         await Assert.That(result).IsNull();
     }
 
+    [Test]
+    public async Task PrepareOwnershipTransfer_DoesNotUnbindSellerWhenPaymentFails()
+    {
+        var unbindCalled = false;
+        var refundCalled = false;
+
+        var result = HousingManager.PrepareOwnershipTransfer(
+            () => false,
+            () => unbindCalled = true,
+            () => refundCalled = true);
+
+        await Assert.That(result).IsEqualTo(HousingManager.HousePurchasePreparation.PaymentFailed);
+        await Assert.That(unbindCalled).IsFalse();
+        await Assert.That(refundCalled).IsFalse();
+    }
+
+    [Test]
+    public async Task PrepareOwnershipTransfer_RefundsBuyerWhenDurableUnbindFails()
+    {
+        var refundCalled = false;
+
+        var result = HousingManager.PrepareOwnershipTransfer(
+            () => true,
+            () => false,
+            () => refundCalled = true);
+
+        await Assert.That(result).IsEqualTo(HousingManager.HousePurchasePreparation.ButlerUnbindFailed);
+        await Assert.That(refundCalled).IsTrue();
+    }
+
     private static HousingManager CreateManager()
     {
         return new HousingManager(
@@ -116,6 +149,7 @@ public class HousingManagerTests
             Mock.Of<IZoneManager>().Object,
             Mock.Of<IDoodadManager>().Object,
             Mock.Of<IUccManager>().Object,
+            Mock.Of<IButlerManager>().Object,
             Mock.Of<IDominionManager>().Object,
             Mock.Of<IGuildDominionManager>().Object);
     }

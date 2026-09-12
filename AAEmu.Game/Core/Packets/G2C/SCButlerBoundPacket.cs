@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Butlers;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Opcode 0x346. The 10.0.2.13 client serializer at <c>FUN_39C76210</c> writes the common state,
+/// Opcode 0x346. The 10.0.2.13 client serializer at <c>FUN_39C76210</c> writes the complete Butler state,
 /// house name, then the raw ErrorMessage value.
 /// </summary>
 public class SCButlerBoundPacket(ButlerInfoWire info, string houseName, ushort errorMessage)
@@ -13,7 +13,7 @@ public class SCButlerBoundPacket(ButlerInfoWire info, string houseName, ushort e
 {
     public override PacketStream Write(PacketStream stream)
     {
-        SCButlerInitInfoPacket.WriteCommonInfo(stream, info);
+        info.Write(stream);
         stream.Write(houseName);
         stream.Write(errorMessage);
         return stream;

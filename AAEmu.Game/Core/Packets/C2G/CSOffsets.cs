@@ -399,6 +399,7 @@ public static class CSOffsets
     public const ushort CSSiegeRaidRegisterAckPacket = 0x1E9;
     public const ushort CSSpecialtyCurrentLoadPacket = 0x18D;
     public const ushort CSSpecialtyPacket = 0x188;
+    public const ushort CSSwapButlerItemPacket = 0x1F1;
     public const ushort CSTakeScheduleItemPacket = 0x196;
     public const ushort CSTeamJointBreakPacket = 0x0C5;
     public const ushort CSTeamJointPacket = 0x0C4;

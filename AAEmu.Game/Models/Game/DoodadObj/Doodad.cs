@@ -980,6 +980,12 @@ public class Doodad : BaseUnit
     /// <returns>If TRUE, it did not pass the check for the quest (it must be aborted)</returns>
     public bool DoChangePhase(BaseUnit caster, int nextPhase)
     {
+        lock (this)
+            return DoChangePhaseLocked(caster, nextPhase);
+    }
+
+    private bool DoChangePhaseLocked(BaseUnit caster, int nextPhase)
+    {
         // здесь не надо удалять doodad
         //if (nextPhase == -1)
         //{

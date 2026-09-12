@@ -14,45 +14,13 @@ public static class EquipmentSerializer
 {
     public const int SlotCount = 34; // 10.0.2.13 equip-slot count (AAEmu fills 0..27; 28..33 stay empty)
 
+    // FUN_3939C700 is also invoked by the 10.0.2.13 Butler state serializer with this raw mode.
+    // Butler is not a BaseUnitType and must not be represented as a synthetic Unit just to emit gear.
+    private const int ButlerMode = 7;
+
     public static void Write(PacketStream stream, Unit unit, BaseUnitType baseUnitType)
     {
-        ulong validFlags = 0;
-        for (var i = 0; i < SlotCount; i++)
-        {
-            if (unit.Equipment.GetItemBySlot(i) != null)
-                validFlags |= 1UL << i;
-        }
-        stream.Write(validFlags);
-
-        for (var i = 0; i < SlotCount; i++)
-        {
-            var item = unit.Equipment.GetItemBySlot(i);
-            if (item == null)
-                continue; // empty slots emit nothing in v10 (validFlags already marked them)
-
-            if (i is >= 19 and <= 25 && baseUnitType != BaseUnitType.Slave)
-            {
-                stream.Write(item.TemplateId); // body-image slots: templateId only
-            }
-            else if (baseUnitType == BaseUnitType.Npc)
-            {
-                if (i == 27 || i is >= 31 and <= 33)
-                {
-                    stream.Write(item); // full item
-                }
-                else
-                {
-                    stream.Write(item.TemplateId); // compact item
-                    stream.Write(item.Id);
-                    stream.Write(item.Grade);
-                }
-            }
-            else if (baseUnitType is BaseUnitType.Character or BaseUnitType.Slave or
-                     BaseUnitType.Housing or BaseUnitType.Mate)
-            {
-                stream.Write(item);
-            }
-        }
+        WriteCore(stream, unit.Equipment.GetItemBySlot, (int)baseUnitType);
 
         // Per-slot equipment flags: bit i says the synthesis effects of the piece in slot i count
         // toward the wearer's attributes. The client unpacks the word into one byte per slot and
@@ -66,6 +34,67 @@ public static class EquipmentSerializer
         // marked here.
         if (baseUnitType == BaseUnitType.Character)
             stream.Write(BuildRndAttrActivationMask(unit));
+    }
+
+    /// <summary>
+    /// Writes Butler equipment using the mode-7 branch of the 10.0.2.13 client helper
+    /// <c>FUN_3939C700</c>. The helper has the same 34-slot mask as unit equipment but serializes
+    /// body-image slots 19 through 25 as template ids only.
+    /// </summary>
+    public static void WriteButler(PacketStream stream, IReadOnlyDictionary<int, Item> equipment)
+    {
+        ArgumentNullException.ThrowIfNull(equipment);
+
+        foreach (var (slot, item) in equipment)
+        {
+            if (slot is < 0 or >= SlotCount)
+                throw new ArgumentOutOfRangeException(nameof(equipment), slot, $"Butler equipment slots are 0 through {SlotCount - 1}.");
+            if (item is null || item.TemplateId == 0)
+                throw new ArgumentException("Butler equipment entries must have a non-zero template id.", nameof(equipment));
+        }
+
+        WriteCore(stream, slot => equipment.GetValueOrDefault(slot), ButlerMode);
+    }
+
+    private static void WriteCore(PacketStream stream, Func<int, Item?> getItemBySlot, int mode)
+    {
+        ulong validFlags = 0;
+        for (var i = 0; i < SlotCount; i++)
+        {
+            if (getItemBySlot(i) != null)
+                validFlags |= 1UL << i;
+        }
+        stream.Write(validFlags);
+
+        for (var i = 0; i < SlotCount; i++)
+        {
+            var item = getItemBySlot(i);
+            if (item == null)
+                continue; // empty slots emit nothing in v10 (validFlags already marked them)
+
+            if (i is >= 19 and <= 25 && mode != (int)BaseUnitType.Slave)
+            {
+                stream.Write(item.TemplateId); // body-image slots: templateId only
+            }
+            else if (mode == (int)BaseUnitType.Npc)
+            {
+                if (i == 27 || i is >= 31 and <= 33)
+                {
+                    stream.Write(item); // full item
+                }
+                else
+                {
+                    stream.Write(item.TemplateId); // compact item
+                    stream.Write(item.Id);
+                    stream.Write(item.Grade);
+                }
+            }
+            else if (mode is (int)BaseUnitType.Character or (int)BaseUnitType.Slave or
+                     (int)BaseUnitType.Housing or (int)BaseUnitType.Mate or ButlerMode)
+            {
+                stream.Write(item);
+            }
+        }
     }
 
     /// <summary>

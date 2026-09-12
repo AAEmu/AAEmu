@@ -738,6 +738,8 @@ public class CharacterManager(
     /// <param name="character">Character to delete assets from</param>
     public void DeleteCharacterAssets(Character character)
     {
+        ButlerManager.Instance.RemoveCharacter(character.Id);
+
         // Demolish owned houses
         var myHouses = new Dictionary<uint, House>();
         if (housingManager.GetByCharacterId(myHouses, character.Id) > 0)

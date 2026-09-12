@@ -126,6 +126,9 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
             foreach (var houseBatch in houses.Chunk(SCHouseDataPacket.MaxEntries))
                 Connection.SendPacket(new SCHouseDataPacket(houseBatch));
 
+            var butler = ButlerManager.Instance.GetPresentation(character);
+            Connection.SendPacket(new SCButlerInitInfoPacket(butler.HouseName, butler.Info));
+
             // Warm the resident map at world entry; the townhall Region tab reads cache.
             HousingManager.Instance.SendResidentMap(Connection, character.Id);
 

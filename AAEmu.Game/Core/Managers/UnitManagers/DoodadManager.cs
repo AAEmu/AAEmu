@@ -1565,6 +1565,19 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                 }
             }
 
+            // doodad_func_bind_butlers
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT id FROM doodad_func_bind_butlers";
+                command.Prepare();
+                using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+                while (reader.Read())
+                {
+                    var func = new DoodadFuncBindButler { Id = reader.GetUInt32("id") };
+                    _funcTemplates[nameof(DoodadFuncBindButler)].Add(func.Id, func);
+                }
+            }
+
             // doodad_func_open_papers
             using (var command = connection.CreateCommand())
             {

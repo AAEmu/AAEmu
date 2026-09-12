@@ -96,7 +96,7 @@ public static class HousingZoneBridge
         stream.Write(0); // expandedDecoLimit
         stream.Write(house.SellToPlayerId); // Kept at the u32 layout: the native zone host closes the connection on the long (u64) form.
         stream.Write(false); // isPublic
-        stream.Write(false); // isBoundButler
+        stream.Write(ButlerManager.Instance.IsHouseBound(house.Id)); // isBoundButler
         stream.Write(0u);
 
         for (var i = 0; i < 5; i++)

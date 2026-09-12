@@ -1359,6 +1359,13 @@ public class Skill
             }
         }
 
+        // Weighted effects are alternatives. Resolve the same one-roll selection before collecting
+        // costs so an unselected branch cannot require or consume its item.
+        var weightedTotal = effectsToApply.Sum(entry => entry.effect.Weight);
+        if (weightedTotal > 0)
+            RetainSelectedWeightedEffect(effectsToApply, Random.Shared.Next(weightedTotal));
+        lastAppliedEffect = effectsToApply.LastOrDefault().effect;
+
         // Handle consumption of items from effects (once per cast — scan ALL queued effects).
         // Using only lastAppliedEffect breaks multi-effect skills: farmer's pouch (23136) applies
         // GainLootPack (consume_source_item=t) then a conditional BuffEffect (consume=f). With a
@@ -1421,21 +1428,13 @@ public class Skill
                 }
             }
 
-            foreach (var (_, effect) in effectsToApply)
-            {
-                if (effect.ConsumeItemId == 0 || effect.ConsumeItemCount <= 0)
-                    continue;
-                if (effect.ConsumeSourceItem)
-                {
-                    consumedItemTemplates.Add((effect.ConsumeItemId, effect.ConsumeItemCount));
-                    continue;
-                }
-
-                var inventory = player.Inventory.CheckItems(SlotType.Inventory, effect.ConsumeItemId, effect.ConsumeItemCount);
-                var equipment = player.Inventory.CheckItems(SlotType.Equipment, effect.ConsumeItemId, effect.ConsumeItemCount);
-                if (inventory || equipment)
-                    consumedItemTemplates.Add((effect.ConsumeItemId, effect.ConsumeItemCount));
-            }
+            if (!TryQueueEffectItemConsumption(
+                    effectsToApply.Select(entry => entry.effect),
+                    itemId => checked(
+                        player.Inventory.GetItemsCount(SlotType.Inventory, itemId) +
+                        player.Inventory.GetItemsCount(SlotType.Equipment, itemId)),
+                    consumedItemTemplates))
+                return;
         }
 
         // This will handle all items with a reagent/product
@@ -1485,39 +1484,9 @@ public class Skill
             }
         }
 
-        // Check if any of the effects use Weight, and pick a random value
-        var weightedTotal = 0;
-        var selectedWeight = -1;
-        foreach (var (_, effect) in effectsToApply)
-            weightedTotal += effect.Weight;
-        if (weightedTotal > 0)
-            selectedWeight = Random.Shared.Next(weightedTotal);
-        var currentWeight = 0;
-        // (caster as Character)?.SendMessage($"Effect Random {selectedWeight+1}/{weightedTotal}");
-
         // Apply the effects that need to happen
         foreach (var (target, effect) in effectsToApply)
         {
-            // If this item uses Weight, handle the random selector
-            // For example NPC /useskill 13834 has multiple bubble chat effects that need to be picked from
-            // Probably used for some combat and loot skills as well
-            if (effect.Weight > 0)
-            {
-                // Check if we already have a result
-                if (selectedWeight == -1)
-                    continue;
-
-                // If selection is outside the current range, then skip this effect
-                currentWeight += effect.Weight;
-                if (selectedWeight >= currentWeight)
-                {
-                    continue;
-                }
-
-                // (caster as Character)?.SendMessage($"Selected Effect {effect.EffectId} ({currentWeight}) using {selectedWeight} / {weightedTotal} - Buff {effect.Template.BuffId}");
-                selectedWeight = -1;
-            }
-
             // Template can be null for some reason.
             if (effect.Template != null)
             {
@@ -1627,6 +1596,80 @@ public class Skill
                         amount, null);
             }
         }
+    }
+
+    /// <summary>
+    /// Keeps every unweighted effect and the one weighted alternative selected by <paramref name="roll"/>.
+    /// </summary>
+    internal static void RetainSelectedWeightedEffect(
+        List<(BaseUnit target, SkillEffect effect)> effects,
+        int roll)
+    {
+        var cumulativeWeight = 0;
+        var selectedIndex = -1;
+        for (var i = 0; i < effects.Count; i++)
+        {
+            var weight = effects[i].effect.Weight;
+            if (weight <= 0)
+                continue;
+
+            cumulativeWeight += weight;
+            if (roll < cumulativeWeight)
+            {
+                selectedIndex = i;
+                break;
+            }
+        }
+
+        for (var i = effects.Count - 1; i >= 0; i--)
+        {
+            if (effects[i].effect.Weight > 0 && i != selectedIndex)
+                effects.RemoveAt(i);
+        }
+    }
+
+    /// <summary>
+    /// Adds effect item costs only when the player owns the full aggregate amount that the
+    /// eventual inventory consumer can remove.
+    /// </summary>
+    internal bool TryQueueEffectItemConsumption(
+        IEnumerable<SkillEffect> effects,
+        Func<uint, int> getAvailableCount,
+        ICollection<(uint templateId, int amount)> destination)
+    {
+        var required = new Dictionary<uint, int>();
+        var sourceCosts = new List<(uint templateId, int amount)>();
+
+        foreach (var effect in effects)
+        {
+            if (effect.ConsumeItemId == 0 || effect.ConsumeItemCount <= 0)
+                continue;
+
+            if (effect.ConsumeSourceItem)
+            {
+                // Source-item handling has its own instance checks above; retain its existing cost path.
+                sourceCosts.Add((effect.ConsumeItemId, effect.ConsumeItemCount));
+                continue;
+            }
+
+            required.TryGetValue(effect.ConsumeItemId, out var amount);
+            required[effect.ConsumeItemId] = checked(amount + effect.ConsumeItemCount);
+        }
+
+        foreach (var (templateId, amount) in required)
+        {
+            if (getAvailableCount(templateId) >= amount)
+                continue;
+
+            Cancelled = true;
+            return false;
+        }
+
+        foreach (var cost in sourceCosts)
+            destination.Add(cost);
+        foreach (var cost in required)
+            destination.Add((cost.Key, cost.Value));
+        return true;
     }
 
     /// <summary>

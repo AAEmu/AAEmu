@@ -55,6 +55,17 @@ CREATE TABLE IF NOT EXISTS `character_bless_uthstin_pages` (
   PRIMARY KEY (`owner`, `page_index`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Bless Uthstin applied stats per page';
 
+CREATE TABLE IF NOT EXISTS `character_butlers` (
+  `character_id` int unsigned NOT NULL,
+  `house_id` int unsigned DEFAULT NULL,
+  `name` varchar(128) NOT NULL DEFAULT '',
+  `labor_power` int unsigned NOT NULL DEFAULT 0,
+  `lp_charged_amount` smallint unsigned NOT NULL DEFAULT 0,
+  `remain_production_cost` smallint unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`character_id`),
+  UNIQUE KEY `ux_character_butlers_house` (`house_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Character-owned farmhand state and durable house binding';
+
 CREATE TABLE IF NOT EXISTS `character_quest_cinema_end_effects` (
   `owner` int unsigned NOT NULL,
   `quest_id` int unsigned NOT NULL,

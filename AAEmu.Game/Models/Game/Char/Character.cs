@@ -12,6 +12,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Models.Game.Butlers;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Features;
@@ -897,6 +898,7 @@ public partial class Character : Unit, ICharacter
     public CharacterBlocked Blocked { get; set; }
     public CharacterFavoriteCrafts FavoriteCrafts { get; set; }
     public CharacterMates Mates { get; set; }
+    public CharacterButler Butler { get; set; }
 
     public byte ExpandedExpert { get; set; }
     public CharacterActability Actability { get; set; }
@@ -3809,6 +3811,7 @@ public partial class Character : Unit, ICharacter
             Quests.CheckDailyResetAtLogin();
             Mates = new CharacterMates(this);
             Mates.Load(connection);
+            Butler = ButlerManager.Instance.GetOrCreate(Id);
 
             LoadActionSlots(connection);
         }
@@ -4036,6 +4039,7 @@ public partial class Character : Unit, ICharacter
             Skills?.Save(connection, transaction);
             Quests?.Save(connection, transaction);
             Mates?.Save(connection, transaction);
+            Butler?.Save(connection, transaction);
             
             result = true;
         }
