@@ -1,3 +1,4 @@
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData;
 
 namespace AAEmu.UnitTests.Game.GameData;
@@ -133,6 +134,40 @@ public class ButlerGameDataTests : SqliteTestBase
         await Assert.That(data.TryGetTemplate(2, out _)).IsFalse();
         await Assert.That(data.TryGetTemplate(3, out var reloaded)).IsTrue();
         await Assert.That(reloaded.Name).IsEqualTo("Reloaded");
+    }
+
+    [Test]
+    public async Task Load_ResolvesTheOnlyButlerAndTreatsTheFollowingThresholdAsASentinel()
+    {
+        Execute(
+            """
+            INSERT INTO butlers VALUES (1, 'Farmhand', 2418, 1, 10000, 0, 80, 20000, 4232, 21, 200, 2);
+            INSERT INTO butler_levels VALUES (1, 1, 39, 4000, 38, 16547070, NULL, 4, 2);
+            INSERT INTO butler_levels VALUES (2, 1, 40, 5000, 39, 18545070, NULL, 4, 2);
+            INSERT INTO butler_levels VALUES (3, 1, 41, 5000, 40, 21515070, NULL, 4, 2);
+            """);
+        var data = new ButlerGameData();
+
+        data.Load(Connection);
+
+        await Assert.That(data.TryGetUniqueTemplate(out var template)).IsTrue();
+        await Assert.That(template.Id).IsEqualTo(1u);
+        await Assert.That(data.TryGetLevelForCumulativeExperience(1, 18545070, out var level)).IsTrue();
+        await Assert.That(level.Level).IsEqualTo(40u);
+        await Assert.That(data.TryGetLevelForCumulativeExperience(1, ulong.MaxValue, out var capped)).IsTrue();
+        await Assert.That(capped.Level).IsEqualTo(40u);
+        await Assert.That(data.TryGetMaximumLevel(1, out var maximum)).IsTrue();
+        await Assert.That(maximum.Level).IsEqualTo(40u);
+        await Assert.That(FeaturesManager.ResolveButlerLevelLimit(data)).IsEqualTo((byte)40);
+        await Assert.That(data.TryGetNextLevelExperienceThreshold(1, out var nextThreshold)).IsTrue();
+        await Assert.That(nextThreshold).IsEqualTo(21515070L);
+        await Assert.That(data.TryGetLevel(1, 41, out var sentinel)).IsTrue();
+        await Assert.That(sentinel.Level).IsEqualTo(41u);
+
+        Execute("INSERT INTO butlers VALUES (2, 'Second', 2, 1, 1, 0, 100, 0, 0, 0, 0, 0);");
+        data.Load(Connection);
+        await Assert.That(data.TryGetUniqueTemplate(out _)).IsFalse();
+        await Assert.That(FeaturesManager.ResolveButlerLevelLimit(data)).IsEqualTo((byte)0);
     }
 
     private void Seed()

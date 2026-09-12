@@ -97,6 +97,45 @@ public class SCButlerPacketTests
     }
 
     [Test]
+    public async Task HarvestUpdated_WritesEveryVerifiedFieldIncludingErrorAndChildData()
+    {
+        var harvestData = new ButlerHarvestDataWire(uint.MaxValue, short.MaxValue, short.MinValue, uint.MaxValue,
+            long.MinValue);
+        var stream = new SCButlerHarvestUpdatedPacket(byte.MaxValue, short.MinValue, long.MaxValue, harvestData)
+            .Write(new PacketStream());
+
+        stream.Rollback();
+        await Assert.That(stream.ReadByte()).IsEqualTo(byte.MaxValue);
+        await Assert.That(stream.ReadInt16()).IsEqualTo(short.MinValue);
+        await Assert.That(stream.ReadInt64()).IsEqualTo(long.MaxValue);
+        await Assert.That(stream.ReadUInt32()).IsEqualTo(uint.MaxValue);
+        await Assert.That(stream.ReadInt16()).IsEqualTo(short.MaxValue);
+        await Assert.That(stream.ReadInt16()).IsEqualTo(short.MinValue);
+        await Assert.That(stream.ReadUInt32()).IsEqualTo(uint.MaxValue);
+        await Assert.That(stream.ReadInt64()).IsEqualTo(long.MinValue);
+        await Assert.That(stream.LeftBytes).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task HarvestUpdated_WritesZeroKindAndErrorInsteadOfOmittingThem()
+    {
+        var stream = new SCButlerHarvestUpdatedPacket(0, 0, 0, new ButlerHarvestDataWire(0, 0, 0, 0, 0))
+            .Write(new PacketStream());
+
+        await Assert.That(stream.Count).IsEqualTo(31);
+        stream.Rollback();
+        await Assert.That(stream.ReadByte()).IsEqualTo((byte)0);
+        await Assert.That(stream.ReadInt16()).IsEqualTo((short)0);
+        await Assert.That(stream.ReadInt64()).IsEqualTo(0L);
+        await Assert.That(stream.ReadUInt32()).IsEqualTo(0u);
+        await Assert.That(stream.ReadInt16()).IsEqualTo((short)0);
+        await Assert.That(stream.ReadInt16()).IsEqualTo((short)0);
+        await Assert.That(stream.ReadUInt32()).IsEqualTo(0u);
+        await Assert.That(stream.ReadInt64()).IsEqualTo(0L);
+        await Assert.That(stream.LeftBytes).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task Unbound_WritesOnlyErrorMessage()
     {
         var stream = new SCButlerUnboundPacket(ushort.MaxValue).Write(new PacketStream());
@@ -107,12 +146,30 @@ public class SCButlerPacketTests
     }
 
     [Test]
+    public async Task ItemSwapped_WritesEchoTupleAndErrorInNativeOrder()
+    {
+        var stream = new SCButlerItemSwappedPacket(
+            0x12, 0x34, 0x56, 0x78, 0x1122334455667788UL, 0x99AA).Write(new PacketStream());
+
+        stream.Rollback();
+        await Assert.That(stream.ReadByte()).IsEqualTo((byte)0x12);
+        await Assert.That(stream.ReadByte()).IsEqualTo((byte)0x34);
+        await Assert.That(stream.ReadByte()).IsEqualTo((byte)0x56);
+        await Assert.That(stream.ReadByte()).IsEqualTo((byte)0x78);
+        await Assert.That(stream.ReadUInt64()).IsEqualTo(0x1122334455667788UL);
+        await Assert.That(stream.ReadUInt16()).IsEqualTo((ushort)0x99AA);
+        await Assert.That(stream.LeftBytes).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task ButlerOpcodes_MatchTheClientRegistrationSlots()
     {
         await Assert.That(SCOffsets.SCButlerInitInfoPacket).IsEqualTo((ushort)0x345);
         await Assert.That(SCOffsets.SCButlerBoundPacket).IsEqualTo((ushort)0x346);
         await Assert.That(SCOffsets.SCButlerUnboundPacket).IsEqualTo((ushort)0x348);
+        await Assert.That(SCOffsets.SCButlerItemSwappedPacket).IsEqualTo((ushort)0x34A);
         await Assert.That(SCOffsets.SCButlerInfoUpdatedPacket).IsEqualTo((ushort)0x34B);
+        await Assert.That(SCOffsets.SCButlerHarvestUpdatedPacket).IsEqualTo((ushort)0x34C);
         await Assert.That(SCOffsets.SCButlerSpawnedPacket).IsEqualTo((ushort)0x347);
         await Assert.That(SCOffsets.SCButlerDespawnedPacket).IsEqualTo((ushort)0x349);
         await Assert.That(SCOffsets.SCButlerLookChangedPacket).IsEqualTo((ushort)0x34D);
@@ -181,8 +238,8 @@ public class SCButlerPacketTests
         await Assert.That(stream.ReadInt32()).IsEqualTo(expected.Actabilities.Count);
         foreach (var actability in expected.Actabilities)
         {
-            await Assert.That(stream.ReadPisc(2)).IsEquivalentTo(new[] { actability.GroupId, actability.StatId });
-            await Assert.That(stream.ReadInt16()).IsEqualTo(actability.Point);
+            await Assert.That(stream.ReadPisc(2)).IsEquivalentTo(new[] { actability.GroupId, actability.Point });
+            await Assert.That(stream.ReadInt16()).IsEqualTo(actability.Stat);
         }
 
         await Assert.That(stream.ReadInt32()).IsEqualTo(expected.HarvestDatas.Count);

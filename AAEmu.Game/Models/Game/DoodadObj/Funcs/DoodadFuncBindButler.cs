@@ -1,9 +1,10 @@
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Units;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
 
@@ -22,27 +23,14 @@ public sealed class DoodadFuncBindButler : DoodadFuncTemplate
             return;
         }
 
-        lock (house.LifecycleSyncRoot)
-        {
-            var result = ButlerManager.Instance.Bind(character, house, HousingManager.Instance.GetHouseById);
-            if (!result.Success)
-            {
-                character.SendErrorMessage(result.Error);
-                return;
-            }
+        var characterButler = ButlerManager.Instance.GetOrCreate(character.Id);
+        SingletonContainer.ServiceProvider?.GetService<IButlerChargeService>()?
+            .RefreshQuotaPeriods(characterButler);
 
-            var presentation = ButlerManager.Instance.GetPresentation(character);
-            if (!presentation.IsBound)
-            {
-                character.SendErrorMessage(ErrorMessageType.InternalError);
-                return;
-            }
-
-            character.SendPacket(new SCButlerBoundPacket(
-                presentation.Info,
-                presentation.HouseName,
-                (ushort)ErrorMessageType.NoErrorMessage));
-        }
+        var result = ButlerManager.Instance.Bind(
+            character, house, HousingManager.Instance.GetHouseById, notifyOwner: true);
+        if (!result.Success)
+            character.SendErrorMessage(result.Error);
     }
 
     internal static House ResolveHouse(Character character, Doodad owner, Func<uint, House> houseById)

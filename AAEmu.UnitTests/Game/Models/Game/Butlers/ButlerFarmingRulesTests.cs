@@ -4,6 +4,37 @@ namespace AAEmu.UnitTests.Game.Models.Game.Butlers;
 
 public class ButlerFarmingRulesTests
 {
+    [Test]
+    public async Task CycleSeconds_MatchesNativeRoundedMillisecondFormula()
+    {
+        var harvest = Harvest(7, 15659, 720000, 1, 1, 6, 1, 13379, 100, 13471, false);
+
+        var baseAccepted = ButlerFarmingRules.TryCalculateCycleSeconds(
+            harvest, 0, out var baseSeconds, out var baseFailure);
+        var reducedAccepted = ButlerFarmingRules.TryCalculateCycleSeconds(
+            harvest, 20, out var reducedSeconds, out var reducedFailure);
+
+        await Assert.That(baseAccepted).IsTrue();
+        await Assert.That(baseFailure).IsEqualTo(ButlerFarmingRuleFailure.None);
+        await Assert.That(baseSeconds).IsEqualTo((uint)720);
+        await Assert.That(reducedAccepted).IsTrue();
+        await Assert.That(reducedFailure).IsEqualTo(ButlerFarmingRuleFailure.None);
+        await Assert.That(reducedSeconds).IsEqualTo((uint)576);
+    }
+
+    [Test]
+    public async Task CycleSeconds_RejectsModifierThatRemovesTheWholeCycle()
+    {
+        var accepted = ButlerFarmingRules.TryCalculateCycleSeconds(
+            Harvest(7, 15659, 720000, 1, 1, 6, 1, 13379, 100, 13471, false),
+            100,
+            out _,
+            out var failure);
+
+        await Assert.That(accepted).IsFalse();
+        await Assert.That(failure).IsEqualTo(ButlerFarmingRuleFailure.InvalidGrowthModifier);
+    }
+
     private static readonly ButlerTemplate Farmhand = new()
     {
         Id = 1,
@@ -17,7 +48,7 @@ public class ButlerFarmingRulesTests
         var harvest = Harvest(7, 15659, 720000, 1, 1, 6, 1, 13379, 100, 13471, false);
 
         var success = ButlerFarmingRules.TryCalculateRegistrationCosts(
-            harvest, Farmhand, 3, false, out var costs, out var failure);
+            harvest, Farmhand, harvest.ConsumeLp!.Value, 3, false, out var costs, out var failure);
 
         await Assert.That(success).IsTrue();
         await Assert.That(failure).IsEqualTo(ButlerFarmingRuleFailure.None);
@@ -31,7 +62,7 @@ public class ButlerFarmingRulesTests
         var harvest = Harvest(33, 16226, 34560000, 5, 5, 5, 10, 13408, 100, 13500, false);
 
         var success = ButlerFarmingRules.TryCalculateRegistrationCosts(
-            harvest, Farmhand, 2, false, out var costs, out _);
+            harvest, Farmhand, harvest.ConsumeLp!.Value, 2, false, out var costs, out _);
 
         await Assert.That(success).IsTrue();
         await Assert.That(costs).IsEqualTo(new ButlerHarvestRegistrationCosts(2, 20, 10, 50, 0, 50, false));
@@ -43,7 +74,7 @@ public class ButlerFarmingRulesTests
         var harvest = Harvest(7, 15659, 720000, 1, 1, 6, 1, 13379, 100, 13471, false);
 
         var success = ButlerFarmingRules.TryCalculateRegistrationCosts(
-            harvest, Farmhand, 3, true, out var costs, out _);
+            harvest, Farmhand, harvest.ConsumeLp!.Value, 3, true, out var costs, out _);
 
         await Assert.That(success).IsTrue();
         await Assert.That(costs.BaseVigor).IsEqualTo(3u);
@@ -58,7 +89,7 @@ public class ButlerFarmingRulesTests
         var harvest = Harvest(104, 18829, 111096000, 10, 1, 9, 4, 13760, 100, 13819, true);
 
         var success = ButlerFarmingRules.TryCalculateRegistrationCosts(
-            harvest, Farmhand, 2, false, out var costs, out _);
+            harvest, Farmhand, harvest.ConsumeLp!.Value, 2, false, out var costs, out _);
 
         await Assert.That(success).IsTrue();
         await Assert.That(costs.IsUnderWater).IsTrue();
@@ -72,7 +103,7 @@ public class ButlerFarmingRulesTests
         var harvest = Harvest(7, 15659, 720000, 1, 1, 6, 1, 13379, 100, 13471, false);
 
         var success = ButlerFarmingRules.TryCalculateRegistrationCosts(
-            harvest, Farmhand, 0, false, out _, out var failure);
+            harvest, Farmhand, harvest.ConsumeLp!.Value, 0, false, out _, out var failure);
 
         await Assert.That(success).IsFalse();
         await Assert.That(failure).IsEqualTo(ButlerFarmingRuleFailure.InvalidAmount);
@@ -85,7 +116,7 @@ public class ButlerFarmingRulesTests
         harvest.ConsumeLp = null;
 
         var success = ButlerFarmingRules.TryCalculateRegistrationCosts(
-            harvest, Farmhand, 1, false, out _, out var failure);
+            harvest, Farmhand, 1, 1, false, out _, out var failure);
 
         await Assert.That(success).IsFalse();
         await Assert.That(failure).IsEqualTo(ButlerFarmingRuleFailure.MissingContent);
@@ -119,7 +150,7 @@ public class ButlerFarmingRulesTests
             13379, 100, 13471, false);
 
         var success = ButlerFarmingRules.TryCalculateRegistrationCosts(
-            harvest, Farmhand, short.MaxValue, true, out _, out var failure);
+            harvest, Farmhand, uint.MaxValue, short.MaxValue, true, out _, out var failure);
 
         await Assert.That(success).IsFalse();
         await Assert.That(failure).IsEqualTo(ButlerFarmingRuleFailure.ArithmeticOverflow);

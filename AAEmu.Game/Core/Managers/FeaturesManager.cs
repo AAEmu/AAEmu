@@ -1,4 +1,5 @@
 using AAEmu.Commons.Utils;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Features;
@@ -19,16 +20,13 @@ public class FeaturesManager(IExperienceManager experienceManager) : Singleton<F
         // Every bit starts cleared and is turned on from Configurations/Features.json. The same set
         // controls server behavior and is serialized to the client in SCInitialConfig.
         var config = AppConfiguration.Instance.Features;
+        var butlerLevelLimit = ResolveButlerLevelLimit(ButlerGameData.Instance);
 
         Fsets = new FeatureSet
         {
             PlayerLevelLimit = experienceManager.MaxPlayerLevel,
             MateLevelLimit = experienceManager.MaxMateLevel,
-
-            // TODO(v10): fset[26] publishes the butler level cap. The butler system exists only as packet
-            // classes (CSRequestButlerHarvestJobPacket, SCButlerSpawnedPacket); nothing on the server
-            // tracks a butler or its level, so there is no cap to publish. Feature.butler stays off.
-            ButlerLevelLimit = 0,
+            ButlerLevelLimit = butlerLevelLimit,
 
             // the trade / block_trade_by_nft cluster. Its unit is not established, so no value can be
             // published without guessing at the scale.
@@ -52,6 +50,17 @@ public class FeaturesManager(IExperienceManager experienceManager) : Singleton<F
 
         Logger.Info($"fset: {Fsets}");
         Logger.Info($"Enabled Features: {featsOn}");
+    }
+
+    internal static byte ResolveButlerLevelLimit(ButlerGameData gameData)
+    {
+        if (gameData == null ||
+            !gameData.TryGetUniqueTemplate(out var template) ||
+            !gameData.TryGetMaximumLevel(template.Id, out var maximumLevel) ||
+            maximumLevel.Level is 0 or > byte.MaxValue)
+            return 0;
+
+        return checked((byte)maximumLevel.Level);
     }
 
     /// <summary>

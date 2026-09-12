@@ -598,7 +598,9 @@ public static class SCOffsets
     public const ushort SCButlerBoundPacket = 0x346;
     public const ushort SCButlerUnboundPacket = 0x348;
     public const ushort SCButlerDespawnedPacket = 0x349;
+    public const ushort SCButlerItemSwappedPacket = 0x34A;
     public const ushort SCButlerInfoUpdatedPacket = 0x34B;
+    public const ushort SCButlerHarvestUpdatedPacket = 0x34C;
     public const ushort SCButlerInitInfoPacket = 0x345;
     public const ushort SCButlerLookChangedPacket = 0x34D;
     public const ushort SCButlerSpawnedPacket = 0x347;

@@ -50,10 +50,16 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
 
     public uint GetNewMailId()
     {
+        return GetNewMailId(out _);
+    }
+
+    private uint GetNewMailId(out bool reusedDeletedId)
+    {
         lock (_deletedMailIds)
         {
             var Id = mailIdManager.GetNextId();
-            if (_deletedMailIds.Contains(Id))
+            reusedDeletedId = _deletedMailIds.Contains(Id);
+            if (reusedDeletedId)
                 _deletedMailIds.Remove(Id);
             return Id;
         }
@@ -99,6 +105,221 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
         }
     }
 
+    /// <summary>
+    /// Plans delivery of already-persistent item objects without changing their live owner,
+    /// container, slots, counts, or ids before the caller's transaction commits.
+    /// </summary>
+    public bool TryCreateExistingItemDeliveryPlan(
+        IReadOnlyList<Item> items,
+        Func<int, IReadOnlyList<Item>, BaseMail> createMail,
+        out ExistingItemMailDeliveryPlan plan)
+    {
+        plan = null;
+        if (items == null || items.Count == 0 || createMail == null)
+            return false;
+
+        var itemIds = new HashSet<ulong>();
+        var itemReferences = new HashSet<Item>(ReferenceEqualityComparer.Instance);
+        foreach (var item in items)
+        {
+            if (item is not { Id: > 0, Count: > 0 } ||
+                !itemIds.Add(item.Id) ||
+                !itemReferences.Add(item))
+                return false;
+        }
+
+        var stagedBatches = new List<ExistingItemMailDeliveryBatch>();
+        try
+        {
+            var batchIndex = 0;
+            for (var offset = 0; offset < items.Count; offset += MailBody.MaxMailAttachments, batchIndex++)
+            {
+                var count = Math.Min(MailBody.MaxMailAttachments, items.Count - offset);
+                var batchItems = new Item[count];
+                for (var i = 0; i < count; i++)
+                    batchItems[i] = items[offset + i];
+                var readonlyBatch = Array.AsReadOnly(batchItems);
+
+                var snapshots = new ItemPersistenceSnapshot[count];
+                for (var i = 0; i < count; i++)
+                    snapshots[i] = itemManager.CapturePersistenceSnapshot(batchItems[i]);
+
+                var mail = createMail(batchIndex, readonlyBatch);
+                if (mail?.Header == null || mail.Body == null || mail.Id != 0 ||
+                    mail.Body.Attachments.Count != 0)
+                    throw new InvalidOperationException("Existing-item mail factories must return a new attachment-empty mail.");
+
+                for (var i = 0; i < snapshots.Length; i++)
+                {
+                    snapshots[i].ValidateLiveState();
+                    snapshots[i] = snapshots[i].WithLocation(0, SlotType.Mail, i, mail.Header.ReceiverId);
+                    mail.Body.Attachments.Add(batchItems[i]);
+                }
+                mail.Header.Attachments = mail.GetTotalAttachmentCount();
+
+                if (!TryStageDeliveryCore(mail, out _, out var reusedDeletedMailId))
+                {
+                    ReleaseUnstagedExistingItemMail(mail, reusedDeletedMailId);
+                    throw new InvalidOperationException("The existing-item mail receiver could not be verified.");
+                }
+
+                stagedBatches.Add(new ExistingItemMailDeliveryBatch(
+                    mail,
+                    Array.AsReadOnly(snapshots),
+                    reusedDeletedMailId));
+            }
+
+            plan = new ExistingItemMailDeliveryPlan(this, stagedBatches.AsReadOnly());
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to create an existing-item mail delivery plan");
+            foreach (var batch in stagedBatches)
+                RollbackStagedExistingItemMail(batch);
+            return false;
+        }
+    }
+
+    internal bool TryPersistExistingItemDelivery(
+        ExistingItemMailDeliveryPlan plan,
+        MySqlConnection connection,
+        MySqlTransaction transaction)
+    {
+        if (plan == null || connection == null || transaction == null)
+            return false;
+
+        try
+        {
+            var snapshots = new List<ItemPersistenceSnapshot>();
+            foreach (var batch in plan.Batches)
+            {
+                ValidateStagedExistingItemBatch(batch, verifyReceiver: true);
+                snapshots.AddRange(batch.ItemSnapshots);
+            }
+
+            // Complete validation precedes the first database write, so a caller never receives
+            // a partially-written plan merely because a later batch had changed.
+            foreach (var batch in plan.Batches)
+                WriteMail(batch.Mail, connection, transaction);
+
+            var written = itemManager.PersistSnapshots(connection, transaction, snapshots);
+            if (written != snapshots.Count)
+                throw new GameException($"Existing-item mail plan persisted {written}/{snapshots.Count} item rows");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Failed to persist an existing-item mail delivery plan");
+            return false;
+        }
+    }
+
+    internal void CommitExistingItemDelivery(ExistingItemMailDeliveryPlan plan)
+    {
+        ArgumentNullException.ThrowIfNull(plan);
+
+        // Validate the whole plan before the first live mutation. The caller holds the shared
+        // inventory guard from capture through this post-commit apply.
+        foreach (var batch in plan.Batches)
+            ValidateStagedExistingItemBatch(batch, verifyReceiver: false);
+
+        foreach (var batch in plan.Batches)
+        {
+            foreach (var snapshot in batch.ItemSnapshots)
+                itemManager.ApplyCommittedSnapshot(snapshot);
+            PublishDelivered(batch.Mail);
+        }
+    }
+
+    internal void RollbackExistingItemDelivery(ExistingItemMailDeliveryPlan plan)
+    {
+        if (plan == null)
+            return;
+        foreach (var batch in plan.Batches)
+            RollbackStagedExistingItemMail(batch);
+    }
+
+    private void ValidateStagedExistingItemBatch(ExistingItemMailDeliveryBatch batch, bool verifyReceiver)
+    {
+        if (batch.Mail.Body.Attachments.Count != batch.ItemSnapshots.Count ||
+            batch.ItemSnapshots.Count is 0 or > MailBody.MaxMailAttachments ||
+            batch.Mail.Header.Attachments != batch.Mail.GetTotalAttachmentCount() ||
+            !batch.Mail.IsPendingPublish ||
+            (verifyReceiver && !TryVerifyDeliveryTarget(batch.Mail, out _)))
+            throw new InvalidOperationException($"Staged mail {batch.Mail.Id} no longer matches its delivery plan.");
+
+        lock (_pendingMails)
+        {
+            if (!_pendingMails.TryGetValue(batch.Mail.Id, out var pending) || !ReferenceEquals(pending, batch.Mail))
+                throw new InvalidOperationException($"Staged mail {batch.Mail.Id} is no longer pending.");
+        }
+
+        for (var i = 0; i < batch.ItemSnapshots.Count; i++)
+        {
+            var snapshot = batch.ItemSnapshots[i];
+            if (!ReferenceEquals(batch.Mail.Body.Attachments[i], snapshot.Item))
+                throw new InvalidOperationException($"Staged mail {batch.Mail.Id} attachment {i} changed.");
+            snapshot.ValidateForPersistence();
+            if (snapshot.Desired.ContainerId != 0 || snapshot.Desired.SlotType != SlotType.Mail ||
+                snapshot.Desired.Slot != i || snapshot.Desired.OwnerId != batch.Mail.Header.ReceiverId)
+                throw new InvalidOperationException($"Staged mail {batch.Mail.Id} attachment {i} has an invalid projection.");
+        }
+    }
+
+    private void RollbackStagedExistingItemMail(ExistingItemMailDeliveryBatch batch)
+    {
+        var mail = batch.Mail;
+        if (mail == null)
+            return;
+
+        var removed = false;
+        lock (_pendingMails)
+        {
+            if (_pendingMails.TryGetValue(mail.Id, out var pending) && ReferenceEquals(pending, mail))
+                removed = _pendingMails.Remove(mail.Id);
+        }
+
+        if (!removed)
+            return;
+
+        if (mail.Id is > 0 and <= uint.MaxValue)
+        {
+            lock (_deletedMailIds)
+            {
+                if (batch.RestoreDeletedMailIdOnRollback && !_deletedMailIds.Contains(mail.Id))
+                    _deletedMailIds.Add(mail.Id);
+                mailIdManager.ReleaseId((uint)mail.Id);
+            }
+        }
+
+        mail.Body.Attachments.Clear();
+        mail.Header.Attachments = mail.GetTotalAttachmentCount();
+        mail.IsPendingPublish = false;
+        mail.Id = 0;
+    }
+
+    private void ReleaseUnstagedExistingItemMail(BaseMail mail, bool restoreDeletedMailId)
+    {
+        if (mail?.Id is > 0 and <= uint.MaxValue)
+        {
+            lock (_deletedMailIds)
+            {
+                if (restoreDeletedMailId && !_deletedMailIds.Contains(mail.Id))
+                    _deletedMailIds.Add(mail.Id);
+                mailIdManager.ReleaseId((uint)mail.Id);
+            }
+        }
+
+        if (mail?.Body != null)
+        {
+            mail.Body.Attachments.Clear();
+            mail.Header.Attachments = mail.GetTotalAttachmentCount();
+            mail.IsPendingPublish = false;
+            mail.Id = 0;
+        }
+    }
+
     private void PersistMailAttachments(BaseMail mail, MySqlConnection connection, MySqlTransaction transaction)
     {
         if (mail.Body.Attachments.Count == 0)
@@ -138,7 +359,12 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
     /// </summary>
     public bool TryStageDelivery(BaseMail mail, out string targetName)
     {
-        if (!TryAssignDelivery(mail, out targetName))
+        return TryStageDeliveryCore(mail, out targetName, out _);
+    }
+
+    private bool TryStageDeliveryCore(BaseMail mail, out string targetName, out bool reusedDeletedMailId)
+    {
+        if (!TryAssignDelivery(mail, out targetName, out reusedDeletedMailId))
             return false;
 
         mail.IsPendingPublish = true;
@@ -217,6 +443,24 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
 
     private bool TryAssignDelivery(BaseMail mail, out string targetName)
     {
+        return TryAssignDelivery(mail, out targetName, out _);
+    }
+
+    private bool TryAssignDelivery(BaseMail mail, out string targetName, out bool reusedDeletedMailId)
+    {
+        reusedDeletedMailId = false;
+        if (!TryVerifyDeliveryTarget(mail, out targetName))
+            return false;
+
+        if (mail.Id <= 0)
+            mail.Id = GetNewMailId(out reusedDeletedMailId);
+
+        // Retention stamps for every mail, whichever path created it (Send or TryDeliverOn).
+        return true;
+    }
+
+    private bool TryVerifyDeliveryTarget(BaseMail mail, out string targetName)
+    {
         targetName = nameManager.GetCharacterName(mail.Header.ReceiverId);
         var targetId = nameManager.GetCharacterId(mail.Header.ReceiverName);
         if (!string.Equals(targetName, mail.Header.ReceiverName, StringComparison.InvariantCultureIgnoreCase))
@@ -229,11 +473,6 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             Logger.Debug("TryAssignDelivery() - Failed to verify receiver id {0} != {1}", targetId, mail.Header.ReceiverId);
             return false;
         }
-
-        if (mail.Id <= 0)
-            mail.Id = GetNewMailId();
-
-        // Retention stamps for every mail, whichever path created it (Send or TryDeliverOn).
         return true;
     }
 

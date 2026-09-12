@@ -28,6 +28,7 @@ using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
 
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 
 #pragma warning disable IDE0079 // Remove unnecessary suppression
@@ -1156,6 +1157,12 @@ public class Skill
 
     public void ApplyEffects(BaseUnit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
     {
+        using var inventoryEffect = (caster as Character)?.Inventory?.EnterSkillEffect();
+        ApplyEffectsCore(caster, casterCaster, targetSelf, targetCaster, skillObject);
+    }
+
+    private void ApplyEffectsCore(BaseUnit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
+    {
         if (caster is not Unit unit)
             return;
         var player = caster as Character;
@@ -1366,6 +1373,17 @@ public class Skill
             RetainSelectedWeightedEffect(effectsToApply, Random.Shared.Next(weightedTotal));
         lastAppliedEffect = effectsToApply.LastOrDefault().effect;
 
+        var reagents = SkillManager.Instance.GetSkillReagentsBySkillId(Template.Id);
+        var skillProducts = SkillManager.Instance.GetSkillProductsBySkillId(Template.Id);
+        var hasExternalItemRows = reagents.Count > 0 || skillProducts.Count > 0;
+        if (TryHandleButlerConsumable(
+                player,
+                casterCaster,
+                effectsToApply,
+                SingletonContainer.ServiceProvider?.GetService<IButlerChargeService>(),
+                hasExternalItemRows))
+            return;
+
         // Handle consumption of items from effects (once per cast — scan ALL queued effects).
         // Using only lastAppliedEffect breaks multi-effect skills: farmer's pouch (23136) applies
         // GainLootPack (consume_source_item=t) then a conditional BuffEffect (consume=f). With a
@@ -1438,8 +1456,6 @@ public class Skill
         }
 
         // This will handle all items with a reagent/product
-        var reagents = SkillManager.Instance.GetSkillReagentsBySkillId(Template.Id);
-        var skillProducts = SkillManager.Instance.GetSkillProductsBySkillId(Template.Id);
         if (reagents.Count > 0 || skillProducts.Count > 0)
         {
             if (player != null)
@@ -1596,6 +1612,69 @@ public class Skill
                         amount, null);
             }
         }
+    }
+
+    /// <summary>
+    /// Handles the two paid farmhand consumables whose Butler state and exact source stack must
+    /// commit together. Returning true means the cast was wholly handled, including a rejected cast.
+    /// </summary>
+    internal bool TryHandleButlerConsumable(
+        Character player,
+        SkillCaster casterCaster,
+        IReadOnlyList<(BaseUnit target, SkillEffect effect)> effectsToApply,
+        IButlerChargeService service,
+        bool hasExternalItemRows)
+    {
+        var hasButlerEffect = effectsToApply.Any(entry =>
+            entry.effect.Template is SpecialEffect special &&
+            special.SpecialEffectTypeId is SpecialType.ButlerProductionCostCharge or SpecialType.ButlerAddExp);
+        if (!hasButlerEffect)
+            return false;
+
+        if (player?.Inventory?.Bag == null || casterCaster is not SkillItem castItem ||
+            effectsToApply.Count != 1 || hasExternalItemRows || castItem.ItemId == 0)
+        {
+            Cancelled = true;
+            return true;
+        }
+
+        var (target, effect) = effectsToApply[0];
+        if (!ReferenceEquals(target, player) || effect.Template is not SpecialEffect specialEffect ||
+            specialEffect.Value1 <= 0 || effect.ConsumeItemCount <= 0 || effect.ConsumeItemId != 0)
+        {
+            Cancelled = true;
+            return true;
+        }
+
+        var sourceItem = player.Inventory.Bag.GetItemByItemId(castItem.ItemId);
+        if (sourceItem == null || sourceItem.Id != castItem.ItemId || sourceItem.TemplateId == 0 ||
+            castItem.ItemTemplateId != sourceItem.TemplateId || sourceItem.Template?.UseSkillId != Template.Id ||
+            sourceItem.OwnerId != player.Id || !ReferenceEquals(sourceItem._holdingContainer, player.Inventory.Bag) ||
+            sourceItem.SlotType != SlotType.Inventory || sourceItem.Count < effect.ConsumeItemCount || service == null)
+        {
+            Cancelled = true;
+            return true;
+        }
+
+        var success = specialEffect.SpecialEffectTypeId switch
+        {
+            // Type 185 owns its paid consumable even though its generic consume_source_item flag is false.
+            SpecialType.ButlerProductionCostCharge => service.ChargePaidProductionCost(
+                player,
+                castItem.ItemId,
+                checked((uint)specialEffect.Value1),
+                effect.ConsumeItemCount).Success,
+            SpecialType.ButlerAddExp when effect.ConsumeSourceItem => service.AddExperience(
+                player,
+                castItem.ItemId,
+                specialEffect.Value1,
+                effect.ConsumeItemCount).Success,
+            _ => false
+        };
+
+        if (!success)
+            Cancelled = true;
+        return true;
     }
 
     /// <summary>

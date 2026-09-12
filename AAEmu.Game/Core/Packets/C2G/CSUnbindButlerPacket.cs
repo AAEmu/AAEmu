@@ -17,7 +17,8 @@ public class CSUnbindButlerPacket() : GamePacket(CSOffsets.CSUnbindButlerPacket,
         if (character == null)
             return;
 
-        var result = ButlerManager.Instance.Unbind(character);
-        character.SendPacket(new SCButlerUnboundPacket((ushort)result.Error));
+        var result = ButlerManager.Instance.Unbind(character, notifyOwner: true);
+        if (!result.Success)
+            character.SendPacket(new SCButlerUnboundPacket((ushort)result.Error));
     }
 }

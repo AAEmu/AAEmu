@@ -1047,6 +1047,7 @@ public class AuctionManager(
             return false;
         }
 
+        using var inventoryMutation = player.Inventory.AcquireMutation();
         lock (_houseLock)
         {
             var item = player.Inventory?.Bag?.GetItemByItemId(itemId);

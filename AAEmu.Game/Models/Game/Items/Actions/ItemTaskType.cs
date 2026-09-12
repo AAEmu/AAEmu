@@ -212,5 +212,12 @@ public enum ItemTaskType : byte
 
     RestoreDisableEnchant = 171,
     ItemTypeChange = 176,
-    ItemElement = 185
+    ItemElement = 185,
+
+    // 10.0.2.13 FUN_39CE6910 item-task-name array.
+    SwapButlerItem = 186,
+    UpdateButlerActability = 187,
+    UpdateButlerPermanentDatas = 188,
+    RequestButlerHarvestRegister = 189,
+    RequestButlerSpecialtyTradeRegister = 190
 }

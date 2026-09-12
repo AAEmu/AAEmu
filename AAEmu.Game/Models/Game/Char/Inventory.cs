@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
 
 using MySql.Data.MySqlClient;
+using Microsoft.Extensions.DependencyInjection;
 
 using NLog;
 
@@ -19,7 +20,146 @@ namespace AAEmu.Game.Models.Game.Char;
 public class Inventory
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+    private static long s_nextMutationOrder;
     public readonly ICharacter Owner;
+
+    private object _mutationSyncRoot;
+    private object _skillEffectSyncRoot;
+    private Dictionary<int, int> _activeSkillEffectsByThread;
+    private int _activeSkillEffectCount;
+    private int _exclusiveMutationThreadId;
+    private long _mutationOrder;
+
+    /// <summary>
+    /// Canonical monitor for mutations to this character's item containers.
+    /// </summary>
+    public object MutationSyncRoot => LazyInitializer.EnsureInitialized(ref _mutationSyncRoot);
+
+    private long MutationOrder
+    {
+        get
+        {
+            var order = Volatile.Read(ref _mutationOrder);
+            if (order != 0)
+                return order;
+            var created = Interlocked.Increment(ref s_nextMutationOrder);
+            Interlocked.CompareExchange(ref _mutationOrder, created, 0);
+            return Volatile.Read(ref _mutationOrder);
+        }
+    }
+
+    private object SkillEffectSyncRoot => LazyInitializer.EnsureInitialized(ref _skillEffectSyncRoot);
+
+    /// <summary>
+    /// Acquires the inventory mutation monitor for an ordinary item operation.
+    /// </summary>
+    public InventoryMutationLease AcquireMutation()
+    {
+        var persistenceScope = BeginMutationPersistenceDeferral();
+        try
+        {
+            Monitor.Enter(MutationSyncRoot);
+            return new InventoryMutationLease(
+                MutationSyncRoot,
+                persistenceScope == null ? null : persistenceScope.Dispose);
+        }
+        catch
+        {
+            persistenceScope?.Dispose();
+            throw;
+        }
+    }
+
+    internal static IDisposable AcquireMutations(params Inventory[] inventories)
+    {
+        var roots = inventories
+            .Where(inventory => inventory != null)
+            .Distinct<Inventory>(ReferenceEqualityComparer.Instance)
+            .OrderBy(inventory => inventory.MutationOrder)
+            .Select(inventory => inventory.MutationSyncRoot)
+            .ToArray();
+        var persistenceScope = roots.Length > 0 ? BeginMutationPersistenceDeferral() : null;
+        return new InventoryMutationGroupLease(roots, persistenceScope);
+    }
+
+    private static IDisposable BeginMutationPersistenceDeferral()
+        => SingletonContainer.ServiceProvider?.GetService<IMailManager>()?.DeferPersist();
+
+    /// <summary>
+    /// Tries to reserve the inventory for a short database-backed farmhand mutation.
+    /// A skill effect already running on another thread wins; an effect on this thread may
+    /// re-enter so a skill-driven farmhand action can pay its own cost.
+    /// </summary>
+    public bool TryAcquireFarmhandMutation(out InventoryMutationLease lease)
+    {
+        lease = null;
+        var threadId = Environment.CurrentManagedThreadId;
+        var activityRoot = SkillEffectSyncRoot;
+
+        lock (activityRoot)
+        {
+            _activeSkillEffectsByThread ??= [];
+            _activeSkillEffectsByThread.TryGetValue(threadId, out var currentThreadEffects);
+            if (_exclusiveMutationThreadId != 0 || _activeSkillEffectCount != currentThreadEffects)
+                return false;
+
+            _exclusiveMutationThreadId = threadId;
+            if (!Monitor.TryEnter(MutationSyncRoot))
+            {
+                _exclusiveMutationThreadId = 0;
+                return false;
+            }
+        }
+
+        lease = new InventoryMutationLease(MutationSyncRoot, () => EndFarmhandMutation(threadId));
+        return true;
+    }
+
+    internal InventorySkillEffectLease EnterSkillEffect()
+    {
+        var threadId = Environment.CurrentManagedThreadId;
+        var activityRoot = SkillEffectSyncRoot;
+        lock (activityRoot)
+        {
+            while (_exclusiveMutationThreadId != 0 && _exclusiveMutationThreadId != threadId)
+                Monitor.Wait(activityRoot);
+
+            _activeSkillEffectsByThread ??= [];
+            _activeSkillEffectsByThread.TryGetValue(threadId, out var current);
+            _activeSkillEffectsByThread[threadId] = current + 1;
+            _activeSkillEffectCount++;
+        }
+
+        return new InventorySkillEffectLease(() => ExitSkillEffect(threadId));
+    }
+
+    private void ExitSkillEffect(int threadId)
+    {
+        lock (SkillEffectSyncRoot)
+        {
+            if (_activeSkillEffectsByThread == null ||
+                !_activeSkillEffectsByThread.TryGetValue(threadId, out var current) || current <= 0)
+                throw new InvalidOperationException("Inventory skill-effect activity was released without an acquisition");
+
+            if (current == 1)
+                _activeSkillEffectsByThread.Remove(threadId);
+            else
+                _activeSkillEffectsByThread[threadId] = current - 1;
+            _activeSkillEffectCount--;
+            Monitor.PulseAll(SkillEffectSyncRoot);
+        }
+    }
+
+    private void EndFarmhandMutation(int threadId)
+    {
+        lock (SkillEffectSyncRoot)
+        {
+            if (_exclusiveMutationThreadId != threadId)
+                throw new InvalidOperationException("Farmhand inventory mutation was released by a different thread");
+            _exclusiveMutationThreadId = 0;
+            Monitor.PulseAll(SkillEffectSyncRoot);
+        }
+    }
 
     public Dictionary<SlotType, ItemContainer> _itemContainers { get; private set; }
     public ItemContainer Equipment { get; private set; }
@@ -155,6 +295,12 @@ public class Inventory
     /// <returns></returns>
     public int ConsumeItem(SlotType[] containersToCheck, ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem)
     {
+        using var mutation = AcquireMutation();
+        return ConsumeItemCore(containersToCheck, taskType, templateId, amountToConsume, preferredItem);
+    }
+
+    private int ConsumeItemCore(SlotType[] containersToCheck, ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem)
+    {
         SlotType[] containerList;
         if (containersToCheck != null && containersToCheck.Length > 0)
             containerList = containersToCheck;
@@ -171,6 +317,69 @@ public class Inventory
             }
         }
         return res;
+    }
+
+    /// <summary>
+    /// Selects an exact set of bag stacks for a later database-first consumption. Live item state
+    /// remains unchanged until <see cref="ItemConsumptionPlan.ApplyCommitted"/> is called.
+    /// </summary>
+    public bool TryPlanBagConsumption(uint templateId, int amountToConsume, out ItemConsumptionPlan plan)
+    {
+        plan = null;
+        if (!Monitor.IsEntered(MutationSyncRoot))
+            throw new InvalidOperationException("The inventory mutation lease must be held while planning item consumption");
+        if (templateId == 0 || amountToConsume <= 0 || Bag == null)
+            return false;
+
+        var remaining = amountToConsume;
+        var entries = new List<ItemConsumptionEntry>();
+        foreach (var item in Bag.Items
+                     .Where(item => item != null && item.TemplateId == templateId)
+                     .OrderBy(item => item.Slot)
+                     .ThenBy(item => item.Id))
+        {
+            if (item.OwnerId != Bag.OwnerId || item._holdingContainer != Bag || item.SlotType != SlotType.Inventory || item.Count <= 0)
+                continue;
+
+            var debit = Math.Min(item.Count, remaining);
+            entries.Add(new ItemConsumptionEntry(item, item.Count, item.Count - debit));
+            remaining -= debit;
+            if (remaining == 0)
+                break;
+        }
+
+        if (remaining != 0)
+            return false;
+
+        plan = new ItemConsumptionPlan(this, Bag, templateId, amountToConsume, entries);
+        return true;
+    }
+
+    /// <summary>
+    /// Plans a debit from one exact live bag stack. A different stack of the same template is never
+    /// substituted when the client-selected source item is missing or too small.
+    /// </summary>
+    public bool TryPlanExactBagConsumption(ulong itemId, int amountToConsume, out ItemConsumptionPlan plan)
+    {
+        plan = null;
+        if (!Monitor.IsEntered(MutationSyncRoot))
+            throw new InvalidOperationException("The inventory mutation lease must be held while planning item consumption");
+        if (itemId == 0 || amountToConsume <= 0 || Bag == null)
+            return false;
+
+        var item = Bag.GetItemByItemId(itemId);
+        if (item == null || item.Id != itemId || item.TemplateId == 0 ||
+            item.OwnerId != Bag.OwnerId || !ReferenceEquals(item._holdingContainer, Bag) ||
+            item.SlotType != SlotType.Inventory || item.Count < amountToConsume)
+            return false;
+
+        plan = new ItemConsumptionPlan(
+            this,
+            Bag,
+            item.TemplateId,
+            amountToConsume,
+            [new ItemConsumptionEntry(item, item.Count, item.Count - amountToConsume)]);
+        return true;
     }
 
     /// <summary>
@@ -278,6 +487,13 @@ public class Inventory
     public bool SplitOrMoveItem(ItemTaskType taskType, ulong fromItemId, SlotType fromType, byte fromSlot,
         ulong toItemId, SlotType toType, byte toSlot, int count = 0)
     {
+        using var mutation = AcquireMutation();
+        return SplitOrMoveItemCore(taskType, fromItemId, fromType, fromSlot, toItemId, toType, toSlot, count);
+    }
+
+    private bool SplitOrMoveItemCore(ItemTaskType taskType, ulong fromItemId, SlotType fromType, byte fromSlot,
+        ulong toItemId, SlotType toType, byte toSlot, int count)
+    {
         var fromItem = ItemManager.Instance.GetItemByItemId(fromItemId);
         if (fromItem == null && fromItemId != 0)
         {
@@ -301,7 +517,26 @@ public class Inventory
 
     public bool SplitOrMoveItemEx(ItemTaskType taskType, ItemContainer sourceContainer, ItemContainer targetContainer, ulong fromItemId, SlotType fromType, byte fromSlot, ulong toItemId, SlotType toType, byte toSlot, int count = 0)
     {
+        using var mutation = AcquireMutation();
+        return SplitOrMoveItemExCore(taskType, sourceContainer, targetContainer, fromItemId, fromType, fromSlot, toItemId, toType, toSlot, count);
+    }
+
+    private bool SplitOrMoveItemExCore(ItemTaskType taskType, ItemContainer sourceContainer, ItemContainer targetContainer, ulong fromItemId, SlotType fromType, byte fromSlot, ulong toItemId, SlotType toType, byte toSlot, int count)
+    {
         Logger.Trace($"SplitOrMoveItem({fromItemId} {fromType}:{fromSlot} => {toItemId} {toType}:{toSlot} - {count})");
+
+        // System is server-owned storage. Farmhand garden items are deliberately parked there and
+        // may move only through the database-first farmhand service; accepting a forged ordinary
+        // swap would strand its durable character_butler_items row and inflate garden capacity.
+        if (fromType == SlotType.System || toType == SlotType.System ||
+            sourceContainer?.ContainerType == SlotType.System ||
+            targetContainer?.ContainerType == SlotType.System)
+        {
+            Logger.Warn(
+                "SplitOrMoveItem refused System-container move {0} {1}:{2} => {3} {4}:{5}",
+                fromItemId, fromType, fromSlot, toItemId, toType, toSlot);
+            return false;
+        }
 
         if (AuctionHouseRules.IsEscrowSlot(fromType) || AuctionHouseRules.IsEscrowSlot(toType) ||
             AuctionHouseRules.IsEscrowSlot(sourceContainer?.ContainerType ?? SlotType.None) ||

@@ -15,6 +15,10 @@ public class CSSellItemsPacket() : GamePacket(CSOffsets.CSSellItemsPacket, 1)
         if (npc == null || !npc.Template.Merchant)
             return;
 
+        // A garden deed can move from Bag to the server-owned System container only through the
+        // farmhand transaction. Keep the selected item references stable through sale and payment.
+        using var inventoryMutation = Connection.ActiveChar.Inventory.AcquireMutation();
+
         var unkObjId = stream.ReadBc();
 
         var num = stream.ReadByte();

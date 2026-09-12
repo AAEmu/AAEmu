@@ -106,6 +106,35 @@ public class ItemContainer
 
     public List<Item> Items { get; set; }
 
+    private Inventory MutationInventory => Owner?.Inventory;
+    private object MutationSyncRoot => MutationInventory?.MutationSyncRoot ?? this;
+
+    /// <summary>
+    /// Tries to reserve this container for a short farmhand transaction. Loaded player containers
+    /// use their canonical inventory guard; ownerless persistent containers use the same fallback
+    /// monitor as the container mutation helpers.
+    /// </summary>
+    internal bool TryAcquireFarmhandMutation(
+        Inventory expectedInventory,
+        out InventoryMutationLease lease)
+    {
+        lease = null;
+        // Do not resolve World state while a Butler operation lock is held. A loaded owner's
+        // canonical container already retains that Inventory; an offline container stays on the
+        // container-local fallback used by its mutation helpers.
+        var inventory = _owner?.Inventory;
+        if (expectedInventory != null && !ReferenceEquals(inventory, expectedInventory))
+            return false;
+        if (inventory != null)
+            return inventory.TryAcquireFarmhandMutation(out lease);
+        var syncRoot = (object)this;
+        if (!Monitor.TryEnter(syncRoot))
+            return false;
+
+        lease = new InventoryMutationLease(syncRoot);
+        return true;
+    }
+
     private bool PartOfPlayerInventory =>
         ContainerType switch
         {
@@ -316,6 +345,13 @@ public class ItemContainer
     /// <returns>Fails on Full Inventory or if target slot is invalid</returns>
     public bool AddOrMoveExistingItem(ItemTaskType taskType, Item item, int preferredSlot = -1)
     {
+        using var mutations = Inventory.AcquireMutations(MutationInventory, item?._holdingContainer?.Owner?.Inventory);
+        lock (MutationSyncRoot)
+            return AddOrMoveExistingItemCore(taskType, item, preferredSlot);
+    }
+
+    private bool AddOrMoveExistingItemCore(ItemTaskType taskType, Item item, int preferredSlot)
+    {
         if (item == null)
         {
             return false;
@@ -472,6 +508,13 @@ public class ItemContainer
     /// <returns></returns>
     public bool RemoveItem(ItemTaskType task, Item item, bool releaseIdAsWell)
     {
+        using var mutation = MutationInventory?.AcquireMutation();
+        lock (MutationSyncRoot)
+            return RemoveItemCore(task, item, releaseIdAsWell);
+    }
+
+    private bool RemoveItemCore(ItemTaskType task, Item item, bool releaseIdAsWell)
+    {
         if (!item.CanDestroy())
         {
             return false;
@@ -523,6 +566,13 @@ public class ItemContainer
     /// <param name="preferredItem">If not null, use this Item as primary source for consume</param>
     /// <returns>The amount of items that was actually consumed, 0 when failed or not found</returns>
     public int ConsumeItem(ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem)
+    {
+        using var mutation = MutationInventory?.AcquireMutation();
+        lock (MutationSyncRoot)
+            return ConsumeItemCore(taskType, templateId, amountToConsume, preferredItem);
+    }
+
+    private int ConsumeItemCore(ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem)
     {
         if (!GetAllItemsByTemplate(templateId, -1, out var foundItems, out _))
         {
@@ -631,6 +681,13 @@ public class ItemContainer
     /// <param name="preferredSlot"></param>
     /// <returns></returns>
     public bool AcquireDefaultItemEx(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd, out List<Item> newItemsList, out List<Item> updatedItemsList, uint crafterId, int preferredSlot = -1, bool convertWallet = true)
+    {
+        using var mutation = MutationInventory?.AcquireMutation();
+        lock (MutationSyncRoot)
+            return AcquireDefaultItemExCore(taskType, templateId, amountToAdd, gradeToAdd, out newItemsList, out updatedItemsList, crafterId, preferredSlot, convertWallet);
+    }
+
+    private bool AcquireDefaultItemExCore(ItemTaskType taskType, uint templateId, int amountToAdd, int gradeToAdd, out List<Item> newItemsList, out List<Item> updatedItemsList, uint crafterId, int preferredSlot, bool convertWallet)
     {
         newItemsList = [];
         updatedItemsList = [];
@@ -923,6 +980,13 @@ public class ItemContainer
     /// <param name="taskType"></param>
     public void ApplyBindRules(ItemTaskType taskType)
     {
+        using var mutation = MutationInventory?.AcquireMutation();
+        lock (MutationSyncRoot)
+            ApplyBindRulesCore(taskType);
+    }
+
+    private void ApplyBindRulesCore(ItemTaskType taskType)
+    {
         var itemTasks = new List<ItemTask>();
         foreach (var item in Items)
         {
@@ -961,6 +1025,13 @@ public class ItemContainer
     /// Removes and released all items
     /// </summary>
     public void Wipe()
+    {
+        using var mutation = MutationInventory?.AcquireMutation();
+        lock (MutationSyncRoot)
+            WipeCore();
+    }
+
+    private void WipeCore()
     {
         while (Items.Count > 0)
         {

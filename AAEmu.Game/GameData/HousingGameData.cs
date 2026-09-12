@@ -1,4 +1,5 @@
 using AAEmu.Commons.IO;
+using System.Globalization;
 using System.Numerics;
 
 using AAEmu.Commons.Utils;
@@ -23,6 +24,8 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
     private List<HousingItemHousings> _housingItemHousings = [];
     private Dictionary<uint, HousingTemplate> _housingTemplates = [];
     private Dictionary<uint, HousingSize> _housingSizes = [];
+    private Dictionary<uint, ButlerGardenTemplate> _butlerGardenTemplatesByItemId = [];
+    private HashSet<uint> _underwaterHousingCategoryIds = [];
     /// <summary>
     /// <c>dominion_housings.housing_id</c> — the unique territory buildings (farm, workshop, warehouse,
     /// supervision post, altar, and their grade-2 rows). The client only loads this table.
@@ -36,6 +39,8 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
         _housingDecorations = [];
         _housingItemHousingDecorations = [];
         _housingSizes = [];
+        _butlerGardenTemplatesByItemId = [];
+        _underwaterHousingCategoryIds = LoadUnderwaterHousingCategoryIds(connection);
 
         // var houseTaxes = new Dictionary<uint, HouseTax>();
 
@@ -169,7 +174,8 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
                         HeavyTax = reader.GetBoolean("heavy_tax", true),
                         AlwaysPublic = reader.GetBoolean("always_public", true),
                         RotateItemId = reader.GetUInt32("rotate_item_id", 0),
-                        RotateItemCount = reader.GetUInt32("rotate_item_count", 0)
+                        RotateItemCount = reader.GetUInt32("rotate_item_count", 0),
+                        ButlerHarvestGradeId = GetParsedUInt32(reader, "butler_harvest_grade_id")
                     };
                     _housingTemplates.Add(template.Id, template);
 
@@ -317,7 +323,65 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
             template.HousingSize = _housingSizes.GetValueOrDefault(template.HousingSizeId);
         }
 
+        _butlerGardenTemplatesByItemId = BuildButlerGardenTemplates(
+            _housingItemHousings, _housingTemplates, _underwaterHousingCategoryIds);
+
         ResolveBindingPositionsFromClientData();
+    }
+
+    private static HashSet<uint> LoadUnderwaterHousingCategoryIds(SqliteConnection connection)
+    {
+        var categoryIds = new HashSet<uint>();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id FROM enum_housing_category WHERE name = @name";
+        command.Parameters.AddWithValue("@name", "underwater_structure");
+        command.Prepare();
+        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+        while (reader.Read())
+            categoryIds.Add(reader.GetUInt32("id"));
+        return categoryIds;
+    }
+
+    /// <summary>
+    /// Builds one garden descriptor for each item template that has one unambiguous housing design and a
+    /// numeric farmhand harvest grade. Garden size is data, not an eligibility filter.
+    /// </summary>
+    internal static Dictionary<uint, ButlerGardenTemplate> BuildButlerGardenTemplates(
+        IEnumerable<HousingItemHousings> itemHousings,
+        IReadOnlyDictionary<uint, HousingTemplate> housingTemplates,
+        IReadOnlySet<uint> underwaterHousingCategoryIds)
+    {
+        var templates = new Dictionary<uint, ButlerGardenTemplate>();
+        foreach (var group in itemHousings.Where(row => row.Item_Id != 0).GroupBy(row => row.Item_Id))
+        {
+            var designIds = group.Select(row => row.Design_Id).Distinct().ToArray();
+            if (designIds.Length != 1 || !housingTemplates.TryGetValue(designIds[0], out var housing) ||
+                housing.ButlerHarvestGradeId == 0 || housing.HousingSize == null)
+                continue;
+
+            templates.Add(group.Key, new ButlerGardenTemplate(
+                group.Key,
+                housing.Id,
+                housing.ButlerHarvestGradeId,
+                housing.ButlerGardenSize,
+                underwaterHousingCategoryIds.Contains(housing.CategoryId)));
+        }
+
+        return templates;
+    }
+
+    private static uint GetParsedUInt32(SQLiteWrapperReader reader, string column)
+    {
+        if (reader.IsDBNull(column))
+            return 0;
+
+        return reader.GetValue(column) switch
+        {
+            long value when value is >= 0 and <= uint.MaxValue => (uint)value,
+            int value when value >= 0 => (uint)value,
+            string value when uint.TryParse(value, NumberStyles.None, CultureInfo.InvariantCulture, out var result) => result,
+            _ => 0
+        };
     }
 
     internal static Dictionary<uint, HousingSize> LoadHousingSizes(SqliteConnection connection)
@@ -569,6 +633,10 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
     {
         return _housingItemHousings.FirstOrDefault(h => h.Item_Id == itemId)?.Design_Id ?? 0;
     }
+
+    /// <summary>Gets the unambiguous farmhand garden metadata for a housing item template.</summary>
+    public bool TryGetButlerGardenTemplate(uint itemTemplateId, out ButlerGardenTemplate template) =>
+        _butlerGardenTemplatesByItemId.TryGetValue(itemTemplateId, out template);
 
     /// <summary>
     /// Get decoration design by Id

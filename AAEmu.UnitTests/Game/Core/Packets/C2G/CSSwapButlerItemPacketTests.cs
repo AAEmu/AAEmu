@@ -19,6 +19,10 @@ public class CSSwapButlerItemPacketTests
 
         packet.Read(stream);
 
+        await Assert.That(packet.BagType).IsEqualTo((byte)0x12);
+        await Assert.That(packet.BagIndex).IsEqualTo((byte)0x34);
+        await Assert.That(packet.ButlerType).IsEqualTo((byte)0x56);
+        await Assert.That(packet.ButlerIndex).IsEqualTo((byte)0x78);
         await Assert.That(packet.FromType).IsEqualTo((byte)0x12);
         await Assert.That(packet.FromIndex).IsEqualTo((byte)0x34);
         await Assert.That(packet.ToType).IsEqualTo((byte)0x56);

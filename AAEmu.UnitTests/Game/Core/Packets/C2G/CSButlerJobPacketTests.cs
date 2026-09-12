@@ -27,6 +27,35 @@ public class CSButlerJobPacketTests
     }
 
     [Test]
+    public async Task HarvestJob_ClassifiesNativeRegisterAndCancelShapes()
+    {
+        var register = CSRequestButlerHarvestJobPacket.Classify(1, 0, 123, 4);
+        var cancelWithClientGlobalTail = CSRequestButlerHarvestJobPacket.Classify(3, 456, -789, -2);
+        var invalidRegister = CSRequestButlerHarvestJobPacket.Classify(1, 456, 123, 4);
+        var invalidCancel = CSRequestButlerHarvestJobPacket.Classify(3, 0, 0, 0);
+
+        await Assert.That(register).IsEqualTo(ButlerHarvestRequestOperation.Register);
+        await Assert.That(cancelWithClientGlobalTail).IsEqualTo(ButlerHarvestRequestOperation.Cancel);
+        await Assert.That(invalidRegister).IsEqualTo(ButlerHarvestRequestOperation.Invalid);
+        await Assert.That(invalidCancel).IsEqualTo(ButlerHarvestRequestOperation.Invalid);
+    }
+
+    [Test]
+    public async Task ExpandGardenSlots_ParsesOnlyTheNativeKindByte()
+    {
+        var stream = new PacketStream(new byte[] { 2 });
+        var packet = new CSExpandButlerUsableSlotPacket();
+
+        packet.Read(stream);
+
+        await Assert.That(packet.Kind).IsEqualTo((sbyte)2);
+        await Assert.That(stream.LeftBytes).IsEqualTo(0);
+        await Assert.That(() => new CSExpandButlerUsableSlotPacket().Read(
+                new PacketStream(new byte[] { 2, 0 })))
+            .Throws<InvalidDataException>();
+    }
+
+    [Test]
     public async Task SpecialtyTradeJob_ParsesExactNativeBody()
     {
         var body = new PacketStream()
@@ -83,12 +112,15 @@ public class CSButlerJobPacketTests
             .Write((sbyte)1)
             .Write(2u)
             .GetBytes()[..^1];
+        var expandBody = Array.Empty<byte>();
 
         await Assert.That(() => new CSRequestButlerHarvestJobPacket().Read(new PacketStream(harvestBody)))
             .Throws<InvalidDataException>();
         await Assert.That(() => new CSRequestButlerSpecialtyTradeJobPacket().Read(new PacketStream(specialtyBody)))
             .Throws<InvalidDataException>();
         await Assert.That(() => new CSChargeButlerWorldResourcePacket().Read(new PacketStream(chargeBody)))
+            .Throws<InvalidDataException>();
+        await Assert.That(() => new CSExpandButlerUsableSlotPacket().Read(new PacketStream(expandBody)))
             .Throws<InvalidDataException>();
     }
 }

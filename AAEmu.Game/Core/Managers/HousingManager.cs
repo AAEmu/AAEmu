@@ -1184,6 +1184,7 @@ public class HousingManager(
     {
         if (house == null)
             return;
+        using var persist = mailManager.DeferPersist();
         lock (house.LifecycleSyncRoot)
             DemolishLocked(connection, house, failedToPayTax, forceRestoreAllDecor);
     }
@@ -1336,8 +1337,11 @@ public class HousingManager(
     {
         if (house == null)
             return false;
-        lock (house.LifecycleSyncRoot)
-            return RemoveDeadHouseLocked(house);
+        return WithPersistenceOperation(() =>
+        {
+            lock (house.LifecycleSyncRoot)
+                return RemoveDeadHouseLocked(house);
+        });
     }
 
     private bool RemoveDeadHouseLocked(House house)
@@ -2459,6 +2463,7 @@ public class HousingManager(
             return false;
         }
 
+        using var persist = mailManager.DeferPersist();
         lock (house.LifecycleSyncRoot)
             return BuyHouseLocked(house, money, character);
     }
@@ -2621,6 +2626,22 @@ public class HousingManager(
         Success,
         PaymentFailed,
         ButlerUnbindFailed
+    }
+
+    private static T WithPersistenceOperation<T>(Func<T> operation)
+    {
+        var entered = !PersistenceGate.IsOperationHeld;
+        if (entered)
+            PersistenceGate.EnterOperation();
+        try
+        {
+            return operation();
+        }
+        finally
+        {
+            if (entered)
+                PersistenceGate.ExitOperation();
+        }
     }
 
     /// <summary>

@@ -52,6 +52,7 @@ public interface IItemManager : ILoadable
     TItem Create<TItem>(uint templateId, int count, byte grade, bool generateId = true) where TItem : Item;
     bool AddItem(Item item);
     Item GetItemByItemId(ulong itemId);
+    ItemContainer FindItemContainerFor(uint characterId, SlotType slotType, uint mateId);
     ItemContainer GetItemContainerForCharacter(uint characterId, SlotType slotType, Unit parentUnit, uint mateId);
     CofferContainer NewCofferContainer(uint characterId);
     ItemBagContainer GetOrCreateItemBagContainer(ItemBag itemBag);
@@ -69,4 +70,8 @@ public interface IItemManager : ILoadable
     SlotType GetContainerSlotTypeByContainerId(ulong dbId);
     (int, int, int) Save(MySql.Data.MySqlClient.MySqlConnection connection, MySql.Data.MySqlClient.MySqlTransaction transaction);
     int PersistMailAttachments(IReadOnlyCollection<Item> items, MySql.Data.MySqlClient.MySqlConnection connection, MySql.Data.MySqlClient.MySqlTransaction transaction);
+    ItemPersistenceSnapshot CapturePersistenceSnapshot(Item item);
+    int PersistSnapshots(MySql.Data.MySqlClient.MySqlConnection connection, MySql.Data.MySqlClient.MySqlTransaction transaction, IReadOnlyList<ItemPersistenceSnapshot> snapshots);
+    void ApplyCommittedSnapshot(ItemPersistenceSnapshot snapshot);
+    void FinalizeCommittedRemoval(Item item);
 }

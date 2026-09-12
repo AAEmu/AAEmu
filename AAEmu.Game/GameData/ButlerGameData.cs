@@ -16,6 +16,7 @@ public class ButlerGameData : Singleton<ButlerGameData>, IGameDataLoader
 {
     private Dictionary<uint, ButlerTemplate> _templatesById = [];
     private Dictionary<(uint ButlerId, uint Level), ButlerLevel> _levelsByButlerAndLevel = [];
+    private Dictionary<uint, List<ButlerLevel>> _levelsByButlerId = [];
     private Dictionary<uint, ButlerHarvestGrade> _harvestGradesById = [];
     private Dictionary<uint, ButlerHarvest> _harvestsById = [];
     private Dictionary<uint, List<ButlerHarvest>> _harvestsByGradeId = [];
@@ -33,6 +34,7 @@ public class ButlerGameData : Singleton<ButlerGameData>, IGameDataLoader
 
         _templatesById = [];
         _levelsByButlerAndLevel = [];
+        _levelsByButlerId = [];
         _harvestGradesById = [];
         _harvestsById = [];
         _harvestsByGradeId = [];
@@ -60,8 +62,68 @@ public class ButlerGameData : Singleton<ButlerGameData>, IGameDataLoader
     public bool TryGetTemplate(uint butlerId, out ButlerTemplate template) =>
         _templatesById.TryGetValue(butlerId, out template);
 
+    /// <summary>Gets the only configured farmhand template, failing closed when content has more than one.</summary>
+    public bool TryGetUniqueTemplate(out ButlerTemplate template)
+    {
+        template = null;
+        if (_templatesById.Count != 1)
+            return false;
+
+        template = _templatesById.Values.Single();
+        return template.Id != 0;
+    }
+
     public bool TryGetLevel(uint butlerId, uint level, out ButlerLevel template) =>
         _levelsByButlerAndLevel.TryGetValue((butlerId, level), out template);
+
+    /// <summary>Resolves cumulative experience to the highest usable Farmhand level.</summary>
+    public bool TryGetLevelForCumulativeExperience(uint butlerId, ulong cumulativeExperience,
+        out ButlerLevel template)
+    {
+        template = null;
+        if (!_levelsByButlerId.TryGetValue(butlerId, out var levels))
+            return false;
+
+        foreach (var candidate in levels)
+        {
+            if (candidate.Level > ButlerProgression.MaximumUsableLevel || candidate.TotalExp < 0 ||
+                (ulong)candidate.TotalExp > cumulativeExperience)
+                continue;
+            if (template == null || candidate.Level > template.Level)
+                template = candidate;
+        }
+
+        return template != null;
+    }
+
+    /// <summary>Gets the maximum usable Farmhand level for this client version.</summary>
+    public bool TryGetMaximumLevel(uint butlerId, out ButlerLevel template)
+    {
+        template = null;
+        if (!_levelsByButlerId.TryGetValue(butlerId, out var levels))
+            return false;
+
+        foreach (var candidate in levels)
+            if (candidate.Level <= ButlerProgression.MaximumUsableLevel &&
+                (template == null || candidate.Level > template.Level))
+                template = candidate;
+        return template != null;
+    }
+
+    /// <summary>
+    /// Gets the experience threshold immediately after the usable Farmhand cap. The target content stores that
+    /// threshold on level 41, while the client exposes level 40 as the cap.
+    /// </summary>
+    public bool TryGetNextLevelExperienceThreshold(uint butlerId, out long totalExperience)
+    {
+        totalExperience = 0;
+        if (!_levelsByButlerAndLevel.TryGetValue((butlerId, ButlerProgression.MaximumUsableLevel + 1),
+                out var sentinel) || sentinel.TotalExp < 0)
+            return false;
+
+        totalExperience = sentinel.TotalExp;
+        return true;
+    }
 
     public bool TryGetHarvestGrade(uint harvestGradeId, out ButlerHarvestGrade template) =>
         _harvestGradesById.TryGetValue(harvestGradeId, out template);
@@ -154,6 +216,9 @@ public class ButlerGameData : Singleton<ButlerGameData>, IGameDataLoader
                 ButlerHarvestGradeId = reader.GetUInt32("butler_harvest_grade_id")
             };
             _levelsByButlerAndLevel[(template.ButlerId, template.Level)] = template;
+            if (!_levelsByButlerId.TryGetValue(template.ButlerId, out var levels))
+                _levelsByButlerId[template.ButlerId] = levels = [];
+            levels.Add(template);
         }
     }
 

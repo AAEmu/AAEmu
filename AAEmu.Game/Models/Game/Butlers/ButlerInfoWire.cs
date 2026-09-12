@@ -102,8 +102,8 @@ public sealed record ButlerInfoWire(
         stream.Write(actabilities.Count);
         foreach (var actability in actabilities)
         {
-            stream.WritePisc(actability.GroupId, actability.StatId);
-            stream.Write(actability.Point);
+            stream.WritePisc(actability.GroupId, actability.Point);
+            stream.Write(actability.Stat);
         }
     }
 
@@ -119,9 +119,11 @@ public sealed record ButlerInfoWire(
 }
 
 /// <summary>
-/// Farmhand actability payload in <c>FUN_39AA47B0</c>: PISC group/stat, then a signed 16-bit point value.
+/// Farmhand actability payload in <c>FUN_39AA47B0</c>: PISC group/point, then signed 16-bit stat.
+/// Native evidence at <c>0x390CDEA0..0x390CDEBB</c> and <c>FUN_39CEE000</c> identifies the
+/// group key and the distinct point/stat values.
 /// </summary>
-public readonly record struct ButlerActabilityWire(uint GroupId, uint StatId, short Point);
+public readonly record struct ButlerActabilityWire(uint GroupId, uint Point, short Stat);
 
 /// <summary>
 /// Value following each raw signed 64-bit harvest-data key in <c>FUN_39AAAC00</c>.
