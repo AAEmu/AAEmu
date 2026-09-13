@@ -15,4 +15,6 @@ public sealed record SpecialtyPurchaseWrite(
     Item PreviousBackpack,
     ulong BagContainerId,
     int BagSlot,
-    SpecialtyMarketWrite Market);
+    SpecialtyMarketWrite Market,
+    long BankMoney,
+    InventoryPersistenceSnapshot Inventory);

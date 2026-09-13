@@ -2579,7 +2579,7 @@ public partial class Character : Unit, ICharacter
         }
     }
 
-    public void ChangeLabor(short change, int actabilityId)
+    public virtual void ChangeLabor(short change, int actabilityId)
     {
         lock (_stateSyncRoot)
             ChangeLaborCore(change, actabilityId);

@@ -2735,7 +2735,8 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
     public bool TryGetActiveCraftPack(
         Models.Game.DoodadObj.Doodad doodad,
         out DoodadFunc function,
-        out DoodadFuncCraftPack craftPack)
+        out DoodadFuncCraftPack craftPack,
+        Func<uint, bool> acceptsPack = null)
     {
         function = null;
         craftPack = null;
@@ -2749,7 +2750,8 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
         {
             if (candidate.FuncType != nameof(DoodadFuncCraftPack) ||
                 GetFuncTemplate(candidate.FuncId, candidate.FuncType) is not DoodadFuncCraftPack candidatePack ||
-                candidatePack.CraftPackId == 0)
+                candidatePack.CraftPackId == 0 ||
+                acceptsPack != null && !acceptsPack(candidatePack.CraftPackId))
                 continue;
             matches++;
             if (matches > 1)

@@ -65,6 +65,7 @@ public interface IItemManager : ILoadable
     void ReleaseId(ulong itemId);
     void ReleaseCommittedItem(ulong itemId);
     bool TryPersistItem(Item item);
+    InventoryPersistenceSnapshot CaptureInventory(uint characterId);
     void PublishPersistedItems(IEnumerable<Item> items);
     void DiscardUnpersistedItems(IEnumerable<Item> items);
     List<Item> LoadPlayerInventory(ICharacter character);

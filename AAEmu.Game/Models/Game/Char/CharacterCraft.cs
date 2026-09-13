@@ -26,6 +26,7 @@ public class CharacterCraft
     private readonly ISkillManager _skillManager;
     private readonly IItemManager _itemManager;
     private readonly IZoneManager _zoneManager;
+    private readonly IMailManager _mailManager;
 
     public CharacterCraft(Character owner)
         : this(
@@ -34,7 +35,8 @@ public class CharacterCraft
             DoodadManager.Instance,
             SkillManager.Instance,
             ItemManager.Instance,
-            ZoneManager.Instance)
+            ZoneManager.Instance,
+            MailManager.Instance)
     {
     }
 
@@ -44,7 +46,8 @@ public class CharacterCraft
         IDoodadManager doodadManager,
         ISkillManager skillManager,
         IItemManager itemManager,
-        IZoneManager zoneManager)
+        IZoneManager zoneManager,
+        IMailManager mailManager = null)
     {
         _owner = owner;
         _craftManager = craftManager;
@@ -52,6 +55,7 @@ public class CharacterCraft
         _skillManager = skillManager;
         _itemManager = itemManager;
         _zoneManager = zoneManager;
+        _mailManager = mailManager;
     }
 
     private int Count { get; set; }
@@ -72,6 +76,7 @@ public class CharacterCraft
 
     public bool Craft(Craft craft, int count, uint doodadId)
     {
+        using var persistence = _mailManager?.DeferPersist();
         lock (Owner.StateSyncRoot)
             return CraftCore(craft, count, doodadId);
     }
@@ -138,10 +143,11 @@ public class CharacterCraft
         var skill = new Skill(skillTemplate);
         ConsumeLaborPower = skill.GetLaborCost(Owner);
         CurrentSkill = skill;
+        skill.CancellationRequested += OnSkillCancelled;
         // 10.0.2.13: Craft.AcId removed; actability-based speed multiplier dropped
         var speedMultiplier = 1f;
         skill.CastTimeMultiplier = speedMultiplier;
-        var result = skill.Use(Owner, caster, target, null, false, out _);
+        var result = UseSkill(skill, caster, target);
         if (result != SkillResult.Success)
         {
             CancelCraft();
@@ -150,14 +156,31 @@ public class CharacterCraft
         return true;
     }
 
+    protected virtual SkillResult UseSkill(Skill skill, SkillCaster caster, SkillCastTarget target) =>
+        skill.Use(Owner, caster, target, null, false, out _);
+
+    private void OnSkillCancelled(Skill skill)
+    {
+        lock (Owner.StateSyncRoot)
+        {
+            if (ReferenceEquals(CurrentSkill, skill))
+                CancelCraft();
+        }
+    }
+
     public bool EndCraft(Skill skill = null)
     {
+        using var persistence = _mailManager?.DeferPersist();
         lock (Owner.StateSyncRoot)
             return EndCraftCore(skill ?? CurrentSkill);
     }
 
     private bool EndCraftCore(Skill skill)
     {
+        // A cancelled task may race a new start. It must not complete or clear the new session.
+        if (skill == null || !ReferenceEquals(skill, CurrentSkill))
+            return false;
+
         if (!IsCrafting || CurrentCraft == null)
         {
             CancelCraft();
@@ -182,7 +205,7 @@ public class CharacterCraft
             return false;
         }
 
-        if (skill == null || !ReferenceEquals(skill, CurrentSkill) || skill.Template?.Id != CurrentCraft.SkillId ||
+        if (skill.Cancelled || skill.Template?.Id != CurrentCraft.SkillId ||
             Owner.LaborPower + Owner.LocalLaborPower < ConsumeLaborPower)
         {
             Owner.SendDebugMessage("|cFFFFFF00[Craft] Not enough Labor Powers for crafting! Performing a fictitious crafting step...|r");
@@ -371,6 +394,7 @@ public class CharacterCraft
 
         Count--;
         IsCrafting = false;
+        skill.CancellationRequested -= OnSkillCancelled;
 
         //Owner.Quests.OnCraft(_craft); // TODO added for quest Id=6024
         // инициируем событие
@@ -449,6 +473,8 @@ public class CharacterCraft
 
     private void CancelCraft()
     {
+        if (CurrentSkill != null)
+            CurrentSkill.CancellationRequested -= OnSkillCancelled;
         IsCrafting = false;
         CurrentCraft = null;
         CurrentSkill = null;
@@ -458,14 +484,6 @@ public class CharacterCraft
         CraftPackId = 0;
         ProductionZoneGroupId = 0;
         ConsumeLaborPower = 0;
-
-        // Also cancel the related skill ? I don't think this really does anything for crafts, but can't hurt I guess
-        if (Owner != null)
-        {
-            if (Owner.SkillTask != null)
-                Owner.SkillTask.Skill.Cancelled = true;
-            Owner.InterruptSkills();
-        }
 
         // Might want to send a packet here, I think there is a packet when crafting fails. Not sure yet.
     }
@@ -489,8 +507,8 @@ public class CharacterCraft
             !ReferenceEquals(world.GetDoodad(doodad.ObjId), doodad) ||
             doodad.Despawn > DateTime.MinValue || doodad.FuncGroupId == 0)
             return false;
-        if (!_doodadManager.TryGetActiveCraftPack(doodad, out var function, out var template) ||
-            !_craftManager.IsCraftInPack(template.CraftPackId, craft.Id) ||
+        if (!_doodadManager.TryGetActiveCraftPack(doodad, out var function, out var template,
+                packId => _craftManager.IsCraftInPack(packId, craft.Id)) ||
             !TryResolveProductionZone(craft, doodad, out productionZoneGroupId))
             return false;
 

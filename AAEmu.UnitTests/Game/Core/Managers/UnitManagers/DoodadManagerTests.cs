@@ -87,6 +87,45 @@ public class DoodadManagerTests
     }
 
     [Test]
+    [Arguments(3u, 301u)]
+    [Arguments(84u, 743u)]
+    public async Task TryGetActiveCraftPack_MultiFunctionStationResolvesRequestedMembership(uint packId, uint functionId)
+    {
+        var manager = CreateManager(
+            Mock.Of<INonUnitObjectIdManager>().Object,
+            Mock.Of<IDoodadIdManager>().Object,
+            Mock.Of<IItemManager>().Object,
+            new Lazy<IHousingManager>(() => Mock.Of<IHousingManager>().Object),
+            Mock.Of<ISusManager>().Object);
+        SetPrivateField(manager, "_funcsByGroups", new Dictionary<uint, List<DoodadFunc>>
+        {
+            [20054] =
+            [
+                new() { GroupId = 20054, FuncId = 301, FuncType = nameof(DoodadFuncCraftPack), PermId = 1 },
+                new() { GroupId = 20054, FuncId = 743, FuncType = nameof(DoodadFuncCraftPack), PermId = 2 }
+            ]
+        });
+        SetPrivateField(manager, "_funcTemplates", new Dictionary<string, Dictionary<uint, DoodadFuncTemplate>>
+        {
+            [nameof(DoodadFuncCraftPack)] = new()
+            {
+                [301] = new DoodadFuncCraftPack { Id = 301, CraftPackId = 3 },
+                [743] = new DoodadFuncCraftPack { Id = 743, CraftPackId = 84 }
+            }
+        });
+        var doodad = new Doodad();
+        SetPrivateField(doodad, "_funcGroupId", 20054u);
+
+        var found = manager.TryGetActiveCraftPack(doodad, out var function, out var template, id => id == packId);
+
+        await Assert.That(found).IsTrue();
+        await Assert.That(function.FuncId).IsEqualTo(functionId);
+        await Assert.That(function.PermId).IsEqualTo(packId == 3 ? 1u : 2u);
+        await Assert.That(template.CraftPackId).IsEqualTo(packId);
+        await Assert.That(manager.TryGetActiveCraftPack(doodad, out _, out _, id => id == 999)).IsFalse();
+    }
+
+    [Test]
     public async Task TryGetActiveCraftPack_RejectsAmbiguousCurrentGroup()
     {
         var manager = CreateManager(

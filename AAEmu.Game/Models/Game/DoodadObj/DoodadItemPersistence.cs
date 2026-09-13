@@ -1,4 +1,6 @@
-using AAEmu.Commons.Utils.DB;
+using System.Data.Common;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using MySql.Data.MySqlClient;
 using NLog;
@@ -9,12 +11,30 @@ public static class DoodadItemPersistence
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    public static bool TrySavePlacement(Item item, Doodad doodad) =>
-        TryCommit(connection =>
+    public static bool TrySavePlacement(Item item, Doodad doodad)
+    {
+        using var persistence = MailManager.Instance.DeferPersist();
+        var owner = item._holdingContainer?.Owner as Character;
+        lock (owner?.StateSyncRoot ?? item)
         {
-            ItemPersistence.Save(connection.Connection, connection.Transaction, item);
-            doodad.Save(connection.Connection, connection.Transaction);
-        });
+            return TryCommit(connection =>
+            {
+                var inventory = owner == null ? null : ItemManager.Instance.CaptureInventory(owner.Id);
+                SavePlacement(connection.Connection, connection.Transaction, item, inventory,
+                    () => doodad.Save(connection.Connection, connection.Transaction));
+            });
+        }
+    }
+
+    internal static void SavePlacement(DbConnection connection, DbTransaction transaction, Item item,
+        InventoryPersistenceSnapshot inventory, Action saveDoodad)
+    {
+        // A freshly produced pack and its ingredient decrements/deletions cross the crash
+        // boundary together. Never commit the ground product ahead of its source inventory.
+        inventory?.Apply(connection, transaction);
+        ItemPersistence.Save(connection, transaction, item);
+        saveDoodad();
+    }
 
     public static bool TrySaveRecovery(Item item, Doodad doodad) =>
         TryCommit(connection =>
@@ -35,28 +55,12 @@ public static class DoodadItemPersistence
     {
         try
         {
-            using var connection = MySQL.CreateConnection();
-            using var transaction = connection.BeginTransaction();
-            try
+            using var persistence = MailManager.Instance.DeferPersist();
+            return SaveManager.Instance.ExecuteOperation((connection, transaction) =>
             {
                 action(new PersistenceConnection(connection, transaction));
-                transaction.Commit();
-            }
-            catch
-            {
-                try
-                {
-                    transaction.Rollback();
-                }
-                catch (Exception rollbackException)
-                {
-                    Logger.Error(rollbackException, "Failed to roll back a doodad item lifecycle transition");
-                }
-
-                throw;
-            }
-
-            return true;
+                return true;
+            });
         }
         catch (Exception exception)
         {

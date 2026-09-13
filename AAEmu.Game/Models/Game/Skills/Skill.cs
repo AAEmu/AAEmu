@@ -55,7 +55,20 @@ public class Skill
     private bool _zoneSkillEndedRelayed;
     private bool _laborConsumed;
     private SkillCaster _zoneSkillCaster;
-    public bool Cancelled { get; set; } = false;
+    private bool _cancelled;
+    internal event Action<Skill> CancellationRequested;
+    public bool Cancelled
+    {
+        get => _cancelled;
+        set
+        {
+            if (_cancelled == value)
+                return;
+            _cancelled = value;
+            if (value)
+                CancellationRequested?.Invoke(this);
+        }
+    }
     public Action Callback { get; set; }
 
     /// <summary>
@@ -1835,6 +1848,7 @@ public class Skill
     public void Stop(BaseUnit caster, Doodad channelDoodad = null, SkillCaster casterCaster = null)
     {
         if (caster is not Unit unit) { return; }
+        Cancelled = true;
         if (Template.ChannelingTime > 0)
         {
             EndChanneling(caster, channelDoodad, casterCaster);
@@ -1851,7 +1865,6 @@ public class Skill
         Callback?.Invoke();
         unit.OnSkillEnd(this);
         unit.SkillTask = null;
-        Cancelled = true;
         RelayZoneSkillEndedIfNeeded();
         SkillTlIdManager.ReleaseId(TlId);
         TlId = 0;

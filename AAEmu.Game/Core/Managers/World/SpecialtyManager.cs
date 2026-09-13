@@ -444,6 +444,22 @@ public class SpecialtyManager(
         if (descriptors.Length == 0)
             return;
 
+        // Expiry tasks are one-shot. Retry their durable cleanup on subsequent stock checks,
+        // even when today's stock/roll would not activate the trigger.
+        (uint EventId, long Token)[] expired;
+        lock (_eventLock)
+        {
+            var now = timeProvider.GetUtcNow();
+            expired = descriptors
+                .Select(descriptor => (descriptor.Id, State: _activeSpecialtyEvents.GetValueOrDefault(
+                    (descriptor.Id, SpecialtyEventActivationSource.StockCount))))
+                .Where(entry => entry.State != null && entry.State.Activation.ExpiresAt <= now)
+                .Select(entry => (entry.Id, entry.State.ActivationToken))
+                .ToArray();
+        }
+        foreach (var (eventId, token) in expired)
+            ExpirePersistedStockEvent(eventId, token);
+
         var trigger = descriptors[0].Trigger;
         if (!TryGetStockEventCargoStock(trigger, out var stock))
             return;
@@ -2196,7 +2212,7 @@ public class SpecialtyManager(
                 }
                 var previous = player.Inventory.GetEquippedBySlot(EquipmentItemSlot.Backpack);
                 var bagSlot = previous == null ? -1 : player.Inventory.Bag.GetUnusedSlot(-1);
-                if (previous != null && (bagSlot < 0 || !EnsurePackPersisted(itemManager, previous)))
+                if (previous != null && bagSlot < 0)
                 {
                     player.SendErrorMessage(ErrorMessageType.SpecialtyNotBuyNow);
                     return false;
@@ -2229,7 +2245,8 @@ public class SpecialtyManager(
                         player.Id, player.AccountId, player.Money, player.Money - price,
                         expectedLabor, expectedLabor - fromAccount,
                         expectedLocalLabor, expectedLocalLabor - (laborCost - fromAccount),
-                        cargo, previous, player.Inventory.Bag.ContainerId, bagSlot, market);
+                        cargo, previous, player.Inventory.Bag.ContainerId, bagSlot, market,
+                        player.Money2, itemManager.CaptureInventory(player.Id));
                     if (!purchaseStore.Commit(write))
                     {
                         itemManager.DiscardUnpersistedItems([cargo]);

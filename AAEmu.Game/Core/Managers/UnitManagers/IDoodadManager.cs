@@ -26,7 +26,8 @@ public interface IDoodadManager : ILoadable
     List<DoodadFunc> GetFuncsForGroup(uint funcGroupId);
     List<DoodadPhaseFunc> GetPhaseFunc(uint funcGroupId);
     DoodadFuncTemplate GetFuncTemplate(uint funcId, string funcType);
-    bool TryGetActiveCraftPack(Doodad doodad, out DoodadFunc function, out DoodadFuncCraftPack craftPack);
+    bool TryGetActiveCraftPack(Doodad doodad, out DoodadFunc function, out DoodadFuncCraftPack craftPack,
+        Func<uint, bool> acceptsPack = null);
     DoodadPhaseFuncTemplate GetPhaseFuncTemplate(uint funcId, string funcType);
     List<DoodadFuncGroups> GetDoodadFuncGroups(uint doodadTemplateId);
     List<uint> GetDoodadFuncGroupsId(uint doodadTemplateId);

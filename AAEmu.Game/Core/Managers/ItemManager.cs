@@ -2010,38 +2010,45 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
             throw new InvalidOperationException($"Item {itemId} deletion affected more than one row.");
     }
 
+    public InventoryPersistenceSnapshot CaptureInventory(uint characterId)
+    {
+        if (characterId == 0)
+            throw new ArgumentOutOfRangeException(nameof(characterId));
+
+        List<ItemContainer> containers;
+        lock (_allPersistentContainers)
+            containers = _allPersistentContainers.Values.Where(container =>
+                container.OwnerId == characterId && container.ContainerId != 0 &&
+                container.ContainerType is SlotType.Inventory or SlotType.Equipment or SlotType.Bank or SlotType.System)
+                .ToList();
+        var items = containers.SelectMany(container => container.Items).ToList();
+        List<ulong> removed;
+        lock (_removedItems)
+            removed = [.. _removedItems];
+        return new InventoryPersistenceSnapshot(characterId, containers, items, removed);
+    }
+
     public bool TryPersistItem(Item item)
     {
         if (item == null)
             return false;
 
-        lock (_allItems)
+        using var persistence = MailManager.Instance.DeferPersist();
+        var owner = item._holdingContainer?.Owner as Character;
+        lock (owner?.StateSyncRoot ?? _allItems)
         {
             if (!item.IsDirty)
                 return true;
 
             try
             {
-                using var connection = MySQL.CreateConnection();
-                using var transaction = connection.BeginTransaction();
-                try
+                SaveManager.Instance.ExecuteOperation((connection, transaction) =>
                 {
+                    if (owner != null)
+                        CaptureInventory(owner.Id).Apply(connection, transaction);
                     ItemPersistence.Save(connection, transaction, item);
-                    transaction.Commit();
-                }
-                catch
-                {
-                    try
-                    {
-                        transaction.Rollback();
-                    }
-                    catch (Exception rollbackException)
-                    {
-                        Logger.Error(rollbackException, "Failed to roll back persistence for item {0}", item.Id);
-                    }
-
-                    throw;
-                }
+                    return true;
+                });
 
                 item.IsDirty = false;
                 return true;

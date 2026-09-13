@@ -99,6 +99,9 @@ public class Doodad : BaseUnit
     /// </summary>
     public bool IsPersistent { get; set; }
 
+    /// <summary>Only the owning placement transaction may save an uncommitted physical drop.</summary>
+    internal bool IsPlacementPending { get; set; }
+
     /// <summary>
     /// This Doodad's Template
     /// </summary>
@@ -902,7 +905,7 @@ public class Doodad : BaseUnit
     {
         // Changing the phase.
         FuncGroupId = (uint)nextPhase;
-        if (WorldIntegration.ZoneAuthority)
+        if (WorldIntegration.ZoneAuthority && !IsPlacementPending)
             WorldIntegration.RelayDoodadPhaseToZone?.Invoke(ObjId, FuncGroupId, Data);
 
         if (!DoodadPhaseWalk.TryVisit(ListGroupId, (uint)nextPhase))
@@ -1514,7 +1517,7 @@ public class Doodad : BaseUnit
     /// </summary>
     public void Save()
     {
-        if (!IsPersistent)
+        if (!IsPersistent || IsPlacementPending)
         {
             return;
         }
@@ -1526,7 +1529,7 @@ public class Doodad : BaseUnit
 
     public void Save(MySqlConnection connection, MySqlTransaction transaction)
     {
-        if (!IsPersistent)
+        if (!IsPersistent || IsPlacementPending && transaction == null)
             return;
 
         DbId = DbId > 0 ? DbId : DoodadIdManager.Instance.GetNextId();

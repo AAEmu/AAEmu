@@ -29,6 +29,13 @@ public class PutDownBackpackEffect : EffectTemplate
         var character = (Character)caster;
         if (character == null) return;
 
+        using var persistence = MailManager.Instance.DeferPersist();
+        lock (character.StateSyncRoot)
+            PutDown(character, casterObj);
+    }
+
+    private void PutDown(Character character, SkillCaster casterObj)
+    {
         var packItem = (SkillItem)casterObj;
         if (packItem == null) return;
 
@@ -68,7 +75,7 @@ public class PutDownBackpackEffect : EffectTemplate
             // Spawn doodad
             Logger.Debug("PutDownPackEffect");
 
-            var doodad = DoodadManager.Instance.Create(caster.ParentWorld, 0, BackpackDoodadId, character, true);
+            var doodad = DoodadManager.Instance.Create(character.ParentWorld, 0, BackpackDoodadId, character, true);
             if (doodad == null)
             {
                 Logger.Warn("Doodad {0}, from BackpackDoodadId could not be created", BackpackDoodadId);

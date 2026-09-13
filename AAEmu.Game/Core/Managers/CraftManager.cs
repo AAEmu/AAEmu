@@ -151,8 +151,10 @@ public class CraftManager : Singleton<CraftManager>, ICraftManager
             if (craftPackId == 0)
                 throw new InvalidDataException($"craft_pack_crafts craft {craftId} has a zero craft_pack_id.");
             if (!_crafts.TryGetValue(craftId, out var craft))
-                throw new InvalidDataException(
-                    $"craft_pack_crafts pack {craftPackId} references missing crafts row {craftId}.");
+            {
+                Logger.Warn("Skipping craft_pack_crafts pack {0}: missing crafts row {1}.", craftPackId, craftId);
+                continue;
+            }
 
             if (!_craftsByPack.TryGetValue(craftPackId, out var craftIds))
             {

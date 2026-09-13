@@ -79,8 +79,7 @@ public class CraftEffect : EffectTemplate
                             }
 
                             character.BroadcastPacket(new SCShipyardStatePacket(shipyard.ShipyardData), true);
-                            if (!character.Craft.EndCraft(source.Skill))
-                                source.Skill.Cancelled = true;
+                            // Construction is paid by Skill.ApplyEffects/EndSkill and has no recipe session.
                         }
                     }
                     else

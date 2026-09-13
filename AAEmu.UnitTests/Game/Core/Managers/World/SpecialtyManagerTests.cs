@@ -1425,6 +1425,36 @@ public partial class SpecialtyManagerTests
     }
 
     [Test]
+    public async Task StockEventExpiry_CommitFailureIsReconciledByNextCheckAndCanActivateAgain()
+    {
+        using var eventData = CreateSpecialtyEventDatabase();
+        var store = new InMemoryMarketStore();
+        var tasks = new RecordingTaskManager();
+        var clock = new FakeTimeProvider();
+        var manager = CreateSpecialtyEventManager(
+            enableEvents: true, taskManager: tasks, timeProvider: clock, marketStore: store);
+        manager.LoadSpecialtyEventData(eventData);
+        ConfigureStockEventMarket(manager, 160);
+        manager.CheckStockEventTrigger(1, 0);
+        var oldExpiry = tasks.Scheduled.Single().Task;
+        clock.Advance(TimeSpan.FromHours(1));
+        store.CommitFailure = new IOException("Transient expiry failure");
+
+        await Assert.That(() => oldExpiry.Execute()).Throws<IOException>();
+        await Assert.That(manager.GetActiveSpecialtyEvents()).IsEmpty();
+        await Assert.That(store.Load().StockEventActivations.Count).IsEqualTo(1);
+
+        store.CommitFailure = null;
+        manager.CheckStockEventTrigger(1, 999); // Losing roll must still retry expiry cleanup.
+        await Assert.That(store.Load().StockEventActivations).IsEmpty();
+        manager.CheckStockEventTrigger(1, 0);
+        await Assert.That(manager.GetActiveSpecialtyEvents().Select(x => x.EventId))
+            .IsEquivalentTo(new uint[] { 14 });
+        oldExpiry.Execute(); // A late retry of the old token must not expire the new activation.
+        await Assert.That(store.Load().StockEventActivations.Count).IsEqualTo(1);
+    }
+
+    [Test]
     public async Task StockEventActivation_CommitFailureCancelsExpiryAndDoesNotPublish()
     {
         using var eventData = CreateSpecialtyEventDatabase();

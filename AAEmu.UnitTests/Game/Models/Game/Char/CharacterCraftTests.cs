@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
@@ -9,7 +10,10 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Zones;
@@ -124,6 +128,38 @@ public class CharacterCraftTests
     }
 
     [Test]
+    [Arguments((byte)0, true)]
+    [Arguments((byte)1, false)]
+    public async Task Craft_MultiFunctionStationUsesRecipeFunctionPermission(byte permission, bool expected)
+    {
+        var context = CreateContext(multiplePackFunctions: true, permission: permission);
+        await Assert.That(context.CharacterCraft.Craft(context.Craft, 1, context.Doodad.ObjId)).IsEqualTo(expected);
+        await Assert.That(context.CharacterCraft.IsCrafting).IsEqualTo(expected);
+    }
+
+    [Test]
+    public async Task Craft_StartStopStart_AllowsNewSessionAndIgnoresOldCancellation()
+    {
+        var context = CreateContext();
+        var crafting = (TestCharacterCraft)context.CharacterCraft;
+        await Assert.That(crafting.Craft(context.Craft, 1, context.Doodad.ObjId)).IsTrue();
+        var firstSkill = crafting.LastSkill;
+
+        firstSkill.Stop(crafting.Character);
+
+        await Assert.That(crafting.IsCrafting).IsFalse();
+        await Assert.That(crafting.Craft(context.Craft, 1, context.Doodad.ObjId)).IsTrue();
+        await Assert.That(crafting.LastSkill).IsNotSameReferenceAs(firstSkill);
+        await Assert.That(crafting.EndCraft(firstSkill)).IsFalse();
+        firstSkill.Cancelled = false;
+        firstSkill.Cancelled = true;
+        await Assert.That(crafting.IsCrafting).IsTrue();
+
+        crafting.LastSkill.Cancelled = true;
+        await Assert.That(crafting.IsCrafting).IsFalse();
+    }
+
+    [Test]
     public async Task EndCraft_RejectsChangedFunctionGroup()
     {
         const uint originalFunctionGroupId = 100;
@@ -173,7 +209,7 @@ public class CharacterCraftTests
 
         await Assert.That(completed).IsFalse();
         await Assert.That(repeated).IsFalse();
-        await Assert.That(context.CharacterCraft.IsCrafting).IsFalse();
+        await Assert.That(context.CharacterCraft.IsCrafting).IsTrue();
     }
 
     private static CraftContext CreateContext(
@@ -186,7 +222,9 @@ public class CharacterCraftTests
         uint productionZoneGroupId = 0,
         bool autoEquipProduct = false,
         int productAmount = 1,
-        int autoEquipProductRows = 1)
+        int autoEquipProductRows = 1,
+        bool multiplePackFunctions = false,
+        byte permission = 0)
     {
         const uint craftId = 10;
         const uint craftPackId = 20;
@@ -236,23 +274,33 @@ public class CharacterCraftTests
         {
             GroupId = functionGroupId,
             FuncId = 50,
-            FuncType = nameof(DoodadFuncCraftPack)
+            FuncType = nameof(DoodadFuncCraftPack),
+            PermId = permission
         };
         var craftPack = new DoodadFuncCraftPack { Id = function.FuncId, CraftPackId = craftPackId };
         SetPrivateField(doodadManager, "_funcsByGroups", new Dictionary<uint, List<DoodadFunc>>
         {
-            [functionGroupId] = [function]
+            [functionGroupId] = multiplePackFunctions
+                ? [new DoodadFunc { GroupId = functionGroupId, FuncId = 51, FuncType = nameof(DoodadFuncCraftPack) }, function]
+                : [function]
         });
         SetPrivateField(doodadManager, "_funcTemplates", new Dictionary<string, Dictionary<uint, DoodadFuncTemplate>>
         {
-            [nameof(DoodadFuncCraftPack)] = new() { [function.FuncId] = craftPack }
+            [nameof(DoodadFuncCraftPack)] = new()
+            {
+                [function.FuncId] = craftPack,
+                [51] = new DoodadFuncCraftPack { Id = 51, CraftPackId = craftPackId + 1 }
+            }
         });
 
         var skillManager = Mock.Of<ISkillManager>();
         skillManager.GetSkillTemplate(skillId).Returns(new SkillTemplate { Id = skillId, MaxRange = maxRange });
 
         var world = new WorldInstance(new WorldTemplate { Id = 1, Name = "craft-test" }, 0, true, 1);
-        var character = new CharacterMock { ObjId = 1 };
+        var character = new CharacterMock { Id = 1, ObjId = 1 };
+        character.Inventory = (Inventory)RuntimeHelpers.GetUninitializedObject(typeof(Inventory));
+        var equipment = new ItemContainer(0, SlotType.Equipment, false, character);
+        typeof(Inventory).GetProperty(nameof(Inventory.Equipment))!.SetValue(character.Inventory, equipment);
         SetPrivateField(character, "_parentWorld", world);
         character.Transform.Local.SetPosition(0f, 0f, 0f);
         var doodad = new Doodad { ObjId = doodadObjId };
@@ -285,7 +333,7 @@ public class CharacterCraftTests
         SetPrivateProperty(context.CharacterCraft, "DoodadFuncGroupId", originalFunctionGroupId);
         SetPrivateProperty(context.CharacterCraft, "CraftPackId", context.CraftPackId);
         SetPrivateProperty(context.CharacterCraft, "ProductionZoneGroupId", context.ProductionZoneGroupId);
-        SetPrivateProperty(context.CharacterCraft, "CurrentSkill", skill);
+        SetPrivateProperty(context.CharacterCraft, "CurrentSkill", skill ?? new Skill(new SkillTemplate { Id = context.Craft.SkillId }));
         context.CharacterCraft.IsCrafting = true;
     }
 
@@ -306,9 +354,9 @@ public class CharacterCraftTests
 
     private static void SetPrivateProperty(object target, string name, object value)
     {
-        target.GetType()
+        typeof(CharacterCraft)
             .GetProperty(name, BindingFlags.Instance | BindingFlags.NonPublic)
-            ?.SetValue(target, value);
+            !.SetValue(target, value);
     }
 
     private sealed record CraftContext(
@@ -328,6 +376,15 @@ public class CharacterCraftTests
         float doodadDistance)
         : CharacterCraft(owner, craftManager, doodadManager, skillManager, itemManager, zoneManager)
     {
+        public Character Character => owner;
+        public Skill LastSkill { get; private set; }
+
+        protected override SkillResult UseSkill(Skill skill, SkillCaster caster, SkillCastTarget target)
+        {
+            LastSkill = skill;
+            return SkillResult.Success;
+        }
+
         protected override float GetDistanceTo(Doodad doodad) => doodadDistance;
     }
 }

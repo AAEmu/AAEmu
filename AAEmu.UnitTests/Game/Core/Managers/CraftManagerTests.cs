@@ -50,13 +50,16 @@ public class CraftManagerTests
     }
 
     [Test]
-    public async Task LoadCraftPackMembership_RejectsMissingCraft()
+    public async Task LoadCraftPackMembership_SkipsMissingCraftAndLoadsValidMemberships()
     {
         using var connection = CreateDatabase();
         var manager = CreateManager(6211);
 
-        await Assert.That(() => manager.LoadCraftPackMembership(connection))
-            .Throws<InvalidDataException>();
+        manager.LoadCraftPackMembership(connection);
+
+        await Assert.That(manager.IsCraftInPack(74, 6211)).IsTrue();
+        await Assert.That(manager.IsCraftInPack(214, 7777)).IsFalse();
+        await Assert.That(manager.GetCraftIdsForPack(214)).IsEmpty();
     }
 
     private static CraftManager CreateManager(params uint[] craftIds)
@@ -76,6 +79,7 @@ public class CraftManagerTests
         using var command = connection.CreateCommand();
         command.CommandText = """
             CREATE TABLE craft_pack_crafts (craft_pack_id INTEGER NOT NULL, craft_id INTEGER NOT NULL);
+            INSERT INTO craft_pack_crafts VALUES (15, 5515);
             INSERT INTO craft_pack_crafts VALUES (74, 6211);
             INSERT INTO craft_pack_crafts VALUES (214, 7777);
             """;
