@@ -3271,7 +3271,7 @@ public class SpecialtyManager(
         }
     }
 
-    internal (
+    public (
         bool Success,
         string Error,
         uint TradeGoodId,
@@ -3443,7 +3443,7 @@ public class SpecialtyManager(
         return true;
     }
 
-    internal static uint? GetTradeGoodCategoryId(uint factionChatRegionId)
+    public static uint? GetTradeGoodCategoryId(uint factionChatRegionId)
     {
         if (factionChatRegionId is < FirstLandFactionChatRegionId or > LastLandFactionChatRegionId)
             return null;
