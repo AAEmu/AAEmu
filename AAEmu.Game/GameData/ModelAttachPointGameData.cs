@@ -36,7 +36,9 @@ public class ModelAttachPointGameData : Singleton<ModelAttachPointGameData>, IGa
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private const string CacheFileName = "model_attach_points.cache.json";
+    // v2: helpers carry yaw now. The old cache has no rotation field and would deserialize to yaw 0,
+    // silently rebuilding the wrong-facing bug, so the name is bumped to force a rebuild.
+    private const string CacheFileName = "model_attach_points.v2.cache.json";
 
     private Dictionary<uint, Dictionary<AttachPointKind, WorldSpawnPosition>> _attachPoints = [];
 
@@ -48,7 +50,7 @@ public class ModelAttachPointGameData : Singleton<ModelAttachPointGameData>, IGa
         new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Helper nodes per mesh; scenery meshes repeat across prefabs, so they are only read once.</summary>
-    private readonly Dictionary<string, Dictionary<string, Vector3>> _meshHelperCache =
+    private readonly Dictionary<string, Dictionary<string, CgfHelperReader.CgfHelperNode>> _meshHelperCache =
         new(StringComparer.OrdinalIgnoreCase);
 
     public bool HasData => _attachPoints.Count > 0;
@@ -91,11 +93,14 @@ public class ModelAttachPointGameData : Singleton<ModelAttachPointGameData>, IGa
             // A house prefab is dozens of brushes — the building shells plus scenery. The attach helpers sit
             // in the building meshes and can be spread across several of them, so every brush is read and the
             // results merged, each shifted by where the prefab places that brush.
-            var helpers = new Dictionary<string, Vector3>(StringComparer.OrdinalIgnoreCase);
+            var helpers = new Dictionary<string, CgfHelperReader.CgfHelperNode>(StringComparer.OrdinalIgnoreCase);
             foreach (var (meshPath, brushOffset) in brushes)
             {
+                // The helper's authored yaw is carried through as-is. The brush's own rotation has never
+                // been composed into the offset either, and those offsets demonstrably place doodads
+                // correctly, so the yaw is taken the same way rather than half-applying a transform here.
                 foreach (var (name, local) in ReadMeshHelpers(meshPath))
-                    helpers.TryAdd(name, local + brushOffset);
+                    helpers.TryAdd(name, local with { Position = local.Position + brushOffset });
             }
 
             if (helpers.Count == 0)
@@ -107,10 +112,16 @@ public class ModelAttachPointGameData : Singleton<ModelAttachPointGameData>, IGa
             var points = new Dictionary<AttachPointKind, WorldSpawnPosition>();
             foreach (var (attachPoint, helperName) in _helperNames)
             {
-                if (!helpers.TryGetValue(helperName, out var p))
+                if (!helpers.TryGetValue(helperName, out var h))
                     continue;
 
-                points[attachPoint] = new WorldSpawnPosition { X = p.X, Y = p.Y, Z = p.Z };
+                // Yaw is in degrees - WorldSpawnPosition's contract, and what ApplyWorldSpawnPositionWithDeg
+                // reads. Roll/pitch stay zero: yaw is what orients a bound doodad, and tipping one would
+                // move the model somewhere it was never authored.
+                points[attachPoint] = new WorldSpawnPosition
+                {
+                    X = h.Position.X, Y = h.Position.Y, Z = h.Position.Z, Yaw = h.YawDegrees
+                };
             }
 
             if (points.Count > 0)
@@ -367,12 +378,12 @@ public class ModelAttachPointGameData : Singleton<ModelAttachPointGameData>, IGa
             : Vector3.Zero;
     }
 
-    private Dictionary<string, Vector3> ReadMeshHelpers(string meshPath)
+    private Dictionary<string, CgfHelperReader.CgfHelperNode> ReadMeshHelpers(string meshPath)
     {
         if (_meshHelperCache.TryGetValue(meshPath, out var cached))
             return cached;
 
-        var helpers = new Dictionary<string, Vector3>(StringComparer.OrdinalIgnoreCase);
+        var helpers = new Dictionary<string, CgfHelperReader.CgfHelperNode>(StringComparer.OrdinalIgnoreCase);
         _meshHelperCache[meshPath] = helpers;
 
         using var stream = ClientFileManager.GetFileStream(meshPath);
