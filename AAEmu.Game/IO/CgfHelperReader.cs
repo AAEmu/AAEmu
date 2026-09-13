@@ -35,9 +35,9 @@ public static class CgfHelperReader
     /// LOD nodes ("$lod1 &lt;mesh&gt;") are excluded — they are parked far off-origin and are not attach points.
     /// Returns an empty map for anything it cannot parse; a mesh without helpers is normal.
     /// </summary>
-    public static Dictionary<string, Vector3> ReadHelpers(byte[] data, string sourceName = null)
+    public static Dictionary<string, CgfHelperNode> ReadHelpers(byte[] data, string sourceName = null)
     {
-        var result = new Dictionary<string, Vector3>(StringComparer.OrdinalIgnoreCase);
+        var result = new Dictionary<string, CgfHelperNode>(StringComparer.OrdinalIgnoreCase);
         if (data == null || data.Length < 20)
             return result;
 
@@ -77,9 +77,9 @@ public static class CgfHelperReader
 
     private static readonly int[] ChunkEntryStrides = [16, 20];
 
-    private static Dictionary<string, Vector3> ScanNodes(byte[] data, int tableOffset, int count, int stride)
+    private static Dictionary<string, CgfHelperNode> ScanNodes(byte[] data, int tableOffset, int count, int stride)
     {
-        var found = new Dictionary<string, Vector3>(StringComparer.OrdinalIgnoreCase);
+        var found = new Dictionary<string, CgfHelperNode>(StringComparer.OrdinalIgnoreCase);
 
         for (var i = 0; i < count; i++)
         {
@@ -97,8 +97,8 @@ public static class CgfHelperReader
 
             // The chunk may or may not repeat its header before the node description; take whichever
             // start yields a readable name.
-            if (!TryReadNode(data, chunkOffset + ChunkHeaderLength, out var name, out var pos) &&
-                !TryReadNode(data, chunkOffset, out name, out pos))
+            if (!TryReadNode(data, chunkOffset + ChunkHeaderLength, out var name, out var node) &&
+                !TryReadNode(data, chunkOffset, out name, out node))
                 continue;
 
             if (!name.StartsWith('$'))
@@ -106,16 +106,16 @@ public static class CgfHelperReader
             if (name.StartsWith("$lod", StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            found[name] = pos / CentimetresPerMetre;
+            found[name] = node with { Position = node.Position / CentimetresPerMetre };
         }
 
         return found;
     }
 
-    private static bool TryReadNode(byte[] data, int start, out string name, out Vector3 pos)
+    private static bool TryReadNode(byte[] data, int start, out string name, out CgfHelperNode node)
     {
         name = null;
-        pos = Vector3.Zero;
+        node = default;
 
         // name[64] + 4 ids + 2 bools/2 pad + 16 floats
         if (start < 0 || start + NameLength + 16 + 4 + 64 > data.Length)
@@ -138,12 +138,30 @@ public static class CgfHelperReader
 
         name = Encoding.ASCII.GetString(data, start, length);
 
+        // The node's 4x4 is row-vector: rows 0..2 are its local axes, row 3 is the translation. A
+        // bound doodad has to be spawned with the socket's heading or the client has nothing to face
+        // the climb against - the beantree ladder's own '$ladder' node ships identity, so the only
+        // orientation in the chain is this one.
         var matrix = start + NameLength + 16 + 4;
-        pos = new Vector3(
+        var xAxis = new Vector3(
+            BitConverter.ToSingle(data, matrix),
+            BitConverter.ToSingle(data, matrix + 4),
+            BitConverter.ToSingle(data, matrix + 8));
+        var pos = new Vector3(
             BitConverter.ToSingle(data, matrix + 12 * 4),
             BitConverter.ToSingle(data, matrix + 13 * 4),
             BitConverter.ToSingle(data, matrix + 14 * 4));
+        var yaw = MathF.Atan2(xAxis.Y, xAxis.X) * (180f / MathF.PI);
 
-        return float.IsFinite(pos.X) && float.IsFinite(pos.Y) && float.IsFinite(pos.Z);
+        node = new CgfHelperNode(pos, yaw);
+
+        return float.IsFinite(pos.X) && float.IsFinite(pos.Y) && float.IsFinite(pos.Z)
+               && float.IsFinite(yaw);
     }
+
+    /// <summary>
+    /// A '$' helper node. <paramref name="Position"/> is centimetres until the caller scales it; the
+    /// heading of the node's local X axis in degrees is the rotation a doodad bound there must carry.
+    /// </summary>
+    public readonly record struct CgfHelperNode(Vector3 Position, float YawDegrees);
 }
