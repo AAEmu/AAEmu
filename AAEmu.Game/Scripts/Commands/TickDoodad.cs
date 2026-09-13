@@ -48,16 +48,25 @@ public class TickDoodad : ICommand
         {
             if (doodad.TemplateId == unitId)
             {
-                if (doodad.FuncTask != null)
-                {
-                    doodad.FuncTask.Cancel();
-                    System.Threading.Tasks.Task.Run(doodad.FuncTask.ExecuteAsync);
+                if (TryWakeCurrentTask(doodad, DateTime.UtcNow))
                     tickedCount++;
-                }
             }
         }
 
         CommandManager.SendNormalText(this, messageOutput,
             $"Phased {tickedCount} Doodad(s) with TemplateID {unitId} - @DOODAD_NAME({unitId})");
+    }
+
+    internal static bool TryWakeCurrentTask(Doodad doodad, DateTime utcNow)
+    {
+        lock (doodad)
+        {
+            var currentFuncTask = doodad.FuncTask;
+            if (currentFuncTask is null || currentFuncTask.Cancelled)
+                return false;
+
+            currentFuncTask.TriggerTime = utcNow;
+            return true;
+        }
     }
 }
