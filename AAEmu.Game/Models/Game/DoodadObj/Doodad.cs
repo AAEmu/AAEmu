@@ -347,11 +347,13 @@ public class Doodad : BaseUnit
     public int PhaseRatio { get; private set; }
 
     /// <summary>
-    /// Used for ratio calculations on random triggers
+    /// Used to select one weighted ratio-respawn entry from a phase group.
     /// </summary>
     public int CumulativePhaseRatio { get; set; }
 
     internal const int PhaseRatioScale = 10000;
+
+    internal Func<int> PhaseRatioRoller { get; set; } = () => Random.Shared.Next(PhaseRatioScale);
 
     internal void BeginPhaseRatioSelection(int phaseRatio)
     {
@@ -360,6 +362,12 @@ public class Doodad : BaseUnit
     }
 
     internal bool TrySelectPhaseRatio(int ratio)
+    {
+        PhaseRatio = PhaseRatioRoller();
+        return PhaseRatio < ratio;
+    }
+
+    internal bool TrySelectWeightedPhaseRatio(int ratio)
     {
         var lowerBound = CumulativePhaseRatio;
         CumulativePhaseRatio += ratio;
@@ -941,7 +949,7 @@ public class Doodad : BaseUnit
             return false; // no phase functions for FuncGroupId
         }
 
-        BeginPhaseRatioSelection(Random.Shared.Next(PhaseRatioScale));
+        BeginPhaseRatioSelection(PhaseRatioRoller());
         var stop = false;
 
         // Perform the phase functions one after the other

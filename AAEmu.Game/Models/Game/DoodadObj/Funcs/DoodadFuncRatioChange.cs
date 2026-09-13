@@ -17,19 +17,19 @@ public class DoodadFuncRatioChange : DoodadPhaseFuncTemplate
         {
             owner.OverridePhase = NextPhase; // Since phases trigger all at once let the doodad know its okay to stop here if the roll succeeded
             if (caster is Character)
-                Logger.Debug("DoodadFuncRatioChange: Weight {0}, Roll {1}, UpperBound {2}, OverridePhase {3}",
-                    Ratio, owner.PhaseRatio, owner.CumulativePhaseRatio, NextPhase);
+                Logger.Debug("DoodadFuncRatioChange: Chance {0}, Roll {1}, OverridePhase {2}",
+                    Ratio, owner.PhaseRatio, NextPhase);
             else
-                Logger.Trace("DoodadFuncRatioChange: Weight {0}, Roll {1}, UpperBound {2}, OverridePhase {3}",
-                    Ratio, owner.PhaseRatio, owner.CumulativePhaseRatio, NextPhase);
+                Logger.Trace("DoodadFuncRatioChange: Chance {0}, Roll {1}, OverridePhase {2}",
+                    Ratio, owner.PhaseRatio, NextPhase);
             return true; // it is necessary to interrupt the phase functions and switch to NextPhase
         }
         if (caster is Character)
-            Logger.Debug("DoodadFuncRatioChange: Weight {0}, Roll {1}, UpperBound {2}, NextPhase {3}",
-                Ratio, owner.PhaseRatio, owner.CumulativePhaseRatio, NextPhase);
+            Logger.Debug("DoodadFuncRatioChange: Chance {0}, Roll {1}, NextPhase {2}",
+                Ratio, owner.PhaseRatio, NextPhase);
         else
-            Logger.Trace("DoodadFuncRatioChange: Weight {0}, Roll {1}, UpperBound {2}, NextPhase {3}",
-                Ratio, owner.PhaseRatio, owner.CumulativePhaseRatio, NextPhase);
+            Logger.Trace("DoodadFuncRatioChange: Chance {0}, Roll {1}, NextPhase {2}",
+                Ratio, owner.PhaseRatio, NextPhase);
 
         return false; // let's continue with the phase functions
     }

@@ -1047,9 +1047,12 @@ public class AuctionManager(
             return false;
         }
 
-        using var inventoryMutation = player.Inventory.AcquireMutation();
+        // Keep the same gate -> house -> inventory order used by cancellation and settlement.
+        // The outer scope also delays any requested save until both monitors are released.
+        using var persist = MailManager.Instance.DeferPersist();
         lock (_houseLock)
         {
+            using var inventoryMutation = player.Inventory.AcquireMutation();
             var item = player.Inventory?.Bag?.GetItemByItemId(itemId);
             if (item == null || !AuctionHouseRules.IsOwnedInBag(item, player.Id))
             {

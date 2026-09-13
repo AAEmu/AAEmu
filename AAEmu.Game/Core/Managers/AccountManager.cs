@@ -65,7 +65,7 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
         }
         catch (Exception e)
         {
-            Logger.Error(e, "Failed to debit account labor for account {0}", debit.AccountId);
+            Logger.Error(e, "Failed to debit account labor");
             return false;
         }
     }
@@ -105,7 +105,7 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
             }
             catch (Exception e)
             {
-                Logger.Error(e, "Failed to update account labor for account {0}", character.AccountId);
+                Logger.Error(e, "Failed to update account labor");
                 return false;
             }
         });
@@ -134,7 +134,7 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
             }
             catch (Exception e)
             {
-                Logger.Error(e, "Failed to update server-local labor for account {0}", character.AccountId);
+                Logger.Error(e, "Failed to update server-local labor");
                 return false;
             }
         });
@@ -199,7 +199,7 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
         {
             // The free tier is the safe answer: it under-pays rather than handing out a grade the
             // account may not hold, and it says so instead of failing silently.
-            Logger.Error($"GetMaxCharacterPoint: account {accountId} could not be read, assuming no premium: {e}");
+            Logger.Error(e, "GetMaxCharacterPoint failed; assuming no premium");
             return 0;
         }
     }

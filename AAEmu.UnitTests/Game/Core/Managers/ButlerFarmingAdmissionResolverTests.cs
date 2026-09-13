@@ -74,13 +74,35 @@ public class ButlerFarmingAdmissionResolverTests : SqliteTestBase
         await Assert.That(resolver.TryResolveGardenStorage(butler, out _)).IsFalse();
     }
 
+    [Test]
+    public async Task ResolveNextGardenSlotExpansion_UsesSavedExpansionCountThenChecksRequiredLevel()
+    {
+        var resolver = CreateResolver(out var butler);
+        var character = new Character(new UnitCustomModelParams()) { Id = 1 };
+
+        butler.ApplyPermanentData(ButlerProgression.CumulativeExperiencePermanentDataKey, 100);
+        await Assert.That(resolver.TryResolveNextGardenSlotExpansion(character, butler, out var first)).IsTrue();
+        await Assert.That(first.Expansion.TotalExpandSlotCount).IsEqualTo(1u);
+        await Assert.That(first.Expansion.Level).IsEqualTo(10u);
+
+        butler.ApplyPermanentData(ButlerFarmingService.HarvestSlotExpansionPermanentDataKey, 1);
+        await Assert.That(resolver.TryResolveNextGardenSlotExpansion(character, butler, out _)).IsFalse();
+
+        butler.ApplyPermanentData(ButlerFarmingService.HarvestSlotExpansionPermanentDataKey, uint.MaxValue);
+        await Assert.That(resolver.TryResolveNextGardenSlotExpansion(character, butler, out _)).IsFalse();
+    }
+
     private ButlerFarmingAdmissionResolver CreateResolver(out CharacterButler butler)
     {
         Execute(
             """
             INSERT INTO butlers VALUES (1, 'Farmhand', 2418, 1, 10000, 0, 80, 20000, 4232, 21, 200, 2);
             INSERT INTO butler_levels VALUES (1, 1, 1, 100, 1, 0, NULL, 2, 1);
+            -- Synthetic level-11 row reproduces the former failure between content expansion levels 10 and 20.
+            INSERT INTO butler_levels VALUES (2, 1, 11, 200, 2, 100, NULL, 3, 1);
             INSERT INTO butler_func_garden_expand_slots VALUES (1, 1, 1, 0, 0, 0);
+            INSERT INTO butler_func_garden_expand_slots VALUES (2, 1, 10, 1, 49000, 3);
+            INSERT INTO butler_func_garden_expand_slots VALUES (3, 1, 20, 2, 49000, 5);
             INSERT INTO butler_harvest_grades VALUES (1, 1, 'Basic');
             INSERT INTO butler_harvests VALUES (100, 700, 1000, 50, 1, 1, 10, 1, 0, NULL, 1, 0);
             """);

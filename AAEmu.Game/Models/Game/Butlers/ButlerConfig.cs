@@ -21,7 +21,7 @@ public sealed class ButlerHarvestCompletionConfig
     public uint BonusRatioScale { get; set; } = 10_000;
 
     /// <summary>
-    /// Multiplier applied to content formula 19 (<c>exp_by_labor_power</c>) when the final interval
+    /// Multiplier applied to content formula 67 (<c>butler_exp_by_labor_power</c>) when the final interval
     /// completes. Zero disables Farmhand experience from harvest jobs.
     /// </summary>
     public double ExperienceRate { get; set; } = 1d;

@@ -4,8 +4,8 @@ using AAEmu.Game.Models.Game.Formulas;
 namespace AAEmu.Game.Models.Game.Butlers;
 
 /// <summary>
-/// Explicit emulator policy for Farmhand bonus harvests and experience. The 10.0.2.13 client carries
-/// the inputs and resulting state, but the original World backend calculations are not available.
+/// Content-backed Farmhand experience and emulator policy for bonus harvests. The 10.0.2.13 client carries
+/// the bonus inputs and resulting state, but the original World backend bonus calculation is not available.
 /// </summary>
 public sealed class ButlerHarvestRewardPolicy
 {
@@ -62,7 +62,7 @@ public sealed class ButlerHarvestRewardPolicy
         resultingExperience = currentExperience;
         if (!double.IsFinite(experienceRate) || experienceRate < 0d || currentButlerLevel == 0)
             return false;
-        if (experienceRate == 0d || laborPowerForExperience == 0)
+        if (experienceRate == 0d)
             return true;
 
         var evaluated = _evaluateExperience(laborPowerForExperience, currentButlerLevel) * experienceRate;
@@ -86,14 +86,14 @@ public sealed class ButlerHarvestRewardPolicy
 
     private static double EvaluateExperience(IFormulaManager formulaManager, uint laborPower, uint butlerLevel)
     {
-        var formula = formulaManager?.GetFormula((uint)FormulaKind.ExpByLaborPower);
+        var formula = formulaManager?.GetFormula((uint)FormulaKind.ButlerExpByLaborPower);
         if (formula == null)
             return double.NaN;
 
         return formula.Evaluate(new Dictionary<string, double>
         {
             ["labor_power"] = laborPower,
-            ["pc_level"] = butlerLevel
+            ["butler_level"] = butlerLevel
         });
     }
 }

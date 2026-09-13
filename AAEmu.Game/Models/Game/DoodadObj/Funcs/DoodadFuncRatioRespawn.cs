@@ -10,7 +10,7 @@ public class DoodadFuncRatioRespawn : DoodadPhaseFuncTemplate
 
     public override bool Use(BaseUnit caster, Doodad owner)
     {
-        var selected = owner.TrySelectPhaseRatio(Ratio);
+        var selected = owner.TrySelectWeightedPhaseRatio(Ratio);
         Logger.Trace("DoodadFuncRatioRespawn: Weight {0}, Roll {1}, UpperBound {2}, SpawnDoodadId {3}",
             Ratio, owner.PhaseRatio, owner.CumulativePhaseRatio, SpawnDoodadId);
 

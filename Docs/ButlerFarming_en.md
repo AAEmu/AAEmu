@@ -57,13 +57,13 @@ item references.
 - `MaxCatchUpCyclesPerPass` limits overdue intervals processed for one job during one scan.
 - `BonusRatioScale` is the denominator for `butler_harvests.bonus_ratio`. The default `10000` interprets the
   content value as basis points. Set it to `0` to disable bonus harvests.
-- `ExperienceRate` multiplies formula 19, `exp_by_labor_power`, using the Farmhand's current level as `pc_level`
+- `ExperienceRate` multiplies formula 67, `butler_exp_by_labor_power`, using the Farmhand's current level as `butler_level`
   and the job's stored registration Labor as `labor_power`. Set it to `0` to disable harvest XP.
 
-The original World backend is unavailable, and the client does not evaluate either bonus probability or harvest
-XP. The default ratio scale and use of formula 19 are documented emulator policies. They do not claim to reproduce
-an unpublished retail formula. Current Farmhand unit-attribute payloads are empty, so growth-time attribute 228 and
-bonus-ratio attribute 229 contribute zero until Farmhand equipment attributes are implemented.
+The original World backend is unavailable, and the client does not evaluate bonus probability. The default ratio
+scale is a documented emulator policy. Farmhand XP uses content formula 67. Current Farmhand unit-attribute payloads
+are empty, so growth-time attribute 228 and bonus-ratio attribute 229 contribute zero until Farmhand equipment
+attributes are implemented.
 
 Farmhand renaming follows the target client's `summons` name policy and its stricter 25-character Farmhand input
 limit. The server currently accepts the conservative `en_us` subset of 2–25 ASCII letters or digits and preserves

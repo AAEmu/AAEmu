@@ -165,7 +165,8 @@ public sealed class ButlerFarmingAdmissionResolver :
         if (character == null || butler == null || character.Id != butler.CharacterId ||
             !_butlerGameData.TryGetUniqueTemplate(out var butlerTemplate) ||
             !TryResolveCurrentLevel(butler, out _, out var level) ||
-            !_butlerGameData.TryGetGardenSlotExpansion(butlerTemplate.Id, level.Level, out var expansion))
+            !TryGetNextGardenSlotExpansion(butler, butlerTemplate.Id, out var expansion) ||
+            expansion.Level > level.Level)
             return false;
 
         // The client names item task 188 UpdateButlerPermanentDatas. Garden expansion persists permanent key 2,
@@ -176,6 +177,21 @@ public sealed class ButlerFarmingAdmissionResolver :
             level.Level,
             ItemTaskType.UpdateButlerPermanentDatas);
         return true;
+    }
+
+    private bool TryGetNextGardenSlotExpansion(
+        CharacterButler butler,
+        uint butlerTemplateId,
+        out ButlerSlotExpansion expansion)
+    {
+        expansion = null;
+        var expandedSlots = butler.PermanentDatas.GetValueOrDefault(
+            ButlerFarmingService.HarvestSlotExpansionPermanentDataKey);
+        return expandedSlots < uint.MaxValue &&
+               _butlerGameData.TryGetGardenSlotExpansionByTotalCount(
+                   butlerTemplateId,
+                   (uint)expandedSlots + 1,
+                   out expansion);
     }
 
     public bool TryResolve(Character character, CharacterButler butler, out ButlerChargeContext context)
