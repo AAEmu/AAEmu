@@ -1,5 +1,6 @@
 ﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Managers;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -12,5 +13,6 @@ public class CSRenameExpeditionPacket() : GamePacket(CSOffsets.CSRenameExpeditio
         var isExpedition = stream.ReadBoolean();
 
         Logger.Debug("RenameExpedition, Id: {0}, Name: {1}, IsExpedition: {2}", id, name, isExpedition);
+        ExpeditionManager.Instance.RenameExpedition(Connection.ActiveChar, id, name, isExpedition);
     }
 }

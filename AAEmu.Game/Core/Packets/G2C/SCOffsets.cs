@@ -640,6 +640,11 @@ public static class SCOffsets
     public const ushort SCExpeditionApplicantAddPacket = 0x43;
     public const ushort SCExpeditionApplicantDelPacket = 0x44;
     public const ushort SCExpeditionApplicantRejectPacket = 0x46;
+    public const ushort SCExpeditionApplicantResultPacket = 0x47;
+    public const ushort SCExpeditionApplicantsGetPacket = 0x42;
+    public const ushort SCExpeditionRecruitmentAddPacket = 0x40;
+    public const ushort SCExpeditionRecruitmentDelPacket = 0x41;
+    public const ushort SCExpeditionRecruitmentsGetPacket = 0x3F;
     public const ushort SCExpeditionBuffsPacket = 0x4D;
     public const ushort SCExpeditionBuffChangedPacket = 0x4E;
     public const ushort SCExpeditionBuffUnitPacket = 0x4F;
@@ -650,7 +655,14 @@ public static class SCOffsets
     public const ushort SCExpeditionPortalTimerPacket = 0x373;
     public const ushort SCExpeditionRejoinFailPacket = 0x20; // corrected from a stale 0x68
     public const ushort SCExpeditionShopHistoriesPacket = 0x01C; // 10.0.2.13
+    public const ushort SCExpeditionManagementHistoriesPacket = 0x01D; // 10.0.2.13
     public const ushort SCExpeditionSummonSuggestPacket = 0x4A;
+    public const ushort SCExpeditionSummonGetPacket = 0x48;
+    public const ushort SCExpeditionSummonPacket = 0x49;
+    public const ushort SCExpeditionPortalsPacket = 0x370;
+    public const ushort SCExpeditionPortalSavedPacket = 0x371;
+    public const ushort SCExpeditionInstanceHistoryInfoListPacket = 0x37F;
+    public const ushort SCExpeditionInstanceNewHistoryInfoPacket = 0x380;
     // Corrected from a stale 0x78 - EndWar/DeclareWar actually broadcast this packet, so the wrong
     // value was landing on an unrelated client handler.
     public const ushort SCExpeditionWarStatePacket = 0x18;

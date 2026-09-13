@@ -119,4 +119,19 @@ public class TodayQuestGameData : Singleton<TodayQuestGameData>, IGameDataLoader
 
         return null;
     }
+
+    /// <summary>
+    /// True only for quests selected by a sort-6 guild public-assignment step. Those quests are
+    /// projected by the guild service and must never enter a character's ordinary quest state.
+    /// </summary>
+    public bool IsExpeditionPublicQuest(uint questContextId) =>
+        _stepsById.Values.Any(step => step.IsExpeditionPublicBoard &&
+            step.Groups.Any(group => group.QuestContextIds.Contains(questContextId)));
+
+    public void SetStepsForTest(params TodayQuestStepTemplate[] steps)
+    {
+        _stepsById = steps.ToDictionary(step => step.Id);
+        _stepsByRealStep = steps.ToDictionary(step => step.RealStep);
+        _groupsById = steps.SelectMany(step => step.Groups).ToDictionary(group => group.Id);
+    }
 }

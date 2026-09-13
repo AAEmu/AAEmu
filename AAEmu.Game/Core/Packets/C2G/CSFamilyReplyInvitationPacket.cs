@@ -8,9 +8,17 @@ public class CSFamilyReplyInvitationPacket() : GamePacket(CSOffsets.CSFamilyRepl
 {
     public override void Read(PacketStream stream)
     {
-        var invitorId = stream.ReadUInt32();
+        var wireInvitorId = stream.ReadUInt64();
         var join = stream.ReadBoolean();
         var role = stream.ReadString();
+
+        if (wireInvitorId > uint.MaxValue)
+        {
+            Logger.Warn("Ignoring FamilyReplyInvitation with unsupported inviter id: {0}", wireInvitorId);
+            return;
+        }
+
+        var invitorId = (uint)wireInvitorId;
 
         Logger.Debug("FamilyReplyInvitation, invitorId: {0}, join: {1}, role: {2}", invitorId, join, role);
 

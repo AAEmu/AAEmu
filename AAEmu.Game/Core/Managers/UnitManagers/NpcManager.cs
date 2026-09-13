@@ -131,63 +131,114 @@ public class NpcManager(
         out MerchantGoodsItem failedGood,
         out IReadOnlyDictionary<uint, MerchantPurchaseState> updatedStates)
     {
-        failedGood = null;
-        updatedStates = new Dictionary<uint, MerchantPurchaseState>();
-        var limited = purchases
-            .Where(purchase => purchase.Good.PurchaseLimit > 0 && purchase.Count > 0)
-            .GroupBy(purchase => purchase.Good.ItemTemplateId)
-            .Select(group => (Good: group.First().Good, Count: group.Sum(entry => (long)entry.Count)))
-            .ToList();
-        if (limited.Count == 0)
-            return true;
-
-        var now = DateTime.UtcNow;
-        lock (_merchantPurchaseLock)
+        var purchaseArray = purchases?.ToArray() ?? [];
+        if (!purchaseArray.Any(purchase => purchase.Good?.PurchaseLimit > 0 && purchase.Count > 0))
         {
-            var proposed = new Dictionary<(uint CharacterId, uint ItemTemplateId), MerchantPurchaseState>();
-            foreach (var purchase in limited)
-            {
-                var good = purchase.Good;
-                var key = (characterId, good.ItemTemplateId);
-                var periodStart = GetPeriodStart(good.PurchaseType, now);
-                var buyCount = 0;
-                if (_merchantPurchases.TryGetValue(key, out var current) &&
-                    current.PurchaseType == good.PurchaseType && current.PeriodStart == periodStart)
-                {
-                    buyCount = current.BuyCount;
-                }
-
-                if (purchase.Count > good.PurchaseLimit - (long)buyCount)
-                {
-                    failedGood = good;
-                    return false;
-                }
-
-                proposed[key] = new MerchantPurchaseState
-                {
-                    CharacterId = characterId,
-                    ItemTemplateId = good.ItemTemplateId,
-                    BuyCount = buyCount + (int)purchase.Count,
-                    PurchaseType = good.PurchaseType,
-                    PeriodStart = periodStart
-                };
-            }
-
-            try
-            {
-                SaveMerchantPurchases(proposed.Values);
-            }
-            catch (Exception exception)
-            {
-                Logger.Error(exception, "Failed to reserve limited merchant purchases for character {0}", characterId);
-                return false;
-            }
-
-            foreach (var (key, state) in proposed)
-                _merchantPurchases[key] = state;
-            updatedStates = proposed.Values.ToDictionary(state => state.ItemTemplateId, state => state);
+            failedGood = null;
+            updatedStates = new Dictionary<uint, MerchantPurchaseState>();
             return true;
         }
+        try
+        {
+            using var reservation = BeginMerchantPurchaseReservation(characterId, purchaseArray);
+            using var connection = MySQL.CreateConnection();
+            using var transaction = connection.BeginTransaction();
+            if (!reservation.TryPersist(connection, transaction, out failedGood))
+            {
+                transaction.Rollback();
+                updatedStates = new Dictionary<uint, MerchantPurchaseState>();
+                return false;
+            }
+            transaction.Commit();
+            reservation.ApplyCommitted();
+            updatedStates = reservation.UpdatedStates;
+            return true;
+        }
+        catch (Exception exception)
+        {
+            Logger.Error(exception, "Failed to reserve limited merchant purchases for character {0}", characterId);
+            failedGood = null;
+            updatedStates = new Dictionary<uint, MerchantPurchaseState>();
+            return false;
+        }
+    }
+
+    public MerchantPurchaseReservation BeginMerchantPurchaseReservation(
+        uint characterId, IEnumerable<(MerchantGoodsItem Good, int Count)> purchases)
+    {
+        ArgumentNullException.ThrowIfNull(purchases);
+        var limited = purchases
+            .Where(purchase => purchase.Good != null && purchase.Good.PurchaseLimit > 0 && purchase.Count > 0)
+            .GroupBy(purchase => purchase.Good.ItemTemplateId)
+            .Select(group => (Good: group.First().Good, Count: checked((int)group.Sum(entry => (long)entry.Count))))
+            .ToArray();
+        Monitor.Enter(_merchantPurchaseLock);
+        return new MerchantPurchaseReservation(
+            (connection, transaction) => PersistMerchantPurchaseReservation(
+                characterId, limited, connection, transaction),
+            states =>
+            {
+                foreach (var state in states.Values)
+                    _merchantPurchases[(state.CharacterId, state.ItemTemplateId)] = state;
+            },
+            () => Monitor.Exit(_merchantPurchaseLock));
+    }
+
+    private static (bool Success, MerchantGoodsItem FailedGood,
+        IReadOnlyDictionary<uint, MerchantPurchaseState> States) PersistMerchantPurchaseReservation(
+        uint characterId, IReadOnlyList<(MerchantGoodsItem Good, int Count)> purchases,
+        MySql.Data.MySqlClient.MySqlConnection connection, MySql.Data.MySqlClient.MySqlTransaction transaction)
+    {
+        var proposed = new Dictionary<uint, MerchantPurchaseState>();
+        var now = DateTime.UtcNow;
+        foreach (var (good, count) in purchases)
+        {
+            var periodStart = GetPeriodStart(good.PurchaseType, now);
+            using (var ensure = connection.CreateCommand())
+            {
+                ensure.Transaction = transaction;
+                ensure.CommandText = "INSERT IGNORE INTO character_merchant_purchases " +
+                                     "(character_id,item_id,buy_count,purchase_type,period_start) " +
+                                     "VALUES (@character_id,@item_id,0,@purchase_type,@period_start)";
+                ensure.Parameters.AddWithValue("@character_id", characterId);
+                ensure.Parameters.AddWithValue("@item_id", good.ItemTemplateId);
+                ensure.Parameters.AddWithValue("@purchase_type", (byte)good.PurchaseType);
+                ensure.Parameters.AddWithValue("@period_start", periodStart);
+                ensure.ExecuteNonQuery();
+            }
+
+            int buyCount;
+            using (var read = connection.CreateCommand())
+            {
+                read.Transaction = transaction;
+                read.CommandText = "SELECT buy_count,purchase_type,period_start FROM character_merchant_purchases " +
+                                   "WHERE character_id=@character_id AND item_id=@item_id FOR UPDATE";
+                read.Parameters.AddWithValue("@character_id", characterId);
+                read.Parameters.AddWithValue("@item_id", good.ItemTemplateId);
+                using var reader = read.ExecuteReader();
+                if (!reader.Read())
+                    throw new InvalidOperationException("The merchant purchase row could not be locked.");
+                var storedType = (MerchantPurchaseType)reader.GetByte(1);
+                var storedPeriod = DateTime.SpecifyKind(reader.GetDateTime(2), DateTimeKind.Utc);
+                buyCount = storedType == good.PurchaseType && storedPeriod == periodStart
+                    ? reader.GetInt32(0)
+                    : 0;
+            }
+            if (count > good.PurchaseLimit - (long)buyCount)
+                return (false, good, proposed);
+
+            var state = new MerchantPurchaseState
+            {
+                CharacterId = characterId,
+                ItemTemplateId = good.ItemTemplateId,
+                BuyCount = checked(buyCount + count),
+                PurchaseType = good.PurchaseType,
+                PeriodStart = periodStart
+            };
+            SaveMerchantPurchases([state], connection, transaction);
+            proposed[state.ItemTemplateId] = state;
+        }
+        return (true, null, proposed);
     }
 
     public bool TryRollbackMerchantPurchases(
@@ -300,6 +351,13 @@ public class NpcManager(
     {
         using var connection = MySQL.CreateConnection();
         using var transaction = connection.BeginTransaction();
+        SaveMerchantPurchases(states, connection, transaction);
+        transaction.Commit();
+    }
+
+    private static void SaveMerchantPurchases(IEnumerable<MerchantPurchaseState> states,
+        MySql.Data.MySqlClient.MySqlConnection connection, MySql.Data.MySqlClient.MySqlTransaction transaction)
+    {
         foreach (var state in states)
         {
             using var command = connection.CreateCommand();
@@ -318,7 +376,6 @@ public class NpcManager(
             command.Prepare();
             command.ExecuteNonQuery();
         }
-        transaction.Commit();
     }
 
     /// <summary>

@@ -37,6 +37,7 @@ using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 
 using MySql.Data.MySqlClient;
+using Microsoft.Extensions.DependencyInjection;
 
 using Task = System.Threading.Tasks.Task;
 
@@ -670,6 +671,8 @@ public partial class Character : Unit, ICharacter
     public string FactionName { get; set; }
     public string OriginFactionName { get; set; }
     public uint Family { get; set; }
+    public long FamilyRejoinUntil { get; set; }
+    public long ExpeditionRejoinUntil { get; set; }
     public short DeadCount { get; set; }
     public DateTime DeadTime { get; set; }
     public int RezWaitDuration { get; set; }
@@ -2199,6 +2202,8 @@ public partial class Character : Unit, ICharacter
             // Crossing this content-supplied threshold makes the upper-bound lookup advance by one.
             HeirExp = requirement.ReqTotalExp;
             BroadcastPacket(new SCHeirLevelUpPacket(ObjId), true);
+            Expedition?.OnCharacterRefresh(this);
+            SingletonContainer.ServiceProvider?.GetService<IFamilyManager>()?.OnCharacterRefresh(this);
             return true;
         }
     }
@@ -2230,6 +2235,12 @@ public partial class Character : Unit, ICharacter
             // one per packet - so a gain spanning several free levels needs one packet each.
             for (var gained = previousHeirLevel; gained < HeirLevel; gained++)
                 BroadcastPacket(new SCHeirLevelUpPacket(ObjId), true);
+
+            if (HeirLevel != previousHeirLevel)
+            {
+                Expedition?.OnCharacterRefresh(this);
+                SingletonContainer.ServiceProvider?.GetService<IFamilyManager>()?.OnCharacterRefresh(this);
+            }
         }
 
         var newExperience = Experience + expDelta;
@@ -2268,6 +2279,7 @@ public partial class Character : Unit, ICharacter
     private void ApplyLevelUpBenefits()
     {
         Expedition?.OnCharacterRefresh(this);
+        SingletonContainer.ServiceProvider?.GetService<IFamilyManager>()?.OnCharacterRefresh(this);
 
         // Level is already on this.Level; MaxHp/MaxMp getters re-evaluate immediately.
         Hp = MaxHp;
@@ -2348,6 +2360,19 @@ public partial class Character : Unit, ICharacter
         long moneyAmount,
         long aaPointAmount,
         ItemTaskType itemTaskType = ItemTaskType.DepositMoney)
+    {
+        lock (WalletSyncRoot)
+            return ChangeWalletsLocked(typeFrom, typeTo, moneyAmount, aaPointAmount, itemTaskType);
+    }
+
+    public object WalletSyncRoot { get; } = new();
+
+    private bool ChangeWalletsLocked(
+        SlotType typeFrom,
+        SlotType typeTo,
+        long moneyAmount,
+        long aaPointAmount,
+        ItemTaskType itemTaskType)
     {
         if (moneyAmount == 0 && aaPointAmount == 0)
             return true;
@@ -2954,6 +2979,7 @@ public partial class Character : Unit, ICharacter
         if (newZone != null)
         {
             Expedition?.OnCharacterRefresh(this);
+            SingletonContainer.ServiceProvider?.GetService<IFamilyManager>()?.OnCharacterRefresh(this);
         }
 
         if (newZone is { Closed: false })
@@ -3467,6 +3493,8 @@ public partial class Character : Unit, ICharacter
                     character.FactionName = reader.GetString("faction_name");
                     character.Expedition = ExpeditionManager.Instance.GetExpedition((FactionsEnum)reader.GetUInt32("expedition_id"));
                     character.Family = reader.GetUInt32("family");
+                    character.FamilyRejoinUntil = reader.GetInt64("family_rejoin_until");
+                    character.ExpeditionRejoinUntil = reader.GetInt64("expedition_rejoin_until");
                     character.DeadCount = reader.GetInt16("dead_count");
                     character.DeadTime = reader.GetDateTime("dead_time");
                     character.RezWaitDuration = reader.GetInt32("rez_wait_duration");
@@ -3600,6 +3628,8 @@ public partial class Character : Unit, ICharacter
                     character.FactionName = reader.GetString("faction_name");
                     character.Expedition = ExpeditionManager.Instance.GetExpedition((FactionsEnum)reader.GetUInt32("expedition_id"));
                     character.Family = reader.GetUInt32("family");
+                    character.FamilyRejoinUntil = reader.GetInt64("family_rejoin_until");
+                    character.ExpeditionRejoinUntil = reader.GetInt64("expedition_rejoin_until");
                     character.DeadCount = reader.GetInt16("dead_count");
                     character.DeadTime = reader.GetDateTime("dead_time");
                     character.RezWaitDuration = reader.GetInt32("rez_wait_duration");
@@ -3898,7 +3928,7 @@ public partial class Character : Unit, ICharacter
                     // accounts.local_labor. REPLACE INTO resets the obsolete column to its default.
                     "`hp`,`mp`,`consumed_lp`,`ability1`,`ability2`,`ability3`," +
                     "`world_id`,`zone_id`,`x`,`y`,`z`,`roll`,`pitch`,`yaw`," +
-                    "`faction_id`,`faction_name`,`expedition_id`,`family`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`," +
+                    "`faction_id`,`faction_name`,`expedition_id`,`expedition_rejoin_until`,`family`,`family_rejoin_until`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`," +
                     "`money`,`money2`,`aa_point`,`bank_aa_point`,`honor_point`,`vocation_point`,`leadership_point`,`leadership_period_point`,`accumulated_leadership_point`,`daily_leadership_point`,`last_daily_leadership_point_time`,`mobilization_order_today_count`,`mobilization_order_total_count`,`last_mobilization_order_time`,`crime_point`,`crime_record`,`jury_point`," +
                     "`hostile_faction_kills`,`pvp_honor`,`died_in_pvp`,`died_in_pvp_war_zone`," +
                     "`delete_request_time`,`transfer_request_time`,`delete_time`,`auto_use_aapoint`,`prev_point`,`point`,`gift`," +
@@ -3911,7 +3941,7 @@ public partial class Character : Unit, ICharacter
                     "@id,@account_id,@name,@access_level,@race,@gender,@unit_model_params,@level,@experience,@recoverable_exp,@heir_exp," +
                     "@hp,@mp,@consumed_lp,@ability1,@ability2,@ability3," +
                     "@world_id,@zone_id,@x,@y,@z,@yaw,@pitch,@roll," +
-                    "@faction_id,@faction_name,@expedition_id,@family,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time," +
+                    "@faction_id,@faction_name,@expedition_id,@expedition_rejoin_until,@family,@family_rejoin_until,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time," +
                     "@money,@money2,@aa_point,@bank_aa_point,@honor_point,@vocation_point,@leadership_point,@leadership_period_point,@accumulated_leadership_point,@daily_leadership_point,@last_daily_leadership_point_time,@mobilization_order_today_count,@mobilization_order_total_count,@last_mobilization_order_time,@crime_point,@crime_record,@jury_point," +
                     "@hostile_faction_kills,@pvp_honor,@died_in_pvp,@died_in_pvp_war_zone," +
                     "@delete_request_time,@transfer_request_time,@delete_time,@auto_use_aapoint,@prev_point,@point,@gift," +
@@ -3963,6 +3993,8 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@faction_name", FactionName);
                 command.Parameters.AddWithValue("@expedition_id", Expedition?.Id ?? 0);
                 command.Parameters.AddWithValue("@family", Family);
+                command.Parameters.AddWithValue("@family_rejoin_until", FamilyRejoinUntil);
+                command.Parameters.AddWithValue("@expedition_rejoin_until", ExpeditionRejoinUntil);
                 command.Parameters.AddWithValue("@dead_count", DeadCount);
                 command.Parameters.AddWithValue("@dead_time", DeadTime);
                 command.Parameters.AddWithValue("@rez_wait_duration", RezWaitDuration);

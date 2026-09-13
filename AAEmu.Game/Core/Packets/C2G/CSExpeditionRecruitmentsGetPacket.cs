@@ -1,11 +1,10 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Expeditions.Recruitment;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-/// <summary>
-/// TODO: the body is parsed but nothing acts on it yet.
-/// </summary>
 /// <remarks>
 /// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
 /// value's name alongside the value:
@@ -29,5 +28,10 @@ public class CSExpeditionRecruitmentsGetPacket() : GamePacket(CSOffsets.CSExpedi
         TypeValue2 = stream.ReadInt32();
         Name = stream.ReadString();
         SortType = stream.ReadSByte();
+        var service = ExpeditionRecruitmentPacketService.Get();
+        var page = service.Search(Connection.ActiveChar, new(Connection.ActiveChar.Id, Page, TypeValue, TypeValue2,
+            Name, SortType, Interest, My), DateTime.UtcNow);
+        var applied = service.GetMyApplications(Connection.ActiveChar).Select(x => x.ExpeditionId).ToHashSet();
+        Connection.ActiveChar.SendPacket(new SCExpeditionRecruitmentsGetPacket(page, applied));
     }
 }

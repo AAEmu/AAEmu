@@ -1,11 +1,10 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Expeditions.Activities;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-/// <summary>
-/// TODO(v10): the body is parsed but nothing acts on it yet.
-/// </summary>
 /// <remarks>
 /// which passes each field name alongside the value:
 /// sbyte historyType
@@ -17,5 +16,8 @@ public class CSRequestExpeditionHistoriesPacket() : GamePacket(CSOffsets.CSReque
     public override void Read(PacketStream stream)
     {
         HistoryType = stream.ReadSByte();
+        if (Connection.ActiveChar is { } character &&
+            Enum.IsDefined((ExpeditionHistoryPage)HistoryType))
+            ExpeditionActivityServices.Get().SendHistories(character, (ExpeditionHistoryPage)HistoryType);
     }
 }

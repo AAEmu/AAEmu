@@ -338,6 +338,7 @@ public class SpawnManager(WorldInstance parentWorld)
             return false;
         }
         doodadFiles = ReverseSpawnFiles(doodadFiles);
+        var duplicateIndex = new DoodadSpawnDuplicateIndex();
         foreach (var jsonFileName in doodadFiles)
         {
             if (!File.Exists(jsonFileName))
@@ -360,12 +361,8 @@ public class SpawnManager(WorldInstance parentWorld)
                     spawner.ParentWorld = World;
 
                     // Check for duplication by UnitId and Position
-                    if (DoodadSpawners.Values
-                        .Any(existingSpawner => existingSpawner.UnitId == spawner.UnitId &&
-                                                Math.Abs(existingSpawner.Position.X - spawner.Position.X) < 0.01f &&
-                                                Math.Abs(existingSpawner.Position.Y - spawner.Position.Y) < 0.01f &&
-                                                Math.Abs(existingSpawner.Position.Z - spawner.Position.Z) < 0.01f
-                                                ))
+                    if (duplicateIndex.Contains(spawner.UnitId, spawner.Position.X, spawner.Position.Y,
+                            spawner.Position.Z))
                     {
                         Logger.Trace($"Duplicate Doodad spawner found in {jsonFileName} (UnitId: {spawner.UnitId}, Position: {spawner.Position})");
                         continue;
@@ -383,6 +380,8 @@ public class SpawnManager(WorldInstance parentWorld)
                     spawner.Position.Roll = spawner.Position.Roll.DegToRad();
                     if (DoodadSpawners.TryAdd(_nextId, spawner))
                     {
+                        duplicateIndex.Add(spawner.UnitId, spawner.Position.X, spawner.Position.Y,
+                            spawner.Position.Z);
                         _nextId++;
                     }
                 }

@@ -31,6 +31,13 @@ public class ExpeditionBuffGameData : Singleton<ExpeditionBuffGameData>, IGameDa
 
     public byte GetMaxGrade(uint buffId) => GetGrades(buffId).Count == 0 ? (byte)0 : GetGrades(buffId).Max(g => g.Grade);
 
+    public void SetForTest(ExpeditionBuffTemplate buff, params ExpeditionBuffGrade[] grades)
+    {
+        ArgumentNullException.ThrowIfNull(buff);
+        _buffsById[buff.Id] = buff;
+        _gradesByBuffId[buff.Id] = grades.OrderBy(grade => grade.Grade).ToList();
+    }
+
     public void Load(SqliteConnection connection)
     {
         _buffsById = [];

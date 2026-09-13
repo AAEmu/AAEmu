@@ -8,8 +8,8 @@ public class SCFamilyMemberNameChangedPacket(uint familyId, uint charId, string 
 {
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(familyId);
-        stream.Write(charId);
+        stream.Write((int)familyId);
+        stream.Write((ulong)charId);
         stream.Write(newName);
         return stream;
     }

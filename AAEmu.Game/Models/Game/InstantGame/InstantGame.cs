@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Expeditions.Activities;
 using AAEmu.Game.Models.Game.InstantGame.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
@@ -31,12 +32,14 @@ public partial class InstantGame
     private readonly InstantGameTeamResult _corps1Result;
     private readonly InstantGameTeamResult _corps2Result;
     private readonly Dictionary<Character, InstantGameTeamMember> _members;
+    private readonly Dictionary<Character, uint> _expeditionAtEntry;
 
     private readonly WorldInstance _world;
     private readonly Battlefield _battlefield;
     private readonly ZoneInstanceId _zoneInstanceId;
 
     private readonly CancellationTokenSource _endGameTokenSource;
+    private int _resultSent;
 
     public InstantGame(Battlefield battlefield)
     {
@@ -44,6 +47,7 @@ public partial class InstantGame
         _players = [];
 
         _members = new Dictionary<Character, InstantGameTeamMember>();
+        _expeditionAtEntry = new Dictionary<Character, uint>();
         _corps1Result = new InstantGameTeamResult(VictoryState.Lose, _battlefield.RuleSet.Corps1FactionId);
         _corps2Result = new InstantGameTeamResult(VictoryState.Lose, _battlefield.RuleSet.Corps2FactionId);
 
@@ -145,6 +149,9 @@ public partial class InstantGame
     public void OnEnterWorld(Character character, ulong qualifierId)
     {
         var corps = _characterCorps[character];
+        if (_battlefield.IsExpeditionContent && character.Expedition is { } expedition &&
+            expedition.GetMember(character) != null)
+            _expeditionAtEntry[character] = (uint)expedition.Id;
         character.SendPacket(new SCInstantGameJoinedPacket(_zoneInstanceId, _battlefield.Id));
 
         if (corps == InstantCorps.Corps1)
@@ -244,9 +251,54 @@ public partial class InstantGame
 
     private void SendResult()
     {
+        if (Interlocked.Exchange(ref _resultSent, 1) != 0)
+            return;
         BroadcastPacket(new SCInstantGameEndPacket(_zoneInstanceId, BattlefieldEndingReason.AchievementScore,
             _corps1Result,
             _corps2Result));
+        if (!_battlefield.CanRecordExpeditionHistory || !ExpeditionActivityServices.TryGet(out var activityService))
+            return;
+        TryRecordExpeditionResults(activityService, _corps1Result, _corps2Result);
+        TryRecordExpeditionResults(activityService, _corps2Result, _corps1Result);
+    }
+
+    private void TryRecordExpeditionResults(ExpeditionActivityService activityService,
+        InstantGameTeamResult result, InstantGameTeamResult opponent)
+    {
+        try
+        {
+            RecordExpeditionResults(activityService, result, opponent);
+        }
+        catch (Exception exception)
+        {
+            _log.Error(exception, "Failed to persist one expedition instance team result for battlefield {0}",
+                _battlefield.Id);
+        }
+    }
+
+    private void RecordExpeditionResults(ExpeditionActivityService activityService,
+        InstantGameTeamResult result, InstantGameTeamResult opponent)
+    {
+        var playResult = result.State == VictoryState.Win
+            ? ExpeditionInstancePlayResult.Win
+            : opponent.State == VictoryState.Win
+                ? ExpeditionInstancePlayResult.Lose
+                : ExpeditionInstancePlayResult.Draw;
+        // The history score is the non-negative score earned by this team. The client wire field is unsigned;
+        // a score differential would turn a losing team's negative value into a very large client value.
+        var score = checked((uint)Math.Max(0, result.Score));
+        foreach (var group in result.Members
+                     .Where(member => _expeditionAtEntry.ContainsKey(member.Character))
+                     .GroupBy(member => _expeditionAtEntry[member.Character]))
+        {
+            var members = group.Select(member => new ExpeditionInstanceHistoryMember(
+                0, member.Character.Id,
+                _players.Contains(member.Character)
+                    ? ExpeditionInstanceMemberStatus.Finished
+                    : ExpeditionInstanceMemberStatus.Started)).ToArray();
+            activityService.RecordInstanceResult(group.Key, _battlefield.InstanceRankDetailId, _battlefield.InstanceId,
+                score, playResult, members, ServerCalendar.UtcNow);
+        }
     }
 
     private void DestroyInstantGame()

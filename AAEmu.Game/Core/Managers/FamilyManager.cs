@@ -3,19 +3,108 @@ using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
+using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Families;
 
 using NLog;
+using System.Text;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class FamilyManager(IWorldManager worldManager, IChatManager chatManager, IFamilyIdManager familyIdManager) : Singleton<FamilyManager>, IFamilyManager
+public class FamilyManager(IWorldManager worldManager, IChatManager chatManager, IFamilyIdManager familyIdManager,
+    IFamilyPurchaseService familyPurchaseService, IGameDataManager gameDataManager) : Singleton<FamilyManager>, IFamilyManager
 {
+    public const long RoleChangeCooldownSeconds = 604800;
+    public const int MaximumTitleUtf8Bytes = 104;
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private Dictionary<uint, Family> _families;
-    private Dictionary<uint, FamilyMember> _familyMembers;
+    private Dictionary<uint, Family> _families = [];
+    private Dictionary<uint, FamilyMember> _familyMembers = [];
+    private readonly Dictionary<uint, PendingFamilyInvitation> _pendingInvitations = [];
+    private readonly object _familyMutationLock = new();
+    private readonly Action<Family> _persistFamily = SaveFamily;
+    private readonly Func<long> _unixTime = () => DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+    private readonly Func<Character, bool> _isCurrentSession = character =>
+        character?.Connection != null &&
+        ReferenceEquals(character.Connection.ActiveChar, character) &&
+        ReferenceEquals(worldManager.GetCharacterById(character.Id), character);
+    // Ordering-only dependency: Family.Load reads HeirGameData while constructing its offline roster.
+    private readonly IGameDataManager _gameDataManager = gameDataManager;
+
+    public FamilyManager(IWorldManager worldManager, IChatManager chatManager, IFamilyIdManager familyIdManager)
+        : this(worldManager, chatManager, familyIdManager, null, null)
+    {
+    }
+
+    public FamilyManager(IWorldManager worldManager, IChatManager chatManager, IFamilyIdManager familyIdManager,
+        IFamilyPurchaseService familyPurchaseService)
+        : this(worldManager, chatManager, familyIdManager, familyPurchaseService, null)
+    {
+    }
+
+    private sealed record PendingFamilyInvitation(Character Inviter, Character Invitee, uint FamilyId, string Title);
+
+    private sealed class PersistenceOperation : IDisposable
+    {
+        private readonly bool _ownsGate;
+
+        public PersistenceOperation()
+        {
+            _ownsGate = !PersistenceGate.IsOperationHeld && !PersistenceGate.IsSaveHeld;
+            if (_ownsGate)
+                PersistenceGate.EnterOperation();
+        }
+
+        public void Dispose()
+        {
+            if (_ownsGate)
+                PersistenceGate.ExitOperation();
+        }
+    }
+
+    public IDisposable AcquireCharacterDeletionLock()
+    {
+        Monitor.Enter(_familyMutationLock);
+        return new FamilyDeletionLease(_familyMutationLock);
+    }
+
+    public bool CanDeleteCharacterLocked(uint characterId, uint storedFamilyId)
+    {
+        if (!_familyMembers.TryGetValue(characterId, out var member))
+            return storedFamilyId == 0;
+        var family = _families.Values.FirstOrDefault(candidate => candidate.Members.Contains(member));
+        return family != null && family.Id == storedFamilyId && member.Role != 1;
+    }
+
+    private sealed class FamilyDeletionLease(object sync) : IDisposable
+    {
+        private bool _disposed;
+        public void Dispose()
+        {
+            if (_disposed) return;
+            _disposed = true;
+            Monitor.Exit(sync);
+        }
+    }
+
+    internal FamilyManager(IWorldManager worldManager, IChatManager chatManager, IFamilyIdManager familyIdManager,
+        Action<Family> persistFamily) : this(worldManager, chatManager, familyIdManager)
+    {
+        _persistFamily = persistFamily;
+    }
+
+    internal FamilyManager(IWorldManager worldManager, IChatManager chatManager, IFamilyIdManager familyIdManager,
+        IFamilyPurchaseService familyPurchaseService, Action<Family> persistFamily, Func<long> unixTime = null,
+        Func<Character, bool> isCurrentSession = null)
+        : this(worldManager, chatManager, familyIdManager, familyPurchaseService, null)
+    {
+        _persistFamily = persistFamily;
+        _unixTime = unixTime ?? _unixTime;
+        _isCurrentSession = isCurrentSession ?? _isCurrentSession;
+    }
 
     /// <summary>
     /// Load family data
@@ -30,13 +119,13 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
         {
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT DISTINCT family FROM characters";
+                command.CommandText = "SELECT id FROM families";
                 command.Prepare();
                 using (var reader = command.ExecuteReader())
                 {
                     while (reader.Read())
                     {
-                        var familyId = reader.GetUInt32("family");
+                        var familyId = reader.GetUInt32("id");
                         if (familyId == 0)
                             continue;
 
@@ -46,6 +135,13 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
                         using (var connection2 = MySQL.CreateConnection())
                         {
                             family.Load(connection2); // TODO : Maybe find a prettier way
+                        }
+
+                        if (family.Members.Count == 0)
+                        {
+                            Logger.Warn("Ignoring orphan family aggregate {0}; no character currently references its roster", family.Id);
+                            _families.Remove(family.Id);
+                            continue;
                         }
 
                         foreach (var member in family.Members)
@@ -63,6 +159,8 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
     /// </summary>
     public void SaveAllFamilies()
     {
+        lock (_familyMutationLock)
+        {
         using var connection = MySQL.CreateConnection();
         using var transaction = connection.BeginTransaction();
         try
@@ -71,12 +169,15 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
                 family.Save(connection, transaction);
 
             transaction.Commit();
+            foreach (var family in _families.Values)
+                family.ConfirmSave();
         }
         catch (Exception ex)
         {
             transaction.Rollback();
             Logger.Error(ex, "Failed to save all families; transaction rolled back");
             throw;
+        }
         }
     }
 
@@ -92,6 +193,7 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
         {
             family.Save(connection, transaction);
             transaction.Commit();
+            family.ConfirmSave();
         }
         catch (Exception ex)
         {
@@ -109,9 +211,50 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
     /// <param name="title"></param>
     public void InviteToFamily(Character inviter, string invitedCharacterName, string title)
     {
+        Character invitedForPublication = null;
+        string invitationTitle = null;
+        uint invitationFamilyId = 0;
+        FamilyPurchaseResult purchase = default;
+        using (var persistence = new PersistenceOperation())
+        {
+        lock (_familyMutationLock)
+        {
+        if (!_isCurrentSession(inviter))
+            return;
         var invited = worldManager.GetCharacter(invitedCharacterName);
-        if (invited is { Family: 0 })
-            invited.SendPacket(new SCFamilyInvitationPacket(inviter.Id, inviter.Name, 1, title));
+        var now = _unixTime();
+        title ??= string.Empty;
+        if (invited == null || !_isCurrentSession(invited) || invited.Id == inviter.Id || invited.Family != 0 ||
+            invited.FamilyRejoinUntil > now ||
+            inviter.Family == 0 && inviter.FamilyRejoinUntil > now ||
+            Encoding.UTF8.GetByteCount(title) > MaximumTitleUtf8Bytes)
+            return;
+        if (_pendingInvitations.ContainsKey(invited.Id))
+            return;
+
+        if (inviter.Family != 0)
+        {
+            if (!_families.TryGetValue(inviter.Family, out var family) ||
+                family.GetMember(inviter)?.Role != 1 || family.Members.Count >= family.MemberLimit)
+                return;
+        }
+
+        if (familyPurchaseService != null)
+        {
+            purchase = familyPurchaseService.ConsumeInvitation(inviter);
+            if (!purchase.Success)
+                return;
+        }
+
+        _pendingInvitations[invited.Id] = new PendingFamilyInvitation(inviter, invited, inviter.Family, title);
+        invitedForPublication = invited;
+        invitationTitle = title;
+        invitationFamilyId = inviter.Family;
+        }
+        }
+        purchase.PublishDeferred();
+        invitedForPublication.SendPacket(new SCFamilyInvitationPacket(
+            inviter.Id, inviter.Name, invitationFamilyId, invitationTitle));
     }
 
     /// <summary>
@@ -123,23 +266,53 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
     /// <param name="title"></param>
     public void ReplyToInvite(uint invitorId, Character invitedChar, bool join, string title)
     {
-        if (!join)
+        using var persistence = new PersistenceOperation();
+        lock (_familyMutationLock)
+        {
+        if (!_isCurrentSession(invitedChar))
+            return;
+        if (!_pendingInvitations.TryGetValue(invitedChar.Id, out var invitation) || invitation.Inviter.Id != invitorId ||
+            !ReferenceEquals(invitation.Invitee, invitedChar))
+            return;
+        _pendingInvitations.Remove(invitedChar.Id);
+
+        var now = _unixTime();
+        if (!join || invitedChar.Family != 0 || invitedChar.FamilyRejoinUntil > now)
             return;
 
         var invitor = worldManager.GetCharacterById(invitorId);
-        if (invitor == null) return;
+        if (invitor == null || !_isCurrentSession(invitor) || !ReferenceEquals(invitation.Inviter, invitor) ||
+            invitor.Family != invitation.FamilyId ||
+            invitor.Family == 0 && invitor.FamilyRejoinUntil > now)
+            return;
 
         if (invitor.Family == 0)
         {
-            CreateFamily(invitor, invitedChar, title);
+            CreateFamily(invitor, invitedChar, invitation.Title);
         }
         else
         {
-            var family = _families[invitor.Family];
+            if (!_families.TryGetValue(invitor.Family, out var family) ||
+                family.GetMember(invitor)?.Role != 1 || family.Members.Count >= family.MemberLimit)
+                return;
 
-            AddFamilyMember(family, invitedChar, title);
-            family.SendPacket(new SCFamilyMemberAddedPacket(family, family.Members.Count - 1));
-            SaveFamily(family);
+            AddFamilyMember(family, invitedChar, invitation.Title);
+            try
+            {
+                _persistFamily(family);
+            }
+            catch
+            {
+                family.RemoveMember(invitedChar);
+                _familyMembers.Remove(invitedChar.Id);
+                invitedChar.Family = 0;
+                throw;
+            }
+            invitedChar.FamilyRejoinUntil = 0;
+            chatManager.GetFamilyChat(family.Id)?.JoinChannel(invitedChar);
+            ApplyLevelBuff(invitedChar, family.Level);
+            family.SendPacket(new SCFamilyMemberAddedPacket(family, (uint)(family.Members.Count - 1)));
+        }
         }
     }
 
@@ -155,9 +328,32 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
 
         _families.Add(family.Id, family);
 
+        try
+        {
+            _persistFamily(family);
+        }
+        catch
+        {
+            _families.Remove(family.Id);
+            foreach (var member in family.Members)
+            {
+                _familyMembers.Remove(member.Id);
+                if (member.Character != null)
+                {
+                    member.Character.Family = 0;
+                    chatManager.GetFamilyChat(family.Id)?.LeaveChannel(member.Character);
+                }
+            }
+            throw;
+        }
+        foreach (var member in family.Members)
+            if (member.Character != null)
+            {
+                member.Character.FamilyRejoinUntil = 0;
+                chatManager.GetFamilyChat(family.Id)?.JoinChannel(member.Character);
+                ApplyLevelBuff(member.Character, family.Level);
+            }
         family.SendPacket(new SCFamilyCreatedPacket(family));
-
-        SaveFamily(family);
 
         return family;
     }
@@ -184,7 +380,6 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
         _familyMembers.Add(member.Id, member);
         character.Family = family.Id;
 
-        chatManager.GetFamilyChat(family.Id)?.JoinChannel(character);
     }
 
     /// <summary>
@@ -193,6 +388,12 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
     /// <param name="character"></param>
     public void OnCharacterLogin(Character character)
     {
+        Family familyForPublication = null;
+        FamilyMember memberForPublication = null;
+        using (var persistence = new PersistenceOperation())
+        {
+        lock (_familyMutationLock)
+        {
         var family = _families.GetValueOrDefault(character.Family);
         var member = _familyMembers.GetValueOrDefault(character.Id);
         if (family == null || member == null)
@@ -204,10 +405,47 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
         {
             // Update Member field and send family packets
             member.Character = character;
+            member.Level = character.Level;
+            member.HeirLevel = character.HeirLevel;
+            var now = _unixTime();
+            if (FamilyProgressionRules.IsNewUtcDay(member.LoginRewardTime, now))
+            {
+                var oldExp = family.Exp;
+                var oldLoginRewardTime = member.LoginRewardTime;
+                family.Exp = uint.MaxValue - family.Exp < FamilyContentConfig.LoginExp
+                    ? uint.MaxValue
+                    : family.Exp + FamilyContentConfig.LoginExp;
+                member.LoginRewardTime = now;
+                try { _persistFamily(family); }
+                catch (Exception ex)
+                {
+                    family.Exp = oldExp;
+                    member.LoginRewardTime = oldLoginRewardTime;
+                    Logger.Error(ex, "Failed to persist family login experience for character {0}", character.Id);
+                }
+            }
 
-            chatManager.GetFamilyChat(family.Id)?.JoinChannel(character);
-            character.SendPacket(new SCFamilyDescPacket(family));
-            family.SendPacket(new SCFamilyMemberOnlinePacket(family.Id, member.Id, true));
+            familyForPublication = SnapshotForPacket(family);
+            memberForPublication = member;
+        }
+        }
+        }
+        if (familyForPublication == null)
+            return;
+        using var publicationPersistence = new PersistenceOperation();
+        lock (_familyMutationLock)
+        {
+            if (!_families.TryGetValue(familyForPublication.Id, out var currentFamily) ||
+                !_familyMembers.TryGetValue(character.Id, out var currentMember) ||
+                !ReferenceEquals(currentMember, memberForPublication) ||
+                !ReferenceEquals(currentMember.Character, character) || character.Family != currentFamily.Id)
+                return;
+            familyForPublication = SnapshotForPacket(currentFamily);
+            chatManager.GetFamilyChat(currentFamily.Id)?.JoinChannel(character);
+            ApplyLevelBuff(character, currentFamily.Level);
+            character.SendPacket(new SCFamilyDescPacket(familyForPublication));
+            familyForPublication.SendPacket(new SCFamilyMemberOnlinePacket(
+                currentFamily.Id, currentMember.Id, true, character.Level, character.HeirLevel));
         }
     }
 
@@ -217,12 +455,79 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
     /// <param name="character"></param>
     public void OnCharacterLogout(Character character)
     {
-        var family = _families[character.Family];
-        var member = family.GetMember(character);
-        member.Character = null;
+        Family familyForPublication = null;
+        FamilyMember memberForPublication = null;
+        using (var persistence = new PersistenceOperation())
+        {
+        lock (_familyMutationLock)
+        {
+        if (_pendingInvitations.TryGetValue(character.Id, out var receivedInvitation) &&
+            ReferenceEquals(receivedInvitation.Invitee, character))
+            _pendingInvitations.Remove(character.Id);
+        foreach (var inviteeId in _pendingInvitations.Where(x => ReferenceEquals(x.Value.Inviter, character)).Select(x => x.Key).ToArray())
+            _pendingInvitations.Remove(inviteeId);
 
-        chatManager.GetFamilyChat(family.Id)?.LeaveChannel(character);
-        family.SendPacket(new SCFamilyMemberOnlinePacket(family.Id, character.Id, false), character.Id);
+        if (!_families.TryGetValue(character.Family, out var family))
+            return;
+
+        var member = family.GetMember(character);
+        if (member == null || !ReferenceEquals(member.Character, character))
+            return;
+
+        member.Character = null;
+        familyForPublication = SnapshotForPacket(family);
+        memberForPublication = member;
+        }
+        }
+        lock (_familyMutationLock)
+        {
+            if (!_families.TryGetValue(familyForPublication.Id, out var currentFamily) ||
+                !_familyMembers.TryGetValue(character.Id, out var currentMember) ||
+                !ReferenceEquals(currentMember, memberForPublication) || currentMember.Character != null)
+                return;
+            familyForPublication = SnapshotForPacket(currentFamily);
+            chatManager.GetFamilyChat(currentFamily.Id)?.LeaveChannel(character);
+            familyForPublication.SendPacket(new SCFamilyMemberOnlinePacket(
+                currentFamily.Id, character.Id, false, currentMember.Level,
+                currentMember.HeirLevel), character.Id);
+        }
+    }
+
+    /// <summary>Refreshes cached roster levels after a normal or ancestral level change.</summary>
+    public void OnCharacterRefresh(Character character)
+    {
+        using var persistence = new PersistenceOperation();
+        lock (_familyMutationLock)
+        {
+            if (!_families.TryGetValue(character.Family, out var family) ||
+                !_familyMembers.TryGetValue(character.Id, out var member) ||
+                !ReferenceEquals(member.Character, character) || family.GetMember(character) != member)
+                return;
+            if (member.Level == character.Level && member.HeirLevel == character.HeirLevel)
+                return;
+
+            member.Level = character.Level;
+            member.HeirLevel = character.HeirLevel;
+            family.SendPacket(new SCFamilyChangeMemberLevelPacket(
+                unchecked((int)family.Id), member.Id, unchecked((sbyte)member.Level), unchecked((sbyte)member.HeirLevel)));
+        }
+    }
+
+    /// <summary>Sends family chat only while the sender remains an authoritative member.</summary>
+    public bool SendChatMessage(Character character, string message, int ability, byte languageType)
+    {
+        using var persistence = new PersistenceOperation();
+        lock (_familyMutationLock)
+        {
+            if (!_isCurrentSession(character))
+                return false;
+            if (!_families.TryGetValue(character.Family, out var family) ||
+                !_familyMembers.TryGetValue(character.Id, out var member) ||
+                !ReferenceEquals(member.Character, character) || family.GetMember(character) != member)
+                return false;
+            chatManager.GetFamilyChat(family.Id)?.SendMessage(character, message, ability, languageType);
+            return true;
+        }
     }
 
     /// <summary>
@@ -230,46 +535,127 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
     /// </summary>
     /// <param name="character"></param>
     public void LeaveFamily(Character character)
+        => RemoveFamilyMember(character, requireCurrentSession: true);
+
+    /// <summary>Removes a character during the serialized durable character-deletion workflow.</summary>
+    public void RemoveDeletedCharacter(Character character)
+        => RemoveFamilyMember(character, requireCurrentSession: false);
+
+    private void RemoveFamilyMember(Character character, bool requireCurrentSession)
     {
-        var family = _families[character.Family];
+        var familyId = character.Family;
+        List<Character> disbandedMembers = null;
+        Family changedFamily = null;
+        using (var persistence = new PersistenceOperation())
+        {
+        lock (_familyMutationLock)
+        {
+        if (requireCurrentSession && !_isCurrentSession(character))
+            return;
+        if (!_families.TryGetValue(character.Family, out var family))
+            return;
+
+        var leavingMember = family.GetMember(character);
+        if (leavingMember == null || leavingMember.Role == 1 && family.Members.Count > 2)
+            return;
+
+        var oldRejoinUntil = character.FamilyRejoinUntil;
         character.Family = 0;
-        family.RemoveMember(character);
+        character.FamilyRejoinUntil = _unixTime() + FamilyContentConfig.RejoinDelaySeconds;
+        family.RemovedMemberRejoinUntil = character.FamilyRejoinUntil;
+        family.RemoveMember(leavingMember);
         _familyMembers.Remove(character.Id);
 
+        if (family.Members.Count < 2)
+        {
+            try { disbandedMembers = DisbandFamily(family); }
+            catch
+            {
+                family.RestoreMember(leavingMember);
+                _familyMembers[leavingMember.Id] = leavingMember;
+                character.Family = family.Id;
+                character.FamilyRejoinUntil = oldRejoinUntil;
+                throw;
+            }
+        }
+        else
+        {
+            var oldExp = family.Exp;
+            family.Exp = FamilyProgressionRules.ApplyDepartureExperienceLoss(
+                family.Exp, FamilyContentConfig.LeaveExpPercent);
+            try { _persistFamily(family); }
+            catch
+            {
+                family.Exp = oldExp;
+                family.RestoreMember(leavingMember);
+                _familyMembers[leavingMember.Id] = leavingMember;
+                character.Family = family.Id;
+                character.FamilyRejoinUntil = oldRejoinUntil;
+                throw;
+            }
+            changedFamily = SnapshotForPacket(family);
+        }
         character.SendPacket(new SCFamilyRemovedPacket(family.Id));
         family.SendPacket(new SCFamilyMemberRemovedPacket(family.Id, false, character.Id));
         chatManager.GetFamilyChat(family.Id)?.LeaveChannel(character);
-
-        if (family.Members.Count < 2)
-            DisbandFamily(family);
-        else
-            SaveFamily(family); // TODO: need to think how to do right
+        RemoveLevelBuff(character);
+        }
+        }
+        PublishDisband(familyId, disbandedMembers);
+        if (changedFamily != null)
+            PublishExperience(changedFamily.Id, character.Id);
     }
 
     /// <summary>
     /// Called when a family is disbanded (when they have less than 2 members)
     /// </summary>
     /// <param name="family"></param>
-    private void DisbandFamily(Family family)
+    private List<Character> DisbandFamily(Family family)
     {
-        var removed = new SCFamilyRemovedPacket(family.Id);
-
+        var removedMembers = family.Members.ToArray();
         for (var i = family.Members.Count - 1; i > -1; i--)
         {
             var member = family.Members[i];
-            if (member.Character != null)
-            {
-                chatManager.GetFamilyChat(family.Id)?.LeaveChannel(member.Character);
-                member.Character.SendPacket(removed);
-                member.Character.Family = 0;
-            }
-
             family.RemoveMember(member);
             _familyMembers.Remove(member.Id);
         }
-
-        SaveFamily(family);
+        try { _persistFamily(family); }
+        catch
+        {
+            foreach (var member in removedMembers)
+            {
+                family.RestoreMember(member);
+                _familyMembers[member.Id] = member;
+            }
+            throw;
+        }
         _families.Remove(family.Id);
+        var online = removedMembers.Where(x => x.Character != null).Select(x => x.Character).ToList();
+        foreach (var character in online)
+        {
+            character.Family = 0;
+            character.FamilyRejoinUntil = family.RemovedMemberRejoinUntil;
+        }
+        return online;
+    }
+
+    private void PublishDisband(uint familyId, IReadOnlyList<Character> members)
+    {
+        if (members == null)
+            return;
+        using var persistence = new PersistenceOperation();
+        lock (_familyMutationLock)
+        {
+            var removed = new SCFamilyRemovedPacket(familyId);
+            foreach (var member in members)
+            {
+                if (member.Family != 0)
+                    continue;
+                chatManager.GetFamilyChat(familyId)?.LeaveChannel(member);
+                member.SendPacket(removed);
+                RemoveLevelBuff(member);
+            }
+        }
     }
 
     /// <summary>
@@ -279,43 +665,78 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
     /// <param name="kickedId"></param>
     public void KickMember(Character kicker, uint kickedId)
     {
+        var familyId = kicker.Family;
+        List<Character> disbandedMembers = null;
+        Family changedFamily = null;
+        using (var persistence = new PersistenceOperation())
+        {
+        lock (_familyMutationLock)
+        {
+        if (!_isCurrentSession(kicker))
+            return;
         if (kicker.Family == 0) return;
-        var family = _families[kicker.Family];
+        if (!_families.TryGetValue(kicker.Family, out var family)) return;
 
         var kickerMember = family.GetMember(kicker);
-        if (kickerMember.Role != 1) return; // Only the steward can kick
+        if (kickerMember?.Role != 1) return; // Only the steward can kick
 
-        // Load kicked character
+        var kickedMember = family.Members.FirstOrDefault(x => x.Id == kickedId);
+        if (kickedMember == null || kickedMember.Id == kicker.Id) return;
+
         var kickedCharacter = worldManager.GetCharacterById(kickedId);
-        var isOnline = false;
-        if (kickedCharacter != null)
+        var isOnline = kickedCharacter != null && ReferenceEquals(kickedMember.Character, kickedCharacter);
+        var oldRejoinUntil = isOnline ? kickedCharacter.FamilyRejoinUntil : 0;
+        var rejoinUntil = _unixTime() + FamilyContentConfig.RejoinDelaySeconds;
+        family.RemovedMemberRejoinUntil = rejoinUntil;
+        if (isOnline)
         {
-            isOnline = true;
+            kickedCharacter.Family = 0;
+            kickedCharacter.FamilyRejoinUntil = rejoinUntil;
+        }
+        family.RemoveMember(kickedMember);
+        _familyMembers.Remove(kickedMember.Id);
+
+        if (family.Members.Count < 2)
+        {
+            try { disbandedMembers = DisbandFamily(family); }
+            catch
+            {
+                family.RestoreMember(kickedMember);
+                _familyMembers[kickedMember.Id] = kickedMember;
+                if (isOnline) kickedCharacter.Family = family.Id;
+                if (isOnline) kickedCharacter.FamilyRejoinUntil = oldRejoinUntil;
+                throw;
+            }
         }
         else
         {
-            kickedCharacter = Character.Load(kickedId);
+            var oldExp = family.Exp;
+            family.Exp = FamilyProgressionRules.ApplyDepartureExperienceLoss(
+                family.Exp, FamilyContentConfig.LeaveExpPercent);
+            try { _persistFamily(family); }
+            catch
+            {
+                family.Exp = oldExp;
+                family.RestoreMember(kickedMember);
+                _familyMembers[kickedMember.Id] = kickedMember;
+                if (isOnline) kickedCharacter.Family = family.Id;
+                if (isOnline) kickedCharacter.FamilyRejoinUntil = oldRejoinUntil;
+                throw;
+            }
+            changedFamily = SnapshotForPacket(family);
         }
-
-        if (kickedCharacter == null) return;
-
-        // Remove kicked character (if online, packet)
-        kickedCharacter.Family = 0;
-        family.RemoveMember(kickedCharacter);
-        _familyMembers.Remove(kickedCharacter.Id);
-
         if (isOnline)
         {
             chatManager.GetFamilyChat(family.Id)?.LeaveChannel(kickedCharacter);
             kickedCharacter.SendPacket(new SCFamilyRemovedPacket(family.Id));
+            RemoveLevelBuff(kickedCharacter);
         }
-
-        family.SendPacket(new SCFamilyMemberRemovedPacket(family.Id, true, kickedCharacter.Id));
-
-        if (family.Members.Count < 2)
-            DisbandFamily(family);
-        else
-            SaveFamily(family);
+        family.SendPacket(new SCFamilyMemberRemovedPacket(family.Id, true, kickedMember.Id));
+        }
+        }
+        PublishDisband(familyId, disbandedMembers);
+        if (changedFamily != null)
+            PublishExperience(changedFamily.Id, kickedId);
     }
 
     /// <summary>
@@ -326,17 +747,27 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
     /// <param name="newTitle"></param>
     public void ChangeTitle(Character owner, uint memberId, string newTitle)
     {
+        if (newTitle == null || Encoding.UTF8.GetByteCount(newTitle) > MaximumTitleUtf8Bytes)
+            return;
+        using var persistence = new PersistenceOperation();
+        lock (_familyMutationLock)
+        {
+        if (!_isCurrentSession(owner))
+            return;
         if (owner.Family == 0) return;
-        var family = _families[owner.Family];
+        if (!_families.TryGetValue(owner.Family, out var family)) return;
 
         var ownerMember = family.GetMember(owner);
-        if (ownerMember.Role != 1) return; // Only the steward can change titles
+        if (ownerMember?.Role != 1) return; // Only the steward can change titles
 
-        var member = _familyMembers[memberId];
+        var member = family.Members.FirstOrDefault(x => x.Id == memberId);
+        if (member == null || member.Role == 1) return;
+        var oldTitle = member.Title;
         member.Title = newTitle;
-
-        SaveFamily(family);
+        try { _persistFamily(family); }
+        catch { member.Title = oldTitle; throw; }
         family.SendPacket(new SCFamilyTitleChangedPacket(family.Id, memberId, newTitle));
+        }
     }
 
     /// <summary>
@@ -346,19 +777,302 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
     /// <param name="memberId"></param>
     public void ChangeOwner(Character previousOwner, uint memberId)
     {
+        using var persistence = new PersistenceOperation();
+        lock (_familyMutationLock)
+        {
+        if (!_isCurrentSession(previousOwner))
+            return;
         if (previousOwner.Family == 0) return;
-        var family = _families[previousOwner.Family];
+        if (!_families.TryGetValue(previousOwner.Family, out var family)) return;
 
         var previousOwnerMember = family.GetMember(previousOwner);
-        if (previousOwnerMember.Role != 1) return; // Only the steward can change owner
+        if (previousOwnerMember?.Role != 1) return; // Only the steward can change owner
 
-        var member = _familyMembers[memberId];
+        var member = family.Members.FirstOrDefault(x => x.Id == memberId);
+        if (member == null || member.Id == previousOwner.Id || member.Role == 1) return;
+        var oldMemberRole = member.Role;
         member.Role = 1;
         previousOwnerMember.Role = 0;
-
-        SaveFamily(family);
+        try { _persistFamily(family); }
+        catch
+        {
+            member.Role = oldMemberRole;
+            previousOwnerMember.Role = 1;
+            throw;
+        }
         family.SendPacket(new SCFamilyOwnerChangedPacket(family.Id, memberId, previousOwner.Id));
         family.SendPacket(new SCFamilyDescPacket(family));
+        }
+    }
+
+    public void SetName(Character owner, string name)
+    {
+        Family renamedFamily = null;
+        FamilyPurchaseResult purchase = default;
+        name = name?.Trim();
+        using (var persistence = new PersistenceOperation())
+        {
+        lock (_familyMutationLock)
+        {
+            if (!TryGetOwnedFamily(owner, out var family) || !IsValidFamilyName(name) ||
+                string.Equals(family.Name, name, StringComparison.Ordinal))
+                return;
+
+            if (!string.IsNullOrEmpty(family.Name))
+            {
+                var now = _unixTime();
+                if (family.ChangeNameTime > 0 && now - family.ChangeNameTime < FamilyContentConfig.NameChangeDelaySeconds)
+                    return;
+                purchase = familyPurchaseService?.Rename(owner, family, name, now) ?? default;
+                if (!purchase.Success)
+                    return;
+                renamedFamily = SnapshotForPacket(family);
+            }
+            else
+            {
+                var oldName = family.Name;
+                family.Name = name;
+                try { _persistFamily(family); }
+                catch { family.Name = oldName; throw; }
+                renamedFamily = SnapshotForPacket(family);
+            }
+        }
+        }
+        purchase.PublishDeferred();
+        if (renamedFamily != null)
+            PublishDescriptor(renamedFamily.Id);
+    }
+
+    public void IncreaseMemberLimit(Character owner)
+    {
+        Family expandedFamily = null;
+        FamilyPurchaseResult purchase = default;
+        using (var persistence = new PersistenceOperation())
+        {
+        lock (_familyMutationLock)
+        {
+            if (!TryGetOwnedFamily(owner, out var family) || familyPurchaseService == null)
+                return;
+            var next = FamilyGameData.Instance.GetNextMemberLimit(family.MemberLimit);
+            if (next == null || next.Count != family.MemberLimit + 1 || next.ItemId == 0 || next.ItemCount <= 0)
+                return;
+            purchase = familyPurchaseService.Expand(owner, family, next.ItemId, next.ItemCount);
+            if (!purchase.Success)
+                return;
+            expandedFamily = SnapshotForPacket(family);
+        }
+        }
+
+        purchase.PublishDeferred();
+        PublishDescriptor(expandedFamily.Id);
+    }
+
+    public void SetNotice(Character owner, string notice)
+    {
+        Family changedFamily = null;
+        using (var persistence = new PersistenceOperation())
+        {
+        lock (_familyMutationLock)
+        {
+            if (!TryGetOwnedFamily(owner, out var family) || notice == null || Encoding.UTF8.GetByteCount(notice) > 800)
+                return;
+            var oldNotice = family.Notice;
+            family.Notice = notice;
+            try { _persistFamily(family); }
+            catch { family.Notice = oldNotice; throw; }
+            changedFamily = SnapshotForPacket(family);
+        }
+        }
+        if (changedFamily != null)
+            PublishDescriptor(changedFamily.Id);
+    }
+
+    public void ChangeMemberRole(Character owner, uint memberId, uint roleId)
+    {
+        Family changedFamily = null;
+        using (var persistence = new PersistenceOperation())
+        {
+        lock (_familyMutationLock)
+        {
+            if (!TryGetOwnedFamily(owner, out var family) || roleId == 0 || roleId > byte.MaxValue)
+                return;
+            var role = FamilyGameData.Instance.GetRole(roleId);
+            var member = family.Members.FirstOrDefault(x => x.Id == memberId);
+            if (role == null || member == null || member.Role == 1 || roleId == 1 ||
+                family.Members.Count(x => x.Role == roleId) >= role.RoleCount)
+                return;
+            var oldRole = member.Role;
+            var oldRoleUpdateTime = member.RoleUpdateTime;
+            var now = _unixTime();
+            if (!FamilyProgressionRules.CanChangeRole(member.RoleUpdateTime, now, RoleChangeCooldownSeconds))
+                return;
+            member.Role = (byte)roleId;
+            member.RoleUpdateTime = now;
+            try { _persistFamily(family); }
+            catch
+            {
+                member.Role = oldRole;
+                member.RoleUpdateTime = oldRoleUpdateTime;
+                throw;
+            }
+            changedFamily = SnapshotForPacket(family);
+        }
+        }
+        if (changedFamily != null)
+            PublishMemberRole(changedFamily.Id, memberId);
+    }
+
+    public void AddExperience(Character source, uint amount)
+    {
+        Family changedFamily = null;
+        using (var persistence = new PersistenceOperation())
+        {
+        lock (_familyMutationLock)
+        {
+            if (!_families.TryGetValue(source.Family, out var family) || family.GetMember(source) == null || amount == 0)
+                return;
+            var oldExp = family.Exp;
+            family.Exp = uint.MaxValue - family.Exp < amount ? uint.MaxValue : family.Exp + amount;
+            try { _persistFamily(family); }
+            catch { family.Exp = oldExp; throw; }
+            changedFamily = SnapshotForPacket(family);
+        }
+        }
+        PublishExperience(changedFamily.Id, source.Id, source, amount);
+    }
+
+    public bool TryLevelUp(Character owner, uint targetLevel)
+    {
+        Family changedFamily = null;
+        using (var persistence = new PersistenceOperation())
+        {
+        lock (_familyMutationLock)
+        {
+            if (!TryGetOwnedFamily(owner, out var family) || targetLevel != family.Level + 1)
+                return false;
+            if (targetLevel > FamilyContentConfig.MaximumLevel)
+                return false;
+            var target = FamilyGameData.Instance.GetLevel(targetLevel);
+            if (target == null || family.Exp < target.Exp)
+                return false;
+            var oldLevel = family.Level;
+            family.Level = targetLevel;
+            try { _persistFamily(family); }
+            catch { family.Level = oldLevel; throw; }
+            foreach (var member in family.Members)
+                if (member.Character != null)
+                    ApplyLevelBuff(member.Character, family.Level);
+            changedFamily = SnapshotForPacket(family);
+        }
+        }
+        PublishDescriptor(changedFamily.Id);
+        return true;
+    }
+
+    private void PublishDescriptor(uint familyId)
+    {
+        using var persistence = new PersistenceOperation();
+        lock (_familyMutationLock)
+            if (_families.TryGetValue(familyId, out var family))
+                family.SendPacket(new SCFamilyDescPacket(family));
+    }
+
+    private void PublishMemberRole(uint familyId, uint memberId)
+    {
+        using var persistence = new PersistenceOperation();
+        lock (_familyMutationLock)
+            if (_families.TryGetValue(familyId, out var family) &&
+                family.Members.FirstOrDefault(x => x.Id == memberId) is { } member)
+                family.SendPacket(new SCFamilyChangeMemberRolePacket(
+                    unchecked((int)family.Id), member.Id, member.Role));
+    }
+
+    private void PublishExperience(uint familyId, uint sourceId, Character drySource = null, uint dryAmount = 0)
+    {
+        using var persistence = new PersistenceOperation();
+        lock (_familyMutationLock)
+        {
+            if (!_families.TryGetValue(familyId, out var family))
+                return;
+            if (drySource != null && ReferenceEquals(family.GetMember(drySource)?.Character, drySource))
+                drySource.SendPacket(new SCFamilyExpChangeDryNotifyPacket(dryAmount));
+            family.SendPacket(new SCFamilyExpChangeNotifyPacket(
+                unchecked((int)family.Id), sourceId, family.Level, family.Exp));
+        }
+    }
+
+    private bool TryGetOwnedFamily(Character owner, out Family family)
+    {
+        if (_isCurrentSession(owner) && _families.TryGetValue(owner.Family, out family) &&
+            family.GetMember(owner)?.Role == 1)
+            return true;
+        family = null;
+        return false;
+    }
+
+    private static bool IsValidFamilyName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return false;
+        var runes = name.EnumerateRunes().ToArray();
+        if (runes.Length > 12 || runes.Any(x => !Rune.IsLetter(x) && x.Value != ' '))
+            return false;
+        var hasEnglish = runes.Any(x => x.Value is >= 'A' and <= 'Z' or >= 'a' and <= 'z');
+        var hasLocal = runes.Any(x => Rune.IsLetter(x) && x.Value > 0x7f);
+        if (hasEnglish && hasLocal)
+            return false;
+        return runes.Length >= (hasEnglish ? 3 : 2);
+    }
+
+    private static void ApplyLevelBuff(Character character, uint level)
+    {
+        RemoveLevelBuff(character);
+        var buffId = FamilyGameData.Instance.GetLevel(level)?.BuffId ?? 0;
+        if (buffId != 0)
+            character.Buffs.AddBuff(buffId, character);
+    }
+
+    private static void RemoveLevelBuff(Character character)
+    {
+        for (uint level = 1; level <= FamilyGameData.Instance.MaxLevel; level++)
+        {
+            var buffId = FamilyGameData.Instance.GetLevel(level)?.BuffId ?? 0;
+            if (buffId != 0)
+                character.Buffs.RemoveBuff(buffId);
+        }
+    }
+
+    private static Family SnapshotForPacket(Family family)
+    {
+        var snapshot = new Family
+        {
+            Id = family.Id,
+            Name = family.Name,
+            Notice = family.Notice,
+            Level = family.Level,
+            Exp = family.Exp,
+            IncreasedMemberCount = family.IncreasedMemberCount,
+            ResetTime = family.ResetTime,
+            ChangeNameTime = family.ChangeNameTime
+        };
+        foreach (var (type, endTime) in family.ActSanctions)
+            snapshot.ActSanctions[type] = endTime;
+        foreach (var member in family.Members)
+        {
+            snapshot.AddMember(new FamilyMember
+            {
+                Character = member.Character,
+                Id = member.Id,
+                Name = member.Name,
+                Level = member.Character?.Level ?? member.Level,
+                HeirLevel = member.Character?.HeirLevel ?? member.HeirLevel,
+                Role = member.Role,
+                Title = member.Title,
+                RoleUpdateTime = member.RoleUpdateTime,
+                LoginRewardTime = member.LoginRewardTime
+            });
+        }
+        return snapshot;
     }
 
     /// <summary>
@@ -368,7 +1082,8 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
     /// <returns></returns>
     public Family GetFamily(uint id)
     {
-        return _families[id];
+        lock (_familyMutationLock)
+            return _families[id];
     }
 
     /// <summary>
@@ -385,6 +1100,8 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
             Character = character,
             Id = character.Id,
             Name = character.Name,
+            Level = character.Level,
+            HeirLevel = character.HeirLevel,
             Role = owner,
             Title = title
         };
@@ -397,11 +1114,14 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
     /// <returns></returns>
     public uint GetFamilyOfCharacter(uint characterId)
     {
+        lock (_familyMutationLock)
+        {
         foreach (var family in _families.Values)
             foreach (var member in family.Members)
                 if (member.Id == characterId)
                     return family.Id;
 
         return 0;
+        }
     }
 }

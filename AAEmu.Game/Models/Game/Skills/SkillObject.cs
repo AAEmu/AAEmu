@@ -24,7 +24,10 @@ public enum SkillObjectType
     BlessUthstinPage = 25,
 
     /// <summary>The awakening result the player picked. See <see cref="SkillObjectItemChangeMapping"/>.</summary>
-    ItemChangeMapping = 26
+    ItemChangeMapping = 26,
+
+    /// <summary>Expedition portal selection: portal id followed by the content-selected skill id.</summary>
+    ExpeditionPortal = 30
 }
 
 public class SkillObject : PacketMarshaler
@@ -57,7 +60,8 @@ public class SkillObject : PacketMarshaler
             and not (int)SkillObjectType.Unk6
             or (int)SkillObjectType.AbilitySet
             or (int)SkillObjectType.BlessUthstinPage
-            or (int)SkillObjectType.ItemChangeMapping;
+            or (int)SkillObjectType.ItemChangeMapping
+            or (int)SkillObjectType.ExpeditionPortal;
 
     public static SkillObject GetByType(SkillObjectType flag)
     {
@@ -96,6 +100,9 @@ public class SkillObject : PacketMarshaler
                 break;
             case SkillObjectType.ItemChangeMapping:
                 obj = new SkillObjectItemChangeMapping();
+                break;
+            case SkillObjectType.ExpeditionPortal:
+                obj = new SkillObjectExpeditionPortal();
                 break;
             case SkillObjectType.None:
             default:
@@ -376,6 +383,30 @@ public class SkillObjectItemChangeMapping : SkillObject
     {
         base.Write(stream);
         stream.Write(MappingId);
+        return stream;
+    }
+}
+
+/// <summary>
+/// The current client's expedition-portal wrapper writes type 30 followed by two u32 values: the
+/// selected saved portal and the skill chosen from game content.
+/// </summary>
+public sealed class SkillObjectExpeditionPortal : SkillObject
+{
+    public uint PortalId { get; set; }
+    public uint SkillId { get; set; }
+
+    public override void Read(PacketStream stream)
+    {
+        PortalId = stream.ReadUInt32();
+        SkillId = stream.ReadUInt32();
+    }
+
+    public override PacketStream Write(PacketStream stream)
+    {
+        base.Write(stream);
+        stream.Write(PortalId);
+        stream.Write(SkillId);
         return stream;
     }
 }

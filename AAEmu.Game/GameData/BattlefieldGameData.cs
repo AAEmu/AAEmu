@@ -11,6 +11,10 @@ namespace AAEmu.Game.GameData;
 [GameData]
 public class BattlefieldGameData : Singleton<BattlefieldGameData>, IGameDataLoader
 {
+    // Current native IsExpeditionContents compares this content field with 5; configured
+    // instance_ui_kinds row 5 is the Expedition category.
+    public const uint ExpeditionInstanceUiKindId = 5;
+
     private Dictionary<uint, Battlefield> _battlefields;
 
     public Battlefield GetBattlefield(uint id)
@@ -52,6 +56,28 @@ public class BattlefieldGameData : Singleton<BattlefieldGameData>, IGameDataLoad
                 }
             }
         }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT id,target_id,instance_ui_kind_id,squad_not_use FROM instances WHERE target_type='BattleField'";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var battlefieldId = reader.GetUInt32("target_id");
+                if (!_battlefields.TryGetValue(battlefieldId, out var battlefield))
+                    continue;
+                battlefield.InstanceId = reader.GetUInt32("id");
+                battlefield.InstanceUiKindId = reader.GetUInt32("instance_ui_kind_id");
+                battlefield.SquadNotUse = reader.GetBoolean("squad_not_use", true);
+            }
+        }
+
+        var rankDetailIds = LoadInstanceRankDetailIds(connection);
+        foreach (var battlefield in _battlefields.Values)
+            if (rankDetailIds.TryGetValue(battlefield.InstanceId, out var rankDetailId))
+                battlefield.InstanceRankDetailId = rankDetailId;
 
         using (var command = connection.CreateCommand())
         {
@@ -103,5 +129,26 @@ public class BattlefieldGameData : Singleton<BattlefieldGameData>, IGameDataLoad
 
     public void PostLoad()
     {
+    }
+
+    /// <summary>
+    /// Maps the client history/rating <c>type</c> to its authored instance. Current native loads
+    /// these three columns into InstanceRankDetailDesc; the client independently resolves the
+    /// history's following type through instances.id for its display name.
+    /// </summary>
+    internal static IReadOnlyDictionary<uint, uint> LoadInstanceRankDetailIds(SqliteConnection connection)
+    {
+        var result = new Dictionary<uint, uint>();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id,instance_id,rating_only FROM instance_rank_details";
+        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+        while (reader.Read())
+        {
+            var id = reader.GetUInt32("id");
+            var instanceId = reader.GetUInt32("instance_id");
+            if (id == 0 || instanceId == 0 || !result.TryAdd(instanceId, id))
+                throw new InvalidDataException($"Ambiguous instance rank detail mapping for instance {instanceId}.");
+        }
+        return result;
     }
 }

@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
 /// value's name alongside the value:
 /// </remarks>
-public class SCFamilyInfoSetPacket(int familyId, uint level, uint exp, string name, int @type, uint incMemberCount, long changeNameTime) : GamePacket(SCOffsets.SCFamilyInfoSetPacket, 1)
+public class SCFamilyInfoSetPacket(int familyId, uint level, uint exp, string name, string notice, int @type, uint incMemberCount, long changeNameTime) : GamePacket(SCOffsets.SCFamilyInfoSetPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
@@ -18,6 +18,7 @@ public class SCFamilyInfoSetPacket(int familyId, uint level, uint exp, string na
         stream.Write(level);
         stream.Write(exp);
         stream.Write(name);
+        stream.Write(notice);
         stream.Write(@type);
         stream.Write(incMemberCount);
         stream.Write(changeNameTime);

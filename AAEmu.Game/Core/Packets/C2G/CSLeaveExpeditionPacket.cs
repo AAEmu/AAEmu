@@ -9,6 +9,6 @@ public class CSLeaveExpeditionPacket() : GamePacket(CSOffsets.CSLeaveExpeditionP
     public override void Read(PacketStream stream)
     {
         Logger.Debug("LeaveExpedition");
-        ExpeditionManager.Leave(Connection.ActiveChar);
+        ExpeditionManager.Instance.LeaveCurrentSession(Connection.ActiveChar);
     }
 }

@@ -2,7 +2,7 @@ namespace AAEmu.Game.Models.Game.Expeditions;
 
 public class ExpeditionConfig
 {
-    public ExpeditionConfigCreate Create { get; set; }
+    public ExpeditionConfigCreate Create { get; set; } = new();
     public string NameRegex { get; set; }
     public ExpeditionRolePolicy[] RolePolicies { get; set; }
 }

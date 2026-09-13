@@ -8,9 +8,9 @@ public class SCFamilyInvitationPacket(uint invitorId, string invitorName, uint f
 {
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(invitorId);
+        stream.Write((ulong)invitorId);
         stream.Write(invitorName);
-        stream.Write(familyId);
+        stream.Write((int)familyId);
         stream.Write(role);
         return stream;
     }

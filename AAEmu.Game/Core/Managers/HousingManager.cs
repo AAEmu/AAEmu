@@ -884,6 +884,7 @@ public class HousingManager(
     public void Build(GameConnection connection, uint designId, float posX, float posY, float posZ, float zRot,
         ulong itemId, bool autoUseAaPoint)
     {
+        using var persistenceOperation = PersistenceOperationScope.Enter();
         // Free accounts are not grade 0 (premium_grades grants grade 1 at zero points), so the
         // gate must ask whether the account is actually paid.
         if (!AccountPatron.IsPaid(connection.ActiveChar))
@@ -1122,8 +1123,8 @@ public class HousingManager(
         if (HousingGameData.Instance.IsExpeditionResidenceTemplate(designId) && connection.ActiveChar.Expedition != null)
         {
             var expedition = connection.ActiveChar.Expedition;
-            expedition.ResidenceHouseId = house.Id;
-            ExpeditionManager.Save(expedition);
+            if (!ExpeditionManager.Instance.TrySetResidenceHouseId(expedition, 0, house.Id))
+                return;
             Logger.Info("Guild Residence: {0}'s guild ({1}) placed House {2} (design {3})", connection.ActiveChar.Name, expedition.Name, house.Id, designId);
 
             // See SendExpeditionHouseInfo's own doc comment - the client can't learn its guild's
@@ -1184,6 +1185,7 @@ public class HousingManager(
     {
         if (house == null)
             return;
+        using var persistenceOperation = PersistenceOperationScope.Enter();
         using var persist = mailManager.DeferPersist();
         lock (house.LifecycleSyncRoot)
             DemolishLocked(connection, house, failedToPayTax, forceRestoreAllDecor);
@@ -1308,8 +1310,7 @@ public class HousingManager(
                             ExpeditionManager.Instance.TryChangeContributionPoints(character, refund, false);
                     }
 
-                    owningExpedition.ResidenceHouseId = 0;
-                    ExpeditionManager.Save(owningExpedition);
+                    ExpeditionManager.Instance.TrySetResidenceHouseId(owningExpedition, house.Id, 0);
                 }
             }
 
@@ -1365,8 +1366,7 @@ public class HousingManager(
             var owningExpedition = ExpeditionManager.Instance.Expeditions.FirstOrDefault(e => e.ResidenceHouseId == house.Id);
             if (owningExpedition != null)
             {
-                owningExpedition.ResidenceHouseId = 0;
-                ExpeditionManager.Save(owningExpedition);
+                ExpeditionManager.Instance.TrySetResidenceHouseId(owningExpedition, house.Id, 0);
             }
         }
 

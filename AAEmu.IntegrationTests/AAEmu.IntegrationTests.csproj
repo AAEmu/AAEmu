@@ -22,6 +22,26 @@
 
   <ItemGroup>
     <Folder Include="Data\" />
+    <EmbeddedResource Include="..\SQL\updates\2026-09-13_aaemu_game_families.sql"
+                      LogicalName="AAEmu.IntegrationTests.Migrations.2026-09-13_aaemu_game_families.sql" />
+    <EmbeddedResource Include="..\SQL\updates\2026-09-13_aaemu_game_expedition_activities.sql"
+                      LogicalName="AAEmu.IntegrationTests.Migrations.2026-09-13_aaemu_game_expedition_activities.sql" />
+    <EmbeddedResource Include="..\SQL\updates\2026-09-13_aaemu_game_expedition_instance_histories.sql"
+                      LogicalName="AAEmu.IntegrationTests.Migrations.2026-09-13_aaemu_game_expedition_instance_histories.sql" />
+    <EmbeddedResource Include="..\SQL\updates\2026-09-13_aaemu_game_expedition_instance_history_type.sql"
+                      LogicalName="AAEmu.IntegrationTests.Migrations.2026-09-13_aaemu_game_expedition_instance_history_type.sql" />
+    <EmbeddedResource Include="..\SQL\updates\2026-09-13_aaemu_game_expedition_daily_exp.sql"
+                      LogicalName="AAEmu.IntegrationTests.Migrations.2026-09-13_aaemu_game_expedition_daily_exp.sql" />
+    <EmbeddedResource Include="..\SQL\updates\2026-09-13_aaemu_game_expedition_recruitment.sql"
+                      LogicalName="AAEmu.IntegrationTests.Migrations.2026-09-13_aaemu_game_expedition_recruitment.sql" />
+    <EmbeddedResource Include="..\SQL\updates\2026-09-13_aaemu_game_expedition_renames.sql"
+                      LogicalName="AAEmu.IntegrationTests.Migrations.2026-09-13_aaemu_game_expedition_renames.sql" />
+    <EmbeddedResource Include="..\SQL\updates\2026-09-13_aaemu_game_expedition_weekly_contribution.sql"
+                      LogicalName="AAEmu.IntegrationTests.Migrations.2026-09-13_aaemu_game_expedition_weekly_contribution.sql" />
+    <EmbeddedResource Include="..\SQL\updates\2026-09-13_aaemu_game_expedition_descriptor_state.sql"
+                      LogicalName="AAEmu.IntegrationTests.Migrations.2026-09-13_aaemu_game_expedition_descriptor_state.sql" />
+    <EmbeddedResource Include="..\SQL\updates\2026-09-13_aaemu_game_expedition_public_assignments.sql"
+                      LogicalName="AAEmu.IntegrationTests.Migrations.2026-09-13_aaemu_game_expedition_public_assignments.sql" />
   </ItemGroup>
 
   <ItemGroup>
