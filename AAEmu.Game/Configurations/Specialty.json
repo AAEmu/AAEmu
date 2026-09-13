@@ -1,6 +1,6 @@
 {
 	"Specialty": {
-		"EnableEvents": false,
+		"EnableEvents": true,
 		"ManualEventDurationSeconds": 300,
 		"EnableTimedRatioRecovery": false,
 		"RatioRecoveryIntervalMinutes": 60.0,
