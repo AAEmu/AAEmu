@@ -212,12 +212,19 @@ public class CharacterBackpackDropTests
         var parent = new GameObject();
         parent.Transform.Local.SetPosition(100, 200, 30);
         SetField(context.Owner.Transform, "_parentTransform", parent.Transform);
-        context.Owner.Transform.Local.SetPosition(2, 3, 4);
-        await Assert.That(context.Drop.TryDropOnDeath()).IsTrue();
-        await Assert.That(context.Doodad.Transform.Parent).IsNull();
-        await Assert.That(context.Doodad.Transform.World.Position.X).IsEqualTo(102f);
-        await Assert.That(context.Doodad.Transform.World.Position.Y).IsEqualTo(203f);
-        await Assert.That(context.Doodad.Transform.World.Position.Z).IsEqualTo(12.5f);
+        try
+        {
+            context.Owner.Transform.Local.SetPosition(2, 3, 4);
+            await Assert.That(context.Drop.TryDropOnDeath()).IsTrue();
+            await Assert.That(context.Doodad.Transform.Parent).IsNull();
+            await Assert.That(context.Doodad.Transform.World.Position.X).IsEqualTo(102f);
+            await Assert.That(context.Doodad.Transform.World.Position.Y).IsEqualTo(203f);
+            await Assert.That(context.Doodad.Transform.World.Position.Z).IsEqualTo(12.5f);
+        }
+        finally
+        {
+            SetField(context.Owner.Transform, "_parentTransform", null);
+        }
     }
 
     [Test]
