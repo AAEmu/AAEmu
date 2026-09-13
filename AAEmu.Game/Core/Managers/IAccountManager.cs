@@ -1,5 +1,7 @@
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Models.Account;
+using AAEmu.Game.Models.Game.Char;
+using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -16,6 +18,9 @@ public interface IAccountManager : IInitializable
     bool AddLoyalty(uint accountId, int loyaltyAmount);
     void UpdateLabor(uint accountId, short laborPower);
     void UpdateLocalLabor(uint accountId, int localLabor);
+    T WithAccountLock<T>(uint accountId, Func<T> operation);
+    bool TryDebitLaborOn(AccountLaborDebit debit, MySqlConnection connection, MySqlTransaction transaction);
+    AccountLaborDebitPublication ApplyCommittedLaborDebit(Character character, AccountLaborDebit debit);
     DateTime UpdateLoginTime(uint accountId, DateTime newTime);
     void UpdateTickTimes(uint accountId, DateTime newTime, bool updateLabor, bool updateCredits, bool updateLoyalty);
     void UpdateDivineClock(uint accountId, uint timeElapsed, uint timesTaken);

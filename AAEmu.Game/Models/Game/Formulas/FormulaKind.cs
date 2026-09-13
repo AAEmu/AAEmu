@@ -64,4 +64,7 @@ public enum FormulaKind
     /// anything off the pool.
     /// </summary>
     ItemEvolvingCost = 64,
+
+    /// <summary>Farmhand experience awarded for labor spent. Variables: labor_power and butler_level.</summary>
+    ButlerExpByLaborPower = 67,
 };

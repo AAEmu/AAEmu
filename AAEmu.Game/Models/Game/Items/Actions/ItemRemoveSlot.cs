@@ -3,8 +3,7 @@ using AAEmu.Commons.Network;
 namespace AAEmu.Game.Models.Game.Items.Actions;
 
 /// <summary>
-/// Clears a bag/equip slot on the client.
-/// Take body and <b>re-sets</b> the item into the slot — do not use it to destroy.
+/// Clears a bag or equipment slot on the client by its owner, location, and item id.
 /// </summary>
 public class ItemRemoveSlot : ItemTask
 {
@@ -15,7 +14,7 @@ public class ItemRemoveSlot : ItemTask
 
     public ItemRemoveSlot(Item item, byte actionOwnerType = 0)
     {
-        _type = ItemAction.Seize; // 14 = 0xE
+        _type = ItemAction.Seize;
         _itemId = item.Id;
         _slotType = item.SlotType;
         _slot = (byte)item.Slot;
@@ -24,7 +23,7 @@ public class ItemRemoveSlot : ItemTask
 
     public ItemRemoveSlot(ulong itemId, SlotType slotType, byte slot, byte actionOwnerType = 0)
     {
-        _type = ItemAction.Seize; // 14 = 0xE
+        _type = ItemAction.Seize;
         _itemId = itemId;
         _slotType = slotType;
         _slot = slot;

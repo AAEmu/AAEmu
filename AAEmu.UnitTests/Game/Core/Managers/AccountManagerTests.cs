@@ -28,4 +28,14 @@ public class AccountManagerTests
 
         mockTick.OnTick.WasCalled(Times.Once);
     }
+
+    [Test]
+    public async Task WithAccountLock_AllowsTheSameAccountOperationToReenter()
+    {
+        var manager = new AccountManager(Mock.Of<ITickManager>().Object, Mock.Of<ITimedRewardsManager>().Object);
+
+        var result = manager.WithAccountLock(1, () => manager.WithAccountLock(1, () => 42));
+
+        await Assert.That(result).IsEqualTo(42);
+    }
 }

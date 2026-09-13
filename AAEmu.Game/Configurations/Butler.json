@@ -1,0 +1,10 @@
+{
+    "Butler": {
+        "HarvestCompletion": {
+            "ScanIntervalSeconds": 5,
+            "MaxCatchUpCyclesPerPass": 8,
+            "BonusRatioScale": 10000,
+            "ExperienceRate": 1.0
+        }
+    }
+}

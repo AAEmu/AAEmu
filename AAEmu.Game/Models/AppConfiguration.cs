@@ -4,6 +4,7 @@ using AAEmu.Game.IO;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.StreamAoi;
 using AAEmu.Game.Models.Game.Expeditions;
+using AAEmu.Game.Models.Game.Butlers;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -65,6 +66,7 @@ public partial class AppConfiguration
     /// </summary>
     public string ZoneGameDataRoot { get; set; } = "";
     public SpecialtyConfig Specialty { get; set; } = new();
+    public ButlerConfig Butler { get; set; } = new();
     public UccConfig Ucc { get; set; } = new();
     public FeaturesConfig Features { get; set; } = new();
     public TowerDefsConfig TowerDefs { get; set; } = new();

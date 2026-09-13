@@ -35,7 +35,7 @@ public interface IHousingManager
     void UpdateTaxInfo(House house);
     bool DecorateHouse(Character player, ushort houseTlId, uint designId, Vector3 pos, Quaternion quat, uint parentObjId, ulong itemId);
     void HousingToggleAllowRecover(Character character, ushort houseTl);
-    House GetHouseAtLocation(float x, float y);
+    House GetHouseAtLocation(WorldInstance world, float x, float y);
     void ResidentInfo(GameConnection connection, short zoneGroup);
     void ResidentMembers(GameConnection connection, short zoneGroup);
     void ResidentBalance(GameConnection connection, short zoneGroup, ulong type2);

@@ -12,6 +12,9 @@ public interface IMailManager : ILoadable
     uint GetNewMailId();
     bool Send(BaseMail mail, bool publishNow = true);
     bool TryDeliverOn(BaseMail mail, MySqlConnection connection, MySqlTransaction transaction);
+    bool TryCreateExistingItemDeliveryPlan(IReadOnlyList<Item> items,
+        Func<int, IReadOnlyList<Item>, BaseMail> createMail,
+        out ExistingItemMailDeliveryPlan plan);
     bool TryStageDelivery(BaseMail mail, out string targetName);
     void PublishDelivered(BaseMail mail);
     void DiscardUnpersisted(BaseMail mail);

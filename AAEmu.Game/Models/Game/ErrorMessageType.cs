@@ -801,5 +801,9 @@ public enum ErrorMessageType : short
     // 10.0.2.13 ids present in the client's enum_error_messages but missing here
     NotEnoughGearScore = 1104,									// "not_enough_gear_score";
     TargetExpeditionGearScore = 884,							// "target_expedition_gear_score";
-    BlockUserMax = 1311												// "block_user_max";
+    BlockUserMax = 1311,												// "block_user_max";
+    // Native producer: 10.0.2.13 RegisterHarvest FUN_391899A0.
+    ButlerHarvestGradeInsufficient = 0x496,
+    ButlerGardenSizeInsufficient = 0x497,
+    ButlerProductionCostInsufficient = 0x498
 }

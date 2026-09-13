@@ -1,11 +1,15 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Auction;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Features;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Containers;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.UnitTests.Utils.Mocks;
 using Microsoft.Extensions.DependencyInjection;
@@ -35,6 +39,7 @@ public sealed class AuctionManagerSettleTests
     private const long StartingMoney = 10_000;
 
     private AuctionManager _house;
+    private Mock<IItemManager> _itemMock;
     private MailManager _mailManager;
     private SequentialMailIdManager _mailIds;
     private RecordingSaveManager _saves;
@@ -68,6 +73,7 @@ public sealed class AuctionManagerSettleTests
         {
             Id = ItemId,
             TemplateId = ItemTemplateId,
+            Template = new ItemTemplate(),
             Count = 1,
             OwnerId = SellerId,
             SlotType = SlotType.Auction
@@ -79,6 +85,7 @@ public sealed class AuctionManagerSettleTests
         var items = Mock.Of<IItemManager>();
         items.GetItemByItemId(ItemId).Returns(_item);
         items.Create(ItemTemplateId, 1, (byte)0, true).Returns(_slice);
+        _itemMock = items;
         var auctionIds = Mock.Of<IAuctionIdManager>();
         auctionIds.GetNextId().Returns(LotId);
 
@@ -120,6 +127,7 @@ public sealed class AuctionManagerSettleTests
         SingletonContainer.ServiceProvider = null;
         ResetSingletons();
         _house = null;
+        _itemMock = null;
         _mailManager = null;
         _mailIds = null;
         _saves = null;
@@ -148,6 +156,93 @@ public sealed class AuctionManagerSettleTests
         var features = new FeatureSet();
         features.Set(Feature.auctionPartialBuy, true);
         SetFeatures(features);
+    }
+
+    private static Inventory CreateInventory(Character owner)
+    {
+        var inventory = (Inventory)RuntimeHelpers.GetUninitializedObject(typeof(Inventory));
+        var type = typeof(Inventory);
+        type.GetProperty(nameof(Inventory.Bag))!.SetValue(
+            inventory, new ItemContainer(owner.Id, SlotType.Inventory, false, owner));
+        type.GetProperty(nameof(Inventory.MailAttachments))!.SetValue(
+            inventory, new ItemContainer(owner.Id, SlotType.Mail, false, owner));
+        return inventory;
+    }
+
+    [Test]
+    public async Task ConcurrentPostAndCancel_DoNotDeadlockOnHouseAndInventoryLocks()
+    {
+        ListItem();
+        var seller = new CharacterMock { AccountId = 1, Id = SellerId, Name = SellerName, Money = StartingMoney };
+        seller.Inventory = CreateInventory(seller);
+        using var cancelHasHouseLock = new ManualResetEventSlim();
+        using var continueCancel = new ManualResetEventSlim();
+        using var postFinished = new ManualResetEventSlim();
+        _itemMock.GetItemByItemId(ItemId).Returns(() =>
+        {
+            cancelHasHouseLock.Set();
+            continueCancel.Wait(TimeSpan.FromSeconds(5));
+            return _item;
+        });
+
+        var cancel = Task.Run(() => _house.CancelAuctionLot(seller, LotId));
+        var cancelEntered = cancelHasHouseLock.Wait(TimeSpan.FromSeconds(2));
+        Exception postError = null;
+        var post = new Thread(() =>
+        {
+            try
+            {
+                _house.PostLotOnAuction(
+                    seller, ulong.MaxValue, StartPrice, BuyoutPrice, AuctionDuration.AuctionDuration48Hours, 1, 1);
+            }
+            catch (Exception error)
+            {
+                postError = error;
+            }
+            finally
+            {
+                postFinished.Set();
+            }
+        }) { IsBackground = true };
+
+        var postWaitedForHouse = false;
+        var inventoryAvailable = false;
+        try
+        {
+            post.Start();
+            postWaitedForHouse = SpinWait.SpinUntil(
+                () => (post.ThreadState & ThreadState.WaitSleepJoin) != 0,
+                TimeSpan.FromSeconds(2));
+
+            // A listing queued behind cancellation must not own the inventory monitor that
+            // cancellation needs to return the escrowed item.
+            inventoryAvailable = Monitor.TryEnter(seller.Inventory.MutationSyncRoot);
+            if (inventoryAvailable)
+                Monitor.Exit(seller.Inventory.MutationSyncRoot);
+        }
+        finally
+        {
+            // On the old inventory -> house order, interrupting the queued listing releases
+            // its inventory lease so this regression test can unwind rather than leak a deadlock.
+            if (!inventoryAvailable && postWaitedForHouse)
+                post.Interrupt();
+            continueCancel.Set();
+        }
+
+        var cancelCompleted = await Task.WhenAny(cancel, Task.Delay(TimeSpan.FromSeconds(2))) == cancel;
+        var postCompleted = postFinished.Wait(TimeSpan.FromSeconds(2));
+        if (cancelCompleted)
+            await cancel;
+        await Assert.That(cancelEntered).IsTrue();
+        await Assert.That(postWaitedForHouse).IsTrue();
+        await Assert.That(inventoryAvailable).IsTrue();
+        await Assert.That(cancelCompleted).IsTrue();
+        await Assert.That(postCompleted).IsTrue();
+        await Assert.That(postError).IsNull();
+        await Assert.That(_house.AuctionLots.ContainsKey(LotId)).IsFalse();
+        var cancellationMails = MailsOfType(MailType.AucOffCancel);
+        await Assert.That(cancellationMails.Count).IsEqualTo(1);
+        await Assert.That(cancellationMails[0].Body.Attachments).Contains(_item);
     }
 
     [Test]

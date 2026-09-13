@@ -46,5 +46,7 @@ public enum MailType : byte
     NationRelationHostileReject = 41,
     SiegeAuctionStart = 42,
     ExpeditionImmigrationReject = 43,
-    ResidentBalance = 44
+    ResidentBalance = 44,
+    // x2game-dev.dll 10.0.2.13 binds MAIL_FROM_BUTLER to numeric value 49.
+    Butler = 49
 }

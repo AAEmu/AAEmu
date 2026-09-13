@@ -1,6 +1,8 @@
+using System.Reflection;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils;
 using AAEmu.Game;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -19,6 +21,27 @@ namespace AAEmu.UnitTests.WorldServer;
 [NotInParallel]
 public class ZonePacketWireTests
 {
+    private FieldInfo _butlerManagerSingletonField;
+    private object _previousButlerManager;
+
+    [Before(Test)]
+    public void SetupButlerManager()
+    {
+        _butlerManagerSingletonField = typeof(Singleton<ButlerManager>)
+            .GetField("s_instance", BindingFlags.Static | BindingFlags.NonPublic)!;
+        _previousButlerManager = _butlerManagerSingletonField.GetValue(null);
+        _butlerManagerSingletonField.SetValue(null, new ButlerManager(
+            Mock.Of<IButlerRepository>().Object,
+            Mock.Of<IButlerUnbindService>().Object,
+            Mock.Of<IItemManager>().Object));
+    }
+
+    [After(Test)]
+    public void RestoreButlerManager()
+    {
+        _butlerManagerSingletonField.SetValue(null, _previousButlerManager);
+    }
+
     [Test]
     public async Task SkillEnded_UsesNativeTimelineAndCasterLayout()
     {

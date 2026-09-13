@@ -12,18 +12,21 @@ namespace AAEmu.Game.Core.Packets.C2G;
 /// </remarks>
 public class CSRequestButlerSpecialtyTradeJobPacket() : GamePacket(CSOffsets.CSRequestButlerSpecialtyTradeJobPacket, 1)
 {
-    public sbyte Unnamed1 { get; private set; }
+    private const int BodySize = sizeof(sbyte) + sizeof(long) + sizeof(int) + sizeof(short);
+
     public sbyte JobKind { get; private set; }
     public long DbSpecialtyTradeId { get; private set; }
-    public int TypeValue { get; private set; }
-    public short TypeValue2 { get; private set; }
+    public int SpecialtyTradeType { get; private set; }
+    public short ToZoneGroupType { get; private set; }
 
     public override void Read(PacketStream stream)
     {
-        Unnamed1 = stream.ReadSByte();
+        if (stream.LeftBytes != BodySize)
+            throw new InvalidDataException($"Expected a {BodySize}-byte butler specialty-job body, got {stream.LeftBytes} bytes.");
+
         JobKind = stream.ReadSByte();
         DbSpecialtyTradeId = stream.ReadInt64();
-        TypeValue = stream.ReadInt32();
-        TypeValue2 = stream.ReadInt16();
+        SpecialtyTradeType = stream.ReadInt32();
+        ToZoneGroupType = stream.ReadInt16();
     }
 }

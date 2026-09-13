@@ -21,42 +21,51 @@ public class CSDestroyItemPacket() : GamePacket(CSOffsets.CSDestroyItemPacket, 1
         var slot = stream.ReadByte();
         var amount = stream.ReadUInt32();
 
-        // Prefer the slot the client pointed at, but fall back to the id so a stale client-side
-        // slot doesn't make the destroy silently fail. The id check below still guards both paths.
-        var item = Connection.ActiveChar.Inventory.GetItem(slotType, slot)
-                   ?? Connection.ActiveChar.Inventory.GetItemById(itemId);
-
-        if (item == null || item.Id != itemId || amount == 0 || amount > int.MaxValue || (int)amount > item.Count
-            || AuctionHouseRules.IsEscrowSlot(item.SlotType) || AuctionHouseRules.IsEscrowSlot(slotType))
+        var inventory = Connection.ActiveChar.Inventory;
+        Item item;
+        using (inventory.AcquireMutation())
         {
-            Logger.Warn($"DestroyItem: Invalid item, itemId {itemId}, slotType {slotType}, slot {slot}, amount {amount}, found {(item == null ? "none" : $"id {item.Id} count {item.Count}")}");
-            return;
-        }
+            // Prefer the slot the client pointed at, but fall back to the id so a stale client-side
+            // slot doesn't make the destroy silently fail. The id check below still guards both paths.
+            item = inventory.GetItem(slotType, slot)
+                   ?? inventory.GetItemById(itemId);
 
-        var count = (int)amount;
-
-        if (item.Count > count)
-        {
-            item.Count -= count;
-            Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, [new ItemCountUpdate(item, -count)], []));
-        }
-        else
-        {
-            // Sanity check in case we're destroying something we're not actually holding?
-            if (item._holdingContainer == null)
+            if (!IsValidDestroyTarget(item, itemId, slotType, amount))
             {
-                ItemManager.Instance.ReleaseId(item.Id);
-                Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, [new ItemRemove(item)], []));
-            }
-            else
-            if (!item._holdingContainer.RemoveItem(ItemTaskType.Destroy, item, true))
-            {
-                Logger.Warn("DestroyItem: Failed to destroy item...");
+                Logger.Warn($"DestroyItem: Invalid item, itemId {itemId}, slotType {slotType}, slot {slot}, amount {amount}, found {(item == null ? "none" : $"id {item.Id} count {item.Count}")}");
                 return;
             }
-            // Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, new List<ItemTask> { new ItemRemove(item) }, new List<ulong>()));
+
+            var count = checked((int)amount);
+            if (item.Count > count)
+            {
+                item.Count -= count;
+                Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, [new ItemCountUpdate(item, -count)], []));
+            }
+            else
+            {
+                // Sanity check in case we're destroying something we're not actually holding?
+                if (item._holdingContainer == null)
+                {
+                    ItemManager.Instance.ReleaseId(item.Id);
+                    Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Destroy, [new ItemRemove(item)], []));
+                }
+                else
+                if (!item._holdingContainer.RemoveItem(ItemTaskType.Destroy, item, true))
+                {
+                    Logger.Warn("DestroyItem: Failed to destroy item...");
+                    return;
+                }
+            }
         }
 
-        Connection.ActiveChar?.Inventory.OnItemManuallyDestroyed(item, count);
+        inventory.OnItemManuallyDestroyed(item, checked((int)amount));
     }
+
+    internal static bool IsValidDestroyTarget(Item item, ulong itemId, SlotType requestedSlotType, uint amount) =>
+        item != null && item.Id == itemId && amount is > 0 and <= int.MaxValue && item.Count > 0 &&
+        amount <= (uint)item.Count &&
+        requestedSlotType != SlotType.System && item.SlotType != SlotType.System &&
+        item._holdingContainer?.ContainerType != SlotType.System &&
+        !AuctionHouseRules.IsEscrowSlot(item.SlotType) && !AuctionHouseRules.IsEscrowSlot(requestedSlotType);
 }

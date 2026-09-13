@@ -52,6 +52,7 @@ public class HousingManager(
     IZoneManager zoneManager,
     IDoodadManager doodadManager,
     IUccManager uccManager,
+    IButlerManager butlerManager,
     IDominionManager dominionManager,
     IGuildDominionManager guildDominionManager) : Singleton<HousingManager>, IHousingManager
 {
@@ -1181,6 +1182,16 @@ public class HousingManager(
     /// <param name="forceRestoreAllDecor"></param>
     public void Demolish(GameConnection connection, House house, bool failedToPayTax, bool forceRestoreAllDecor)
     {
+        if (house == null)
+            return;
+        using var persist = mailManager.DeferPersist();
+        lock (house.LifecycleSyncRoot)
+            DemolishLocked(connection, house, failedToPayTax, forceRestoreAllDecor);
+    }
+
+    private void DemolishLocked(GameConnection connection, House house, bool failedToPayTax,
+        bool forceRestoreAllDecor)
+    {
         if (!_houses.ContainsKey(house.Id))
         {
             connection?.ActiveChar?.SendErrorMessage(ErrorMessageType.InvalidHouseInfo);
@@ -1235,6 +1246,12 @@ public class HousingManager(
                 return;
             }
             */
+            if (!butlerManager.UnbindHouse(house.Id))
+            {
+                connection?.ActiveChar?.SendErrorMessage(ErrorMessageType.InternalError);
+                return;
+            }
+
             var ownerChar = worldManager.GetCharacterById(house.OwnerId);
 
             // Mark it as expired protection
@@ -1312,8 +1329,33 @@ public class HousingManager(
     /// <param name="house"></param>
     public void RemoveDeadHouse(House house)
     {
+        if (house != null && !TryRemoveDeadHouse(house))
+            _wreckedHouses[house.Id] = DateTime.UtcNow.AddSeconds(-SecondsForDemolitionWreck);
+    }
+
+    internal bool TryRemoveDeadHouse(House house)
+    {
+        if (house == null)
+            return false;
+        return WithPersistenceOperation(() =>
+        {
+            lock (house.LifecycleSyncRoot)
+                return RemoveDeadHouseLocked(house);
+        });
+    }
+
+    private bool RemoveDeadHouseLocked(House house)
+    {
         var zoneId = house.Transform?.ZoneId ?? 0;
         var houseObjId = house.ObjId;
+
+        if (!butlerManager.UnbindHouse(house.Id))
+        {
+            Logger.Error("RemoveDeadHouse: failed to clear farmhand binding for house {0}", house.Id);
+            return false;
+        }
+
+        house.IsRemovedFromWorld = true;
 
         // Same guild-residence lifecycle fix as Demolish: this path has no requesting character at
         // all (a house dying from combat/siege damage, not a player-initiated demolish), so the owning
@@ -1341,6 +1383,7 @@ public class HousingManager(
 
         if (houseObjId > 0)
             objectIdManager.ReleaseId(houseObjId);
+        return true;
     }
 
     /// <summary>
@@ -1456,8 +1499,8 @@ public class HousingManager(
                 continue;
 
             Logger.Info($"Demolition: removing wrecked house {house.Id} ({house.Name})");
-            RemoveDeadHouse(house);
-            _wreckedHouses.Remove(id);
+            if (TryRemoveDeadHouse(house))
+                _wreckedHouses.Remove(id);
         }
     }
 
@@ -2420,6 +2463,13 @@ public class HousingManager(
             return false;
         }
 
+        using var persist = mailManager.DeferPersist();
+        lock (house.LifecycleSyncRoot)
+            return BuyHouseLocked(house, money, character);
+    }
+
+    private bool BuyHouseLocked(House house, uint money, Character character)
+    {
         if (house.SellPrice <= 0)
         {
             // House wasn't for sale
@@ -2450,10 +2500,31 @@ public class HousingManager(
 
         // NOTE: check tax due maybe ?
 
-        if (!character.SubtractMoney(SlotType.Inventory, (int)house.SellPrice, ItemTaskType.BuyHouse))
+        if (character.Money < house.SellPrice)
         {
             // Not enough money
             character.SendErrorMessage(ErrorMessageType.HouseCannotBuyAsNotEnoughMoney);
+            return false;
+        }
+
+        var purchasePreparation = PrepareOwnershipTransfer(
+            () => character.SubtractMoney(SlotType.Inventory, (int)house.SellPrice, ItemTaskType.BuyHouse),
+            () => butlerManager.UnbindHouse(house.Id),
+            () =>
+            {
+                if (!character.AddMoney(SlotType.Inventory, house.SellPrice, ItemTaskType.BuyHouse))
+                    Logger.Error("BuyHouse: failed to refund {0} copper to character {1} after farmhand unbind failed",
+                        house.SellPrice, character.Id);
+            });
+        if (purchasePreparation == HousePurchasePreparation.PaymentFailed)
+        {
+            character.SendErrorMessage(ErrorMessageType.HouseCannotBuyAsNotEnoughMoney);
+            return false;
+        }
+
+        if (purchasePreparation == HousePurchasePreparation.ButlerUnbindFailed)
+        {
+            character.SendErrorMessage(ErrorMessageType.InternalError);
             return false;
         }
 
@@ -2537,6 +2608,40 @@ public class HousingManager(
         house.IsDirty = true;
 
         return true;
+    }
+
+    internal static HousePurchasePreparation PrepareOwnershipTransfer(Func<bool> chargeBuyer,
+        Func<bool> unbindSellerButler, Action refundBuyer)
+    {
+        if (!chargeBuyer())
+            return HousePurchasePreparation.PaymentFailed;
+        if (unbindSellerButler())
+            return HousePurchasePreparation.Success;
+        refundBuyer();
+        return HousePurchasePreparation.ButlerUnbindFailed;
+    }
+
+    internal enum HousePurchasePreparation
+    {
+        Success,
+        PaymentFailed,
+        ButlerUnbindFailed
+    }
+
+    private static T WithPersistenceOperation<T>(Func<T> operation)
+    {
+        var entered = !PersistenceGate.IsOperationHeld;
+        if (entered)
+            PersistenceGate.EnterOperation();
+        try
+        {
+            return operation();
+        }
+        finally
+        {
+            if (entered)
+                PersistenceGate.ExitOperation();
+        }
     }
 
     /// <summary>
@@ -2687,16 +2792,21 @@ public class HousingManager(
     /// <summary>
     /// Returns a house where the given position falls within boundaries of the house 
     /// </summary>
+    /// <param name="world">World instance containing the position.</param>
     /// <param name="x"></param>
     /// <param name="y"></param>
     /// <returns>Target House or Null</returns>
-    public House GetHouseAtLocation(float x, float y)
+    public House GetHouseAtLocation(WorldInstance world, float x, float y)
     {
+        if (world == null)
+            return null;
+
         // TODO: Check if all houses actually use a square shape aligned to grid
-        // TODO: Add world and/or instance checks
         foreach (var h in _houses)
         {
             var house = h.Value;
+            if (house.ParentWorld != world)
+                continue;
             // 10.x: plot bounds from housing_sizes.garden_radius
             var r = house.Template?.GardenRadius ?? 0f;
             var bounds = new RectangleF(house.Transform.World.Position.X - r, house.Transform.World.Position.Y - r,
@@ -2707,6 +2817,3 @@ public class HousingManager(
         return null;
     }
 }
-
-
-

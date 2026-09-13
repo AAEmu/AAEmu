@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Premium;
 using AAEmu.Game.Models.Tasks.TimedRewards;
 
@@ -95,23 +96,34 @@ public class TimedRewardsManager(ITaskManager taskManager) : Singleton<TimedRewa
     /// <param name="addLabor"></param>
     private void DoAddLabor(GameConnection connection, short currentLabor, int addLabor)
     {
-        var maxLaborToAdd = GetMaxLabor(GradeIdOf(connection), connection.Payment.PremiumState, connection.AccountId) - currentLabor;
-        if (maxLaborToAdd < 0)
-            maxLaborToAdd = 0;
-        addLabor = Math.Min(addLabor, maxLaborToAdd);
-        AccountManager.Instance.UpdateTickTimes(connection.AccountId, DateTime.UtcNow, true, false, false);
-        if (addLabor > 0)
+        Character characterToNotify = null;
+        var addedLabor = 0;
+        AccountManager.Instance.WithAccountLock(connection.AccountId, () =>
         {
-            var newLabor = (short)(currentLabor + addLabor);
-            AccountManager.Instance.UpdateLabor(connection.AccountId, newLabor);
+            // Login reads this value before the offline grant. Re-read it under the same account lock used by
+            // farmhand transfers so a delayed catch-up cannot overwrite a committed labor debit.
+            var freshLabor = AccountManager.Instance.GetAccountDetails(connection.AccountId).Labor;
+            var maxLaborToAdd = GetMaxLabor(GradeIdOf(connection), connection.Payment.PremiumState,
+                connection.AccountId) - freshLabor;
+            if (maxLaborToAdd < 0)
+                maxLaborToAdd = 0;
+            addedLabor = Math.Min(addLabor, maxLaborToAdd);
+            var now = DateTime.UtcNow;
+            AccountManager.Instance.UpdateTickTimes(connection.AccountId, now, true, false, false);
+            if (addedLabor <= 0)
+                return 0;
 
-            var activeChar = connection.ActiveChar;
-            activeChar?.SendPacket(new SCCharacterLaborPowerChangedPacket(addLabor, 0, 0, 0, 0, 0));
+            var newLabor = (short)(freshLabor + addedLabor);
+            AccountManager.Instance.UpdateLabor(connection.AccountId, newLabor);
 
             // Update cache if character was logged in. Only the account pool changed here - carry the
             // local pool over unchanged, it is account-wide state too and this tick does not touch it.
-            activeChar?.InitializeLaborCache(newLabor, activeChar.LocalLaborPower, DateTime.UtcNow);
-        }
+            characterToNotify = connection.ActiveChar;
+            characterToNotify?.InitializeLaborCache(newLabor, characterToNotify.LocalLaborPower, now);
+            return 0;
+        });
+
+        characterToNotify?.SendPacket(new SCCharacterLaborPowerChangedPacket(addedLabor, 0, 0, 0, 0, 0));
     }
 
     /// <summary>

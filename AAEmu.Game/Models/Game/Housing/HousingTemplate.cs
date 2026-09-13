@@ -34,8 +34,12 @@ public class HousingTemplate
     public bool AlwaysPublic { get; init; }
     public uint RotateItemId { get; init; }
     public uint RotateItemCount { get; init; }
-    /// <summary>10.x plot radius from housing_sizes via housing_size_id (garden_radius left the housings table).</summary>
-    public float GardenRadius { get; set; }
+    /// <summary>Required farmhand harvest grade from <c>housings.butler_harvest_grade_id</c>.</summary>
+    public uint ButlerHarvestGradeId { get; init; }
+    /// <summary>10.x plot metadata from <c>housing_sizes</c>.</summary>
+    public HousingSize HousingSize { get; internal set; }
+    public float GardenRadius => HousingSize?.GardenRadius ?? 0f;
+    public ushort ButlerGardenSize => HousingSize?.ButlerGardenSize ?? 0;
     internal uint HousingSizeId { get; init; }
 
     public Dictionary<int, HousingBuildStep> BuildSteps { get; } = [];

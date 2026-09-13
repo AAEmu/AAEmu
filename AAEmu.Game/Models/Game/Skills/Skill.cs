@@ -28,6 +28,7 @@ using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Skills;
 using AAEmu.Game.Utils;
 
+using Microsoft.Extensions.DependencyInjection;
 using NLog;
 
 #pragma warning disable IDE0079 // Remove unnecessary suppression
@@ -1156,6 +1157,12 @@ public class Skill
 
     public void ApplyEffects(BaseUnit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
     {
+        using var inventoryEffect = (caster as Character)?.Inventory?.EnterSkillEffect();
+        ApplyEffectsCore(caster, casterCaster, targetSelf, targetCaster, skillObject);
+    }
+
+    private void ApplyEffectsCore(BaseUnit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
+    {
         if (caster is not Unit unit)
             return;
         var player = caster as Character;
@@ -1359,6 +1366,24 @@ public class Skill
             }
         }
 
+        // Weighted effects are alternatives. Resolve the same one-roll selection before collecting
+        // costs so an unselected branch cannot require or consume its item.
+        var weightedTotal = effectsToApply.Sum(entry => entry.effect.Weight);
+        if (weightedTotal > 0)
+            RetainSelectedWeightedEffect(effectsToApply, Random.Shared.Next(weightedTotal));
+        lastAppliedEffect = effectsToApply.LastOrDefault().effect;
+
+        var reagents = SkillManager.Instance.GetSkillReagentsBySkillId(Template.Id);
+        var skillProducts = SkillManager.Instance.GetSkillProductsBySkillId(Template.Id);
+        var hasExternalItemRows = reagents.Count > 0 || skillProducts.Count > 0;
+        if (TryHandleButlerConsumable(
+                player,
+                casterCaster,
+                effectsToApply,
+                SingletonContainer.ServiceProvider?.GetService<IButlerChargeService>(),
+                hasExternalItemRows))
+            return;
+
         // Handle consumption of items from effects (once per cast — scan ALL queued effects).
         // Using only lastAppliedEffect breaks multi-effect skills: farmer's pouch (23136) applies
         // GainLootPack (consume_source_item=t) then a conditional BuffEffect (consume=f). With a
@@ -1421,26 +1446,16 @@ public class Skill
                 }
             }
 
-            foreach (var (_, effect) in effectsToApply)
-            {
-                if (effect.ConsumeItemId == 0 || effect.ConsumeItemCount <= 0)
-                    continue;
-                if (effect.ConsumeSourceItem)
-                {
-                    consumedItemTemplates.Add((effect.ConsumeItemId, effect.ConsumeItemCount));
-                    continue;
-                }
-
-                var inventory = player.Inventory.CheckItems(SlotType.Inventory, effect.ConsumeItemId, effect.ConsumeItemCount);
-                var equipment = player.Inventory.CheckItems(SlotType.Equipment, effect.ConsumeItemId, effect.ConsumeItemCount);
-                if (inventory || equipment)
-                    consumedItemTemplates.Add((effect.ConsumeItemId, effect.ConsumeItemCount));
-            }
+            if (!TryQueueEffectItemConsumption(
+                    effectsToApply.Select(entry => entry.effect),
+                    itemId => checked(
+                        player.Inventory.GetItemsCount(SlotType.Inventory, itemId) +
+                        player.Inventory.GetItemsCount(SlotType.Equipment, itemId)),
+                    consumedItemTemplates))
+                return;
         }
 
         // This will handle all items with a reagent/product
-        var reagents = SkillManager.Instance.GetSkillReagentsBySkillId(Template.Id);
-        var skillProducts = SkillManager.Instance.GetSkillProductsBySkillId(Template.Id);
         if (reagents.Count > 0 || skillProducts.Count > 0)
         {
             if (player != null)
@@ -1485,39 +1500,9 @@ public class Skill
             }
         }
 
-        // Check if any of the effects use Weight, and pick a random value
-        var weightedTotal = 0;
-        var selectedWeight = -1;
-        foreach (var (_, effect) in effectsToApply)
-            weightedTotal += effect.Weight;
-        if (weightedTotal > 0)
-            selectedWeight = Random.Shared.Next(weightedTotal);
-        var currentWeight = 0;
-        // (caster as Character)?.SendMessage($"Effect Random {selectedWeight+1}/{weightedTotal}");
-
         // Apply the effects that need to happen
         foreach (var (target, effect) in effectsToApply)
         {
-            // If this item uses Weight, handle the random selector
-            // For example NPC /useskill 13834 has multiple bubble chat effects that need to be picked from
-            // Probably used for some combat and loot skills as well
-            if (effect.Weight > 0)
-            {
-                // Check if we already have a result
-                if (selectedWeight == -1)
-                    continue;
-
-                // If selection is outside the current range, then skip this effect
-                currentWeight += effect.Weight;
-                if (selectedWeight >= currentWeight)
-                {
-                    continue;
-                }
-
-                // (caster as Character)?.SendMessage($"Selected Effect {effect.EffectId} ({currentWeight}) using {selectedWeight} / {weightedTotal} - Buff {effect.Template.BuffId}");
-                selectedWeight = -1;
-            }
-
             // Template can be null for some reason.
             if (effect.Template != null)
             {
@@ -1627,6 +1612,143 @@ public class Skill
                         amount, null);
             }
         }
+    }
+
+    /// <summary>
+    /// Handles the two paid farmhand consumables whose Butler state and exact source stack must
+    /// commit together. Returning true means the cast was wholly handled, including a rejected cast.
+    /// </summary>
+    internal bool TryHandleButlerConsumable(
+        Character player,
+        SkillCaster casterCaster,
+        IReadOnlyList<(BaseUnit target, SkillEffect effect)> effectsToApply,
+        IButlerChargeService service,
+        bool hasExternalItemRows)
+    {
+        var hasButlerEffect = effectsToApply.Any(entry =>
+            entry.effect.Template is SpecialEffect special &&
+            special.SpecialEffectTypeId is SpecialType.ButlerProductionCostCharge or SpecialType.ButlerAddExp);
+        if (!hasButlerEffect)
+            return false;
+
+        if (player?.Inventory?.Bag == null || casterCaster is not SkillItem castItem ||
+            effectsToApply.Count != 1 || hasExternalItemRows || castItem.ItemId == 0)
+        {
+            Cancelled = true;
+            return true;
+        }
+
+        var (target, effect) = effectsToApply[0];
+        if (!ReferenceEquals(target, player) || effect.Template is not SpecialEffect specialEffect ||
+            specialEffect.Value1 <= 0 || effect.ConsumeItemCount <= 0 || effect.ConsumeItemId != 0)
+        {
+            Cancelled = true;
+            return true;
+        }
+
+        var sourceItem = player.Inventory.Bag.GetItemByItemId(castItem.ItemId);
+        if (sourceItem == null || sourceItem.Id != castItem.ItemId || sourceItem.TemplateId == 0 ||
+            castItem.ItemTemplateId != sourceItem.TemplateId || sourceItem.Template?.UseSkillId != Template.Id ||
+            sourceItem.OwnerId != player.Id || !ReferenceEquals(sourceItem._holdingContainer, player.Inventory.Bag) ||
+            sourceItem.SlotType != SlotType.Inventory || sourceItem.Count < effect.ConsumeItemCount || service == null)
+        {
+            Cancelled = true;
+            return true;
+        }
+
+        var success = specialEffect.SpecialEffectTypeId switch
+        {
+            // Type 185 owns its paid consumable even though its generic consume_source_item flag is false.
+            SpecialType.ButlerProductionCostCharge => service.ChargePaidProductionCost(
+                player,
+                castItem.ItemId,
+                checked((uint)specialEffect.Value1),
+                effect.ConsumeItemCount).Success,
+            SpecialType.ButlerAddExp when effect.ConsumeSourceItem => service.AddExperience(
+                player,
+                castItem.ItemId,
+                specialEffect.Value1,
+                effect.ConsumeItemCount).Success,
+            _ => false
+        };
+
+        if (!success)
+            Cancelled = true;
+        return true;
+    }
+
+    /// <summary>
+    /// Keeps every unweighted effect and the one weighted alternative selected by <paramref name="roll"/>.
+    /// </summary>
+    internal static void RetainSelectedWeightedEffect(
+        List<(BaseUnit target, SkillEffect effect)> effects,
+        int roll)
+    {
+        var cumulativeWeight = 0;
+        var selectedIndex = -1;
+        for (var i = 0; i < effects.Count; i++)
+        {
+            var weight = effects[i].effect.Weight;
+            if (weight <= 0)
+                continue;
+
+            cumulativeWeight += weight;
+            if (roll < cumulativeWeight)
+            {
+                selectedIndex = i;
+                break;
+            }
+        }
+
+        for (var i = effects.Count - 1; i >= 0; i--)
+        {
+            if (effects[i].effect.Weight > 0 && i != selectedIndex)
+                effects.RemoveAt(i);
+        }
+    }
+
+    /// <summary>
+    /// Adds effect item costs only when the player owns the full aggregate amount that the
+    /// eventual inventory consumer can remove.
+    /// </summary>
+    internal bool TryQueueEffectItemConsumption(
+        IEnumerable<SkillEffect> effects,
+        Func<uint, int> getAvailableCount,
+        ICollection<(uint templateId, int amount)> destination)
+    {
+        var required = new Dictionary<uint, int>();
+        var sourceCosts = new List<(uint templateId, int amount)>();
+
+        foreach (var effect in effects)
+        {
+            if (effect.ConsumeItemId == 0 || effect.ConsumeItemCount <= 0)
+                continue;
+
+            if (effect.ConsumeSourceItem)
+            {
+                // Source-item handling has its own instance checks above; retain its existing cost path.
+                sourceCosts.Add((effect.ConsumeItemId, effect.ConsumeItemCount));
+                continue;
+            }
+
+            required.TryGetValue(effect.ConsumeItemId, out var amount);
+            required[effect.ConsumeItemId] = checked(amount + effect.ConsumeItemCount);
+        }
+
+        foreach (var (templateId, amount) in required)
+        {
+            if (getAvailableCount(templateId) >= amount)
+                continue;
+
+            Cancelled = true;
+            return false;
+        }
+
+        foreach (var cost in sourceCosts)
+            destination.Add(cost);
+        foreach (var cost in required)
+            destination.Add((cost.Key, cost.Value));
+        return true;
     }
 
     /// <summary>

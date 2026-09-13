@@ -1565,6 +1565,19 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                 }
             }
 
+            // doodad_func_bind_butlers
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT id FROM doodad_func_bind_butlers";
+                command.Prepare();
+                using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+                while (reader.Read())
+                {
+                    var func = new DoodadFuncBindButler { Id = reader.GetUInt32("id") };
+                    _funcTemplates[nameof(DoodadFuncBindButler)].Add(func.Id, func);
+                }
+            }
+
             // doodad_func_open_papers
             using (var command = connection.CreateCommand())
             {
@@ -2921,8 +2934,14 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
     {
         Logger.Warn($"{character.Name} is placing a doodad {id} at position {x} {y} {z}");
 
-        // NOTE: If you would ever want to use player housing outside of main_world, you'll need to modify this
-        var targetHouse = !ignoreHouses ? housingManager.Value.GetHouseAtLocation(x, y) : null;
+        var targetHouse = !ignoreHouses
+            ? housingManager.Value.GetHouseAtLocation(character.ParentWorld, x, y)
+            : null;
+        if (targetHouse != null && !targetHouse.AllowedToInteract(character))
+        {
+            character.SendErrorMessage(ErrorMessageType.InteractionPermissionDeny);
+            return null;
+        }
 
         // Create doodad
         var doodad = Instance.Create(character.ParentWorld, 0, id, character, true);

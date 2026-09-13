@@ -12,6 +12,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Chat;
+using AAEmu.Game.Models.Game.Butlers;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Features;
@@ -614,8 +615,7 @@ public partial class Character : Unit, ICharacter
         {
             if (_laborPower == value)
                 return;
-            _laborPower = value;
-            AccountManager.Instance.UpdateLabor(AccountId, value);
+            AccountManager.Instance.TrySetCharacterLabor(this, value);
         }
     }
 
@@ -631,8 +631,7 @@ public partial class Character : Unit, ICharacter
         {
             if (_localLaborPower == value)
                 return;
-            _localLaborPower = value;
-            AccountManager.Instance.UpdateLocalLabor(AccountId, value);
+            AccountManager.Instance.TrySetCharacterLocalLabor(this, value);
         }
     }
 
@@ -897,6 +896,7 @@ public partial class Character : Unit, ICharacter
     public CharacterBlocked Blocked { get; set; }
     public CharacterFavoriteCrafts FavoriteCrafts { get; set; }
     public CharacterMates Mates { get; set; }
+    public CharacterButler Butler { get; set; }
 
     public byte ExpandedExpert { get; set; }
     public CharacterActability Actability { get; set; }
@@ -2599,22 +2599,26 @@ public partial class Character : Unit, ICharacter
         //
         // Granting stays on the account pool: the online tick has its own path in AddLocalLaborPower,
         // which is the only thing that may raise the local pool, and it clamps to max_local_labor.
-        var accountDelta = change;
-        var localDelta = 0;
-        if (change < 0)
+        var (accountDelta, localDelta) = AccountManager.Instance.WithAccountLock(AccountId, () =>
         {
-            var cost = -(int)change;
-            var fromAccount = Math.Min(cost, Math.Max(0, (int)LaborPower));
-            var fromLocal = Math.Min(cost - fromAccount, Math.Max(0, LocalLaborPower));
+            var lockedAccountDelta = change;
+            var lockedLocalDelta = 0;
+            if (change < 0)
+            {
+                var cost = -(int)change;
+                var fromAccount = Math.Min(cost, Math.Max(0, (int)LaborPower));
+                var fromLocal = Math.Min(cost - fromAccount, Math.Max(0, LocalLaborPower));
 
-            accountDelta = (short)-fromAccount;
-            localDelta = -fromLocal;
+                lockedAccountDelta = (short)-fromAccount;
+                lockedLocalDelta = -fromLocal;
 
-            if (fromLocal > 0)
-                LocalLaborPower -= fromLocal;
-        }
+                if (fromLocal > 0)
+                    LocalLaborPower -= fromLocal;
+            }
 
-        LaborPower += accountDelta;
+            LaborPower += lockedAccountDelta;
+            return (lockedAccountDelta, lockedLocalDelta);
+        });
 
         // amount = account pool delta, localAmount = local pool delta. Both counters in the client's
         // labor manager are accumulators, so each one has to carry its own share of the spend.
@@ -2644,15 +2648,20 @@ public partial class Character : Unit, ICharacter
         if (amount <= 0)
             return 0;
 
-        var newAmount = (int)Math.Clamp(
-            (long)LocalLaborPower + amount,
-            0,
-            MaxLocalLaborPower);
-        var applied = newAmount - LocalLaborPower;
+        var applied = AccountManager.Instance.WithAccountLock(AccountId, () =>
+        {
+            var newAmount = (int)Math.Clamp(
+                (long)LocalLaborPower + amount,
+                0,
+                MaxLocalLaborPower);
+            var lockedApplied = newAmount - LocalLaborPower;
+            if (lockedApplied > 0)
+                LocalLaborPower = newAmount;
+            return lockedApplied;
+        });
         if (applied <= 0)
             return 0;
 
-        LocalLaborPower = newAmount;
         SendPacket(new SCCharacterLaborPowerChangedPacket(0, applied, 0, 0, 0, 0));
         return applied;
     }
@@ -3809,6 +3818,7 @@ public partial class Character : Unit, ICharacter
             Quests.CheckDailyResetAtLogin();
             Mates = new CharacterMates(this);
             Mates.Load(connection);
+            Butler = ButlerManager.Instance.GetOrCreate(Id);
 
             LoadActionSlots(connection);
         }
@@ -4036,6 +4046,7 @@ public partial class Character : Unit, ICharacter
             Skills?.Save(connection, transaction);
             Quests?.Save(connection, transaction);
             Mates?.Save(connection, transaction);
+            Butler?.Save(connection, transaction);
             
             result = true;
         }

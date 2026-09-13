@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -56,6 +57,7 @@ public sealed class MailTests
 
         var services = new ServiceCollection();
         services.AddSingleton(_mailManager);
+        services.AddSingleton<IMailManager>(_mailManager);
         services.AddSingleton(nameManager);
         services.AddSingleton<ISaveManager>(_saves);
         SingletonContainer.ServiceProvider = services.BuildServiceProvider();
@@ -226,6 +228,73 @@ public sealed class MailTests
         }
 
         await Assert.That(_saves.SaveCount).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task InventoryMutation_DeferredCallbackFlushDoesNotDeadlockWithGateWaiter()
+    {
+        var inventory = (Inventory)RuntimeHelpers.GetUninitializedObject(typeof(Inventory));
+        var syncRoot = inventory.MutationSyncRoot;
+        var nestedFlushStatus = WorldSaveStatus.Saved;
+        var saveHeldInventoryMonitor = true;
+        _saves.OnSave = () => saveHeldInventoryMonitor = Monitor.IsEntered(syncRoot);
+
+        using var mutationEntered = new ManualResetEventSlim();
+        using var waiterEnteredGate = new ManualResetEventSlim();
+        using var waiterEnteredInventory = new ManualResetEventSlim();
+        using var releaseWaiter = new ManualResetEventSlim();
+
+        var mutation = Task.Run(() =>
+        {
+            using (inventory.AcquireMutation())
+            {
+                mutationEntered.Set();
+                waiterEnteredGate.Wait();
+
+                // Models a container callback that requests an immediate snapshot. The callback's
+                // persistence scope is nested under AcquireMutation, so its flush must stay deferred.
+                using (_mailManager.DeferPersist())
+                {
+                    _mailManager.PersistNow();
+                    nestedFlushStatus = _mailManager.FlushRequestedNow();
+                }
+            }
+        });
+
+        var gateWaiter = Task.Run(() =>
+        {
+            mutationEntered.Wait();
+            PersistenceGate.EnterOperation();
+            try
+            {
+                waiterEnteredGate.Set();
+                lock (syncRoot)
+                {
+                    waiterEnteredInventory.Set();
+                    releaseWaiter.Wait();
+                }
+            }
+            finally
+            {
+                PersistenceGate.ExitOperation();
+            }
+        });
+
+        try
+        {
+            await Assert.That(waiterEnteredInventory.Wait(TimeSpan.FromSeconds(1))).IsTrue();
+            await Assert.That(mutation.Wait(100)).IsFalse();
+            await Assert.That(_saves.SaveCount).IsEqualTo(0);
+            await Assert.That(nestedFlushStatus).IsEqualTo(WorldSaveStatus.Busy);
+        }
+        finally
+        {
+            releaseWaiter.Set();
+        }
+
+        await Task.WhenAll(mutation, gateWaiter).WaitAsync(TimeSpan.FromSeconds(1));
+        await Assert.That(_saves.SaveCount).IsEqualTo(1);
+        await Assert.That(saveHeldInventoryMonitor).IsFalse();
     }
 
     [Test]

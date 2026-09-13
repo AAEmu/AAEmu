@@ -347,9 +347,32 @@ public class Doodad : BaseUnit
     public int PhaseRatio { get; private set; }
 
     /// <summary>
-    /// Used for ratio calculations on random triggers
+    /// Used to select one weighted ratio-respawn entry from a phase group.
     /// </summary>
     public int CumulativePhaseRatio { get; set; }
+
+    internal const int PhaseRatioScale = 10000;
+
+    internal Func<int> PhaseRatioRoller { get; set; } = () => Random.Shared.Next(PhaseRatioScale);
+
+    internal void BeginPhaseRatioSelection(int phaseRatio)
+    {
+        PhaseRatio = phaseRatio;
+        CumulativePhaseRatio = 0;
+    }
+
+    internal bool TrySelectPhaseRatio(int ratio)
+    {
+        PhaseRatio = PhaseRatioRoller();
+        return PhaseRatio < ratio;
+    }
+
+    internal bool TrySelectWeightedPhaseRatio(int ratio)
+    {
+        var lowerBound = CumulativePhaseRatio;
+        CumulativePhaseRatio += ratio;
+        return PhaseRatio >= lowerBound && PhaseRatio < CumulativePhaseRatio;
+    }
 
     /// <summary>
     /// Used to indicate the starting phase of the doodad should be overriden when loading player doodads
@@ -926,15 +949,13 @@ public class Doodad : BaseUnit
             return false; // no phase functions for FuncGroupId
         }
 
-        //CumulativePhaseRatio = 0; // не требуется
+        BeginPhaseRatioSelection(PhaseRatioRoller());
         var stop = false;
 
         // Perform the phase functions one after the other
         foreach (var phaseFunc in phaseFuncs)
         {
             if (phaseFunc == null) { continue; }
-
-            PhaseRatio = Random.Shared.Next(0, 10000); // проверяем шанс для каждой фазовой функции
 
             stop = phaseFunc.Use(caster, this);
             if (stop)
@@ -966,6 +987,12 @@ public class Doodad : BaseUnit
     /// <param name="nextPhase"></param>
     /// <returns>If TRUE, it did not pass the check for the quest (it must be aborted)</returns>
     public bool DoChangePhase(BaseUnit caster, int nextPhase)
+    {
+        lock (this)
+            return DoChangePhaseLocked(caster, nextPhase);
+    }
+
+    private bool DoChangePhaseLocked(BaseUnit caster, int nextPhase)
     {
         // здесь не надо удалять doodad
         //if (nextPhase == -1)

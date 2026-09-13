@@ -8,6 +8,8 @@ using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game.Butlers;
+using AAEmu.Game.Models.Game.Items.Loots;
 using AAEmu.Game.Services;
 using AAEmu.Game.Services.WebApi;
 using AAEmu.Game.Utils.DB;
@@ -189,6 +191,33 @@ public static class Program
 
                 services.AddSingleton<HeroManager>();
                 services.AddSingleton<IHeroManager>(sp => sp.GetRequiredService<HeroManager>());
+
+                services.AddSingleton<MySqlButlerRepository>();
+                services.AddSingleton<IButlerRepository>(sp => sp.GetRequiredService<MySqlButlerRepository>());
+                services.AddSingleton<ButlerUnbindService>();
+                services.AddSingleton<ButlerManager>();
+                services.AddSingleton<IButlerManager>(sp => sp.GetRequiredService<ButlerManager>());
+                services.AddSingleton<ButlerRenameService>();
+                services.AddSingleton<IButlerRenameService>(
+                    sp => sp.GetRequiredService<ButlerRenameService>());
+                services.AddSingleton<INeutralLootPackRoller, NeutralLootPackRoller>();
+                services.AddSingleton<ButlerHarvestRewardPolicy>();
+                services.AddSingleton<ButlerHarvestCompletionService>();
+                services.AddSingleton<ButlerFarmingAdmissionResolver>();
+                services.AddSingleton<IButlerGardenStorageResolver>(
+                    sp => sp.GetRequiredService<ButlerFarmingAdmissionResolver>());
+                services.AddSingleton<IButlerFarmingAdmissionResolver>(
+                    sp => sp.GetRequiredService<ButlerFarmingAdmissionResolver>());
+                services.AddSingleton<IButlerChargeContextResolver>(
+                    sp => sp.GetRequiredService<ButlerFarmingAdmissionResolver>());
+                services.AddSingleton<ButlerFarmingService>();
+                services.AddSingleton<ButlerChargeService>();
+                services.AddSingleton<IButlerChargeService>(
+                    sp => sp.GetRequiredService<ButlerChargeService>());
+                services.AddSingleton<ButlerQuotaRefreshService>();
+                services.AddSingleton<IButlerItemSwapPublisher, ButlerItemSwapPublisher>();
+                services.AddSingleton<IButlerItemStoragePersistence, ButlerItemStoragePersistence>();
+                services.AddSingleton<ButlerItemStorageService>();
 
                 services.AddSingleton<HousingManager>();
                 services.AddSingleton<IHousingManager>(sp => sp.GetRequiredService<HousingManager>());

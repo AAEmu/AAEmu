@@ -1762,6 +1762,220 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         return _allItems.GetValueOrDefault(itemId);
     }
 
+    public ItemPersistenceSnapshot CapturePersistenceSnapshot(Item item) => ItemPersistenceSnapshot.Capture(item);
+
+    /// <summary>
+    /// Persists only the supplied before-and-after item images on the caller's already-open
+    /// transaction. The caller must keep <see cref="PersistenceGate"/> and its inventory guard
+    /// held until commit, then apply the matching live inventory change and publish packets.
+    /// </summary>
+    public int PersistSnapshots(MySqlConnection connection, MySqlTransaction transaction,
+        IReadOnlyList<ItemPersistenceSnapshot> snapshots)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(transaction);
+        ArgumentNullException.ThrowIfNull(snapshots);
+        if (!PersistenceGate.IsOperationHeld)
+            throw new InvalidOperationException("Targeted item persistence requires PersistenceGate.EnterOperation().");
+
+        var ids = new HashSet<ulong>();
+        var containers = new Dictionary<ulong, ItemContainerPersistenceRow>();
+        // Validate the entire plan before touching a single database row. A rejected destination
+        // must never leave earlier source items durable while their live mutation is withheld.
+        foreach (var snapshot in snapshots)
+        {
+            ArgumentNullException.ThrowIfNull(snapshot);
+            if (!ids.Add(snapshot.Expected.Id))
+                throw new InvalidOperationException($"Item {snapshot.Expected.Id} appears more than once in a targeted persistence batch.");
+            EnsureExactLiveSnapshot(snapshot);
+            snapshot.ValidateForPersistence();
+            foreach (var container in snapshot.PersistentContainers())
+            {
+                var row = ItemContainerPersistenceRow.Capture(container);
+                if (containers.TryGetValue(row.ContainerId, out var existing) && existing != row)
+                    throw new InvalidOperationException($"Container {row.ContainerId} has conflicting targeted persistence metadata.");
+                containers.TryAdd(row.ContainerId, row);
+            }
+        }
+
+        using var command = connection.CreateCommand();
+        command.Connection = connection;
+        command.Transaction = transaction;
+        foreach (var container in containers.Values)
+            WriteContainerRow(command, container);
+
+        var written = 0;
+        foreach (var snapshot in snapshots)
+        {
+            LockItemRow(command, snapshot.Expected.Id);
+            if (snapshot.DeletesItem)
+                DeleteExpectedItemRow(command, snapshot.Expected.Id);
+            else
+                WriteItemRow(command, snapshot.Desired);
+            written++;
+        }
+
+        return written;
+    }
+
+    private void EnsureExactLiveSnapshot(ItemPersistenceSnapshot snapshot)
+    {
+        lock (_allItems)
+        {
+            if (!_allItems.TryGetValue(snapshot.Expected.Id, out var current) || !ReferenceEquals(current, snapshot.Item))
+                throw new InvalidOperationException($"Item {snapshot.Expected.Id} is no longer the captured global item.");
+        }
+        snapshot.ValidateForPersistence();
+    }
+
+    /// <summary>
+    /// Applies a non-delete targeted row after its database transaction committed. It updates
+    /// only live item/container bookkeeping; it never starts SQL or queues a later item delete.
+    /// </summary>
+    public void ApplyCommittedSnapshot(ItemPersistenceSnapshot snapshot)
+    {
+        ArgumentNullException.ThrowIfNull(snapshot);
+        if (!PersistenceGate.IsOperationHeld)
+            throw new InvalidOperationException("Applying a targeted item snapshot requires PersistenceGate.EnterOperation().");
+        if (snapshot.DeletesItem)
+            throw new InvalidOperationException("Use FinalizeCommittedRemoval for a committed item deletion.");
+        snapshot.ValidateForPersistence();
+
+        var item = snapshot.Item;
+        var source = snapshot.ExpectedContainer;
+        var destination = snapshot.DestinationContainer;
+        if (!ReferenceEquals(source, destination))
+        {
+            source?.Items.Remove(item);
+            source?.UpdateFreeSlotCount();
+            if (destination != null)
+            {
+                destination.Items.Add(item);
+                destination.UpdateFreeSlotCount();
+            }
+            item._holdingContainer = destination;
+        }
+
+        item.OwnerId = snapshot.Desired.OwnerId;
+        item.SlotType = snapshot.Desired.SlotType;
+        item.Slot = snapshot.Desired.Slot;
+        item.Count = snapshot.Desired.Count;
+    }
+
+    /// <summary>
+    /// Drops one already-deleted item from live indexes after the caller's transaction commits.
+    /// This intentionally does not queue another database deletion.
+    /// </summary>
+    public void FinalizeCommittedRemoval(Item item)
+    {
+        ArgumentNullException.ThrowIfNull(item);
+        if (!PersistenceGate.IsOperationHeld)
+            throw new InvalidOperationException("Finalizing a targeted item deletion requires PersistenceGate.EnterOperation().");
+        lock (_allItems)
+        {
+            if (!_allItems.TryGetValue(item.Id, out var current) || !ReferenceEquals(current, item))
+                throw new InvalidOperationException($"Item {item.Id} is no longer the captured live item.");
+            _allItems.Remove(item.Id);
+        }
+
+        var container = item._holdingContainer;
+        if (container != null)
+        {
+            container.Items.Remove(item);
+            container.UpdateFreeSlotCount();
+            item._holdingContainer = null;
+        }
+
+        lock (_removedItems)
+            _removedItems.Remove(item.Id);
+        itemIdManager.ReleaseId(checked((uint)item.Id));
+    }
+
+    private const string ReplaceItemSql = "REPLACE INTO items (" +
+        "`id`,`type`,`template_id`,`container_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`," +
+        "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`,`flags`,`ucc`," +
+        "`expire_time`,`expire_online_minutes`,`charge_time`,`charge_count`" +
+        ") VALUES ( " +
+        "@id, @type, @template_id, @container_id, @slot_type, @slot, @count, @details, @lifespan_mins, @made_unit_id, " +
+        "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@flags,@ucc," +
+        "@expire_time,@expire_online_minutes,@charge_time,@charge_count" +
+        ")";
+
+    private const string ReplaceContainerSql = "REPLACE INTO item_containers (" +
+        "`container_id`,`container_type`,`slot_type`,`container_size`,`owner_id`,`mate_id`,`parent_item_id`" +
+        ") VALUES (" +
+        "@container_id,@container_type,@container_slot_type,@container_size,@container_owner_id,@mate_id,@parent_item_id" +
+        ")";
+
+    private static int WriteContainerRow(MySqlCommand command, ItemContainerPersistenceRow row)
+    {
+        command.CommandText = ReplaceContainerSql;
+        command.Parameters.Clear();
+        command.Parameters.AddWithValue("@container_id", row.ContainerId);
+        command.Parameters.AddWithValue("@container_type", row.ContainerTypeName);
+        command.Parameters.AddWithValue("@container_slot_type", (int)row.SlotType);
+        command.Parameters.AddWithValue("@container_size", row.ContainerSize);
+        command.Parameters.AddWithValue("@container_owner_id", row.OwnerId);
+        command.Parameters.AddWithValue("@mate_id", row.MateId);
+        command.Parameters.AddWithValue("@parent_item_id", row.ParentItemId);
+        var written = command.ExecuteNonQuery();
+        if (written < 1)
+            throw new InvalidOperationException($"Item container {row.ContainerId} was not written");
+        return written;
+    }
+
+    private static void WriteItemRow(MySqlCommand command, ItemPersistenceRow row)
+    {
+        command.CommandText = ReplaceItemSql;
+        command.Parameters.Clear();
+        command.Parameters.AddWithValue("@id", row.Id);
+        command.Parameters.AddWithValue("@type", row.Type);
+        command.Parameters.AddWithValue("@template_id", row.TemplateId);
+        command.Parameters.AddWithValue("@container_id", row.ContainerId);
+        command.Parameters.AddWithValue("@slot_type", (int)row.SlotType);
+        command.Parameters.AddWithValue("@slot", row.Slot);
+        command.Parameters.AddWithValue("@count", row.Count);
+        command.Parameters.AddWithValue("@details", row.Details.ToArray());
+        command.Parameters.AddWithValue("@lifespan_mins", row.LifespanMins);
+        command.Parameters.AddWithValue("@made_unit_id", row.MadeUnitId);
+        command.Parameters.AddWithValue("@unsecure_time", row.UnsecureTime);
+        command.Parameters.AddWithValue("@unpack_time", row.UnpackTime);
+        command.Parameters.AddWithValue("@created_at", row.CreatedAt);
+        command.Parameters.AddWithValue("@owner", row.OwnerId);
+        command.Parameters.AddWithValue("@grade", row.Grade);
+        command.Parameters.AddWithValue("@flags", (byte)row.Flags);
+        command.Parameters.AddWithValue("@ucc", row.UccId);
+        command.Parameters.AddWithValue("@expire_time", row.ExpirationTime);
+        command.Parameters.AddWithValue("@expire_online_minutes", row.ExpirationOnlineMinutes);
+        command.Parameters.AddWithValue("@charge_time", row.ChargeStartTime);
+        command.Parameters.AddWithValue("@charge_count", row.ChargeCount);
+        if (command.ExecuteNonQuery() < 1)
+            throw new InvalidOperationException($"Item {row.Id} ({row.TemplateId}) was not written");
+    }
+
+    /// <summary>
+    /// Serializes against a prior item row without treating it as the current inventory state.
+    /// The periodic World save can legitimately lag a dirty, canonical live item.
+    /// </summary>
+    private static void LockItemRow(MySqlCommand command, ulong itemId)
+    {
+        command.CommandText = "SELECT `id` FROM items WHERE `id`=@id FOR UPDATE";
+        command.Parameters.Clear();
+        command.Parameters.AddWithValue("@id", itemId);
+        _ = command.ExecuteScalar();
+    }
+
+    private static void DeleteExpectedItemRow(MySqlCommand command, ulong itemId)
+    {
+        command.CommandText = "DELETE FROM items WHERE `id`=@id";
+        command.Parameters.Clear();
+        command.Parameters.AddWithValue("@id", itemId);
+        // A newly created item can be consumed before its first World save. The absent row is
+        // already the intended persisted state, so a zero affected-row count is valid here.
+        if (command.ExecuteNonQuery() > 1)
+            throw new InvalidOperationException($"Item {itemId} deletion affected more than one row.");
+    }
+
     public (int, int, int) Save(MySqlConnection connection, MySqlTransaction transaction)
     {
         var deleteCount = 0;
@@ -1821,25 +2035,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                     if (!c.TryCaptureDirtyStamp(out var stamp))
                         continue;
 
-                    command.CommandText = "REPLACE INTO item_containers (" +
-                                          "`container_id`,`container_type`,`slot_type`,`container_size`,`owner_id`,`mate_id`,`parent_item_id`" +
-                                          ") VALUES ( " +
-                                          "@container_id, @container_type, @slot_type, @container_size, @owner_id, @mate_id, @parent_item_id" +
-                                          ")";
-
-                    command.Parameters.Clear();
-                    command.Parameters.AddWithValue("@container_id", c.ContainerId);
-                    command.Parameters.AddWithValue("@container_type", c.ContainerTypeName());
-                    command.Parameters.AddWithValue("@slot_type", (int)c.ContainerType);
-                    command.Parameters.AddWithValue("@container_size", c.ContainerSize);
-                    command.Parameters.AddWithValue("@owner_id", c.OwnerId);
-                    command.Parameters.AddWithValue("@mate_id", c.MateId);
-                    command.Parameters.AddWithValue("@parent_item_id", c is ItemBagContainer itemBagContainer
-                        ? itemBagContainer.ParentItemId
-                        : 0);
-                    var res = command.ExecuteNonQuery();
-                    if (res < 1)
-                        throw new InvalidOperationException($"Item container {c.ContainerId} was not written");
+                    var res = WriteContainerRow(command, ItemContainerPersistenceRow.Capture(c));
 
                     containerUpdateCount += res;
                     t_writtenContainers ??= [];
@@ -1894,48 +2090,11 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                     if (!item.TryCaptureDirtyStamp(out var stamp))
                         continue;
 
-                    var details = new Commons.Network.PacketStream();
-                    item.WriteDetails(details);
-
-                    command.CommandText = "REPLACE INTO items (" +
-                        "`id`,`type`,`template_id`,`container_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`," +
-                        "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`,`flags`,`ucc`," +
-                        "`expire_time`,`expire_online_minutes`,`charge_time`,`charge_count`" +
-                        ") VALUES ( " +
-                        "@id, @type, @template_id, @container_id, @slot_type, @slot, @count, @details, @lifespan_mins, @made_unit_id, " +
-                        "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@flags,@ucc," +
-                        "@expire_time,@expire_online_minutes,@charge_time,@charge_count" +
-                        ")";
-
-                    command.Parameters.AddWithValue("@id", item.Id);
-                    command.Parameters.AddWithValue("@type", item.GetType().ToString());
-                    command.Parameters.AddWithValue("@template_id", item.TemplateId);
-                    command.Parameters.AddWithValue("@container_id", item._holdingContainer?.ContainerId ?? 0);
-                    command.Parameters.AddWithValue("@slot_type", (int)item.SlotType);
-                    command.Parameters.AddWithValue("@slot", item.Slot);
-                    command.Parameters.AddWithValue("@count", item.Count);
-                    command.Parameters.AddWithValue("@details", details.GetBytes());
-                    command.Parameters.AddWithValue("@lifespan_mins", item.LifespanMins);
-                    command.Parameters.AddWithValue("@made_unit_id", item.MadeUnitId);
-                    command.Parameters.AddWithValue("@unsecure_time", item.UnsecureTime);
-                    command.Parameters.AddWithValue("@unpack_time", item.UnpackTime);
-                    command.Parameters.AddWithValue("@created_at", item.CreateTime);
-                    command.Parameters.AddWithValue("@owner", item.OwnerId);
-                    command.Parameters.AddWithValue("@grade", item.Grade);
-                    command.Parameters.AddWithValue("@flags", (byte)item.ItemFlags);
-                    command.Parameters.AddWithValue("@ucc", item.UccId);
-                    command.Parameters.AddWithValue("@expire_time", item.ExpirationTime);
-                    command.Parameters.AddWithValue("@expire_online_minutes", item.ExpirationOnlineMinutesLeft);
-                    command.Parameters.AddWithValue("@charge_time", item.ChargeStartTime);
-                    command.Parameters.AddWithValue("@charge_count", item.ChargeCount);
-
-                    if (command.ExecuteNonQuery() < 1)
-                        throw new InvalidOperationException($"Item {item.Id} ({item.TemplateId}) was not written");
+                    WriteItemRow(command, ItemPersistenceSnapshot.Capture(item).Desired);
 
                     t_writtenItems ??= [];
                     t_writtenItems.Add((item, stamp));
                     updateCount++;
-                    command.Parameters.Clear();
                 }
             }
         }
@@ -1992,52 +2151,13 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         using var command = connection.CreateCommand();
         command.Connection = connection;
         command.Transaction = transaction;
-        command.CommandText = "REPLACE INTO items (" +
-            "`id`,`type`,`template_id`,`container_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`," +
-            "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`,`flags`,`ucc`," +
-            "`expire_time`,`expire_online_minutes`,`charge_time`,`charge_count`" +
-            ") VALUES ( " +
-            "@id, @type, @template_id, @container_id, @slot_type, @slot, @count, @details, @lifespan_mins, @made_unit_id, " +
-            "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@flags,@ucc," +
-            "@expire_time,@expire_online_minutes,@charge_time,@charge_count" +
-            ")";
 
         foreach (var item in items)
         {
             if (!MailDeliveryRules.CanPersistAttachment(item))
                 throw new InvalidOperationException($"Mail attachment {item?.Id} is not mail-owned");
 
-            var stamp = item.DirtyStamp;
-            var details = new Commons.Network.PacketStream();
-            item.WriteDetails(details);
-
-            command.Parameters.Clear();
-            command.Parameters.AddWithValue("@id", item.Id);
-            command.Parameters.AddWithValue("@type", item.GetType().ToString());
-            command.Parameters.AddWithValue("@template_id", item.TemplateId);
-            command.Parameters.AddWithValue("@container_id", item._holdingContainer?.ContainerId ?? 0);
-            command.Parameters.AddWithValue("@slot_type", (int)item.SlotType);
-            command.Parameters.AddWithValue("@slot", item.Slot);
-            command.Parameters.AddWithValue("@count", item.Count);
-            command.Parameters.AddWithValue("@details", details.GetBytes());
-            command.Parameters.AddWithValue("@lifespan_mins", item.LifespanMins);
-            command.Parameters.AddWithValue("@made_unit_id", item.MadeUnitId);
-            command.Parameters.AddWithValue("@unsecure_time", item.UnsecureTime);
-            command.Parameters.AddWithValue("@unpack_time", item.UnpackTime);
-            command.Parameters.AddWithValue("@created_at", item.CreateTime);
-            command.Parameters.AddWithValue("@owner", item.OwnerId);
-            command.Parameters.AddWithValue("@grade", item.Grade);
-            command.Parameters.AddWithValue("@flags", (byte)item.ItemFlags);
-            command.Parameters.AddWithValue("@ucc", item.UccId);
-            command.Parameters.AddWithValue("@expire_time", item.ExpirationTime);
-            command.Parameters.AddWithValue("@expire_online_minutes", item.ExpirationOnlineMinutesLeft);
-            command.Parameters.AddWithValue("@charge_time", item.ChargeStartTime);
-            command.Parameters.AddWithValue("@charge_count", item.ChargeCount);
-            command.Prepare();
-            if (command.ExecuteNonQuery() < 1)
-                throw new InvalidOperationException($"Mail attachment {item.Id} did not write");
-
-            item.TryClearDirty(stamp);
+            WriteItemRow(command, ItemPersistenceSnapshot.Capture(item).Desired);
             written++;
         }
 
