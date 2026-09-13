@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -73,8 +74,10 @@ public class BondDoodad : PacketMarshaler
     /// <summary>
     /// Clears seat occupancy, transform parenting, SCUnbond, zone unbond, and remove_on_unbond buffs.
     /// No-op when not bonded. When <paramref name="expectedDoodadObjId"/> is set, requires a match.
+    /// Timeout-on-unbond is only for lift rides; pass <paramref name="timeoutLiftRide"/> false on a
+    /// full recall so a lift seat does not ride and then teleport.
     /// </summary>
-    public static bool TryRelease(Character character, uint? expectedDoodadObjId = null)
+    public static bool TryRelease(Character character, uint? expectedDoodadObjId = null, bool timeoutLiftRide = true)
     {
         if (character?.Bonding == null)
             return false;
@@ -96,12 +99,11 @@ public class BondDoodad : PacketMarshaler
         character.BroadcastPacket(new SCUnbondDoodadPacket(character.ObjId, character.Id, doodadObjId), true);
         WorldIntegration.RelayBondDoodadToZone?.Invoke(character.ObjId, bonding, false);
 
-        // A seat can be a ride: the seat buff's Timeout trigger is what carries the rider (skills.id
-        // 40228 '층간 이동' applies it; its trigger casts the ride skill, which moves the rider a floor
-        // up), and leaving the seat is that moment — the rider never waits out the buff. Time out the
-        // buffs this seat skill applied so the trigger runs; other buff removals keep the natural-expiry
-        // rule, so this is scoped to the seat's own skill.
-        character.Buffs.TimeoutBuffsFromSkill(bonding.SourceSkillId);
+        // Lift seats fire their Timeout trigger on stand-up (that trigger is the ride). Beds also
+        // have a Timeout trigger, but it applies sleep — standing up must not start that. A full
+        // recall passes timeoutLiftRide=false so a lift seat does not ride and then teleport.
+        if (timeoutLiftRide && SeatRideRules.ShouldTimeoutOnUnbond(bonding.SourceSkillId))
+            character.Buffs.TimeoutBuffsFromSkill(bonding.SourceSkillId);
         character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unbond);
         return true;
     }

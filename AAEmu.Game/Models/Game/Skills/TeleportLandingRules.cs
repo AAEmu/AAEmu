@@ -15,4 +15,13 @@ public static class TeleportLandingRules
     /// </summary>
     public static bool CanLandInZone(bool zoneAuthority, Func<uint, bool> isZoneLoaded, uint destinationZoneId)
         => !zoneAuthority || isZoneLoaded == null || isZoneLoaded(destinationZoneId);
+
+    /// <summary>
+    /// Same-zone landings update Game and the client, but the zone still simulates the old
+    /// position unless it is told the destination (the Blink path). Cross-instance uses
+    /// SCLoadInstance; a zone change FinalizeTransform hands the character off — never blink
+    /// the old zone after that.
+    /// </summary>
+    public static bool RelaysSameZoneBlink(bool stayInZone, bool zoneAuthority)
+        => stayInZone && zoneAuthority;
 }

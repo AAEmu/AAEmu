@@ -4,7 +4,6 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
@@ -67,7 +66,7 @@ public class MoveToLocationEffect : EffectTemplate
 
         var landing = destination.Transform;
         var position = landing.World.Position;
-        var yaw = landing.World.Rotation.Z.DegToRad();
+        var yaw = landing.World.Rotation.Z;
         Logger.Info("MoveToLocationEffect: recalling {0} to house {1} ({2:0.0}, {3:0.0}, {4:0.0})",
             character.Name, destination.Id, position.X, position.Y, position.Z);
 

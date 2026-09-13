@@ -37,4 +37,18 @@ public class TeleportLandingRulesTests
         await Assert.That(allowed).IsTrue();
         await Assert.That(asked).IsEqualTo(288u);
     }
+
+    [Test]
+    public async Task SameZoneWithAuthority_RelaysTheBlink()
+    {
+        await Assert.That(TeleportLandingRules.RelaysSameZoneBlink(stayInZone: true, zoneAuthority: true)).IsTrue();
+    }
+
+    [Test]
+    public async Task CrossZoneOrNoAuthority_DoesNotBlinkTheOldZone()
+    {
+        await Assert.That(TeleportLandingRules.RelaysSameZoneBlink(stayInZone: false, zoneAuthority: true)).IsFalse();
+        await Assert.That(TeleportLandingRules.RelaysSameZoneBlink(stayInZone: true, zoneAuthority: false)).IsFalse();
+        await Assert.That(TeleportLandingRules.RelaysSameZoneBlink(stayInZone: false, zoneAuthority: false)).IsFalse();
+    }
 }

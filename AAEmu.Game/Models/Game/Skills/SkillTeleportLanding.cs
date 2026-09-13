@@ -1,7 +1,10 @@
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Game.World.Transform;
+
+using WorldIntegration = AAEmu.Game.WorldIntegration;
 
 namespace AAEmu.Game.Models.Game.Skills;
 
@@ -26,6 +29,13 @@ public static class SkillTeleportLanding
         TeleportReason reason,
         bool stayInZone = false)
     {
+        // A rider still parented to a ship or seat would keep following that parent after the
+        // landing. Stand up first (no lift-ride Timeout — a recall must not fire the floor mover)
+        // and drop mates / slaves / hang before the destination is written.
+        BondDoodad.TryRelease(character, timeoutLiftRide: false);
+        if (character.ParentWorld != null)
+            character.ForceDismount();
+
         if (!stayInZone && ReturnTeleportRules.NeedsInstanceLoad(character.Transform.InstanceId, instanceId))
         {
             character.DisabledSetPosition = true;
@@ -51,5 +61,10 @@ public static class SkillTeleportLanding
         }
 
         character.SendPacket(new SCTeleportUnitPacket(reason, 0, x, y, z, yawRad));
+        if (TeleportLandingRules.RelaysSameZoneBlink(stayInZone, WorldIntegration.ZoneAuthority))
+        {
+            WorldIntegration.RelayBlinkToZone?.Invoke(
+                character.ObjId, character.ObjId, true, x, y, z);
+        }
     }
 }
