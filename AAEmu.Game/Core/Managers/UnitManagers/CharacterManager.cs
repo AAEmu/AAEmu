@@ -802,7 +802,7 @@ public class CharacterManager(
         if (character.DeleteTime <= DateTime.MinValue || character.DeleteTime > DateTime.UtcNow)
         {
             if (character.DeleteRequestTime > DateTime.MinValue)
-                Logger.Warn("CheckForDeletedCharactersDeletion - Delete request for Account:{0} Id:{1} Name:{2}, but character is no longer marked for deletion (possibly cancelled delete)", character.AccountId, character.Id, character.Name);
+                Logger.Warn("CheckForDeletedCharactersDeletion - Delete request for character Id:{0}, but character is no longer marked for deletion (possibly cancelled delete)", character.Id);
             return false;
         }
 
@@ -859,7 +859,7 @@ public class CharacterManager(
                 return false;
             }
 
-                Logger.Info("CheckForDeletedCharactersDeletion - Deleting Account:{0} Id:{1} Name:{2}", character.AccountId, character.Id, character.Name);
+                Logger.Info("CheckForDeletedCharactersDeletion - Deleting character Id:{0}", character.Id);
                 using var command = dbConnection.CreateCommand();
                 var originalName = character.Name;
                 var deleteRequestTime = character.DeleteRequestTime;
