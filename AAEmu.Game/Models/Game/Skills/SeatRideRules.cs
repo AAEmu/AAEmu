@@ -1,6 +1,7 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Templates;
 
 namespace AAEmu.Game.Models.Game.Skills;
@@ -11,14 +12,15 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// skill (a meditation cushion) or applies a buff (a bed) keeps its natural timing instead.
 /// </summary>
 /// <remarks>
-/// The ride is a chain, not a single effect: the lift seat's timeout casts a skill, that skill applies a
-/// buff whose own trigger applies a second buff, and that buff's Started trigger performs the Blink. The
-/// walk below follows skill and buff hops until it finds the move or runs out of depth.
+/// The ride is a chain, not a single effect. One lift walks timeout -> skill -> buff -> buff -> Started ->
+/// Blink; the other walks timeout -> skill -> buff -> buff -> a plot skill whose plot start event carries
+/// the Blink (<c>skills.plot_id</c> -> <c>plot_effects</c>). The walk follows skill, buff and plot hops
+/// until it finds the move or runs out of depth.
 /// </remarks>
 public static class SeatRideRules
 {
-    /// <summary>How many skill/buff hops the ride search follows before giving up.</summary>
-    public const int MaxRideDepth = 5;
+    /// <summary>How many skill/buff/plot hops the ride search follows before giving up.</summary>
+    public const int MaxRideDepth = 8;
 
     public static bool ShouldTimeoutOnUnbond(IEnumerable<BuffTriggerTemplate> triggers)
     {
@@ -41,7 +43,8 @@ public static class SeatRideRules
     public static bool ShouldTimeoutOnUnbond(
         IEnumerable<BuffTriggerTemplate> triggers,
         Func<uint, SkillTemplate> skillResolver,
-        Func<uint, IEnumerable<BuffTriggerTemplate>> triggersForBuff)
+        Func<uint, IEnumerable<BuffTriggerTemplate>> triggersForBuff,
+        Func<uint, IEnumerable<EffectTemplate>> plotEffectsResolver = null)
     {
         if (triggers == null)
             return false;
@@ -49,7 +52,7 @@ public static class SeatRideRules
         foreach (var trigger in triggers)
         {
             if (trigger is { Kind: BuffEventTriggerKind.Timeout, Effect: SpecialEffect effect } &&
-                PerformsRide(effect, skillResolver, triggersForBuff, MaxRideDepth))
+                PerformsRide(effect, skillResolver, triggersForBuff, plotEffectsResolver, MaxRideDepth))
                 return true;
         }
 
@@ -57,26 +60,19 @@ public static class SeatRideRules
     }
 
     /// <summary>
-    /// Ride test for a whole skill: the move must be reachable from the buffs the skill applies.
+    /// Ride test for a whole skill: the move must be reachable from the buffs the skill applies or from
+    /// the plot it runs.
     /// </summary>
     public static bool ShouldTimeoutOnUnbond(
         SkillTemplate skill,
         Func<uint, SkillTemplate> skillResolver,
-        Func<uint, IEnumerable<BuffTriggerTemplate>> triggersForBuff)
+        Func<uint, IEnumerable<BuffTriggerTemplate>> triggersForBuff,
+        Func<uint, IEnumerable<EffectTemplate>> plotEffectsResolver = null)
     {
-        if (skill?.Effects == null)
+        if (skill == null)
             return false;
 
-        foreach (var effect in skill.Effects)
-        {
-            if (effect?.Template is not BuffEffect buffEffect || buffEffect.Buff == null)
-                continue;
-
-            if (FollowsRide(buffEffect.Buff.Id, skillResolver, triggersForBuff, MaxRideDepth))
-                return true;
-        }
-
-        return false;
+        return FollowsSkill(skill, skillResolver, triggersForBuff, plotEffectsResolver, MaxRideDepth);
     }
 
     /// <summary>
@@ -88,26 +84,48 @@ public static class SeatRideRules
             return false;
 
         return ShouldTimeoutOnUnbond(sourceSkillId, SkillManager.Instance.GetSkillTemplate,
-            SkillManager.Instance.GetBuffTriggerTemplates);
+            SkillManager.Instance.GetBuffTriggerTemplates, PlotEffects);
     }
 
     /// <summary>The same walk with the caller supplying the skill and trigger lookups.</summary>
     public static bool ShouldTimeoutOnUnbond(
         uint sourceSkillId,
         Func<uint, SkillTemplate> skillResolver,
-        Func<uint, IEnumerable<BuffTriggerTemplate>> triggersForBuff)
+        Func<uint, IEnumerable<BuffTriggerTemplate>> triggersForBuff,
+        Func<uint, IEnumerable<EffectTemplate>> plotEffectsResolver = null)
     {
         if (sourceSkillId == 0 || skillResolver == null)
             return false;
 
         var skill = skillResolver(sourceSkillId);
-        return skill != null && ShouldTimeoutOnUnbond(skill, skillResolver, triggersForBuff);
+        return skill != null && ShouldTimeoutOnUnbond(skill, skillResolver, triggersForBuff, plotEffectsResolver);
+    }
+
+    /// <summary>
+    /// The effect templates a plot runs when it starts: the start event's plot_effects, resolved against
+    /// the same effect registry every other template comes from.
+    /// </summary>
+    private static IEnumerable<EffectTemplate> PlotEffects(uint plotId)
+    {
+        var plot = PlotManager.Instance?.GetPlot(plotId);
+        var effects = plot?.EventTemplate?.Effects;
+        if (effects == null || effects.Count == 0)
+            return [];
+
+        var manager = SkillManager.Instance;
+        if (manager == null)
+            return [];
+
+        return effects
+            .Select(effect => manager.GetEffectTemplate(effect.ActualId, effect.ActualType))
+            .Where(template => template != null);
     }
 
     private static bool PerformsRide(
         SpecialEffect effect,
         Func<uint, SkillTemplate> skillResolver,
         Func<uint, IEnumerable<BuffTriggerTemplate>> triggersForBuff,
+        Func<uint, IEnumerable<EffectTemplate>> plotEffectsResolver,
         int depth)
     {
         if (effect == null || depth <= 0)
@@ -120,25 +138,42 @@ public static class SeatRideRules
             return false;
 
         var skill = skillResolver((uint)effect.Value1);
-        if (skill?.Effects == null)
+        return skill != null && FollowsSkill(skill, skillResolver, triggersForBuff, plotEffectsResolver, depth - 1);
+    }
+
+    /// <summary>
+    /// Everything a skill can ride through: the buffs it applies and the plot it runs.
+    /// </summary>
+    private static bool FollowsSkill(
+        SkillTemplate skill,
+        Func<uint, SkillTemplate> skillResolver,
+        Func<uint, IEnumerable<BuffTriggerTemplate>> triggersForBuff,
+        Func<uint, IEnumerable<EffectTemplate>> plotEffectsResolver,
+        int depth)
+    {
+        if (skill == null || depth <= 0)
             return false;
 
-        foreach (var skillEffect in skill.Effects)
+        foreach (var effect in skill.Effects ?? [])
         {
-            if (skillEffect?.Template is not BuffEffect buffEffect || buffEffect.Buff == null)
+            if (effect?.Template is not BuffEffect buffEffect || buffEffect.Buff == null)
                 continue;
 
-            if (FollowsRide(buffEffect.Buff.Id, skillResolver, triggersForBuff, depth - 1))
+            if (FollowsRide(buffEffect.Buff.Id, skillResolver, triggersForBuff, plotEffectsResolver, depth - 1))
                 return true;
         }
 
-        return false;
+        // The floor mover's second shape rides through a plot: skills.plot_id -> the plot's start event
+        // carries the Blink, and there are no skill effects to follow.
+        return skill.Plot != null &&
+               FollowsPlot(skill.Plot.Id, skillResolver, triggersForBuff, plotEffectsResolver, depth - 1);
     }
 
     private static bool FollowsRide(
         uint buffId,
         Func<uint, SkillTemplate> skillResolver,
         Func<uint, IEnumerable<BuffTriggerTemplate>> triggersForBuff,
+        Func<uint, IEnumerable<EffectTemplate>> plotEffectsResolver,
         int depth)
     {
         if (depth <= 0 || triggersForBuff == null)
@@ -152,11 +187,43 @@ public static class SeatRideRules
         {
             switch (trigger?.Effect)
             {
-                case SpecialEffect effect when PerformsRide(effect, skillResolver, triggersForBuff, depth - 1):
+                case SpecialEffect effect when PerformsRide(effect, skillResolver, triggersForBuff,
+                    plotEffectsResolver, depth - 1):
                     return true;
                 case BuffEffect buffEffect when buffEffect.Buff != null &&
                                                 FollowsRide(buffEffect.Buff.Id, skillResolver, triggersForBuff,
-                                                    depth - 1):
+                                                    plotEffectsResolver, depth - 1):
+                    return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool FollowsPlot(
+        uint plotId,
+        Func<uint, SkillTemplate> skillResolver,
+        Func<uint, IEnumerable<BuffTriggerTemplate>> triggersForBuff,
+        Func<uint, IEnumerable<EffectTemplate>> plotEffectsResolver,
+        int depth)
+    {
+        if (depth <= 0 || plotEffectsResolver == null)
+            return false;
+
+        var effects = plotEffectsResolver(plotId);
+        if (effects == null)
+            return false;
+
+        foreach (var effect in effects)
+        {
+            switch (effect)
+            {
+                case SpecialEffect special when PerformsRide(special, skillResolver, triggersForBuff,
+                    plotEffectsResolver, depth - 1):
+                    return true;
+                case BuffEffect buffEffect when buffEffect.Buff != null &&
+                                                FollowsRide(buffEffect.Buff.Id, skillResolver, triggersForBuff,
+                                                    plotEffectsResolver, depth - 1):
                     return true;
             }
         }

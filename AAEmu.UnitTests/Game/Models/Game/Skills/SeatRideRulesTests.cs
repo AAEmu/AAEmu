@@ -1,6 +1,7 @@
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
+using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Templates;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Skills;
@@ -88,6 +89,29 @@ public class SeatRideRulesTests
         await Assert.That(SeatRideRules.ShouldTimeoutOnUnbond(Array.Empty<BuffTriggerTemplate>())).IsFalse();
         await Assert.That(SeatRideRules.ShouldTimeoutOnUnbond((IEnumerable<BuffTriggerTemplate>)null)).IsFalse();
         await Assert.That(SeatRideRules.ShouldTimeoutOnUnbond(0)).IsFalse();
+    }
+
+    [Test]
+    public async Task LiftRideThroughAPlot_IsFoundInThePlotStartEvent()
+    {
+        // seat skill -> buff 31410 (timeout casts 49288) -> 49288 runs plot 6567, whose start event blinks
+        var resolver = Resolver(
+            (49287, SkillOf(Applies(31410))),
+            (49288, new SkillTemplate { Effects = [], Plot = new Plot { Id = 6567 } }));
+        var triggers = TriggerResolver((31410, [Timeout(SkillUse(49288))]));
+        Func<uint, IEnumerable<EffectTemplate>> plotEffects = id => id == 6567 ? [Blink()] : [];
+
+        await Assert.That(SeatRideRules.ShouldTimeoutOnUnbond(49287, resolver, triggers, plotEffects)).IsTrue();
+    }
+
+    [Test]
+    public async Task PlotWithoutAMove_IsNotARide()
+    {
+        var resolver = Resolver((1, new SkillTemplate { Effects = [], Plot = new Plot { Id = 2 } }));
+        var triggers = TriggerResolver((900001, [Timeout(Applies(1))]));
+        Func<uint, IEnumerable<EffectTemplate>> plotEffects = _ => [Applies(900002)];
+
+        await Assert.That(SeatRideRules.ShouldTimeoutOnUnbond(1, resolver, triggers, plotEffects)).IsFalse();
     }
 
     [Test]
