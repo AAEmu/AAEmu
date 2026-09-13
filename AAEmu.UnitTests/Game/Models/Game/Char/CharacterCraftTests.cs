@@ -130,6 +130,11 @@ public class CharacterCraftTests
     [Test]
     [Arguments((byte)0, true)]
     [Arguments((byte)1, false)]
+    [Arguments((byte)2, false)]
+    [Arguments((byte)3, false)]
+    [Arguments((byte)4, false)]
+    [Arguments((byte)5, false)]
+    [Arguments(byte.MaxValue, false)]
     public async Task Craft_MultiFunctionStationUsesRecipeFunctionPermission(byte permission, bool expected)
     {
         var context = CreateContext(multiplePackFunctions: true, permission: permission);

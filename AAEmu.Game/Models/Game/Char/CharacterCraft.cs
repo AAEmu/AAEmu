@@ -572,10 +572,6 @@ public class CharacterCraft
         switch (permission)
         {
             case DoodadFuncPermission.Public:
-            case DoodadFuncPermission.Friend:
-            case DoodadFuncPermission.SiegeMaster:
-            case DoodadFuncPermission.Party:
-            case DoodadFuncPermission.Raid:
                 return true;
             case DoodadFuncPermission.Owner:
                 return doodad.OwnerId == Owner.Id;
