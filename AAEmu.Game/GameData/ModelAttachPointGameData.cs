@@ -115,9 +115,10 @@ public class ModelAttachPointGameData : Singleton<ModelAttachPointGameData>, IGa
                 if (!helpers.TryGetValue(helperName, out var h))
                     continue;
 
-                // Yaw is in degrees - WorldSpawnPosition's contract, and what ApplyWorldSpawnPositionWithDeg
-                // reads. Roll/pitch stay zero: yaw is what orients a bound doodad, and tipping one would
-                // move the model somewhere it was never authored.
+                // Yaw is in degrees - what the doodad path reads (ApplyWorldSpawnPositionWithDeg) and what
+                // the housing binding json carries. The slave path converts it to radians on the way out.
+                // Roll/pitch stay zero: yaw is what orients a bound doodad, and tipping one would move the
+                // model somewhere it was never authored.
                 points[attachPoint] = new WorldSpawnPosition
                 {
                     X = h.Position.X, Y = h.Position.Y, Z = h.Position.Z, Yaw = h.YawDegrees
