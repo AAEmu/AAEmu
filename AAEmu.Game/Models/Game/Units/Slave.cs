@@ -1114,7 +1114,6 @@ public class Slave : Unit
                             retainedAsGroundDrop = true;
                             break;
                         }
-                        newDoodad.IsPersistent = true;
                         newDoodad.Transform = doodad.Transform.CloneDetached();
                         // Add a bit of randomness to the dropped doodad
                         newDoodad.Transform.Local.Translate(
@@ -1137,14 +1136,26 @@ public class Slave : Unit
                         // Requires more testing, possibly a server setting?
                         newDoodad.Transform.Local.SetHeight(depth < 30f ? floor : Math.Max(floor, surface));
 
-                        // Save new doodad
-                        newDoodad.InitDoodad();
-                        if (!DoodadItemPersistence.TrySaveTransfer(droppedItem, doodad, newDoodad))
+                        try
                         {
-                            Logger.Error("Failed to persist vehicle backpack item {0} as ground doodad {1}", droppedItem.Id, newDoodadId);
-                            NonUnitObjectIdManager.Instance.ReleaseId(newDoodad.ObjId);
-                            RetainAttachedDoodadAsGroundDrop(doodad, droppedItem);
-                            retainedAsGroundDrop = true;
+                            if (!DoodadItemPersistence.TryInitializeAndPersistPlacement(
+                                    newDoodad,
+                                    newDoodad.InitDoodad,
+                                    () => DoodadItemPersistence.TrySaveTransfer(droppedItem, doodad, newDoodad),
+                                    () =>
+                                    {
+                                        retainedAsGroundDrop = true;
+                                        RetainAttachedDoodadAsGroundDrop(doodad, droppedItem);
+                                    },
+                                    NonUnitObjectIdManager.Instance.ReleaseId))
+                            {
+                                Logger.Error("Failed to persist vehicle backpack item {0} as ground doodad {1}", droppedItem.Id, newDoodadId);
+                                break;
+                            }
+                        }
+                        catch (Exception exception)
+                        {
+                            Logger.Error(exception, "Failed to initialize or persist vehicle backpack item {0} as ground doodad {1}", droppedItem.Id, newDoodadId);
                             break;
                         }
 

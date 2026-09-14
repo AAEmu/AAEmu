@@ -88,7 +88,6 @@ public class PutDownBackpackEffect : EffectTemplate
                 }
                 return;
             }
-            doodad.IsPersistent = true;
             doodad.Transform = pos.CloneDetached(doodad);
             doodad.AttachPoint = AttachPointKind.None;
             doodad.ItemId = item.Id;
@@ -106,18 +105,30 @@ public class PutDownBackpackEffect : EffectTemplate
                 DoodadManager.Instance.RefreshFaction(doodad, character, targetHouse);
             }
 
-            doodad.InitDoodad();
-            if (!DoodadItemPersistence.TrySavePlacement(item, doodad))
+            try
             {
-                if (!character.Inventory.Equipment.AddOrMoveExistingItem(
-                    Items.Actions.ItemTaskType.DropBackpack,
-                    item,
-                    (int)EquipmentItemSlot.Backpack))
+                if (!DoodadItemPersistence.TryInitializeAndPersistPlacement(
+                        doodad,
+                        doodad.InitDoodad,
+                        () => DoodadItemPersistence.TrySavePlacement(item, doodad),
+                        () =>
+                        {
+                            if (!character.Inventory.Equipment.AddOrMoveExistingItem(
+                                    Items.Actions.ItemTaskType.DropBackpack,
+                                    item,
+                                    (int)EquipmentItemSlot.Backpack))
+                            {
+                                Logger.Error("Failed to restore backpack item {0} after its ground placement could not be persisted", item.Id);
+                            }
+                        },
+                        NonUnitObjectIdManager.Instance.ReleaseId))
                 {
-                    Logger.Error("Failed to restore backpack item {0} after its ground placement could not be persisted", item.Id);
+                    return;
                 }
-
-                NonUnitObjectIdManager.Instance.ReleaseId(doodad.ObjId);
+            }
+            catch (Exception exception)
+            {
+                Logger.Error(exception, "Failed to initialize or persist ground placement for backpack item {0}", item.Id);
                 return;
             }
 

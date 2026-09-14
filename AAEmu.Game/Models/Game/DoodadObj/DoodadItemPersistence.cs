@@ -11,6 +11,57 @@ public static class DoodadItemPersistence
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
+    internal static bool TryInitializeAndPersistPlacement(
+        Doodad doodad,
+        Action initialize,
+        Func<bool> persist,
+        Action rollback,
+        Action<uint> releaseObjectId)
+    {
+        // Lifecycle tasks use the same monitor, so none can act on this doodad before placement commits.
+        lock (doodad)
+        {
+            doodad.IsPlacementPending = true;
+            doodad.IsPersistent = true;
+            var committed = false;
+            try
+            {
+                initialize();
+                if (!persist())
+                    return false;
+
+                committed = true;
+                doodad.IsPlacementPending = false;
+                return true;
+            }
+            finally
+            {
+                if (!committed)
+                {
+                    doodad.IsPersistent = false;
+                    doodad.ItemId = 0;
+                    doodad.ItemTemplateId = 0;
+                    try
+                    {
+                        doodad.FuncTask?.Cancel();
+                    }
+                    finally
+                    {
+                        doodad.FuncTask = null;
+                        try
+                        {
+                            rollback();
+                        }
+                        finally
+                        {
+                            releaseObjectId(doodad.ObjId);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     public static bool TrySavePlacement(Item item, Doodad doodad)
     {
         using var persistence = MailManager.Instance.DeferPersist();
