@@ -205,6 +205,12 @@ social aggregates load normally. Do not edit player rows while World is running.
 temporary databases, and probes stay outside the repository. Family and expedition integration tests
 create isolated MySQL schemas and execute product migrations before save/load and rollback checks.
 
+`GameNetworkSocialPacketRegistrationTests` checks that every family and expedition request class has a
+`CSOffsets` constant and is registered with the protocol handler; an unregistered class is silently dropped
+as an unknown opcode at runtime. When driving the 10.0.2.13 client through Lua, its word filter rejects
+Latin free text in notice, recruitment, and role-name fields before any packet is sent, so use CJK text for
+those checks.
+
 Run `AAEmu.UnitTests`, the focused `AAEmu.IntegrationTests` family/expedition fixtures, and the protocol
 harness against the matching DLL before deployment. Record result counts in the change or deployment
 report, where they identify the exact tested revision, rather than treating a prior working-tree count

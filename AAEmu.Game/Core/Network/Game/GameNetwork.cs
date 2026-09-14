@@ -407,6 +407,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSExpeditionSummonReplyPacket, 1, typeof(CSExpeditionSummonReplyPacket));
         RegisterPacket(CSOffsets.CSFamilyNameSetPacket, 1, typeof(CSFamilyNameSetPacket));
         RegisterPacket(CSOffsets.CSFamilyNoticeSetPacket, 1, typeof(CSFamilyNoticeSetPacket));
+        RegisterPacket(CSOffsets.CSFamilyChangeMemberRolePacket, 1, typeof(CSFamilyChangeMemberRolePacket));
         RegisterPacket(CSOffsets.CSFamilyIncreaseMemberPacket, 1, typeof(CSFamilyIncreaseMemberPacket));
         RegisterPacket(CSOffsets.CSResetVisualRacePacket, 1, typeof(CSResetVisualRacePacket));
         RegisterPacket(CSOffsets.CSTeamTestRaidCreatePacket, 1, typeof(CSTeamTestRaidCreatePacket));
