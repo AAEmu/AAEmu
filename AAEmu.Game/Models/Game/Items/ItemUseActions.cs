@@ -1,5 +1,5 @@
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -13,9 +13,8 @@ namespace AAEmu.Game.Models.Game.Items;
 ///
 /// Both cases here are driven from content the 10.0.2.13 client also reads from its own copy of the world
 /// database, which is why the server had no code for either: the client draws the paper page itself and
-/// knows which craft a recipe item teaches. What the client cannot do is remember the result, so the
-/// server owns the two things that have to survive a logout - the recipe a character has learned, and the
-/// consumption of the item that taught it.
+/// knows which craft a recipe item teaches. What the client cannot do is remember the result, so the server
+/// owns the thing that has to survive a logout - the recipe a character has learned.
 ///
 /// Called from <see cref="Character.ItemUse(ulong)"/>, which runs on every successful item cast on both the
 /// local and the Zone-authority skill path.
@@ -40,6 +39,23 @@ public static class ItemUseActions
         }
     }
 
+    /// <summary>
+    /// Learns what a recipe item teaches and spends the item, both in one transaction.
+    /// </summary>
+    /// <remarks>
+    /// The unlock and the item deduction have to become durable together. Persisting the recipe row on its
+    /// own connection first, as this used to, left a window where World could stop between the two saves and
+    /// the character reloaded holding both the learned recipe and the recipe item.
+    ///
+    /// The item is only spent when a craft was actually learned, so using an already-known recipe leaves the
+    /// item in the bag. Skill.ApplyEffectsCore's "missing reagent information" fallback would otherwise take
+    /// any use_skill_as_reagent item whose skill has no effects, which is exactly what skill 11144 is; recipe
+    /// items are excluded there and left to this method, so the item is spent exactly once.
+    ///
+    /// Follows the pattern the family purchases use for a player-initiated item debit: take the inventory's
+    /// mutation lock, plan the debit on the exact live stack, then write the recipe rows and the item
+    /// snapshots on one transaction before touching the live state.
+    /// </remarks>
     private static void LearnRecipe(Character character, Item item)
     {
         // GetCraftsForRecipeItem already drops item_recipes rows the content contradicts itself on and names
@@ -55,41 +71,64 @@ public static class ItemUseActions
             return;
         }
 
-        var learned = 0;
-        foreach (var craftId in craftIds)
+        // A skill with a plot runs ItemUse from both Plot.RunAsync and the effect path, so the second call
+        // for the same cast finds nothing new here and stops.
+        var newCrafts = craftIds.Where(craftId => !character.Recipes.IsLearned(craftId)).ToList();
+        if (newCrafts.Count == 0)
         {
-            if (!character.Recipes.Learn(craftId))
-                continue;
-
-            learned++;
-            // Second field is the client's "index": the position of the new recipe in the character's own
-            // recipe list, which is what the client keys its list entry on.
-            character.SendPacket(new SCCraftItemUnlockPacket(craftId, (uint)character.Recipes.GetLearnedIndex(craftId)));
-            Logger.Debug("Character {0} learned craft {1} from recipe item {2}", character.Name, craftId, item.TemplateId);
-        }
-
-        if (learned == 0)
-        {
-            // Either the recipe was already known, or this is a second call for the same cast: a skill with a
-            // plot runs ItemUse from both Plot.RunAsync and the effect path. Nothing was learned, so the item
-            // is not spent - Skill's "missing reagent information" fallback skips recipe items for exactly
-            // this reason.
             Logger.Debug("Character {0} already knew every craft of recipe item {1}", character.Name, item.TemplateId);
             return;
         }
 
-        ConsumeRecipeItem(character, item);
-    }
-
-    private static void ConsumeRecipeItem(Character character, Item item)
-    {
-        if (item._holdingContainer == null)
+        var inventory = character.Inventory;
+        if (inventory == null)
             return;
 
-        // Only reached when a craft was actually learned. The link skill (11144) carries no skill_effects,
-        // so this and the fallback in Skill.ApplyEffectsCore are the only two places that could take the
-        // item; that fallback deliberately leaves recipe items to this one, so the item is spent once.
-        item._holdingContainer.ConsumeItem(ItemTaskType.ConsumeSkillSource, item.TemplateId, 1, item);
+        using (PersistenceOperationScope.Enter())
+        lock (inventory.MutationSyncRoot)
+        {
+            if (!inventory.TryPlanExactBagConsumption(item.Id, 1, out var consumption))
+            {
+                Logger.Warn(
+                    "Character {0} used recipe item {1} without an exact bag stack to spend; the item is kept",
+                    character.Name, item.TemplateId);
+                return;
+            }
+
+            var snapshots = consumption.CapturePersistenceSnapshots(ItemManager.Instance);
+            try
+            {
+                using var connection = MySQL.CreateConnection();
+                using var transaction = connection.BeginTransaction();
+                try
+                {
+                    character.Recipes.PersistLearned(newCrafts, connection, transaction);
+                    ItemManager.Instance.PersistSnapshots(connection, transaction, snapshots);
+                    transaction.Commit();
+                }
+                catch
+                {
+                    transaction.Rollback();
+                    throw;
+                }
+            }
+            catch (Exception exception)
+            {
+                Logger.Error(
+                    exception,
+                    "Failed to record recipe item {0} for character {1}; neither the recipe nor the item changed",
+                    item.TemplateId, character.Name);
+                return;
+            }
+
+            // Past the commit there is nothing left to decide: the rows are durable, so the live state
+            // follows them.
+            character.Recipes.ApplyLearned(newCrafts);
+            consumption.ApplyCommitted(ItemTaskType.ConsumeSkillSource).PublishPackets();
+            Logger.Debug(
+                "Character {0} learned craft(s) {1} from recipe item {2}",
+                character.Name, string.Join(',', newCrafts), item.TemplateId);
+        }
     }
 
     private static void ResolvePaper(Character character, Item item)

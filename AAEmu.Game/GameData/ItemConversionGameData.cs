@@ -26,9 +26,12 @@ namespace AAEmu.Game.GameData;
 /// Earlier revisions ignored every pack table: reagents were keyed straight off <c>item_conv_rpack_id</c>,
 /// a product was picked by matching <c>item_conv_products.item_conv_ppack_id</c> against that same rpack id,
 /// weights and pack chances went unused, and <c>ConversionSet</c> was never filled because the map it came
-/// from was never populated. The same-id match is not nonsense - the content pairs the two packs by id for
-/// most conversions - but it reaches 34179 of the 34900 explicit reagent rows and misses the 148 packs that
-/// are only linked through <c>item_conv_rpack_members</c>. Following the members reaches 34898.
+/// from was never populated.
+///
+/// The ids of the two packs coincide for most conversions, which is why that match appeared to work, but the
+/// relation is not real: reagent pack 3759 (<c>repackage_socket_skyblue_1T</c>, the violet crescent stone
+/// 43580) has no member row, and product pack 3759 is an unrelated obsidian conversion that pays out 16 of
+/// item 46185. Only <c>item_conv_rpack_members</c> / <c>item_conv_ppack_members</c> are followed.
 /// </summary>
 [GameData]
 public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDataLoader
@@ -61,17 +64,31 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
     /// <c>items.category_id</c>, tested against the filter's exception pack. Filters whose pack excludes
     /// this category are skipped.
     /// </param>
-    public ItemConversionReagent GetReagentForItem(byte grade, ItemImplEnum implId, uint itemId, int level, int itemCategoryId = 0)
+    /// <param name="requestedConversionSet">
+    /// The <c>item_conv_sets</c> family the effect is performing, when it knows one. Candidates that feed
+    /// that family are preferred over the first match: item 20191 has an explicit row into reagent pack 97
+    /// (family 4, the awakening/repackage chain) and a matching filter into pack 3 (family 3, disenchant),
+    /// so picking by table order alone hands an evenstone the wrong pack and the cast is then refused.
+    /// </param>
+    public ItemConversionReagent GetReagentForItem(byte grade, ItemImplEnum implId, uint itemId, int level,
+        int itemCategoryId = 0, uint requestedConversionSet = 0)
     {
+        ItemConversionReagent firstExplicit = null;
         if (_reagentsByItem.TryGetValue(itemId, out var explicitReagents))
         {
             foreach (var reagent in explicitReagents)
             {
-                if (reagent.MatchesGrade(grade))
+                if (!reagent.MatchesGrade(grade))
+                    continue;
+
+                if (requestedConversionSet == 0 || reagent.ConversionSet == requestedConversionSet)
                     return reagent;
+
+                firstExplicit ??= reagent;
             }
         }
 
+        ItemConversionReagent firstFilter = null;
         foreach (var reagent in _filterReagents)
         {
             if (implId != reagent.ImplId
@@ -82,24 +99,36 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
             if (IsExcludedByExceptionPack(reagent.ExceptionPackId, itemCategoryId))
                 continue;
 
-            return reagent;
+            if (requestedConversionSet == 0 || reagent.ConversionSet == requestedConversionSet)
+                return reagent;
+
+            firstFilter ??= reagent;
         }
 
-        return null;
+        // No candidate declares the requested family. Return the ordinary first match so the effect's own
+        // check reports the mismatch instead of the cast failing with "no reagent".
+        return firstExplicit ?? firstFilter;
     }
 
     /// <summary>
-    /// Rolls one product for a reagent pack. Returns false only when the conversion has no product rows at
-    /// all, which is a data error the caller should surface. A failed chance roll returns true with a null
-    /// product so the caller still consumes the reagent.
+    /// Rolls every product pack the reagent's conversions link to. Returns false only when none of them
+    /// carries a product, which is a content error the caller should surface.
     /// </summary>
-    public bool TryRollProduct(ItemConversionReagent reagent, out ItemConversionRoll roll)
+    /// <remarks>
+    /// A conversion may link several product packs and all of them pay out: conversion 6280 (disassembling
+    /// the pumpkin-scarecrow blueprint) links 5555 and 5556, both guaranteed, for 1 housing blueprint and 50
+    /// enchanted blueprints. Stopping at the first successful pack dropped the second. A pack whose chance
+    /// roll fails still yields a roll, with a null product, so the caller can tell "rolled and lost" from
+    /// "nothing to roll".
+    /// </remarks>
+    public bool TryRollProducts(ItemConversionReagent reagent, out IReadOnlyList<ItemConversionRoll> rolls)
     {
-        roll = null;
+        rolls = [];
         if (reagent == null)
             return false;
 
-        var sawProductPack = false;
+        var result = new List<ItemConversionRoll>();
+        var seenPacks = new HashSet<uint>();
         foreach (var conversionId in reagent.ConversionIds)
         {
             if (!_conversionProductPacks.TryGetValue(conversionId, out var productPackIds))
@@ -107,29 +136,18 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
 
             foreach (var productPackId in productPackIds)
             {
-                if (TryRollFromPack(productPackId, out roll))
-                {
-                    sawProductPack = true;
-                    if (roll.Product != null)
-                        return true;
-                }
+                if (!seenPacks.Add(productPackId))
+                    continue;
+
+                if (TryRollFromPack(productPackId, out var roll))
+                    result.Add(roll);
             }
         }
 
-        // 43 of the 5519 reagent packs the content references cannot be reached through the members: 41 have
-        // no item_conv_rpack_members row at all ("disuse", the discard-only packs, repackage_socket_skyblue_1T,
-        // awakening.6tier_weapon.dagger, two housing blueprints) and two sit in a conversion with no
-        // item_conv_ppack_members row. 42 of them still have a product pack whose id equals their own, which
-        // is how the retired lookup found them. Keep that as the fallback so the member chain can only ever
-        // add reach.
-        if (!sawProductPack && TryRollFromPack(reagent.ReagentPackId, out roll))
-            return true;
-
-        if (!sawProductPack)
+        if (result.Count == 0)
             return false;
 
-        // Every candidate pack rolled its chance and lost: the conversion happened, it just yielded nothing.
-        roll = new ItemConversionRoll { Product = null, Count = 0 };
+        rolls = result;
         return true;
     }
 

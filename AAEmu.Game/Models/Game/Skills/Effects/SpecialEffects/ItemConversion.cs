@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.GameData;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
@@ -54,7 +54,8 @@ public class ItemConversion : SpecialEffectAction
             targetItem.Template.ImplId,
             id,
             targetItem.Template.Level,
-            targetItem.Template.CategoryId);
+            targetItem.Template.CategoryId,
+            (uint)Math.Max(0, value1));
         if (reagent == null)
         {
             Logger.Error($"Couldn't find Reagent for item {id}");
@@ -78,15 +79,22 @@ public class ItemConversion : SpecialEffectAction
             return;
         }
 
-        if (!ItemConversionGameData.Instance.TryRollProduct(reagent, out var roll))
+        if (!ItemConversionGameData.Instance.TryRollProducts(reagent, out var rolls))
         {
             Logger.Error($"Couldn't find Product from Reagent for item {id}");
             skill.Cancelled = true;
             return;
         }
 
-        if (!roll.ChanceFailed && roll.Count > 0)
+        // Every product pack the conversion links to pays out, not just the first one to win its roll.
+        foreach (var roll in rolls)
         {
+            if (roll.ChanceFailed || roll.Count <= 0)
+            {
+                Logger.Debug("ItemConversion: item {0} (pack {1}) rolled no product", id, reagent.ReagentPackId);
+                continue;
+            }
+
             var grade = roll.Product.GradeId > 0 ? roll.Product.GradeId : -1;
             if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Conversion, roll.Product.OutputItemId, roll.Count, grade))
             {
@@ -94,10 +102,6 @@ public class ItemConversion : SpecialEffectAction
                 character.SendErrorMessage(ErrorMessageType.BagFull);
                 return;
             }
-        }
-        else
-        {
-            Logger.Debug("ItemConversion: item {0} (pack {1}) rolled no product", id, reagent.ReagentPackId);
         }
 
         // consumes target item from stack or if there is only 1, destroy item

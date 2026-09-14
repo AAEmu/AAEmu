@@ -1,4 +1,3 @@
-﻿using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
 using MySql.Data.MySqlClient;
 using NLog;
@@ -9,9 +8,13 @@ namespace AAEmu.Game.Models.Game.Char;
 /// The recipes a character has learned by using recipe items (<c>item_recipes</c>).
 ///
 /// The 10.0.2.13 client links a recipe item to its craft out of its own copy of the world database, so it
-/// knows what the item teaches; what it cannot do is remember it. 2811 crafts are only reachable through a
-/// recipe item, so without this the "recipe book" resets on every logout and any craft the character has
-/// not learned in this session is unusable.
+/// knows what the item teaches; what it cannot do is remember it. The crafts a recipe item reaches are only
+/// usable once learned, so the set has to survive a logout.
+///
+/// Learning is deliberately two steps. <see cref="PersistLearned"/> writes the rows on a caller-owned
+/// transaction that also carries the item deduction, and <see cref="ApplyLearned"/> updates the live set only
+/// after that transaction commits: writing the row on its own connection first left a window where a
+/// character reloaded holding both the unlock and the recipe item.
 /// </summary>
 public sealed class CharacterRecipeBook(Character owner)
 {
@@ -43,26 +46,6 @@ public sealed class CharacterRecipeBook(Character owner)
             return [.. _crafts.Order()];
     }
 
-    /// <summary>
-    /// Zero-based position of a learned craft in the character's recipe list, or -1 when it is not learned.
-    /// Sent to the client alongside the craft id when a recipe is unlocked.
-    /// </summary>
-    public int GetLearnedIndex(uint craftId)
-    {
-        lock (_sync)
-        {
-            var index = 0;
-            foreach (var learned in _crafts.Order())
-            {
-                if (learned == craftId)
-                    return index;
-                index++;
-            }
-
-            return -1;
-        }
-    }
-
     public void Load(MySqlConnection connection)
     {
         using var command = connection.CreateCommand();
@@ -85,45 +68,36 @@ public sealed class CharacterRecipeBook(Character owner)
     }
 
     /// <summary>
-    /// Records a learned recipe. Returns false when it was already known or could not be stored, so the
-    /// caller does not announce a recipe twice.
+    /// Writes the learned rows on the caller's transaction. The caller must commit before calling
+    /// <see cref="ApplyLearned"/>, so the unlock and whatever the cast consumed become durable together.
     /// </summary>
-    public bool Learn(uint craftId)
+    public void PersistLearned(IEnumerable<uint> craftIds, MySqlConnection connection, MySqlTransaction transaction)
     {
-        if (craftId == 0 || !CraftManager.Instance.HasCraft(craftId))
-        {
-            Logger.Warn("Refusing to learn unknown recipe craft {0} for character {1}", craftId, Owner.Id);
-            return false;
-        }
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(transaction);
 
-        lock (_sync)
-        {
-            if (_crafts.Contains(craftId))
-                return false;
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        // INSERT IGNORE: the row is the whole state, so a duplicate from a retried cast is not an error.
+        command.CommandText = "INSERT IGNORE INTO character_recipes(owner, craft_id) VALUES (@owner, @craftId)";
+        command.Parameters.AddWithValue("@owner", Owner.Id);
+        var craftParameter = command.Parameters.Add("@craftId", MySqlDbType.UInt32);
+        command.Prepare();
 
-            try
-            {
-                Persist(craftId);
-                _crafts.Add(craftId);
-                return true;
-            }
-            catch (Exception exception)
-            {
-                Logger.Error(exception, "Failed to store learned recipe {0} for character {1}", craftId, Owner.Id);
-                return false;
-            }
+        foreach (var craftId in craftIds)
+        {
+            craftParameter.Value = craftId;
+            command.ExecuteNonQuery();
         }
     }
 
-    private void Persist(uint craftId)
+    /// <summary>Applies a recipe write that has already committed. Never fails.</summary>
+    public void ApplyLearned(IEnumerable<uint> craftIds)
     {
-        // INSERT IGNORE: the row is the whole state, so a duplicate from a retried cast is not an error.
-        using var connection = MySQL.CreateConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText =
-            "INSERT IGNORE INTO character_recipes(owner, craft_id) VALUES (@owner, @craftId)";
-        command.Parameters.AddWithValue("@owner", Owner.Id);
-        command.Parameters.AddWithValue("@craftId", craftId);
-        command.ExecuteNonQuery();
+        lock (_sync)
+        {
+            foreach (var craftId in craftIds)
+                _crafts.Add(craftId);
+        }
     }
 }
