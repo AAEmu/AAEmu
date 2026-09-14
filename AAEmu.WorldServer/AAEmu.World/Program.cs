@@ -676,14 +676,17 @@ public static class Program
         // peace/war state, so they need it on ZoneLoaded and again on every later transition. Only
         // groups that actually have spawner rows are told; every other conflict group is
         // client-only (SCConflictZoneState).
-        WorldIntegration.NotifyZoneReadyForConflictZone = (zoneId, _) =>
+        WorldIntegration.NotifyZoneReadyForConflictZone = (zoneId, instanceId) =>
         {
             if (!TryGetConflictZoneState(zoneId, out var groupId, out var warState))
                 return;
-            if (PlayerEnterService.ForZoneId(zoneId) is not { } readyZone)
+            // Address the copy that just loaded: several instances of one zone key can be loaded at
+            // once, and the zone-only lookup answers instance 0 (or null) in that case.
+            if (PlayerEnterService.ForZoneInstance(zoneId, instanceId) is not { } readyZone)
                 return;
             readyZone.SendPacket(new WZConflictZoneStatePacket((short)groupId, warState));
-            Logger.Debug("WZConflictZoneState (zone ready) → zoneId={0} group={1} state={2}", zoneId, groupId, warState);
+            Logger.Debug("WZConflictZoneState (zone ready) → zoneId={0} instance={1} group={2} state={3}",
+                zoneId, instanceId, groupId, warState);
         };
         WorldIntegration.RelayConflictZoneStateToZone = (zoneGroupId, warState) =>
         {
