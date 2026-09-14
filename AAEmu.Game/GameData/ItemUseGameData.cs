@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Data.Sqlite;
@@ -69,6 +69,7 @@ public class ItemUseGameData : Singleton<ItemUseGameData>, IGameDataLoader
         _craftsByRecipeItem = [];
         _recipeGatedCrafts = [];
         _papersByItem = [];
+        _papersWithoutContent = 0;
 
         using (var command = connection.CreateCommand())
         {

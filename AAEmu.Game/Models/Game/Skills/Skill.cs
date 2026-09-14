@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -1586,8 +1586,12 @@ public class Skill
             // The item however is marked with use_skill_as_reagent, so if it requires reagent according to the item
             // but has none attached, consume 1 of the source item instead
             // TODO: Check if this is intended behaviour, or if this is a bug in the compact.sqlite3 file
+            //
+            // Recipe items are excluded: they are use_skill_as_reagent and their link skill (11144) carries no
+            // effects either, but whether the item is spent depends on whether it actually taught something -
+            // ItemUseActions takes it only when a craft was learned, so an already-known recipe stays in the bag.
             var item = ItemManager.Instance.GetItemByItemId(skillItem.ItemId);
-            if (item?.Template.UseSkillAsReagent == true && reagents.Count <= 0 && skillProducts.Count <= 0 && consumedItems.Count <= 0 && Template.Effects.Count == 0)
+            if (item?.Template.UseSkillAsReagent == true && item.Template.ImplId != ItemImplEnum.Recipe && reagents.Count <= 0 && skillProducts.Count <= 0 && consumedItems.Count <= 0 && Template.Effects.Count == 0)
             {
                 consumedItems.Add((item, 1));
                 Logger.Debug($"Consumed item template 1 x {item.TemplateId} ({item.Id}) because of missing reagent information with skill {Template.Id}");

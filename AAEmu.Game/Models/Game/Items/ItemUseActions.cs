@@ -1,7 +1,8 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.StaticValues;
 using NLog;
 
@@ -70,13 +71,25 @@ public static class ItemUseActions
         if (learned == 0)
         {
             // Either the recipe was already known, or this is a second call for the same cast: a skill with a
-            // plot runs ItemUse from both Plot.RunAsync and the effect path.
+            // plot runs ItemUse from both Plot.RunAsync and the effect path. Nothing was learned, so the item
+            // is not spent - Skill's "missing reagent information" fallback skips recipe items for exactly
+            // this reason.
             Logger.Debug("Character {0} already knew every craft of recipe item {1}", character.Name, item.TemplateId);
+            return;
         }
 
-        // The item is not consumed here. Skill 11144 carries no skill_effects and the recipe items are
-        // use_skill_as_reagent, so Skill's "missing reagent information" fallback already takes one copy;
-        // consuming here as well burned two (measured: one use of a stack of five left three).
+        ConsumeRecipeItem(character, item);
+    }
+
+    private static void ConsumeRecipeItem(Character character, Item item)
+    {
+        if (item._holdingContainer == null)
+            return;
+
+        // Only reached when a craft was actually learned. The link skill (11144) carries no skill_effects,
+        // so this and the fallback in Skill.ApplyEffectsCore are the only two places that could take the
+        // item; that fallback deliberately leaves recipe items to this one, so the item is spent once.
+        item._holdingContainer.ConsumeItem(ItemTaskType.ConsumeSkillSource, item.TemplateId, 1, item);
     }
 
     private static void ResolvePaper(Character character, Item item)
