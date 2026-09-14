@@ -35,6 +35,7 @@ public interface IBuffs
     void RemoveStealth();
     void SetOwner(BaseUnit owner);
     void TriggerRemoveOn(BuffRemoveOn on, uint value = 0);
+    void TimeoutBuffsFromSkill(uint skillId);
     // Buff Persistence
     void SaveActiveBuffs(MySqlConnection connection, MySqlTransaction transaction, uint characterId);
     void LoadActiveBuffs(Character character);

@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -41,6 +42,12 @@ public class BondDoodad : PacketMarshaler
         _spot = spot;
     }
 
+    public uint SourceSkillId
+    {
+        get;
+        set;
+    }
+
     public void SetOwner(Doodad owner)
     {
         _owner = owner;
@@ -67,8 +74,10 @@ public class BondDoodad : PacketMarshaler
     /// <summary>
     /// Clears seat occupancy, transform parenting, SCUnbond, zone unbond, and remove_on_unbond buffs.
     /// No-op when not bonded. When <paramref name="expectedDoodadObjId"/> is set, requires a match.
+    /// Timeout-on-unbond is only for lift rides; pass <paramref name="timeoutLiftRide"/> false on a
+    /// full recall so a lift seat does not ride and then teleport.
     /// </summary>
-    public static bool TryRelease(Character character, uint? expectedDoodadObjId = null)
+    public static bool TryRelease(Character character, uint? expectedDoodadObjId = null, bool timeoutLiftRide = true)
     {
         if (character?.Bonding == null)
             return false;
@@ -89,6 +98,12 @@ public class BondDoodad : PacketMarshaler
 
         character.BroadcastPacket(new SCUnbondDoodadPacket(character.ObjId, character.Id, doodadObjId), true);
         WorldIntegration.RelayBondDoodadToZone?.Invoke(character.ObjId, bonding, false);
+
+        // Lift seats fire their Timeout trigger on stand-up (that trigger is the ride). Beds also
+        // have a Timeout trigger, but it applies sleep — standing up must not start that. A full
+        // recall passes timeoutLiftRide=false so a lift seat does not ride and then teleport.
+        if (timeoutLiftRide && SeatRideRules.ShouldTimeoutOnUnbond(bonding.SourceSkillId))
+            character.Buffs.TimeoutBuffsFromSkill(bonding.SourceSkillId);
         character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unbond);
         return true;
     }

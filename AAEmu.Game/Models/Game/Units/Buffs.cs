@@ -739,6 +739,35 @@ public class Buffs : IBuffs
                 e.Exit();
     }
 
+    /// <summary>
+    /// Ends every active buff applied by <paramref name="skillId"/> through its natural-timeout path
+    /// (triggers fire, buff removed). Used when a seat is left: rides such as the house floor mover are
+    /// driven by the seat buff's Timeout trigger (skills.id 40228 '층간 이동' applies it and its trigger
+    /// casts the ride skill), and the ride happens on leaving the seat, not after the buff's full
+    /// duration. Other buff removals keep the natural-expiry rule.
+    /// </summary>
+    public void TimeoutBuffsFromSkill(uint skillId)
+    {
+        if (skillId == 0)
+            return;
+
+        List<Buff> snapshot;
+        lock (_lock)
+        {
+            snapshot = _effects.ToList();
+        }
+
+        foreach (var buff in snapshot)
+        {
+            if (buff.State == EffectState.Finished || buff.Skill?.Id != skillId)
+                continue;
+
+            Logger.Debug("Timing out buff {0} on seat release (skill {1})",
+                buff.Template?.Id ?? 0, skillId);
+            buff.TimeOut();
+        }
+    }
+
     public void TriggerRemoveOn(BuffRemoveOn on, uint value = 0)
     {
         // Create a copy of the list of effects to avoid changing the list while iterating

@@ -2832,6 +2832,20 @@ public partial class Character : Unit, ICharacter
     }
 
     /// <summary>
+    /// Housing zones (the named housing areas drawn on top of a base zone) that cover the character's
+    /// current position. Empty when the position is in the open world.
+    /// </summary>
+    private List<uint> HousingZonesAtPosition()
+    {
+        var world = ParentWorld ?? WorldManager.Instance.MainWorld;
+        if (world?.Template == null)
+            return [];
+
+        var position = Transform.World.Position;
+        return SubZoneManager.Instance?.GetHousingZoneByPosition(world, position.X, position.Y) ?? [];
+    }
+
+    /// <summary>
     /// Recomputes <see cref="IsUnderWater"/> from the character's current transform.
     /// </summary>
     /// <remarks>
@@ -2904,6 +2918,19 @@ public partial class Character : Unit, ICharacter
 
     public override void OnZoneChange(uint lastZoneKey, uint newZoneKey)
     {
+        // A housing area is its own zone key on top of the base zone underneath it (base 213 -> housing
+        // 207). A teleport or position update inside the housing area re-resolves to the base key, which
+        // reads as a zone change and hands the character to a zone they never left — the World can only
+        // refuse that and send them to character select. While the character is still standing inside
+        // the housing zone they occupy, that zone wins.
+        if (HousingZoneRetentionRules.ShouldSuppressChange(lastZoneKey, newZoneKey, HousingZonesAtPosition()))
+        {
+            Transform.KeepZoneQuietly(lastZoneKey);
+            Logger.Info("Zone key {0} -> {1} suppressed for {2}: still inside housing zone {0}",
+                lastZoneKey, newZoneKey, Name);
+            return;
+        }
+
         base.OnZoneChange(lastZoneKey, newZoneKey); // Unit
 
         // SphereBuff volumes (dock Moored / Ezi / shipyard) are position-based. A zone-key change
