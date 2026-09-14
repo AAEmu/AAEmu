@@ -137,11 +137,22 @@ public class SpecialtyPersistenceRestartTests
             Mock.Of<ISkillManager>().Object, zones.Object, Mock.Of<IMailManager>().Object, null,
             Mock.Of<ISpecialtyMarketStore>().Object, store, Mock.Of<IWorldManager>().Object,
             Mock.Of<ITaskManager>().Object, TimeProvider.System, Options.Create(new AppConfiguration()));
-        var tradeGood = new TradeGood { Id = 12, ItemId = cargo.TemplateId, Item = cargo.Template, TradeGoodCategoryId = 1 };
+        var tradeGood = new TradeGood
+        {
+            Id = 12,
+            ItemId = cargo.TemplateId,
+            Item = cargo.Template,
+            TradeGoodCategoryId = 1,
+            OutputCount = 5
+        };
         cargo.Template.Refund = 200;
         SetField(manager, "_tradeGoodPurchaseSkill", new SkillTemplate { Id = 30, MaxRange = 5 });
         SetField(manager, "_tradeGoodsByCategoryAndItem", new Dictionary<(uint, uint), TradeGood> { [(1, cargo.TemplateId)] = tradeGood });
         SetField(manager, "_tradeGoodsByCategory", new Dictionary<uint, List<TradeGood>> { [1] = [tradeGood] });
+        SetField(manager, "_tradeGoodMaterialsByTradeGoodId", new Dictionary<uint, List<TradeGoodMaterial>>
+        {
+            [tradeGood.Id] = [new TradeGoodMaterial { TradeGoodId = tradeGood.Id, TagId = 3361, RequiredCount = 50 }]
+        });
         SetField(manager, "_tradeGoodCategories", new Dictionary<uint, TradeGoodCategory> { [1] = new() { Id = 1 } });
         SetField(manager, "_tradeGoodPriceIndices", new List<TradeGoodPriceIndex> { new() { Stock = -1, PriceIndex = 1000, Charge = 1000 } });
         SetField(manager, "_market", new SpecialtyMarketState { CargoStock = new() { [(8, 12)] = 2 } });

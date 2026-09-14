@@ -2160,6 +2160,7 @@ public class SpecialtyManager(
             return false;
 
         using var persistence = mailManager.DeferPersist();
+        var broadcastRatios = false;
         lock (_marketLock)
             lock (player.StateSyncRoot)
             {
@@ -2222,6 +2223,7 @@ public class SpecialtyManager(
                 if (cargo == null)
                     return false;
                 SpecialtyPurchaseWrite write;
+                var produced = 0u;
                 try
                 {
                     cargo.OwnerId = player.Id;
@@ -2240,7 +2242,7 @@ public class SpecialtyManager(
                     var expectedLabor = player.LaborPower;
                     var expectedLocalLabor = player.LocalLaborPower;
                     var fromAccount = Math.Min(laborCost, Math.Max(0, (int)expectedLabor));
-                    var market = PrepareMarketWrite(() => _tradeGoodCargoStock[(zoneGroupId, tradeGood.Id)] = stock - 1);
+                    var market = PrepareMarketWrite(() => produced = ConsumeTradeGoodCargoCore(zoneGroupId, tradeGood));
                     write = new SpecialtyPurchaseWrite(
                         player.Id, player.AccountId, player.Money, player.Money - price,
                         expectedLabor, expectedLabor - fromAccount,
@@ -2264,8 +2266,11 @@ public class SpecialtyManager(
                 }
 
                 PublishCommittedPurchase(player, write, laborCost);
-                return true;
+                broadcastRatios = produced > 0;
             }
+        if (broadcastRatios)
+            BroadcastCurrentRatios();
+        return true;
     }
 
     private void RestoreMarketAfterRejectedPurchase()
@@ -3148,9 +3153,11 @@ public class SpecialtyManager(
             return 0;
 
         var capacity = _tradeGoodStockLimit - cargoStock;
-        var batchesForCapacity = checked((uint)(((ulong)capacity + tradeGood.OutputCount - 1) / tradeGood.OutputCount));
+        var batchesForCapacity = capacity / tradeGood.OutputCount;
         batches = Math.Min(batches, batchesForCapacity);
-        var produced = Math.Min((ulong)batches * tradeGood.OutputCount, capacity);
+        if (batches == 0)
+            return 0;
+        var produced = checked(batches * tradeGood.OutputCount);
 
         foreach (var material in materials)
         {
@@ -3158,8 +3165,8 @@ public class SpecialtyManager(
             ConsumeMaterialContributions(key, checked(batches * material.RequiredCount));
         }
 
-        _tradeGoodCargoStock[cargoKey] = cargoStock + (uint)produced;
-        return (uint)produced;
+        _tradeGoodCargoStock[cargoKey] = checked(cargoStock + produced);
+        return produced;
     }
 
     private void RecordUnqueuedSpecialtyDelivery(uint itemId, uint zoneGroupId)
@@ -3259,16 +3266,37 @@ public class SpecialtyManager(
 
     internal bool TryConsumeTradeGoodCargo(uint zoneGroupId, uint tradeGoodId)
     {
+        var produced = 0u;
         lock (_marketLock)
         {
             var key = (zoneGroupId, tradeGoodId);
             var stock = _tradeGoodCargoStock.GetValueOrDefault(key);
-            if (stock == 0)
+            if (stock == 0 || !_tradeGoods.TryGetValue(tradeGoodId, out var tradeGood))
                 return false;
-            var write = PrepareMarketWrite(() => _tradeGoodCargoStock[key] = stock - 1);
+            var write = PrepareMarketWrite(() => produced = ConsumeTradeGoodCargoCore(zoneGroupId, tradeGood));
             CommitMarketWrite(write);
-            return true;
         }
+
+        if (produced > 0)
+            BroadcastCurrentRatios();
+        return true;
+    }
+
+    private uint ConsumeTradeGoodCargoCore(uint zoneGroupId, TradeGood tradeGood)
+    {
+        var key = (zoneGroupId, tradeGood.Id);
+        var stock = _tradeGoodCargoStock.GetValueOrDefault(key);
+        if (stock == 0)
+            throw new InvalidOperationException($"Cargo recipe {tradeGood.Id} has no stock in zone {zoneGroupId}.");
+
+        var quantitiesBefore = GetTradeGoodItemQuantities(zoneGroupId, tradeGood);
+        _tradeGoodCargoStock[key] = stock - 1;
+        var produced = ProduceAvailableTradeGoods(zoneGroupId, tradeGood);
+        ApplyDemandQuantityChanges(
+            zoneGroupId,
+            quantitiesBefore,
+            GetTradeGoodItemQuantities(zoneGroupId, tradeGood));
+        return produced;
     }
 
     public (
@@ -3667,14 +3695,21 @@ public class SpecialtyManager(
 
         foreach (var (characterId, from, to) in deliveries)
         {
-            var player = WorldManager.Instance.GetCharacterById(characterId);
-            if (player == null)
+            try
             {
-                lock (_marketLock)
-                    _subscriptions.Remove(characterId);
-                continue;
+                var player = WorldManager.Instance.GetCharacterById(characterId);
+                if (player == null)
+                {
+                    lock (_marketLock)
+                        _subscriptions.Remove(characterId);
+                    continue;
+                }
+                player.SendPacket(new SCSpecialtyCurrentPacket(from, to, GetRatiosForTargetRoute(from, to)));
             }
-            player.SendPacket(new SCSpecialtyCurrentPacket(from, to, GetRatiosForTargetRoute(from, to)));
+            catch (Exception exception)
+            {
+                Logger.Error(exception, "Failed to broadcast specialty ratios to character {0}", characterId);
+            }
         }
     }
 

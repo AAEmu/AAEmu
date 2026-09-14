@@ -288,7 +288,7 @@ public partial class SpecialtyManagerTests
     }
 
     [Test]
-    public async Task CargoProduction_ClampsPartialBatchAtStockLimit()
+    public async Task CargoProduction_WaitsForFullCapacityAndReplenishesAfterConsumption()
     {
         var seed = CreatePersistedMarket();
         seed.CargoStock[(8, 12)] = 199;
@@ -299,9 +299,21 @@ public partial class SpecialtyManagerTests
         var grant = manager.AddTradeGoodMaterials(8, 1, null);
 
         await Assert.That(grant.Success).IsTrue();
-        await Assert.That(grant.Produced).IsEqualTo(1u);
-        await Assert.That(grant.CargoStock).IsEqualTo(200u);
-        await Assert.That(grant.Materials.Select(x => x.Stock)).IsEquivalentTo(new uint[] { 0, 0, 0 });
+        await Assert.That(grant.Produced).IsEqualTo(0u);
+        await Assert.That(grant.CargoStock).IsEqualTo(199u);
+        await Assert.That(grant.Materials.Select(x => x.Stock)).IsEquivalentTo(new uint[] { 50, 30, 10 });
+
+        manager = CreateRestoredMarketManager(store);
+        for (var i = 0; i < 3; i++)
+            await Assert.That(manager.TryConsumeTradeGoodCargo(8, 12)).IsTrue();
+        await Assert.That(manager.GetTradeGoodCargoStock(8, 12)).IsEqualTo(196u);
+        await Assert.That(manager.GetTradeGoodMaterialStock(8, 3361)).IsEqualTo(50u);
+
+        await Assert.That(manager.TryConsumeTradeGoodCargo(8, 12)).IsTrue();
+        await Assert.That(manager.GetTradeGoodCargoStock(8, 12)).IsEqualTo(200u);
+        await Assert.That(manager.GetTradeGoodMaterialStock(8, 3361)).IsEqualTo(0u);
+        await Assert.That(manager.GetTradeGoodMaterialStock(8, 3362)).IsEqualTo(0u);
+        await Assert.That(manager.GetTradeGoodMaterialStock(8, 3363)).IsEqualTo(0u);
         await Assert.That(store.Load().CargoStock[(8, 12)]).IsEqualTo(200u);
     }
 
