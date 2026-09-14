@@ -526,6 +526,163 @@ public class FamilyManagerTests
         await Assert.That(observedGate).IsTrue();
     }
 
+    [Test]
+    public async Task LeaveFamily_ChargesTheLeavingMemberInTheRosterPersistence()
+    {
+        var owner = NewCharacter(1, 10, "Owner");
+        var leaving = NewCharacter(2, 10, "Leaving");
+        var family = NewFamily(owner, leaving, NewCharacter(3, 10, "Three"));
+        family.Exp = 100;
+        var saves = 0;
+        var membersAtCharge = -1;
+        var expAtCharge = 0u;
+        var purchases = Mock.Of<IFamilyPurchaseService>();
+        purchases.ConsumeDeparture(leaving, family).Returns(() =>
+        {
+            membersAtCharge = family.Members.Count;
+            expAtCharge = family.Exp;
+            return new FamilyPurchaseResult(true, FamilyPurchaseFailure.None);
+        });
+        var manager = NewManager(Mock.Of<IWorldManager>(), _ => saves++, purchases, family);
+
+        manager.LeaveFamily(leaving);
+
+        purchases.ConsumeDeparture(leaving, family).WasCalled(Times.Once);
+        await Assert.That(membersAtCharge).IsEqualTo(2);
+        await Assert.That(expAtCharge).IsEqualTo(90u);
+        await Assert.That(saves).IsEqualTo(0);
+        await Assert.That(leaving.Family).IsEqualTo(0u);
+        await Assert.That(leaving.FamilyRejoinUntil).IsGreaterThan(0L);
+    }
+
+    [Test]
+    public async Task LeaveFamily_WithoutCertificate_KeepsTheMembership()
+    {
+        var owner = NewCharacter(1, 10, "Owner");
+        var leaving = NewCharacter(2, 10, "Leaving");
+        leaving.FamilyRejoinUntil = 5;
+        var family = NewFamily(owner, leaving, NewCharacter(3, 10, "Three"));
+        family.Exp = 100;
+        var saves = 0;
+        var purchases = Mock.Of<IFamilyPurchaseService>();
+        purchases.ConsumeDeparture(Any<Character>(), Any<Family>())
+            .Returns(new FamilyPurchaseResult(false, FamilyPurchaseFailure.MissingItems));
+        var manager = NewManager(Mock.Of<IWorldManager>(), _ => saves++, purchases, family);
+
+        manager.LeaveFamily(leaving);
+
+        await Assert.That(leaving.Family).IsEqualTo(10u);
+        await Assert.That(leaving.FamilyRejoinUntil).IsEqualTo(5L);
+        await Assert.That(family.Members).Count().IsEqualTo(3);
+        await Assert.That(family.Exp).IsEqualTo(100u);
+        await Assert.That(LiveMembers(manager).ContainsKey(leaving.Id)).IsTrue();
+        await Assert.That(saves).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task KickMember_ChargesTheOwner_AndKeepsTheMemberWithoutCertificate()
+    {
+        var owner = NewCharacter(1, 10, "Owner");
+        var kicked = NewCharacter(2, 10, "Kicked");
+        var family = NewFamily(owner, kicked, NewCharacter(3, 10, "Three"));
+        var world = Mock.Of<IWorldManager>();
+        world.GetCharacterById(kicked.Id).Returns(kicked);
+        var hasCertificate = false;
+        var purchases = Mock.Of<IFamilyPurchaseService>();
+        purchases.ConsumeDeparture(owner, family).Returns(() => hasCertificate
+            ? new FamilyPurchaseResult(true, FamilyPurchaseFailure.None)
+            : new FamilyPurchaseResult(false, FamilyPurchaseFailure.MissingItems));
+        var saves = 0;
+        var manager = NewManager(world, _ => saves++, purchases, family);
+
+        manager.KickMember(owner, kicked.Id);
+
+        await Assert.That(family.Members).Count().IsEqualTo(3);
+        await Assert.That(kicked.Family).IsEqualTo(10u);
+        await Assert.That(kicked.FamilyRejoinUntil).IsEqualTo(0L);
+        await Assert.That(LiveMembers(manager).ContainsKey(kicked.Id)).IsTrue();
+
+        hasCertificate = true;
+        manager.KickMember(owner, kicked.Id);
+
+        purchases.ConsumeDeparture(owner, family).WasCalled(Times.Exactly(2));
+        await Assert.That(family.Members).Count().IsEqualTo(2);
+        await Assert.That(kicked.Family).IsEqualTo(0u);
+        await Assert.That(kicked.FamilyRejoinUntil).IsGreaterThan(0L);
+        await Assert.That(saves).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task TwoMemberDisband_WithoutCertificate_KeepsTheFamily()
+    {
+        var owner = NewCharacter(1, 10, "Owner");
+        var member = NewCharacter(2, 10, "Member");
+        var family = NewFamily(owner, member);
+        var purchases = Mock.Of<IFamilyPurchaseService>();
+        purchases.ConsumeDeparture(Any<Character>(), Any<Family>())
+            .Returns(new FamilyPurchaseResult(false, FamilyPurchaseFailure.MissingItems));
+        var manager = NewManager(Mock.Of<IWorldManager>(), _ => { }, purchases, family);
+
+        manager.LeaveFamily(member);
+
+        await Assert.That(owner.Family).IsEqualTo(10u);
+        await Assert.That(member.Family).IsEqualTo(10u);
+        await Assert.That(family.Members).Count().IsEqualTo(2);
+        await Assert.That(manager.GetFamily(10)).IsSameReferenceAs(family);
+        await Assert.That(LiveMembers(manager).Count).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task RemoveDeletedCharacter_PersistsWithoutCharging()
+    {
+        var owner = NewCharacter(1, 10, "Owner");
+        var deleted = NewCharacter(2, 10, "Deleted");
+        var family = NewFamily(owner, deleted, NewCharacter(3, 10, "Three"));
+        var saves = 0;
+        var purchases = Mock.Of<IFamilyPurchaseService>();
+        var manager = NewManager(Mock.Of<IWorldManager>(), _ => saves++, purchases, family);
+
+        manager.RemoveDeletedCharacter(deleted);
+
+        purchases.ConsumeDeparture(Any<Character>(), Any<Family>()).WasCalled(Times.Never);
+        await Assert.That(saves).IsEqualTo(1);
+        await Assert.That(family.Members).Count().IsEqualTo(2);
+        await Assert.That(deleted.Family).IsEqualTo(0u);
+    }
+
+    [Test]
+    public async Task DepartureCallbacks_RunAfterFamilyMutationLockIsReleased()
+    {
+        var owner = NewCharacter(1, 10, "Owner");
+        var leaving = NewCharacter(2, 10, "Leaving");
+        var family = NewFamily(owner, leaving, NewCharacter(3, 10, "Three"));
+        var purchases = Mock.Of<IFamilyPurchaseService>();
+        FamilyManager manager = null;
+        Task callbackWorker = null;
+        purchases.ConsumeDeparture(leaving, family).Returns(new FamilyPurchaseResult(
+            true,
+            FamilyPurchaseFailure.None,
+            () =>
+            {
+                callbackWorker = Task.Run(() => manager.GetFamilyOfCharacter(uint.MaxValue));
+                if (!callbackWorker.Wait(TimeSpan.FromSeconds(5)))
+                    throw new TimeoutException("Family departure callback could not reacquire family state.");
+            }));
+        manager = NewManager(Mock.Of<IWorldManager>(), _ => { }, purchases, family);
+
+        try
+        {
+            manager.LeaveFamily(leaving);
+            await Assert.That(callbackWorker is not null).IsTrue();
+            await Assert.That(callbackWorker!.IsCompletedSuccessfully).IsTrue();
+        }
+        finally
+        {
+            if (callbackWorker != null)
+                await callbackWorker.WaitAsync(TimeSpan.FromSeconds(5));
+        }
+    }
+
     private static Character NewCharacter(uint id, uint family, string name) =>
         new(new UnitCustomModelParams()) { Id = id, Family = family, Name = name };
 
@@ -540,20 +697,37 @@ public class FamilyManagerTests
 
     private static FamilyManager NewManager(Mock<IWorldManager> world, Action<Family> save, params Family[] families)
     {
+        var purchases = Mock.Of<IFamilyPurchaseService>();
+        purchases.ConsumeInvitation(Any<Character>())
+            .Returns(new FamilyPurchaseResult(true, FamilyPurchaseFailure.None));
+        // The real service saves the family inside the purchase transaction, so the stand-in routes it to save.
+        purchases.ConsumeDeparture(Any<Character>(), Any<Family>())
+            .Returns((Character _, Family family) =>
+            {
+                save(family);
+                return new FamilyPurchaseResult(true, FamilyPurchaseFailure.None);
+            });
+        return NewManager(world, save, purchases, families);
+    }
+
+    private static FamilyManager NewManager(Mock<IWorldManager> world, Action<Family> save,
+        Mock<IFamilyPurchaseService> purchases, params Family[] families)
+    {
         ContentConfigGameData.Instance.SetForTest(FamilyContentConfig.MaximumCountKey, 8);
         ContentConfigGameData.Instance.SetForTest(FamilyContentConfig.LeaveExpPercentKey, 10);
         ContentConfigGameData.Instance.SetForTest(FamilyContentConfig.RejoinDelayHoursKey, 24);
         var ids = Mock.Of<IFamilyIdManager>();
         ids.GetNextId().Returns(100);
-        var purchases = Mock.Of<IFamilyPurchaseService>();
-        purchases.ConsumeInvitation(Any<Character>())
-            .Returns(new FamilyPurchaseResult(true, FamilyPurchaseFailure.None));
         var manager = new FamilyManager(world.Object, Mock.Of<IChatManager>().Object, ids.Object,
             purchases.Object, save, isCurrentSession: _ => true);
         SetField(manager, "_families", families.ToDictionary(x => x.Id));
         SetField(manager, "_familyMembers", families.SelectMany(x => x.Members).ToDictionary(x => x.Id));
         return manager;
     }
+
+    private static Dictionary<uint, FamilyMember> LiveMembers(FamilyManager manager) =>
+        (Dictionary<uint, FamilyMember>)typeof(FamilyManager)
+            .GetField("_familyMembers", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager)!;
 
     private static void SetField<T>(FamilyManager manager, string name, T value)
     {

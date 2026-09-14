@@ -27,6 +27,12 @@ public readonly record struct FamilyPurchaseResult(
 public interface IFamilyPurchaseService
 {
     FamilyPurchaseResult ConsumeInvitation(Character inviter);
+
+    /// <summary>
+    /// Charges the configured certificate to the payer and persists the family's pending departure in the
+    /// same transaction. The payer is the leaving member on a voluntary leave and the owner on a kick.
+    /// </summary>
+    FamilyPurchaseResult ConsumeDeparture(Character payer, Family family);
     FamilyPurchaseResult Expand(Character owner, Family family, uint itemId, int itemCount);
     FamilyPurchaseResult Rename(Character owner, Family family, string newName, long changeNameTime);
 }
@@ -44,6 +50,17 @@ public sealed class FamilyPurchaseService(
             snapshots =>
             {
                 repository.CommitItemConsumption(snapshots);
+                return true;
+            },
+            () => { });
+
+    public FamilyPurchaseResult ConsumeDeparture(Character payer, Family family) =>
+        payer == null || family == null
+            ? Failed(FamilyPurchaseFailure.InvalidRequest)
+            : Commit(payer, FamilyContentConfig.JoinLeaveItem, 1,
+            snapshots =>
+            {
+                repository.CommitDeparture(family, snapshots);
                 return true;
             },
             () => { });

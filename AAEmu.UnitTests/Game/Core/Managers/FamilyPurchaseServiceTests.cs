@@ -94,6 +94,61 @@ public class FamilyPurchaseServiceTests
         items.ApplyCommittedSnapshot(Any<ItemPersistenceSnapshot>()).WasCalled(Times.Never);
     }
 
+    [Test]
+    public async Task Departure_ConsumesTheCertificateWithTheFamilySave()
+    {
+        ContentConfigGameData.Instance.SetForTest(FamilyContentConfig.JoinLeaveItemKey, 41419);
+        var (character, item) = CreateCharacterWithItem(41419, 2);
+        var family = new Family { Id = 10 };
+        character.Family = family.Id;
+        var items = CreateItemManager();
+        var repository = Mock.Of<IFamilyPurchaseRepository>();
+        var service = new FamilyPurchaseService(repository.Object, items.Object);
+
+        var result = service.ConsumeDeparture(character, family);
+
+        await Assert.That(result.Success).IsTrue();
+        await Assert.That(item.Count).IsEqualTo(1);
+        repository.CommitDeparture(family, Any<IReadOnlyList<ItemPersistenceSnapshot>>()).WasCalled(Times.Once);
+    }
+
+    [Test]
+    public async Task Departure_MissingCertificateDoesNotReachPersistence()
+    {
+        ContentConfigGameData.Instance.SetForTest(FamilyContentConfig.JoinLeaveItemKey, 41419);
+        var (character, item) = CreateCharacterWithItem(48995, 1);
+        var family = new Family { Id = 10 };
+        var items = CreateItemManager();
+        var repository = Mock.Of<IFamilyPurchaseRepository>();
+        var service = new FamilyPurchaseService(repository.Object, items.Object);
+
+        var result = service.ConsumeDeparture(character, family);
+
+        await Assert.That(result.Failure).IsEqualTo(FamilyPurchaseFailure.MissingItems);
+        await Assert.That(item.Count).IsEqualTo(1);
+        repository.CommitDeparture(Any<Family>(), Any<IReadOnlyList<ItemPersistenceSnapshot>>())
+            .WasCalled(Times.Never);
+    }
+
+    [Test]
+    public async Task Departure_PersistenceFailure_DoesNotConsumeTheCertificate()
+    {
+        ContentConfigGameData.Instance.SetForTest(FamilyContentConfig.JoinLeaveItemKey, 41419);
+        var (character, item) = CreateCharacterWithItem(41419, 1);
+        var family = new Family { Id = 10 };
+        var items = CreateItemManager();
+        var repository = Mock.Of<IFamilyPurchaseRepository>();
+        repository.CommitDeparture(family, Any<IReadOnlyList<ItemPersistenceSnapshot>>())
+            .Throws(new InvalidOperationException("database unavailable"));
+        var service = new FamilyPurchaseService(repository.Object, items.Object);
+
+        var result = service.ConsumeDeparture(character, family);
+
+        await Assert.That(result.Failure).IsEqualTo(FamilyPurchaseFailure.PersistenceFailed);
+        await Assert.That(item.Count).IsEqualTo(1);
+        items.ApplyCommittedSnapshot(Any<ItemPersistenceSnapshot>()).WasCalled(Times.Never);
+    }
+
     private static Mock<IItemManager> CreateItemManager()
     {
         var manager = Mock.Of<IItemManager>();

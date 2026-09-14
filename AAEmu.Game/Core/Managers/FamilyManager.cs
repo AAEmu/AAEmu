@@ -531,13 +531,14 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
     }
 
     /// <summary>
-    /// Called when a player wants to leave a family. Removes him from the family, saves it, and updates family members.
+    /// Called when a player wants to leave a family. Charges the configured certificate to the leaving member,
+    /// removes them from the family in the same transaction, and updates the remaining members.
     /// </summary>
     /// <param name="character"></param>
     public void LeaveFamily(Character character)
         => RemoveFamilyMember(character, requireCurrentSession: true);
 
-    /// <summary>Removes a character during the serialized durable character-deletion workflow.</summary>
+    /// <summary>Removes a character during the serialized durable character-deletion workflow. No certificate is charged.</summary>
     public void RemoveDeletedCharacter(Character character)
         => RemoveFamilyMember(character, requireCurrentSession: false);
 
@@ -546,6 +547,7 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
         var familyId = character.Family;
         List<Character> disbandedMembers = null;
         Family changedFamily = null;
+        FamilyPurchaseResult purchase = default;
         using (var persistence = new PersistenceOperation())
         {
         lock (_familyMutationLock)
@@ -559,59 +561,96 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
         if (leavingMember == null || leavingMember.Role == 1 && family.Members.Count > 2)
             return;
 
+        // A voluntary leave pays the certificate; the character-deletion workflow does not.
+        var payer = requireCurrentSession ? character : null;
         var oldRejoinUntil = character.FamilyRejoinUntil;
         character.Family = 0;
         character.FamilyRejoinUntil = _unixTime() + FamilyContentConfig.RejoinDelaySeconds;
         family.RemovedMemberRejoinUntil = character.FamilyRejoinUntil;
         family.RemoveMember(leavingMember);
         _familyMembers.Remove(character.Id);
+        void Restore()
+        {
+            family.RestoreMember(leavingMember);
+            _familyMembers[leavingMember.Id] = leavingMember;
+            character.Family = family.Id;
+            character.FamilyRejoinUntil = oldRejoinUntil;
+        }
 
-        if (family.Members.Count < 2)
+        bool persisted;
+        try { persisted = TryPersistRemoval(family, payer, out purchase, out disbandedMembers); }
+        catch
         {
-            try { disbandedMembers = DisbandFamily(family); }
-            catch
-            {
-                family.RestoreMember(leavingMember);
-                _familyMembers[leavingMember.Id] = leavingMember;
-                character.Family = family.Id;
-                character.FamilyRejoinUntil = oldRejoinUntil;
-                throw;
-            }
+            Restore();
+            throw;
         }
-        else
+        if (!persisted)
         {
-            var oldExp = family.Exp;
-            family.Exp = FamilyProgressionRules.ApplyDepartureExperienceLoss(
-                family.Exp, FamilyContentConfig.LeaveExpPercent);
-            try { _persistFamily(family); }
-            catch
-            {
-                family.Exp = oldExp;
-                family.RestoreMember(leavingMember);
-                _familyMembers[leavingMember.Id] = leavingMember;
-                character.Family = family.Id;
-                character.FamilyRejoinUntil = oldRejoinUntil;
-                throw;
-            }
+            Restore();
+            return;
+        }
+        if (disbandedMembers == null)
             changedFamily = SnapshotForPacket(family);
-        }
         character.SendPacket(new SCFamilyRemovedPacket(family.Id));
         family.SendPacket(new SCFamilyMemberRemovedPacket(family.Id, false, character.Id));
         chatManager.GetFamilyChat(family.Id)?.LeaveChannel(character);
         RemoveLevelBuff(character);
         }
         }
+        purchase.PublishDeferred();
         PublishDisband(familyId, disbandedMembers);
         if (changedFamily != null)
             PublishExperience(changedFamily.Id, character.Id);
     }
 
     /// <summary>
+    /// Persists a removal that is already applied to the roster. A family left with fewer than two members is
+    /// disbanded; otherwise the configured departure EXP loss is applied. When a payer is given, the
+    /// configured certificate is consumed in the same transaction. Returns false, or throws, with the family
+    /// EXP unchanged when nothing was persisted; the caller restores the removed member.
+    /// </summary>
+    private bool TryPersistRemoval(Family family, Character payer, out FamilyPurchaseResult purchase,
+        out List<Character> disbandedMembers)
+    {
+        disbandedMembers = null;
+        if (family.Members.Count < 2)
+            return TryDisbandFamily(family, payer, out purchase, out disbandedMembers);
+
+        var oldExp = family.Exp;
+        family.Exp = FamilyProgressionRules.ApplyDepartureExperienceLoss(
+            family.Exp, FamilyContentConfig.LeaveExpPercent);
+        bool persisted;
+        try { persisted = TryPersistDeparture(payer, family, out purchase); }
+        catch
+        {
+            family.Exp = oldExp;
+            throw;
+        }
+        if (!persisted)
+            family.Exp = oldExp;
+        return persisted;
+    }
+
+    private bool TryPersistDeparture(Character payer, Family family, out FamilyPurchaseResult purchase)
+    {
+        purchase = default;
+        if (payer == null || familyPurchaseService == null)
+        {
+            _persistFamily(family);
+            return true;
+        }
+
+        purchase = familyPurchaseService.ConsumeDeparture(payer, family);
+        return purchase.Success;
+    }
+
+    /// <summary>
     /// Called when a family is disbanded (when they have less than 2 members)
     /// </summary>
-    /// <param name="family"></param>
-    private List<Character> DisbandFamily(Family family)
+    private bool TryDisbandFamily(Family family, Character payer, out FamilyPurchaseResult purchase,
+        out List<Character> removedOnlineMembers)
     {
+        removedOnlineMembers = null;
         var removedMembers = family.Members.ToArray();
         for (var i = family.Members.Count - 1; i > -1; i--)
         {
@@ -619,15 +658,26 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
             family.RemoveMember(member);
             _familyMembers.Remove(member.Id);
         }
-        try { _persistFamily(family); }
-        catch
+        void Restore()
         {
             foreach (var member in removedMembers)
             {
                 family.RestoreMember(member);
                 _familyMembers[member.Id] = member;
             }
+        }
+
+        bool persisted;
+        try { persisted = TryPersistDeparture(payer, family, out purchase); }
+        catch
+        {
+            Restore();
             throw;
+        }
+        if (!persisted)
+        {
+            Restore();
+            return false;
         }
         _families.Remove(family.Id);
         var online = removedMembers.Where(x => x.Character != null).Select(x => x.Character).ToList();
@@ -636,7 +686,8 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
             character.Family = 0;
             character.FamilyRejoinUntil = family.RemovedMemberRejoinUntil;
         }
-        return online;
+        removedOnlineMembers = online;
+        return true;
     }
 
     private void PublishDisband(uint familyId, IReadOnlyList<Character> members)
@@ -659,7 +710,8 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
     }
 
     /// <summary>
-    /// Called when a family member is kicked. Disbands the family if it has 2 members.
+    /// Called when a family member is kicked. Charges the configured certificate to the owner in the same
+    /// transaction as the removal. Disbands the family if it has 2 members.
     /// </summary>
     /// <param name="kicker"></param>
     /// <param name="kickedId"></param>
@@ -668,6 +720,7 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
         var familyId = kicker.Family;
         List<Character> disbandedMembers = null;
         Family changedFamily = null;
+        FamilyPurchaseResult purchase = default;
         using (var persistence = new PersistenceOperation())
         {
         lock (_familyMutationLock)
@@ -695,36 +748,30 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
         }
         family.RemoveMember(kickedMember);
         _familyMembers.Remove(kickedMember.Id);
+        void Restore()
+        {
+            family.RestoreMember(kickedMember);
+            _familyMembers[kickedMember.Id] = kickedMember;
+            if (!isOnline)
+                return;
+            kickedCharacter.Family = family.Id;
+            kickedCharacter.FamilyRejoinUntil = oldRejoinUntil;
+        }
 
-        if (family.Members.Count < 2)
+        bool persisted;
+        try { persisted = TryPersistRemoval(family, kicker, out purchase, out disbandedMembers); }
+        catch
         {
-            try { disbandedMembers = DisbandFamily(family); }
-            catch
-            {
-                family.RestoreMember(kickedMember);
-                _familyMembers[kickedMember.Id] = kickedMember;
-                if (isOnline) kickedCharacter.Family = family.Id;
-                if (isOnline) kickedCharacter.FamilyRejoinUntil = oldRejoinUntil;
-                throw;
-            }
+            Restore();
+            throw;
         }
-        else
+        if (!persisted)
         {
-            var oldExp = family.Exp;
-            family.Exp = FamilyProgressionRules.ApplyDepartureExperienceLoss(
-                family.Exp, FamilyContentConfig.LeaveExpPercent);
-            try { _persistFamily(family); }
-            catch
-            {
-                family.Exp = oldExp;
-                family.RestoreMember(kickedMember);
-                _familyMembers[kickedMember.Id] = kickedMember;
-                if (isOnline) kickedCharacter.Family = family.Id;
-                if (isOnline) kickedCharacter.FamilyRejoinUntil = oldRejoinUntil;
-                throw;
-            }
+            Restore();
+            return;
+        }
+        if (disbandedMembers == null)
             changedFamily = SnapshotForPacket(family);
-        }
         if (isOnline)
         {
             chatManager.GetFamilyChat(family.Id)?.LeaveChannel(kickedCharacter);
@@ -734,6 +781,7 @@ public class FamilyManager(IWorldManager worldManager, IChatManager chatManager,
         family.SendPacket(new SCFamilyMemberRemovedPacket(family.Id, true, kickedMember.Id));
         }
         }
+        purchase.PublishDeferred();
         PublishDisband(familyId, disbandedMembers);
         if (changedFamily != null)
             PublishExperience(changedFamily.Id, kickedId);

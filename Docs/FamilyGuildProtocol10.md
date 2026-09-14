@@ -88,7 +88,10 @@ state therefore indicates missing or rejected descriptor/member state.
 ## Implemented family behavior and persistence
 
 Family creation and joining consume one `family_join_leave_item` from the inviter when an invitation
-is successfully issued; declining or accepting consumes no second item. Member expansion uses
+is successfully issued; declining or accepting consumes no second item. A voluntary leave consumes
+one from the leaving member and a kick consumes one from the owner; the roster change and the item
+consumption commit in one transaction, and without the item the request is ignored. The serialized
+character-deletion cleanup removes the character without a charge. Member expansion uses
 `family_member_limits`, and rename uses the configured item, count, and delay. Inventory consumption
 and the family mutation share one MySQL transaction. Packets, item-use callbacks, chat changes, and
 buff changes run after commit and revalidate the current roster before stateful publication.

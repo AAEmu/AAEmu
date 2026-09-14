@@ -1,4 +1,5 @@
 using AAEmu.Commons.Utils.DB;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Items;
 using MySql.Data.MySqlClient;
 
@@ -34,6 +35,24 @@ public sealed class MySqlFamilyPurchaseRepository : IFamilyPurchaseRepository
             transaction.Rollback();
             throw;
         }
+    }
+
+    public void CommitDeparture(Family family, IReadOnlyList<ItemPersistenceSnapshot> itemSnapshots)
+    {
+        using var connection = _connectionFactory();
+        using var transaction = connection.BeginTransaction();
+        try
+        {
+            family.Save(connection, transaction);
+            _itemManager.PersistSnapshots(connection, transaction, itemSnapshots);
+            transaction.Commit();
+        }
+        catch
+        {
+            transaction.Rollback();
+            throw;
+        }
+        family.ConfirmSave();
     }
 
     public bool TryCommitExpansion(uint familyId, uint expectedIncreaseCount, uint newIncreaseCount,

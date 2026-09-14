@@ -2,6 +2,7 @@ using System.Reflection;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Containers;
@@ -82,6 +83,62 @@ public sealed class FamilyPurchaseRepositoryIntegrationTests(FamilyMySqlFixture 
         Assert.Equal(10L, await Scalar(connection, "SELECT count FROM items WHERE id=7003"));
     }
 
+    [Fact]
+    public async Task Departure_CommitsTheRosterChangeWithTheCertificate()
+    {
+        Assert.SkipUnless(fixture.Enabled, "Set AAEMU_FAMILY_TEST_MYSQL to run the isolated MySQL fixture.");
+        await using var connection = await fixture.OpenAsync();
+        var manager = CreateItemManager();
+        var item = CreateRegisteredItem(manager, 7004, 2);
+        var family = await SeedFamilyWithMembers(connection, 504, ownerId: 41, memberId: 42);
+        SeedItem(manager, connection, item);
+        var repository = new MySqlFamilyPurchaseRepository(manager, OpenFixtureConnection);
+        family.RemoveMember(family.Members.Single(x => x.Id == 42));
+        family.RemovedMemberRejoinUntil = 777;
+        family.Exp = 90;
+
+        WithinGate(() =>
+        {
+            repository.CommitDeparture(family, [manager.CapturePersistenceSnapshot(item).WithCount(1)]);
+            return true;
+        });
+
+        Assert.Equal(0L, await Scalar(connection, "SELECT COUNT(*) FROM family_members WHERE family_id=504 AND character_id=42"));
+        Assert.Equal(1L, await Scalar(connection, "SELECT COUNT(*) FROM family_members WHERE family_id=504 AND character_id=41"));
+        Assert.Equal(0L, await Scalar(connection, "SELECT family FROM characters WHERE id=42"));
+        Assert.Equal(777L, await Scalar(connection, "SELECT family_rejoin_until FROM characters WHERE id=42"));
+        Assert.Equal(90L, await Scalar(connection, "SELECT exp FROM families WHERE id=504"));
+        Assert.Equal(1L, await Scalar(connection, "SELECT count FROM items WHERE id=7004"));
+    }
+
+    [Fact]
+    public async Task Departure_StaleCertificate_RollsBackTheRoster()
+    {
+        Assert.SkipUnless(fixture.Enabled, "Set AAEMU_FAMILY_TEST_MYSQL to run the isolated MySQL fixture.");
+        await using var connection = await fixture.OpenAsync();
+        var manager = CreateItemManager();
+        var item = CreateRegisteredItem(manager, 7005, 2);
+        var family = await SeedFamilyWithMembers(connection, 505, ownerId: 51, memberId: 52);
+        SeedItem(manager, connection, item);
+        var repository = new MySqlFamilyPurchaseRepository(manager, OpenFixtureConnection);
+        var snapshot = manager.CapturePersistenceSnapshot(item).WithCount(1);
+        item.Count = 1;
+        family.RemoveMember(family.Members.Single(x => x.Id == 52));
+        family.RemovedMemberRejoinUntil = 777;
+
+        Assert.Throws<InvalidOperationException>(() => WithinGate(() =>
+        {
+            repository.CommitDeparture(family, [snapshot]);
+            return true;
+        }));
+
+        Assert.Equal(1L, await Scalar(connection, "SELECT COUNT(*) FROM family_members WHERE family_id=505 AND character_id=52"));
+        Assert.Equal(505L, await Scalar(connection, "SELECT family FROM characters WHERE id=52"));
+        Assert.Equal(0L, await Scalar(connection, "SELECT family_rejoin_until FROM characters WHERE id=52"));
+        Assert.Equal(100L, await Scalar(connection, "SELECT exp FROM families WHERE id=505"));
+        Assert.Equal(2L, await Scalar(connection, "SELECT count FROM items WHERE id=7005"));
+    }
+
     private MySqlConnection OpenFixtureConnection() { var connection = new MySqlConnection(fixture.ConnectionString); connection.Open(); return connection; }
 
     private static ItemManager CreateItemManager()
@@ -120,6 +177,26 @@ public sealed class FamilyPurchaseRepositoryIntegrationTests(FamilyMySqlFixture 
         transaction.Commit();
         return true;
     });
+
+    private static async Task<Family> SeedFamilyWithMembers(MySqlConnection connection, uint familyId,
+        uint ownerId, uint memberId)
+    {
+        await using var command = connection.CreateCommand();
+        command.CommandText =
+            "INSERT INTO families(id,name,exp) VALUES(@family_id,'Old Name',100);" +
+            "INSERT INTO characters(id,family) VALUES(@owner_id,@family_id),(@member_id,@family_id);" +
+            "INSERT INTO family_members(character_id,family_id,name,role,title) " +
+            "VALUES(@owner_id,@family_id,'Owner',1,''),(@member_id,@family_id,'Member',0,'')";
+        command.Parameters.AddWithValue("@family_id", familyId);
+        command.Parameters.AddWithValue("@owner_id", ownerId);
+        command.Parameters.AddWithValue("@member_id", memberId);
+        await command.ExecuteNonQueryAsync();
+
+        var family = new Family { Id = familyId, Name = "Old Name", Exp = 100 };
+        family.AddMember(new FamilyMember { Id = ownerId, Name = "Owner", Role = 1, Title = "" });
+        family.AddMember(new FamilyMember { Id = memberId, Name = "Member", Role = 0, Title = "" });
+        return family;
+    }
 
     private static async Task SeedFamily(MySqlConnection connection, uint familyId)
     {
