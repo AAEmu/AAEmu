@@ -21,6 +21,7 @@ using AAEmu.Game.Models.Game.StreamAoi;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Movements;
 using AAEmu.Game.Models.Game.Units.Static;
+using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils;
 
@@ -1033,6 +1034,12 @@ public partial class Npc : Unit
                 QuestManager.Instance.DoOnMonsterHuntEvents(pl, this);
             }
         }
+        // Conflict/war-zone participation counts one kill per NPC death. The reward branches above
+        // can cover a whole team, so counting there would multiply the kill; only deaths that
+        // actually credited a player count.
+        if (eligiblePlayers.Count > 0 || killer is Character)
+            ConflictZoneParticipation.RegisterNpcKill(this);
+
         base.DoDie(killer, killReason);
         ClearAllAggroTargetsAndCheckCombatState();
         // AggroTable.Clear();
