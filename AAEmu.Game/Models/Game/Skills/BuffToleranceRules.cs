@@ -7,9 +7,9 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// </summary>
 /// <remarks>
 /// Diminishing returns on crowd control: each CC of the same family inside
-/// <c>buff_tolerances.step_duration</c> lands a step further up the ladder with its duration cut, and
-/// the step where the ladder stops paying out hands the owner the family's
-/// <c>final_step_buff_id</c> immunity instead.
+/// <c>buff_tolerances.step_duration</c> lands one step further down the ladder with its duration cut,
+/// and the ladder's last step is the family's immunity step - the CC that arrives there is refused and
+/// <c>final_step_buff_id</c> goes on instead.
 /// </remarks>
 public enum BuffToleranceOutcome
 {
@@ -27,13 +27,13 @@ public enum BuffToleranceOutcome
     Started,
 
     /// <summary>
-    /// The application lands one step deeper into the family: shorter duration, closer to immunity.
+    /// The application lands one step further down the ladder: shorter duration, closer to immunity.
     /// </summary>
     Advanced,
 
     /// <summary>
-    /// The ladder was already at its last step. The final-step immunity buff is handed out and the
-    /// counter restarts at the first step.
+    /// This application arrives at the ladder's last step. The CC is refused, <c>final_step_buff_id</c>
+    /// is applied in its place, and the counter restarts at the first step.
     /// </summary>
     ImmunityApplied,
 
@@ -51,8 +51,14 @@ public enum BuffToleranceOutcome
 /// <param name="Step">The step the counter ends on, or null when there is no counter to write.</param>
 public readonly record struct BuffToleranceDecision(BuffToleranceOutcome Outcome, BuffToleranceStep Step)
 {
-    /// <summary>False only for <see cref="BuffToleranceOutcome.Immune"/>.</summary>
-    public bool Applies => Outcome != BuffToleranceOutcome.Immune;
+    /// <summary>
+    /// False when the family refuses this buff, which is both the already-immune case and the
+    /// application that reaches the ladder's immunity step.
+    /// </summary>
+    public bool Applies => Outcome
+        is BuffToleranceOutcome.Started
+        or BuffToleranceOutcome.Advanced
+        or BuffToleranceOutcome.Untracked;
 }
 
 /// <summary>
@@ -81,25 +87,34 @@ public static class BuffToleranceRules
         bool immunityBuffPresent,
         DateTime now)
     {
-        if (tolerance?.Steps == null || tolerance.Steps.Count == 0)
+        if (tolerance == null)
             return new BuffToleranceDecision(BuffToleranceOutcome.Untracked, null);
 
-        // The immunity outranks the ladder. A CC the family is already immune to must not advance the
-        // counter either, or the immunity would end with the ladder part-way up instead of fresh.
+        // The immunity outranks the ladder, and it outranks a ladder whose steps are missing: a CC the
+        // family is already immune to must not land either way, and it must not advance the counter
+        // either, or the immunity would end with the ladder part-way down instead of fresh.
         if (immunityBuffPresent)
             return new BuffToleranceDecision(BuffToleranceOutcome.Immune, counter?.CurrentStep);
 
+        var steps = tolerance.Steps;
+        if (steps == null || steps.Count == 0)
+            return new BuffToleranceDecision(BuffToleranceOutcome.Untracked, null);
+
         var firstStep = tolerance.GetFirstStep();
-        if (counter?.CurrentStep == null)
+        if (counter?.CurrentStep == null || !steps.Contains(counter.CurrentStep))
             return new BuffToleranceDecision(BuffToleranceOutcome.Started, firstStep);
 
         if (now > counter.LastStep + TimeSpan.FromSeconds(tolerance.StepDuration))
             return new BuffToleranceDecision(BuffToleranceOutcome.Started, firstStep);
 
-        // GetStepAfter clamps at the last step, so a next step that reduces no more than the current one
-        // is how both "the ladder is exhausted" and the data's trailing zero-reduction step read.
+        // The ladder is walked by position, not by comparing reductions, and its last step is the
+        // family's immunity step rather than another landing step. Every one of the 31 shipped ladders
+        // ends on a 0, 21 of them are all zeroes (0/0, and tolerance 43's 0/0/0), and reading that
+        // trailing 0 as a landing step makes the CC before the immunity the longest of the burst - 0 %,
+        // 25 %, 50 %, then 0 % again. GetStepAfter clamps at the last step, so "the next step is the
+        // last one" covers both arriving there and finding the counter already on it.
         var nextStep = tolerance.GetStepAfter(counter.CurrentStep);
-        if (nextStep == null || nextStep.TimeReduction <= counter.CurrentStep.TimeReduction)
+        if (nextStep == null || nextStep.Id >= steps[^1].Id)
             return new BuffToleranceDecision(BuffToleranceOutcome.ImmunityApplied, firstStep);
 
         return new BuffToleranceDecision(BuffToleranceOutcome.Advanced, nextStep);

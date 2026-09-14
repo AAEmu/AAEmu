@@ -17,16 +17,20 @@ namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 /// </summary>
 /// <remarks>
 /// content: buff_tolerances 4 (buff_tag_id 6, step_duration 30, final_step_buff_id 2371) with
-/// buff_tolerance_steps 0 %, 25 %, 50 %, 0 % — the ids are faked here, the shape is the live one.
+/// buff_tolerance_steps 0 / 25 / 50 / 0 — the ids are faked here, the shape is the live one. The
+/// second family stands in for a tolerance whose steps are missing.
 /// </remarks>
 [NotInParallel]
 public class BuffToleranceAddBuffTests
 {
     private const uint CcBuffId = 91001;
     private const uint SiblingCcBuffId = 91003;
+    private const uint StepslessCcBuffId = 91004;
     private const uint ImmunityBuffId = 91002;
     private const uint ToleranceId = 4;
     private const uint ToleranceTagId = 6;
+    private const uint StepslessToleranceId = 5;
+    private const uint StepslessToleranceTagId = 7;
 
     private FieldInfo _skillManagerField;
     private FieldInfo _buffGameDataField;
@@ -55,21 +59,40 @@ public class BuffToleranceAddBuffTests
         SetField(skillManager, "_buffTags", new Dictionary<uint, List<uint>>
         {
             [CcBuffId] = [ToleranceTagId],
-            [SiblingCcBuffId] = [ToleranceTagId]
+            [SiblingCcBuffId] = [ToleranceTagId],
+            [StepslessCcBuffId] = [StepslessToleranceTagId]
         });
         SetField(skillManager, "_buffs", new Dictionary<uint, BuffTemplate>
         {
             [CcBuffId] = new BuffTemplate { Id = CcBuffId, Duration = 5000 },
             [SiblingCcBuffId] = new BuffTemplate { Id = SiblingCcBuffId, Duration = 5000 },
+            [StepslessCcBuffId] = new BuffTemplate { Id = StepslessCcBuffId, Duration = 5000 },
             [ImmunityBuffId] = new BuffTemplate { Id = ImmunityBuffId, Duration = 0 }
         });
         _skillManagerField.SetValue(null, skillManager);
 
         var tolerance = CreateTolerance();
+        var stepslessTolerance = new BuffTolerance
+        {
+            Id = StepslessToleranceId,
+            BuffTagId = StepslessToleranceTagId,
+            StepDuration = 30,
+            FinalStepBuffId = ImmunityBuffId,
+            CharacterTimeReduction = 0,
+            Steps = []
+        };
         var buffGameData = new BuffGameData();
         SetField(buffGameData, "_buffModifiers", new Dictionary<uint, List<BuffModifier>>());
-        SetField(buffGameData, "_buffTolerances", new Dictionary<uint, BuffTolerance> { [ToleranceTagId] = tolerance });
-        SetField(buffGameData, "_buffTolerancesById", new Dictionary<uint, BuffTolerance> { [ToleranceId] = tolerance });
+        SetField(buffGameData, "_buffTolerances", new Dictionary<uint, BuffTolerance>
+        {
+            [ToleranceTagId] = tolerance,
+            [StepslessToleranceTagId] = stepslessTolerance
+        });
+        SetField(buffGameData, "_buffTolerancesById", new Dictionary<uint, BuffTolerance>
+        {
+            [ToleranceId] = tolerance,
+            [StepslessToleranceId] = stepslessTolerance
+        });
         _buffGameDataField.SetValue(null, buffGameData);
 
         // A timed CC schedules its own expiry and a refresh clears the pending one; neither should
@@ -117,7 +140,7 @@ public class BuffToleranceAddBuffTests
     {
         var (owner, caster) = CreateUnits();
         owner.Buffs.AddBuff(CreateCcBuff(owner, caster, CcBuffId)); // opens the ladder at 0 %
-        owner.Buffs.AddBuff(CreateCcBuff(owner, caster, CcBuffId)); // steps to 25 %
+        owner.Buffs.AddBuff(CreateCcBuff(owner, caster, CcBuffId)); // moves to 25 %
         var beforeImmunity = ReadCounter(owner).CurrentStep;
         await Assert.That(beforeImmunity.TimeReduction).IsEqualTo(25u);
 
@@ -144,20 +167,42 @@ public class BuffToleranceAddBuffTests
     }
 
     [Test]
-    public async Task AddBuff_ThroughTheWholeLadder_HandsOutTheFinalStepImmunity()
+    public async Task AddBuff_WhileImmuneOnALadderWithNoSteps_DropsTheCc()
+    {
+        // An empty step list must not turn the family's immunity into a pass. The tolerance is found,
+        // the immunity is up, and that has to be answered before the ladder is looked at.
+        var (owner, caster) = CreateUnits();
+        owner.Buffs.AddBuff(CreateCcBuff(owner, caster, ImmunityBuffId));
+        await Assert.That(owner.Buffs.CheckBuff(ImmunityBuffId)).IsTrue();
+
+        owner.Buffs.AddBuff(CreateCcBuff(owner, caster, StepslessCcBuffId));
+
+        await Assert.That(owner.Buffs.CheckBuff(StepslessCcBuffId)).IsFalse();
+    }
+
+    [Test]
+    public async Task AddBuff_ThroughTheWholeLadder_RefusesTheFourthCcAndGrantsTheImmunity()
     {
         var (owner, caster) = CreateUnits();
 
         owner.Buffs.AddBuff(CreateCcBuff(owner, caster, CcBuffId)); // 0 %
+        await Assert.That(ReadCounter(owner).CurrentStep.TimeReduction).IsEqualTo(0u);
         owner.Buffs.AddBuff(CreateCcBuff(owner, caster, CcBuffId)); // 25 %
+        await Assert.That(ReadCounter(owner).CurrentStep.TimeReduction).IsEqualTo(25u);
         owner.Buffs.AddBuff(CreateCcBuff(owner, caster, CcBuffId)); // 50 %
+        await Assert.That(ReadCounter(owner).CurrentStep.TimeReduction).IsEqualTo(50u);
         await Assert.That(owner.Buffs.CheckBuff(ImmunityBuffId)).IsFalse();
 
-        owner.Buffs.AddBuff(CreateCcBuff(owner, caster, CcBuffId)); // trailing 0 %: the ladder is over
+        // Clear the live instance so the fourth application can be seen on its own.
+        owner.Buffs.RemoveBuff(CcBuffId, notifyZone: false);
 
+        owner.Buffs.AddBuff(CreateCcBuff(owner, caster, CcBuffId)); // arrives at the immunity step
+
+        // The fourth stun is refused rather than landing at the trailing 0 % - a full-length stun with
+        // the immunity bolted on top - and the ladder restarts while the immunity goes up instead.
+        await Assert.That(owner.Buffs.CheckBuff(CcBuffId)).IsFalse();
         await Assert.That(owner.Buffs.CheckBuff(ImmunityBuffId)).IsTrue();
         var counter = ReadCounter(owner);
-        await Assert.That(counter.CurrentStep.TimeReduction).IsEqualTo(0u);
         await Assert.That(counter.CurrentStep).IsSameReferenceAs(counter.Tolerance.Steps[0]);
     }
 

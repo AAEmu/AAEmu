@@ -302,7 +302,6 @@ public class Buffs : IBuffs
 
     public void AddBuff(Buff buff, uint index = 0, int forcedDuration = 0)
     {
-        var finalToleranceBuffId = 0u;
         Buff transformFrom = null;
         var transformBuffId = 0u;
         lock (_lock)
@@ -339,14 +338,11 @@ public class Buffs : IBuffs
                     toleranceNow);
 
                 // Already immune to this family: the CC does not land and the counter must not move, or
-                // the immunity would end with the ladder part-way up. Bailing out here also keeps the
+                // the immunity would end with the ladder part-way down. Bailing out here also keeps the
                 // rest of the cast alive — the exception the old create-branch threw on this path
                 // escaped the effect loop, dropping every remaining effect and EndSkill with it.
-                if (!toleranceDecision.Applies)
+                if (toleranceDecision.Outcome == BuffToleranceOutcome.Immune)
                     return;
-
-                if (toleranceDecision.Outcome == BuffToleranceOutcome.ImmunityApplied)
-                    finalToleranceBuffId = buffTolerance.FinalStepBuffId;
 
                 if (toleranceDecision.Outcome == BuffToleranceOutcome.Untracked)
                 {
@@ -362,6 +358,23 @@ public class Buffs : IBuffs
 
                     toleranceCounter.CurrentStep = toleranceDecision.Step;
                     toleranceCounter.LastStep = toleranceNow;
+                }
+
+                // This application is the ladder's immunity step: it is refused and the family's
+                // final-step buff goes on in its place. Applying it from here keeps the counter restart
+                // and the immunity in one atomic step; AddBuff re-enters this instance's lock on this
+                // same thread, and no final_step_buff_id carries a tag that resolves to a tolerance, so
+                // this cannot nest any further.
+                if (toleranceDecision.Outcome == BuffToleranceOutcome.ImmunityApplied)
+                {
+                    var immunityTemplate = SkillManager.Instance.GetBuffTemplate(buffTolerance.FinalStepBuffId);
+                    if (immunityTemplate != null)
+                    {
+                        AddBuff(new Buff(buff.Owner, buff.Caster, buff.SkillCaster, immunityTemplate,
+                            buff.Skill, DateTime.UtcNow));
+                    }
+
+                    return;
                 }
             }
 
@@ -523,11 +536,6 @@ public class Buffs : IBuffs
                     transformFrom.Skill,
                     DateTime.UtcNow));
             }
-        }
-
-        if (finalToleranceBuffId > 0)
-        {
-            AddBuff(new Buff(buff.Owner, buff.Caster, buff.SkillCaster, SkillManager.Instance.GetBuffTemplate(finalToleranceBuffId), buff.Skill, DateTime.UtcNow));
         }
 
         if (buff.Template.BuffId == SportFishCombat.LineBrokenBuffId && GetOwner() is Npc lineFish)
