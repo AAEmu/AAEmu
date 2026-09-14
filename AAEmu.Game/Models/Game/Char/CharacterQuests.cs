@@ -19,7 +19,6 @@ using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.World;
-using AAEmu.Game.Models.Game.World.Zones;
 using MySql.Data.MySqlClient;
 
 using NLog;
@@ -630,10 +629,6 @@ public class CharacterQuests(Character owner)
             {
                 QuestId = questId
             });
-
-            // Conflict-zone participation: finishing a quest listed in
-            // conflict_zone_quest_completions escalates the war state of the zone it was completed in.
-            ConflictZoneParticipation.RegisterQuestCompletion(Owner, questId);
         }
 
         return completedBlock;
