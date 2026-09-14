@@ -244,6 +244,12 @@ public static class WorldIntegration
     public static Action<uint, uint> NotifyZoneReadyForHousing { get; set; }
 
     /// <summary>
+    /// Zone just reached ZoneLoaded — send it the current conflict-zone war state for its group so it
+    /// can arm its peace/war spawners without waiting for the next transition. Args: zoneId, instanceId.
+    /// </summary>
+    public static Action<uint, uint> NotifyZoneReadyForConflictZone { get; set; }
+
+    /// <summary>
     /// when race starters (Nuian 179, Firran 184, …) have no matching process.
     /// </summary>
     public static Func<uint, bool> IsZoneLoaded { get; set; }
@@ -488,6 +494,13 @@ public static class WorldIntegration
 
     /// <summary>WZSiegeState opaque.</summary>
     public static Action<byte[]> RelaySiegeStateToZone { get; set; }
+
+    /// <summary>
+    /// WZConflictZoneState: a conflict zone group entered a new honor-point war state, so the Zone
+    /// hosts simulating that group can re-arm the <c>conflict_zone_npc_spawners</c> rows for it.
+    /// Args: zone group id, war state byte (ZoneConflictType).
+    /// </summary>
+    public static Action<ushort, byte> RelayConflictZoneStateToZone { get; set; }
 
     /// <summary>WZCheckMole* opaque.</summary>
     public static Action<bool, byte[]> RelayMoleCheckToZone { get; set; }
