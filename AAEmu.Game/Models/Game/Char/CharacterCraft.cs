@@ -1,6 +1,7 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -10,11 +11,14 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Tasks.Skills;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Char;
 
 public class CharacterCraft(Character owner)
 {
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
     private int Count { get; set; }
     private Craft CurrentCraft { get; set; }
     /// <summary>
@@ -30,6 +34,20 @@ public class CharacterCraft(Character owner)
         CurrentCraft = craft;
         Count = count;
         DoodadId = doodadId;
+
+        // Crafts that only exist behind a recipe item stay locked until the character has used one. The
+        // client's craft book lists every craft in the database regardless, so without this gate a recipe
+        // is only ever a UI hint. A character that was never loaded (tests, tooling) has no recipe book,
+        // and then there is nothing to gate against.
+        if (ItemUseGameData.Instance.IsRecipeGatedCraft(craft.Id) &&
+            Owner.Recipes is { } recipeBook &&
+            !recipeBook.IsLearned(craft.Id))
+        {
+            Logger.Warn("{0} tried to craft {1} without having learned its recipe", Owner.Name, craft.Id);
+            Owner.SendErrorMessage(ErrorMessageType.CraftNotLearned);
+            CancelCraft();
+            return;
+        }
 
         // check if you are equipped with a backpack or glider
         if (!Owner.Inventory.CanReplaceGliderInBackpackSlot())
