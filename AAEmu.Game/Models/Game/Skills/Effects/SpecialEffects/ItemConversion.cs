@@ -67,18 +67,20 @@ public class ItemConversion : SpecialEffectAction
             return;
         }
 
-        // value1 names the item_conv_sets family this effect performs. Refuse a cast that asks for another
-        // family: an awakening effect must not run the disenchant chain off the same reagent pack.
+        // value1 names the item_conv_sets family this effect performs. Refuse a cast the reagent has no route
+        // for: an evenstone must not run an awakening or repackage chain off the same pack.
         //
-        // Only enforced when the item's own families are known. 10 of the 5519 reagent packs the content
-        // references reach only conversions whose item_convs.item_conv_set_id is NULL - the origin-land
-        // armour socket disenchants, covering 315 items - and rejecting on unknown data would break every
-        // one of them.
-        if (requestedFamily != 0 && reagent.HasKnownFamily && !ItemConversionGameData.Instance.IsValidConversionSet(value1, reagent))
+        // The check is the loader's own route selection rather than a family comparison, so a pack that mixes
+        // an unrelated family with unattributed conversions keeps its real route. 11 packs are shaped that
+        // way - reagent pack 2725 holds the family-4 "dummy" next to discontinued_ship_paper.common, so item
+        // 35938 reaches item 46831 - and 10 more have only unattributed routes (the origin-land armour socket
+        // disenchants, 315 items).
+        if (requestedFamily != 0 && !ItemConversionGameData.Instance.HasRoutesFor(reagent, requestedFamily))
         {
             Logger.Warn(
-                "ItemConversion: skill {0} asked for conversion set {1} but item {2} belongs to set(s) {3}",
-                skill.Template?.Id, value1, id, string.Join(',', reagent.ConversionFamilies.Order()));
+                "ItemConversion: skill {0} asked for conversion set {1} but item {2} has no route for it (families {3})",
+                skill.Template?.Id, value1, id,
+                reagent.HasKnownFamily ? string.Join(',', reagent.ConversionFamilies.Order()) : "none");
             skill.Cancelled = true;
             return;
         }
@@ -181,15 +183,50 @@ public class ItemConversion : SpecialEffectAction
                     }
                 }
 
+                // Both plans are applied to the live state before either publishes. The rows are already
+                // committed, so stopping between them would leave the reward live and the reagent only
+                // removed in the database, where a later save of the still-live item puts it back.
                 if (acquisition != null)
                 {
                     acquisition.MarkCommitted();
-                    acquisitionPublication = acquisition.ApplyCommitted(ItemTaskType.Conversion);
-                    acquisitionPublication.PublishPackets();
+                    try
+                    {
+                        acquisitionPublication = acquisition.ApplyCommitted(ItemTaskType.Conversion);
+                    }
+                    catch (Exception exception)
+                    {
+                        Logger.Error(exception, "ItemConversion: failed to apply the rewards for item {0}", targetItemId);
+                    }
                 }
 
-                consumptionPublication = consumption.ApplyCommitted(ItemTaskType.Conversion);
-                consumptionPublication.PublishPackets();
+                try
+                {
+                    consumptionPublication = consumption.ApplyCommitted(ItemTaskType.Conversion);
+                }
+                catch (Exception exception)
+                {
+                    Logger.Error(exception, "ItemConversion: failed to apply the reagent removal for item {0}", targetItemId);
+                }
+
+                // Publication is guarded per plan: a sending failure must not stop the other plan's packets
+                // or the callbacks below, which is what carries the debit to item-use progress.
+                try
+                {
+                    acquisitionPublication?.PublishPackets();
+                }
+                catch (Exception exception)
+                {
+                    Logger.Error(exception, "ItemConversion: failed to publish the rewards for item {0}", targetItemId);
+                }
+
+                try
+                {
+                    consumptionPublication?.PublishPackets();
+                }
+                catch (Exception exception)
+                {
+                    Logger.Error(exception, "ItemConversion: failed to publish the reagent removal for item {0}", targetItemId);
+                }
             }
             catch (Exception exception)
             {

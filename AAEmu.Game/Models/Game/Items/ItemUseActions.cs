@@ -28,14 +28,25 @@ public static class ItemUseActions
         if (character == null || item?.Template == null)
             return;
 
-        switch (item.Template.ImplId)
+        try
         {
-            case ItemImplEnum.Recipe:
-                LearnRecipe(character, item);
-                break;
-            case ItemImplEnum.OpenPaper:
-                ResolvePaper(character, item);
-                break;
+            switch (item.Template.ImplId)
+            {
+                case ItemImplEnum.Recipe:
+                    LearnRecipe(character, item);
+                    break;
+                case ItemImplEnum.OpenPaper:
+                    ResolvePaper(character, item);
+                    break;
+            }
+        }
+        catch (Exception exception)
+        {
+            // A failure here must not swallow the item-use event the caller raises next (quest progress,
+            // assignment tracking) for a use that already happened.
+            Logger.Error(
+                exception, "Failed to apply item-use actions for item {0} of character {1}",
+                item.TemplateId, character.Name);
         }
     }
 
@@ -140,7 +151,17 @@ public static class ItemUseActions
             // follows them.
             character.Recipes.ApplyLearned(learned);
             publication = consumption.ApplyCommitted(ItemTaskType.ConsumeSkillSource);
-            publication.PublishPackets();
+            try
+            {
+                publication.PublishPackets();
+            }
+            catch (Exception exception)
+            {
+                // The callbacks below still have to run: they are what tells item-use quest progress that
+                // the recipe item was spent, and a packet that failed to encode must not take that with it.
+                Logger.Error(exception, "Failed to publish recipe item packets for character {0}", character.Name);
+            }
+
             Logger.Debug(
                 "Character {0} learned craft(s) {1} from recipe item {2}",
                 character.Name, string.Join(',', learned), item.TemplateId);

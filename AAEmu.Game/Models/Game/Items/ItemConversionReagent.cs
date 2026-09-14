@@ -38,13 +38,21 @@ public class ItemConversionReagent
     /// </summary>
     public HashSet<uint> ConversionFamilies = [];
 
+    /// <summary>
+    /// Conversions of this pack whose <c>item_conv_set_id</c> is NULL, so no family can attribute them.
+    /// 11 packs mix one of those with a known family and the NULL route is the real one: reagent pack 2725
+    /// holds the family-4 "dummy" (145 of item 46185) next to
+    /// <c>discontinued_ship_paper.common</c> (1 of item 46831), and 10 more packs have nothing but
+    /// unattributed routes, among them the origin-land armour socket disenchants covering 315 items.
+    /// </summary>
+    public List<uint> UnattributedConversionIds = [];
+
     /// <summary>True for an explicit <c>item_conv_reagents</c> row, false for a filter row.</summary>
     public bool IsExplicitItem;
 
     /// <summary>
-    /// False when none of the pack's conversions names a family - 10 packs, among them the origin-land
-    /// armour socket disenchants (rpack 331-335, 315 items), whose conversions carry a NULL
-    /// <c>item_conv_set_id</c>. Nothing can be validated against those, so the cast is allowed.
+    /// False when none of the pack's conversions names a family. Reported at load so the content gap is
+    /// visible; whether a cast may proceed is decided per request by the loader's route selection.
     /// </summary>
     public bool HasKnownFamily => ConversionFamilies.Count > 0;
 

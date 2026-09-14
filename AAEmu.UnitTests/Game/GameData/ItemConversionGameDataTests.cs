@@ -224,9 +224,74 @@ public class ItemConversionGameDataTests : SqliteTestBase
         await Assert.That(reagent).IsNotNull();
         await Assert.That(reagent.ReagentPackId).IsEqualTo(331u);
         await Assert.That(reagent.HasKnownFamily).IsFalse();
-        // The effect allows a cast it cannot validate, and the conversion still pays.
+        // The effect allows a cast it cannot attribute, and the conversion still pays.
+        await Assert.That(data.HasRoutesFor(reagent, 3)).IsTrue();
         await Assert.That(data.TryRollProducts(reagent, 3, out var rolls)).IsTrue();
         await Assert.That(rolls[0].Product.OutputItemId).IsEqualTo(31011u);
+    }
+
+    [Test]
+    public async Task MixedKnownAndUnattributedPack_FallsBackToItsUnattributedRoute()
+    {
+        // Content shape of reagent pack 2725 (item 35938, the shotgun blueprint): the family-4 route is a
+        // "dummy" paying 145 of item 46185, and the real route is the unattributed
+        // discontinued_ship_paper.common paying 1 of item 46831. A request for any other family has to use
+        // the unattributed route rather than reject the cast or roll both.
+        SeedDisenchant();
+        Execute(
+            """
+            INSERT INTO item_convs (id, name, item_conv_set_id) VALUES (2723, 'dummy', 4), (1304, 'discontinued_ship_paper.common', NULL);
+            INSERT INTO item_conv_rpacks (id, name) VALUES (2725, 'ship_paper.reagent');
+            INSERT INTO item_conv_rpack_members (id, item_conv_id, item_conv_rpack_id) VALUES (40, 2723, 2725), (41, 1304, 2725);
+            INSERT INTO item_conv_reagents (id, item_conv_rpack_id, item_id, grade_id, max_grade_id) VALUES (50, 2725, 35938, 0, 0);
+            INSERT INTO item_conv_ppacks (id, name, chance_rate) VALUES (2796, 'dummy.product', 10000), (5488, 'ship_paper.product', 10000);
+            INSERT INTO item_conv_ppack_members (id, item_conv_id, item_conv_ppack_id) VALUES (40, 2723, 2796), (41, 1304, 5488);
+            INSERT INTO item_conv_products (id, item_conv_ppack_id, item_id, weight, min, max, item_grade_id)
+                VALUES (40, 2796, 46185, 1, 145, 145, -1), (41, 5488, 46831, 1, 1, 1, -1);
+            """);
+        var data = Load();
+
+        var reagent = data.GetReagentForItem(0, ItemImplEnum.Misc, 35938, 1, 0, 3);
+
+        await Assert.That(reagent).IsNotNull();
+        await Assert.That(reagent.ReagentPackId).IsEqualTo(2725u);
+        // Set 3 has no route of its own, so the cast is allowed through the unattributed one and the dummy
+        // is not rolled.
+        await Assert.That(data.HasRoutesFor(reagent, 3)).IsTrue();
+        await Assert.That(data.TryRollProducts(reagent, 3, out var rolls)).IsTrue();
+        await Assert.That(rolls.Single().Product.OutputItemId).IsEqualTo(46831u);
+
+        // The family-4 route is still the one that pays when family 4 is asked for.
+        await Assert.That(data.TryRollProducts(reagent, 4, out var dummyRolls)).IsTrue();
+        await Assert.That(dummyRolls.Single().Product.OutputItemId).IsEqualTo(46185u);
+    }
+
+    [Test]
+    public async Task PackWithOnlyOtherFamilies_HasNoRouteForTheRequest()
+    {
+        // The effect refuses the cast on this: reagent pack 97 carries family 4 and nothing unattributed.
+        SeedDisenchant();
+        Execute(
+            """
+            INSERT INTO item_conv_sets (id, name, dialog_title, dialog_content) VALUES (4, 'recycle', '', '');
+            INSERT INTO item_convs (id, name, item_conv_set_id) VALUES (97, 'recycle.weapon.sword', 4);
+            INSERT INTO item_conv_rpacks (id, name) VALUES (97, 'recycle.weapon.sword.reagent');
+            INSERT INTO item_conv_rpack_members (id, item_conv_id, item_conv_rpack_id) VALUES (3, 97, 97);
+            INSERT INTO item_conv_reagents (id, item_conv_rpack_id, item_id, grade_id, max_grade_id) VALUES (9, 97, 20191, 2, 11);
+            INSERT INTO item_conv_ppacks (id, name, chance_rate) VALUES (97, 'recycle.weapon.sword.product', 10000);
+            INSERT INTO item_conv_ppack_members (id, item_conv_id, item_conv_ppack_id) VALUES (3, 97, 97);
+            INSERT INTO item_conv_products (id, item_conv_ppack_id, item_id, weight, min, max, item_grade_id)
+                VALUES (3, 97, 46185, 1, 1, 1, -1);
+            """);
+        var data = Load();
+
+        var reagent = data.GetReagentForItem(2, ItemImplEnum.Weapon, 20191, 25);
+
+        await Assert.That(reagent).IsNotNull();
+        await Assert.That(data.HasRoutesFor(reagent, 3)).IsFalse();
+        await Assert.That(data.HasRoutesFor(reagent, 4)).IsTrue();
+        await Assert.That(data.TryRollProducts(reagent, 3, out var rolls)).IsFalse();
+        await Assert.That(rolls.Count).IsEqualTo(0);
     }
 
     [Test]

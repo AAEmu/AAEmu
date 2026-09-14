@@ -65,10 +65,10 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
     /// this category are skipped.
     /// </param>
     /// <param name="requestedConversionSet">
-    /// The <c>item_conv_sets</c> family the effect is performing, when it knows one. Candidates that feed
-    /// that family are preferred over the first match: item 20191 has an explicit row into reagent pack 97
-    /// (family 4, the awakening/repackage chain) and a matching filter into pack 3 (family 3, disenchant),
-    /// so picking by table order alone hands an evenstone the wrong pack and the cast is then refused.
+    /// The <c>item_conv_sets</c> family the effect is performing, when it knows one. Candidates that can pay
+    /// for that family are preferred over the first match: item 20191 has an explicit row into reagent pack
+    /// 97 (family 4 only, so it cannot serve a disenchant) and a matching filter into pack 3 (family 3), so
+    /// picking by table order alone hands an evenstone the wrong pack and the cast is then refused.
     /// </param>
     public ItemConversionReagent GetReagentForItem(byte grade, ItemImplEnum implId, uint itemId, int level,
         int itemCategoryId = 0, uint requestedConversionSet = 0)
@@ -81,7 +81,7 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
                 if (!reagent.MatchesGrade(grade))
                     continue;
 
-                if (requestedConversionSet == 0 || reagent.HasFamily(requestedConversionSet))
+                if (HasRoutesFor(reagent, requestedConversionSet))
                     return reagent;
 
                 firstExplicit ??= reagent;
@@ -99,27 +99,60 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
             if (IsExcludedByExceptionPack(reagent.ExceptionPackId, itemCategoryId))
                 continue;
 
-            if (requestedConversionSet == 0 || reagent.HasFamily(requestedConversionSet))
+            if (HasRoutesFor(reagent, requestedConversionSet))
                 return reagent;
 
             firstFilter ??= reagent;
         }
 
-        // No candidate declares the requested family. Return the ordinary first match so the effect's own
+        // No candidate can serve the requested family. Return the ordinary first match so the effect's own
         // check reports the mismatch instead of the cast failing with "no reagent".
         return firstExplicit ?? firstFilter;
     }
 
     /// <summary>
-    /// Rolls every product pack the conversions of the requested family link to. Returns false only when
-    /// none of them carries a product, which is a content error the caller should surface.
+    /// The conversions of a reagent that may pay for the requested family: the family's own conversions when
+    /// the pack has any, otherwise the conversions whose family the content leaves NULL, and nothing at all
+    /// when the pack only carries other families.
+    /// </summary>
+    /// <remarks>
+    /// The three cases are why this is one place: reagent pack 2725 (item 35938) carries a family-4 "dummy"
+    /// next to the unattributed <c>discontinued_ship_paper.common</c>, so a request for any other family has
+    /// to fall back to the NULL route rather than reject the cast or roll both; a pack with only
+    /// unattributed routes (the origin-land armour sockets) keeps working; and a pack whose families simply
+    /// do not include the request is refused.
+    /// </remarks>
+    private List<uint> SelectRoutes(ItemConversionReagent reagent, uint requestedFamily)
+    {
+        if (requestedFamily == 0)
+            return reagent.ConversionIds;
+
+        var matching = reagent.ConversionIds
+            .Where(conversionId => _conversionSetByConversion.GetValueOrDefault(conversionId) == requestedFamily)
+            .ToList();
+
+        return matching.Count > 0 ? matching : reagent.UnattributedConversionIds;
+    }
+
+    /// <summary>
+    /// Whether the reagent has any conversion that may pay for the requested family. The effect uses this
+    /// instead of comparing a single family value, so its check and the roll can never disagree.
+    /// </summary>
+    public bool HasRoutesFor(ItemConversionReagent reagent, uint requestedFamily)
+    {
+        if (reagent == null)
+            return false;
+
+        return requestedFamily == 0 || SelectRoutes(reagent, requestedFamily).Count > 0;
+    }
+
+    /// <summary>
+    /// Rolls every product pack the conversions selected for the requested family link to. Returns false
+    /// only when none of them carries a product, which is a content error the caller should surface.
     /// </summary>
     /// <param name="requestedConversionSet">
-    /// The family being performed. Only its conversions pay out, plus any conversion whose family the
-    /// content leaves NULL: 10 reagent packs (the origin-land armour socket disenchants, 315 items) have
-    /// only family-less conversions and must still work, and the 11 packs that mix one with a family - the
-    /// discontinued ship papers, where a family-4 "dummy" pays 99-145 of an unrelated item - must roll the
-    /// real one and skip the dummy. Zero means no family was requested, so everything rolls.
+    /// The family being performed; see <see cref="SelectRoutes"/>. Zero means no family was requested, so
+    /// everything rolls.
     /// </param>
     /// <remarks>
     /// A conversion may link several product packs and all of them pay out: conversion 6280 (disassembling
@@ -137,12 +170,8 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
 
         var result = new List<ItemConversionRoll>();
         var seenPacks = new HashSet<uint>();
-        foreach (var conversionId in reagent.ConversionIds)
+        foreach (var conversionId in SelectRoutes(reagent, requestedConversionSet))
         {
-            var conversionFamily = _conversionSetByConversion.GetValueOrDefault(conversionId);
-            if (requestedConversionSet != 0 && conversionFamily != 0 && conversionFamily != requestedConversionSet)
-                continue;
-
             if (!_conversionProductPacks.TryGetValue(conversionId, out var productPackIds))
                 continue;
 
@@ -454,10 +483,13 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
 
             reagent.ConversionIds = [.. conversions];
             reagent.ConversionFamilies.Clear();
+            reagent.UnattributedConversionIds.Clear();
             foreach (var conversionId in conversions)
             {
                 if (_conversionSetByConversion.TryGetValue(conversionId, out var setId))
                     reagent.ConversionFamilies.Add(setId);
+                else
+                    reagent.UnattributedConversionIds.Add(conversionId);
             }
 
             if (!reagent.HasKnownFamily)
