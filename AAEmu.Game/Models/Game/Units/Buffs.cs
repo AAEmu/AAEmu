@@ -325,36 +325,44 @@ public class Buffs : IBuffs
             var buffTolerance = buffIds
                 .Select(buffId => BuffGameData.Instance.GetBuffToleranceForBuffTag(buffId))
                 .FirstOrDefault(t => t != null);
-            if (buffTolerance != null && _toleranceCounters.TryGetValue(buffTolerance.Id, out var toleranceCounter) && !CheckBuff(buffTolerance.FinalStepBuffId))
+
+            var toleranceNow = DateTime.UtcNow;
+            BuffToleranceCounter toleranceCounter = null;
+            if (buffTolerance != null)
             {
-                if (DateTime.UtcNow > toleranceCounter.LastStep + TimeSpan.FromSeconds(buffTolerance.StepDuration))
-                    toleranceCounter.CurrentStep = buffTolerance.GetFirstStep();
+                _toleranceCounters.TryGetValue(buffTolerance.Id, out toleranceCounter);
+
+                var toleranceDecision = BuffToleranceRules.Decide(
+                    buffTolerance,
+                    toleranceCounter,
+                    CheckBuff(buffTolerance.FinalStepBuffId),
+                    toleranceNow);
+
+                // Already immune to this family: the CC does not land and the counter must not move, or
+                // the immunity would end with the ladder part-way up. Bailing out here also keeps the
+                // rest of the cast alive — the exception the old create-branch threw on this path
+                // escaped the effect loop, dropping every remaining effect and EndSkill with it.
+                if (!toleranceDecision.Applies)
+                    return;
+
+                if (toleranceDecision.Outcome == BuffToleranceOutcome.ImmunityApplied)
+                    finalToleranceBuffId = buffTolerance.FinalStepBuffId;
+
+                if (toleranceDecision.Outcome == BuffToleranceOutcome.Untracked)
+                {
+                    toleranceCounter = null;
+                }
                 else
                 {
-                    var nextStep = buffTolerance.GetStepAfter(toleranceCounter.CurrentStep);
-                    if (nextStep.TimeReduction <= toleranceCounter.CurrentStep.TimeReduction)
+                    if (toleranceCounter == null)
                     {
-                        // Apply immune buff
-                        finalToleranceBuffId = toleranceCounter.Tolerance.FinalStepBuffId;
-                        // reset to first
-                        toleranceCounter.CurrentStep = buffTolerance.GetFirstStep();
+                        toleranceCounter = new BuffToleranceCounter { Tolerance = buffTolerance };
+                        _toleranceCounters.Add(buffTolerance.Id, toleranceCounter);
                     }
-                    else
-                    {
-                        toleranceCounter.CurrentStep = nextStep;
-                    }
-                }
 
-                toleranceCounter.LastStep = DateTime.UtcNow;
-            }
-            else if (buffTolerance != null)
-            {
-                _toleranceCounters.Add(buffTolerance.Id, new BuffToleranceCounter
-                {
-                    Tolerance = buffTolerance,
-                    CurrentStep = buffTolerance.GetFirstStep(),
-                    LastStep = DateTime.UtcNow
-                });
+                    toleranceCounter.CurrentStep = toleranceDecision.Step;
+                    toleranceCounter.LastStep = toleranceNow;
+                }
             }
 
             buff.Duration = buff.Template.GetDuration(buff.AbLevel);
@@ -366,10 +374,9 @@ public class Buffs : IBuffs
             }
             buff.Duration = (int)buff.Owner.BuffModifiersCache.ApplyModifiers(buff.Template, BuffAttribute.InDuration, buff.Duration);
 
-            if (buffTolerance != null)
+            if (toleranceCounter != null)
             {
-                var buffCounter = _toleranceCounters[buffTolerance.Id];
-                buff.Duration = (int)(buff.Duration * ((100 - buffCounter.CurrentStep.TimeReduction) / 100.0));
+                buff.Duration = (int)(buff.Duration * ((100 - toleranceCounter.CurrentStep.TimeReduction) / 100.0));
 
                 if (buff.Caster is Character && buff.Owner is Character)
                     buff.Duration = (int)(buff.Duration * ((100 - buffTolerance.CharacterTimeReduction) / 100.0));
