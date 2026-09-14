@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Dominions;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Indun;
@@ -671,6 +672,48 @@ public static class Program
             AAEmu.Game.Core.Managers.DominionManager.Instance.RelayAllToZone(zoneId);
             AAEmu.Game.Core.Managers.GuildDominionManager.Instance.RelayAllToZone(zoneId);
         };
+        // Conflict Zone hosts arm their own conflict_zone_npc_spawners placements for the group's
+        // peace/war state, so they need it on ZoneLoaded and again on every later transition. Only
+        // groups that actually have spawner rows are told; every other conflict group is
+        // client-only (SCConflictZoneState).
+        WorldIntegration.NotifyZoneReadyForConflictZone = (zoneId, _) =>
+        {
+            if (TryGetConflictZoneState(zoneId, out var groupId, out var warState))
+                PlayerEnterService.ForZoneId(zoneId)?.SendPacket(new WZConflictZoneStatePacket((short)groupId, warState));
+        };
+        WorldIntegration.RelayConflictZoneStateToZone = (zoneGroupId, warState) =>
+        {
+            if (ConflictZoneGameData.Instance.GetSpawners(zoneGroupId).Count == 0)
+                return;
+            foreach (var zone in PlayerEnterService.AllLoadedZones())
+            {
+                if (ZoneGroupOfZone(zone.ZoneId) != zoneGroupId)
+                    continue;
+                zone.SendPacket(new WZConflictZoneStatePacket((short)zoneGroupId, warState));
+            }
+        };
+
+        // WZConflictZoneState `type` is the zone-group key, matching how the client packet keys the
+        // same state. A group with no conflict spawner rows has nothing for the host to arm.
+        static bool TryGetConflictZoneState(uint zoneId, out ushort zoneGroupId, out byte warState)
+        {
+            zoneGroupId = 0;
+            warState = 0;
+            var groupId = ZoneGroupOfZone(zoneId);
+            if (groupId == 0 || ConflictZoneGameData.Instance.GetSpawners((ushort)groupId).Count == 0)
+                return false;
+
+            var conflict = ZoneManager.Instance.GetConflicts().FirstOrDefault(c => c.ZoneGroupId == groupId);
+            if (conflict == null)
+                return false;
+
+            zoneGroupId = (ushort)groupId;
+            warState = (byte)conflict.CurrentZoneState;
+            return true;
+        }
+
+        static uint ZoneGroupOfZone(uint zoneId) =>
+            ZoneManager.Instance.GetZoneByKey(zoneId)?.GroupId ?? 0;
         WorldIntegration.GetZoneSpawnerPlacements = zoneId =>
         {
             var all = ZoneSpawnerPlacementCatalog.GetAll(zoneId);
@@ -1424,6 +1467,7 @@ public static class Program
             WorldIntegration.NotifyZoneReadyForDoodads = null;
             WorldIntegration.NotifyZoneReadyForHousing = null;
             WorldIntegration.NotifyZoneReadyForGimmicks = null;
+            WorldIntegration.NotifyZoneReadyForConflictZone = null;
             WorldIntegration.RelayCharacterZoneHandoff = null;
             WorldIntegration.RelayRemoveDoodadToZone = null;
             WorldIntegration.RelayRemoveDoodadToZoneId = null;
@@ -1453,6 +1497,7 @@ public static class Program
             WorldIntegration.OnZoneRayCastingResult = null;
             WorldIntegration.RelaySlaveMasterChangedToZone = null;
             WorldIntegration.RelaySiegeStateToZone = null;
+            WorldIntegration.RelayConflictZoneStateToZone = null;
             WorldIntegration.RelayMoleCheckToZone = null;
             WorldIntegration.OnZoneEnterArea = null;
             WorldIntegration.OnZoneLeaveArea = null;

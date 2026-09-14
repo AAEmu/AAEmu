@@ -214,6 +214,17 @@ public class ZoneConflict(ZoneGroup owner)
         {
             Logger.Error(ex, $"SendSwitchZoneState: Failed to broadcast zone state for ZoneGroup {ZoneGroupId}, State={CurrentZoneState}");
         }
+
+        // Under ZoneAuthority the Zone hosts own NPC spawning, so they need the state to arm the
+        // conflict_zone_npc_spawners rows for peace/war. Null in the monolithic server.
+        try
+        {
+            WorldIntegration.RelayConflictZoneStateToZone?.Invoke(ZoneGroupId, (byte)CurrentZoneState);
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, $"SendSwitchZoneState: Failed to relay zone state to zone hosts for ZoneGroup {ZoneGroupId}, State={CurrentZoneState}");
+        }
     }
 
     public void CheckTimer()

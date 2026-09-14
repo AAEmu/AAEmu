@@ -25,7 +25,8 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
     private Dictionary<uint, ZoneGroupBannedTag> _groupBannedTags;
     private Dictionary<uint, ZoneClimateElem> _climateElem;
 
-    public ZoneConflict[] GetConflicts() => _conflicts.Values.ToArray();
+    // Null-safe: Zone hosts can announce ZoneLoaded before this manager's Load() completes.
+    public ZoneConflict[] GetConflicts() => _conflicts?.Values.ToArray() ?? [];
 
     /// <summary>
     /// Arms the wall-clock cycle for every conflict zone that has <c>conflict_zone_realtime_schedules</c>
