@@ -81,7 +81,7 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
                 if (!reagent.MatchesGrade(grade))
                     continue;
 
-                if (requestedConversionSet == 0 || reagent.ConversionSet == requestedConversionSet)
+                if (requestedConversionSet == 0 || reagent.HasFamily(requestedConversionSet))
                     return reagent;
 
                 firstExplicit ??= reagent;
@@ -99,7 +99,7 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
             if (IsExcludedByExceptionPack(reagent.ExceptionPackId, itemCategoryId))
                 continue;
 
-            if (requestedConversionSet == 0 || reagent.ConversionSet == requestedConversionSet)
+            if (requestedConversionSet == 0 || reagent.HasFamily(requestedConversionSet))
                 return reagent;
 
             firstFilter ??= reagent;
@@ -111,9 +111,16 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
     }
 
     /// <summary>
-    /// Rolls every product pack the reagent's conversions link to. Returns false only when none of them
-    /// carries a product, which is a content error the caller should surface.
+    /// Rolls every product pack the conversions of the requested family link to. Returns false only when
+    /// none of them carries a product, which is a content error the caller should surface.
     /// </summary>
+    /// <param name="requestedConversionSet">
+    /// The family being performed. Only its conversions pay out, plus any conversion whose family the
+    /// content leaves NULL: 10 reagent packs (the origin-land armour socket disenchants, 315 items) have
+    /// only family-less conversions and must still work, and the 11 packs that mix one with a family - the
+    /// discontinued ship papers, where a family-4 "dummy" pays 99-145 of an unrelated item - must roll the
+    /// real one and skip the dummy. Zero means no family was requested, so everything rolls.
+    /// </param>
     /// <remarks>
     /// A conversion may link several product packs and all of them pay out: conversion 6280 (disassembling
     /// the pumpkin-scarecrow blueprint) links 5555 and 5556, both guaranteed, for 1 housing blueprint and 50
@@ -121,7 +128,8 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
     /// roll fails still yields a roll, with a null product, so the caller can tell "rolled and lost" from
     /// "nothing to roll".
     /// </remarks>
-    public bool TryRollProducts(ItemConversionReagent reagent, out IReadOnlyList<ItemConversionRoll> rolls)
+    public bool TryRollProducts(ItemConversionReagent reagent, uint requestedConversionSet,
+        out IReadOnlyList<ItemConversionRoll> rolls)
     {
         rolls = [];
         if (reagent == null)
@@ -131,6 +139,10 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
         var seenPacks = new HashSet<uint>();
         foreach (var conversionId in reagent.ConversionIds)
         {
+            var conversionFamily = _conversionSetByConversion.GetValueOrDefault(conversionId);
+            if (requestedConversionSet != 0 && conversionFamily != 0 && conversionFamily != requestedConversionSet)
+                continue;
+
             if (!_conversionProductPacks.TryGetValue(conversionId, out var productPackIds))
                 continue;
 
@@ -189,7 +201,7 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
         if (conversionSetId <= 0 || reagent == null)
             return false;
 
-        return reagent.ConversionSet == (uint)conversionSetId;
+        return reagent.HasFamily((uint)conversionSetId);
     }
 
     public void Load(SqliteConnection connection)
@@ -441,16 +453,14 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
             }
 
             reagent.ConversionIds = [.. conversions];
+            reagent.ConversionFamilies.Clear();
             foreach (var conversionId in conversions)
             {
                 if (_conversionSetByConversion.TryGetValue(conversionId, out var setId))
-                {
-                    reagent.ConversionSet = setId;
-                    break;
-                }
+                    reagent.ConversionFamilies.Add(setId);
             }
 
-            if (reagent.ConversionSet == 0)
+            if (!reagent.HasKnownFamily)
                 unresolvedPacks.Add(reagent.ReagentPackId);
         }
     }

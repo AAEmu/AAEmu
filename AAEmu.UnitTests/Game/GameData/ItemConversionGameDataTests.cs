@@ -1,5 +1,4 @@
 using AAEmu.Game.GameData;
-using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.StaticValues;
 using Microsoft.Data.Sqlite;
 
@@ -8,7 +7,8 @@ namespace AAEmu.UnitTests.Game.GameData;
 /// <summary>
 /// The conversion chain is rpack -members-> conv -members-> ppack -> products. The rows here mirror the
 /// 10.0.2.13 layout, including the cases the old loader got wrong: a reagent pack and a product pack that do
-/// not share an id, a conversion that pays several packs at once, and a reagent pack with no member at all.
+/// not share an id, a conversion that pays several packs at once, a reagent pack with no member at all, and
+/// a pack whose conversions sit in two different families.
 /// </summary>
 public class ItemConversionGameDataTests : SqliteTestBase
 {
@@ -48,7 +48,7 @@ public class ItemConversionGameDataTests : SqliteTestBase
 
     /// <summary>
     /// Filter-based evenstone reagent (filter 1: weapons, level 20-29, grade 2-3) whose reagent pack is 5 and
-    /// whose product pack is 9, so the pack ids deliberately differ.
+    /// whose product pack is 9, so the pack ids deliberately differ. Family 3 = disenchant.
     /// </summary>
     private void SeedDisenchant()
     {
@@ -106,7 +106,8 @@ public class ItemConversionGameDataTests : SqliteTestBase
         await Assert.That(reagent.ReagentPackId).IsEqualTo(5u);
         await Assert.That(reagent.ConversionIds.Contains(1u)).IsTrue();
         // The family comes from item_convs.item_conv_set_id, which the old loader never filled.
-        await Assert.That(reagent.ConversionSet).IsEqualTo(3u);
+        await Assert.That(reagent.HasFamily(3)).IsTrue();
+        await Assert.That(reagent.HasKnownFamily).IsTrue();
     }
 
     [Test]
@@ -127,7 +128,7 @@ public class ItemConversionGameDataTests : SqliteTestBase
         var data = Load();
 
         var reagent = data.GetReagentForItem(2, ItemImplEnum.Weapon, 12345, 25);
-        var rolled = data.TryRollProducts(reagent, out var rolls);
+        var rolled = data.TryRollProducts(reagent, 0, out var rolls);
 
         await Assert.That(rolled).IsTrue();
         await Assert.That(rolls.Count).IsEqualTo(1);
@@ -153,12 +154,79 @@ public class ItemConversionGameDataTests : SqliteTestBase
         var data = Load();
 
         var reagent = data.GetReagentForItem(2, ItemImplEnum.Weapon, 12345, 25);
-        var rolled = data.TryRollProducts(reagent, out var rolls);
+        var rolled = data.TryRollProducts(reagent, 3, out var rolls);
 
         await Assert.That(rolled).IsTrue();
         await Assert.That(rolls.Count).IsEqualTo(2);
         await Assert.That(rolls.Any(roll => roll.Product?.OutputItemId == 25798u)).IsTrue();
         await Assert.That(rolls.Any(roll => roll.Product?.OutputItemId == 15596u && roll.Count == 50)).IsTrue();
+    }
+
+    [Test]
+    public async Task OnlyTheRequestedFamilyPaysOut()
+    {
+        // Content shape of reagent pack 2062: conversion 5740 is family 11 and pays 18 sealed Ipnir
+        // enhancers, while conversion 2060 is a family-4 "dummy" paying 34 of an unrelated item. 125 reagent
+        // packs feed more than one family, so a family-11 tool must not run the dummy chain.
+        SeedDisenchant();
+        Execute(
+            """
+            INSERT INTO item_conv_sets (id, name, dialog_title, dialog_content) VALUES (11, 'ipnir', '', '');
+            INSERT INTO item_convs (id, name, item_conv_set_id) VALUES (2060, 'dummy', 4), (5740, 'ipnir.armor', 11);
+            INSERT INTO item_convs (id, name, item_conv_set_id) VALUES (4, 'recycle_unused', NULL);
+            INSERT INTO item_conv_rpacks (id, name) VALUES (2062, 'ipnir.armor.reagent');
+            INSERT INTO item_conv_rpack_members (id, item_conv_id, item_conv_rpack_id) VALUES (20, 5740, 2062), (21, 2060, 2062);
+            INSERT INTO item_conv_reagents (id, item_conv_rpack_id, item_id, grade_id, max_grade_id) VALUES (30, 2062, 35658, 10, 10);
+            INSERT INTO item_conv_ppacks (id, name, chance_rate) VALUES (5372, 'ipnir.product', 10000), (2133, 'dummy.product', 10000);
+            INSERT INTO item_conv_ppack_members (id, item_conv_id, item_conv_ppack_id) VALUES (30, 5740, 5372), (31, 2060, 2133);
+            INSERT INTO item_conv_products (id, item_conv_ppack_id, item_id, weight, min, max, item_grade_id)
+                VALUES (30, 5372, 46437, 1, 18, 18, -1), (31, 2133, 46185, 1, 34, 34, -1);
+            """);
+        var data = Load();
+
+        var reagent = data.GetReagentForItem(10, ItemImplEnum.Misc, 35658, 1, 0, 11);
+
+        await Assert.That(reagent).IsNotNull();
+        await Assert.That(reagent.HasFamily(11)).IsTrue();
+        await Assert.That(reagent.HasFamily(4)).IsTrue();
+
+        await Assert.That(data.TryRollProducts(reagent, 11, out var rolls)).IsTrue();
+        await Assert.That(rolls.Count).IsEqualTo(1);
+        await Assert.That(rolls[0].Product.OutputItemId).IsEqualTo(46437u);
+        await Assert.That(rolls[0].Count).IsEqualTo(18);
+
+        // The family-4 dummy is the other family's business and must not pay.
+        await Assert.That(data.TryRollProducts(reagent, 4, out var dummyRolls)).IsTrue();
+        await Assert.That(dummyRolls.Single().Product.OutputItemId).IsEqualTo(46185u);
+    }
+
+    [Test]
+    public async Task FamilylessConversions_StillPayWhenAFamilyIsRequested()
+    {
+        // Content shape of reagent packs 331-335: the origin-land armour socket disenchants cover 315 items
+        // and their conversions carry a NULL item_conv_set_id, so there is no family to filter by.
+        SeedDisenchant();
+        Execute(
+            """
+            INSERT INTO item_convs (id, name, item_conv_set_id) VALUES (330, 'disenchant.originlandarmor.1.socket.uncommon', NULL);
+            INSERT INTO item_conv_rpacks (id, name) VALUES (331, 'originlandarmor.socket.reagent');
+            INSERT INTO item_conv_rpack_members (id, item_conv_id, item_conv_rpack_id) VALUES (30, 330, 331);
+            INSERT INTO item_conv_reagents (id, item_conv_rpack_id, item_id, grade_id, max_grade_id) VALUES (40, 331, 31000, 2, 2);
+            INSERT INTO item_conv_ppacks (id, name, chance_rate) VALUES (331, 'originlandarmor.product', 10000);
+            INSERT INTO item_conv_ppack_members (id, item_conv_id, item_conv_ppack_id) VALUES (30, 330, 331);
+            INSERT INTO item_conv_products (id, item_conv_ppack_id, item_id, weight, min, max, item_grade_id)
+                VALUES (40, 331, 31011, 1, 1, 2, -1);
+            """);
+        var data = Load();
+
+        var reagent = data.GetReagentForItem(2, ItemImplEnum.Misc, 31000, 1, 0, 3);
+
+        await Assert.That(reagent).IsNotNull();
+        await Assert.That(reagent.ReagentPackId).IsEqualTo(331u);
+        await Assert.That(reagent.HasKnownFamily).IsFalse();
+        // The effect allows a cast it cannot validate, and the conversion still pays.
+        await Assert.That(data.TryRollProducts(reagent, 3, out var rolls)).IsTrue();
+        await Assert.That(rolls[0].Product.OutputItemId).IsEqualTo(31011u);
     }
 
     [Test]
@@ -174,9 +242,9 @@ public class ItemConversionGameDataTests : SqliteTestBase
         await Assert.That(reagent).IsNotNull();
         await Assert.That(reagent.ReagentPackId).IsEqualTo(6u);
         await Assert.That(reagent.IsExplicitItem).IsTrue();
-        await Assert.That(reagent.ConversionSet).IsEqualTo(7u);
+        await Assert.That(reagent.HasFamily(7)).IsTrue();
 
-        await Assert.That(data.TryRollProducts(reagent, out var rolls)).IsTrue();
+        await Assert.That(data.TryRollProducts(reagent, 0, out var rolls)).IsTrue();
         await Assert.That(rolls[0].Product.OutputItemId).IsEqualTo(34983u);
         await Assert.That(rolls[0].Product.GradeId).IsEqualTo(5);
     }
@@ -204,7 +272,7 @@ public class ItemConversionGameDataTests : SqliteTestBase
         // Item 20191 at grade 2 and level 25: explicit row -> pack 97 (family 4), filter -> pack 5 (family 3).
         var forDisenchant = data.GetReagentForItem(2, ItemImplEnum.Weapon, 20191, 25, 0, 3);
         await Assert.That(forDisenchant).IsNotNull();
-        await Assert.That(forDisenchant.ConversionSet).IsEqualTo(3u);
+        await Assert.That(forDisenchant.HasFamily(3)).IsTrue();
 
         // Without a requested family the explicit row still wins, and the effect's check then refuses it.
         var withoutFamily = data.GetReagentForItem(2, ItemImplEnum.Weapon, 20191, 25);
@@ -250,7 +318,7 @@ public class ItemConversionGameDataTests : SqliteTestBase
 
         // The pack exists, so the roll happened and lost: the caller has to consume the reagent but grant
         // nothing. Distinguishing this from "no product rows at all" is what the return value means.
-        await Assert.That(data.TryRollProducts(reagent, out var rolls)).IsTrue();
+        await Assert.That(data.TryRollProducts(reagent, 0, out var rolls)).IsTrue();
         await Assert.That(rolls.Count).IsEqualTo(1);
         await Assert.That(rolls[0].Product).IsNull();
         await Assert.That(rolls[0].ChanceFailed).IsTrue();
@@ -266,7 +334,7 @@ public class ItemConversionGameDataTests : SqliteTestBase
 
         var reagent = data.GetReagentForItem(2, ItemImplEnum.Weapon, 12345, 25);
 
-        await Assert.That(data.TryRollProducts(reagent, out _)).IsFalse();
+        await Assert.That(data.TryRollProducts(reagent, 0, out _)).IsFalse();
     }
 
     [Test]
@@ -291,7 +359,7 @@ public class ItemConversionGameDataTests : SqliteTestBase
 
         await Assert.That(reagent).IsNotNull();
         await Assert.That(reagent.ConversionIds.Count).IsEqualTo(0);
-        await Assert.That(data.TryRollProducts(reagent, out var rolls)).IsFalse();
+        await Assert.That(data.TryRollProducts(reagent, 0, out var rolls)).IsFalse();
         await Assert.That(rolls.Count).IsEqualTo(0);
     }
 
@@ -312,7 +380,7 @@ public class ItemConversionGameDataTests : SqliteTestBase
         var light = 0;
         for (var i = 0; i < 400; i++)
         {
-            await Assert.That(data.TryRollProducts(reagent, out var rolls)).IsTrue();
+            await Assert.That(data.TryRollProducts(reagent, 0, out var rolls)).IsTrue();
             if (rolls[0].Product.OutputItemId == 22222u)
                 heavy++;
             else if (rolls[0].Product.OutputItemId == 11111u)
@@ -349,10 +417,10 @@ public class ItemConversionGameDataTests : SqliteTestBase
         var reagent = data.GetReagentForItem(2, ItemImplEnum.Weapon, 12345, 25);
 
         await Assert.That(reagent).IsNotNull();
-        await Assert.That(reagent.ConversionSet).IsEqualTo(0u);
+        await Assert.That(reagent.HasKnownFamily).IsFalse();
         await Assert.That(data.IsValidConversionSet(3, reagent)).IsFalse();
         // The products are still reachable through the conversion, so the cast can still be carried out.
-        await Assert.That(data.TryRollProducts(reagent, out var rolls)).IsTrue();
+        await Assert.That(data.TryRollProducts(reagent, 3, out var rolls)).IsTrue();
         await Assert.That(rolls[0].Product).IsNotNull();
     }
 }

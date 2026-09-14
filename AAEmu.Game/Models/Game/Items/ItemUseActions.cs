@@ -71,22 +71,26 @@ public static class ItemUseActions
             return;
         }
 
-        // A skill with a plot runs ItemUse from both Plot.RunAsync and the effect path, so the second call
-        // for the same cast finds nothing new here and stops.
-        var newCrafts = craftIds.Where(craftId => !character.Recipes.IsLearned(craftId)).ToList();
-        if (newCrafts.Count == 0)
-        {
-            Logger.Debug("Character {0} already knew every craft of recipe item {1}", character.Name, item.TemplateId);
-            return;
-        }
-
         var inventory = character.Inventory;
         if (inventory == null)
             return;
 
+        ItemConsumptionPublication publication = null;
         using (PersistenceOperationScope.Enter())
         lock (inventory.MutationSyncRoot)
         {
+            // Deciding what is new inside the serialized section, and then trusting the insert's affected-row
+            // count, is what keeps two concurrent uses of the same recipe from both believing they learned it
+            // and both paying an item for one row.
+            var newCrafts = craftIds.Where(craftId => !character.Recipes.IsLearned(craftId)).ToList();
+            if (newCrafts.Count == 0)
+            {
+                // Either the recipe was already known, or this is a second call for the same cast: a skill
+                // with a plot runs ItemUse from both Plot.RunAsync and the effect path.
+                Logger.Debug("Character {0} already knew every craft of recipe item {1}", character.Name, item.TemplateId);
+                return;
+            }
+
             if (!inventory.TryPlanExactBagConsumption(item.Id, 1, out var consumption))
             {
                 Logger.Warn(
@@ -96,13 +100,24 @@ public static class ItemUseActions
             }
 
             var snapshots = consumption.CapturePersistenceSnapshots(ItemManager.Instance);
+            List<uint> learned;
             try
             {
                 using var connection = MySQL.CreateConnection();
                 using var transaction = connection.BeginTransaction();
                 try
                 {
-                    character.Recipes.PersistLearned(newCrafts, connection, transaction);
+                    learned = character.Recipes.PersistLearned(newCrafts, connection, transaction);
+                    if (learned.Count == 0)
+                    {
+                        // The rows were already there, so this call has nothing to debit for.
+                        transaction.Rollback();
+                        Logger.Debug(
+                            "Character {0} lost the race to learn recipe item {1}; the item is kept",
+                            character.Name, item.TemplateId);
+                        return;
+                    }
+
                     ItemManager.Instance.PersistSnapshots(connection, transaction, snapshots);
                     transaction.Commit();
                 }
@@ -123,11 +138,23 @@ public static class ItemUseActions
 
             // Past the commit there is nothing left to decide: the rows are durable, so the live state
             // follows them.
-            character.Recipes.ApplyLearned(newCrafts);
-            consumption.ApplyCommitted(ItemTaskType.ConsumeSkillSource).PublishPackets();
+            character.Recipes.ApplyLearned(learned);
+            publication = consumption.ApplyCommitted(ItemTaskType.ConsumeSkillSource);
+            publication.PublishPackets();
             Logger.Debug(
                 "Character {0} learned craft(s) {1} from recipe item {2}",
-                character.Name, string.Join(',', newCrafts), item.TemplateId);
+                character.Name, string.Join(',', learned), item.TemplateId);
+        }
+
+        // Item-consumption callbacks are what drives item-use quest progress, and the publication refuses to
+        // run them while the inventory lease is held.
+        try
+        {
+            publication?.PublishCallbacks();
+        }
+        catch (Exception exception)
+        {
+            Logger.Error(exception, "Failed to publish recipe item callbacks for character {0}", character.Name);
         }
     }
 

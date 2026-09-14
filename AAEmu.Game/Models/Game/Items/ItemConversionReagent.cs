@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.StaticValues;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Models.Game.Items;
 
@@ -7,13 +7,6 @@ namespace AAEmu.Game.Models.Game.Items;
 /// </summary>
 public class ItemConversionReagent
 {
-    /// <summary>
-    /// <c>item_conv_sets.id</c> reached through the conversion this reagent pack belongs to. This is the
-    /// value the ItemConversion special effect carries in its first value, so it is what validates that a
-    /// client asked for the conversion family the item actually supports.
-    /// </summary>
-    public uint ConversionSet;
-
     /// <summary><c>item_conv_rpacks.id</c> this reagent row belongs to.</summary>
     public uint ReagentPackId;
 
@@ -37,8 +30,25 @@ public class ItemConversionReagent
     /// </summary>
     public List<uint> ConversionIds = [];
 
+    /// <summary>
+    /// The <c>item_conv_sets</c> families those conversions belong to, minus the ones the content leaves
+    /// NULL. 125 packs feed conversions in more than one family, and reagent pack 2062 is one: its family-11
+    /// conversion 5740 pays 18 sealed Ipnir enhancers while its family-4 "dummy" conversion 2060 pays 34 of
+    /// an unrelated item. The family the effect asks for decides which of them may pay out.
+    /// </summary>
+    public HashSet<uint> ConversionFamilies = [];
+
     /// <summary>True for an explicit <c>item_conv_reagents</c> row, false for a filter row.</summary>
     public bool IsExplicitItem;
+
+    /// <summary>
+    /// False when none of the pack's conversions names a family - 10 packs, among them the origin-land
+    /// armour socket disenchants (rpack 331-335, 315 items), whose conversions carry a NULL
+    /// <c>item_conv_set_id</c>. Nothing can be validated against those, so the cast is allowed.
+    /// </summary>
+    public bool HasKnownFamily => ConversionFamilies.Count > 0;
+
+    public bool HasFamily(uint conversionSetId) => ConversionFamilies.Contains(conversionSetId);
 
     public bool MatchesGrade(byte grade) => grade >= MinItemGrade && grade <= MaxItemGrade;
 }

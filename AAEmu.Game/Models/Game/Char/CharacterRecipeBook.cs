@@ -68,14 +68,16 @@ public sealed class CharacterRecipeBook(Character owner)
     }
 
     /// <summary>
-    /// Writes the learned rows on the caller's transaction. The caller must commit before calling
-    /// <see cref="ApplyLearned"/>, so the unlock and whatever the cast consumed become durable together.
+    /// Writes the learned rows on the caller's transaction and reports which of them this call actually
+    /// inserted. <c>INSERT IGNORE</c> means a concurrent or repeated call can insert nothing, and the
+    /// affected-row count is what tells the caller whether it won the race before it debits the item.
     /// </summary>
-    public void PersistLearned(IEnumerable<uint> craftIds, MySqlConnection connection, MySqlTransaction transaction)
+    public List<uint> PersistLearned(IEnumerable<uint> craftIds, MySqlConnection connection, MySqlTransaction transaction)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(transaction);
 
+        var inserted = new List<uint>();
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
         // INSERT IGNORE: the row is the whole state, so a duplicate from a retried cast is not an error.
@@ -87,8 +89,11 @@ public sealed class CharacterRecipeBook(Character owner)
         foreach (var craftId in craftIds)
         {
             craftParameter.Value = craftId;
-            command.ExecuteNonQuery();
+            if (command.ExecuteNonQuery() == 1)
+                inserted.Add(craftId);
         }
+
+        return inserted;
     }
 
     /// <summary>Applies a recipe write that has already committed. Never fails.</summary>
