@@ -1,5 +1,6 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -34,8 +35,19 @@ public class AcceptQuestEffect : EffectTemplate
             // Is this item a QuestStarted?
             if (item.Template.ImplId == ItemImplEnum.AcceptQuest)
             {
-                // Try to find it's actual QuestId
-                var itemQuestId = QuestManager.Instance.GetQuestIdFromStarterItemNew(skillItem.ItemTemplateId);
+                // item_accept_quests is the authoritative item -> quest mapping the client reads. It is the
+                // only source for 94 of its 814 rows: no QuestActConAcceptItem names those items, so the
+                // reverse search below found nothing and the starter item fell through to the effect's own
+                // quest_id. On the 683 rows both sources know it also disagrees on 7, where the reverse
+                // search can only return whichever start component it walks into first.
+                var itemQuestId = ItemUseGameData.Instance.GetQuestIdForItem(skillItem.ItemTemplateId);
+                if (itemQuestId == 0 || QuestManager.Instance.GetTemplate(itemQuestId) == null)
+                {
+                    // 37 rows say quest 0 (hunting-request papers the quest itself consumes) and 18 name a
+                    // quest that no longer exists; keep the old reverse search as the fallback for them.
+                    itemQuestId = QuestManager.Instance.GetQuestIdFromStarterItemNew(skillItem.ItemTemplateId);
+                }
+
                 if (itemQuestId > 0)
                 {
                     // Add alternative quest by Id
