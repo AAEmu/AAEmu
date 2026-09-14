@@ -166,8 +166,9 @@ public class ItemConversionGameDataTests : SqliteTestBase
     public async Task OnlyTheRequestedFamilyPaysOut()
     {
         // Content shape of reagent pack 2062: conversion 5740 is family 11 and pays 18 sealed Ipnir
-        // enhancers, while conversion 2060 is a family-4 "dummy" paying 34 of an unrelated item. 125 reagent
-        // packs feed more than one family, so a family-11 tool must not run the dummy chain.
+        // enhancers, while conversion 2060 is a family-4 "dummy" paying 34 of an unrelated item. 114 of the
+        // 5519 reagent packs the content references feed more than one family, so a family-11 tool must not
+        // run the dummy chain.
         SeedDisenchant();
         Execute(
             """
@@ -203,8 +204,9 @@ public class ItemConversionGameDataTests : SqliteTestBase
     [Test]
     public async Task FamilylessConversions_StillPayWhenAFamilyIsRequested()
     {
-        // Content shape of reagent packs 331-335: the origin-land armour socket disenchants cover 315 items
-        // and their conversions carry a NULL item_conv_set_id, so there is no family to filter by.
+        // Content shape of reagent packs 331-335: the origin-land armour socket disenchants cover 65 items
+        // across 7 referenced packs, and their conversions carry a NULL item_conv_set_id, so there is no
+        // family to filter by.
         SeedDisenchant();
         Execute(
             """
@@ -339,14 +341,15 @@ public class ItemConversionGameDataTests : SqliteTestBase
         await Assert.That(forDisenchant).IsNotNull();
         await Assert.That(forDisenchant.HasFamily(3)).IsTrue();
 
-        // Without a requested family the explicit row still wins, and the effect's check then refuses it.
+        // Without a requested family the explicit row still wins, and the effect's route check then refuses
+        // it, because a family-4 pack has nothing that can serve a disenchant.
         var withoutFamily = data.GetReagentForItem(2, ItemImplEnum.Weapon, 20191, 25);
         await Assert.That(withoutFamily.ReagentPackId).IsEqualTo(97u);
-        await Assert.That(data.IsValidConversionSet(3, withoutFamily)).IsFalse();
+        await Assert.That(data.HasRoutesFor(withoutFamily, 3)).IsFalse();
     }
 
     [Test]
-    public async Task ConversionSet_IsValidatedAgainstTheEffectValue()
+    public async Task RouteCheck_AnswersForTheFamilyTheEffectAsksFor()
     {
         SeedDisenchant();
         SeedExplicitReagent();
@@ -355,10 +358,13 @@ public class ItemConversionGameDataTests : SqliteTestBase
         var disenchant = data.GetReagentForItem(2, ItemImplEnum.Weapon, 12345, 25);
         var awakening = data.GetReagentForItem(2, ItemImplEnum.Weapon, 1459, 25);
 
-        await Assert.That(data.IsValidConversionSet(3, disenchant)).IsTrue();
-        await Assert.That(data.IsValidConversionSet(7, disenchant)).IsFalse();
-        await Assert.That(data.IsValidConversionSet(7, awakening)).IsTrue();
-        await Assert.That(data.IsValidConversionSet(0, awakening)).IsFalse();
+        await Assert.That(data.HasRoutesFor(disenchant, 3)).IsTrue();
+        await Assert.That(data.HasRoutesFor(disenchant, 7)).IsFalse();
+        await Assert.That(data.HasRoutesFor(awakening, 7)).IsTrue();
+        await Assert.That(data.HasRoutesFor(awakening, 3)).IsFalse();
+        // No requested family means no constraint.
+        await Assert.That(data.HasRoutesFor(awakening, 0)).IsTrue();
+        await Assert.That(data.HasRoutesFor(null, 3)).IsFalse();
     }
 
     [Test]
@@ -405,10 +411,12 @@ public class ItemConversionGameDataTests : SqliteTestBase
     [Test]
     public async Task ReagentPackMissingFromTheMemberTable_RollsNothing()
     {
-        // 41 of the 5519 reagent packs the content references have no item_conv_rpack_members row, and 42 of
-        // them have an unrelated product pack whose id merely equals their own. Content shape of item 43580:
-        // reagent pack 3759 (repackage_socket_skyblue_1T) against product pack 3759, an obsidian conversion
-        // paying 16 of item 46185. Following the ids paid out the wrong item.
+        // 43 of the 5519 reagent packs the content references cannot be reached through the member tables:
+        // 41 have no item_conv_rpack_members row (39 of which share an id with a product pack) and 2 - packs
+        // 101 and 106 - have a member whose conversion links no product pack. 42 of the 43 have an unrelated
+        // product pack whose id merely equals their own. Content shape of item 43580: reagent pack 3759
+        // (repackage_socket_skyblue_1T) against product pack 3759, an obsidian conversion paying 16 of item
+        // 46185. Following the ids paid out the wrong item.
         SeedDisenchant();
         Execute(
             """
@@ -471,11 +479,11 @@ public class ItemConversionGameDataTests : SqliteTestBase
     }
 
     [Test]
-    public async Task ConversionWithoutAFamily_IsLeftUnresolved()
+    public async Task ConversionWithoutAFamily_IsReachedThroughItsUnattributedRoute()
     {
         SeedDisenchant();
-        // 43 of the 6409 item_convs rows carry a NULL family; such a reagent must not validate against any
-        // conversion set the effect can name.
+        // 43 of the 6409 item_convs rows carry a NULL family. Such a pack has no family to match, so the
+        // route check allows the cast and the conversion still pays.
         Execute("UPDATE item_convs SET item_conv_set_id = NULL WHERE id = 1");
         var data = Load();
 
@@ -483,8 +491,8 @@ public class ItemConversionGameDataTests : SqliteTestBase
 
         await Assert.That(reagent).IsNotNull();
         await Assert.That(reagent.HasKnownFamily).IsFalse();
-        await Assert.That(data.IsValidConversionSet(3, reagent)).IsFalse();
-        // The products are still reachable through the conversion, so the cast can still be carried out.
+        await Assert.That(reagent.UnattributedConversionIds.Contains(1u)).IsTrue();
+        await Assert.That(data.HasRoutesFor(reagent, 3)).IsTrue();
         await Assert.That(data.TryRollProducts(reagent, 3, out var rolls)).IsTrue();
         await Assert.That(rolls[0].Product).IsNotNull();
     }

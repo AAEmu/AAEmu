@@ -71,10 +71,10 @@ public class ItemConversion : SpecialEffectAction
         // for: an evenstone must not run an awakening or repackage chain off the same pack.
         //
         // The check is the loader's own route selection rather than a family comparison, so a pack that mixes
-        // an unrelated family with unattributed conversions keeps its real route. 11 packs are shaped that
-        // way - reagent pack 2725 holds the family-4 "dummy" next to discontinued_ship_paper.common, so item
-        // 35938 reaches item 46831 - and 10 more have only unattributed routes (the origin-land armour socket
-        // disenchants, 315 items).
+        // an unrelated family with unattributed conversions keeps its real route. 11 referenced packs are
+        // shaped that way - reagent pack 2725 holds the family-4 "dummy" next to
+        // discontinued_ship_paper.common, so item 35938 reaches item 46831 - and 7 have only unattributed
+        // routes (the origin-land armour socket disenchants), covering 65 items.
         if (requestedFamily != 0 && !ItemConversionGameData.Instance.HasRoutesFor(reagent, requestedFamily))
         {
             Logger.Warn(

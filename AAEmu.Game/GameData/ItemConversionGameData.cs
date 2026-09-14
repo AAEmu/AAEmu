@@ -220,19 +220,6 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
         return true;
     }
 
-    /// <summary>
-    /// True when the reagent belongs to the conversion family the effect asked for. <c>value1</c> of every
-    /// <c>special_effects</c> row of type ItemConversion (49) is an <c>item_conv_sets</c> id - 3 for
-    /// evenstone extraction, 7 and 9 for awakening, and so on.
-    /// </summary>
-    public bool IsValidConversionSet(int conversionSetId, ItemConversionReagent reagent)
-    {
-        if (conversionSetId <= 0 || reagent == null)
-            return false;
-
-        return reagent.HasFamily((uint)conversionSetId);
-    }
-
     public void Load(SqliteConnection connection)
     {
         _reagentsByItem = [];
@@ -446,38 +433,48 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
 
     public void PostLoad()
     {
-        // Resolve each reagent pack to its conversion family(ies). A pack feeds one conversion in 5744 of
-        // 5866 cases and two in the other 122.
-        var unresolved = new HashSet<uint>();
-        ResolveReagentSets(_filterReagents, unresolved);
+        // Resolve each reagent pack to its conversion family(ies). 5496 of the 5742 packs in
+        // item_conv_rpack_members feed one conversion and 246 feed two.
+        var noMemberPacks = new HashSet<uint>();
+        var unattributedOnlyPacks = new HashSet<uint>();
+        var referencedPacks = new HashSet<uint>();
+        ResolveReagentSets(_filterReagents, referencedPacks, noMemberPacks, unattributedOnlyPacks);
         foreach (var list in _reagentsByItem.Values)
-            ResolveReagentSets(list, unresolved);
+            ResolveReagentSets(list, referencedPacks, noMemberPacks, unattributedOnlyPacks);
 
         var setlessConversions = _reagentPackConversions.Values
             .SelectMany(conversions => conversions)
             .Distinct()
             .Count(conversionId => !_conversionSetByConversion.ContainsKey(conversionId));
 
-        if (unresolved.Count > 0)
+        if (noMemberPacks.Count > 0 || unattributedOnlyPacks.Count > 0)
         {
-            // 48 packs in 10.0.2.13 land here (the origin-land armour sockets, the raid-to-Ipnir exchange,
-            // the discontinued mate armours). Their reagent rows carry no family, so a conversion effect
-            // cannot be validated against them; the products are still reachable and the ItemConversion
-            // effect deliberately allows the cast rather than rejecting on missing data.
+            // In 10.0.2.13 that is 41 packs with no item_conv_rpack_members row and 7 whose only routes have
+            // a NULL item_conv_set_id (the origin-land armour sockets, the raid-to-Ipnir exchange, the
+            // discontinued mate armours). Neither can be checked against the family an effect asks for; the
+            // ItemConversion effect allows those casts rather than rejecting on missing data.
             Logger.Warn(
-                "Item conversions: {0} of {1} reagent packs reach no item_conv_sets family ({2} conversions carry no family); their conversions cannot be validated against the effect",
-                unresolved.Count, _reagentPackConversions.Count, setlessConversions);
+                "Item conversions: of {0} reagent packs referenced by item_conv_reagents / item_conv_reagent_filters, {1} have no item_conv_rpack_members row and {2} reach only conversions with no item_conv_sets family ({3} conversions carry no family)",
+                referencedPacks.Count, noMemberPacks.Count, unattributedOnlyPacks.Count, setlessConversions);
         }
     }
 
-    private void ResolveReagentSets(List<ItemConversionReagent> reagents, HashSet<uint> unresolvedPacks)
+    private void ResolveReagentSets(List<ItemConversionReagent> reagents, HashSet<uint> referencedPacks,
+        HashSet<uint> noMemberPacks, HashSet<uint> unattributedOnlyPacks)
     {
         foreach (var reagent in reagents)
         {
+            // 24 item_conv_reagent_filters rows carry a NULL item_conv_rpack_id, which the loader reads as 0.
+            // That is not a pack, so it is neither counted nor resolved.
+            if (reagent.ReagentPackId == 0)
+                continue;
+
+            referencedPacks.Add(reagent.ReagentPackId);
+
             if (!_reagentPackConversions.TryGetValue(reagent.ReagentPackId, out var conversions) ||
                 conversions.Count == 0)
             {
-                unresolvedPacks.Add(reagent.ReagentPackId);
+                noMemberPacks.Add(reagent.ReagentPackId);
                 continue;
             }
 
@@ -493,7 +490,7 @@ public class ItemConversionGameData : Singleton<ItemConversionGameData>, IGameDa
             }
 
             if (!reagent.HasKnownFamily)
-                unresolvedPacks.Add(reagent.ReagentPackId);
+                unattributedOnlyPacks.Add(reagent.ReagentPackId);
         }
     }
 
