@@ -678,8 +678,12 @@ public static class Program
         // client-only (SCConflictZoneState).
         WorldIntegration.NotifyZoneReadyForConflictZone = (zoneId, _) =>
         {
-            if (TryGetConflictZoneState(zoneId, out var groupId, out var warState))
-                PlayerEnterService.ForZoneId(zoneId)?.SendPacket(new WZConflictZoneStatePacket((short)groupId, warState));
+            if (!TryGetConflictZoneState(zoneId, out var groupId, out var warState))
+                return;
+            if (PlayerEnterService.ForZoneId(zoneId) is not { } readyZone)
+                return;
+            readyZone.SendPacket(new WZConflictZoneStatePacket((short)groupId, warState));
+            Logger.Debug("WZConflictZoneState (zone ready) → zoneId={0} group={1} state={2}", zoneId, groupId, warState);
         };
         WorldIntegration.RelayConflictZoneStateToZone = (zoneGroupId, warState) =>
         {
@@ -690,6 +694,7 @@ public static class Program
                 if (ZoneGroupOfZone(zone.ZoneId) != zoneGroupId)
                     continue;
                 zone.SendPacket(new WZConflictZoneStatePacket((short)zoneGroupId, warState));
+                Logger.Debug("WZConflictZoneState → zoneId={0} group={1} state={2}", zone.ZoneId, zoneGroupId, warState);
             }
         };
 

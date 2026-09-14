@@ -66,6 +66,8 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
             return;
 
         conflict.AddNpcKill();
+        Logger.Debug("Conflict zone {0}: counted NPC kill tpl={1} (npcKills={2}, state={3})",
+            group, npc.TemplateId, conflict.NpcKillCount, conflict.CurrentZoneState);
     }
 
     /// <summary>
@@ -83,6 +85,8 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
             return;
 
         conflict.AddQuestCompletion();
+        Logger.Debug("Conflict zone {0}: counted quest completion {1} (quests={2}, state={3})",
+            group, questId, conflict.QuestCompletionCount, conflict.CurrentZoneState);
     }
 
     private ushort? GetZoneGroupIdForPosition(Transform transform)
