@@ -1,27 +1,35 @@
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Utils;
+using AAEmu.Commons.Exceptions;
 
 namespace AAEmu.UnitTests.Game.Core.Managers.Id;
 
 public class IdManagerTests
 {
+    private static T EmptyStore<T>(T manager) where T : IdManager
+    {
+        manager.SetUsedIdsLoaderForTest(() => []);
+        return manager;
+    }
+
     #region TheoryData for Parameterized Tests
 
     public static IEnumerable<(IIdManager, uint)> IdManagerFirstIdData() =>
     [
-        (new CharacterIdManager(), 0x000003E9u),
-        (new ItemIdManager(), 0x01000000u),
-        (new ObjectIdManager(), 0x00000100u),
-        (new DoodadIdManager(), 0x00000001u),
-        (new AuctionIdManager(), 0x00000001u),
+        (EmptyStore(new CharacterIdManager()), 0x000003E9u),
+        (EmptyStore(new ItemIdManager()), 0x01000000u),
+        (EmptyStore(new ObjectIdManager()), 0x00000100u),
+        (EmptyStore(new DoodadIdManager()), 0x00000001u),
+        (EmptyStore(new AuctionIdManager()), 0x00000001u),
     ];
 
     public static IEnumerable<IIdManager> IdManagerData() =>
     [
-        new CharacterIdManager(),
-        new ItemIdManager(),
-        new ObjectIdManager(),
-        new DoodadIdManager(),
-        new AuctionIdManager(),
+        EmptyStore(new CharacterIdManager()),
+        EmptyStore(new ItemIdManager()),
+        EmptyStore(new ObjectIdManager()),
+        EmptyStore(new DoodadIdManager()),
+        EmptyStore(new AuctionIdManager()),
     ];
 
     #endregion
@@ -245,9 +253,32 @@ public class IdManagerTests
     #region Specific Manager Tests - CharacterIdManager
 
     [Test]
+    public async Task CharacterIdManager_DuplicateLegacyIdsReserveEachLiveIdOnce()
+    {
+        var manager = EmptyStore(new CharacterIdManager());
+        manager.SetUsedIdsLoaderForTest(() => [2, 3, 2, 3, 1001]);
+        await Assert.That(manager.Initialize(true)).IsTrue();
+
+        var id = manager.GetNextId();
+
+        await Assert.That(id).IsEqualTo(1002u);
+    }
+
+    [Test]
+    public async Task CharacterIdManager_DatabaseReadFailureLeavesAllocatorUnavailable()
+    {
+        var manager = EmptyStore(new CharacterIdManager());
+        manager.SetUsedIdsLoaderForTest(() => throw new IOException("database unavailable"));
+
+        await Assert.That(manager.Initialize(true)).IsFalse();
+        await Assert.That(() => manager.GetNextId()).Throws<InvalidOperationException>();
+        await Assert.That(manager.Load).Throws<GameException>();
+    }
+
+    [Test]
     public async Task CharacterIdManager_GetNextId_ReturnsCorrectFirstId()
     {
-        var manager = new CharacterIdManager();
+        var manager = EmptyStore(new CharacterIdManager());
         manager.Initialize(true);
         const uint expectedFirstId = 0x000003E9u; // 1001: 10.x clients treat sub-1000 character ids as system
 
@@ -259,7 +290,7 @@ public class IdManagerTests
     [Test]
     public async Task CharacterIdManager_GetNextId_SequentialCalls_IncrementsCorrectly()
     {
-        var manager = new CharacterIdManager();
+        var manager = EmptyStore(new CharacterIdManager());
         manager.Initialize(true);
 
         var id1 = manager.GetNextId();
@@ -274,7 +305,7 @@ public class IdManagerTests
     [Test]
     public async Task CharacterIdManager_ReleaseId_MakesIdAvailable()
     {
-        var manager = new CharacterIdManager();
+        var manager = EmptyStore(new CharacterIdManager());
         manager.Initialize(true);
         var id = manager.GetNextId();
         manager.GetNextId();
@@ -292,7 +323,7 @@ public class IdManagerTests
     [Test]
     public async Task ItemIdManager_GetNextId_ReturnsCorrectFirstId()
     {
-        var manager = new ItemIdManager();
+        var manager = EmptyStore(new ItemIdManager());
         manager.Initialize(true);
         const uint expectedFirstId = 0x01000000u;
 
@@ -304,7 +335,7 @@ public class IdManagerTests
     [Test]
     public async Task ItemIdManager_GetNextId_SequentialCalls_IncrementsCorrectly()
     {
-        var manager = new ItemIdManager();
+        var manager = EmptyStore(new ItemIdManager());
         manager.Initialize(true);
 
         var id1 = manager.GetNextId();
@@ -319,7 +350,7 @@ public class IdManagerTests
     [Test]
     public async Task ItemIdManager_ReleaseId_MakesIdAvailable()
     {
-        var manager = new ItemIdManager();
+        var manager = EmptyStore(new ItemIdManager());
         manager.Initialize(true);
         var id = manager.GetNextId();
         manager.GetNextId();
@@ -337,7 +368,7 @@ public class IdManagerTests
     [Test]
     public async Task ObjectIdManager_GetNextId_ReturnsCorrectFirstId()
     {
-        var manager = new ObjectIdManager();
+        var manager = EmptyStore(new ObjectIdManager());
         manager.Initialize(true);
         const uint expectedFirstId = 0x00000100u;
 
@@ -349,7 +380,7 @@ public class IdManagerTests
     [Test]
     public async Task ObjectIdManager_GetNextId_SequentialCalls_IncrementsCorrectly()
     {
-        var manager = new ObjectIdManager();
+        var manager = EmptyStore(new ObjectIdManager());
         manager.Initialize(true);
 
         var id1 = manager.GetNextId();
@@ -364,7 +395,7 @@ public class IdManagerTests
     [Test]
     public async Task ObjectIdManager_ReleaseId_MakesIdAvailable()
     {
-        var manager = new ObjectIdManager();
+        var manager = EmptyStore(new ObjectIdManager());
         manager.Initialize(true);
         var id = manager.GetNextId();
         manager.GetNextId();
@@ -378,7 +409,7 @@ public class IdManagerTests
     [Test]
     public async Task ObjectIdManager_GetNextId_Multiple_ReturnsArray()
     {
-        var manager = new ObjectIdManager();
+        var manager = EmptyStore(new ObjectIdManager());
         manager.Initialize(true);
         const uint firstId = 0x00000100u;
 
@@ -396,7 +427,7 @@ public class IdManagerTests
     [Test]
     public async Task DoodadIdManager_GetNextId_ReturnsCorrectFirstId()
     {
-        var manager = new DoodadIdManager();
+        var manager = EmptyStore(new DoodadIdManager());
         manager.Initialize(true);
         const uint expectedFirstId = 0x00000001u;
 
@@ -408,7 +439,7 @@ public class IdManagerTests
     [Test]
     public async Task DoodadIdManager_GetNextId_SequentialCalls_IncrementsCorrectly()
     {
-        var manager = new DoodadIdManager();
+        var manager = EmptyStore(new DoodadIdManager());
         manager.Initialize(true);
 
         var id1 = manager.GetNextId();
@@ -423,7 +454,7 @@ public class IdManagerTests
     [Test]
     public async Task DoodadIdManager_ReleaseId_MakesIdAvailable()
     {
-        var manager = new DoodadIdManager();
+        var manager = EmptyStore(new DoodadIdManager());
         manager.Initialize(true);
         var id = manager.GetNextId();
         manager.GetNextId();
@@ -441,7 +472,7 @@ public class IdManagerTests
     [Test]
     public async Task AuctionIdManager_GetNextId_ReturnsCorrectFirstId()
     {
-        var manager = new AuctionIdManager();
+        var manager = EmptyStore(new AuctionIdManager());
         manager.Initialize(true);
         const uint expectedFirstId = 0x00000001u;
 
@@ -453,7 +484,7 @@ public class IdManagerTests
     [Test]
     public async Task AuctionIdManager_GetNextId_SequentialCalls_IncrementsCorrectly()
     {
-        var manager = new AuctionIdManager();
+        var manager = EmptyStore(new AuctionIdManager());
         manager.Initialize(true);
 
         var id1 = manager.GetNextId();
@@ -468,7 +499,7 @@ public class IdManagerTests
     [Test]
     public async Task AuctionIdManager_ReleaseId_MakesIdAvailable()
     {
-        var manager = new AuctionIdManager();
+        var manager = EmptyStore(new AuctionIdManager());
         manager.Initialize(true);
         var id = manager.GetNextId();
         manager.GetNextId();
@@ -598,11 +629,11 @@ public class IdManagerTests
     public async Task AllManagers_Initialized_SimultaneousUse()
     {
         // Arrange
-        var charMgr = new CharacterIdManager();
-        var itemMgr = new ItemIdManager();
-        var objMgr = new ObjectIdManager();
-        var doodadMgr = new DoodadIdManager();
-        var auctionMgr = new AuctionIdManager();
+        var charMgr = EmptyStore(new CharacterIdManager());
+        var itemMgr = EmptyStore(new ItemIdManager());
+        var objMgr = EmptyStore(new ObjectIdManager());
+        var doodadMgr = EmptyStore(new DoodadIdManager());
+        var auctionMgr = EmptyStore(new AuctionIdManager());
         charMgr.Initialize(true);
         itemMgr.Initialize(true);
         objMgr.Initialize(true);
@@ -628,8 +659,8 @@ public class IdManagerTests
     public async Task AllManagers_ReleaseId_IndependentlyManaged()
     {
         // Arrange
-        var charMgr = new CharacterIdManager();
-        var itemMgr = new ItemIdManager();
+        var charMgr = EmptyStore(new CharacterIdManager());
+        var itemMgr = EmptyStore(new ItemIdManager());
         charMgr.Initialize(true);
         itemMgr.Initialize(true);
 

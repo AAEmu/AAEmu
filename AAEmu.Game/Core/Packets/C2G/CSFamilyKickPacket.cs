@@ -8,7 +8,14 @@ public class CSFamilyKickPacket() : GamePacket(CSOffsets.CSFamilyKickPacket, 1)
 {
     public override void Read(PacketStream stream)
     {
-        var memberId = stream.ReadUInt32();
+        var wireMemberId = stream.ReadUInt64();
+        if (wireMemberId > uint.MaxValue)
+        {
+            Logger.Warn("Ignoring FamilyKick with unsupported character id: {0}", wireMemberId);
+            return;
+        }
+
+        var memberId = (uint)wireMemberId;
 
         FamilyManager.Instance.KickMember(Connection.ActiveChar, memberId);
 

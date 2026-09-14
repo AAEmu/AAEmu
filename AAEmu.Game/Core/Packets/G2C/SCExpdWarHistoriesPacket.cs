@@ -1,5 +1,6 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Expeditions.Activities;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
@@ -10,18 +11,14 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
 /// value's name alongside the value:
 /// </remarks>
-public class SCExpdWarHistoriesPacket(uint historiesCount, int @type, string declarerName, int @type2, string defendantName, long declareDate, uint declarerKills, uint defendantKills) : GamePacket(SCOffsets.SCExpdWarHistoriesPacket, 1)
+public class SCExpdWarHistoriesPacket(IReadOnlyCollection<ExpeditionWarHistory> histories) : GamePacket(SCOffsets.SCExpdWarHistoriesPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(historiesCount);
-        stream.Write(@type);
-        stream.Write(declarerName);
-        stream.Write(@type2);
-        stream.Write(defendantName);
-        stream.Write(declareDate);
-        stream.Write(declarerKills);
-        stream.Write(defendantKills);
+        var rows = histories.Take(50).ToArray();
+        stream.Write((uint)rows.Length);
+        foreach (var row in rows)
+            row.Write(stream);
         return stream;
     }
 }

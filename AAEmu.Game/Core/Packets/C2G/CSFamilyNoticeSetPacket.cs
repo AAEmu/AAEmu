@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -17,5 +18,6 @@ public class CSFamilyNoticeSetPacket() : GamePacket(CSOffsets.CSFamilyNoticeSetP
     public override void Read(PacketStream stream)
     {
         Notice = stream.ReadString();
+        FamilyManager.Instance.SetNotice(Connection.ActiveChar, Notice);
     }
 }

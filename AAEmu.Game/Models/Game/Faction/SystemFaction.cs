@@ -20,6 +20,8 @@ public class SystemFaction : PacketMarshaler
     public DateTime Created { get; set; }
     public DateTime RenameTime { get; set; }
     public bool IntegrationFaction { get; set; }
+    /// <summary>Content-authored sponsor option exposed by the expedition creation UI.</summary>
+    public bool ShowCreateExpedition { get; set; }
 
     public Dictionary<FactionsEnum, FactionRelation> Relations { get; set; } = [];
 

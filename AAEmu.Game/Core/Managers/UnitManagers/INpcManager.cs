@@ -16,6 +16,8 @@ public interface INpcManager : ILoadable, IInitializable
         IEnumerable<(MerchantGoodsItem Good, int Count)> purchases,
         out MerchantGoodsItem failedGood,
         out IReadOnlyDictionary<uint, MerchantPurchaseState> updatedStates);
+    MerchantPurchaseReservation BeginMerchantPurchaseReservation(
+        uint characterId, IEnumerable<(MerchantGoodsItem Good, int Count)> purchases);
     bool TryRollbackMerchantPurchases(
         uint characterId,
         IEnumerable<(MerchantGoodsItem Good, int Count)> purchases);

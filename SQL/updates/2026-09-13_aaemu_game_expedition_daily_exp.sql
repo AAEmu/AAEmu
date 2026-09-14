@@ -1,0 +1,3 @@
+ALTER TABLE `expeditions`
+    ADD COLUMN `daily_exp` INT UNSIGNED NOT NULL DEFAULT 0 AFTER `exp`,
+    ADD COLUMN `last_exp_update_time` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER `daily_exp`;

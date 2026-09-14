@@ -40,7 +40,7 @@ public static class ScheduleItemRules
     }
 
     public static bool NeedsDailyReset(DateTime lastUpdatedUtc, DateTime utcNow) =>
-        ServerCalendar.AsUtc(lastUpdatedUtc).Date != ServerCalendar.AsUtc(utcNow).Date;
+        ServerCalendar.IsNewDailyPeriod(lastUpdatedUtc, utcNow);
 
     public static int SecondsForTerm(int giveTermMinutes) =>
         (int)TimeSpan.FromMinutes(Math.Max(0, giveTermMinutes)).TotalSeconds;

@@ -29,8 +29,7 @@ public sealed class CharacterArchePassPersistTests
         _saves = new RecordingSaveManager();
         var nameManager = new NameManager();
         nameManager.Load([], [], []);
-        var mailIdManager = new MailIdManager();
-        mailIdManager.Initialize();
+        var mailIdManager = new SequentialMailIdManager();
         _mailManager = new MailManager(
             mailIdManager,
             nameManager,

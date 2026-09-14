@@ -54,8 +54,17 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
                 Connection.ActiveChar.ObjId = ObjectIdManager.Instance.GetNextId();
                 Character.UsedCharacterObjIds.TryAdd(character.Id, character.ObjId);
             }
-            // Add to server pool
-            WorldManager.Instance.TryAddCharacter(character);
+            // Refresh and register guild membership while holding the same per-character lease used
+            // by online invitations and offline recruitment acceptance.
+            using (ExpeditionManager.Instance.BeginCharacterLoginAssociation(character))
+            {
+                if (!WorldManager.Instance.TryAddCharacter(character))
+                {
+                    Connection.ActiveChar = null;
+                    Connection.Shutdown();
+                    return;
+                }
+            }
 
             var mySlave = Connection.ActiveChar.ParentWorld?.SlaveManager
                 ?.GetActiveSlaveByOwnerObjId(Connection.ActiveChar.ObjId);

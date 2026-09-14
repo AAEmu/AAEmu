@@ -1,4 +1,5 @@
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.GameData.Framework;
 
 using Microsoft.Extensions.DependencyInjection;
 
@@ -58,6 +59,21 @@ public class ManagerOrchestratorTests
     // -------------------------------------------------------------------------
     // Tests
     // -------------------------------------------------------------------------
+
+    [Test]
+    public async Task OfflineSocialRosterLoaders_DeclareGameDataOrderingDependency()
+    {
+        foreach (var managerType in new[] { typeof(FamilyManager), typeof(ExpeditionManager) })
+        {
+            var productionConstructor = managerType.GetConstructors()
+                .MaxBy(constructor => constructor.GetParameters().Length);
+
+            await Assert.That(productionConstructor).IsNotNull();
+            await Assert.That(productionConstructor!.GetParameters()
+                    .Any(parameter => parameter.ParameterType == typeof(IGameDataManager)))
+                .IsTrue();
+        }
+    }
 
     [Test]
     public async Task BuildBatches_ProducesCorrectTopologicalOrder()

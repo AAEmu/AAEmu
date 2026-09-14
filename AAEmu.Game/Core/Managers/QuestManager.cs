@@ -2095,6 +2095,67 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
         }
         using (var command = connection.CreateCommand())
         {
+            command.CommandText = "SELECT * FROM quest_act_supply_family_exps";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActSupplyFamilyExp", actId);
+                    if (parentComponent == null)
+                        continue;
+                    var template = new QuestActSupplyFamilyExp(parentComponent)
+                    {
+                        DetailId = actId,
+                        Point = reader.GetUInt32("point")
+                    };
+                    AddActTemplate(template);
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM quest_act_supply_expedition_exps";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActSupplyExpeditionExp", actId);
+                    if (parentComponent == null)
+                        continue;
+                    AddActTemplate(new QuestActSupplyExpeditionExp(parentComponent)
+                    {
+                        DetailId = actId,
+                        Point = reader.GetUInt32("point")
+                    });
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM quest_act_supply_contribution_points";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActSupplyContributionPoint", actId);
+                    if (parentComponent == null)
+                        continue;
+                    AddActTemplate(new QuestActSupplyContributionPoint(parentComponent)
+                    {
+                        DetailId = actId,
+                        Point = reader.GetUInt32("point")
+                    });
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
             command.CommandText = "SELECT * FROM quest_act_supply_honor_points";
             command.Prepare();
             using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))

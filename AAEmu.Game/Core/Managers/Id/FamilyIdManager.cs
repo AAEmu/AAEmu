@@ -11,7 +11,7 @@ public class FamilyIdManager() : IdManager("FamilyIdManager", FirstId, LastId, O
     private const uint FirstId = 0x00000001;
     private const uint LastId = 0x00FFFFFF;
     private static readonly uint[] Exclude = [];
-    private static readonly string[,] ObjTables = { { "characters", "family" } };
+    private static readonly string[,] ObjTables = { { "characters", "family" }, { "families", "id" } };
 
     public static FamilyIdManager Instance =>
         _instance ??= SingletonContainer.ServiceProvider?.GetService<FamilyIdManager>() ?? new FamilyIdManager();

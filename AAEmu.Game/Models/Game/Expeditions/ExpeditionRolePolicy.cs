@@ -106,4 +106,19 @@ public class ExpeditionRolePolicy : PacketMarshaler
         };
         return rolePolicy;
     }
+
+    public void ApplyPermissionsFrom(ExpeditionRolePolicy source)
+    {
+        Name = source.Name;
+        DominionDeclare = source.DominionDeclare;
+        Invite = source.Invite;
+        Expel = source.Expel;
+        Promote = source.Promote;
+        Dismiss = source.Dismiss;
+        Chat = source.Chat;
+        ManagerChat = source.ManagerChat;
+        SiegeMaster = source.SiegeMaster;
+        JoinSiege = source.JoinSiege;
+        UseInstance = source.UseInstance;
+    }
 }

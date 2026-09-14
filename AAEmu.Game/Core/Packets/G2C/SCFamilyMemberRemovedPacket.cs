@@ -8,8 +8,8 @@ public class SCFamilyMemberRemovedPacket(uint familyId, bool kicked, uint member
 {
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(familyId);
-        stream.Write(memberId);
+        stream.Write((int)familyId);
+        stream.Write((ulong)memberId);
         stream.Write(kicked);
         return stream;
     }

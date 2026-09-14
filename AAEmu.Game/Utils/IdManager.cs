@@ -24,6 +24,7 @@ public class IdManager
     private readonly string[,] _objTables;
     private readonly bool _distinct;
     private readonly object _lock = new();
+    private Func<uint[]> _usedIdsLoaderForTest;
 
     // ReSharper disable once MemberCanBeProtected.Global
     public IdManager(string name, uint firstId, uint lastId, string[,] objTables, uint[] exclude, bool distinct = false)
@@ -39,7 +40,11 @@ public class IdManager
     }
 
     /// <summary>Called by the ManagerOrchestrator in Stage 2, delegating to Initialize().</summary>
-    public virtual void Load() => Initialize();
+    public virtual void Load()
+    {
+        if (!Initialize())
+            throw new GameException($"{_name} could not load its persisted ID reservations.");
+    }
 
     /// <summary>
     /// Initializes the IdManager for use by resetting the Ids and grabbing data from the database if needed
@@ -53,21 +58,16 @@ public class IdManager
 
         try
         {
-            _freeIds = new BitSet(PrimeFinder.NextPrime(100000));
-            _freeIds.Clear();
+            var freeIds = new BitSet(PrimeFinder.NextPrime(100000));
+            freeIds.Clear();
+            _freeIds = freeIds;
             _freeIdCount = _freeIdSize;
 
-            var allUsedObjects = Array.Empty<uint>();
-            try
-            {
-                allUsedObjects = ExtractUsedObjectIdTable();
-            }
-            catch
-            {
-                Logger.Warn($"{_name} failed to read from database, reverting to default");
-            }
+            // A failed read must leave this allocator unavailable. Treating an unknown live set as
+            // empty can hand out an ID that already belongs to a persisted object.
+            var allUsedObjects = _usedIdsLoaderForTest?.Invoke() ?? ExtractUsedObjectIdTable();
 
-            foreach (var usedObjectId in allUsedObjects)
+            foreach (var usedObjectId in allUsedObjects.Distinct())
             {
                 if (_exclude.Contains(usedObjectId))
                     continue;
@@ -75,6 +75,11 @@ public class IdManager
                 if (usedObjectId < _firstId)
                 {
                     Logger.Warn($"{_name}: Object ID {usedObjectId} in DB is less than {_firstId}");
+                    continue;
+                }
+                if (usedObjectId >= _lastId)
+                {
+                    Logger.Warn($"{_name}: Object ID {usedObjectId} in DB is outside [{_firstId}, {_lastId})");
                     continue;
                 }
 
@@ -89,6 +94,10 @@ public class IdManager
         }
         catch (Exception e)
         {
+            _freeIds = null;
+            _freeIdCount = 0;
+            _nextFreeId = -1;
+            _initialized = false;
             Logger.Error($"{_name} could not be initialized correctly");
             Logger.Error(e);
             return false;
@@ -108,44 +117,28 @@ public class IdManager
         var query = "SELECT " + (_distinct ? "DISTINCT " : "") + _objTables[0, 1] + ", 0 AS i FROM " +
                     _objTables[0, 0];
         for (var i = 1; i < _objTables.Length / 2; i++)
-            query += " UNION SELECT " + (_distinct ? "DISTINCT " : "") + _objTables[i, 1] + ", " + i +
+            query += " UNION ALL SELECT " + (_distinct ? "DISTINCT " : "") + _objTables[i, 1] + ", " + i +
                      " FROM " + _objTables[i, 0];
-
-        command.CommandText = "SELECT COUNT(*), COUNT(DISTINCT " + _objTables[0, 1] + ") FROM ( " + query +
-                              " ) AS all_ids";
-        command.Prepare();
-        int count;
-        using (var reader = command.ExecuteReader())
-        {
-            if (!reader.Read())
-                throw new GameException("IdManager: can't extract count ids");
-            if (reader.GetInt32(0) != reader.GetInt32(1) && !_distinct)
-                throw new GameException("IdManager: there are duplicates in object ids");
-            count = reader.GetInt32(0);
-        }
-
-        if (count == 0)
-            return [];
-
-        var result = new uint[count];
-        Logger.Info($"{_name}: Extracting {count} used id's from data tables...");
 
         command.CommandText = query;
         command.Prepare();
+        var result = new HashSet<uint>();
+        var duplicateCount = 0;
         using (var reader = command.ExecuteReader())
         {
-            var idx = 0;
             while (reader.Read())
             {
-                result[idx] = reader.GetUInt32(0);
-                idx++;
+                if (!result.Add(reader.GetUInt32(0)))
+                    duplicateCount++;
             }
-
-            Logger.Info($"{_name}: Successfully extracted {idx} used id's from data tables.");
         }
-
-        return result;
+        if (duplicateCount > 0)
+            Logger.Warn($"{_name}: found {duplicateCount} duplicate persisted IDs across its shared tables; reserving each ID once");
+        Logger.Info($"{_name}: Successfully extracted {result.Count} unique used id's from data tables.");
+        return result.ToArray();
     }
+
+    internal void SetUsedIdsLoaderForTest(Func<uint[]> loader) => _usedIdsLoaderForTest = loader;
 
     public void ReleaseId(uint usedObjectId)
     {
@@ -191,9 +184,12 @@ public class IdManager
 
         lock (_lock)
         {
+            if (!_initialized || _freeIds == null)
+                throw new InvalidOperationException($"{_name} is unavailable because initialization did not complete.");
+
             for (var id = fromInclusive; id < toExclusive; id++)
             {
-                if (id < _firstId || id > _lastId)
+                if (id < _firstId || id >= _lastId)
                     continue;
 
                 var objectId = (int)(id - _firstId);
@@ -218,6 +214,8 @@ public class IdManager
     {
         lock (_lock)
         {
+            if (!_initialized || _freeIds == null || _nextFreeId < 0)
+                throw new InvalidOperationException($"{_name} is unavailable because initialization did not complete.");
             var newId = _nextFreeId;
             _freeIds.Set(newId);
             Interlocked.Decrement(ref _freeIdCount);

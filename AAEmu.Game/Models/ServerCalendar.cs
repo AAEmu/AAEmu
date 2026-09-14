@@ -11,6 +11,12 @@ public static class ServerCalendar
     /// <summary>Calendar day used for daily quests, Path of Destiny day_key, merchant daily limits.</summary>
     public static DateTime TodayUtc => UtcNow.Date;
 
+    /// <summary>00:00 UTC boundary shared by World's daily reset tasks and persisted daily counters.</summary>
+    public static DateTime DailyPeriodStartUtc(DateTime moment) => AsUtc(moment).Date;
+
+    public static bool IsNewDailyPeriod(DateTime previousMoment, DateTime currentMoment) =>
+        DailyPeriodStartUtc(previousMoment) != DailyPeriodStartUtc(currentMoment);
+
     /// <summary>
     /// Start of the Monday–Sunday week containing <see cref="TodayUtc"/> (Monday 00:00:00 UTC).
     /// Matches merchant weekly limits and cron <c>0 0 0 * * 1</c>.

@@ -339,7 +339,9 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `faction_id` int unsigned NOT NULL,
   `faction_name` varchar(128) NOT NULL,
   `expedition_id` int NOT NULL,
+  `expedition_rejoin_until` bigint NOT NULL DEFAULT '0',
   `family` int unsigned NOT NULL,
+  `family_rejoin_until` bigint NOT NULL DEFAULT '0',
   `dead_count` mediumint unsigned NOT NULL,
   `dead_time` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `rez_wait_duration` int NOT NULL,
@@ -433,6 +435,7 @@ CREATE TABLE IF NOT EXISTS `expedition_members` (
   `memo` varchar(128) CHARACTER SET utf8 COLLATE utf8_general_ci NOT NULL,
   `contribution_point` int unsigned NOT NULL DEFAULT '0',
   `weekly_contribution_point` int unsigned NOT NULL DEFAULT '0',
+  `weekly_contribution_period_start` date NOT NULL DEFAULT '1970-01-05',
   PRIMARY KEY (`character_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Guild members';
 
@@ -473,9 +476,18 @@ CREATE TABLE IF NOT EXISTS `expeditions` (
   `mother` int NOT NULL,
   `level` int unsigned NOT NULL DEFAULT '1',
   `exp` int unsigned NOT NULL DEFAULT '0',
+  `daily_exp` int unsigned NOT NULL DEFAULT '0',
+  `last_exp_update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `notice` varchar(800) NOT NULL DEFAULT '',
   `residence_house_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'Guild Residence house id, 0 = none placed',
   `interest` smallint NOT NULL DEFAULT '0' COMMENT 'recruitment-board interest tag bitmask',
+  `war_deposit` int unsigned NOT NULL DEFAULT '0',
+  `war_wins` int unsigned NOT NULL DEFAULT '0',
+  `war_losses` int unsigned NOT NULL DEFAULT '0',
+  `war_draws` int unsigned NOT NULL DEFAULT '0',
+  `daily_contribution_point` int unsigned NOT NULL DEFAULT '0',
+  `last_contribution_point_added` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
+  `last_assignment_update_time` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
   `war_enemy_expedition_id` int unsigned NOT NULL DEFAULT '0',
   `war_declared_at` datetime NULL DEFAULT NULL,
   `war_protected_until` datetime NULL DEFAULT NULL,
@@ -486,13 +498,170 @@ CREATE TABLE IF NOT EXISTS `expeditions` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Guilds';
 
+CREATE TABLE IF NOT EXISTS `character_today_board_reset_counts` (
+  `owner` int unsigned NOT NULL,
+  `sort_id` int NOT NULL,
+  `day_key` date NOT NULL,
+  `resets_used` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`owner`,`sort_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Per-board today assignment reset counters';
+
+CREATE TABLE IF NOT EXISTS `expedition_public_assignments` (
+  `expedition_id` int NOT NULL,
+  `period_start` datetime NOT NULL,
+  `real_step` int unsigned NOT NULL,
+  `group_id` int unsigned NOT NULL,
+  `quest_context_id` int unsigned NOT NULL,
+  `status` tinyint NOT NULL,
+  `objectives` json NOT NULL,
+  `version` int unsigned NOT NULL DEFAULT '0',
+  `selection_generation` int unsigned NOT NULL DEFAULT '1',
+  `completed_at` datetime NULL,
+  `guild_rewarded` tinyint(1) NOT NULL DEFAULT '0',
+  PRIMARY KEY (`expedition_id`,`period_start`,`real_step`),
+  CONSTRAINT `fk_public_assignment_expedition` FOREIGN KEY (`expedition_id`) REFERENCES `expeditions` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Shared weekly guild assignments';
+
+CREATE TABLE IF NOT EXISTS `expedition_public_assignment_contributors` (
+  `expedition_id` int NOT NULL,
+  `period_start` datetime NOT NULL,
+  `real_step` int unsigned NOT NULL,
+  `character_id` int unsigned NOT NULL,
+  `character_name` varchar(128) NOT NULL,
+  `contribution` bigint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`expedition_id`,`period_start`,`real_step`,`character_id`),
+  CONSTRAINT `fk_public_contributor_assignment` FOREIGN KEY (`expedition_id`,`period_start`,`real_step`) REFERENCES `expedition_public_assignments` (`expedition_id`,`period_start`,`real_step`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Guild assignment contributors';
+
+CREATE TABLE IF NOT EXISTS `expedition_public_assignment_claims` (
+  `expedition_id` int NOT NULL,
+  `period_start` datetime NOT NULL,
+  `real_step` int unsigned NOT NULL,
+  `character_id` int unsigned NOT NULL,
+  `character_name` varchar(128) NOT NULL,
+  `delivered_at` datetime NULL,
+  PRIMARY KEY (`expedition_id`,`period_start`,`real_step`,`character_id`),
+  CONSTRAINT `fk_public_claim_assignment` FOREIGN KEY (`expedition_id`,`period_start`,`real_step`) REFERENCES `expedition_public_assignments` (`expedition_id`,`period_start`,`real_step`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Durable guild assignment reward delivery';
+
+CREATE TABLE IF NOT EXISTS `expedition_renames` (
+  `expedition_id` int unsigned NOT NULL,
+  `last_renamed_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`expedition_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Guild rename cooldown state';
+
+
+CREATE TABLE IF NOT EXISTS `expedition_portals` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `expedition_id` int NOT NULL,
+  `name` varchar(128) NOT NULL,
+  `zone_id` int unsigned NOT NULL,
+  `x` float NOT NULL,
+  `y` float NOT NULL,
+  `z` float NOT NULL,
+  `z_rot` float NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_expedition_portals_expedition` (`expedition_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Saved guild portal destinations';
+
+CREATE TABLE IF NOT EXISTS `expedition_management_histories` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `expedition_id` int NOT NULL,
+  `member_name` varchar(128) NOT NULL,
+  `history_type` int NOT NULL,
+  `amount` bigint unsigned NOT NULL DEFAULT '0',
+  `used_at` datetime(6) NOT NULL,
+  `detail_id` int unsigned NOT NULL DEFAULT '0',
+  `detail_value` int NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `idx_expedition_management_history` (`expedition_id`,`used_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Guild management activity history';
+
+CREATE TABLE IF NOT EXISTS `expedition_shop_histories` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `expedition_id` int NOT NULL,
+  `member_name` varchar(128) NOT NULL,
+  `item_id` int NOT NULL,
+  `stack` int NOT NULL,
+  `amount` bigint unsigned NOT NULL DEFAULT '0',
+  `purchased_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_expedition_shop_history` (`expedition_id`,`purchased_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Guild shop purchase history';
+
+CREATE TABLE IF NOT EXISTS `expedition_war_histories` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `declarer_id` int NOT NULL,
+  `declarer_name` varchar(128) NOT NULL,
+  `defendant_id` int NOT NULL,
+  `defendant_name` varchar(128) NOT NULL,
+  `declared_at` datetime(6) NOT NULL,
+  `declarer_kills` int unsigned NOT NULL DEFAULT '0',
+  `defendant_kills` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`),
+  KEY `idx_expedition_war_declarer` (`declarer_id`,`declared_at`),
+  KEY `idx_expedition_war_defendant` (`defendant_id`,`declared_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Retained guild war history';
+
+CREATE TABLE IF NOT EXISTS `expedition_daily_activity` (
+  `expedition_id` int NOT NULL,
+  `character_id` int unsigned NOT NULL,
+  `period_start` datetime(6) NOT NULL,
+  `contribution_used` int NOT NULL DEFAULT '0',
+  PRIMARY KEY (`expedition_id`,`character_id`,`period_start`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Guild daily activity counters';
+
+CREATE TABLE IF NOT EXISTS `expedition_instance_histories` (
+  `history_id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `expedition_id` int NOT NULL,
+  `instance_rank_detail_id` int unsigned NOT NULL COMMENT 'instance_rank_details.id; first native history/rating type',
+  `instance_id` int unsigned NOT NULL,
+  `score` int unsigned NOT NULL,
+  `play_result` tinyint unsigned NOT NULL,
+  `recorded_at` datetime(6) NOT NULL,
+  PRIMARY KEY (`history_id`),
+  KEY `idx_expedition_instance_history` (`expedition_id`,`recorded_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Guild battlefield result history';
+
+CREATE TABLE IF NOT EXISTS `expedition_instance_history_members` (
+  `history_id` bigint unsigned NOT NULL,
+  `character_id` bigint unsigned NOT NULL,
+  `status` tinyint unsigned NOT NULL,
+  PRIMARY KEY (`history_id`,`character_id`),
+  KEY `idx_expedition_instance_history_member_character` (`character_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Guild battlefield result participants';
+
+
+CREATE TABLE IF NOT EXISTS `families` (
+  `id` int unsigned NOT NULL,
+  `name` varchar(256) NOT NULL DEFAULT '',
+  `notice` varchar(800) NOT NULL DEFAULT '',
+  `level` int unsigned NOT NULL DEFAULT '1',
+  `exp` int unsigned NOT NULL DEFAULT '0',
+  `daily_exp` int unsigned NOT NULL DEFAULT '0',
+  `last_exp_update_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `increased_member_count` int unsigned NOT NULL DEFAULT '0',
+  `reset_time` bigint NOT NULL DEFAULT '0',
+  `change_name_time` bigint NOT NULL DEFAULT '0',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Families';
+
+CREATE TABLE IF NOT EXISTS `family_act_sanctions` (
+  `family_id` int unsigned NOT NULL,
+  `type` tinyint unsigned NOT NULL,
+  `end_time` bigint NOT NULL DEFAULT '0',
+  PRIMARY KEY (`family_id`,`type`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Family action sanctions';
+
 
 CREATE TABLE IF NOT EXISTS `family_members` (
   `character_id` int NOT NULL,
   `family_id` int NOT NULL,
   `name` varchar(45) NOT NULL,
   `role` tinyint(1) NOT NULL DEFAULT '0',
-  `title` varchar(45) DEFAULT NULL,
+  `role_update_time` bigint NOT NULL DEFAULT '0',
+  `login_reward_time` bigint NOT NULL DEFAULT '0',
+  `title` varchar(104) NOT NULL DEFAULT '',
   PRIMARY KEY (`family_id`,`character_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Family members';
 
@@ -826,6 +995,26 @@ COMMENT='Sales history for the ICS'
 COLLATE='utf8mb4_general_ci'
 ENGINE=InnoDB
 ;
+
+CREATE TABLE IF NOT EXISTS `expedition_recruitments` (
+  `expedition_id` INT NOT NULL,
+  `interest_mask` SMALLINT NOT NULL,
+  `introduction` VARCHAR(100) NOT NULL,
+  `registered_at` DATETIME(6) NOT NULL,
+  `expires_at` DATETIME(6) NOT NULL,
+  PRIMARY KEY (`expedition_id`),
+  KEY `idx_expedition_recruitments_expiry` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `expedition_recruitment_applications` (
+  `expedition_id` INT NOT NULL,
+  `character_id` INT UNSIGNED NOT NULL,
+  `memo` VARCHAR(100) NOT NULL,
+  `registered_at` DATETIME(6) NOT NULL,
+  PRIMARY KEY (`expedition_id`, `character_id`),
+  KEY `idx_expedition_recruitment_applications_character` (`character_id`, `registered_at`),
+  CONSTRAINT `fk_expedition_recruitment_applications_recruitment` FOREIGN KEY (`expedition_id`) REFERENCES `expedition_recruitments` (`expedition_id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 
 CREATE TABLE IF NOT EXISTS `audit_char_sus` (

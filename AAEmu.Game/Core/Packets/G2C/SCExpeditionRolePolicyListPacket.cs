@@ -9,8 +9,12 @@ public class SCExpeditionRolePolicyListPacket(List<ExpeditionRolePolicy> rolePol
 {
     public override PacketStream Write(PacketStream stream)
     {
+        if (rolePolicies.Count > 20)
+            throw new ArgumentOutOfRangeException(nameof(rolePolicies), rolePolicies.Count,
+                "Native expedition role-policy list packets contain at most 20 entries.");
+
         stream.Write((byte)rolePolicies.Count);
-        foreach (var rolePolicy in rolePolicies) // TODO max length 20
+        foreach (var rolePolicy in rolePolicies)
             stream.Write(rolePolicy);
         return stream;
     }

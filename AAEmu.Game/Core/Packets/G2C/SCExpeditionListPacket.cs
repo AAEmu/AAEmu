@@ -9,14 +9,14 @@ namespace AAEmu.Game.Core.Packets.G2C;
 public sealed class SCExpeditionListPacket(IReadOnlyCollection<Expedition> expeditions)
     : GamePacket(SCOffsets.SCExpeditionListPacket, 1)
 {
-    private const int MaxExpeditionsPerPacket = byte.MaxValue;
+    public const int MaxExpeditionsPerPacket = 20;
 
     public override PacketStream Write(PacketStream stream)
     {
         if (expeditions.Count > MaxExpeditionsPerPacket)
             throw new ArgumentOutOfRangeException(
                 nameof(expeditions), expeditions.Count,
-                "Native expedition list packets contain at most 255 descriptors.");
+                "Native expedition list packets contain at most 20 descriptors.");
 
         stream.Write((byte)expeditions.Count);
         foreach (var expedition in expeditions)

@@ -307,6 +307,45 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                 }
             }
 
+            // doodad_func_expedition_ui_opens - the interaction itself opens the client UI; the server
+            // refreshes the expedition snapshot used by that UI.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_expedition_ui_opens";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncExpeditionUiOpen
+                        {
+                            Id = reader.GetUInt32("id"),
+                            Creation = reader.GetBoolean("creation")
+                        };
+                        _funcTemplates[nameof(DoodadFuncExpeditionUiOpen)].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // doodad_func_expedition_portal_ui_opens - id-only rows. Portal records are server-owned,
+            // so send the current list when the interaction opens the portal UI.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_expedition_portal_ui_opens";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncExpeditionPortalUiOpen
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
+                        _funcTemplates[nameof(DoodadFuncExpeditionPortalUiOpen)].Add(func.Id, func);
+                    }
+                }
+            }
+
             // doodad_func_bindings
             using (var command = connection.CreateCommand())
             {

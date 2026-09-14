@@ -26,6 +26,12 @@ public class ExpeditionLevelGameData : Singleton<ExpeditionLevelGameData>, IGame
 
     public ExpeditionLevel GetLevel(uint level) => _levelsById.GetValueOrDefault(level);
 
+    public void SetForTest(params ExpeditionLevel[] levels)
+    {
+        _levelsById = levels.ToDictionary(level => level.Id);
+        MaxLevel = _levelsById.Count == 0 ? 0 : _levelsById.Keys.Max();
+    }
+
     /// <summary>
     /// Advances <paramref name="currentLevel"/> as far as <paramref name="totalExp"/> allows without
     /// requiring an item, stopping at the first level that needs an explicit level-up confirm.
@@ -61,8 +67,19 @@ public class ExpeditionLevelGameData : Singleton<ExpeditionLevelGameData>, IGame
     {
         _levelsById = [];
 
+        uint configuredMax;
+        using (var capCommand = connection.CreateCommand())
+        {
+            capCommand.CommandText = "SELECT c.value FROM content_configs c JOIN enum_content_configs e ON e.id=c.id WHERE c.kind_id=25 AND e.name='expedition_level_max' LIMIT 1";
+            var rawCap = capCommand.ExecuteScalar();
+            if (rawCap == null || rawCap == DBNull.Value || Convert.ToInt64(rawCap) <= 0)
+                throw new InvalidDataException("Required expedition_level_max content configuration is missing or invalid.");
+            configuredMax = checked((uint)Convert.ToInt64(rawCap));
+        }
+
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT * FROM expedition_levels";
+        command.CommandText = "SELECT * FROM expedition_levels WHERE id <= @configuredMax";
+        command.Parameters.AddWithValue("@configuredMax", configuredMax);
         command.Prepare();
         using var reader = new SQLiteWrapperReader(command.ExecuteReader());
         while (reader.Read())
@@ -81,6 +98,7 @@ public class ExpeditionLevelGameData : Singleton<ExpeditionLevelGameData>, IGame
             };
             _levelsById[level.Id] = level;
         }
+
     }
 
     public void PostLoad()

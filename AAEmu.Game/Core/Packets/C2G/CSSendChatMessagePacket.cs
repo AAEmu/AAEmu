@@ -115,9 +115,14 @@ public class CSSendChatMessagePacket() : GamePacket(CSOffsets.CSSendChatMessageP
                     .SendMessage(Connection.ActiveChar, type, message, ability, languageType);
                 break;
             case ChatType.Clan:
-                if (Connection.ActiveChar.Expedition != null)
+                var expedition = Connection.ActiveChar.Expedition;
+                if (expedition != null)
                 {
-                    ChatManager.Instance.GetGuildChat(Connection.ActiveChar.Expedition).SendMessage(Connection.ActiveChar, message, ability, languageType);
+                    lock (expedition.SyncRoot)
+                    {
+                        if (SocialChatAuthorization.CanSendGuildChat(expedition, Connection.ActiveChar))
+                            ChatManager.Instance.GetGuildChat(expedition).SendMessage(Connection.ActiveChar, message, ability, languageType);
+                    }
                 }
                 else
                 {
@@ -126,11 +131,7 @@ public class CSSendChatMessagePacket() : GamePacket(CSOffsets.CSSendChatMessageP
                 }
                 break;
             case ChatType.Family:
-                if (Connection.ActiveChar.Family > 0)
-                {
-                    ChatManager.Instance.GetFamilyChat(Connection.ActiveChar.Family).SendMessage(Connection.ActiveChar, message, ability, languageType);
-                }
-                else
+                if (!FamilyManager.Instance.SendChatMessage(Connection.ActiveChar, message, ability, languageType))
                 {
                     // Looks like the client blocks the chat even before it can get to the server, but let's intercept it anyway
                     Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotInFamily);

@@ -8,8 +8,16 @@ public class CSFamilyChangeTitlePacket() : GamePacket(CSOffsets.CSFamilyChangeTi
 {
     public override void Read(PacketStream stream)
     {
-        var memberId = stream.ReadUInt32();
+        var wireMemberId = stream.ReadUInt64();
         var title = stream.ReadString();
+
+        if (wireMemberId > uint.MaxValue)
+        {
+            Logger.Warn("Ignoring FamilyChangeTitle with unsupported character id: {0}", wireMemberId);
+            return;
+        }
+
+        var memberId = (uint)wireMemberId;
 
         FamilyManager.Instance.ChangeTitle(Connection.ActiveChar, memberId, title);
 

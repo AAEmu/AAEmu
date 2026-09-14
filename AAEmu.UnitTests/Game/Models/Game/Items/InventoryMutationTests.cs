@@ -285,13 +285,14 @@ public class InventoryMutationTests
         var moverThreadId = 0;
         var callbacksRejectedUnderLease = false;
 
-        var publisher = Task.Run(() =>
+        var publisher = Task.Factory.StartNew(() =>
         {
             lock (inventory.MutationSyncRoot)
             {
                 publisherThreadId = Environment.CurrentManagedThreadId;
                 mutationEntered.Set();
-                moveAttempted.Wait();
+                if (!moveAttempted.Wait(TimeSpan.FromSeconds(2)))
+                    throw new TimeoutException("The competing inventory move did not start.");
                 publication.PublishPackets();
                 try
                 {
@@ -302,19 +303,29 @@ public class InventoryMutationTests
                     callbacksRejectedUnderLease = true;
                 }
             }
-        });
-        var mover = Task.Run(() =>
+        }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+        var mover = Task.Factory.StartNew(() =>
         {
-            mutationEntered.Wait();
+            if (!mutationEntered.Wait(TimeSpan.FromSeconds(2)))
+                throw new TimeoutException("The publication worker did not acquire the mutation lease.");
             moveAttempted.Set();
             lock (inventory.MutationSyncRoot)
             {
                 moverThreadId = Environment.CurrentManagedThreadId;
                 character.SendPacket(new PublicationOrderPacket(2));
             }
-        });
+        }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
-        await Task.WhenAll(publisher, mover).WaitAsync(TimeSpan.FromSeconds(1));
+        try
+        {
+            await Task.WhenAll(publisher, mover).WaitAsync(TimeSpan.FromSeconds(3));
+        }
+        finally
+        {
+            mutationEntered.Set();
+            moveAttempted.Set();
+            await Task.WhenAll(publisher, mover);
+        }
         publication.PublishCallbacks();
 
         await Assert.That(callbacksRejectedUnderLease).IsTrue();

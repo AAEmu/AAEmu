@@ -22,7 +22,7 @@ public class AddExpeditionContributionPoint : SpecialEffectAction
         if (caster is not Character character || value1 <= 0)
             return;
 
-        if (!ExpeditionManager.Instance.TryChangeContributionPoints(character, value1, true))
+        if (!ExpeditionManager.Instance.TryAddDailyContributionPoints(character, value1))
             Logger.Warn("Unable to add {0} expedition contribution points to character {1}", value1, character.Id);
     }
 }
