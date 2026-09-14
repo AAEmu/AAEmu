@@ -15,8 +15,9 @@ public class ItemConversionProduct
 
     /// <summary>
     /// <c>item_conv_products.weight</c> for the weighted pick between the products of one pack. Six packs in
-    /// 10.0.2.13 carry more than one product (22 rows); their weights mix 1 with 2, 3 or 4, and pack 5571
-    /// pairs a weight-1 product with a weight-4 one.
+    /// 10.0.2.13 carry more than one product (22 rows). Five of them - packs 327-331, the origin-land armour
+    /// socket disenchants - weigh their four products 2, 2, 3, 3; the sixth, pack 5571, pairs a weight-1
+    /// product with a weight-4 one.
     /// </summary>
     public int Weight;
 

@@ -411,12 +411,13 @@ public class ItemConversionGameDataTests : SqliteTestBase
     [Test]
     public async Task ReagentPackMissingFromTheMemberTable_RollsNothing()
     {
-        // 43 of the 5519 reagent packs the content references cannot be reached through the member tables:
-        // 41 have no item_conv_rpack_members row (39 of which share an id with a product pack) and 2 - packs
-        // 101 and 106 - have a member whose conversion links no product pack. 42 of the 43 have an unrelated
-        // product pack whose id merely equals their own. Content shape of item 43580: reagent pack 3759
-        // (repackage_socket_skyblue_1T) against product pack 3759, an obsidian conversion paying 16 of item
-        // 46185. Following the ids paid out the wrong item.
+        // 43 of the 5618 reagent packs the content references cannot be reached through the member tables:
+        // 41 have no item_conv_rpack_members row and 2 - packs 101 and 106 - have a member whose conversion
+        // links no product pack. 41 of the 43 have an unrelated product pack whose id merely equals their own
+        // (39 of the 41, plus 101 and 106); the 42nd, pack 85, only has product rows carrying that id, with
+        // no item_conv_ppacks row - the loader warns about that row at load. Content shape of item 43580:
+        // reagent pack 3759 (repackage_socket_skyblue_1T) against product pack 3759, an obsidian conversion
+        // paying 16 of item 46185. Following the ids paid out the wrong item.
         SeedDisenchant();
         Execute(
             """
