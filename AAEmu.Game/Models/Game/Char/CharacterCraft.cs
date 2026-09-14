@@ -35,10 +35,17 @@ public class CharacterCraft(Character owner)
         Count = count;
         DoodadId = doodadId;
 
-        // Crafts that only exist behind a recipe item stay locked until the character has used one. The
-        // client's craft book lists every craft in the database regardless, so without this gate a recipe
-        // is only ever a UI hint. A character that was never loaded (tests, tooling) has no recipe book,
-        // and then there is nothing to gate against.
+        // Crafts that only exist behind a recipe item stay locked until the character has used one, so
+        // learning a recipe is not just a tooltip.
+        //
+        // On this client that whole set is unreachable content, which is why the gate reads as defensive
+        // rather than as a live rule: the 1421 recipe items it is keyed on are granted by nothing (only
+        // item_prices, 5 instrument_sounds and 2 quest_act_obj_item_gathers rows reference them), and the
+        // crafts they name are offered by no craft pack (one craft_pack_crafts row, pack 1
+        // "1230.테스트용 제작대") and no doodad (all 83 doodad_func_craft_start_crafts rows for them name
+        // craft-start ids that no doodad_funcs row uses). Nothing live is refused by it; it keeps the retail
+        // rule in place for whenever that content becomes reachable. A character that was never loaded
+        // (tests, tooling) has no recipe book, and then there is nothing to gate against either.
         if (ItemUseGameData.Instance.IsRecipeGatedCraft(craft.Id) &&
             Owner.Recipes is { } recipeBook &&
             !recipeBook.IsLearned(craft.Id))

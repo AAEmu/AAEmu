@@ -8,13 +8,17 @@ namespace AAEmu.Game.Models.Game.Char;
 /// The recipes a character has learned by using recipe items (<c>item_recipes</c>).
 ///
 /// The 10.0.2.13 client links a recipe item to its craft out of its own copy of the world database, so it
-/// knows what the item teaches; what it cannot do is remember it. The crafts a recipe item reaches are only
-/// usable once learned, so the set has to survive a logout.
+/// knows what the item teaches; what it cannot do is remember it. The server owns that record, and the
+/// crafts a recipe item reaches are only usable once learned.
 ///
 /// Learning is deliberately two steps. <see cref="PersistLearned"/> writes the rows on a caller-owned
 /// transaction that also carries the item deduction, and <see cref="ApplyLearned"/> updates the live set only
 /// after that transaction commits: writing the row on its own connection first left a window where a
 /// character reloaded holding both the unlock and the recipe item.
+///
+/// The set is empty in practice on this client - nothing grants the recipe items and nothing offers the
+/// crafts they name - so this stores what a player could only ever learn through content that is not
+/// reachable yet. See the note in <see cref="CharacterCraft.Craft"/> for the counts.
 /// </summary>
 public sealed class CharacterRecipeBook(Character owner)
 {

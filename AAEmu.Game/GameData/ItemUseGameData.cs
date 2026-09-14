@@ -57,6 +57,11 @@ public class ItemUseGameData : Singleton<ItemUseGameData>, IGameDataLoader
     /// <c>item_recipes</c>: 1421 of its 2822 rows name a craft that makes the item the recipe is for, and
     /// those cover 1421 of the 12402 crafts in 10.0.2.13.
     /// </summary>
+    /// <remarks>
+    /// Dead content on this client, which is why the crafting gate that reads this cannot refuse anything a
+    /// player would otherwise do: nothing grants those recipe items and nothing offers those crafts. See the
+    /// note in <see cref="CharacterCraft.Craft"/> for the counts.
+    /// </remarks>
     public bool IsRecipeGatedCraft(uint craftId) => _recipeGatedCrafts.Contains(craftId);
 
     /// <summary>Paper an item opens, if it is an <c>impl_id</c> 23 (open_paper) item.</summary>
