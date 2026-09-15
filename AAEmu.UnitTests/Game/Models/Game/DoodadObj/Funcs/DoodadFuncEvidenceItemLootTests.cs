@@ -26,20 +26,24 @@ public class DoodadFuncEvidenceItemLootTests
     }
 
     [Test]
-    public async Task Use_MatchingSkill_AdvancesTheEvidence()
+    public async Task Use_LeavesTheEvidenceOnItsPhaseSoTheReportCanReadIt()
     {
+        // The phase that carries this func carries the crime kind and value the report is recorded with.
+        // Advancing on the pickup skill would move the evidence off it first, and the report would file
+        // an empty crime, so the func waits for the report instead.
         var owner = new Doodad();
         var loot = new DoodadFuncEvidenceItemLoot { SkillId = 11672 };
+
         loot.Use(null, owner, 11672);
-        await Assert.That(owner.ToNextPhase).IsTrue();
+
+        await Assert.That(owner.ToNextPhase).IsFalse();
     }
 
     [Test]
-    public async Task Use_UnrelatedSkill_LeavesTheEvidenceStanding()
+    public async Task Use_IsCompletedByTheClientReportNotByTheCast()
     {
-        var owner = new Doodad();
-        var loot = new DoodadFuncEvidenceItemLoot { SkillId = 11672 };
-        loot.Use(null, owner, 15099);
-        await Assert.That(owner.ToNextPhase).IsFalse();
+        await Assert.That(new DoodadFuncEvidenceItemLoot().CompletesFromClientPacket).IsTrue();
+        await Assert.That(Doodad.ShouldApplyPhaseAfterSuccessfulFunc(
+            completesFromClientPacket: true, toNextPhase: true)).IsFalse();
     }
 }

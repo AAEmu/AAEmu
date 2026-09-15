@@ -31,18 +31,29 @@ public class JusticeManager : Singleton<JusticeManager>
     private readonly HashSet<uint> _awaitingArrival = [];
 
     /// <summary>
-    /// Called when an arrest-state buff lands on a character. The escort starts once that buff has
-    /// run out, so its own shipped length sets the pace instead of a number picked here.
+    /// Called when an arrest-state buff lands on a character. The escort starts once that state has run
+    /// out, so the longest of the shipped lengths the arrest left on them sets the pace: the player
+    /// arrest stacks a five-second subdual under a one-second hold, the bot arrest a fifteen-second one,
+    /// and reading one hardcoded row escorted a player arrest ten seconds after they could move again.
     /// </summary>
     public void OnArrestStateApplied(Character character)
     {
         if (character == null || !_escortScheduled.Add(character.Id))
             return;
 
-        var arrestBuff = SkillManager.Instance.GetBuffTemplate(ArrestRules.UnderArrestBuff);
-        var delay = TimeSpan.FromMilliseconds(arrestBuff?.Duration ?? 0);
+        var delay = ArrestStateLeft(character);
         Logger.Info($"Arrest: {character.Name} ({character.Id}) will be escorted to court in {delay.TotalSeconds:0.#}s");
         TaskManager.Instance.Schedule(new ArrestEscortTask(character.Id), delay);
+    }
+
+    /// <summary>How much of the arrest state the character is still under.</summary>
+    private static TimeSpan ArrestStateLeft(Character character)
+    {
+        var good = new List<Buff>();
+        var bad = new List<Buff>();
+        var hidden = new List<Buff>();
+        character.Buffs.GetAllBuffs(good, bad, hidden, includeAllPassives: true);
+        return ArrestRules.LongestArrestStateLeft(bad.Concat(good).Concat(hidden));
     }
 
     /// <summary>
@@ -132,6 +143,30 @@ public class JusticeManager : Singleton<JusticeManager>
         character.SendPacket(new SCAskImprisonOrTrialPacket(
             (uint)Math.Max(0, (int)character.CrimePoint), ArrestRules.SentenceMinutes));
         _awaitingReply.Add(character.Id);
+
+        // The dialog cannot stay on screen forever: an offer nobody answers has to lift the courthouse
+        // state again instead of leaving it on the character for its ten-hour duration.
+        TaskManager.Instance.Schedule(
+            new ImprisonOrTrialOfferTimeoutTask(character.Id),
+            TimeSpan.FromSeconds(ArrestRules.OfferSeconds));
+    }
+
+    /// <summary>
+    /// The offer ran out unanswered. Nothing was chosen, so the courthouse state is lifted - the
+    /// character is still wanted, and the next arrest starts the flow again.
+    /// </summary>
+    public void ExpireImprisonOrTrialOffer(uint characterId)
+    {
+        if (!_awaitingReply.Remove(characterId))
+            return;
+
+        var character = WorldManager.Instance.GetCharacterById(characterId);
+        if (character is not { IsOnline: true })
+            return;
+
+        character.Buffs.RemoveBuff(ArrestRules.ForcedMoveToCourtBuff);
+        Logger.Info($"Arrest: {character.Name} ({characterId}) left the imprison-or-trial offer unanswered " +
+                    "- the courthouse state was lifted");
     }
 
     /// <summary>
@@ -151,7 +186,11 @@ public class JusticeManager : Singleton<JusticeManager>
 
         if (wantsTrial)
         {
-            TrialManager.Instance.StartTrial(character);
+            // A trial that could not be opened - the defendant is already being tried - must not leave
+            // the courthouse state behind: the offer has been answered and nothing is waiting on it.
+            if (TrialManager.Instance.StartTrial(character) == null)
+                character.Buffs.RemoveBuff(ArrestRules.ForcedMoveToCourtBuff);
+
             return;
         }
 
@@ -284,6 +323,10 @@ public class JusticeManager : Singleton<JusticeManager>
         _awaitingReply.Remove(character.Id);
         _defendants.Remove(character.Id);
         _awaitingArrival.Remove(character.Id);
+
+        // The courthouse state is a promise to a live session: a character who logs out anywhere in the
+        // arrest -> offer -> trial flow must not come back still wearing its ten-hour duration.
+        character.Buffs.RemoveBuff(ArrestRules.ForcedMoveToCourtBuff);
 
         TrialManager.Instance.OnCharacterLogout(character);
     }

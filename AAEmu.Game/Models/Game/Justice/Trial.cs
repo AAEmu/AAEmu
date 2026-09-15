@@ -51,11 +51,23 @@ public class Trial
     public TrialState State { get; set; } = TrialState.Free;
 
     public List<TrialJuror> Jurors { get; } = [];
-    public int GuiltyVotes { get; set; }
-    public int NotGuiltyVotes { get; set; }
 
-    /// <summary>The heaviest guilty row any juror chose - the sentence the ruling reads out.</summary>
-    public byte HighestGuiltyChoice { get; set; }
+    /// <summary>
+    /// The guilty votes the seated bench holds right now. The vote lives on the juror
+    /// (<see cref="TrialJuror.Choice"/>), so a juror who is released or leaves takes their vote with
+    /// them instead of leaving a trial-level counter behind that still decides the case.
+    /// </summary>
+    public int GuiltyVotes => Jurors.Count(j => TrialVerdictRules.IsGuiltyChoice(j.Choice));
+
+    /// <summary>The not-guilty votes the seated bench holds right now.</summary>
+    public int NotGuiltyVotes => Jurors.Count(j => TrialVerdictRules.IsNotGuiltyChoice(j.Choice));
+
+    /// <summary>The heaviest guilty row any seated juror chose - the sentence the ruling reads out.</summary>
+    public byte HighestGuiltyChoice =>
+        Jurors.Where(j => TrialVerdictRules.IsGuiltyChoice(j.Choice))
+            .Select(j => j.Choice)
+            .DefaultIfEmpty((byte)0)
+            .Max();
 
     /// <summary>
     /// The sentence this case carries, in minutes. The shipped prisoner buff runs thirty minutes and

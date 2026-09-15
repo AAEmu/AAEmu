@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.Justice;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Models.Tasks.Justice;
 
 using NLog;
 
@@ -129,8 +130,7 @@ public class TrialManager : Singleton<TrialManager>
                     $"(crime {trial.CrimePoint}) - " +
                     $"the bench has {TrialTimingRules.JuryGatherSeconds}s to assemble");
         defendant?.SendMessage(ChatType.System, "Your trial has begun - jurors are being gathered.");
-        _ = RunPhaseClockAsync(trial, TrialState.WaitingJury, TrialTimingRules.JuryGatherSeconds,
-            () => BeginTestimony(trial));
+        ArmPhaseClock(trial, TrialTimingRules.JuryGatherSeconds, () => BeginTestimony(trial));
     }
 
     /// <summary>
@@ -502,17 +502,9 @@ public class TrialManager : Singleton<TrialManager>
             return;
         }
 
+        // The vote is the juror's own: the tally is read off the seated bench every time, so a juror who
+        // is released later cannot keep deciding a case they are no longer on.
         seat.Choice = choice;
-        if (TrialVerdictRules.IsGuiltyChoice(choice))
-        {
-            trial.GuiltyVotes++;
-            if (choice > trial.HighestGuiltyChoice)
-                trial.HighestGuiltyChoice = choice;
-        }
-        else
-        {
-            trial.NotGuiltyVotes++;
-        }
 
         Logger.Info($"Trial {trialId}: {character.Name} voted " +
                     $"{(TrialVerdictRules.IsGuiltyChoice(choice) ? $"guilty tier {TrialVerdictRules.GuiltyTier(choice)}" : "not guilty")} " +
@@ -591,11 +583,16 @@ public class TrialManager : Singleton<TrialManager>
             return;
         }
 
-        // The gallery is a room in the courthouse, so the onlooker has to be in it. Without this check
-        // the packet alone would hand the defendant's crime file to anyone anywhere in the world.
-        if (!TrialAudienceRules.InGalleryRange(DistanceToCourt(character, trial)))
+        // The gallery is a room in the courthouse, so the onlooker has to be in it - in the world the
+        // courthouse stands in, not a copy of its coordinates inside an instance, where the same X and
+        // Y are a different place entirely. Without this check the packet alone would hand the
+        // defendant's crime file to anyone anywhere in the world.
+        var distanceToCourt = DistanceToCourt(character, trial);
+        if (character.Transform.InstanceId != WorldManager.DefaultInstanceId ||
+            !TrialAudienceRules.InGalleryRange(distanceToCourt))
         {
-            Logger.Info($"Trial {trial.Id}: {character.Name} asked to watch from outside the courtroom - refused");
+            Logger.Info($"Trial {trial.Id}: {character.Name} asked to watch from outside the courtroom " +
+                        $"(instance {character.Transform.InstanceId}, {distanceToCourt:F0} m away) - refused");
             character.SendErrorMessage(ErrorMessageType.TrialsCannotJoinAfterStart);
             return;
         }
@@ -715,12 +712,34 @@ public class TrialManager : Singleton<TrialManager>
         else if (trial.State == TrialState.Testimony && trial.ReadRecordCount >= trial.Jurors.Count)
             BeginFinalStatement(trial);
         else if (trial.State == TrialState.Sentence && trial.VotedCount >= trial.Jurors.Count)
-            Conclude(trial, TrialVerdictRules.Tally(trial.GuiltyVotes, trial.NotGuiltyVotes, trial.Jurors.Count),
-                TrialVerdictRules.RulingChoice(TrialVerdict.Guilty, trial.HighestGuiltyChoice));
+            ConcludeOnTheVotes(trial);
         else
-            Broadcast(trial, new SCChangeTrialStatePacket(trial.Id, (byte)trial.State, trial.Jurors.Count,
-                TrialTimingRules.ToClientMilliseconds(RemainingSeconds(trial))));
+            AnnouncePhase(trial);
     }
+
+    /// <summary>
+    /// Closes the case on the votes the bench still holds. Used when the last vote of a sitting bench
+    /// is already in and a juror leaves: the ruling is the tally's own verdict, so a not-guilty
+    /// majority is not read out as a guilty row with a zero sentence.
+    /// </summary>
+    private void ConcludeOnTheVotes(Trial trial)
+    {
+        var verdict = TrialVerdictRules.Tally(trial.GuiltyVotes, trial.NotGuiltyVotes, trial.Jurors.Count);
+        if (verdict == TrialVerdict.Pending)
+        {
+            // Every remaining seat voted, so this is unreachable - but a pending tally must not be
+            // read out as either verdict, and the court still owes its clients the current phase.
+            AnnouncePhase(trial);
+            return;
+        }
+
+        Conclude(trial, verdict, TrialVerdictRules.RulingChoice(verdict, trial.HighestGuiltyChoice));
+    }
+
+    /// <summary>Tells every participant which phase the court is in and how long it has left.</summary>
+    private void AnnouncePhase(Trial trial) =>
+        Broadcast(trial, new SCChangeTrialStatePacket(trial.Id, (byte)trial.State, trial.Jurors.Count,
+            TrialTimingRules.ToClientMilliseconds(RemainingSeconds(trial))));
 
     // ---------------------------------------------------------------------------------------------
     // phases
@@ -751,8 +770,7 @@ public class TrialManager : Singleton<TrialManager>
         Logger.Info($"Trial {trial.Id}: the bench of {trial.Jurors.Count} reads the record " +
                     $"({TrialTimingRules.TestimonySeconds}s)");
 
-        _ = RunPhaseClockAsync(trial, TrialState.Testimony, TrialTimingRules.TestimonySeconds,
-            () => BeginFinalStatement(trial));
+        ArmPhaseClock(trial, TrialTimingRules.TestimonySeconds, () => BeginFinalStatement(trial));
     }
 
     /// <summary>The defendant's final statement, then the bench votes.</summary>
@@ -769,8 +787,7 @@ public class TrialManager : Singleton<TrialManager>
             .SendMessage(ChatType.System,
                 $"You have {TrialTimingRules.FinalStatementSeconds} seconds for your final statement.");
 
-        _ = RunPhaseClockAsync(trial, TrialState.FinalStatement, TrialTimingRules.FinalStatementSeconds,
-            () => BeginVote(trial));
+        ArmPhaseClock(trial, TrialTimingRules.FinalStatementSeconds, () => BeginVote(trial));
     }
 
     /// <summary>The bench votes. The client arms its verdict window on this phase.</summary>
@@ -785,8 +802,7 @@ public class TrialManager : Singleton<TrialManager>
         WorldManager.Instance.GetCharacterById(trial.DefendantId)?
             .SendMessage(ChatType.System, "The jury is deciding your sentence.");
 
-        _ = RunPhaseClockAsync(trial, TrialState.Sentence, TrialTimingRules.VoteSeconds,
-            () => ConcludeOnSilentBench(trial));
+        ArmPhaseClock(trial, TrialTimingRules.VoteSeconds, () => ConcludeOnSilentBench(trial));
     }
 
     /// <summary>
@@ -877,6 +893,11 @@ public class TrialManager : Singleton<TrialManager>
 
         foreach (var juror in trial.Jurors.ToArray())
             ReleaseJuror(trial, juror, sendHome: true);
+
+        // A case that ends without a ruling still ends the courthouse state: the defendant is no longer
+        // being heard, and the state outlives the session by ten hours if nobody takes it off.
+        WorldManager.Instance.GetCharacterById(trial.DefendantId)?
+            .Buffs.RemoveBuff(ArrestRules.ForcedMoveToCourtBuff);
 
         foreach (var (characterId, trialId) in _audienceTrial.ToArray())
         {
@@ -1142,17 +1163,29 @@ public class TrialManager : Singleton<TrialManager>
         (int)Math.Max(0, (trial.PhaseEndsUtc - DateTime.UtcNow).TotalSeconds);
 
     /// <summary>
-    /// Runs one phase's clock. The callback fires only while the trial is still in that phase, so a
-    /// phase that ended early (every juror answered) never runs its timeout.
+    /// Arms one phase's clock through the task manager, so the phase change happens on the same thread
+    /// as every other game timer and a bad clock cannot swallow its own exception the way a
+    /// fire-and-forget continuation did.
     /// </summary>
-    private static async Task RunPhaseClockAsync(Trial trial, TrialState phase, int seconds, Action onElapsed)
+    private static void ArmPhaseClock(Trial trial, int seconds, Action onElapsed)
     {
-        var token = trial.PhaseToken;
+        if (seconds <= 0)
+            return;
 
-        if (seconds > 0)
-            await Task.Delay(TimeSpan.FromSeconds(seconds));
+        TaskManager.Instance.Schedule(
+            new TrialPhaseClockTask(trial.Id, trial.PhaseToken, onElapsed),
+            TimeSpan.FromSeconds(seconds));
+    }
 
-        if (trial.PhaseToken != token || trial.State != phase)
+    /// <summary>
+    /// The phase clock ran out. Only the phase that armed it may act: every phase change bumps the
+    /// token, so a clock whose phase ended early (every juror answered, the defendant gave up) does
+    /// nothing.
+    /// </summary>
+    public void CompletePhaseClock(ulong trialId, int phaseToken, Action onElapsed)
+    {
+        var trial = GetTrial(trialId);
+        if (trial == null || trial.PhaseToken != phaseToken)
             return;
 
         onElapsed();

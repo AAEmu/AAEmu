@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Justice;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.Units;
@@ -76,6 +77,11 @@ public partial class Character
                 // Run before optional PvP processing, for NPC and environmental deaths too.
                 DropBackpackOnDeath();
             }
+
+            // A wanted character's death is the courthouse's own summons: the resurrection lands them
+            // there as the defendant instead of at a temple (see JusticeManager.TakeDefendantCourt).
+            if (ArrestRules.IsWanted(this))
+                JusticeManager.Instance.OnWantedDeath(this);
 
             ProcessPvpDeath(killer);
         }

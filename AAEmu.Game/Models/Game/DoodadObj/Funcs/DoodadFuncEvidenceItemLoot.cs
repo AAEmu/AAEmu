@@ -6,14 +6,15 @@ namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
 /// <summary>
 /// Evidence left at the scene of a crime (bloodstain, footprint). The client loots it with its own
 /// pickup skill - 증거물 줍기, carried on <c>doodad_func_evidence_item_loots.skill_id</c> - and that
-/// skill advances the evidence to the chain row's next phase, exactly like the erase gate
-/// (<see cref="DoodadFuncSkillHit"/>) sitting next to it in the same phase group.
+/// opens the report window the crime is filed from.
 /// </summary>
 /// <remarks>
 /// The crime points are applied once by <c>CrimeManager.ReportCrime</c>, which reads this same
-/// template's <see cref="CrimeKindId"/> / <see cref="CrimeValue"/> when the report itself is
-/// processed. Adding points here as well would double-count every report, so this func only
-/// recognises the loot skill and never touches the criminal's record.
+/// template's <see cref="CrimeKindId"/> / <see cref="CrimeValue"/> off the phase the evidence is
+/// standing on when the report is processed, and then moves the evidence on to that func's own next
+/// phase. Advancing the phase here, on the skill use, would take the func off the evidence before the
+/// report arrives and the report would file <c>CrimeKind.None</c> with no points - which is why the
+/// row completes from the client's report and nothing is applied here.
 /// </remarks>
 public class DoodadFuncEvidenceItemLoot : DoodadFuncTemplate
 {
@@ -22,9 +23,15 @@ public class DoodadFuncEvidenceItemLoot : DoodadFuncTemplate
     public short CrimeValue { get; set; }
     public uint CrimeKindId { get; set; }
 
+    /// <summary>The report the pickup opens is what completes this row; see the class remarks.</summary>
+    public override bool CompletesFromClientPacket => true;
+
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
-        owner.ToNextPhase = Recognizes(SkillId, skillId);
+        if (Recognizes(SkillId, skillId))
+        {
+            Logger.Trace($"Evidence {owner?.ObjId} looted with skill {skillId} - waiting for the report");
+        }
     }
 
     /// <summary>

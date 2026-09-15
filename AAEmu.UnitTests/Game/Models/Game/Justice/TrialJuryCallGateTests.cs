@@ -85,6 +85,26 @@ public sealed class TrialJuryCallGateTests
         await Assert.That(_sentPackets.Count).IsEqualTo(0);
     }
 
+    [Test]
+    public async Task PhaseClock_OnlyFiresForThePhaseThatArmedIt()
+    {
+        var trial = AddTrial(TrialState.Testimony);
+        var fired = 0;
+        var token = trial.PhaseToken;
+
+        _manager.CompletePhaseClock(trial.Id, token, () => fired++);
+        await Assert.That(fired).IsEqualTo(1);
+
+        // A phase change bumps the token, so the clock of the phase that ended early goes quiet.
+        trial.PhaseToken++;
+        _manager.CompletePhaseClock(trial.Id, token, () => fired++);
+        await Assert.That(fired).IsEqualTo(1);
+
+        // A case that closed leaves nothing to advance.
+        _manager.CompletePhaseClock(TrialId + 1, token, () => fired++);
+        await Assert.That(fired).IsEqualTo(1);
+    }
+
     private Trial AddTrial(TrialState state)
     {
         var trial = new Trial
