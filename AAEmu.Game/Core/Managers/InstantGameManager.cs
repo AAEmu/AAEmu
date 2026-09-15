@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+using System.Runtime.InteropServices;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
@@ -6,6 +6,7 @@ using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.InstantGame;
 using AAEmu.Game.Models.Game.InstantGame.Static;
+using AAEmu.Game.Models.Game.Skills;
 
 using NLog;
 
@@ -219,13 +220,20 @@ public class InstantGameManager : Singleton<InstantGameManager>, IInstantGameMan
     {
         if (character != null)
         {
-            // TODO: Not in jury, not in duel, not in jail conditions
             if (character.IsInBattle)
                 return false; // In Combat
             else if (character.Transform.InstanceId != WorldManager.DefaultInstanceId)
                 return false; // In an instanced world (Dungeon or Mirage)
             else if (character.IsDead)
                 return false; // Is dead
+            else if (character.IsInDuel)
+                return false; // In a duel
+            else if (character.Buffs.CheckBuff((uint)BuffConstants.Arrested))
+                return false; // Under arrest
+            else if (JusticeManager.IsPrisoner(character))
+                return false; // Serving a sentence
+            else if (character.Buffs.CheckBuff((uint)BuffConstants.Juror))
+                return false; // Serving on a jury
             else if (character.Inventory.Equipment.GetItemBySlot(26) != null)
                 return false; // Tradepack equipped
             else if (character.Buffs.CheckBuff(2385))

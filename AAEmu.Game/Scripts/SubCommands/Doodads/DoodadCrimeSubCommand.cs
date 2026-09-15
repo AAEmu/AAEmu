@@ -29,7 +29,11 @@ public class DoodadCrimeSubCommand : SubCommandBase
         uint unitTemplateId = parameters["templateId"];
         uint ownerId = parameters["owner"];
         uint victimId = parameters["victim"];
-        uint sourceDoodadTemplateId = parameters["source"];
+        // Optional: the framework only puts a prefixed parameter in the dictionary when the player
+        // actually typed it (no default is declared), so it must not be indexed directly.
+        var sourceDoodadTemplateId = parameters.TryGetValue("source", out var sourceValue)
+            ? sourceValue.As<uint>()
+            : 0u;
         if (!DoodadManager.Instance.Exist(unitTemplateId))
         {
             SendColorMessage(messageOutput, Color.Red, $"Doodad templateId:{unitTemplateId} don't exist");

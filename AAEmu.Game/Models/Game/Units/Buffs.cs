@@ -2,6 +2,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Justice;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
@@ -540,6 +541,11 @@ public class Buffs : IBuffs
 
         if (buff.Template.BuffId == SportFishCombat.LineBrokenBuffId && GetOwner() is Npc lineFish)
             SportFishCombat.OnLineDropped(lineFish);
+
+        // An arrest-state buff on a player starts the justice flow (escort to court, then the
+        // imprison-or-trial offer). Guarded by the buff's own shipped length.
+        if (GetOwner() is Character arrested && ArrestRules.IsArrestStateBuff(buff.Template.BuffId))
+            JusticeManager.Instance.OnArrestStateApplied(arrested);
     }
 
     private uint AllocateIndex()

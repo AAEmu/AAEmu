@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -8,8 +9,8 @@ public class CSReplyInviteJuryPacket() : GamePacket(CSOffsets.CSReplyInviteJuryP
     public override void Read(PacketStream stream)
     {
         var accept = stream.ReadBoolean();
-        var trial = stream.ReadUInt32();
+        var trial = stream.ReadUInt64();
 
-        Logger.Warn("ReplyInviteJury, Accept: {0}, Trial: {1}", accept, trial);
+        TrialManager.Instance.OnReplyInvite(Connection.ActiveChar, accept, trial);
     }
 }

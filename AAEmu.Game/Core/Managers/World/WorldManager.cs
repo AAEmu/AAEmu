@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Numerics;
 using System.Xml;
@@ -1044,6 +1044,30 @@ public class WorldManager(
             foreach (var child in obj.Transform.Children)
                 if (child != null)
                     RemoveVisibleObject(child.GameObject);
+    }
+
+    /// <summary>
+    /// Re-announces an object to the clients that should see it after a relocation the region grid
+    /// cannot see. The grid is a kilometre wide, so a teleport that lands in the cell the object is
+    /// already filed under leaves <see cref="AddVisibleObject"/> a no-op and the onlookers keep the
+    /// copy they were sent before it moved. Measured 2026-09-15 with two clients: a character moved by
+    /// a GM <c>/move</c> stayed at its old spot on the other client, and because that stale copy sat
+    /// far outside the observer's view of it, the movement packets that followed were ignored as well.
+    /// <para>
+    /// Remove first so the observers drop the stale unit, then add so they get a fresh state packet
+    /// built from the new transform. An object's own client is skipped in both directions
+    /// (<see cref="Models.Game.Char.Character.AddVisibleObject"/> and
+    /// <see cref="Models.Game.Char.Character.RemoveVisibleObject"/> guard on self), so its own view is
+    /// untouched.
+    /// </para>
+    /// </summary>
+    public static void RepositionVisibleObject(GameObject obj)
+    {
+        if (obj == null || !obj.IsVisible)
+            return;
+
+        RemoveVisibleObject(obj);
+        Instance.AddVisibleObject(obj);
     }
 
     /// <summary>

@@ -98,9 +98,12 @@ public class GameConnection
             DuelManager.Instance.OnCharacterLogout(ActiveChar);
 
             // A crash bypasses the normal leave-world task, so it must also release family invitations
-            // and mark family/guild presence offline.
+            // and mark family/guild presence offline. It is also how a defendant or a juror drops out
+            // of a trial, and how an arrest promise is left hanging for a character who is no longer
+            // there, so the justice flow is released on the same path.
             FamilyManager.Instance.OnCharacterLogout(ActiveChar);
             ExpeditionManager.Instance.OnCharacterLogout(ActiveChar);
+            JusticeManager.Instance.OnCharacterLogout(ActiveChar);
 
             ActiveChar.ParentWorld?.GimmickManager?.ReleaseGrasps(ActiveChar.ObjId);
             AAEmu.Game.WorldIntegration.ReleaseZoneGimmickGrasps?.Invoke(ActiveChar);

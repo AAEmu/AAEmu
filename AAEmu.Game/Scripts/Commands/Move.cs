@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.World;
@@ -96,6 +96,21 @@ public class Move : ICommand
             targetPlayer.SetPosition(newX, newY, newZ, rot.X, rot.Y, rot.Z);
             targetPlayer.Transform.FinalizeTransform();
             targetPlayer.SendPacket(new SCTeleportUnitPacket(0, 0, newX, newY, newZ, 0f));
+
+            // A jump inside one region grid cell is invisible to AddVisibleObject, so without this
+            // the onlookers keep the character at the position they were sent before the move - and
+            // a copy that far away stops them applying the character's own movement packets too.
+            WorldManager.RepositionVisibleObject(targetPlayer);
+
+            // The zone only holds a mirror of a player, so tell it where the character went.
+            if (WorldIntegration.ZoneAuthority)
+                WorldIntegration.RelayBlinkToZone?.Invoke(targetPlayer.ObjId, targetPlayer.ObjId, true, newX, newY, newZ);
+
+            // The region grid is a kilometre wide, so a jump that lands in the cell the character is
+            // already filed under leaves AddVisibleObject a no-op: the arrival area then streams
+            // nothing to a client that just re-evaluated what it can see.
+            WorldManager.ResendVisibleObjectsToCharacter(targetPlayer, clientDroppedVisibility: true);
+
             CommandManager.SendNormalText(this, messageOutput,
                 $"|cFFFFFFFF{targetPlayer.Name}|r moved to X: {newX}, Y: {newY}, Z: {newZ}");
         }

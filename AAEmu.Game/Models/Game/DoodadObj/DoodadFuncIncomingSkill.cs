@@ -26,6 +26,9 @@ public static class DoodadFuncIncomingSkill
             DoodadFuncFakeUse { FakeSkillId: > 0 } fakeUse => fakeUse.FakeSkillId == skillId,
             DoodadFuncUse { SkillId: > 0 } use => use.SkillId == skillId,
             DoodadFuncSkillHit { SkillId: > 0 } skillHit => skillHit.SkillId == skillId,
+            // Evidence pickup: doodad_funcs.func_skill_id is unset on these rows too, so without
+            // this arm GetFunc would only reach the loot func through the skill-less fallback.
+            DoodadFuncEvidenceItemLoot { SkillId: > 0 } evidenceLoot => evidenceLoot.SkillId == skillId,
             _ => false
         };
     }

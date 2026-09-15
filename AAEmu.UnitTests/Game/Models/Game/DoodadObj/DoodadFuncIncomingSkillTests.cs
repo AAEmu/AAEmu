@@ -31,6 +31,15 @@ public class DoodadFuncIncomingSkillTests
     }
 
     [Test]
+    public async Task EvidenceItemLoot_MatchesPickupSkillWhenFuncSkillIdIsEmpty()
+    {
+        // Same shape as SkillHit: doodad_funcs.func_skill_id is unset, the skill is on the loot row.
+        var loot = new DoodadFuncEvidenceItemLoot { SkillId = 11672 };
+        await Assert.That(DoodadFuncIncomingSkill.TemplateAccepts(loot, 11672)).IsTrue();
+        await Assert.That(DoodadFuncIncomingSkill.TemplateAccepts(loot, 15099)).IsFalse();
+    }
+
+    [Test]
     public async Task NullOrZeroSkill_NeverMatches()
     {
         await Assert.That(DoodadFuncIncomingSkill.TemplateAccepts(null, 21693)).IsFalse();

@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Cryptography;
+using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Connections;
@@ -264,6 +264,10 @@ public class EnterWorldManager(
             // deleted below: a duel that is still running needs the flag removed and both factions
             // restored, and a reservation nobody releases blocks the player from ever duelling again.
             DuelManager.Instance.OnCharacterLogout(activeChar);
+
+            // A defendant or a juror leaving the world has to leave their trial behind, and an arrest
+            // that is still counting down holds a promise to a character who is about to be gone.
+            JusticeManager.Instance.OnCharacterLogout(activeChar);
 
             // Remove from Team (raid/party)
             teamManager.MemberRemoveFromTeam(activeChar, activeChar, RiskyAction.Leave);

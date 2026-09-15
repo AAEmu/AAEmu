@@ -3,7 +3,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class SCJuryBeSeatedPacket(bool isWest, uint trial, int court, int juryNumber)
+public class SCJuryBeSeatedPacket(bool isWest, ulong trial, int court, int juryNumber)
     : GamePacket(SCOffsets.SCJuryBeSeatedPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)

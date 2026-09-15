@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -9,6 +10,6 @@ public class CSJoinTrialAudiencePacket() : GamePacket(CSOffsets.CSJoinTrialAudie
     {
         var id = stream.ReadUInt32();
 
-        Logger.Warn("JoinTrialAudience, Id: {0}", id);
+        TrialManager.Instance.JoinAudience(Connection.ActiveChar, id);
     }
 }
