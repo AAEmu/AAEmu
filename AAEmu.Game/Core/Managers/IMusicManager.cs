@@ -7,6 +7,6 @@ namespace AAEmu.Game.Core.Managers;
 public interface IMusicManager : ILoadable
 {
     bool Save(SongData songData);
-    void UploadSong(uint charId, string title, string song, ulong itemId);
+    bool UploadSong(uint charId, string title, string song, ulong itemId);
     bool CreateSheetMusic(Character player, Item sourceItem);
 }

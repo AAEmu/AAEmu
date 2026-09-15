@@ -1,11 +1,16 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Music;
+using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
+using AAEmu.Game.Utils.DB;
+using MySql.Data.MySqlClient;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
@@ -14,15 +19,23 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private Dictionary<uint, SongData> _uploadQueue; // playerId, song
-    private Dictionary<uint, SongData> _allSongs; // songId, song
-    private Dictionary<uint, byte[]> _midiCache; // playerId, midi data
+    private Dictionary<uint, SongData> _uploadQueue = []; // playerId, song
+    private Dictionary<uint, SongData> _allSongs = []; // songId, song
+    private Dictionary<uint, byte[]> _midiCache = []; // playerId, midi data
+
+    /// <summary>
+    /// Longest score a player may save, taken from the shipped composition steps and bounded by
+    /// the composition window's own buffer.
+    /// </summary>
+    public int MaxNoteBytes { get; private set; } = MusicNoteRules.DefaultMaxNoteBytes;
 
     public void Load()
     {
         _uploadQueue = [];
         _allSongs = [];
         _midiCache = [];
+
+        LoadNoteLimit();
 
         using (var connection = MySQL.CreateConnection())
         {
@@ -48,8 +61,39 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         }
     }
 
+    /// <summary>
+    /// Reads the top composition step from the client data, so the save limit follows the shipped
+    /// table instead of a magic number. That top step is the grandmaster one, so it is a ceiling
+    /// for every player rather than the per-step limit the table describes; the step a player may
+    /// actually use is gated by their composition actability, which the client applies itself.
+    /// Any failure keeps the built-in default rather than blocking startup.
+    /// </summary>
+    private void LoadNoteLimit()
+    {
+        try
+        {
+            using var connection = SQLite.CreateConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT MAX(note_length) FROM music_note_limits";
+            command.Prepare();
+            var result = command.ExecuteScalar();
+            if (result is null || result == DBNull.Value)
+                return;
+
+            var limit = Convert.ToInt32(result);
+            if (limit > 0)
+                MaxNoteBytes = Math.Min(limit, MusicNoteRules.MaxBufferedNoteBytes);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, "Could not read music_note_limits, using {0} as the score length limit", MaxNoteBytes);
+        }
+    }
+
     public bool Save(SongData songData)
     {
+        // Every stored composition gets its own row: the sheets already written from an earlier one
+        // keep pointing at it, so a later save must never take its id over.
         songData.Id = musicIdManager.GetNextId();
 
         using (var connection = MySQL.CreateConnection())
@@ -65,20 +109,43 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
                 command.Parameters.AddWithValue("@title", songData.Title);
                 command.Parameters.AddWithValue("@song", songData.Song);
                 command.Prepare();
-                if (command.ExecuteNonQuery() != 1)
+                // REPLACE reports two rows when it had to replace an existing id, so anything
+                // below one is a real failure.
+                if (command.ExecuteNonQuery() < 1)
                 {
                     Logger.Warn("Error saving song to DB for {0} ({1})", songData.Title, songData.Id);
                     return false;
                 }
             }
         }
-        _allSongs.Add(songData.Id, songData);
+        _allSongs[songData.Id] = songData;
 
         return true;
     }
 
-    public void UploadSong(uint charId, string title, string song, ulong itemId)
+    /// <summary>
+    /// Queues the notes the composition window just saved, so the score item that is used next can
+    /// be written from them. The notes are kept until they are replaced: the composition window
+    /// only sends them again when the player actually changed something, and the same score may be
+    /// written onto several blank scores in a row.
+    /// </summary>
+    public bool UploadSong(uint charId, string title, string song, ulong itemId)
     {
+        if (!MusicNoteRules.IsUploadable(title, song, MaxNoteBytes, out var reason))
+        {
+            Logger.Warn("Player {0} tried to save music notes that were rejected: {1}", charId, reason);
+            return false;
+        }
+
+        // The notes are written onto the score item the player is composing on, so that item has
+        // to exist and to be theirs; the item id alone must never be enough.
+        var sourceItem = itemManager.GetItemByItemId(itemId);
+        if (sourceItem == null || sourceItem.OwnerId != charId)
+        {
+            Logger.Warn("Player {0} tried to save music notes for item {1} which they do not own", charId, itemId);
+            return false;
+        }
+
         if (!_uploadQueue.TryGetValue(charId, out var q))
         {
             q = new SongData();
@@ -88,12 +155,13 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         q.Title = title;
         q.Song = song;
         q.SourceItemId = itemId;
+        return true;
     }
 
     public bool CreateSheetMusic(Character player, Item sourceItem)
     {
         // Check if a valid owned item
-        if (sourceItem == null || sourceItem._holdingContainer.OwnerId != player.Id)
+        if (sourceItem?._holdingContainer?.OwnerId != player.Id)
         {
             Logger.Warn("Player {0} ({1}) does not own the used source item", player.Name, player.Id);
             return false;
@@ -106,6 +174,14 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
             return false;
         }
 
+        // The composition window only re-sends notes that actually changed, so a player may write
+        // the same score onto several blank scores; the queued notes are not tied to one item.
+        if (sud.SourceItemId != sourceItem.Id)
+        {
+            Logger.Trace("Player {0} ({1}) writes notes composed on item {2} onto item {3}",
+                player.Name, player.Id, sud.SourceItemId, sourceItem.Id);
+        }
+
         if (player.Inventory.Bag.FreeSlotCount < 1)
         {
             player.SendErrorMessage(ErrorMessageType.BagFull);
@@ -114,28 +190,33 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
             return false;
         }
 
-        // Save to DB
-        if (Save(sud))
+        // Save to DB. A failed save must not spend the blank score: the notes stay queued and the
+        // player can try again with the same item.
+        if (!Save(sud))
         {
-            var sheet = (MusicSheetItem)itemManager.Create(Item.SheetMusic, 1, 0, true);
-            sheet.OwnerId = player.Id;
-            sheet.MadeUnitId = player.Id;
-            sheet.SongId = sud.Id;
+            Logger.Warn("Player {0} ({1}) could not store the notes of {2} ({3})",
+                player.Name, player.Id, sud.Title, sud.Id);
+            return false;
+        }
 
-            // Add Sheet Music to inventory
-            if (!player.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.SaveMusicNotes, sheet))
-            {
-                Logger.Warn("Player {0} ({1}) had a unknown error when adding Sheet Music to inventory {2} ({3})",
-                    player.Name, player.Id, sud.Title, sud.Id);
-                return false;
-            }
+        var sheet = (MusicSheetItem)itemManager.Create(Item.SheetMusic, 1, 0, true);
+        sheet.OwnerId = player.Id;
+        sheet.MadeUnitId = player.Id;
+        sheet.SongId = sud.Id;
 
-            // Consume Music Paper
-            if (player.Inventory.Bag.ConsumeItem(ItemTaskType.SaveMusicNotes, sourceItem.TemplateId, 1, sourceItem) <= 0)
-            {
-                Logger.Warn("Failed to consume source item while creating music for Player {0} ({1}) item {2} ({3})",
-                    player.Name, player.Id, sourceItem.Id, sourceItem.Template.Name);
-            }
+        // Add Sheet Music to inventory
+        if (!player.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.SaveMusicNotes, sheet))
+        {
+            Logger.Warn("Player {0} ({1}) had a unknown error when adding Sheet Music to inventory {2} ({3})",
+                player.Name, player.Id, sud.Title, sud.Id);
+            return false;
+        }
+
+        // Consume Music Paper
+        if (player.Inventory.Bag.ConsumeItem(ItemTaskType.SaveMusicNotes, sourceItem.TemplateId, 1, sourceItem) <= 0)
+        {
+            Logger.Warn("Failed to consume source item while creating music for Player {0} ({1}) item {2} ({3})",
+                player.Name, player.Id, sourceItem.Id, sourceItem.Template.Name);
         }
 
         return true;
@@ -159,5 +240,29 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         if (_midiCache.TryGetValue(playerId, out var data))
             return data;
         return [];
+    }
+
+    /// <summary>
+    /// Ends a performance: nearby clients stop the sound and the play buffs that hold the playing
+    /// pose are dropped. Reached both from the client's own report that the performance is over and
+    /// from the "Close the Score" skill, so it has to run twice without harm.
+    /// </summary>
+    public static void EndPerformance(BaseUnit player)
+    {
+        if (player == null)
+            return;
+
+        player.BroadcastPacket(new SCPauseUserMusicPacket(player.ObjId), true);
+
+        var buffs = player.Buffs;
+        if (buffs == null)
+            return;
+
+        // 1155 = Play Song: the instrument play buffs and the memorized score alike.
+        foreach (var buff in SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.PlaySong))
+        {
+            if (buffs.CheckBuff(buff))
+                buffs.RemoveBuff(buff);
+        }
     }
 }

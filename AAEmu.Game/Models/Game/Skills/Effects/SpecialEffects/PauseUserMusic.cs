@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
@@ -28,19 +28,12 @@ public class PauseUserMusic : SpecialEffectAction
         // Skill 22217 = Close the Score (pressed stop or end of song)
         Logger.Trace("Special effects: PauseUserMusic -> {0}",
             skill?.Id == SkillsEnum.CloseTheScore ? "Stop" : "Pause");
-        target.BroadcastPacket(new SCPauseUserMusicPacket(target.ObjId), true);
 
-        // Check if stop was pressed. When at the end of the song, client also sends stop
+        // A pause keeps the play buffs (the player resumes where they left off); a stop ends the
+        // performance and drops them.
         if (skill?.Id == SkillsEnum.CloseTheScore)
-        {
-            // Remove active playing buff effects
-            var b = target.Buffs;
-            var allMusicBuffs = SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.PlaySong); // 1155 = Play Song
-            foreach (var buff in allMusicBuffs)
-            {
-                if (b.CheckBuff(buff))
-                    b.RemoveBuff(buff);
-            }
-        }
+            MusicManager.EndPerformance(target);
+        else
+            target.BroadcastPacket(new SCPauseUserMusicPacket(target.ObjId), true);
     }
 }

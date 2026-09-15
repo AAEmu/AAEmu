@@ -1,18 +1,22 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO(v10): the body is parsed but nothing acts on it yet.
+/// The client reporting that a performance is over: the score window was closed, or the player
+/// paused or stopped the song.
 /// </summary>
 /// <remarks>
-/// packet has no body. Every parameterless C2S type folds onto that one function, so a
-/// shared serializer here is identical-COMDAT folding, not a base-class fall-through.
+/// packet has no body. The play buffs an instrument leaves on the player have no duration of their
+/// own, so this is what ends the playing pose and lets nearby clients stop the sound; a song that
+/// simply runs out ends here as well when the client has no "Close the Score" cast to send.
 /// </remarks>
 public class CSPauseUserMusicPacket() : GamePacket(CSOffsets.CSPauseUserMusicPacket, 1)
 {
     public override void Read(PacketStream stream)
     {
+        MusicManager.EndPerformance(Connection.ActiveChar);
     }
 }
