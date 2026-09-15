@@ -1,7 +1,8 @@
-﻿using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
@@ -63,6 +64,16 @@ public class TeleportToUnit : SpecialEffectAction
 
                 break;
             case Npc npc:
+                // A mirrored NPC is simulated by the dedicate. Moving it from here makes the two fight
+                // over it - World walks it, the zone's next movement record snaps it back - so the move
+                // is left to whoever owns the unit.
+                if (ZoneOwnedUnitRules.IsDrivenByZone(WorldIntegration.ZoneAuthority, npc.IsZoneMirror))
+                {
+                    Logger.Info(
+                        $"TeleportToUnit: npc {npc.ObjId} (template {npc.TemplateId}) is zone-simulated - the move stays with the zone");
+                    break;
+                }
+
                 npc.MoveTowards(targetPosition, 10000);
                 npc.StopMovement();
                 break;

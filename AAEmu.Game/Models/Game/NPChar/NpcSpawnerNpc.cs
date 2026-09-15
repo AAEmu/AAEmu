@@ -120,6 +120,15 @@ public class NpcSpawnerNpc : Spawner<Npc>
         npc.Spawner.RespawnTime = (int)Random.Shared.Next(npc.Spawner.Template.SpawnDelayMin, npc.Spawner.Template.SpawnDelayMax);
         npc.Spawn();
 
+        // Under zone authority the dedicate simulates NPCs, so a spawn the zone never hears about is a
+        // unit with no driver at all: visible to every client in the region and frozen forever. The
+        // effect, command and grid spawn paths all hand theirs over the same way.
+        if (WorldIntegration.ZoneAuthority && !WorldIntegration.PublishNpcSpawn(npc))
+        {
+            Logger.Warn(
+                $"Spawner npc {MemberId} (template {npc.TemplateId}, objId {npc.ObjId}) was not published to its zone - nothing simulates it");
+        }
+
         var world = WorldManager.Instance.GetWorld(npc.Transform.InstanceId);
         world.Events.OnUnitSpawn(world, new OnUnitSpawnArgs { Npc = npc });
         npc.Simulation = new Simulation(npc);
