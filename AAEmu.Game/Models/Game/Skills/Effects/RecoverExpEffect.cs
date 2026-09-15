@@ -36,10 +36,7 @@ public class RecoverExpEffect : EffectTemplate
         if (character.RezPenaltyDuration <= 0)
             return;
 
-        Logger.Debug($"RecoverExpEffect: clearing {character.RezPenaltyDuration}s rez penalty on {character.Name} (needMoney {NeedMoney}, needLabor {NeedLaborPower}, needPriest {NeedPriest}, penaltied {Penaltied})");
-
-        character.RezPenaltyDuration = 0;
-        character.SendPacket(new Core.Packets.G2C.SCUnitStatePacket(character));
+        Logger.Debug($"RecoverExpEffect: recovering {character.Name} from a {character.RezPenaltyDuration}s rez penalty (needMoney {NeedMoney}, needLabor {NeedLaborPower}, needPriest {NeedPriest}, penaltied {Penaltied})");
 
         // NeedPriest restricts the recovery to a priest's cast, so the caster must be someone other than the
         // one being recovered — a player cannot self-serve a priest resurrection.
@@ -49,7 +46,6 @@ public class RecoverExpEffect : EffectTemplate
             return;
         }
 
-        // Costs are taken before the penalty clears so a failed payment leaves the character as it was.
         if (NeedMoney)
         {
             var cost = ExpRecoveryCost(character);
@@ -71,5 +67,11 @@ public class RecoverExpEffect : EffectTemplate
 
             character.ChangeLabor((short)-ExpRecoveryLabor, 0);
         }
+
+        // Costs are taken before the penalty clears, so a failed payment leaves the character as it was.
+        // Clearing first made every refused cast a free resurrection: the penalty was gone and the state
+        // packet was already on its way before the priest, money and labour checks had run.
+        character.RezPenaltyDuration = 0;
+        character.SendPacket(new Core.Packets.G2C.SCUnitStatePacket(character));
     }
 }
