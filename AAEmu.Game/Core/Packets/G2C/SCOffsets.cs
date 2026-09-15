@@ -790,6 +790,7 @@ public static class SCOffsets
     public const ushort SCSelectedInstanceDifficultPacket = 0x2DC;
     public const ushort SCSetExpeditionProtectDatePacket = 0x22;
     public const ushort SCSiegeScorePointPacket = 0x33C;
+    public const ushort SCSiegeRaidRegisterListPacket = 0x32C; // u8 state, u8 list, u16 type, s32 zoneCnt, per zone: s32 group, s32 cnt, rows
     public const ushort SCSkillCooldownReducePacket = 0x304;
     public const ushort SCSlaveEquipmentExpiredPacket = 0x94;
     public const ushort SCSlaveEquipmentFlagsChangedPacket = 0x96;
