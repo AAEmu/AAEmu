@@ -420,12 +420,17 @@ public class Buff
     /// <returns></returns>
     public int ConsumeCharge(int value)
     {
+        var absorbed = Math.Min(Math.Max(0, Charge), Math.Max(0, value));
         var newCharge = Math.Max(0, Charge - value);
         value = Math.Max(0, value - Charge);
         Charge = newCharge;
 
         if (Charge <= 0)
         {
+            // The last point of the shield has just been spent: a buff whose absorption is consumed
+            // runs its `absorption` triggers here, before Exit() unsubscribes them.
+            if (absorbed > 0)
+                Events.OnAbsorptionConsumed(this, new OnAbsorptionConsumedArgs { Amount = absorbed });
             Exit(false);
         }
         else

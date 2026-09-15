@@ -77,6 +77,10 @@ public static class SlaveCollisionDamage
             false);
         SlaveManager.SendUpdatedSlaveSourceItem(slave.Summoner, slave);
 
+        // The only collision damage this build applies, and so the only raise site for
+        // `damaged_collision` rows (which the content authors on hull buffs).
+        slave.Events.OnDamagedCollision(slave, new OnDamagedCollisionArgs { Amount = damage, Impact = impact });
+
         Logger.Info(
             "SlaveCollision obj={0} dmg={1} hp={2}->{3}/{4} part={5} impact={6:F2} mass={7:F0} " +
             "partGain={8:F2} equipGain={9:F2} armorGain={10:F2} raw={11:F2}",

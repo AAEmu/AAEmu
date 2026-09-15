@@ -146,6 +146,9 @@ public static class BuffTriggerAgentRules
             OnDamageArgs damage => (damage.Attacker, damage.Target),
             OnDamagedArgs damaged => (damaged.Attacker, null),
             OnDeathArgs death => (death.Killer, death.Victim),
+            // `kill` / `kill_any` rows author target_agent_id = 2 for the unit that was killed, which is
+            // how the buffs on the killer (승리의 기운, 영웅의 가호) name what they act on.
+            OnKillArgs kill => (kill.Killer, kill.Target ?? kill.Victim),
             _ => (null, null)
         };
 
