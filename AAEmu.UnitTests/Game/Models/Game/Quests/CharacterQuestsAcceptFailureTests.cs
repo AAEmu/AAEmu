@@ -1,5 +1,8 @@
+using System.Reflection;
+
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
@@ -11,6 +14,8 @@ using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.TodayAssignment;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Quests;
 
@@ -22,6 +27,8 @@ namespace AAEmu.UnitTests.Game.Models.Game.Quests;
 [NotInParallel]
 public sealed class CharacterQuestsAcceptFailureTests
 {
+    private const uint QuestId = 4781;
+
     private readonly List<byte[]> _sentPackets = [];
     private readonly Character _character;
 
@@ -36,19 +43,32 @@ public sealed class CharacterQuestsAcceptFailureTests
         _character.Quests = new CharacterQuests(_character);
     }
 
+    [Before(Test)]
+    public void Before() =>
+        // A template-less manager is what an unloaded server has, so it is enough to reach the
+        // refusals that depend on the template lookup.
+        SingletonContainer.ServiceProvider = new ServiceCollection()
+            .AddSingleton(new QuestManager(
+                Mock.Of<ITaskManager>().Object,
+                Mock.Of<IZoneManager>().Object))
+            .BuildServiceProvider();
+
     [After(Test)]
-    public void TearDown() => TodayQuestGameData.Instance.SetStepsForTest();
+    public void TearDown()
+    {
+        TodayQuestGameData.Instance.SetStepsForTest();
+        SingletonContainer.ServiceProvider = null;
+    }
 
     [Test]
     public async Task DuplicateAccept_TellsClientAlreadyHave()
     {
-        const uint questId = 4781;
-        _character.Quests.ActiveQuests[questId] = CreateQuest();
+        _character.Quests.ActiveQuests[QuestId] = CreateQuest();
 
-        var accepted = _character.Quests.AddQuest(questId);
+        var accepted = _character.Quests.AddQuest(QuestId);
 
         await Assert.That(accepted).IsFalse();
-        await AssertRefusalPacket(questId, QuestStatusFailed.AlreadyHave);
+        await AssertRefusalPacket(QuestId, QuestStatusFailed.AlreadyHave);
     }
 
     [Test]
@@ -62,6 +82,48 @@ public sealed class CharacterQuestsAcceptFailureTests
         await Assert.That(accepted).IsFalse();
         await Assert.That(_character.Quests.HasQuest(questId)).IsFalse();
         await AssertRefusalPacket(questId, QuestAcceptFailRules.PublicAssignmentBlocked);
+    }
+
+    [Test]
+    public async Task UnknownQuestTemplate_TellsClientInvalidQuest()
+    {
+        var accepted = _character.Quests.AddQuest(QuestId);
+
+        await Assert.That(accepted).IsFalse();
+        await AssertRefusalPacket(QuestId, QuestStatusFailed.InvalidQuest);
+    }
+
+    [Test]
+    public async Task MissingNpcSource_TellsClientInvalidNpcOrQuest()
+    {
+        PublishWorld();
+
+        var accepted = _character.Quests.AddQuestFromNpc(QuestId, 0xDEAD);
+
+        await Assert.That(accepted).IsFalse();
+        await AssertRefusalPacket(QuestId, QuestAcceptFailRules.MissingSource(QuestAcceptorType.Npc));
+    }
+
+    [Test]
+    public async Task MissingDoodadSource_TellsClientInvalidDoodad()
+    {
+        PublishWorld();
+
+        var accepted = _character.Quests.AddQuestFromDoodad(QuestId, 0xDEAD);
+
+        await Assert.That(accepted).IsFalse();
+        await AssertRefusalPacket(QuestId, QuestAcceptFailRules.MissingSource(QuestAcceptorType.Doodad));
+    }
+
+    private void PublishWorld()
+    {
+        // Empty instance: every source lookup misses, which is the refusal under test. The public
+        // ParentWorld setter re-resolves the instance through WorldManager.Instance, a process-wide
+        // singleton that a refusal test has no business republishing, so cache it directly.
+        var world = new WorldInstance(new WorldTemplate { Id = 3, Name = "unit_test" }, 0, true, 7);
+        typeof(GameObject)
+            .GetField("_parentWorld", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .SetValue(_character, world);
     }
 
     private static void SeedGuildPublicAssignment(uint questId)
