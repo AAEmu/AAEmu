@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Services.WebApi.Models;
@@ -20,7 +20,7 @@ internal class CharacterController : BaseController
                 // Build SQL
                 var sqlBuilder =
                     new StringBuilder(
-                        "SELECT `id`, `name`, `level`,`created_at`, `account_id` FROM `characters` WHERE `deleted` = 0");
+                        "SELECT `id`, `name`, `level`,`created_at`, `account_id`, `family`, `expedition_id` FROM `characters` WHERE `deleted` = 0");
 
                 var accountId = queryParams.Get("AccountId");
                 if (accountId != null)
@@ -48,13 +48,17 @@ internal class CharacterController : BaseController
                         var character = WorldManager.Instance.GetCharacterById(id);
 
                         var level = reader.GetUInt32("level");
+                        var familyId = reader.GetUInt32("family");
+                        var expeditionId = reader.GetUInt32("expedition_id");
 
                         if (character != null)
                         {
                             level = character.Level;
+                            familyId = character.Family;
+                            expeditionId = (uint)(character.Expedition?.Id ?? 0);
                         }
 
-                        list.Add(new CharacterModel(id, charName, level, createdAt, character != null));
+                        list.Add(new CharacterModel(id, charName, level, createdAt, character != null, familyId, expeditionId));
                     }
                 }
             }

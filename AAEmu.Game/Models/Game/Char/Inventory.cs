@@ -358,6 +358,11 @@ public class Inventory
         return true;
     }
 
+    /// <summary>Plans exact bag credits for a caller-owned database transaction.</summary>
+    public bool TryPlanBagAcquisition(IItemManager itemManager, IEnumerable<ItemAcquisitionRequest> requests,
+        DateTime utcNow, out ItemAcquisitionPlan plan) =>
+        ItemAcquisitionPlan.TryCreate(this, itemManager, requests, utcNow, out plan);
+
     /// <summary>
     /// Plans a debit from one exact live bag stack. A different stack of the same template is never
     /// substituted when the client-selected source item is missing or too small.

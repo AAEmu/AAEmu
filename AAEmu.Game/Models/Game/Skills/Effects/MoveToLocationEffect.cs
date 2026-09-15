@@ -2,6 +2,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
@@ -54,26 +55,25 @@ public class MoveToLocationEffect : EffectTemplate
             return;
         }
 
-        // World routes players by Transform.ZoneId and fails closed, so recalling into a zone with no dedicate
-        // drops the character somewhere nobody simulates, with no NPCs and no way back. Refuse instead.
         var destinationZoneId = destination.Transform.ZoneId;
-        if (WorldIntegration.ZoneAuthority
-            && WorldIntegration.IsZoneLoaded != null
-            && !WorldIntegration.IsZoneLoaded(destinationZoneId))
+        if (!TeleportLandingRules.CanLandInZone(
+                WorldIntegration.ZoneAuthority, WorldIntegration.IsZoneLoaded, destinationZoneId))
         {
             Logger.Warn($"MoveToLocationEffect: refusing to recall {character.Name} to house {destination.Id}; zone {destinationZoneId} has no ZoneLoaded dedicate");
             character.SendErrorMessage(ErrorMessageType.InvalidHouseInfo);
             return;
         }
 
-        Logger.Debug($"MoveToLocationEffect: recalling {character.Name} to house {destination.Id}, ownHouseOnly {OwnHouseOnly}");
+        var landing = destination.Transform;
+        var position = landing.World.Position;
+        var yaw = landing.World.Rotation.Z;
+        Logger.Info("MoveToLocationEffect: recalling {0} to house {1} ({2:0.0}, {3:0.0}, {4:0.0})",
+            character.Name, destination.Id, position.X, position.Y, position.Z);
 
-        character.DisabledSetPosition = true;
-        character.SendPacket(new Core.Packets.G2C.SCTeleportUnitPacket(
-            0, 0,
-            destination.Transform.World.Position.X,
-            destination.Transform.World.Position.Y,
-            destination.Transform.World.Position.Z,
-            0f));
+        SkillTeleportLanding.Apply(character, landing.WorldId, landing.ZoneId, landing.InstanceId,
+            position.X, position.Y, position.Z, yaw, TeleportReason.MoveToLocation,
+            // Recalling to a house in the zone you are already standing in is not a zone change.
+            landing.ZoneId == character.Transform.ZoneId &&
+            landing.InstanceId == character.Transform.InstanceId);
     }
 }

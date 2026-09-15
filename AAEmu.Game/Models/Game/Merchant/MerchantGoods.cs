@@ -71,3 +71,56 @@ public class MerchantPurchaseState
     public MerchantPurchaseType PurchaseType { get; init; }
     public DateTime PeriodStart { get; init; }
 }
+
+/// <summary>
+/// Holds the merchant-limit serialization lease until its caller's transaction commits or rolls
+/// back. Database rows are written on that same transaction; the live cache changes only after
+/// <see cref="ApplyCommitted"/>.
+/// </summary>
+public sealed class MerchantPurchaseReservation : IDisposable
+{
+    private readonly Func<MySql.Data.MySqlClient.MySqlConnection, MySql.Data.MySqlClient.MySqlTransaction,
+        (bool Success, MerchantGoodsItem FailedGood, IReadOnlyDictionary<uint, MerchantPurchaseState> States)> _persist;
+    private readonly Action<IReadOnlyDictionary<uint, MerchantPurchaseState>> _apply;
+    private readonly Action _release;
+    private int _applied;
+    private int _disposed;
+
+    internal MerchantPurchaseReservation(
+        Func<MySql.Data.MySqlClient.MySqlConnection, MySql.Data.MySqlClient.MySqlTransaction,
+            (bool Success, MerchantGoodsItem FailedGood, IReadOnlyDictionary<uint, MerchantPurchaseState> States)> persist,
+        Action<IReadOnlyDictionary<uint, MerchantPurchaseState>> apply, Action release)
+    {
+        _persist = persist;
+        _apply = apply;
+        _release = release;
+    }
+
+    public IReadOnlyDictionary<uint, MerchantPurchaseState> UpdatedStates { get; private set; } =
+        new Dictionary<uint, MerchantPurchaseState>();
+
+    public bool TryPersist(MySql.Data.MySqlClient.MySqlConnection connection,
+        MySql.Data.MySqlClient.MySqlTransaction transaction, out MerchantGoodsItem failedGood)
+    {
+        if (Volatile.Read(ref _disposed) != 0)
+            throw new ObjectDisposedException(nameof(MerchantPurchaseReservation));
+        var result = _persist(connection, transaction);
+        failedGood = result.FailedGood;
+        if (result.Success)
+            UpdatedStates = result.States;
+        return result.Success;
+    }
+
+    public void ApplyCommitted()
+    {
+        if (Interlocked.Exchange(ref _applied, 1) != 0)
+            throw new InvalidOperationException("A merchant purchase reservation can only be committed once.");
+        _apply(UpdatedStates);
+    }
+
+    public void Dispose()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) == 0)
+            _release();
+    }
+}

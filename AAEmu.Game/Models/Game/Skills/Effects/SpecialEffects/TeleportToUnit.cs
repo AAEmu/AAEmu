@@ -45,7 +45,22 @@ public class TeleportToUnit : SpecialEffectAction
         switch (caster)
         {
             case Character character:
-                character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, 0f, 0f, endX, endY, targetPosition.Z));
+                // The blink packet only moves the client: the zone keeps simulating the character at the
+                // old spot and pulls it back, which reads as "the skill does not teleport me". Land the
+                // character server-side the same way the Blink effect does and tell the zone. The landing
+                // is world-space; SetPosition writes the local transform, so convert for a parented rider.
+                var local = character.Transform.GetLocalFromWorld(endX, endY, targetPosition.Z);
+                character.SetPosition(local.X, local.Y, local.Z,
+                    character.Transform.Local.Rotation.X,
+                    character.Transform.Local.Rotation.Y,
+                    character.Transform.Local.Rotation.Z);
+                character.SendPacket(new SCBlinkUnitPacket(caster.ObjId, 0f, 0f, false, endX, endY, targetPosition.Z));
+                if (WorldIntegration.ZoneAuthority)
+                {
+                    WorldIntegration.RelayBlinkToZone?.Invoke(
+                        character.ObjId, character.ObjId, false, endX, endY, targetPosition.Z);
+                }
+
                 break;
             case Npc npc:
                 npc.MoveTowards(targetPosition, 10000);

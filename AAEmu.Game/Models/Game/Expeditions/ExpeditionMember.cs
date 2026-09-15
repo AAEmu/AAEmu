@@ -29,6 +29,7 @@ public class ExpeditionMember : PacketMarshaler
     public DateTime TransferRequestedTime { get; set; }
     public uint ContributionPoint { get; set; }
     public uint WeeklyContributionPoint { get; set; }
+    public DateTime WeeklyContributionPeriodStart { get; set; }
     public uint GearScore { get; set; }
 
     public void Refresh(Character character)
@@ -51,7 +52,7 @@ public class ExpeditionMember : PacketMarshaler
             command.Connection = connection;
             command.Transaction = transaction;
 
-            command.CommandText = "REPLACE INTO expedition_members(`character_id`,`expedition_id`,`name`,`level`,`role`,`last_leave_time`,`ability1`,`ability2`,`ability3`,`memo`,`contribution_point`,`weekly_contribution_point`) VALUES (@character_id,@expedition_id,@name,@level,@role,@last_leave_time,@ability1,@ability2,@ability3,@memo,@contribution_point,@weekly_contribution_point)";
+            command.CommandText = "REPLACE INTO expedition_members(`character_id`,`expedition_id`,`name`,`level`,`role`,`last_leave_time`,`ability1`,`ability2`,`ability3`,`memo`,`contribution_point`,`weekly_contribution_point`,`weekly_contribution_period_start`) VALUES (@character_id,@expedition_id,@name,@level,@role,@last_leave_time,@ability1,@ability2,@ability3,@memo,@contribution_point,@weekly_contribution_point,@weekly_contribution_period_start)";
             command.Parameters.AddWithValue("@character_id", this.CharacterId);
             command.Parameters.AddWithValue("@expedition_id", this.ExpeditionId);
             command.Parameters.AddWithValue("@name", this.Name);
@@ -64,6 +65,7 @@ public class ExpeditionMember : PacketMarshaler
             command.Parameters.AddWithValue("@memo", this.Memo);
             command.Parameters.AddWithValue("@contribution_point", this.ContributionPoint);
             command.Parameters.AddWithValue("@weekly_contribution_point", this.WeeklyContributionPoint);
+            command.Parameters.AddWithValue("@weekly_contribution_period_start", this.WeeklyContributionPeriodStart);
             command.ExecuteNonQuery();
         }
     }
@@ -92,7 +94,8 @@ public class ExpeditionMember : PacketMarshaler
         stream.Write((Memo ?? string.Empty)[..Math.Min(Memo?.Length ?? 0, MaxMemoLength)]);
         stream.Write(TransferRequestedTime);
         stream.Write(ContributionPoint);
-        stream.Write(WeeklyContributionPoint);
+        stream.Write(WeeklyContributionRules.CurrentValue(WeeklyContributionPoint,
+            WeeklyContributionPeriodStart, ServerCalendar.WeekStartMondayUtc));
         stream.Write(GearScore);
         return stream;
     }

@@ -79,6 +79,34 @@ public class InventoryMutationTests
     }
 
     [Test]
+    public async Task BagAcquisitionPlan_DoesNotStackDefaultRewardIntoDetailedItem()
+    {
+        var (inventory, _, detailedItem) = CreateInventory(itemCount: 5);
+        detailedItem.Detail = [1];
+        var itemManager = CreateItemManager();
+        itemManager.GetTemplate(detailedItem.TemplateId).Returns(detailedItem.Template);
+        var createdItem = new Item(9002, detailedItem.Template, 3);
+        itemManager.Create(detailedItem.TemplateId, 3, 0, true).Returns(createdItem);
+
+        IReadOnlyList<ItemPersistenceSnapshot> snapshots;
+        using (inventory.AcquireMutation())
+        {
+            var planned = inventory.TryPlanBagAcquisition(
+                itemManager.Object,
+                [new ItemAcquisitionRequest(detailedItem.TemplateId, 3, 0)],
+                DateTime.UtcNow,
+                out var plan);
+            await Assert.That(planned).IsTrue();
+            using (plan)
+                snapshots = plan.CapturePersistenceSnapshots();
+        }
+
+        await Assert.That(snapshots).Count().IsEqualTo(1);
+        await Assert.That(snapshots[0].Item).IsSameReferenceAs(createdItem);
+        await Assert.That(detailedItem.Count).IsEqualTo(5);
+    }
+
+    [Test]
     public async Task ExactBagConsumptionPlan_DoesNotSubstituteAnotherStackOfTheSameTemplate()
     {
         var (inventory, bag, selected) = CreateInventory(itemCount: 1);
@@ -285,13 +313,14 @@ public class InventoryMutationTests
         var moverThreadId = 0;
         var callbacksRejectedUnderLease = false;
 
-        var publisher = Task.Run(() =>
+        var publisher = Task.Factory.StartNew(() =>
         {
             lock (inventory.MutationSyncRoot)
             {
                 publisherThreadId = Environment.CurrentManagedThreadId;
                 mutationEntered.Set();
-                moveAttempted.Wait();
+                if (!moveAttempted.Wait(TimeSpan.FromSeconds(2)))
+                    throw new TimeoutException("The competing inventory move did not start.");
                 publication.PublishPackets();
                 try
                 {
@@ -302,19 +331,29 @@ public class InventoryMutationTests
                     callbacksRejectedUnderLease = true;
                 }
             }
-        });
-        var mover = Task.Run(() =>
+        }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+        var mover = Task.Factory.StartNew(() =>
         {
-            mutationEntered.Wait();
+            if (!mutationEntered.Wait(TimeSpan.FromSeconds(2)))
+                throw new TimeoutException("The publication worker did not acquire the mutation lease.");
             moveAttempted.Set();
             lock (inventory.MutationSyncRoot)
             {
                 moverThreadId = Environment.CurrentManagedThreadId;
                 character.SendPacket(new PublicationOrderPacket(2));
             }
-        });
+        }, CancellationToken.None, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
-        await Task.WhenAll(publisher, mover).WaitAsync(TimeSpan.FromSeconds(1));
+        try
+        {
+            await Task.WhenAll(publisher, mover).WaitAsync(TimeSpan.FromSeconds(3));
+        }
+        finally
+        {
+            mutationEntered.Set();
+            moveAttempted.Set();
+            await Task.WhenAll(publisher, mover);
+        }
         publication.PublishCallbacks();
 
         await Assert.That(callbacksRejectedUnderLease).IsTrue();

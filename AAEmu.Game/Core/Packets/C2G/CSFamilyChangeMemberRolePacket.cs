@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -19,5 +20,7 @@ public class CSFamilyChangeMemberRolePacket() : GamePacket(CSOffsets.CSFamilyCha
     {
         TypeValue = stream.ReadUInt64();
         TypeValue2 = stream.ReadInt32();
+        if (TypeValue <= uint.MaxValue && TypeValue2 > 0)
+            FamilyManager.Instance.ChangeMemberRole(Connection.ActiveChar, (uint)TypeValue, (uint)TypeValue2);
     }
 }

@@ -34,8 +34,7 @@ public sealed class MailTests
         nameManager.AddCharacter(_character.Id, _character.Name, 1);
         nameManager.AddCharacter(2u, "Sender", 1);
 
-        var mailIdManager = new MailIdManager();
-        mailIdManager.Initialize();
+        var mailIdManager = new SequentialMailIdManager();
 
         _mockWorldManager = Mock.Of<IWorldManager>();
         _mailManager = new MailManager(

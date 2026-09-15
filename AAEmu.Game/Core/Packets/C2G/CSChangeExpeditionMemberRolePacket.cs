@@ -12,6 +12,6 @@ public class CSChangeExpeditionMemberRolePacket() : GamePacket(CSOffsets.CSChang
         var id = stream.ReadUInt32(); // type(id)
 
         Logger.Debug("ChangeExpeditionMemberRole, Id: {0}, Role: {1}", id, role);
-        ExpeditionManager.ChangeMemberRole(Connection, role, id);
+        ExpeditionManager.Instance.ChangeMemberRole(Connection, role, id);
     }
 }

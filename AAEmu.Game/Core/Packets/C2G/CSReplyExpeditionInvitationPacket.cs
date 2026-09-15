@@ -14,8 +14,9 @@ public class CSReplyExpeditionInvitationPacket() : GamePacket(CSOffsets.CSReplyE
         var wireFlag = stream.ReadBoolean();
 
         Logger.Debug("ReplyExpeditionInvitation, Id: {0}, Id2: {1}, wireFlag: {2}", id, id2, wireFlag);
-        // TODO: wireFlag's polarity is inverted here based on observed Accept clicks (both sent false);
-        // not yet confirmed against a real decline case.
+        // Current-client FUN_396c5f90 forwards the dialog result directly to the packet builder
+        // (FUN_39c4e880 -> FUN_39c65d90). The shared team dialog at FUN_396e2790 uses result 0 for
+        // affirmative: wire false accepts and wire true declines, while ReplyInvite expects join.
         ExpeditionManager.Instance.ReplyInvite(Connection, id, id2, !wireFlag);
     }
 }

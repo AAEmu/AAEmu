@@ -1,11 +1,10 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Expeditions.Recruitment;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
-/// <summary>
-/// TODO(v10): the body is parsed but nothing acts on it yet.
-/// </summary>
 /// <remarks>
 /// which passes each field name alongside the value:
 /// int type, string memo
@@ -19,5 +18,8 @@ public class CSExpeditionApplicantAddPacket() : GamePacket(CSOffsets.CSExpeditio
     {
         Type = stream.ReadInt32();
         Memo = stream.ReadString();
+        if (Type > 0 && ExpeditionRecruitmentPacketService.Get().Apply(Connection.ActiveChar, (uint)Type, Memo,
+                DateTime.UtcNow) == ExpeditionRecruitmentResult.Success)
+            Connection.ActiveChar.SendPacket(new SCExpeditionApplicantAddPacket(Type));
     }
 }

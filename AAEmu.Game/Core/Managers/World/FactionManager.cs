@@ -64,7 +64,8 @@ public class FactionManager(ILocalizationManager localizationManager) : Singleto
                             MotherId = (FactionsEnum)reader.GetUInt32("mother_id"),
                             AggroLink = reader.GetBoolean("aggro_link", true),
                             GuardHelp = reader.GetBoolean("guard_help", true),
-                            DiplomacyTarget = reader.GetBoolean("is_diplomacy_tgt", true)
+                            DiplomacyTarget = reader.GetBoolean("is_diplomacy_tgt", true),
+                            ShowCreateExpedition = reader.GetBoolean("show_create_expedition", true)
                         };
                         _systemFactions.Add(faction.Id, faction);
                     }

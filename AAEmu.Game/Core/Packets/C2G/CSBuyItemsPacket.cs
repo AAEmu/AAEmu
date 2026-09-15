@@ -107,6 +107,34 @@ public class CSBuyItemsPacket() : GamePacket(CSOffsets.CSBuyItemsPacket, 1)
         if (!CanPay(character, pack, costs, useAaPoint))
             return;
 
+        if (pack.Kind == MerchantPackKind.ItemPoint)
+        {
+            MerchantGoodsItem failedContributionGood = null;
+            IReadOnlyDictionary<uint, MerchantPurchaseState> contributionPurchaseStates =
+                new Dictionary<uint, MerchantPurchaseState>();
+            var purchased = buybacks.Count == 0 &&
+                            costs.Keys.All(currency => currency == ShopCurrencyType.ItemPoint) &&
+                            ExpeditionActivityServices.TryGet(out var activityService) &&
+                            activityService.TryPurchaseContributionGoods(character, pack,
+                                purchases.Select(purchase => (purchase.Good, purchase.Count)).ToArray(),
+                                out failedContributionGood, out contributionPurchaseStates);
+            if (!purchased)
+            {
+                if (failedContributionGood != null)
+                {
+                    Connection.SendPacket(new SCBuyFailedMerchantGoodLimitPurchasePacket(
+                        failedContributionGood.ItemTemplateId,
+                        failedContributionGood.PurchaseType,
+                        failedContributionGood.PurchaseLimit));
+                }
+                return;
+            }
+
+            if (contributionPurchaseStates.Count > 0)
+                Connection.SendPacket(new SCUpdateMerchantGoodLimitPurchasePacket(contributionPurchaseStates));
+            return;
+        }
+
         if (!NpcManager.Instance.TryReserveMerchantPurchases(
                 character.Id,
                 purchases.Select(purchase => (purchase.Good, purchase.Count)),

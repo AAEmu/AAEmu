@@ -97,6 +97,11 @@ public class GameConnection
             // mid-duel stayed registered as duelling and was refused every duel after relogging.
             DuelManager.Instance.OnCharacterLogout(ActiveChar);
 
+            // A crash bypasses the normal leave-world task, so it must also release family invitations
+            // and mark family/guild presence offline.
+            FamilyManager.Instance.OnCharacterLogout(ActiveChar);
+            ExpeditionManager.Instance.OnCharacterLogout(ActiveChar);
+
             ActiveChar.ParentWorld?.GimmickManager?.ReleaseGrasps(ActiveChar.ObjId);
             AAEmu.Game.WorldIntegration.ReleaseZoneGimmickGrasps?.Invoke(ActiveChar);
             AAEmu.Game.WorldIntegration.OnPlayerLeave?.Invoke(ActiveChar.ObjId);

@@ -12,6 +12,7 @@ public class CSCreateExpeditionPacket() : GamePacket(CSOffsets.CSCreateExpeditio
         var type = stream.ReadInt32();
 
         Logger.Debug("CreateExpedition, name: {0}, type: {1}", name, type);
-        ExpeditionManager.Instance.CreateExpedition(name, Connection);
+        ExpeditionManager.Instance.CreateExpedition(name,
+            (AAEmu.Game.Models.StaticValues.FactionsEnum)type, Connection);
     }
 }

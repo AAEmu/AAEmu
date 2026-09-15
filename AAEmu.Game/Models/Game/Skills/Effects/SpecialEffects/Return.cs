@@ -109,18 +109,13 @@ public class Return : SpecialEffectAction
         float z,
         float yawRad)
     {
-        if (ReturnTeleportRules.NeedsInstanceLoad(character.Transform.InstanceId, destInstanceId))
-        {
-            character.DisabledSetPosition = true;
-            character.SendPacket(new SCLoadInstancePacket(destWorldId, zoneId, x, y, z, 0, 0, yawRad));
-            character.Transform = new Transform(character, null, zoneId, destInstanceId, x, y, z, yawRad);
-        }
-        else
-        {
-            character.SetPosition(x, y, z, 0f, 0f, yawRad);
-            character.Transform.FinalizeTransform();
-        }
-
-        character.SendPacket(new SCTeleportUnitPacket(TeleportReason.MoveToLocation, 0, x, y, z, yawRad));
+        // Shared with the house recall and the return-to-rez-point effects so every skill-driven
+        // teleport lands the same way on the server and the client. A landing inside the zone the
+        // character already occupies must not re-resolve the zone from its coordinates - only a real
+        // cross-zone return goes through the handoff.
+        var stayInZone = zoneId == character.Transform.ZoneId &&
+                         destInstanceId == character.Transform.InstanceId;
+        SkillTeleportLanding.Apply(character, destWorldId, zoneId, destInstanceId, x, y, z, yawRad,
+            TeleportReason.MoveToLocation, stayInZone);
     }
 }

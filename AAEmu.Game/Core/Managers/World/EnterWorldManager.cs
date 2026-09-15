@@ -271,12 +271,13 @@ public class EnterWorldManager(
             // Remove from all Chat
             chatManager.LeaveAllChannels(activeChar);
 
-            // Handle Family
-            if (activeChar.Family > 0)
-                familyManager.OnCharacterLogout(activeChar);
+            // Handle Family, including a pending invitation for a character with no family yet.
+            familyManager.OnCharacterLogout(activeChar);
 
             // Handle Guild
-            activeChar.Expedition?.OnCharacterLogout(activeChar);
+            if (ExpeditionActivityServices.TryGet(out var expeditionActivities))
+                expeditionActivities.OnCharacterLogout(activeChar);
+            ExpeditionManager.Instance.OnCharacterLogout(activeChar);
 
             // Remove player from world (hides and release Id)
             activeChar.Delete();

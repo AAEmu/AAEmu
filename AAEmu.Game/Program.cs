@@ -163,8 +163,18 @@ public static class Program
                 services.AddSingleton<EffectTaskManager>();
                 services.AddSingleton<IEffectTaskManager>(sp => sp.GetRequiredService<EffectTaskManager>());
 
+                services.AddSingleton<IExpeditionPersistenceConnectionFactory, MySqlExpeditionPersistenceConnectionFactory>();
                 services.AddSingleton<ExpeditionManager>();
                 services.AddSingleton<IExpeditionManager>(sp => sp.GetRequiredService<ExpeditionManager>());
+                services.AddSingleton<IExpeditionRecruitmentConnectionFactory, MySqlExpeditionRecruitmentConnectionFactory>();
+                services.AddSingleton<IExpeditionRecruitmentRepository, MySqlExpeditionRecruitmentRepository>();
+                services.AddSingleton<IExpeditionRecruitmentJoinCoordinator, ExpeditionRecruitmentJoinCoordinator>();
+                services.AddSingleton<ExpeditionRecruitmentService>();
+                services.AddSingleton<IExpeditionActivityConnectionFactory, MySqlExpeditionActivityConnectionFactory>();
+                services.AddSingleton<IExpeditionActivityRepository, MySqlExpeditionActivityRepository>();
+                services.AddSingleton<ExpeditionActivityService>();
+                services.AddSingleton<IExpeditionPublicAssignmentRepository, MySqlExpeditionPublicAssignmentRepository>();
+                services.AddSingleton<ExpeditionPublicAssignmentService>();
 
                 services.AddSingleton<ExperienceManager>();
                 services.AddSingleton<IExperienceManager>(sp => sp.GetRequiredService<ExperienceManager>());
@@ -174,6 +184,8 @@ public static class Program
 
                 services.AddSingleton<FamilyManager>();
                 services.AddSingleton<IFamilyManager>(sp => sp.GetRequiredService<FamilyManager>());
+                services.AddSingleton<IFamilyPurchaseRepository, MySqlFamilyPurchaseRepository>();
+                services.AddSingleton<IFamilyPurchaseService, FamilyPurchaseService>();
 
                 services.AddSingleton<FeaturesManager>();
                 services.AddSingleton<IFeaturesManager>(sp => sp.GetRequiredService<FeaturesManager>());
@@ -264,6 +276,10 @@ public static class Program
 
                 services.AddSingleton<PublicFarmManager>();
                 services.AddSingleton<IPublicFarmManager>(sp => sp.GetRequiredService<PublicFarmManager>());
+
+                services.AddSingleton<PublicQuestRewardDeliveryService>();
+                services.AddSingleton<IPublicQuestRewardDeliveryService>(sp =>
+                    sp.GetRequiredService<PublicQuestRewardDeliveryService>());
 
                 services.AddSingleton<QuestManager>();
                 services.AddSingleton<IQuestManager>(sp => sp.GetRequiredService<QuestManager>());

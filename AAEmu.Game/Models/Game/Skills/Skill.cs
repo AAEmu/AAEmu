@@ -229,6 +229,16 @@ public class Skill
                     return SkillResult.CooldownTime;
                 }
 
+                // The skill's own cooldown is armed on cast (Cast / plot-only fire edge) but was never
+                // consulted on the player path: a 15 s skill could be fired again as soon as the gate
+                // above allowed it. SkillCooldownGateRules lists the casts that keep their own pacing.
+                if (SkillCooldownGateRules.ShouldWaitForCooldown(
+                        _bypassGcd, fishingHold, Template.Id, unit.Cooldowns.CheckCooldown(Template.Id)))
+                {
+                    Logger.Trace($"Skill: CooldownTime [{Template.CooldownTime}] for {Template.Id}");
+                    return SkillResult.CooldownTime;
+                }
+
                 if (!comboHit)
                     unit.SkillLastUsed = DateTime.UtcNow;
             }
@@ -1205,10 +1215,14 @@ public class Skill
 
         // Filter out duplicate entries and non-existing
         possibleTargets = possibleTargets.Distinct().ToList();
-        // Add origin in case of no targets and using a target position cast
+        // Add origin in case of no targets and using a target position cast. Utility effects (spawn,
+        // doodad, ...) need a position to act on; damage and debuffs must not follow this origin, see
+        // SkillSelfHitRules - a ground cast that found nobody is not a self-cast.
+        var originFallbackOnly = false;
         if (possibleTargets.Count <= 0 && targetCaster is SkillCastPositionTarget)
         {
             possibleTargets.Add(caster);
+            originFallbackOnly = true;
         }
 
         if (Template.TargetAreaCount > 0 && possibleTargets.Count > Template.TargetAreaCount)
@@ -1373,6 +1387,11 @@ public class Skill
                 {
                     continue;
                 }
+
+                // A ground cast that found no unit only carries the caster as its origin; harmful
+                // effects stop here so the caster is not hit by their own aimed-at-the-ground skill.
+                if (!SkillSelfHitRules.AllowsOriginFallbackTarget(originFallbackOnly, caster.ObjId, target.ObjId, effect))
+                    continue;
 
                 // Apply the effect
                 effectsToApply.Add((target, effect));

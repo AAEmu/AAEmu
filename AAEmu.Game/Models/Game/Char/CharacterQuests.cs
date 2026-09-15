@@ -219,6 +219,15 @@ public class CharacterQuests(Character owner)
     /// <returns></returns>
     public bool AddQuest(uint questId, bool forcibly = false, QuestAcceptorType questAcceptorType = QuestAcceptorType.Unknown, uint acceptorId = 0)
     {
+        // Sort-6 quests are shared guild state. Accepting one as a personal quest would execute its
+        // item and guild reward acts once per character and duplicate the authoritative guild award.
+        if (TodayQuestGameData.Instance.IsExpeditionPublicQuest(questId))
+        {
+            Logger.Warn("Rejected personal start of public guild assignment quest {0} for {1}",
+                questId, Owner.Name);
+            return false;
+        }
+
         if (ActiveQuests.ContainsKey(questId))
         {
             if (forcibly)

@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using AAEmu.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
@@ -64,10 +64,22 @@ public partial class QuestManager
         }
         else
         {
-            // Doesn't have a NPC or Doodad to turn in at, just auto-complete it
-            // owner.Quests.CompleteQuest(questContextId, selected, true);
+            // Doesn't have a NPC or Doodad to turn in at, just auto-complete it.
+            // Both target ids are client-supplied, so hold the Reward transition to the same
+            // objective gate the report acts and TryCompleteQuestAsLetItDone use. Without it any
+            // active quest could be pushed to Reward without doing its objectives.
             if (owner.Quests.ActiveQuests.TryGetValue(questContextId, out var quest))
             {
+                var minimumProgress = quest.Template.LetItDone
+                    ? QuestObjectiveStatus.CanEarlyComplete
+                    : QuestObjectiveStatus.QuestComplete;
+                if (quest.GetQuestObjectiveStatus() < minimumProgress)
+                {
+                    Logger.Debug("DoReportEvents: quest {0} reported with no target but objectives are not met; not advancing (owner {1})",
+                        questContextId, owner.Name);
+                    return;
+                }
+
                 quest.SelectedRewardIndex = selected;
                 quest.Step = QuestComponentKind.Reward;
             }

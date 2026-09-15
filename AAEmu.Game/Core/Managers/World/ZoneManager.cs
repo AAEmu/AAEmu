@@ -1,7 +1,11 @@
 using System.Numerics;
 
 using AAEmu.Commons.Utils;
+using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
@@ -23,7 +27,78 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
 
     public event Action<ushort, ZoneConflictType, ZoneConflictType> ZoneConflictStateChanged;
 
-    public ZoneConflict[] GetConflicts() => _conflicts.Values.ToArray();
+    // Null-safe: Zone hosts can announce ZoneLoaded before this manager's Load() completes.
+    public ZoneConflict[] GetConflicts() => _conflicts?.Values.ToArray() ?? [];
+
+    /// <summary>
+    /// Arms the wall-clock cycle for every conflict zone that has <c>conflict_zone_realtime_schedules</c>
+    /// rows. Zones without a schedule keep the participation-driven cycle and stay in Tension until a
+    /// kill escalation starts them. Call once at boot, after game data is loaded and the task manager
+    /// is running.
+    /// </summary>
+    public void StartConflictCycles()
+    {
+        var scheduled = 0;
+        var now = DateTime.Now;
+        foreach (var conflict in _conflicts.Values)
+        {
+            var schedule = ConflictZoneGameData.Instance.GetSchedule(conflict.ZoneGroupId);
+            if (schedule.Count == 0)
+                continue;
+
+            conflict.BindSchedule(schedule, now);
+            scheduled++;
+        }
+
+        Logger.Info("Started {0} scheduled conflict-zone cycles ({1} conflict zones loaded)", scheduled, _conflicts.Count);
+    }
+
+    /// <summary>
+    /// Records an NPC death for conflict-zone participation. The kill only counts when the NPC
+    /// template is listed for that zone group in <c>conflict_zone_npc_kills</c>.
+    /// </summary>
+    public void RegisterNpcKill(Npc npc)
+    {
+        var zoneGroupId = GetZoneGroupIdForPosition(npc?.Transform);
+        if (zoneGroupId is not { } group)
+            return;
+
+        var conflict = _conflicts.GetValueOrDefault(group);
+        if (conflict == null || !ConflictZoneGameData.Instance.IsParticipatingNpc(group, npc.TemplateId))
+            return;
+
+        conflict.AddNpcKill();
+        Logger.Debug("Conflict zone {0}: counted NPC kill tpl={1} (npcKills={2}, state={3})",
+            group, npc.TemplateId, conflict.NpcKillCount, conflict.CurrentZoneState);
+    }
+
+    /// <summary>
+    /// Records a finished quest for conflict-zone participation. The completion only counts when the
+    /// quest is listed for that zone group in <c>conflict_zone_quest_completions</c>.
+    /// </summary>
+    public void RegisterQuestCompletion(Character character, uint questId)
+    {
+        var zoneGroupId = GetZoneGroupIdForPosition(character?.Transform);
+        if (zoneGroupId is not { } group)
+            return;
+
+        var conflict = _conflicts.GetValueOrDefault(group);
+        if (conflict == null || !ConflictZoneGameData.Instance.IsParticipatingQuest(group, questId))
+            return;
+
+        conflict.AddQuestCompletion();
+        Logger.Debug("Conflict zone {0}: counted quest completion {1} (quests={2}, state={3})",
+            group, questId, conflict.QuestCompletionCount, conflict.CurrentZoneState);
+    }
+
+    private ushort? GetZoneGroupIdForPosition(Transform transform)
+    {
+        if (transform == null)
+            return null;
+
+        var zone = GetZoneByKey(transform.ZoneId);
+        return zone == null ? null : (ushort)zone.GroupId;
+    }
 
     public Zone GetZoneById(uint zoneId)
     {
@@ -141,6 +216,8 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
                             {
                                 template.NumKills[i] = reader.GetInt32($"num_kills_{i}");
                                 template.NoKillMin[i] = reader.GetInt32($"no_kill_min_{i}");
+                                template.NumNpcKills[i] = reader.GetInt32($"num_npc_kills_{i}", 0);
+                                template.NumQuestCompletions[i] = reader.GetInt32($"num_quest_completions_{i}", 0);
                             }
 
                             template.ConflictMin = reader.GetInt32("conflict_min");

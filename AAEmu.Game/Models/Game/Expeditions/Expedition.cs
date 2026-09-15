@@ -17,6 +17,10 @@ namespace AAEmu.Game.Models.Game.Expeditions;
 public class Expedition : SystemFaction
 {
     private readonly List<uint> _removedMembers = [];
+    public object SyncRoot { get; } = new();
+
+    public IReadOnlyList<uint> RemovedMemberIds => _removedMembers;
+    public long RemovedMemberRejoinUntil { get; set; }
 
     public List<ExpeditionMember> Members { get; set; } = [];
     public List<ExpeditionRolePolicy> Policies { get; set; } = [];
@@ -24,6 +28,15 @@ public class Expedition : SystemFaction
     /// <summary>Guild level shown in the info panel - not tied to any progression system yet, starts at 1.</summary>
     public uint Level { get; set; } = 1;
     public uint Exp { get; set; }
+    public uint DailyExp { get; set; }
+    public DateTime LastExpUpdateTime { get; set; } = DateTime.UtcNow;
+    public uint WarDeposit { get; set; }
+    public uint WarWins { get; set; }
+    public uint WarLosses { get; set; }
+    public uint WarDraws { get; set; }
+    public uint DailyContributionPoint { get; set; }
+    public DateTime LastContributionPointAdded { get; set; } = DateTime.UnixEpoch;
+    public DateTime LastAssignmentUpdateTime { get; set; } = DateTime.UnixEpoch;
     public string Notice { get; set; } = string.Empty;
 
     /// <summary>House.Id of this guild's placed residence (<c>housings.family</c> <c>hs_expedition_house*</c>), or 0.</summary>
@@ -36,15 +49,13 @@ public class Expedition : SystemFaction
     public Dictionary<uint, byte> PurchasedBuffGrades { get; set; } = [];
 
     /// <summary>
-    /// Guild-level pooled prestige shown in the overview panel and checked by the prestige-shop
-    /// affordability gate - computed live as the sum of every member's own ContributionPoint rather than
-    /// a separately persisted field, so it can never drift out of sync with the member list.
+    /// Bounded aggregate of current members' personal contribution balances.
     /// </summary>
     public uint TotalContributionPoint
     {
         get
         {
-            var total = Members.Sum(m => (long)m.ContributionPoint);
+            var total = Members.Sum(member => (long)member.ContributionPoint);
             return (uint)Math.Clamp(total, 0, uint.MaxValue);
         }
     }
@@ -80,23 +91,33 @@ public class Expedition : SystemFaction
 
     public void RemoveMember(ExpeditionMember member)
     {
-        var character = WorldManager.Instance.GetCharacterById(member.CharacterId);
-        ChatManager.Instance.GetGuildChat(this).LeaveChannel(character);
         Members.Remove(member);
         _removedMembers.Add(member.CharacterId);
     }
 
-    public void OnCharacterLogin(Character character)
+    public void RestoreMember(ExpeditionMember member)
     {
+        if (!Members.Contains(member))
+            Members.Add(member);
+        _removedMembers.Remove(member.CharacterId);
+    }
+
+    public void OnCharacterLogin(Character character, IWorldManager worldManager = null, IChatManager chatManager = null)
+    {
+        lock (SyncRoot)
+        {
         var member = GetMember(character);
         if (member == null)
             return;
 
         member.Refresh(character);
 
-        SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0));
-        ChatManager.Instance.GetGuildChat(this).JoinChannel(character);
+        SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0), worldManager);
+        (chatManager ?? ChatManager.Instance).GetGuildChat(this)?.JoinChannel(character);
         ApplyBuffBonuses(character);
+        }
+        if (ExpeditionPublicAssignmentServices.TryGet(out var assignmentService))
+            assignmentService.OnCharacterLogin(character);
     }
 
     /// <summary>
@@ -127,27 +148,36 @@ public class Expedition : SystemFaction
     }
 
     /// <summary>Called after a buff purchase changes <see cref="PurchasedBuffGrades"/> - every online member's stats need the new total, not just the purchaser's.</summary>
-    public void ApplyBuffBonusesToAllOnline()
+    public void ApplyBuffBonusesToAllOnline(IWorldManager worldManager = null)
     {
         foreach (var member in Members)
         {
-            var character = WorldManager.Instance.GetCharacterById(member.CharacterId);
+            var character = (worldManager ?? WorldManager.Instance).GetCharacterById(member.CharacterId);
             if (character != null)
                 ApplyBuffBonuses(character);
         }
     }
 
-    public void OnCharacterLogout(Character character)
+    public void OnCharacterLogout(Character character, IWorldManager worldManager = null, IChatManager chatManager = null)
     {
+        lock (SyncRoot)
+        {
+        var currentCharacter = (worldManager ?? WorldManager.Instance).GetCharacterById(character.Id);
+        if (currentCharacter != null && !ReferenceEquals(currentCharacter, character))
+            return;
+
         var member = GetMember(character);
-        if (member != null)
+        if (member is { IsOnline: true })
         {
             member.IsOnline = false;
             member.LastWorldLeaveTime = DateTime.UtcNow;
 
             SendPacket(new SCExpeditionMemberStatusChangedPacket(member, 0));
         }
-        ChatManager.Instance.GetGuildChat(this).LeaveChannel(character);
+        (chatManager ?? ChatManager.Instance).GetGuildChat(this)?.LeaveChannel(character);
+        }
+        if (ExpeditionPublicAssignmentServices.TryGet(out var assignmentService))
+            assignmentService.OnCharacterLogout(character);
     }
 
     public ExpeditionRolePolicy GetPolicyByRole(byte role)
@@ -177,8 +207,51 @@ public class Expedition : SystemFaction
 
     public void SendPacket(GamePacket packet)
     {
-        foreach (var member in Members)
-            WorldManager.Instance.GetCharacterById(member.CharacterId)?.SendPacket(packet);
+        SendPacket(packet, WorldManager.Instance);
+    }
+
+    public void SendPacket(GamePacket packet, IWorldManager worldManager)
+    {
+        ExpeditionMember[] members;
+        lock (SyncRoot)
+            members = Members.ToArray();
+        foreach (var member in members)
+            (worldManager ?? WorldManager.Instance).GetCharacterById(member.CharacterId)?.SendPacket(packet);
+    }
+
+    /// <summary>Sends each current member a descriptor containing that member's contribution balance.</summary>
+    public void SendDescriptor(IWorldManager worldManager = null)
+    {
+        worldManager ??= WorldManager.Instance;
+        ExpeditionMember[] recipients;
+        lock (SyncRoot)
+            recipients = Members.ToArray();
+        foreach (var member in recipients)
+        {
+            var character = worldManager.GetCharacterById(member.CharacterId);
+            lock (SyncRoot)
+            {
+                if (character == null || GetMember(member.CharacterId) != member ||
+                    character.Connection?.ActiveChar != character ||
+                    !ReferenceEquals(character.Expedition, this))
+                    continue;
+                character.SendPacket(new SCExpeditionDescPacket(this, member.ContributionPoint));
+            }
+        }
+    }
+
+    public void SendDescriptor(Character character)
+    {
+        if (character == null)
+            return;
+        lock (SyncRoot)
+        {
+            var member = GetMember(character.Id);
+            if (member == null || character.Connection?.ActiveChar != character ||
+                !ReferenceEquals(character.Expedition, this))
+                return;
+            character.SendPacket(new SCExpeditionDescPacket(this, member.ContributionPoint));
+        }
     }
 
     public void Save(MySqlConnection connection, MySqlTransaction transaction)
@@ -192,7 +265,8 @@ public class Expedition : SystemFaction
                 command.Connection = connection;
                 command.Transaction = transaction;
 
-                command.CommandText = $"DELETE FROM expedition_members WHERE character_id IN ({removedMembers})";
+                command.CommandText = $"DELETE FROM expedition_members WHERE expedition_id=@expedition_id AND character_id IN ({removedMembers})";
+                command.Parameters.AddWithValue("@expedition_id", Id);
                 command.Prepare();
                 command.ExecuteNonQuery();
             }
@@ -202,16 +276,39 @@ public class Expedition : SystemFaction
                 command.Connection = connection;
                 command.Transaction = transaction;
 
-                command.CommandText = $"UPDATE characters SET expedition_id = 0 WHERE `characters`.`id` IN ({removedMembers})";
+                command.CommandText = $"UPDATE characters SET expedition_id=0,expedition_rejoin_until=@rejoin_until WHERE expedition_id=@expedition_id AND `characters`.`id` IN ({removedMembers})";
+                command.Parameters.AddWithValue("@expedition_id", Id);
+                command.Parameters.AddWithValue("@rejoin_until", RemovedMemberRejoinUntil);
                 command.Prepare();
                 command.ExecuteNonQuery();
             }
 
-            _removedMembers.Clear();
         }
 
         if (isDisbanded)
         {
+            using (var instanceMembers = connection.CreateCommand())
+            {
+                instanceMembers.Transaction = transaction;
+                instanceMembers.CommandText = "DELETE FROM expedition_instance_history_members WHERE history_id IN (SELECT history_id FROM expedition_instance_histories WHERE expedition_id=@id)";
+                instanceMembers.Parameters.AddWithValue("@id", Id);
+                instanceMembers.ExecuteNonQuery();
+            }
+            string[] dependentTables =
+            [
+                "expedition_recruitment_applications", "expedition_recruitments", "expedition_portals",
+                "expedition_management_histories", "expedition_shop_histories", "expedition_daily_activity",
+                "expedition_renames", "expedition_instance_histories"
+            ];
+            foreach (var table in dependentTables)
+            {
+                using var command = connection.CreateCommand();
+                command.Transaction = transaction;
+                command.CommandText = $"DELETE FROM {table} WHERE expedition_id = @id";
+                command.Parameters.AddWithValue("@id", this.Id);
+                command.ExecuteNonQuery();
+            }
+
             using (var command = connection.CreateCommand())
             {
                 command.Connection = connection;
@@ -247,8 +344,9 @@ public class Expedition : SystemFaction
                 command.Transaction = transaction;
 
                 command.CommandText =
-                    "REPLACE INTO expeditions(`id`,`owner`,`owner_name`,`name`,`mother`,`level`,`exp`,`notice`,`residence_house_id`,`interest`,`war_enemy_expedition_id`,`war_declared_at`,`war_protected_until`,`war_ends_at`,`war_kill_score`,`war_is_declarer`,`created_at`) " +
-                    "VALUES (@id, @owner, @owner_name, @name, @mother, @level, @exp, @notice, @residence_house_id, @interest, @war_enemy_expedition_id, @war_declared_at, @war_protected_until, @war_ends_at, @war_kill_score, @war_is_declarer, @created_at)";
+                    "INSERT INTO expeditions(`id`,`owner`,`owner_name`,`name`,`mother`,`level`,`exp`,`daily_exp`,`last_exp_update_time`,`notice`,`residence_house_id`,`interest`,`war_deposit`,`war_wins`,`war_losses`,`war_draws`,`daily_contribution_point`,`last_contribution_point_added`,`last_assignment_update_time`,`war_enemy_expedition_id`,`war_declared_at`,`war_protected_until`,`war_ends_at`,`war_kill_score`,`war_is_declarer`,`created_at`) " +
+                    "VALUES (@id,@owner,@owner_name,@name,@mother,@level,@exp,@daily_exp,@last_exp_update_time,@notice,@residence_house_id,@interest,@war_deposit,@war_wins,@war_losses,@war_draws,@daily_contribution_point,@last_contribution_point_added,@last_assignment_update_time,@war_enemy_expedition_id,@war_declared_at,@war_protected_until,@war_ends_at,@war_kill_score,@war_is_declarer,@created_at) " +
+                    "ON DUPLICATE KEY UPDATE owner=VALUES(owner),owner_name=VALUES(owner_name),name=VALUES(name),mother=VALUES(mother),level=VALUES(level),exp=VALUES(exp),daily_exp=VALUES(daily_exp),last_exp_update_time=VALUES(last_exp_update_time),notice=VALUES(notice),residence_house_id=VALUES(residence_house_id),interest=VALUES(interest),war_deposit=VALUES(war_deposit),war_wins=VALUES(war_wins),war_losses=VALUES(war_losses),war_draws=VALUES(war_draws),daily_contribution_point=VALUES(daily_contribution_point),last_contribution_point_added=VALUES(last_contribution_point_added),last_assignment_update_time=VALUES(last_assignment_update_time),war_enemy_expedition_id=VALUES(war_enemy_expedition_id),war_declared_at=VALUES(war_declared_at),war_protected_until=VALUES(war_protected_until),war_ends_at=VALUES(war_ends_at),war_kill_score=VALUES(war_kill_score),war_is_declarer=VALUES(war_is_declarer),created_at=VALUES(created_at)";
                 command.Parameters.AddWithValue("@id", this.Id);
                 command.Parameters.AddWithValue("@owner", this.OwnerId);
                 command.Parameters.AddWithValue("@owner_name", this.OwnerName);
@@ -256,9 +354,18 @@ public class Expedition : SystemFaction
                 command.Parameters.AddWithValue("@mother", this.MotherId);
                 command.Parameters.AddWithValue("@level", this.Level);
                 command.Parameters.AddWithValue("@exp", this.Exp);
+                command.Parameters.AddWithValue("@daily_exp", this.DailyExp);
+                command.Parameters.AddWithValue("@last_exp_update_time", this.LastExpUpdateTime);
                 command.Parameters.AddWithValue("@notice", this.Notice);
                 command.Parameters.AddWithValue("@residence_house_id", this.ResidenceHouseId);
                 command.Parameters.AddWithValue("@interest", this.Interest);
+                command.Parameters.AddWithValue("@war_deposit", this.WarDeposit);
+                command.Parameters.AddWithValue("@war_wins", this.WarWins);
+                command.Parameters.AddWithValue("@war_losses", this.WarLosses);
+                command.Parameters.AddWithValue("@war_draws", this.WarDraws);
+                command.Parameters.AddWithValue("@daily_contribution_point", this.DailyContributionPoint);
+                command.Parameters.AddWithValue("@last_contribution_point_added", this.LastContributionPointAdded);
+                command.Parameters.AddWithValue("@last_assignment_update_time", this.LastAssignmentUpdateTime);
                 command.Parameters.AddWithValue("@war_enemy_expedition_id", this.WarEnemyExpeditionId);
                 command.Parameters.AddWithValue("@war_declared_at", (object)this.WarDeclaredAt ?? DBNull.Value);
                 command.Parameters.AddWithValue("@war_protected_until", (object)this.WarProtectedUntil ?? DBNull.Value);
@@ -275,6 +382,12 @@ public class Expedition : SystemFaction
             foreach (var policy in Policies)
                 policy.Save(connection, transaction);
         }
+    }
+
+    public void ConfirmRemovedMembersSaved(IEnumerable<uint> memberIds)
+    {
+        foreach (var memberId in memberIds)
+            _removedMembers.Remove(memberId);
     }
 
     public void OnCharacterRefresh(Character character)

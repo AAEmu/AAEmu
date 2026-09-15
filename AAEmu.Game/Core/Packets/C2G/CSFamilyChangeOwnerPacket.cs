@@ -8,7 +8,14 @@ public class CSFamilyChangeOwnerPacket() : GamePacket(CSOffsets.CSFamilyChangeOw
 {
     public override void Read(PacketStream stream)
     {
-        var id = stream.ReadUInt32();
+        var wireId = stream.ReadUInt64();
+        if (wireId > uint.MaxValue)
+        {
+            Logger.Warn("Ignoring FamilyChangeOwner with unsupported character id: {0}", wireId);
+            return;
+        }
+
+        var id = (uint)wireId;
 
         FamilyManager.Instance.ChangeOwner(Connection.ActiveChar, id);
 

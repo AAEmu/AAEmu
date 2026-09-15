@@ -18,7 +18,10 @@ public class AddFamilyExp : SpecialEffectAction
         int value3,
         int value4)
     {
-        // TODO ...
-        if (caster is Character) { Logger.Debug("Special effects: AddFamilyExp value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        // The configured 10.x content has no AddFamilyExp special-effect rows, so its operand
+        // semantics cannot be established from data. Family quest rewards use
+        // QuestActSupplyFamilyExp instead.
+        if (caster is Character)
+            Logger.Debug("Special effects: AddFamilyExp value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
     }
 }

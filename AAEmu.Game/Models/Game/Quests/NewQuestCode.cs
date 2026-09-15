@@ -4,6 +4,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World.Zones;
 
 namespace AAEmu.Game.Models.Game.Quests;
 
@@ -160,6 +161,12 @@ public partial class Quest
                     // SCQuestContextCompleted so Accept unit_req kind-31 sees the prior finish.
                     var completedBlock = Owner.Quests.SetCompletedQuestFlag(TemplateId, true);
                     Owner.Quests.SendCompletedBlock(completedBlock);
+
+                    // Conflict-zone participation is credited here, on the server-validated Reward
+                    // step — not from SetCompletedQuestFlag, which CSSaveTutorialPacket and
+                    // /quest complete also reach with a caller-supplied id.
+                    if (Owner is Character completingCharacter)
+                        ConflictZoneParticipation.RegisterQuestCompletion(completingCharacter, TemplateId);
 
                     // Daily schedule: push Done status before remove so the UI still has questType.
                     if (Owner is Character character)

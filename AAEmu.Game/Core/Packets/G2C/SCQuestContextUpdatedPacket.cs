@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Quests;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCQuestContextUpdatedPacket(
-    Quest quest,
+    PacketMarshaler quest,
     uint componentId,
     int para1 = 0,
     int para2 = 0,

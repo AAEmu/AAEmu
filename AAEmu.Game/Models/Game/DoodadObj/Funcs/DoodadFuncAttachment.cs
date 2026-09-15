@@ -33,7 +33,10 @@ public class DoodadFuncAttachment : DoodadFuncTemplate
                     return; // we leave if there is no place
                 }
 
-                character.Bonding = new BondDoodad(owner, AttachPointId, BondKindId, Space, spot);
+                character.Bonding = new BondDoodad(owner, AttachPointId, BondKindId, Space, spot)
+                {
+                    SourceSkillId = skillId
+                };
                 character.BroadcastPacket(new SCBondDoodadPacket(caster.ObjId, character.Bonding), true);
                 WorldIntegration.RelayBondDoodadToZone?.Invoke(character.ObjId, character.Bonding, true);
                 // SCBond is the client attach. Free seats stay unparented (CSMove world-space).

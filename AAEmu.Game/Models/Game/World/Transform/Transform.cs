@@ -5,6 +5,8 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Units;
 
+using NLog;
+
 // INFO
 // https://www.versluis.com/2020/09/what-is-yaw-pitch-and-roll-in-3d-axis-values/
 // https://en.wikipedia.org/wiki/Euler_angles
@@ -28,6 +30,8 @@ public class Transform : IDisposable
     private List<Transform> _stickyChildren;
     private Vector3 _lastFinalizePos; // Might use this later for cheat detection or delta movement
     private DateTime _lastFinalizeTime;
+
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private float _skipCheckTime;
     public List<Character> _debugTrackers;
     // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
@@ -98,8 +102,50 @@ public class Transform : IDisposable
             // process outright, since a StackOverflowException cannot be caught.
             var lastZoneId = _zoneId;
             _zoneId = value;
+
+            // Character zone keys move rarely, and each move decides whether the character is handed to
+            // another zone: keep the fact at Info and the call stack one level below for diagnosis.
+            if (GameObject is Character character)
+            {
+                var position = World.Position;
+                Logger.Info("ZoneId change: {0} (objId {1}) {2} -> {3} at ({4:0.#}, {5:0.#}, {6:0.#})",
+                    character.Name, character.ObjId, lastZoneId, value,
+                    position.X, position.Y, position.Z);
+                Logger.Debug("ZoneId change caller (objId {0}):\n{1}",
+                    character.ObjId, new System.Diagnostics.StackTrace(1, false));
+            }
+
             GameObject?.OnZoneChange(lastZoneId, value);
         }
+    }
+
+    /// <summary>
+    /// Converts a world position into the position this transform has to hold for its world position to
+    /// become the given coordinates. Identity when the object has no parent (a character standing in the
+    /// open world), parent-relative when it has one (bonded to a doodad, seated on a house, standing on
+    /// a ship). <see cref="GameObject.SetPosition"/> writes the LOCAL transform, so a world-space landing
+    /// applied to a parented character throws them one parent-offset away.
+    /// </summary>
+    public Vector3 GetLocalFromWorld(float x, float y, float z)
+    {
+        var world = new Vector3(x, y, z);
+        if (_parentTransform == null)
+            return world;
+
+        var parentWorld = _parentTransform.World;
+        var inverseParentRotation = Quaternion.Inverse(parentWorld.ToQuaternion());
+        var parentScale = _parentTransform.GameObject is BaseUnit unit ? unit.Scale : 1f;
+        return Vector3.Transform(world - parentWorld.Position, inverseParentRotation) / parentScale;
+    }
+
+    /// <summary>
+    /// Reverts the zone key without raising <see cref="GameObject.OnZoneChange"/>. Only for undoing a
+    /// re-resolution of a zone the unit never actually left — a housing area is its own zone key on
+    /// top of the base zone, and notifying about the base key would hand the character away.
+    /// </summary>
+    internal void KeepZoneQuietly(uint zoneId)
+    {
+        _zoneId = zoneId;
     }
 
     /// <summary>

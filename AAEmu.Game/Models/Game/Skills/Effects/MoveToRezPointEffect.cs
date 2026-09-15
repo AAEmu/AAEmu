@@ -1,5 +1,7 @@
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
@@ -25,17 +27,22 @@ public class MoveToRezPointEffect : EffectTemplate
         }
 
         // A destination nobody simulates would strand the character, exactly as with the house recall.
-        if (WorldIntegration.ZoneAuthority
-            && WorldIntegration.IsZoneLoaded != null
-            && !WorldIntegration.IsZoneLoaded(portal.ZoneId))
+        if (!TeleportLandingRules.CanLandInZone(
+                WorldIntegration.ZoneAuthority, WorldIntegration.IsZoneLoaded, portal.ZoneId))
         {
             Logger.Warn($"MoveToRezPointEffect: refusing to move {character.Name} to return point in zone {portal.ZoneId}; no ZoneLoaded dedicate");
             return;
         }
 
-        Logger.Debug($"MoveToRezPointEffect: moving {character.Name} to return point {returnPointId}");
+        var landingWorldId = ReturnTeleportRules.LoadWorldId(portal.WorldId, WorldManager.DefaultWorldTemplateId);
+        Logger.Info("MoveToRezPointEffect: moving {0} to return point {1} ({2:0.0}, {3:0.0}, {4:0.0})",
+            character.Name, returnPointId, portal.X, portal.Y, portal.Z);
 
-        character.DisabledSetPosition = true;
-        character.SendPacket(new Core.Packets.G2C.SCTeleportUnitPacket(0, 0, portal.X, portal.Y, portal.Z, 0f));
+        // Respawn points live in the main world, so the landing never crosses an instance.
+        SkillTeleportLanding.Apply(character, landingWorldId, portal.ZoneId, WorldManager.DefaultInstanceId,
+            portal.X, portal.Y, portal.Z, 0f, TeleportReason.Resurrect,
+            // Dying and resurrecting in the same zone is not a zone change either.
+            portal.ZoneId == character.Transform.ZoneId &&
+            WorldManager.DefaultInstanceId == character.Transform.InstanceId);
     }
 }

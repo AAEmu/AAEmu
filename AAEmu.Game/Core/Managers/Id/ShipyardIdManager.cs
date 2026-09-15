@@ -11,7 +11,9 @@ public class ShipyardIdManager() : IdManager("ShipyardIdManager", FirstId, LastI
     private const uint FirstId = 0x00000001;
     private const uint LastId = 0xFFFFFFFF;
     private static readonly uint[] Exclude = [];
-    private static readonly string[,] ObjTables = { { "shipyards", "id" } };
+    // Constructed shipyards live only in ShipyardManager and are removed when they complete or decay.
+    // The similarly named SQLite table contains content templates, not persisted runtime instances.
+    private static readonly string[,] ObjTables = { { } };
 
     public static ShipyardIdManager Instance =>
         _instance ??= SingletonContainer.ServiceProvider?.GetService<ShipyardIdManager>() ?? new ShipyardIdManager();

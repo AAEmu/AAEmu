@@ -44,6 +44,17 @@ public sealed record ItemPersistenceSnapshot
         return this with { Desired = Desired with { Count = count } };
     }
 
+    /// <summary>Projects an increase of an existing stack while retaining its exact live-state precondition.</summary>
+    public ItemPersistenceSnapshot IncreaseCountBy(int count)
+    {
+        if (count <= 0)
+            throw new ArgumentOutOfRangeException(nameof(count));
+        var desired = checked(Expected.Count + count);
+        if (desired > Item.Template.MaxCount)
+            throw new ArgumentOutOfRangeException(nameof(count), "The projected stack exceeds its template maximum.");
+        return this with { Desired = Desired with { Count = desired } };
+    }
+
     public ItemPersistenceSnapshot Delete() => this with { Desired = Desired with { Count = 0 } };
 
     public ItemPersistenceSnapshot MoveTo(ItemContainer destination, int slot)

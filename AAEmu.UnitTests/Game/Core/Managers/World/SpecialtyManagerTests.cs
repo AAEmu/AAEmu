@@ -2057,6 +2057,18 @@ public partial class SpecialtyManagerTests
         {
         }
 
+        public void StartConflictCycles()
+        {
+        }
+
+        public void RegisterNpcKill(Npc npc)
+        {
+        }
+
+        public void RegisterQuestCompletion(Character character, uint questId)
+        {
+        }
+
         public ZoneConflict[] GetConflicts() => Conflicts;
         public Zone GetZoneById(uint zoneId) => null;
         public Zone GetZoneByKey(uint zoneKey) => null;

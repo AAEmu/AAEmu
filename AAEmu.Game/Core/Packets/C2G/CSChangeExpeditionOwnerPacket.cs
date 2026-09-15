@@ -11,6 +11,6 @@ public class CSChangeExpeditionOwnerPacket() : GamePacket(CSOffsets.CSChangeExpe
         var id = stream.ReadUInt32(); // type(id)
 
         Logger.Debug("ChangeExpeditionOwner, Id: {0}", id);
-        ExpeditionManager.ChangeOwner(Connection, id);
+        ExpeditionManager.Instance.ChangeOwner(Connection, id);
     }
 }
