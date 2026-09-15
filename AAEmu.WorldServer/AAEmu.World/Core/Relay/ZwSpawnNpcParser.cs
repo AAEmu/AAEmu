@@ -86,7 +86,10 @@ public static class ZwSpawnNpcParser
                 Y = y,
                 Z = z,
                 ZRot = zRot,
-                Scale = scale <= 0f ? 1f : scale
+                // Raw on purpose: a spawner that states no scale (0) leaves the template's own scale in
+                // charge, and only a positive one overrides it. Folding 0 into 1f here would shrink every
+                // mirror of a template whose model scale is not 1.
+                Scale = scale
             };
         }
         catch

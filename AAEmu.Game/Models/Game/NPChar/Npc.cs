@@ -82,7 +82,15 @@ public partial class Npc : Unit
         }
     }
 
-    public override float Scale => Template.Scale;
+    /// <summary>
+    /// The scale the dedicate spawned this unit at, when its spawner stated one. ZWSpawnNpc carries it
+    /// and the client sizes both the model and its stride from the scale in SCUnitState, so a spawner
+    /// that scaled its model down foot-slides when the mirror reports the template's scale instead.
+    /// Null (or a spawn that stated none) leaves the template's scale in charge.
+    /// </summary>
+    public float? ZoneSpawnScale { get; set; }
+
+    public override float Scale => ZoneSpawnScale ?? Template.Scale;
 
     public override byte RaceGender => (byte)(16 * Template.Gender + Template.Race);
 
@@ -105,6 +113,20 @@ public partial class Npc : Unit
     public bool CanFly { get; set; }
 
     /// <summary>
+    /// Set from the actor model (underwater_creature): swims in open water. A swimmer is simulated off
+    /// the ground like a flier - it keeps its spawn depth instead of being snapped to the sea floor and
+    /// gets a flying state on the zone - but it takes a swim stance rather than the flight one, so it
+    /// cannot simply be <see cref="CanFly"/>.
+    /// </summary>
+    public bool IsSwimmer { get; set; }
+
+    /// <summary>
+    /// True for a unit that holds its own position in the air or the water instead of resting on the
+    /// terrain under it: a flier or a swimmer.
+    /// </summary>
+    public bool IsOffGround => CanFly || IsSwimmer;
+
+    /// <summary>
     /// WZNpcState for this unit used zone-local XYZ. ZWUnitMovements must be converted to world
     /// for SC even when the process default is world-on-wire.
     /// </summary>
@@ -120,20 +142,28 @@ public partial class Npc : Unit
     {
         get
         {
-            var model = ModelManager.Instance.GetActorModel(Template.ModelId);
-            if (model == null)
-                return 1f;
-            // TODO: Implement stance switching mechanic
-            if (!model.Stances.TryGetValue(CurrentGameStance, out var stance))
-                return 1f;
-
-            // In combat, use running speed
-            if (IsInBattle)
-                return Math.Min(stance.AiMoveSpeedRun, stance.MaxSpeed);
-
-            // Not in combat (should be roaming), use walk speed
-            return Math.Min(stance.AiMoveSpeedWalk, stance.MaxSpeed);
+            // A prefab - a siege place, a portal, a chest, a wall - is a static prop with no actor model
+            // of its own: it does not walk at all, whatever the model lookup falls back to.
+            var isPrefab = ModelManager.Instance.IsPrefabModel(Template.ModelId);
+            return ActorModelRules.MoveSpeedFor(isPrefab, ResolveActorMoveSpeed());
         }
+    }
+
+    private float ResolveActorMoveSpeed()
+    {
+        var model = ModelManager.Instance.GetActorModel(Template.ModelId);
+        if (model == null)
+            return 1f;
+        // TODO: Implement stance switching mechanic
+        if (!model.Stances.TryGetValue(CurrentGameStance, out var stance))
+            return 1f;
+
+        // In combat, use running speed
+        if (IsInBattle)
+            return Math.Min(stance.AiMoveSpeedRun, stance.MaxSpeed);
+
+        // Not in combat (should be roaming), use walk speed
+        return Math.Min(stance.AiMoveSpeedWalk, stance.MaxSpeed);
     }
 
     private GameStanceType _currentGameStance = GameStanceType.Combat;

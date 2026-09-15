@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Units.Route;
@@ -98,12 +98,15 @@ public class NpcSpawnerNpc : Spawner<Npc>
 
         Logger.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawnerId {NpcSpawnerTemplateId} at Position: {spawnPosition}");
 
-        if (!npc.CanFly)
+        if (!npc.IsOffGround)
         {
-            var newZ = npcSpawner.ParentWorld.Template.GeoData.GetHeight(spawnPosition.AsPositionVector());// WorldManager.Instance.GetHeight(spawnPosition.ZoneId, spawnPosition.X, spawnPosition.Y, spawnPosition.Z);
-            if (Math.Abs(spawnPosition.Z - newZ) < 1f)
+            var terrainZ = npcSpawner.ParentWorld.Template.GeoData.GetHeight(spawnPosition.AsPositionVector());
+            // A spawn-file position, so the metre it has always had; a zone mirror gets the tighter
+            // lift-sized band instead (see MirrorHeightRules).
+            if (MirrorHeightRules.ShouldSnapToTerrain(
+                    npc.IsOffGround, spawnPosition.Z, terrainZ, MirrorHeightRules.MaxSpawnFileSnapMetres))
             {
-                spawnPosition.Z = newZ;
+                spawnPosition.Z = terrainZ;
             }
         }
 
@@ -119,6 +122,15 @@ public class NpcSpawnerNpc : Spawner<Npc>
         npc.Spawner = npcSpawner;
         npc.Spawner.RespawnTime = (int)Random.Shared.Next(npc.Spawner.Template.SpawnDelayMin, npc.Spawner.Template.SpawnDelayMax);
         npc.Spawn();
+
+        // Under zone authority the dedicate simulates NPCs, so a spawn the zone never hears about is a
+        // unit with no driver at all: visible to every client in the region and frozen forever. The
+        // effect, command and grid spawn paths all hand theirs over the same way.
+        if (WorldIntegration.ZoneAuthority && !WorldIntegration.PublishNpcSpawn(npc))
+        {
+            Logger.Warn(
+                $"Spawner npc {MemberId} (template {npc.TemplateId}, objId {npc.ObjId}) was not published to its zone - nothing simulates it");
+        }
 
         var world = WorldManager.Instance.GetWorld(npc.Transform.InstanceId);
         world.Events.OnUnitSpawn(world, new OnUnitSpawnArgs { Npc = npc });

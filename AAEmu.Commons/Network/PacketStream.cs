@@ -65,6 +65,15 @@ public class PacketStream : ICloneable, IComparable
     public int LeftBytes => Count - Pos;
 
     /// <summary>
+    /// True once a read was attempted past the end of this stream. The read returns a default instead
+    /// of throwing, so a parser that walks a record whose length it guessed wrong keeps going with
+    /// zeroes; callers that can check this refuse the rest of the payload instead of relaying it.
+    /// </summary>
+    public bool Overran { get; private set; }
+
+    private void MarkOverrun() => Overran = true;
+
+    /// <summary>
     /// Gets the endian bit converter based on the current endianness.
     /// </summary>
     public EndianBitConverter Converter => (IsLittleEndian ? EndianBitConverter.Little : EndianBitConverter.Big);
@@ -472,6 +481,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + 1 > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
+            MarkOverrun();
             return 0; // Возвращаем значение по умолчанию
         }
         return this[Pos++];
@@ -486,6 +496,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + 1 > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
+            MarkOverrun();
             return 0; // Возвращаем значение по умолчанию
         }
         return (sbyte)this[Pos++];
@@ -501,6 +512,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + count > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
+            MarkOverrun();
             return []; // Возвращаем пустой массив
         }
 
@@ -521,6 +533,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + count > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
+            MarkOverrun();
             return []; // Возвращаем пустой массив
         }
 
@@ -539,6 +552,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + 2 > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
+            MarkOverrun();
             return '\0'; // Возвращаем значение по умолчанию
         }
 
@@ -558,6 +572,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + 2 * count > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
+            MarkOverrun();
             return []; // Возвращаем пустой массив
         }
 
@@ -577,6 +592,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + 2 > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
+            MarkOverrun();
             return 0; // Возвращаем значение по умолчанию
         }
 
@@ -595,6 +611,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + 4 > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
+            MarkOverrun();
             return 0; // Возвращаем значение по умолчанию
         }
 
@@ -613,6 +630,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + 8 > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
+            MarkOverrun();
             return 0; // Возвращаем значение по умолчанию
         }
 
@@ -631,6 +649,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + 2 > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
+            MarkOverrun();
             return 0; // Возвращаем значение по умолчанию
         }
 
@@ -649,6 +668,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + 4 > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
+            MarkOverrun();
             return 0; // Возвращаем значение по умолчанию
         }
 
@@ -667,6 +687,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + 3 > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
+            MarkOverrun();
             return 0; // Возвращаем значение по умолчанию
         }
 
@@ -684,6 +705,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + 8 > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
+            MarkOverrun();
             return 0; // Возвращаем значение по умолчанию
         }
 
@@ -702,6 +724,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + 4 > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
+            MarkOverrun();
             return 0; // Возвращаем значение по умолчанию
         }
 
@@ -720,6 +743,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + 8 > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
+            MarkOverrun();
             return 0; // Возвращаем значение по умолчанию
         }
 
@@ -743,6 +767,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + i > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
+            MarkOverrun();
             return new PacketStream(); // Возвращаем пустой PacketStream
         }
         var newStream = new PacketStream(Buffer, Pos, i);
@@ -761,6 +786,7 @@ public class PacketStream : ICloneable, IComparable
         if (Pos + i > Count)
         {
             Logger.Error("Attempted to read beyond the end of the stream.");
+            MarkOverrun();
             return this; // Возвращаем текущий PacketStream
         }
         stream.Replace(Buffer, Pos, i);

@@ -1,8 +1,9 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units.Route;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
@@ -73,6 +74,13 @@ public class MoveTo : ICommand
         if (moveTo.Npc == null)
         {
             CommandManager.SendNormalText(this, messageOutput, $"You need a target NPC to manage it!");
+        }
+        else if (ZoneOwnedUnitRules.IsDrivenByZone(WorldIntegration.ZoneAuthority, moveTo.Npc.IsZoneMirror))
+        {
+            // This drives the NPC's route from World. Under zone authority the dedicate simulates it,
+            // so the walk would be undone by the next movement record it streams.
+            CommandManager.SendErrorText(this, messageOutput,
+                $"that NPC is simulated by its zone - World cannot walk it");
         }
         else
         {

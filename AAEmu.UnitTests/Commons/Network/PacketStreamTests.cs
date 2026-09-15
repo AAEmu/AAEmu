@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 using AAEmu.Commons.Network;
 
@@ -6,6 +6,29 @@ namespace AAEmu.UnitTests.Commons.Network
 {
     public class PacketStreamTests
     {
+        [Test]
+        public async Task Overrun_IsRecordedSoTheCallerCanRefuseTheRest()
+        {
+            var stream = new PacketStream();
+            stream.Write((byte)0x11);
+
+            // A read past the end answers a default rather than throwing, which a record parser walks
+            // straight through: the flag is what lets it notice.
+            await Assert.That(stream.Overran).IsFalse();
+            await Assert.That(stream.ReadUInt32()).IsEqualTo(0u);
+            await Assert.That(stream.Overran).IsTrue();
+        }
+
+        [Test]
+        public async Task ReadingWithinTheStream_LeavesTheOverrunFlagClear()
+        {
+            var stream = new PacketStream();
+            stream.Write(1234u);
+
+            await Assert.That(stream.ReadUInt32()).IsEqualTo(1234u);
+            await Assert.That(stream.Overran).IsFalse();
+        }
+
         [Test]
         public async Task WriteAndReadByte_ShouldReturnSameValue()
         {

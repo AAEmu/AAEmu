@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Models;
@@ -44,6 +44,26 @@ public class ModelManager : Singleton<ModelManager>, IModelManager
         return null;
     }
 
+    /// <summary>
+    /// True when the model id is a prefab - a siege place, a portal, a chest, a wall - rather than an
+    /// actor. Those units are static props with no walk speed and no flight, which is worth knowing
+    /// before an actor model is looked up and silently missed.
+    /// </summary>
+    public bool IsPrefabModel(uint modelId) =>
+        _modelTypes.TryGetValue(modelId, out var modelType) &&
+        modelType.SubType == nameof(PrefabModel) &&
+        _models.TryGetValue(modelType.SubType, out var value) &&
+        value.ContainsKey(modelType.SubId);
+
+    public PrefabModel GetPrefabModel(uint modelId)
+    {
+        if (!_modelTypes.TryGetValue(modelId, out var modelType))
+            return null;
+        if (!_models.TryGetValue(modelType.SubType, out var value) || !value.TryGetValue(modelType.SubId, out var model))
+            return null;
+        return model as PrefabModel;
+    }
+
     public VehicleModel GetVehicleModels(uint modelId)
     {
         if (!_modelTypes.TryGetValue(modelId, out var modelType))
@@ -56,19 +76,19 @@ public class ModelManager : Singleton<ModelManager>, IModelManager
     }
 
     /// <summary>
-    /// Holds an altitude rather than resting on terrain. MovementId 2 covers the birds and fish that
-    /// move in 3D, but fly_mode is set independently on 8 further models — kestrels, watchers,
-    /// wraiths, wisps and ghost ships fly with MovementId 0, and treating them as grounded snapped
-    /// them to terrain and let the client drop them out of the air.
+    /// True for a model the dedicate has to simulate off the ground - see
+    /// <see cref="ActorModelRules.SimulatesOffGround"/>. This is what sets <c>Npc.CanFly</c>, which
+    /// keeps a unit's spawn altitude and gets it a flying state on the zone.
     /// </summary>
-    public bool IsFlyOrSwim(uint modelId)
-    {
-        if (!_modelTypes.TryGetValue(modelId, out var modelType))
-            return false;
-        if (!_models.TryGetValue(modelType.SubType, out var value) || !value.TryGetValue(modelType.SubId, out var model))
-            return false;
-        return model is ActorModel { MovementId: 2 } or ActorModel { FlyMode: true };
-    }
+    public bool IsFlyOrSwim(uint modelId) =>
+        GetActorModel(modelId) is { } model && ActorModelRules.SimulatesOffGround(model);
+
+    /// <summary>
+    /// True for the swimmers among them. They are simulated off the ground like a flier but take a swim
+    /// stance rather than the flight one, so the two cannot share a single flag.
+    /// </summary>
+    public bool IsSwimmer(uint modelId) =>
+        GetActorModel(modelId) is { } model && ActorModelRules.SwimsUnderwater(model);
 
     public void Load()
     {
@@ -179,6 +199,24 @@ public class ModelManager : Singleton<ModelManager>, IModelManager
                         };
 
                         _models["VehicleModel"].TryAdd(model.Id, model);
+                    }
+                }
+            }
+
+            // prefab_models carries nothing but the id (the parts are in prefab_elements), and the
+            // dictionary for it was set up and then never filled, so every prefab model id resolved to
+            // nothing at all. The marker is what lets a unit be recognised as a static prop instead of
+            // an actor whose model is missing.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM prefab_models";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var model = new PrefabModel { Id = reader.GetUInt32("id") };
+                        _models["PrefabModel"].TryAdd(model.Id, model);
                     }
                 }
             }

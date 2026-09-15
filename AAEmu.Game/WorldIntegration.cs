@@ -19,6 +19,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -1358,7 +1359,21 @@ public static class WorldIntegration
 
             npc.IsZoneMirror = true;
 
+            // The spawner's own scale when it stated one: it is what the dedicate sized the model at,
+            // and the client reads it from UnitState to size the model and its stride.
+            if (scale > 0f)
+                npc.ZoneSpawnScale = scale;
+
             var worldPos = ZoneManager.Instance.ConvertToWorldCoordinates(zoneId, new System.Numerics.Vector3(x, y, z));
+
+            // The dedicate lifts what it spawns off the ground, and this Z is what a client paints
+            // until the unit's first movement record arrives - which a unit that never moves never
+            // sends, leaving it hovering. Ground the mirror where the terrain says the feet are; a
+            // flier or a swimmer holds its own altitude and is left alone.
+            var terrainZ = world.Template?.GeoData?.GetHeight(worldPos) ?? 0f;
+            if (MirrorHeightRules.ShouldSnapToTerrain(npc.IsOffGround, worldPos.Z, terrainZ))
+                worldPos.Z = terrainZ;
+
             npc.Transform.ZoneId = zoneId;
             npc.Transform.Local.SetPosition(worldPos.X, worldPos.Y, worldPos.Z, 0f, 0f, zRot);
             NpcHeightDiagnostics.RecordSpawn(

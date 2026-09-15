@@ -1,7 +1,8 @@
-﻿using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
@@ -63,6 +64,18 @@ public class TeleportToUnit : SpecialEffectAction
 
                 break;
             case Npc npc:
+                // A mirrored NPC is simulated by the dedicate, so the move has to be made there: a
+                // World-side walk would be undone by the zone's next movement record. Relay the blink
+                // exactly the way a character's teleport is relayed, or the effect does nothing at all.
+                if (ZoneOwnedUnitRules.IsDrivenByZone(WorldIntegration.ZoneAuthority, npc.IsZoneMirror))
+                {
+                    WorldIntegration.RelayBlinkToZone?.Invoke(
+                        npc.ObjId, npc.ObjId, false, endX, endY, targetPosition.Z);
+                    Logger.Debug(
+                        $"TeleportToUnit: npc {npc.ObjId} (template {npc.TemplateId}) is zone-simulated - blink relayed to its zone");
+                    break;
+                }
+
                 npc.MoveTowards(targetPosition, 10000);
                 npc.StopMovement();
                 break;

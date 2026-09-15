@@ -7,6 +7,9 @@ public interface IModelManager : ILoadable
     ModelType GetModelType(uint modelId);
     ActorModel GetActorModel(uint modelId);
     ShipModelV1 GetShipModel(uint modelId);
+    PrefabModel GetPrefabModel(uint modelId);
+    bool IsPrefabModel(uint modelId);
     VehicleModel GetVehicleModels(uint modelId);
     bool IsFlyOrSwim(uint modelId);
+    bool IsSwimmer(uint modelId);
 }
