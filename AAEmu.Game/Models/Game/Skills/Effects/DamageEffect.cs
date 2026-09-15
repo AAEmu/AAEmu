@@ -482,16 +482,18 @@ public class DamageEffect : EffectTemplate
         //Invoke even if damage is 0
         ((Unit)caster).Events.OnAttack(this, new OnAttackArgs
         {
-            Attacker = (Unit)caster
+            Attacker = (Unit)caster,
+            Target = trg
         });
-        trg.Events.OnAttacked(this, new OnAttackedArgs { });
+        trg.Events.OnAttacked(this, new OnAttackedArgs { Attacker = (Unit)caster });
 
         if (value > 0)
         {
             ((Unit)caster).Events.OnDamage(this, new OnDamageArgs
             {
                 Attacker = (Unit)caster,
-                Amount = value
+                Amount = value,
+                Target = trg
             });
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageEtc);
             trg.Events.OnDamaged(this, new OnDamagedArgs
