@@ -4,6 +4,7 @@ using AAEmu.Game.Models.Game.Crime;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
@@ -13,6 +14,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects;
 /// </summary>
 public class ReportCrimeEffect : EffectTemplate
 {
+    /// <summary>The client's own interact band, used when the reporting skill carries no range.</summary>
+    private const float DefaultReportingRange = 3f;
+
     public int Value { get; set; }
     public uint CrimeKindId { get; set; }
 
@@ -26,6 +30,16 @@ public class ReportCrimeEffect : EffectTemplate
         if (evidence == null)
         {
             Logger.Debug($"ReportCrimeEffect: no evidence doodad on the cast (kind {CrimeKindId}, value {Value})");
+            return;
+        }
+
+        // A cast at a unit is range-checked before its effects run; a doodad target is not, so the
+        // report proves here that it comes from the scene the evidence is lying in. Without this a
+        // client that knows a remote evidence id moves another player's crime points from anywhere.
+        if (!IsInReportingRange(caster, evidence, source?.Skill?.Template?.MaxRange ?? 0))
+        {
+            Logger.Warn($"ReportCrimeEffect: evidence {evidence.ObjId} reported out of range " +
+                        $"(caster {caster?.ObjId ?? 0}, kind {CrimeKindId}, value {Value})");
             return;
         }
 
@@ -63,4 +77,19 @@ public class ReportCrimeEffect : EffectTemplate
     /// </summary>
     public static uint ResolveCriminalObjId(uint casterObjId, DoodadOwnerType ownerType, uint ownerId) =>
         ownerType == DoodadOwnerType.Character && ownerId != 0 && ownerId != casterObjId ? ownerId : 0;
+
+    /// <summary>
+    /// True when the caster is standing within the reporting skill's reach of the evidence. A skill
+    /// that declares no range falls back to the interact band every other doodad use is held to.
+    /// </summary>
+    internal static bool IsInReportingRange(BaseUnit caster, Doodad evidence, int skillMaxRange)
+    {
+        if (caster?.Transform?.World == null || evidence?.Transform?.World == null)
+            return false;
+
+        var range = skillMaxRange > 0 ? skillMaxRange : DefaultReportingRange;
+        return MathUtil.CalculateDistance(
+            caster.Transform.World.Position,
+            evidence.Transform.World.Position) <= range;
+    }
 }

@@ -232,6 +232,15 @@ public class TrialManager : Singleton<TrialManager>
         if (trial == null || juror == null)
             return false;
 
+        // Seating is what hands over the case file and the vote, so it is bound to the gathering phase
+        // even when a summons is still in flight: the promise below is only good while it lasts.
+        if (!TrialJuryCallRules.IsCallLive(trial.State))
+        {
+            Logger.Warn($"Trial {trialId}: {juror.Name} answered a summons in phase {trial.State} - ignored");
+            trial.Summoned.Remove(juror.Id);
+            return false;
+        }
+
         if (trial.FindJuror(juror.Id) != null)
             return false;
 
@@ -349,17 +358,22 @@ public class TrialManager : Singleton<TrialManager>
 
         var trial = GetTrial(trialId);
 
+        // The case can close while its invite dialog is still on screen. Nothing was refused and there
+        // is no phase left to name, so a reply for a case that is gone is dropped, not read as a decline.
+        if (trial == null)
+        {
+            Logger.Debug($"Trial {trialId}: {character.Name} answered a jury invite for a case that is gone - ignored");
+            return;
+        }
+
         if (!accept)
         {
             // A skipped invite gives up the standby number; the next in the queue is asked instead,
             // so the bench can still fill while the gathering window is open.
-            if (trial != null)
-            {
-                _standby[trial.Court].Remove(character.Id);
-                trial.Invited.Remove(character.Id);
-            }
+            _standby[trial.Court].Remove(character.Id);
+            trial.Invited.Remove(character.Id);
 
-            if (trial is { State: TrialState.WaitingJury })
+            if (trial.State == TrialState.WaitingJury)
             {
                 Logger.Info($"Trial {trialId}: {character.Name} skipped the jury invite");
                 SummonStandbyJurors(trial);
@@ -376,8 +390,15 @@ public class TrialManager : Singleton<TrialManager>
             return;
         }
 
-        if (trial == null)
+        // A juror may only join while the bench is still gathering. The case file is sent on seating,
+        // so a late accept would hand the vote to someone who never read it with the bench.
+        if (!TrialJuryCallRules.IsCallLive(trial.State))
+        {
+            Logger.Warn($"Trial {trialId}: {character.Name} accepted a jury invite in phase {trial.State} - ignored");
+            trial.Invited.Remove(character.Id);
+            character.SendErrorMessage(ErrorMessageType.TrialsCannotJoinAfterStart);
             return;
+        }
 
         // Only a character the court actually invited may take a seat. The client sends the trial id, so
         // without this any player could accept an invitation that was never sent and vote on the case.
@@ -1090,11 +1111,31 @@ public class TrialManager : Singleton<TrialManager>
     /// </summary>
     private void SetState(Trial trial, TrialState state, int remainSeconds = 0)
     {
+        // A jury call is only good while the bench is gathering. The clients keep the dialog on screen
+        // until they answer it, so the calls are forgotten here the moment that phase ends; the accept
+        // and seating paths refuse anything that still arrives afterwards.
+        if (TrialJuryCallRules.ShouldDropPendingCalls(trial.State, state))
+            DropPendingJuryCalls(trial);
+
         trial.State = state;
         trial.PhaseToken++;
         trial.PhaseEndsUtc = DateTime.UtcNow.AddSeconds(Math.Max(0, remainSeconds));
         Broadcast(trial, new SCChangeTrialStatePacket(trial.Id, (byte)state, trial.Jurors.Count,
             TrialTimingRules.ToClientMilliseconds(remainSeconds)));
+    }
+
+    /// <summary>
+    /// Forgets every unanswered invitation and every promised chair of a bench that stopped gathering.
+    /// </summary>
+    private void DropPendingJuryCalls(Trial trial)
+    {
+        if (trial.Invited.Count == 0 && trial.Summoned.Count == 0)
+            return;
+
+        Logger.Info($"Trial {trial.Id}: the bench stopped gathering - {trial.Invited.Count} invite(s) and " +
+                    $"{trial.Summoned.Count} summons dropped");
+        trial.Invited.Clear();
+        trial.Summoned.Clear();
     }
 
     private static int RemainingSeconds(Trial trial) =>
