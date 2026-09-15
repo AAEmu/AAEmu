@@ -56,13 +56,34 @@ public class DeferredDoodadSpawnTaskTests
         await Assert.That(doodad.SpawnCalls).IsEqualTo(0);
     }
 
+    [Test]
+    public async Task Execute_OnADoodadWhoseWorldWasDisposedInsideTheDelay_DoesNotSpawnIt()
+    {
+        // The world is still the doodad's ParentWorld after Dispose, so the parent check passes and only
+        // the disposed flag stops the spawn from adding to a world that is gone.
+        var doodad = new RecordingDoodad { ObjId = 4242 };
+        var world = AttachWorld(doodad);
+        world.Dispose();
+
+        await Assert.That(doodad.ParentWorld).IsSameReferenceAs(world);
+        await Assert.That(world.IsDisposed).IsTrue();
+
+        new DeferredDoodadSpawnTask(doodad).Execute();
+
+        await Assert.That(doodad.SpawnCalls).IsEqualTo(0);
+    }
+
     /// <summary>
     /// Assigns the world field directly: the ParentWorld property routes through
     /// <c>WorldManager.GetWorld</c>, and this test deliberately runs without a world manager.
     /// </summary>
-    private static void AttachWorld(Doodad doodad) =>
+    private static WorldInstance AttachWorld(Doodad doodad)
+    {
+        var world = new WorldInstance(new WorldTemplate { Id = 1, Name = "a3-deferred-doodad-test" }, 0, true, 3);
         typeof(GameObject).GetField("_parentWorld", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .SetValue(doodad, new WorldInstance(new WorldTemplate { Id = 1, Name = "a3-deferred-doodad-test" }, 0, true, 3));
+            .SetValue(doodad, world);
+        return world;
+    }
 
     private sealed class RecordingDoodad : Doodad
     {

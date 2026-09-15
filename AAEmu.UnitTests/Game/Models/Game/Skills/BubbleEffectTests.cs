@@ -8,14 +8,15 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Tasks.Skills;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 
 /// <summary>
-/// BubbleEffect.Apply used to end with Thread.Sleep(readTime): the packet went out and then the effect
-/// thread and the cast's EndSkill waited out the whole read time. Apply now sends the bubble, hands the
-/// read window to the task scheduler and returns.
+/// BubbleEffect.Apply used to end with <c>Thread.Sleep(0.015 * characters)</c> clamped to 1 250 ms, which
+/// was a flat 1 250 ms on every shipped line (900 characters per minute is 66.7 ms per character, so the
+/// per-character term never reached the floor), and held the effect pipeline and the cast's EndSkill for
+/// that long. Apply now sends the bubble and returns, and schedules nothing: there is no read window for
+/// anything to consume, since the client retires the bubble on its own.
 /// </summary>
 [NotInParallel]
 public class BubbleEffectTests
@@ -32,8 +33,8 @@ public class BubbleEffectTests
     {
         _localization = new SingletonScope<LocalizationManager>(new LocalizationManager());
 
-        // A real, never started task manager: whatever is scheduled stays queued, which is exactly what
-        // the old sleep hid (the effect only returned once the read time had passed).
+        // A real, never started task manager: anything scheduled would stay queued, so an empty queue is
+        // what shows the effect hands nothing over.
         _taskManager = new TaskManager(Mock.Of<ITickManager>().Object);
         _tasks = new SingletonScope<TaskManager>(_taskManager);
     }
@@ -46,7 +47,7 @@ public class BubbleEffectTests
     }
 
     [Test]
-    public async Task Apply_WithNoLocalizedLine_SendsTheBubbleAndSchedulesTheFallbackWindow()
+    public async Task Apply_SendsTheBubbleAndSchedulesNothing()
     {
         var target = new RecordingUnit { ObjId = 5 };
         var started = Stopwatch.GetTimestamp();
@@ -55,7 +56,7 @@ public class BubbleEffectTests
             new SkillCastUnitTarget(TargetObjId), null, null, null, DateTime.UtcNow);
         var elapsed = Stopwatch.GetElapsedTime(started);
 
-        // 2.5 s of read time used to be spent inside this call.
+        // 1.25 s of read time used to be spent inside this call.
         await Assert.That(elapsed.TotalMilliseconds).IsLessThan(500);
 
         // The bubble itself is still sent on the spot.
@@ -63,31 +64,20 @@ public class BubbleEffectTests
         await Assert.That(target.Broadcasts[0].Packet).IsTypeOf<SCChatBubblePacket>();
         await Assert.That(target.Broadcasts[0].Self).IsTrue();
 
-        var scheduled = SingleScheduledTask();
-        await Assert.That(scheduled).IsTypeOf<BubbleReadTimeTask>();
-        var readWindow = (BubbleReadTimeTask)scheduled;
-        await Assert.That(readWindow.BubbleId).IsEqualTo(BubbleId);
-        await Assert.That(readWindow.TargetObjId).IsEqualTo(TargetObjId);
-        await Assert.That(readWindow.ReadTimeMilliseconds)
-            .IsEqualTo(BubbleReadTimeRules.NoTextReadTimeMilliseconds);
-
-        // Handed over, not run inline, and scheduled for the read time it reports.
-        await Assert.That(scheduled.ExecuteCount).IsEqualTo(0);
-        await Assert.That((scheduled.TriggerTime - DateTime.UtcNow).TotalMilliseconds).IsGreaterThan(2000);
+        await Assert.That(ScheduledTasks()).IsEmpty();
     }
 
     [Test]
-    public async Task Apply_WithALocalizedLine_SchedulesTheWindowScaledToTheLine()
+    public async Task Apply_WithALocalizedLine_SchedulesNothingEither()
     {
-        // 90 000 characters * 0.015 = 1350 ms, above the 1250 ms floor.
-        LocalizationManager.Instance.AddTranslation("bubble_effects", "speech", BubbleId, new string('x', 90_000));
+        // The localized line used to scale the window. At the cited 900 characters per minute this one
+        // would be held for 17.6 s, and nothing consumes the window, so no task is queued for it.
+        LocalizationManager.Instance.AddTranslation("bubble_effects", "speech", BubbleId, new string('x', 264));
 
         new BubbleEffect { Id = BubbleId, KindId = 1 }.Apply(null, null, null,
             new SkillCastUnitTarget(TargetObjId), null, null, null, DateTime.UtcNow);
 
-        var readWindow = (BubbleReadTimeTask)SingleScheduledTask();
-        await Assert.That(readWindow.ReadTimeMilliseconds).IsEqualTo(1350);
-        await Assert.That((readWindow.TriggerTime - DateTime.UtcNow).TotalMilliseconds).IsGreaterThan(1200);
+        await Assert.That(ScheduledTasks()).IsEmpty();
     }
 
     [Test]
@@ -96,20 +86,21 @@ public class BubbleEffectTests
         var effect = new BubbleEffect { Id = BubbleId, KindId = 1 };
         var started = Stopwatch.GetTimestamp();
 
-        // A dialogue chain applies its bubbles back to back; neither may wait for the other's window.
+        // A dialogue chain applies its bubbles back to back; neither waits for the other's window.
         effect.Apply(null, null, null, new SkillCastUnitTarget(TargetObjId), null, null, null, DateTime.UtcNow);
         effect.Apply(null, null, null, new SkillCastUnitTarget(TargetObjId), null, null, null, DateTime.UtcNow);
 
         await Assert.That(Stopwatch.GetElapsedTime(started).TotalMilliseconds).IsLessThan(500);
-        await Assert.That(_taskManager.GetQueueCount()).IsEqualTo(2);
+        await Assert.That(ScheduledTasks()).IsEmpty();
+        await Assert.That(_taskManager.GetQueueCount()).IsEqualTo(0);
     }
 
-    private AAEmu.Game.Models.Tasks.Task SingleScheduledTask()
+    private List<AAEmu.Game.Models.Tasks.Task> ScheduledTasks()
     {
         var queue = (ConcurrentDictionary<uint, AAEmu.Game.Models.Tasks.Task>)typeof(TaskManager)
             .GetField("_queue", BindingFlags.Instance | BindingFlags.NonPublic)!
             .GetValue(_taskManager)!;
-        return queue.Values.Single();
+        return [.. queue.Values];
     }
 
     /// <summary>Collects packets instead of walking the region grid, which needs a live world.</summary>

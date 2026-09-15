@@ -29,9 +29,22 @@ public class DeferredDoodadSpawnRulesTests
     [Test]
     public async Task DeferredSpawn_IsOnlyAllowedWhileTheDoodadAndItsWorldAreAlive()
     {
-        await Assert.That(DeferredDoodadSpawnRules.CanSpawn(doodadDeleted: false, hasParentWorld: true)).IsTrue();
-        await Assert.That(DeferredDoodadSpawnRules.CanSpawn(doodadDeleted: true, hasParentWorld: true)).IsFalse();
-        await Assert.That(DeferredDoodadSpawnRules.CanSpawn(doodadDeleted: false, hasParentWorld: false)).IsFalse();
-        await Assert.That(DeferredDoodadSpawnRules.CanSpawn(doodadDeleted: true, hasParentWorld: false)).IsFalse();
+        await Assert.That(DeferredDoodadSpawnRules.CanSpawn(doodadDeleted: false, hasParentWorld: true,
+            worldDisposed: false)).IsTrue();
+        await Assert.That(DeferredDoodadSpawnRules.CanSpawn(doodadDeleted: true, hasParentWorld: true,
+            worldDisposed: false)).IsFalse();
+        await Assert.That(DeferredDoodadSpawnRules.CanSpawn(doodadDeleted: false, hasParentWorld: false,
+            worldDisposed: false)).IsFalse();
+        await Assert.That(DeferredDoodadSpawnRules.CanSpawn(doodadDeleted: true, hasParentWorld: false,
+            worldDisposed: false)).IsFalse();
+    }
+
+    [Test]
+    public async Task DeferredSpawn_IsRefusedWhileTheWorldIsDisposed()
+    {
+        // WorldInstance.Dispose leaves every object's ParentWorld pointing at the instance, so the
+        // parent-world check alone cannot see a torn-down world and the spawn would add a doodad to it.
+        await Assert.That(DeferredDoodadSpawnRules.CanSpawn(doodadDeleted: false, hasParentWorld: true,
+            worldDisposed: true)).IsFalse();
     }
 }

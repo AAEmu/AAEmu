@@ -18,5 +18,12 @@ public static class DeferredDoodadSpawnRules
     /// Re-checked when the deferred task runs: inside the delay the doodad can be deleted again or its
     /// world can be torn down, and <c>Doodad.Spawn</c> throws for a doodad with no parent world.
     /// </summary>
-    public static bool CanSpawn(bool doodadDeleted, bool hasParentWorld) => !doodadDeleted && hasParentWorld;
+    /// <remarks>
+    /// A torn-down world is the case a parent-world check cannot see: <c>WorldInstance.Dispose</c> tears the
+    /// instance down and leaves every object's <c>ParentWorld</c> pointing at it, so the delayed spawn would
+    /// add and show its doodad in a world that is gone. That is what
+    /// <see cref="World.WorldInstance.IsDisposed"/> is for, and why the flag is public.
+    /// </remarks>
+    public static bool CanSpawn(bool doodadDeleted, bool hasParentWorld, bool worldDisposed) =>
+        !doodadDeleted && hasParentWorld && !worldDisposed;
 }

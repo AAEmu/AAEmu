@@ -18,9 +18,13 @@ public sealed class DeferredDoodadSpawnTask(Doodad doodad) : Task
 
     public override void Execute()
     {
-        if (!DeferredDoodadSpawnRules.CanSpawn(Doodad?.IsDeleted ?? true, Doodad?.ParentWorld != null))
+        // A disposed world keeps every object's ParentWorld, so the flag is what separates "the world is
+        // still there" from "the world was torn down inside the delay".
+        if (!DeferredDoodadSpawnRules.CanSpawn(Doodad?.IsDeleted ?? true, Doodad?.ParentWorld != null,
+                Doodad?.ParentWorld?.IsDisposed ?? true))
         {
-            Logger.Trace("Deferred doodad spawn skipped, doodad {0} is gone or has no world", Doodad?.ObjId ?? 0);
+            Logger.Trace("Deferred doodad spawn skipped, doodad {0} is gone, has no world, or its world was disposed",
+                Doodad?.ObjId ?? 0);
             return;
         }
 
