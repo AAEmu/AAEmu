@@ -1,6 +1,27 @@
 ﻿namespace AAEmu.Game.Models.Game.Units;
 
-public enum UnitAttribute : uint // 10.0.2.13 adds unit_attribute_id 256-261 (>255), widened from byte
+/// <summary>
+/// One member per <c>enum_unit_attribute</c> row of the 10.0.2.13 content DB (255 rows, ids 0-289),
+/// plus the eleven ids this server has always carried that the 10.0.2 table dropped.
+/// </summary>
+/// <remarks>
+/// Names are the table's <c>name</c> column in PascalCase: split on '_', upper-case the first letter
+/// of each part and leave the rest alone (<c>melee_dps_inc_anti_npc</c> becomes
+/// <see cref="MeleeDpsIncAntiNpc"/>). Two members deliberately differ: 187 keeps its long-standing
+/// name (the table calls it <c>physics_collision_front_damage_mul</c>) and 239 spells out the table's
+/// "engin". The id-to-name pairs are checked in at
+/// <c>AAEmu.UnitTests/Game/Models/Game/Units/UnitAttributeContentSnapshot.cs</c> and asserted against
+/// this enum by <c>UnitAttributeContentTests</c>, so a member that does not come from a real row at
+/// that exact id fails the test run.
+///
+/// The 10.0.2.13 client ids reach 289 and the zone sends 256-261, which is why this is uint-backed
+/// rather than a byte.
+///
+/// Id 14 is used by two <c>unit_modifiers</c> rows (buffs 185/186) but has no row in
+/// <c>enum_unit_attribute</c>, so it has no name to derive and stays unnamed here; the loaders report
+/// it once per start instead of dropping it silently.
+/// </remarks>
+public enum UnitAttribute : uint
 {
     Str = 0,
     Dex = 1,
@@ -18,8 +39,6 @@ public enum UnitAttribute : uint // 10.0.2.13 adds unit_attribute_id 256-261 (>2
     MeleeCritical = 16,
     MeleeCriticalBonus = 17,
     MeleeAntiMiss = 18,
-    MeleeDodge = 20,
-    MeleeBlock = 21,
     MeleeParry = 22,
     RangedAntiMiss = 23,
     RangedCritical = 25,
@@ -47,13 +66,10 @@ public enum UnitAttribute : uint // 10.0.2.13 adds unit_attribute_id 256-261 (>2
     IncomingHealMul = 56,
     IgnoreArmor = 57,
     IncomingDamageMul = 58,
-    RangedDodge = 59,
-    RangedBlock = 60,
     AggroRangeMul = 61,
     IncomingAggroMul = 62,
     Hovering = 63,
     MagicResist = 64,
-    MagicStability = 65,
     SwimSpeedMul = 66,
     PersistentHealthRegen = 67,
     PersistentManaRegen = 68,
@@ -66,13 +82,9 @@ public enum UnitAttribute : uint // 10.0.2.13 adds unit_attribute_id 256-261 (>2
     TwohandSpeedMul = 75,
     MeleeCriticalMul = 77,
     MeleeAntiMissMul = 78,
-    MeleeDodgeMul = 79,
-    MeleeBlockMul = 80,
     MeleeParryMul = 81,
     RangedCriticalMul = 82,
     RangedAntiMissMul = 83,
-    RangedDodgeMul = 84,
-    RangedBlockMul = 85,
     SpellCriticalMul = 86,
     SpellDps = 87,
     SpellAntiMissMul = 88,
@@ -113,8 +125,6 @@ public enum UnitAttribute : uint // 10.0.2.13 adds unit_attribute_id 256-261 (>2
     BackattackSpellDamageMul = 123,
     FrictionMul = 124,
     HonorPointLoseMul = 125,
-    HonorPointGainBattleField = 126,
-    HonorPointGainBattleFieldMul = 127,
     HonorPointGainNpcKill = 128,
     HonorPointGainNpcKillMul = 129,
     HonorPointGainTrial = 130,
@@ -145,16 +155,16 @@ public enum UnitAttribute : uint // 10.0.2.13 adds unit_attribute_id 256-261 (>2
     DeathDurabilityLossRatioMul = 155,
     PenaltyExpMul = 156,
     RecoverableExpMul = 157,
-    // Language actability attrs 158-165 are unused here.
-    /*
-    ACTABILITY_LANG_NUIAN = 0x9E,
-    ACTABILITY_LANG_ELF = 0x9F,
-    ACTABILITY_LANG_HARIHARAN = 0xA0,
-    ACTABILITY_LANG_FERRE = 0xA1,
-    ACTABILITY_LANG_WESTCOMMON = 0xA2,
-    ACTABILITY_LANG_EASTCOMMON = 0xA3,
-    ACTABILITY_LANG_DWARF = 0xA4,
-    ACTABILITY_LANG_WARBORN = 0xA5,*/
+    // The eight language ladders. 10.0.2 names them in enum_unit_attribute and
+    // actability_groups.unit_attr_id points at them.
+    ActabilityLangNuian = 158,
+    ActabilityLangElf = 159,
+    ActabilityLangHariharan = 160,
+    ActabilityLangFerre = 161,
+    ActabilityLangWestcommon = 162,
+    ActabilityLangEastcommon = 163,
+    ActabilityLangDwarf = 164,
+    ActabilityLangWarborn = 165,
     HealDps = 173,
     HealCritical = 174,
     HealDpsInc = 175,
@@ -174,6 +184,8 @@ public enum UnitAttribute : uint // 10.0.2.13 adds unit_attribute_id 256-261 (>2
     /// (they shatter), the Growling sailing ship +50, and the dock's Moored buff -99.
     /// This is one value for the whole hull — the per-face split lives in slave_collision_damages.
     /// </summary>
+    /// <c>enum_unit_attribute</c> names the row <c>physics_collision_front_damage_mul</c>;
+    /// the member keeps the name the rest of the server already uses.
     PhysicsCollisionDamageMul = 187,
     /// <summary>
     /// Extra kilograms on a hull (sails, figure, engine, masts, toys). The zone adds this to
@@ -181,16 +193,169 @@ public enum UnitAttribute : uint // 10.0.2.13 adds unit_attribute_id 256-261 (>2
     /// sitting next to those attributes.
     /// </summary>
     Mass = 188,
+    // Hull driving-model values: mass multiplier, steering and reverse velocity.
+    MassMul = 189,
+    SteeringSpeed = 190,
+    SteeringSpeedMul = 191,
+    ReverseVelocity = 192,
+    ReverseVelocityMul = 193,
     /// <summary>
     /// Percent points of collision armour, 100 = unmodified, divides the damage. Monster figurehead
     /// grades give +10/20/35/50, the dock's Moored buff +2900.
     /// </summary>
     PhysicsCollisionArmorMul = 194,
-
+    ActabilityExploration = 195,
+    MeleeDamageMulAntiNpc = 196,
+    RangedDamageMulAntiNpc = 197,
+    SpellDamageMulAntiNpc = 198,
+    IncomingDamageMulAntiNpc = 199,
+    IncomingMeleeDamageAddAntiNpc = 200,
+    IncomingRangedDamageAddAntiNpc = 201,
+    IncomingSpellDamageAddAntiNpc = 202,
+    ImpactMass = 203,
+    IgnoreShieldChance = 204,
+    IgnoreShieldBonus = 205,
+    IgnoreShieldBonusMul = 206,
+    MeleeDynamicNormalizable = 207,
+    RangedDynamicNormalizable = 208,
+    MagicDynamicNormalizable = 209,
+    HealDynamicNormalizable = 210,
+    DefenceDynamicNormalizable = 211,
+    MusicDynamicNormalizable = 212,
+    MaxCombatResource = 215,
+    CombatResourceRegen = 216,
+    CombatResourceRegenInCombat = 217,
+    AttackSpeedMul = 218,
+    SubmergeDepth = 219,
+    ExpByKillMonsterMul = 220,
+    BaseCombatResource = 221,
+    HealDamageMul = 222,
     /// <summary>
     /// Per-mille discount on what a synthesis attempt costs, which is why
     /// <c>unit_attribute_limits</c> pens it into -1000..0. Jake's Blessing grants the full -1000 and
     /// makes synthesis free; nothing shipped raises the price.
     /// </summary>
     ItemEvolvingCostMul = 223,
+    // Per-face collision multipliers. 187 above is the whole-hull value the slave code
+    // folds first; these split it per hull face.
+    PhysicsCollisionSideDamageMul = 224,
+    PhysicsCollisionRearDamageMul = 225,
+    PhysicsCollisionTopDamageMul = 226,
+    PhysicsCollisionBottomDamageMul = 227,
+    ButlerHarvestGrowthTimeMul = 228,
+    ButlerHarvestBonusRatioMul = 229,
+    // Slave vehicle tuning (ship acceleration and halt, turret axes, engine torque).
+    SlaveShipAcceleration = 230,
+    SlaveShipReverseAcceleration = 231,
+    SlaveShipHaltRate = 232,
+    SlaveVehicleTurretPitchAngle = 233,
+    SlaveVehicleTurretYawAngle = 234,
+    SlaveVehicleTurretPitchSpeed = 235,
+    SlaveVehicleTurretYawSpeed = 236,
+    SlaveVehicleMaxClimbAngle = 237,
+    SlaveVehicleMaxSpeed = 238,
+    // enum_unit_attribute spells this slave_vehicle_engin_power.
+    SlaveVehicleEnginePower = 239,
+    SlaveVehicleBrakeTorque = 240,
+    SlaveVehicleBallastMass = 241,
+    ButlerTradeDeliveryTimeMul = 242,
+    ButlerTradeProductionCostMul = 243,
+    // Anti-player and anti-NPC splits of the damage and heal lines above.
+    MeleeDamageMulAntiPc = 244,
+    RangedDamageMulAntiPc = 245,
+    SpellDamageMulAntiPc = 246,
+    SlaveVehicleSteerMul = 247,
+    ExpByCompleteQuestMul = 248,
+    MeleeDpsIncAntiNpc = 249,
+    RangedDpsIncAntiNpc = 250,
+    SpellDpsIncAntiNpc = 251,
+    HealDamageMulAntiNpc = 252,
+    HealDpsIncAntiNpc = 253,
+    HealDpsIncOnlyHeal = 254,
+    HealMulOnlyHeal = 255,
+    // Enchant and socketing cost multipliers, then the siege damage lines.
+    ElementEnchantCostMul = 256,
+    GradeEnchantCostMul = 257,
+    ItemSocketingCostMul = 258,
+    EnchantScaleCostMul = 259,
+    SiegeDps = 260,
+    SiegeDamageMul = 261,
+    // Labour-power advantage and extra harvest gain per actability group.
+    LpAdvantageByArchemyActGroup = 262,
+    LpAdvantageByArchitectureActGroup = 263,
+    LpAdvantageByCookActGroup = 264,
+    LpAdvantageByHandicraftActGroup = 265,
+    LpAdvantageByLivestockActGroup = 266,
+    LpAdvantageByFarmActGroup = 267,
+    LpAdvantageByFishActGroup = 268,
+    LpAdvantageByLumberActGroup = 269,
+    LpAdvantageByCollectionActGroup = 270,
+    LpAdvantageByMachineryActGroup = 271,
+    LpAdvantageByMetalActGroup = 272,
+    LpAdvantageByPrintActGroup = 273,
+    LpAdvantageByMineActGroup = 274,
+    LpAdvantageByStonemasonActGroup = 275,
+    LpAdvantageBySewingActGroup = 276,
+    LpAdvantageBySkinActGroup = 277,
+    LpAdvantageByWeaponActGroup = 278,
+    LpAdvantageByCarpentryActGroup = 279,
+    LpAdvantageByTheftActGroup = 280,
+    LpAdvantageByBusinessActGroup = 281,
+    LpAdvantageByCompositionActGroup = 282,
+    LpAdvantageByExplorationActGroup = 283,
+    ExtraGainByLivestockActGroup = 284,
+    ExtraGainByFarmActGroup = 285,
+    ExtraGainByFishActGroup = 286,
+    ExtraGainByLumberActGroup = 287,
+    ExtraGainByCollectionActGroup = 288,
+    ExtraGainByMineActGroup = 289,
+
+    // ---------------------------------------------------------------------
+    // Ids below are not in the 10.0.2.13 enum_unit_attribute table. They stay
+    // declared so the values cannot be reused for something else unnoticed.
+    // ---------------------------------------------------------------------
+
+    /// <summary>
+    /// 10.0.2's <c>enum_unit_attribute</c> has no row for 21, but <c>unit_attribute_limits</c> row 8
+    /// still bounds it (0..2000000000), so the id is live content and stays a normal member.
+    /// </summary>
+    MeleeBlock = 21,
+
+    /// <summary>
+    /// 10.0.2's <c>enum_unit_attribute</c> has no row for 127 either, but
+    /// <c>ExpeditionBuffGameData.GetBonusEffects</c> hands it out for expedition buff 10
+    /// ("명예로운 생활" / honorable living). Kept as a normal member because server code produces it.
+    /// </summary>
+    HonorPointGainBattleFieldMul = 127,
+
+    // The nine below are missing from that table *and* unreferenced by every server code path (grep of
+    // AAEmu.Game, AAEmu.World and AAEmu.UnitTests), so nothing can produce them. They are obsolete
+    // rather than deleted so the ids cannot be reused for something else unnoticed.
+    [Obsolete("Id 20 is not in the 10.0.2 enum_unit_attribute table and has no consumer.")]
+    MeleeDodge = 20,
+
+    [Obsolete("Id 59 is not in the 10.0.2 enum_unit_attribute table and has no consumer.")]
+    RangedDodge = 59,
+
+    [Obsolete("Id 60 is not in the 10.0.2 enum_unit_attribute table and has no consumer.")]
+    RangedBlock = 60,
+
+    [Obsolete("Id 65 is not in the 10.0.2 enum_unit_attribute table and has no consumer.")]
+    MagicStability = 65,
+
+    [Obsolete("Id 79 is not in the 10.0.2 enum_unit_attribute table and has no consumer.")]
+    MeleeDodgeMul = 79,
+
+    [Obsolete("Id 80 is not in the 10.0.2 enum_unit_attribute table and has no consumer.")]
+    MeleeBlockMul = 80,
+
+    [Obsolete("Id 84 is not in the 10.0.2 enum_unit_attribute table and has no consumer.")]
+    RangedDodgeMul = 84,
+
+    [Obsolete("Id 85 is not in the 10.0.2 enum_unit_attribute table and has no consumer.")]
+    RangedBlockMul = 85,
+
+    [Obsolete("Id 126 is not in the 10.0.2 enum_unit_attribute table and has no consumer.")]
+    HonorPointGainBattleField = 126,
+
 }
