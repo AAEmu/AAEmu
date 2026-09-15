@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Data;
 using AAEmu.Game.Core.Managers;
@@ -259,7 +259,7 @@ public class CharacterQuests(Character owner)
 
         if (!forcibly && !template.MeetsContextRequirements(Owner))
         {
-            Logger.Warn(
+            LogAcceptRefused(answerClient,
                 "User {0} ({1}) does not meet context requirements for quest {2}: level={3}, minLevel={4}, maxLevel={5}, race={6}, raceMask={7}",
                 Owner.Name, Owner.Id, questId, Owner.Level, template.MinLevel, template.MaxLevel, Owner.Race,
                 template.RaceMask);
@@ -279,7 +279,7 @@ public class CharacterQuests(Character owner)
         {
             if (!UnitRequirementsGameData.Instance.CanComponentRun(questComponentTemplate, Owner))
             {
-                Logger.Warn($"User {Owner.Name} ({Owner.Id}) does not meet requirements to start new Quest {questId}, ComponentId {questComponentTemplate.Id}");
+                LogAcceptRefused(answerClient, $"User {Owner.Name} ({Owner.Id}) does not meet requirements to start new Quest {questId}, ComponentId {questComponentTemplate.Id}");
                 if (!forcibly)
                 {
                     NotifyAcceptFailed(questId, QuestAcceptFailRules.RequirementNotMet, answerClient);
@@ -360,6 +360,13 @@ public class CharacterQuests(Character owner)
 
         Owner.SendPacket(new SCQuestContextFailedPacket(questId, reason));
     }
+
+    /// <summary>
+    /// Logs a refused accept at the level its origin deserves: see
+    /// <see cref="QuestAcceptFailRules.RefusalLogLevel"/>.
+    /// </summary>
+    private static void LogAcceptRefused(bool answerClient, string message, params object[] args) =>
+        Logger.Log(QuestAcceptFailRules.RefusalLogLevel(answerClient), message, args);
 
     /// <summary>
     /// Starts a Quest given by a NPC
