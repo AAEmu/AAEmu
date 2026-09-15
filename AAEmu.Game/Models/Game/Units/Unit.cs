@@ -575,6 +575,13 @@ public class Unit : BaseUnit, IUnit
     public GameConnection Connection { get; set; }
 
     /// <summary>
+    /// True when the last zone movement the relay accepted for this unit was a stand. The relay needs
+    /// it to tell a repeat stand (safe to withhold) from the stand that ends a walk (must reach
+    /// clients, or they keep extrapolating the walk). Only zone mirrors — NPCs and mates — set it.
+    /// </summary>
+    public bool LastRelayedZoneMoveWasStationary { get; set; }
+
+    /// <summary>
     /// Unit巡逻
     /// Unit patrol
     /// 指明Unit巡逻路线及速度、是否正在执行巡逻等行为

@@ -54,16 +54,29 @@ public static class UnitIdleMoveRules
                && CircularDelta(knownZ, moveZ) <= tolerance;
     }
 
+    /// <summary>
+    /// Whether a zone report may be withheld from clients. <paramref name="lastRelayedWasStationary"/>
+    /// is what the relay last accepted for this unit: see the stand-after-motion note below.
+    /// </summary>
     public static bool ShouldSuppress(
         float knownX, float knownY, float knownZ,
         sbyte knownRx, sbyte knownRy, sbyte knownRz,
         float moveX, float moveY, float moveZ,
         sbyte moveRx, sbyte moveRy, sbyte moveRz,
         short velX, short velY, short velZ,
-        sbyte deltaX, sbyte deltaY, sbyte deltaZ)
+        sbyte deltaX, sbyte deltaY, sbyte deltaZ,
+        bool lastRelayedWasStationary)
     {
         if (!IsStationary(velX, velY, velZ, deltaX, deltaY, deltaZ))
             return false;
+
+        // The stand that ends a walk lands a few centimetres past the last moving record and usually
+        // repeats its heading, so the pose test alone calls it a duplicate of it. Withholding that one
+        // leaves the client, whose last word for the unit was "moving", to slide the NPC to a halt. A
+        // stand may therefore only be withheld while clients already believe the unit is standing.
+        if (!lastRelayedWasStationary)
+            return false;
+
         if (!IsSamePosition(knownX, knownY, knownZ, moveX, moveY, moveZ))
             return false;
         return IsSameFacing(knownRx, knownRy, knownRz, moveRx, moveRy, moveRz);
