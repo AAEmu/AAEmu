@@ -225,6 +225,9 @@ public class CharacterQuests(Character owner)
         {
             Logger.Warn("Rejected personal start of public guild assignment quest {0} for {1}",
                 questId, Owner.Name);
+            // The client can still offer these from a quest starter. Without an answer its Accept
+            // window stays open, so refuse with the same packet the other guards use.
+            NotifyAcceptFailed(questId, QuestAcceptFailRules.PublicAssignmentBlocked);
             return false;
         }
 

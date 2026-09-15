@@ -5,6 +5,7 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Quests;
 
+[NotInParallel] // seeds the process-wide TodayQuestGameData singleton
 public sealed class PublicAssignmentQuestAuthorityTests
 {
     [Test]

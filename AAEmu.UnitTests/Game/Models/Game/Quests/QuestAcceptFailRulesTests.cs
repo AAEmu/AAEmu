@@ -14,6 +14,14 @@ public class QuestAcceptFailRulesTests
     }
 
     [Test]
+    public async Task BlockedGuildPublicAssignment_IsTheBlockedQuestCode()
+    {
+        await Assert.That(QuestAcceptFailRules.PublicAssignmentBlocked)
+            .IsEqualTo(QuestStatusFailed.BlockedQuest);
+        await Assert.That((byte)QuestAcceptFailRules.PublicAssignmentBlocked).IsEqualTo((byte)39);
+    }
+
+    [Test]
     public async Task MissingNpcAndDoodad_UseTheirOwnSourceCodes()
     {
         await Assert.That(QuestAcceptFailRules.MissingSource(QuestAcceptorType.Npc))

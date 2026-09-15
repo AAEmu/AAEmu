@@ -11,6 +11,12 @@ public static class QuestAcceptFailRules
 {
     public static QuestStatusFailed RequirementNotMet => QuestStatusFailed.UnitRequirementCheck;
 
+    /// <summary>
+    /// A guild public assignment is owned by the guild board, so a personal accept is refused as a
+    /// blocked quest even when the client offered it from a quest starter.
+    /// </summary>
+    public static QuestStatusFailed PublicAssignmentBlocked => QuestStatusFailed.BlockedQuest;
+
     public static QuestStatusFailed MissingSource(QuestAcceptorType type) =>
         type == QuestAcceptorType.Doodad
             ? QuestStatusFailed.InvalidDoodad
