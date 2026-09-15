@@ -772,14 +772,13 @@ public static class SCOffsets
     public const ushort SCResetMerchantGoodLimitPurchasePacket = 0x378;
     public const ushort SCResidentBalanceInfoPacket = 0x3A; // confirmed:, 7-field shape incl. memberCount
     // links AUSCResidentInfoPacket.
-    public const ushort SCResidentInfoOptionPacket = 0x38;
     public const ushort SCResidentInfoPacket = 0x39; // links AUSCResidentMemberInfoPacket // confirmed: reads type u16, type u64, point u32
     // 0x00B was a wrong guess for the resident map; 0x0B is SCFactionRelationListPacket. Do not send.
     // from the 10.0.2.13 packet ctor (ctor pattern validated by F7/F8/FA).
     public const ushort SCHouseTradeListPacket = 0x2F7;
     // from packet factory.
     // from packet ctor reads a single type u16.
-    public const ushort SCResidentMapPacket = 0x37;
+    public const ushort SCResidentMapPacket = 0x38;
     public const ushort SCResidentMemberListPacket = 0x3C;
     public const ushort SCReturnAccountStatusPacket = 0x334;
 

@@ -1634,7 +1634,9 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
 
         owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ExpeditionCreation,
             [new MoneyChange(-AppConfiguration.Instance.Expedition.Create.Cost)], []));
-        owner.SendPacket(new SCFactionCreatedPacket(expedition, owner.ObjId, [(owner.ObjId, owner.Id, owner.Name)]));
+        // Client truth (prod x2game.dll): opcode 0x13 is SCFactionRetryRenamePacket and there is no
+        // SCFactionCreatedPacket class in this client build, so the old send landed on the wrong handler.
+        // Guild creation is announced by the expedition list + descriptor packets around this point.
 
         var expeditionsSnapshot = _expeditions.Values.ToArray();
         foreach (var online in worldManager.GetAllCharacters())

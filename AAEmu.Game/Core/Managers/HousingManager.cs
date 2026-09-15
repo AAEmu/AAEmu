@@ -791,8 +791,8 @@ public class HousingManager(
         }
         foreach (var groupId in groups)
             character.SendPacket(new SCResidentMapPacket((short)groupId));
-        foreach (var groupId in groups)
-            character.SendPacket(new SCResidentInfoOptionPacket((short)groupId, 1));
+        // SCResidentInfoOptionPacket removed: the client build has no such class (RTTI absent);
+        // 0x38 is SCResidentMapPacket, so the payload was landing on the map handler.
     }
 
     public void SendTownhallState(GameConnection connection, short zoneGroup)
