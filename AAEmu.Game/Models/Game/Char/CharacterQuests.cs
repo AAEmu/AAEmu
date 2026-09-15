@@ -238,6 +238,7 @@ public class CharacterQuests(Character owner)
             else
             {
                 Logger.Info($"Duplicate quest {questId}, not added!");
+                NotifyAcceptFailed(questId, QuestStatusFailed.AlreadyHave);
                 return false;
             }
         }
@@ -246,15 +247,17 @@ public class CharacterQuests(Character owner)
         if (template == null)
         {
             Logger.Error($"Failed to start new Quest {questId}, invalid Id");
+            NotifyAcceptFailed(questId, QuestStatusFailed.InvalidQuest);
             return false;
         }
 
         if (!forcibly && !template.MeetsContextRequirements(Owner))
         {
-            Logger.Trace(
+            Logger.Warn(
                 "User {0} ({1}) does not meet context requirements for quest {2}: level={3}, minLevel={4}, maxLevel={5}, race={6}, raceMask={7}",
                 Owner.Name, Owner.Id, questId, Owner.Level, template.MinLevel, template.MaxLevel, Owner.Race,
                 template.RaceMask);
+            NotifyAcceptFailed(questId, QuestAcceptFailRules.RequirementNotMet);
             return false;
         }
 
@@ -264,9 +267,12 @@ public class CharacterQuests(Character owner)
         {
             if (!UnitRequirementsGameData.Instance.CanComponentRun(questComponentTemplate, Owner))
             {
-                Logger.Trace($"User {Owner.Name} ({Owner.Id}) does not meet requirements to start new Quest {questId}, ComponentId {questComponentTemplate.Id}");
+                Logger.Warn($"User {Owner.Name} ({Owner.Id}) does not meet requirements to start new Quest {questId}, ComponentId {questComponentTemplate.Id}");
                 if (!forcibly)
+                {
+                    NotifyAcceptFailed(questId, QuestAcceptFailRules.RequirementNotMet);
                     return false;
+                }
             }
         }
 
@@ -280,7 +286,7 @@ public class CharacterQuests(Character owner)
             else if (template.Repeatable == false)
             {
                 Logger.Warn($"Quest {questId} already completed for {Owner.Name}, not added!");
-                Owner.SendErrorMessage(ErrorMessageType.QuestDailyLimit);
+                NotifyAcceptFailed(questId, QuestStatusFailed.AlreadyCompleted);
                 return false;
             }
         }
@@ -315,6 +321,7 @@ public class CharacterQuests(Character owner)
         {
             // If it failed to start, drop the quest here
             DropQuest(questId, true);
+            NotifyAcceptFailed(questId, QuestStatusFailed.InvalidQuestStatus);
             return false;
         }
 
@@ -329,6 +336,11 @@ public class CharacterQuests(Character owner)
         return true;
     }
 
+    private void NotifyAcceptFailed(uint questId, QuestStatusFailed reason)
+    {
+        Owner.SendPacket(new SCQuestContextFailedPacket(questId, reason));
+    }
+
     /// <summary>
     /// Starts a Quest given by a NPC
     /// </summary>
@@ -341,6 +353,7 @@ public class CharacterQuests(Character owner)
         if (npc == null)
         {
             Logger.Warn("AddQuestFromNpc: NPC objId {0} not found for quest {1}", npcObjId, questId);
+            NotifyAcceptFailed(questId, QuestAcceptFailRules.MissingSource(QuestAcceptorType.Npc));
             return false;
         }
         Owner.CurrentTarget = npc;
@@ -369,6 +382,7 @@ public class CharacterQuests(Character owner)
             !DoodadManager.Instance.OffersQuest(observed.TemplateId, questId))
         {
             Logger.Warn("AddQuestFromDoodad: doodad objId {0} not found for quest {1}", doodadObjId, questId);
+            NotifyAcceptFailed(questId, QuestAcceptFailRules.MissingSource(QuestAcceptorType.Doodad));
             return false;
         }
 

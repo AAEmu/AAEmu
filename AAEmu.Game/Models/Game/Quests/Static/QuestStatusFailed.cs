@@ -39,5 +39,9 @@ public enum QuestStatusFailed
     NotEnoughMate_level = 34,
     MateEquipmentsAreNotEmpty = 35,
     PlayerTrade = 36,
-    GameSchedule = 37
+    GameSchedule = 37,
+    CannotWhileTeleport = 38,
+    BlockedQuest = 39,
+    ChronicleInfoNeed = 40,
+    WeeklyLimit = 41
 }
