@@ -34,6 +34,7 @@ public class BuffImmunityApplyTests
     private const uint RequiredTagCarrierId = 91004;
     private const uint CreatorExceptionBuffId = 91010;
     private const uint CreatorExceptionCandidateId = 91011;
+    private const uint RelationZeroBuffId = 91012; // immune_except_creator_relation_check with relation id 0
     private const uint OwnerObjId = 1u;
     private const uint CasterObjId = 2u;
 
@@ -65,6 +66,13 @@ public class BuffImmunityApplyTests
         {
             [ImmuneBuffId] = new() { Id = ImmuneBuffId, Duration = 0 },
             [CreatorExceptionBuffId] = new() { Id = CreatorExceptionBuffId, Duration = 0, ImmuneExceptCreator = true },
+            [RelationZeroBuffId] = new()
+            {
+                Id = RelationZeroBuffId,
+                Duration = 0,
+                ImmuneExceptCreatorRelationCheck = true,
+                ImmuneExceptCreatorRelationId = 0 // enum_skill_target_relation "any"
+            },
             [TaggedCandidateId] = new() { Id = TaggedCandidateId, Duration = 10000 },
             [UntaggedCandidateId] = new() { Id = UntaggedCandidateId, Duration = 10000 },
             [RequiredTagCandidateId] = new() { Id = RequiredTagCandidateId, Duration = 10000 },
@@ -87,7 +95,8 @@ public class BuffImmunityApplyTests
         SetField(skillManager, "_buffImmunityTags", new Dictionary<uint, List<uint>>
         {
             [ImmuneBuffId] = [FreezeTagId],
-            [CreatorExceptionBuffId] = [FreezeTagId]
+            [CreatorExceptionBuffId] = [FreezeTagId],
+            [RelationZeroBuffId] = [FreezeTagId]
         });
         // tagged_require_buffs: the candidate needs the target to carry the value tag.
         SetField(skillManager, "_requiredBuffTags", new Dictionary<uint, List<uint>>
@@ -225,6 +234,35 @@ public class BuffImmunityApplyTests
         ApplyBuffEffect(caster, owner, RequiredTagCandidateId);
 
         await Assert.That(owner.Buffs.CheckBuff(RequiredTagCandidateId)).IsFalse();
+    }
+
+    [Test]
+    public async Task Apply_SameBuffWhileItIsUp_IsNotRefusedByItsOwnGrant()
+    {
+        // 93 동결 carries tag 919 and is immune to 919: the row refuses other buffs, so a second freeze has
+        // to reach Buffs.AddBuff and refresh instead of being turned away at the immunity gate.
+        var (owner, caster) = CreateUnits();
+        ApplyImmuneBuff(owner, caster, ImmuneBuffId);
+
+        var refused = owner.Buffs.CheckBuffImmune(SkillManager.Instance.GetBuffTemplate(ImmuneBuffId), caster);
+        await Assert.That(refused).IsFalse();
+
+        ApplyBuffEffect(caster, owner, ImmuneBuffId);
+        await Assert.That(owner.Buffs.CheckBuff(ImmuneBuffId)).IsTrue();
+    }
+
+    [Test]
+    public async Task Apply_RelationCheckWithIdZero_DoesNotExemptEveryCaster()
+    {
+        // 14408 견본 배 무적 and 32711 겁먹은 페피 송송 ship the relation check on with relation id 0;
+        // IsRelationValid answers true for "any", which used to exempt every caster and make their
+        // immunity rows dead. Through the real helper, the tagged candidate must still be refused.
+        var (owner, caster) = CreateUnits();
+        ApplyImmuneBuff(owner, caster, RelationZeroBuffId);
+
+        ApplyBuffEffect(caster, owner, TaggedCandidateId);
+
+        await Assert.That(owner.Buffs.CheckBuff(TaggedCandidateId)).IsFalse();
     }
 
     private static (BaseUnit Owner, Unit Caster) CreateUnits() =>
