@@ -34,9 +34,12 @@ public static class UnitStateBuffSerializer
 
     private static void WriteRecord(PacketStream stream, Buff effect)
     {
-        var stack = effect.Owner?.Buffs is null
-            ? 1u
-            : (uint)Math.Max(1, effect.Owner.Buffs.GetBuffCountById(effect.Template.BuffId));
+        // One record per live instance, so a per-caster instance reports its own applications and a
+        // one-instance family reports the family total — see Buff.StackCount, which this mirrors.
+        var stack = BuffStackRules.WireStack(
+            effect.Template.StackRule,
+            effect.Stack,
+            effect.Owner?.Buffs?.GetBuffCountById(effect.Template.BuffId) ?? Math.Max(1, effect.Stack));
         var sourceSkillId = effect.Skill is not null &&
                             effect.Skill.Template.ToggleBuffId == effect.Template.Id
             ? effect.Skill.Template.Id

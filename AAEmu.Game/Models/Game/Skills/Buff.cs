@@ -236,8 +236,10 @@ public class Buff
             // Update Duration based on the stack rule:
             if (Template.StackRule == BuffStackRule.Extend)
             {
-                // Extend: new Duration = remaining time (from old timer) + newBuff.Duration.
-                Duration = newBuff.Duration + (int)remaining;
+                // Extend: new Duration = remaining time (from old timer) + newBuff.Duration. GetTimeLeft()
+                // answers -1 for a permanent instance, so the sum goes through the rule, which floors that
+                // sentinel at zero instead of shaving a millisecond off the incoming duration.
+                Duration = BuffStackRules.ExtendedDuration(newBuff.Duration, remaining);
             }
             else
             {
@@ -278,9 +280,32 @@ public class Buff
     /// with the count — a sail's contribution to hull speed among them — from whatever the last packet
     /// told it, so a Create that always claims one application leaves the simulation running on a single
     /// stack of a sixty-stack buff no matter what the client is showing.
+    /// <para>
+    /// Which figure that is depends on the rule: a family that lives as one instance reports the family
+    /// total, while an instance that belongs to one caster (Independent, Multiple, MultipleDecreaseOne)
+    /// reports the applications it represents itself, or every icon of the family would print the other
+    /// instances' stacks.
+    /// </para>
     /// </remarks>
     public uint StackCount =>
-        Owner?.Buffs == null ? 1u : (uint)Math.Max(1, Owner.Buffs.GetBuffCountById(Template.BuffId));
+        BuffStackRules.WireStack(
+            Template.StackRule,
+            Stack,
+            Owner?.Buffs?.GetBuffCountById(Template.BuffId) ?? Math.Max(1, Stack));
+
+    /// <summary>
+    /// <see cref="BuffStackRule.ChargeExtend"/>: takes the summed charge of an incoming application,
+    /// held at the ceiling by the caller.
+    /// </summary>
+    public void AddCharge(int charge)
+    {
+        lock (_lock)
+        {
+            Charge = Math.Max(0, charge);
+        }
+
+        NotifyUpdated(reason: 2); // charge changed, the same code ConsumeCharge sends
+    }
 
     /// <summary>
     /// Push SC + WZ BuffUpdated so clients and Zone see charge/duration changes after Create.
