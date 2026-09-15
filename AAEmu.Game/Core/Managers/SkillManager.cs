@@ -898,6 +898,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
             {
                 command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type='Buff'"; // TODO OwnerType: BuffUnitModifier -> buff_unit_modifiers
                 command.Prepare();
+                var attributeIds = new List<long>();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
                     while (reader.Read())
@@ -905,15 +906,21 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         var buffId = reader.GetUInt32("owner_id", 0);
                         if (!_buffs.TryGetValue(buffId, out var buff))
                             continue;
+                        var attributeId = reader.GetUInt32("unit_attribute_id", 0);
+                        attributeIds.Add(attributeId);
                         var template = new BonusTemplate
                         {
-                            Attribute = (UnitAttribute)reader.GetUInt32("unit_attribute_id", 0), ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id", 0),
+                            Attribute = (UnitAttribute)attributeId, ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id", 0),
                             Value = reader.GetInt64("value", 0),
                             LinearLevelBonus = reader.GetInt32("linear_level_bonus", 0)
                         };
                         buff.Bonuses.Add(template);
                     }
                 }
+
+                var unknownIds = UnitAttributeLoadRules.UnknownIds(attributeIds);
+                if (unknownIds.Count > 0)
+                    Logger.Warn(UnitAttributeLoadRules.Warning("unit_modifiers (owner_type='Buff')", unknownIds));
             }
             using (var command = connection.CreateCommand())
             {
@@ -938,6 +945,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
             {
                 command.CommandText = "SELECT * FROM dynamic_unit_modifiers";
                 command.Prepare();
+                var dynamicAttributeIds = new List<long>();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
                     while (reader.Read())
@@ -945,15 +953,21 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         var buffId = reader.GetUInt32("buff_id", 0);
                         if (!_buffs.TryGetValue(buffId, out var buff))
                             continue;
+                        var attributeId = reader.GetUInt32("unit_attribute_id", 0);
+                        dynamicAttributeIds.Add(attributeId);
                         var template = new DynamicBonusTemplate
                         {
-                            Attribute = (UnitAttribute)reader.GetUInt32("unit_attribute_id", 0), ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id", 0),
+                            Attribute = (UnitAttribute)attributeId, ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id", 0),
                             FuncId = reader.GetUInt32("func_id", 0),
                             FuncType = reader.GetString("func_type", "")
                         };
                         buff.DynamicBonuses.Add(template);
                     }
                 }
+
+                var unknownDynamicIds = UnitAttributeLoadRules.UnknownIds(dynamicAttributeIds);
+                if (unknownDynamicIds.Count > 0)
+                    Logger.Warn(UnitAttributeLoadRules.Warning("dynamic_unit_modifiers", unknownDynamicIds));
             }
 
             using (var command = connection.CreateCommand())

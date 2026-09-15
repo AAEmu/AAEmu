@@ -1,4 +1,5 @@
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Plots;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Plots.Type;
@@ -97,16 +98,22 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
             {
                 command.CommandText = "SELECT * FROM plot_conditions";
                 command.Prepare();
+                var unitAttributeIds = new List<long>();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
                     while (reader.Read())
                     {
+                        var kind = (PlotConditionType)reader.GetInt32("kind_id");
+                        var param1 = reader.GetInt32("param1");
+                        // Kind 13 reads its attribute id from param1 (PlotCondition.ConditionUnitAttrib).
+                        if (kind == PlotConditionType.UnitAttrib)
+                            unitAttributeIds.Add(param1);
                         var template = new PlotCondition
                         {
                             Id = reader.GetUInt32("id"),
                             NotCondition = reader.GetBoolean("not_condition", true),
-                            Kind = (PlotConditionType)reader.GetInt32("kind_id"),
-                            Param1 = reader.GetInt32("param1"),
+                            Kind = kind,
+                            Param1 = param1,
                             Param2 = reader.GetInt32("param2"),
                             Param3 = reader.GetInt32("param3"),
                             // Kind 20 (unit_reqs) carries its checks in unit_reqs rows owned by this condition
@@ -117,6 +124,10 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                         _conditions.Add(template.Id, template);
                     }
                 }
+
+                var unknownIds = UnitAttributeLoadRules.UnknownIds(unitAttributeIds);
+                if (unknownIds.Count > 0)
+                    Logger.Warn(UnitAttributeLoadRules.Warning("plot_conditions (kind_id=13, param1)", unknownIds));
             }
 
             using (var command = connection.CreateCommand())
