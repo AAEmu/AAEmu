@@ -58,10 +58,13 @@ public class OpenPortalRulesTests
     }
 
     [Test]
-    public async Task WithinDistance_IgnoresHeight()
+    public async Task WithinDistance_RejectsHeightTheOwnerCannotReach()
     {
-        // The measure is the ground-plane one the rest of the skill code uses: the effect never passed
-        // includeZAxis, and a portal is placed on the ground under the owner either way.
-        await Assert.That(OpenPortalRules.IsWithinOpenDistance(Owner + new Vector3(0f, 0f, 100f), Owner, Distance)).IsTrue();
+        // The effect packs the client's Z into the position it hands over and the rest of the skill code
+        // measures in three dimensions, so a portal directly overhead is out of reach.
+        await Assert.That(OpenPortalRules.IsWithinOpenDistance(Owner + new Vector3(0f, 0f, 100f), Owner, Distance)).IsFalse();
+        await Assert.That(OpenPortalRules.IsWithinOpenDistance(Owner - new Vector3(0f, 0f, 100f), Owner, Distance)).IsFalse();
+        // A small step up is still inside the radius: 2 + 2 is 2.83 away.
+        await Assert.That(OpenPortalRules.IsWithinOpenDistance(Owner + new Vector3(0f, 0f, 2f), Owner, Distance)).IsTrue();
     }
 }

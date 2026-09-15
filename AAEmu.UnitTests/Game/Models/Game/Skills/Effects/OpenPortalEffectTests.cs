@@ -73,14 +73,25 @@ public class OpenPortalEffectTests
     }
 
     [Test]
-    public async Task Apply_PortalAboveItsOwner_IsHandedToThePortalManager()
+    public async Task Apply_PortalAboveItsOwner_IsRefused()
     {
-        // The measure is the ground-plane one the rest of the skill code uses, as the old comparison
-        // was: a portal placed at the owner's own X/Y opens whatever the height difference.
+        // Distance 3.0 is a three-dimensional radius, so 150 units up is out of reach; the client names
+        // the position it wants and the effect is what refuses it.
         var zoneManager = Mock.Of<IZoneManager>();
         InstallPortalManager(zoneManager.Object);
 
         Apply(new OpenPortalEffect { Distance = 3f }, CreateOwner(1000f, 1000f, 100f), 1000f, 1000f, 250f);
+
+        zoneManager.GetTargetIdByZoneId(Any<uint>()).WasCalled(Times.Never);
+    }
+
+    [Test]
+    public async Task Apply_PortalAStepAboveItsOwner_IsHandedToThePortalManager()
+    {
+        var zoneManager = Mock.Of<IZoneManager>();
+        InstallPortalManager(zoneManager.Object);
+
+        Apply(new OpenPortalEffect { Distance = 3f }, CreateOwner(1000f, 1000f, 100f), 1000f, 1000f, 102f);
 
         zoneManager.GetTargetIdByZoneId(Any<uint>()).WasCalled(Times.Exactly(2));
     }

@@ -90,6 +90,27 @@ public class DamageEffectTargetChargedBuffTests
         await Assert.That(damage).IsLessThanOrEqualTo(100_500);
     }
 
+    [Test]
+    public async Task Apply_TargetChargedBuff_WithoutASkill_StillPaysTheTargetsCharges()
+    {
+        // damage_effects 4249, 5340 and 7140 are reached through buff_triggers rather than skill_effects,
+        // and a trigger's EffectSource carries no Skill, so the branch used to be skipped entirely there.
+        var caster = CreateCaster();
+        var target = CreateTarget();
+        var targetBuffs = Mock.Of<IBuffs>();
+        targetBuffs.GetEffectFromBuffId(CasterChargedBuffId)
+            .Returns(CreateChargedBuff(target, caster, CasterChargedBuffId, charges: 1000));
+        targetBuffs.GetAbsorptionEffects().Returns([]);
+        target.Buffs = targetBuffs.Object;
+
+        ApplyAsTrigger(CreateEffect(CasterChargedBuffId, chargedMul: 50f, CasterChargedBuffId, targetChargedMul: 100f),
+            caster, target);
+
+        var damage = target.MaxHp - target.Hp;
+        await Assert.That(damage).IsGreaterThanOrEqualTo(100_000);
+        await Assert.That(damage).IsLessThanOrEqualTo(100_500);
+    }
+
     private static Unit CreateCaster() => new()
     {
         ObjId = 500,
@@ -150,5 +171,17 @@ public class DamageEffectTargetChargedBuffTests
 
         effect.Apply(caster, new SkillCasterUnit(caster.ObjId), target, new SkillCastUnitTarget(target.ObjId),
             new CastSkill(SkillId, 1), new EffectSource(skill), null, DateTime.UtcNow);
+    }
+
+    /// <summary>
+    /// The shape a buff trigger uses: a <see cref="CastBuff"/> action and an <see cref="EffectSource"/>
+    /// carrying the buff with no skill behind it, which is what a trigger with no skill sends.
+    /// </summary>
+    private static void ApplyAsTrigger(DamageEffect effect, Unit caster, Unit target)
+    {
+        var buff = CreateChargedBuff(target, caster, CasterChargedBuffId, charges: 0);
+
+        effect.Apply(caster, new SkillCasterUnit(caster.ObjId), target, new SkillCastUnitTarget(target.ObjId),
+            new CastBuff(buff), new EffectSource(buff.Template), null, DateTime.UtcNow);
     }
 }

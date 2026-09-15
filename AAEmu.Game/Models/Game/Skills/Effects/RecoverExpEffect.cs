@@ -46,25 +46,31 @@ public class RecoverExpEffect : EffectTemplate
             return;
         }
 
-        if (NeedMoney)
+        // Both pools are checked before either is charged. Money used to leave the character before the
+        // labour check ran, and a cast refused for labour kept the money with the penalty still in place.
+        var cost = NeedMoney ? ExpRecoveryCost(character) : 0;
+        if (NeedMoney && character.Money < cost)
         {
-            var cost = ExpRecoveryCost(character);
-            if (!character.SubtractMoney(SlotType.Inventory, cost, ItemTaskType.SkillEffectConsumption))
-            {
-                character.SendErrorMessage(ErrorMessageType.NotEnoughMoney);
-                return;
-            }
+            character.SendErrorMessage(ErrorMessageType.NotEnoughMoney);
+            return;
+        }
+
+        if (NeedLaborPower && character.LaborPower + character.LocalLaborPower < ExpRecoveryLabor)
+        {
+            character.SendErrorMessage(ErrorMessageType.NotEnoughLaborPower);
+            return;
+        }
+
+        if (NeedMoney &&
+            !character.SubtractMoney(SlotType.Inventory, cost, ItemTaskType.SkillEffectConsumption))
+        {
+            character.SendErrorMessage(ErrorMessageType.NotEnoughMoney);
+            return;
         }
 
         if (NeedLaborPower)
         {
             // Both pools pay; see Character.ChangeLabor.
-            if (character.LaborPower + character.LocalLaborPower < ExpRecoveryLabor)
-            {
-                character.SendErrorMessage(ErrorMessageType.NotEnoughLaborPower);
-                return;
-            }
-
             character.ChangeLabor((short)-ExpRecoveryLabor, 0);
         }
 

@@ -13,7 +13,11 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// with target_charged_mul 60, 4456/4520 target 5372 with the same 60 — and each is referenced by one
 /// enabled skill_effect (18533 참수, 18825/21144 고드프리의 참수, 21258 참수). 4249/5340 name buff 899
 /// (누적 피해, max_charge 1000) on both sides with charged_mul 50 against target_charged_mul 100, and
-/// 7140 names 899/50 on both.
+/// 7140 names 899/50 on both. The eighth, 7674, is unreachable: target buff 15594 with
+/// target_charged_mul 1.0 and <c>use_fixed_damage='t'</c>, and no <c>skill_effects</c> or
+/// <c>buff_triggers</c> row names it. Rows 4249, 5340 and 7140 are reached through
+/// <c>buff_triggers</c> rather than <c>skill_effects</c>, so a trigger with no skill uses the target
+/// branch and must not be gated on <c>source.Skill</c>.
 /// </remarks>
 public static class ChargedBuffRules
 {

@@ -67,6 +67,21 @@ public class RecoverExpEffectTests
     }
 
     [Test]
+    public async Task Apply_WithMoneyButNoLabour_ChargesNoMoney()
+    {
+        // Both requirements are checked before either is charged. The money used to leave the character
+        // before the labour check ran, and nothing refunded it when the cast was refused.
+        var effect = new RecoverExpEffect { NeedMoney = true, NeedLaborPower = true };
+        var character = CreateCharacter();
+        character.Money = 100_000; // level 50 prices the recovery at 50_000
+
+        Apply(effect, CreateCharacter(), character);
+
+        await Assert.That(character.Money).IsEqualTo(100_000);
+        await Assert.That(character.RezPenaltyDuration).IsEqualTo(PenaltySeconds);
+    }
+
+    [Test]
     public async Task Apply_WithNoPenalty_LeavesTheCharacterAlone()
     {
         var effect = new RecoverExpEffect();
