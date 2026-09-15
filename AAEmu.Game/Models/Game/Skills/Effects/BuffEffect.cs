@@ -14,13 +14,24 @@ public class BuffEffect : EffectTemplate
     public int Stack { get; set; }
     public int AbLevel { get; set; }
     public BuffTemplate Buff { get; set; }
-    public override uint BuffId => Buff.Id;
-    public override bool OnActionTime => Buff.Tick > 0;
+
+    /// <summary>
+    /// The buff this effect applies, or 0 when <c>buff_effects.buff_id</c> names no <c>buffs</c> row.
+    /// Callers test this against a buff id they already hold, so 0 never matches a real buff.
+    /// </summary>
+    public override uint BuffId => BuffEffectDispatchRules.ResolveBuffId(Buff);
+    public override bool OnActionTime => BuffEffectDispatchRules.HasTick(Buff);
 
     public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
+        // 41 buff_effects rows in 10.0.2.13 name a buff_id that has no buffs row. The row is still
+        // reachable — this skill path, the tick path, buff triggers and plot effects all resolve it
+        // through the effect-id table — so it has to do nothing instead of dereferencing a null Buff.
+        if (!BuffEffectDispatchRules.IsDispatchable(Buff))
+            return;
+
         if (target is Unit trg)
         {
             var hitType = SkillHitType.Invalid;

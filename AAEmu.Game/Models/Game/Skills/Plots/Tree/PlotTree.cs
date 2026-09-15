@@ -259,6 +259,45 @@ public class PlotTree(uint plotId)
         }
     }
 
+    /// <summary>
+    /// Ends a plot that has no tree to execute, through the same sequence <see cref="ExecuteAsync"/>
+    /// finishes with. <see cref="PlotEndRules.ShouldEndWithoutTree"/> decides when this applies — 67 plots
+    /// in 10.0.2.13 have no position-1 event, and 30 skills still cast them.
+    /// </summary>
+    /// <remarks>
+    /// DoPlotEnd clears the caster's ActivePlotState but not the skill's — Plot.RunAsync sets
+    /// Skill.ActivePlotState and the tree's own end path never had to undo it. Clear it here too, so a
+    /// finished skill does not keep handing SetVariable / PlotCondition a plot state that is over; both
+    /// read skill.ActivePlotState before the caster's.
+    /// </remarks>
+    public static void EndPlotWithoutTree(PlotState state)
+    {
+        if (state == null)
+            return;
+
+        DoPlotEnd(state);
+
+        if (state.ActiveSkill?.ActivePlotState == state)
+            state.ActiveSkill.ActivePlotState = null;
+    }
+
+    /// <summary>
+    /// Drops a plot state that a cast path still owns: both <c>ActivePlotState</c> fields are cleared and
+    /// nothing else happens. The cast's own <c>EndSkill</c> is what arms the cooldown, releases the TlId
+    /// and fires <c>OnSkillEnd</c>, so doing any of that here would end the skill twice from a plot thread.
+    /// </summary>
+    public static void DropPlotState(PlotState state)
+    {
+        if (state == null)
+            return;
+
+        if (state.Caster?.ActivePlotState == state)
+            state.Caster.ActivePlotState = null;
+
+        if (state.ActiveSkill?.ActivePlotState == state)
+            state.ActiveSkill.ActivePlotState = null;
+    }
+
     private static void DoPlotEnd(PlotState state)
     {
         state.Caster?.BroadcastPacket(new SCPlotEndedPacket(state.ActiveSkill.TlId), true);

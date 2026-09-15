@@ -855,23 +855,58 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 }
             }
 
+            // passive_buffs is read before buffs, so the missing-template check can only run here. Four rows
+            // in 10.0.2.13 name a buff that is not in buffs (passive 51→581, 268→11161, 274→13819,
+            // 289→15562); every one of them was loaded and then dereferenced the null template on Apply.
+            var skippedPassiveBuffs = new List<(uint RowId, uint BuffId)>();
+            foreach (var (passiveBuffId, passiveBuff) in _passiveBuffs.ToList())
+            {
+                if (_buffs.ContainsKey(passiveBuff.BuffId))
+                    continue;
+                skippedPassiveBuffs.Add((passiveBuffId, passiveBuff.BuffId));
+                _passiveBuffs.Remove(passiveBuffId);
+            }
+
+            if (skippedPassiveBuffs.Count > 0)
+                Logger.Warn("10.0.2.13: {0} passive_buffs rows name a buff_id with no buffs row and were skipped ({1})",
+                    skippedPassiveBuffs.Count,
+                    string.Join(", ", skippedPassiveBuffs.Select(row => $"{row.RowId}->{row.BuffId}")));
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM buff_effects";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
+                    var missingBuffTemplates = new List<(uint RowId, uint BuffId)>();
                     while (reader.Read())
                     {
                         var template = new BuffEffect { Id = reader.GetUInt32("id", 0) };
                         var buffId = reader.GetUInt32("buff_id", 0);
                         if (_buffs.TryGetValue(buffId, out var buff))
+                        {
                             template.Buff = buff;
+                        }
+                        else
+                        {
+                            // 41 rows in 10.0.2.13 name a buff that is not in buffs; the row stays registered
+                            // so the effect-id lookups that point at it (19 enabled skill_effects, 2 enabled
+                            // buff_triggers, 2 buff_tick_effects, plot_effects) still resolve, but
+                            // BuffEffect refuses to apply without a buff template (see BuffEffectDispatchRules).
+                            // Removing it here instead would hand those call sites a null effect template, and
+                            // BuffTemplate.DoAreaTick does not check GetEffectTemplate for null.
+                            missingBuffTemplates.Add((template.Id, buffId));
+                        }
                         template.Chance = reader.GetInt32("chance", 0);
                         template.Stack = reader.GetInt32("stack", 0);
                         template.AbLevel = reader.GetInt32("ab_level", 0);
                         _effects["BuffEffect"][template.Id] = template;
                     }
+
+                    if (missingBuffTemplates.Count > 0)
+                        Logger.Warn("10.0.2.13: {0} buff_effects rows name a buff_id with no buffs row and are inert ({1})",
+                            missingBuffTemplates.Count,
+                            string.Join(", ", missingBuffTemplates.Select(row => $"{row.RowId}->{row.BuffId}")));
                 }
             }
             using (var command = connection.CreateCommand())

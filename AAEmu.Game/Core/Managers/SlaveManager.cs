@@ -2968,6 +2968,10 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         foreach (var buff in summonedSlave.Template.PassiveBuffs)
         {
             var passive = SkillManager.Instance.GetPassiveBuffTemplate(buff.PassiveBuffId);
+            // A slave template may name a passive_buffs row the loader dropped, so the buff is skipped
+            // rather than dereferenced.
+            if (passive == null)
+                continue;
             summonedSlave.Buffs.AddBuff(passive.BuffId, summonedSlave);
         }
 

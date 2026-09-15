@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -101,6 +101,10 @@ public class CharacterSkills(Character owner)
     {
         // Check if what we want to learn is part of an active skill tree (or not part of one)
         var template = SkillManager.Instance.GetPassiveBuffTemplate(buffId);
+        // buffId comes straight off CSLearnBuffPacket, so an unknown one has to be refused rather than
+        // dereferenced: passive_buffs 51, 268, 274 and 289 name a buff that is not in the table.
+        if (template == null)
+            return;
         if (template.AbilityId > 0 &&
            template.AbilityId != Owner.Ability1 &&
            template.AbilityId != Owner.Ability2 &&
@@ -233,7 +237,13 @@ public class CharacterSkills(Character owner)
                             break;
                         case SkillType.Buff:
                             var buffId = reader.GetUInt32("id");
-                            var buff = new PassiveBuff { Id = buffId, Template = SkillManager.Instance.GetPassiveBuffTemplate(buffId) };
+                            // A saved passive whose template is gone is skipped rather than dereferenced:
+                            // the loader already dropped those rows, and PassiveBuff.Apply would have
+                            // thrown on the null template.
+                            var passiveTemplate = SkillManager.Instance.GetPassiveBuffTemplate(buffId);
+                            if (passiveTemplate == null)
+                                break;
+                            var buff = new PassiveBuff { Id = buffId, Template = passiveTemplate };
                             PassiveBuffs.Add(buff.Id, buff);
                             buff.Apply(Owner);
                             break;
