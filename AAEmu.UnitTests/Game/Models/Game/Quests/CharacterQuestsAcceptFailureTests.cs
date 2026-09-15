@@ -65,7 +65,7 @@ public sealed class CharacterQuestsAcceptFailureTests
     {
         _character.Quests.ActiveQuests[QuestId] = CreateQuest();
 
-        var accepted = _character.Quests.AddQuest(QuestId);
+        var accepted = _character.Quests.AddQuest(QuestId, answerClient: true);
 
         await Assert.That(accepted).IsFalse();
         await AssertRefusalPacket(QuestId, QuestStatusFailed.AlreadyHave);
@@ -77,7 +77,7 @@ public sealed class CharacterQuestsAcceptFailureTests
         const uint questId = 10914;
         SeedGuildPublicAssignment(questId);
 
-        var accepted = _character.Quests.AddQuest(questId);
+        var accepted = _character.Quests.AddQuest(questId, answerClient: true);
 
         await Assert.That(accepted).IsFalse();
         await Assert.That(_character.Quests.HasQuest(questId)).IsFalse();
@@ -87,7 +87,16 @@ public sealed class CharacterQuestsAcceptFailureTests
     [Test]
     public async Task UnknownQuestTemplate_TellsClientInvalidQuest()
     {
-        var accepted = _character.Quests.AddQuest(QuestId);
+        var accepted = _character.Quests.AddQuest(QuestId, answerClient: true);
+
+        await Assert.That(accepted).IsFalse();
+        await AssertRefusalPacket(QuestId, QuestStatusFailed.InvalidQuest);
+    }
+
+    [Test]
+    public async Task SphereAcceptTheClientAskedFor_IsAnswered()
+    {
+        var accepted = _character.Quests.AddQuestFromSphere(QuestId, 7, answerClient: true);
 
         await Assert.That(accepted).IsFalse();
         await AssertRefusalPacket(QuestId, QuestStatusFailed.InvalidQuest);
@@ -98,7 +107,7 @@ public sealed class CharacterQuestsAcceptFailureTests
     {
         PublishWorld();
 
-        var accepted = _character.Quests.AddQuestFromNpc(QuestId, 0xDEAD);
+        var accepted = _character.Quests.AddQuestFromNpc(QuestId, 0xDEAD, answerClient: true);
 
         await Assert.That(accepted).IsFalse();
         await AssertRefusalPacket(QuestId, QuestAcceptFailRules.MissingSource(QuestAcceptorType.Npc));
@@ -109,10 +118,31 @@ public sealed class CharacterQuestsAcceptFailureTests
     {
         PublishWorld();
 
-        var accepted = _character.Quests.AddQuestFromDoodad(QuestId, 0xDEAD);
+        var accepted = _character.Quests.AddQuestFromDoodad(QuestId, 0xDEAD, answerClient: true);
 
         await Assert.That(accepted).IsFalse();
         await AssertRefusalPacket(QuestId, QuestAcceptFailRules.MissingSource(QuestAcceptorType.Doodad));
+    }
+
+    [Test]
+    public async Task AutomaticAccepts_AreRefusedWithoutAnsweringTheClient()
+    {
+        // The server starts quests on its own: entering a quest-starter sphere, a chain's next quest
+        // after a completion, a guild assignment probe. None of those has an Accept window open, so a
+        // refusal there must not put an error on screen.
+        PublishWorld();
+        _character.Quests.ActiveQuests[QuestId] = CreateQuest();
+
+        var duplicate = _character.Quests.AddQuest(QuestId);
+        var sphere = _character.Quests.AddQuestFromSphere(QuestId + 1, 7);
+        var chained = _character.Quests.AddQuest(QuestId + 2, false, QuestAcceptorType.Npc, 12);
+        var missingNpc = _character.Quests.AddQuestFromNpc(QuestId + 3, 0xDEAD);
+
+        await Assert.That(duplicate).IsFalse();
+        await Assert.That(sphere).IsFalse();
+        await Assert.That(chained).IsFalse();
+        await Assert.That(missingNpc).IsFalse();
+        await Assert.That(_sentPackets.Count).IsEqualTo(0);
     }
 
     private void PublishWorld()

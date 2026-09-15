@@ -34,9 +34,21 @@ public class QuestTemplate : IQuestTemplate
     public bool HideChapterIndex { get; set; }
     public IDictionary<uint, QuestComponentTemplate> Components { get; set; } = new Dictionary<uint, QuestComponentTemplate>();
 
+    /// <summary>
+    /// The level half of <see cref="MeetsContextRequirements"/>, so a refusal can name the level gate
+    /// on the client's own level row instead of the generic requirement row.
+    /// </summary>
+    public bool MeetsLevelRequirements(Character character)
+    {
+        if (character == null)
+            return false;
+
+        return character.Level >= MinLevel && (MaxLevel == 0 || character.Level <= MaxLevel);
+    }
+
     public bool MeetsContextRequirements(Character character)
     {
-        if (character == null || character.Level < MinLevel || MaxLevel > 0 && character.Level > MaxLevel)
+        if (!MeetsLevelRequirements(character))
             return false;
 
         if (RaceMask == byte.MaxValue)
