@@ -2,6 +2,8 @@ using System.Reflection;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -40,6 +42,15 @@ public class BuffRemoveOnApplyTests
     private const uint ExistingFlagBuffId = 93013;
     private const uint ExemptBuffId = 93014;
     private const uint PerCasterBreakerBuffId = 93015;
+    private const uint AttackUmbrellaBuffId = 93016;
+    private const uint AttackedUmbrellaBuffId = 93017;
+    private const uint DamageUmbrellaBuffId = 93018;
+    private const uint AutoAttackFlagBuffId = 93019;
+    private const uint AttackTriggerFlagBuffId = 93020;
+    private const uint DamagedTriggerFlagBuffId = 93021;
+    private const uint DamagedDotFlagBuffId = 93022;
+    private const uint AttackedEtcDotFlagBuffId = 93023;
+    private const uint AttackedSpellDotFlagBuffId = 93024;
     private const uint FlagBuffBaseId = 93100;
     private const int DurationMs = 600000;
 
@@ -124,7 +135,26 @@ public class BuffRemoveOnApplyTests
             [WideMaskBuffId] = Good(WideMaskBuffId, changeEquipmentsMask: 134733823),
             [ExistingFlagBuffId] = Good(ExistingFlagBuffId, removeOnMove: true),
             [ExemptBuffId] = Good(ExemptBuffId, removeOnExempt: true),
-            [PerCasterBreakerBuffId] = Good(PerCasterBreakerBuffId)
+            [PerCasterBreakerBuffId] = Good(PerCasterBreakerBuffId),
+            // The damage path's sides, one flag each, so a test can tell which of them was raised.
+            [AttackUmbrellaBuffId] = new BuffTemplate
+            { Id = AttackUmbrellaBuffId, Duration = DurationMs, Kind = BuffKind.Good, RemoveOnAttackEtc = true },
+            [AttackedUmbrellaBuffId] = new BuffTemplate
+            { Id = AttackedUmbrellaBuffId, Duration = DurationMs, Kind = BuffKind.Good, RemoveOnAttackedEtc = true },
+            [DamageUmbrellaBuffId] = new BuffTemplate
+            { Id = DamageUmbrellaBuffId, Duration = DurationMs, Kind = BuffKind.Good, RemoveOnDamageEtc = true },
+            [AutoAttackFlagBuffId] = new BuffTemplate
+            { Id = AutoAttackFlagBuffId, Duration = DurationMs, Kind = BuffKind.Good, RemoveOnAutoAttack = true },
+            [AttackTriggerFlagBuffId] = new BuffTemplate
+            { Id = AttackTriggerFlagBuffId, Duration = DurationMs, Kind = BuffKind.Good, RemoveOnAttackBuffTrigger = true },
+            [DamagedTriggerFlagBuffId] = new BuffTemplate
+            { Id = DamagedTriggerFlagBuffId, Duration = DurationMs, Kind = BuffKind.Good, RemoveOnDamagedBuffTrigger = true },
+            [DamagedDotFlagBuffId] = new BuffTemplate
+            { Id = DamagedDotFlagBuffId, Duration = DurationMs, Kind = BuffKind.Good, RemoveOnDamagedEtcDot = true },
+            [AttackedEtcDotFlagBuffId] = new BuffTemplate
+            { Id = AttackedEtcDotFlagBuffId, Duration = DurationMs, Kind = BuffKind.Good, RemoveOnAttackedEtcDot = true },
+            [AttackedSpellDotFlagBuffId] = new BuffTemplate
+            { Id = AttackedSpellDotFlagBuffId, Duration = DurationMs, Kind = BuffKind.Good, RemoveOnAttackedSpellDot = true }
         };
         foreach (var (flag, _) in NewFlagCases)
             buffs[FlagBuffId(flag)] = FlagTemplate(flag);
@@ -472,10 +502,147 @@ public class BuffRemoveOnApplyTests
         await Assert.That(owner.Buffs.CheckBuff(WideMaskBuffId)).IsFalse();
     }
 
+    // ---------------------------------------------------------------- the damage path raises them
+
+    [Test]
+    public async Task DamageEffect_OrdinaryHit_RaisesTheUmbrellaOnBothSides()
+    {
+        // The flags the damage path already raised, driven through it: the attacker's attack_etc and the
+        // target's attacked_etc on every hit, damage_etc/damaged_etc once damage was dealt. Nothing narrow
+        // is raised for an ordinary hit, so the auto-attack and trigger buffs survive it.
+        var (caster, target) = CreateCombatants();
+        ApplyBuff(caster, caster, AttackUmbrellaBuffId);
+        ApplyBuff(target, caster, AttackedUmbrellaBuffId);
+        ApplyBuff(caster, caster, AutoAttackFlagBuffId);
+        ApplyBuff(caster, caster, AttackTriggerFlagBuffId);
+        ApplyBuff(target, caster, AttackedEtcDotFlagBuffId);
+
+        ApplyDamageEffect(caster, target, skill: null, source: new EffectSource());
+
+        await Assert.That(caster.Buffs.CheckBuff(AttackUmbrellaBuffId)).IsFalse();
+        await Assert.That(target.Buffs.CheckBuff(AttackedUmbrellaBuffId)).IsFalse();
+        await Assert.That(caster.Buffs.CheckBuff(AutoAttackFlagBuffId)).IsTrue();
+        await Assert.That(caster.Buffs.CheckBuff(AttackTriggerFlagBuffId)).IsTrue();
+        await Assert.That(target.Buffs.CheckBuff(AttackedEtcDotFlagBuffId)).IsTrue();
+    }
+
+    [Test]
+    public async Task DamageEffect_WeaponAutoAttack_RaisesAutoAttackOnTheAttacker()
+    {
+        // skills.weapon_slot_for_autoattack_id is the content's own marker for 2 근접 공격 / 3 Offhand /
+        // 4 원거리 공격; a hit from one of those ends the attacker's poses, songs and stealth.
+        var (caster, target) = CreateCombatants();
+        var autoAttack = new Skill { Template = new SkillTemplate { Id = 2, WeaponSlotForAutoAttackId = 15 } };
+        ApplyBuff(caster, caster, AutoAttackFlagBuffId);
+
+        ApplyDamageEffect(caster, target, autoAttack, new EffectSource(autoAttack));
+
+        await Assert.That(caster.Buffs.CheckBuff(AutoAttackFlagBuffId)).IsFalse();
+    }
+
+    [Test]
+    public async Task DamageEffect_OrdinarySkill_DoesNotRaiseAutoAttack()
+    {
+        var (caster, target) = CreateCombatants();
+        // A weapon slot of -1 is "not a weapon auto-attack", which is what the rest of the column says.
+        var skill = new Skill { Template = new SkillTemplate { Id = 19001, WeaponSlotForAutoAttackId = -1 } };
+        ApplyBuff(caster, caster, AutoAttackFlagBuffId);
+
+        ApplyDamageEffect(caster, target, skill, new EffectSource(skill));
+
+        await Assert.That(caster.Buffs.CheckBuff(AutoAttackFlagBuffId)).IsTrue();
+    }
+
+    [Test]
+    public async Task DamageEffect_TriggerHit_RaisesTheBuffTriggerMemberOnBothSides()
+    {
+        var (caster, target) = CreateCombatants();
+        ApplyBuff(caster, caster, AttackTriggerFlagBuffId);
+        ApplyBuff(target, caster, DamagedTriggerFlagBuffId);
+
+        ApplyDamageEffect(caster, target, skill: null, source: new EffectSource { FromBuffTrigger = true });
+
+        await Assert.That(caster.Buffs.CheckBuff(AttackTriggerFlagBuffId)).IsFalse();
+        await Assert.That(target.Buffs.CheckBuff(DamagedTriggerFlagBuffId)).IsFalse();
+    }
+
+    [Test]
+    public async Task DamageEffect_TriggerHit_DoesNotRaiseThePlainDamageFlagOnly()
+    {
+        // The umbrella is additive, so a trigger hit raises damage_etc as well; what it adds is the
+        // *_buff_trigger member. This pins that a trigger hit is not mistaken for an ordinary one.
+        var (caster, target) = CreateCombatants();
+        ApplyBuff(caster, caster, DamageUmbrellaBuffId);
+        ApplyBuff(caster, caster, AutoAttackFlagBuffId);
+
+        ApplyDamageEffect(caster, target, skill: null, source: new EffectSource { FromBuffTrigger = true });
+
+        await Assert.That(caster.Buffs.CheckBuff(DamageUmbrellaBuffId)).IsFalse();
+        await Assert.That(caster.Buffs.CheckBuff(AutoAttackFlagBuffId)).IsTrue();
+    }
+
+    [Test]
+    public async Task DamageEffect_DamageOverTimeTick_RaisesTheDotMember()
+    {
+        // A tick is recognised by the buff it belongs to carrying tick effects, which is the same
+        // discrimination the already-raised damage_*_dot flags use. The target-side etc-dot member is one
+        // of the four added here; the spell-dot one is its sibling and must not fire for a melee tick.
+        var (caster, target) = CreateCombatants();
+        var dot = SkillManager.Instance.GetBuffTemplate(VictimBuffId);
+        dot.TickEffects.Add(new TickEffect());
+        ApplyBuff(target, caster, DamagedDotFlagBuffId);
+        ApplyBuff(target, caster, AttackedEtcDotFlagBuffId);
+        ApplyBuff(target, caster, AttackedSpellDotFlagBuffId);
+        ApplyBuff(target, caster, AttackedUmbrellaBuffId);
+
+        ApplyDamageEffect(caster, target, skill: null, source: new EffectSource(dot), DamageType.Melee);
+
+        await Assert.That(target.Buffs.CheckBuff(DamagedDotFlagBuffId)).IsFalse();
+        await Assert.That(target.Buffs.CheckBuff(AttackedEtcDotFlagBuffId)).IsFalse();
+        await Assert.That(target.Buffs.CheckBuff(AttackedSpellDotFlagBuffId)).IsTrue();
+        // The umbrella of the same side goes too, which is what the additive rows say.
+        await Assert.That(target.Buffs.CheckBuff(AttackedUmbrellaBuffId)).IsFalse();
+
+        // A magic tick is the other half of the split.
+        ApplyBuff(target, caster, AttackedSpellDotFlagBuffId);
+        ApplyDamageEffect(caster, target, skill: null, source: new EffectSource(dot), DamageType.Magic);
+
+        await Assert.That(target.Buffs.CheckBuff(AttackedSpellDotFlagBuffId)).IsFalse();
+    }
+
     // ---------------------------------------------------------------- fixtures
 
     private static (BaseUnit Owner, Unit Caster) CreateUnits() =>
         (new BaseUnit { ObjId = OwnerObjId }, new Unit { ObjId = CasterObjId });
+
+    /// <summary>
+    /// Two units that can take a damage effect. DamageEffect reads the combat attributes as plain
+    /// properties, and the only container it dereferences is the caster's equipment.
+    /// </summary>
+    private static (Unit Caster, Unit Target) CreateCombatants()
+    {
+        var caster = new Unit { ObjId = CasterObjId, Hp = 1000, MaxHp = 1000, Level = 1 };
+        var target = new Unit { ObjId = OwnerObjId, Hp = 1000, MaxHp = 1000, Level = 1 };
+        caster.Equipment = new EquipmentContainer(0, SlotType.Equipment, false, caster);
+        target.Equipment = new EquipmentContainer(0, SlotType.Equipment, false, target);
+        return (caster, target);
+    }
+
+    /// <summary>Drives one real DamageEffect hit with a fixed value, so what it raises is the only variable.</summary>
+    private static void ApplyDamageEffect(Unit caster, Unit target, Skill skill, EffectSource source,
+        DamageType damageType = DamageType.Melee)
+    {
+        var effect = new DamageEffect
+        {
+            DamageType = damageType,
+            UseFixedDamage = true,
+            FixedMin = 10,
+            FixedMax = 10
+        };
+
+        effect.Apply(caster, new SkillCasterUnit(caster.ObjId), target, new SkillCastUnitTarget(target.ObjId),
+            new CastSkill(skill?.Template?.Id ?? 0, 1), source, new SkillObject(), DateTime.UtcNow);
+    }
 
     /// <summary>The fixture id each flag's template is registered under.</summary>
     private static uint FlagBuffId(BuffRemoveOn flag) => FlagBuffBaseId + (uint)flag;

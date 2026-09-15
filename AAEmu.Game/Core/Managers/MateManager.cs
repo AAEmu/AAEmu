@@ -258,8 +258,11 @@ public class MateManager(WorldInstance parentWorldInstance)
 
             targetObj.Events.OnUnmount(character, new OnUnmountArgs());
 
-            mateInfo.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
-            targetObj.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
+            // remove_on_unmount_attach_point_id narrows remove_on_unmount to one enum_attach_point seat
+            // (719 of the 771 buffs carrying a point name 1 Driver), so the seat being left is passed
+            // along: a buff that names another seat stays, one that names none is removed as before.
+            mateInfo.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount, (uint)attachPoint);
+            targetObj.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount, (uint)attachPoint);
             Logger.Debug($"UnMountMate. mountTlId: {mateInfo.TlId}, targetObjId: {targetObj.ObjId}, attachPoint: {attachPoint}, reason: {reason}");
         }
         else

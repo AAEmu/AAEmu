@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units.Static;
 
@@ -143,6 +144,12 @@ public class CharacterMates(Character owner)
         Owner.SendPacket(new SCUnitStatePacket(mount));
         Owner.SendPacket(new SCUnitPointsPacket(mount.ObjId, mount.Hp, mount.Mp));
         WorldIntegration.RelayUnitPointsToZone?.Invoke(mount.ObjId, mount.Hp, mount.Mp);
+
+        // remove_by_summoned (110 buffs, the 감정 표현_* poses and the dances among them): summoning a
+        // mount ends the summoner's poses, the same way getting on one does through remove_on_mount. The
+        // owner is whoever used the summon item, so the raise belongs here rather than in MateManager,
+        // which this path reaches through AddActiveMateAndSpawn.
+        Owner.Buffs.TriggerRemoveOn(BuffRemoveOn.Summoned);
     }
 
     public void DespawnMate(uint tlId)
