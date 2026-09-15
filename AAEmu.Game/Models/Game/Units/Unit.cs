@@ -190,7 +190,11 @@ public class Unit : BaseUnit, IUnit
     public virtual int HDps { get; set; }
     [UnitAttribute(UnitAttribute.HealDpsInc)]
     public virtual int HDpsInc { get; set; }
-    [UnitAttribute(UnitAttribute.MeleeAntiMissMul)]
+    // Was annotated MeleeAntiMissMul (78), which the property does not read: MeleeAccuracy is the
+    // MeleeAntiMiss (18) stat — Character.MeleeAccuracy evaluates the MeleeAntiMiss formula and composes
+    // CalculateWithBonuses(res, MeleeAntiMiss) into it. 78 is the anti-miss *multiplier* and lives on the
+    // property of that name below, which the NoDuplicateAttributes test requires to be the only owner.
+    [UnitAttribute(UnitAttribute.MeleeAntiMiss)]
     public virtual float MeleeAccuracy { get; set; } = 100f;
     [UnitAttribute(UnitAttribute.MeleeCritical)]
     public virtual float MeleeCritical { get; set; }
@@ -294,6 +298,42 @@ public class Unit : BaseUnit, IUnit
     public virtual float IncomingRangedDamageMul { get; set; } = 1f;
     [UnitAttribute(UnitAttribute.IncomingSpellDamageMul)]
     public virtual float IncomingSpellDamageMul { get; set; } = 1f;
+
+    // Attack pace and siege output (enum_unit_attribute 54, 55, 119, 149, 204, 215, 218, 260, 261).
+    // The attack-speed ids are one rating seen from several sides, so they are read as the raw per-mille
+    // rating (SpeedMultiplierRules clamps it to unit_attribute_limits' -666..2000 and turns it into a delay
+    // factor) rather than being multiplied into each other. The siege, shield and combat-resource ids
+    // compose their bonuses here so that a unit without such a row is exactly what it was.
+    [UnitAttribute(UnitAttribute.MeleeSpeedMul)]
+    public long MeleeSpeedRating => (long)CalculateWithBonuses(0d, UnitAttribute.MeleeSpeedMul);
+    [UnitAttribute(UnitAttribute.RangedSpeedMul)]
+    public long RangedSpeedRating => (long)CalculateWithBonuses(0d, UnitAttribute.RangedSpeedMul);
+    [UnitAttribute(UnitAttribute.AttackSpeedMul)]
+    public long AttackSpeedRating => (long)CalculateWithBonuses(0d, UnitAttribute.AttackSpeedMul);
+    [UnitAttribute(UnitAttribute.AttackAnimSpeedMul)]
+    public long AttackAnimSpeedRating => (long)CalculateWithBonuses(0d, UnitAttribute.AttackAnimSpeedMul);
+    [UnitAttribute(UnitAttribute.MeleeAntiMissMul)]
+    public virtual float MeleeAntiMissMul => AntiMissRules.Multiplier((long)CalculateWithBonuses(0d, UnitAttribute.MeleeAntiMissMul));
+    [UnitAttribute(UnitAttribute.RangedAntiMissMul)]
+    public virtual float RangedAntiMissMul => AntiMissRules.Multiplier((long)CalculateWithBonuses(0d, UnitAttribute.RangedAntiMissMul));
+    [UnitAttribute(UnitAttribute.SpellAntiMissMul)]
+    public virtual float SpellAntiMissMul => AntiMissRules.Multiplier((long)CalculateWithBonuses(0d, UnitAttribute.SpellAntiMissMul));
+    [UnitAttribute(UnitAttribute.SiegeDps)]
+    public virtual int SiegeDps => (int)CalculateWithBonuses(0d, UnitAttribute.SiegeDps);
+    [UnitAttribute(UnitAttribute.SiegeDamageMul)]
+    public virtual float SiegeDamageMul => SiegeDamageRules.Factor((long)CalculateWithBonuses(0d, UnitAttribute.SiegeDamageMul));
+    /// <summary>
+    /// Siege damage this unit takes. <see cref="Character"/> composes it from the unit_modifiers rows; the
+    /// base is the unmodified factor, so a unit that never loads one keeps taking siege damage untouched.
+    /// </summary>
+    [UnitAttribute(UnitAttribute.IncomingSiegeDamageMul)]
+    public virtual float IncomingSiegeDamageMul { get; set; } = 1f;
+    /// <summary>Per-mille chance to bypass the victim's damage absorption; see <c>ShieldIgnoreRules</c>.</summary>
+    [UnitAttribute(UnitAttribute.IgnoreShieldChance)]
+    public long IgnoreShieldChance => (long)CalculateWithBonuses(0d, UnitAttribute.IgnoreShieldChance);
+    /// <summary>Signed delta on every combat resource ceiling; see <c>CombatResourceRules</c>.</summary>
+    [UnitAttribute(UnitAttribute.MaxCombatResource)]
+    public virtual int MaxCombatResource => (int)CalculateWithBonuses(0d, UnitAttribute.MaxCombatResource);
     [UnitAttribute(UnitAttribute.AggroMul)]
     public float AggroMul
     {
@@ -360,9 +400,13 @@ public class Unit : BaseUnit, IUnit
         var max = CombatResourceGameData.Instance.GetMax(combatResourceId);
         var current = GetCombatResource(combatResourceId);
 
+        // max_combat_resource (215) raises or lowers that ceiling for this unit — buff 22278 (정복) grants
+        // +1 on 광란, whose own ceiling is 5. Without such a row the ceiling is the resource's own max.
+        var ceiling = CombatResourceRules.Ceiling(max, MaxCombatResource);
+
         // An unknown id has no ceiling to clamp against; keep it non-negative rather than inventing one.
-        var updated = max > 0
-            ? Math.Clamp(current + amount, 0, max)
+        var updated = ceiling > 0
+            ? Math.Clamp(current + amount, 0, ceiling)
             : Math.Max(0, current + amount);
 
         CombatResources[combatResourceId] = updated;
@@ -693,7 +737,7 @@ public class Unit : BaseUnit, IUnit
         var oldHp = Hp;
 
         var absorptionEffects = Buffs.GetAbsorptionEffects().ToList();
-        if (absorptionEffects.Count > 0)
+        if (absorptionEffects.Count > 0 && !BypassesAbsorption(attacker))
         {
             // Handle damage absorb
             foreach (var absorptionEffect in absorptionEffects)
@@ -707,6 +751,17 @@ public class Unit : BaseUnit, IUnit
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
 
         PostUpdateCurrentHp(attacker, oldHp, Hp, killReason);
+    }
+
+    /// <summary>
+    /// Whether this damage event skips the victim's absorption buffs because the attacker carries
+    /// <c>ignore_shield_chance</c> (204, "방패 관통률"). The rating is a per-mille chance, so an attacker
+    /// without such a row rolls against 0 and never bypasses.
+    /// </summary>
+    private static bool BypassesAbsorption(BaseUnit attacker)
+    {
+        var chance = attacker is Unit attackerUnit ? attackerUnit.IgnoreShieldChance : 0L;
+        return ShieldIgnoreRules.BypassesAbsorption(chance, Random.Shared.Next(ShieldIgnoreRules.ChanceDenominator));
     }
 
     /// <summary>

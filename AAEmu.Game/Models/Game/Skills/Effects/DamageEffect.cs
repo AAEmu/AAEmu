@@ -195,6 +195,11 @@ public class DamageEffect : EffectTemplate
             case DamageType.Ranged:
                 dpsInc = ((Unit)caster).RangedDpsInc;
                 break;
+            case DamageType.Siege:
+                // siege_dps (260), the siege counterpart of spell_dps: the caster's own contribution to the
+                // hit, added to the level damage the same way. No such row means dpsInc stays 0.
+                dpsInc = ((Unit)caster).SiegeDps;
+                break;
         }
 
         max += dpsInc * 0.001f * DpsIncMultiplier;
@@ -242,7 +247,9 @@ public class DamageEffect : EffectTemplate
             DamageType.Melee => ((Unit)caster).MeleeDamageMul,
             DamageType.Magic => ((Unit)caster).SpellDamageMul,
             DamageType.Ranged => ((Unit)caster).RangedDamageMul,
-            DamageType.Siege => 1.0f, // TODO
+            // siege_damage_mul (261), the siege counterpart of the three above. Without such a row the
+            // factor is exactly 1.0f, so this branch keeps the plain "no type multiplier" it had.
+            DamageType.Siege => ((Unit)caster).SiegeDamageMul,
             _ => 1f
         };
 
@@ -367,6 +374,12 @@ public class DamageEffect : EffectTemplate
                     armor = Math.Max(0f, targetUnit.MagicResistance - ((Unit)caster).MagicPenetration);
                     reductionMul = 1.0f - armor / (armor + 5300.0f);
                     finalDamage = finalDamage * targetUnit.IncomingSpellDamageMul;
+                    break;
+                case DamageType.Siege:
+                    // incoming_siege_damage_mul (149), read off the victim. Siege damage still takes no
+                    // armour reduction, as it did on the default branch, and still takes IncomingDamageMul:
+                    // a victim without a 149 row has a factor of exactly 1.0f here and keeps its numbers.
+                    finalDamage = finalDamage * targetUnit.IncomingSiegeDamageMul * targetUnit.IncomingDamageMul;
                     break;
                 default:
                     finalDamage = finalDamage * targetUnit.IncomingDamageMul;

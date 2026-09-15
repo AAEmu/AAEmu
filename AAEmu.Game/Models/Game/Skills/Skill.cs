@@ -1053,7 +1053,13 @@ public class Skill
         if (Template.EffectSpeed > 0)
             totalDelay += (int)(unit.GetDistanceTo(target) / Template.EffectSpeed * 1000.0f);
         if (Template.FireAnim != null && Template.UseAnimTime)
-            totalDelay += (int)(Template.FireAnim.CombatSyncTime * (unit.GlobalCooldownMul / 100));
+        {
+            // attack_anim_speed_mul (119) is the animation's own view of the rating that already paced this
+            // delay through global_cooldown_mul; a unit without one keeps that factor, and a unit with
+            // neither keeps 1.0.
+            var animFactor = SpeedMultiplierRules.AnimationFactor(unit.AttackAnimSpeedRating, unit.GlobalCooldownMul / 100.0);
+            totalDelay += (int)(Template.FireAnim.CombatSyncTime * animFactor);
+        }
 
         // Auto-attacks use the equipped holdable animation. Other ranged skills can carry a
         // separate shotgun fire animation in the skill row; select it from the actual ranged
@@ -1953,15 +1959,15 @@ AlwaysHit:
         switch (damageType)
         {
             case DamageType.Melee:
-                if (Attacker != null && Random.Shared.Next(0f, 100f) < Attacker.MeleeAccuracy)
+                if (Attacker != null && Random.Shared.Next(0f, 100f) < AntiMissRules.HitChance(Attacker.MeleeAccuracy, Attacker.MeleeAntiMissMul))
                     return SkillHitType.MeleeHit;
                 return SkillHitType.MeleeMiss;
             case DamageType.Magic:
-                if (Attacker != null && Random.Shared.Next(0f, 100f) < Attacker.SpellAccuracy)
+                if (Attacker != null && Random.Shared.Next(0f, 100f) < AntiMissRules.HitChance(Attacker.SpellAccuracy, Attacker.SpellAntiMissMul))
                     return SkillHitType.SpellHit;
                 return SkillHitType.SpellMiss;
             case DamageType.Ranged:
-                if (Attacker != null && Random.Shared.Next(0f, 100f) < Attacker.RangedAccuracy)
+                if (Attacker != null && Random.Shared.Next(0f, 100f) < AntiMissRules.HitChance(Attacker.RangedAccuracy, Attacker.RangedAntiMissMul))
                     return SkillHitType.RangedHit;
                 return SkillHitType.RangedMiss;
             case DamageType.Siege:
