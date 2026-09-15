@@ -280,6 +280,14 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                 if (plot.EventTemplate != null)
                     plot.Tree = PlotBuilder.BuildTree(plot.Id);
             }
+
+            // 10.0.2.13: 67 plots ship no position-1 plot_events row, so they get no tree and 30 skills that
+            // cast them (13499 → 47, 16728-16745 → 283-300, ...) end immediately through PlotEndRules.
+            // Say so once here rather than only per cast.
+            var treelessPlots = _plots.Values.Count(plot => plot.Tree == null);
+            if (treelessPlots > 0)
+                Logger.Warn("10.0.2.13: {0} of {1} plots have no position-1 plot event and cannot execute",
+                    treelessPlots, _plots.Count);
             // Task.Run(() => flameboltTree.Execute(new PlotState()));
         }
 
