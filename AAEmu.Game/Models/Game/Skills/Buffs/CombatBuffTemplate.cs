@@ -24,7 +24,15 @@ public class CombatBuffTemplate
     /// </summary>
     public uint ReqSkillId { get; set; }
     public uint BuffId { get; set; }
+    /// <summary>
+    /// <c>buff_from_source</c> — loaded, not read: it is identical to <see cref="BuffToSource"/> on 48
+    /// of the 57 rows and reading it on the other nine would attribute those procs to the attacker as
+    /// caster, whose buff-duration modifiers would then scale them. See <see cref="CombatBuffHitRules"/>.
+    /// </summary>
     public bool BuffFromSource { get; set; }
+    /// <summary><c>buff_to_source</c> — which side of the hit owns this entry, and therefore which unit
+    /// it buffs unless <see cref="ReverseTargetOn"/> flips it. See
+    /// <see cref="CombatBuffHitRules.FiresForOwner"/>.</summary>
     public bool BuffToSource { get; set; }
     /// <summary><c>reverse_target_on</c> — apply the buff to the other combatant, not to the unit that
     /// owns this entry. See <see cref="CombatBuffHitRules.BuffsOwner"/>.</summary>

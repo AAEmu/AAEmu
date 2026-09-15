@@ -199,6 +199,9 @@ public class CombatBuffsTests
         // combat_buffs 138 (독 바르기): the poison lands on the victim, not on the unit carrying the entry.
         await Assert.That(victim.Buffs.CheckBuff(AppliedBuffPoisonId)).IsTrue();
         await Assert.That(attacker.Buffs.CheckBuff(AppliedBuffPoisonId)).IsFalse();
+        // …and it is still cast by the unit that owns the entry, so the victim's own modifiers (and not
+        // the attacker's) are what Buffs.AddBuff scales the duration with.
+        await Assert.That(victim.Buffs.GetEffectFromBuffId(AppliedBuffPoisonId).Caster).IsSameReferenceAs(attacker);
     }
 
     [Test]
