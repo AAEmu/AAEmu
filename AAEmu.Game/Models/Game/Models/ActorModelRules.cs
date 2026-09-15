@@ -39,4 +39,13 @@ public static class ActorModelRules
     /// </summary>
     public static float MoveSpeedFor(bool isPrefabModel, float actorMoveSpeed) =>
         isPrefabModel ? 0f : actorMoveSpeed;
+
+    /// <summary>
+    /// The two flags a spawned unit carries, from one model. They are not the same question and must not
+    /// be answered with the same call: <c>CanFly</c> is what the stance picks the flight pose from, so a
+    /// swimmer given <c>CanFly</c> flies instead of swimming, while the off-ground treatment it does
+    /// need is the union (<see cref="SimulatesOffGround"/>).
+    /// </summary>
+    public static (bool CanFly, bool IsSwimmer) SpawnFlags(ActorModel model) =>
+        (HoldsAltitude(model), SwimsUnderwater(model));
 }

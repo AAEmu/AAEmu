@@ -64,13 +64,15 @@ public class TeleportToUnit : SpecialEffectAction
 
                 break;
             case Npc npc:
-                // A mirrored NPC is simulated by the dedicate. Moving it from here makes the two fight
-                // over it - World walks it, the zone's next movement record snaps it back - so the move
-                // is left to whoever owns the unit.
+                // A mirrored NPC is simulated by the dedicate, so the move has to be made there: a
+                // World-side walk would be undone by the zone's next movement record. Relay the blink
+                // exactly the way a character's teleport is relayed, or the effect does nothing at all.
                 if (ZoneOwnedUnitRules.IsDrivenByZone(WorldIntegration.ZoneAuthority, npc.IsZoneMirror))
                 {
-                    Logger.Info(
-                        $"TeleportToUnit: npc {npc.ObjId} (template {npc.TemplateId}) is zone-simulated - the move stays with the zone");
+                    WorldIntegration.RelayBlinkToZone?.Invoke(
+                        npc.ObjId, npc.ObjId, false, endX, endY, targetPosition.Z);
+                    Logger.Debug(
+                        $"TeleportToUnit: npc {npc.ObjId} (template {npc.TemplateId}) is zone-simulated - blink relayed to its zone");
                     break;
                 }
 

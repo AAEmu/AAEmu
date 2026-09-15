@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Merchant;
+using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -393,6 +394,10 @@ public class NpcManager(
             return null;
         }
 
+        // A flier and a swimmer are two different flags from one model: the stance picks the flight pose
+        // on CanFly, so answering both with the off-ground union would make every swimmer fly.
+        var spawnFlags = ActorModelRules.SpawnFlags(modelManager.GetActorModel(template.ModelId));
+
         var npc = new Npc
         {
             ParentWorld = parentWorld,
@@ -401,8 +406,8 @@ public class NpcManager(
             Id = templateId,
             Template = template,
             ModelId = template.ModelId,
-            CanFly = modelManager.IsFlyOrSwim(template.ModelId),
-            IsSwimmer = modelManager.IsSwimmer(template.ModelId),
+            CanFly = spawnFlags.CanFly,
+            IsSwimmer = spawnFlags.IsSwimmer,
             Faction = factionManager.GetFaction(template.FactionId),
             Level = template.Level,
             Patrol = null

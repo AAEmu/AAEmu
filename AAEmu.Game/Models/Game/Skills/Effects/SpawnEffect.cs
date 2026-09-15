@@ -1,4 +1,5 @@
 using System.Numerics;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.GameData;
@@ -94,12 +95,19 @@ public class SpawnEffect : EffectTemplate
 
                     spawner.Position.X = xx;
                     spawner.Position.Y = yy;
+                    // The same question the zone-authority branch asks: a model that holds its own
+                    // altitude keeps the depth it was placed at, a grounded one is snapped to the
+                    // terrain under it. Answering it with a hardcoded false drops a swimmer to the
+                    // ocean surface here, and the later off-ground check can only preserve that.
+                    var standaloneCanFly =
+                        NpcManager.Instance.GetTemplate(ResolveZoneSpawnNpcTemplateId()) is { } standaloneTemplate &&
+                        ModelManager.Instance.IsFlyOrSwim(standaloneTemplate.ModelId);
                     spawner.Position.Z = ResolveSpawnZ(
                         positionRelativeToUnit,
                         xx,
                         yy,
                         positionRelativeToUnit.Transform.World.Position.Z,
-                        canFly: false);
+                        canFly: standaloneCanFly);
 
                     spawner.Position.Yaw = orientationRelativeToUnit.Transform.World.Rotation.Z + OriAngle.DegToRad();
 

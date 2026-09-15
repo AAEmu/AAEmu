@@ -66,4 +66,24 @@ public class ActorModelRulesTests
         await Assert.That(ActorModelRules.MoveSpeedFor(isPrefabModel: true, actorMoveSpeed: 1.8f)).IsEqualTo(0f);
         await Assert.That(ActorModelRules.MoveSpeedFor(isPrefabModel: false, actorMoveSpeed: 1.8f)).IsEqualTo(1.8f);
     }
+
+    [Test]
+    public async Task SpawnFlags_AreSwimmerOnlyForASwimmerNeverBoth()
+    {
+        // The regression this guards: answering both flags with the off-ground union gives a swimmer
+        // CanFly, and the stance branch reads CanFly first, so a shark takes the flight pose.
+        var swimmer = ActorModelRules.SpawnFlags(new ActorModel { MovementId = 1, UnderwaterCreature = true });
+        var flyer = ActorModelRules.SpawnFlags(new ActorModel { MovementId = 2 });
+        var flyModeOnly = ActorModelRules.SpawnFlags(new ActorModel { MovementId = 0, FlyMode = true });
+        var walker = ActorModelRules.SpawnFlags(new ActorModel { MovementId = 1 });
+
+        await Assert.That(swimmer.CanFly).IsFalse();
+        await Assert.That(swimmer.IsSwimmer).IsTrue();
+        await Assert.That(flyer.CanFly).IsTrue();
+        await Assert.That(flyer.IsSwimmer).IsFalse();
+        await Assert.That(flyModeOnly.CanFly).IsTrue();
+        await Assert.That(flyModeOnly.IsSwimmer).IsFalse();
+        await Assert.That(walker.CanFly).IsFalse();
+        await Assert.That(walker.IsSwimmer).IsFalse();
+    }
 }
