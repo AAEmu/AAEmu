@@ -1158,6 +1158,7 @@ public class Unit : BaseUnit, IUnit
         // Dynamic bonuses are evaluated on the fly from their source buff so that time-varying
         // modifiers (LinearFunc dynamic_unit_modifiers) reflect the current elapsed time rather
         // than a value snapshotted at buff Start.
+        var baseValue = value;
         var bonuses = GetBonuses(attr);
         var dynamicBonuses = GetDynamicBonuses(attr);
 
@@ -1195,7 +1196,9 @@ public class Unit : BaseUnit, IUnit
                 value += value * dynValue / 100f;
         }
 
-        return value;
+        // unit_attribute_limits bounds the composed value (49 rows in 10.0.2.13); everything else is
+        // unbounded and comes back untouched.
+        return UnitAttributeLimitRules.Clamp(value, baseValue, UnitAttributeLimitGameData.Instance.GetLimit(attr));
     }
 
     public void SendPacket(GamePacket packet)
