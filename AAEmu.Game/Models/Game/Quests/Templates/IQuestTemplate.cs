@@ -23,6 +23,7 @@ public interface IQuestTemplate
     bool HideChapterIndex { get; set; }
     IDictionary<uint, QuestComponentTemplate> Components { get; set; }
     bool MeetsContextRequirements(AAEmu.Game.Models.Game.Char.Character character);
+    bool MeetsLevelRequirements(AAEmu.Game.Models.Game.Char.Character character);
     QuestComponentTemplate GetFirstComponent(QuestComponentKind step);
     QuestComponentTemplate[] GetComponents(QuestComponentKind step);
 }

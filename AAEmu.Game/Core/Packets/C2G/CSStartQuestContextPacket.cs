@@ -24,13 +24,15 @@ public class CSStartQuestContextPacket() : GamePacket(CSOffsets.CSStartQuestCont
             _doodadObjId,
             _sphereId);
 
+        // This is the only accept the character asked for, so it is the only one that gets an answer
+        // when the accept is refused; the server-driven paths stay silent.
         if (_npcObjId > 0)
-            Connection.ActiveChar.Quests.AddQuestFromNpc(_questContextId, _npcObjId);
+            Connection.ActiveChar.Quests.AddQuestFromNpc(_questContextId, _npcObjId, answerClient: true);
         else if (_doodadObjId > 0)
-            Connection.ActiveChar.Quests.AddQuestFromDoodad(_questContextId, _doodadObjId);
+            Connection.ActiveChar.Quests.AddQuestFromDoodad(_questContextId, _doodadObjId, answerClient: true);
         else if (_sphereId > 0)
-            Connection.ActiveChar.Quests.AddQuestFromSphere(_questContextId, _sphereId);
+            Connection.ActiveChar.Quests.AddQuestFromSphere(_questContextId, _sphereId, answerClient: true);
         else
-            Connection.ActiveChar.Quests.AddQuest(_questContextId);
+            Connection.ActiveChar.Quests.AddQuest(_questContextId, answerClient: true);
     }
 }
