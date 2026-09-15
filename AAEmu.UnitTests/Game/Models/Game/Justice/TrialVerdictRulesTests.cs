@@ -37,6 +37,29 @@ public class TrialVerdictRulesTests
     }
 
     [Test]
+    public async Task CanVote_OnlyInThePhaseThatExistsToCountIt()
+    {
+        // Voting before the bench has heard the case would let the jury close it early.
+        await Assert.That(TrialVerdictRules.CanVote(TrialState.Sentence)).IsTrue();
+        await Assert.That(TrialVerdictRules.CanVote(TrialState.Testimony)).IsFalse();
+        await Assert.That(TrialVerdictRules.CanVote(TrialState.FinalStatement)).IsFalse();
+        await Assert.That(TrialVerdictRules.CanVote(TrialState.WaitingJury)).IsFalse();
+        await Assert.That(TrialVerdictRules.CanVote(TrialState.PostSentence)).IsFalse();
+    }
+
+    [Test]
+    public async Task CanPleadGuilty_OnlyBeforeTheBenchIsHearingTheCase()
+    {
+        // The plea belongs to the defendant's wait window; later it would replace a trial in progress.
+        await Assert.That(TrialVerdictRules.CanPleadGuilty(TrialState.WaitingCrimeRecord)).IsTrue();
+        await Assert.That(TrialVerdictRules.CanPleadGuilty(TrialState.WaitingJury)).IsTrue();
+        await Assert.That(TrialVerdictRules.CanPleadGuilty(TrialState.Testimony)).IsFalse();
+        await Assert.That(TrialVerdictRules.CanPleadGuilty(TrialState.FinalStatement)).IsFalse();
+        await Assert.That(TrialVerdictRules.CanPleadGuilty(TrialState.Sentence)).IsFalse();
+        await Assert.That(TrialVerdictRules.CanPleadGuilty(TrialState.PostSentence)).IsFalse();
+    }
+
+    [Test]
     public async Task Vote_TheClientsFirstRowIsNotGuilty()
     {
         // The verdict window's own row constants: 1 not guilty, 2..6 the five guilty tiers. Reading

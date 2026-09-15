@@ -161,24 +161,45 @@ public class JusticeManager : Singleton<JusticeManager>
     /// <summary>
     /// The sentence itself: the shipped prisoner buff is applied and the prisoner is moved into the
     /// jail cell. The buff's own timeout trigger releases them at the prison exit, so the length of
-    /// the sentence is whatever that shipped buff runs for. Serving it also pays the crime off - the
+    /// the sentence is whatever that buff runs for - the court passes the minutes it ruled, which is
+    /// the base sentence when nobody was asked to rule on it. Serving it also pays the crime off - the
     /// shipped crime-point reduction is applied and told to the client with the lockup flag raised -
     /// otherwise the prisoner walks out of jail still wanted and is arrested again on the spot.
     /// </summary>
-    public void ServeSentence(Character character)
+    /// <returns>
+    /// True once the prisoner is in the cell. False when the jail is not configured: nothing was
+    /// applied and no crime was paid, so the caller must not treat the case as served.
+    /// </returns>
+    public bool ServeSentence(Character character, uint minutes = ArrestRules.SentenceMinutes)
     {
         if (character == null)
-            return;
+            return false;
 
         var jail = PortalManager.Instance.GetReturnPoint(ArrestRules.JailReturnPointId);
         if (jail == null)
         {
             Logger.Warn($"Arrest: jail return point {ArrestRules.JailReturnPointId} is missing - {character.Name} is not imprisoned");
-            return;
+            return false;
         }
 
+        var sentence = minutes == 0 ? ArrestRules.SentenceMinutes : minutes;
         character.Buffs.RemoveBuff(ArrestRules.ForcedMoveToCourtBuff);
-        character.Buffs.AddBuff(ArrestRules.PrisonerBuff, character);
+
+        // The shipped prisoner buff runs thirty minutes; a ruled sentence is the row the bench chose, so
+        // the buff carries that length instead. Its timeout is what returns the prisoner to the exit, so
+        // the forced duration is what makes the time served the sentence the court read out.
+        var prisoner = SkillManager.Instance.GetBuffTemplate(ArrestRules.PrisonerBuff);
+        if (prisoner != null)
+        {
+            character.Buffs.AddBuff(
+                new Buff(character, character, new SkillCasterUnit(character.ObjId), prisoner, null, DateTime.UtcNow),
+                forcedDuration: (int)(sentence * 60_000u));
+        }
+        else
+        {
+            Logger.Warn($"Arrest: prisoner buff {ArrestRules.PrisonerBuff} is missing - {character.Name} serves no time");
+        }
+
         SkillTeleportLanding.Apply(
             character,
             ReturnTeleportRules.LoadWorldId(jail.WorldId, WorldManager.DefaultWorldTemplateId),
@@ -190,8 +211,9 @@ public class JusticeManager : Singleton<JusticeManager>
             jail.Yaw.DegToRad(),
             TeleportReason.Jail);
         PayOffCrime(character);
-        Logger.Info($"Arrest: {character.Name} is serving {ArrestRules.SentenceMinutes} minutes in the Marianople jail");
-        character.SendMessage(ChatType.System, $"You will serve {ArrestRules.SentenceMinutes} minutes.");
+        Logger.Info($"Arrest: {character.Name} is serving {sentence} minutes in the Marianople jail");
+        character.SendMessage(ChatType.System, $"You will serve {sentence} minutes.");
+        return true;
     }
 
     /// <summary>

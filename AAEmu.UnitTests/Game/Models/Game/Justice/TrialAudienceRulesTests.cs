@@ -32,4 +32,15 @@ public class TrialAudienceRulesTests
         await Assert.That(TrialAudienceRules.CanJoinGallery(isDefendant: true, isSeatedJuror: true)).IsFalse();
         await Assert.That(TrialAudienceRules.CanJoinGallery(isDefendant: false, isSeatedJuror: false)).IsTrue();
     }
+
+    [Test]
+    public async Task InGalleryRange_RequiresStandingInTheCourtroom()
+    {
+        // The gallery is a room in the courthouse: the packet alone must not hand the defendant's crime
+        // file to a player standing anywhere else in the world.
+        await Assert.That(TrialAudienceRules.InGalleryRange(0)).IsTrue();
+        await Assert.That(TrialAudienceRules.InGalleryRange(TrialAudienceRules.GalleryRadiusMetres)).IsTrue();
+        await Assert.That(TrialAudienceRules.InGalleryRange(TrialAudienceRules.GalleryRadiusMetres + 0.5)).IsFalse();
+        await Assert.That(TrialAudienceRules.InGalleryRange(2500)).IsFalse();
+    }
 }

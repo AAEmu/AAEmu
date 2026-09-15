@@ -97,4 +97,20 @@ public static class TrialVerdictRules
     /// <summary>True for a seat the client's own table can hold.</summary>
     public static bool IsValidSeat(int court, int juryNumber) =>
         court >= 0 && juryNumber is >= 0 and <= 4;
+
+    /// <summary>
+    /// A vote only counts in the phase that exists to count it. The bench reads the record and hears
+    /// the final statement first; a vote that arrives earlier is a stale or forged packet, and counting
+    /// it would let every juror close the case before the defendant has spoken. The client arms its
+    /// verdict window on this same phase (the court sends it with the voting clock).
+    /// </summary>
+    public static bool CanVote(TrialState state) => state == TrialState.Sentence;
+
+    /// <summary>
+    /// The defendant may give up while the case is still being prepared - the wait window is where the
+    /// plea is offered. Once the bench is seated the case is the bench's to decide, so a cancel that
+    /// arrives later cannot replace a trial in progress with the default sentence.
+    /// </summary>
+    public static bool CanPleadGuilty(TrialState state) =>
+        state is TrialState.WaitingCrimeRecord or TrialState.WaitingJury;
 }

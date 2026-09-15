@@ -73,6 +73,13 @@ public class Trial
     /// </summary>
     public Dictionary<uint, int> Summoned { get; } = [];
 
+    /// <summary>
+    /// The crime records this case is about, fixed when the file is first opened. A crime reported after
+    /// that is not part of this trial: it must not appear on a sheet read later, and a guilty verdict
+    /// must not expunge it. Empty until the first sheet is built.
+    /// </summary>
+    public HashSet<uint> TriedCrimeIds { get; } = [];
+
     /// <summary>Bumped on every phase change, so a timer armed for an older phase goes quiet.</summary>
     public int PhaseToken { get; set; }
 

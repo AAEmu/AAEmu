@@ -235,11 +235,14 @@ public class TrialManager : Singleton<TrialManager>
             return false;
         }
 
-        // The chair may be held by a summons that is still in flight for this same juror.
-        if (trial.IsSeatTaken(trial.Court, juryNumber) &&
-            !(trial.Summoned.TryGetValue(juror.Id, out var promised) && promised == juryNumber))
+        // The court seats the chair it summoned this juror to, and only that one. A response naming any
+        // other chair - or arriving from a character the court never summoned - is a stale or forged
+        // packet: seating it would hand the case file and a vote to someone the bench never picked.
+        // The promise itself is the check, so a chair still in flight stays spoken for.
+        if (!trial.Summoned.TryGetValue(juror.Id, out var promisedChair) || promisedChair != juryNumber)
         {
-            Logger.Warn($"Trial {trialId}: chair {juryNumber} is already taken");
+            Logger.Warn($"Trial {trialId}: {juror.Name} answered a summons for chair {juryNumber} that was " +
+                        "never promised - ignored");
             return false;
         }
 
@@ -370,6 +373,14 @@ public class TrialManager : Singleton<TrialManager>
         if (trial == null)
             return;
 
+        // Only a character the court actually invited may take a seat. The client sends the trial id, so
+        // without this any player could accept an invitation that was never sent and vote on the case.
+        if (!trial.Invited.Contains(character.Id))
+        {
+            Logger.Warn($"Trial {trialId}: {character.Name} accepted an invite they do not hold - ignored");
+            return;
+        }
+
         if (trial.NextFreeSeat() is not { } chair)
         {
             Logger.Warn($"Trial {trialId}: no free chair for {character.Name}");
@@ -455,8 +466,10 @@ public class TrialManager : Singleton<TrialManager>
             return;
         }
 
-        // The vote only counts while the bench is hearing the case or voting on it.
-        if (trial.State is not (TrialState.Testimony or TrialState.FinalStatement or TrialState.Sentence))
+        // The vote only counts in the phase that exists to count it: the bench reads the record and
+        // hears the final statement first, so an earlier vote would let the jury close the case before
+        // the defendant has spoken.
+        if (!TrialVerdictRules.CanVote(trial.State))
         {
             Logger.Warn($"Trial {trialId}: vote from {character.Name} arrived in phase {trial.State} - ignored");
             return;
@@ -499,6 +512,14 @@ public class TrialManager : Singleton<TrialManager>
         var trial = GetTrial(trialId);
         if (trial == null || character == null || character.Id != trial.DefendantId)
             return;
+
+        // Giving up is offered in the wait window, before the bench is seated. A cancel that arrives once
+        // the case is being heard - or while the jury is voting - cannot replace that with a plea.
+        if (!TrialVerdictRules.CanPleadGuilty(trial.State))
+        {
+            Logger.Warn($"Trial {trialId}: {character.Name} tried to give up in phase {trial.State} - ignored");
+            return;
+        }
 
         Logger.Info($"Trial {trialId}: {character.Name} admitted guilt - the default sentence applies");
         SetState(trial, TrialState.GuiltyByUser);
@@ -543,6 +564,15 @@ public class TrialManager : Singleton<TrialManager>
             return;
         }
 
+        // The gallery is a room in the courthouse, so the onlooker has to be in it. Without this check
+        // the packet alone would hand the defendant's crime file to anyone anywhere in the world.
+        if (!TrialAudienceRules.InGalleryRange(DistanceToCourt(character, trial)))
+        {
+            Logger.Info($"Trial {trial.Id}: {character.Name} asked to watch from outside the courtroom - refused");
+            character.SendErrorMessage(ErrorMessageType.TrialsCannotJoinAfterStart);
+            return;
+        }
+
         _audienceTrial[character.Id] = trial.Id;
 
         // Register first: every send below broadcasts to the gallery, so the new member is on the
@@ -560,23 +590,26 @@ public class TrialManager : Singleton<TrialManager>
     /// <see cref="ArrestRules.CourtPositionFor"/> puts them, so distance is what says which court the
     /// character is standing in.
     /// </summary>
-    private Trial ClosestLiveTrial(Character character)
-    {
-        var position = character.Transform.World.Position;
-
-        return _trials.Values
+    private Trial ClosestLiveTrial(Character character) =>
+        _trials.Values
             .Where(t => t.State is not (TrialState.PostSentence or TrialState.Free))
-            .OrderBy(t =>
-            {
-                var (x, y, _) = ArrestRules.CourtPositionFor(
-                    t.Court == TrialSeatRules.CourtForNation(true)
-                        ? AAEmu.Game.Models.StaticValues.FactionsEnum.NuiaAlliance
-                        : AAEmu.Game.Models.StaticValues.FactionsEnum.HaranyaAlliance);
-                var dx = position.X - x;
-                var dy = position.Y - y;
-                return dx * dx + dy * dy;
-            })
+            .OrderBy(t => DistanceToCourt(character, t))
             .FirstOrDefault();
+
+    /// <summary>
+    /// How far a character stands from the courthouse hearing a case - the distance the gallery
+    /// admission is judged on, and what orders the courts when more than one is hearing a case.
+    /// </summary>
+    private static double DistanceToCourt(Character character, Trial trial)
+    {
+        var (x, y, _) = ArrestRules.CourtPositionFor(
+            trial.Court == TrialSeatRules.CourtForNation(true)
+                ? AAEmu.Game.Models.StaticValues.FactionsEnum.NuiaAlliance
+                : AAEmu.Game.Models.StaticValues.FactionsEnum.HaranyaAlliance);
+        var position = character.Transform.World.Position;
+        var dx = position.X - x;
+        var dy = position.Y - y;
+        return Math.Sqrt((dx * dx) + (dy * dy));
     }
 
     public void LeaveAudience(Character character)
@@ -605,6 +638,21 @@ public class TrialManager : Singleton<TrialManager>
 
         foreach (var list in _standby)
             list.Remove(character.Id);
+
+        // An invitation and a promised chair are one-shot promises to a live session. A character who
+        // disconnects between the invite and the summon reply is neither a defendant nor a seated juror,
+        // so GetLiveTrialOf cannot see them - without this their reservation keeps consuming a bench seat
+        // and the court would never ask the next standby juror.
+        foreach (var gathering in _trials.Values.Where(t => t.State == TrialState.WaitingJury).ToArray())
+        {
+            var invited = gathering.Invited.Remove(character.Id);
+            var promised = gathering.Summoned.Remove(character.Id);
+            if (!invited && !promised)
+                continue;
+
+            Logger.Info($"Trial {gathering.Id}: {character.Name} left the world - the jury invite is withdrawn");
+            SummonStandbyJurors(gathering);
+        }
 
         var trial = GetLiveTrialOf(character.Id);
         if (trial == null)
@@ -762,13 +810,18 @@ public class TrialManager : Singleton<TrialManager>
                         $"the shipped sentence is {trial.SentenceMinutes} minutes");
             if (defendant is { IsOnline: true })
             {
-                // The court has dealt with these charges, so the case file closes with the sentence.
-                CrimeManager.Instance.ExpungeCrimesOfPlayer(defendant.Id);
-                JusticeManager.Instance.ServeSentence(defendant);
+                // The sentence lands first: a jail that is not configured must leave the record on the
+                // books, because nothing was served and the crime was not paid. Only the crimes this case
+                // was actually about are closed with it.
+                if (JusticeManager.Instance.ServeSentence(defendant, (uint)ruledMinutes))
+                    CrimeManager.Instance.ExpungeCrimesOfPlayer(defendant.Id, trial.TriedCrimeIds);
+                else
+                    Logger.Warn($"Trial {trial.Id}: the sentence did not land - the record stays on the books");
             }
             else
             {
-                CrimeManager.Instance.ExpungeCrimesOfPlayer(trial.DefendantId);
+                Logger.Warn($"Trial {trial.Id}: {trial.DefendantName} is not online - the sentence is not " +
+                            "served and the record stays on the books");
             }
         }
         else
@@ -896,6 +949,19 @@ public class TrialManager : Singleton<TrialManager>
             return null;
 
         var crimes = CrimeManager.Instance.GetCrimesOfPlayer(defendant.Id);
+
+        // The case file is fixed the first time it is opened. A crime reported after that is not part of
+        // this trial: it must not appear on a sheet a later reader (a juror seated late, an onlooker)
+        // gets, and a guilty verdict must not expunge it.
+        if (trial.TriedCrimeIds.Count == 0)
+        {
+            foreach (var crime in crimes)
+                trial.TriedCrimeIds.Add(crime.Id);
+        }
+        else
+        {
+            crimes = crimes.Where(c => trial.TriedCrimeIds.Contains(c.Id)).ToList();
+        }
 
         var rows = new List<CrimeRecordEntry>(crimes.Count);
         foreach (var crime in crimes)

@@ -41,10 +41,21 @@ public class CrimeManager(IWorldManager worldManager,
     /// the removal is handed to the next save. Without this the records a court has already dealt with
     /// stay on the books and every later trial lists them again alongside the new ones.
     /// </summary>
+    /// <param name="playerId">The defendant.</param>
+    /// <param name="triedCrimeIds">
+    /// Exactly the records the case was about - the set the court opened its file with. A crime reported
+    /// after that is not part of this trial and must survive it, so the caller passes the case's own
+    /// snapshot rather than the defendant's live list.
+    /// </param>
     /// <returns>How many records were dropped.</returns>
-    public int ExpungeCrimesOfPlayer(uint playerId)
+    public int ExpungeCrimesOfPlayer(uint playerId, IReadOnlyCollection<uint> triedCrimeIds)
     {
-        var tried = CrimeEvents.Values.Where(x => x.Criminal == playerId).ToArray();
+        if (triedCrimeIds == null || triedCrimeIds.Count == 0)
+            return 0;
+
+        var tried = CrimeEvents.Values
+            .Where(x => x.Criminal == playerId && triedCrimeIds.Contains(x.Id))
+            .ToArray();
         var dropped = 0;
 
         foreach (var crime in tried)
