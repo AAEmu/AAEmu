@@ -30,8 +30,12 @@ public class BuffTriggerTemplate
     /// <summary>Forbidden on the effect's source unit.</summary>
     public uint SourceNoBuffTagId { get; set; }
 
-    /// <summary>Milliseconds to wait before the triggered effect is applied. 0 applies it inline.</summary>
-    public uint DelayTime { get; set; }
+    /// <summary>
+    /// Milliseconds to wait before the triggered effect is applied. 0 applies it inline; negative values
+    /// are authored on <c>time</c> rows and mean that far before the buff's end - see
+    /// <see cref="BuffTriggerKindRules.ResolveTimeOffsetMs"/>.
+    /// </summary>
+    public int DelayTime { get; set; }
 
     /// <summary>
     /// Carry the buff's stack count into the effect as <see cref="BuffTriggerAgentRules.TriggerFullAmount"/>

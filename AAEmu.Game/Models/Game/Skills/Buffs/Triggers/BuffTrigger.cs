@@ -22,9 +22,53 @@ public class BuffTrigger
     protected Buff _buff;
     protected readonly BaseUnit _owner;
     /// <summary>The application waiting out <c>delay_time</c>, so it can be cancelled with the buff.</summary>
+    /// <summary>
+    /// The queued application of an event trigger's <c>delay_time</c>, kept so removing the buff first
+    /// can drop it. A delayed <c>timeout</c> row is not tracked here: it is meant to run after the buff
+    /// has ended. Scheduled <c>time</c> rows have their own field, <see cref="_scheduled"/>.
+    /// </summary>
     private BuffTriggerTask _delayedTask;
     public BuffTriggerTemplate Template { get; set; }
-    public virtual void Execute(object sender, EventArgs eventArgs)
+
+    /// <summary>
+    /// The queued application of a scheduled (<c>time</c>) row, kept so the buff ending can drop it.
+    /// Delayed event triggers are not tracked here: a <c>timeout</c> row with a delay fires <em>after</em>
+    /// the buff it belongs to has ended, so cancelling those would lose the row.
+    /// </summary>
+    private BuffTriggerTask _scheduled;
+
+    public virtual void Execute(object sender, EventArgs eventArgs) => Fire(eventArgs, Template?.DelayTime ?? 0);
+
+    /// <summary>
+    /// Queues this trigger for <paramref name="delayMs"/> from now, for kinds that have no event of their
+    /// own (<c>time</c>). <see cref="CancelScheduled"/> drops it if the buff ends first.
+    /// </summary>
+    /// <returns>Whether the application was queued (or run inline); false if the scheduler refused it.</returns>
+    public bool ScheduleTime(uint delayMs)
+    {
+        if (delayMs == 0)
+        {
+            // Authored at the buff's start: apply it now rather than queue a task for the next tick.
+            Fire(EventArgs.Empty, 0);
+            return true;
+        }
+
+        var task = new BuffTriggerTask(() => Fire(EventArgs.Empty, 0));
+        _scheduled = task;
+        return TaskManager.Instance.Schedule(task, TimeSpan.FromMilliseconds(delayMs));
+    }
+
+    /// <summary>Drops a scheduled application that has not run yet.</summary>
+    public void CancelScheduled()
+    {
+        if (_scheduled == null)
+            return;
+
+        TaskManager.Instance.Cancel(_scheduled);
+        _scheduled = null;
+    }
+
+    private void Fire(EventArgs eventArgs, int delayMs)
     {
         var template = Template;
         var owner = _buff?.Owner;
@@ -69,7 +113,11 @@ public class BuffTrigger
         // Queued while the buff was live or as it was ending: a delay scheduled by a timeout or a dispel
         // runs during that ending, so only a buff that was live when the delay was armed has to still be
         // live when it expires.
-        var wasLive = _buff != null && _buff.InUse && !_buff.IsEnded();
+        // A `timeout` row is the one kind whose effect is authored to run after the buff ends, so the
+        // liveness re-check below must not apply to it: when the buff times out it is still in use as this
+        // runs, which would make wasLive true and then discard the application a moment later.
+        var wasLive = Template?.Kind != BuffEventTriggerKind.Timeout
+                      && _buff != null && _buff.InUse && !_buff.IsEnded();
 
         void ApplyEffect()
         {
@@ -82,7 +130,7 @@ public class BuffTrigger
                 new CastBuff(_buff), effectSource, null, DateTime.UtcNow);
         }
 
-        if (template.DelayTime == 0)
+        if (delayMs <= 0)
         {
             ApplyEffect();
             return;
@@ -90,14 +138,29 @@ public class BuffTrigger
 
         // The units are resolved now, while the event that named them is still on the stack; only the
         // application waits, so a delayed trigger still acts on what its event was about.
-        Logger.Trace("Buff[{0}] {1} delayed by {2} ms", _buff?.Template?.BuffId, GetType().Name, template.DelayTime);
+        Logger.Trace("Buff[{0}] {1} delayed by {2} ms", _buff?.Template?.BuffId, GetType().Name, delayMs);
+        // Two delayed lifetimes, and the field a queued application goes into is what decides whether
+        // removing the buff first can drop it:
+        //  * an event trigger (damaged, attacked, ...) is an answer to something that happened while the
+        //    buff was up, so it is tracked and cancelled on removal - see CancelPending;
+        //  * a `timeout` row is authored to fire *after* the buff ends (23 enabled rows carry
+        //    delay_time > 0, e.g. a death-rattle effect), so it is queued untracked;
+        //  * a `time` row never reaches here: ScheduleTime owns it and CancelScheduled drops it.
+        if (Template?.Kind == BuffEventTriggerKind.Timeout)
+        {
+            TaskManager.Instance.Schedule(new BuffTriggerTask(ApplyEffect), TimeSpan.FromMilliseconds(delayMs));
+            return;
+        }
+
         _delayedTask = new BuffTriggerTask(ApplyEffect);
-        TaskManager.Instance.Schedule(_delayedTask, TimeSpan.FromMilliseconds(template.DelayTime));
+        TaskManager.Instance.Schedule(_delayedTask, TimeSpan.FromMilliseconds(delayMs));
     }
 
     /// <summary>
     /// Drops the application this trigger queued for its <c>delay_time</c>. Called when the buff is
-    /// unsubscribed, so a trigger cannot act for a buff that has since been removed.
+    /// unsubscribed, so an event trigger cannot act for a buff that has since been removed. Scheduled
+    /// <c>time</c> rows are dropped by <see cref="CancelScheduled"/> instead, and a delayed
+    /// <c>timeout</c> row is deliberately not tracked by either.
     /// </summary>
     public void CancelPending()
     {

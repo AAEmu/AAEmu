@@ -14,6 +14,10 @@ namespace AAEmu.Game.Models.Game.Skills.Buffs;
 /// hit and never to B - and threw outright when the applier was not a Unit at all (a doodad or item leaves
 /// <c>Caster</c> null). <c>Buff.Caster</c> is still what a row reaches for when it names agent
 /// <see cref="BuffTriggerAgent.OriginalSource"/>, so it is read during resolution rather than here.
+/// <para>
+/// Which kinds exist and how each one fires is <see cref="BuffTriggerKindRules"/>' table, not a fall-through
+/// here: a kind is either bound below, scheduled, or listed there as not applicable with the reason.
+/// </para>
 /// </remarks>
 public class BuffTriggersHandler(Buff buff)
 {
@@ -35,18 +39,42 @@ public class BuffTriggersHandler(Buff buff)
 
         foreach (var triggerTemplate in triggerTemplates)
         {
+            var binding = BuffTriggerKindRules.For(triggerTemplate.Kind);
+            if (binding == null)
+            {
+                // An event_id this build does not define: new content, not a wiring gap. Loud on purpose -
+                // the alternative is a row that looks subscribed and never fires.
+                Logger.Warn("Buff[{0}] trigger {1} has event_id {2}, which this build does not implement",
+                    buffId, triggerTemplate.Id, (int)triggerTemplate.Kind);
+                continue;
+            }
+
+            if (binding.Value.Wiring == BuffTriggerWiring.NotApplicable)
+            {
+                Logger.Trace("Buff[{0}] trigger {1} kind {2} ({3}) cannot fire here: {4}",
+                    buffId, triggerTemplate.Id, (int)binding.Value.DbId, binding.Value.DbName, binding.Value.Reason);
+                continue;
+            }
+
             var trigger = new BuffTrigger(buff, triggerTemplate);
 
             // One binding table, used for subscribing and unsubscribing alike: the two used to be separate
             // switches, and the kinds they disagreed about silently kept or lost their subscription.
-            var bound = ChangeBuffSubscription(buff, trigger, subscribe: true);
-            if (!bound && _ownerUnit != null)
-                bound = ChangeUnitSubscription(_ownerUnit, trigger, subscribe: true);
+            var bound = binding.Value.Wiring switch
+            {
+                BuffTriggerWiring.BuffEvent => ChangeBuffSubscription(buff, trigger, subscribe: true),
+                BuffTriggerWiring.UnitEvent => _ownerUnit != null &&
+                                               ChangeUnitSubscription(_ownerUnit, trigger, subscribe: true),
+                BuffTriggerWiring.Scheduled => ScheduleTimeTrigger(trigger),
+                _ => false
+            };
 
             if (!bound)
             {
-                // Kinds whose events exist but are not wired yet (landing, kill, unmount, time, ...).
-                Logger.Trace("Unimplemented BuffTrigger[\"{0}\"]", triggerTemplate.Kind);
+                // The kind's state table and these switches disagree. That is a bug in one of them, and it
+                // must not look like content that is merely unwired.
+                Logger.Warn("Buff[{0}] trigger {1} kind {2} ({3}) is classified as {4} but nothing bound it",
+                    buffId, triggerTemplate.Id, (int)binding.Value.DbId, binding.Value.DbName, binding.Value.Wiring);
                 continue;
             }
 
@@ -56,9 +84,9 @@ public class BuffTriggersHandler(Buff buff)
     }
 
     /// <summary>
-    /// Detaches every trigger this handler subscribed. It no longer raises anything itself: which of
-    /// <c>OnTimeout</c> and <c>OnDispelled</c> runs is decided by how the buff ended, in
-    /// <see cref="Buff.StopEffectTask"/>.
+    /// Detaches every trigger this handler subscribed, and drops the ones it scheduled. It no longer raises
+    /// anything itself: which of <c>OnTimeout</c> and <c>OnDispelled</c> runs is decided by how the buff
+    /// ended, in <see cref="Buff.StopEffectTask"/>.
     /// </summary>
     public void UnsubscribeEvents()
     {
@@ -68,7 +96,11 @@ public class BuffTriggersHandler(Buff buff)
             if (!unbound && _ownerUnit != null)
                 ChangeUnitSubscription(_ownerUnit, trigger, subscribe: false);
 
-            // A trigger sitting out its delay_time would otherwise apply for a buff that is already gone.
+            // A scheduled `time` row is bounded by the buff's life: the buff ending before the offset is
+            // reached means the effect never happens, not that it happens late.
+            trigger.CancelScheduled();
+            // And an event trigger queued behind its delay_time must not answer for a buff that is gone.
+            // A delayed `timeout` row is tracked by neither: it is authored to fire after the buff ends.
             trigger.CancelPending();
         }
 
@@ -89,6 +121,23 @@ public class BuffTriggersHandler(Buff buff)
                 return true;
             case BuffEventTriggerKind.Timeout:
                 Wire(ref events.OnTimeout, trigger.Execute, subscribe);
+                return true;
+            // `any` is every removal reason, and StopEffectTask raises exactly one of these two.
+            case BuffEventTriggerKind.Any:
+                Wire(ref events.OnDispelled, trigger.Execute, subscribe);
+                Wire(ref events.OnTimeout, trigger.Execute, subscribe);
+                return true;
+            case BuffEventTriggerKind.RemoveNeedBuff:
+                Wire(ref events.OnRequiredBuffLost, trigger.Execute, subscribe);
+                return true;
+            case BuffEventTriggerKind.UserCancel:
+                Wire(ref events.OnUserCancel, trigger.Execute, subscribe);
+                return true;
+            case BuffEventTriggerKind.RemoveStealth:
+                Wire(ref events.OnStealthRemoved, trigger.Execute, subscribe);
+                return true;
+            case BuffEventTriggerKind.Absorption:
+                Wire(ref events.OnAbsorptionConsumed, trigger.Execute, subscribe);
                 return true;
             default:
                 return false;
@@ -115,6 +164,9 @@ public class BuffTriggersHandler(Buff buff)
                 Wire(ref events.OnDamage, trigger.Execute, subscribe);
                 return true;
             case BuffEventTriggerKind.Damaged:
+            // The removal half of `remove_on_damaged` is the remove-on flag path; the row's own effect
+            // runs on the hit that damaged the owner.
+            case BuffEventTriggerKind.RemoveOnDamaged:
                 Wire(ref events.OnDamaged, trigger.Execute, subscribe);
                 return true;
             case BuffEventTriggerKind.DamagedMelee:
@@ -129,13 +181,67 @@ public class BuffTriggersHandler(Buff buff)
             case BuffEventTriggerKind.DamagedSiege:
                 Wire(ref events.OnDamagedSiege, trigger.Execute, subscribe);
                 return true;
+            case BuffEventTriggerKind.DamageMelee:
+                Wire(ref events.OnDamageMelee, trigger.Execute, subscribe);
+                return true;
+            case BuffEventTriggerKind.DamageRanged:
+                Wire(ref events.OnDamageRanged, trigger.Execute, subscribe);
+                return true;
+            case BuffEventTriggerKind.DamageSpell:
+                Wire(ref events.OnDamageSpell, trigger.Execute, subscribe);
+                return true;
+            case BuffEventTriggerKind.DamageSiege:
+                Wire(ref events.OnDamageSiege, trigger.Execute, subscribe);
+                return true;
+            case BuffEventTriggerKind.Landing:
+                Wire(ref events.OnLanding, trigger.Execute, subscribe);
+                return true;
+            case BuffEventTriggerKind.RemoveOnMove:
+                Wire(ref events.OnMovement, trigger.Execute, subscribe);
+                return true;
+            case BuffEventTriggerKind.ChannelingCancel:
+                Wire(ref events.OnChannelingCancel, trigger.Execute, subscribe);
+                return true;
             case BuffEventTriggerKind.Death:
                 Wire(ref events.OnDeath, trigger.Execute, subscribe);
+                return true;
+            case BuffEventTriggerKind.Unmount:
+                Wire(ref events.OnUnmount, trigger.Execute, subscribe);
+                return true;
+            // `kill` and `kill_any` share the killer's OnKill: see BuffTriggerKindRules for why the content
+            // does not separate them.
+            case BuffEventTriggerKind.Kill:
+            case BuffEventTriggerKind.KillAny:
+                Wire(ref events.OnKill, trigger.Execute, subscribe);
+                return true;
+            case BuffEventTriggerKind.DamagedCollision:
+                Wire(ref events.OnDamagedCollision, trigger.Execute, subscribe);
+                return true;
+            case BuffEventTriggerKind.UseSkill:
+                Wire(ref events.OnSkillUse, trigger.Execute, subscribe);
                 return true;
             default:
                 return false;
         }
     }
+
+    /// <summary>
+    /// Puts a <c>time</c> row on the scheduler at the offset it was authored with, measured from now -
+    /// the handler subscribes at the moment the buff is applied, so that is the buff's start.
+    /// </summary>
+    private bool ScheduleTimeTrigger(BuffTrigger trigger)
+    {
+        var offset = BuffTriggerKindRules.ResolveTimeOffsetMs(trigger.Template.DelayTime, BuffDurationMs());
+        return trigger.ScheduleTime(offset);
+    }
+
+    /// <summary>
+    /// The buff's lifetime in milliseconds for the negative <c>time</c> offsets. The duration is resolved
+    /// after <see cref="SubscribeEvents"/> runs (<c>Buffs.AddBuff</c> subscribes, then SetInUse resolves it),
+    /// so the template is the authority here.
+    /// </summary>
+    private int BuffDurationMs() =>
+        buff.Duration > 0 ? buff.Duration : buff.Template?.GetDuration(buff.AbLevel) ?? 0;
 
     private static void Wire<T>(ref EventHandler<T> slot, EventHandler<T> handler, bool subscribe) where T : EventArgs
     {

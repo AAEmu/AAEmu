@@ -2134,10 +2134,11 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         trigger.OwnerNoBuffTagId = reader.GetUInt32("owner_no_buff_tag_id", 0);
                         trigger.SourceBuffTagId = reader.GetUInt32("source_buff_tag_id", 0);
                         trigger.SourceNoBuffTagId = reader.GetUInt32("source_no_buff_tag_id", 0);
-                        // delay_time is a signed column: 9 enabled rows carry a negative value, and reading it
-                        // unsigned wrapped 14143 (-3000) into 4 294 964 296 ms, about 49.7 days. Zero or less
-                        // means "apply inline".
-                        trigger.DelayTime = (uint)Math.Max(0, reader.GetInt32("delay_time", 0));
+                        // delay_time is a signed column, and the sign carries meaning: a positive value is an
+                        // offset from the buff's start, a negative one fires that far before the buff ends
+                        // (27016: 23000 ms duration, -3000). Reading it unsigned used to wrap 14143 (-3000)
+                        // into 4 294 964 296 ms, about 49.7 days.
+                        trigger.DelayTime = reader.GetInt32("delay_time", 0);
                         trigger.UseStackCount = reader.GetBoolean("use_stack_count", true);
                         trigger.CheckTagSrcInOwner = reader.GetBoolean("check_tag_src_in_owner", true);
                         trigger.CheckNoTagSrcInOwner = reader.GetBoolean("check_no_tag_src_in_owner", true);
