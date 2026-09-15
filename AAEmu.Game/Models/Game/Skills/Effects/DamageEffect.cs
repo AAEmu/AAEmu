@@ -482,17 +482,20 @@ public class DamageEffect : EffectTemplate
         //Invoke even if damage is 0
         ((Unit)caster).Events.OnAttack(this, new OnAttackArgs
         {
-            Attacker = (Unit)caster
+            Attacker = (Unit)caster,
+            Target = trg
         });
-        trg.Events.OnAttacked(this, new OnAttackedArgs { });
+        trg.Events.OnAttacked(this, new OnAttackedArgs { Attacker = (Unit)caster });
 
         if (value > 0)
         {
-            ((Unit)caster).Events.OnDamage(this, new OnDamageArgs
+            var damageArgs = new OnDamageArgs
             {
                 Attacker = (Unit)caster,
-                Amount = value
-            });
+                Amount = value,
+                Target = trg
+            };
+            ((Unit)caster).Events.OnDamage(this, damageArgs);
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageEtc);
             trg.Events.OnDamaged(this, new OnDamagedArgs
             {
@@ -508,6 +511,8 @@ public class DamageEffect : EffectTemplate
                         Attacker = (Unit)caster,
                         Amount = value
                     });
+                    // The attacker's own side of the same hit, split by the type that caused it.
+                    ((Unit)caster).Events.OnDamageMelee(this, damageArgs);
                     break;
                 case DamageType.Ranged:
                     trg.Events.OnDamagedRanged(this, new OnDamagedArgs
@@ -515,6 +520,7 @@ public class DamageEffect : EffectTemplate
                         Attacker = (Unit)caster,
                         Amount = value
                     });
+                    ((Unit)caster).Events.OnDamageRanged(this, damageArgs);
                     break;
                 case DamageType.Magic:
                     trg.Events.OnDamagedSpell(this, new OnDamagedArgs
@@ -522,6 +528,7 @@ public class DamageEffect : EffectTemplate
                         Attacker = (Unit)caster,
                         Amount = value
                     });
+                    ((Unit)caster).Events.OnDamageSpell(this, damageArgs);
                     break;
                 case DamageType.Siege:
                     trg.Events.OnDamagedSiege(this, new OnDamagedArgs
@@ -529,6 +536,7 @@ public class DamageEffect : EffectTemplate
                         Attacker = (Unit)caster,
                         Amount = value
                     });
+                    ((Unit)caster).Events.OnDamageSiege(this, damageArgs);
                     break;
             }
 

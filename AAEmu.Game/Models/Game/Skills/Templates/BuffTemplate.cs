@@ -483,7 +483,13 @@ public class BuffTemplate
         RemoveBonuses(owner, buff);
         var requiringBuffs = owner.Buffs.GetBuffsRequiring(buff.Template.Id);
         foreach (var requiringBuff in requiringBuffs.ToList())
+        {
+            // This buff is the one that requirement named, and it is going away. Raised before Exit()
+            // because that unsubscribes the requiring buff's triggers, `remove_need_buff` among them.
+            requiringBuff.Events.OnRequiredBuffLost(requiringBuff,
+                new OnRequiredBuffLostArgs { RequiredBuffId = buff.Template.Id });
             requiringBuff.Exit();
+        }
 
         if (!buff.Passive && !replaced)
         {
