@@ -275,21 +275,26 @@ public class DamageEffect : EffectTemplate
 
         if (UseChargedBuff && source.Skill != null)
         {
-            var effect = caster.Buffs.GetEffectFromBuffId(ChargedBuffId);
-            var charges = effect?.Charge ?? 0;
+            var charged = ChargedBuffRules.CasterBranch(ChargedBuffId, ChargedMul, ChargedLevelMul, source.Skill.Level);
+            var effect = caster.Buffs.GetEffectFromBuffId(charged.BuffId);
+            var chargeBonus = (effect?.Charge ?? 0) * charged.PerChargeMultiplier;
 
-            min += charges * (ChargedMul + source.Skill.Level * ChargedLevelMul);
-            max += charges * (ChargedMul + source.Skill.Level * ChargedLevelMul);
+            min += chargeBonus;
+            max += chargeBonus;
             effect?.Exit();
         }
 
-        if (UseTargetChargedBuff && source.Skill != null)
+        // No skill guard here: only the caster branch reads source.Skill (its level). This branch is also
+        // reached through buff_triggers (damage_effects 4249, 5340, 7140), which carry no skill, so gating
+        // it on one silently dropped the target's charge bonus.
+        if (UseTargetChargedBuff)
         {
-            var effect = target.Buffs.GetEffectFromBuffId(ChargedBuffId);
-            var charges = effect?.Charge ?? 0;
+            var charged = ChargedBuffRules.TargetBranch(TargetChargedBuffId, TargetChargedMul);
+            var effect = target.Buffs.GetEffectFromBuffId(charged.BuffId);
+            var chargeBonus = (effect?.Charge ?? 0) * charged.PerChargeMultiplier;
 
-            min += charges * (ChargedMul + source.Skill.Level * ChargedLevelMul);
-            max += charges * (ChargedMul + source.Skill.Level * ChargedLevelMul);
+            min += chargeBonus;
+            max += chargeBonus;
             effect?.Exit();
         }
 
