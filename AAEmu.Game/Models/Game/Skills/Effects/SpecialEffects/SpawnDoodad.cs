@@ -1,6 +1,9 @@
-﻿using AAEmu.Game.Core.Managers.UnitManagers;
+﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Tasks.Doodads;
 using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
@@ -71,8 +74,16 @@ public class SpawnDoodad : SpecialEffectAction
         var zz = doodad.ParentWorld.Template.GeoData.GetHeight(doodad.Transform.World.Position); // WorldManager.Instance.GetHeight(doodad.Transform);
         doodad.SetPosition(xx, yy, zz, rpy.X, rpy.Y, rpy.Z);
         doodad.InitDoodad();
-        if (delay > 0)
-            Thread.Sleep(delay);
-        doodad.Spawn();
+        if (DeferredDoodadSpawnRules.ShouldDeferSpawn(delay))
+        {
+            // Everything above is done; only making the doodad visible waits for the delay. This used
+            // to block the effect thread for the whole delay, which pushed the cast's EndSkill back
+            // with it, so the spawn is scheduled instead.
+            TaskManager.Instance.Schedule(new DeferredDoodadSpawnTask(doodad), TimeSpan.FromMilliseconds(delay));
+        }
+        else
+        {
+            doodad.Spawn();
+        }
     }
 }
