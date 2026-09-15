@@ -595,6 +595,27 @@ public class MovementRelay
                     break;
                 }
 
+                // A read past the end returns a default instead of throwing, so a record this build
+                // framed wrongly yields a half-parsed body and leaves the reader inside the next one:
+                // everything after it is noise. Keep what framed and drop the tail.
+                if (stream.Overran)
+                {
+                    Logger.Warn(
+                        "ZWUnitMovements overran at entry {0}/{1} pos={2} - dropping the rest of the batch",
+                        i, count, start);
+                    break;
+                }
+
+                // Same for a record whose tail is not parsed at all: the reader cannot know where it
+                // ends, so the entries behind it cannot be trusted.
+                if (mt is UnitMoveType framedMove && UnitMoveFramingRules.HasUnreadableTail(framedMove.ActorFlags))
+                {
+                    Logger.Warn(
+                        "ZWUnitMovements entry {0}/{1} carries actor flag 0x8000 (unparsed push blob) - dropping the rest of the batch",
+                        i, count);
+                    break;
+                }
+
                 var localSim = ZoneCoordBoundary.UseLocalOnZoneWire
                     || WorldIntegration.FindUnitAcrossWorlds(bcId) is Npc { ZoneSimUsesLocalCoordinates: true };
                 ZoneCoordBoundary.ShiftLocalToWorld(zoneId, mt, localSim);
