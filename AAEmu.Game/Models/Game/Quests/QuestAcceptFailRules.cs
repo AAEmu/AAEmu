@@ -1,5 +1,7 @@
 using AAEmu.Game.Models.Game.Quests.Static;
 
+using NLog;
+
 namespace AAEmu.Game.Models.Game.Quests;
 
 /// <summary>
@@ -18,6 +20,14 @@ public static class QuestAcceptFailRules
     /// blocked quest even when the client offered it from a quest starter.
     /// </summary>
     public static QuestStatusFailed PublicAssignmentBlocked => QuestStatusFailed.BlockedQuest;
+
+    /// <summary>
+    /// How loud a refused accept is worth being. One the character asked for is a warning; the same
+    /// refusal on a server-driven start - a starter sphere walked through, a chain's next quest - is
+    /// ordinary traffic, and a below-level character walks through that sphere again and again.
+    /// </summary>
+    public static LogLevel RefusalLogLevel(bool answerClient) =>
+        answerClient ? LogLevel.Warn : LogLevel.Trace;
 
     public static QuestStatusFailed MissingSource(QuestAcceptorType type) =>
         type == QuestAcceptorType.Doodad

@@ -1,6 +1,8 @@
 using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Static;
 
+using NLog;
+
 namespace AAEmu.UnitTests.Game.Models.Game.Quests;
 
 public class QuestAcceptFailRulesTests
@@ -11,6 +13,15 @@ public class QuestAcceptFailRulesTests
         await Assert.That(QuestAcceptFailRules.RequirementNotMet)
             .IsEqualTo(QuestStatusFailed.UnitRequirementCheck);
         await Assert.That((byte)QuestAcceptFailRules.RequirementNotMet).IsEqualTo((byte)9);
+    }
+
+    [Test]
+    public async Task Refusal_IsLoggedAtTheLevelItsOriginDeserves()
+    {
+        // A character below a starter sphere's level walks through it again and again: that refusal is
+        // routine traffic, while one the character is waiting on is worth a warning.
+        await Assert.That(QuestAcceptFailRules.RefusalLogLevel(answerClient: true)).IsEqualTo(LogLevel.Warn);
+        await Assert.That(QuestAcceptFailRules.RefusalLogLevel(answerClient: false)).IsEqualTo(LogLevel.Trace);
     }
 
     [Test]
