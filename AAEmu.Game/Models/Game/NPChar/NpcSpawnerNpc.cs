@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Units.Route;
@@ -98,7 +98,7 @@ public class NpcSpawnerNpc : Spawner<Npc>
 
         Logger.Trace($"Spawn npc templateId {MemberId} objId {npc.ObjId} from spawnerId {NpcSpawnerTemplateId} at Position: {spawnPosition}");
 
-        if (!npc.CanFly)
+        if (!npc.IsOffGround)
         {
             var newZ = npcSpawner.ParentWorld.Template.GeoData.GetHeight(spawnPosition.AsPositionVector());// WorldManager.Instance.GetHeight(spawnPosition.ZoneId, spawnPosition.X, spawnPosition.Y, spawnPosition.Z);
             if (Math.Abs(spawnPosition.Z - newZ) < 1f)

@@ -820,8 +820,9 @@ public class WorldManager(
 
         var spawnerHeight = npc.Spawner?.Position.Z;
 
-        // Fliers hold the altitude they were spawned at rather than snapping to terrain.
-        if (npc.CanFly && spawnerHeight.HasValue)
+        // Fliers hold the altitude they were spawned at rather than snapping to terrain, and swimmers
+        // hold their depth for the same reason: snapping a shark to the sea floor grounds it.
+        if (npc.IsOffGround && spawnerHeight.HasValue)
             return spawnerHeight.Value;
 
         var finalHeight = GetHeight(zoneId, x, y, z);

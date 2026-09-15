@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Models;
@@ -56,19 +56,19 @@ public class ModelManager : Singleton<ModelManager>, IModelManager
     }
 
     /// <summary>
-    /// Holds an altitude rather than resting on terrain. MovementId 2 covers the birds and fish that
-    /// move in 3D, but fly_mode is set independently on 8 further models — kestrels, watchers,
-    /// wraiths, wisps and ghost ships fly with MovementId 0, and treating them as grounded snapped
-    /// them to terrain and let the client drop them out of the air.
+    /// True for a model the dedicate has to simulate off the ground - see
+    /// <see cref="ActorModelRules.SimulatesOffGround"/>. This is what sets <c>Npc.CanFly</c>, which
+    /// keeps a unit's spawn altitude and gets it a flying state on the zone.
     /// </summary>
-    public bool IsFlyOrSwim(uint modelId)
-    {
-        if (!_modelTypes.TryGetValue(modelId, out var modelType))
-            return false;
-        if (!_models.TryGetValue(modelType.SubType, out var value) || !value.TryGetValue(modelType.SubId, out var model))
-            return false;
-        return model is ActorModel { MovementId: 2 } or ActorModel { FlyMode: true };
-    }
+    public bool IsFlyOrSwim(uint modelId) =>
+        GetActorModel(modelId) is { } model && ActorModelRules.SimulatesOffGround(model);
+
+    /// <summary>
+    /// True for the swimmers among them. They are simulated off the ground like a flier but take a swim
+    /// stance rather than the flight one, so the two cannot share a single flag.
+    /// </summary>
+    public bool IsSwimmer(uint modelId) =>
+        GetActorModel(modelId) is { } model && ActorModelRules.SwimsUnderwater(model);
 
     public void Load()
     {

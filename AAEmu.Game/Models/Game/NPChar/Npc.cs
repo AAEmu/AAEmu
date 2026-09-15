@@ -105,6 +105,20 @@ public partial class Npc : Unit
     public bool CanFly { get; set; }
 
     /// <summary>
+    /// Set from the actor model (underwater_creature): swims in open water. A swimmer is simulated off
+    /// the ground like a flier - it keeps its spawn depth instead of being snapped to the sea floor and
+    /// gets a flying state on the zone - but it takes a swim stance rather than the flight one, so it
+    /// cannot simply be <see cref="CanFly"/>.
+    /// </summary>
+    public bool IsSwimmer { get; set; }
+
+    /// <summary>
+    /// True for a unit that holds its own position in the air or the water instead of resting on the
+    /// terrain under it: a flier or a swimmer.
+    /// </summary>
+    public bool IsOffGround => CanFly || IsSwimmer;
+
+    /// <summary>
     /// WZNpcState for this unit used zone-local XYZ. ZWUnitMovements must be converted to world
     /// for SC even when the process default is world-on-wire.
     /// </summary>

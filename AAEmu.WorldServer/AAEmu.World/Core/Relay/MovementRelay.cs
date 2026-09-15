@@ -75,7 +75,7 @@ public class MovementRelay
             if (WorldIntegration.FindUnitAcrossWorlds(bcId) is Npc npc)
             {
                 record.TemplateId = npc.TemplateId;
-                record.Flier = npc.CanFly;
+                record.Flier = npc.IsOffGround;
             }
 
             return record;
@@ -142,7 +142,7 @@ public class MovementRelay
             if (WorldIntegration.FindUnitAcrossWorlds(bcId) is not Npc npc)
                 return;
 
-            templateId = npc.CanFly ? npc.TemplateId : 0u;
+            templateId = npc.IsOffGround ? npc.TemplateId : 0u;
             FlierTemplates[bcId] = templateId;
         }
 

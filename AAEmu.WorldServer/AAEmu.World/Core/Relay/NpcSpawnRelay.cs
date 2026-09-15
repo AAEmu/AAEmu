@@ -418,12 +418,14 @@ public class NpcSpawnRelay
                 return;
             }
 
-            if (!npc.CanFly)
+            // Flier or swimmer: both are simulated off the ground, so the zone needs the flying state
+            // for a shark exactly as much as for a hawk.
+            if (!npc.IsOffGround)
             {
                 if (npc.IsMirrorStreamPriority)
                 {
                     Logger.Info(
-                        "WZUnitFlyingState skip bc={0} tpl={1}: CanFly=false (priority mirror)",
+                        "WZUnitFlyingState skip bc={0} tpl={1}: off-ground=false (priority mirror)",
                         bcId, templateId);
                 }
 

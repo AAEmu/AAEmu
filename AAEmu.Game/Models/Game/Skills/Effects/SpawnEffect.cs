@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.GameData;
@@ -178,7 +178,7 @@ public class SpawnEffect : EffectTemplate
             x,
             y,
             positionRelativeToUnit.Transform.World.Position.Z,
-            npc.CanFly);
+            npc.IsOffGround);
 
         npc.Transform = positionRelativeToUnit.Transform.CloneDetached(npc);
         npc.Transform.Local.SetPosition(x, y, z, 0f, 0f, yaw);

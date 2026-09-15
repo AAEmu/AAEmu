@@ -402,6 +402,7 @@ public class NpcManager(
             Template = template,
             ModelId = template.ModelId,
             CanFly = modelManager.IsFlyOrSwim(template.ModelId),
+            IsSwimmer = modelManager.IsSwimmer(template.ModelId),
             Faction = factionManager.GetFaction(template.FactionId),
             Level = template.Level,
             Patrol = null

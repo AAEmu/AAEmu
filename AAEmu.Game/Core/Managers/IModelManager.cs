@@ -9,4 +9,5 @@ public interface IModelManager : ILoadable
     ShipModelV1 GetShipModel(uint modelId);
     VehicleModel GetVehicleModels(uint modelId);
     bool IsFlyOrSwim(uint modelId);
+    bool IsSwimmer(uint modelId);
 }
