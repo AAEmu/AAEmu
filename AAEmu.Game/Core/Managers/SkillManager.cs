@@ -2251,14 +2251,23 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         if (skillTemplate.Id is 2 or 3 or 4 && caster is Character character)
         {
             var weaponSpeed = GetWeaponSpeed(character, skillTemplate.Id);
-            var delay = weaponSpeed * (caster.GlobalCooldownMul / 100.0);
+            // attack_speed_mul (218) supersedes the melee/ranged view of the same rating (54/55), which
+            // supersedes the global_cooldown_mul factor this line already applied. A unit carrying none of
+            // them keeps the plain weaponSpeed * GlobalCooldownMul / 100 it had.
+            var delay = weaponSpeed * SpeedMultiplierRules.AttackIntervalFactor(
+                character.AttackSpeedRating,
+                skillTemplate.Id == 4 ? character.RangedSpeedRating : character.MeleeSpeedRating,
+                caster.GlobalCooldownMul / 100.0);
             return Math.Clamp(delay, 400.0, 5000.0);
         }
 
         // Non-auto-attack skills: original formula
+        // The same rating paces the recovery half of a skill too — this is the branch a mate's or an NPC's
+        // auto-attack takes — while the cast time stays a casting_time_mul matter.
+        var attackSpeed = SpeedMultiplierRules.AttackIntervalFactor(caster.AttackSpeedRating, 0, 1.0);
         var castTime = skillTemplate.CastingTime * caster.CastTimeMul * 1.0;
-        var coolDownTime = includeCooldown ? skillTemplate.CooldownTime * (caster.GlobalCooldownMul / 100.0) : 0.0;
-        var additionalTime = additionalDelay * (caster.GlobalCooldownMul / 100.0);
+        var coolDownTime = includeCooldown ? skillTemplate.CooldownTime * (caster.GlobalCooldownMul / 100.0) * attackSpeed : 0.0;
+        var additionalTime = additionalDelay * (caster.GlobalCooldownMul / 100.0) * attackSpeed;
         return castTime + coolDownTime + additionalTime;
     }
 
