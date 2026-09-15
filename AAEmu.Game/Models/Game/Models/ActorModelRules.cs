@@ -31,4 +31,12 @@ public static class ActorModelRules
     /// </summary>
     public static bool SimulatesOffGround(ActorModel model) =>
         HoldsAltitude(model) || SwimsUnderwater(model);
+
+    /// <summary>
+    /// The speed a unit walks at. A prefab - a siege place, a portal, a chest, a wall - is a static
+    /// prop with no actor model of its own, so it has no speed at all: the fallback for a model that is
+    /// simply missing must not turn into "it can walk".
+    /// </summary>
+    public static float MoveSpeedFor(bool isPrefabModel, float actorMoveSpeed) =>
+        isPrefabModel ? 0f : actorMoveSpeed;
 }

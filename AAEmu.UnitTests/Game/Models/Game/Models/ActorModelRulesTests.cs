@@ -57,4 +57,13 @@ public class ActorModelRulesTests
         await Assert.That(ActorModelRules.HoldsAltitude(
             new ActorModel { UnderwaterCreature = true })).IsFalse();
     }
+
+    [Test]
+    public async Task APrefabDoesNotWalk()
+    {
+        // A siege place, portal, chest or wall has no actor model of its own: the fallback speed for a
+        // model that is simply missing must not turn it into something that can walk.
+        await Assert.That(ActorModelRules.MoveSpeedFor(isPrefabModel: true, actorMoveSpeed: 1.8f)).IsEqualTo(0f);
+        await Assert.That(ActorModelRules.MoveSpeedFor(isPrefabModel: false, actorMoveSpeed: 1.8f)).IsEqualTo(1.8f);
+    }
 }

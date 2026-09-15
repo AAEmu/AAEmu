@@ -44,6 +44,26 @@ public class ModelManager : Singleton<ModelManager>, IModelManager
         return null;
     }
 
+    /// <summary>
+    /// True when the model id is a prefab - a siege place, a portal, a chest, a wall - rather than an
+    /// actor. Those units are static props with no walk speed and no flight, which is worth knowing
+    /// before an actor model is looked up and silently missed.
+    /// </summary>
+    public bool IsPrefabModel(uint modelId) =>
+        _modelTypes.TryGetValue(modelId, out var modelType) &&
+        modelType.SubType == nameof(PrefabModel) &&
+        _models.TryGetValue(modelType.SubType, out var value) &&
+        value.ContainsKey(modelType.SubId);
+
+    public PrefabModel GetPrefabModel(uint modelId)
+    {
+        if (!_modelTypes.TryGetValue(modelId, out var modelType))
+            return null;
+        if (!_models.TryGetValue(modelType.SubType, out var value) || !value.TryGetValue(modelType.SubId, out var model))
+            return null;
+        return model as PrefabModel;
+    }
+
     public VehicleModel GetVehicleModels(uint modelId)
     {
         if (!_modelTypes.TryGetValue(modelId, out var modelType))
@@ -179,6 +199,24 @@ public class ModelManager : Singleton<ModelManager>, IModelManager
                         };
 
                         _models["VehicleModel"].TryAdd(model.Id, model);
+                    }
+                }
+            }
+
+            // prefab_models carries nothing but the id (the parts are in prefab_elements), and the
+            // dictionary for it was set up and then never filled, so every prefab model id resolved to
+            // nothing at all. The marker is what lets a unit be recognised as a static prop instead of
+            // an actor whose model is missing.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM prefab_models";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var model = new PrefabModel { Id = reader.GetUInt32("id") };
+                        _models["PrefabModel"].TryAdd(model.Id, model);
                     }
                 }
             }

@@ -142,20 +142,28 @@ public partial class Npc : Unit
     {
         get
         {
-            var model = ModelManager.Instance.GetActorModel(Template.ModelId);
-            if (model == null)
-                return 1f;
-            // TODO: Implement stance switching mechanic
-            if (!model.Stances.TryGetValue(CurrentGameStance, out var stance))
-                return 1f;
-
-            // In combat, use running speed
-            if (IsInBattle)
-                return Math.Min(stance.AiMoveSpeedRun, stance.MaxSpeed);
-
-            // Not in combat (should be roaming), use walk speed
-            return Math.Min(stance.AiMoveSpeedWalk, stance.MaxSpeed);
+            // A prefab - a siege place, a portal, a chest, a wall - is a static prop with no actor model
+            // of its own: it does not walk at all, whatever the model lookup falls back to.
+            var isPrefab = ModelManager.Instance.IsPrefabModel(Template.ModelId);
+            return ActorModelRules.MoveSpeedFor(isPrefab, ResolveActorMoveSpeed());
         }
+    }
+
+    private float ResolveActorMoveSpeed()
+    {
+        var model = ModelManager.Instance.GetActorModel(Template.ModelId);
+        if (model == null)
+            return 1f;
+        // TODO: Implement stance switching mechanic
+        if (!model.Stances.TryGetValue(CurrentGameStance, out var stance))
+            return 1f;
+
+        // In combat, use running speed
+        if (IsInBattle)
+            return Math.Min(stance.AiMoveSpeedRun, stance.MaxSpeed);
+
+        // Not in combat (should be roaming), use walk speed
+        return Math.Min(stance.AiMoveSpeedWalk, stance.MaxSpeed);
     }
 
     private GameStanceType _currentGameStance = GameStanceType.Combat;
