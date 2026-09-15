@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -6,14 +6,10 @@ using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Units;
 
-using NLog;
-
 namespace AAEmu.Game.Models.Game.Skills.Plots;
 
 public class Plot
 {
-    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-
     public uint Id { get; set; }
     public uint TargetTypeId { get; set; }
 
@@ -67,11 +63,21 @@ public class Plot
             // 67 plots in 10.0.2.13 have no position-1 plot_events row, so PlotManager built no tree for
             // them while 30 skills still cast them (13499 → 47, 16728-16745 → 283-300, ...). Every call
             // site runs this from Task.Run, so the null-tree dereference was swallowed as an unobserved
-            // task exception and the skill never ended: no SCPlotEnded, no cooldown, no released TlId and
-            // no OnSkillEnd. End it through the plot-end sequence the tree itself finishes with.
-            Logger.Warn("Plot {0} has no tree (no position-1 plot event) — ending skill {1} without running it",
-                Id, skill.Template?.Id ?? 0);
-            PlotTree.EndPlotWithoutTree(state);
+            // task exception and the skill never ended. PlotManager warns about the count once at load;
+            // per cast there is nothing to say.
+            if (PlotEndRules.OwnsSkillEnd(skill.Template?.PlotOnly ?? false, skill.ForcePlotGraphOnly))
+            {
+                // The plot owns the skill end here (13499, 36858), so it runs the sequence the tree
+                // itself finishes with.
+                PlotTree.EndPlotWithoutTree(state);
+            }
+            else
+            {
+                // Skill.Use carries on to cast, fire and end this skill itself (Skill.cs:331), so the
+                // plot only drops its state. Ending it here would release the TlId and arm the cooldown
+                // from under a cast that is still running.
+                PlotTree.DropPlotState(state);
+            }
         }
         else
         {

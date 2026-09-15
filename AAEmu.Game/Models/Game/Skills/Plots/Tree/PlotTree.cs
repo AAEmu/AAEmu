@@ -281,6 +281,23 @@ public class PlotTree(uint plotId)
             state.ActiveSkill.ActivePlotState = null;
     }
 
+    /// <summary>
+    /// Drops a plot state that a cast path still owns: both <c>ActivePlotState</c> fields are cleared and
+    /// nothing else happens. The cast's own <c>EndSkill</c> is what arms the cooldown, releases the TlId
+    /// and fires <c>OnSkillEnd</c>, so doing any of that here would end the skill twice from a plot thread.
+    /// </summary>
+    public static void DropPlotState(PlotState state)
+    {
+        if (state == null)
+            return;
+
+        if (state.Caster?.ActivePlotState == state)
+            state.Caster.ActivePlotState = null;
+
+        if (state.ActiveSkill?.ActivePlotState == state)
+            state.ActiveSkill.ActivePlotState = null;
+    }
+
     private static void DoPlotEnd(PlotState state)
     {
         state.Caster?.BroadcastPacket(new SCPlotEndedPacket(state.ActiveSkill.TlId), true);

@@ -38,6 +38,7 @@ public class PlotEndRulesTests
         try
         {
             PlotTree.EndPlotWithoutTree(null);
+            PlotTree.DropPlotState(null);
         }
         catch (Exception e)
         {
@@ -45,5 +46,16 @@ public class PlotEndRulesTests
         }
 
         await Assert.That(error).IsNull();
+    }
+
+    [Test]
+    public async Task OwnsSkillEnd_OnlyForPlotOnlyAndForcedGraphs()
+    {
+        // 13499 and 36858 are the only casters of a treeless plot that are plot_only; every other one
+        // returns from Skill.Use into a cast that ends the skill itself.
+        await Assert.That(PlotEndRules.OwnsSkillEnd(plotOnly: true, forcePlotGraphOnly: false)).IsTrue();
+        // The hold/reel kit ships a plot without plot_only but sets ForcePlotGraphOnly (Skill.cs:306).
+        await Assert.That(PlotEndRules.OwnsSkillEnd(plotOnly: false, forcePlotGraphOnly: true)).IsTrue();
+        await Assert.That(PlotEndRules.OwnsSkillEnd(plotOnly: false, forcePlotGraphOnly: false)).IsFalse();
     }
 }
