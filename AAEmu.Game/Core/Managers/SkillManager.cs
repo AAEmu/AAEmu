@@ -41,6 +41,13 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     private Dictionary<uint, List<uint>> _taggedBuffs = [];
     private Dictionary<uint, List<uint>> _skillTags = [];
     private Dictionary<uint, List<uint>> _taggedSkills = [];
+    // tagged_immune_buffs / tagged_require_buffs, keyed by the buff that carries the row. Both tables
+    // are tiny (2 645 / 309 rows) and were previously loaded nowhere, which made Buffs.CheckBuffImmune
+    // a no-op and every tagged_require_buffs prerequisite unenforced.
+    private Dictionary<uint, List<uint>> _buffImmunityTags = [];
+    private Dictionary<uint, List<uint>> _requiredBuffTags = [];
+    // Returned for a buff with no rows so the per-application lookups do not allocate.
+    private static readonly List<uint> NoTags = [];
     private Dictionary<uint, List<SkillModifier>> _skillModifiers = [];
     private Dictionary<uint, List<BuffTriggerTemplate>> _buffTriggers = [];
     private Dictionary<uint, List<CombatBuffTemplate>> _combatBuffs = [];
@@ -206,6 +213,22 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         return _skillTags.TryGetValue(skillId, out var tags) ? tags : [];
     }
 
+    /// <summary>
+    /// Tags refused while <paramref name="buffId"/> is active on a unit (<c>tagged_immune_buffs</c>).
+    /// </summary>
+    public List<uint> GetBuffImmunityTags(uint buffId)
+    {
+        return _buffImmunityTags.TryGetValue(buffId, out var tags) ? tags : NoTags;
+    }
+
+    /// <summary>
+    /// Tags a unit must already carry before <paramref name="buffId"/> may apply (<c>tagged_require_buffs</c>).
+    /// </summary>
+    public List<uint> GetRequiredBuffTags(uint buffId)
+    {
+        return _requiredBuffTags.TryGetValue(buffId, out var tags) ? tags : NoTags;
+    }
+
     public List<uint> GetSkillsByTag(uint tagId)
     {
         return _taggedSkills.TryGetValue(tagId, out var tag) ? tag : [];
@@ -357,6 +380,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         _skillModifiers = [];
         _skillTags = [];
         _taggedSkills = [];
+        _buffImmunityTags = [];
+        _requiredBuffTags = [];
         _combatBuffs = [];
         _linearFuncs = [];
         _skillReagents = [];
@@ -2023,6 +2048,42 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
             using (var command = connection.CreateCommand())
             {
+                command.CommandText = "SELECT * FROM tagged_immune_buffs";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var buffId = reader.GetUInt32("buff_id", 0);
+                        var tagId = reader.GetUInt32("buff_tag_id", 0);
+
+                        if (!_buffImmunityTags.ContainsKey(buffId))
+                            _buffImmunityTags.Add(buffId, []);
+                        _buffImmunityTags[buffId].Add(tagId);
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM tagged_require_buffs";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var buffId = reader.GetUInt32("buff_id", 0);
+                        var tagId = reader.GetUInt32("buff_tag_id", 0);
+
+                        if (!_requiredBuffTags.ContainsKey(buffId))
+                            _requiredBuffTags.Add(buffId, []);
+                        _requiredBuffTags[buffId].Add(tagId);
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
                 command.CommandText = "SELECT * FROM skill_modifiers";
                 command.Prepare();
                 using (var sqliteReader = command.ExecuteReader())
@@ -2085,15 +2146,52 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         {
                             Id = reader.GetUInt32("id", 0),
                             HitSkillId = reader.GetUInt32("hit_skill_id", 0),
-                            // hit_type_id renamed to hit_type_bits in 10.0.2.13 schema
-                            HitType = (SkillHitType)reader.GetUInt32("hit_type_bits", 0),
+                            HitSkillTagId = reader.GetUInt32("hit_skill_tag_id", 0),
+                            // hit_type_id renamed to hit_type_bits in 10.0.2.13 schema. It is a mask, not a
+                            // single SkillHitType: see CombatBuffHitRules for the bit layout.
+                            HitTypeBits = reader.GetUInt32("hit_type_bits", 0),
                             BuffId = reader.GetUInt32("buff_id", 0),
                             BuffFromSource = reader.GetBoolean("buff_from_source", true),
                             BuffToSource = reader.GetBoolean("buff_to_source", true),
+                            ReverseTargetOn = reader.GetBoolean("reverse_target_on", true),
                             ReqSkillId = reader.GetUInt32("req_skill_id", 0),
                             ReqBuffId = reader.GetUInt32("req_buff_id", 0),
                             IsHealSpell = reader.GetBoolean("is_heal_spell", true)
                         };
+
+                        if (!CombatBuffHitRules.TryDecodeBits(combatBuffTemplate.HitTypeBits, out _))
+                        {
+                            Logger.Warn(
+                                "combat_buffs {0}: hit_type_bits {1} sets no known hit type — row skipped",
+                                combatBuffTemplate.Id, combatBuffTemplate.HitTypeBits);
+                            continue;
+                        }
+
+                        var unknownBits = CombatBuffHitRules.UnknownBits(combatBuffTemplate.HitTypeBits);
+                        if (unknownBits != 0)
+                        {
+                            Logger.Warn("combat_buffs {0}: hit_type_bits {1} also sets unnamed bits {2}",
+                                combatBuffTemplate.Id, combatBuffTemplate.HitTypeBits, unknownBits);
+                        }
+
+                        if (combatBuffTemplate.BuffId == 0)
+                        {
+                            // combat_buffs 153 is the only row here: it grants combat_resource_id 15
+                            // instead of a buff, which CombatBuffs does not apply yet.
+                            Logger.Warn("combat_buffs {0}: buff_id 0 and req buff {1} — row skipped",
+                                combatBuffTemplate.Id, combatBuffTemplate.ReqBuffId);
+                            continue;
+                        }
+
+                        if (combatBuffTemplate.ReqBuffId == 0)
+                        {
+                            // Registered by its req buff, and no buff carries id 0. combat_buffs 187 and 220
+                            // are gated on hit_skill_id / req_skill_id instead and stay inert until
+                            // something registers them.
+                            Logger.Warn("combat_buffs {0}: no req_buff_id — row cannot be registered, skipped",
+                                combatBuffTemplate.Id);
+                            continue;
+                        }
 
                         if (!_combatBuffs.ContainsKey(combatBuffTemplate.ReqBuffId))
                             _combatBuffs.Add(combatBuffTemplate.ReqBuffId, []);

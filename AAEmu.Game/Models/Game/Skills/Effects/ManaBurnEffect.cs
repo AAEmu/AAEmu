@@ -22,6 +22,16 @@ public class ManaBurnEffect : EffectTemplate
         CompressedGamePackets packetBuilder = null)
     {
         Logger.Trace("ManaBurnEffect");
+
+        // buffs.mana_burn_immune (338 rows) is read off the target's active buffs, the same way
+        // CheckDamageImmune reads its flags. Checked before the roll so an immune target does not
+        // consume a damage roll it never sees.
+        if (target is Unit immuneTarget && immuneTarget.Buffs.CheckManaBurnImmune())
+        {
+            Logger.Debug("ManaBurnEffect refused on {0}: mana_burn_immune", immuneTarget.ObjId);
+            return;
+        }
+
         var min = 0.0f;
         var max = 0.0f;
 
