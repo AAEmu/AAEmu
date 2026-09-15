@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Buffs.Triggers;
 using AAEmu.Game.Models.Game.Units;
 using NLog;
@@ -67,6 +67,9 @@ public class BuffTriggersHandler(Buff buff)
             var unbound = ChangeBuffSubscription(buff, trigger, subscribe: false);
             if (!unbound && _ownerUnit != null)
                 ChangeUnitSubscription(_ownerUnit, trigger, subscribe: false);
+
+            // A trigger sitting out its delay_time would otherwise apply for a buff that is already gone.
+            trigger.CancelPending();
         }
 
         _triggers.Clear();

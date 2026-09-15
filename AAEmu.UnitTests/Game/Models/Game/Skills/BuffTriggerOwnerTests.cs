@@ -101,6 +101,9 @@ public class BuffTriggerOwnerTests
         await Assert.That(effect.Applications).Count().IsEqualTo(1);
         await Assert.That(effect.Applications[0].Source).IsSameReferenceAs(applier);
         await Assert.That(effect.Applications[0].Target).IsSameReferenceAs(applier);
+        // The descriptor names the unit the effect ran between, not the buff's owner: the two travel
+        // together into SCUnitDamagedPacket/SCUnitHealedPacket and into the Buff BuffEffect stores.
+        await Assert.That(effect.Applications[0].CasterObjId).IsEqualTo(applier.ObjId);
     }
 
     [Test]
@@ -303,6 +306,74 @@ public class BuffTriggerOwnerTests
         await Assert.That(QueuedTasks().OfType<BuffTriggerTask>()).IsEmpty();
     }
 
+    [Test]
+    public async Task RemovingTheBuff_CancelsAPendingDelayedTrigger()
+    {
+        var victim = Unit(1);
+        var applier = Unit(2);
+        var effect = new RecordingEffect();
+        AttachDebuff(victim, applier, new BuffTriggerTemplate
+        {
+            Kind = BuffEventTriggerKind.Damaged,
+            Effect = effect,
+            UseDamageAmount = true,
+            DelayTime = 2500
+        });
+
+        victim.Events.OnDamaged(victim, new OnDamagedArgs { Attacker = applier, Amount = 33 });
+        var queued = QueuedTasks().OfType<BuffTriggerTask>().Single();
+
+        // The aura ends before the delay expires.
+        victim.Buffs.RemoveBuff(DebuffId, notifyZone: false);
+
+        await Assert.That(queued.Cancelled).IsTrue();
+        queued.Execute();
+        await Assert.That(effect.Applications).IsEmpty();
+    }
+
+    [Test]
+    public async Task RowThatDoesNotUseTheDamageAmount_PassesAPlainSource()
+    {
+        // HealEffect branches on IsTrigger and Amount, so a use_fixed_heal row on a kind with no damage
+        // amount has to be handed the plain source the per-kind triggers used, or it heals 0 instead of
+        // its authored range (20 enabled rows: 2 attack, 3 damage_any, 6 timeout, 9 started).
+        var victim = Unit(1);
+        var applier = Unit(2);
+        var effect = new RecordingEffect();
+        AttachDebuff(victim, applier, new BuffTriggerTemplate
+        {
+            Kind = BuffEventTriggerKind.Damaged,
+            Effect = effect,
+            UseDamageAmount = false
+        });
+
+        victim.Events.OnDamaged(victim, new OnDamagedArgs { Attacker = applier, Amount = 33 });
+
+        await Assert.That(effect.Applications).Count().IsEqualTo(1);
+        await Assert.That(effect.Applications[0].Amount).IsEqualTo(0);
+        await Assert.That(effect.Applications[0].IsTrigger).IsFalse();
+    }
+
+    [Test]
+    public async Task RowThatUsesTheDamageAmount_PassesTheTriggerSource()
+    {
+        var victim = Unit(1);
+        var applier = Unit(2);
+        var effect = new RecordingEffect();
+        AttachDebuff(victim, applier, new BuffTriggerTemplate
+        {
+            Kind = BuffEventTriggerKind.Damaged,
+            Effect = effect,
+            UseDamageAmount = true
+        });
+
+        victim.Events.OnDamaged(victim, new OnDamagedArgs { Attacker = applier, Amount = 33 });
+
+        await Assert.That(effect.Applications).Count().IsEqualTo(1);
+        await Assert.That(effect.Applications[0].Amount).IsEqualTo(33);
+        await Assert.That(effect.Applications[0].IsTrigger).IsTrue();
+    }
+
     #endregion
 
     /// <summary>
@@ -369,17 +440,21 @@ public class BuffTriggerOwnerTests
         return gameData;
     }
 
-    /// <summary>Records what a fired trigger applied, so the test can read source, target and amount.</summary>
+    /// <summary>Records what a fired trigger applied, so the test can read source, target, amount and the
+    /// descriptor and source shape the effect was handed.</summary>
     private sealed class RecordingEffect : EffectTemplate
     {
-        public List<(BaseUnit Source, BaseUnit Target, int Amount)> Applications { get; } = [];
+        public List<(BaseUnit Source, BaseUnit Target, int Amount, uint CasterObjId, bool IsTrigger)> Applications
+        {
+            get;
+        } = [];
 
         public override bool OnActionTime => false;
 
         public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
             CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
             CompressedGamePackets packetBuilder = null) =>
-            Applications.Add((caster, target, source?.Amount ?? 0));
+            Applications.Add((caster, target, source?.Amount ?? 0, casterObj?.ObjId ?? 0, source?.IsTrigger ?? false));
     }
 
     private sealed class SingletonScope<T> : IDisposable where T : class

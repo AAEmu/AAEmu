@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Skills;
@@ -21,6 +21,8 @@ public class BuffTrigger
 
     protected Buff _buff;
     protected readonly BaseUnit _owner;
+    /// <summary>The application waiting out <c>delay_time</c>, so it can be cancelled with the buff.</summary>
+    private BuffTriggerTask _delayedTask;
     public BuffTriggerTemplate Template { get; set; }
     public virtual void Execute(object sender, EventArgs eventArgs)
     {
@@ -48,12 +50,37 @@ public class BuffTrigger
             return;
 
         var amount = BuffTriggerAgentRules.ResolveAmount(template, _buff.Stack, eventArgs);
-        var ownerObjId = owner.ObjId;
-        void ApplyEffect() =>
-            template.Effect.Apply(source, new SkillCasterUnit(ownerObjId), target, new SkillCastUnitTarget(target.ObjId),
-                new CastBuff(_buff),
-                new EffectSource(_buff.Skill, _buff.Template) { Amount = amount, IsTrigger = true },
-                null, DateTime.UtcNow);
+
+        // The descriptor names the unit the effect is applied by, which is the resolved source: a row that
+        // names another unit as its source (821 enabled rows set source_agent_id) otherwise travelled with
+        // a caster and a SkillCaster that disagreed — DamageEffect puts both in the same
+        // SCUnitDamagedPacket, HealEffect and RestoreManaEffect do the same for SCUnitHealedPacket, and
+        // BuffEffect stores a Buff whose Caster and SkillCaster differ.
+        var casterObj = new SkillCasterUnit(source.ObjId);
+
+        // Only a row that reads the damage amount gets the trigger-shaped source. HealEffect branches on
+        // IsTrigger and Amount (HealEffect.cs:114), and with use_damage_amount 'f' the amount is 0, so the
+        // 20 enabled use_fixed_heal rows on attack/started/timeout/damage kinds healed nothing instead of
+        // their authored range; the per-kind triggers this replaced passed a plain EffectSource there.
+        var effectSource = template.UseDamageAmount
+            ? new EffectSource(_buff.Skill, _buff.Template) { Amount = amount, IsTrigger = true }
+            : new EffectSource(_buff.Skill, _buff.Template);
+
+        // Queued while the buff was live or as it was ending: a delay scheduled by a timeout or a dispel
+        // runs during that ending, so only a buff that was live when the delay was armed has to still be
+        // live when it expires.
+        var wasLive = _buff != null && _buff.InUse && !_buff.IsEnded();
+
+        void ApplyEffect()
+        {
+            // Re-checked when a delayed task runs, and UnsubscribeEvents cancels the handle as well: the
+            // buff can be removed or dispelled while the task waits.
+            if (_buff?.Owner == null || (wasLive && (!_buff.InUse || _buff.IsEnded())))
+                return;
+
+            template.Effect.Apply(source, casterObj, target, new SkillCastUnitTarget(target.ObjId),
+                new CastBuff(_buff), effectSource, null, DateTime.UtcNow);
+        }
 
         if (template.DelayTime == 0)
         {
@@ -64,7 +91,21 @@ public class BuffTrigger
         // The units are resolved now, while the event that named them is still on the stack; only the
         // application waits, so a delayed trigger still acts on what its event was about.
         Logger.Trace("Buff[{0}] {1} delayed by {2} ms", _buff?.Template?.BuffId, GetType().Name, template.DelayTime);
-        TaskManager.Instance.Schedule(new BuffTriggerTask(ApplyEffect), TimeSpan.FromMilliseconds(template.DelayTime));
+        _delayedTask = new BuffTriggerTask(ApplyEffect);
+        TaskManager.Instance.Schedule(_delayedTask, TimeSpan.FromMilliseconds(template.DelayTime));
+    }
+
+    /// <summary>
+    /// Drops the application this trigger queued for its <c>delay_time</c>. Called when the buff is
+    /// unsubscribed, so a trigger cannot act for a buff that has since been removed.
+    /// </summary>
+    public void CancelPending()
+    {
+        if (_delayedTask == null)
+            return;
+
+        _delayedTask.Cancel();
+        _delayedTask = null;
     }
 
     public BuffTrigger(Buff buff, BuffTriggerTemplate template)
