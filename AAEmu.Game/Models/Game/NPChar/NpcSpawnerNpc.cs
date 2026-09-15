@@ -100,10 +100,10 @@ public class NpcSpawnerNpc : Spawner<Npc>
 
         if (!npc.IsOffGround)
         {
-            var newZ = npcSpawner.ParentWorld.Template.GeoData.GetHeight(spawnPosition.AsPositionVector());// WorldManager.Instance.GetHeight(spawnPosition.ZoneId, spawnPosition.X, spawnPosition.Y, spawnPosition.Z);
-            if (Math.Abs(spawnPosition.Z - newZ) < 1f)
+            var terrainZ = npcSpawner.ParentWorld.Template.GeoData.GetHeight(spawnPosition.AsPositionVector());
+            if (MirrorHeightRules.ShouldSnapToTerrain(npc.IsOffGround, spawnPosition.Z, terrainZ))
             {
-                spawnPosition.Z = newZ;
+                spawnPosition.Z = terrainZ;
             }
         }
 

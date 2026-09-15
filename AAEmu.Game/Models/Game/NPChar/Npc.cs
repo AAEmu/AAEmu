@@ -82,7 +82,15 @@ public partial class Npc : Unit
         }
     }
 
-    public override float Scale => Template.Scale;
+    /// <summary>
+    /// The scale the dedicate spawned this unit at, when its spawner stated one. ZWSpawnNpc carries it
+    /// and the client sizes both the model and its stride from the scale in SCUnitState, so a spawner
+    /// that scaled its model down foot-slides when the mirror reports the template's scale instead.
+    /// Null (or a spawn that stated none) leaves the template's scale in charge.
+    /// </summary>
+    public float? ZoneSpawnScale { get; set; }
+
+    public override float Scale => ZoneSpawnScale ?? Template.Scale;
 
     public override byte RaceGender => (byte)(16 * Template.Gender + Template.Race);
 
