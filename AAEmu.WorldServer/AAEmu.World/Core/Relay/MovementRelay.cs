@@ -64,6 +64,7 @@ public class MovementRelay
     private static long _nextCensusReport;
 
     private int _relayLog;
+    private long _playerMirrorDrops;
 
     /// <summary>Accumulates horizontal travel per unit and reports a census every 30s.</summary>
     private static void Census(uint bcId, MoveType mt)
@@ -658,6 +659,18 @@ public class MovementRelay
                             continue;
                     }
 
+                    // Players are the World's, never a zone's. The zone only ever holds a mirror of a
+                    // player, pinned where the World first announced them, and streams it every batch;
+                    // relaying that fights the SCUnitMovement the World sends for the player's own
+                    // client-authored move, which is the observing client flickering between two
+                    // positions. CSMoveUnit already fans a player's movement out to every observer.
+                    if (ZonePlayerMirrorStreamRules.ShouldDropZoneMovementFor(
+                            WorldIntegration.FindUnitAcrossWorlds(bcId)))
+                    {
+                        _playerMirrorDrops++;
+                        continue;
+                    }
+
                     ApplyCombatUnitPosition(bcId, unitMove, source);
                 }
 
@@ -760,8 +773,8 @@ public class MovementRelay
             if (_relayLog < 5 || _relayLog % 200 == 0)
             {
                 Logger.Info(
-                    "ZWUnitMovements → SCUnitMovements zoneCount={0} parsed={1} clients={2} (per-client AOI)",
-                    count, entries.Count, sentClients);
+                    "ZWUnitMovements → SCUnitMovements zoneCount={0} parsed={1} clients={2} playerMirrorDrops={3} (per-client AOI)",
+                    count, entries.Count, sentClients, _playerMirrorDrops);
             }
 
             _relayLog++;

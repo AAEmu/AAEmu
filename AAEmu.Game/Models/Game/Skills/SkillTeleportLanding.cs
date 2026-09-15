@@ -1,3 +1,4 @@
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
@@ -36,7 +37,10 @@ public static class SkillTeleportLanding
         if (character.ParentWorld != null)
             character.ForceDismount();
 
-        if (!stayInZone && ReturnTeleportRules.NeedsInstanceLoad(character.Transform.InstanceId, instanceId))
+        var loadedInstance = !stayInZone &&
+                             ReturnTeleportRules.NeedsInstanceLoad(character.Transform.InstanceId, instanceId);
+
+        if (loadedInstance)
         {
             character.DisabledSetPosition = true;
             character.SendPacket(new SCLoadInstancePacket(worldId, zoneId, x, y, z, 0f, 0f, yawRad));
@@ -65,6 +69,25 @@ public static class SkillTeleportLanding
         {
             WorldIntegration.RelayBlinkToZone?.Invoke(
                 character.ObjId, character.ObjId, true, x, y, z);
+        }
+
+        if (!loadedInstance)
+        {
+            // A same-level teleport lands without any client confirmation to hang a repaint on, and
+            // the region grid is a kilometre wide: a jump that resolves to the cell the character is
+            // already filed under makes AddVisibleObject a no-op, so the destination streamed nothing
+            // into a client that had just re-evaluated what it can see. That is what left a player
+            // teleported into a courthouse or a jail cell standing in a bare room with no NPCs and no
+            // doodads until they relogged. Re-file them and repaint the neighbourhood.
+            character.Show();
+
+            // The same no-op leaves the onlookers with the character at the position they were sent
+            // before the teleport: drop and re-add it so they get a state packet built from the new
+            // transform. Asked for by the trial, where a juror teleported onto a bench has to appear
+            // seated there for the rest of the court.
+            WorldManager.RepositionVisibleObject(character);
+
+            WorldManager.ResendVisibleObjectsToCharacter(character, clientDroppedVisibility: true);
         }
     }
 }
