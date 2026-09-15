@@ -165,17 +165,6 @@ public class CombatBuffHitRulesTests
     }
 
     [Test]
-    public async Task CasterIsAttacker_IsTheHitSourceOrTheUnitTheBuffLandsOn()
-    {
-        await Assert.That(CombatBuffHitRules.CasterIsAttacker(buffFromSource: true, recipientIsAttacker: false))
-            .IsTrue();
-        await Assert.That(CombatBuffHitRules.CasterIsAttacker(buffFromSource: false, recipientIsAttacker: true))
-            .IsTrue();
-        await Assert.That(CombatBuffHitRules.CasterIsAttacker(buffFromSource: false, recipientIsAttacker: false))
-            .IsFalse();
-    }
-
-    [Test]
     public async Task MatchesHitSkill_RequiresTheSkillAndTagTheRowNames()
     {
         // combat_buffs 141 names tag 4751 (skills 10201, 11441, 36620, 36623, 40785, 50985) and no skill.

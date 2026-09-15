@@ -40,9 +40,16 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// so the two columns cannot be told apart by the data. This keeps the reading the existing
 /// <c>owner == attacker</c> test already encoded, now named: a row fires only in the list of the unit
 /// <c>buff_to_source</c> points at, and buffs that unit unless <c>reverse_target_on</c> sends the buff
-/// to the other combatant. <c>buff_from_source</c> picks who the applied buff is cast by — the hit's
-/// source when it is set, otherwise the unit the buff lands on — which is the same unit on all 57
-/// shipped rows.
+/// to the other combatant.
+/// </para>
+/// <para>
+/// <c>buff_from_source</c> is loaded but not read. Reading it as "the hit's source cast the applied
+/// buff" would move the nine 't'/'f' rows — 복수의 시간 534, 방패의 인내 15248, 마법 감쇄 7575, 죽음의
+/// 응징 발동 18984, 고통의 망각 22693, 27166 … — onto the attacker as caster, and <c>Buffs.AddBuff</c>
+/// scales the duration through <c>caster.BuffModifiersCache</c>, so an attacker's modifiers would
+/// stretch a defender's own proc. Nothing in the content supports that split, so the unit that owns the
+/// entry stays the caster on every row, which is also what the base code did (it passed the owner as
+/// both source and target).
 /// </para>
 /// </remarks>
 public static class CombatBuffHitRules
@@ -100,14 +107,6 @@ public static class CombatBuffHitRules
     /// spell crit.
     /// </summary>
     public static bool BuffsOwner(bool reverseTargetOn) => !reverseTargetOn;
-
-    /// <summary>
-    /// Whether the applied buff is cast by the hit's source. <c>buff_from_source</c> says so directly;
-    /// otherwise the buff belongs to the unit it lands on, which is how the 'f'/'f' rows read (방패
-    /// 방어 and friends are the defender's own buffs).
-    /// </summary>
-    public static bool CasterIsAttacker(bool buffFromSource, bool recipientIsAttacker) =>
-        buffFromSource || recipientIsAttacker;
 
     /// <summary>
     /// Whether the hit qualifies for a row that names a skill (<c>hit_skill_id</c>, "the skill that

@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using NLog;
@@ -73,7 +73,10 @@ public class CombatBuffs(BaseUnit owner)
         var landedSkillId = skill?.Template?.Id ?? 0;
         var landedSkillTags = landedSkillId != 0 ? SkillManager.Instance.GetSkillTags(landedSkillId) : [];
 
-        foreach (var cb in combatBuffs)
+        // AddBuff below can apply a buff that carries the same req_buff_id again (combat_buffs 80 has
+        // buff_id and req_buff_id both 20309), which re-enters AddCombatBuffs and appends to this list,
+        // so one pass runs over a snapshot of it.
+        foreach (var cb in combatBuffs.ToArray())
         {
             if (cb.IsHealSpell != isHeal)
                 continue;
@@ -91,9 +94,10 @@ public class CombatBuffs(BaseUnit owner)
             if (target == null)
                 continue;
 
-            var source = CombatBuffHitRules.CasterIsAttacker(cb.BuffFromSource, ReferenceEquals(target, attacker))
-                ? attacker as Unit ?? target
-                : target;
+            // The unit that owns the entry casts its buff, as the base code did: buff_from_source is
+            // identical to buff_to_source on 48 of the 57 rows and reading it on the other 9 would put
+            // the attacker's duration modifiers on the defender's own procs (see CombatBuffHitRules).
+            var source = unit;
 
             var buffTemplate = SkillManager.Instance.GetBuffTemplate(cb.BuffId);
             if (buffTemplate == null)
