@@ -1530,6 +1530,7 @@ public partial class Npc : Unit
 
     public override void OnSkillEnd(Skill skill)
     {
+        base.OnSkillEnd(skill);
         // AI?.OnSkillEnd(skill);
     }
 

@@ -223,6 +223,10 @@ public class ZoneSimRelay
         if (WorldIntegration.FindUnitAcrossWorlds(unitId) is not Unit unit || unit.Hp <= 0)
             return true;
 
+        // A landing, whether or not it hurt: DoFallDamage returns 0 for anything under its damage
+        // floor, and a glide touches down well below it. `landing` rows hang off this.
+        unit.Events.OnLanding(unit, new OnLandingArgs());
+
         var damage = unit.DoFallDamage(impactVel);
         if (damage <= 0)
             return true;

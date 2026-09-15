@@ -910,8 +910,15 @@ public class Buffs : IBuffs
         }
 
         foreach (var e in effects.ToList())
-            if (e != null && e.Template.Stealth)
-                e.Exit();
+        {
+            if (e == null || !e.Template.Stealth)
+                continue;
+
+            // Before Exit(): exiting unsubscribes this buff's triggers, and a `remove_stealth` row is
+            // one of them.
+            e.Events.OnStealthRemoved(e, new OnStealthRemovedArgs());
+            e.Exit();
+        }
     }
 
     private BaseUnit GetOwner()
