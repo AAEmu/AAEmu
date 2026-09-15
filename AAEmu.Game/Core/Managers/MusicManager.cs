@@ -9,6 +9,7 @@ using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Music;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
+using AAEmu.Game.Utils.DB;
 using MySql.Data.MySqlClient;
 using NLog;
 
@@ -34,10 +35,10 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         _allSongs = [];
         _midiCache = [];
 
+        LoadNoteLimit();
+
         using (var connection = MySQL.CreateConnection())
         {
-            LoadNoteLimit(connection);
-
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM music";
@@ -61,13 +62,17 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
     }
 
     /// <summary>
-    /// Reads the top composition step, so the save limit follows the shipped data instead of a
-    /// magic number. Any failure keeps the built-in default rather than blocking startup.
+    /// Reads the top composition step from the client data, so the save limit follows the shipped
+    /// table instead of a magic number. That top step is the grandmaster one, so it is a ceiling
+    /// for every player rather than the per-step limit the table describes; the step a player may
+    /// actually use is gated by their composition actability, which the client applies itself.
+    /// Any failure keeps the built-in default rather than blocking startup.
     /// </summary>
-    private void LoadNoteLimit(MySqlConnection connection)
+    private void LoadNoteLimit()
     {
         try
         {
+            using var connection = SQLite.CreateConnection();
             using var command = connection.CreateCommand();
             command.CommandText = "SELECT MAX(note_length) FROM music_note_limits";
             command.Prepare();
@@ -81,9 +86,7 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         }
         catch (Exception ex)
         {
-            Logger.Warn(ex,
-                "Could not read music_note_limits (SQL/updates/2026-09-15_aaemu_game_music_note_limits.sql), " +
-                "using {0} as the score length limit", MaxNoteBytes);
+            Logger.Warn(ex, "Could not read music_note_limits, using {0} as the score length limit", MaxNoteBytes);
         }
     }
 
