@@ -1,5 +1,29 @@
 ﻿namespace AAEmu.Game.Models.Game.Units;
 
+/// <remarks>
+/// Ids with shipped <c>unit_modifiers</c> rows that this branch still leaves without a consumer, so the next
+/// reader does not have to re-derive it:
+/// <list type="bullet">
+/// <item><description>
+/// <see cref="SwimSpeedMul"/> (66, 156 rows: 126 Buff, 11 Item, 11 Npc, 3 BuffUnitModifier, 5
+/// ExpeditionBuffGrade): movement is simulated by the zone, not by this process. The world only has an
+/// estimated move rate for the NPC/slave route simulation, which reads <see cref="MoveSpeedMul"/> (10) and has
+/// no swim case, so there is nothing here to scale. The buff is already relayed to the zone, which owns the
+/// actual swim speed.
+/// </description></item>
+/// <item><description>
+/// <c>ignore_shield_bonus</c> (205): two rows, both on <c>(attr_test)</c> placeholders (buff 28506, item
+/// 50774), and no shipped definition of the "shield bonus" the name refers to.
+/// </description></item>
+/// <item><description>
+/// <c>ignore_shield_bonus_mul</c> (206): six rows — the 초승돌: 격파 gems (items 39823 at 13, 40938 at 23,
+/// 39825 at 43), two <c>(attr_test)</c> placeholders at 100 (buff 28507, item 50774) and one row with
+/// <c>enable='f'</c> (buff 11194). The server models a shield as the charge <see cref="IgnoreShieldChance"/>
+/// bypasses, with no bonus amount for a "bonus" multiplier to scale, so wiring it would mean inventing the
+/// quantity it multiplies.
+/// </description></item>
+/// </list>
+/// </remarks>
 public enum UnitAttribute : uint // 10.0.2.13 adds unit_attribute_id 256-261 (>255), widened from byte
 {
     Str = 0,
@@ -186,6 +210,39 @@ public enum UnitAttribute : uint // 10.0.2.13 adds unit_attribute_id 256-261 (>2
     /// grades give +10/20/35/50, the dock's Moored buff +2900.
     /// </summary>
     PhysicsCollisionArmorMul = 194,
+
+    /// <summary>
+    /// The attacker's per-mille chance to bypass the victim's damage absorption ("방패 관통률").
+    /// <c>unit_attribute_limits</c> row 26 floors it at 0. See <c>ShieldIgnoreRules</c>.
+    /// </summary>
+    IgnoreShieldChance = 204,
+    /// <summary>
+    /// Signed delta on every combat resource ceiling. Buff 22278 (정복) stores 1 for "광란의 중첩 개수가
+    /// 1개 증가합니다". See <c>CombatResourceRules</c>.
+    /// </summary>
+    MaxCombatResource = 215,
+    /// <summary>
+    /// Attack speed as a per-mille rate, the newer family of <see cref="GlobalCooldownMul"/> (74),
+    /// <see cref="MeleeSpeedMul"/> (54), <see cref="RangedSpeedMul"/> (55) and
+    /// <see cref="AttackAnimSpeedMul"/> (119). <c>unit_attribute_limits</c> row 46 bounds it to -666..2000.
+    /// See <c>SpeedMultiplierRules</c>.
+    /// </summary>
+    AttackSpeedMul = 218,
+
+    /// <summary>
+    /// Siege damage the caster adds, the siege counterpart of <see cref="SpellDps"/>: the effect composes it
+    /// into the same DPS term. The twelve 검은 가시 감옥 stages (buffs 29998-30009) walk it -400…+700.
+    /// </summary>
+    SiegeDps = 260,
+    /// <summary>
+    /// Siege damage the caster deals as a per-mille delta, the counterpart of
+    /// <see cref="MeleeDamageMul"/>. See <c>SiegeDamageRules</c>.
+    /// </summary>
+    SiegeDamageMul = 261,
+
+    // The five ids above (204, 215, 218, 260, 261) are also declared by the regenerated enum in PR #1589
+    // (fix/c1-unit-attribute-enum). Same ids and same names there, so whichever lands first is a no-op for
+    // the other; nothing here renumbers an existing member.
 
     /// <summary>
     /// Per-mille discount on what a synthesis attempt costs, which is why
