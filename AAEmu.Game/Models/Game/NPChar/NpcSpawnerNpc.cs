@@ -101,7 +101,10 @@ public class NpcSpawnerNpc : Spawner<Npc>
         if (!npc.IsOffGround)
         {
             var terrainZ = npcSpawner.ParentWorld.Template.GeoData.GetHeight(spawnPosition.AsPositionVector());
-            if (MirrorHeightRules.ShouldSnapToTerrain(npc.IsOffGround, spawnPosition.Z, terrainZ))
+            // A spawn-file position, so the metre it has always had; a zone mirror gets the tighter
+            // lift-sized band instead (see MirrorHeightRules).
+            if (MirrorHeightRules.ShouldSnapToTerrain(
+                    npc.IsOffGround, spawnPosition.Z, terrainZ, MirrorHeightRules.MaxSpawnFileSnapMetres))
             {
                 spawnPosition.Z = terrainZ;
             }

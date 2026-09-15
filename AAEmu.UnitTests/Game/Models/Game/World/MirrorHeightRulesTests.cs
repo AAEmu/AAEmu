@@ -18,6 +18,15 @@ public class MirrorHeightRulesTests
     }
 
     [Test]
+    public async Task AUnitStandingOnAProp_IsLeftWhereItStands()
+    {
+        // The height read is the raw heightmap: no porch, dock or stair is in it. A unit 0.6 m up on one
+        // of those is legitimately above the terrain, and snapping across that would pull it into the prop.
+        await Assert.That(MirrorHeightRules.ShouldSnapToTerrain(
+            isOffGround: false, spawnZ: 100.6f, terrainZ: 100f)).IsFalse();
+    }
+
+    [Test]
     public async Task AGapWiderThanTheLift_IsLeftAlone()
     {
         // A spawn over a cliff edge or a rift fly-in is a real altitude; snapping drops it through.
@@ -25,6 +34,18 @@ public class MirrorHeightRulesTests
             isOffGround: false, spawnZ: 140f, terrainZ: 100f)).IsFalse();
         await Assert.That(MirrorHeightRules.ShouldSnapToTerrain(
             isOffGround: false, spawnZ: 101.5f, terrainZ: 100f)).IsFalse();
+    }
+
+    [Test]
+    public async Task ASpawnFilePosition_KeepsTheMetreItAlwaysHad()
+    {
+        // Spawn-file Z is authored against the terrain and can sit up to a metre off the bilinear read;
+        // that is a different question from a zone record, so the tolerance is the caller's.
+        await Assert.That(MirrorHeightRules.ShouldSnapToTerrain(
+            isOffGround: false, spawnZ: 100.9f, terrainZ: 100f,
+            maxSnapMetres: MirrorHeightRules.MaxSpawnFileSnapMetres)).IsTrue();
+        await Assert.That(MirrorHeightRules.ShouldSnapToTerrain(
+            isOffGround: false, spawnZ: 100.9f, terrainZ: 100f)).IsFalse();
     }
 
     [Test]

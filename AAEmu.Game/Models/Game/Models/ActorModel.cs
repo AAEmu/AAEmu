@@ -1,10 +1,10 @@
-﻿namespace AAEmu.Game.Models.Game.Models;
+namespace AAEmu.Game.Models.Game.Models;
 
 public class ActorModel : Model
 {
     public float Radius { get; set; }
     public float Height { get; set; }
-    public int MovementId { get; set; } // 0 = normal, 1 = mounts, 2 = bird/fish (ignores gravity), 3 = sunk in the ground / hidden underground
+    public int MovementId { get; set; } // enum_movement_type: 0 default, 1 quadruped, 2 shark (moves in 3D), 3 stick_to_ground
 
     /// <summary>
     /// actor_models.fly_mode — the model holds an altitude instead of resting on terrain. Independent

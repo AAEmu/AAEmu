@@ -8,10 +8,19 @@ namespace AAEmu.Game.Models.Game.World;
 public static class MirrorHeightRules
 {
     /// <summary>
-    /// Largest gap treated as the dedicate's spawn lift. Anything wider is a real difference - a spawn
-    /// over a cliff edge, a rift fly-in - and snapping it would drop the unit through the ground.
+    /// Largest gap a zone mirror is snapped across: the dedicate's lift, measured at about 0.4 m, with
+    /// a little margin. It stays this tight because the terrain read has no prop geometry in it - a
+    /// unit legitimately standing 0.6 m up on a porch, dock or stair is that far above the heightmap,
+    /// and a wider band would pull it down into the prop it is standing on.
     /// </summary>
-    public const float MaxSnapMetres = 1f;
+    public const float MaxMirrorSnapMetres = 0.5f;
+
+    /// <summary>
+    /// The World spawner's own tolerance. Its positions come from the spawn files, are authored on the
+    /// terrain, and can sit up to a metre off the bilinear read; that is a different question from a
+    /// zone record, so it keeps the metre it always had.
+    /// </summary>
+    public const float MaxSpawnFileSnapMetres = 1f;
 
     /// <summary>
     /// True when a spawn's Z should be replaced by the terrain height under it: the unit rests on the
@@ -19,6 +28,7 @@ public static class MirrorHeightRules
     /// small enough to be the spawn lift. Floats are how a never-moving unit ends up hovering: the
     /// client paints this Z, and an idle unit gets no movement record to correct it with.
     /// </summary>
-    public static bool ShouldSnapToTerrain(bool isOffGround, float spawnZ, float terrainZ) =>
-        !isOffGround && terrainZ != 0f && MathF.Abs(spawnZ - terrainZ) <= MaxSnapMetres;
+    public static bool ShouldSnapToTerrain(
+        bool isOffGround, float spawnZ, float terrainZ, float maxSnapMetres = MaxMirrorSnapMetres) =>
+        !isOffGround && terrainZ != 0f && MathF.Abs(spawnZ - terrainZ) <= maxSnapMetres;
 }
