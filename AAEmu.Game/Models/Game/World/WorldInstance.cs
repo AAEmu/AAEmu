@@ -172,6 +172,13 @@ public partial class WorldInstance(WorldTemplate template, uint channelId, bool 
     private int _disposed;
 
     /// <summary>
+    /// Whether <see cref="Dispose"/> has run. A disposed instance keeps every object's <c>ParentWorld</c>
+    /// pointing at it, so a caller holding one cannot tell from that reference alone whether the world is
+    /// still there; the deferred doodad spawn is the caller that needs to.
+    /// </summary>
+    public bool IsDisposed => Volatile.Read(ref _disposed) != 0;
+
+    /// <summary>
     /// Tears the instance down and returns its Id to the pool.
     /// This has to be called explicitly whenever an instance is dropped; it is deliberately not done from a
     /// finalizer, as the finalizer thread must not touch other managed objects (the Id manager may already be
