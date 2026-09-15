@@ -6,17 +6,18 @@ namespace AAEmu.UnitTests.Game.Core.Packets.G2C;
 public class ResidentAndSensitiveOperationPacketTests
 {
     [Test]
-    public async Task ResidentMap_WritesTheZoneGroupThenTheOptionByte()
+    public async Task ResidentMap_WritesTheZoneGroupThenTheAddOption()
     {
-        var body = new SCResidentMapPacket(7, 1).Write(new PacketStream()).GetBytes();
+        var body = new SCResidentMapPacket(7).Write(new PacketStream()).GetBytes();
 
         var expected = new PacketStream();
         expected.Write((short)7);
-        expected.Write((byte)1);
+        expected.Write(SCResidentMapPacket.Add);
 
-        // The client's reader takes a u16 and then an option byte; a short body leaves it one byte
-        // into the following packet.
+        // The client's reader takes a u16 and then the option byte, and its handler only adds the
+        // group to the resident map when that byte is 1 — anything else leaves residency unset.
         await Assert.That(body.Length).IsEqualTo(3);
+        await Assert.That(body[2]).IsEqualTo((byte)1);
         await Assert.That(body).IsEquivalentTo(expected.GetBytes());
     }
 
