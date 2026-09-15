@@ -47,6 +47,10 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     // a no-op and every tagged_require_buffs prerequisite unenforced.
     private Dictionary<uint, List<uint>> _buffImmunityTags = [];
     private Dictionary<uint, List<uint>> _requiredBuffTags = [];
+    // buff_breakers, keyed by the tag of the buff that lands: the buffs that landing removes (2 478 rows
+    // over 823 victims and 211 tags). Read the same way as the two tables above and consumed by
+    // Buffs.AddBuff, which is the only place a buff can break others.
+    private Dictionary<uint, List<uint>> _buffBreakers = [];
     // Returned for a buff with no rows so the per-application lookups do not allocate.
     private static readonly List<uint> NoTags = [];
     private Dictionary<uint, List<SkillModifier>> _skillModifiers = [];
@@ -261,6 +265,19 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     public List<uint> GetRequiredBuffTags(uint buffId)
     {
         return _requiredBuffTags.TryGetValue(buffId, out var tags) ? tags : NoTags;
+    }
+
+    /// <summary>
+    /// Buffs a buff carrying <paramref name="tagId"/> removes when it lands (<c>buff_breakers</c>).
+    /// </summary>
+    /// <remarks>
+    /// Keyed by the tag of the arriving buff, because that is the side the table generalises: a stun
+    /// breaks the songs, not one particular stun buff. See <see cref="BuffRemoveOnRules.BreaksBuff"/>
+    /// for how the direction was settled from the data.
+    /// </remarks>
+    public List<uint> GetBuffsBrokenByTag(uint tagId)
+    {
+        return _buffBreakers.TryGetValue(tagId, out var buffs) ? buffs : NoTags;
     }
 
     public List<uint> GetSkillsByTag(uint tagId)
@@ -2267,6 +2284,29 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         if (!_requiredBuffTags.ContainsKey(buffId))
                             _requiredBuffTags.Add(buffId, []);
                         _requiredBuffTags[buffId].Add(tagId);
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM buff_breakers";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        // The tag is the arriving buff's; the id is the buff it removes. 29 rows name the
+                        // arriving buff's own id, which is how a re-grant family (the glove techniques
+                        // 30034-30192, the 아리아의 춤동작 steps 16395-16399, 26345 석상 체크 완료 해제)
+                        // clears its previous member: add-then-break would make those remove themselves,
+                        // which is why Buffs.AddBuff breaks before it inserts.
+                        var victimBuffId = reader.GetUInt32("buff_id", 0);
+                        var tagId = reader.GetUInt32("buff_tag_id", 0);
+
+                        if (!_buffBreakers.ContainsKey(tagId))
+                            _buffBreakers.Add(tagId, []);
+                        _buffBreakers[tagId].Add(victimBuffId);
                     }
                 }
             }
