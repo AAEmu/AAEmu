@@ -210,27 +210,55 @@ public class MovementRelay
     }
 
     /// <summary>Copies zone-owned NPC and mate positions onto their World mirrors.</summary>
-    private static bool ShouldSuppressIdleUnitMove(uint bcId, UnitMoveType move)
+    private static bool ShouldSuppressIdleUnitMove(Unit unit, UnitMoveType move)
     {
-        if (WorldIntegration.FindUnitAcrossWorlds(bcId) is not Unit unit ||
-            unit is not Npc && unit is not Mate)
-            return false;
-
         var pos = unit.Transform?.World;
         if (pos == null)
             return false;
 
         var (rx, ry, rz) = pos.ToRollPitchYawSBytesMovement();
-        var delta = move.DeltaMovement ?? [0, 0, 0];
+        var (deltaX, deltaY, deltaZ) = MovementDelta(move);
         return UnitIdleMoveRules.ShouldSuppress(
             pos.Position.X, pos.Position.Y, pos.Position.Z,
             rx, ry, rz,
             move.X, move.Y, move.Z,
             move.RotationX, move.RotationY, move.RotationZ,
             move.VelX, move.VelY, move.VelZ,
+            deltaX, deltaY, deltaZ,
+            unit.LastRelayedZoneMoveWasStationary);
+    }
+
+    /// <summary>
+    /// Remembers what clients now last heard about this unit's motion. The stand that ends a walk is
+    /// within the duplicate band of the record before it, so this is what lets the next one through.
+    /// </summary>
+    private static void RememberRelayedMotion(Unit unit, UnitMoveType move)
+    {
+        var (deltaX, deltaY, deltaZ) = MovementDelta(move);
+        unit.LastRelayedZoneMoveWasStationary = UnitIdleMoveRules.IsStationary(
+            move.VelX, move.VelY, move.VelZ, deltaX, deltaY, deltaZ);
+    }
+
+    private static (sbyte X, sbyte Y, sbyte Z) MovementDelta(UnitMoveType move)
+    {
+        var delta = move.DeltaMovement ?? [0, 0, 0];
+        return (
             delta.Length > 0 ? delta[0] : (sbyte)0,
             delta.Length > 1 ? delta[1] : (sbyte)0,
             delta.Length > 2 ? delta[2] : (sbyte)0);
+    }
+
+    /// <summary>True for the unit populations the relay mirrors: zone-owned NPCs and mates.</summary>
+    private static bool TryGetZoneMirror(uint bcId, out Unit unit)
+    {
+        if (WorldIntegration.FindUnitAcrossWorlds(bcId) is Unit resolved && resolved is Npc or Mate)
+        {
+            unit = resolved;
+            return true;
+        }
+
+        unit = null;
+        return false;
     }
 
     private static void ApplyCombatUnitPosition(uint bcId, UnitMoveType move, ZoneConnection source)
@@ -620,8 +648,16 @@ public class MovementRelay
                     // chase measured stale centers (TooFarRange 5–9 m). Hulls use ApplyHullPosition.
                     // Idle stands (every unit, every tick when movement-skip is off) must not
                     // rewrite Transform or hit SC — that is the plaza flicker with many zones up.
-                    if (ShouldSuppressIdleUnitMove(bcId, unitMove))
-                        continue;
+                    // The stand that ends a walk is the exception: it is within the duplicate band of
+                    // the record before it, so the rule reads what clients last heard for the unit.
+                    if (TryGetZoneMirror(bcId, out var mirrorUnit))
+                    {
+                        var suppressIdle = ShouldSuppressIdleUnitMove(mirrorUnit, unitMove);
+                        RememberRelayedMotion(mirrorUnit, unitMove);
+                        if (suppressIdle)
+                            continue;
+                    }
+
                     ApplyCombatUnitPosition(bcId, unitMove, source);
                 }
 

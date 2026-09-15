@@ -10,7 +10,7 @@ public class UnitIdleMoveRulesTests
         await Assert.That(UnitIdleMoveRules.ShouldSuppress(
             19628f, 28276f, 295f, 0, 0, 10,
             19628f, 28276f, 295f, 0, 0, 10,
-            0, 0, 0, 0, 0, 0)).IsTrue();
+            0, 0, 0, 0, 0, 0, true)).IsTrue();
     }
 
     [Test]
@@ -19,7 +19,7 @@ public class UnitIdleMoveRulesTests
         await Assert.That(UnitIdleMoveRules.ShouldSuppress(
             19628f, 28276f, 295f, 0, 0, 10,
             19628.1f, 28276.05f, 295.02f, 0, 0, 10,
-            0, 0, 0, 0, 0, 0)).IsTrue();
+            0, 0, 0, 0, 0, 0, true)).IsTrue();
     }
 
     [Test]
@@ -29,7 +29,7 @@ public class UnitIdleMoveRulesTests
         await Assert.That(UnitIdleMoveRules.ShouldSuppress(
             19628f, 28276f, 295f, 85, 0, 10,
             19628f, 28276f, 295f, -42, 0, 10,
-            0, 0, 0, 0, 0, 0)).IsTrue();
+            0, 0, 0, 0, 0, 0, true)).IsTrue();
     }
 
     [Test]
@@ -38,7 +38,7 @@ public class UnitIdleMoveRulesTests
         await Assert.That(UnitIdleMoveRules.ShouldSuppress(
             19628f, 28276f, 295f, 0, 0, 10,
             19628f, 28276f, 295f, 64, 0, 10,
-            0, 0, 0, 0, 0, 0)).IsFalse();
+            0, 0, 0, 0, 0, 0, true)).IsFalse();
     }
 
     [Test]
@@ -47,7 +47,7 @@ public class UnitIdleMoveRulesTests
         await Assert.That(UnitIdleMoveRules.ShouldSuppress(
             19628f, 28276f, 295f, 0, 0, 10,
             19628f, 28276f, 295f, 0, 0, 10,
-            40, 0, 0, 0, 0, 0)).IsFalse();
+            40, 0, 0, 0, 0, 0, true)).IsFalse();
     }
 
     [Test]
@@ -56,7 +56,7 @@ public class UnitIdleMoveRulesTests
         await Assert.That(UnitIdleMoveRules.ShouldSuppress(
             19628f, 28276f, 295f, 0, 0, 10,
             19629f, 28276f, 295f, 0, 0, 10,
-            0, 0, 0, 0, 0, 0)).IsFalse();
+            0, 0, 0, 0, 0, 0, true)).IsFalse();
     }
 
     [Test]
@@ -65,7 +65,7 @@ public class UnitIdleMoveRulesTests
         await Assert.That(UnitIdleMoveRules.ShouldSuppress(
             19628f, 28276f, 295f, 0, 0, 10,
             19628f, 28276f, 295f, 0, 0, 40,
-            0, 0, 0, 0, 0, 0)).IsFalse();
+            0, 0, 0, 0, 0, 0, true)).IsFalse();
     }
 
     [Test]
@@ -75,6 +75,43 @@ public class UnitIdleMoveRulesTests
         await Assert.That(UnitIdleMoveRules.ShouldSuppress(
             19660f, 28287.6f, 295f, 0, 0, 0,
             19660f, 28288.8f, 295f, 0, 0, 0,
-            0, 0, 0, 0, 0, 0)).IsFalse();
+            0, 0, 0, 0, 0, 0, true)).IsFalse();
+    }
+
+    [Test]
+    public async Task StandAfterMotion_InsideTheDuplicateBand_IsRelayed()
+    {
+        // The zone's halt: 5.7 cm and the same heading past the last moving record. Only the fact that
+        // clients were last told "moving" keeps it out of the duplicate band.
+        await Assert.That(UnitIdleMoveRules.ShouldSuppress(
+            19628f, 28276f, 295f, 0, 0, 10,
+            19628.05f, 28276.02f, 295f, 0, 0, 10,
+            0, 0, 0, 0, 0, 0, false)).IsFalse();
+    }
+
+    [Test]
+    public async Task RepeatStand_IsSuppressedOnlyAfterARelayedStand()
+    {
+        await Assert.That(UnitIdleMoveRules.ShouldSuppress(
+            19628f, 28276f, 295f, 0, 0, 10,
+            19628f, 28276f, 295f, 0, 0, 10,
+            0, 0, 0, 0, 0, 0, false)).IsFalse();
+
+        await Assert.That(UnitIdleMoveRules.ShouldSuppress(
+            19628f, 28276f, 295f, 0, 0, 10,
+            19628f, 28276f, 295f, 0, 0, 10,
+            0, 0, 0, 0, 0, 0, true)).IsTrue();
+    }
+
+    [Test]
+    public async Task MovingRecord_IsRelayedWhateverClientsLastHeard()
+    {
+        foreach (var lastRelayedWasStationary in new[] { true, false })
+        {
+            await Assert.That(UnitIdleMoveRules.ShouldSuppress(
+                19628f, 28276f, 295f, 0, 0, 10,
+                19628f, 28276f, 295f, 0, 0, 10,
+                250, 0, 0, 0, 40, 0, lastRelayedWasStationary)).IsFalse();
+        }
     }
 }
