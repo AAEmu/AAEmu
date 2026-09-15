@@ -1,4 +1,5 @@
 ﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -7,9 +8,9 @@ public class CSJuryEndTestimonyPacket() : GamePacket(CSOffsets.CSJuryEndTestimon
 {
     public override void Read(PacketStream stream)
     {
-        var trial = stream.ReadUInt32();
+        var trial = stream.ReadUInt64();
         var jury = stream.ReadInt32();
 
-        Logger.Warn("JuryEndTestimony, Trial: {0}, Jury: {1}", trial, jury);
+        TrialManager.Instance.OnEndTestimony(Connection.ActiveChar, trial, jury);
     }
 }

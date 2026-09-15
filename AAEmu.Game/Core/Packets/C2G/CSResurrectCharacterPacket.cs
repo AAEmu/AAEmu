@@ -81,6 +81,13 @@ public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectChar
         }
 
         var character = Connection.ActiveChar;
+
+        // A wanted character who died comes back as a defendant at their courthouse instead of the
+        // temple - the resurrection below moves the server unit to whatever this portal holds.
+        var defendantCourt = JusticeManager.Instance.TakeDefendantCourt(character);
+        if (defendantCourt != null)
+            portal = defendantCourt;
+
         var oldHp = character.Hp;
 
         // Resolve spawn point before restoring vitals. Historically we only told the *client*
@@ -176,6 +183,10 @@ public class CSResurrectCharacterPacket() : GamePacket(CSOffsets.CSResurrectChar
             "ResurrectCharacter {0} inPlace={1} hp={2}/{3} mp={4}/{5} pos=({6:F1},{7:F1},{8:F1})",
             character.Name, inPlace, character.Hp, character.MaxHp, character.Mp, character.MaxMp,
             rx, ry, rz);
+
+        // Defendant resurrections get the courthouse state and the imprison-or-trial offer here,
+        // after the vitals are restored.
+        JusticeManager.Instance.OnResurrectionFinished(character);
     }
 
     /// <summary>

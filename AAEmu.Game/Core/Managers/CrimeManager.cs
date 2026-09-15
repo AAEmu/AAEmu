@@ -36,6 +36,35 @@ public class CrimeManager(IWorldManager worldManager,
         return CrimeEvents.Values.Where(x => x.Criminal == playerId).ToList();
     }
 
+    /// <summary>
+    /// Closes a case file: the crime events a defendant was tried and sentenced for are dropped, and
+    /// the removal is handed to the next save. Without this the records a court has already dealt with
+    /// stay on the books and every later trial lists them again alongside the new ones.
+    /// </summary>
+    /// <returns>How many records were dropped.</returns>
+    public int ExpungeCrimesOfPlayer(uint playerId)
+    {
+        var tried = CrimeEvents.Values.Where(x => x.Criminal == playerId).ToArray();
+        var dropped = 0;
+
+        foreach (var crime in tried)
+        {
+            if (!CrimeEvents.TryRemove(crime.Id, out _))
+                continue;
+
+            lock (DeletedEventIds)
+                DeletedEventIds.Add(crime.Id);
+            lock (UpdatedEventIds)
+                UpdatedEventIds.Remove(crime.Id);
+            dropped++;
+        }
+
+        if (dropped > 0)
+            Logger.Info($"Expunged {dropped} tried crime record(s) of player {playerId}");
+
+        return dropped;
+    }
+
     public void Load()
     {
         Logger.Info("Loading crime events...");
@@ -217,8 +246,8 @@ public class CrimeManager(IWorldManager worldManager,
         }
         UpdatedEventIds.Add(newEvent.Id);
 
-        // TODO: Handle this phase change by doing the skill, and handling the crime points in DoodadFuncEvidenceItemLoot of the doodad.
-        // Add crime points to criminal
+        // The report itself applies the points below (single line of application); the client-visible
+        // evidence skills carry their own report values through ReportCrimeEffect.
         AddCrimePoints(newEvent.Criminal, crimeType, crimeValue);
 
         // Progress Doodad to next phase to finish the report
@@ -231,10 +260,13 @@ public class CrimeManager(IWorldManager worldManager,
         return newEvent;
     }
 
-    private void AddCrimePoints(uint criminalId, CrimeKind crimeType, short crimePoints)
+    /// <summary>
+    /// Adds crime points to the given character, online or offline. This is the single place crime
+    /// points are applied, so clamping, the wanted/pirate thresholds and the client's
+    /// SCCrimeChanged packet cannot drift between the report path and the evidence skills.
+    /// </summary>
+    public void AddCrimePoints(uint criminalId, CrimeKind crimeType, short crimePoints)
     {
-        // TODO: Handle this in the character manager instead so it can do offline people as well?
-        // TODO: Handle this in DoodadFuncEvidenceItemLoot of the doodad.
         Logger.Debug($"Adding {crimePoints} crime points to player {criminalId} for {crimeType} ({(int)crimeType})");
         var criminal = worldManager.GetCharacterById(criminalId);
         if (criminal is { IsOnline: true })

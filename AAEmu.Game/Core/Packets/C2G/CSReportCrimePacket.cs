@@ -8,11 +8,14 @@ public class CSReportCrimePacket() : GamePacket(CSOffsets.CSReportCrimePacket, 1
 {
     public override void Read(PacketStream stream)
     {
-        // TODO find what the unknowns are
+        // The three value fields are the client's copy of the evidence doodad's own row: the loot
+        // func's skill id, its next phase and the func row id - taken from the report UI's local
+        // data. Live sample for a large bloodstain: 11672 / 1043 / 1840. The server reads its own
+        // copy of those values when it resolves the report, so these are recorded, not trusted.
         var objId = stream.ReadBc();
-        var unkId = stream.ReadUInt32();
-        var unk2Id = stream.ReadUInt32();
-        var unk3Id = stream.ReadUInt32();
+        var skillId = stream.ReadUInt32();
+        var nextPhase = stream.ReadUInt32();
+        var funcId = stream.ReadUInt32();
         var msg = stream.ReadString();
 
         var reporter = Connection.ActiveChar;
@@ -21,10 +24,11 @@ public class CSReportCrimePacket() : GamePacket(CSOffsets.CSReportCrimePacket, 1
         if (bloodStainDoodad != null)
         {
             var criminalName = NameManager.Instance.GetCharacterName(bloodStainDoodad.OwnerId) ?? string.Empty;
-            var crimeEvent = CrimeManager.Instance.ReportCrime(reporter, bloodStainDoodad, unkId, unk2Id, unk3Id, msg);
+            var crimeEvent = CrimeManager.Instance.ReportCrime(reporter, bloodStainDoodad, skillId, nextPhase, funcId, msg);
             if (crimeEvent != null)
             {
-                Logger.Debug($"ReportCrime, ObjId: {objId}, Msg: {msg}, Id: {unkId} (0x{unkId:x8}), {unk2Id} (0x{unk2Id:X8}), {unk3Id} (0x{unk3Id:X8}). Owner {criminalName} ({bloodStainDoodad.OwnerId}), OwnerDbId {bloodStainDoodad.OwnerDbId}");
+                Logger.Debug($"ReportCrime, ObjId: {objId}, Msg: {msg}, skill {skillId}, nextPhase {nextPhase}, func {funcId}. " +
+                             $"Owner {criminalName} ({bloodStainDoodad.OwnerId}), OwnerDbId {bloodStainDoodad.OwnerDbId}");
             }
             else
             {

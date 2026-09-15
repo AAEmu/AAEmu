@@ -438,20 +438,18 @@ public static class SCOffsets
     public const ushort SCTransferTelescopeUnitsPacket = 0x225; // 10.0.2.13
     public const ushort SCSchoolOfFishFinderToggledPacket = 0x228; // 10.0.2.13
     public const ushort SCSchoolOfFishDoodadsPacket = 0x229; // 10.0.2.13
-    public const ushort SCShowDemoModeUiPacket = 0x1b8;
-    public const ushort SCDemoCharResetItemPacket = 0x1b9;
-    public const ushort SCDemoCharResetLocPacket = 0x1ba;
-    public const ushort SCDemoResetActionSlotPacket = 0x1bb;
+    // 0x1b8-0x1c7 are the crime / jury / trial family (see the block above): SCAskImprisonOrTrialPacket
+    // through SCTrialAudienceLeftPacket. The demo-mode, battlefield-request, AI-debug and security
+    // constants that used to sit on those values were carried over from an older client revision and
+    // are not in this client's own packet table at all, so they were removed rather than kept as a
+    // trap: sending one would have been parsed as whichever trial packet owns the opcode. Re-derive
+    // the opcode from the client before adding any of them back.
     public const ushort SCSetBreathPacket = 0x22A; // 10.0.2.13
-    public const ushort SCDoodadReqBattleFieldPacket = 0x1be;
     public const ushort SCCraftFailedPacket = 0x22D; // 10.0.2.13
     public const ushort SCExpertLimitModifiedPacket = 0x22E; // 10.0.2.13
     public const ushort SCExpertExpandedPacket = 0x22F; // 10.0.2.13
     public const ushort SCAccountInfoPacket = 0x230;
-    public const ushort SCAiDebugPacket = 0x1c3;
     public const ushort SCAiAggroPacket = 0x23F; // 10.0.2.13
-    public const ushort SCHSRequestPacket = 0x1c5;
-    public const ushort SCHackGuardRetAddrsRequestPacket = 0x1c6;
     public const ushort SCUnitLocationPacket = 0x243; // 10.0.2.13
     public const ushort SCRestrictInfoPacket = 0x244; // 10.0.2.13
     public const ushort SCIsUnitInFarmPacket = 0x245; // 10.0.2.13

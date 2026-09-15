@@ -31,6 +31,8 @@ public enum BuffConstants : uint
     TaxProtection = 3554, // Tax Protection
     Wanted = 3710, // CrimePoint >= 50
     Contemptuous = 4832, // Pirate
+    Arrested = 4906, // 체포 중.. - held under arrest, cleared when the sentence starts
+    Juror = 3621, // 배심원 - serving on a jury
     EquipDualwield = 4899,
     ScoreMemorized = 6010,
     FlutePlay = 6176,

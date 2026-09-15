@@ -4,13 +4,12 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// TODO: nothing constructs this packet yet.
+/// Tells a client it is the defendant of a trial. The client takes its role from this packet - it is
+/// what arms the defendant's wait window, his early-guilty plea and his final-statement dialog - so it
+/// has to go out before the phases that use them.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
-public class SCSummonDefendantPacket(long trial) : GamePacket(SCOffsets.SCSummonDefendantPacket, 1)
+/// <remarks>Body: the trial id (u64).</remarks>
+public class SCSummonDefendantPacket(ulong trial) : GamePacket(SCOffsets.SCSummonDefendantPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
