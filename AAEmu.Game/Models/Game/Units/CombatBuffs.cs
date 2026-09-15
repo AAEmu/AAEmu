@@ -83,7 +83,7 @@ public class CombatBuffs(BaseUnit owner)
 
             var buffTempl = SkillManager.Instance.GetBuffTemplate(cb.BuffId);
             //if (cb.BuffToSource)
-            if (!owner.Buffs.CheckBuffImmune(cb.BuffId))
+            if (!owner.Buffs.CheckBuffImmune(buffTempl, source))
                 owner.Buffs.AddBuff(new Buff(target, source, new SkillCasterUnit(source.ObjId), buffTempl, null, DateTime.UtcNow));
         }
     }

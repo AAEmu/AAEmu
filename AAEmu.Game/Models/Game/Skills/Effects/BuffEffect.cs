@@ -57,8 +57,15 @@ public class BuffEffect : EffectTemplate
 
         if (Buff.RequireBuffId > 0 && !target.Buffs.CheckBuff(Buff.RequireBuffId))
             return; // TODO send error?
-        if (target.Buffs.CheckBuffImmune(Buff.Id))
-            return; // TODO send error of immune?
+        // tagged_require_buffs is the tag form of the same prerequisite: the target must already carry
+        // the tag, e.g. 4627 가벼운 발걸음 needs tag 831 무겁다.
+        if (target.Buffs.GetMissingRequiredBuffTag(Buff) > 0)
+            return; // TODO send error?
+        if (target.Buffs.CheckBuffImmune(Buff, caster, source.Skill))
+        {
+            target.Buffs.BroadcastBuffImmune(caster, castObj, casterObj);
+            return;
+        }
 
         uint abLevel = 1;
         if (caster is Character character)
