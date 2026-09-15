@@ -901,6 +901,7 @@ public partial class Character : Unit, ICharacter
     public CharacterFriends Friends { get; set; }
     public CharacterBlocked Blocked { get; set; }
     public CharacterFavoriteCrafts FavoriteCrafts { get; set; }
+    public CharacterRecipeBook Recipes { get; set; }
     public CharacterMates Mates { get; set; }
     public CharacterButler Butler { get; set; }
 
@@ -3127,6 +3128,10 @@ public partial class Character : Unit, ICharacter
         var item = Inventory.GetItemById(id);
         if (item is { Count: > 0 })
         {
+            // Item-driven server actions (recipe learning, open papers) belong to the same success point
+            // as the quest trigger, so both run off the one hook.
+            Items.ItemUseActions.Apply(this, item);
+
             // Trigger event
             Events?.OnItemUse(this, new OnItemUseArgs
             {
@@ -3143,6 +3148,8 @@ public partial class Character : Unit, ICharacter
     {
         if (item is not null)
         {
+            Items.ItemUseActions.Apply(this, item);
+
             // Trigger event
             Events?.OnItemUse(this, new OnItemUseArgs
             {
@@ -3914,6 +3921,8 @@ public partial class Character : Unit, ICharacter
             Blocked.Load(connection);
             FavoriteCrafts = new CharacterFavoriteCrafts(this);
             FavoriteCrafts.Load(connection);
+            Recipes = new CharacterRecipeBook(this);
+            Recipes.Load(connection);
             Quests = new CharacterQuests(this);
             Quests.Load(connection);
             Quests.CheckDailyResetAtLogin();

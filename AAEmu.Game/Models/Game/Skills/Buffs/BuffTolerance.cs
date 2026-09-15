@@ -18,9 +18,17 @@ public class BuffTolerance
         return Steps.First();
     }
 
+    /// <summary>
+    /// The step that follows <paramref name="step"/> in the progression, or the last step when
+    /// <paramref name="step"/> is already on it.
+    /// </summary>
+    /// <remarks>
+    /// Clamping is the point, not a fallback: the caller reads "there is no step left that reduces any
+    /// more" as the signal to hand out <see cref="FinalStepBuffId"/>, and the old <c>First</c> threw
+    /// <c>InvalidOperationException</c> on the application that reached the end of the ladder.
+    /// </remarks>
     public BuffToleranceStep GetStepAfter(BuffToleranceStep step)
     {
-        // TODO: Handle no more
-        return Steps.First(st => st.Id > step.Id);
+        return Steps.FirstOrDefault(st => st.Id > step.Id) ?? Steps[^1];
     }
 }

@@ -1,5 +1,8 @@
-﻿using AAEmu.Game.GameData;
+using AAEmu.Commons.Utils.DB;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Units;
 
@@ -21,7 +24,6 @@ public class ItemConversion : SpecialEffectAction
         int value3,
         int value4)
     {
-        // TODO ...
         if (caster is Character) { Logger.Debug("Special effects: ItemConversion value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
 
         if (caster is not Character character)
@@ -49,8 +51,15 @@ public class ItemConversion : SpecialEffectAction
             return;
         }
 
+        var requestedFamily = (uint)Math.Max(0, value1);
         var id = targetItem.TemplateId;
-        var reagent = ItemConversionGameData.Instance.GetReagentForItem(targetItem.Grade, targetItem.Template.ImplId, id, targetItem.Template.Level);
+        var reagent = ItemConversionGameData.Instance.GetReagentForItem(
+            targetItem.Grade,
+            targetItem.Template.ImplId,
+            id,
+            targetItem.Template.Level,
+            targetItem.Template.CategoryId,
+            requestedFamily);
         if (reagent == null)
         {
             Logger.Error($"Couldn't find Reagent for item {id}");
@@ -58,30 +67,210 @@ public class ItemConversion : SpecialEffectAction
             return;
         }
 
-        var product = ItemConversionGameData.Instance.GetProductFromReagent(reagent);
-        if (product == null)
+        // value1 names the item_conv_sets family this effect performs. Refuse a cast the reagent has no route
+        // for: an evenstone must not run an awakening or repackage chain off the same pack.
+        //
+        // The check is the loader's own route selection rather than a family comparison, so a pack that mixes
+        // an unrelated family with unattributed conversions keeps its real route. 11 referenced packs are
+        // shaped that way - reagent pack 2725 holds the family-4 "dummy" next to
+        // discontinued_ship_paper.common, so item 35938 reaches item 46831 - and 7 have only unattributed
+        // routes (the origin-land armour socket disenchants), covering 65 items.
+        if (requestedFamily != 0 && !ItemConversionGameData.Instance.HasRoutesFor(reagent, requestedFamily))
+        {
+            Logger.Warn(
+                "ItemConversion: skill {0} asked for conversion set {1} but item {2} has no route for it (families {3})",
+                skill.Template?.Id, value1, id,
+                reagent.HasKnownFamily ? string.Join(',', reagent.ConversionFamilies.Order()) : "none");
+            skill.Cancelled = true;
+            return;
+        }
+
+        if (!ItemConversionGameData.Instance.TryRollProducts(reagent, requestedFamily, out var rolls))
         {
             Logger.Error($"Couldn't find Product from Reagent for item {id}");
             skill.Cancelled = true;
             return;
         }
 
-        var productRoll = Random.Shared.Next(0, 10000);
-        var productChance = product.ChanceRate;
-        if (productRoll < productChance)
+        if (!TryGrant(character, skill, targetItem, id, reagent, rolls))
+            return;
+    }
+
+    /// <summary>
+    /// Grants every rolled reward and removes the reagent item in one operation.
+    /// </summary>
+    /// <remarks>
+    /// Adding the rewards one at a time left a partial payout when a later one did not fit: conversion 6280
+    /// with a single free slot handed over the non-stackable 15596, then failed on 34983 x50 and returned
+    /// before the input was consumed, so the player kept item 49513 as well. Planning the credits and the
+    /// debit on the bag together makes it all or nothing.
+    /// </remarks>
+    private static bool TryGrant(Character character, Skill skill, Item targetItem, uint targetItemId,
+        ItemConversionReagent reagent, IReadOnlyList<ItemConversionRoll> rolls)
+    {
+        var requests = new List<ItemAcquisitionRequest>();
+        foreach (var roll in rolls)
         {
-            // give product
-            // TODO: add in weights
-            var value = Random.Shared.Next(product.MinOutput, product.MaxOutput + 1);
-            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.Conversion, product.OuputItemId, value))
+            if (roll.ChanceFailed || roll.Count <= 0)
             {
+                Logger.Debug("ItemConversion: item {0} (pack {1}) rolled no product", targetItemId, reagent.ReagentPackId);
+                continue;
+            }
+
+            var template = ItemManager.Instance.GetTemplate(roll.Product.OutputItemId);
+            if (template == null)
+            {
+                // Four item_conv_products rows name an item this content set does not define.
+                Logger.Warn(
+                    "ItemConversion: item {0} rolls product {1}, which has no item template",
+                    targetItemId, roll.Product.OutputItemId);
+                continue;
+            }
+
+            requests.Add(new ItemAcquisitionRequest(
+                roll.Product.OutputItemId,
+                roll.Count,
+                ResolveGrade(template, roll.Product.GradeId)));
+        }
+
+        var inventory = character.Inventory;
+        if (inventory?.Bag == null)
+        {
+            skill.Cancelled = true;
+            return false;
+        }
+
+        ItemConsumptionPublication consumptionPublication = null;
+        ItemAcquisitionPublication acquisitionPublication = null;
+        using (PersistenceOperationScope.Enter())
+        lock (inventory.MutationSyncRoot)
+        {
+            ItemAcquisitionPlan acquisition = null;
+            try
+            {
+                if (requests.Count > 0 &&
+                    !inventory.TryPlanBagAcquisition(ItemManager.Instance, requests, DateTime.UtcNow, out acquisition))
+                {
+                    skill.Cancelled = true;
+                    character.SendErrorMessage(ErrorMessageType.BagFull);
+                    return false;
+                }
+
+                if (!inventory.TryPlanExactBagConsumption(targetItem.Id, 1, out var consumption))
+                {
+                    Logger.Warn("ItemConversion: item {0} has no exact bag stack to consume", targetItemId);
+                    skill.Cancelled = true;
+                    return false;
+                }
+
+                var snapshots = new List<ItemPersistenceSnapshot>();
+                if (acquisition != null)
+                    snapshots.AddRange(acquisition.CapturePersistenceSnapshots());
+                snapshots.AddRange(consumption.CapturePersistenceSnapshots(ItemManager.Instance));
+
+                using (var connection = MySQL.CreateConnection())
+                using (var transaction = connection.BeginTransaction())
+                {
+                    try
+                    {
+                        ItemManager.Instance.PersistSnapshots(connection, transaction, snapshots);
+                        transaction.Commit();
+                    }
+                    catch
+                    {
+                        transaction.Rollback();
+                        throw;
+                    }
+                }
+
+                // Both plans are applied to the live state before either publishes. The rows are already
+                // committed, so stopping between them would leave the reward live and the reagent only
+                // removed in the database, where a later save of the still-live item puts it back.
+                if (acquisition != null)
+                {
+                    acquisition.MarkCommitted();
+                    try
+                    {
+                        acquisitionPublication = acquisition.ApplyCommitted(ItemTaskType.Conversion);
+                    }
+                    catch (Exception exception)
+                    {
+                        Logger.Error(exception, "ItemConversion: failed to apply the rewards for item {0}", targetItemId);
+                    }
+                }
+
+                try
+                {
+                    consumptionPublication = consumption.ApplyCommitted(ItemTaskType.Conversion);
+                }
+                catch (Exception exception)
+                {
+                    Logger.Error(exception, "ItemConversion: failed to apply the reagent removal for item {0}", targetItemId);
+                }
+
+                // Publication is guarded per plan: a sending failure must not stop the other plan's packets
+                // or the callbacks below, which is what carries the debit to item-use progress.
+                try
+                {
+                    acquisitionPublication?.PublishPackets();
+                }
+                catch (Exception exception)
+                {
+                    Logger.Error(exception, "ItemConversion: failed to publish the rewards for item {0}", targetItemId);
+                }
+
+                try
+                {
+                    consumptionPublication?.PublishPackets();
+                }
+                catch (Exception exception)
+                {
+                    Logger.Error(exception, "ItemConversion: failed to publish the reagent removal for item {0}", targetItemId);
+                }
+            }
+            catch (Exception exception)
+            {
+                Logger.Error(exception, "ItemConversion: failed to commit the conversion of item {0}", targetItemId);
                 skill.Cancelled = true;
-                character.SendErrorMessage(ErrorMessageType.BagFull);
-                return;
+                return false;
+            }
+            finally
+            {
+                acquisition?.Dispose();
             }
         }
 
-        // consumes target item from stack or if there is only 1, destroy item
-        targetItem._holdingContainer.ConsumeItem(ItemTaskType.Conversion, targetItem.TemplateId, 1, targetItem);
+        // Quest and container callbacks run once the inventory and persistence guards are released.
+        try
+        {
+            acquisitionPublication?.PublishCallbacks();
+        }
+        catch (Exception exception)
+        {
+            Logger.Error(exception, "ItemConversion: failed to publish acquisition callbacks for item {0}", targetItemId);
+        }
+
+        try
+        {
+            consumptionPublication?.PublishCallbacks();
+        }
+        catch (Exception exception)
+        {
+            Logger.Error(exception, "ItemConversion: failed to publish consumption callbacks for item {0}", targetItemId);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Grade an acquired stack gets, matching what <c>AcquireDefaultItem</c> derives from a grade of -1: the
+    /// product's own <c>item_grade_id</c> when it has one, otherwise the template's fixed grade.
+    /// </summary>
+    private static byte ResolveGrade(Items.Templates.ItemTemplate template, int productGradeId)
+    {
+        if (productGradeId > 0)
+            return (byte)Math.Min(productGradeId, byte.MaxValue);
+
+        return (byte)Math.Clamp(template.FixedGrade, 0, byte.MaxValue);
     }
 }

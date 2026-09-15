@@ -1,6 +1,7 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
@@ -13,11 +14,14 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Trading;
 using AAEmu.Game.Models.Tasks.Skills;
+using NLog;
 
 namespace AAEmu.Game.Models.Game.Char;
 
 public class CharacterCraft
 {
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
     public const int MaxBatchCount = 1000;
 
     private readonly Character _owner;
@@ -93,6 +97,27 @@ public class CharacterCraft
             !TryResolveCraftSource(craft, doodadId, out var doodad, out var craftPack, out var productionZoneGroupId))
         {
             Owner.SendErrorMessage(ErrorMessageType.CraftCantActAnyMore, ErrorMessageType.InvalidTarget, 0, false);
+            CancelCraft();
+            return false;
+        }
+
+        // Crafts that only exist behind a recipe item stay locked until the character has used one, so
+        // learning a recipe is not just a tooltip.
+        //
+        // On this client that whole set is unreachable content, which is why the gate reads as defensive
+        // rather than as a live rule: the 1421 recipe items it is keyed on are granted by nothing (only
+        // item_prices, 5 instrument_sounds and 2 quest_act_obj_item_gathers rows reference them), and the
+        // crafts they name are offered by no craft pack (one craft_pack_crafts row, pack 1
+        // "1230.테스트용 제작대") and no doodad (all 83 doodad_func_craft_start_crafts rows for them name
+        // craft-start ids that no doodad_funcs row uses). Nothing live is refused by it; it keeps the retail
+        // rule in place for whenever that content becomes reachable. A character that was never loaded
+        // (tests, tooling) has no recipe book, and then there is nothing to gate against either.
+        if (ItemUseGameData.Instance.IsRecipeGatedCraft(craft.Id) &&
+            Owner.Recipes is { } recipeBook &&
+            !recipeBook.IsLearned(craft.Id))
+        {
+            Logger.Warn("{0} tried to craft {1} without having learned its recipe", Owner.Name, craft.Id);
+            Owner.SendErrorMessage(ErrorMessageType.CraftNotLearned);
             CancelCraft();
             return false;
         }
