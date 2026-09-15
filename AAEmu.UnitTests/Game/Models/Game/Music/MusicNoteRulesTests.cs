@@ -109,4 +109,28 @@ public class MusicNoteRulesTests
         await Assert.That(MusicNoteRules.ClampToBytes("abc", 0)).IsEqualTo(string.Empty);
         await Assert.That(MusicNoteRules.ClampToBytes(null, 96)).IsEqualTo(string.Empty);
     }
+
+    [Test]
+    public async Task ClampToBytes_NeverSplitsASurrogatePair()
+    {
+        // 93 bytes of ASCII leave room for three of the emoji's four bytes: the whole emoji has to
+        // go, and a lone half pair must never reach the wire as a replacement character.
+        var value = new string('a', 93) + char.ConvertFromUtf32(0x1F642);
+
+        var clamped = MusicNoteRules.ClampToBytes(value, 96);
+
+        await Assert.That(clamped).IsEqualTo(new string('a', 93));
+        await Assert.That(clamped.Length).IsEqualTo(93);
+    }
+
+    [Test]
+    public async Task ClampToBytes_KeepsAScalarThatFitsExactly()
+    {
+        var value = new string('a', 92) + char.ConvertFromUtf32(0x1F642); // 96 bytes exactly
+
+        var clamped = MusicNoteRules.ClampToBytes(value, 96);
+
+        await Assert.That(clamped).IsEqualTo(value);
+        await Assert.That(System.Text.Encoding.UTF8.GetByteCount(clamped)).IsEqualTo(96);
+    }
 }

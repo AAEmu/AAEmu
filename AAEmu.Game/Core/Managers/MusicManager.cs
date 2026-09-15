@@ -81,7 +81,9 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         }
         catch (Exception ex)
         {
-            Logger.Warn(ex, "Could not read music_note_limits, using {0} as the score length limit", MaxNoteBytes);
+            Logger.Warn(ex,
+                "Could not read music_note_limits (SQL/updates/2026-09-15_aaemu_game_music_note_limits.sql), " +
+                "using {0} as the score length limit", MaxNoteBytes);
         }
     }
 

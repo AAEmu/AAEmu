@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -63,20 +63,27 @@ public class CSRequestMusicNotesPacket() : GamePacket(CSOffsets.CSRequestMusicNo
             player.Buffs.AddBuff((uint)BuffConstants.ScoreMemorized, player); // Score Memorized
     }
 
-    /// <summary>The items the player is known to hold, bag, warehouse and equipment alike.</summary>
-    private static IEnumerable<Item> HeldItems(Character player)
+    /// <summary>
+    /// A snapshot of the items the player is known to hold, bag, warehouse and equipment alike.
+    /// Taken under the inventory's mutation monitor: items move while a request is handled, and
+    /// walking the live lists would either throw or answer from a half-moved inventory.
+    /// </summary>
+    private static List<Item> HeldItems(Character player)
     {
         var inventory = player.Inventory;
         if (inventory == null)
-            yield break;
+            return [];
 
-        foreach (var container in new[] { inventory.Bag, inventory.Warehouse, inventory.Equipment })
+        lock (inventory.MutationSyncRoot)
         {
-            if (container?.Items == null)
-                continue;
+            var held = new List<Item>();
+            foreach (var container in new[] { inventory.Bag, inventory.Warehouse, inventory.Equipment })
+            {
+                if (container?.Items != null)
+                    held.AddRange(container.Items);
+            }
 
-            foreach (var item in container.Items)
-                yield return item;
+            return held;
         }
     }
 }

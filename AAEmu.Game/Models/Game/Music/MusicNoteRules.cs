@@ -1,4 +1,5 @@
 using System.Text;
+
 using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.Game.Models.Game.Music;
@@ -112,10 +113,18 @@ public static class MusicNoteRules
         if (Encoding.UTF8.GetByteCount(value) <= maxBytes)
             return value;
 
-        var chars = value.Length;
-        while (chars > 0 && Encoding.UTF8.GetByteCount(value, 0, chars) > maxBytes)
-            chars--;
+        // Walk whole scalars: cutting a surrogate pair in half would send a replacement character.
+        var kept = new StringBuilder(value.Length);
+        var used = 0;
+        foreach (var rune in value.EnumerateRunes())
+        {
+            if (used + rune.Utf8SequenceLength > maxBytes)
+                break;
 
-        return value[..chars];
+            kept.Append(rune);
+            used += rune.Utf8SequenceLength;
+        }
+
+        return kept.ToString();
     }
 }
