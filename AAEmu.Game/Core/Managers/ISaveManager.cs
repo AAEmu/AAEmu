@@ -1,5 +1,7 @@
 using AAEmu.Game.Models.Tasks;
 
+using MySql.Data.MySqlClient;
+
 namespace AAEmu.Game.Core.Managers;
 
 public interface ISaveManager : IInitializable
@@ -20,6 +22,8 @@ public interface ISaveManager : IInitializable
     /// lock is released when the snapshot does not commit.
     /// </summary>
     WorldSaveStatus TrySave(Action onFailed);
+
+    T ExecuteOperation<T>(Func<MySqlConnection, MySqlTransaction, T> operation);
 }
 
 public enum WorldSaveStatus

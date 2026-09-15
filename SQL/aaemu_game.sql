@@ -735,6 +735,7 @@ CREATE TABLE IF NOT EXISTS `items` (
   `slot_type` int NOT NULL DEFAULT 0 COMMENT 'Internal Container Type',
   `slot` int NOT NULL,
   `count` int NOT NULL,
+  `detail_type` tinyint unsigned NOT NULL DEFAULT '0',
   `details` blob,
   `lifespan_mins` int NOT NULL,
   `made_unit_id` int unsigned NOT NULL DEFAULT '0',
@@ -745,7 +746,7 @@ CREATE TABLE IF NOT EXISTS `items` (
   `flags` tinyint unsigned NOT NULL,
   `created_at` datetime NOT NULL DEFAULT '0001-01-01 00:00:00',
   `ucc` int unsigned NOT NULL DEFAULT '0',
-  `expire_time` DATETIME NULL DEFAULT NULL COMMENT 'Fixed time expire', 
+  `expire_time` DATETIME NULL DEFAULT NULL COMMENT 'Fixed time expire',
   `expire_online_minutes` DOUBLE NOT NULL DEFAULT '0' COMMENT 'Time left when player online',
   `charge_time` DATETIME NULL DEFAULT NULL COMMENT 'Time charged items got activated',
   `charge_count` INT NOT NULL DEFAULT '0' COMMENT 'Number of charges left',
@@ -852,6 +853,74 @@ CREATE TABLE IF NOT EXISTS `skills` (
   `owner` int unsigned NOT NULL,
   PRIMARY KEY (`id`,`owner`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Learned character skills';
+
+
+CREATE TABLE IF NOT EXISTS `specialty_market_revision` (
+  `id` tinyint unsigned NOT NULL,
+  `revision` bigint NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  CHECK (`id` = 1),
+  CHECK (`revision` >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+INSERT INTO `specialty_market_revision` (`id`, `revision`) VALUES (1, 0)
+ON DUPLICATE KEY UPDATE `id` = `id`;
+
+CREATE TABLE IF NOT EXISTS `specialty_market_routes` (
+  `item_id` int unsigned NOT NULL,
+  `zone_group_id` int unsigned NOT NULL,
+  `ratio` int NOT NULL,
+  `demand_remainder` int NOT NULL DEFAULT 0,
+  PRIMARY KEY (`item_id`, `zone_group_id`),
+  CHECK (`item_id` > 0 AND `zone_group_id` > 0),
+  CHECK (`ratio` >= 0 AND `demand_remainder` >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `specialty_market_contributions` (
+  `zone_group_id` int unsigned NOT NULL,
+  `tag_id` int unsigned NOT NULL,
+  `sequence` bigint unsigned NOT NULL,
+  `item_id` int unsigned NOT NULL,
+  `amount` int unsigned NOT NULL,
+  PRIMARY KEY (`zone_group_id`, `tag_id`, `sequence`),
+  CHECK (`zone_group_id` > 0 AND `tag_id` > 0),
+  CHECK (`sequence` > 0 AND `item_id` > 0 AND `amount` > 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `specialty_market_cargo` (
+  `zone_group_id` int unsigned NOT NULL,
+  `trade_good_id` int unsigned NOT NULL,
+  `amount` int unsigned NOT NULL,
+  PRIMARY KEY (`zone_group_id`, `trade_good_id`),
+  CHECK (`zone_group_id` > 0 AND `trade_good_id` > 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `specialty_market_history` (
+  `item_id` int unsigned NOT NULL,
+  `zone_group_id` int unsigned NOT NULL,
+  `sequence` tinyint unsigned NOT NULL,
+  `ratio` int NOT NULL,
+  `recorded` bigint NOT NULL,
+  PRIMARY KEY (`item_id`, `zone_group_id`, `sequence`),
+  CHECK (`item_id` > 0 AND `zone_group_id` > 0),
+  CHECK (`ratio` >= 0 AND `recorded` >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `specialty_market_stock_event_checks` (
+  `trigger_id` int unsigned NOT NULL,
+  `next_check` bigint NOT NULL,
+  PRIMARY KEY (`trigger_id`),
+  CHECK (`trigger_id` > 0 AND `next_check` >= 0)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE IF NOT EXISTS `specialty_market_stock_events` (
+  `event_id` int unsigned NOT NULL,
+  `started_at` bigint NOT NULL,
+  `expires_at` bigint NOT NULL,
+  PRIMARY KEY (`event_id`),
+  CHECK (`event_id` > 0),
+  CHECK (`started_at` >= 0 AND `expires_at` > `started_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 
 CREATE TABLE IF NOT EXISTS `uccs` (

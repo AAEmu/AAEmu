@@ -4,6 +4,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
@@ -14,6 +15,7 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
     // doodad_funcs
     public override void Use(BaseUnit caster, Doodad owner, uint skillId, int nextPhase = 0)
     {
+        owner.ToNextPhase = false;
         Logger.Debug($"DoodadFuncRecoverItem({Id}) - Caster:{caster.Name} - DoodadOwner Template:{owner?.TemplateId} - SkillId:{skillId} - Nextphase:{nextPhase}");
 
         var character = (Character)caster;
@@ -27,7 +29,6 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
                 // that means that it was already picked up by somebody else
                 if (item._holdingContainer?.ContainerType != SlotType.System)
                 {
-                    owner.ToNextPhase = false;
                     character.SendErrorMessage(ErrorMessageType.InteractionRecoverParent); // TODO: Not sure what error I need to put here
                     return;
                 }
@@ -77,7 +78,17 @@ public class DoodadFuncRecoverItem : DoodadFuncTemplate
         }
         else if (owner?.ItemTemplateId > 0)
         {
-            addedItem = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.RecoverDoodadItem, owner.ItemTemplateId, 1);
+            if (ItemManager.Instance.GetTemplate(owner.ItemTemplateId) is BackpackTemplate { FreshnessGroupId: > 0 })
+            {
+                Logger.Error(
+                    "DoodadFuncRecoverItem: refusing to recreate freshness-bearing backpack template {0} for doodad {1} without its item identity",
+                    owner.ItemTemplateId,
+                    owner.ObjId);
+            }
+            else
+            {
+                addedItem = character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.RecoverDoodadItem, owner.ItemTemplateId, 1);
+            }
         }
         else
         {

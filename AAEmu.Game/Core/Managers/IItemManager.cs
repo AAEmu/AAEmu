@@ -49,6 +49,7 @@ public interface IItemManager : ILoadable
     List<BonusTemplate> GetUnitModifiers(uint itemId);
     ArmorGradeBuff GetArmorGradeBuff(ArmorType type, ItemGrade grade);
     Item Create(uint templateId, int count, byte grade, bool generateId = true);
+    Item CreateUnpersisted(uint templateId, int count, byte grade);
     TItem Create<TItem>(uint templateId, int count, byte grade, bool generateId = true) where TItem : Item;
     bool AddItem(Item item);
     Item GetItemByItemId(ulong itemId);
@@ -62,6 +63,11 @@ public interface IItemManager : ILoadable
     void DiscardUnsavedCharacterState(uint characterId);
     void LoadUserItems();
     void ReleaseId(ulong itemId);
+    void ReleaseCommittedItem(ulong itemId);
+    bool TryPersistItem(Item item);
+    InventoryPersistenceSnapshot CaptureInventory(uint characterId);
+    void PublishPersistedItems(IEnumerable<Item> items);
+    void DiscardUnpersistedItems(IEnumerable<Item> items);
     List<Item> LoadPlayerInventory(ICharacter character);
     bool IsAutoEquipTradePack(uint itemTemplateId);
     void UpdateItemTimers();

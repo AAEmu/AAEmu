@@ -11,6 +11,10 @@ public class CSSpecialtyRatioPacket() : GamePacket(CSOffsets.CSSpecialtyRatioPac
         var zoneGroupId = stream.ReadUInt16();
         var npcTemplateId = stream.ReadUInt32();
 
-        SpecialtyManager.Instance.SendBuyList(Connection.ActiveChar, zoneGroupId, npcTemplateId);
+        Logger.Debug(
+            "SpecialtyRatio, ZoneGroupId: {0}, NpcTemplateId: {1}",
+            zoneGroupId,
+            npcTemplateId);
+        SpecialtyManager.Instance.SendRatioList(Connection.ActiveChar, zoneGroupId, npcTemplateId);
     }
 }

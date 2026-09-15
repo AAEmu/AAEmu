@@ -1,8 +1,10 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Trading;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.DoodadObj.Funcs;
@@ -27,10 +29,20 @@ public class DoodadFuncLootPack : DoodadFuncTemplate
         }
 
         var lootPackContents = lootPack.GeneratePack(character, actAbility);
+        var productionContext = new SpecialtyPackProductionContext(
+            SpecialtyPackProductionSource.DoodadLootPack,
+            DateTime.UtcNow,
+            ZoneManager.Instance.GetZoneByKey(owner.Transform.ZoneId)?.GroupId ?? 0,
+            owner.GetOwnerCharacter()?.Id ?? 0);
 
         // GiveLootPack performs the exact stack-aware capacity check. A raw free-slot
         // comparison incorrectly rejects rewards that fit into existing stacks.
-        if (lootPack.GiveLootPack(character, actAbility, ItemTaskType.DoodadInteraction, lootPackContents))
+        if (lootPack.GiveLootPack(
+                character,
+                actAbility,
+                ItemTaskType.DoodadInteraction,
+                lootPackContents,
+                specialtyProductionContext: productionContext))
         {
             owner.ToNextPhase = true;
             return;

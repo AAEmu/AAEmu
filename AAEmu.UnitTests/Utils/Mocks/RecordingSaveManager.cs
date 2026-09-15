@@ -31,6 +31,10 @@ public sealed class RecordingSaveManager : ISaveManager
 
     public System.Threading.Tasks.Task StopAsync() => System.Threading.Tasks.Task.CompletedTask;
 
+    public T ExecuteOperation<T>(Func<MySql.Data.MySqlClient.MySqlConnection,
+        MySql.Data.MySqlClient.MySqlTransaction, T> operation) =>
+        throw new NotSupportedException("RecordingSaveManager does not provide database transactions.");
+
     public void SaveTickStart()
     {
     }

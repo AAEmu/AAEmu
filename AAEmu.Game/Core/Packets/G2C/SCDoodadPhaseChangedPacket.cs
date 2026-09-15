@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.DoodadObj;
 
@@ -8,6 +9,7 @@ public class SCDoodadPhaseChangedPacket : GamePacket
 {
     private readonly Doodad _doodad;
     private readonly uint _funcGroupId;
+    private readonly IItemManager _itemManager;
 
     public SCDoodadPhaseChangedPacket(Doodad doodad) : this(doodad, doodad.FuncGroupId)
     {
@@ -17,6 +19,15 @@ public class SCDoodadPhaseChangedPacket : GamePacket
     {
         _doodad = doodad;
         _funcGroupId = funcGroupId;
+        Logger.Trace("[Doodad] [0] SCDoodadPhaseChangedPacket: TemplateId {0}, ObjId {1},  CurrentPhaseId {2}, TimeLeft {3}", _doodad.TemplateId, _doodad.ObjId, _funcGroupId, _doodad.TimeLeft);
+    }
+
+    public SCDoodadPhaseChangedPacket(Doodad doodad, IItemManager itemManager)
+        : base(SCOffsets.SCDoodadPhaseChangedPacket, 1)
+    {
+        _doodad = doodad;
+        _funcGroupId = doodad.FuncGroupId;
+        _itemManager = itemManager;
         Logger.Trace("[Doodad] [0] SCDoodadPhaseChangedPacket: TemplateId {0}, ObjId {1},  CurrentPhaseId {2}, TimeLeft {3}", _doodad.TemplateId, _doodad.ObjId, _funcGroupId, _doodad.TimeLeft);
     }
 
@@ -33,8 +44,18 @@ public class SCDoodadPhaseChangedPacket : GamePacket
         stream.Write(_doodad.Data);
         stream.Write(_doodad.TimeLeft); // growing
         stream.Write(_doodad.PuzzleGroup);
-        stream.Write(_doodad.ItemTemplateId);
-        stream.Write(false); // isGoods — coffer/goods path not used for doors
+        var itemManager = _itemManager ??
+                          (_doodad.ItemId == 0 && _doodad.ItemTemplateId == 0 ? null : ItemManager.Instance);
+        var goods = default(DoodadPhysicalGoods);
+        var isGoods = itemManager != null && DoodadPhysicalGoods.TryResolve(_doodad, itemManager, out goods);
+        stream.Write(isGoods ? goods.ItemTemplateId : _doodad.ItemTemplateId);
+        stream.Write(isGoods);
+        if (isGoods)
+        {
+            stream.Write(goods.FreshnessTime);
+            stream.Write(0L); // unnamed physical goods field
+            stream.Write((ushort)0); // unnamed physical goods field
+        }
         return stream;
     }
 }

@@ -28,6 +28,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
     private List<long> _deletedMailIds = [];
     [ThreadStatic] private static List<(BaseMail Mail, int Stamp)> t_writtenMails;
     [ThreadStatic] private static List<long> t_deletedWritten;
+    private readonly HashSet<long> _reservedMailIds = [];
     // Unused: private object _lock = new();
 
     public static int CostNormal { get; set; } = 50;
@@ -318,6 +319,184 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             mail.IsPendingPublish = false;
             mail.Id = 0;
         }
+    }
+
+    public bool SendBatch(IReadOnlyList<BaseMail> mails)
+    {
+        if (!TryPrepareBatch(mails, out var batch))
+            return false;
+        if (PublishPreparedBatch(batch))
+        {
+            PersistNow();
+            return true;
+        }
+
+        CancelPreparedBatch(batch);
+        return false;
+    }
+
+    public bool TryPrepareBatch(IReadOnlyList<BaseMail> mails, out PreparedMailBatch batch)
+    {
+        batch = null;
+        if (mails == null || mails.Count == 0)
+            return false;
+
+        var receivers = new string[mails.Count];
+        for (var i = 0; i < mails.Count; i++)
+        {
+            var mail = mails[i];
+            if (mail == null)
+                return false;
+
+            mail.PrepareForSend();
+            if (!TryVerifyReceiver(mail, out receivers[i]))
+                return false;
+        }
+
+        var batchIds = new HashSet<long>();
+        var generatedMailIds = new List<uint>();
+        foreach (var mail in mails)
+        {
+            if (mail.Id <= 0)
+            {
+                Logger.Trace("SendBatch() - Assign new mail Id");
+                mail.Id = GetNewMailId();
+                generatedMailIds.Add((uint)mail.Id);
+            }
+            if (!batchIds.Add(mail.Id))
+            {
+                Logger.Error("SendBatch() - Duplicate mail {0} in batch", mail.Id);
+                ReleaseGeneratedMailIds(mails, generatedMailIds);
+                return false;
+            }
+        }
+
+        lock (_allPlayerMails)
+        {
+            foreach (var mail in mails)
+            {
+                if (_allPlayerMails.ContainsKey(mail.Id) || _reservedMailIds.Contains(mail.Id))
+                {
+                    Logger.Error("SendBatch() - Refusing to replace existing mail {0}", mail.Id);
+                    ReleaseGeneratedMailIds(mails, generatedMailIds);
+                    return false;
+                }
+            }
+
+            foreach (var mail in mails)
+                _reservedMailIds.Add(mail.Id);
+        }
+
+        batch = new PreparedMailBatch(mails.ToList(), receivers, generatedMailIds);
+        return true;
+    }
+
+    public void PersistPreparedBatch(
+        IReadOnlyList<BaseMail> mails,
+        MySqlConnection connection,
+        MySqlTransaction transaction)
+    {
+        ArgumentNullException.ThrowIfNull(mails);
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(transaction);
+
+        lock (_allPlayerMails)
+        {
+            if (mails.Count == 0 || mails.Any(mail =>
+                    mail == null || !_reservedMailIds.Contains(mail.Id) || _allPlayerMails.ContainsKey(mail.Id)))
+                throw new InvalidOperationException("Mail batch is not reserved for persistence");
+        }
+
+        foreach (var mail in mails)
+        {
+            MailDeliveryRules.PrepareAttachments(mail);
+            WriteMail(mail, connection, transaction);
+            PersistMailAttachments(mail, connection, transaction);
+        }
+    }
+
+    public bool PublishPreparedBatch(PreparedMailBatch batch, bool alreadyPersisted = false)
+    {
+        if (batch == null || batch.IsCompleted)
+            return false;
+
+        lock (_allPlayerMails)
+        {
+            if (batch.Mails.Any(mail =>
+                    !_reservedMailIds.Contains(mail.Id) || _allPlayerMails.ContainsKey(mail.Id)))
+                return false;
+
+            foreach (var mail in batch.Mails)
+            {
+                _allPlayerMails.Add(mail.Id, mail);
+                _reservedMailIds.Remove(mail.Id);
+                if (alreadyPersisted)
+                {
+                    mail.IsDirty = false;
+                    foreach (var attachment in mail.Body.Attachments)
+                        attachment.IsDirty = false;
+                }
+            }
+            batch.IsCompleted = true;
+        }
+
+        for (var i = 0; i < batch.Mails.Count; i++)
+        {
+            try
+            {
+                NotifyNewMailByNameIfOnline(batch.Mails[i], batch.ReceiverNames[i]);
+            }
+            catch (Exception ex)
+            {
+                Logger.Error(ex, "Failed to notify receiver {0} for committed mail {1}",
+                    batch.ReceiverNames[i], batch.Mails[i].Id);
+            }
+        }
+        return true;
+    }
+
+    public void CancelPreparedBatch(PreparedMailBatch batch)
+    {
+        if (batch == null || batch.IsCompleted)
+            return;
+
+        lock (_allPlayerMails)
+        {
+            foreach (var mail in batch.Mails)
+                _reservedMailIds.Remove(mail.Id);
+            batch.IsCompleted = true;
+        }
+        ReleaseGeneratedMailIds(batch.Mails, batch.GeneratedMailIds);
+    }
+
+    private void ReleaseGeneratedMailIds(
+        IReadOnlyList<BaseMail> mails,
+        IReadOnlyCollection<uint> generatedMailIds)
+    {
+        foreach (var id in generatedMailIds)
+            mailIdManager.ReleaseId(id);
+        foreach (var mail in mails)
+        {
+            if (generatedMailIds.Contains((uint)mail.Id))
+                mail.Id = 0;
+        }
+    }
+
+    private bool TryVerifyReceiver(BaseMail mail, out string targetName)
+    {
+        targetName = nameManager.GetCharacterName(mail.Header.ReceiverId);
+        var targetId = nameManager.GetCharacterId(mail.Header.ReceiverName);
+        if (!string.Equals(targetName, mail.Header.ReceiverName, StringComparison.InvariantCultureIgnoreCase))
+        {
+            Logger.Debug("SendBatch() - Failed to verify receiver name {0} != {1}", targetName, mail.Header.ReceiverName);
+            return false;
+        }
+        if (targetId != mail.Header.ReceiverId)
+        {
+            Logger.Debug("SendBatch() - Failed to verify receiver id {0} != {1}", targetId, mail.Header.ReceiverId);
+            return false;
+        }
+        return true;
     }
 
     private void PersistMailAttachments(BaseMail mail, MySqlConnection connection, MySqlTransaction transaction)

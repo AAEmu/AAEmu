@@ -156,6 +156,7 @@ public sealed record ItemPersistenceRow(
     SlotType SlotType,
     int Slot,
     int Count,
+    ItemDetailType DetailType,
     ImmutableArray<byte> Details,
     int LifespanMins,
     uint MadeUnitId,
@@ -177,7 +178,7 @@ public sealed record ItemPersistenceRow(
         item.WriteDetails(details);
         return new ItemPersistenceRow(
             item.Id, item.GetType().ToString(), item.TemplateId, item._holdingContainer?.ContainerId ?? 0,
-            item.SlotType, item.Slot, item.Count, ImmutableArray.CreateRange(details.GetBytes()), item.LifespanMins, item.MadeUnitId,
+            item.SlotType, item.Slot, item.Count, item.DetailType, ImmutableArray.CreateRange(details.GetBytes()), item.LifespanMins, item.MadeUnitId,
             item.UnsecureTime, item.UnpackTime, item.OwnerId, item.CreateTime, item.Grade, item.ItemFlags,
             item.UccId, item.ExpirationTime, item.ExpirationOnlineMinutesLeft, item.ChargeStartTime, item.ChargeCount);
     }
@@ -190,7 +191,7 @@ public sealed record ItemPersistenceRow(
         var current = Capture(item);
         return Id == current.Id && Type == current.Type && TemplateId == current.TemplateId &&
                ContainerId == current.ContainerId && SlotType == current.SlotType && Slot == current.Slot &&
-               Count == current.Count && LifespanMins == current.LifespanMins && MadeUnitId == current.MadeUnitId &&
+               Count == current.Count && DetailType == current.DetailType && LifespanMins == current.LifespanMins && MadeUnitId == current.MadeUnitId &&
                UnsecureTime == current.UnsecureTime && UnpackTime == current.UnpackTime && OwnerId == current.OwnerId &&
                CreatedAt == current.CreatedAt && Grade == current.Grade && Flags == current.Flags && UccId == current.UccId &&
                ExpirationTime == current.ExpirationTime && ExpirationOnlineMinutes == current.ExpirationOnlineMinutes &&

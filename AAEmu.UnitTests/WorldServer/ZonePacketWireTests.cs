@@ -8,6 +8,8 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Taxations;
 using AAEmu.Game.Models.Game.Units;
@@ -313,8 +315,9 @@ public class ZonePacketWireTests
         // Putting ModelKindId in pisc[2] made dedicate expect/reject the wrong size (zone 133).
         var normal = CreateDoodad(modelKindId: 0);
         var flowerKind = CreateDoodad(modelKindId: 3);
-        var normalBytes = new WZCreateDoodadPacket(normal).Encode();
-        var flowerBytes = new WZCreateDoodadPacket(flowerKind).Encode();
+        var itemManager = Mock.Of<IItemManager>();
+        var normalBytes = new WZCreateDoodadPacket(normal, itemManager.Object).Encode();
+        var flowerBytes = new WZCreateDoodadPacket(flowerKind, itemManager.Object).Encode();
 
         await Assert.That(flowerBytes.Length).IsEqualTo(normalBytes.Length);
 
@@ -348,6 +351,84 @@ public class ZonePacketWireTests
 
         await Assert.That(plantTime).IsEqualTo(1_700_000_000UL);
         await Assert.That(updatedTime).IsLessThan(10_000_000_000UL);
+    }
+
+    [Test]
+    public async Task PhysicalGoodsPackets_WritePersistedFreshnessAndZeroCompanions()
+    {
+        var template = new BackpackTemplate
+        {
+            Id = 31840,
+            BackpackType = BackpackType.TradePack,
+            FreshnessGroupId = 7
+        };
+        var freshnessStart = DateTimeOffset.FromUnixTimeSeconds(1_777_777_777).UtcDateTime;
+        var backpack = new Backpack(900, template, 1);
+        backpack.InitializeFreshness(freshnessStart, 22);
+        var itemManager = Mock.Of<IItemManager>();
+        itemManager.GetItemByItemId(backpack.Id).Returns(backpack);
+        itemManager.GetTemplate(template.Id).Returns(template);
+        var doodad = CreateDoodad(modelKindId: 0);
+        doodad.ItemId = backpack.Id;
+        doodad.ItemTemplateId = template.Id;
+
+        var scCreated = new PacketStream();
+        doodad.Write(scCreated, itemManager.Object);
+        var scCreatedPisc = ReadDoodadCreateToUpdatedTime(scCreated, hasFrameHeader: false);
+
+        var wzCreated = new PacketStream(new WZCreateDoodadPacket(doodad, itemManager.Object).Encode());
+        var wzCreatedPisc = ReadDoodadCreateToUpdatedTime(wzCreated, hasFrameHeader: true);
+
+        var phase = new PacketStream();
+        new SCDoodadPhaseChangedPacket(doodad, itemManager.Object).Write(phase);
+        phase.Rollback();
+        phase.ReadBc();
+        phase.ReadUInt32();
+        phase.ReadInt32();
+        phase.ReadUInt32();
+        phase.ReadInt32();
+
+        await Assert.That(scCreatedPisc[2]).IsEqualTo(template.Id);
+        await AssertGoodsBlock(scCreated, 1_777_777_777UL);
+        await Assert.That(scCreated.ReadInt64()).IsEqualTo(0L);
+        await Assert.That(scCreated.ReadInt64()).IsEqualTo(0L);
+        await Assert.That(scCreated.Pos).IsEqualTo(scCreated.Count);
+        await Assert.That(wzCreatedPisc[2]).IsEqualTo(template.Id);
+        await AssertGoodsBlock(wzCreated, 1_777_777_777UL);
+        await Assert.That(wzCreated.ReadInt64()).IsEqualTo(0L);
+        await Assert.That(wzCreated.ReadInt64()).IsEqualTo(0L);
+        await Assert.That(wzCreated.Pos).IsEqualTo(wzCreated.Count);
+        await Assert.That(phase.ReadUInt32()).IsEqualTo(template.Id);
+        await Assert.That(phase.ReadBoolean()).IsTrue();
+        await AssertGoodsBlock(phase, 1_777_777_777UL);
+        await Assert.That(phase.Pos).IsEqualTo(phase.Count);
+    }
+
+    [Test]
+    public async Task PhysicalGoodsResolver_UsesZeroForMalformedPersistedFreshness()
+    {
+        var template = new BackpackTemplate
+        {
+            Id = 31840,
+            BackpackType = BackpackType.TradePack,
+            FreshnessGroupId = 7
+        };
+        var backpack = new Backpack(900, template, 1)
+        {
+            DetailType = ItemDetailType.BackpackFreshness,
+            Detail = new byte[9]
+        };
+        var itemManager = Mock.Of<IItemManager>();
+        itemManager.GetItemByItemId(backpack.Id).Returns(backpack);
+        var doodad = CreateDoodad(modelKindId: 0);
+        doodad.ItemId = backpack.Id;
+        doodad.ItemTemplateId = template.Id;
+
+        var isGoods = DoodadPhysicalGoods.TryResolve(doodad, itemManager.Object, out var goods);
+
+        await Assert.That(isGoods).IsTrue();
+        await Assert.That(goods.ItemTemplateId).IsEqualTo(template.Id);
+        await Assert.That(goods.FreshnessTime).IsEqualTo(0UL);
     }
 
     [Test]
@@ -396,6 +477,47 @@ public class ZonePacketWireTests
         OwnerType = DoodadOwnerType.Character,
         PlantTime = DateTimeOffset.FromUnixTimeSeconds(1_700_000_000).UtcDateTime
     };
+
+    private static uint[] ReadDoodadCreateToUpdatedTime(PacketStream stream, bool hasFrameHeader)
+    {
+        stream.Rollback();
+        if (hasFrameHeader)
+        {
+            stream.ReadUInt16();
+            stream.ReadUInt16();
+        }
+        stream.ReadBc();
+        var pisc = stream.ReadPisc(4);
+        stream.ReadByte();
+        stream.ReadBc();
+        stream.ReadBc();
+        stream.ReadByte();
+        stream.ReadPosition();
+        stream.ReadInt16();
+        stream.ReadInt16();
+        stream.ReadInt16();
+        stream.ReadSingle();
+        stream.ReadInt64();
+        stream.ReadInt64();
+        stream.ReadUInt32();
+        stream.ReadUInt32();
+        stream.ReadUInt64();
+        stream.ReadInt32();
+        stream.ReadInt32();
+        stream.ReadByte();
+        stream.ReadUInt32();
+        stream.ReadInt32();
+        stream.ReadInt32();
+        stream.ReadUInt64();
+        return pisc;
+    }
+
+    private static async Task AssertGoodsBlock(PacketStream stream, ulong freshnessTime)
+    {
+        await Assert.That(stream.ReadUInt64()).IsEqualTo(freshnessTime);
+        await Assert.That(stream.ReadInt64()).IsEqualTo(0L);
+        await Assert.That(stream.ReadUInt16()).IsEqualTo((ushort)0);
+    }
 
     private static House CreateHouse()
     {

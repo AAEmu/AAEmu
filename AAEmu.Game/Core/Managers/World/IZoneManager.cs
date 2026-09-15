@@ -8,6 +8,8 @@ namespace AAEmu.Game.Core.Managers.World;
 
 public interface IZoneManager : ILoadable
 {
+    event Action<ushort, ZoneConflictType, ZoneConflictType> ZoneConflictStateChanged;
+
     ZoneConflict[] GetConflicts();
     Zone GetZoneById(uint zoneId);
     Zone GetZoneByKey(uint zoneKey);

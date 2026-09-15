@@ -8,11 +8,12 @@ public class CraftTask(Character character, uint craftId, uint objId, int count)
 {
     public override void Execute()
     {
-        if (count > 0)
+        if (CharacterCraft.IsValidBatchCount(count))
         {
             // _character.SendMessage($"CraftTask: {_craftId}");
-            var craft = CraftManager.Instance.GetCraftById(craftId);
-            character?.Craft.Craft(craft, count, objId);
+            if (character != null &&
+                CraftManager.Instance.TryGetCraft(craftId, out var craft))
+                character.Craft.Craft(craft, count, objId);
         }
     }
 }

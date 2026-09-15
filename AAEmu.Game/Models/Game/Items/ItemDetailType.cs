@@ -14,7 +14,8 @@ public enum ItemDetailType
     Glider = 9,
     SlaveEquipment = 10,
     Location = 11,
-    // the client, so their semantic names are defined server-side. Bodies: 12 = 10 bytes, 13 = 13 bytes,
-    // 14 = 8 bytes (same wire shape as MusicSheet). TODO(v10): name them once the server item-detail
+    BackpackFreshness = 12,
+    Unknown13 = 13,
+    Unknown14 = 14,
     TypeMax = 15,
 }

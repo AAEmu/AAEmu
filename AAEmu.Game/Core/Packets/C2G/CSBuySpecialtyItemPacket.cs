@@ -9,11 +9,17 @@ public class CSBuySpecialtyItemPacket() : GamePacket(CSOffsets.CSBuySpecialtyIte
 {
     public override void Read(PacketStream stream)
     {
-        // from SCSpecialtyRatio. The server recomputes that quote before changing stock or money.
-        var npcObjId = stream.ReadBc();
-        var characterObjId = stream.ReadBc();
-        var quote = stream.Read<SpecialtyQuote>();
+        var (quote, npcObjId, _) = ReadBody(stream);
 
-        SpecialtyManager.Instance.BuySpecialty(Connection.ActiveChar, npcObjId, characterObjId, quote);
+        SpecialtyManager.Instance.BuySpecialty(Connection.ActiveChar, npcObjId, quote);
+    }
+
+    internal static (SpecialtyQuote Quote, uint NpcObjId, uint Auxiliary) ReadBody(PacketStream stream)
+    {
+        // The quote came from SCSpecialtyGoods; the server recomputes it before changing state.
+        var quote = stream.Read<SpecialtyQuote>();
+        var npcObjId = stream.ReadBc();
+        var auxiliary = stream.ReadBc();
+        return (quote, npcObjId, auxiliary);
     }
 }

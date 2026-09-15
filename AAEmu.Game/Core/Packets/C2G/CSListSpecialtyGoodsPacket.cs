@@ -9,8 +9,8 @@ public class CSListSpecialtyGoodsPacket() : GamePacket(CSOffsets.CSListSpecialty
     public override void Read(PacketStream stream)
     {
         var npcObjId = stream.ReadBc();
-        var characterObjId = stream.ReadBc();
+        _ = stream.ReadBc(); // Opaque client context, also present on the specialty sale request.
 
-        SpecialtyManager.Instance.SendSellList(Connection.ActiveChar, npcObjId, characterObjId);
+        SpecialtyManager.Instance.SendBuyList(Connection.ActiveChar, npcObjId);
     }
 }

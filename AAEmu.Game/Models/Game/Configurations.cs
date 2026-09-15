@@ -332,49 +332,25 @@ public class CurrencyValuesConfig
 public class SpecialtyConfig
 {
     /// <summary>
-    /// Maximum distance in metres at which a character may use a specialty outlet.
+    /// Enables manual and authored automatic specialty events, lifecycle messages,
+    /// price effects, and active IDs in specialty list packets.
     /// </summary>
-    public float InteractionRange { get; set; } = 3f;
+    public bool EnableEvents { get; set; } = false;
 
     /// <summary>
-    /// Base labor charged when a specialty pack is delivered, before Commerce proficiency reduction.
+    /// Default duration used by the specialty-event GM command when no duration is supplied.
     /// </summary>
-    public int SellLaborCost { get; set; } = 60;
+    public uint ManualEventDurationSeconds { get; set; } = 300;
 
     /// <summary>
-    /// Delayed-delivery interest added to specialty proceeds, as a percentage.
+    /// Enables an additional time-based specialty demand-ratio recovery step.
     /// </summary>
-    public int InterestRate { get; set; } = 5;
+    public bool EnableTimedRatioRecovery { get; set; } = false;
 
     /// <summary>
-    /// Seller share when a different character crafted the pack.
+    /// Delay before the first time-based recovery and interval between subsequent recoveries.
     /// </summary>
-    public float SellerShare { get; set; } = 0.8f;
-
-    /// <summary>
-    /// Maximum rate for speciality packs
-    /// </summary>
-    public int MaxSpecialtyRatio { get; set; } = 130;
-    /// <summary>
-    /// Minimum rate for speciality packs
-    /// </summary>
-    public int MinSpecialtyRatio { get; set; } = 70;
-    /// <summary>
-    /// Amount the trade in rate lowers for each traded pack
-    /// </summary>
-    public double RatioDecreasePerPack { get; set; } = 0.5f;
-    /// <summary>
-    /// Number of % a trade recovers every X time
-    /// </summary>
-    public double RatioIncreasePerTick { get; set; } = 5.0;
-    /// <summary>
-    /// Number of minutes between trade rate updates when selling packs
-    /// </summary>
-    public double RatioDecreaseTickMinutes { get; set; } = 1f;
-    /// <summary>
-    /// Time in minutes before a traded pack is no longer counted towards the trade rate calculation
-    /// </summary>
-    public double RatioRegenTickMinutes { get; set; } = 60f;
+    public double RatioRecoveryIntervalMinutes { get; set; } = 60.0;
 
     /// <summary>
     /// Time in minutes to delay trade pack reward mail delivery. Default is 8 hours.

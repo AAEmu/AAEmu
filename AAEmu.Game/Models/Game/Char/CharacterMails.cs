@@ -474,7 +474,8 @@ public class CharacterMails
                             {
                                 foreach (var fi in foundItems)
                                 {
-                                    if (fi.Count + itemAttachment.Count <= fi.Template.MaxCount)
+                                    if (fi.CanStackWith(itemAttachment) &&
+                                        fi.Count + itemAttachment.Count <= fi.Template.MaxCount)
                                     {
                                         stackItem = fi;
                                         break;

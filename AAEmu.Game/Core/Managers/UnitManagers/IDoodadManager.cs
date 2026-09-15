@@ -1,6 +1,7 @@
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.CommonFarm.Static;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Housing;
@@ -25,6 +26,8 @@ public interface IDoodadManager : ILoadable
     List<DoodadFunc> GetFuncsForGroup(uint funcGroupId);
     List<DoodadPhaseFunc> GetPhaseFunc(uint funcGroupId);
     DoodadFuncTemplate GetFuncTemplate(uint funcId, string funcType);
+    bool TryGetActiveCraftPack(Doodad doodad, out DoodadFunc function, out DoodadFuncCraftPack craftPack,
+        Func<uint, bool> acceptsPack = null);
     DoodadPhaseFuncTemplate GetPhaseFuncTemplate(uint funcId, string funcType);
     List<DoodadFuncGroups> GetDoodadFuncGroups(uint doodadTemplateId);
     List<uint> GetDoodadFuncGroupsId(uint doodadTemplateId);

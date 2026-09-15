@@ -2771,6 +2771,40 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
         return 0;
     }
 
+    public bool TryGetActiveCraftPack(
+        Models.Game.DoodadObj.Doodad doodad,
+        out DoodadFunc function,
+        out DoodadFuncCraftPack craftPack,
+        Func<uint, bool> acceptsPack = null)
+    {
+        function = null;
+        craftPack = null;
+        if (doodad == null || doodad.FuncGroupId == 0)
+            return false;
+
+        DoodadFunc resolvedFunction = null;
+        DoodadFuncCraftPack resolvedCraftPack = null;
+        var matches = 0;
+        foreach (var candidate in GetFuncsForGroup(doodad.FuncGroupId))
+        {
+            if (candidate.FuncType != nameof(DoodadFuncCraftPack) ||
+                GetFuncTemplate(candidate.FuncId, candidate.FuncType) is not DoodadFuncCraftPack candidatePack ||
+                candidatePack.CraftPackId == 0 ||
+                acceptsPack != null && !acceptsPack(candidatePack.CraftPackId))
+                continue;
+            matches++;
+            if (matches > 1)
+                return false;
+
+            resolvedFunction = candidate;
+            resolvedCraftPack = candidatePack;
+        }
+
+        function = resolvedFunction;
+        craftPack = resolvedCraftPack;
+        return matches == 1;
+    }
+
     public DoodadFunc GetFunc(uint funcId)
     {
         return _funcsById.GetValueOrDefault(funcId);

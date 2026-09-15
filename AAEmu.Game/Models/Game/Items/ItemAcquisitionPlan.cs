@@ -74,7 +74,8 @@ public sealed class ItemAcquisitionPlan : IDisposable
                 var grade = request.Grade;
                 var remaining = request.Count;
                 foreach (var item in bag.Items
-                             .Where(item => item != null && item.TemplateId == request.TemplateId && item.Grade == grade)
+                             .Where(item => item != null && item.TemplateId == request.TemplateId && item.Grade == grade &&
+                                            item.HasDefaultDetail && item.MadeUnitId == 0)
                              .OrderBy(item => item.Slot).ThenBy(item => item.Id))
                 {
                     if (item.OwnerId != bag.OwnerId || !ReferenceEquals(item._holdingContainer, bag) ||

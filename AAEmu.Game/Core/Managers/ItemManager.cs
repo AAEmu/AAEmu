@@ -428,15 +428,42 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         return item;
     }
 
+    public Item CreateUnpersisted(uint templateId, int count, byte grade)
+    {
+        var template = GetTemplate(templateId);
+        if (template == null)
+            return null;
+
+        var isCaughtFish = FishDetailsGameData.Instance.HasFishDetails(templateId);
+        var item = Create(
+            template,
+            isCaughtFish ? typeof(BigFish) : template.ClassType,
+            count,
+            grade,
+            true,
+            true,
+            false);
+        if (isCaughtFish && item is BigFish fish)
+            FishDetailsGameData.Instance.InitializeCaughtFish(fish);
+        return item;
+    }
+
     public TItem Create<TItem>(uint templateId, int count, byte grade, bool generateId = true) where TItem : Item
     {
         var template = GetTemplate(templateId);
         return template == null ? null : Create(template, typeof(TItem), count, grade, generateId, false) as TItem;
     }
 
-    private Item Create(ItemTemplate template, Type itemType, int count, byte grade, bool generateId, bool allowFallback)
+    private Item Create(
+        ItemTemplate template,
+        Type itemType,
+        int count,
+        byte grade,
+        bool generateId,
+        bool allowFallback,
+        bool trackGenerated = true)
     {
-        var id = generateId ? Instance.GetNewId() : 0u;
+        var id = generateId ? GetNewId() : 0u;
 
         Item item;
         try
@@ -450,7 +477,12 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
             if (!allowFallback)
             {
                 if (generateId)
-                    ReleaseId(id);
+                {
+                    if (trackGenerated)
+                        ReleaseId(id);
+                    else
+                        itemIdManager.ReleaseId((uint)id);
+                }
                 return null;
             }
 
@@ -470,7 +502,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         if (item.Template.FixedGrade >= 0)
             item.Grade = (byte)item.Template.FixedGrade;
         item.CreateTime = DateTime.UtcNow;
-        if (generateId)
+        if (generateId && trackGenerated)
         {
             if (!_allItems.TryAdd(item.Id, item))
             {
@@ -1152,7 +1184,8 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             Asset2Id = reader.GetUInt32("asset2_id"),
                             // 10.0.2.13: normal_specialty column removed from item_backpacks
                             UseAsStat = reader.GetBoolean("use_as_stat"),
-                            SkinKindId = reader.GetUInt32("skin_kind_id")
+                            SkinKindId = reader.GetUInt32("skin_kind_id"),
+                            FreshnessGroupId = reader.GetUInt32("freshness_group_id", 0)
                         };
                         _templates.Add(template.Id, template);
                     }
@@ -1892,11 +1925,11 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     }
 
     private const string ReplaceItemSql = "REPLACE INTO items (" +
-        "`id`,`type`,`template_id`,`container_id`,`slot_type`,`slot`,`count`,`details`,`lifespan_mins`,`made_unit_id`," +
+        "`id`,`type`,`template_id`,`container_id`,`slot_type`,`slot`,`count`,`detail_type`,`details`,`lifespan_mins`,`made_unit_id`," +
         "`unsecure_time`,`unpack_time`,`owner`,`created_at`,`grade`,`flags`,`ucc`," +
         "`expire_time`,`expire_online_minutes`,`charge_time`,`charge_count`" +
         ") VALUES ( " +
-        "@id, @type, @template_id, @container_id, @slot_type, @slot, @count, @details, @lifespan_mins, @made_unit_id, " +
+        "@id, @type, @template_id, @container_id, @slot_type, @slot, @count, @detail_type, @details, @lifespan_mins, @made_unit_id, " +
         "@unsecure_time,@unpack_time,@owner,@created_at,@grade,@flags,@ucc," +
         "@expire_time,@expire_online_minutes,@charge_time,@charge_count" +
         ")";
@@ -1935,6 +1968,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         command.Parameters.AddWithValue("@slot_type", (int)row.SlotType);
         command.Parameters.AddWithValue("@slot", row.Slot);
         command.Parameters.AddWithValue("@count", row.Count);
+        command.Parameters.AddWithValue("@detail_type", (byte)row.DetailType);
         command.Parameters.AddWithValue("@details", row.Details.ToArray());
         command.Parameters.AddWithValue("@lifespan_mins", row.LifespanMins);
         command.Parameters.AddWithValue("@made_unit_id", row.MadeUnitId);
@@ -1974,6 +2008,57 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         // already the intended persisted state, so a zero affected-row count is valid here.
         if (command.ExecuteNonQuery() > 1)
             throw new InvalidOperationException($"Item {itemId} deletion affected more than one row.");
+    }
+
+    public InventoryPersistenceSnapshot CaptureInventory(uint characterId)
+    {
+        if (characterId == 0)
+            throw new ArgumentOutOfRangeException(nameof(characterId));
+
+        List<ItemContainer> containers;
+        lock (_allPersistentContainers)
+            containers = _allPersistentContainers.Values.Where(container =>
+                container.OwnerId == characterId && container.ContainerId != 0 &&
+                container.ContainerType is SlotType.Inventory or SlotType.Equipment or SlotType.Bank or SlotType.System)
+                .ToList();
+        var items = containers.SelectMany(container => container.Items).ToList();
+        List<ulong> removed;
+        lock (_removedItems)
+            removed = [.. _removedItems];
+        return new InventoryPersistenceSnapshot(characterId, containers, items, removed);
+    }
+
+    public bool TryPersistItem(Item item)
+    {
+        if (item == null)
+            return false;
+
+        using var persistence = MailManager.Instance.DeferPersist();
+        var owner = item._holdingContainer?.Owner as Character;
+        lock (owner?.StateSyncRoot ?? _allItems)
+        {
+            if (!item.IsDirty)
+                return true;
+
+            try
+            {
+                SaveManager.Instance.ExecuteOperation((connection, transaction) =>
+                {
+                    if (owner != null)
+                        CaptureInventory(owner.Id).Apply(connection, transaction);
+                    ItemPersistence.Save(connection, transaction, item);
+                    return true;
+                });
+
+                item.IsDirty = false;
+                return true;
+            }
+            catch (Exception exception)
+            {
+                Logger.Error(exception, "Failed to persist item {0} ({1})", item.Id, item.TemplateId);
+                return false;
+            }
+        }
     }
 
     public (int, int, int) Save(MySqlConnection connection, MySqlTransaction transaction)
@@ -2498,6 +2583,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                     item.CreateTime = reader.GetDateTime("created_at");
                     item.ItemFlags = (ItemFlag)reader.GetByte("flags");
                     item.UccId = reader.GetUInt32("ucc"); // Make sure this UCC is set BEFORE reading details as UccItem needs to be able to override it
+                    item.DetailType = (ItemDetailType)reader.GetByte("detail_type");
                     // details can be NULL (e.g. manually inserted rows) — casting DBNull→byte[] crashes host startup.
                     var detailsBytes = reader.IsDBNull(reader.GetOrdinal("details"))
                         ? []
@@ -2609,6 +2695,53 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         itemIdManager.ReleaseId((uint)itemId);
     }
 
+    public void ReleaseCommittedItem(ulong itemId)
+    {
+        lock (_allItems)
+            _allItems.Remove(itemId);
+        itemIdManager.ReleaseId((uint)itemId);
+    }
+
+    public void PublishPersistedItems(IEnumerable<Item> items)
+    {
+        if (items == null)
+            return;
+
+        foreach (var item in items)
+        {
+            if (item == null)
+                continue;
+            item.IsDirty = false;
+            if (!_allItems.TryAdd(item.Id, item))
+                Logger.Fatal("Committed item {0} could not be added to live item state", item.Id);
+        }
+    }
+
+    public void DiscardUnpersistedItems(IEnumerable<Item> items)
+    {
+        if (items == null)
+            return;
+
+        foreach (var item in items)
+        {
+            if (item == null)
+                continue;
+            var releaseId = false;
+            lock (_allItems)
+            {
+                if (!_allItems.TryGetValue(item.Id, out var tracked))
+                    releaseId = true;
+                else if (ReferenceEquals(tracked, item))
+                {
+                    _allItems.Remove(item.Id);
+                    releaseId = true;
+                }
+            }
+            if (releaseId)
+                itemIdManager.ReleaseId((uint)item.Id);
+        }
+    }
+
     [Obsolete("You can now use directly linked item containers, and no longer need to load them into the character object")]
     public List<Item> LoadPlayerInventory(ICharacter character)
     {
@@ -2627,8 +2760,10 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     public bool IsAutoEquipTradePack(uint itemTemplateId)
     {
         var template = GetTemplate(itemTemplateId);
-        // Is a valid item, is a backpack item, doesn't bind on equip (it can bind on pickup)
-        return template is BackpackTemplate && !template.BindType.HasFlag(ItemBindType.BindOnEquip);
+        return template is BackpackTemplate
+        {
+            BackpackType: BackpackType.TradePack or BackpackType.TradeGoods
+        } && !template.BindType.HasFlag(ItemBindType.BindOnEquip);
     }
 
     private static int UpdateItemContainerTimers(TimeSpan delta, ItemContainer itemContainer, Character character)

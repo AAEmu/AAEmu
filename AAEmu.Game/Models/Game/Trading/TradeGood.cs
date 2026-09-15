@@ -6,7 +6,7 @@ public sealed class TradeGood
 {
     public uint Id { get; set; }
     public uint ItemId { get; set; }
-    public uint Count { get; set; }
+    public uint OutputCount { get; set; }
     public uint Ratio { get; set; }
     public uint Profit { get; set; }
     public uint TradeGoodCategoryId { get; set; }

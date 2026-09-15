@@ -10,6 +10,7 @@ using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Butlers;
 using AAEmu.Game.Models.Game.Items.Loots;
+using AAEmu.Game.Models.Game.Trading;
 using AAEmu.Game.Services;
 using AAEmu.Game.Services.WebApi;
 using AAEmu.Game.Utils.DB;
@@ -288,6 +289,11 @@ public static class Program
 
                 services.AddSingleton<SaveManager>();
                 services.AddSingleton<ISaveManager>(sp => sp.GetRequiredService<SaveManager>());
+
+                services.AddSingleton<ISpecialtyMarketStore, MySqlSpecialtyMarketStore>();
+                services.AddSingleton<ISpecialtyPurchaseStore, MySqlSpecialtyPurchaseStore>();
+                services.AddSingleton<ISpecialtySaleStore, MySqlSpecialtySaleStore>();
+                services.AddSingleton<SpecialtySaleCommitter>();
 
                 services.AddSingleton<ShipyardManager>();
                 services.AddSingleton<IShipyardManager>(sp => sp.GetRequiredService<ShipyardManager>());

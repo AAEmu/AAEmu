@@ -19,4 +19,9 @@ public static class SkillsEnum
     public const uint CloseTheScore = 22217; // End of song/stop
     public const uint ItemFusion = 23478;
     public const uint ViewFishFinder = 21902;
+    public const uint UseSpecialtyStore = 16376; // Visible specialty seller interaction
+    public const uint SellBackpack = 18458; // Specialty sale transaction
+    public const uint SellTradeGood = 36491; // Cargo sale transaction
+    public const uint UseTradeGoodStore = 36490; // Visible cargo purchase interaction
+    public const uint BuyTradeGood = 36492; // Cargo purchase transaction
 }

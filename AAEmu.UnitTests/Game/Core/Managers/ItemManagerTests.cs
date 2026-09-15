@@ -834,6 +834,58 @@ public class ItemManagerTests
         await Assert.That(removedItems).DoesNotContain(0ul);
     }
 
+    [Test]
+    public async Task CreateUnpersisted_DoesNotExposeItemUntilPublished()
+    {
+        var mockItemId = Mock.Of<IItemIdManager>();
+        mockItemId.GetNextId().Returns(3001u);
+        var manager = CreateItemManager(mockItemId: mockItemId);
+        var template = new ItemTemplate
+        {
+            Id = 100,
+            BindType = ItemBindType.Normal
+        };
+        SetPrivateField(manager, "_templates", new Dictionary<uint, ItemTemplate> { [template.Id] = template });
+        SetPrivateField(manager, "_allItems", new Dictionary<ulong, Item>());
+        SetPrivateField(manager, "_removedItems", new List<ulong>());
+
+        var item = manager.CreateUnpersisted(template.Id, 2, 1);
+
+        await Assert.That(item).IsNotNull();
+        await Assert.That(item.Id).IsEqualTo(3001ul);
+        await Assert.That(manager.GetItemByItemId(item.Id)).IsNull();
+
+        manager.PublishPersistedItems([item]);
+
+        await Assert.That(manager.GetItemByItemId(item.Id)).IsSameReferenceAs(item);
+        await Assert.That(item.IsDirty).IsFalse();
+        mockItemId.ReleaseId(3001).WasCalled(Times.Never);
+    }
+
+    [Test]
+    public async Task DiscardUnpersistedItems_ReleasesReservedIdWithoutQueueingDelete()
+    {
+        var mockItemId = Mock.Of<IItemIdManager>();
+        mockItemId.GetNextId().Returns(3002u);
+        var manager = CreateItemManager(mockItemId: mockItemId);
+        var template = new ItemTemplate
+        {
+            Id = 100,
+            BindType = ItemBindType.Normal
+        };
+        var removedItems = new List<ulong>();
+        SetPrivateField(manager, "_templates", new Dictionary<uint, ItemTemplate> { [template.Id] = template });
+        SetPrivateField(manager, "_allItems", new Dictionary<ulong, Item>());
+        SetPrivateField(manager, "_removedItems", removedItems);
+        var item = manager.CreateUnpersisted(template.Id, 2, 1);
+
+        manager.DiscardUnpersistedItems([item]);
+
+        await Assert.That(manager.GetItemByItemId(item.Id)).IsNull();
+        await Assert.That(removedItems).IsEmpty();
+        mockItemId.ReleaseId(3002).WasCalled(Times.Once);
+    }
+
     #endregion
 
     #region IsAutoEquipTradePack Tests
@@ -847,7 +899,8 @@ public class ItemManagerTests
         {
             Id = 100,
             Name = "Trade Pack",
-            BindType = ItemBindType.BindOnPickup
+            BindType = ItemBindType.BindOnPickup,
+            BackpackType = BackpackType.TradePack
         };
         var templates = new Dictionary<uint, ItemTemplate> { { 100, template } };
         SetPrivateField(manager, "_templates", templates);
@@ -889,7 +942,8 @@ public class ItemManagerTests
         {
             Id = 100,
             Name = "Trade Pack",
-            BindType = ItemBindType.BindOnEquip
+            BindType = ItemBindType.BindOnEquip,
+            BackpackType = BackpackType.TradePack
         };
         var templates = new Dictionary<uint, ItemTemplate> { { 100, template } };
         SetPrivateField(manager, "_templates", templates);
@@ -898,6 +952,24 @@ public class ItemManagerTests
         var result = manager.IsAutoEquipTradePack(100);
 
         // Assert
+        await Assert.That(result).IsFalse();
+    }
+
+    [Test]
+    public async Task IsAutoEquipTradePack_NonTradeBackpack_ReturnsFalse()
+    {
+        var manager = CreateItemManager();
+        var template = new BackpackTemplate
+        {
+            Id = 100,
+            Name = "Glider",
+            BindType = ItemBindType.Normal,
+            BackpackType = BackpackType.Glider
+        };
+        SetPrivateField(manager, "_templates", new Dictionary<uint, ItemTemplate> { { 100, template } });
+
+        var result = manager.IsAutoEquipTradePack(100);
+
         await Assert.That(result).IsFalse();
     }
 

@@ -53,8 +53,22 @@ public class Skill
     private bool _plotOnlyFireCostsApplied;
     private bool _zoneSkillFiredRelayed;
     private bool _zoneSkillEndedRelayed;
+    private bool _laborConsumed;
     private SkillCaster _zoneSkillCaster;
-    public bool Cancelled { get; set; } = false;
+    private bool _cancelled;
+    internal event Action<Skill> CancellationRequested;
+    public bool Cancelled
+    {
+        get => _cancelled;
+        set
+        {
+            if (_cancelled == value)
+                return;
+            _cancelled = value;
+            if (value)
+                CancellationRequested?.Invoke(this);
+        }
+    }
     public Action Callback { get; set; }
 
     /// <summary>
@@ -182,6 +196,7 @@ public class Skill
         _zoneSkillFiredRelayed = false;
         _zoneSkillEndedRelayed = false;
         _plotOnlyFireCostsApplied = false;
+        _laborConsumed = false;
         _zoneSkillCaster = null;
         var skillTags = SkillManager.Instance.GetSkillTags(Template.Id);
         var fishingHold = character != null &&
@@ -1785,31 +1800,7 @@ public class Skill
 
         if (caster is Character character)
         {
-            // A cast can do the work more than once - synthesis charges per infusion fed - so the
-            // skill's cost is per unit and the effect says how many units it handled.
-            var laborCost = Template.ConsumeLaborPower * Math.Max(1, LaborUnits);
-            // Adjust labor cost if needed
-            if (character.Actability.Actabilities.TryGetValue((byte)Template.ActabilityGroupId, out var actAbility))
-            {
-                laborCost = (int)Math.Round(laborCost * actAbility.GetLaborCostMultiplier());
-            }
-
-            laborCost = Math.Min(laborCost, short.MaxValue);
-
-            // Lower cap at 1
-            if (Template.ConsumeLaborPower > 0 && laborCost < 1)
-                laborCost = 1;
-
-            // Both pools pay, so both have to be counted here. ChangeLabor charges the account pool
-            // first and the local pool for the rest; gating on the account pool alone let a skill whose
-            // cost exceeded it run without being charged at all, while the player still held plenty of
-            // Online Labor. The other labor gates - crafting, the auction fee, specialty selling, exp
-            // recovery - all read the combined balance.
-            if (laborCost > 0 && !Cancelled && character.LaborPower + character.LocalLaborPower >= laborCost)
-            {
-                // Consume labor only if there is enough of it
-                character.ChangeLabor((short)-laborCost, Template.ActabilityGroupId);
-            }
+            TryConsumeLabor(character);
 
             // Add vocation where needed
             if (Template.GainLifePoint > 0 && !Cancelled)
@@ -1833,6 +1824,45 @@ public class Skill
             character1.ResetSkillCooldown(Template.Id, false);
     }
 
+    public int GetLaborCost(Character character)
+    {
+        // Synthesis charges the skill's labor cost per infusion handled by the effect.
+        var laborCost = Template.ConsumeLaborPower * Math.Max(1, LaborUnits);
+        if (character?.Actability?.Actabilities.TryGetValue((byte)Template.ActabilityGroupId, out var actAbility) == true)
+            laborCost = (int)Math.Round(laborCost * actAbility.GetLaborCostMultiplier());
+
+        laborCost = Math.Min(laborCost, short.MaxValue);
+
+        return Template.ConsumeLaborPower > 0 && laborCost < 1 ? 1 : laborCost;
+    }
+
+    public bool TryConsumeLabor(Character character)
+    {
+        if (character == null)
+            return false;
+
+        lock (character.StateSyncRoot)
+        {
+            if (_laborConsumed)
+                return true;
+            if (Cancelled)
+                return false;
+
+            var laborCost = GetLaborCost(character);
+            if (laborCost <= 0)
+            {
+                _laborConsumed = true;
+                return true;
+            }
+            if (laborCost > short.MaxValue || character.LaborPower + character.LocalLaborPower < laborCost)
+                return false;
+
+            character.ChangeLabor(checked((short)-laborCost), Template.ActabilityGroupId);
+            _laborConsumed = true;
+            return true;
+        }
+    }
+
     /// <summary>
     /// Used for interrupting skills
     /// </summary>
@@ -1841,6 +1871,7 @@ public class Skill
     public void Stop(BaseUnit caster, Doodad channelDoodad = null, SkillCaster casterCaster = null)
     {
         if (caster is not Unit unit) { return; }
+        Cancelled = true;
         if (Template.ChannelingTime > 0)
         {
             EndChanneling(caster, channelDoodad, casterCaster);
@@ -1857,7 +1888,6 @@ public class Skill
         Callback?.Invoke();
         unit.OnSkillEnd(this);
         unit.SkillTask = null;
-        Cancelled = true;
         RelayZoneSkillEndedIfNeeded();
         SkillTlIdManager.ReleaseId(TlId);
         TlId = 0;

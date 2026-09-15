@@ -79,6 +79,34 @@ public class InventoryMutationTests
     }
 
     [Test]
+    public async Task BagAcquisitionPlan_DoesNotStackDefaultRewardIntoDetailedItem()
+    {
+        var (inventory, _, detailedItem) = CreateInventory(itemCount: 5);
+        detailedItem.Detail = [1];
+        var itemManager = CreateItemManager();
+        itemManager.GetTemplate(detailedItem.TemplateId).Returns(detailedItem.Template);
+        var createdItem = new Item(9002, detailedItem.Template, 3);
+        itemManager.Create(detailedItem.TemplateId, 3, 0, true).Returns(createdItem);
+
+        IReadOnlyList<ItemPersistenceSnapshot> snapshots;
+        using (inventory.AcquireMutation())
+        {
+            var planned = inventory.TryPlanBagAcquisition(
+                itemManager.Object,
+                [new ItemAcquisitionRequest(detailedItem.TemplateId, 3, 0)],
+                DateTime.UtcNow,
+                out var plan);
+            await Assert.That(planned).IsTrue();
+            using (plan)
+                snapshots = plan.CapturePersistenceSnapshots();
+        }
+
+        await Assert.That(snapshots).Count().IsEqualTo(1);
+        await Assert.That(snapshots[0].Item).IsSameReferenceAs(createdItem);
+        await Assert.That(detailedItem.Count).IsEqualTo(5);
+    }
+
+    [Test]
     public async Task ExactBagConsumptionPlan_DoesNotSubstituteAnotherStackOfTheSameTemplate()
     {
         var (inventory, bag, selected) = CreateInventory(itemCount: 1);

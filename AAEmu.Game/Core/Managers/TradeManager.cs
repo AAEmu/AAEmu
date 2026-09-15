@@ -438,7 +438,7 @@ public class TradeManager(ITradeIdManager tradeIdManager, IWorldManager worldMan
         if (split == null)
             return null;
 
-        ItemSplitRules.CopyStackFields(source, split);
+        split.CopyPersistentStateFrom(source);
         return split;
     }
 

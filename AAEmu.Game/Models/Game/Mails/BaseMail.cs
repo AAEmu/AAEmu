@@ -66,6 +66,12 @@ public class BaseMail
         return MailManager.Instance.Send(this);
     }
 
+    internal void PrepareForSend()
+    {
+        Header.Attachments = GetTotalAttachmentCount();
+        RenumberSlots();
+    }
+
     /// <summary>
     /// Checks if a mail can returned to it's sender
     /// </summary>
