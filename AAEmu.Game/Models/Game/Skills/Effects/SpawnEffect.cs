@@ -99,8 +99,10 @@ public class SpawnEffect : EffectTemplate
                     // altitude keeps the depth it was placed at, a grounded one is snapped to the
                     // terrain under it. Answering it with a hardcoded false drops a swimmer to the
                     // ocean surface here, and the later off-ground check can only preserve that.
+                    // The member this spawner actually creates is the one DoSpawnEffect picks below
+                    // (MemberId == spawner.UnitId), so that is the model the Z belongs to.
                     var standaloneCanFly =
-                        NpcManager.Instance.GetTemplate(ResolveZoneSpawnNpcTemplateId()) is { } standaloneTemplate &&
+                        NpcManager.Instance.GetTemplate(spawner.UnitId) is { } standaloneTemplate &&
                         ModelManager.Instance.IsFlyOrSwim(standaloneTemplate.ModelId);
                     spawner.Position.Z = ResolveSpawnZ(
                         positionRelativeToUnit,
