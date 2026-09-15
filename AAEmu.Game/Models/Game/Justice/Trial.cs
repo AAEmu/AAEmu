@@ -74,11 +74,33 @@ public class Trial
     public Dictionary<uint, int> Summoned { get; } = [];
 
     /// <summary>
-    /// The crime records this case is about, fixed when the file is first opened. A crime reported after
-    /// that is not part of this trial: it must not appear on a sheet read later, and a guilty verdict
-    /// must not expunge it. Empty until the first sheet is built.
+    /// The crime records this case is about, fixed once when the case opens. A crime reported after that
+    /// is not part of this trial: it must not appear on a sheet a later reader gets, and a guilty verdict
+    /// must not expunge it. A defendant with nothing on the books opens an empty file, and that empty
+    /// file is still the case - it must not be filled in later.
     /// </summary>
     public HashSet<uint> TriedCrimeIds { get; } = [];
+
+    /// <summary>True once the case file has been fixed. An empty file is still an opened file.</summary>
+    public bool CaseFileOpened { get; private set; }
+
+    /// <summary>
+    /// Fixes the case file to the crimes the defendant is being tried for. Only the first call counts:
+    /// every later reader (a juror seated late, an onlooker) reads this same case, and a crime reported
+    /// while the bench is sitting joins neither the sheet nor the verdict.
+    /// </summary>
+    public void OpenCaseFile(IEnumerable<uint> crimeIds)
+    {
+        if (CaseFileOpened)
+            return;
+
+        CaseFileOpened = true;
+        foreach (var id in crimeIds)
+            TriedCrimeIds.Add(id);
+    }
+
+    /// <summary>True for a record this case was opened with.</summary>
+    public bool IsTriedCrime(uint crimeId) => TriedCrimeIds.Contains(crimeId);
 
     /// <summary>Bumped on every phase change, so a timer armed for an older phase goes quiet.</summary>
     public int PhaseToken { get; set; }

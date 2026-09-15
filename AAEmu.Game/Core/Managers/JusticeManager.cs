@@ -167,8 +167,9 @@ public class JusticeManager : Singleton<JusticeManager>
     /// otherwise the prisoner walks out of jail still wanted and is arrested again on the spot.
     /// </summary>
     /// <returns>
-    /// True once the prisoner is in the cell. False when the jail is not configured: nothing was
-    /// applied and no crime was paid, so the caller must not treat the case as served.
+    /// True once the prisoner is in the cell. False when the sentence could not be applied at all - the
+    /// jail or the prisoner buff is not configured - because nothing was served: the caller must not
+    /// treat the case as closed, since the crime was not paid and the record must stay on the books.
     /// </returns>
     public bool ServeSentence(Character character, uint minutes = ArrestRules.SentenceMinutes)
     {
@@ -182,23 +183,25 @@ public class JusticeManager : Singleton<JusticeManager>
             return false;
         }
 
+        // Resolve both halves of the sentence before touching anything: moving a prisoner into a cell
+        // they have no prisoner state to leave again is worse than refusing the sentence outright.
+        // The buff is what releases them at the exit, so without it there is no sentence to serve.
+        var prisoner = SkillManager.Instance.GetBuffTemplate(ArrestRules.PrisonerBuff);
+        if (prisoner == null)
+        {
+            Logger.Warn($"Arrest: prisoner buff {ArrestRules.PrisonerBuff} is missing - {character.Name} is not imprisoned");
+            return false;
+        }
+
         var sentence = minutes == 0 ? ArrestRules.SentenceMinutes : minutes;
         character.Buffs.RemoveBuff(ArrestRules.ForcedMoveToCourtBuff);
 
         // The shipped prisoner buff runs thirty minutes; a ruled sentence is the row the bench chose, so
         // the buff carries that length instead. Its timeout is what returns the prisoner to the exit, so
         // the forced duration is what makes the time served the sentence the court read out.
-        var prisoner = SkillManager.Instance.GetBuffTemplate(ArrestRules.PrisonerBuff);
-        if (prisoner != null)
-        {
-            character.Buffs.AddBuff(
-                new Buff(character, character, new SkillCasterUnit(character.ObjId), prisoner, null, DateTime.UtcNow),
-                forcedDuration: (int)(sentence * 60_000u));
-        }
-        else
-        {
-            Logger.Warn($"Arrest: prisoner buff {ArrestRules.PrisonerBuff} is missing - {character.Name} serves no time");
-        }
+        character.Buffs.AddBuff(
+            new Buff(character, character, new SkillCasterUnit(character.ObjId), prisoner, null, DateTime.UtcNow),
+            forcedDuration: (int)(sentence * 60_000u));
 
         SkillTeleportLanding.Apply(
             character,

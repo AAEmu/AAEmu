@@ -80,6 +80,12 @@ public class TrialManager : Singleton<TrialManager>
             Court = court,
             CrimePoint = Math.Max(0, (int)defendant.CrimePoint)
         };
+
+        // The case file is what the defendant is being tried for right now. A crime reported while the
+        // bench is sitting is a matter for the next case: it must not appear on a sheet read later, and
+        // the verdict must not close it.
+        trial.OpenCaseFile(CrimeManager.Instance.GetCrimesOfPlayer(defendant.Id).Select(c => c.Id));
+
         _trials[trial.Id] = trial;
 
         // The client learns which side of the case it is on from the summon packets: the defendant's
@@ -948,20 +954,11 @@ public class TrialManager : Singleton<TrialManager>
         if (defendant is not { IsOnline: true })
             return null;
 
-        var crimes = CrimeManager.Instance.GetCrimesOfPlayer(defendant.Id);
-
-        // The case file is fixed the first time it is opened. A crime reported after that is not part of
-        // this trial: it must not appear on a sheet a later reader (a juror seated late, an onlooker)
-        // gets, and a guilty verdict must not expunge it.
-        if (trial.TriedCrimeIds.Count == 0)
-        {
-            foreach (var crime in crimes)
-                trial.TriedCrimeIds.Add(crime.Id);
-        }
-        else
-        {
-            crimes = crimes.Where(c => trial.TriedCrimeIds.Contains(c.Id)).ToList();
-        }
+        // Every reader reads the file the case was opened with - never the defendant's live list, which
+        // would grow under a case that is already being heard.
+        var crimes = CrimeManager.Instance.GetCrimesOfPlayer(defendant.Id)
+            .Where(c => trial.IsTriedCrime(c.Id))
+            .ToList();
 
         var rows = new List<CrimeRecordEntry>(crimes.Count);
         foreach (var crime in crimes)
