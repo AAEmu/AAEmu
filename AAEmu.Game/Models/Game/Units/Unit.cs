@@ -251,6 +251,37 @@ public class Unit : BaseUnit, IUnit
     [UnitAttribute(UnitAttribute.SpellDamageMul)]
     public virtual float SpellDamageMul { get; set; } = 1.0f;
 
+    // Anti-NPC / anti-PC damage output and heal output (enum_unit_attribute 196-198, 222 and 244-246).
+    // They are authored as a per-mille delta from 0, the same convention MeleeDamageMul above follows
+    // (Character.MeleeDamageMul and Character.HealMul are the composed forms this mirrors), so a unit
+    // without such a bonus is exactly 1.0x and a unit_modifiers row of 1000 is +100%. They compose here
+    // rather than on Character because the owning rows are not player-only - 93 buff rows each for the
+    // anti-NPC trio, 7 for the anti-PC trio, 216 for heal_damage_mul, plus Item/Npc/Expedition rows - so
+    // a non-player caster carrying one has to see it too. DamageEffect chooses between the anti-NPC and
+    // anti-PC trios by the victim's kind through DamageMultiplierRules.
+    [UnitAttribute(UnitAttribute.MeleeDamageMulAntiNpc)]
+    public virtual float MeleeDamageMulAntiNpc => PerMilleDeltaMul(UnitAttribute.MeleeDamageMulAntiNpc);
+    [UnitAttribute(UnitAttribute.RangedDamageMulAntiNpc)]
+    public virtual float RangedDamageMulAntiNpc => PerMilleDeltaMul(UnitAttribute.RangedDamageMulAntiNpc);
+    [UnitAttribute(UnitAttribute.SpellDamageMulAntiNpc)]
+    public virtual float SpellDamageMulAntiNpc => PerMilleDeltaMul(UnitAttribute.SpellDamageMulAntiNpc);
+    [UnitAttribute(UnitAttribute.MeleeDamageMulAntiPc)]
+    public virtual float MeleeDamageMulAntiPc => PerMilleDeltaMul(UnitAttribute.MeleeDamageMulAntiPc);
+    [UnitAttribute(UnitAttribute.RangedDamageMulAntiPc)]
+    public virtual float RangedDamageMulAntiPc => PerMilleDeltaMul(UnitAttribute.RangedDamageMulAntiPc);
+    [UnitAttribute(UnitAttribute.SpellDamageMulAntiPc)]
+    public virtual float SpellDamageMulAntiPc => PerMilleDeltaMul(UnitAttribute.SpellDamageMulAntiPc);
+    [UnitAttribute(UnitAttribute.HealDamageMul)]
+    public virtual float HealDamageMul => PerMilleDeltaMul(UnitAttribute.HealDamageMul);
+
+    /// <summary>
+    /// Composes a <c>*_mul</c> attribute authored as a per-mille delta from 0, the shape
+    /// <c>Character.MeleeDamageMul</c> and <c>Character.HealMul</c> already use: the 1000 baseline is
+    /// added after every bonus, so no bonus at all is exactly 1.0f and a row of 1000 doubles.
+    /// </summary>
+    private float PerMilleDeltaMul(UnitAttribute attribute) =>
+        (float)((CalculateWithBonuses(0d, attribute) + 1000d) / 1000d);
+
     [UnitAttribute(UnitAttribute.IncomingHealMul)]
     public virtual float IncomingHealMul { get; set; } = 1.0f;
     [UnitAttribute(UnitAttribute.HealMul)]

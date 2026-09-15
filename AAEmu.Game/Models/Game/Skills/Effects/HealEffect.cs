@@ -85,6 +85,14 @@ public class HealEffect : EffectTemplate
         min *= tickModifier;
         max *= tickModifier;
 
+        // The healer's own heal output (unit_modifiers 222, heal_damage_mul), on the composed heal the
+        // way DamageEffect applies the attacker's damage multipliers to its composed min/max. It has no
+        // victim-kind split and is not IncomingHealMul, which is the healed unit's attribute and is
+        // applied further down. No such bonus on the caster means exactly 1.0f here and nothing changes.
+        var healDamageMultiplier = ((Unit)caster).HealDamageMul;
+        min *= healDamageMultiplier;
+        max *= healDamageMultiplier;
+
         if (UseChargedBuff)
         {
             var effect = caster.Buffs.GetEffectFromBuffId(ChargedBuffId);
