@@ -1,11 +1,14 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Music;
+using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 using MySql.Data.MySqlClient;
 using NLog;
 
@@ -232,5 +235,29 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         if (_midiCache.TryGetValue(playerId, out var data))
             return data;
         return [];
+    }
+
+    /// <summary>
+    /// Ends a performance: nearby clients stop the sound and the play buffs that hold the playing
+    /// pose are dropped. Reached both from the client's own report that the performance is over and
+    /// from the "Close the Score" skill, so it has to run twice without harm.
+    /// </summary>
+    public static void EndPerformance(BaseUnit player)
+    {
+        if (player == null)
+            return;
+
+        player.BroadcastPacket(new SCPauseUserMusicPacket(player.ObjId), true);
+
+        var buffs = player.Buffs;
+        if (buffs == null)
+            return;
+
+        // 1155 = Play Song: the instrument play buffs and the memorized score alike.
+        foreach (var buff in SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.PlaySong))
+        {
+            if (buffs.CheckBuff(buff))
+                buffs.RemoveBuff(buff);
+        }
     }
 }
