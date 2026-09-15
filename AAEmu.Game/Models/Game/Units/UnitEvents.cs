@@ -269,17 +269,27 @@ public class OnQuestCompleteArgs : EventArgs
 public class OnAttackArgs : EventArgs
 {
     public Unit Attacker { get; set; }
+
+    /// <summary>The unit the attack landed on, when the raiser knows it. A buff trigger can be authored to
+    /// apply its effect to that unit (buff_triggers.target_agent_id = 2).</summary>
+    public BaseUnit Target { get; set; }
 }
 
 public class OnAttackedArgs : EventArgs
 {
-    // Empty
+    /// <summary>The unit that attacked the unit this event was raised on, when the raiser knows it. A buff
+    /// trigger can be authored to act on it (buff_triggers.source_agent_id = 1).</summary>
+    public Unit Attacker { get; set; }
 }
 
 public class OnDamageArgs : EventArgs
 {
     public Unit Attacker { get; set; }
     public int Amount { get; set; }
+
+    /// <summary>The unit that took the damage, when the raiser knows it. See
+    /// <see cref="OnAttackArgs.Target"/>.</summary>
+    public BaseUnit Target { get; set; }
 }
 
 public class OnDamagedArgs : EventArgs

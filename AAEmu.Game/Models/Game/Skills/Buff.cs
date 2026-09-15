@@ -350,11 +350,15 @@ public class Buff
                 return;
             _stopRan = true;
 
-            // Timeout triggers (buff_triggers.kind=timeout) fire only on natural expiry.
-            // Early Exit (remove_on_move, purge, toggle-off, etc.) must not run them —
-            // e.g. dash move-check 31556 Timeout → DispelEffect tag 4154 (질주 태그 / 2675).
+            // Exactly one of the two lifecycle triggers runs, and which one is the answer to "how did this
+            // buff end". Natural expiry (duration or tick ran out) is the Timeout kind; every other way it
+            // ends - purged by a dispel, removed by a remove_on_* flag, toggled off, charge exhausted, death
+            // cleanup - is the Dispelled kind. The handler no longer raises OnDispelled by itself, which is
+            // what used to make a dispelled trigger fire on expiry as well.
             if (fireTimeout)
                 Events.OnTimeout(this, new OnTimeoutArgs());
+            else
+                Events.OnDispelled(this, new OnDispelledArgs());
             Triggers.UnsubscribeEvents();
             Owner.Buffs.RemoveEffect(this);
             Template.Dispel(Caster, Owner, this, replace);
