@@ -49,6 +49,15 @@ public class ImpulseEffect : EffectTemplate
         if (target is not Unit targetUnit)
             return;
 
+        // buffs.knockback_immune (913 rows) is read off the target's active buffs, the same way
+        // CheckDamageImmune reads its flags. An immune unit is not moved at all: no zone relay and no
+        // SCUnitImpulse, because the client integrates whatever impulse it is handed.
+        if (targetUnit.Buffs.CheckKnockbackImmune())
+        {
+            Logger.Debug("ImpulseEffect refused on {0}: knockback_immune", targetUnit.ObjId);
+            return;
+        }
+
         float[] vel = [VelImpulseX, VelImpulseY, VelImpulseZ];
         float[] angVel = [AngvelImpulseX, AngvelImpulseY, AngvelImpulseZ];
         float[] impulse = [ImpulseX, ImpulseY, ImpulseZ];
