@@ -1058,6 +1058,10 @@ public class Slave : Unit
     {
         InterruptSkills();
         Events.OnDeath(this, new OnDeathArgs { Killer = (Unit)killer, Victim = this });
+        // The attacker's kill event, the same shape Unit.DoDie raises: sinking a hull is a kill for
+        // whoever did it, and `kill`/`kill_any` rows are authored on naval buffs.
+        if (killer is Unit killerUnit)
+            killerUnit.Events.OnKill(this, new OnKillArgs { Target = this, Killer = killerUnit, Victim = this });
         Buffs.RemoveEffectsOnDeath();
         killer.BroadcastPacket(new SCUnitDeathPacket(ObjId, killReason, (Unit)killer), true);
 

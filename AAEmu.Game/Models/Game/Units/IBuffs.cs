@@ -11,10 +11,14 @@ public interface IBuffs
     void AddBuff(Buff buff, uint index = 0, int forcedDuration = 0);
     void AddBuff(uint buffId, BaseUnit caster);
     bool CheckBuff(uint id);
-    bool CheckBuffImmune(uint buffId);
+    bool CheckBuffImmune(BuffTemplate candidate, BaseUnit caster, Skill castingSkill = null);
     bool CheckBuffs(List<uint> ids);
     bool CheckBuffTag(uint tagId);
     bool CheckDamageImmune(DamageType damageType);
+    bool CheckKnockbackImmune();
+    bool CheckManaBurnImmune();
+    uint GetMissingRequiredBuffTag(BuffTemplate candidate);
+    void BroadcastBuffImmune(BaseUnit caster, CastAction castObj, SkillCaster casterObj);
     IEnumerable<Buff> GetAbsorptionEffects();
     void GetAllBuffs(List<Buff> goodBuffs, List<Buff> badBuffs, List<Buff> hiddenBuffs, bool includeAllPassives);
     int GetBuffCountById(uint buffId);

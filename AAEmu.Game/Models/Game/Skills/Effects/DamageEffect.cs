@@ -106,8 +106,24 @@ public class DamageEffect : EffectTemplate
             }
         }
 
-        trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.AttackedEtc);
-        caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.AttackEtc);
+        // What caused this hit decides which member of the remove_on grid it raises. Every family has an
+        // umbrella *_etc raised for any hit of that side, plus a narrow one for the cause: *_spell_dot and
+        // *_etc_dot for a damage-over-time tick (magic or anything else), *_buff_trigger for a hit a buff
+        // trigger applied rather than a cast. See BuffRemoveOnRules for the row counts behind that.
+        var hitCause = BuffRemoveOnRules.HitCause(source?.FromBuffTrigger == true,
+            source?.Buff?.TickEffects.Count > 0, DamageType == DamageType.Magic);
+
+        foreach (var flag in BuffRemoveOnRules.AttackedFlags(hitCause))
+            trg.Buffs.TriggerRemoveOn(flag);
+        foreach (var flag in BuffRemoveOnRules.AttackFlags(hitCause))
+            caster.Buffs.TriggerRemoveOn(flag);
+
+        // remove_on_autoattack (146 buffs): the poses a basic attack interrupts — the bard songs 656-667,
+        // 연주/율동 performance, 은신, 질주. The skills that are weapon auto-attacks are the ones naming a
+        // slot in weapon_slot_for_autoattack_id (2 근접 공격, 3 Offhand, 4 원거리 공격), which is the
+        // content's own marker for them.
+        if (BuffRemoveOnRules.IsAutoAttack(source?.Skill?.Template?.WeaponSlotForAutoAttackId ?? 0))
+            caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.AutoAttack);
 
         if (target.Buffs.CheckDamageImmune(DamageType))
         {
@@ -487,18 +503,26 @@ public class DamageEffect : EffectTemplate
         //Invoke even if damage is 0
         ((Unit)caster).Events.OnAttack(this, new OnAttackArgs
         {
-            Attacker = (Unit)caster
+            Attacker = (Unit)caster,
+            Target = trg
         });
-        trg.Events.OnAttacked(this, new OnAttackedArgs { });
+        trg.Events.OnAttacked(this, new OnAttackedArgs { Attacker = (Unit)caster });
 
         if (value > 0)
         {
-            ((Unit)caster).Events.OnDamage(this, new OnDamageArgs
+            var damageArgs = new OnDamageArgs
             {
                 Attacker = (Unit)caster,
-                Amount = value
-            });
+                Amount = value,
+                Target = trg
+            };
+            ((Unit)caster).Events.OnDamage(this, damageArgs);
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageEtc);
+            // The narrow flag beside the umbrella for this cause. A tick's DamageSpellDot/DamageEtcDot is
+            // raised where the tick is recognised, further up; a trigger's DamageBuffTrigger belongs here,
+            // with the damage that was actually dealt.
+            if (hitCause == BuffHitCause.BuffTrigger)
+                caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamageBuffTrigger);
             trg.Events.OnDamaged(this, new OnDamagedArgs
             {
                 Attacker = (Unit)caster,
@@ -513,6 +537,8 @@ public class DamageEffect : EffectTemplate
                         Attacker = (Unit)caster,
                         Amount = value
                     });
+                    // The attacker's own side of the same hit, split by the type that caused it.
+                    ((Unit)caster).Events.OnDamageMelee(this, damageArgs);
                     break;
                 case DamageType.Ranged:
                     trg.Events.OnDamagedRanged(this, new OnDamagedArgs
@@ -520,6 +546,7 @@ public class DamageEffect : EffectTemplate
                         Attacker = (Unit)caster,
                         Amount = value
                     });
+                    ((Unit)caster).Events.OnDamageRanged(this, damageArgs);
                     break;
                 case DamageType.Magic:
                     trg.Events.OnDamagedSpell(this, new OnDamagedArgs
@@ -527,6 +554,7 @@ public class DamageEffect : EffectTemplate
                         Attacker = (Unit)caster,
                         Amount = value
                     });
+                    ((Unit)caster).Events.OnDamageSpell(this, damageArgs);
                     break;
                 case DamageType.Siege:
                     trg.Events.OnDamagedSiege(this, new OnDamagedArgs
@@ -534,10 +562,13 @@ public class DamageEffect : EffectTemplate
                         Attacker = (Unit)caster,
                         Amount = value
                     });
+                    ((Unit)caster).Events.OnDamageSiege(this, damageArgs);
                     break;
             }
 
             trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedEtc);
+            if (hitCause == BuffHitCause.BuffTrigger)
+                trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedBuffTrigger);
         }
     }
 

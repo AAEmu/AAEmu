@@ -238,8 +238,16 @@ public class BuffTemplate
         if (RequireBuffId > 0 && !target.Buffs.CheckBuff(RequireBuffId))
             return; //TODO send error?
 
-        if (target.Buffs.CheckBuffImmune(Id))
-            return; //TODO  error of immune?
+        // tagged_require_buffs is the tag form of the same prerequisite. This is the non-effect path —
+        // a buff applied directly by a trigger or an item — so it needs the check as well.
+        if (target.Buffs.GetMissingRequiredBuffTag(this) > 0)
+            return; //TODO send error?
+
+        if (target.Buffs.CheckBuffImmune(this, caster, source.Skill))
+        {
+            target.Buffs.BroadcastBuffImmune(caster, castObj, casterObj);
+            return;
+        }
 
         uint abLevel = 1;
 
@@ -475,7 +483,13 @@ public class BuffTemplate
         RemoveBonuses(owner, buff);
         var requiringBuffs = owner.Buffs.GetBuffsRequiring(buff.Template.Id);
         foreach (var requiringBuff in requiringBuffs.ToList())
+        {
+            // This buff is the one that requirement named, and it is going away. Raised before Exit()
+            // because that unsubscribes the requiring buff's triggers, `remove_need_buff` among them.
+            requiringBuff.Events.OnRequiredBuffLost(requiringBuff,
+                new OnRequiredBuffLostArgs { RequiredBuffId = buff.Template.Id });
             requiringBuff.Exit();
+        }
 
         if (!buff.Passive && !replaced)
         {

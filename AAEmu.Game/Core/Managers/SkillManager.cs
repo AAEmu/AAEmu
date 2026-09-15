@@ -41,6 +41,17 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     private Dictionary<uint, List<uint>> _taggedBuffs = [];
     private Dictionary<uint, List<uint>> _skillTags = [];
     private Dictionary<uint, List<uint>> _taggedSkills = [];
+    // tagged_immune_buffs / tagged_require_buffs, keyed by the buff that carries the row. Both tables
+    // are tiny (2 645 / 309 rows) and were previously loaded nowhere, which made Buffs.CheckBuffImmune
+    // a no-op and every tagged_require_buffs prerequisite unenforced.
+    private Dictionary<uint, List<uint>> _buffImmunityTags = [];
+    private Dictionary<uint, List<uint>> _requiredBuffTags = [];
+    // buff_breakers, keyed by the tag of the buff that lands: the buffs that landing removes (2 478 rows
+    // over 823 victims and 211 tags). Read the same way as the two tables above and consumed by
+    // Buffs.AddBuff, which is the only place a buff can break others.
+    private Dictionary<uint, List<uint>> _buffBreakers = [];
+    // Returned for a buff with no rows so the per-application lookups do not allocate.
+    private static readonly List<uint> NoTags = [];
     private Dictionary<uint, List<SkillModifier>> _skillModifiers = [];
     private Dictionary<uint, List<BuffTriggerTemplate>> _buffTriggers = [];
     private Dictionary<uint, List<CombatBuffTemplate>> _combatBuffs = [];
@@ -206,6 +217,35 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         return _skillTags.TryGetValue(skillId, out var tags) ? tags : [];
     }
 
+    /// <summary>
+    /// Tags refused while <paramref name="buffId"/> is active on a unit (<c>tagged_immune_buffs</c>).
+    /// </summary>
+    public List<uint> GetBuffImmunityTags(uint buffId)
+    {
+        return _buffImmunityTags.TryGetValue(buffId, out var tags) ? tags : NoTags;
+    }
+
+    /// <summary>
+    /// Tags a unit must already carry before <paramref name="buffId"/> may apply (<c>tagged_require_buffs</c>).
+    /// </summary>
+    public List<uint> GetRequiredBuffTags(uint buffId)
+    {
+        return _requiredBuffTags.TryGetValue(buffId, out var tags) ? tags : NoTags;
+    }
+
+    /// <summary>
+    /// Buffs a buff carrying <paramref name="tagId"/> removes when it lands (<c>buff_breakers</c>).
+    /// </summary>
+    /// <remarks>
+    /// Keyed by the tag of the arriving buff, because that is the side the table generalises: a stun
+    /// breaks the songs, not one particular stun buff. See <see cref="BuffRemoveOnRules.BreaksBuff"/>
+    /// for how the direction was settled from the data.
+    /// </remarks>
+    public List<uint> GetBuffsBrokenByTag(uint tagId)
+    {
+        return _buffBreakers.TryGetValue(tagId, out var buffs) ? buffs : NoTags;
+    }
+
     public List<uint> GetSkillsByTag(uint tagId)
     {
         return _taggedSkills.TryGetValue(tagId, out var tag) ? tag : [];
@@ -357,6 +397,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         _skillModifiers = [];
         _skillTags = [];
         _taggedSkills = [];
+        _buffImmunityTags = [];
+        _requiredBuffTags = [];
         _combatBuffs = [];
         _linearFuncs = [];
         _skillReagents = [];
@@ -2058,6 +2100,65 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
             using (var command = connection.CreateCommand())
             {
+                command.CommandText = "SELECT * FROM tagged_immune_buffs";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var buffId = reader.GetUInt32("buff_id", 0);
+                        var tagId = reader.GetUInt32("buff_tag_id", 0);
+
+                        if (!_buffImmunityTags.ContainsKey(buffId))
+                            _buffImmunityTags.Add(buffId, []);
+                        _buffImmunityTags[buffId].Add(tagId);
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM tagged_require_buffs";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var buffId = reader.GetUInt32("buff_id", 0);
+                        var tagId = reader.GetUInt32("buff_tag_id", 0);
+
+                        if (!_requiredBuffTags.ContainsKey(buffId))
+                            _requiredBuffTags.Add(buffId, []);
+                        _requiredBuffTags[buffId].Add(tagId);
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM buff_breakers";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        // The tag is the arriving buff's; the id is the buff it removes. 29 rows name the
+                        // arriving buff's own id, which is how a re-grant family (the glove techniques
+                        // 30034-30192, the 아리아의 춤동작 steps 16395-16399, 26345 석상 체크 완료 해제)
+                        // clears its previous member: add-then-break would make those remove themselves,
+                        // which is why Buffs.AddBuff breaks before it inserts.
+                        var victimBuffId = reader.GetUInt32("buff_id", 0);
+                        var tagId = reader.GetUInt32("buff_tag_id", 0);
+
+                        if (!_buffBreakers.ContainsKey(tagId))
+                            _buffBreakers.Add(tagId, []);
+                        _buffBreakers[tagId].Add(victimBuffId);
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
                 command.CommandText = "SELECT * FROM skill_modifiers";
                 command.Prepare();
                 using (var sqliteReader = command.ExecuteReader())
@@ -2161,6 +2262,27 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         trigger.UseDamageAmount = reader.GetBoolean("use_damage_amount", true);
                         trigger.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
                         trigger.TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id", 0);
+                        // Which unit each half of the effect runs between: enum_buff_trigger_agents
+                        // (0 owner, 1 source, 2 target, 3 original_source).
+                        trigger.SourceAgentId = (BuffTriggerAgent)reader.GetUInt32("source_agent_id", 0);
+                        trigger.TargetAgentId = (BuffTriggerAgent)reader.GetUInt32("target_agent_id", 0);
+                        trigger.OwnerBuffTagId = reader.GetUInt32("owner_buff_tag_id", 0);
+                        trigger.OwnerNoBuffTagId = reader.GetUInt32("owner_no_buff_tag_id", 0);
+                        trigger.SourceBuffTagId = reader.GetUInt32("source_buff_tag_id", 0);
+                        trigger.SourceNoBuffTagId = reader.GetUInt32("source_no_buff_tag_id", 0);
+                        // delay_time is a signed column, and the sign carries meaning: a positive value is an
+                        // offset from the buff's start, a negative one fires that far before the buff ends
+                        // (27016: 23000 ms duration, -3000). Reading it unsigned used to wrap 14143 (-3000)
+                        // into 4 294 964 296 ms, about 49.7 days.
+                        trigger.DelayTime = reader.GetInt32("delay_time", 0);
+                        trigger.UseStackCount = reader.GetBoolean("use_stack_count", true);
+                        trigger.CheckTagSrcInOwner = reader.GetBoolean("check_tag_src_in_owner", true);
+                        trigger.CheckNoTagSrcInOwner = reader.GetBoolean("check_no_tag_src_in_owner", true);
+                        trigger.CheckTagSrcInSource = reader.GetBoolean("check_tag_src_in_source", true);
+                        trigger.CheckTagSrcInTarget = reader.GetBoolean("check_tag_src_in_target", true);
+                        trigger.CheckNoTagSrcInSource = reader.GetBoolean("check_no_tag_src_in_source", true);
+                        trigger.CheckNoTagSrcInTarget = reader.GetBoolean("check_no_tag_src_in_target", true);
+                        trigger.OrUnitReqs = reader.GetBoolean("or_unit_reqs", true);
 
                         // Apparently this is possible.
                         if (trigger.Effect != null)

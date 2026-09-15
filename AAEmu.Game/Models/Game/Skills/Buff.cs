@@ -229,6 +229,10 @@ public class Buff
             this.ZoneAuthored = newBuff.ZoneAuthored;
             TickIndex = 0;
 
+            // The instance survives but the caster may not be the one it was, so the death it listens for
+            // moves with it.
+            SyncSourceDeathSubscription();
+
             // Set StartTime to now.
             var now = DateTime.UtcNow;
             StartTime = now;
@@ -236,8 +240,10 @@ public class Buff
             // Update Duration based on the stack rule:
             if (Template.StackRule == BuffStackRule.Extend)
             {
-                // Extend: new Duration = remaining time (from old timer) + newBuff.Duration.
-                Duration = newBuff.Duration + (int)remaining;
+                // Extend: new Duration = remaining time (from old timer) + newBuff.Duration. GetTimeLeft()
+                // answers -1 for a permanent instance, so the sum goes through the rule, which floors that
+                // sentinel at zero instead of shaving a millisecond off the incoming duration.
+                Duration = BuffStackRules.ExtendedDuration(newBuff.Duration, remaining);
             }
             else
             {
@@ -278,9 +284,32 @@ public class Buff
     /// with the count — a sail's contribution to hull speed among them — from whatever the last packet
     /// told it, so a Create that always claims one application leaves the simulation running on a single
     /// stack of a sixty-stack buff no matter what the client is showing.
+    /// <para>
+    /// Which figure that is depends on the rule: a family that lives as one instance reports the family
+    /// total, while an instance that belongs to one caster (Independent, Multiple, MultipleDecreaseOne)
+    /// reports the applications it represents itself, or every icon of the family would print the other
+    /// instances' stacks.
+    /// </para>
     /// </remarks>
     public uint StackCount =>
-        Owner?.Buffs == null ? 1u : (uint)Math.Max(1, Owner.Buffs.GetBuffCountById(Template.BuffId));
+        BuffStackRules.WireStack(
+            Template.StackRule,
+            Stack,
+            Owner?.Buffs?.GetBuffCountById(Template.BuffId) ?? Math.Max(1, Stack));
+
+    /// <summary>
+    /// <see cref="BuffStackRule.ChargeExtend"/>: takes the summed charge of an incoming application,
+    /// held at the ceiling by the caller.
+    /// </summary>
+    public void AddCharge(int charge)
+    {
+        lock (_lock)
+        {
+            Charge = Math.Max(0, charge);
+        }
+
+        NotifyUpdated(reason: 2); // charge changed, the same code ConsumeCharge sends
+    }
 
     /// <summary>
     /// Push SC + WZ BuffUpdated so clients and Zone see charge/duration changes after Create.
@@ -317,6 +346,56 @@ public class Buff
             State = EffectState.Finishing;
     }
 
+    // The caster whose death ends this buff (remove_on_source_dead), and the handler hanging on it.
+    private Unit _sourceDeathSubscriber;
+    private EventHandler<OnDeathArgs> _sourceDeathHandler;
+
+    /// <summary>
+    /// <c>remove_on_source_dead</c> (749 buffs): the buff ends when the unit that applied it dies.
+    /// </summary>
+    /// <remarks>
+    /// The instance lives on the target while the unit that dies is usually somewhere else — a bard's
+    /// song on a party member, a totem's blessing, a pet's aura — so there is nothing on the dying unit's
+    /// own buff list to look at. Each instance carrying the flag therefore hangs a handler on its caster's
+    /// <c>OnDeath</c>, which <c>Unit.DoDie</c> raises once per death and which <c>Slave.DoDie</c> and
+    /// <c>Npc.DoDie</c> reach as well, and drops it again when the buff ends or its caster changes. This
+    /// is the shape the Death buff trigger already subscribes with. A source that is not a unit (a doodad
+    /// or an item cast) has no death to wait for and keeps its duration.
+    /// </remarks>
+    internal void SyncSourceDeathSubscription()
+    {
+        if (ReferenceEquals(_sourceDeathSubscriber, Caster))
+            return;
+
+        UnsubscribeSourceDeath();
+
+        if (Template?.RemoveOnSourceDead != true || Caster == null)
+            return;
+
+        _sourceDeathSubscriber = Caster;
+        _sourceDeathHandler = (_, args) => OnSourceDied(args);
+        Caster.Events.OnDeath += _sourceDeathHandler;
+    }
+
+    private void UnsubscribeSourceDeath()
+    {
+        if (_sourceDeathSubscriber == null || _sourceDeathHandler == null)
+            return;
+
+        _sourceDeathSubscriber.Events.OnDeath -= _sourceDeathHandler;
+        _sourceDeathSubscriber = null;
+        _sourceDeathHandler = null;
+    }
+
+    private void OnSourceDied(OnDeathArgs args)
+    {
+        // The decision is the rule's; the handler only supplies the dead unit's id and this instance's
+        // caster, so the same flag read by Buffs.TriggerRemoveOn and by the subscription agree.
+        if (BuffRemoveOnRules.Matches(BuffRemoveOn.SourceDead, Template, args?.Victim?.ObjId ?? 0,
+                Caster?.ObjId ?? 0))
+            Exit();
+    }
+
     private void FinishBuff(bool replace, bool fireTimeout)
     {
         State = EffectState.Finished;
@@ -350,12 +429,17 @@ public class Buff
                 return;
             _stopRan = true;
 
-            // Timeout triggers (buff_triggers.kind=timeout) fire only on natural expiry.
-            // Early Exit (remove_on_move, purge, toggle-off, etc.) must not run them —
-            // e.g. dash move-check 31556 Timeout → DispelEffect tag 4154 (질주 태그 / 2675).
+            // Exactly one of the two lifecycle triggers runs, and which one is the answer to "how did this
+            // buff end". Natural expiry (duration or tick ran out) is the Timeout kind; every other way it
+            // ends - purged by a dispel, removed by a remove_on_* flag, toggled off, charge exhausted, death
+            // cleanup - is the Dispelled kind. The handler no longer raises OnDispelled by itself, which is
+            // what used to make a dispelled trigger fire on expiry as well.
             if (fireTimeout)
                 Events.OnTimeout(this, new OnTimeoutArgs());
+            else
+                Events.OnDispelled(this, new OnDispelledArgs());
             Triggers.UnsubscribeEvents();
+            UnsubscribeSourceDeath();
             Owner.Buffs.RemoveEffect(this);
             Template.Dispel(Caster, Owner, this, replace);
 
@@ -416,12 +500,17 @@ public class Buff
     /// <returns></returns>
     public int ConsumeCharge(int value)
     {
+        var absorbed = Math.Min(Math.Max(0, Charge), Math.Max(0, value));
         var newCharge = Math.Max(0, Charge - value);
         value = Math.Max(0, value - Charge);
         Charge = newCharge;
 
         if (Charge <= 0)
         {
+            // The last point of the shield has just been spent: a buff whose absorption is consumed
+            // runs its `absorption` triggers here, before Exit() unsubscribes them.
+            if (absorbed > 0)
+                Events.OnAbsorptionConsumed(this, new OnAbsorptionConsumedArgs { Amount = absorbed });
             Exit(false);
         }
         else

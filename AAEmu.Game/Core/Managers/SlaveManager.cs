@@ -223,6 +223,9 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         {
             character.Transform.Parent = null;
             character.Transform.StickyParent = null;
+            // Before the remove-on flags: exiting the buff unsubscribes its triggers, and `unmount`
+            // rows are among them (every enabled unmount row sits on a remove_on_unmount buff).
+            character.Events.OnUnmount(character, new OnUnmountArgs());
             character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
             character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unbond);
             character.AttachedPoint = AttachPointKind.None;
@@ -240,7 +243,12 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             ShipHarpoonRopeController.OnOperatorLeftSlave(slave, character);
         }
 
-        character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount);
+        // Same as the early-return branch above: the rider's own event, before the remove-on flags.
+        character.Events.OnUnmount(character, new OnUnmountArgs());
+        // The seat being left is passed on for remove_on_unmount_attach_point_id (771 buffs, 80 Telescope
+        // and the passenger seats among them). attachPoint is 0 None when the ship had no entry for this
+        // character, which the rule reads as "seat unknown" and removes the unrestricted unmount buffs.
+        character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unmount, (uint)attachPoint);
         character.Buffs.TriggerRemoveOn(BuffRemoveOn.Unbond);
         character.AttachedPoint = AttachPointKind.None;
 
@@ -893,6 +901,11 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         summonedSlave.PendingSpawnPortal = !hideSpawnEffect;
         summonedSlave.Spawn();
         summonedSlave.PendingSpawnPortal = false;
+
+        // remove_by_summoned (110 buffs: the 감정 표현_* poses, 자세 잡기, 예도, 맹세, 위엄, 열정의 춤, all
+        // of them poses with a hidden buff kind) drops the summoner's poses the moment it summons. The
+        // owner is null for a world or script spawn; there is nobody to end a pose on then.
+        owner?.Buffs.TriggerRemoveOn(BuffRemoveOn.Summoned);
 
         // The hull's rig has to be on it before the zone is told about it. A zone derives the hull's
         // speed ceiling, and its health cap, from the attribute values carried by the create it

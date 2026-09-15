@@ -1,4 +1,5 @@
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -9,6 +10,7 @@ using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game;
@@ -56,12 +58,126 @@ public class Buffs : IBuffs
         _toleranceCounters = [];
     }
 
-    public bool CheckBuffImmune(uint buffId)
+    /// <summary>
+    /// Whether <paramref name="candidate"/> is refused by an immunity already active on this unit.
+    /// </summary>
+    /// <remarks>
+    /// 10.0.2.13 removed the <c>buffs.immune_buff_tag_id</c> column this used to read, which made the
+    /// old check silently false, but the rule did not go away — it moved to
+    /// <c>tagged_immune_buffs</c>, which was then loaded nowhere. The owner's side of the lookup is the
+    /// tag list of each active buff; the candidate's side is the tag list of the incoming buff. Both
+    /// come from <see cref="SkillManager"/>, which already indexes <c>tagged_buffs</c>.
+    /// </remarks>
+    /// <param name="candidate">The buff about to be applied.</param>
+    /// <param name="caster">The unit applying it, used by the <c>immune_except_creator</c> exception.</param>
+    /// <param name="castingSkill">
+    /// The skill applying it, used by the <c>immune_except_skill_tag_id</c> exception. Null for an
+    /// application that is not a cast (a trigger or a combat buff), where that exception cannot apply.
+    /// </param>
+    public bool CheckBuffImmune(BuffTemplate candidate, BaseUnit caster, Skill castingSkill = null)
     {
-        // 10.0.2.13: buffs.immune_buff_tag_id was removed, so tag-based buff immunity no longer exists in the
-        // schema (immunity is now driven by the immune_except_* columns — not yet implemented). The previous
-        // logic already no-op'd to false once the column was gone, so there is no tag immunity to apply here.
-        return false;
+        var owner = GetOwner();
+        if (owner == null || candidate == null)
+            return false;
+
+        var candidateTags = SkillManager.Instance.GetBuffTags(candidate.Id);
+        if (candidateTags.Count == 0)
+            return false;
+
+        // Create a copy of the list of effects to avoid changing the list while iterating
+        Buff[] effects;
+        lock (_lock)
+        {
+            effects = _effects.ToArray();
+        }
+
+        var casterSkillTags = castingSkill?.Template != null
+            ? SkillManager.Instance.GetSkillTags(castingSkill.Template.Id)
+            : (IReadOnlyCollection<uint>)Array.Empty<uint>();
+
+        // immune_except_creator_relation_check names one of enum_skill_target_relation's ids, so the
+        // relation is resolved with the same helper the targeting code uses. Without a caster there is
+        // no relation to test, and the check must not run: IsRelationValid dereferences its caster.
+        Func<uint, bool> casterRelationMatches = caster == null
+            ? _ => false
+            : relationId => SkillTargetingUtil.IsRelationValid((SkillTargetRelation)relationId, caster, owner);
+
+        return BuffImmunityRules.IsRefusedByTagImmunity(
+            candidateTags,
+            candidate.Id,
+            effects,
+            SkillManager.Instance.GetBuffImmunityTags,
+            caster?.ObjId ?? 0,
+            casterSkillTags,
+            casterRelationMatches);
+    }
+
+    /// <summary>
+    /// The first <c>tagged_require_buffs</c> tag this unit does not carry for <paramref name="candidate"/>,
+    /// or 0 when every prerequisite is met. 4627 가벼운 발걸음 needs tag 831 무겁다, 21369 선장의 보호
+    /// needs tag 3258 순항선, 20111 무적 비행 needs tag 2841 불사조 날틀.
+    /// </summary>
+    public uint GetMissingRequiredBuffTag(BuffTemplate candidate)
+    {
+        if (candidate == null)
+            return 0;
+
+        return BuffImmunityRules.FirstMissingRequiredTag(
+            SkillManager.Instance.GetRequiredBuffTags(candidate.Id), CheckBuffTag);
+    }
+
+    /// <summary>
+    /// Whether an active buff makes this unit immune to knockback and impulses
+    /// (<c>buffs.knockback_immune</c>, 913 rows). Read exactly like <see cref="CheckDamageImmune"/>:
+    /// from the flags of the buffs active on this unit.
+    /// </summary>
+    public bool CheckKnockbackImmune()
+    {
+        return HasEffectsMatchingCondition(buff => buff?.Template?.KnockbackImmune == true);
+    }
+
+    /// <summary>
+    /// Whether an active buff makes this unit immune to mana burn
+    /// (<c>buffs.mana_burn_immune</c>, 338 rows).
+    /// </summary>
+    public bool CheckManaBurnImmune()
+    {
+        return HasEffectsMatchingCondition(buff => buff?.Template?.ManaBurnImmune == true);
+    }
+
+    /// <summary>
+    /// Tells the caster and the players around this unit that the candidate buff was refused because
+    /// the unit is immune to it.
+    /// </summary>
+    /// <remarks>
+    /// The 10.0.2.13 client has no error-message id for buff immunity — <c>enum_error_messages</c> has
+    /// 1 244 names and not one of them mentions immunity (the nearest, 787 <c>BUFF_HIGHER</c>, is the
+    /// stronger-buff case and already has its own <c>SkillResult.HigherBuff</c>). What the client does
+    /// render is the immune hit result, which is what <c>DamageEffect</c> already broadcasts for
+    /// <see cref="CheckDamageImmune"/>: <see cref="SkillHitType.Immune"/> (18, <c>immune</c> in
+    /// <c>enum_skill_hit_type</c>) on a one-point <c>SCUnitDamagedPacket</c>.
+    /// </remarks>
+    public void BroadcastBuffImmune(BaseUnit caster, CastAction castObj, SkillCaster casterObj)
+    {
+        var owner = GetOwner();
+        if (owner == null || castObj == null || casterObj == null)
+            return;
+
+        // Only a cast says so, and only once. A buff's own tick re-applies its effects with a CastBuff
+        // action (BuffTemplate.DoTick / DoAreaTick, BuffTemplate.cs:432 and :475), so an immune unit inside
+        // an aura or under a DoT sent one SCUnitDamagedPacket per tick to everyone nearby for the aura's
+        // whole life; a buff trigger proc does the same on every proc.
+        if (castObj is not CastSkill)
+            return;
+
+        owner.BroadcastPacket(
+            // Damage 1, not 0: DamageEffect's CheckDamageImmune path sends the same hit type with 1
+            // (DamageEffect.cs:114), and the two have to agree on what the client is shown.
+            new SCUnitDamagedPacket(castObj, casterObj, caster?.ObjId ?? 0, owner.ObjId, 1, 0)
+            {
+                HitType = SkillHitType.Immune
+            },
+            false);
     }
 
     public bool CheckDamageImmune(DamageType damageType)
@@ -244,6 +360,8 @@ public class Buffs : IBuffs
 
         // Stacks, not instances. A multiple-stack family is one instance carrying a count, so summing
         // instances would report 1 for a full 60-stack member and undo what the count is read for.
+        // This is the family total; whether a wire record wants it or the instance's own count is
+        // BuffStackRules.WireStack's decision.
         var count = 0;
         foreach (var effect in effects.ToList())
             if (effect.Template.BuffId == buffId)
@@ -261,6 +379,44 @@ public class Buffs : IBuffs
 
         return null;
     }
+
+    /// <summary>The live instance <paramref name="casterKey"/> holds of a per-caster buff family.</summary>
+    private Buff FindLiveInstance(uint buffId, uint casterKey)
+    {
+        // The caller holds _lock.
+        foreach (var effect in _effects)
+            if (effect is { InUse: true } && effect.Template.BuffId == buffId
+                && CasterKeyOf(effect) == casterKey)
+                return effect;
+
+        return null;
+    }
+
+    /// <summary>Every live instance <paramref name="casterKey"/> holds of a buff family.</summary>
+    private List<Buff> LiveInstancesOf(uint buffId, uint casterKey)
+    {
+        // The caller holds _lock.
+        var instances = new List<Buff>();
+        foreach (var effect in _effects)
+            if (effect is { InUse: true } && effect.Template.BuffId == buffId
+                && CasterKeyOf(effect) == casterKey)
+                instances.Add(effect);
+
+        return instances;
+    }
+
+    /// <summary>
+    /// Which caster an instance belongs to, for the rules that keep one instance per caster.
+    /// </summary>
+    /// <remarks>
+    /// The casting unit identifies a player or NPC cast. A source that is not a unit — a doodad, an item
+    /// or a mount — still names itself in the skill caster, and the sail-wind family (20860 해풍 응용,
+    /// rule 4) arrives that way. An unknown source collapses to zero so every application of it shares
+    /// one instance instead of one per arrival, which is the behaviour those families had before the
+    /// rule was keyed on a caster at all.
+    /// </remarks>
+    private static uint CasterKeyOf(Buff buff) =>
+        buff?.Caster?.ObjId ?? buff?.SkillCaster?.ObjId ?? 0;
 
     public void GetAllBuffs(List<Buff> goodBuffs, List<Buff> badBuffs, List<Buff> hiddenBuffs, bool includeAllPassives)
     {
@@ -305,6 +461,9 @@ public class Buffs : IBuffs
     {
         Buff transformFrom = null;
         var transformBuffId = 0u;
+        // Rule 7's family is several instances; its transform takes all of them, where the
+        // single-instance rules have only the one to drop.
+        List<Buff> transformFamily = null;
         lock (_lock)
         {
             var owner = GetOwner();
@@ -379,6 +538,17 @@ public class Buffs : IBuffs
                 }
             }
 
+            // A buff that lands can break others. buff_breakers(buff_id, buff_tag_id) says a buff carrying
+            // buff_tag_id removes buff_id, and this is the point in the order where that happens:
+            //   1. the immunity check and the require-tag check refuse the application before AddBuff is
+            //      reached at all (BuffEffect.Apply, BuffTemplate.Apply) — a refused buff breaks nothing;
+            //   2. the tolerance gate just above drops the CC ladder's immune step and its transform;
+            //   3. HERE — the application is accepted, and only the instances already live are removed,
+            //      so the arriving buff can never break itself (the 29 rows that name their own buff id
+            //      clear the previous instance of a re-grant family instead);
+            //   4. the stack rule below then decides what the arrival does to its own family.
+            RemoveBuffsBrokenBy(buff);
+
             buff.Duration = buff.Template.GetDuration(buff.AbLevel);
             if (forcedDuration != 0)
                 buff.Duration = forcedDuration;
@@ -424,44 +594,155 @@ public class Buffs : IBuffs
                             else
                                 last = e;
                     break;
-                default:
-                    // A multiple-stack family is ONE instance carrying a count, not one instance per
-                    // application. The client draws an icon per instance and takes the number on it from
-                    // the stack field, so an instance per application paints a grid of identical icons
-                    // that all read the same total — a two-sail hull showed roughly sixty of them.
-                    // Growing the live instance keeps the total effect the same (the bonus is scaled by
-                    // the count) while leaving one icon per family, and the ceiling simply stops it.
-                    var live = FindLiveInstance(buff.Template.BuffId);
-                    if (live != null)
+                case BuffStackRule.Extend:
                     {
-                        var grew = live.TryGrowStack(buff.Template.MaxStack);
-                        if (BuffStackRules.ShouldTransform(
-                                live.Stack, live.Template.MaxStack, live.Template.TransformBuffId))
+                        // Extend ADDS the incoming duration to what is left of the live instance; refresh
+                        // replaces it. One instance for the whole family, like Refresh: the 95 shipped
+                        // rows are single-source consumables or world effects (4841 연료 주입, 5209 맑은
+                        // 정신, 2287 강력한 화염), where a second caster's application is the same effect
+                        // continuing rather than a second effect to hold alongside.
+                        var live = FindLiveInstance(buff.Template.BuffId);
+                        if (live != null)
                         {
-                            transformFrom = live;
-                            transformBuffId = live.Template.TransformBuffId;
+                            // A permanent family (duration 0) has nothing to lengthen, and replacing it
+                            // would schedule a dispel from GetTimeLeft() == -1, which reads as "already
+                            // due". Same guard as Refresh, and it is what keeps 26136 칼리디스 공격력 강화
+                            // (duration 0) in place.
+                            if (!BuffStackRules.ShouldOverwriteOnRefresh(buff.Duration, live.Duration))
+                                return;
+                            last = live;
+                        }
+
+                        break;
+                    }
+                case BuffStackRule.ChargeExtend:
+                    {
+                        // ChargeExtend SUMS the incoming charge into the live instance, held at
+                        // max_charge; the timer is left alone, which is what separates it from
+                        // ChargeRefresh above (that one only replaces on a higher charge, it never adds).
+                        // 864 근성 (max_charge 5,000) and 22574 보호막 (20,000) are that family.
+                        var live = FindLiveInstance(buff.Template.BuffId);
+                        if (live != null)
+                        {
+                            // The incoming instance has not been through BuffTemplate.Start yet, so its
+                            // charge is still zero and has to be rolled the way Start would have.
+                            var incomingCharge = buff.Charge != 0
+                                ? buff.Charge
+                                : Random.Shared.Next(buff.Template.InitMinCharge, buff.Template.InitMaxCharge);
+                            live.AddCharge(BuffStackRules.SummedCharge(
+                                live.Charge, incomingCharge, buff.Template.MaxCharge));
+                            return;
+                        }
+
+                        break;
+                    }
+                case BuffStackRule.Independent:
+                    {
+                        // Independent: ONE instance per caster, so two casters' copies of the same buff
+                        // coexist instead of the second collapsing onto the first. It never accumulates —
+                        // 9,527 of its 9,942 rows author max_stack 1 — so the caster's own re-application
+                        // refreshes its instance rather than growing a count; the counting rule is
+                        // Multiple below.
+                        var live = FindLiveInstance(buff.Template.BuffId, CasterKeyOf(buff));
+                        if (live != null)
+                        {
+                            if (!BuffStackRules.ShouldOverwriteOnRefresh(buff.Duration, live.Duration))
+                                return;
+                            last = live;
+                        }
+
+                        break;
+                    }
+                case BuffStackRule.Multiple:
+                case BuffStackRule.MultipleDecreaseOne:
+                default:
+                    {
+                        // A multiple-stack family is ONE instance carrying a count, not one instance per
+                        // application. The client draws an icon per instance and takes the number on it
+                        // from the stack field, so an instance per application paints a grid of identical
+                        // icons that all read the same total — a two-sail hull showed roughly sixty of
+                        // them. Growing the live instance keeps the total effect the same (the bonus is
+                        // scaled by the count) while leaving one icon per family, and the ceiling simply
+                        // stops it.
+                        //
+                        // Rule 4 (Multiple) keys that instance on the caster, so a second caster holds its
+                        // own: an expiry then takes one instance rather than the whole family. Rule 7
+                        // (MultipleDecreaseOne) is the one rule whose applications stay separate instances,
+                        // each with its own timer, so they fall off one at a time.
+                        //
+                        // A rule id this build does not know keeps the family-wide instance it had before
+                        // the rules were split out, whatever the caster: nothing new can multiply instances.
+                        var casterScoped = BuffStackRules.IsCasterScoped(buff.Template.StackRule);
+                        var casterKey = casterScoped ? CasterKeyOf(buff) : 0;
+
+                        if (BuffStackRules.IsInstancePerApplication(buff.Template.StackRule))
+                        {
+                            // Rule 7 is caster-scoped, so the ceiling counts this caster's instances and
+                            // an expiry takes one of them.
+                            var instances = LiveInstancesOf(buff.Template.BuffId, casterKey);
+                            if (!BuffStackRules.CanAddInstance(instances.Count, buff.Template.MaxStack))
+                            {
+                                // The family is full. Nine of its 28 rows name a transform (28644 동상 →
+                                // 28645 동결 at 10, 32704 생산력 → 32705 at 2), and that consumes the whole
+                                // family rather than one member, so the instances are collected here and
+                                // dropped together in the tail.
+                                if (BuffStackRules.ShouldTransform(
+                                        instances.Count, buff.Template.MaxStack, buff.Template.TransformBuffId))
+                                {
+                                    transformFrom = instances[0];
+                                    transformBuffId = buff.Template.TransformBuffId;
+                                    transformFamily = instances;
+                                    break;
+                                }
+
+                                // No transform: the application goes to the instance nearest to expiring —
+                                // the stack that is about to fall off — instead of adding a member the
+                                // family has no room for. A permanent family has no such instance to
+                                // replace, so it simply absorbs the application.
+                                var soonest = instances.MinBy(e => e.GetTimeLeft());
+                                if (soonest == null ||
+                                    !BuffStackRules.ShouldOverwriteOnRefresh(buff.Duration, soonest.Duration))
+                                    return;
+                                last = soonest;
+                            }
+
                             break;
                         }
 
-                        if (grew)
-                            return;
+                        var live = casterScoped
+                            ? FindLiveInstance(buff.Template.BuffId, casterKey)
+                            : FindLiveInstance(buff.Template.BuffId);
+                        if (live != null)
+                        {
+                            var grew = live.TryGrowStack(buff.Template.MaxStack);
+                            if (BuffStackRules.ShouldTransform(
+                                    live.Stack, live.Template.MaxStack, live.Template.TransformBuffId))
+                            {
+                                transformFrom = live;
+                                transformBuffId = live.Template.TransformBuffId;
+                                break;
+                            }
 
-                        // At the ceiling. A permanent family has no timer to refresh, so the extra
-                        // application is simply absorbed. It must not go through OverwriteWith: that
-                        // re-runs SetInUse, which schedules a dispel using the buff's remaining time —
-                        // and for a permanent buff that reads as -1, i.e. a delay in the past, so the
-                        // buff is dropped the moment it fills. A hull's sails did exactly that, losing
-                        // all sixty wind stacks the instant they topped out and rebuilding from one,
-                        // which also took the hull's speed back down with them.
-                        if (buff.Duration <= 0)
-                            return;
+                            if (grew)
+                                return;
 
-                        // A timed family does refresh the member already there rather than adding to it,
-                        // so it cannot creep past max_stack.
-                        last = live;
+                            // At the ceiling. A permanent family has no timer to refresh, so the extra
+                            // application is simply absorbed. It must not go through OverwriteWith: that
+                            // re-runs SetInUse, which schedules a dispel using the buff's remaining time —
+                            // and for a permanent buff that reads as -1, i.e. a delay in the past, so the
+                            // buff is dropped the moment it fills. A hull's sails did exactly that, losing
+                            // all sixty wind stacks the instant they topped out and rebuilding from one,
+                            // which also took the hull's speed back down with them.
+                            if (buff.Duration <= 0)
+                                return;
+
+                            // A timed family does refresh the member already there rather than adding to it,
+                            // so it cannot creep past max_stack.
+                            last = live;
+                        }
+
+                        break;
                     }
-
-                    break;
             }
             if (transformBuffId == 0 && last != null)
             {
@@ -478,6 +759,7 @@ public class Buffs : IBuffs
             {
                 _effects.Add(buff);
                 buff.Triggers.SubscribeEvents();
+                buff.SyncSourceDeathSubscription();
                 buff.Events.OnBuffStarted(buff, new OnBuffStartedArgs());
 
                 if (buff.Template.BuffId > 0)
@@ -525,7 +807,17 @@ public class Buffs : IBuffs
         }
         if (transformBuffId > 0 && transformFrom != null)
         {
-            RemoveBuff(transformFrom.Template.BuffId);
+            if (transformFamily != null)
+            {
+                // Rule 7: every instance of the family goes, not just the one RemoveBuff would take.
+                foreach (var instance in transformFamily)
+                    RemoveEffect(instance);
+            }
+            else
+            {
+                RemoveBuff(transformFrom.Template.BuffId);
+            }
+
             var nextTemplate = SkillManager.Instance.GetBuffTemplate(transformBuffId);
             if (nextTemplate != null)
             {
@@ -559,6 +851,56 @@ public class Buffs : IBuffs
 
             if (candidate != GearBonusesIndex && _effects.All(effect => effect?.Index != candidate))
                 return candidate;
+        }
+    }
+
+    /// <summary>
+    /// Ends the live buffs that <paramref name="arriving"/> breaks (<c>buff_breakers</c>).
+    /// </summary>
+    /// <remarks>
+    /// The removal is by buff id and takes every live instance of it, whatever caster holds it. The rows
+    /// name a buff, not a caster's copy of it, and the caster of the arriving buff is usually not the
+    /// caster of the victims — a stun from an enemy ends the song the target is performing — so scoping
+    /// the removal to the arriving buff's caster would leave exactly the buffs the table exists to end.
+    /// The arriving instance itself is not in <c>_effects</c> yet (see the call site), which is what keeps
+    /// a self-referential row from removing the buff that just landed.
+    /// </remarks>
+    private void RemoveBuffsBrokenBy(Buff arriving)
+    {
+        // The caller holds _lock.
+        var tags = SkillManager.Instance.GetBuffTags(arriving?.Template?.Id ?? 0);
+        if (tags.Count == 0)
+            return;
+
+        var victimIds = new HashSet<uint>();
+        foreach (var tag in tags)
+            foreach (var brokenId in SkillManager.Instance.GetBuffsBrokenByTag(tag))
+                victimIds.Add(brokenId);
+
+        if (victimIds.Count == 0)
+            return;
+
+        // One pass over the live list, so every instance of a victim family goes rather than the first
+        // one found, and the arriving instance is skipped for the reason above.
+        List<Buff> victims = null;
+        foreach (var live in _effects)
+        {
+            if (live is not { InUse: true } || ReferenceEquals(live, arriving))
+                continue;
+            if (!victimIds.Contains(live.Template.BuffId))
+                continue;
+
+            victims ??= [];
+            victims.Add(live);
+        }
+
+        if (victims == null)
+            return;
+
+        foreach (var victim in victims)
+        {
+            Logger.Debug("Buff {0} breaks buff {1}", arriving.Template.BuffId, victim.Template.BuffId);
+            victim.Exit();
         }
     }
 
@@ -789,6 +1131,18 @@ public class Buffs : IBuffs
         }
     }
 
+    /// <summary>
+    /// Ends every live instance whose template removes on <paramref name="on"/>.
+    /// </summary>
+    /// <remarks>
+    /// Each instance is decided on its own, which is what keeps a per-caster family honest: two casters
+    /// hold two instances and an event that names one caster (<see cref="BuffRemoveOn.SourceDead"/>, whose
+    /// value is the dead unit's object id) ends that caster's instance only. The decisions themselves live
+    /// in <see cref="BuffRemoveOnRules.Matches"/>. <paramref name="value"/> carries the event's payload:
+    /// the dead unit for <c>SourceDead</c>, the started skill's tag for <c>StartSkill</c>, the
+    /// <c>enum_attach_point</c> seat for <c>Unmount</c>, and the changed <c>enum_equip_slot</c> for
+    /// <c>ChangeEquipments</c>.
+    /// </remarks>
     public void TriggerRemoveOn(BuffRemoveOn on, uint value = 0)
     {
         // Create a copy of the list of effects to avoid changing the list while iterating
@@ -800,76 +1154,19 @@ public class Buffs : IBuffs
 
         foreach (var effect in effects.ToList())
         {
-            if (effect != null)
-            {
-                var template = effect.Template;
+            var template = effect?.Template;
+            if (template == null)
+                continue;
 
-                if (template.RemoveOnAttackBuffTrigger && on == BuffRemoveOn.AttackBuffTrigger)
-                    effect.Exit();
-                else if (template.RemoveOnAttackedBuffTrigger && on == BuffRemoveOn.AttackedBuffTrigger)
-                    effect.Exit();
-                else if (template.RemoveOnAttackedEtc && on == BuffRemoveOn.AttackedEtc)
-                    effect.Exit();
-                else if (template.RemoveOnAttackedEtcDot && on == BuffRemoveOn.AttackedEtcDot)
-                    effect.Exit();
-                else if (template.RemoveOnAttackedSpellDot && on == BuffRemoveOn.AttackedSpellDot)
-                    effect.Exit();
-                else if (template.RemoveOnAttackEtc && on == BuffRemoveOn.AttackEtc)
-                    effect.Exit();
-                else if (template.RemoveOnAttackEtcDot && on == BuffRemoveOn.AttackEtcDot)
-                    effect.Exit();
-                else if (template.RemoveOnAttackSpellDot && on == BuffRemoveOn.AttackSpellDot)
-                    effect.Exit();
-                else if (template.RemoveOnAutoAttack && on == BuffRemoveOn.AutoAttack)
-                    effect.Exit();
-                else if (template.RemoveOnDamageBuffTrigger && on == BuffRemoveOn.DamageBuffTrigger)
-                    effect.Exit();
-                else if (template.RemoveOnDamagedBuffTrigger && on == BuffRemoveOn.DamagedBuffTrigger)
-                    effect.Exit();
-                else if (template.RemoveOnDamagedEtc && on == BuffRemoveOn.DamagedEtc)
-                    effect.Exit();
-                else if (template.RemoveOnDamagedEtcDot && on == BuffRemoveOn.DamagedEtcDot)
-                    effect.Exit();
-                else if (template.RemoveOnDamagedSpellDot && on == BuffRemoveOn.DamagedSpellDot)
-                    effect.Exit();
-                else if (template.RemoveOnDamageEtc && on == BuffRemoveOn.DamageEtc)
-                    effect.Exit();
-                else if (template.RemoveOnDamageEtcDot && on == BuffRemoveOn.DamageEtcDot)
-                    effect.Exit();
-                else if (template.RemoveOnDamageSpellDot && on == BuffRemoveOn.DamageSpellDot)
-                    effect.Exit();
-                else if (template.RemoveOnDeath && on == BuffRemoveOn.Death)
-                    effect.Exit();
-                else if (template.RemoveOnExempt && on == BuffRemoveOn.Exempt)
-                    effect.Exit();
-                else if (template.RemoveOnInteraction && on == BuffRemoveOn.Interaction)
-                    effect.Exit();
-                else if (template.RemoveOnLand && on == BuffRemoveOn.Land)
-                    effect.Exit();
-                else if (template.RemoveOnMount && on == BuffRemoveOn.Mount)
-                    effect.Exit();
-                else if (template.RemoveOnMove && on == BuffRemoveOn.Move)
-                    effect.Exit();
-                else if (template.RemoveOnSourceDead && on == BuffRemoveOn.SourceDead && value == effect.Caster.ObjId)
-                    effect.Exit();//Need to investigate this one
-                else if (template.RemoveOnStartSkill && on == BuffRemoveOn.StartSkill)
-                {
-                    if (value == 0)
-                        effect.Exit();
-                    else
-                    {
-                        var tags = SkillManager.Instance.GetBuffTags(effect.Template.BuffId);
-                        if (!tags.Contains(value))
-                            effect.Exit();
-                    }
-                }
-                else if (template.RemoveOnUnmount && on == BuffRemoveOn.Unmount)
-                    effect.Exit();
-                else if (template.RemoveOnUnbond && on == BuffRemoveOn.Unbond)
-                    effect.Exit();
-                else if (template.RemoveOnUseSkill && on == BuffRemoveOn.UseSkill)
-                    effect.Exit();
-            }
+            // A source that is not a unit (a doodad, an item, a mount's own cast) has no object id to be
+            // named by, so it collapses to 0 the same way the caster key does in the stack rules.
+            var casterObjId = effect.Caster?.ObjId ?? 0;
+            Func<uint, bool> carriesTag = on == BuffRemoveOn.StartSkill
+                ? tag => SkillManager.Instance.GetBuffTags(template.BuffId).Contains(tag)
+                : null;
+
+            if (BuffRemoveOnRules.Matches(on, template, value, casterObjId, carriesTag))
+                effect.Exit();
         }
     }
 
@@ -889,6 +1186,13 @@ public class Buffs : IBuffs
         foreach (var e in effects.ToList())
             if (e != null && e.Template.RemoveOnDeath)
                 e.Exit();
+
+        // remove_on_source_dead (749 buffs) is the other half of death: the buffs this unit applied end
+        // with it. On its own list that is the ones it applied to itself, and this pass is what covers a
+        // death that never subscribed (a buff restored from the database, or a non-unit source that
+        // collapsed to caster 0). The ones it applied to other units are ended by the subscription each
+        // instance takes on its caster's OnDeath — see Buff.SyncSourceDeathSubscription.
+        TriggerRemoveOn(BuffRemoveOn.SourceDead, own.ObjId);
     }
 
     public void SetOwner(BaseUnit owner)
@@ -910,8 +1214,15 @@ public class Buffs : IBuffs
         }
 
         foreach (var e in effects.ToList())
-            if (e != null && e.Template.Stealth)
-                e.Exit();
+        {
+            if (e == null || !e.Template.Stealth)
+                continue;
+
+            // Before Exit(): exiting unsubscribes this buff's triggers, and a `remove_stealth` row is
+            // one of them.
+            e.Events.OnStealthRemoved(e, new OnStealthRemovedArgs());
+            e.Exit();
+        }
     }
 
     private BaseUnit GetOwner()
