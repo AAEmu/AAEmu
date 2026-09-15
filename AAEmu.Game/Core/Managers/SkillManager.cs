@@ -2335,15 +2335,52 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         {
                             Id = reader.GetUInt32("id", 0),
                             HitSkillId = reader.GetUInt32("hit_skill_id", 0),
-                            // hit_type_id renamed to hit_type_bits in 10.0.2.13 schema
-                            HitType = (SkillHitType)reader.GetUInt32("hit_type_bits", 0),
+                            HitSkillTagId = reader.GetUInt32("hit_skill_tag_id", 0),
+                            // hit_type_id renamed to hit_type_bits in 10.0.2.13 schema. It is a mask, not a
+                            // single SkillHitType: see CombatBuffHitRules for the bit layout.
+                            HitTypeBits = reader.GetUInt32("hit_type_bits", 0),
                             BuffId = reader.GetUInt32("buff_id", 0),
                             BuffFromSource = reader.GetBoolean("buff_from_source", true),
                             BuffToSource = reader.GetBoolean("buff_to_source", true),
+                            ReverseTargetOn = reader.GetBoolean("reverse_target_on", true),
                             ReqSkillId = reader.GetUInt32("req_skill_id", 0),
                             ReqBuffId = reader.GetUInt32("req_buff_id", 0),
                             IsHealSpell = reader.GetBoolean("is_heal_spell", true)
                         };
+
+                        if (!CombatBuffHitRules.TryDecodeBits(combatBuffTemplate.HitTypeBits, out _))
+                        {
+                            Logger.Warn(
+                                "combat_buffs {0}: hit_type_bits {1} sets no known hit type — row skipped",
+                                combatBuffTemplate.Id, combatBuffTemplate.HitTypeBits);
+                            continue;
+                        }
+
+                        var unknownBits = CombatBuffHitRules.UnknownBits(combatBuffTemplate.HitTypeBits);
+                        if (unknownBits != 0)
+                        {
+                            Logger.Warn("combat_buffs {0}: hit_type_bits {1} also sets unnamed bits {2}",
+                                combatBuffTemplate.Id, combatBuffTemplate.HitTypeBits, unknownBits);
+                        }
+
+                        if (combatBuffTemplate.BuffId == 0)
+                        {
+                            // combat_buffs 153 is the only row here: it grants combat_resource_id 15
+                            // instead of a buff, which CombatBuffs does not apply yet.
+                            Logger.Warn("combat_buffs {0}: buff_id 0 and req buff {1} — row skipped",
+                                combatBuffTemplate.Id, combatBuffTemplate.ReqBuffId);
+                            continue;
+                        }
+
+                        if (combatBuffTemplate.ReqBuffId == 0)
+                        {
+                            // Registered by its req buff, and no buff carries id 0. combat_buffs 187 and 220
+                            // are gated on hit_skill_id / req_skill_id instead and stay inert until
+                            // something registers them.
+                            Logger.Warn("combat_buffs {0}: no req_buff_id — row cannot be registered, skipped",
+                                combatBuffTemplate.Id);
+                            continue;
+                        }
 
                         if (!_combatBuffs.ContainsKey(combatBuffTemplate.ReqBuffId))
                             _combatBuffs.Add(combatBuffTemplate.ReqBuffId, []);
