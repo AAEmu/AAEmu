@@ -104,6 +104,7 @@ public class Buffs : IBuffs
 
         return BuffImmunityRules.IsRefusedByTagImmunity(
             candidateTags,
+            candidate.Id,
             effects,
             SkillManager.Instance.GetBuffImmunityTags,
             caster?.ObjId ?? 0,
@@ -154,7 +155,7 @@ public class Buffs : IBuffs
     /// stronger-buff case and already has its own <c>SkillResult.HigherBuff</c>). What the client does
     /// render is the immune hit result, which is what <c>DamageEffect</c> already broadcasts for
     /// <see cref="CheckDamageImmune"/>: <see cref="SkillHitType.Immune"/> (18, <c>immune</c> in
-    /// <c>enum_skill_hit_type</c>) on a zero-damage <c>SCUnitDamagedPacket</c>.
+    /// <c>enum_skill_hit_type</c>) on a one-point <c>SCUnitDamagedPacket</c>.
     /// </remarks>
     public void BroadcastBuffImmune(BaseUnit caster, CastAction castObj, SkillCaster casterObj)
     {
@@ -162,8 +163,17 @@ public class Buffs : IBuffs
         if (owner == null || castObj == null || casterObj == null)
             return;
 
+        // Only a cast says so, and only once. A buff's own tick re-applies its effects with a CastBuff
+        // action (BuffTemplate.DoTick / DoAreaTick, BuffTemplate.cs:432 and :475), so an immune unit inside
+        // an aura or under a DoT sent one SCUnitDamagedPacket per tick to everyone nearby for the aura's
+        // whole life; a buff trigger proc does the same on every proc.
+        if (castObj is not CastSkill)
+            return;
+
         owner.BroadcastPacket(
-            new SCUnitDamagedPacket(castObj, casterObj, caster?.ObjId ?? 0, owner.ObjId, 0, 0)
+            // Damage 1, not 0: DamageEffect's CheckDamageImmune path sends the same hit type with 1
+            // (DamageEffect.cs:114), and the two have to agree on what the client is shown.
+            new SCUnitDamagedPacket(castObj, casterObj, caster?.ObjId ?? 0, owner.ObjId, 1, 0)
             {
                 HitType = SkillHitType.Immune
             },

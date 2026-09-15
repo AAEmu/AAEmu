@@ -12,8 +12,9 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// <c>buff_id</c> is active on a unit, a candidate buff carrying <c>buff_tag_id</c> must be refused.
 /// Examples read through the <c>tags</c> table: 93 동결 (freeze) refuses tag 919 차가운 발걸음,
 /// 131 무적 (invincible) refuses tag 216 무적 면역, 82 대지의 손아귀 refuses tag 10 떠있음. 283 of those
-/// rows name a tag the granting buff carries itself, which is the classic "a frozen unit cannot be
-/// frozen again" case and is intended: the refusal is per tag, not per buff id.
+/// rows name a tag the granting buff carries itself — "a frozen unit cannot be frozen again" — but they
+/// only ever refuse *other* buffs: the same buff id refreshes, stacks or extends itself, so the grant is
+/// skipped while the candidate is that id (631 and 2028 수감자 extend themselves over 1 800 000 ms).
 /// </para>
 /// <para>
 /// <c>tagged_require_buffs(buff_id, buff_tag_id)</c> — 309 rows. The inverse: buff <c>buff_id</c> may
@@ -47,6 +48,12 @@ public static class BuffImmunityRules
     /// Whether a buff active on the target refuses a candidate that carries one of its immune tags.
     /// </summary>
     /// <param name="candidateTags">Tags of the candidate buff (<c>tagged_buffs</c> for its id).</param>
+    /// <param name="candidateBuffId">
+    /// The candidate's own buff id. A buff never refuses itself, so the grant it carries is skipped while
+    /// the candidate is the same id: 283 <c>tagged_immune_buffs</c> rows name a tag the granting buff
+    /// carries itself (93 동결 is immune to tag 919, which 93 carries), and those rows have to keep the
+    /// refresh and the extend rules working — 631 and 2028 수감자 extend themselves over 1 800 000 ms.
+    /// </param>
     /// <param name="activeBuffs">The target's active buffs.</param>
     /// <param name="grantedImmunityTags">
     /// Tags a given buff id refuses while it is active (<c>tagged_immune_buffs</c>), looked up by the
@@ -56,10 +63,11 @@ public static class BuffImmunityRules
     /// <param name="casterSkillTags">Tags of the skill applying the candidate, empty when it is not a skill cast.</param>
     /// <param name="casterRelationMatches">
     /// Resolves <c>immune_except_creator_relation_id</c> against the caster's relation to the owner.
-    /// Called only for a grant whose relation check is on.
+    /// Called only for a grant whose relation check is on and whose relation id is configured.
     /// </param>
     public static bool IsRefusedByTagImmunity(
         IReadOnlyCollection<uint> candidateTags,
+        uint candidateBuffId,
         IReadOnlyList<Buff> activeBuffs,
         Func<uint, IReadOnlyList<uint>> grantedImmunityTags,
         uint casterObjId,
@@ -73,6 +81,11 @@ public static class BuffImmunityRules
         {
             var template = active?.Template;
             if (template == null)
+                continue;
+
+            // The buff's own row: it refreshes, stacks or extends itself rather than being refused by the
+            // tag it carries.
+            if (template.BuffId == candidateBuffId)
                 continue;
 
             var granting = grantedImmunityTags(template.BuffId);
@@ -146,8 +159,13 @@ public static class BuffImmunityRules
             casterSkillTags.Contains(immunity.ImmuneExceptSkillTagId))
             return true;
 
-        if (immunity.ImmuneExceptCreatorRelationCheck && casterRelationMatches != null &&
-            casterRelationMatches(immunity.ImmuneExceptCreatorRelationId))
+        // A relation id of 0 is enum_skill_target_relation "any", which SkillTargetingUtil.IsRelationValid
+        // answers true for against every caster — so the clause would exempt everybody and the immunity it
+        // belongs to could never fire. Five buffs ship the check with id 0 (14408 견본 배 무적, 32711
+        // 겁먹은 페피 송송, 32712, 32718, 32726) and two of them have immunity rows; zero means "no
+        // relation configured" here, and the clause is skipped.
+        if (immunity.ImmuneExceptCreatorRelationCheck && immunity.ImmuneExceptCreatorRelationId != 0 &&
+            casterRelationMatches != null && casterRelationMatches(immunity.ImmuneExceptCreatorRelationId))
             return true;
 
         return false;

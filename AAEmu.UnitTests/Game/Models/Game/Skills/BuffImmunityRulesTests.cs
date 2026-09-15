@@ -100,6 +100,33 @@ public class BuffImmunityRulesTests
         await Assert.That(refused).IsFalse();
     }
 
+    [Test]
+    public async Task TheSameBuffIdWhileItIsUp_IsNotRefusedByItsOwnGrant()
+    {
+        // 93 동결 carries tag 919 and is immune to 919. The row refuses *other* buffs: a second freeze has
+        // to refresh (stack_rule_id 1, max_stack 10), and 631/2028 수감자 extend themselves over 30 min.
+        var refused = Refused(
+            [FreezeTagId],
+            [ActiveBuff(FreezeBuffId, CreatorObjId)],
+            new Dictionary<uint, List<uint>> { [FreezeBuffId] = [FreezeTagId] },
+            candidateBuffId: FreezeBuffId);
+
+        await Assert.That(refused).IsFalse();
+    }
+
+    [Test]
+    public async Task AnotherBuffCarryingTheSameTag_IsStillRefused()
+    {
+        // The self-skip is by buff id, not by tag: a different buff carrying 919 is still refused.
+        var refused = Refused(
+            [FreezeTagId],
+            [ActiveBuff(FreezeBuffId, CreatorObjId)],
+            new Dictionary<uint, List<uint>> { [FreezeBuffId] = [FreezeTagId] },
+            candidateBuffId: 91001);
+
+        await Assert.That(refused).IsTrue();
+    }
+
     #endregion
 
     #region immune_except_creator
@@ -241,6 +268,28 @@ public class BuffImmunityRulesTests
         await Assert.That(consulted).IsFalse();
     }
 
+    [Test]
+    public async Task RelationException_RelationIdZero_DoesNotExemptEverybody()
+    {
+        // enum_skill_target_relation 0 is "any", which IsRelationValid answers true for against every
+        // caster, so the clause used to exempt everybody and the immunity could never fire. Five buffs
+        // ship the check with id 0 (14408 견본 배 무적, 32711 겁먹은 페피 송송, 32712, 32718, 32726) and
+        // two of them have immunity rows.
+        var consulted = false;
+        var refused = Refused(
+            [InvincibleImmuneTagId],
+            [ActiveBuff(RideBuffId, CreatorObjId, relationCheck: true, relationId: 0)],
+            new Dictionary<uint, List<uint>> { [RideBuffId] = [InvincibleImmuneTagId] },
+            relationMatches: _ =>
+            {
+                consulted = true;
+                return true; // what IsRelationValid does for Any
+            });
+
+        await Assert.That(refused).IsTrue();
+        await Assert.That(consulted).IsFalse();
+    }
+
     #endregion
 
     #region several grants
@@ -310,10 +359,12 @@ public class BuffImmunityRulesTests
         Dictionary<uint, List<uint>> immunityTable,
         uint casterObjId = CasterObjId,
         uint[] casterSkillTags = null,
-        Func<uint, bool> relationMatches = null)
+        Func<uint, bool> relationMatches = null,
+        uint candidateBuffId = 0)
     {
         return BuffImmunityRules.IsRefusedByTagImmunity(
             candidateTags,
+            candidateBuffId,
             activeBuffs,
             buffId => immunityTable.TryGetValue(buffId, out var tags) ? tags : [],
             casterObjId,
