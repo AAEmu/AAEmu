@@ -8,11 +8,17 @@ public static class SkillControllerAuthority
 {
     public static bool CanControl(Character character, uint objId)
     {
-        if (character?.ParentWorld == null)
+        if (character == null)
             return false;
 
+        // A character always controls itself, and that answer does not need a world to look a unit up in:
+        // the self case used to be refused whenever ParentWorld was unset, which is only ever true of a
+        // character that is not in a world at all.
         if (objId == character.ObjId)
             return true;
+
+        if (character.ParentWorld == null)
+            return false;
 
         return character.ParentWorld.GetBaseUnit(objId) switch
         {

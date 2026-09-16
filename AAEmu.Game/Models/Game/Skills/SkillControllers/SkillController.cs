@@ -48,17 +48,22 @@ public class SkillController
         switch ((SkillControllerKind)template.KindId)
         {
             case SkillControllerKind.Floating:
-                Logger.Trace($"SkillController: create FloatingSkillController");
+                Logger.Debug("SkillController: create FloatingSkillController");
                 return null; // TODO: Add Floating (telekinesis, bubble ?)
             case SkillControllerKind.Wandering:
-                Logger.Trace($"SkillController: create WanderingSkillController");
+                Logger.Debug("SkillController: create WanderingSkillController");
                 return null;// TODO: Add Wandering (Fear ?)
             case SkillControllerKind.Leap:
                 Logger.Trace($"SkillController: create LeapSkillController");
                 var ctrl = new LeapSkillController(template, owner, target) { State = SCState.Created };
                 return ctrl;
             default:
-                Logger.Trace($"SkillController: create defaultSkillController");
+                // The remaining kinds are named but have no controller on this server: rope is handled
+                // outside the controller system by ShipHarpoonRopeController (kind 5) and rope_ready (9) is
+                // its preparation step, while anchor/rotate/flowgraph/crawl are animation or hull kinds.
+                // Naming the kind keeps a new row from looking like an unknown id in the log.
+                Logger.Debug("SkillController: kind {0} ({1}) has no controller on this server",
+                    template.KindId, (SkillControllerKind)template.KindId);
                 return null;
         }
     }

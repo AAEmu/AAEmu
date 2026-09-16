@@ -813,7 +813,10 @@ public class Skill
         // clears TlId immediately). Cast-time / plot_only already relayed at Use() entry.
         RelayZoneSkillStartedIfNeeded(casterCaster, targetCaster, skillObject);
 
-        if (caster is Npc && Template.SkillControllerId != 0)
+        // A controller drives its owner's position, so it used to be created for NPC casters only. A player's
+        // own leap is the same movement and now gets one too, for a unit the caster controls
+        // (SkillControllerRules); the distance gate below still applies to both.
+        if (Template.SkillControllerId != 0 && SkillControllerRules.CanCreateController(caster, unit))
         {
             var scTemplate = SkillManager.Instance.GetEffectTemplate(Template.SkillControllerId, "SkillController") as SkillControllerTemplate;
 
