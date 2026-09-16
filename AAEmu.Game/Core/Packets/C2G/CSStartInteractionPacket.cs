@@ -63,12 +63,21 @@ public class CSStartInteractionPacket() : GamePacket(CSOffsets.CSStartInteractio
         {
             // The mate's own skills come from slave_interaction_skills; mounting is not one of them, and a
             // player has to be able to get on their mount whatever else the table says, so it leads the list.
+            // A row that asks for gear is answered from what the mate is actually wearing.
             var skills = SlaveInteractionRules.OfferedSkills(
-                SlaveGameData.Instance.GetInteractionSkills(mate.TemplateId));
+                SlaveGameData.Instance.GetInteractionSkills(mate.TemplateId),
+                slot => EquipKindInSlot(mate, slot));
             if (!skills.Contains(SkillsEnum.SlaveMounting))
                 skills.Insert(0, SkillsEnum.SlaveMounting);
 
             character.SendPacket(new SCNpcInteractionSkillListPacket(npcObjId, objId, extraInfo, pickId, mouseButton, modifierKeys, skills.ToArray()));
         }
+    }
+
+    /// <summary>What the mate's equip slot holds, as the item's slave equip kind, or null when it is empty.</summary>
+    private static uint? EquipKindInSlot(Mate mate, uint slotId)
+    {
+        var item = mate.Equipment?.Items?.FirstOrDefault(candidate => candidate != null && candidate.Slot == slotId);
+        return item == null ? null : SlaveGameData.Instance.GetItemSlaveEquipKind(item.TemplateId);
     }
 }
