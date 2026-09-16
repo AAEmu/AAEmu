@@ -86,6 +86,22 @@ public class DamageEffect : EffectTemplate
     public int PercentDamageResourceTypeId { get; set; } = (int)PercentDamageResourceType.CurrentHealth;
 
     public bool UseCurrentHealth { get; set; }
+
+    /// <summary>
+    /// <c>mana_damage</c> (6 rows): the hit drains the victim's mana instead of its health. Its skill is
+    /// 38807 활력 흡수, "소환수가 적대적인 대상의 활력을 15초동안 지속적으로 흡수하고 ... 마법 피해를
+    /// 입힙니다" — a summon absorbing the target's vitality, with <c>mana_steal_ratio</c> 200..900 handing
+    /// the drained mana back to the caster.
+    /// </summary>
+    public bool ManaDamage { get; set; }
+
+    /// <summary>
+    /// <c>cancel_protection</c>: whether the victim's damage immunity stops this hit. 't' on 10,923 of the
+    /// 11,001 rows and the column's own default, i.e. every ordinary hit; the 78 rows that clear it are the
+    /// mechanical ones that must land regardless — 신 오스트 투석기 발사, 홍염포 발사, 차원 격벽 파괴,
+    /// 고대 히라마 나무거인의 발구르기 and the other siege and device hits.
+    /// </summary>
+    public bool CancelProtection { get; set; } = true;
     public int TargetHealthMin { get; set; }
     public int TargetHealthMax { get; set; }
     public float TargetHealthMul { get; set; }
@@ -152,7 +168,10 @@ public class DamageEffect : EffectTemplate
         if (BuffRemoveOnRules.IsAutoAttack(source?.Skill?.Template?.Id ?? 0))
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.AutoAttack);
 
-        if (target.Buffs.CheckDamageImmune(DamageType))
+        // cancel_protection: 't' — 10,923 of the 11,001 rows, and the column's own default — keeps the
+        // victim's damage immunity exactly where it was. The 78 rows that clear it are the mechanical siege
+        // and device hits that have to land anyway.
+        if (CancelProtection && target.Buffs.CheckDamageImmune(DamageType))
         {
             target.BroadcastPacket(new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, 1, 0)
             {
@@ -492,7 +511,13 @@ public class DamageEffect : EffectTemplate
         if (!caster.CanAttack(trg) && !AllowsCanAttackBypass(castObj, caster, trg))
             return;
 
-        trg.ReduceCurrentHp(caster, value);
+        // mana_damage (6 rows): the hit drains the victim's mana rather than its health. It still counts as a
+        // hostile hit everywhere else — the packet, the aggro table, the events and the caster's stolen-mana
+        // refund all keep working off `value`.
+        if (ManaDamage)
+            trg.ReduceCurrentMp(caster, value);
+        else
+            trg.ReduceCurrentHp(caster, value);
         ((Unit)caster).SummarizeDamage += value;
 
         if (healthStolen > 0 || manaStolen > 0)
