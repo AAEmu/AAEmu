@@ -57,11 +57,22 @@ public class RestoreManaEffect : EffectTemplate
                          ((Unit)caster).LevelDps * levelMd + 0.5f);
         }
 
-        // TODO ...
+        // TODO: the MDps term stays out. MDps/MDpsInc (Unit.cs, spell_dps / spell_dps_inc) now exist, and
+        // the composition it belongs in is the caster's, but the factor is unresolved: the surrounding
+        // expression carries the level-derived `unk2` here, and `unk` is 0.15 per ability level over the
+        // ability's own level, which is a level curve rather than a spell-power coefficient. The 16 shipped
+        // rows that would exercise it author level_md 0 (restore-mana effects 9, 21, 32, 36, 37, 39, 41,
+        // 49, 61 …), so no shipped row's number moves either way until the factor is known.
         // min += (int)((caster.MDps + caster.MDpsInc) * 0.001f * unk2 + 0.5f);
         // max += (int)((caster.MDps + caster.MDpsInc) * 0.001f * unk2 + 0.5f);
 
-        var value = Random.Shared.Next(min, max);
+        var value = RestoreManaEffectRules.IsPercent(Percent, UseFixedValue)
+            // percent (144 of 261 rows): a share of the restored unit's maximum mana instead of the
+            // absolute composition above, for the same reason HealEffect's percent branch replaces its
+            // own — the rows author round shares and read as single-digit absolutes.
+            ? RestoreManaEffectRules.PercentAmount(trg.MaxMp, FixedMin, FixedMax, Random.Shared.Next(0, 101))
+            : Random.Shared.Next(min, max);
+
         trg.BroadcastPacket(new SCUnitHealedPacket(castObj, casterObj, trg.ObjId, HealType.Mana, HealHitType.HealHit, value), true);
         trg.Mp += value;
         trg.Mp = Math.Min(trg.Mp, trg.MaxMp);

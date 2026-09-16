@@ -1546,6 +1546,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             SlaveApplicable = reader.GetBoolean("slave_applicable", true),
                             IgnoreHealAggro = reader.GetBoolean("ignore_heal_aggro", true),
                             DpsMultiplier = reader.GetFloat("dps_multiplier", 0f),
+                            SelfTargetMul = reader.GetFloat("self_target_multiplier", 1f),
                             ActabilityGroupId = reader.GetUInt32("actability_group_id", 0),
                             ActabilityStep = reader.GetInt32("actability_step", 0),
                             ActabilityMul = reader.GetFloat("actability_mul", 0f),
