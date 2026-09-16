@@ -205,10 +205,10 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
     public EffectTemplate GetEffectTemplate(uint id)
     {
+        // No trace per lookup: this runs for every tick and every target of every effect and was the
+        // single largest block of lines in the server log.
         if (_types.TryGetValue(id, out var type))
         {
-            Logger.Trace($"Get Effect Template: type = {type.Type}, id = {type.ActualId}");
-
             if (_effects.TryGetValue(type.Type, out var effDict))
             {
                 return effDict.TryGetValue(type.ActualId, out var effTmpl) ? effTmpl : null;
@@ -224,8 +224,6 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
     public EffectTemplate GetEffectTemplate(uint id, string type)
     {
-        Logger.Trace($"Get Effect Template: type = {type}, id = {id}");
-
         if (_effects.TryGetValue(type, out var value))
         {
             if (value.TryGetValue(id, out var res))

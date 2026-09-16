@@ -70,7 +70,8 @@ public class BuffEffect : EffectTemplate
         uint abLevel = 1;
         if (caster is Character character)
         {
-            Logger.Warn($"BuffEffect {Buff.Id}");
+            // No log line here: this runs once per buff application, and Skill.Use already logs the cast
+            // ("Created SkillTlId …") with the skill the buff came from.
             if (source.Skill != null)
             {
                 var template = source.Skill.Template;
