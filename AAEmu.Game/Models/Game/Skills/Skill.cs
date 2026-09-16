@@ -1913,7 +1913,10 @@ public class Skill
         var damageType = (DamageType)Template.DamageTypeId;
         if (Attacker != null)
         {
-            var bullsEyeMod = Attacker.BullsEye / 1000f * 3f / 100f;
+            // Formula 24 (facets_for_bulls_eye, "bulls_eye * 105") off the victim's dodge, block and parry,
+            // over the attacker's facets. Without the row — or before the attacker has facets — the flat
+            // per-rating-point share stays exactly what it was.
+            var bullsEyeMod = CombatFormulaRules.BullsEyeAvoidanceReduction(Attacker.BullsEye, Attacker.Facets);
 
             //TODO Check immunity a better way!!!
             //if (target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(361)))

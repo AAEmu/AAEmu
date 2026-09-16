@@ -64,6 +64,13 @@ public class FormulaManager : Singleton<FormulaManager>, IFormulaManager
         return _wearableFormulas.TryGetValue(type, out var value) ? value : null;
     }
 
+    /// <summary>
+    /// Whether <see cref="Load"/> has built the tables. Callers that run in a process which never loads
+    /// content (a unit test) check this before <see cref="GetFormula"/>, which would otherwise read a null
+    /// dictionary.
+    /// </summary>
+    public bool Loaded => _formulas != null;
+
     public Formula GetFormula(uint id)
     {
         return _formulas.TryGetValue(id, out var value) ? value : null;
