@@ -1324,7 +1324,11 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             // resist id, and holdables.element_id, item_elements and armor_element_resists are
                             // not loaded. The field is parsed so the loader matches the table.
                             UseElementEffect = reader.GetBoolean("use_element_effect", false),
-                            FixedType = reader.GetBoolean("fixed_type", false)
+                            FixedType = reader.GetBoolean("fixed_type", false),
+                            UseCombatResource = reader.GetBoolean("use_combat_resource", false),
+                            CombatResourceMd = reader.GetFloat("combat_resource_md", 1f),
+                            CombatResourceLevelMd = reader.GetFloat("combat_resource_level_md", 1f),
+                            CombatResourceDpsMd = reader.GetFloat("combat_resource_dps_md", 1f)
                         };
                         _effects["DamageEffect"][template.Id] = template;
                     }

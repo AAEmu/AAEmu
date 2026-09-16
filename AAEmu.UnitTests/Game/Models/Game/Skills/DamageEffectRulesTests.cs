@@ -137,6 +137,58 @@ public class DamageEffectRulesTests
     }
 
     // ---------------------------------------------------------------------------------------------------
+    // weapon DPS and the combat resource term
+    // ---------------------------------------------------------------------------------------------------
+
+    [Test]
+    public async Task WeaponDps_PrefersTheWeaponItself()
+    {
+        // A weapon-flagged effect scales off the item: Character.Dps is weapon.Dps*1000 + Str/5*1000, so the
+        // composed attribute carries the caster's strength on top of the weapon's own value.
+        await Assert.That(DamageEffectRules.WeaponDps(24f, 30f)).IsEqualTo(24f);
+        await Assert.That(DamageEffectRules.WeaponDps(0.5f, 30f)).IsEqualTo(0.5f);
+    }
+
+    [Test]
+    public async Task WeaponDps_WithoutAWeaponInTheSlot_IsTheComposedAttribute()
+    {
+        // Every NPC and every unarmed unit: no weapon item, so the attribute it always read is still the
+        // input, to the bit.
+        foreach (var unitDps in new[] { 0f, 5f, 12.75f, 1000f })
+        {
+            await Assert.That(DamageEffectRules.WeaponDps(0f, unitDps)).IsEqualTo(unitDps);
+            await Assert.That(DamageEffectRules.WeaponDps(-1f, unitDps)).IsEqualTo(unitDps);
+        }
+    }
+
+    [Test]
+    public async Task CombatResourceTerm_ShippedRows_AddThePoolShare()
+    {
+        // 승자의 외침: 불꽃 (damage effect 13204, 근성 at 100 %) and its monster variant (13206, 1,250 %).
+        // level_md and dps_md are 0 on all 16 rows, so those two terms contribute nothing.
+        await Assert.That(DamageEffectRules.CombatResourceTerm(200, 1f, 50, 0f, 0f, 0f)).IsEqualTo(200f);
+        await Assert.That(DamageEffectRules.CombatResourceTerm(200, 12.5f, 50, 0f, 0f, 0f)).IsEqualTo(2500f);
+    }
+
+    [Test]
+    public async Task CombatResourceTerm_WithAnEmptyPool_AddsNothing()
+    {
+        // A caster holding none of the pool the skill declares: the term is exactly 0f even though the row
+        // authors a multiplier.
+        await Assert.That(DamageEffectRules.CombatResourceTerm(0, 12.5f, 50, 0f, 0f, 0f))
+            .IsEqualTo(DamageEffectRules.NeutralTerm);
+    }
+
+    [Test]
+    public async Task CombatResourceTerm_ComposesTheLevelAndDpsColumns()
+    {
+        // No shipped row sets either, but the three columns describe three terms and a row that does set
+        // them gets the term its column asks for.
+        await Assert.That(DamageEffectRules.CombatResourceTerm(0, 1f, 50, 2f, 0f, 0f)).IsEqualTo(100f);
+        await Assert.That(DamageEffectRules.CombatResourceTerm(0, 1f, 0, 0f, 40f, 0.5f)).IsEqualTo(20f);
+    }
+
+    // ---------------------------------------------------------------------------------------------------
     // critical bonus and the target buff tag pair
     // ---------------------------------------------------------------------------------------------------
 

@@ -118,6 +118,45 @@ public static class DamageEffectRules
     public static bool FiresProcs(bool fireProc) => fireProc;
 
     /// <summary>
+    /// The damage a weapon flag (<c>use_mainhand_weapon</c> 5,498 rows, <c>use_offhand_weapon</c> 31,
+    /// <c>use_ranged_weapon</c> 736) contributes: the equipped weapon's own DPS.
+    /// </summary>
+    /// <remarks>
+    /// <paramref name="unitDps"/> is the composed attribute — <c>Character.Dps</c> is
+    /// <c>weapon.Dps * 1000 + Str / 5 * 1000</c> before its bonuses and <c>Npc.Dps</c> adds <c>Str / 10</c> —
+    /// and it is only the fallback for a caster with no weapon item in the slot, which is every NPC and every
+    /// unarmed unit. A weapon-flagged effect means "scale off the weapon"; the stat contribution already has
+    /// its own term in the composition (<c>dps_inc_multiplier</c> over <c>melee_dps_inc</c> and its twins),
+    /// so reading the composed attribute there counted the caster's strength twice.
+    /// </remarks>
+    public static float WeaponDps(float weaponDps, float unitDps) => weaponDps > 0f ? weaponDps : unitDps;
+
+    /// <summary>
+    /// The extra damage a <c>use_combat_resource</c> effect adds (16 rows): the pool the skill declares at
+    /// <c>combat_resource_md</c>, plus a per-level and a per-DPS term.
+    /// </summary>
+    /// <remarks>
+    /// The multiplier is a share of the pool, and the tooltips say so: 승자의 외침: 불꽃 authors
+    /// <c>combat_resource_md</c> 1.0 on damage effect 13204 (skill 44269, <c>skills.combat_resource_id</c> 3 =
+    /// 근성, ceiling 5,000) and reads "추가로 중첩된 근성 수치 100% + 자신의 최대 생명력 1%~2%만큼의 추가 근접
+    /// 피해" — 100 % of the stacked 근성 plus the percent term — while its 12.5 twin (effect 13206, the
+    /// monster-hunting variant) reads "근성 수치의 1250% 추가 피해". The pool is the current value, so a
+    /// half-spent 근성 adds half as much.
+    ///
+    /// All 16 rows author 0 on <c>combat_resource_level_md</c> and <c>combat_resource_dps_md</c>, so the two
+    /// extra terms are 0f in the shipped content; they are composed because that is the shape the three
+    /// columns describe, and a row that does author them gets the term its own column asks for.
+    /// </remarks>
+    public static float CombatResourceTerm(
+        int resourceValue,
+        float resourceMd,
+        int level,
+        float levelMd,
+        float unitDps,
+        float dpsMd) =>
+        resourceValue * resourceMd + level * levelMd + unitDps * dpsMd;
+
+    /// <summary>
     /// The damage factor of a critical hit: the caster's typed critical bonus (<c>melee_critical_bonus</c> and
     /// its ranged and spell twins) plus this effect's own <c>critical_bonus</c>, less the victim's
     /// flexibility, over 100 — the expression this path already applied, with the effect's authored bonus

@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Housing;
@@ -122,6 +123,25 @@ public class DamageEffect : EffectTemplate
     /// grapple and stance-swap family (감아올리기, 크게 감아올리기), where a proc answer would be wrong.
     /// </summary>
     public bool FireProc { get; set; } = true;
+
+    /// <summary>
+    /// <c>use_combat_resource</c> (16 rows): the hit buys extra damage with the pool the skill declares
+    /// (<c>skills.combat_resource_id</c>), at <see cref="CombatResourceMd"/>. 승자의 외침 and its variants are
+    /// the only family behind it.
+    /// </summary>
+    public bool UseCombatResource { get; set; }
+
+    /// <summary>
+    /// <c>combat_resource_md</c>: the share of the pool added as damage, where 1.0 is 100 % (effect 13204)
+    /// and 12.5 is 1,250 % (effect 13206, the monster-hunting variant).
+    /// </summary>
+    public float CombatResourceMd { get; set; } = 1f;
+
+    /// <summary><c>combat_resource_level_md</c>: damage per caster level. 0 on all 16 rows.</summary>
+    public float CombatResourceLevelMd { get; set; } = 1f;
+
+    /// <summary><c>combat_resource_dps_md</c>: damage per point of the caster's mainhand DPS. 0 on all 16 rows.</summary>
+    public float CombatResourceDpsMd { get; set; } = 1f;
 
     /// <summary>
     /// <c>use_element_effect</c> (239 rows): scale the hit by <c>formulas</c> 65,
@@ -300,11 +320,14 @@ public class DamageEffect : EffectTemplate
         var weaponDamage = 0.0f;
 
         if (UseMainhandWeapon)
-            weaponDamage = ((Unit)caster).Dps * 0.001f; // TODO : Use only weapon value!
+            weaponDamage = DamageEffectRules.WeaponDps(
+                EquippedWeaponDps((Unit)caster, EquipmentItemSlot.Mainhand), ((Unit)caster).Dps * 0.001f);
         if (UseOffhandWeapon)
-            weaponDamage = ((Unit)caster).OffhandDps * 0.001f + weaponDamage;
+            weaponDamage = DamageEffectRules.WeaponDps(
+                EquippedWeaponDps((Unit)caster, EquipmentItemSlot.Offhand), ((Unit)caster).OffhandDps * 0.001f) + weaponDamage;
         if (UseRangedWeapon)
-            weaponDamage = ((Unit)caster).RangedDps * 0.001f + weaponDamage; // TODO : Use only weapon value!
+            weaponDamage = DamageEffectRules.WeaponDps(
+                EquippedWeaponDps((Unit)caster, EquipmentItemSlot.Ranged), ((Unit)caster).RangedDps * 0.001f) + weaponDamage;
 
         max = DpsMultiplier * weaponDamage + max;
 
@@ -453,8 +476,25 @@ public class DamageEffect : EffectTemplate
                 poolValue);
         }
 
-        min += percentDamage;
-        max += percentDamage;
+        // use_combat_resource (16 rows): the extra damage a skill buys with the pool it declares. 승자의
+        // 외침: 불꽃 authors combat_resource_md 1.0 against skills.combat_resource_id 3 (근성, ceiling 5,000)
+        // and reads "중첩된 근성 수치 100% + 자신의 최대 생명력 1%~2%만큼의 추가 근접 피해" — the pool share
+        // plus the percent term above. A skill that declares no pool, and a caster holding none, add 0f.
+        var combatResourceDamage = DamageEffectRules.NeutralTerm;
+        if (UseCombatResource)
+        {
+            var resourceId = source?.Skill?.Template?.CombatResourceId ?? 0;
+            combatResourceDamage = DamageEffectRules.CombatResourceTerm(
+                resourceId == 0 ? 0 : ((Unit)caster).GetCombatResource(resourceId),
+                CombatResourceMd,
+                ((Unit)caster).Level,
+                CombatResourceLevelMd,
+                ((Unit)caster).Dps * 0.001f,
+                CombatResourceDpsMd);
+        }
+
+        min += percentDamage + combatResourceDamage;
+        max += percentDamage + combatResourceDamage;
 
         var finalDamage = Random.Shared.Next(min, max);
 
@@ -756,8 +796,13 @@ public class DamageEffect : EffectTemplate
         }
     }
 
-    private static bool TryGetSkillCastIds(CastAction castObj, out uint skillId, out ushort tlId)
-    {
+    /// <summary>
+    /// The DPS of the weapon the caster has in <paramref name="slot"/>, or 0 when the slot holds no weapon.
+    /// </summary>
+    private static float EquippedWeaponDps(Unit caster, EquipmentItemSlot slot) =>
+        (caster.Equipment?.GetItemBySlot((int)slot) as Weapon)?.Dps ?? 0f;
+
+    private static bool TryGetSkillCastIds(CastAction castObj, out uint skillId, out ushort tlId)    {
         switch (castObj)
         {
             case CastSkill cs:
