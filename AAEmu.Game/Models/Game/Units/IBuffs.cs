@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Char;
@@ -20,6 +20,8 @@ public interface IBuffs
     uint GetMissingRequiredBuffTag(BuffTemplate candidate);
     void BroadcastBuffImmune(BaseUnit caster, CastAction castObj, SkillCaster casterObj);
     IEnumerable<Buff> GetAbsorptionEffects();
+    IEnumerable<Buff> GetDamageReflectionEffects();
+    IEnumerable<Buff> GetManaShieldEffects();
     void GetAllBuffs(List<Buff> goodBuffs, List<Buff> badBuffs, List<Buff> hiddenBuffs, bool includeAllPassives);
     int GetBuffCountById(uint buffId);
     IEnumerable<Buff> GetBuffsRequiring(uint buffId);

@@ -12,6 +12,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Units.Static;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
@@ -411,7 +412,7 @@ public class DamageEffect : EffectTemplate
         if (!caster.CanAttack(trg) && !AllowsCanAttackBypass(castObj, caster, trg))
             return;
 
-        trg.ReduceCurrentHp(caster, value);
+        trg.ReduceCurrentHp(caster, value, KillReason.Damage, DamageType);
         ((Unit)caster).SummarizeDamage += value;
 
         if (healthStolen > 0 || manaStolen > 0)

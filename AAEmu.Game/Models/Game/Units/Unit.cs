@@ -729,7 +729,13 @@ public class Unit : BaseUnit, IUnit
     /// <param name="attacker"></param>
     /// <param name="value"></param>
     /// <param name="killReason"></param>
-    public virtual void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage)
+    /// <param name="damageType">
+    /// What kind of hit this is. The damage-type reflection flags (<c>reflection_melee</c>,
+    /// <c>reflection_spell</c>, <c>reflection_ranged</c>, <c>reflection_siege</c>, <c>reflection_heal</c>)
+    /// are read off it, and a caller that does not name one is treated as a melee hit — which is what the
+    /// untyped callers already are (a GM command, collision damage, a plot's self-damage).
+    /// </param>
+    public virtual void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage, DamageType damageType = DamageType.Melee)
     {
         if (Hp <= 0)
             return;
@@ -746,11 +752,110 @@ public class Unit : BaseUnit, IUnit
             }
         }
 
+        // reflection_*: the victim's reflection buffs send a share of what is left back, and may reduce
+        // what the victim itself takes. Skipped for the hit a reflection just dealt, so two thorn shields
+        // cannot bounce one hit between them forever.
+        if (!ResolvingReflection)
+            value = ApplyDamageReflection(attacker, value, damageType);
+
+        // mana_shield_ratio: what is left is charged to mana before it is charged to health.
+        value = ApplyManaShield(value);
+
         Hp = Math.Max(Hp - value, 0);
 
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
 
         PostUpdateCurrentHp(attacker, oldHp, Hp, killReason);
+    }
+
+    /// <summary>
+    /// Set for the duration of the hit a reflection deals back, so the unit receiving it does not reflect
+    /// the reflection.
+    /// </summary>
+    [ThreadStatic]
+    private static bool ResolvingReflection;
+
+    /// <summary>
+    /// Runs this unit's <c>reflection_*</c> buffs against one incoming hit and returns the damage that is
+    /// still owed to this unit's health.
+    /// </summary>
+    /// <remarks>
+    /// The reflected share is applied straight to the attacker's health: its armour and resistance were
+    /// already spent on the original hit, and the content that names the flags says so — 23418 불꽃 장막
+    /// 테스트 공격자 무시 reflects "상대방의 방어를 무시하고" (ignoring the opponent's defence). The
+    /// attacker's own absorption, mana shield and death path all still run, because the reflected hit goes
+    /// through <see cref="ReduceCurrentHp"/> like any other.
+    /// </remarks>
+    private int ApplyDamageReflection(BaseUnit attacker, int value, DamageType damageType)
+    {
+        if (value <= 0 || attacker is not Unit attackerUnit || ReferenceEquals(attackerUnit, this))
+            return value;
+
+        var effects = Buffs.GetDamageReflectionEffects().ToList();
+        if (effects.Count == 0)
+            return value;
+
+        var damage = value;
+        foreach (var effect in effects)
+        {
+            var template = effect.Template;
+            if (template == null)
+                continue;
+
+            if (!DamageReflectionRules.AppliesTo(
+                    template.ReflectionMelee,
+                    template.ReflectionSpell,
+                    template.ReflectionSiege,
+                    template.ReflectionRanged,
+                    template.ReflectionHeal,
+                    damageType))
+                continue;
+
+            if (!DamageReflectionRules.Rolls(
+                    template.ReflectionChance,
+                    Random.Shared.Next(DamageReflectionRules.ChanceDenominator)))
+                continue;
+
+            var reflected = DamageReflectionRules.ReflectedDamage(damage, template.ReflectionTargetRatio);
+            damage = DamageReflectionRules.DefenderDamage(damage, template.ReflectionRatio);
+
+            if (reflected <= 0)
+                continue;
+
+            ResolvingReflection = true;
+            try
+            {
+                attackerUnit.ReduceCurrentHp(this, reflected, KillReason.Damage, damageType);
+            }
+            finally
+            {
+                ResolvingReflection = false;
+            }
+        }
+
+        return damage;
+    }
+
+    /// <summary>
+    /// Charges as much of <paramref name="value"/> to mana as the unit's <c>mana_shield_ratio</c> buffs
+    /// cover, and returns what is still owed to health.
+    /// </summary>
+    private int ApplyManaShield(int value)
+    {
+        if (value <= 0 || Mp <= 0)
+            return value;
+
+        var shields = Buffs.GetManaShieldEffects().ToList();
+        if (shields.Count == 0)
+            return value;
+
+        var ratio = ManaShieldRules.StrongestRatio(shields.Select(buff => buff.Template.ManaShieldRatio));
+        var fromMana = ManaShieldRules.ChargedToMana(value, ratio, Mp);
+        if (fromMana <= 0)
+            return value;
+
+        Mp -= fromMana;
+        return value - fromMana;
     }
 
     /// <summary>

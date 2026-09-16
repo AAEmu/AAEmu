@@ -1285,6 +1285,36 @@ public class Buffs : IBuffs
         return effects.Where(e => e.Template.DamageAbsorptionTypeId > 0);
     }
 
+    /// <summary>
+    /// The active buffs that can reflect an incoming hit (<c>reflection_chance</c>, 77 rows). A row with no
+    /// chance never reflects, which is what keeps the 30,577 rows that leave the column at 0 out of the
+    /// damage path entirely.
+    /// </summary>
+    public IEnumerable<Buff> GetDamageReflectionEffects()
+    {
+        IEnumerable<Buff> effects;
+        lock (_lock)
+        {
+            effects = _effects.ToArray();
+        }
+
+        return effects.Where(e => e.Template != null && e.Template.ReflectionChance > 0);
+    }
+
+    /// <summary>
+    /// The active buffs that pay for damage out of mana (<c>mana_shield_ratio</c>, 11 rows).
+    /// </summary>
+    public IEnumerable<Buff> GetManaShieldEffects()
+    {
+        IEnumerable<Buff> effects;
+        lock (_lock)
+        {
+            effects = _effects.ToArray();
+        }
+
+        return effects.Where(e => e.Template != null && e.Template.ManaShieldRatio > 0);
+    }
+
     public bool HasEffectsMatchingCondition(Func<Buff, bool> predicate)
     {
         // Create a copy of the list of effects to avoid changing the list while iterating
