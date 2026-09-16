@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Units;
+﻿using AAEmu.Game.Models.Game.Units;
 using AAEmu.UnitTests.Utils.Mocks;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Units;
@@ -12,6 +12,16 @@ namespace AAEmu.UnitTests.Game.Models.Game.Units;
 /// </summary>
 public class UnitAntiKindMultiplierAttributeTests
 {
+    private EmptySkillManagerScope _skillManagerScope;
+
+    // Applying a row goes through BuffTemplate.Start, which asks SkillManager for the buff tag tables;
+    // with no manager installed the singleton guard throws instead of answering "no tags".
+    [Before(Test)]
+    public void InstallEmptySkillManager() => _skillManagerScope = new EmptySkillManagerScope();
+
+    [After(Test)]
+    public void RestoreSkillManager() => _skillManagerScope?.Dispose();
+
     private static CharacterMock CreateUnit() => new() { ObjId = 1, Hp = 1000, MaxHp = 1000 };
 
     [Test]

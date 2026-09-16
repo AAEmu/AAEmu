@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
@@ -220,42 +220,5 @@ public class AntiKindDamageMultiplierTests
     {
         public override int Armor => 0;
         public override int MagicResistance => 0;
-    }
-
-    /// <summary>
-    /// An NPC victim runs the aggro path (Npc.OnDamageReceived), and Unit.AddUnitAggro asks
-    /// <c>SkillManager</c> for the buffs of the NoFight/Returning tags. An empty tag table answers "no
-    /// such tag", which is what these tests want, and the previous singleton is put back afterwards.
-    /// </summary>
-    private sealed class EmptySkillManagerScope : IDisposable
-    {
-        private static readonly FieldInfo InstanceField =
-            typeof(Singleton<SkillManager>).GetField("s_instance", BindingFlags.Static | BindingFlags.NonPublic)!;
-
-        private readonly object _previous;
-
-        public EmptySkillManagerScope()
-        {
-            var skillManager = new SkillManager(Mock.Of<IAnimationManager>().Object, Mock.Of<IPlotManager>().Object);
-            SetField(skillManager, "_buffTags", new Dictionary<uint, List<uint>>());
-            _previous = InstanceField.GetValue(null);
-            InstanceField.SetValue(null, skillManager);
-        }
-
-        public void Dispose() => InstanceField.SetValue(null, _previous);
-
-        private static void SetField(object target, string name, object value)
-        {
-            for (var type = target.GetType(); type != null; type = type.BaseType)
-            {
-                var field = type.GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
-                if (field == null)
-                    continue;
-                field.SetValue(target, value);
-                return;
-            }
-
-            throw new InvalidOperationException($"Missing field {name}");
-        }
     }
 }
