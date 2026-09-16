@@ -17,6 +17,7 @@ public class DamageModifierGameData : Singleton<DamageModifierGameData>, IGameDa
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private Dictionary<uint, List<BonusTemplate>> __damageModifiers;
+    private Dictionary<uint, List<BonusTemplate>> __healModifiers;
 
     public List<BonusTemplate> GetModifiersForBuff(uint ownerId)
     {
@@ -58,6 +59,41 @@ public class DamageModifierGameData : Singleton<DamageModifierGameData>, IGameDa
             if (unknownIds.Count > 0)
                 Logger.Warn(UnitAttributeLoadRules.Warning("unit_modifiers (owner_type='DamageEffect')", unknownIds));
         }
+
+        // 160 rows, 158 of them attribute 185 heal_critical_mul = -2000: the heal effects authored never to
+        // crit. Attached to the HealEffect templates in PostLoad, the same shape as the damage rows above.
+        __healModifiers = [];
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type = 'HealEffect'";
+            command.Prepare();
+            var attributeIds = new List<long>();
+            using (var sqliteReader = command.ExecuteReader())
+            using (var reader = new SQLiteWrapperReader(sqliteReader))
+            {
+                while (reader.Read())
+                {
+                    var ownerId = reader.GetUInt32("owner_id");
+                    var attributeId = reader.GetUInt32("unit_attribute_id");
+                    attributeIds.Add(attributeId);
+                    var template = new BonusTemplate
+                    {
+                        Attribute = (UnitAttribute)attributeId,
+                        ModifierType = (UnitModifierType)reader.GetUInt32("unit_modifier_type_id"),
+                        Value = reader.GetInt64("value"),
+                        LinearLevelBonus = reader.GetInt32("linear_level_bonus")
+                    };
+
+                    if (!__healModifiers.ContainsKey(ownerId))
+                        __healModifiers.Add(ownerId, []);
+                    __healModifiers[ownerId].Add(template);
+                }
+            }
+
+            var unknownIds = UnitAttributeLoadRules.UnknownIds(attributeIds);
+            if (unknownIds.Count > 0)
+                Logger.Warn(UnitAttributeLoadRules.Warning("unit_modifiers (owner_type='HealEffect')", unknownIds));
+        }
     }
 
     public void PostLoad()
@@ -68,6 +104,15 @@ public class DamageModifierGameData : Singleton<DamageModifierGameData>, IGameDa
             if (de != null)
             {
                 de.Bonuses = mod.Value;
+            }
+        }
+
+        foreach (var mod in __healModifiers)
+        {
+            var he = SkillManager.Instance.GetEffectTemplate(mod.Key, "HealEffect") as HealEffect;
+            if (he != null)
+            {
+                he.Bonuses = mod.Value;
             }
         }
     }
