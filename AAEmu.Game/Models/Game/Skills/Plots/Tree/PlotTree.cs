@@ -107,27 +107,13 @@ public class PlotTree(uint plotId)
                     // every gun-path cast took the no-target fail branch even with hostiles in range.
                     FlushExecutionQueue(executeQueue, state);
 
-                    foreach (var child in node.Children)
+                    foreach (var child in PlotBranchRules.SelectChildren(node.Children, condition, Random.Shared.Next))
                     {
-                        if (condition != child.ParentNextEvent.Fail)
+                        if (child.ParentNextEvent?.PerTarget ?? false)
                         {
-                            if (child.ParentNextEvent?.PerTarget ?? false)
+                            foreach (var target in item.targetInfo.EffectedTargets)
                             {
-                                foreach (var target in item.targetInfo.EffectedTargets)
-                                {
-                                    var targetInfo = new PlotTargetInfo(item.targetInfo.Source, target);
-                                    queue.Enqueue(
-                                        (
-                                        child,
-                                        now.AddMilliseconds(child.ComputeDelayMs(state, targetInfo)),
-                                        targetInfo
-                                        )
-                                    );
-                                }
-                            }
-                            else
-                            {
-                                var targetInfo = new PlotTargetInfo(item.targetInfo.Source, item.targetInfo.Target);
+                                var targetInfo = new PlotTargetInfo(item.targetInfo.Source, target);
                                 queue.Enqueue(
                                     (
                                     child,
@@ -136,6 +122,17 @@ public class PlotTree(uint plotId)
                                     )
                                 );
                             }
+                        }
+                        else
+                        {
+                            var targetInfo = new PlotTargetInfo(item.targetInfo.Source, item.targetInfo.Target);
+                            queue.Enqueue(
+                                (
+                                child,
+                                now.AddMilliseconds(child.ComputeDelayMs(state, targetInfo)),
+                                targetInfo
+                                )
+                            );
                         }
                     }
                 }
@@ -220,6 +217,7 @@ public class PlotTree(uint plotId)
         Queue<(PlotNode node, DateTime timestamp, PlotTargetInfo targetInfo)> queue,
         bool enqueueDelayed)
     {
+        var eligible = new List<PlotNode>(parent.Children?.Count ?? 0);
         foreach (var child in parent.Children ?? [])
         {
             if (child?.Event == null || child.ParentNextEvent == null)
@@ -229,6 +227,11 @@ public class PlotTree(uint plotId)
             if (condition == child.ParentNextEvent.Fail)
                 continue;
 
+            eligible.Add(child);
+        }
+
+        foreach (var child in PlotBranchRules.SelectEligible(eligible, Random.Shared.Next))
+        {
             var childInfo = new PlotTargetInfo(targetInfo.Source, targetInfo.Target);
             var delay = child.ComputeDelayMs(state, childInfo);
             if (delay > 0)

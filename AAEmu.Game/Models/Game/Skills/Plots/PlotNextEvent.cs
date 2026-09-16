@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Plots.Tree;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -24,6 +24,12 @@ public class PlotNextEvent
     public bool CancelOnBigHit { get; set; }
     public bool UseExeTime { get; set; }
     public bool Fail { get; set; }
+
+    /// <summary>
+    /// plot_next_events.weight — a lottery ticket among this edge's siblings that share the same fail flag.
+    /// 0 means the row was never weighted and always fires; see <see cref="Tree.PlotBranchRules"/>.
+    /// </summary>
+    public int Weight { get; set; }
 
     public static int AnimCsTimeMs(IEnumerable<PlotEventEffect> effects)
     {

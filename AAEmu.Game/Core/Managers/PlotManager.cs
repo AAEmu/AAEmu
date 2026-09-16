@@ -263,6 +263,7 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                         template.CancelOnBigHit = reader.GetBoolean("cancel_on_big_hit", true);
                         template.UseExeTime = reader.GetBoolean("use_exe_time", true);
                         template.Fail = reader.GetBoolean("fail", true);
+                        template.Weight = reader.GetInt32("weight", 0);
                         var plotEvent = _eventTemplates[id];
                         if (plotEvent.NextEvents.Count > 0)
                         {
