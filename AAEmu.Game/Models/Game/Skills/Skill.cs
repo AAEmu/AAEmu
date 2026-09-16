@@ -447,22 +447,6 @@ public class Skill
             castTime = (int)(unit.CastTimeMul * unit.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.CastTime, Template.CastingTime));
         castTime = (int)Math.Round(castTime * CastTimeMultiplier);
 
-        /*
-        // TODO: Replace Old code
-        else if (character != null && (Id == 2 || Id == 3 || Id == 4) && !caster.IsAutoAttack)
-        {
-            character.IsAutoAttack = true; // enable auto attack
-            character.SkillId = Id;
-            character.TlId = TlId;
-            character.BroadcastPacket(new SCSkillStartedPacket(Id, 0, casterCaster, targetCaster, this, skillObject)
-            {
-                CastTime = Template.CastingTime
-            }, true);
-            character.AutoAttackTask = new MeleeCastTask(this, character, casterCaster, target, targetCaster, skillObject);
-            TaskManager.Instance.Schedule(character.AutoAttackTask, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1300));
-        }
-        */
-
         if (castTime > 0)
         {
             // Abort any in-flight cast on this unit. Client often StopCastings first, but a second

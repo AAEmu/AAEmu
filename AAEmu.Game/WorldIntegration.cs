@@ -63,9 +63,21 @@ public sealed record WorldNpcAggroRequest(
     CastAction CastAction);
 
 /// <summary>
-/// the only sim authority (NPCs, movement, combat). Game is lobby + CS/SC glue only.
-/// Standalone Game.exe: ZoneAuthority false — all hooks no-op.
+/// The hooks the World process publishes for the Game-side managers to reach the zone hosts.
 /// </summary>
+/// <remarks>
+/// <para>
+/// Under <see cref="ZoneAuthority"/> the World process is the game server: it runs the CS/SC protocol and
+/// computes every skill number, while the zone dedicate owns AI, movement and aggro. A player cast is run
+/// locally (<c>CSStartSkillPacket.HandleZoneAuthorityCast</c> calls <c>Skill.Use</c>) and the timeline is
+/// mirrored to the zone; a zone-driven NPC cast arrives as <c>ZWStartSkill</c> and is run through the same
+/// pipeline. The "Game must not Skill.Use" reading of the old comments here was never what the deployed
+/// code does.
+/// </para>
+/// <para>
+/// Standalone Game.exe: ZoneAuthority false — all hooks no-op.
+/// </para>
+/// </remarks>
 public static class WorldIntegration
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
@@ -144,8 +156,13 @@ public static class WorldIntegration
 
     /// <summary>
     /// Relay player cast to zone as WZSkillStarted (0x02B). True if a ZoneLoaded connection accepted it.
-    /// Args: skillId, tl, caster, target, ct, skillObject. Under ZoneAuthority, Game must not Skill.Use.
+    /// Args: skillId, tl, caster, target, ct, skillObject.
     /// </summary>
+    /// <remarks>
+    /// A mirror of a cast the World process has already run — <c>CSStartSkillPacket.HandleZoneAuthorityCast</c>
+    /// calls <c>Skill.Use</c> and this tells the zone which timeline to play so its view of the cast agrees
+    /// with World's numbers. It does not replace the cast, and the zone does not compute the effects.
+    /// </remarks>
     public static Func<uint, ushort, SkillCaster, SkillCastTarget, uint, SkillObject, bool> RelaySkillStartedToZone { get; set; }
 
     /// <summary>Relay WZSkillFired (0x02C). True if accepted.</summary>
@@ -159,8 +176,15 @@ public static class WorldIntegration
     /// <summary>
     /// Relay WZUnitDamaged (0x030) after World authors SCUnitDamaged.
     /// Args: skillId, tl, caster, target, damage, absorbed, casterBc, targetBc.
-    /// Not wired: UnitDamaged WZ body is incomplete — use <see cref="RelayUnitPointsToZone"/> instead.
     /// </summary>
+    /// <remarks>
+    /// Wired by <c>AAEmu.World/Program.cs</c>, which sends WZUnitDamaged and then the damage handoff the
+    /// zone needs to answer it (WZTargetChanged, WZUpdateAggro, WZCombatEngaged). The old note here said
+    /// this was not wired and that <see cref="RelayUnitPointsToZone"/> was the only channel;
+    /// <c>DamageEffect</c> has relayed this hook since, and reaches for
+    /// <see cref="RelayUnitPointsToZone"/> only when the damage cannot be attributed to a skill cast (or
+    /// when <c>AAEMU_WZ_UNIT_DAMAGED=0</c>), because sending both for one hit applies it twice on the zone.
+    /// </remarks>
     public static Action<uint, ushort, SkillCaster, SkillCastTarget, int, int, uint, uint> RelayUnitDamagedToZone { get; set; }
 
     /// <summary>

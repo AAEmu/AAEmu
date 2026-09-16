@@ -23,9 +23,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded;
 
-    // Initialized at declaration so a SkillManager.Load() failure (the 10.0.2.13 DB still surfaces
-    // load errors) leaves these EMPTY rather than null — runtime Get*/lookup paths (e.g.
-    // GetBuffTriggerTemplates during HousingManager.Create) must not NullRef and crash the server.
+    // Initialized at declaration so the lookup paths (e.g. GetBuffTriggerTemplates during
+    // HousingManager.Create) answer "no row" instead of NullRef-ing before Load has run.
     private Dictionary<uint, SkillTemplate> _skills = [];
     private readonly Dictionary<string, uint> _constSkillTypes = [];
     private Dictionary<uint, DefaultSkill> _defaultSkills = [];
@@ -953,7 +952,6 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             CollidePushable = reader.GetBoolean("collide_pushable", false),
                         };
 
-                        // _effects["Buff"][template.Id] = template;
                         _buffs[template.Id] = template;
                     }
                 }
