@@ -1,6 +1,8 @@
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.UnitTests.Utils;
 
 namespace AAEmu.UnitTests.Utils.Mocks;
 
@@ -35,6 +37,11 @@ public static class TestBuffModifier
             AbLevel = 1
         };
 
+        // BuffTemplate.Start resolves SkillManager.Instance for the buff's grant set (buff_skills and
+        // friends), so that singleton has to exist even when the test only cares about the modifier rows.
+        // Scope a bare manager for the call and hand back whatever was there before.
+        using var skillsScope = new SingletonScope<SkillManager>(
+            new SkillManager(Mock.Of<IAnimationManager>().Object, Mock.Of<IPlotManager>().Object));
         template.Start(owner, owner, buff);
     }
 }
