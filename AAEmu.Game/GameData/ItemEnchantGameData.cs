@@ -1,6 +1,7 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Utils.DB;
 
@@ -1002,15 +1003,18 @@ public class ItemEnchantGameData : Singleton<ItemEnchantGameData>, IGameDataLoad
             command.CommandText = "SELECT * FROM item_rnd_attr_unit_modifier_groups";
             command.Prepare();
 
+            var attributeIds = new List<long>();
             using var sqliteReader = command.ExecuteReader();
             using var reader = new SQLiteWrapperReader(sqliteReader);
             while (reader.Read())
             {
+                var attributeId = reader.GetInt32("unit_attribute_id", 0);
+                attributeIds.Add(attributeId);
                 var group = new ItemRndAttrUnitModifierGroup
                 {
                     Id = reader.GetUInt32("id"),
                     Weight = reader.GetInt32("weight", 0),
-                    UnitAttributeId = (short)reader.GetInt32("unit_attribute_id", 0),
+                    UnitAttributeId = (short)attributeId,
                     UnitModifierTypeId = reader.GetByte("unit_modifier_type_id", 0),
                     GroupSetId = reader.GetUInt32("item_rnd_attr_unit_modifier_group_set_id", 0),
                     FixedAttr = reader.GetBoolean("fixed_attr", true)
@@ -1023,6 +1027,10 @@ public class ItemEnchantGameData : Singleton<ItemEnchantGameData>, IGameDataLoad
                 }
                 list.Add(group);
             }
+
+            var unknownIds = UnitAttributeLoadRules.UnknownIds(attributeIds);
+            if (unknownIds.Count > 0)
+                Logger.Warn(UnitAttributeLoadRules.Warning("item_rnd_attr_unit_modifier_groups", unknownIds));
         }
 
         using (var command = connection.CreateCommand())

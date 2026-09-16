@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Merchant;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
@@ -1029,6 +1030,7 @@ public class NpcManager(
             {
                 command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type='Npc'";
                 command.Prepare();
+                var attributeIds = new List<long>();
                 using (var sqliteDataReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteDataReader))
                 {
@@ -1037,16 +1039,22 @@ public class NpcManager(
                         var npcId = reader.GetUInt32("owner_id");
                         if (!Templates.TryGetValue(npcId, out var npc))
                             continue;
+                        // 10.0.2.13: unit_attribute_id reaches 256-261; UnitAttribute is uint-backed, read directly (no clamp/truncation).
+                        var attributeId = reader.GetUInt32("unit_attribute_id");
+                        attributeIds.Add(attributeId);
                         var template = new BonusTemplate
                         {
-                            // 10.0.2.13: unit_attribute_id reaches 256-261; UnitAttribute is uint-backed, read directly (no clamp/truncation).
-                            Attribute = (UnitAttribute)reader.GetUInt32("unit_attribute_id"), ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id"),
+                            Attribute = (UnitAttribute)attributeId, ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id"),
                             Value = reader.GetInt64("value"),
                             LinearLevelBonus = reader.GetInt32("linear_level_bonus")
                         };
                         npc.Bonuses.Add(template);
                     }
                 }
+
+                var unknownIds = UnitAttributeLoadRules.UnknownIds(attributeIds);
+                if (unknownIds.Count > 0)
+                    Logger.Warn(UnitAttributeLoadRules.Warning("unit_modifiers (owner_type='Npc')", unknownIds));
             }
 
             // Load initial Npc buffs
