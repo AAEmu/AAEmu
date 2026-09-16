@@ -60,13 +60,12 @@ public class WorldContentFilterPackTests
 
         await Assert.That(ReadUInt16(data, ref offset)).IsEqualTo((ushort)2);
 
-        await Assert.That(data[offset++]).IsEqualTo((byte)0);
+        // no id on the wire: the category name is what the client matches on
         await Assert.That(ReadString(data, ref offset)).IsEqualTo("craft");
         await Assert.That(ReadUInt16(data, ref offset)).IsEqualTo((ushort)2);
         await Assert.That(ReadString(data, ref offset)).IsEqualTo("Open_1");
         await Assert.That(ReadString(data, ref offset)).IsEqualTo("epherium");
 
-        await Assert.That(data[offset++]).IsEqualTo((byte)15);
         await Assert.That(ReadString(data, ref offset)).IsEqualTo("achievement");
         await Assert.That(ReadUInt16(data, ref offset)).IsEqualTo((ushort)1);
         await Assert.That(ReadString(data, ref offset)).IsEqualTo("first_steps");
@@ -85,7 +84,6 @@ public class WorldContentFilterPackTests
         var offset = 0;
 
         await Assert.That(ReadUInt16(data, ref offset)).IsEqualTo((ushort)1);
-        await Assert.That(data[offset++]).IsEqualTo((byte)0);
         await Assert.That(ReadString(data, ref offset)).IsEqualTo("craft");
     }
 
@@ -101,11 +99,19 @@ public class WorldContentFilterPackTests
         var offset = 0;
 
         await Assert.That(ReadUInt16(data, ref offset)).IsEqualTo((ushort)1);
-        await Assert.That(data[offset++]).IsEqualTo((byte)0);
         await Assert.That(ReadString(data, ref offset)).IsEqualTo("craft");
         await Assert.That(ReadUInt16(data, ref offset)).IsEqualTo((ushort)1); // only the name that fits
         await Assert.That(ReadString(data, ref offset)).IsEqualTo("Open_1");
         await Assert.That(offset).IsEqualTo(data.Length);
+    }
+
+    [Test]
+    public async Task CategoryNameOf_ReturnsTheClientsSpelling()
+    {
+        await Assert.That(WorldContentFilterPack.CategoryNameOf(0)).IsEqualTo("craft");
+        await Assert.That(WorldContentFilterPack.CategoryNameOf(7)).IsEqualTo("quest");
+        await Assert.That(WorldContentFilterPack.CategoryNameOf(17)).IsEqualTo("festival_zone");
+        await Assert.That(WorldContentFilterPack.CategoryNameOf(200)).IsNull();
     }
 
     [Test]

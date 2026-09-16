@@ -9,8 +9,9 @@ namespace AAEmu.Game.Models.Game.World;
 /// </summary>
 /// <remarks>
 /// Layout, taken from the client's own reader: <c>u16</c> category count, then per category a <c>u8</c>
-/// category id, a <c>u8</c> name length with the name, and a <c>u16</c> entry count, then per entry a
-/// <c>u8</c> name length with the name. The category ids are the client's own numbering, not ours.
+/// name length with the category's name and a <c>u16</c> entry count, then per entry a <c>u8</c> name
+/// length with the name. There is **no id on the wire**: the client matches the group by the category
+/// name alone, against its own registration table, so the names sent have to be its spellings.
 /// </remarks>
 public static class WorldContentFilterPack
 {
@@ -38,6 +39,12 @@ public static class WorldContentFilterPack
     ];
 
     public static int CategoryCount => CategoryNames.Length;
+
+    /// <summary>The client's own spelling of a category id — the only thing the wire carries for it.</summary>
+    public static string CategoryNameOf(byte categoryId)
+    {
+        return categoryId < CategoryNames.Length ? CategoryNames[categoryId] : null;
+    }
 
     /// <summary>
     /// Content type names in the table that are not merely the client's name without its underscores.
@@ -108,7 +115,6 @@ public static class WorldContentFilterPack
             if (category.Length is 0 or > byte.MaxValue)
                 continue;
 
-            body.WriteByte(group.CategoryId);
             body.WriteByte((byte)category.Length);
             body.Write(category);
 

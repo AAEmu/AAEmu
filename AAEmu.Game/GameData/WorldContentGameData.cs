@@ -61,7 +61,9 @@ public class WorldContentGameData : Singleton<WorldContentGameData>, IGameDataLo
                     group = new WorldContentGroup
                     {
                         CategoryId = categoryId.Value,
-                        CategoryName = type.Trim().ToLowerInvariant()
+                        // The client matches the group by this name, so it has to be its spelling, not
+                        // the table's: the table writes QuestContext where the client knows quest.
+                        CategoryName = WorldContentFilterPack.CategoryNameOf(categoryId.Value) ?? type.Trim().ToLowerInvariant()
                     };
                     _groupsById[categoryId.Value] = group;
                     _groups.Add(group);
