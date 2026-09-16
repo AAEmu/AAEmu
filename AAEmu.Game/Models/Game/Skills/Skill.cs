@@ -865,7 +865,7 @@ public class Skill
         unit.SkillTask = null;
 
         ConsumeMana(caster);
-        unit.Cooldowns.AddCooldown(Template.Id, (uint)Template.CooldownTime);
+        ApplyCooldownOrCharge(unit);
 
         // if (Id == 2 || Id == 3 || Id == 4)
         // {
@@ -2034,7 +2034,28 @@ AlwaysHit:
         ApplyGlobalCooldown(unit);
         // Skill cooldown is also applied in DoPlotEnd; applying early matches Cast() and blocks re-cast spam.
         if (Template.CooldownTime > 0)
-            unit.Cooldowns.AddCooldown(Template.Id, (uint)Template.CooldownTime);
+            ApplyCooldownOrCharge(unit);
+    }
+
+    /// <summary>
+    /// Arms the cooldown of a finished cast, unless the skill paces itself with charges.
+    /// </summary>
+    /// <remarks>
+    /// A skill with <c>skills.charge_count</c> (26 rows) may be fired once per charge before it locks
+    /// out: the cast that finds a charge spends it and arms nothing, so the pool is what limits the
+    /// burst, and the cast that finds the pool empty arms the skill's own cooldown. A charge comes back
+    /// on <c>skills.charge_cooldown_time</c> - 38893 빛의 사격 is 3 charges at 16000 ms against a 9000 ms
+    /// cooldown - which is the same column the charge_cooldown (158) effect overrides. See
+    /// <see cref="ChargeSkillRules"/>.
+    /// </remarks>
+    private void ApplyCooldownOrCharge(Unit unit)
+    {
+        if (Template.ChargeCount > 0 &&
+            unit.Charges.TrySpend(Template.Id, Template.ChargeCount, (uint)Template.ChargeCooldownTime,
+                DateTime.UtcNow))
+            return;
+
+        unit.Cooldowns.AddCooldown(Template.Id, (uint)Template.CooldownTime);
     }
 
     /// <summary>

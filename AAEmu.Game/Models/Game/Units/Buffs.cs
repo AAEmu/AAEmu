@@ -461,6 +461,45 @@ public class Buffs : IBuffs
         AddBuff(new Buff(GetOwner(), caster, casterObj, buff, null, DateTime.UtcNow));
     }
 
+    /// <summary>
+    /// Moves this unit's crowd-control tolerance counters onto another rung of their ladder.
+    /// </summary>
+    /// <remarks>
+    /// Backs the change_buff_tolerance_step special effect (type 157). A counter belongs to one
+    /// <c>buff_tolerances</c> family and its <see cref="BuffToleranceCounter.CurrentStep"/> is the rung
+    /// the family's next application advances from, so this is the only write that reaches the ladder
+    /// outside <see cref="BuffToleranceRules.Decide"/>. See <see cref="BuffToleranceStepRules"/> for why
+    /// the effect's two values are read as "which family" and "which rung".
+    /// </remarks>
+    /// <param name="toleranceId">The family to move, or 0 for every family the unit is tracking.</param>
+    /// <param name="stepIndex">The rung to place it on, 0 being the first; clamped to the ladder.</param>
+    /// <returns>How many counters moved.</returns>
+    public int SetToleranceStep(int toleranceId, int stepIndex)
+    {
+        var now = DateTime.UtcNow;
+        var moved = 0;
+        lock (_lock)
+        {
+            foreach (var (counterToleranceId, counter) in _toleranceCounters)
+            {
+                if (!BuffToleranceStepRules.SelectsFamily(counterToleranceId, toleranceId))
+                    continue;
+
+                var step = BuffToleranceStepRules.StepAt(counter.Tolerance, stepIndex);
+                if (step == null)
+                    continue;
+
+                counter.CurrentStep = step;
+                // The counter is on a rung as of now: the rung it was on and the moment it got there
+                // are one fact, and Decide reads the pair to tell an expired window from a live one.
+                counter.LastStep = now;
+                moved++;
+            }
+        }
+
+        return moved;
+    }
+
     public void AddBuff(Buff buff, uint index = 0, int forcedDuration = 0)
     {
         Buff transformFrom = null;
@@ -475,6 +514,21 @@ public class Buffs : IBuffs
                 return;
 
             buff.State = EffectState.Created;
+
+            // save_pos (8 buffs: the 급습 marking family 24610/24947/24770/27825/27827 and the magic
+            // circles 19037/25850/25851) remembers where its owner stood so a later cast of the recall
+            // skill can return them there. The capture is taken here, at application time, because the
+            // marking skill applies this buff as its FIRST effect and leaps afterwards: by the time the
+            // cast's other effects have run the owner is already somewhere else.
+            if (buff.Template.SavePos)
+                buff.SavedPosition = new SavedPosition(
+                    owner.Transform.ZoneId,
+                    owner.Transform.InstanceId,
+                    owner.Transform.World.Position.X,
+                    owner.Transform.World.Position.Y,
+                    owner.Transform.World.Position.Z,
+                    owner.Transform.World.Rotation.Z);
+
             if (index == 0)
             {
                 buff.Index = AllocateIndex();

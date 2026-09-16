@@ -37,6 +37,7 @@ public interface IBuffs
     void RemoveEffect(uint templateId, uint skillId);
     void RemoveEffectsOnDeath();
     void RemoveStealth();
+    int SetToleranceStep(int toleranceId, int stepIndex);
     void SetOwner(BaseUnit owner);
     void TriggerRemoveOn(BuffRemoveOn on, uint value = 0);
     void TimeoutBuffsFromSkill(uint skillId);
