@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -79,10 +80,17 @@ public class CSRankSnapshotPacket() : GamePacket(CSOffsets.CSRankSnapshotPacket,
                 V1 = score,
                 V2 = 0,
                 Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                WorldId = (byte)holder.Transform.WorldId,
+                // The world a holder is on is the server the client knows them by (its world list is
+                // 1-based); the transform's own world id is 0 for the main continent and names nothing.
+                WorldId = (byte)AppConfiguration.Instance.Id,
                 Id = holder.Id,
                 AccountId = holder.AccountId,
-                Type = board.Id,
+
+                // The window reads the holder's character id out of the third identity slot — the one a
+                // ranker's appearance is asked for by, and the one its name cache is queried with. It is
+                // written here as well as in Id because the client takes the holder from this slot: a line
+                // sent without it makes the window ask about a character that does not exist.
+                Type = holder.Id,
                 PrivacyStatus = (byte)holder.PrivacyStatus,
                 Ranking = (uint)(i + 1)
             });
