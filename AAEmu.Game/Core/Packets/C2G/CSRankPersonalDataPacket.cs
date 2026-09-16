@@ -29,42 +29,9 @@ public class CSRankPersonalDataPacket() : GamePacket(CSOffsets.CSRankPersonalDat
         if (character == null)
             return;
 
-        var entries = new List<RankingEntryLine>();
-
-        // The boards measured by the character's whole gear score, which the World already computes for
-        // instance entry and squad limits.
-        foreach (var board in RankingGameData.Instance.BoardsMeasuring(RankingGameData.GearScoreDetailType))
-        {
-            var score = CSRankSnapshotPacket.ScoreFor(character, board, RankingGameData.Instance.GateFor(board.Id));
-            if (score != null)
-                entries.Add(Line(character, board.Id, score.Value));
-        }
-
-        // The item boards measure one equipped weapon each. A character wearing nothing of a board's kind
-        // gets no line for it rather than a zero.
-        var weapons = new List<(ulong ItemId, byte SlotTypeId, int Score)>();
-        foreach (var item in character.Inventory?.Equipment?.Items ?? [])
-        {
-            if (item is not EquipItem equip || equip.Template is not WeaponTemplate weapon)
-                continue;
-
-            var holdable = ItemManager.Instance.GetHoldable(weapon.HoldableTemplate?.Id ?? 0);
-            if (holdable == null)
-                continue;
-
-            weapons.Add((equip.Id, (byte)holdable.SlotTypeId, (int)Math.Round(GearScoreCalculator.EvaluateItem(equip))));
-        }
-
-        foreach (var board in RankingGameData.Instance.BoardsMeasuring(RankingGameData.ItemDetailType))
-        {
-            var slots = RankingRules.ItemBoardSlots(board.Id);
-            if (slots == null)
-                continue;
-
-            var best = RankingRules.BestItem(weapons, slots);
-            if (best != null)
-                entries.Add(Line(character, board.Id, best.Value.Score));
-        }
+        // The character's own lines come from where the boards are kept, which is what the window's
+        // "current record" reads: the same figures the board itself is built from.
+        var entries = RankScoreManager.Instance.PersonalLines(character);
 
         // The client files each answer under the board its window is showing and drops the ones that name
         // another board, so a line goes out under its own board and the window takes the one it wants.

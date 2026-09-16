@@ -1,5 +1,6 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
+using AAEmu.Game.Models.Game.Rankings;
 using AAEmu.Game.Utils.DB;
 
 using Microsoft.Data.Sqlite;
@@ -19,6 +20,18 @@ public class RankDefinition
 
     public string TabName { get; set; } = string.Empty;
     public int DisplayOrder { get; set; }
+
+    /// <summary>The value kind behind the board (<c>enum_rank_kinds</c> id).</summary>
+    public uint KindId { get; set; }
+
+    /// <summary>Whether equal values share a place (<c>ranks.permit_tie</c>).</summary>
+    public bool PermitTie { get; set; }
+
+    /// <summary>The cycle the board starts over on, from <c>rank_resets</c>; 0 when it never does.</summary>
+    public int ResetIntervalId { get; set; }
+
+    /// <summary>The day the cycle turns on, as the client counts days.</summary>
+    public int ResetDayOfWeekId { get; set; } = RankPeriods.NoDay;
 }
 
 /// <summary>What a board counts, and the floor a value has to reach to be counted at all.</summary>
@@ -49,6 +62,11 @@ public class RankingGameData : Singleton<RankingGameData>, IGameDataLoader
     /// <summary>The value kind whose boards measure one equipped weapon each.</summary>
     public const string ItemDetailType = "ItemRankDetail";
 
+    /// <summary>The value kinds whose boards hold expeditions rather than characters.</summary>
+    public const uint ExpeditionGearScoreKind = 12;
+    public const uint ExpeditionBattleRecordKind = 13;
+    public const uint ExpeditionInstanceRatingKind = 16;
+
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private readonly Dictionary<uint, RankDefinition> _ranks = [];
@@ -74,7 +92,9 @@ public class RankingGameData : Singleton<RankingGameData>, IGameDataLoader
         using (var command = connection.CreateCommand())
         {
             command.CommandText =
-                "SELECT id, name, rank_detail_id, tab_name, display_order FROM ranks";
+                "SELECT r.id, r.name, r.rank_detail_id, r.rank_kind_id, r.tab_name, r.display_order, r.permit_tie, " +
+                "rs.reset_interval_id, rs.day_of_week_id " +
+                "FROM ranks r LEFT JOIN rank_resets rs ON rs.id = r.rank_reset_id";
             command.Prepare();
             using var sqliteReader = command.ExecuteReader();
             using var reader = new SQLiteWrapperReader(sqliteReader);
@@ -87,7 +107,11 @@ public class RankingGameData : Singleton<RankingGameData>, IGameDataLoader
                     Name = reader.GetString("name", string.Empty),
                     DetailType = detailId != 0 && _detailTypes.TryGetValue(detailId, out var type) ? type : string.Empty,
                     TabName = reader.GetString("tab_name", string.Empty),
-                    DisplayOrder = reader.GetInt32("display_order", 0)
+                    DisplayOrder = reader.GetInt32("display_order", 0),
+                    KindId = reader.GetUInt32("rank_kind_id"),
+                    PermitTie = reader.GetBoolean("permit_tie"),
+                    ResetIntervalId = reader.IsDBNull("reset_interval_id") ? 0 : reader.GetInt32("reset_interval_id"),
+                    ResetDayOfWeekId = reader.IsDBNull("day_of_week_id") ? RankPeriods.NoDay : reader.GetInt32("day_of_week_id")
                 };
 
                 _ranks[rank.Id] = rank;
@@ -155,6 +179,26 @@ public class RankingGameData : Singleton<RankingGameData>, IGameDataLoader
     public RankGate GateFor(uint rankId)
     {
         return _gates.TryGetValue(rankId, out var gate) ? gate : new RankGate { RankId = rankId };
+    }
+
+    /// <summary>The window a board's values are counted in at the given moment.</summary>
+    public RankPeriod PeriodFor(RankDefinition board, DateTime momentUtc)
+    {
+        // A board with no cycle in the table never starts over: its window is open-ended, which is how the
+        // window displays it ("Period: On-going").
+        return board == null || board.ResetIntervalId == 0
+            ? new RankPeriod(DateTime.UnixEpoch, DateTime.MaxValue)
+            : RankPeriods.For(momentUtc, board.ResetIntervalId, board.ResetDayOfWeekId);
+    }
+
+    /// <summary>Who a board's lines belong to: the character, or the expedition they are in.</summary>
+    public RankHolderKind HolderKindOf(RankDefinition board)
+    {
+        return board?.KindId switch
+        {
+            ExpeditionGearScoreKind or ExpeditionBattleRecordKind or ExpeditionInstanceRatingKind => RankHolderKind.Expedition,
+            _ => RankHolderKind.Character
+        };
     }
 
     /// <summary>The boards whose value kind is the one asked for, in the table's display order.</summary>

@@ -52,47 +52,28 @@ public class CSRankSnapshotPacket() : GamePacket(CSOffsets.CSRankSnapshotPacket,
     }
 
     /// <summary>
-    /// A board's lines: every character the World has a value for, best first, with the place each one
-    /// holds. A board the tables gate keeps only the values that reach it.
+    /// A board's lines, read back from where the boards are kept: every holder on the server, best first,
+    /// each with the place it holds. A board the World has no value for stays empty rather than made up.
     /// </summary>
     private static List<RankingOrderedEntry> RankedRows(RankDefinition board)
     {
-        var gate = RankingGameData.Instance.GateFor(board.Id);
-        var scored = new List<(Character Character, long Score)>();
-
-        // The value of a board is read off the characters in the world, which are the ones whose gear the
-        // World is holding. A board over values it has not measured stays empty rather than made up.
-        foreach (var candidate in WorldManager.Instance.GetAllCharacters() ?? [])
+        var rows = new List<RankingOrderedEntry>();
+        foreach (var place in RankScoreManager.Instance.ReadBoard(board, SCRankSnapshotPacket.MaxEntries))
         {
-            var score = ScoreFor(candidate, board, gate);
-            if (score != null)
-                scored.Add((candidate, score.Value));
-        }
-
-        scored.Sort((left, right) => right.Score.CompareTo(left.Score));
-
-        var rows = new List<RankingOrderedEntry>(scored.Count);
-        for (var i = 0; i < scored.Count; i++)
-        {
-            var (holder, score) = scored[i];
             rows.Add(new RankingOrderedEntry
             {
-                V1 = score,
-                V2 = 0,
-                Timestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                // The world a holder is on is the server the client knows them by (its world list is
-                // 1-based); the transform's own world id is 0 for the main continent and names nothing.
-                WorldId = (byte)AppConfiguration.Instance.Id,
-                Id = holder.Id,
-                AccountId = holder.AccountId,
+                V1 = place.Score.Value,
+                V2 = place.Score.BareValue,
+                Timestamp = new DateTimeOffset(place.Score.UpdatedAtUtc, TimeSpan.Zero).ToUnixTimeSeconds(),
+                WorldId = place.Score.WorldId,
+                Id = place.Score.HolderId,
+                AccountId = place.Score.AccountId,
 
                 // The window reads the holder's character id out of the third identity slot — the one a
-                // ranker's appearance is asked for by, and the one its name cache is queried with. It is
-                // written here as well as in Id because the client takes the holder from this slot: a line
-                // sent without it makes the window ask about a character that does not exist.
-                Type = holder.Id,
-                PrivacyStatus = (byte)holder.PrivacyStatus,
-                Ranking = (uint)(i + 1)
+                // ranker's appearance is asked for by, and the one its name cache is queried with.
+                Type = (long)place.Score.HolderId,
+                PrivacyStatus = 0,
+                Ranking = place.Position
             });
         }
 
