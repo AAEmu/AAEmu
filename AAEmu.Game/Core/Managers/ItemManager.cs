@@ -9,6 +9,7 @@ using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Features;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -56,6 +57,13 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
     // Socketing
     private Dictionary<uint, uint> _socketChance;
+
+    /// <summary>
+    /// Item templates the client refuses to lock (<c>item_secure_exceptions</c>, 803 rows: every
+    /// one of them is a bound "mana-sealed" weapon). A lock request for one of these is answered
+    /// with <see cref="ErrorMessageType.ItemSecureCondition"/> instead of setting the flag.
+    /// </summary>
+    private HashSet<uint> _itemSecureExceptions;
 
     /// <summary>Per-chance-row odds, indexed by row id then by the gem being seated (1-based).</summary>
     private Dictionary<uint, uint[]> _socketChanceRows;
@@ -571,6 +579,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         _itemUnitModifiers = [];
         _equipItemSets = [];
         _itemSets = [];
+        _itemSecureExceptions = [];
         _config = new ItemConfig();
         ItemTimerLock = new();
         LastTimerCheck = DateTime.UtcNow;
@@ -1776,6 +1785,21 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                 }
             }
 
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM item_secure_exceptions";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var itemId = reader.GetUInt32("item_id");
+                        if (!_itemSecureExceptions.Add(itemId))
+                            Logger.Warn($"Duplicate entry for item_secure_exceptions {itemId}");
+                    }
+                }
+            }
+
             // Search and Translation Help Items, as well as naming missing items names (has other templates, but not in items? Removed items maybe ?)
             var invalidItemCount = 0;
             foreach (var i in _templates)
@@ -2590,6 +2614,9 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                     item.UnpackTime = reader.GetDateTime("unpack_time");
                     item.CreateTime = reader.GetDateTime("created_at");
                     item.ItemFlags = (ItemFlag)reader.GetByte("flags");
+                    // A pending unlock whose delay ran out while the character was offline is no
+                    // longer a lock; the stale Secure bit would otherwise survive every relog.
+                    ItemSecurityRules.ExpireUnlock(item);
                     item.UccId = reader.GetUInt32("ucc"); // Make sure this UCC is set BEFORE reading details as UccItem needs to be able to override it
                     item.DetailType = (ItemDetailType)reader.GetByte("detail_type");
                     // details can be NULL (e.g. manually inserted rows) — casting DBNull→byte[] crashes host startup.
@@ -2931,5 +2958,92 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     public ItemSet GetItemSet(uint itemSetId)
     {
         return _itemSets.GetValueOrDefault(itemSetId);
+    }
+
+    /// <summary>
+    /// True when the client refuses to lock this template (see <see cref="_itemSecureExceptions"/>).
+    /// </summary>
+    public bool IsItemSecureException(uint templateId)
+    {
+        return _itemSecureExceptions != null && _itemSecureExceptions.Contains(templateId);
+    }
+
+    /// <summary>
+    /// Answers CS 0x07B / 0x07C for a single item: locks it, or starts the unlock delay on it.
+    /// </summary>
+    /// <remarks>
+    /// The item is located by id and the position the client sent has to agree with it, the same
+    /// way <see cref="UnwrapItem"/> treats the pair. Returns true when the request has been answered
+    /// — applied, or refused with the specific error the client prints — and false for the generic
+    /// "there is no such item here" case the caller reports as <see cref="ErrorMessageType.ItemUpdateFail"/>.
+    /// </remarks>
+    public bool SetItemSecurity(Character character, SlotType slotType, byte slot, ulong itemId, bool lockItem)
+    {
+        if (character?.Inventory == null || !FeaturesManager.Fsets.Check(Feature.itemSecure))
+            return false;
+
+        var item = character.Inventory.GetItemById(itemId);
+        if (item == null || item.SlotType != slotType || item.Slot != slot)
+        {
+            Logger.Warn($"SetItemSecurity: no item {itemId} at {slotType}:{slot} for {character.Name}");
+            return false;
+        }
+
+        var previousFlags = (byte)item.ItemFlags;
+        var change = ItemSecurityRules.Apply(item, lockItem, DateTime.UtcNow, IsItemSecureException(item.TemplateId));
+
+        switch (change)
+        {
+            case ItemSecurityChange.Refused:
+                character.SendErrorMessage(ErrorMessageType.ItemSecureCondition);
+                break;
+            case ItemSecurityChange.Locked:
+            case ItemSecurityChange.Unlocking:
+                SendSecurityUpdate(character, item, previousFlags);
+                break;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Answers CS 0x07D / 0x07E: locks, or starts unlocking, everything the character is wearing.
+    /// The client asks for the whole set at once and has its own message for "there was nothing
+    /// left to do", which is what it gets when not a single piece changed.
+    /// </summary>
+    public bool SetEquipmentsSecurity(Character character, bool lockItem)
+    {
+        if (character?.Inventory == null || !FeaturesManager.Fsets.Check(Feature.itemSecure))
+            return false;
+
+        var now = DateTime.UtcNow;
+        var changed = 0;
+        foreach (var item in character.Inventory.Equipment.Items)
+        {
+            if (item == null)
+                continue;
+
+            var previousFlags = (byte)item.ItemFlags;
+            var change = ItemSecurityRules.Apply(item, lockItem, now, IsItemSecureException(item.TemplateId));
+            if (change is not (ItemSecurityChange.Locked or ItemSecurityChange.Unlocking))
+                continue;
+
+            SendSecurityUpdate(character, item, previousFlags);
+            changed++;
+        }
+
+        if (changed == 0)
+            character.SendErrorMessage(lockItem
+                ? ErrorMessageType.AllEquipmentsAreSecured
+                : ErrorMessageType.AllEquipmentsAreUnsecured);
+
+        return true;
+    }
+
+    private static void SendSecurityUpdate(Character character, Item item, byte previousFlags)
+    {
+        var task = new ItemUpdateSecurity(item, (byte)item.ItemFlags, false,
+            item.UnsecureTime != DateTime.MinValue, item.HasFlag(ItemFlag.Unpacked), previousFlags);
+        character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ItemLock, task, []));
     }
 }
