@@ -1201,10 +1201,14 @@ public class WorldManager(
                     var radius = shape.Value1;
                     if (radius <= 0)
                     {
-                        // ~497 shape rows are entirely blank (value1..3 all 0) yet 502 plot events search
-                        // them for up to 50 targets. There is no radius in the data to recover, so the
-                        // historical 40m guess stands — but it is loud now instead of invisible, because a
-                        // 40m sweep is wide enough to explain an AoE that "hits things it shouldn't".
+                        // 7,630 sphere rows are entirely blank (value1..3 all 0); 6,624 of them are named by
+                        // 6,676 plot events, most of which search them for up to 50 targets. No radius can be
+                        // recovered from the data: skills.target_area_radius is 0 on 6,033 of those events and
+                        // equals the shape's own radius on only 395 of the 1,148 events where both are set, and
+                        // the Area events' param6 ("possibly radius") is 0 on 4,318 of them. Returning nothing
+                        // would silently drop every one of those AoEs, so the historical 40m guess stands — but
+                        // it stays loud, because a 40m sweep is wide enough to explain an AoE that "hits
+                        // things it shouldn't".
                         radius = DefaultSphereRadiusForBlankShape;
                         if (WarnedBlankSphereShapes.TryAdd(shape.Id, 0))
                             Logger.Warn(
