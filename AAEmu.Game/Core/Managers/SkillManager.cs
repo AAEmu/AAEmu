@@ -1331,7 +1331,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             Id = reader.GetUInt32("id", 0),
                             DispelCount = reader.GetInt32("dispel_count", 0),
                             CureCount = reader.GetInt32("cure_count", 0),
-                            BuffTagId = reader.GetUInt32("buff_tag_id", 0)
+                            BuffTagId = reader.GetUInt32("buff_tag_id", 0),
+                            Stack = reader.GetInt32("stack", 0)
                         };
                         _effects["DispelEffect"][template.Id] = template;
                     }
@@ -1652,7 +1653,21 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             DamageRatio = reader.GetInt32("damage_ratio", 0),
                             LevelMd = reader.GetFloat("level_md", 0f),
                             LevelVaStart = reader.GetInt32("level_va_start", 0),
-                            LevelVaEnd = reader.GetInt32("level_va_end", 0)
+                            LevelVaEnd = reader.GetInt32("level_va_end", 0),
+                            UseFixedCharge = reader.GetBoolean("use_fixed_charge", true),
+                            UsePercentCharge = reader.GetBoolean("use_percent_charge", true),
+                            PercentMin = reader.GetInt32("percent_min", 0),
+                            PercentMax = reader.GetInt32("percent_max", 0),
+                            UseLevelCharge = reader.GetBoolean("use_level_charge", true),
+                            DamageTypeId = reader.GetInt32("damage_type_id", 0),
+                            DpsIncMultiplier = reader.GetFloat("dps_inc_multiplier", 0f),
+                            UseMainhandWeapon = reader.GetBoolean("use_mainhand_weapon", true),
+                            UseOffhandWeapon = reader.GetBoolean("use_offhand_weapon", true),
+                            UseRangedWeapon = reader.GetBoolean("use_ranged_weapon", true),
+                            DpsMultiplier = reader.GetFloat("dps_multiplier", 0f),
+                            ManaDrainRatio = reader.GetFloat("mana_drain_ratio", 0f),
+                            PercentDamageResourceTypeId = reader.GetInt32("percent_damage_resource_type_id", 0),
+                            UseSourceHealth = reader.GetBoolean("use_source_health", true)
                         };
                         _effects["ManaBurnEffect"][template.Id] = template;
                     }
@@ -1907,7 +1922,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             LifeTime = reader.GetFloat("life_time", 0f),
                             DespawnOnCreatorDeath = reader.GetBoolean("despawn_on_creator_death", true),
                             UseSummonerAggroTarget = reader.GetBoolean("use_summoner_aggro_target", true),
-                            ActivationState = reader.GetBoolean("activation_state", true)
+                            ActivationState = reader.GetBoolean("activation_state", true),
+                            UseSummonerFaction = reader.GetBoolean("use_summoner_faction", true)
                         };
                         _effects["NpcSpawnerSpawnEffect"][template.Id] = template;
                     }
