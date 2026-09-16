@@ -1,15 +1,14 @@
-using System.IO;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.GameData;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCWorldContentPacket : GamePacket
 {
-    // the enabled/blocked content groups and zone gates the client parses into its world-content data on entering
-    // the world. Sending it empty leaves that data uninitialized, which nulls the downstream per-feature data the
-    // HUD reads (e.g. the world-level exp modifier). The table is the live 10.0.2.13 server's SC_PACKET_WORLD_CONTENT
-    // payload, loaded once from Data/world_content_filter.bin.
+    // The content groups the client parses into the filter its per-category features consult, built from
+    // the world_contents table. Sending it empty leaves that filter unconfigured, which is not what the
+    // table says this server has: the table is the source, not a pre-serialized blob.
     private static byte[] _defaultBuffer;
     private readonly byte[] _filterBuffer;
 
@@ -20,11 +19,7 @@ public class SCWorldContentPacket : GamePacket
 
     private static byte[] LoadDefaultBuffer()
     {
-        if (_defaultBuffer != null)
-            return _defaultBuffer;
-        var path = Path.Combine("Data", "world_content_filter.bin");
-        _defaultBuffer = File.Exists(path) ? File.ReadAllBytes(path) : [];
-        return _defaultBuffer;
+        return _defaultBuffer ??= WorldContentGameData.Instance.BuildPack();
     }
 
     public override PacketStream Write(PacketStream stream)
