@@ -18,5 +18,8 @@ public class CSPauseUserMusicPacket() : GamePacket(CSOffsets.CSPauseUserMusicPac
     public override void Read(PacketStream stream)
     {
         MusicManager.EndPerformance(Connection.ActiveChar);
+
+        // A player who stops playing is done with their ensemble too, whether they led it or played in it.
+        MusicManager.Instance.LeaveEnsemble(Connection.ActiveChar);
     }
 }

@@ -1,6 +1,8 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
+using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -240,6 +242,214 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         if (_midiCache.TryGetValue(playerId, out var data))
             return data;
         return [];
+    }
+
+    private readonly Dictionary<uint, EnsembleSession> _ensembles = []; // maestro bc, session
+
+    /// <summary>
+    /// Asks one player to join the maestro's ensemble, opening it if they are not leading one yet. The
+    /// suggestive skill runs this once per player it reached, so the session is kept rather than remade.
+    /// </summary>
+    public EnsembleSession SuggestEnsembleTo(Character maestro, Character target)
+    {
+        if (maestro == null || target == null)
+            return null;
+
+        if (!_ensembles.TryGetValue(maestro.ObjId, out var session) || !session.IsOpen)
+        {
+            session = new EnsembleSession(maestro.ObjId, maestro.Name);
+            _ensembles[maestro.ObjId] = session;
+        }
+
+        if (!session.Invite(target.ObjId))
+            return session;
+
+        target.SendPacket(new SCEnsembleSuggestedPacket(maestro.ObjId));
+        Logger.Info("Ensemble: {0} asked {1} to join ({2} asked so far)",
+            maestro.Name, target.Name, session.Invited.Count);
+        return session;
+    }
+
+    /// <summary>The ensemble a player is part of, whether they lead it, joined it or were only asked.</summary>
+    public EnsembleSession FindEnsemble(uint bc)
+    {
+        PruneEnsembles();
+
+        foreach (var session in _ensembles.Values)
+        {
+            if (session.Involves(bc))
+                return session;
+        }
+
+        return null;
+    }
+
+    /// <summary>Takes an invitation up and tells the ensemble who is in it now.</summary>
+    public EnsembleJoinResult AcceptEnsemble(Character member)
+    {
+        if (member == null)
+            return EnsembleJoinResult.NotMember;
+
+        var session = FindEnsemble(member.ObjId);
+        if (session == null)
+            return EnsembleJoinResult.NotMember;
+
+        var result = session.Accept(member.ObjId);
+        if (result != EnsembleJoinResult.Accepted)
+            return result;
+
+        Logger.Info("Ensemble: {0} joined {1}'s ensemble ({2} member(s))",
+            member.Name, session.MaestroName, session.Members.Count);
+        SendToParticipants(session,
+            new SCEnsembleStartedPacket(session.MaestroBc, session.MaestroName, session.Members));
+        return result;
+    }
+
+    /// <summary>Turns an invitation down and tells the maestro.</summary>
+    public EnsembleJoinResult RejectEnsemble(Character member)
+    {
+        if (member == null)
+            return EnsembleJoinResult.NotMember;
+
+        var session = FindEnsemble(member.ObjId);
+        if (session == null)
+            return EnsembleJoinResult.NotMember;
+
+        var result = session.Reject(member.ObjId);
+        if (result != EnsembleJoinResult.Rejected)
+            return result;
+
+        Logger.Info("Ensemble: {0} turned down {1}'s ensemble", member.Name, session.MaestroName);
+        WorldManager.Instance.GetCharacterByObjId(session.MaestroBc)
+            ?.SendPacket(new SCEnsembleRejectPacket(member.ObjId));
+        return result;
+    }
+
+    /// <summary>
+    /// A member's part arrived: the maestro is handed it. The performance itself starts when the maestro
+    /// plays the ensemble skill, not here — a part arriving is not the same as everybody being ready.
+    /// </summary>
+    public bool EnsemblePartReady(Character member, string data)
+    {
+        if (member == null)
+            return false;
+
+        var session = FindEnsemble(member.ObjId);
+        if (session == null || !session.PartReady(member.ObjId))
+            return false;
+
+        var payload = data ?? string.Empty;
+        var size = (uint)System.Text.Encoding.UTF8.GetByteCount(payload);
+
+        WorldManager.Instance.GetCharacterByObjId(session.MaestroBc)
+            ?.SendPacket(new SCEnsembleMidiBinReadyPacket(member.ObjId, session.MaestroBc, size, payload));
+
+        if (session.AllPartsReady)
+            Logger.Info("Ensemble: {0}'s ensemble has every part in and can play", session.MaestroName);
+
+        return true;
+    }
+
+    /// <summary>
+    /// Starts the performance the maestro is leading, once every member's part is in. Returns false when
+    /// they lead nothing, are not the maestro, or somebody has not sent a part yet.
+    /// </summary>
+    public bool TryStartEnsemble(Character maestro)
+    {
+        if (maestro == null)
+            return false;
+
+        var session = FindEnsemble(maestro.ObjId);
+        if (session == null || session.MaestroBc != maestro.ObjId)
+            return false;
+
+        if (!session.Start())
+            return false;
+
+        Logger.Info("Ensemble: {0}'s ensemble starts to perform with {1} member(s)",
+            session.MaestroName, session.Members.Count);
+        SendToParticipants(session, new SCStartToPerformAnEnsemblePacket(session.MaestroBc));
+        return true;
+    }
+
+    /// <summary>Ends the ensemble a player is part of, whether they lead it or are leaving it.</summary>
+    public void CancelEnsemble(Character who)
+    {
+        if (who == null)
+            return;
+
+        var session = FindEnsemble(who.ObjId);
+        if (session == null)
+            return;
+
+        LeaveEnsemble(who);
+    }
+
+    /// <summary>
+    /// Takes one player out of their ensemble. Losing the maestro ends it for everyone; losing a member
+    /// only tells the rest to drop that member's part.
+    /// </summary>
+    public void LeaveEnsemble(Character who)
+    {
+        if (who == null)
+            return;
+
+        var session = FindEnsemble(who.ObjId);
+        if (session == null)
+            return;
+
+        var participants = session.Participants();
+        var wasMaestro = who.ObjId == session.MaestroBc;
+        session.Leave(who.ObjId);
+
+        if (!session.IsOpen)
+        {
+            Logger.Info("Ensemble: {0}'s ensemble ended because {1} left", session.MaestroName, who.Name);
+            _ensembles.Remove(session.MaestroBc);
+            foreach (var participant in participants)
+            {
+                WorldManager.Instance.GetCharacterByObjId(participant)
+                    ?.SendPacket(new SCEnsembleCanceledPacket());
+            }
+
+            return;
+        }
+
+        if (!wasMaestro)
+        {
+            SendToParticipants(session, new SCDeleteEnsembleSoundPacket(who.ObjId));
+            SendToParticipants(session,
+                new SCEnsembleStartedPacket(session.MaestroBc, session.MaestroName, session.Members));
+        }
+    }
+
+    private static void SendToParticipants(EnsembleSession session, GamePacket packet)
+    {
+        foreach (var participant in session.Participants())
+            WorldManager.Instance.GetCharacterByObjId(participant)?.SendPacket(packet);
+    }
+
+    /// <summary>
+    /// Drops ensembles whose maestro is no longer in the world — a session is only as long-lived as the
+    /// player leading it, and nothing else tells us they logged out.
+    /// </summary>
+    private void PruneEnsembles()
+    {
+        if (_ensembles.Count == 0)
+            return;
+
+        List<uint> gone = null;
+        foreach (var (maestroBc, session) in _ensembles)
+        {
+            if (session.IsOpen && WorldManager.Instance.GetCharacterByObjId(maestroBc) == null)
+                (gone ??= []).Add(maestroBc);
+        }
+
+        if (gone == null)
+            return;
+
+        foreach (var maestroBc in gone)
+            _ensembles.Remove(maestroBc);
     }
 
     /// <summary>
