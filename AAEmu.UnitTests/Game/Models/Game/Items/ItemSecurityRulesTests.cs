@@ -1,3 +1,4 @@
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Items;
@@ -157,8 +158,32 @@ public class ItemSecurityRulesTests
     [Test]
     public async Task UnlockDelay_MatchesTheWindowTheClientAdvertises()
     {
-        // X2Item:GetSecurityUnlockDelayTime() answers 4320 and the dialogs print it as 72 hours.
+        // With no content seeded the row is absent, so the value the client itself answers stands:
+        // X2Item:GetSecurityUnlockDelayTime() returns 4320 and the dialogs print it as 72 hours.
         await Assert.That(ItemSecurityRules.UnlockDelayMinutes).IsEqualTo(4320);
         await Assert.That(ItemSecurityRules.UnlockDelayMinutes / 60).IsEqualTo(72);
+    }
+
+    [Test]
+    public async Task UnlockDelay_ComesFromTheContentSettingWhenItIsThere()
+    {
+        // enum_content_configs id 43 is `item_secure_unlock_delay_time`; the shipped value happens to
+        // be the fallback, so a different one is seeded here to prove the setting is what is read.
+        var config = ContentConfigGameData.Instance;
+        config.SetForTest(ItemSecurityRules.UnlockDelayConfigName, 120);
+
+        try
+        {
+            var item = new Item { ItemFlags = ItemFlag.Secure };
+            var change = ItemSecurityRules.Apply(item, false, Now, false);
+
+            await Assert.That(ItemSecurityRules.UnlockDelayMinutes).IsEqualTo(120);
+            await Assert.That(change).IsEqualTo(ItemSecurityChange.Unlocking);
+            await Assert.That(item.UnsecureTime).IsEqualTo(Now.AddMinutes(120));
+        }
+        finally
+        {
+            config.SetForTest(ItemSecurityRules.UnlockDelayConfigName, ItemSecurityRules.DefaultUnlockDelayMinutes);
+        }
     }
 }

@@ -1,5 +1,7 @@
 namespace AAEmu.Game.Models.Game.Items;
 
+using AAEmu.Game.GameData;
+
 /// <summary>What a lock/unlock request did to one item.</summary>
 public enum ItemSecurityChange
 {
@@ -35,11 +37,24 @@ public enum ItemSecurityChange
 public static class ItemSecurityRules
 {
     /// <summary>
-    /// How long an item stays locked after an unlock request. The client's own
-    /// <c>X2Item:GetSecurityUnlockDelayTime()</c> answers 4320, and both of its lock dialogs print
-    /// that value divided by 60 — "72 hours" — so the server counts down the same window.
+    /// The <c>content_configs</c> row that carries this delay, <c>enum_content_configs</c> id 43.
     /// </summary>
-    public const int UnlockDelayMinutes = 4320;
+    public const string UnlockDelayConfigName = "item_secure_unlock_delay_time";
+
+    /// <summary>
+    /// What the delay falls back to when that row is absent. The 10.0.2.13 content ships the row with
+    /// this value (id 43, kind 14), and the client's own <c>X2Item:GetSecurityUnlockDelayTime()</c>
+    /// answers the same 4320 — which both of its lock dialogs print divided by 60 as "72 hours" — so
+    /// the server and the client count down the same window even before the table is read.
+    /// </summary>
+    public const int DefaultUnlockDelayMinutes = 4320;
+
+    /// <summary>
+    /// How long an item stays locked after an unlock request: the shipped content setting, so that the
+    /// server's deadline and the client's countdown cannot drift apart if the table is ever changed.
+    /// </summary>
+    public static int UnlockDelayMinutes =>
+        ContentConfigGameData.Instance.GetInt(UnlockDelayConfigName, DefaultUnlockDelayMinutes);
 
     /// <summary>
     /// Drops a lock whose delay has run out. Returns true when the item's state changed, which the
