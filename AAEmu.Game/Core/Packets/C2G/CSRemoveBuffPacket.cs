@@ -1,6 +1,7 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -73,6 +74,9 @@ public class CSRemoveBuffPacket() : GamePacket(CSOffsets.CSRemoveBuffPacket, 1)
         Logger.Debug(
             "Client buff cancellation unit={0} buffIndex={1} reason={2} character={3}",
             unitId, buffId, reason, character.Name);
+
+        // Before Exit(): that unsubscribes the buff's triggers, and a `user_cancel` row is one of them.
+        buff.Events.OnUserCancel(buff, new OnUserCancelArgs());
         buff.Exit();
     }
 }

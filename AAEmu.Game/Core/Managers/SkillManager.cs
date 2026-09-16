@@ -2161,6 +2161,27 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         trigger.UseDamageAmount = reader.GetBoolean("use_damage_amount", true);
                         trigger.TargetBuffTagId = reader.GetUInt32("target_buff_tag_id", 0);
                         trigger.TargetNoBuffTagId = reader.GetUInt32("target_no_buff_tag_id", 0);
+                        // Which unit each half of the effect runs between: enum_buff_trigger_agents
+                        // (0 owner, 1 source, 2 target, 3 original_source).
+                        trigger.SourceAgentId = (BuffTriggerAgent)reader.GetUInt32("source_agent_id", 0);
+                        trigger.TargetAgentId = (BuffTriggerAgent)reader.GetUInt32("target_agent_id", 0);
+                        trigger.OwnerBuffTagId = reader.GetUInt32("owner_buff_tag_id", 0);
+                        trigger.OwnerNoBuffTagId = reader.GetUInt32("owner_no_buff_tag_id", 0);
+                        trigger.SourceBuffTagId = reader.GetUInt32("source_buff_tag_id", 0);
+                        trigger.SourceNoBuffTagId = reader.GetUInt32("source_no_buff_tag_id", 0);
+                        // delay_time is a signed column, and the sign carries meaning: a positive value is an
+                        // offset from the buff's start, a negative one fires that far before the buff ends
+                        // (27016: 23000 ms duration, -3000). Reading it unsigned used to wrap 14143 (-3000)
+                        // into 4 294 964 296 ms, about 49.7 days.
+                        trigger.DelayTime = reader.GetInt32("delay_time", 0);
+                        trigger.UseStackCount = reader.GetBoolean("use_stack_count", true);
+                        trigger.CheckTagSrcInOwner = reader.GetBoolean("check_tag_src_in_owner", true);
+                        trigger.CheckNoTagSrcInOwner = reader.GetBoolean("check_no_tag_src_in_owner", true);
+                        trigger.CheckTagSrcInSource = reader.GetBoolean("check_tag_src_in_source", true);
+                        trigger.CheckTagSrcInTarget = reader.GetBoolean("check_tag_src_in_target", true);
+                        trigger.CheckNoTagSrcInSource = reader.GetBoolean("check_no_tag_src_in_source", true);
+                        trigger.CheckNoTagSrcInTarget = reader.GetBoolean("check_no_tag_src_in_target", true);
+                        trigger.OrUnitReqs = reader.GetBoolean("or_unit_reqs", true);
 
                         // Apparently this is possible.
                         if (trigger.Effect != null)

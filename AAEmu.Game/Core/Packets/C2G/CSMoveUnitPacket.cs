@@ -408,6 +408,11 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
                         }
                         else
                         {
+                            // The packet that carries a FallVel (ActorFlags 0x80) is the one the fall
+                            // damage below already treats as the impact, and DoFallDamage ignores
+                            // anything under its 8.6 m/s damage floor - a glide touches down well under
+                            // it - so `landing` triggers are raised here rather than inside it.
+                            unit.Events.OnLanding(unit, new OnLandingArgs());
                             _ = unit.DoFallDamage(dmt.FallVel);
                         }
                     }
@@ -423,7 +428,15 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
     private static void RemoveEffects(BaseUnit unit, MoveType moveType)
     {
         if (moveType.VelX != 0 || moveType.VelY != 0 || moveType.VelZ != 0)
+        {
             unit.Buffs.TriggerRemoveOn(BuffRemoveOn.Move);
+
+            // The movement packet writes Transform.Local directly, so Unit.SetPosition (the other raise
+            // site) never sees a player's move. This is where a move is accepted, next to the remove-on
+            // flag that already treats it as one.
+            if (unit is Unit moved)
+                moved.Events.OnMovement(moved, new OnMovementArgs());
+        }
     }
 
     /// <summary>

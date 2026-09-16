@@ -729,8 +729,6 @@ public class Unit : BaseUnit, IUnit
 
         if (attackerBase is Unit attackerUnit)
         {
-            attackerUnit.Events.OnKill(attackerUnit, new OnKillArgs { Target = attackerUnit });
-
             var world = WorldManager.Instance.GetWorld(Transform.InstanceId);
             if (Transform.WorldId > 0)
             {
@@ -743,6 +741,9 @@ public class Unit : BaseUnit, IUnit
             }
         }
 
+        // OnKill is raised once, by DoDie, which every death reaches and which names both units. It used
+        // to be raised here as well, with Target set to the killer and Killer/Victim left null, so a
+        // subscriber saw two different shapes of the same kill.
         DoDie(attackerBase, killReason);
     }
 
@@ -777,7 +778,9 @@ public class Unit : BaseUnit, IUnit
 
         Events.OnDeath(this, new OnDeathArgs { Killer = (Unit)killer, Victim = this });
         ParentWorld.Events.OnUnitKilled(ParentWorld, new OnUnitKilledArgs { Killer = (Unit)killer, Victim = this });
-        ((Unit)killer).Events.OnKill(this, new OnKillArgs { Killer = (Unit)killer, Victim = this });
+        // The killer's own event, and the only raise of it: Target repeats Victim for the quest acts that
+        // read that member (QuestActObjAggro ranks the killer's aggro on the unit it killed).
+        ((Unit)killer).Events.OnKill(this, new OnKillArgs { Target = this, Killer = (Unit)killer, Victim = this });
 
         Buffs.RemoveEffectsOnDeath();
         var lostExp = this is Character dead ? dead.LastDeathLostExp : 0;
@@ -1260,9 +1263,14 @@ public class Unit : BaseUnit, IUnit
     /// Tagging works differently to Aggro and has its own system 
     /// </summary>
     public Tagging CharacterTagging { get; set; }
+    /// <summary>
+    /// Called when a cast this unit started ends, by <c>Skill.EndSkill</c> (it resolved) or
+    /// <c>Skill.Stop</c> (it was stopped). Also the raise site for <c>OnSkillUse</c>: the buff triggers of
+    /// kind <c>use_skill</c> hang off it.
+    /// </summary>
     public virtual void OnSkillEnd(Skill skill)
     {
-
+        Events.OnSkillUse(this, new OnSkillUseArgs { Skill = skill });
     }
 
     private const float LegacyFallVelocityUnitsPerMeterPerSecond = 1000f;
