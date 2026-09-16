@@ -34,6 +34,9 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
 
     /// <summary>slave_equip_slots: slaveTemplateId → equipSlotId → attach point.</summary>
     private readonly Dictionary<uint, Dictionary<byte, AttachPointKind>> _slaveEquipSlots = [];
+
+    /// <summary>slave_equip_slots the other way round: slaveTemplateId → attach point → equipSlotId.</summary>
+    private readonly Dictionary<uint, Dictionary<AttachPointKind, byte>> _slaveEquipSlotsByAttachPoint = [];
     private readonly Dictionary<uint, List<SlaveInteractionSkill>> _interactionSkills = [];
     private readonly Dictionary<uint, uint> _itemSlaveEquipKinds = [];
 
@@ -432,6 +435,14 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
                     }
 
                     slots[equipSlotId] = attachPoint;
+
+                    if (!_slaveEquipSlotsByAttachPoint.TryGetValue(slaveId, out var slotsByAttachPoint))
+                    {
+                        slotsByAttachPoint = new Dictionary<AttachPointKind, byte>();
+                        _slaveEquipSlotsByAttachPoint[slaveId] = slotsByAttachPoint;
+                    }
+
+                    slotsByAttachPoint[attachPoint] = equipSlotId;
                 }
             }
         }
@@ -620,6 +631,18 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
         if (!_slaveEquipSlots.TryGetValue(slaveTemplateId, out var slots))
             return false;
         return slots.TryGetValue(equipSlotId, out attachPoint);
+    }
+
+    /// <summary>
+    /// The equipment slot a slave's attach point belongs to, the reverse of
+    /// <see cref="TryGetEquipAttachPoint"/>, or false for an attach point this slave has no slot at.
+    /// </summary>
+    public bool TryGetEquipSlotForAttachPoint(uint slaveTemplateId, AttachPointKind attachPoint, out byte equipSlotId)
+    {
+        equipSlotId = 0;
+        if (!_slaveEquipSlotsByAttachPoint.TryGetValue(slaveTemplateId, out var slots))
+            return false;
+        return slots.TryGetValue(attachPoint, out equipSlotId);
     }
 
     /// <summary>
