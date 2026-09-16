@@ -16,8 +16,9 @@ internal static class UnitStateGameplaySerializer
     public static void Write(PacketStream stream, UnitStateWireContext context)
     {
         var unit = context.Unit;
-        var skillIds = context.Character?.Skills.Skills.Values
-            .Select(skill => skill.Id).Take(byte.MaxValue).ToArray() ?? [];
+        // Learned skills plus the ones a live buff grants (buff_skills / buff_mount_skills) minus the
+        // entries a live buff_swap_skills row has replaced — see CharacterSkills.LiveSkillIds.
+        var skillIds = context.Character?.Skills.LiveSkillIds().Take(byte.MaxValue).ToArray() ?? [];
         var passiveIds = context.Character?.Skills.PassiveBuffs.Values
             .Select(buff => buff.Id).Take(byte.MaxValue).ToArray() ?? [];
 

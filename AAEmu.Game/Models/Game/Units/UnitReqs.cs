@@ -90,7 +90,7 @@ public class UnitReqs
             case UnitReqsKindType.TrainedSkill:
                 // unused
                 return Ret(SkillResultKeys.skill_urk_trained_skill,
-                    player?.Skills.Skills.GetValueOrDefault(Value1) != null);
+                    player != null && player.Skills.HasSkill(Value1));
 
             case UnitReqsKindType.Combat:
                 var combatRequirementMet = unit != null && Value1 switch

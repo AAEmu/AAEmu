@@ -142,14 +142,176 @@ public class CharacterSkills(Character owner)
     /// when the client wiped trees and there is no <c>SCAbilitySetUpdated(Changed)</c> path to
     /// restore them from a saved set (e.g. NPC <see cref="CharacterAbilities.Swap"/>).
     /// Each <c>SCSkillLearned</c> raises chat <c>SKILL_LEARNED</c> — do not use on skillsaver activate.
+    /// Temporary grants are re-sent too: the client has just wiped the same list they were added to.
     /// </summary>
     public void ResendLearnedToOwner()
     {
         foreach (var skill in Skills.Values)
-            Owner.SendPacket(new SCSkillLearnedPacket(skill));
+            if (!ReplacedSkillIds.Contains(skill.Id))
+                Owner.SendPacket(new SCSkillLearnedPacket(skill));
+        foreach (var skill in TemporarySkills.Values)
+            if (!ReplacedSkillIds.Contains(skill.Id))
+                Owner.SendPacket(new SCSkillLearnedPacket(skill));
         foreach (var buff in PassiveBuffs.Values)
             Owner.SendPacket(new SCBuffLearnedPacket(Owner.ObjId, buff.Id));
     }
+
+    #region buff-granted skills
+
+    /// <summary>
+    /// Skills the character holds only while a buff grants them (<c>buff_skills</c>,
+    /// <c>buff_mount_skills</c>, and the replacement side of <c>buff_swap_skills</c>).
+    /// </summary>
+    /// <remarks>
+    /// Deliberately a separate dictionary from <see cref="Skills"/>: that one is the saved skill list —
+    /// <see cref="Save"/> writes exactly its members and <see cref="Load"/> reads them back — so keeping
+    /// temporary grants out of it is what stops a buff-granted skill from becoming a learned one on the
+    /// next logout, and stops it from eating skill points while it is up.
+    /// </remarks>
+    public Dictionary<uint, Skill> TemporarySkills { get; } = [];
+
+    /// <summary>
+    /// Learned skills a live <c>buff_swap_skills</c> row has taken off the bar. The skill stays learned —
+    /// only the list the client is shown drops it, and it comes back when the swap ends.
+    /// </summary>
+    public HashSet<uint> ReplacedSkillIds { get; } = [];
+
+    // Which active buff grants what, so that two buffs granting the same skill ("one ends, the other
+    // still holds it") are reconciled together instead of one of them revoking the other's grant.
+    private readonly Dictionary<Buff, BuffGrantSet> _buffGrantHolders = [];
+    private readonly Dictionary<uint, PassiveBuff> _grantedPassives = [];
+
+    /// <summary>
+    /// Registers what <paramref name="buff"/> grants and reconciles the character's temporary set
+    /// against every other active grant. Called from <c>BuffTemplate.Start</c>, which also runs on a
+    /// refresh and on stack growth, so this has to be idempotent: the buff's entry is replaced, not
+    /// added to.
+    /// </summary>
+    public void ApplyBuffGrants(Buff buff, BuffGrantSet grants)
+    {
+        if (buff == null || grants == null || grants.IsEmpty)
+            return;
+
+        _buffGrantHolders[buff] = grants;
+        ReconcileBuffGrants();
+    }
+
+    /// <summary>
+    /// Drops what <paramref name="buff"/> granted and reconciles the rest. Called from
+    /// <c>BuffTemplate.Dispel</c>, i.e. on every way a buff can end — dispel, timeout, removal, death —
+    /// and twice on the <c>Buffs.RemoveBuff</c> path, which is why an unknown buff is simply ignored.
+    /// </summary>
+    public void RevokeBuffGrants(Buff buff)
+    {
+        if (buff == null || !_buffGrantHolders.Remove(buff))
+            return;
+
+        ReconcileBuffGrants();
+    }
+
+    /// <summary>Skill ids the client is shown for this character: learned skills plus temporary grants,
+    /// minus the entries a live swap has replaced. This is the list <c>SCUnitState</c> carries.</summary>
+    public IReadOnlyList<uint> LiveSkillIds()
+    {
+        var ids = new List<uint>();
+        var seen = new HashSet<uint>();
+        foreach (var skill in Skills.Values)
+            if (!ReplacedSkillIds.Contains(skill.Id) && seen.Add(skill.Id))
+                ids.Add(skill.Id);
+        foreach (var skill in TemporarySkills.Values)
+            if (!ReplacedSkillIds.Contains(skill.Id) && seen.Add(skill.Id))
+                ids.Add(skill.Id);
+        return ids;
+    }
+
+    /// <summary>Whether the character holds <paramref name="skillId"/>, learned or granted.</summary>
+    public bool HasSkill(uint skillId) =>
+        Skills.ContainsKey(skillId) || TemporarySkills.ContainsKey(skillId);
+
+    private void ReconcileBuffGrants()
+    {
+        var holders = _buffGrantHolders.Values.ToList();
+
+        var added = BuffGrantRules.AddedSkills([.. TemporarySkills.Keys], holders);
+        foreach (var skillId in added)
+            AddTemporarySkill(skillId);
+
+        var released = BuffGrantRules.ReleasedSkills([.. TemporarySkills.Keys], holders);
+        foreach (var skillId in released)
+            TemporarySkills.Remove(skillId);
+
+        var replaced = BuffGrantRules.ReplacedOrigins(holders);
+        ReplacedSkillIds.Clear();
+        foreach (var skillId in replaced)
+            ReplacedSkillIds.Add(skillId);
+
+        ReconcileGrantedPassives(holders);
+
+        if (added.Count > 0 || released.Count > 0 || replaced.Count > 0)
+            Logger.Info("BuffGrant {0}: +[{1}] -[{2}] replaced=[{3}]",
+                Owner.Name,
+                string.Join(",", added),
+                string.Join(",", released),
+                string.Join(",", replaced));
+    }
+
+    private void AddTemporarySkill(uint skillId)
+    {
+        // Already learned: there is nothing temporary to add, and nothing to take away afterwards.
+        if (Skills.ContainsKey(skillId))
+            return;
+
+        var template = SkillManager.Instance.GetSkillTemplate(skillId);
+        if (template == null)
+            return;
+
+        // buff_skills carries no level, so a grant sits at level 1 for as long as it lasts.
+        var skill = new Skill { Id = template.Id, Template = template, Level = 1 };
+        if (!TemporarySkills.TryAdd(skillId, skill))
+            return;
+
+        // A passive buff applies during character load, before the client is in the world —
+        // Character.Connection is set on character select — and the grant goes out with the login skill
+        // list (SCUnitState) instead. This is the same reason BuffTemplate.Start skips SCBuffCreated for
+        // passives. SCSkillLearned is the packet the learn path (and CharacterSkills.ResendLearnedToOwner)
+        // already uses for a skill the character has: 10.0.2.13 reads the single skill id it writes.
+        if (Owner.Connection != null)
+            Owner.SendPacket(new SCSkillLearnedPacket(skill));
+    }
+
+    private void ReconcileGrantedPassives(List<BuffGrantSet> holders)
+    {
+        // A passive the character already learned is left to the learned instance: PassiveBuff.Remove
+        // removes the buff family, which would take the learned one down with the grant.
+        var wanted = BuffGrantRules.HeldPassives(holders)
+            .Where(passiveBuffId => !PassiveBuffs.ContainsKey(passiveBuffId))
+            .ToList();
+
+        foreach (var passiveBuffId in wanted.Where(id => !_grantedPassives.ContainsKey(id)).ToList())
+        {
+            var template = SkillManager.Instance.GetPassiveBuffTemplate(passiveBuffId);
+            if (template == null)
+                continue;
+
+            // The same application path a learned passive uses (CharacterSkills.AddBuff), only kept out
+            // of PassiveBuffs so that it is neither saved nor charged skill points.
+            var passive = new PassiveBuff { Id = passiveBuffId, Template = template };
+            _grantedPassives[passiveBuffId] = passive;
+            passive.Apply(Owner);
+            Logger.Info("BuffGrant apply {0}: passive={1}", Owner.Name, passiveBuffId);
+        }
+
+        foreach (var passiveBuffId in _grantedPassives.Keys.Where(id => !wanted.Contains(id)).ToList())
+        {
+            if (_grantedPassives.Remove(passiveBuffId, out var passive))
+            {
+                passive.Remove(Owner);
+                Logger.Info("BuffGrant revoke {0}: passive={1}", Owner.Name, passiveBuffId);
+            }
+        }
+    }
+
+    #endregion
 
     /// <summary>
     /// Resets all skills from a specific ability Skill Tree

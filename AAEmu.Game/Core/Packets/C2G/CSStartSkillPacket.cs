@@ -218,9 +218,9 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             skillResult = skill.Use(player, skillCaster, skillCastTarget, skillObject, false,
                 out skillResultErrorValueUShort, out skillResultErrorValue);
         }
-        else if (Connection.ActiveChar.Skills.Skills.ContainsKey(skillId))
+        else if (Connection.ActiveChar.Skills.HasSkill(skillId))
         {
-            // Is it one of our learned character skills?
+            // Is it one of our learned character skills, or one a live buff grants?
             var template = SkillManager.Instance.GetSkillTemplate(skillId);
             skill = new Skill(template, Connection.ActiveChar);
             skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false,
