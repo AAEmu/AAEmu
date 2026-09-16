@@ -407,6 +407,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
             { "SkillController", [] }, // missing from the effect table
             { "SpawnFishEffect", [] }, // missing from the effect table
             { "ResetAoeDiminishingEffect", [] }, // missing from the effect table
+            { "TargetHistoryClearEffect", [] }, // missing from the effect table; named by plot_effects rows
             // Present in effects but previously unregistered, so GetEffectTemplate logged
             // "No such Effect Type" and returned null - the skill cast and did nothing at all.
             { "DoodadItemChangeEffect", [] },
@@ -2064,6 +2065,20 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             Value7 = reader.GetInt32("value7", 0)
                         };
                         _effects["SpecialEffect"][template.Id] = template;
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM target_history_clear_effects";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new TargetHistoryClearEffect { Id = reader.GetUInt32("id", 0) };
+                        _effects["TargetHistoryClearEffect"][template.Id] = template;
                     }
                 }
             }

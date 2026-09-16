@@ -52,6 +52,17 @@ public class PlotState(
     public Dictionary<uint, List<GameObject>> HitObjects { get; set; } = [];
 
     /// <summary>
+    /// Forgets every unit this plot has already hit, which is what a <c>hit_once</c> area search consults.
+    /// </summary>
+    /// <remarks>
+    /// Driven by the TargetHistoryClearEffect plot effect (8 plot_effects rows, on the 발사 실패 "firing
+    /// failed" branches of the gun and cannon plots). The history is kept per event and the clear is not:
+    /// dropping all of it is what lets the retry loop hit the same unit again, which is the only thing those
+    /// events ask for.
+    /// </remarks>
+    public void ClearHitHistory() => HitObjects.Clear();
+
+    /// <summary>
     /// Radius (metres) of the area search that selected each unit, by unit ObjId.
     /// </summary>
     /// <remarks>
