@@ -92,7 +92,7 @@ public class Buff
     {
         Template.Start(Caster, Owner, this);
         if (Duration == 0)
-            Duration = Template.GetDuration(AbLevel);
+            Duration = BuffLifetimeRules.ClampedDuration(Template.GetDuration(AbLevel), Template.MaxLifeTime);
         if (StartTime == DateTime.MinValue)
         {
             StartTime = DateTime.UtcNow;

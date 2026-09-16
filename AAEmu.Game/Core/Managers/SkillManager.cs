@@ -869,7 +869,9 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             BossTelescopeRange = reader.GetFloat("boss_telescope_range", 0f),
                             FixAbilityLevelToOne = reader.GetBoolean("fix_ability_level_to_one", false),
                             ImmuneHealth = reader.GetFloat("immune_health", 0f),
-                            MaxLifeTime = reader.GetInt32("max_life_time", 0),
+                            // Non-negative in all 30,654 shipped rows, so the ceiling is unsigned and zero
+                            // means "no ceiling" rather than a sentinel.
+                            MaxLifeTime = (uint)Math.Max(0, reader.GetInt32("max_life_time", 0)),
                             BalanceLevel = reader.GetInt32("balance_level", 0),
                             DisarmamentMainHand = reader.GetBoolean("disarmament_main_hand", false),
                             DisarmamentOffHand = reader.GetBoolean("disarmament_off_hand", false),
