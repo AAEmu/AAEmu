@@ -22,6 +22,27 @@ public class PlotEventTemplate
     public int TargetUpdateMethodParam9 { get; set; }
     public int Tickets { get; set; }
     public bool AoeDiminishing { get; set; }
+
+    /// <summary>
+    /// plot_events.target_update_method_param10 / _param11 (190 / 333 non-zero rows). Bound so the values
+    /// are not lost, but nothing reads them: the shipped values are 1 and 30 in param10 and 30, 4, 28, 16,
+    /// 2, 22 in param11 on Area and RandomArea events, and no reading of that pair is established by the
+    /// server code, the client artifacts or the surrounding columns.
+    /// </summary>
+    public int TargetUpdateMethodParam10 { get; set; }
+    public int TargetUpdateMethodParam11 { get; set; }
+
+    /// <summary>Only units with no HP left may be picked; 12 events. See <see cref="Tree.PlotTargetRules"/>.</summary>
+    public bool OnlyDieUnit { get; set; }
+
+    /// <summary>Only the caster's own pet may be picked; 14 events (plot 3005, 사냥꾼 pet skills).</summary>
+    public bool OnlyMyPet { get; set; }
+
+    /// <summary>Only a pet's owner may be picked; 55 events (plot 3004 "pet uses a skill on its owner").</summary>
+    public bool OnlyPetOwner { get; set; }
+
+    /// <summary>Only the caster's own slaves may be picked; 55 events (plot 2706 대포 타겟, ship cannons).</summary>
+    public bool OnlyMySlave { get; set; }
     public LinkedList<PlotEventCondition> Conditions { get; set; } = [];
     public LinkedList<PlotAoeCondition> AoeConditions { get; set; } = [];
     public LinkedList<PlotEventEffect> Effects { get; set; } = [];

@@ -26,6 +26,18 @@ public class PlotNextEvent
     public bool Fail { get; set; }
 
     /// <summary>
+    /// plot_next_events.casting_useable — 53 edges, and every one of them leads into a cast event
+    /// ("시전", "활 시전", "6버블 시전") whose bar the player may release early. It pairs with plot
+    /// condition kind 18, which asks which band of that bar the release landed in.
+    /// </summary>
+    /// <remarks>
+    /// No server behaviour is attached: releasing the bar early is a client action, and no packet for it is
+    /// established in this server yet. Loading the flag is what lets the plot side of that be written once
+    /// the packet is known; until then the cast simply runs to its end as it always did.
+    /// </remarks>
+    public bool CastingUseable { get; set; }
+
+    /// <summary>
     /// plot_next_events.weight — a lottery ticket among this edge's siblings that share the same fail flag.
     /// 0 means the row was never weighted and always fires; see <see cref="Tree.PlotBranchRules"/>.
     /// </summary>

@@ -83,6 +83,14 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                             TargetUpdateMethodParam7 = reader.GetInt32("target_update_method_param7"),
                             TargetUpdateMethodParam8 = reader.GetInt32("target_update_method_param8"),
                             TargetUpdateMethodParam9 = reader.GetInt32("target_update_method_param9"),
+                            TargetUpdateMethodParam10 = reader.GetInt32("target_update_method_param10"),
+                            TargetUpdateMethodParam11 = reader.GetInt32("target_update_method_param11"),
+                            // The four search filters. NULL reads as false here, which is the behaviour every
+                            // event had while the columns went unread.
+                            OnlyDieUnit = reader.GetBoolean("only_die_unit", true),
+                            OnlyMyPet = reader.GetBoolean("only_my_pet", true),
+                            OnlyPetOwner = reader.GetBoolean("only_pet_owner", true),
+                            OnlyMySlave = reader.GetBoolean("only_my_slave", true),
                             Tickets = reader.GetInt32("tickets"),
                             AoeDiminishing = reader.GetBoolean("aoe_diminishing", true)
                         };
@@ -268,6 +276,8 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                         template.UseExeTime = reader.GetBoolean("use_exe_time", true);
                         template.Fail = reader.GetBoolean("fail", true);
                         template.Weight = reader.GetInt32("weight", 0);
+                        // 53 edges into a cast bar the player may release early; see PlotNextEvent.CastingUseable.
+                        template.CastingUseable = reader.GetBoolean("casting_useable", true);
                         var plotEvent = _eventTemplates[id];
                         if (plotEvent.NextEvents.Count > 0)
                         {

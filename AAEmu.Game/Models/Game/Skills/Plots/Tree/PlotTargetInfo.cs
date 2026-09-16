@@ -436,6 +436,27 @@ public class PlotTargetInfo
     /// <summary>How far the neighbourhood dump looks — wide enough to catch units the shape radius missed.</summary>
     private const float NeighbourhoodProbeRadius = 40f;
 
+    /// <summary>
+    /// What the caster's side of the search knows about one candidate, for the plot_events flags.
+    /// </summary>
+    /// <remarks>
+    /// "Owns a pet" is answered from the candidate's own active mates, because that is what a plot searching
+    /// a crowd for a pet's owner has to recognise: on plot 3666 ("PC 대상 지정", designate a PC target) the
+    /// caster is not the pet, and on plot 3004 the pet's owner is found by the pet the caster itself is.
+    /// </remarks>
+    private static PlotTargetRules.UnitFacts DescribeUnit(PlotState state, Unit candidate)
+    {
+        var casterObjId = state.Caster?.ObjId ?? 0;
+        var isCasterPet = candidate is Units.Mate mate && mate.OwnerObjId == casterObjId;
+        var isCasterSlave = candidate is Slave slave && slave.OwnerObjId == casterObjId;
+        var isCasterPetOwner = state.Caster is Units.Mate casterMate && casterMate.OwnerObjId == candidate.ObjId;
+        var ownsAPet = candidate is Char.Character character &&
+                       (character.ParentWorld?.MateManager.GetActiveMates(character.Id).Count ?? 0) > 0;
+
+        return new PlotTargetRules.UnitFacts(
+            candidate.Hp == 0, isCasterPet, isCasterPetOwner, isCasterSlave, ownsAPet);
+    }
+
     private static IEnumerable<Unit> FilterTargets(IEnumerable<Unit> units, PlotState state, IPlotTargetParams args, PlotEventTemplate plotEvent,
         List<(string step, int left)> trace = null)
     {
@@ -462,11 +483,23 @@ public class PlotTargetInfo
             .Where(o =>
             {
                 var relationState = state.Caster.GetRelationStateTo(o);
-                if (relationState == RelationState.Neutral) // TODO ?
+                if (relationState == RelationState.Neutral &&
+                    !PlotTargetRules.AllowsNeutral(args.UnitRelationType))
                     return false;
                 return true;
             });
         Step("notNeutral");
+
+        if (plotEvent.OnlyDieUnit || plotEvent.OnlyMyPet || plotEvent.OnlyPetOwner || plotEvent.OnlyMySlave)
+        {
+            filtered = filtered.Where(o => PlotTargetRules.PassesEventFilters(
+                plotEvent.OnlyDieUnit,
+                plotEvent.OnlyMyPet,
+                plotEvent.OnlyPetOwner,
+                plotEvent.OnlyMySlave,
+                DescribeUnit(state, o)));
+            Step("eventFilters");
+        }
 
         filtered = SkillTargetingUtil.FilterWithRelation(args.UnitRelationType, state.Caster, filtered);
         Step("relation");
