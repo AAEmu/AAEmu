@@ -229,6 +229,10 @@ public class Buff
             this.ZoneAuthored = newBuff.ZoneAuthored;
             TickIndex = 0;
 
+            // The instance survives but the caster may not be the one it was, so the death it listens for
+            // moves with it.
+            SyncSourceDeathSubscription();
+
             // Set StartTime to now.
             var now = DateTime.UtcNow;
             StartTime = now;
@@ -342,6 +346,56 @@ public class Buff
             State = EffectState.Finishing;
     }
 
+    // The caster whose death ends this buff (remove_on_source_dead), and the handler hanging on it.
+    private Unit _sourceDeathSubscriber;
+    private EventHandler<OnDeathArgs> _sourceDeathHandler;
+
+    /// <summary>
+    /// <c>remove_on_source_dead</c> (749 buffs): the buff ends when the unit that applied it dies.
+    /// </summary>
+    /// <remarks>
+    /// The instance lives on the target while the unit that dies is usually somewhere else — a bard's
+    /// song on a party member, a totem's blessing, a pet's aura — so there is nothing on the dying unit's
+    /// own buff list to look at. Each instance carrying the flag therefore hangs a handler on its caster's
+    /// <c>OnDeath</c>, which <c>Unit.DoDie</c> raises once per death and which <c>Slave.DoDie</c> and
+    /// <c>Npc.DoDie</c> reach as well, and drops it again when the buff ends or its caster changes. This
+    /// is the shape the Death buff trigger already subscribes with. A source that is not a unit (a doodad
+    /// or an item cast) has no death to wait for and keeps its duration.
+    /// </remarks>
+    internal void SyncSourceDeathSubscription()
+    {
+        if (ReferenceEquals(_sourceDeathSubscriber, Caster))
+            return;
+
+        UnsubscribeSourceDeath();
+
+        if (Template?.RemoveOnSourceDead != true || Caster == null)
+            return;
+
+        _sourceDeathSubscriber = Caster;
+        _sourceDeathHandler = (_, args) => OnSourceDied(args);
+        Caster.Events.OnDeath += _sourceDeathHandler;
+    }
+
+    private void UnsubscribeSourceDeath()
+    {
+        if (_sourceDeathSubscriber == null || _sourceDeathHandler == null)
+            return;
+
+        _sourceDeathSubscriber.Events.OnDeath -= _sourceDeathHandler;
+        _sourceDeathSubscriber = null;
+        _sourceDeathHandler = null;
+    }
+
+    private void OnSourceDied(OnDeathArgs args)
+    {
+        // The decision is the rule's; the handler only supplies the dead unit's id and this instance's
+        // caster, so the same flag read by Buffs.TriggerRemoveOn and by the subscription agree.
+        if (BuffRemoveOnRules.Matches(BuffRemoveOn.SourceDead, Template, args?.Victim?.ObjId ?? 0,
+                Caster?.ObjId ?? 0))
+            Exit();
+    }
+
     private void FinishBuff(bool replace, bool fireTimeout)
     {
         State = EffectState.Finished;
@@ -385,6 +439,7 @@ public class Buff
             else
                 Events.OnDispelled(this, new OnDispelledArgs());
             Triggers.UnsubscribeEvents();
+            UnsubscribeSourceDeath();
             Owner.Buffs.RemoveEffect(this);
             Template.Dispel(Caster, Owner, this, replace);
 

@@ -542,6 +542,22 @@ public class Buffs : IBuffs
                 }
             }
 
+            // A buff that lands can break others. buff_breakers(buff_id, buff_tag_id) says a buff carrying
+            // buff_tag_id removes buff_id, and this is the point in the order where that happens:
+            //   1. the immunity check and the require-tag check refuse the application before AddBuff is
+            //      reached at all (BuffEffect.Apply, BuffTemplate.Apply) — a refused buff breaks nothing;
+            //   2. the tolerance gate just above drops the CC ladder's immune step and its transform;
+            //   3. HERE — the arrival has cleared the tolerance gate, and only the instances already live
+            //      are removed, so the arriving buff can never break itself (the 29 rows that name their
+            //      own buff id clear the previous instance of a re-grant family instead);
+            //   4. the stack rule below then decides what the arrival does to its own family — and six of
+            //      its branches return without the buff landing (Refresh, ChargeRefresh, Extend,
+            //      Independent and Multiple), so the breakers run on acceptance by the tolerance gate
+            //      rather than on a guaranteed landing. That is deliberate: the arrival is what the
+            //      content says clears the victim, and the victims are ended before the stack rule gets a
+            //      say in whether the arrival itself survives.
+            RemoveBuffsBrokenBy(buff);
+
             buff.Duration = buff.Template.GetDuration(buff.AbLevel);
             if (forcedDuration != 0)
                 buff.Duration = forcedDuration;
@@ -768,6 +784,7 @@ public class Buffs : IBuffs
             {
                 _effects.Add(buff);
                 buff.Triggers.SubscribeEvents();
+                buff.SyncSourceDeathSubscription();
                 buff.Events.OnBuffStarted(buff, new OnBuffStartedArgs());
 
                 if (buff.Template.BuffId > 0)
@@ -871,6 +888,56 @@ public class Buffs : IBuffs
 
             if (candidate != GearBonusesIndex && _effects.All(effect => effect?.Index != candidate))
                 return candidate;
+        }
+    }
+
+    /// <summary>
+    /// Ends the live buffs that <paramref name="arriving"/> breaks (<c>buff_breakers</c>).
+    /// </summary>
+    /// <remarks>
+    /// The removal is by buff id and takes every live instance of it, whatever caster holds it. The rows
+    /// name a buff, not a caster's copy of it, and the caster of the arriving buff is usually not the
+    /// caster of the victims — a stun from an enemy ends the song the target is performing — so scoping
+    /// the removal to the arriving buff's caster would leave exactly the buffs the table exists to end.
+    /// The arriving instance itself is not in <c>_effects</c> yet (see the call site), which is what keeps
+    /// a self-referential row from removing the buff that just landed.
+    /// </remarks>
+    private void RemoveBuffsBrokenBy(Buff arriving)
+    {
+        // The caller holds _lock.
+        var tags = SkillManager.Instance.GetBuffTags(arriving?.Template?.Id ?? 0);
+        if (tags.Count == 0)
+            return;
+
+        var victimIds = new HashSet<uint>();
+        foreach (var tag in tags)
+            foreach (var brokenId in SkillManager.Instance.GetBuffsBrokenByTag(tag))
+                victimIds.Add(brokenId);
+
+        if (victimIds.Count == 0)
+            return;
+
+        // One pass over the live list, so every instance of a victim family goes rather than the first
+        // one found, and the arriving instance is skipped for the reason above.
+        List<Buff> victims = null;
+        foreach (var live in _effects)
+        {
+            if (live is not { InUse: true } || ReferenceEquals(live, arriving))
+                continue;
+            if (!victimIds.Contains(live.Template.BuffId))
+                continue;
+
+            victims ??= [];
+            victims.Add(live);
+        }
+
+        if (victims == null)
+            return;
+
+        foreach (var victim in victims)
+        {
+            Logger.Debug("Buff {0} breaks buff {1}", arriving.Template.BuffId, victim.Template.BuffId);
+            victim.Exit();
         }
     }
 
@@ -1101,6 +1168,18 @@ public class Buffs : IBuffs
         }
     }
 
+    /// <summary>
+    /// Ends every live instance whose template removes on <paramref name="on"/>.
+    /// </summary>
+    /// <remarks>
+    /// Each instance is decided on its own, which is what keeps a per-caster family honest: two casters
+    /// hold two instances and an event that names one caster (<see cref="BuffRemoveOn.SourceDead"/>, whose
+    /// value is the dead unit's object id) ends that caster's instance only. The decisions themselves live
+    /// in <see cref="BuffRemoveOnRules.Matches"/>. <paramref name="value"/> carries the event's payload:
+    /// the dead unit for <c>SourceDead</c>, the started skill's tag for <c>StartSkill</c>, the
+    /// <c>enum_attach_point</c> seat for <c>Unmount</c>, and the changed <c>enum_equip_slot</c> for
+    /// <c>ChangeEquipments</c>.
+    /// </remarks>
     public void TriggerRemoveOn(BuffRemoveOn on, uint value = 0)
     {
         // Create a copy of the list of effects to avoid changing the list while iterating
@@ -1112,76 +1191,19 @@ public class Buffs : IBuffs
 
         foreach (var effect in effects.ToList())
         {
-            if (effect != null)
-            {
-                var template = effect.Template;
+            var template = effect?.Template;
+            if (template == null)
+                continue;
 
-                if (template.RemoveOnAttackBuffTrigger && on == BuffRemoveOn.AttackBuffTrigger)
-                    effect.Exit();
-                else if (template.RemoveOnAttackedBuffTrigger && on == BuffRemoveOn.AttackedBuffTrigger)
-                    effect.Exit();
-                else if (template.RemoveOnAttackedEtc && on == BuffRemoveOn.AttackedEtc)
-                    effect.Exit();
-                else if (template.RemoveOnAttackedEtcDot && on == BuffRemoveOn.AttackedEtcDot)
-                    effect.Exit();
-                else if (template.RemoveOnAttackedSpellDot && on == BuffRemoveOn.AttackedSpellDot)
-                    effect.Exit();
-                else if (template.RemoveOnAttackEtc && on == BuffRemoveOn.AttackEtc)
-                    effect.Exit();
-                else if (template.RemoveOnAttackEtcDot && on == BuffRemoveOn.AttackEtcDot)
-                    effect.Exit();
-                else if (template.RemoveOnAttackSpellDot && on == BuffRemoveOn.AttackSpellDot)
-                    effect.Exit();
-                else if (template.RemoveOnAutoAttack && on == BuffRemoveOn.AutoAttack)
-                    effect.Exit();
-                else if (template.RemoveOnDamageBuffTrigger && on == BuffRemoveOn.DamageBuffTrigger)
-                    effect.Exit();
-                else if (template.RemoveOnDamagedBuffTrigger && on == BuffRemoveOn.DamagedBuffTrigger)
-                    effect.Exit();
-                else if (template.RemoveOnDamagedEtc && on == BuffRemoveOn.DamagedEtc)
-                    effect.Exit();
-                else if (template.RemoveOnDamagedEtcDot && on == BuffRemoveOn.DamagedEtcDot)
-                    effect.Exit();
-                else if (template.RemoveOnDamagedSpellDot && on == BuffRemoveOn.DamagedSpellDot)
-                    effect.Exit();
-                else if (template.RemoveOnDamageEtc && on == BuffRemoveOn.DamageEtc)
-                    effect.Exit();
-                else if (template.RemoveOnDamageEtcDot && on == BuffRemoveOn.DamageEtcDot)
-                    effect.Exit();
-                else if (template.RemoveOnDamageSpellDot && on == BuffRemoveOn.DamageSpellDot)
-                    effect.Exit();
-                else if (template.RemoveOnDeath && on == BuffRemoveOn.Death)
-                    effect.Exit();
-                else if (template.RemoveOnExempt && on == BuffRemoveOn.Exempt)
-                    effect.Exit();
-                else if (template.RemoveOnInteraction && on == BuffRemoveOn.Interaction)
-                    effect.Exit();
-                else if (template.RemoveOnLand && on == BuffRemoveOn.Land)
-                    effect.Exit();
-                else if (template.RemoveOnMount && on == BuffRemoveOn.Mount)
-                    effect.Exit();
-                else if (template.RemoveOnMove && on == BuffRemoveOn.Move)
-                    effect.Exit();
-                else if (template.RemoveOnSourceDead && on == BuffRemoveOn.SourceDead && value == effect.Caster.ObjId)
-                    effect.Exit();//Need to investigate this one
-                else if (template.RemoveOnStartSkill && on == BuffRemoveOn.StartSkill)
-                {
-                    if (value == 0)
-                        effect.Exit();
-                    else
-                    {
-                        var tags = SkillManager.Instance.GetBuffTags(effect.Template.BuffId);
-                        if (!tags.Contains(value))
-                            effect.Exit();
-                    }
-                }
-                else if (template.RemoveOnUnmount && on == BuffRemoveOn.Unmount)
-                    effect.Exit();
-                else if (template.RemoveOnUnbond && on == BuffRemoveOn.Unbond)
-                    effect.Exit();
-                else if (template.RemoveOnUseSkill && on == BuffRemoveOn.UseSkill)
-                    effect.Exit();
-            }
+            // A source that is not a unit (a doodad, an item, a mount's own cast) has no object id to be
+            // named by, so it collapses to 0 the same way the caster key does in the stack rules.
+            var casterObjId = effect.Caster?.ObjId ?? 0;
+            Func<uint, bool> carriesTag = on == BuffRemoveOn.StartSkill
+                ? tag => SkillManager.Instance.GetBuffTags(template.BuffId).Contains(tag)
+                : null;
+
+            if (BuffRemoveOnRules.Matches(on, template, value, casterObjId, carriesTag))
+                effect.Exit();
         }
     }
 
@@ -1201,6 +1223,13 @@ public class Buffs : IBuffs
         foreach (var e in effects.ToList())
             if (e != null && e.Template.RemoveOnDeath)
                 e.Exit();
+
+        // remove_on_source_dead (749 buffs) is the other half of death: the buffs this unit applied end
+        // with it. On its own list that is the ones it applied to itself, and this pass is what covers a
+        // death that never subscribed (a buff restored from the database, or a non-unit source that
+        // collapsed to caster 0). The ones it applied to other units are ended by the subscription each
+        // instance takes on its caster's OnDeath — see Buff.SyncSourceDeathSubscription.
+        TriggerRemoveOn(BuffRemoveOn.SourceDead, own.ObjId);
     }
 
     public void SetOwner(BaseUnit owner)

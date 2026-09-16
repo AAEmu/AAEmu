@@ -3,6 +3,7 @@ using AAEmu.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Items.Containers;
@@ -221,6 +222,10 @@ public class EquipmentContainer : ItemContainer
             ParentUnit?.UpdateGearBonuses(item, null);
         (ParentUnit as Character)?.InvalidateGearScore();
         RelayEquipmentToZone(ParentUnit, (byte)item.Slot, item);
+        // remove_on_change_equipments (4 buffs: 감정 표현_궁수 15733/29615 for the Ranged slot bit,
+        // 31644 테스트 for Mainhand, 29238 잠재능력 발현 for every armour, weapon and cosplay slot):
+        // the changed slot is a bit in the mask the buff carries, so the slot goes along with the event.
+        ParentUnit?.Buffs.TriggerRemoveOn(BuffRemoveOn.ChangeEquipments, (byte)item.Slot);
     }
 
     public override void OnLeaveContainer(Item item, ItemContainer newContainer, byte previousSlot)
@@ -233,6 +238,9 @@ public class EquipmentContainer : ItemContainer
             ParentUnit?.UpdateGearBonuses(null, item);
         (ParentUnit as Character)?.InvalidateGearScore();
         RelayEquipmentToZone(ParentUnit, previousSlot, null);
+        // Taking a piece off is an equipment change in that slot as well, and the slot the item came out
+        // of is the one this event names.
+        ParentUnit?.Buffs.TriggerRemoveOn(BuffRemoveOn.ChangeEquipments, previousSlot);
     }
 
     private static void RelayEquipmentToZone(Unit parent, byte slot, Item item)

@@ -106,9 +106,18 @@ public class BuffTrigger
         // IsTrigger and Amount (HealEffect.cs:114), and with use_damage_amount 'f' the amount is 0, so the
         // 20 enabled use_fixed_heal rows on attack/started/timeout/damage kinds healed nothing instead of
         // their authored range; the per-kind triggers this replaced passed a plain EffectSource there.
-        var effectSource = template.UseDamageAmount
-            ? new EffectSource(_buff.Skill, _buff.Template) { Amount = amount, IsTrigger = true }
-            : new EffectSource(_buff.Skill, _buff.Template);
+        //
+        // FromBuffTrigger is separate from IsTrigger and set for every row: it says where the hit came
+        // from, not how much of the event's amount the row reads. DamageEffect raises
+        // remove_on_*_buff_trigger (344/486/301/680 buffs) for a hit that carries it, and a
+        // use_damage_amount 'f' damage row is still a trigger's hit even though IsTrigger stays false for
+        // it. IsTrigger keeps B1's narrow meaning so HealEffect cannot see it on a row it would zero.
+        var effectSource = new EffectSource(_buff.Skill, _buff.Template) { FromBuffTrigger = true };
+        if (template.UseDamageAmount)
+        {
+            effectSource.Amount = amount;
+            effectSource.IsTrigger = true;
+        }
 
         // Queued while the buff was live or as it was ending: a delay scheduled by a timeout or a dispel
         // runs during that ending, so only a buff that was live when the delay was armed has to still be
