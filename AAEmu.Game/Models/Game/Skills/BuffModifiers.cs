@@ -10,6 +10,8 @@ public class BuffModifiers
 {
     private readonly Dictionary<uint, List<BuffModifier>> _modifiersByBuffId = [];
     private readonly Dictionary<uint, List<BuffModifier>> _modifiersByTagId = [];
+    // The rows the unit's equipped items put here, kept so a gear change can take exactly them back out.
+    private readonly List<BuffModifier> _itemModifiers = [];
 
     public double ApplyModifiers(BuffTemplate buff, BuffAttribute attribute, double baseValue)
     {
@@ -85,6 +87,27 @@ public class BuffModifiers
         {
             RemoveModifier(modifier);
         }
+    }
+
+    /// <summary>
+    /// Registers the buff_modifiers rows the item whose template id this is grants (owner_type='Item').
+    /// Called from the gear walk for every equipped item and gem, mirroring the unit_modifiers walk.
+    /// </summary>
+    public void AddItemModifiers(uint itemTemplateId)
+    {
+        foreach (var modifier in BuffGameData.Instance.GetItemModifiers(itemTemplateId))
+        {
+            _itemModifiers.Add(modifier);
+            AddModifier(modifier);
+        }
+    }
+
+    /// <summary>Takes back every item-owned modifier. The gear walk calls this before re-adding.</summary>
+    public void RemoveItemModifiers()
+    {
+        foreach (var modifier in _itemModifiers)
+            RemoveModifier(modifier);
+        _itemModifiers.Clear();
     }
 
     public void AddModifier(BuffModifier modifier)

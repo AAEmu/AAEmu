@@ -76,6 +76,15 @@ public class HealEffect : EffectTemplate
         min = variableDamage + levelMin;
         max = variableDamage + levelMax;
 
+        // The caster's skill_modifiers heal rows (attribute 12, authored as a per-cent delta: the shipped
+        // rows are 7-20), applied to the composed heal exactly as DamageEffect applies SkillAttribute.Damage
+        // to its composed min/max. No such row leaves the heal bit-for-bit what it was.
+        if (source.Skill != null)
+        {
+            min = (float)caster.SkillModifiersCache.ApplyModifiers(source.Skill, SkillAttribute.Heal, min);
+            max = (float)caster.SkillModifiersCache.ApplyModifiers(source.Skill, SkillAttribute.Heal, max);
+        }
+
         var tickModifier = 1.0f;
         if (source.Buff?.TickEffects.Count > 0 && source.Buff.Duration != 0)
         {

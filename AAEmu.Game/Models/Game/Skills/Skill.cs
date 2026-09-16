@@ -988,7 +988,7 @@ public class Skill
         caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
         RelayZoneSkillFiredIfNeeded(casterCaster, targetCaster, skillObject);
         unit.SkillTask = new EndChannelingTask(this, caster, casterCaster, target, targetCaster, skillObject, doodad);
-        TaskManager.Instance.Schedule(unit.SkillTask, TimeSpan.FromMilliseconds(Template.ChannelingTime));
+        TaskManager.Instance.Schedule(unit.SkillTask, TimeSpan.FromMilliseconds(EffectiveChannelingTime(unit)));
     }
 
     public void EndChanneling(BaseUnit caster, Doodad channelDoodad, SkillCaster casterCaster)
@@ -1201,9 +1201,10 @@ public class Skill
         // Get a list of all possible targets
         // 10.0.2.13: skills.target_siege removed; the former ship-skill hack (TargetSiege + Source + Slave) no
         // longer has a data source, so AoE skills fall through to the standard target-area handling below.
-        if (Template.TargetAreaRadius > 0)
+        var areaRadius = EffectiveTargetAreaRadius(unit);
+        if (areaRadius > 0)
         {
-            var units = WorldManager.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius, true);
+            var units = WorldManager.GetAround<BaseUnit>(targetSelf, areaRadius, true);
             if (Template.TargetSelection == SkillTargetSelection.Source)
                 units.Add(targetSelf); // Add main target as well
             units = FilterAoeUnits(caster, units).ToList();
@@ -2106,8 +2107,32 @@ AlwaysHit:
             return;
         var gcdMul = SkillGcdRules.SharedGcdMultiplier(
             Template.UseWeaponCooldownTime, unit.GlobalCooldownMul, unit.CastTimeMul);
-        unit.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * gcdMul);
+        unit.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * gcdMul * GlobalCooldownFactor(unit));
     }
+
+    /// <summary>
+    /// The caster's <c>skill_modifiers</c> factor for the armed global cooldown (attribute 15,
+    /// <c>global_cooldown</c>, authored as a per-cent delta: the shipped rows are -3, -10, -12 and -50).
+    /// A caster carrying no such row gets exactly 1.0, so the GCD is what it was.
+    /// </summary>
+    public float GlobalCooldownFactor(Unit caster) =>
+        (float)caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.GlobalCooldown, 1.0);
+
+    /// <summary>
+    /// The radius this cast gathers its area targets with: the template's <c>target_area_radius</c> plus the
+    /// caster's <c>skill_modifiers</c> area_radius rows (attribute 3, authored as a flat metre delta — the
+    /// shipped rows are 1, 2 and 5). No such row leaves the template's radius exactly.
+    /// </summary>
+    public float EffectiveTargetAreaRadius(Unit caster) =>
+        (float)caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.AreaRadius, Template.TargetAreaRadius);
+
+    /// <summary>
+    /// How long the channel lasts: the template's <c>channeling_time</c> plus the caster's
+    /// <c>skill_modifiers</c> channeling_time rows (attribute 11, a flat millisecond delta — the shipped rows
+    /// are 2000 and 4000). No such row leaves the template's value exactly.
+    /// </summary>
+    public int EffectiveChannelingTime(Unit caster) =>
+        (int)caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.ChannelingTime, Template.ChannelingTime);
 
     public void ConsumeMana(BaseUnit caster)
     {
