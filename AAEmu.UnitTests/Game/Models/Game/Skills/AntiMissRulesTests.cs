@@ -32,12 +32,31 @@ public class AntiMissRulesTests
     [Test]
     public async Task Multiplier_StopsAtZero_SoAnOverdrawnDebuffOnlyEverMisses()
     {
-        // Buff 807 (주문 방해) stores -3000 on the spell id: a negative multiplier would flip the comparison
-        // in RollCombatDice rather than simply never hitting.
+        // Buff 807 (주문 방해) stores -3000 on the spell id: a negative multiplier is not a hit chance, so
+        // the row is clipped to 0 and every roll against it misses.
         await Assert.That(AntiMissRules.Multiplier(-1000)).IsEqualTo(0f);
         await Assert.That(AntiMissRules.Multiplier(-3000)).IsEqualTo(0f);
         await Assert.That(AntiMissRules.Multiplier(long.MinValue)).IsEqualTo(0f);
         await Assert.That(AntiMissRules.HitChance(100f, AntiMissRules.Multiplier(-3000))).IsEqualTo(0f);
+    }
+
+    [Test]
+    public async Task Buff807_IsFlooredToASilence_NotRescaledToTheThirtyPercentItReads()
+    {
+        // Buff 807 (주문 방해) stores -3000 on spell_anti_miss_mul while its own description and its sibling
+        // casting_time_mul row (71, 300) both say 30%, and it is the only blind row past the -1000 edge
+        // (26158 -700, 388 -250, 2466 -70, 2214 -60, 23000 -10 and 15040 -100 all agree with per-mille).
+        // The recorded decision is the floor, so the row is a silence rather than a 30% reduction: with the
+        // floor the victim's 100 spell accuracy becomes 0, and the debuff now stops spells landing where
+        // attribute 88 used to be read by nothing at all.
+        await Assert.That(AntiMissRules.Multiplier(-3000)).IsEqualTo(0f);
+        await Assert.That(AntiMissRules.HitChance(100f, AntiMissRules.Multiplier(-3000))).IsEqualTo(0f);
+
+        // The rejected alternative, kept asserted so the choice cannot drift into it silently: reading the
+        // row as the authored 30% divided by ten is Multiplier(-300), which would leave 70% of spells
+        // landing.
+        await Assert.That(AntiMissRules.Multiplier(-300)).IsEqualTo(0.7f);
+        await Assert.That(AntiMissRules.Multiplier(-3000)).IsNotEqualTo(AntiMissRules.Multiplier(-300));
     }
 
     [Test]

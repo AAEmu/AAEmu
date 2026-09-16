@@ -213,6 +213,27 @@ public class AttackSpeedAttributeTests
         await Assert.That(Skill(DamageType.Melee).RollCombatDice(attacker, target)).IsEqualTo(SkillHitType.MeleeHit);
     }
 
+    [Test]
+    public async Task RollCombatDice_Buff807sMinus3000Row_LeavesTheDebuffedCasterNoSpellHit()
+    {
+        // Buff 807 (주문 방해) stores -3000 on spell_anti_miss_mul, ten times the -300 its own description
+        // ("시전 시간을 30% 지연시키고 마법 성공률을 30% 감소") and its sibling casting_time_mul row (71, 300)
+        // both promise. The choice recorded in AntiMissRules is the floor rather than a rescale, so the
+        // debuffed caster's SpellAntiMissMul is 0 and every spell roll misses for the buff's duration; its
+        // melee accuracy, the row's own attribute being spell-only, is untouched.
+        var attacker = new Unit { ObjId = 60, Level = 50 };
+        var target = new Unit { ObjId = 61, Level = 50 };
+        TestUnitModifier.Apply(attacker, UnitAttribute.SpellAntiMissMul, -3000);
+
+        await Assert.That(attacker.SpellAntiMissMul).IsEqualTo(0f);
+        await Assert.That(attacker.MeleeAntiMissMul).IsEqualTo(1f);
+
+        for (var i = 0; i < 200; i++)
+            await Assert.That(Skill(DamageType.Magic).RollCombatDice(attacker, target)).IsEqualTo(SkillHitType.SpellMiss);
+
+        await Assert.That(Skill(DamageType.Melee).RollCombatDice(attacker, target)).IsEqualTo(SkillHitType.MeleeHit);
+    }
+
     private static SkillTemplate Template(uint id) => new()
     {
         Id = id,
