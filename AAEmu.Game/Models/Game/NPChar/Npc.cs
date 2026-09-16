@@ -401,7 +401,7 @@ public partial class Npc : Unit
                 else
                     res += (int)bonus.Value;
             }
-            return res;
+            return ClampToLimit(res, UnitAttribute.MaxHealth);
         }
     }
 
@@ -508,7 +508,7 @@ public partial class Npc : Unit
                 else
                     res += (int)bonus.Value;
             }
-            return res;
+            return ClampToLimit(res, UnitAttribute.MaxMana);
         }
     }
 
@@ -835,7 +835,7 @@ public partial class Npc : Unit
                 else
                     res += (int)bonus.Value;
             }
-            return res;
+            return ClampToLimit(res, UnitAttribute.Armor);
         }
     }
 
@@ -870,7 +870,7 @@ public partial class Npc : Unit
                 else
                     res += (int)bonus.Value;
             }
-            return res;
+            return ClampToLimit(res, UnitAttribute.MagicResist);
         }
     }
 

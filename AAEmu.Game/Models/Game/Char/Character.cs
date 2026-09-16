@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Data;
 using System.Drawing;
 
@@ -1767,6 +1767,9 @@ public partial class Character : Unit, ICharacter
                 ["int"] = Int //Str not needed, but maybe we use later
             };
             var res = formula.Evaluate(parameters);
+            // spell_critical (30) is bounded (0..2000000000) while spell_damage_critical (150) has no row,
+            // so only the first call clamps and it clamps its own attribute; the second stays on the
+            // running value so 150's percent-typed row keeps compounding as it did before the clamp.
             res = CalculateWithBonuses(res, UnitAttribute.SpellCritical);
             res = (float)CalculateWithBonuses(res, UnitAttribute.SpellDamageCritical);
             res = res * (1f / Facets) * 100;
@@ -1780,9 +1783,11 @@ public partial class Character : Unit, ICharacter
     {
         get
         {
-            var res = 1500f;
-            res = (float)CalculateWithBonuses(res, UnitAttribute.SpellCriticalBonus);
-            res = (float)CalculateWithBonuses(res, UnitAttribute.SpellDamageCriticalBonus);
+            // spell_critical_bonus (31) and spell_damage_critical_bonus (152) are two separate bounded
+            // attributes (both -2000000000..4500), so each is composed and clamped on its own base: the
+            // 1500 baseline belongs to 31, and filling row 31 must not eat into what row 152 allows.
+            var res = (float)CalculateWithBonuses(1500f, UnitAttribute.SpellCriticalBonus);
+            res += (float)CalculateWithBonuses(0f, UnitAttribute.SpellDamageCriticalBonus);
             return (res - 1000f) / 10f;
         }
     }
@@ -1792,9 +1797,10 @@ public partial class Character : Unit, ICharacter
     {
         get
         {
-            double res = 0;
-            res = CalculateWithBonuses(res, UnitAttribute.SpellCriticalMul);
-            res = (float)CalculateWithBonuses(res, UnitAttribute.SpellDamageCriticalMul);
+            // The same two-bounded-attribute shape as SpellCriticalBonus above; spell_critical_mul (86)
+            // and spell_damage_critical_mul (151) are both bounded -2000000000..1000.
+            var res = CalculateWithBonuses(0d, UnitAttribute.SpellCriticalMul);
+            res += CalculateWithBonuses(0d, UnitAttribute.SpellDamageCriticalMul);
             return (float)res;
         }
     }
@@ -2083,6 +2089,11 @@ public partial class Character : Unit, ICharacter
         get => (float)CalculateWithBonuses(1d, UnitAttribute.FallDamageMul);
     }
 
+    /// <summary>
+    /// Flat extra living points, composed in the same scale as <c>living_point_gain</c>'s row
+    /// (-2000000000..50), so the row applies: the shipped +100 (item 50762) and +200 (buff 28444) rows
+    /// are capped at 50.
+    /// </summary>
     [UnitAttribute(UnitAttribute.LivingPointGain)]
     public float LivingPointGain
     {
@@ -2094,6 +2105,11 @@ public partial class Character : Unit, ICharacter
         }
     }
 
+    /// <summary>
+    /// Per-mille delta onto the 100 baseline the award site adds itself, while <c>living_point_gain_mul</c>'s
+    /// row (-100..2000000000) is the client's absolute value, so that row is not applied - see
+    /// <see cref="UnitAttributeLimitRules"/>.
+    /// </summary>
     [UnitAttribute(UnitAttribute.LivingPointGainMul)]
     public float LivingPointGainMul
     {
@@ -2105,6 +2121,12 @@ public partial class Character : Unit, ICharacter
         }
     }
 
+    /// <summary>
+    /// Per-mille delta onto the 100 baseline <c>AddExp</c> adds itself, while <c>exp_mul</c>'s row
+    /// (0..500) is the client's absolute value, so that row is not applied and the shipped -50 (buff
+    /// 27888) and -500 (npc templates 13444, 16553, 16554) deltas survive - see
+    /// <see cref="UnitAttributeLimitRules"/>.
+    /// </summary>
     [UnitAttribute(UnitAttribute.ExpMul)]
     public float ExpMul
     {
@@ -2116,6 +2138,11 @@ public partial class Character : Unit, ICharacter
         }
     }
 
+    /// <summary>
+    /// Per-mille delta onto the 100 baseline the loot code adds itself, while <c>drop_rate_mul</c>'s row
+    /// (100..2000000000) is the client's absolute value, so that row is not applied - see
+    /// <see cref="UnitAttributeLimitRules"/>.
+    /// </summary>
     [UnitAttribute(UnitAttribute.DropRateMul)]
     public float DropRateMul
     {

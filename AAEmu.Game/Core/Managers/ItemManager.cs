@@ -17,6 +17,7 @@ using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Loots;
 using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
@@ -1674,14 +1675,17 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
             {
                 command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type='Item'";
                 command.Prepare();
+                var attributeIds = new List<long>();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
                     while (reader.Read())
                     {
                         var itemId = reader.GetUInt32("owner_id");
+                        var attributeId = reader.GetUInt32("unit_attribute_id", 0);
+                        attributeIds.Add(attributeId);
                         var template = new BonusTemplate
                         {
-                            Attribute = (UnitAttribute)reader.GetUInt32("unit_attribute_id", 0),
+                            Attribute = (UnitAttribute)attributeId,
                             ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id"),
                             Value = reader.GetInt64("value"),
                             LinearLevelBonus = reader.GetInt32("linear_level_bonus")
@@ -1692,6 +1696,10 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                         _itemUnitModifiers[itemId].Add(template);
                     }
                 }
+
+                var unknownIds = UnitAttributeLoadRules.UnknownIds(attributeIds);
+                if (unknownIds.Count > 0)
+                    Logger.Warn(UnitAttributeLoadRules.Warning("unit_modifiers (owner_type='Item')", unknownIds));
             }
 
             using (var command = connection.CreateCommand())

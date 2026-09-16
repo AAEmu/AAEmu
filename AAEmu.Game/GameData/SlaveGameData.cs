@@ -3,6 +3,7 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
@@ -85,6 +86,7 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
         {
             command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type='Slave'";
             command.Prepare();
+            var attributeIds = new List<long>();
             using (var sqliteDataReader = command.ExecuteReader())
             using (var reader = new SQLiteWrapperReader(sqliteDataReader))
             {
@@ -93,9 +95,11 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
                     var slaveId = reader.GetUInt32("owner_id");
                     if (!_slaveTemplates.TryGetValue(slaveId, out var slaveTemplate))
                         continue;
+                    var attributeId = reader.GetUInt32("unit_attribute_id", 0);
+                    attributeIds.Add(attributeId);
                     var template = new BonusTemplate
                     {
-                        Attribute = (UnitAttribute)reader.GetUInt32("unit_attribute_id", 0),
+                        Attribute = (UnitAttribute)attributeId,
                         ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id"),
                         Value = reader.GetInt64("value"),
                         LinearLevelBonus = reader.GetInt32("linear_level_bonus")
@@ -103,6 +107,10 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
                     slaveTemplate.Bonuses.Add(template);
                 }
             }
+
+            var unknownIds = UnitAttributeLoadRules.UnknownIds(attributeIds);
+            if (unknownIds.Count > 0)
+                Logger.Warn(UnitAttributeLoadRules.Warning("unit_modifiers (owner_type='Slave')", unknownIds));
         }
 
         using (var command = connection.CreateCommand())
