@@ -1,20 +1,27 @@
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills;
 
 /// <summary>
-/// A bonus whose value depends on the elapsed lifetime of its source buff.
+/// A bonus whose value depends on the elapsed lifetime of its source buff, or on a
+/// <c>formula_funcs</c> expression over the owning unit.
 /// Unlike a static <see cref="Bonus"/>, it is NOT snapshotted at apply time: its value is
 /// recomputed every time the owning attribute is read (see Unit.CalculateWithBonuses).
 ///
-/// The backing <see cref="LinearFuncTemplate"/> is pre-resolved once (at buff Start) so the hot
-/// evaluation path performs no SkillManager lookup and no string allocation.
+/// The backing func template is pre-resolved once (at buff Start) so the hot evaluation path
+/// performs no manager lookup and no string allocation.
 /// </summary>
 public class DynamicBonus
 {
     public DynamicBonusTemplate Template { get; init; }
     public Buff SourceBuff { get; init; }
+
+    /// <summary>Backing row for <c>func_type = 'LinearFunc'</c>; null for the other func types.</summary>
     public LinearFuncTemplate LinearFunc { get; init; }
+
+    /// <summary>Backing row for <c>func_type = 'FormulaFunc'</c>; null for the other func types.</summary>
+    public FormulaFuncTemplate FormulaFunc { get; init; }
 
     /// <summary>
     /// Computes the current value of this dynamic bonus.
@@ -30,7 +37,7 @@ public class DynamicBonus
 
         switch (Template.FuncType)
         {
-            case "LinearFunc":
+            case DynamicBonusFuncRules.LinearFuncType:
             {
                 if (LinearFunc == null)
                     return false;
@@ -51,11 +58,32 @@ public class DynamicBonus
                 return true;
             }
 
-            case "ManualFunc":
-                // Not implemented: the expected client behavior is unknown. Do not apply a value.
-                return false;
+            case DynamicBonusFuncRules.FormulaFuncType:
+            {
+                if (FormulaFunc == null)
+                    return false;
+
+                // A formula row may read the attribute it modifies (attr_N = the row's own
+                // unit_attribute_id in 228 of the 233 shipped rows), and that read arrives here
+                // again through Unit.CalculateWithBonuses. A nested evaluation contributes nothing,
+                // so such a row adds the unit's value once — the one it had before this modifier —
+                // instead of recursing.
+                if (FormulaFuncRules.InFormulaEvaluation)
+                    return false;
+
+                using (FormulaFuncRules.BeginFormulaEvaluation())
+                {
+                    if (!FormulaFunc.TryEvaluate(SourceBuff.Owner as Unit, out var formulaValue))
+                        return false;
+
+                    value = formulaValue;
+                    return true;
+                }
+            }
 
             default:
+                // Anything else (DynamicFunc, ManualFunc) is reported once at content load; see
+                // DynamicBonusFuncRules.SummarizeUnsupported.
                 return false;
         }
     }
