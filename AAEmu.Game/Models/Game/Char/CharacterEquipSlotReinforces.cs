@@ -1,3 +1,4 @@
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Items;
@@ -325,9 +326,51 @@ public class CharacterEquipSlotReinforces
         return true;
     }
 
-    /// <summary>Total level across every slot that belongs to one attribute.</summary>
-    public int AttributeTotal(EquipSlotReinforceAttribute attribute)
+    /// <summary>
+    /// Writes the reinforcement block of a unit state: the level and bar of every slot that has
+    /// progress, then the level-effect choices. The client's reinforcement window is filled from this
+    /// block, so a character carries its progress in the unit state itself.
+    /// </summary>
+    public void WriteInfos(PacketStream stream)
     {
+        List<EquipSlotReinforceState> states;
+        lock (_sync)
+        {
+            states = _states.Values
+                .Where(state => state.Level > 0 || state.Exp > 0)
+                .OrderBy(state => state.SlotTypeId)
+                .Select(state => state.Clone())
+                .ToList();
+        }
+
+        WriteSlotInfos(stream, states);
+    }
+
+    /// <summary>
+    /// The slot list on its own, so the wire shape can be pinned without a character behind it: a count
+    /// of slots, then each slot's id, level and bar. Slots that were never fed are left out.
+    /// </summary>
+    public static void WriteSlotInfos(PacketStream stream, IEnumerable<EquipSlotReinforceState> states)
+    {
+        var ordered = states?.Where(state => state is { Level: > 0 } || state is { Exp: > 0 })
+            .OrderBy(state => state.SlotTypeId)
+            .ToList() ?? [];
+
+        stream.Write((uint)ordered.Count);
+        foreach (var state in ordered)
+        {
+            stream.Write((int)state.SlotTypeId);
+            stream.Write((byte)state.Level);
+            stream.Write(state.Exp);
+        }
+
+        // The effect choices are keyed per (slot, level) on the wire, and the request that sets one is
+        // not implemented yet, so the list goes out empty rather than invented.
+        stream.Write(0u);
+    }
+
+    /// <summary>Total level across every slot that belongs to one attribute.</summary>
+    public int AttributeTotal(EquipSlotReinforceAttribute attribute)    {
         return EquipSlotReinforceRules.AttributeTotal(attribute, States,
             slot => EquipSlotReinforceGameData.Instance.AttributeOf(slot));
     }

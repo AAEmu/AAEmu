@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Char;
 
 namespace AAEmu.Game.Core.Packets.G2C.UnitState;
@@ -43,7 +43,11 @@ internal static class UnitStateCharacterSerializer
         stream.Write(character.PremiumGrade);
 
         (character.BlessUthstin ?? new CharacterBlessUthstin()).WritePageInfos(stream);
-        stream.Write(0u); // equipSlotReinforces.slotInfoList count (u32)
-        stream.Write(0u); // equipSlotReinforces.levelEffectList count (u32)
+
+        // The reinforcement window's own source: the slot list carries each slot's level and bar.
+        if (character.EquipSlotReinforces is { } reinforces)
+            reinforces.WriteInfos(stream);
+        else
+            CharacterEquipSlotReinforces.WriteSlotInfos(stream, []);
     }
 }

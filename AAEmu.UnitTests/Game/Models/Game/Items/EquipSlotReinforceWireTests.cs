@@ -1,5 +1,7 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Items;
 
@@ -81,5 +83,42 @@ public class EquipSlotReinforceWireTests
         await Assert.That(update.TypeId).IsEqualTo((ushort)0x2C5);
         await Assert.That(effectUpdate.TypeId).IsEqualTo((ushort)0x2C6);
         await Assert.That(effectDelete.TypeId).IsEqualTo((ushort)0x2C7);
+    }
+
+    [Test]
+    public async Task UnitStateSlotInfos_CarryProgressAndLeaveUntouchedSlotsOut()
+    {
+        var states = new[]
+        {
+            new EquipSlotReinforceState { SlotTypeId = 15, Level = 4, Exp = 1600 },
+            new EquipSlotReinforceState { SlotTypeId = 2, Level = 1, Exp = 0 },
+            new EquipSlotReinforceState { SlotTypeId = 7, Level = 0, Exp = 0 } // never fed
+        };
+
+        var stream = new PacketStream();
+        CharacterEquipSlotReinforces.WriteSlotInfos(stream, states);
+        stream.Rollback();
+
+        await Assert.That(stream.ReadUInt32()).IsEqualTo(2u); // only the slots with progress
+        await Assert.That(stream.ReadInt32()).IsEqualTo(2);   // and in slot order
+        await Assert.That(stream.ReadByte()).IsEqualTo((byte)1);
+        await Assert.That(stream.ReadInt32()).IsEqualTo(0);
+        await Assert.That(stream.ReadInt32()).IsEqualTo(15);
+        await Assert.That(stream.ReadByte()).IsEqualTo((byte)4);
+        await Assert.That(stream.ReadInt32()).IsEqualTo(1600);
+        await Assert.That(stream.ReadUInt32()).IsEqualTo(0u); // level effect list
+        await Assert.That(stream.LeftBytes).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task UnitStateSlotInfos_WithNoProgressWriteTwoEmptyLists()
+    {
+        var stream = new PacketStream();
+        CharacterEquipSlotReinforces.WriteSlotInfos(stream, []);
+        stream.Rollback();
+
+        await Assert.That(stream.ReadUInt32()).IsEqualTo(0u);
+        await Assert.That(stream.ReadUInt32()).IsEqualTo(0u);
+        await Assert.That(stream.LeftBytes).IsEqualTo(0);
     }
 }
