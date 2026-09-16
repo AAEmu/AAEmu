@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Formulas;
@@ -256,7 +256,7 @@ public sealed class Shipyard : Unit
                 }
             }
 
-            return res;
+            return ClampToLimit(res, UnitAttribute.MaxHealth);
         }
     }
 
@@ -357,7 +357,7 @@ public sealed class Shipyard : Unit
                 }
             }
 
-            return res;
+            return ClampToLimit(res, UnitAttribute.MaxMana);
         }
     }
 

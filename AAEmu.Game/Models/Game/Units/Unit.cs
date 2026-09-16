@@ -1152,13 +1152,22 @@ public class Unit : BaseUnit, IUnit
         return result;
     }
 
+    /// <summary>
+    /// Composes every bonus for one attribute onto the caller's base value for that attribute and clamps
+    /// the result to the attribute's <c>unit_attribute_limits</c> row. The row bounds this attribute's own
+    /// value - what the caller passed in plus this attribute's bonuses - not a property that reads several
+    /// attributes, so a property composed from two bounded attributes must call this once per attribute on
+    /// that attribute's own base rather than running one accumulator through both (see
+    /// <see cref="UnitAttributeLimitRules"/>).
+    /// </summary>
+    /// <param name="value">The attribute's own unmodified value, e.g. a formula result or a per-mille baseline.</param>
+    /// <param name="attr">The attribute those bonuses and that row belong to.</param>
     public double CalculateWithBonuses(double value, UnitAttribute attr)
     {
         // Order: static flat -> dynamic flat -> static percent -> dynamic percent.
         // Dynamic bonuses are evaluated on the fly from their source buff so that time-varying
         // modifiers (LinearFunc dynamic_unit_modifiers) reflect the current elapsed time rather
         // than a value snapshotted at buff Start.
-        var baseValue = value;
         var bonuses = GetBonuses(attr);
         var dynamicBonuses = GetDynamicBonuses(attr);
 
@@ -1196,10 +1205,22 @@ public class Unit : BaseUnit, IUnit
                 value += value * dynValue / 100f;
         }
 
-        // unit_attribute_limits bounds the composed value (49 rows in 10.0.2.13); everything else is
-        // unbounded and comes back untouched.
-        return UnitAttributeLimitRules.Clamp(value, baseValue, UnitAttributeLimitGameData.Instance.GetLimit(attr));
+        // unit_attribute_limits bounds this attribute's own composed value (49 rows in 10.0.2.13);
+        // everything else, and the three rows whose attribute the server composes as a delta, come back
+        // untouched. See UnitAttributeLimitRules for which row applies to which scale.
+        return UnitAttributeLimitRules.Clamp(value, attr, UnitAttributeLimitGameData.Instance.GetLimit(attr));
     }
+
+    /// <summary>
+    /// The same clamp <see cref="CalculateWithBonuses"/> ends with, for the stat getters that walk
+    /// <see cref="GetBonuses"/> by hand - the NPC, slave, mate, shipyard and transfer health, mana, armour
+    /// and magic-resist properties fold their bonuses in table order rather than in
+    /// <see cref="CalculateWithBonuses"/>'s flat-then-percent order, so they cannot call it, but their
+    /// attribute still carries a <c>unit_attribute_limits</c> row.
+    /// </summary>
+    protected static int ClampToLimit(double composedValue, UnitAttribute attribute) =>
+        (int)UnitAttributeLimitRules.Clamp(composedValue, attribute,
+            UnitAttributeLimitGameData.Instance.GetLimit(attribute));
 
     public void SendPacket(GamePacket packet)
     {

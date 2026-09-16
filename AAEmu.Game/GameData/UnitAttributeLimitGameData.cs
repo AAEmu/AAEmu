@@ -17,8 +17,10 @@ namespace AAEmu.Game.GameData;
 /// </summary>
 /// <remarks>
 /// Loaded nowhere before this: the values reach gameplay only through
-/// <see cref="UnitAttributeLimitRules"/>, which <c>Unit.CalculateWithBonuses</c> calls, so a table
-/// with no rows loaded means "clamp nothing" rather than "clamp to 0".
+/// <see cref="UnitAttributeLimitRules"/>, which <c>Unit.CalculateWithBonuses</c> calls and which the
+/// hand-walked NPC, slave, mate, shipyard and transfer stat getters reach through
+/// <c>Unit.ClampToLimit</c>, so a table with no rows loaded means "clamp nothing" rather than
+/// "clamp to 0".
 ///
 /// One row (id 8, <c>melee_block</c> 0..2000000000) names attribute 21, which the 10.0.2.13
 /// <c>enum_unit_attribute</c> table does not carry. <see cref="UnitAttribute.MeleeBlock"/> keeps that
