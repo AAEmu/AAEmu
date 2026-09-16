@@ -63,11 +63,14 @@ public class DynamicBonus
                 if (FormulaFunc == null)
                     return false;
 
-                // A formula row may read the attribute it modifies (attr_N = the row's own
-                // unit_attribute_id in 228 of the 233 shipped rows), and that read arrives here
-                // again through Unit.CalculateWithBonuses. A nested evaluation contributes nothing,
-                // so such a row adds the unit's value once — the one it had before this modifier —
-                // instead of recursing.
+                // InFormulaEvaluation counts evaluations for the whole thread, not per attribute, so
+                // this returns false for any FormulaFunc bonus reached while any other one is being
+                // evaluated — not only for the row that re-entered its own attribute. For the 218
+                // shipped rows that read the attribute they modify the two are the same thing: the
+                // nested read sees the unit's value with this modifier left out, which is what stops
+                // the recursion. It is not the same thing for rows 945-949, which read an attribute
+                // that carries a FormulaFunc row of its own; see the remarks on
+                // FormulaFuncRules.InFormulaEvaluation.
                 if (FormulaFuncRules.InFormulaEvaluation)
                     return false;
 

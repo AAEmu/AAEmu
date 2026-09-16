@@ -38,8 +38,9 @@ public readonly record struct FormulaFuncVariable(string Name, FormulaFuncVariab
 /// engine's own functions. <c>attr_&lt;N&gt;</c> is the unit attribute id, not a position: buff 28984
 /// "(attr_test_func) 10 move_speed_mul" carries dynamic row 737 (unit_attribute_id 10, func_id 17),
 /// formula_funcs 17 is "attr_10" and enum_unit_attribute names 10 "move_speed_mul"; buff 28975
-/// "(attr_test_func) 0 str" carries attribute 0 with "attr_0". In 228 of the 233 rows attr_N is also
-/// the row's own unit_attribute_id.
+/// "(attr_test_func) 0 str" carries attribute 0 with "attr_0". In 218 of the 233 rows attr_N is also
+/// the row's own unit_attribute_id, 5 rows (945-949) read a different attribute and 10 read no
+/// attribute at all; see <see cref="InFormulaEvaluation"/>.
 /// </remarks>
 public static class FormulaFuncRules
 {
@@ -68,10 +69,25 @@ public static class FormulaFuncRules
     /// True while a formula_funcs expression is being evaluated on this thread.
     /// </summary>
     /// <remarks>
-    /// A row that reads the attribute it modifies — 228 of the 233 shipped rows — comes back through
-    /// <see cref="Unit.CalculateWithBonuses"/> while that attribute is being computed. The nested
-    /// read must see the unit's value without the formula applied again, or the attribute would
-    /// recurse until the stack ends.
+    /// One counter for the thread, not one per attribute: every FormulaFunc bonus reached while any
+    /// other one is being evaluated contributes nothing, not only the row that re-entered its own
+    /// attribute. 218 of the 233 shipped rows read the attribute they modify, so that read arrives
+    /// here again through <see cref="Unit.CalculateWithBonuses"/> while the attribute is being
+    /// computed; for those rows the two are the same thing — the nested read sees the unit's value
+    /// with this modifier left out, which is what stops the recursion — and 10 more rows read no
+    /// attribute at all (pc_level, heir_level and gear_score only).
+    ///
+    /// The remaining 5 rows read an attribute other than the one they modify, and the difference
+    /// shows there. Rows 945-949, all on buff 29238 "잠재능력 발현", modify attributes
+    /// 249/250/251/253/254 and read attr_96, attr_98, attr_87 and attr_173 (948 and 949 both read
+    /// attr_173). Each of those four attributes carries a FormulaFunc row of its own — 96 row 800,
+    /// 98 row 802, 87 row 791, 173 row 868 — so holding 29238 together with one of them makes the
+    /// outer row read that attribute without the inner row's contribution either, not "the value it
+    /// had before this modifier". Those four rows sit on buffs 29047 "(attr_test_func) 96
+    /// mainhand_dps", 29049 "(attr_test_func) 98 ranged_dps", 29038 "(attr_test_func) 87 spell_dps"
+    /// and 29115 "(attr_test_func) 173 heal_dps", and buff 29238 is itself granted only by the
+    /// buff_triggers on 29239 and 28916, which no enabled skill_effect grants either. Nothing a
+    /// player holds reaches the combination today.
     /// </remarks>
     public static bool InFormulaEvaluation => _evaluationDepth > 0;
 
