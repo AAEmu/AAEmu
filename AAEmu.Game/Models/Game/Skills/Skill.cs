@@ -207,11 +207,15 @@ public class Skill
             {
                 // Basic attacks: short anti-spam only. 500ms blocked the client auto-attack
                 // retry storm and made the hotbar feel unresponsive (CooldownTime).
-                // Zone-driven NPC melee needs a hard cooldown gate; the interval fallback permits
-                // duplicate swings when a key has not yet been recorded.
+                // A non-character caster is a zone-driven NPC here: its swing interval is the one
+                // SkillManager.GetAttackDelay computes from the attack skill and the unit's attack-speed
+                // rating (1300 ms for a unit carrying no speed rows) instead of a flat World constant, so
+                // the zone's own cadence is what reaches the client. See NpcSwingGateRules.
                 var delay = 150;
-                if (Id == 2 || Id == 3 || Id == 4)
-                    delay = character != null ? 100 : 1500;
+                if (BuffRemoveOnRules.IsAutoAttack(Id))
+                    delay = character != null
+                        ? 100
+                        : NpcSwingGateRules.SwingIntervalMs(SkillManager.GetAttackDelay(Template, unit));
 
                 // Instant combo hits skip the 150 ms anti-spam and must not write SkillLastUsed
                 // (that blocked the next parent press). They still wait for the shared GCD the
