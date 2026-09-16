@@ -1065,6 +1065,13 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     Logger.Warn(UnitAttributeLoadRules.Warning("dynamic_unit_modifiers", unknownDynamicIds));
             }
 
+            // Rows whose func type this server cannot evaluate are inert; they are counted here once,
+            // by type and func_id, rather than warned about on every buff application.
+            var unsupportedDynamicModifiers = DynamicBonusFuncRules.SummarizeUnsupported(
+                _buffs.Values.SelectMany(buff => buff.DynamicBonuses));
+            if (unsupportedDynamicModifiers != null)
+                Logger.Warn(unsupportedDynamicModifiers);
+
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM skill_controllers";
