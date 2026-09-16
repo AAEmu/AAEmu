@@ -335,15 +335,18 @@ public class CharacterManager(
                     "FROM actability_groups a " +
                     "LEFT JOIN actability_view_group_elems e ON e.actability_group_id = a.id";
                 command.Prepare();
+                var attributeIds = new List<long>();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
                     while (reader.Read())
                     {
+                        var unitAttributeId = reader.GetInt32("unit_attr_id");
+                        attributeIds.Add(unitAttributeId);
                         var template = new ActabilityTemplate
                         {
                             Id = reader.GetUInt32("id"),
                             Name = reader.GetString("name"),
-                            UnitAttributeId = reader.GetInt32("unit_attr_id"),
+                            UnitAttributeId = unitAttributeId,
                             ViewGroupId = reader.GetUInt32("view_group_id"),
                             CountsTowardExpertLimit = reader.GetBoolean("skill_page_visible") &&
                                                      reader.GetUInt32("view_group_id") != 0
@@ -351,6 +354,11 @@ public class CharacterManager(
                         _actabilities.Add(template.Id, template);
                     }
                 }
+
+                // -1 is actability_groups' own "no attribute" marker and is not reported.
+                var unknownIds = UnitAttributeLoadRules.UnknownIds(attributeIds);
+                if (unknownIds.Count > 0)
+                    Logger.Warn(UnitAttributeLoadRules.Warning("actability_groups (unit_attr_id)", unknownIds));
             }
 
             // 10.0.2.13: the actability_categories table was removed. Its data is now split between

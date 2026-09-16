@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -329,7 +329,7 @@ public sealed class Mate : Unit
                     res += (int)bonus.Value;
             }
 
-            return res;
+            return ClampToLimit(res, UnitAttribute.MaxMana);
         }
     }
 
@@ -499,7 +499,7 @@ public sealed class Mate : Unit
                 else
                     res += (int)bonus.Value;
             }
-            return res;
+            return ClampToLimit(res, UnitAttribute.Armor);
         }
     }
 
@@ -527,7 +527,7 @@ public sealed class Mate : Unit
                 else
                     res += (int)bonus.Value;
             }
-            return res;
+            return ClampToLimit(res, UnitAttribute.MagicResist);
         }
     }
     #endregion

@@ -1,17 +1,21 @@
 ﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Data.Sqlite;
+using NLog;
 
 namespace AAEmu.Game.GameData;
 
 [GameData]
 public class DamageModifierGameData : Singleton<DamageModifierGameData>, IGameDataLoader
 {
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
     private Dictionary<uint, List<BonusTemplate>> __damageModifiers;
 
     public List<BonusTemplate> GetModifiersForBuff(uint ownerId)
@@ -27,15 +31,18 @@ public class DamageModifierGameData : Singleton<DamageModifierGameData>, IGameDa
         {
             command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type = 'DamageEffect'";
             command.Prepare();
+            var attributeIds = new List<long>();
             using (var sqliteReader = command.ExecuteReader())
             using (var reader = new SQLiteWrapperReader(sqliteReader))
             {
                 while (reader.Read())
                 {
                     var ownerId = reader.GetUInt32("owner_id");
+                    var attributeId = reader.GetUInt32("unit_attribute_id");
+                    attributeIds.Add(attributeId);
                     var template = new BonusTemplate
                     {
-                        Attribute = (UnitAttribute)reader.GetUInt32("unit_attribute_id"),
+                        Attribute = (UnitAttribute)attributeId,
                         ModifierType = (UnitModifierType)reader.GetUInt32("unit_modifier_type_id"),
                         Value = reader.GetInt64("value"),
                         LinearLevelBonus = reader.GetInt32("linear_level_bonus")
@@ -46,6 +53,10 @@ public class DamageModifierGameData : Singleton<DamageModifierGameData>, IGameDa
                     __damageModifiers[ownerId].Add(template);
                 }
             }
+
+            var unknownIds = UnitAttributeLoadRules.UnknownIds(attributeIds);
+            if (unknownIds.Count > 0)
+                Logger.Warn(UnitAttributeLoadRules.Warning("unit_modifiers (owner_type='DamageEffect')", unknownIds));
         }
     }
 
