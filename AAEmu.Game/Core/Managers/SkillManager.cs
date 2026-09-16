@@ -42,6 +42,13 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     private Dictionary<uint, List<uint>> _taggedBuffs = [];
     private Dictionary<uint, List<uint>> _skillTags = [];
     private Dictionary<uint, List<uint>> _taggedSkills = [];
+    // tagged_immune_buffs / tagged_require_buffs, keyed by the buff that carries the row. Both tables
+    // are tiny (2 645 / 309 rows) and were previously loaded nowhere, which made Buffs.CheckBuffImmune
+    // a no-op and every tagged_require_buffs prerequisite unenforced.
+    private Dictionary<uint, List<uint>> _buffImmunityTags = [];
+    private Dictionary<uint, List<uint>> _requiredBuffTags = [];
+    // Returned for a buff with no rows so the per-application lookups do not allocate.
+    private static readonly List<uint> NoTags = [];
     private Dictionary<uint, List<SkillModifier>> _skillModifiers = [];
     private Dictionary<uint, List<BuffTriggerTemplate>> _buffTriggers = [];
     private Dictionary<uint, List<CombatBuffTemplate>> _combatBuffs = [];
@@ -240,6 +247,22 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         return _skillTags.TryGetValue(skillId, out var tags) ? tags : [];
     }
 
+    /// <summary>
+    /// Tags refused while <paramref name="buffId"/> is active on a unit (<c>tagged_immune_buffs</c>).
+    /// </summary>
+    public List<uint> GetBuffImmunityTags(uint buffId)
+    {
+        return _buffImmunityTags.TryGetValue(buffId, out var tags) ? tags : NoTags;
+    }
+
+    /// <summary>
+    /// Tags a unit must already carry before <paramref name="buffId"/> may apply (<c>tagged_require_buffs</c>).
+    /// </summary>
+    public List<uint> GetRequiredBuffTags(uint buffId)
+    {
+        return _requiredBuffTags.TryGetValue(buffId, out var tags) ? tags : NoTags;
+    }
+
     public List<uint> GetSkillsByTag(uint tagId)
     {
         return _taggedSkills.TryGetValue(tagId, out var tag) ? tag : [];
@@ -392,6 +415,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         _skillModifiers = [];
         _skillTags = [];
         _taggedSkills = [];
+        _buffImmunityTags = [];
+        _requiredBuffTags = [];
         _combatBuffs = [];
         _linearFuncs = [];
         _skillReagents = [];
@@ -2209,6 +2234,42 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
             Logger.Info(
                 $"Buff grants loaded: {buffSkillRows} buff_skills, {mountSkillRows} buff_mount_skills, " +
                 $"{swapRows} buff_swap_skills, {passiveRows} buff_passive_buffs rows on {_buffGrants.Count} buffs");
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM tagged_immune_buffs";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var buffId = reader.GetUInt32("buff_id", 0);
+                        var tagId = reader.GetUInt32("buff_tag_id", 0);
+
+                        if (!_buffImmunityTags.ContainsKey(buffId))
+                            _buffImmunityTags.Add(buffId, []);
+                        _buffImmunityTags[buffId].Add(tagId);
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM tagged_require_buffs";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var buffId = reader.GetUInt32("buff_id", 0);
+                        var tagId = reader.GetUInt32("buff_tag_id", 0);
+
+                        if (!_requiredBuffTags.ContainsKey(buffId))
+                            _requiredBuffTags.Add(buffId, []);
+                        _requiredBuffTags[buffId].Add(tagId);
+                    }
+                }
+            }
 
             using (var command = connection.CreateCommand())
             {
