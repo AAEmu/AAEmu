@@ -111,7 +111,7 @@ public class HealEffect : EffectTemplate
         if (criticalHeal)
         {
             value = (int)(value * (1 + ((Unit)caster).HealCriticalBonus / 100));
-            caster.CombatBuffs.TriggerCombatBuffs((Unit)caster, trg, SkillHitType.SpellCritical, true);
+            caster.CombatBuffs.TriggerCombatBuffs((Unit)caster, trg, SkillHitType.SpellCritical, true, source?.Skill);
         }
 
         value = (int)(value * trg.IncomingHealMul);

@@ -131,8 +131,8 @@ public class DamageEffect : EffectTemplate
                 HitType = hitType
             };
             // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
-            trg.CombatBuffs.TriggerCombatBuffs(caster, trg, hitType, false);
-            caster.CombatBuffs.TriggerCombatBuffs(caster, trg, hitType, false);
+            trg.CombatBuffs.TriggerCombatBuffs(caster, trg, hitType, false, source?.Skill);
+            caster.CombatBuffs.TriggerCombatBuffs(caster, trg, hitType, false, source?.Skill);
             caster.BroadcastPacket(missPacket, true);
             return;
         }
@@ -450,8 +450,8 @@ public class DamageEffect : EffectTemplate
         }
 
         // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
-        caster.CombatBuffs.TriggerCombatBuffs((Unit)caster, target as Unit, hitType, false);
-        target.CombatBuffs.TriggerCombatBuffs((Unit)caster, target as Unit, hitType, false);
+        caster.CombatBuffs.TriggerCombatBuffs((Unit)caster, target as Unit, hitType, false, source?.Skill);
+        target.CombatBuffs.TriggerCombatBuffs((Unit)caster, target as Unit, hitType, false, source?.Skill);
         var packet = new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, value, absorbed)
         {
             HoldableId = (byte)(holdable?.HoldableTemplate?.Id ?? 0),
