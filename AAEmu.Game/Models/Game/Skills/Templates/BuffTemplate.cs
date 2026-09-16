@@ -224,6 +224,34 @@ public class BuffTemplate
     public bool CollidePushable { get; init; }
     public bool OnActionTime => Tick > 0;
 
+    // buffs' gliding_* physics (18 columns, of which gliding and gliding_rotate_speed were already read)
+    // and the six instrument anim ids. No server code consumes them: gliding physics is client- and
+    // zone-side, and the anim ids are what the client plays for a performance instrument. They are loaded
+    // so a later check (a glide-speed or lift clamp, a tick that swaps in an instrument anim) can read
+    // them instead of finding nothing, which is what the TODO at the loader used to leave behind.
+    public float GlidingStartupTime { get; init; }
+    public float GlidingStartupSpeed { get; init; }
+    public float GlidingFallSpeedSlow { get; init; }
+    public float GlidingFallSpeedNormal { get; init; }
+    public float GlidingFallSpeedFast { get; init; }
+    public float GlidingSmoothTime { get; init; }
+    public int GlidingLiftCount { get; init; }
+    public float GlidingLiftHeight { get; init; }
+    public float GlidingLiftValidTime { get; init; }
+    public float GlidingLiftDuration { get; init; }
+    public float GlidingLiftSpeed { get; init; }
+    public float GlidingLandHeight { get; init; }
+    public float GlidingSlidingTime { get; init; }
+    public float GlidingMoveSpeedSlow { get; init; }
+    public float GlidingMoveSpeedNormal { get; init; }
+    public float GlidingMoveSpeedFast { get; init; }
+    public int StringInstrumentStartAnimId { get; init; }
+    public int PercussionInstrumentStartAnimId { get; init; }
+    public int TubeInstrumentStartAnimId { get; init; }
+    public int StringInstrumentTickAnimId { get; init; }
+    public int PercussionInstrumentTickAnimId { get; init; }
+    public int TubeInstrumentTickAnimId { get; init; }
+
     public List<TickEffect> TickEffects { get; } = [];
     public List<BonusTemplate> Bonuses { get; } = [];
     public List<DynamicBonusTemplate> DynamicBonuses { get; } = [];
