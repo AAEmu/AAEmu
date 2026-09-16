@@ -1317,7 +1317,14 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             TargetHealthMax = reader.GetInt32("target_health_max", 0),
                             TargetHealthMul = reader.GetFloat("target_health_mul", 0f),
                             TargetHealthAdd = reader.GetInt32("target_health_add", 0),
-                            FireProc = reader.GetBoolean("fire_proc", true)
+                            FireProc = reader.GetBoolean("fire_proc", true),
+                            // Loaded but not consumed yet: formula 65 (damage_multiplier_by_element) reads
+                            // element_value, element_effect_ratio and element_resist_value, and the server has
+                            // no source for any of them — enum_unit_attribute carries no element attack or
+                            // resist id, and holdables.element_id, item_elements and armor_element_resists are
+                            // not loaded. The field is parsed so the loader matches the table.
+                            UseElementEffect = reader.GetBoolean("use_element_effect", false),
+                            FixedType = reader.GetBoolean("fixed_type", false)
                         };
                         _effects["DamageEffect"][template.Id] = template;
                     }

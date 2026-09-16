@@ -118,6 +118,38 @@ public static class DamageEffectRules
     public static bool FiresProcs(bool fireProc) => fireProc;
 
     /// <summary>
+    /// The damage factor of a critical hit: the caster's typed critical bonus (<c>melee_critical_bonus</c> and
+    /// its ranged and spell twins) plus this effect's own <c>critical_bonus</c>, less the victim's
+    /// flexibility, over 100 — the expression this path already applied, with the effect's authored bonus
+    /// folded in.
+    /// </summary>
+    /// <remarks>
+    /// <c>critical_bonus</c> is 0 on 10,999 of the 11,001 rows, and adding 0f is exact, so those rows
+    /// crit for exactly what they crit for before. The two rows that author 100 (damage effects 2225 and
+    /// 2227, both multiplier 2.0 hits) double the critical bonus on top of whatever the caster carries.
+    /// </remarks>
+    public static float CriticalFactor(float unitCriticalBonus, int effectCriticalBonus, float victimFlexibility) =>
+        1f + ((unitCriticalBonus + effectCriticalBonus) - victimFlexibility / 100f) / 100f;
+
+    /// <summary>
+    /// The damage a hit does against a victim carrying <c>target_buff_tag_id</c>: the authored multiplier,
+    /// then the authored flat add (<c>target_buff_bonus</c>).
+    /// </summary>
+    /// <remarks>
+    /// The add is flat damage, not another scale, and the rows that carry it say so in their tag
+    /// descriptions: tag 5802 reads "경비견을 제외한 몬스터는 화염 방사기와 연쇄 광선탄에 추가 피해를
+    /// 받습니다" and its rows add +3,000…+10,000 to a 7,000…24,000 hit, tag 5803 reads "철갑 뿔소 몬스터는
+    /// 광선포에 의해 피해를 입지 않습니다" and its rows take 5,000 off a 15,000 hit, and 죽음의 바다
+    /// (damage effects 12888/12900/12922, tag 4363 수영) adds 10,000 and 53,000 to a 500…6,000 hit, which is
+    /// the kill its text describes ("물가에 있는 대상들을 모두 감전 시켜 사망하게 만듭니다").
+    ///
+    /// Only the 21 rows that author a non-zero add reach this; on the other 10,980 the add is exactly 0 and
+    /// the result is the product the existing code already applied.
+    /// </remarks>
+    public static float TargetBuffDamage(float damage, float targetBuffBonusMul, int targetBuffBonus) =>
+        damage * targetBuffBonusMul + targetBuffBonus;
+
+    /// <summary>
     /// The per-victim scale <c>target_health_min</c>/<c>max</c>/<c>mul</c>/<c>add</c> applies to the rolled
     /// hit while the victim's health percentage sits inside the authored band.
     /// </summary>

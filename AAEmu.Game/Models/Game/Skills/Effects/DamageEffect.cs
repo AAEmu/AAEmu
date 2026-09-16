@@ -122,6 +122,23 @@ public class DamageEffect : EffectTemplate
     /// grapple and stance-swap family (감아올리기, 크게 감아올리기), where a proc answer would be wrong.
     /// </summary>
     public bool FireProc { get; set; } = true;
+
+    /// <summary>
+    /// <c>use_element_effect</c> (239 rows): scale the hit by <c>formulas</c> 65,
+    /// <c>(element_value / (element_value + 8000)) * element_effect_ratio * (1 - element_resist_value /
+    /// (element_resist_value + 200))</c>. Loaded, and not consumed yet: the 10.0.2.13 server has no source for
+    /// any of the three variables — <c>enum_unit_attribute</c> carries no element attack or resist id, and
+    /// <c>holdables.element_id</c>, <c>item_elements</c> and <c>armor_element_resists</c> are not loaded.
+    /// </summary>
+    public bool UseElementEffect { get; set; }
+
+    /// <summary>
+    /// <c>fixed_type</c> (46 rows, all of which already set <c>use_fixed_damage</c>, 36 of them siege type).
+    /// Loaded, and not consumed: nothing in the content or the client data this server reads says what the
+    /// flag changes about an authored fixed range, and inventing a meaning would move 46 environmental and
+    /// mechanical hits (붉은 용의 숨결, 광선총 발사, 목표물 제거) on a guess.
+    /// </summary>
+    public bool FixedType { get; set; }
     public List<BonusTemplate> Bonuses { get; set; } = [];
 
     public override bool OnActionTime => false;
@@ -459,8 +476,9 @@ public class DamageEffect : EffectTemplate
         // Buff tag increase (Hellspear's impale combo, for ex)
         if (TargetBuffTagId > 0 && target.Buffs.CheckBuffTag(TargetBuffTagId))
         {
-            // TODO TargetBuffBonus ? (used in 3 DamageEffects)
-            finalDamage *= TargetBuffBonusMul;
+            // target_buff_bonus is the flat half of the same pair: the tag's scale, then the tag's add.
+            // 10,980 of the 11,001 rows author 0, which is the identity here.
+            finalDamage = DamageEffectRules.TargetBuffDamage(finalDamage, TargetBuffBonusMul, TargetBuffBonus);
         }
 
         // Toughness reduction (PVP Only)
@@ -471,13 +489,16 @@ public class DamageEffect : EffectTemplate
         switch (hitType)
         {
             case SkillHitType.MeleeCritical:
-                finalDamage *= 1 + (((Unit)caster).MeleeCriticalBonus - trg.Flexibility / 100) / 100;
+                finalDamage *= DamageEffectRules.CriticalFactor(
+                    ((Unit)caster).MeleeCriticalBonus, CriticalBonus, trg.Flexibility);
                 break;
             case SkillHitType.RangedCritical:
-                finalDamage *= 1 + (((Unit)caster).RangedCriticalBonus - trg.Flexibility / 100) / 100;
+                finalDamage *= DamageEffectRules.CriticalFactor(
+                    ((Unit)caster).RangedCriticalBonus, CriticalBonus, trg.Flexibility);
                 break;
             case SkillHitType.SpellCritical:
-                finalDamage *= 1 + (((Unit)caster).SpellCriticalBonus - trg.Flexibility / 100) / 100;
+                finalDamage *= DamageEffectRules.CriticalFactor(
+                    ((Unit)caster).SpellCriticalBonus, CriticalBonus, trg.Flexibility);
                 break;
             default:
                 break;

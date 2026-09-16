@@ -137,6 +137,55 @@ public class DamageEffectRulesTests
     }
 
     // ---------------------------------------------------------------------------------------------------
+    // critical bonus and the target buff tag pair
+    // ---------------------------------------------------------------------------------------------------
+
+    [Test]
+    public async Task CriticalFactor_WithoutAnEffectBonus_IsTheExpressionItReplaced()
+    {
+        // 10,999 of the 11,001 rows leave critical_bonus at 0, and that has to crit for exactly what it
+        // crit for before: 1 + (bonus - flexibility/100)/100.
+        foreach (var unitBonus in new[] { 0f, 12.5f, 50f, 120f })
+        {
+            foreach (var flexibility in new[] { 0f, 100f, 350f })
+            {
+                var before = 1 + (unitBonus - flexibility / 100) / 100;
+                await Assert.That(DamageEffectRules.CriticalFactor(unitBonus, 0, flexibility)).IsEqualTo(before);
+            }
+        }
+    }
+
+    [Test]
+    public async Task CriticalFactor_AddsTheEffectsOwnBonus()
+    {
+        // damage_effects 2225 and 2227 author 100: a 50 % caster bonus becomes 150 %, and a bare caster
+        // crits for double instead of for nothing.
+        await Assert.That(DamageEffectRules.CriticalFactor(50f, 100, 0f)).IsEqualTo(2.5f);
+        await Assert.That(DamageEffectRules.CriticalFactor(0f, 100, 0f)).IsEqualTo(2f);
+    }
+
+    [Test]
+    public async Task TargetBuffDamage_WithoutAnAdd_IsTheMultiplierAlone()
+    {
+        // 10,980 of the 11,001 rows. `x * 1.0f + 0` is bit-for-bit `x * 1.0f`, which is what the code did.
+        var damage = 12_345.678f;
+
+        await Assert.That(DamageEffectRules.TargetBuffDamage(damage, 1f, 0)).IsEqualTo(damage);
+        await Assert.That(DamageEffectRules.TargetBuffDamage(damage, 1.3f, 0)).IsEqualTo(damage * 1.3f);
+    }
+
+    [Test]
+    public async Task TargetBuffDamage_AddsTheFlatDeltaTheTagRowsAuthor()
+    {
+        // 광선포 발사 against the armored rhino (tag 5803): 15,000 authored, 5,000 off. 죽음의 바다
+        // against a swimmer (tag 4363): 5,000 authored, 53,000 on.
+        await Assert.That(DamageEffectRules.TargetBuffDamage(15_000f, 1f, -5_000)).IsEqualTo(10_000f);
+        await Assert.That(DamageEffectRules.TargetBuffDamage(5_000f, 1f, 53_000)).IsEqualTo(58_000f);
+        // The multiplier still lands first: 죽음의 바다's 500-damage row doubles and then adds 10,000.
+        await Assert.That(DamageEffectRules.TargetBuffDamage(500f, 2f, 10_000)).IsEqualTo(11_000f);
+    }
+
+    // ---------------------------------------------------------------------------------------------------
     // target health scaling
     // ---------------------------------------------------------------------------------------------------
 
