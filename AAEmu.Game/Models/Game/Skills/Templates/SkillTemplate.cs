@@ -118,6 +118,12 @@ public class SkillTemplate
     public bool SwitchToSkillCooldown { get; set; }
     public int SecondCooldownTagId { get; set; }
     public int ThirdCooldownTagId { get; set; }
+    /// <summary>
+    /// <see cref="CooldownTagId"/>, <see cref="SecondCooldownTagId"/> and
+    /// <see cref="ThirdCooldownTagId"/> as the non-zero, de-duplicated list the cooldown store keys on.
+    /// Built once at load time so a cast does not allocate.
+    /// </summary>
+    public int[] CooldownTags { get; set; } = [];
     public bool IsDropableBackpack { get; set; }
     public int ChargeCount { get; set; }
     public int ChargeCooldownTime { get; set; }

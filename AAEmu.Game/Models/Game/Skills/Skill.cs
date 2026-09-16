@@ -232,8 +232,17 @@ public class Skill
                 // The skill's own cooldown is armed on cast (Cast / plot-only fire edge) but was never
                 // consulted on the player path: a 15 s skill could be fired again as soon as the gate
                 // above allowed it. SkillCooldownGateRules lists the casts that keep their own pacing.
+                // The skill's cooldown tags are checked too, so using one variant of an action greys out
+                // its siblings (295 ability skills carry a tag).
+                var cooldownBlocks = SkillCooldownGateRules.CooldownBlocksCast(
+                    Template.SwitchToSkillCooldown,
+                    unit.Cooldowns.CheckCooldown(Template.Id),
+                    unit.Cooldowns.CheckTagCooldown(Template.CooldownTags));
+                var accountCooldownBlocks = Template.AccountCooldown &&
+                                            character != null &&
+                                            AccountCooldowns.IsActive(character.AccountId, Template.Id);
                 if (SkillCooldownGateRules.ShouldWaitForCooldown(
-                        _bypassGcd, fishingHold, Template.Id, unit.Cooldowns.CheckCooldown(Template.Id)))
+                        _bypassGcd, fishingHold, Template.Id, cooldownBlocks || accountCooldownBlocks))
                 {
                     Logger.Trace($"Skill: CooldownTime [{Template.CooldownTime}] for {Template.Id}");
                     return SkillResult.CooldownTime;
@@ -851,7 +860,7 @@ public class Skill
         unit.SkillTask = null;
 
         ConsumeMana(caster);
-        unit.Cooldowns.AddCooldown(Template.Id, (uint)Template.CooldownTime);
+        ArmCooldowns(unit);
 
         // if (Id == 2 || Id == 3 || Id == 4)
         // {
@@ -2019,8 +2028,35 @@ AlwaysHit:
         _plotOnlyFireCostsApplied = true;
         ApplyGlobalCooldown(unit);
         // Skill cooldown is also applied in DoPlotEnd; applying early matches Cast() and blocks re-cast spam.
-        if (Template.CooldownTime > 0)
-            unit.Cooldowns.AddCooldown(Template.Id, (uint)Template.CooldownTime);
+        ArmCooldowns(unit);
+    }
+
+    /// <summary>
+    /// Arms the cast's cooldown on the skill id, on every cooldown tag the skill carries, and on the
+    /// account when <c>account_cooldown</c> is set.
+    /// </summary>
+    /// <remarks>
+    /// A <c>switch_to_skill_cooldown</c> variant (10534 빛과 어둠 → 36630/36631) takes over the running
+    /// family cooldown instead of its own, so the player cannot use the parent and then reset the
+    /// family timer by picking a variant with a shorter cooldown — 36632 연속 회복: 번개 declares 0 ms.
+    /// </remarks>
+    internal void ArmCooldowns(Unit unit)
+    {
+        if (unit == null)
+            return;
+
+        var duration = Template.CooldownTime > 0 ? (uint)Template.CooldownTime : 0u;
+        if (Template.SwitchToSkillCooldown)
+        {
+            duration = SkillCooldownGateRules.SwitchToCooldownDuration(
+                duration,
+                unit.Cooldowns.GetRemaining(Template.Id, Template.CooldownTags));
+        }
+
+        unit.Cooldowns.AddCooldown(Template.Id, duration, Template.CooldownTags);
+
+        if (Template.AccountCooldown && unit is Character character)
+            AccountCooldowns.Arm(character.AccountId, Template.Id, duration);
     }
 
     /// <summary>
@@ -2093,12 +2129,15 @@ AlwaysHit:
         if (!SkillCastOverlapRules.ArmsSharedGlobalCooldown(Template.CastingTime, Template.CustomGcd, Template.DefaultGcd))
             return;
 
-        // NOTE: default_gcd overriding custom_gcd is deliberate and matches the data — 29054 of the 29669
-        // skills with default_gcd set carry custom_gcd 0, i.e. "use the server default". The 619 that carry
-        // both are ambiguous and are left on the default rather than guessed at.
-        var gcd = Template.CustomGcd;
-        if (Template.DefaultGcd)
-            gcd = unit is Npc ? 1500 : 1000;
+        // Length order of authority is custom_gcd → weapon_gcd_id → default_gcd: see SkillGcdRules.
+        // weapon_gcd_id names a holdables row (15 한손창 1100 ms, 16 양손창 1200 ms, 17 양손지팡이 1300 ms
+        // on 327 skills, none of which carry a custom_gcd), so those skills follow their weapon class
+        // instead of the flat server default.
+        var weaponGcdSpeed = Template.WeaponGcdId > 0
+            ? ItemManager.Instance.GetHoldable((uint)Template.WeaponGcdId)?.Speed ?? 0
+            : 0;
+        var gcd = SkillGcdRules.ResolveSharedGcd(
+            Template.CustomGcd, Template.DefaultGcd, weaponGcdSpeed, unit is Npc);
         if (gcd <= 0)
             return;
         var gcdMul = SkillGcdRules.SharedGcdMultiplier(

@@ -564,6 +564,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         template.SwitchToSkillCooldown = reader.GetBoolean("switch_to_skill_cooldown", false);
                         template.SecondCooldownTagId = reader.GetInt32("second_cooldown_tag_id", 0);
                         template.ThirdCooldownTagId = reader.GetInt32("third_cooldown_tag_id", 0);
+                        template.CooldownTags = SkillCooldownGateRules.CooldownTags(
+                            template.CooldownTagId, template.SecondCooldownTagId, template.ThirdCooldownTagId);
                         template.IsDropableBackpack = reader.GetBoolean("is_dropable_backpack", false);
                         template.ChargeCount = reader.GetInt32("charge_count", 0);
                         template.ChargeCooldownTime = reader.GetInt32("charge_cooldown_time", 0);
