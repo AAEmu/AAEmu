@@ -18,7 +18,13 @@ public static class SkillTargetingUtil
             case SkillTargetRelation.Hostile:
                 return units.Where(caster.CanAttack);
             case SkillTargetRelation.Party:
-                return units;
+                // Party membership, not "everyone the area found". This used to return the unfiltered
+                // list, so a party-only effect hit every unit in radius. A caster with no party is
+                // their own party, which is also how the client's party frame behaves.
+                var partyTeam = TeamManager.Instance.GetTeamByObjId(caster.ObjId);
+                return partyTeam == null
+                    ? units.Where(o => o.ObjId == caster.ObjId)
+                    : units.Where(o => o.ObjId == caster.ObjId || partyTeam.IsObjMember(o.ObjId));
             case SkillTargetRelation.Raid:
                 var team = TeamManager.Instance.GetTeamByObjId(caster.ObjId);
                 var mate = caster.ParentWorld.MateManager.GetActiveMates(caster.Id).FirstOrDefault(); // TODO: How to handle multiple pets?
@@ -71,7 +77,9 @@ public static class SkillTargetingUtil
             case SkillTargetRelation.Hostile:
                 return caster.CanAttack(target);
             case SkillTargetRelation.Party:
-                return true;
+                // Party relation resolves against the same membership the area filter uses.
+                if (target == caster) return true;
+                return TeamManager.Instance.GetTeamByObjId(caster.ObjId)?.IsObjMember(target.ObjId) ?? false;
             case SkillTargetRelation.Raid:
                 if (target == caster) return true;
                 var team = TeamManager.Instance.GetTeamByObjId(caster.ObjId);

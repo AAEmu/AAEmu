@@ -46,6 +46,11 @@ public class Skill
     public PlotState ActivePlotState { get; set; }
     public Dictionary<uint, SkillHitType> HitTypes { get; set; }
     public BaseUnit InitialTarget { get; set; }//Temp Hack Fix. Replace this with UnitsEffected
+    /// <summary>
+    /// The item a <see cref="SkillTargetType.Item"/> cast names, resolved from the client's
+    /// <see cref="SkillCastItemTarget"/>. Null for every other target type.
+    /// </summary>
+    public Item TargetItem { get; set; }
     private bool _bypassGcd;
     /// <summary>ZoneAuthority: avoid double WZSkillStarted (cast-time relays at Use, instant at Cast).</summary>
     private bool _zoneSkillStartedRelayed;
@@ -177,6 +182,18 @@ public class Skill
         }
 
         unit.ConditionChance = true;
+
+        // use_condition_bits and the caster's state: dead, stunned, slept, silenced, swimming. The
+        // client greys out what it can see, but a forged or stale press still reached Cast() before
+        // this gate existed, and silence had no server-side effect at all.
+        var useConditionFailure = SkillUseConditionRules.Evaluate(
+            Template.UseConditionBits,
+            SkillUseConditionRules.ReadState(unit));
+        if (useConditionFailure.HasValue)
+        {
+            Logger.Trace("Skill {0} blocked for {1}: {2}", Template.Id, caster.Name, useConditionFailure.Value);
+            return useConditionFailure.Value;
+        }
 
         var requirementResult = UnitRequirementsGameData.Instance.CanUseSkill(
             Template,
@@ -324,32 +341,10 @@ public class Skill
             ForcePlotGraphOnly = true;
         }
 
-        // If skill uses Plots, then start the plot
-        if (Template.Plot != null)
-        {
-            if (Template.PlotOnly || ForcePlotGraphOnly)
-            {
-                // plot_only (and World OnSpawn fill) returns before Cast() — apply start costs here.
-                // GCD for cast-time plot_only is applied when the plot leaves its casting edge
-                // (PlotNode → ApplyPlotOnlyFireCosts). Zone needs WZSkillStarted now (Cast never runs).
-                RelayZoneSkillStartedIfNeeded(casterCaster, targetCaster, skillObject);
-                ConsumeMana(caster);
-                // Arm GCD on press (including 10752's 1000 ms). Waiting until the plot fire-edge
-                // left a 850 ms window where hold-repeat started a new Flamebolt and cancelled
-                // the one that had not Fired yet.
-                ApplyPlotOnlyFireCosts(unit);
-                // Do not send SCSkillStarted here. Plot-only Flamebolt (and the rest of that
-                // family) already drive the cast bar from SCPlotEvent. SkillStarted with a
-                // 1 s RealCastTime locks the whole hotbar, and plot-only never EndSkill's, so
-                // hold-to-repeat dies on the first press.
-                Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this));
-                return SkillResult.Success;
-            }
-
-            Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this));
-        }
-
         // Check if target is within range
+        // The check runs before the plot branch below, not after it: a plot_only skill returned from
+        // Use() before ever reaching this code, so 315 of the 534 ability skills — every plot_only one —
+        // could be cast from any distance at all.
         var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
         var targetDist = unit.GetDistanceTo(target, true);
 
@@ -402,15 +397,44 @@ public class Skill
             or SkillCastPosition2Target
             or SkillCastPosition3Target;
         var unboundedPlacement = placementTarget && Template.MaxRange <= 0;
+        // A plot_only skill with max_range 0 makes the same statement as a placement cast — the plot
+        // decides how far it reaches — so it keeps the old permissive behaviour rather than acquiring a
+        // 0 m limit it never had.
+        var unboundedPlotOnly = (Template.PlotOnly || ForcePlotGraphOnly) && Template.MaxRange <= 0;
 
         // TODO: Remove exception for doodads
         // TODO: Remove exceptions for slave initiated by Doodads (needed to fix repair points on ships)
-        if (!zoneNpcCast && targetDist > maxRangeCheck && !unboundedPlacement && target is not Doodad && target is not Slave)
+        if (!zoneNpcCast && targetDist > maxRangeCheck && !unboundedPlacement && !unboundedPlotOnly && target is not Doodad && target is not Slave)
         {
             SkillTlIdManager.ReleaseId(TlId);
             TlId = 0;
             Logger.Info($"TooFarRange targetDist={targetDist}, maxRangeCheck={maxRangeCheck}, SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
             return SkillResult.TooFarRange;
+        }
+
+        // If skill uses Plots, then start the plot
+        if (Template.Plot != null)
+        {
+            if (Template.PlotOnly || ForcePlotGraphOnly)
+            {
+                // plot_only (and World OnSpawn fill) returns before Cast() — apply start costs here.
+                // GCD for cast-time plot_only is applied when the plot leaves its casting edge
+                // (PlotNode → ApplyPlotOnlyFireCosts). Zone needs WZSkillStarted now (Cast never runs).
+                RelayZoneSkillStartedIfNeeded(casterCaster, targetCaster, skillObject);
+                ConsumeMana(caster);
+                // Arm GCD on press (including 10752's 1000 ms). Waiting until the plot fire-edge
+                // left a 850 ms window where hold-repeat started a new Flamebolt and cancelled
+                // the one that had not Fired yet.
+                ApplyPlotOnlyFireCosts(unit);
+                // Do not send SCSkillStarted here. Plot-only Flamebolt (and the rest of that
+                // family) already drive the cast bar from SCPlotEvent. SkillStarted with a
+                // 1 s RealCastTime locks the whole hotbar, and plot-only never EndSkill's, so
+                // hold-to-repeat dies on the first press.
+                Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this));
+                return SkillResult.Success;
+            }
+
+            Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this));
         }
 
         if (character is { AccessLevel: < 100 })
@@ -616,8 +640,20 @@ public class Skill
                     break;
                 }
             case SkillTargetType.Item:
-                // TODO ...
-                break;
+                {
+                    // 457 skills name an item as their target — enchant, dye, socket, extract. The
+                    // effects that consume such a cast read the item off targetObj themselves, so what
+                    // was missing here is the resolved instance: without it the skill kept the caster as
+                    // its target and had no way to say which item the cast was about.
+                    if (targetCaster is SkillCastItemTarget itemTarget && itemTarget.Id != 0)
+                    {
+                        TargetItem = ItemManager.Instance.GetItemByItemId(itemTarget.Id);
+                        if (TargetItem == null)
+                            Logger.Warn("SkillTargetType.Item: item {0} not found for skill {1}", itemTarget.Id, Template.Id);
+                    }
+
+                    break;
+                }
             case SkillTargetType.Others:
                 {
                     if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
@@ -1336,6 +1372,14 @@ public class Skill
             {
                 var targetNpc = target as Npc;
                 var relationState = caster.GetRelationStateTo(target);
+
+                // target_alive / target_dead, the same reading the plot target filter uses. A direct
+                // cast had no such filter at all, so an AoE could still land its effects on a corpse.
+                if (target is Unit aliveStateUnit &&
+                    !SkillUseConditionRules.AllowsTarget(Template.TargetAlive, Template.TargetDead, aliveStateUnit.IsDead))
+                {
+                    continue;
+                }
                 // Level range check
                 if (effect.StartLevel > unit.Level || effect.EndLevel < unit.Level)
                 {
