@@ -110,6 +110,29 @@ public static class EquipSlotReinforceRules
         return EquipSlotReinforceChange.LeveledUp;
     }
 
+    /// <summary>
+    /// The item a feeding spends: the first member of the material's item set that the character holds
+    /// in full. The members are alternatives — one of them pays for the feed, not all of them — which is
+    /// why a set may list both a single item and a bulk one.
+    /// </summary>
+    public static (uint ItemId, int Count)? PickConsumable(IEnumerable<(uint ItemId, int Count)> members,
+        Func<uint, int> heldCount)
+    {
+        if (members == null || heldCount == null)
+            return null;
+
+        foreach (var (itemId, count) in members)
+        {
+            if (itemId == 0 || count <= 0)
+                continue;
+
+            if (heldCount(itemId) >= count)
+                return (itemId, count);
+        }
+
+        return null;
+    }
+
     /// <summary>Total reinforcement level across every slot that belongs to one attribute.</summary>
     public static int AttributeTotal(EquipSlotReinforceAttribute attribute,
         IEnumerable<EquipSlotReinforceState> states,

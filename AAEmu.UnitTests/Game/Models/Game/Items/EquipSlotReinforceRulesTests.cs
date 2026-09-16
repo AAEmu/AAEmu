@@ -154,6 +154,41 @@ public class EquipSlotReinforceRulesTests
     }
 
     [Test]
+    public async Task PickConsumable_TakesTheFirstAlternativeTheCharacterHoldsInFull()
+    {
+        // A material's set members are alternatives: here either 5 singles or 1 bulk item pays for it.
+        var members = new[] { (ItemId: 51594u, Count: 5), (ItemId: 211955u, Count: 1) };
+
+        var bulk = EquipSlotReinforceRules.PickConsumable(members, itemId => itemId == 211955 ? 1 : 0);
+        await Assert.That(bulk).IsEqualTo((211955u, 1));
+
+        var singles = EquipSlotReinforceRules.PickConsumable(members, itemId => itemId == 51594 ? 5 : 0);
+        await Assert.That(singles).IsEqualTo((51594u, 5));
+    }
+
+    [Test]
+    public async Task PickConsumable_RefusesWhenNothingIsHeldInFull()
+    {
+        var members = new[] { (ItemId: 51594u, Count: 5), (ItemId: 211955u, Count: 1) };
+
+        // Four singles is not five, and a partial alternative does not let the bulk one through either.
+        await Assert.That(EquipSlotReinforceRules.PickConsumable(members, itemId => itemId == 51594 ? 4 : 0)).IsNull();
+        await Assert.That(EquipSlotReinforceRules.PickConsumable(members, _ => 0)).IsNull();
+        await Assert.That(EquipSlotReinforceRules.PickConsumable([], _ => 99)).IsNull();
+        await Assert.That(EquipSlotReinforceRules.PickConsumable(null, _ => 99)).IsNull();
+    }
+
+    [Test]
+    public async Task PickConsumable_IgnoresEmptyMembers()
+    {
+        var members = new[] { (ItemId: 0u, Count: 5), (ItemId: 51595u, Count: 0), (ItemId: 51596u, Count: 1) };
+
+        var pick = EquipSlotReinforceRules.PickConsumable(members, _ => 0);
+
+        await Assert.That(pick).IsNull();
+    }
+
+    [Test]
     public async Task ApplyExp_BanksWhatFitsAndReportsWhenTheBarIsFull()
     {
         var ladder = new[] { Step(1, 200), Step(2, 700) };

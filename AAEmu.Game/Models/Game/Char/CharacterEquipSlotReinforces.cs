@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Items;
@@ -243,21 +244,68 @@ public class CharacterEquipSlotReinforces
     }
 
     /// <summary>
-    /// Banks a feed into a slot's bar. The material itself — which item it draws from and what it costs
-    /// — belongs to the request that carries it; this only records what the feed was worth.
+    /// Banks a feed into a slot's bar, spending the material the request names. The material row picks an
+    /// item set and the set's members are the alternatives that pay for it, so a character holding any one
+    /// of them in full can feed; the row's own currency column is not wired and refuses rather than
+    /// guessing.
     /// </summary>
-    public EquipSlotReinforceChange Feed(byte slotTypeId, int gainExp)
+    public EquipSlotReinforceChange Feed(byte slotTypeId, int materialIndex)
     {
         var ladder = EquipSlotReinforceGameData.Instance.Ladder(slotTypeId);
         if (ladder.Count == 0)
             return EquipSlotReinforceChange.Refused;
 
         EquipSlotReinforceChange change;
-        EquipSlotReinforceState state;
         lock (_sync)
         {
-            state = GetOrCreate(slotTypeId);
-            change = EquipSlotReinforceRules.ApplyExp(state, ladder, gainExp);
+            var state = GetOrCreate(slotTypeId);
+            var next = EquipSlotReinforceRules.NextStep(state.Level, ladder);
+            if (next == null)
+                return EquipSlotReinforceChange.Refused;
+
+            var materials = EquipSlotReinforceGameData.Instance.Materials(slotTypeId, next.Level);
+            if (materialIndex < 0 || materialIndex >= materials.Count)
+            {
+                Logger.Warn("Equip slot reinforce {0}: {1} asked for material {2} of {3}",
+                    slotTypeId, _owner.Name, materialIndex, materials.Count);
+                return EquipSlotReinforceChange.Refused;
+            }
+
+            var material = materials[materialIndex];
+            if (material.CurrencyId != 0)
+            {
+                Logger.Warn("Equip slot reinforce {0}: material {1} charges currency {2}, which is not wired",
+                    slotTypeId, material.Id, material.CurrencyId);
+                return EquipSlotReinforceChange.Refused;
+            }
+
+            var itemSet = ItemManager.Instance.GetItemSet(material.NeedMaterialItemSetId);
+            if (itemSet == null)
+            {
+                Logger.Warn("Equip slot reinforce {0}: material {1} wants item set {2}, which is not loaded",
+                    slotTypeId, material.Id, material.NeedMaterialItemSetId);
+                return EquipSlotReinforceChange.Refused;
+            }
+
+            var members = itemSet.Items.Values.Select(item => (item.ItemId, item.Count)).ToList();
+            var pick = EquipSlotReinforceRules.PickConsumable(members, itemId => _owner.Inventory.GetItemsCount(itemId));
+            if (pick == null)
+            {
+                Logger.Warn("Equip slot reinforce {0}: {1} holds nothing usable from item set {2}",
+                    slotTypeId, _owner.Name, material.NeedMaterialItemSetId);
+                return EquipSlotReinforceChange.Refused;
+            }
+
+            var consumed = _owner.Inventory.ConsumeItem([SlotType.Inventory], ItemTaskType.EquipSlotReinforce,
+                pick.Value.ItemId, pick.Value.Count, null);
+            if (consumed < pick.Value.Count)
+            {
+                Logger.Warn("Equip slot reinforce {0}: {1} consumed {2} of {3} x item {4}",
+                    slotTypeId, _owner.Name, consumed, pick.Value.Count, pick.Value.ItemId);
+                return EquipSlotReinforceChange.Refused;
+            }
+
+            change = EquipSlotReinforceRules.ApplyExp(state, ladder, material.GainExp);
         }
 
         if (change is EquipSlotReinforceChange.ExpGained or EquipSlotReinforceChange.ExpCapped)
