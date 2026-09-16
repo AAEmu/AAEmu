@@ -69,6 +69,16 @@ public class FormulaManager : Singleton<FormulaManager>, IFormulaManager
         return _formulas.TryGetValue(id, out var value) ? value : null;
     }
 
+    /// <summary>
+    /// The same lookup for a caller that runs before <see cref="Load"/> has built the table (a unit test
+    /// process): a missing table answers "no such row", which is what an absent row answers too, instead of
+    /// throwing on the null dictionary.
+    /// </summary>
+    public Formula GetFormulaOrNull(FormulaKind kind)
+    {
+        return _formulas != null && _formulas.TryGetValue((uint)kind, out var value) ? value : null;
+    }
+
     public FormulaFuncTemplate GetFormulaFunc(uint id)
     {
         return _formulaFuncs.TryGetValue(id, out var value) ? value : null;

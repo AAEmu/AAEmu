@@ -55,6 +55,25 @@ public class DamageEffect : EffectTemplate
     public float ActabilityAdd { get; set; }
     public float ChargedLevelMul { get; set; }
     public bool AdjustDamageByHeight { get; set; }
+
+    /// <summary>
+    /// <c>adjust_damage_by_range</c> (123 rows): scale the hit by <c>formulas</c> 12's curve around
+    /// <see cref="OptimumRange"/>.
+    /// </summary>
+    public bool AdjustDamageByRange { get; set; }
+
+    /// <summary>
+    /// <c>optimum_range</c>: the distance the <see cref="AdjustDamageByRange"/> curve peaks at. The shipped
+    /// rows use 30 m (99 rows, with <c>range_damage_multipier</c> 1.3 — 폭탄 사격 and the other ranged
+    /// shots), 25 m (17 rows) and a handful of one-offs.
+    /// </summary>
+    public float OptimumRange { get; set; } = 1f;
+
+    /// <summary>
+    /// <c>range_damage_multipier</c> (the column's own spelling): the factor the curve reaches at
+    /// <see cref="OptimumRange"/>, 1.3 on the 99 shipped 30 m rows.
+    /// </summary>
+    public float RangeDamageMultiplier { get; set; } = 1f;
     public bool UsePercentDamage { get; set; }
     public int PercentMin { get; set; }
     public int PercentMax { get; set; }
@@ -265,6 +284,25 @@ public class DamageEffect : EffectTemplate
 
         min *= Multiplier;
         max *= Multiplier;
+
+        // Distance factors, from the content's own rows: damage_multiplier_by_height (formulas 11) for the
+        // 10,584 rows that leave adjust_damage_by_height set, and damage_multiplier_by_range (formulas 12)
+        // for the 123 that set adjust_damage_by_range. Both are the identity — `min *= 1f` is bit-for-bit
+        // min — for a row that turns the flag off, for a missing formula row and for a table that never
+        // loaded, which is what keeps the 417 rows that opt out of the height term exactly as they were.
+        if (AdjustDamageByHeight)
+        {
+            var heightFactor = FormulaDamageScalingRules.HeightFactorFor((Unit)caster, trg);
+            min *= heightFactor;
+            max *= heightFactor;
+        }
+
+        if (AdjustDamageByRange)
+        {
+            var rangeFactor = FormulaDamageScalingRules.RangeFactorFor((Unit)caster, trg, OptimumRange, RangeDamageMultiplier);
+            min *= rangeFactor;
+            max *= rangeFactor;
+        }
 
         var damageMultiplier = DamageType switch
         {
