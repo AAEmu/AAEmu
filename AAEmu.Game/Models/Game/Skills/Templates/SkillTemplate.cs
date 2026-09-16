@@ -110,6 +110,16 @@ public class SkillTemplate
     public bool SkipQuestApplyUseItem { get; set; }
     public bool CalcUserLevel { get; set; }
     public bool CastingUseable { get; set; }
+    /// <summary>
+    /// <c>skills.check_obstacle</c> (24,943 rows). Loaded; not enforced, because this server's world has no
+    /// line-of-sight query — <c>GeoDataManager</c> exposes terrain height only. See the PR body.
+    /// </summary>
+    public bool CheckObstacle { get; set; }
+    /// <summary>
+    /// <c>skills.projectile_id</c> (1,935 rows). Loaded for completeness; projectile physics is
+    /// client-side and out of scope, see the PR body.
+    /// </summary>
+    public uint ProjectileId { get; set; }
     public bool SkipValidateSource { get; set; }
     public int CharRaceId { get; set; }
     public int MaxCombatResource { get; set; }

@@ -1328,10 +1328,47 @@ public class Skill
             : 0;
     }
 
-    private IEnumerable<BaseUnit> FilterAoeUnits(BaseUnit caster, IEnumerable<BaseUnit> units)
+    private IEnumerable<BaseUnit> FilterAoeUnits(BaseUnit caster, BaseUnit targetSelf, IEnumerable<BaseUnit> units)
     {
         units = SkillTargetingUtil.FilterWithRelation(Template.TargetRelation, caster, units);
-        return units;
+        return FilterAoeShape(caster, targetSelf, units);
+    }
+
+    /// <summary>
+    /// Applies the skill's area shape to the gathered units: the <c>target_area_angle</c> /
+    /// <c>front_angle</c> cone, and the corridor a <c>Line</c> selection describes. See
+    /// <see cref="SkillAreaRules"/> for the readings and their open questions.
+    /// </summary>
+    private IEnumerable<BaseUnit> FilterAoeShape(BaseUnit caster, BaseUnit targetSelf, IEnumerable<BaseUnit> units)
+    {
+        var list = units as List<BaseUnit> ?? units.ToList();
+
+        var halfAngle = SkillAreaRules.ConeHalfAngle(Template.TargetAreaAngle, Template.FrontAngle);
+        if (halfAngle > 0d)
+        {
+            // The bearing is measured from the caster's facing, so a cleave leaves out what is behind it.
+            list = list.Where(unit =>
+                unit != null &&
+                (unit.ObjId == caster.ObjId || SkillAreaRules.IsInsideCone(MathUtil.CalculateAngleFrom(caster, unit), halfAngle)))
+                .ToList();
+        }
+
+        if (SkillAreaRules.UsesCorridor(Template.TargetSelection) && targetSelf != null)
+        {
+            var casterPosition = caster.Transform.World.Position;
+            var targetPosition = targetSelf.Transform.World.Position;
+            var halfWidth = Template.TargetAreaRadius > 0 ? Template.TargetAreaRadius / 2.0 : 0d;
+            list = list.Where(unit =>
+                unit != null &&
+                (unit.ObjId == caster.ObjId || SkillAreaRules.IsWithinCorridor(
+                    (casterPosition.X, casterPosition.Y),
+                    (targetPosition.X, targetPosition.Y),
+                    (unit.Transform.World.Position.X, unit.Transform.World.Position.Y),
+                    halfWidth)))
+                .ToList();
+        }
+
+        return list;
     }
 
     /// <summary>
@@ -1380,7 +1417,7 @@ public class Skill
             var units = WorldManager.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius, true);
             if (Template.TargetSelection == SkillTargetSelection.Source)
                 units.Add(targetSelf); // Add main target as well
-            units = FilterAoeUnits(caster, units).ToList();
+            units = FilterAoeUnits(caster, targetSelf, units).ToList();
 
             possibleTargets.AddRange(units);
             // TODO : Need to check if this is needed

@@ -655,6 +655,10 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         template.SkipQuestApplyUseItem = reader.GetBoolean("skip_quest_apply_use_item", false);
                         template.CalcUserLevel = reader.GetBoolean("calc_user_level", false);
                         template.CastingUseable = reader.GetBoolean("casting_useable", false);
+                        // check_obstacle (24,943 rows) and projectile_id (1,935) were never loaded; see
+                        // SkillTemplate for why neither is enforced.
+                        template.CheckObstacle = reader.GetBoolean("check_obstacle", true);
+                        template.ProjectileId = reader.GetUInt32("projectile_id", 0);
                         template.SkipValidateSource = reader.GetBoolean("skip_validate_source", false);
                         template.CharRaceId = reader.GetInt32("char_race_id", 0);
                         template.MaxCombatResource = reader.GetInt32("max_combat_resource", 0);
