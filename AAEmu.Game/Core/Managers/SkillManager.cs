@@ -37,6 +37,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     private Dictionary<uint, EffectType> _types = [];
     private Dictionary<string, Dictionary<uint, EffectTemplate>> _effects = [];
     private Dictionary<uint, BuffTemplate> _buffs = [];
+    private Dictionary<uint, BuffGrantSet> _buffGrants = [];
     private Dictionary<uint, List<uint>> _buffTags = [];
     private Dictionary<uint, List<uint>> _taggedBuffs = [];
     private Dictionary<uint, List<uint>> _skillTags = [];
@@ -142,6 +143,39 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     public BuffTemplate GetBuffTemplate(uint id)
     {
         return _buffs.GetValueOrDefault(id);
+    }
+
+    /// <summary>
+    /// What buff <paramref name="buffId"/> grants its owner while it is active, as loaded from
+    /// <c>buff_skills</c>, <c>buff_mount_skills</c>, <c>buff_swap_skills</c> and
+    /// <c>buff_passive_buffs</c>. <see cref="BuffGrantSet.Empty"/> for the buffs that grant nothing,
+    /// which is most of them.
+    /// </summary>
+    public BuffGrantSet GetBuffGrantSet(uint buffId)
+    {
+        return _buffGrants.TryGetValue(buffId, out var grants) ? grants : BuffGrantSet.Empty;
+    }
+
+    /// <summary>
+    /// Stores one grant row under its buff, dropping rows for a buff that did not load and values already
+    /// present. The return value is whether a row was actually stored, for the loader's summary.
+    /// </summary>
+    private bool AddGrant<T>(Dictionary<uint, List<T>> grants, uint buffId, T value)
+    {
+        if (buffId == 0 || !_buffs.ContainsKey(buffId))
+            return false;
+
+        if (!grants.TryGetValue(buffId, out var values))
+        {
+            values = [];
+            grants.Add(buffId, values);
+        }
+
+        if (values.Contains(value))
+            return false;
+
+        values.Add(value);
+        return true;
     }
 
     public LinearFuncTemplate GetLinearFunc(uint funcId)
@@ -352,6 +386,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
         _buffs = [];
 
+        _buffGrants = [];
         _buffTags = [];
         _taggedBuffs = [];
         _skillModifiers = [];
@@ -2055,6 +2090,125 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     }
                 }
             }
+
+            // buff_skills / buff_mount_skills / buff_swap_skills / buff_passive_buffs: what a buff grants
+            // its owner for as long as it lasts. Rows naming content that did not load are dropped, the
+            // same way skill_effects drops a dangling effect_id — 19 buffs in buff_skills (746, 3831, …),
+            // buff 22092 in buff_swap_skills and buff_passive_buffs, buff_mount_skills row 91 (mount_skills
+            // 499) and the 62 enable='f' rows have nothing to attach to, and a grant for a buff that never
+            // exists can never be applied.
+            _buffGrants = [];
+            var grantedSkills = new Dictionary<uint, List<uint>>();
+            var grantedSwaps = new Dictionary<uint, List<BuffSkillSwap>>();
+            var grantedPassives = new Dictionary<uint, List<uint>>();
+            var buffSkillRows = 0;
+            var mountSkillRows = 0;
+            var swapRows = 0;
+            var passiveRows = 0;
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM buff_skills WHERE enable = 't'";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var skillId = reader.GetUInt32("skill_id", 0);
+                        if (!_skills.ContainsKey(skillId))
+                            continue;
+
+                        if (AddGrant(grantedSkills, reader.GetUInt32("buff_id", 0), skillId))
+                            buffSkillRows++;
+                    }
+                }
+            }
+
+            // The mount/vehicle variant names mount_skills.id; the skill the owner can actually use is the
+            // one that row points at (mount_skills.skill_id — the same mapping MateGameData uses for the
+            // pet/mount bar). Resolved in the query because the game-data loaders run in no fixed order.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "SELECT bs.buff_id, ms.skill_id AS skill_id FROM buff_mount_skills bs " +
+                    "JOIN mount_skills ms ON ms.id = bs.mount_skill_id WHERE bs.enable = 't'";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var skillId = reader.GetUInt32("skill_id", 0);
+                        if (!_skills.ContainsKey(skillId))
+                            continue;
+
+                        if (AddGrant(grantedSkills, reader.GetUInt32("buff_id", 0), skillId))
+                            mountSkillRows++;
+                    }
+                }
+            }
+
+            // A swap whose replacement or origin has no skill template is dropped whole: masking the origin
+            // without handing over the replacement would leave the player with neither.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM buff_swap_skills";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var originSkillId = reader.GetUInt32("origin_skill_id", 0);
+                        var newSkillId = reader.GetUInt32("new_skill_id", 0);
+                        if (!_skills.ContainsKey(originSkillId) || !_skills.ContainsKey(newSkillId))
+                            continue;
+
+                        var swap = new BuffSkillSwap(
+                            reader.GetUInt32("id", 0),
+                            reader.GetUInt32("buff_id", 0),
+                            reader.GetInt32("priority", 0),
+                            originSkillId,
+                            newSkillId);
+
+                        if (AddGrant(grantedSwaps, swap.BuffId, swap))
+                            swapRows++;
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM buff_passive_buffs";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var passiveBuffId = reader.GetUInt32("passive_buff_id", 0);
+                        if (!_passiveBuffs.ContainsKey(passiveBuffId))
+                            continue;
+
+                        if (AddGrant(grantedPassives, reader.GetUInt32("buff_id", 0), passiveBuffId))
+                            passiveRows++;
+                    }
+                }
+            }
+
+            foreach (var buffId in grantedSkills.Keys
+                         .Concat(grantedSwaps.Keys)
+                         .Concat(grantedPassives.Keys)
+                         .Distinct())
+            {
+                _buffGrants[buffId] = new BuffGrantSet
+                {
+                    GrantedSkills = grantedSkills.TryGetValue(buffId, out var skills) ? skills : [],
+                    Swaps = grantedSwaps.TryGetValue(buffId, out var swaps) ? swaps : [],
+                    PassiveBuffIds = grantedPassives.TryGetValue(buffId, out var passives) ? passives : []
+                };
+            }
+
+            Logger.Info(
+                $"Buff grants loaded: {buffSkillRows} buff_skills, {mountSkillRows} buff_mount_skills, " +
+                $"{swapRows} buff_swap_skills, {passiveRows} buff_passive_buffs rows on {_buffGrants.Count} buffs");
 
             using (var command = connection.CreateCommand())
             {
