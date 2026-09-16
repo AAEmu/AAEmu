@@ -48,11 +48,11 @@ public class SkillController
         switch ((SkillControllerKind)template.KindId)
         {
             case SkillControllerKind.Floating:
-                Logger.Debug("SkillController: create FloatingSkillController");
-                return null; // TODO: Add Floating (telekinesis, bubble ?)
+                Logger.Trace($"SkillController: create FloatingSkillController");
+                return new FloatingSkillController(template, owner, target) { State = SCState.Created };
             case SkillControllerKind.Wandering:
-                Logger.Debug("SkillController: create WanderingSkillController");
-                return null;// TODO: Add Wandering (Fear ?)
+                Logger.Trace($"SkillController: create WanderingSkillController");
+                return new WanderingSkillController(template, owner, target) { State = SCState.Created };
             case SkillControllerKind.Leap:
                 Logger.Trace($"SkillController: create LeapSkillController");
                 var ctrl = new LeapSkillController(template, owner, target) { State = SCState.Created };
