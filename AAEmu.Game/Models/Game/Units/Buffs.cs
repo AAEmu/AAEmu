@@ -632,13 +632,22 @@ public class Buffs : IBuffs
                 case BuffStackRule.Independent:
                     {
                         // Independent: ONE instance per caster, so two casters' copies of the same buff
-                        // coexist instead of the second collapsing onto the first. It never accumulates —
-                        // 9,527 of its 9,942 rows author max_stack 1 — so the caster's own re-application
-                        // refreshes its instance rather than growing a count; the counting rule is
-                        // Multiple below.
+                        // coexist instead of the second collapsing onto the first. The counting rule is
+                        // Multiple below, but 415 of the 9,942 rows still author a ceiling above 1
+                        // (22102/22200 노 젓기 at 12, 24999 향연수호전 마력 주입 at 200, 14841 at 10), and the
+                        // caster's own re-application has to reach it: without the growth below those
+                        // families were pinned at one. The other 9,527 rows author max_stack 1, where
+                        // TryGrowStack is false and the re-application refreshes the instance instead.
                         var live = FindLiveInstance(buff.Template.BuffId, CasterKeyOf(buff));
                         if (live != null)
                         {
+                            if (live.TryGrowStack(buff.Template.MaxStack))
+                                return;
+
+                            // At its ceiling, or a family that does not stack. A permanent instance has
+                            // no timer to refresh, so the repeat application is absorbed rather than run
+                            // through OverwriteWith — 11145 앞 돛 접힘SB3 is max_stack 10 at duration 0 and
+                            // used to be dropped here entirely; it grows above instead.
                             if (!BuffStackRules.ShouldOverwriteOnRefresh(buff.Duration, live.Duration))
                                 return;
                             last = live;
@@ -708,6 +717,13 @@ public class Buffs : IBuffs
                         if (live != null)
                         {
                             var grew = live.TryGrowStack(buff.Template.MaxStack);
+                            // Rule 4 transforms on the application that reaches the ceiling, because a
+                            // counted family has no room left once the count is there. Rule 7 transforms
+                            // one application later: its instances stay separate, so the ceiling is only
+                            // noticed when another instance can no longer be added (see the family-full
+                            // branch above), i.e. 28644 동상 goes at the eleventh application rather than the
+                            // tenth. That one-application difference is faithful to how the two rules
+                            // hold their members, and is deliberate rather than a rounding slip.
                             if (BuffStackRules.ShouldTransform(
                                     live.Stack, live.Template.MaxStack, live.Template.TransformBuffId))
                             {
@@ -802,12 +818,24 @@ public class Buffs : IBuffs
             if (transformFamily != null)
             {
                 // Rule 7: every instance of the family goes, not just the one RemoveBuff would take.
+                //
+                // Exit rather than RemoveEffect: RemoveEffect drops the instance out of _effects and
+                // strips its modifier-cache entries inline, and it is also the tail of the ordinary end
+                // path (SetInUse(false) → FinishBuff → StopEffectTask → RemoveEffect). Calling it on a
+                // live instance therefore ran the body twice and took a cache entry that belonged to
+                // another live instance of the same family. Exit only ends the instance and lets that
+                // one path do the removal, once.
                 foreach (var instance in transformFamily)
-                    RemoveEffect(instance);
+                    instance.Exit();
             }
             else
             {
-                RemoveBuff(transformFrom.Template.BuffId);
+                // The instance that actually reached the ceiling, not the first match by buff id.
+                // RemoveBuff takes the first instance it finds, which was safe while a family was one
+                // instance; Multiple is caster-scoped now, so with two casters stacking the same debuff
+                // (1831 석화 독 at 5, 24621 카둠의 치명적인 독 at 20, 5193 허점 at 5) that dispelled the
+                // other caster's copy while the one that topped out stayed live under the transform.
+                transformFrom.Exit();
             }
 
             var nextTemplate = SkillManager.Instance.GetBuffTemplate(transformBuffId);

@@ -33,6 +33,21 @@ public class BuffStackAddBuffTests
     private const uint RefreshBuffId = 92007;
     private const uint UnknownRuleBuffId = 92008;
     private const uint PermanentExtendBuffId = 92009;
+    // 22102/22200 노 젓기 at 12, 24999 향연수호전 마력 주입 at 200: Independent rows whose ceiling is
+    // above 1, i.e. the 415 rows that do accumulate within one caster.
+    private const uint IndependentCeilingBuffId = 92011;
+    private const uint IndependentCeilingTransformBuffId = 92012;
+    // 11145 앞 돛 접힘SB3: max_stack 10 at duration 0, where the refresh guard used to drop the repeat
+    // application entirely.
+    private const uint IndependentPermanentCeilingBuffId = 92013;
+    // 1831 석화 독 at 5, 24621 카둠의 치명적인 독 at 20: a counted family with a transform, which is
+    // where removing "the first instance with this buff id" took the wrong caster's copy.
+    private const uint MultipleTransformBuffId = 92014;
+    private const uint MultipleTransformTargetBuffId = 92015;
+    // 28644 동상 -> 28645 동결: separate instances, so the transform is noticed at the next application
+    // and every member of the arriving caster's family has to go.
+    private const uint Rule7TransformBuffId = 92016;
+    private const uint Rule7TransformTargetBuffId = 92017;
 
     private FieldInfo _skillManagerField;
     private FieldInfo _buffGameDataField;
@@ -121,6 +136,49 @@ public class BuffStackAddBuffTests
             {
                 Id = UnknownRuleBuffId, Duration = 60000, StackRule = (BuffStackRule)99,
                 MaxStack = 4, Kind = BuffKind.Good
+            },
+            // 22102/22200 노 젓기 shape: Independent, per caster, but the caster's own repeats count up to
+            // the ceiling rather than refreshing a single application.
+            [IndependentCeilingBuffId] = new BuffTemplate
+            {
+                Id = IndependentCeilingBuffId, Duration = 20000, StackRule = BuffStackRule.Independent,
+                MaxStack = 3, Kind = BuffKind.Good
+            },
+            [IndependentCeilingTransformBuffId] = new BuffTemplate
+            {
+                Id = IndependentCeilingTransformBuffId, Duration = 20000,
+                StackRule = BuffStackRule.Independent, MaxStack = 2, Kind = BuffKind.Good,
+                TransformBuffId = IndependentCeilingBuffId
+            },
+            // 11145 앞 돛 접힘SB3 shape: Independent, ceiling above 1, duration 0.
+            [IndependentPermanentCeilingBuffId] = new BuffTemplate
+            {
+                Id = IndependentPermanentCeilingBuffId, Duration = 0, StackRule = BuffStackRule.Independent,
+                MaxStack = 10, Kind = BuffKind.Good
+            },
+            // 1831 석화 독 shape: a counted family per caster whose ceiling names a transform.
+            [MultipleTransformBuffId] = new BuffTemplate
+            {
+                Id = MultipleTransformBuffId, Duration = 30000, StackRule = BuffStackRule.Multiple,
+                MaxStack = 2, Kind = BuffKind.Bad, TransformBuffId = MultipleTransformTargetBuffId
+            },
+            [MultipleTransformTargetBuffId] = new BuffTemplate
+            {
+                Id = MultipleTransformTargetBuffId, Duration = 30000, StackRule = BuffStackRule.Refresh,
+                MaxStack = 1, Kind = BuffKind.Bad
+            },
+            // 28644 동상 -> 28645 동결 shape: separate instances, so the ceiling is noticed on the
+            // application that cannot add another member.
+            [Rule7TransformBuffId] = new BuffTemplate
+            {
+                Id = Rule7TransformBuffId, Duration = 30000,
+                StackRule = BuffStackRule.MultipleDecreaseOne, MaxStack = 2, Kind = BuffKind.Bad,
+                TransformBuffId = Rule7TransformTargetBuffId
+            },
+            [Rule7TransformTargetBuffId] = new BuffTemplate
+            {
+                Id = Rule7TransformTargetBuffId, Duration = 30000, StackRule = BuffStackRule.Refresh,
+                MaxStack = 1, Kind = BuffKind.Bad
             }
         });
         _skillManagerField.SetValue(null, skillManager);
@@ -386,6 +444,108 @@ public class BuffStackAddBuffTests
         await Assert.That(instances.Count).IsEqualTo(1);
         await Assert.That(instances[0].Stack).IsEqualTo(2);
         await Assert.That(instances[0].StackCount).IsEqualTo(2u);
+    }
+
+    /// <summary>
+    /// An Independent family whose ceiling is above 1 has to accumulate for its own caster. The first
+    /// version of this rule refreshed the caster's instance unconditionally, which pinned 22102/22200
+    /// 노 젓기 (12), 24999 향연수호전 마력 주입 (200) and 14841 (10) at one application.
+    /// </summary>
+    [Test]
+    public async Task AddBuff_IndependentFamilyWithACeiling_CountsUpToItForItsOwnCaster()
+    {
+        var (owner, casterA, casterB) = CreateUnits();
+
+        owner.Buffs.AddBuff(CreateBuff(owner, casterA, IndependentCeilingBuffId));
+        owner.Buffs.AddBuff(CreateBuff(owner, casterA, IndependentCeilingBuffId));
+
+        var mine = InstancesOf(owner, IndependentCeilingBuffId);
+        await Assert.That(mine.Count).IsEqualTo(1);
+        await Assert.That(mine[0].Stack).IsEqualTo(2);
+
+        // A second caster still gets its own instance rather than adding to this count.
+        owner.Buffs.AddBuff(CreateBuff(owner, casterB, IndependentCeilingBuffId));
+        await Assert.That(InstancesOf(owner, IndependentCeilingBuffId).Count).IsEqualTo(2);
+
+        // And the ceiling holds: the fourth application for caster A leaves the count at MaxStack.
+        owner.Buffs.AddBuff(CreateBuff(owner, casterA, IndependentCeilingBuffId));
+        var first = InstancesOf(owner, IndependentCeilingBuffId)
+            .Single(i => i.SkillCaster.ObjId == casterA.ObjId);
+        await Assert.That(first.Stack).IsEqualTo(3);
+    }
+
+    /// <summary>
+    /// 11145 앞 돛 접힘SB3 is Independent, ceiling 10, duration 0. The refresh guard
+    /// (<c>ShouldOverwriteOnRefresh</c>) refuses a permanent instance, so the repeat application used to
+    /// be dropped entirely instead of counting.
+    /// </summary>
+    [Test]
+    public async Task AddBuff_IndependentPermanentFamilyWithACeiling_StillCounts()
+    {
+        var (owner, caster, _) = CreateUnits();
+
+        owner.Buffs.AddBuff(CreateBuff(owner, caster, IndependentPermanentCeilingBuffId));
+        owner.Buffs.AddBuff(CreateBuff(owner, caster, IndependentPermanentCeilingBuffId));
+
+        var instances = InstancesOf(owner, IndependentPermanentCeilingBuffId);
+        await Assert.That(instances.Count).IsEqualTo(1);
+        await Assert.That(instances[0].Stack).IsEqualTo(2);
+    }
+
+    /// <summary>
+    /// A counted family that transforms must consume the instance that reached the ceiling. RemoveBuff
+    /// takes the first instance with that buff id, which with two casters stacking the same debuff
+    /// dispelled the other caster's copy while the one that topped out stayed live under the transform
+    /// (1831 석화 독 at 5, 24621 카둠의 치명적인 독 at 20, 5193 허점 at 5).
+    /// </summary>
+    [Test]
+    public async Task AddBuff_CountedFamilyThatTransforms_ConsumesTheInstanceAtTheCeiling()
+    {
+        var (owner, casterA, casterB) = CreateUnits();
+
+        // Caster A opens the family and caster B joins with its own instance, so A's is first on the list.
+        owner.Buffs.AddBuff(CreateBuff(owner, casterA, MultipleTransformBuffId));
+        owner.Buffs.AddBuff(CreateBuff(owner, casterB, MultipleTransformBuffId));
+
+        var family = InstancesOf(owner, MultipleTransformBuffId);
+        await Assert.That(family.Count).IsEqualTo(2);
+        await Assert.That(family[0].SkillCaster.ObjId).IsEqualTo(casterA.ObjId);
+
+        // A applies once more: that reaches A's own ceiling of 2, so A's instance transforms and B's —
+        // the one a first-match removal would have taken later in the list — stays live.
+        owner.Buffs.AddBuff(CreateBuff(owner, casterA, MultipleTransformBuffId));
+
+        var left = InstancesOf(owner, MultipleTransformBuffId);
+        await Assert.That(left.Count).IsEqualTo(1);
+        await Assert.That(left[0].SkillCaster.ObjId).IsEqualTo(casterB.ObjId);
+        await Assert.That(InstancesOf(owner, MultipleTransformTargetBuffId).Count).IsEqualTo(1);
+    }
+
+    /// <summary>
+    /// Rule 7 keeps one instance per application, so the transform is noticed on the application that
+    /// cannot add another member, and every member of the arriving caster's family goes — each one
+    /// ended once. RemoveEffect on a live instance re-entered through StopEffectTask and stripped a
+    /// modifier-cache entry belonging to another live instance of the same family.
+    /// </summary>
+    [Test]
+    public async Task AddBuff_Rule7FamilyThatTransforms_EndsItsMembersWithoutTakingAnotherCasters()
+    {
+        var (owner, casterA, casterB) = CreateUnits();
+
+        owner.Buffs.AddBuff(CreateBuff(owner, casterA, Rule7TransformBuffId));
+        owner.Buffs.AddBuff(CreateBuff(owner, casterA, Rule7TransformBuffId));
+        owner.Buffs.AddBuff(CreateBuff(owner, casterB, Rule7TransformBuffId));
+
+        var before = InstancesOf(owner, Rule7TransformBuffId);
+        await Assert.That(before.Count).IsEqualTo(3);
+
+        // A's third application fills A's own ceiling of 2, so A's two instances transform.
+        owner.Buffs.AddBuff(CreateBuff(owner, casterA, Rule7TransformBuffId));
+
+        var left = InstancesOf(owner, Rule7TransformBuffId);
+        await Assert.That(left.Count).IsEqualTo(1);
+        await Assert.That(left[0].SkillCaster.ObjId).IsEqualTo(casterB.ObjId);
+        await Assert.That(InstancesOf(owner, Rule7TransformTargetBuffId).Count).IsEqualTo(1);
     }
 
     private static (BaseUnit Owner, BaseUnit CasterA, BaseUnit CasterB) CreateUnits() =>
