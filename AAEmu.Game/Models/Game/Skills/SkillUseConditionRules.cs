@@ -41,7 +41,13 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// </list>
 /// <c>source_not_swim</c> (9) and <c>source_should_swim</c> (10) are enforced through
 /// <see cref="CasterState.IsSwimming"/>, and <c>source_crippled</c> (14) is deliberately left out of
-/// the disabling set: crippled is a root, and a rooted character still casts.
+/// the disabling set — but <b>not</b> because a crippled unit is free to cast. <c>buffs.crippled</c>
+/// (127 rows) is a <b>physical-skill</b> lock, not a root: 206/2744 물리 기술 봉쇄 reads "근접 및 원거리
+/// 기술 사용 불가", 111 정신 붕괴 "9초간 물리 공격을 사용하지 못한다" and 205 관절 노리기 "12초간
+/// 무장해제". Blocking every cast here would also silence the spells those rows never meant to bar, and
+/// <c>Skill.Use</c> has no physical-versus-magic filter to gate on, so the bit stays unenforced until one
+/// exists. <c>pacifist</c> (174) and <c>blank_minded</c> (171) are authored through <c>unit_reqs</c>
+/// (UnitReqsKindType.Combat / TargetCombat), which <c>Skill.Use</c> already evaluates.
 /// </remarks>
 public static class SkillUseConditionRules
 {
