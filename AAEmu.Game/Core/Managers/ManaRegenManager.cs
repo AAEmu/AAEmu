@@ -9,11 +9,15 @@ public class ManaRegenManager(ITickManager tickManager) : Singleton<ManaRegenMan
 {
     private int UpdateDelay { get; set; } = 200; // Buff tick interval in milliseconds
     private static object Lock { get; } = new();
-    private Dictionary<uint, ManaRegenTemplate> Registrations { get; set; }
+
+    // One registration per character AND buff: several buffs can carry a tick mana cost, and each one has
+    // to drain, be paced and end on its own. Keyed by player alone, the first registration won and the
+    // rest were dropped — which is why the generalised columns would have been inert next to Dash.
+    private Dictionary<(uint PlayerId, uint BuffId), ManaRegenTemplate> Registrations { get; set; }
 
     public void Initialize()
     {
-        Registrations = new Dictionary<uint, ManaRegenTemplate>();
+        Registrations = new Dictionary<(uint PlayerId, uint BuffId), ManaRegenTemplate>();
         tickManager.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(UpdateDelay), true);
     }
 
@@ -21,14 +25,7 @@ public class ManaRegenManager(ITickManager tickManager) : Singleton<ManaRegenMan
     {
         lock (Lock)
         {
-            // If no entry, create one
-            if (!Registrations.TryGetValue(player.Id, out var entry))
-            {
-                Registrations.Add(player.Id, template);
-            }
-
-            // If nothing set, delete
-            //Registrations.Remove(player.Id);
+            Registrations[(player.Id, template.BuffId)] = template;
         }
     }
 
@@ -39,23 +36,25 @@ public class ManaRegenManager(ITickManager tickManager) : Singleton<ManaRegenMan
             if (Registrations.Count <= 0)
                 return;
 
-            foreach (var (_, entry) in Registrations)
+            // Snapshot: a registration that cannot pay is removed inside the loop, and removing from the
+            // dictionary being enumerated threw InvalidOperationException out of the tick subscription.
+            foreach (var entry in Registrations.Values.ToList())
             {
                 if (!entry.ApplyBuff(entry.Owner))
                 {
-                    UnRegister(entry.Owner);
-                    entry.Owner.Buffs.RemoveBuff((uint)BuffConstants.Dash);
+                    UnRegister(entry);
+                    entry.Owner.Buffs.RemoveBuff(entry.BuffId);
                 }
-                
-            } // for each player
+
+            } // for each registration
         } // lock
     }
 
-    private void UnRegister(Character player)
+    private void UnRegister(ManaRegenTemplate template)
     {
         lock (Lock)
         {
-            Registrations.Remove(player.Id);
+            Registrations.Remove((template.Owner.Id, template.BuffId));
         }
     }
 }
