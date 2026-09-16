@@ -501,6 +501,7 @@ public static class SCOffsets
     public const ushort SCRacingPacket = 0x1f7;
     public const ushort SCRacingResultPacket = 0x1f8;
     public const ushort SCRankRewardMailPacket = 0x27D; // 10.0.2.13
+    public const ushort SCRankPersonalDataPacket = 0x27C; // 10.0.2.13
     public const ushort SCRankCharacterPacket = 0x1fa; // 10.0.2.13
     public const ushort SCAchievementsPacket = 0x27F; // 10.0.2.13
     public const ushort SCAchievementChangedPacket = 0x280; // 10.0.2.13
