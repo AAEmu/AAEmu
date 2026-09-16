@@ -36,7 +36,12 @@ public class DamageEffect : EffectTemplate
     public bool UseChargedBuff { get; set; }
     public uint ChargedBuffId { get; set; }
     public float ChargedMul { get; set; }
-    public float AggroMultiplier { get; set; }
+    /// <summary>
+    /// <c>aggro_multiplier</c>: the factor the damage this hit dealt is worth on the victim's aggro table.
+    /// 1.0 on 10,837 rows, 10.0 on the two 방패 휘두르기 rows whose tooltip reads "위협수준 생성량 높음",
+    /// 3.0 on 3단 베기 and 진공 폭발, and 0.0 on the 77 environmental rows that must pull nothing.
+    /// </summary>
+    public float AggroMultiplier { get; set; } = 1f;
     public int HealthStealRatio { get; set; }
     public int ManaStealRatio { get; set; }
     public float DpsMultiplier { get; set; }
@@ -47,7 +52,12 @@ public class DamageEffect : EffectTemplate
     public uint TargetChargedBuffId { get; set; }
     public float TargetChargedMul { get; set; }
     public float DpsIncMultiplier { get; set; }
-    public bool EngageCombat { get; set; }
+    /// <summary>
+    /// <c>engage_combat</c>: whether this hit is what puts the caster and the victim into combat. 't' on
+    /// 10,572 rows; the 429 that clear it are the scripted and environmental hits (자폭 비행, 감아올리기,
+    /// 메테오 소환, 켈루스의 불덩이) that are not a fight.
+    /// </summary>
+    public bool EngageCombat { get; set; } = true;
     public bool Synergy { get; set; }
     public uint ActabilityGroupId { get; set; }
     public int ActabilityStep { get; set; }
@@ -106,7 +116,12 @@ public class DamageEffect : EffectTemplate
     public int TargetHealthMax { get; set; }
     public float TargetHealthMul { get; set; }
     public int TargetHealthAdd { get; set; }
-    public bool FireProc { get; set; }
+    /// <summary>
+    /// <c>fire_proc</c>: whether this hit rolls the item procs either side carries — the attacker's
+    /// <c>HitAny</c> and the victim's <c>TakeDamageAny</c>. 't' on 10,760 rows; the 241 that clear it are the
+    /// grapple and stance-swap family (감아올리기, 크게 감아올리기), where a proc answer would be wrong.
+    /// </summary>
+    public bool FireProc { get; set; } = true;
     public List<BonusTemplate> Bonuses { get; set; } = [];
 
     public override bool OnActionTime => false;
@@ -562,9 +577,14 @@ public class DamageEffect : EffectTemplate
 
         // TODO : Use proper chance kinds (melee, magic etc.)
 
+        // engage_combat: 't' on 10,572 rows, and 'f' on the 429 scripted and environmental ones (자폭 비행,
+        // 감아올리기, 메테오 소환, 켈루스의 불덩이) that must not be what puts the two units in combat.
         // set for all combatants, for RegenTick
-        trg.IsInBattle = trg.Hp > 0;
-        trg.LastCombatActivity = DateTime.UtcNow;
+        if (EngageCombat)
+        {
+            trg.IsInBattle = trg.Hp > 0;
+            trg.LastCombatActivity = DateTime.UtcNow;
+        }
 
         if (trgCharacter != null)
         {
@@ -574,14 +594,23 @@ public class DamageEffect : EffectTemplate
             {
                 trgCharacter.SetHostileActivity(attackerCharacter);
             }
-            trgCharacter.Procs?.RollProcsForKind(ProcChanceKind.TakeDamageAny);
+
+            // fire_proc: the victim's own take-damage procs, and the attacker's hit procs below. Both keep
+            // rolling for the 10,760 rows that leave the flag set.
+            if (DamageEffectRules.FiresProcs(FireProc))
+                trgCharacter.Procs?.RollProcsForKind(ProcChanceKind.TakeDamageAny);
         }
 
         if (attacker != null)
         {
-            attacker.IsInBattle |= trg.Hp > 0;
-            attacker.LastCombatActivity = DateTime.UtcNow;
-            attacker.Procs?.RollProcsForKind(ProcChanceKind.HitAny);
+            if (EngageCombat)
+            {
+                attacker.IsInBattle |= trg.Hp > 0;
+                attacker.LastCombatActivity = DateTime.UtcNow;
+            }
+
+            if (DamageEffectRules.FiresProcs(FireProc))
+                attacker.Procs?.RollProcsForKind(ProcChanceKind.HitAny);
         }
 
         // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
@@ -628,7 +657,10 @@ public class DamageEffect : EffectTemplate
                         AiAggroEntry.FromDamageValue(caster.ObjId, ((Unit)caster).SummarizeDamage)));
             }
 
-            npc.OnDamageReceived((Unit)caster, value);
+            // aggro_multiplier scales what this hit is worth on the victim's aggro table. Under
+            // ZoneAuthority the aggro is applied by the zone from the WZUnitDamaged relay, whose signature
+            // carries the raw damage, so the factor applies to the local path only.
+            npc.OnDamageReceived((Unit)caster, DamageEffectRules.AggroValue(value, AggroMultiplier));
         }
 
         //Invoke even if damage is 0

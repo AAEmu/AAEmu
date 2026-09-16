@@ -90,6 +90,34 @@ public static class DamageEffectRules
     }
 
     /// <summary>
+    /// The damage one hit is worth on the victim's aggro table (<c>damage_effects.aggro_multiplier</c>).
+    /// </summary>
+    /// <remarks>
+    /// The column is a factor on the damage the hit dealt, and the tooltips of the rows that carry it say so.
+    /// The two 방패 휘두르기 rows that author 10.0 (damage effects 11583 and 12248) read "위협수준 생성량 높음"
+    /// — "high threat generation" — next to a shield bash that is a tank's opener; 3단 베기, 진공 폭발 and
+    /// 방패 휘두르기: 돌풍 author 3.0 (37 rows in all); and the 77 rows that author 0.0 are the hits that must
+    /// pull nothing: 핏물먹이의 돌개바람, 극한의 얼음, 오스트 마력탑의 소환물 흡수 and 빛나는 해안 기지 자동
+    /// 대포 발사. The factor lands on the value handed to <c>Npc.OnDamageReceived</c>, which is the victim's
+    /// own aggro table — the number the packet reports and the damage total are the real damage.
+    ///
+    /// 1.0 is the identity: <c>(int)(damage * 1.0f)</c> is that same integer for every damage this path can
+    /// produce, so the 10,837 rows at the default keep the aggro they had.
+    /// </remarks>
+    public static int AggroValue(int damage, float aggroMultiplier) => (int)(damage * aggroMultiplier);
+
+    /// <summary>
+    /// Whether the hit rolls the item procs either side carries (<c>damage_effects.fire_proc</c>): the
+    /// attacker's <c>HitAny</c> and the victim's <c>TakeDamageAny</c>.
+    /// </summary>
+    /// <remarks>
+    /// 't' on 10,760 of the 11,001 rows, so the roll stays exactly where it was for almost everything. The 241
+    /// rows that clear it are the ones a proc must not answer: 감아올리기, 크게 감아올리기 and the rest of the
+    /// grapple and stance-swap family.
+    /// </remarks>
+    public static bool FiresProcs(bool fireProc) => fireProc;
+
+    /// <summary>
     /// The per-victim scale <c>target_health_min</c>/<c>max</c>/<c>mul</c>/<c>add</c> applies to the rolled
     /// hit while the victim's health percentage sits inside the authored band.
     /// </summary>

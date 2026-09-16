@@ -102,6 +102,41 @@ public class DamageEffectRulesTests
     }
 
     // ---------------------------------------------------------------------------------------------------
+    // aggro and procs
+    // ---------------------------------------------------------------------------------------------------
+
+    [Test]
+    public async Task AggroValue_TheDefaultMultiplier_IsTheDamageItself()
+    {
+        // 10,837 of the 11,001 rows sit at the 1.0 default, and that has to be the aggro they already had.
+        foreach (var damage in new[] { 0, 1, 37, 100, 9_999, 1_000_000 })
+        {
+            await Assert.That(DamageEffectRules.AggroValue(damage, 1f)).IsEqualTo(damage);
+        }
+    }
+
+    [Test]
+    public async Task AggroValue_ScalesTheThreatTheRowsAuthor()
+    {
+        // 방패 휘두르기 (damage effects 11583/12248, "위협수준 생성량 높음") and 3단 베기/진공 폭발.
+        await Assert.That(DamageEffectRules.AggroValue(100, 10f)).IsEqualTo(1000);
+        await Assert.That(DamageEffectRules.AggroValue(100, 3f)).IsEqualTo(300);
+        await Assert.That(DamageEffectRules.AggroValue(100, 1.5f)).IsEqualTo(150);
+        // The 77 rows that pull nothing (핏물먹이의 돌개바람, 극한의 얼음, 오스트 마력탑의 소환물 흡수).
+        await Assert.That(DamageEffectRules.AggroValue(100, 0f)).IsEqualTo(0);
+        await Assert.That(DamageEffectRules.AggroValue(100, 0.01f)).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task FiresProcs_FollowsTheFlag()
+    {
+        // 't' on 10,760 rows (the roll stays put); the 241 that clear it are 감아올리기 and the rest of the
+        // grapple family.
+        await Assert.That(DamageEffectRules.FiresProcs(true)).IsTrue();
+        await Assert.That(DamageEffectRules.FiresProcs(false)).IsFalse();
+    }
+
+    // ---------------------------------------------------------------------------------------------------
     // target health scaling
     // ---------------------------------------------------------------------------------------------------
 
