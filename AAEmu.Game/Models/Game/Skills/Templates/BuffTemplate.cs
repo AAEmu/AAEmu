@@ -393,6 +393,13 @@ public class BuffTemplate
                     new ManaRegenTemplate(
                         character, buff.Template.Tick, buff.Template.TickLevelManaCost, character.Level));
             }
+
+            // What this buff grants its owner for as long as it lasts (buff_skills, buff_mount_skills,
+            // buff_swap_skills, buff_passive_buffs). Start is re-run on a refresh and on stack growth, so
+            // the grant replaces this buff's previous entry instead of piling up.
+            var grants = SkillManager.Instance.GetBuffGrantSet(Id);
+            if (!grants.IsEmpty)
+                character.Skills?.ApplyBuffGrants(buff, grants);
         }
     }
 
@@ -498,6 +505,12 @@ public class BuffTemplate
                 RadarManager.Instance.RegisterForPublicTransport(character, 0f);
             if (TelescopeRange > 0)
                 RadarManager.Instance.RegisterForShips(character, 0f);
+            // Give back what Start granted. Dispel is the single exit every end path goes through —
+            // timeout, Exit, RemoveBuff, purge, death — so the revoke belongs here rather than next to
+            // any one of them. Buffs.RemoveBuff calls this twice for the same buff; the second call
+            // finds no grant entry and does nothing, which is also what keeps a skill two buffs grant
+            // alive while the other one still holds it.
+            character.Skills?.RevokeBuffGrants(buff);
         }
     }
 
