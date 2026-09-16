@@ -875,6 +875,12 @@ public class Buffs : IBuffs
         // imprison-or-trial offer). Guarded by the buff's own shipped length.
         if (GetOwner() is Character arrested && ArrestRules.IsArrestStateBuff(buff.Template.BuffId))
             JusticeManager.Instance.OnArrestStateApplied(arrested);
+
+        // taunt / taunt_with_top_aggro (199 / 133 rows): the buff landed on an NPC and it now attacks the
+        // unit that applied it. Outside the lock, because the publish walks the NPC's aggro table and
+        // hands a packet to the zone. A refused or absorbed application leaves InUse false and is skipped.
+        if (buff.InUse && TauntRules.ForcesTarget(buff.Template.Taunt, buff.Template.TauntWithTopAggro))
+            buff.ApplyTaunt();
     }
 
     private uint AllocateIndex()

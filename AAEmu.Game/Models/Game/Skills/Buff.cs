@@ -2,6 +2,7 @@ using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Skills.Utils;
@@ -244,6 +245,84 @@ public class Buff
     public BuffEvents Events { get; }
     public BuffTriggersHandler Triggers { get; }
     public Dictionary<uint, FactionsEnum> saveFactions { get; set; }
+
+    /// <summary>
+    /// Publishes this buff's taunt (<c>buffs.taunt</c> / <c>taunt_with_top_aggro</c>): its owner is an NPC
+    /// and it now attacks the unit that applied the buff.
+    /// </summary>
+    /// <remarks>
+    /// Under zone authority the zone owns NPC AI, so World only asks: <c>WZTargetChanged</c> with
+    /// <c>forceByWorld</c> is the native forced-target call, and <c>WZUpdateAggro</c> is how a threat entry
+    /// is published. The same pair is what the 49554 Taunt skill's <c>change_target</c> special effect
+    /// uses. Standalone the mirror is the authority and is moved directly.
+    /// </remarks>
+    public void ApplyTaunt()
+    {
+        if (Owner is not Npc npc || Caster is not Unit caster || caster.ObjId == npc.ObjId || npc.ObjId == 0)
+            return;
+
+        var template = Template;
+        var topAggro = TauntRules.GrantsTopAggro(template.Taunt, template.TauntWithTopAggro);
+
+        long aggro = 0;
+        if (topAggro)
+        {
+            // Only the mirror is read here, and only to find the entry to beat: the zone's table is the
+            // authority and it applies this value to its own copy.
+            var highest = npc.AggroTable.IsEmpty
+                ? 0L
+                : npc.AggroTable.Values.Max(entry => (long)entry.TotalAggro);
+            var own = npc.AggroTable.TryGetValue(caster.ObjId, out var mine) ? mine.TotalAggro : 0;
+            aggro = TauntRules.TopAggroValue(highest, own);
+        }
+
+        if (WorldIntegration.ZoneAuthority)
+        {
+            WorldIntegration.RelayTargetChangedToZone?.Invoke(npc.ObjId, caster.ObjId, true);
+
+            if (topAggro)
+                WorldIntegration.PublishAggro(npc, caster, TauntRules.PublishableAggro(aggro), new CastBuff(this));
+
+            Logger.Debug("Taunt buff {0} forces npc {1} onto {2} (topAggro={3} aggro={4})",
+                template.BuffId, npc.ObjId, caster.ObjId, topAggro, aggro);
+            return;
+        }
+
+        if (topAggro)
+            npc.AddUnitAggro(AggroKind.Etc, caster, (int)Math.Min(TauntRules.PublishableAggro(aggro), int.MaxValue));
+
+        npc.CurrentTarget = caster;
+        npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, caster.ObjId), true);
+    }
+
+    /// <summary>
+    /// Hands the NPC back when a plain taunt ends. A taunt that also granted top threat leaves the caster
+    /// on top, so the zone's own pick is already right and nothing is published for it.
+    /// </summary>
+    public void ReleaseTaunt()
+    {
+        if (Owner is not Npc npc || Caster is not Unit caster || npc.ObjId == 0)
+            return;
+
+        var template = Template;
+        if (!TauntRules.ForcesTarget(template.Taunt, template.TauntWithTopAggro)
+            || TauntRules.GrantsTopAggro(template.Taunt, template.TauntWithTopAggro))
+            return;
+
+        var topAggroId = npc.AggroTable.GetTopTotalAggroAbuserObjId();
+        var currentTargetId = (npc.CurrentTarget as Unit)?.ObjId ?? 0;
+        if (TauntRules.ReleaseTarget(caster.ObjId, currentTargetId, topAggroId) is not { } release)
+            return;
+
+        if (WorldIntegration.ZoneAuthority)
+        {
+            WorldIntegration.RelayTargetChangedToZone?.Invoke(npc.ObjId, release, false);
+            return;
+        }
+
+        npc.CurrentTarget = npc.ParentWorld?.GetGameObject(release) as Unit;
+        npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, release), true);
+    }
 
     public Buff(IBaseUnit owner, IBaseUnit caster, SkillCaster skillCaster, BuffTemplate template, Skill skill, DateTime time)
     {
@@ -615,6 +694,9 @@ public class Buff
             // An aura hands its slave buff back before the instance itself goes, so a dispel, a duration
             // expiry and a death cleanup all release the recipients the same way.
             ReleaseAura();
+            // A plain taunt ends with the NPC's target: a dispelled 도발 must not pin the mob for the rest
+            // of the encounter. The top-aggro variant is left alone; it keeps the caster on top by design.
+            ReleaseTaunt();
             Owner.Buffs.RemoveEffect(this);
             Template.Dispel(Caster, Owner, this, replace);
 
