@@ -288,6 +288,14 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         return _passiveBuffs.GetValueOrDefault(id);
     }
 
+    /// <summary>
+    /// The <c>passive_buffs</c> rows marked <c>active='t'</c> that this character is old enough for and
+    /// does not hold yet. <c>CharacterSkills.ReevaluatePassivesOnLevelUp</c> runs the ordinary learn path
+    /// over them, so the ability-tree and point requirements still decide whether one is granted.
+    /// </summary>
+    public IReadOnlyList<uint> GetAutoGrantablePassiveBuffIds(int characterLevel, ICollection<uint> learned) =>
+        PassiveBuffLevelRules.AutoGranted(_passiveBuffs.Values, characterLevel, learned);
+
     public List<SkillModifier> GetModifiersByOwnerId(uint id)
     {
         if (_skillModifiers.TryGetValue(id, out var ownerId))

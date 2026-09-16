@@ -105,6 +105,13 @@ public class CharacterSkills(Character owner)
         // dereferenced: passive_buffs 51, 268, 274 and 289 name a buff that is not in the table.
         if (template == null)
             return;
+
+        // passive_buffs.level gates the learn: the 11 rows at 40-60 (the Predator/Trooper chains and two
+        // level-60 general passives) were learnable at level 1, because CSLearnBuffPacket carries nothing
+        // but the id and nothing else looked at the column.
+        if (!PassiveBuffLevelRules.CanLearn(template, Owner.Level))
+            return;
+
         if (template.AbilityId > 0 &&
            template.AbilityId != Owner.Ability1 &&
            template.AbilityId != Owner.Ability2 &&
@@ -135,6 +142,32 @@ public class CharacterSkills(Character owner)
         if (notify)
             Owner.BroadcastPacket(new SCBuffLearnedPacket(Owner.ObjId, buff.Id), true);
         buff.Apply(Owner);
+    }
+
+    /// <summary>
+    /// Re-evaluates the passives a character holds after their level or ability level moved: every learned
+    /// passive is rebuilt at its new ability level, and the <c>passive_buffs</c> rows marked
+    /// <c>active='t'</c> that the character has just become old enough for are learned.
+    /// </summary>
+    /// <remarks>
+    /// <c>Character.ApplyLevelUpBenefits</c> used to refresh HP/MP and nothing else, so a passive's
+    /// bonuses stayed at the ability level they were first applied with (the <c>Buff.AbLevel</c> default
+    /// of 1) for the whole life of the character. A rebuild is a remove plus an apply because the bonus
+    /// values are snapshotted in <c>BuffTemplate.Start</c>; both halves are packet-silent for a passive —
+    /// <c>Start</c> and <c>Dispel</c> only broadcast for a non-passive — so the client is not disturbed.
+    /// </remarks>
+    public void ReevaluatePassivesOnLevelUp()
+    {
+        foreach (var passive in PassiveBuffs.Values.ToList())
+        {
+            if (passive?.Template == null)
+                continue;
+            passive.Remove(Owner);
+            passive.Apply(Owner);
+        }
+
+        foreach (var passiveId in SkillManager.Instance.GetAutoGrantablePassiveBuffIds(Owner.Level, PassiveBuffs.Keys))
+            AddBuff(passiveId, notify: false);
     }
 
     /// <summary>
