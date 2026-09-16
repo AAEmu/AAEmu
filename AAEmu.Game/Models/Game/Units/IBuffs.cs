@@ -14,6 +14,10 @@ public interface IBuffs
     bool CheckBuffImmune(BuffTemplate candidate, BaseUnit caster, Skill castingSkill = null);
     bool CheckBuffs(List<uint> ids);
     bool CheckBuffTag(uint tagId);
+    /// <summary>Summed stacks of the owner's buffs carrying <paramref name="tagId"/>; 0 when none.</summary>
+    int GetStackCountByTagId(uint tagId);
+    /// <summary>Summed stacks of the owner's buffs that do NOT carry <paramref name="tagId"/>.</summary>
+    int GetStackCountExceptTagId(uint tagId);
     bool CheckDamageImmune(DamageType damageType);
     bool CheckKnockbackImmune();
     bool CheckManaBurnImmune();

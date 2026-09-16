@@ -372,6 +372,22 @@ public class Skill
             return SkillResult.NeedLaborPower;
         }
 
+        // Combat resource band: the caster's pool named by combat_resource_id must be inside
+        // min_combat_resource..max_combat_resource. 16 rows carry a band; the siege and test ones are
+        // real (43711/43712 "fire the cannon" needs exactly one shell), the 외침 family names the pool's
+        // own ceiling.
+        if (Template.CombatResourceId > 0 &&
+            !SkillCombatResourceRules.AllowsCast(
+                Template.MinCombatResource,
+                Template.MaxCombatResource,
+                unit.GetCombatResource(Template.CombatResourceId)))
+        {
+            Logger.Trace("Skill {0} blocked for {1}: combat resource {2} outside {3}..{4}",
+                Template.Id, caster.Name, Template.CombatResourceId,
+                Template.MinCombatResource, Template.MaxCombatResource);
+            return SkillResult.LackCombatResource;
+        }
+
         // Get a TlId for this skill
         TlId = SkillTlIdManager.GetNextId(caster);
         // if (caster is Character)
@@ -1548,15 +1564,52 @@ public class Skill
                     continue;
                 }
 
-                if (effect.TargetBuffTagId > 0 && !target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetBuffTagId)))
+                if (effect.TargetBuffTagId > 0)
                 {
-                    continue;
+                    // check_target_tag_src redirects this half of the pair at the caster: the chain skills
+                    // (10534 빛과 어둠, 14929 연속 회복, 35717 근접 공격) carry one effect row for the target's
+                    // tag and a sibling row for the caster's.
+                    var tagOwner = effect.CheckTargetTagSrc ? caster : target;
+                    if (!tagOwner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetBuffTagId)))
+                        continue;
                 }
 
-                if (effect.TargetNoBuffTagId > 0 && target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetNoBuffTagId)))
+                if (effect.TargetNoBuffTagId > 0)
                 {
-                    continue;
+                    var noTagOwner = effect.CheckNoTargetTagSrc ? caster : target;
+                    if (noTagOwner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetNoBuffTagId)))
+                        continue;
                 }
+
+                // Buff stack bands: one effect row per band of the caster's or the target's stacks of the
+                // corresponding tag (49770/49864/49943/50072 each carry 1..4, 5..15 and 10..15 siblings).
+                if (!SkillCombatResourceRules.AllowsStackBand(
+                        caster is Unit casterUnit ? casterUnit.Buffs.GetStackCountByTagId(effect.SourceBuffTagId) : 0,
+                        effect.SourceBuffStackCountMin, effect.SourceBuffStackCountMax))
+                    continue;
+
+                if (!SkillCombatResourceRules.AllowsStackBand(
+                        target.Buffs.GetStackCountByTagId(effect.TargetBuffTagId),
+                        effect.TargetBuffStackCountMin, effect.TargetBuffStackCountMax))
+                    continue;
+
+                if (!SkillCombatResourceRules.AllowsStackBand(
+                        caster is Unit exceptCasterUnit ? exceptCasterUnit.Buffs.GetStackCountExceptTagId(effect.SourceBuffTagId) : 0,
+                        effect.SourceExceptBuffStackCountMin, effect.SourceExceptBuffStackCountMax))
+                    continue;
+
+                if (!SkillCombatResourceRules.AllowsStackBand(
+                        target.Buffs.GetStackCountExceptTagId(effect.TargetBuffTagId),
+                        effect.TargetExceptBuffStackCountMin, effect.TargetExceptBuffStackCountMax))
+                    continue;
+
+                // The target's combat resource band for this effect, named by target_combat_resource_id.
+                if (!SkillCombatResourceRules.AllowsEffect(
+                        effect.StartCombatResource,
+                        effect.EndCombatResource,
+                        (int)effect.TargetCombatResourceId,
+                        target is Unit resourceTarget ? resourceTarget.GetCombatResource((int)effect.TargetCombatResourceId) : 0))
+                    continue;
 
                 if (effect.TargetNpcTagId > 0)
                 {
@@ -1568,6 +1621,14 @@ public class Skill
 
                 // Dice
                 if (effect.Chance < 100 && Random.Shared.Next(100) > effect.Chance)
+                {
+                    continue;
+                }
+
+                // start_casting_use_chance..end_casting_use_chance: the shipped rows are the default 1..100
+                // except four, and effects land after the cast, so the end value is the one that applies.
+                if (!SkillCombatResourceRules.AllowsCastingUseChance(
+                        Template.CastingTime, effect.EndCastingUseChance, Random.Shared.NextDouble() * 100d))
                 {
                     continue;
                 }

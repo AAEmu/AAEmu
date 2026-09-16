@@ -2228,6 +2228,24 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         template.AlwaysHit = reader.GetBoolean("always_hit", true);
                         template.ItemSetId = reader.GetUInt32("item_set_id", 0);
                         template.InteractionSuccessHit = reader.GetBoolean("interaction_success_hit", true);
+                        // v10 per-effect gates. See SkillCombatResourceRules for what each one means and
+                        // which of them the shipped content actually uses.
+                        template.StartCombatResource = reader.GetInt32("start_combat_resource", 0);
+                        template.EndCombatResource = reader.GetInt32("end_combat_resource", 0);
+                        template.TargetCombatResourceId = reader.GetUInt32("target_combat_resource_id", 0);
+                        template.ExcuteEffectOnFire = reader.GetBoolean("excute_effect_on_fire", false);
+                        template.StartCastingUseChance = reader.GetInt32("start_casting_use_chance", 1);
+                        template.EndCastingUseChance = reader.GetInt32("end_casting_use_chance", 100);
+                        template.CheckTargetTagSrc = reader.GetBoolean("check_target_tag_src", false);
+                        template.CheckNoTargetTagSrc = reader.GetBoolean("check_no_target_tag_src", false);
+                        template.SourceBuffStackCountMin = reader.GetInt32("source_buff_stack_count_min", 0);
+                        template.SourceBuffStackCountMax = reader.GetInt32("source_buff_stack_count_max", 0);
+                        template.TargetBuffStackCountMin = reader.GetInt32("target_buff_stack_count_min", 0);
+                        template.TargetBuffStackCountMax = reader.GetInt32("target_buff_stack_count_max", 0);
+                        template.SourceExceptBuffStackCountMin = reader.GetInt32("source_except_buff_stack_count_min", 0);
+                        template.SourceExceptBuffStackCountMax = reader.GetInt32("source_except_buff_stack_count_max", 0);
+                        template.TargetExceptBuffStackCountMin = reader.GetInt32("target_except_buff_stack_count_min", 0);
+                        template.TargetExceptBuffStackCountMax = reader.GetInt32("target_except_buff_stack_count_max", 0);
                         _skills[skillId].Effects.Add(template);
                     }
                 }
