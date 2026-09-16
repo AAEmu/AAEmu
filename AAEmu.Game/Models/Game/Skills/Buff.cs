@@ -777,4 +777,42 @@ public class Buff
 
         return value;
     }
+
+    /// <summary>
+    /// Takes one hit into this buff's absorption, as its own <c>damage_absorption_type_id</c> and
+    /// <c>damage_absorption_per_hit</c> describe it, and returns the damage that is still owed.
+    /// </summary>
+    /// <remarks>
+    /// This is what the damage path calls; <see cref="ConsumeCharge"/> is the raw "spend the pool" step it
+    /// used to be, and the two differ wherever the authored shape is not a plain pool — a count shield
+    /// spends a hit rather than the damage it absorbed, and a type-0 shield with a per-hit ceiling holds no
+    /// charge to spend at all. <see cref="AbsorptionRules.Apply"/> decides.
+    /// </remarks>
+    public int AbsorbDamage(int value)
+    {
+        var outcome = AbsorptionRules.Apply(
+            Template?.DamageAbsorptionTypeId ?? 0,
+            Template?.DamageAbsorptionPerHit ?? 0,
+            Charge,
+            value);
+
+        var changed = outcome.Charge != Charge;
+        Charge = outcome.Charge;
+
+        if (outcome.Consumed)
+        {
+            // Same contract as ConsumeCharge: the last point of the shield has just been spent, so an
+            // `absorption` trigger runs here, before Exit() unsubscribes it. A shield that swallowed no
+            // damage (a 은신 buff breaking on the first hit) raises nothing, as it did before.
+            if (outcome.Absorbed > 0)
+                Events.OnAbsorptionConsumed(this, new OnAbsorptionConsumedArgs { Amount = outcome.Absorbed });
+            Exit(false);
+        }
+        else if (changed)
+        {
+            NotifyUpdated(reason: 2); // charge consumed
+        }
+
+        return outcome.Remaining;
+    }
 }

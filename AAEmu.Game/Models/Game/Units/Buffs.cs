@@ -1273,6 +1273,11 @@ public class Buffs : IBuffs
         return _owner?.Target as BaseUnit;
     }
 
+    /// <summary>
+    /// The active buffs that absorb damage: <c>damage_absorption_type_id</c> (231 rows) or a bare
+    /// <c>damage_absorption_per_hit</c> with no type (71 rows, the 돌파/마상 수비 family). Both columns are
+    /// authored, so neither alone decides whether a buff is a shield.
+    /// </summary>
     public IEnumerable<Buff> GetAbsorptionEffects()
     {
         // Create a copy of the list of effects to avoid changing the list while iterating
@@ -1282,7 +1287,9 @@ public class Buffs : IBuffs
             effects = _effects.ToArray();
         }
 
-        return effects.Where(e => e.Template.DamageAbsorptionTypeId > 0);
+        return effects.Where(e => e.Template != null
+                                  && AbsorptionRules.IsShield(
+                                      e.Template.DamageAbsorptionTypeId, e.Template.DamageAbsorptionPerHit));
     }
 
     /// <summary>

@@ -748,7 +748,7 @@ public class Unit : BaseUnit, IUnit
             // Handle damage absorb
             foreach (var absorptionEffect in absorptionEffects)
             {
-                value = absorptionEffect.ConsumeCharge(value);
+                value = absorptionEffect.AbsorbDamage(value);
             }
         }
 
