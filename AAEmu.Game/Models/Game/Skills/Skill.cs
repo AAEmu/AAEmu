@@ -327,6 +327,26 @@ public class Skill
             return SkillResult.InvalidTarget;
         }
 
+        // skill_reqs: a buff or buff tag on the caster or on the target that forbids or requires the cast
+        // (rooted/stunned/fear "cannot use while X", gliding "only while X"). Checked once the target is
+        // resolved, because 91 of the 338 rows read the target.
+        if (!SkillRequirementRules.AllowsCast(
+                SkillManager.Instance.GetSkillRequirements(Template.Id),
+                requirement => requirement.BuffId > 0 &&
+                               (requirement.OnTarget ? target.Buffs.CheckBuff(requirement.BuffId)
+                                   : caster.Buffs.CheckBuff(requirement.BuffId)),
+                requirement => requirement.BuffTagId > 0 &&
+                               (requirement.OnTarget ? target.Buffs.CheckBuffTag(requirement.BuffTagId)
+                                   : caster.Buffs.CheckBuffTag(requirement.BuffTagId)),
+                out var requirementMessage))
+        {
+            Logger.Trace("Skill {0} blocked by a skill_reqs row for {1}: {2}",
+                Template.Id, caster.Name, requirementMessage);
+            if (character != null && !string.IsNullOrEmpty(requirementMessage))
+                character.SendMessage(requirementMessage);
+            return SkillResult.SkillReqFail;
+        }
+
         // Unmount character if skill asks for it
         if (character is { IsRiding: true } && Template.Unmount)
         {
@@ -1473,6 +1493,18 @@ public class Skill
                 {
                     continue;
                 }
+
+                // skill_synergy_buff_tags: a synergy-flagged damage effect only lands on a target that
+                // carries one of the skill's synergy tags. Every one of the 21 skills with such effects
+                // also carries an un-flagged damage effect, so an untagged target still takes the base
+                // damage and a tagged one takes the extra rows.
+                if (!SkillSynergyRules.AllowsSynergyEffect(
+                        effect.Template is DamageEffect { Synergy: true },
+                        Template.SynergyBuffTags.Length > 0,
+                        TargetHasSynergyTag(target)))
+                {
+                    continue;
+                }
                 // Level range check
                 if (effect.StartLevel > unit.Level || effect.EndLevel < unit.Level)
                 {
@@ -2254,6 +2286,24 @@ public class Skill
     /// <summary>Whether any queued effect is a damage effect flagged <c>always_hit</c>.</summary>
     private bool HasAlwaysHitDamageEffect() =>
         Template.Effects.Any(effect => effect.AlwaysHit && effect.Template is DamageEffect);
+
+    /// <summary>
+    /// Whether the target carries one of the buff tags <c>skill_synergy_buff_tags</c> lists for this skill.
+    /// </summary>
+    private bool TargetHasSynergyTag(BaseUnit target)
+    {
+        var tags = Template.SynergyBuffTags;
+        if (target == null || tags.Length == 0)
+            return false;
+
+        foreach (var tagId in tags)
+        {
+            if (tagId > 0 && target.Buffs.CheckBuffTag(tagId))
+                return true;
+        }
+
+        return false;
+    }
 
     /// <summary>Whether this cast deals damage at all, which is what makes it roll dice.</summary>
     private bool HasDamageEffect() =>

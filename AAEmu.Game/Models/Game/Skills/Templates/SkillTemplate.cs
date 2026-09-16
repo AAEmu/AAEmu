@@ -139,6 +139,11 @@ public class SkillTemplate
     public int CombatResourceId { get; set; }
     public bool UseInputDirection { get; set; }
     public long UseConditionBits { get; set; }
+    /// <summary>
+    /// <c>skill_synergy_buff_tags</c>: the buff tags on a target that unlock this skill's
+    /// <c>synergy</c>-flagged damage effects. Set at load; empty for the 216 skills that have none.
+    /// </summary>
+    public uint[] SynergyBuffTags { get; set; } = [];
     public uint SkillLearnItemId { get; set; }
     public int SkillLearnItemAmount { get; set; }
 }
