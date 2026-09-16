@@ -748,6 +748,12 @@ public class Unit : BaseUnit, IUnit
 
         Hp = Math.Max(Hp - value, 0);
 
+        // A hit on a casting unit can break the cast or push it back; a hit on a channelling unit can end
+        // the channel. Only checked while a cast is actually in flight, so the ordinary damage path pays
+        // one null test.
+        if (Hp > 0 && value > 0 && SkillTask?.Skill != null)
+            SkillTask.Skill.OnDamageTakenWhileCasting(this, value);
+
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
 
         PostUpdateCurrentHp(attacker, oldHp, Hp, killReason);

@@ -68,6 +68,11 @@ public class Skill
     private SkillCastTarget _channelingTargetCaster;
     private SkillObject _channelingSkillObject;
     private Doodad _channelingDoodad;
+    /// <summary>The running cast's arguments, kept so a delay can reschedule the same cast.</summary>
+    private SkillCaster _activeCasterCaster;
+    private BaseUnit _activeTarget;
+    private SkillCastTarget _activeTargetCaster;
+    private SkillObject _activeSkillObject;
     private SkillCaster _zoneSkillCaster;
     private bool _cancelled;
     internal event Action<Skill> CancellationRequested;
@@ -554,6 +559,10 @@ public class Skill
             }, true);
 
             unit.SkillTask = new CastTask(this, caster, casterCaster, target, targetCaster, skillObject);
+            _activeCasterCaster = casterCaster;
+            _activeTarget = target;
+            _activeTargetCaster = targetCaster;
+            _activeSkillObject = skillObject;
             TaskManager.Instance.Schedule(unit.SkillTask, TimeSpan.FromMilliseconds(castTime));
         }
         else
@@ -2027,6 +2036,82 @@ public class Skill
             GetLaborCost(character),
             character.LaborPower,
             character.LocalLaborPower);
+    }
+
+    /// <summary>
+    /// A hit landed on the unit while this skill was casting or channelling. <c>stop_casting_on_big_hit</c>,
+    /// <c>stop_channeling_on_big_hit</c>, <c>casting_cancelable</c>, <c>casting_delayable</c> and formulas
+    /// 2/3 decide what happens; <see cref="SkillCastInterruptRules"/> holds the rule.
+    /// </summary>
+    internal void OnDamageTakenWhileCasting(Unit victim, int damage)
+    {
+        if (victim == null || Cancelled)
+            return;
+
+        var damagePercent = SkillCastInterruptRules.DamagePercent(damage, victim.MaxHp);
+        var bigHit = SkillCastInterruptRules.IsBigHit(damagePercent);
+
+        // A channel is not a cast with a cast time: only the channel's own big-hit flag applies, and it
+        // cancels the channel rather than delaying it. The tick drain and the TlId are released by Stop.
+        if (Template.ChannelingTime > 0)
+        {
+            if (Template.StopChannelingOnBigHit && bigHit)
+            {
+                Logger.Debug("Channel {0} on {1} broken by a {2:0.#}% hit", Template.Id, victim.Name, damagePercent);
+                Stop(victim, _channelingDoodad);
+            }
+
+            return;
+        }
+
+        if (Template.CastingTime <= 0)
+            return;
+
+        var tolerance = SkillCastInterruptRules.ReadCastingTolerance(victim);
+        var cancelPercent = SkillCastInterruptRules.CancelPercent(
+            SkillCastInterruptRules.Evaluate(
+                damagePercent, tolerance, SkillCastInterruptRules.CastingCancelPercentFormulaId));
+        var delayMs = SkillCastInterruptRules.DelayMilliseconds(
+            SkillCastInterruptRules.Evaluate(
+                damagePercent, tolerance, SkillCastInterruptRules.CastingDelayTimeFormulaId));
+
+        var decision = SkillCastInterruptRules.Decide(
+            Template.StopCastingOnBigHit,
+            Template.CastingCancelable,
+            Template.CastingDelayable,
+            damagePercent,
+            cancelPercent,
+            delayMs,
+            Random.Shared.NextDouble() * 100d);
+
+        if (decision.Cancel)
+        {
+            Logger.Debug("Cast {0} on {1} broken by a {2:0.#}% hit", Template.Id, victim.Name, damagePercent);
+            Stop(victim);
+            return;
+        }
+
+        if (decision.DelayMilliseconds > 0)
+        {
+            Logger.Debug("Cast {0} on {1} delayed {2} ms by a {3:0.#}% hit",
+                Template.Id, victim.Name, decision.DelayMilliseconds, damagePercent);
+            DelayActiveCast(victim, decision.DelayMilliseconds);
+        }
+    }
+
+    /// <summary>
+    /// Pushes the running <see cref="CastTask"/> back by <paramref name="delayMilliseconds"/>. The old
+    /// task is cancelled and a fresh one scheduled: TaskManager has no reschedule.
+    /// </summary>
+    private void DelayActiveCast(Unit victim, int delayMilliseconds)
+    {
+        if (victim.SkillTask is not CastTask running || running.Skill != this)
+            return;
+
+        running.Cancel();
+        victim.SkillTask = new CastTask(this, victim, _activeCasterCaster, _activeTarget, _activeTargetCaster,
+            _activeSkillObject);
+        TaskManager.Instance.Schedule(victim.SkillTask, TimeSpan.FromMilliseconds(delayMilliseconds));
     }
 
     /// <summary>
