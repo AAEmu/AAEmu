@@ -1305,6 +1305,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             UsePercentDamage = reader.GetBoolean("use_percent_damage", true),
                             PercentMin = reader.GetInt32("percent_min", 0),
                             PercentMax = reader.GetInt32("percent_max", 0),
+                            PercentDamageResourceTypeId = reader.GetInt32("percent_damage_resource_type_id", 1),
                             // use_current_health renamed to use_source_health in 10.0.2.13 schema
                             UseCurrentHealth = reader.GetBoolean("use_source_health", true),
                             TargetHealthMin = reader.GetInt32("target_health_min", 0),

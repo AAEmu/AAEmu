@@ -58,6 +58,14 @@ public class DamageEffect : EffectTemplate
     public bool UsePercentDamage { get; set; }
     public int PercentMin { get; set; }
     public int PercentMax { get; set; }
+
+    /// <summary>
+    /// <c>percent_damage_resource_type_id</c> (<c>enum_percent_damage_resource_types</c>): which pool the
+    /// percentage is read from. 452 of the 491 flagged rows take the victim's maximum health, 39 its current
+    /// health, and the two mana rows take a mana pool.
+    /// </summary>
+    public int PercentDamageResourceTypeId { get; set; } = (int)PercentDamageResourceType.CurrentHealth;
+
     public bool UseCurrentHealth { get; set; }
     public int TargetHealthMin { get; set; }
     public int TargetHealthMax { get; set; }
@@ -339,7 +347,42 @@ public class DamageEffect : EffectTemplate
             max = FixedMax;
         }
 
+        // The authored add-on terms land on the composed range, after every multiplier has had its say, so
+        // `multiplier` cannot rescale them (damage_effects 14893 pairs a fixed 900000000 with a multiplier of
+        // 10, and 861 pairs 35 % of the victim's health with 300). A row without use_percent_damage — 10,510
+        // of the 11,001 — skips the whole block: min += 0f is bit-for-bit min.
+        var percentDamage = DamageEffectRules.NeutralTerm;
+        if (UsePercentDamage)
+        {
+            // percent_damage_resource_type_id picks the pool and use_current_health picks the unit.
+            var resourceType = (PercentDamageResourceType)PercentDamageResourceTypeId;
+            var poolValue = UnitResourcePools.ValueOf(UseCurrentHealth ? (Unit)caster : trg, resourceType);
+            percentDamage = DamageEffectRules.PercentDamageTerm(
+                PercentMin,
+                PercentMax,
+                Random.Shared.NextSingle(),
+                poolValue);
+        }
+
+        min += percentDamage;
+        max += percentDamage;
+
         var finalDamage = Random.Shared.Next(min, max);
+
+        // target_health_*: a scale that only applies while the victim's health percentage is inside the
+        // authored band. No shipped row moves anything (see DamageEffectRules.TargetHealthAdjust), and only
+        // the three rows that author an upper bound are examined at all, so the other 10,998 never ask the
+        // victim for its health percentage.
+        if (TargetHealthMax > 0)
+        {
+            finalDamage = DamageEffectRules.TargetHealthAdjust(
+                finalDamage,
+                trg.Hpp,
+                TargetHealthMin,
+                TargetHealthMax,
+                TargetHealthMul,
+                TargetHealthAdd);
+        }
 
         // Buff tag increase (Hellspear's impale combo, for ex)
         if (TargetBuffTagId > 0 && target.Buffs.CheckBuffTag(TargetBuffTagId))
