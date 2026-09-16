@@ -1,4 +1,5 @@
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -14,7 +15,9 @@ namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 /// 919 차가운 발걸음; 5936 속이 거북한 거북 refuses tag 216 무적 면역 and carries
 /// <c>immune_except_creator='t'</c> with <c>immune_except_skill_tag_id</c> 1053 놀이기구 사용; 20248
 /// carries <c>immune_except_creator_relation_check='t'</c> with relation 8 (family); 4627 가벼운 발걸음
-/// requires tag 831 무겁다.
+/// requires tag 831 무겁다. Of the 283 rows that name a tag their own buff carries, 266 (260 refresh, 3
+/// charge_refresh, 3 extend) let the buff's own re-application through and 17 (16 independent, 1 multiple at
+/// max_stack 1) refuse it, because for those the refusal is the whole of what the row says.
 /// </remarks>
 public class BuffImmunityRulesTests
 {
@@ -27,6 +30,14 @@ public class BuffImmunityRulesTests
     private const uint HostileRelationId = 4; // enum_skill_target_relation: hostile
     private const uint HeavyTagId = 831; // 무겁다
     private const uint LightStepBuffId = 4627; // 가벼운 발걸음
+    private const uint PrisonerBuffId = 631; // 수감자, stack_rule_id 5 (extend)
+    private const uint PrisonerTagId = 344; // 수감자, carried by 631/2028/3623/4868/8038
+    private const uint RageBuffId = 17304; // 살기 최대 누적, stack_rule_id 2 (charge_refresh)
+    private const uint RageTagId = 165; // 살기, carried by 870/17304/23505
+    private const uint CooldownMarkerBuffId = 25466; // 검은 용의 힘 : 꼬리수집가 쿨타임 체크용, stack_rule_id 6
+    private const uint CooldownTagId = 4447; // 검은용 3티어 한손검 쿨타임 체크용, carried by 25466 alone
+    private const uint HurryBuffId = 26622; // 빨리 빨리, stack_rule_id 4 (multiple) with max_stack 1
+    private const uint HurryImmuneTagId = 4747; // 빨리빨리 면역, carried by 26622 alone
     private const uint CasterObjId = 20u;
     private const uint CreatorObjId = 21u;
 
@@ -104,14 +115,116 @@ public class BuffImmunityRulesTests
     public async Task TheSameBuffIdWhileItIsUp_IsNotRefusedByItsOwnGrant()
     {
         // 93 동결 carries tag 919 and is immune to 919. The row refuses *other* buffs: a second freeze has
-        // to refresh (stack_rule_id 1, max_stack 10), and 631/2028 수감자 extend themselves over 30 min.
+        // to refresh (stack_rule_id 1, max_stack 10) instead of being turned away at the immunity gate.
         var refused = Refused(
             [FreezeTagId],
             [ActiveBuff(FreezeBuffId, CreatorObjId)],
             new Dictionary<uint, List<uint>> { [FreezeBuffId] = [FreezeTagId] },
-            candidateBuffId: FreezeBuffId);
+            candidateBuffId: FreezeBuffId,
+            candidateStackRule: BuffStackRule.Refresh,
+            candidateMaxStack: 10);
 
         await Assert.That(refused).IsFalse();
+    }
+
+    [Test]
+    public async Task AnExtendSelfGrantingRow_IsNotRefusedByItsOwnGrant()
+    {
+        // 631 수감자 (stack_rule_id 5, max_stack 1, 1 800 000 ms) is immune to the tag it carries: the
+        // re-application has to reach Buffs.AddBuff, where Buff.OverwriteWith adds the new duration to what
+        // is left of the old one. Refusing it here is what stopped that extend.
+        var refused = Refused(
+            [PrisonerTagId],
+            [ActiveBuff(PrisonerBuffId, CreatorObjId)],
+            new Dictionary<uint, List<uint>> { [PrisonerBuffId] = [PrisonerTagId] },
+            candidateBuffId: PrisonerBuffId,
+            candidateStackRule: BuffStackRule.Extend,
+            candidateMaxStack: 1);
+
+        await Assert.That(refused).IsFalse();
+    }
+
+    [Test]
+    public async Task AChargeRefreshSelfGrantingRow_IsNotRefusedByItsOwnGrant()
+    {
+        // 17304 살기 최대 누적 (stack_rule_id 2) is immune to tag 165 살기, which it carries itself and shares
+        // with 870 and 23505, so its own re-application keeps its charge-refresh path.
+        var refused = Refused(
+            [RageTagId],
+            [ActiveBuff(RageBuffId, CreatorObjId)],
+            new Dictionary<uint, List<uint>> { [RageBuffId] = [RageTagId] },
+            candidateBuffId: RageBuffId,
+            candidateStackRule: BuffStackRule.ChargeRefresh,
+            candidateMaxStack: 1);
+
+        await Assert.That(refused).IsFalse();
+    }
+
+    [Test]
+    public async Task AnIndependentSelfGrantingRow_IsRefusedByItsOwnGrant()
+    {
+        // The 16 independent self-granting rows carry a tag nothing else carries, so refusing the
+        // re-application is the whole of what the row says. 25466 and eleven more of them are the
+        // 60-second 쿨타임 체크용 markers: letting the re-application through would only replace the live
+        // instance and restart the cooldown the marker exists to hold.
+        var refused = Refused(
+            [CooldownTagId],
+            [ActiveBuff(CooldownMarkerBuffId, CreatorObjId)],
+            new Dictionary<uint, List<uint>> { [CooldownMarkerBuffId] = [CooldownTagId] },
+            candidateBuffId: CooldownMarkerBuffId,
+            candidateStackRule: BuffStackRule.Independent,
+            candidateMaxStack: 1);
+
+        await Assert.That(refused).IsTrue();
+    }
+
+    [Test]
+    public async Task AMultipleSelfGrantingRowAtACeilingOfOne_IsRefusedByItsOwnGrant()
+    {
+        // 26622 빨리 빨리 is stack_rule_id 4 with max_stack 1, so there is no room to grow: the
+        // re-application would replace the live instance, and tag 4747 빨리빨리 면역 is carried by 26622 alone.
+        var refused = Refused(
+            [HurryImmuneTagId],
+            [ActiveBuff(HurryBuffId, CreatorObjId)],
+            new Dictionary<uint, List<uint>> { [HurryBuffId] = [HurryImmuneTagId] },
+            candidateBuffId: HurryBuffId,
+            candidateStackRule: BuffStackRule.Multiple,
+            candidateMaxStack: 1);
+
+        await Assert.That(refused).IsTrue();
+    }
+
+    [Test]
+    public async Task AMultipleSelfGrantingRowWithRoom_IsNotRefusedByItsOwnGrant()
+    {
+        // The same rule above a ceiling of one absorbs the application into the live count, so the buff
+        // takes its own stack path instead.
+        var refused = Refused(
+            [HurryImmuneTagId],
+            [ActiveBuff(HurryBuffId, CreatorObjId)],
+            new Dictionary<uint, List<uint>> { [HurryBuffId] = [HurryImmuneTagId] },
+            candidateBuffId: HurryBuffId,
+            candidateStackRule: BuffStackRule.Multiple,
+            candidateMaxStack: 10);
+
+        await Assert.That(refused).IsFalse();
+    }
+
+    [Test]
+    public async Task AChargeExtendSelfGrantingRow_IsRefusedByItsOwnGrant()
+    {
+        // charge_extend (stack_rule_id 3, 39 buffs) has no re-application in Buffs.AddBuff either — it falls
+        // to the same replacement branch — so a self-granting row shipping it keeps its grant. No
+        // self-granting row ships the rule today, so this is the marker's shape with that rule swapped in.
+        var refused = Refused(
+            [CooldownTagId],
+            [ActiveBuff(CooldownMarkerBuffId, CreatorObjId)],
+            new Dictionary<uint, List<uint>> { [CooldownMarkerBuffId] = [CooldownTagId] },
+            candidateBuffId: CooldownMarkerBuffId,
+            candidateStackRule: BuffStackRule.ChargeExtend,
+            candidateMaxStack: 1);
+
+        await Assert.That(refused).IsTrue();
     }
 
     [Test]
@@ -360,11 +473,13 @@ public class BuffImmunityRulesTests
         uint casterObjId = CasterObjId,
         uint[] casterSkillTags = null,
         Func<uint, bool> relationMatches = null,
-        uint candidateBuffId = 0)
+        uint candidateBuffId = 0,
+        BuffStackRule candidateStackRule = BuffStackRule.Refresh,
+        int candidateMaxStack = 1)
     {
         return BuffImmunityRules.IsRefusedByTagImmunity(
             candidateTags,
-            candidateBuffId,
+            new BuffTemplate { Id = candidateBuffId, StackRule = candidateStackRule, MaxStack = candidateMaxStack },
             activeBuffs,
             buffId => immunityTable.TryGetValue(buffId, out var tags) ? tags : [],
             casterObjId,

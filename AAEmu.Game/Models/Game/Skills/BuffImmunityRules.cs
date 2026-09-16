@@ -1,3 +1,4 @@
+using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
 
 namespace AAEmu.Game.Models.Game.Skills;
@@ -12,9 +13,11 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// <c>buff_id</c> is active on a unit, a candidate buff carrying <c>buff_tag_id</c> must be refused.
 /// Examples read through the <c>tags</c> table: 93 동결 (freeze) refuses tag 919 차가운 발걸음,
 /// 131 무적 (invincible) refuses tag 216 무적 면역, 82 대지의 손아귀 refuses tag 10 떠있음. 283 of those
-/// rows name a tag the granting buff carries itself — "a frozen unit cannot be frozen again" — but they
-/// only ever refuse *other* buffs: the same buff id refreshes, stacks or extends itself, so the grant is
-/// skipped while the candidate is that id (631 and 2028 수감자 extend themselves over 1 800 000 ms).
+/// rows name a tag the granting buff carries itself — "a frozen unit cannot be frozen again". Those rows
+/// refuse *other* buffs wherever the buff's own re-application is one the engine defines: 93 refreshes its
+/// six seconds (stack_rule_id 1, max_stack 10) and 631/2028 수감자 extend themselves over 1 800 000 ms. The
+/// rest are self-gates whose whole authored effect is to refuse that re-application, so their grant stands
+/// — see <see cref="OwnGrantStepsAside"/>.
 /// </para>
 /// <para>
 /// <c>tagged_require_buffs(buff_id, buff_tag_id)</c> — 309 rows. The inverse: buff <c>buff_id</c> may
@@ -48,11 +51,11 @@ public static class BuffImmunityRules
     /// Whether a buff active on the target refuses a candidate that carries one of its immune tags.
     /// </summary>
     /// <param name="candidateTags">Tags of the candidate buff (<c>tagged_buffs</c> for its id).</param>
-    /// <param name="candidateBuffId">
-    /// The candidate's own buff id. A buff never refuses itself, so the grant it carries is skipped while
-    /// the candidate is the same id: 283 <c>tagged_immune_buffs</c> rows name a tag the granting buff
-    /// carries itself (93 동결 is immune to tag 919, which 93 carries), and those rows have to keep the
-    /// refresh and the extend rules working — 631 and 2028 수감자 extend themselves over 1 800 000 ms.
+    /// <param name="candidate">
+    /// The candidate's template. Its ids decide the self case: a buff never refuses itself while its own
+    /// re-application is one the engine defines (see <see cref="OwnGrantStepsAside"/>), because the grant
+    /// it carries would otherwise turn a refresh or an extend into a refusal — 93 동결 is immune to tag
+    /// 919, which 93 itself carries, and 283 rows are shaped that way.
     /// </param>
     /// <param name="activeBuffs">The target's active buffs.</param>
     /// <param name="grantedImmunityTags">
@@ -67,15 +70,18 @@ public static class BuffImmunityRules
     /// </param>
     public static bool IsRefusedByTagImmunity(
         IReadOnlyCollection<uint> candidateTags,
-        uint candidateBuffId,
+        BuffTemplate candidate,
         IReadOnlyList<Buff> activeBuffs,
         Func<uint, IReadOnlyList<uint>> grantedImmunityTags,
         uint casterObjId,
         IReadOnlyCollection<uint> casterSkillTags,
         Func<uint, bool> casterRelationMatches)
     {
-        if (candidateTags == null || candidateTags.Count == 0 || activeBuffs == null || grantedImmunityTags == null)
+        if (candidateTags == null || candidateTags.Count == 0 || candidate == null || activeBuffs == null ||
+            grantedImmunityTags == null)
             return false;
+
+        var ownGrantStepsAside = OwnGrantStepsAside(candidate.StackRule, candidate.MaxStack);
 
         foreach (var active in activeBuffs)
         {
@@ -84,8 +90,9 @@ public static class BuffImmunityRules
                 continue;
 
             // The buff's own row: it refreshes, stacks or extends itself rather than being refused by the
-            // tag it carries.
-            if (template.BuffId == candidateBuffId)
+            // tag it carries — unless its re-application is only a replacement of the instance already up,
+            // which is what a self-gate (the 60-second 쿨타임 체크용 markers) exists to refuse.
+            if (template.BuffId == candidate.Id && ownGrantStepsAside)
                 continue;
 
             var granting = grantedImmunityTags(template.BuffId);
@@ -124,6 +131,42 @@ public static class BuffImmunityRules
 
         return 0;
     }
+
+    /// <summary>
+    /// Whether a buff's own tag grant steps aside for its own re-application, i.e. whether applying the same
+    /// buff id again is something other than replacing the instance already up with a fresh one.
+    /// </summary>
+    /// <remarks>
+    /// <para>
+    /// 283 <c>tagged_immune_buffs</c> rows name a tag the granting buff carries itself: 260 refresh, 3
+    /// charge_refresh, 1 multiple, 3 extend (631/2028 수감자 over 1 800 000 ms, 16380 기녀의 선율에 매혹됨)
+    /// and 16 independent. For the first 266 the row refuses *other* buffs and the buff goes on taking its
+    /// own stack path, which is what this answers true for. Without that the immunity check — which runs
+    /// before <c>Buffs.AddBuff</c> reaches its stack rule — turns a refresh or an extend into a refusal.
+    /// </para>
+    /// <para>
+    /// The other 17 rows are self-gates: their tag is carried by that same buff and nothing else, so
+    /// refusing the re-application is the whole of what the row says. 16 of them are
+    /// <see cref="BuffStackRule.Independent"/>, twelve of those the 60-second 쿨타임 체크용 markers, whose
+    /// grant has to stand or a recast would restart the cooldown it exists to hold. A
+    /// <see cref="BuffStackRule.Multiple"/> family at a ceiling of one restarts the same way, while
+    /// one with room grows the live count instead. <see cref="BuffStackRule.ChargeExtend"/> is not
+    /// implemented, so a re-application of it is a replacement too.
+    /// </para>
+    /// </remarks>
+    /// <param name="stackRule">The candidate's <c>stack_rule_id</c>.</param>
+    /// <param name="maxStack">The candidate's <c>max_stack</c> ceiling.</param>
+    public static bool OwnGrantStepsAside(BuffStackRule stackRule, int maxStack) =>
+        stackRule switch
+        {
+            // Refresh and ChargeRefresh replace the running instance under their own rule, and Extend adds
+            // the incoming duration to its remaining time (Buff.OverwriteWith).
+            BuffStackRule.Refresh or BuffStackRule.ChargeRefresh or BuffStackRule.Extend => true,
+            // A multiple-stack family with room absorbs the application into the live count; at a ceiling of
+            // one there is nothing to grow, so the instance would only be replaced and its timer restarted.
+            BuffStackRule.Multiple => maxStack > 1,
+            _ => false,
+        };
 
     private static bool CarriesAnyTag(IReadOnlyCollection<uint> candidateTags, IReadOnlyList<uint> grantingTags)
     {

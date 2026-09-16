@@ -66,7 +66,9 @@ public class Buffs : IBuffs
     /// old check silently false, but the rule did not go away — it moved to
     /// <c>tagged_immune_buffs</c>, which was then loaded nowhere. The owner's side of the lookup is the
     /// tag list of each active buff; the candidate's side is the tag list of the incoming buff. Both
-    /// come from <see cref="SkillManager"/>, which already indexes <c>tagged_buffs</c>.
+    /// come from <see cref="SkillManager"/>, which already indexes <c>tagged_buffs</c>. A buff is not
+    /// refused by a grant it carries itself where its own re-application is one the engine defines —
+    /// <see cref="BuffImmunityRules.OwnGrantStepsAside"/> draws that line.
     /// </remarks>
     /// <param name="candidate">The buff about to be applied.</param>
     /// <param name="caster">The unit applying it, used by the <c>immune_except_creator</c> exception.</param>
@@ -104,7 +106,7 @@ public class Buffs : IBuffs
 
         return BuffImmunityRules.IsRefusedByTagImmunity(
             candidateTags,
-            candidate.Id,
+            candidate,
             effects,
             SkillManager.Instance.GetBuffImmunityTags,
             caster?.ObjId ?? 0,
@@ -163,11 +165,13 @@ public class Buffs : IBuffs
         if (owner == null || castObj == null || casterObj == null)
             return;
 
-        // Only a cast says so, and only once. A buff's own tick re-applies its effects with a CastBuff
-        // action (BuffTemplate.DoTick / DoAreaTick, BuffTemplate.cs:432 and :475), so an immune unit inside
-        // an aura or under a DoT sent one SCUnitDamagedPacket per tick to everyone nearby for the aura's
-        // whole life; a buff trigger proc does the same on every proc.
-        if (castObj is not CastSkill)
+        // Only a cast says so, and only once. A plot event is a cast too: PlotEventEffect hands its effects a
+        // CastPlot (PlotEventEffect.cs:119) and 6 245 of the 38 043 skills carry a plot id, so refusing that
+        // one has to reach the player as well. What must stay silent is CastBuff, which the tick and proc
+        // paths re-apply effects with — BuffTemplate.DoTick / DoAreaTick (BuffTemplate.cs:439 and :482) and
+        // BuffTrigger (BuffTrigger.cs:130) — because those sent one SCUnitDamagedPacket per tick to everyone
+        // nearby for the whole life of an aura or a DoT.
+        if (castObj is not (CastSkill or CastPlot))
             return;
 
         owner.BroadcastPacket(
