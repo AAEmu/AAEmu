@@ -188,9 +188,34 @@ public enum UnitAttribute : uint // 10.0.2.13 adds unit_attribute_id 256-261 (>2
     PhysicsCollisionArmorMul = 194,
 
     /// <summary>
+    /// Per-mille melee damage against NPC victims, 1000 = unmodified. The attacker's own output, so the
+    /// victim kind picks between this trio (196-198) and the anti-PC trio (244-246).
+    /// 93 rows of <c>unit_modifiers</c> carry each of the anti-NPC ids.
+    /// </summary>
+    MeleeDamageMulAntiNpc = 196,
+    RangedDamageMulAntiNpc = 197,
+    SpellDamageMulAntiNpc = 198,
+
+    /// <summary>
+    /// Per-mille heal output, 1000 = unmodified. 216 buff rows carry it. Unlike <see cref="HealMul"/>
+    /// (120) it has no victim-kind split, and unlike <see cref="IncomingHealMul"/> (56) it belongs to
+    /// the healer, not the healed.
+    /// </summary>
+    HealDamageMul = 222,
+
+    /// <summary>
     /// Per-mille discount on what a synthesis attempt costs, which is why
     /// <c>unit_attribute_limits</c> pens it into -1000..0. Jake's Blessing grants the full -1000 and
     /// makes synthesis free; nothing shipped raises the price.
     /// </summary>
     ItemEvolvingCostMul = 223,
+
+    /// <summary>
+    /// Per-mille melee damage against player victims, 1000 = unmodified. 7 rows of
+    /// <c>unit_modifiers</c> carry each of the anti-PC ids, the largest being buff 27590
+    /// ("pvp 기술 피해 버프") at 2000.
+    /// </summary>
+    MeleeDamageMulAntiPc = 244,
+    RangedDamageMulAntiPc = 245,
+    SpellDamageMulAntiPc = 246,
 }

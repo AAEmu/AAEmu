@@ -249,6 +249,18 @@ public class DamageEffect : EffectTemplate
         min = MathF.Floor(min * damageMultiplier);
         max = MathF.Ceiling(max * damageMultiplier);
 
+        // Output multiplier against this kind of victim (unit_modifiers 196-198 / 244-246), selected by
+        // the target's kind and the same DamageType as the switch above. Applied to the composed result
+        // so the Floor/Ceiling above is untouched; an attacker carrying no such bonus gets exactly 1.0f
+        // and the arithmetic below is bit-for-bit what it was.
+        var antiKindMultiplier = DamageMultiplierRules.SelectDamageMultiplier(
+            DamageMultiplierRules.ClassifyVictim(trg),
+            DamageType,
+            AntiKindDamageMultipliers.From((Unit)caster));
+
+        min *= antiKindMultiplier;
+        max *= antiKindMultiplier;
+
         if (source.Skill != null)
         {
             min = (float)caster.SkillModifiersCache.ApplyModifiers(source.Skill, SkillAttribute.Damage, min);
