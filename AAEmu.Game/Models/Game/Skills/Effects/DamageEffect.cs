@@ -1,4 +1,4 @@
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Game;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
@@ -341,6 +341,13 @@ public class DamageEffect : EffectTemplate
 
         var finalDamage = Random.Shared.Next(min, max);
 
+        // AoE diminishing: the same area skill's successive hits on one unit take the next aoe_diminishings
+        // rate. Off unless the content says otherwise — an empty table, a single-target skill, a skill whose
+        // plot event is not flagged and a buff tick all leave the factor at exactly 1.0f, so the arithmetic
+        // below is bit-for-bit what it was.
+        var aoeDiminishing = AoeDiminishingMultiplier(source, castObj, trg, time);
+        finalDamage *= aoeDiminishing;
+
         // Buff tag increase (Hellspear's impale combo, for ex)
         if (TargetBuffTagId > 0 && target.Buffs.CheckBuffTag(TargetBuffTagId))
         {
@@ -595,6 +602,48 @@ public class DamageEffect : EffectTemplate
             if (hitCause == BuffHitCause.BuffTrigger)
                 trg.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.DamagedBuffTrigger);
         }
+    }
+
+    /// <summary>
+    /// The factor AoE diminishing applies to this hit: exactly 1.0f whenever the content does not call for it.
+    /// </summary>
+    /// <remarks>
+    /// A hit diminishes when the table has rows, the hit came from a cast rather than a buff tick, and either
+    /// the casting skill's plot event carries <c>aoe_diminishing</c> or the skill is itself an area skill whose
+    /// plot does. The counter is per (unit, skill) and advances only on a hit that actually diminishes, so a
+    /// skill that is exempt does not spend the next rate for the skill that is not.
+    /// </remarks>
+    private static float AoeDiminishingMultiplier(EffectSource source, CastAction castObj, Unit trg, DateTime time)
+    {
+        if (!AoeDiminishingTable.IsLoaded)
+            return 1.0f;
+
+        // A tick of a damage-over-time is the same application landing again, not a new area hit.
+        if (source?.Buff?.TickEffects.Count > 0)
+            return 1.0f;
+
+        var skillId = source?.Skill?.Template?.Id ?? 0;
+        var plotCast = castObj as CastPlot;
+        if (skillId == 0 && plotCast == null)
+            return 1.0f;
+
+        var isAreaSkill = source?.Skill?.Template is { } skillTemplate &&
+                          AoeDiminishingRules.IsAreaSkill(skillTemplate.TargetAreaCount, skillTemplate.TargetAreaRadius);
+
+        var plotFlagged = false;
+        var plotId = source?.Skill?.Template?.Plot?.Id ?? 0;
+        if (plotId != 0)
+            plotFlagged = source.Skill.Template.Plot.EventTemplate?.AoeDiminishing == true;
+
+        var plotCastFlagged = plotCast != null &&
+                              PlotManager.Instance?.GetEventByPlotId(plotCast.PlotId)?.AoeDiminishing == true;
+
+        if (!AoeDiminishingRules.Diminishes(isAreaSkill, plotFlagged, plotCastFlagged))
+            return 1.0f;
+
+        var counterSkillId = skillId != 0 ? skillId : plotCast?.PlotId ?? 0;
+        var rate = AoeDiminishingTracker.Advance(trg.ObjId, counterSkillId, time, AoeDiminishingTable.Rates);
+        return AoeDiminishingRules.RateMultiplier(rate);
     }
 
     private static bool TryGetSkillCastIds(CastAction castObj, out uint skillId, out ushort tlId)

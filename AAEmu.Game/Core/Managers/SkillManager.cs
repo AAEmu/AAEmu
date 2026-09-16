@@ -1828,6 +1828,21 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
             using (var command = connection.CreateCommand())
             {
+                // The ten rates, in id order. AoeDiminishingTable.Rates is what DamageEffect reads; an empty
+                // list means "no table", which is a factor of exactly 1.0f rather than a rate of zero.
+                command.CommandText = "SELECT * FROM aoe_diminishings";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    AoeDiminishingTable.Clear();
+                    while (reader.Read())
+                        AoeDiminishingTable.Add(reader.GetUInt32("id", 0), (int)reader.GetFloat("rate", 100f));
+                    AoeDiminishingTable.Seal();
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
                 command.CommandText = "SELECT * FROM restore_mana_effects";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
