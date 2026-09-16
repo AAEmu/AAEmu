@@ -1,4 +1,5 @@
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
@@ -9,6 +10,7 @@ using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game;
@@ -56,12 +58,130 @@ public class Buffs : IBuffs
         _toleranceCounters = [];
     }
 
-    public bool CheckBuffImmune(uint buffId)
+    /// <summary>
+    /// Whether <paramref name="candidate"/> is refused by an immunity already active on this unit.
+    /// </summary>
+    /// <remarks>
+    /// 10.0.2.13 removed the <c>buffs.immune_buff_tag_id</c> column this used to read, which made the
+    /// old check silently false, but the rule did not go away — it moved to
+    /// <c>tagged_immune_buffs</c>, which was then loaded nowhere. The owner's side of the lookup is the
+    /// tag list of each active buff; the candidate's side is the tag list of the incoming buff. Both
+    /// come from <see cref="SkillManager"/>, which already indexes <c>tagged_buffs</c>. A buff is not
+    /// refused by a grant it carries itself where its own re-application is one the engine defines —
+    /// <see cref="BuffImmunityRules.OwnGrantStepsAside"/> draws that line.
+    /// </remarks>
+    /// <param name="candidate">The buff about to be applied.</param>
+    /// <param name="caster">The unit applying it, used by the <c>immune_except_creator</c> exception.</param>
+    /// <param name="castingSkill">
+    /// The skill applying it, used by the <c>immune_except_skill_tag_id</c> exception. Null for an
+    /// application that is not a cast (a trigger or a combat buff), where that exception cannot apply.
+    /// </param>
+    public bool CheckBuffImmune(BuffTemplate candidate, BaseUnit caster, Skill castingSkill = null)
     {
-        // 10.0.2.13: buffs.immune_buff_tag_id was removed, so tag-based buff immunity no longer exists in the
-        // schema (immunity is now driven by the immune_except_* columns — not yet implemented). The previous
-        // logic already no-op'd to false once the column was gone, so there is no tag immunity to apply here.
-        return false;
+        var owner = GetOwner();
+        if (owner == null || candidate == null)
+            return false;
+
+        var candidateTags = SkillManager.Instance.GetBuffTags(candidate.Id);
+        if (candidateTags.Count == 0)
+            return false;
+
+        // Create a copy of the list of effects to avoid changing the list while iterating
+        Buff[] effects;
+        lock (_lock)
+        {
+            effects = _effects.ToArray();
+        }
+
+        var casterSkillTags = castingSkill?.Template != null
+            ? SkillManager.Instance.GetSkillTags(castingSkill.Template.Id)
+            : (IReadOnlyCollection<uint>)Array.Empty<uint>();
+
+        // immune_except_creator_relation_check names one of enum_skill_target_relation's ids, so the
+        // relation is resolved with the same helper the targeting code uses. Without a caster there is
+        // no relation to test, and the check must not run: IsRelationValid dereferences its caster.
+        Func<uint, bool> casterRelationMatches = caster == null
+            ? _ => false
+            : relationId => SkillTargetingUtil.IsRelationValid((SkillTargetRelation)relationId, caster, owner);
+
+        return BuffImmunityRules.IsRefusedByTagImmunity(
+            candidateTags,
+            candidate,
+            effects,
+            SkillManager.Instance.GetBuffImmunityTags,
+            caster?.ObjId ?? 0,
+            casterSkillTags,
+            casterRelationMatches);
+    }
+
+    /// <summary>
+    /// The first <c>tagged_require_buffs</c> tag this unit does not carry for <paramref name="candidate"/>,
+    /// or 0 when every prerequisite is met. 4627 가벼운 발걸음 needs tag 831 무겁다, 21369 선장의 보호
+    /// needs tag 3258 순항선, 20111 무적 비행 needs tag 2841 불사조 날틀.
+    /// </summary>
+    public uint GetMissingRequiredBuffTag(BuffTemplate candidate)
+    {
+        if (candidate == null)
+            return 0;
+
+        return BuffImmunityRules.FirstMissingRequiredTag(
+            SkillManager.Instance.GetRequiredBuffTags(candidate.Id), CheckBuffTag);
+    }
+
+    /// <summary>
+    /// Whether an active buff makes this unit immune to knockback and impulses
+    /// (<c>buffs.knockback_immune</c>, 913 rows). Read exactly like <see cref="CheckDamageImmune"/>:
+    /// from the flags of the buffs active on this unit.
+    /// </summary>
+    public bool CheckKnockbackImmune()
+    {
+        return HasEffectsMatchingCondition(buff => buff?.Template?.KnockbackImmune == true);
+    }
+
+    /// <summary>
+    /// Whether an active buff makes this unit immune to mana burn
+    /// (<c>buffs.mana_burn_immune</c>, 338 rows).
+    /// </summary>
+    public bool CheckManaBurnImmune()
+    {
+        return HasEffectsMatchingCondition(buff => buff?.Template?.ManaBurnImmune == true);
+    }
+
+    /// <summary>
+    /// Tells the caster and the players around this unit that the candidate buff was refused because
+    /// the unit is immune to it.
+    /// </summary>
+    /// <remarks>
+    /// The 10.0.2.13 client has no error-message id for buff immunity — <c>enum_error_messages</c> has
+    /// 1 244 names and not one of them mentions immunity (the nearest, 787 <c>BUFF_HIGHER</c>, is the
+    /// stronger-buff case and already has its own <c>SkillResult.HigherBuff</c>). What the client does
+    /// render is the immune hit result, which is what <c>DamageEffect</c> already broadcasts for
+    /// <see cref="CheckDamageImmune"/>: <see cref="SkillHitType.Immune"/> (18, <c>immune</c> in
+    /// <c>enum_skill_hit_type</c>) on a one-point <c>SCUnitDamagedPacket</c>.
+    /// </remarks>
+    public void BroadcastBuffImmune(BaseUnit caster, CastAction castObj, SkillCaster casterObj)
+    {
+        var owner = GetOwner();
+        if (owner == null || castObj == null || casterObj == null)
+            return;
+
+        // Only a cast says so, and only once. A plot event is a cast too: PlotEventEffect hands its effects a
+        // CastPlot (PlotEventEffect.cs:119) and 6 245 of the 38 043 skills carry a plot id, so refusing that
+        // one has to reach the player as well. What must stay silent is CastBuff, which the tick and proc
+        // paths re-apply effects with — BuffTemplate.DoTick / DoAreaTick (BuffTemplate.cs:439 and :482) and
+        // BuffTrigger (BuffTrigger.cs:130) — because those sent one SCUnitDamagedPacket per tick to everyone
+        // nearby for the whole life of an aura or a DoT.
+        if (castObj is not (CastSkill or CastPlot))
+            return;
+
+        owner.BroadcastPacket(
+            // Damage 1, not 0: DamageEffect's CheckDamageImmune path sends the same hit type with 1
+            // (DamageEffect.cs:114), and the two have to agree on what the client is shown.
+            new SCUnitDamagedPacket(castObj, casterObj, caster?.ObjId ?? 0, owner.ObjId, 1, 0)
+            {
+                HitType = SkillHitType.Immune
+            },
+            false);
     }
 
     public bool CheckDamageImmune(DamageType damageType)

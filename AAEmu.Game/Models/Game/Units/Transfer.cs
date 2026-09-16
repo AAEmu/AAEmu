@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
@@ -224,7 +224,7 @@ public class Transfer : Unit
                 }
             }
 
-            return res;
+            return ClampToLimit(res, UnitAttribute.MaxHealth);
         }
     }
 
@@ -322,7 +322,7 @@ public class Transfer : Unit
                 }
             }
 
-            return res;
+            return ClampToLimit(res, UnitAttribute.MaxMana);
         }
     }
 

@@ -42,6 +42,13 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     private Dictionary<uint, List<uint>> _taggedBuffs = [];
     private Dictionary<uint, List<uint>> _skillTags = [];
     private Dictionary<uint, List<uint>> _taggedSkills = [];
+    // tagged_immune_buffs / tagged_require_buffs, keyed by the buff that carries the row. Both tables
+    // are tiny (2 645 / 309 rows) and were previously loaded nowhere, which made Buffs.CheckBuffImmune
+    // a no-op and every tagged_require_buffs prerequisite unenforced.
+    private Dictionary<uint, List<uint>> _buffImmunityTags = [];
+    private Dictionary<uint, List<uint>> _requiredBuffTags = [];
+    // Returned for a buff with no rows so the per-application lookups do not allocate.
+    private static readonly List<uint> NoTags = [];
     private Dictionary<uint, List<SkillModifier>> _skillModifiers = [];
     private Dictionary<uint, List<BuffTriggerTemplate>> _buffTriggers = [];
     private Dictionary<uint, List<CombatBuffTemplate>> _combatBuffs = [];
@@ -240,6 +247,22 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         return _skillTags.TryGetValue(skillId, out var tags) ? tags : [];
     }
 
+    /// <summary>
+    /// Tags refused while <paramref name="buffId"/> is active on a unit (<c>tagged_immune_buffs</c>).
+    /// </summary>
+    public List<uint> GetBuffImmunityTags(uint buffId)
+    {
+        return _buffImmunityTags.TryGetValue(buffId, out var tags) ? tags : NoTags;
+    }
+
+    /// <summary>
+    /// Tags a unit must already carry before <paramref name="buffId"/> may apply (<c>tagged_require_buffs</c>).
+    /// </summary>
+    public List<uint> GetRequiredBuffTags(uint buffId)
+    {
+        return _requiredBuffTags.TryGetValue(buffId, out var tags) ? tags : NoTags;
+    }
+
     public List<uint> GetSkillsByTag(uint tagId)
     {
         return _taggedSkills.TryGetValue(tagId, out var tag) ? tag : [];
@@ -392,6 +415,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         _skillModifiers = [];
         _skillTags = [];
         _taggedSkills = [];
+        _buffImmunityTags = [];
+        _requiredBuffTags = [];
         _combatBuffs = [];
         _linearFuncs = [];
         _skillReagents = [];
@@ -968,6 +993,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
             {
                 command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type='Buff'"; // TODO OwnerType: BuffUnitModifier -> buff_unit_modifiers
                 command.Prepare();
+                var attributeIds = new List<long>();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
                     while (reader.Read())
@@ -975,15 +1001,21 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         var buffId = reader.GetUInt32("owner_id", 0);
                         if (!_buffs.TryGetValue(buffId, out var buff))
                             continue;
+                        var attributeId = reader.GetUInt32("unit_attribute_id", 0);
+                        attributeIds.Add(attributeId);
                         var template = new BonusTemplate
                         {
-                            Attribute = (UnitAttribute)reader.GetUInt32("unit_attribute_id", 0), ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id", 0),
+                            Attribute = (UnitAttribute)attributeId, ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id", 0),
                             Value = reader.GetInt64("value", 0),
                             LinearLevelBonus = reader.GetInt32("linear_level_bonus", 0)
                         };
                         buff.Bonuses.Add(template);
                     }
                 }
+
+                var unknownIds = UnitAttributeLoadRules.UnknownIds(attributeIds);
+                if (unknownIds.Count > 0)
+                    Logger.Warn(UnitAttributeLoadRules.Warning("unit_modifiers (owner_type='Buff')", unknownIds));
             }
             using (var command = connection.CreateCommand())
             {
@@ -1008,6 +1040,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
             {
                 command.CommandText = "SELECT * FROM dynamic_unit_modifiers";
                 command.Prepare();
+                var dynamicAttributeIds = new List<long>();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
                     while (reader.Read())
@@ -1015,16 +1048,29 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         var buffId = reader.GetUInt32("buff_id", 0);
                         if (!_buffs.TryGetValue(buffId, out var buff))
                             continue;
+                        var attributeId = reader.GetUInt32("unit_attribute_id", 0);
+                        dynamicAttributeIds.Add(attributeId);
                         var template = new DynamicBonusTemplate
                         {
-                            Attribute = (UnitAttribute)reader.GetUInt32("unit_attribute_id", 0), ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id", 0),
+                            Attribute = (UnitAttribute)attributeId, ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id", 0),
                             FuncId = reader.GetUInt32("func_id", 0),
                             FuncType = reader.GetString("func_type", "")
                         };
                         buff.DynamicBonuses.Add(template);
                     }
                 }
+
+                var unknownDynamicIds = UnitAttributeLoadRules.UnknownIds(dynamicAttributeIds);
+                if (unknownDynamicIds.Count > 0)
+                    Logger.Warn(UnitAttributeLoadRules.Warning("dynamic_unit_modifiers", unknownDynamicIds));
             }
+
+            // Rows whose func type this server cannot evaluate are inert; they are counted here once,
+            // by type and func_id, rather than warned about on every buff application.
+            var unsupportedDynamicModifiers = DynamicBonusFuncRules.SummarizeUnsupported(
+                _buffs.Values.SelectMany(buff => buff.DynamicBonuses));
+            if (unsupportedDynamicModifiers != null)
+                Logger.Warn(unsupportedDynamicModifiers);
 
             using (var command = connection.CreateCommand())
             {
@@ -2209,6 +2255,42 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
             Logger.Info(
                 $"Buff grants loaded: {buffSkillRows} buff_skills, {mountSkillRows} buff_mount_skills, " +
                 $"{swapRows} buff_swap_skills, {passiveRows} buff_passive_buffs rows on {_buffGrants.Count} buffs");
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM tagged_immune_buffs";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var buffId = reader.GetUInt32("buff_id", 0);
+                        var tagId = reader.GetUInt32("buff_tag_id", 0);
+
+                        if (!_buffImmunityTags.ContainsKey(buffId))
+                            _buffImmunityTags.Add(buffId, []);
+                        _buffImmunityTags[buffId].Add(tagId);
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM tagged_require_buffs";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var buffId = reader.GetUInt32("buff_id", 0);
+                        var tagId = reader.GetUInt32("buff_tag_id", 0);
+
+                        if (!_requiredBuffTags.ContainsKey(buffId))
+                            _requiredBuffTags.Add(buffId, []);
+                        _requiredBuffTags[buffId].Add(tagId);
+                    }
+                }
+            }
 
             using (var command = connection.CreateCommand())
             {
