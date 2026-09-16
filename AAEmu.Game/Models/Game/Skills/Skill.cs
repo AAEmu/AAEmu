@@ -176,6 +176,24 @@ public class Skill
 
         unit.ConditionChance = true;
 
+        // Silence / sleep / stun: a cast started under one of these does not get to run. The state is
+        // already tracked (Buffs.AddBuff interrupts the cast in flight on exactly stun, silence and
+        // sleep) and the client greys the hotbar out, but a forged CSStartSkill used to be honoured, and
+        // the local path never consulted the state at all.
+        //
+        // Players and pets only. An NPC's kit is run by the script that owns it, and a scripted encounter
+        // that applies a sleep to itself and then casts anyway is not this gate's business to break.
+        if (caster is Character or Units.Mate)
+        {
+            var crowdControl = CrowdControlRules.RejectCast(CrowdControlRules.ReadState(unit));
+            if (crowdControl != null)
+            {
+                Logger.Debug("{0} ({1}) cannot cast {2}: {3}", caster.Name, caster.ObjId, Template.Id, crowdControl);
+                Cancelled = true;
+                return crowdControl.Value;
+            }
+        }
+
         var requirementResult = UnitRequirementsGameData.Instance.CanUseSkill(
             Template,
             caster,
