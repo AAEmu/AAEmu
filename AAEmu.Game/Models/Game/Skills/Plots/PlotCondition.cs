@@ -24,6 +24,18 @@ public class PlotCondition
     public int Param3 { get; set; }
 
     /// <summary>
+    /// plot_conditions.param4 — the upper half of the buff stack range on kind 5 (384 rows).
+    /// </summary>
+    public int Param4 { get; set; }
+
+    /// <summary>
+    /// plot_conditions.pure — 13 rows. Marks a condition with no side effects (kind 7 rolls a die and
+    /// kind 9 writes the hit type, so those are not pure). No consumer yet; the condition cache the
+    /// original code commented out at <see cref="PlotEventCondition"/> is what it is for.
+    /// </summary>
+    public bool Pure { get; set; }
+
+    /// <summary>
     /// plot_conditions.or_unit_reqs — whether the unit_reqs rows owned by this condition pass when ANY of
     /// them holds (94 rows) or only when ALL do (1511 rows).
     /// </summary>
@@ -47,7 +59,7 @@ public class PlotCondition
             PlotConditionType.Relation => ConditionRelation(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
             PlotConditionType.Direction => ConditionDirection(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
             // 4 does not exist or is unused
-            PlotConditionType.BuffTag => ConditionBuffTag(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
+            PlotConditionType.BuffTag => ConditionBuffTag(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3, Param4),
             PlotConditionType.WeaponEquipStatus => ConditionWeaponEquipStatus(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
             PlotConditionType.Chance => ConditionChance(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
             PlotConditionType.Dead => ConditionDead(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
@@ -62,6 +74,8 @@ public class PlotCondition
             PlotConditionType.ABLevel => ConditionAbLevel(caster, casterCaster, target, targetCaster, skillObject, Param1, Param2, Param3),
             PlotConditionType.CombatResource => ConditionCombatResource(caster, Param1, Param2, Param3),
             PlotConditionType.UnitReqs => ConditionUnitReqs(caster, target),
+            PlotConditionType.CastingUseable => ConditionCastingUseable(caster, Param1, Param2, skill),
+            PlotConditionType.AccrueDamageMonster => ConditionAccrueDamageMonster(caster, Param1),
             _ => UnhandledKind()
         };
 
@@ -86,10 +100,15 @@ public class PlotCondition
     }
 
     /// <summary>
-    /// Fallback for condition kinds this server does not implement yet. Stays permissive so an
-    /// unknown kind cannot silently block a plot, but says so once per kind instead of passing
-    /// invisibly - kinds 18/21 are still unimplemented and used to look like working gates.
+    /// Fallback for condition kinds this server does not handle at all. Stays permissive so an unknown kind
+    /// cannot silently block a plot, and says so once per kind.
     /// </summary>
+    /// <remarks>
+    /// Every kind 10.0.2.13 ships (the 20 rows of <c>enum_plot_condition_kinds</c>) now has its own arm, so
+    /// this is reachable only from data newer than the server. Kinds whose parameters are not established —
+    /// currently only 21 accrue_damage_monster — are <see cref="PlotConditionHandling.Permissive"/> arms of
+    /// their own rather than falling through here, which keeps them off the log.
+    /// </remarks>
     private bool UnhandledKind()
     {
         if (_warnedKinds.Add(Kind))
@@ -98,6 +117,55 @@ public class PlotCondition
     }
 
     private static readonly HashSet<PlotConditionType> _warnedKinds = [];
+
+    /// <summary>
+    /// Per-evaluation diagnostics are collapsed to one line per reason. These conditions run for every unit
+    /// of every area search, so a Warn here is a log flood, not a diagnostic.
+    /// </summary>
+    private static readonly HashSet<string> _warnedOnce = [];
+
+    private static void WarnOnce(string key, string message)
+    {
+        if (_warnedOnce.Add(key))
+            Logger.Warn(message);
+    }
+
+    // 18
+    /// <summary>
+    /// casting_useable: is the cast or channel the plot is running inside the <paramref name="minPercent"/>
+    /// ..<paramref name="maxPercent"/> band of its own duration?
+    /// </summary>
+    /// <remarks>
+    /// 82 conditions across 8 plots. The bands partition the bar — plot 2557 walks (100,100), (75,99),
+    /// (50,74), (25,49), (0,24) as a dispatch ladder — and the plot only records a window once it has
+    /// advertised a cast or channel to the client. Until then the condition answers the way it did while it
+    /// was unimplemented, so a ladder evaluated outside a bar cannot start failing.
+    /// </remarks>
+    private static bool ConditionCastingUseable(BaseUnit caster, int minPercent, int maxPercent, Skill skill)
+    {
+        var plotState = skill?.ActivePlotState ?? (caster as Unit)?.ActivePlotState;
+        return PlotConditionRules.CastBandMatches(plotState?.CastProgressPercent(DateTime.UtcNow), minPercent, maxPercent);
+    }
+
+    // 21
+    /// <summary>
+    /// accrue_damage_monster: did the accumulated damage come from faction <paramref name="factionId"/>?
+    /// </summary>
+    /// <remarks>
+    /// Six conditions on two plots (6569, 6593) and the two skills that cast them (49303, 49469). All three
+    /// params are faction ids, and the surrounding events are named "did Nuia kill me?", "did Harihara kill
+    /// me?", "is the culprit an outlaw?", ending in "if nothing, it is a natural death" — so the kind asks
+    /// which faction landed the killing damage on the plot's target.
+    ///
+    /// Nothing in the cast or damage path records the faction of the killing blow on the plot state, and
+    /// answering the question from anything less would send all three branches down the natural-death edge
+    /// on every world-boss death. Permissive until that record exists; the wait is short because making it
+    /// strict is a one-line change to this method once the killing blow carries its faction.
+    /// </remarks>
+    private static bool ConditionAccrueDamageMonster(BaseUnit caster, int factionId)
+    {
+        return true;
+    }
 
     // 19
     /// <summary>
@@ -116,7 +184,7 @@ public class PlotCondition
     {
         if (caster is not Unit casterUnit)
         {
-            Logger.Warn($"PlotCondition CombatResource check without caster being a Unit");
+            WarnOnce("CombatResource-no-unit", "PlotCondition CombatResource check without caster being a Unit");
             return false;
         }
 
@@ -130,32 +198,27 @@ public class PlotCondition
     {
         if (caster is not Unit casterUnit)
         {
-            Logger.Warn($"PlotCondition Level check without caster being a Unit");
+            WarnOnce("Level-no-unit", "PlotCondition Level check without caster being a Unit");
             return false;
         }
         return casterUnit.Level >= minLevel && casterUnit.Level <= maxLevel;
     }
 
     // 2
+    /// <summary>
+    /// relation: how the target stands to the caster. <paramref name="relationType"/> is an
+    /// <c>enum_skill_target_relation</c> id, resolved exactly as target selection resolves it.
+    /// </summary>
+    /// <remarks>
+    /// Only 1 friendly and 4 hostile were implemented; 3 raid (12 rows) and 5 others (41 rows) answered true
+    /// on 29 skills. Both go through <see cref="PlotConditionRules.RelationMatches"/> now, and the
+    /// per-evaluation Warn plus two SendDebugMessage calls (one for the caster, one for the target) are gone
+    /// — this ran on every condition evaluation of every plot.
+    /// </remarks>
     private static bool ConditionRelation(BaseUnit caster, SkillCaster casterCaster, BaseUnit target,
         SkillCastTarget targetCaster, SkillObject skillObject, int relationType, int unused2, int unused3)
     {
-        if (caster is Character player)
-            player.SendDebugMessage($"ConditionRelation Caster {relationType}");
-        if (target is Character targetPlayer)
-            targetPlayer.SendDebugMessage($"ConditionRelation Target {relationType}");
-        Logger.Warn($"ConditionRelation {relationType} {caster} -> {target}");
-        // Param1 is either 1, 4 or 5
-        switch (relationType)
-        {
-            case 1: // Friendly?
-                return caster.Faction.GetRelationState(target.Faction) == RelationState.Friendly;
-            case 4: // Hostile?
-                return caster.Faction.GetRelationState(target.Faction) == RelationState.Hostile;
-            case 5: // 
-                break;
-        }
-        return true;
+        return PlotConditionRules.RelationMatches(relationType, caster, target);
     }
 
     // 3
@@ -168,14 +231,34 @@ public class PlotCondition
     // 4 does not exist
 
     // 5
+    /// <summary>
+    /// buff: does the target carry a buff with tag <paramref name="tagId"/>, and — when the row carries a
+    /// range — one whose stack count is inside <paramref name="minStack"/>..<paramref name="maxStack"/>?
+    /// </summary>
+    /// <remarks>
+    /// 384 of the 10,112 buff conditions carry the range in param3/param4 (param4 was not even loaded), and
+    /// the data reads as stack bands: (1,1), (10,10), (26,999), (1,4), (5,9), (10,20). A row with both at 0
+    /// — the other 9,728 — takes the same "any buff with this tag" path it always did.
+    /// </remarks>
     private static bool ConditionBuffTag(BaseUnit caster, SkillCaster casterCaster, BaseUnit target,
-        SkillCastTarget targetCaster, SkillObject skillObject, int tagId, int unused2, int unused3)
+        SkillCastTarget targetCaster, SkillObject skillObject, int tagId, int unused2, int minStack, int maxStack)
     {
         // if (eventCondition.TargetId == PlotEffectTarget.Source)
         //     return caster.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)tagId));
         // else if (eventCondition.TargetId == PlotEffectTarget.Target)
         //     return target.Effects.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)tagId));
-        return target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId((uint)tagId));
+        var tagBuffs = SkillManager.Instance.GetBuffsByTagId((uint)tagId);
+        if (minStack <= 0 && maxStack <= 0)
+            return target.Buffs.CheckBuffs(tagBuffs);
+
+        if (tagBuffs is not { Count: > 0 })
+            return false;
+
+        var taggedIds = new HashSet<uint>(tagBuffs);
+        return target.Buffs.HasEffectsMatchingCondition(effect =>
+            effect?.Template?.BuffId > 0 &&
+            taggedIds.Contains(effect.Template.BuffId) &&
+            PlotConditionRules.BuffStackInRange((int)effect.StackCount, minStack, maxStack));
     }
 
     // 6 — compact.sqlite3 enum_weapon_equip_statuses:
@@ -216,7 +299,7 @@ public class PlotCondition
     {
         if (caster is not Unit casterUnit)
         {
-            Logger.Warn($"PlotCondition Chance check without caster being a Unit");
+            WarnOnce("Chance-no-unit", "PlotCondition Chance check without caster being a Unit");
             return false;
         }
 
@@ -329,7 +412,7 @@ public class PlotCondition
         var plotState = skill?.ActivePlotState ?? (caster as Unit)?.ActivePlotState;
         if (plotState == null)
         {
-            Logger.Warn("PlotCondition Variable check without ActivePlotState");
+            WarnOnce("Variable-no-plotstate", "PlotCondition Variable check without ActivePlotState");
             return false;
         }
 
@@ -360,7 +443,7 @@ public class PlotCondition
         // All 3 params used. No idea.
         if (caster is not Unit casterUnit)
         {
-            Logger.Warn($"PlotCondition UnitAttrib check without caster being a Unit");
+            WarnOnce("UnitAttrib-no-unit", "PlotCondition UnitAttrib check without caster being a Unit");
             return false;
         }
 

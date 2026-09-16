@@ -106,6 +106,10 @@ public class PlotNode
 
         if (Event.HasSpecialEffects() || castTime > 0 || channelingMs > 0 || Event.Conditions.Count > 0)
         {
+            // The bar this packet advertises is the one kind 18 (casting_useable) measures its percent
+            // bands against; see PlotState.CastWindowMs.
+            state.BeginCastWindow(Math.Max((int)castTime, channelingMs), DateTime.UtcNow);
+
             var skill = state.ActiveSkill;
             var unkId = (ParentNextEvent?.Casting ?? false) || (ParentNextEvent?.Channeling ?? false) ? state.Caster.ObjId : 0;
 

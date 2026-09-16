@@ -63,6 +63,34 @@ public class PlotState(
     public Dictionary<uint, float> AreaSelectionRadius { get; } = [];
 
     public bool CancellationRequested() => _cancellationRequest;
+
+    /// <summary>
+    /// Start of the cast or channel bar the plot last advertised to the client, and how long that bar runs.
+    /// </summary>
+    /// <remarks>
+    /// Plot condition kind 18 (casting_useable, 82 rows) asks which band of the bar the plot is in. The
+    /// window is what the plot itself told the client — <c>SCPlotEventPacket</c> carries the cast and channel
+    /// times — so the server and the cast bar the player sees agree on the percentage.
+    /// </remarks>
+    public DateTime CastWindowStartUtc { get; private set; }
+    public int CastWindowMs { get; private set; }
+
+    public void BeginCastWindow(int durationMs, DateTime nowUtc)
+    {
+        if (durationMs <= 0)
+            return;
+        CastWindowStartUtc = nowUtc;
+        CastWindowMs = durationMs;
+    }
+
+    /// <summary>
+    /// How far through the current cast or channel the plot is, or null when it never advertised one.
+    /// </summary>
+    public int? CastProgressPercent(DateTime nowUtc) =>
+        CastWindowMs > 0
+            ? PlotConditionRules.CastProgressPercent(CastWindowStartUtc, CastWindowMs, nowUtc)
+            : null;
+
     public bool RequestCancellation() => _cancellationRequest = true;
     public bool ChannelingFinishRequested() => _finishChanneling;
     public bool FinishChanneling() => _finishChanneling = true;

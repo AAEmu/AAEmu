@@ -116,6 +116,10 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                             Param1 = param1,
                             Param2 = reader.GetInt32("param2"),
                             Param3 = reader.GetInt32("param3"),
+                            // Kind 5 (buff) upper half of the stack range: 384 rows.
+                            Param4 = reader.GetInt32("param4"),
+                            // 13 rows marking a condition with no side effects; see PlotCondition.Pure.
+                            Pure = reader.GetBoolean("pure", true),
                             // Kind 20 (unit_reqs) carries its checks in unit_reqs rows owned by this condition
                             // rather than in param1..3 — 1519 of the 1605 rows leave all three at 0. This flag
                             // decides whether those rows are ANDed or ORed, exactly as skills.or_unit_reqs does.
