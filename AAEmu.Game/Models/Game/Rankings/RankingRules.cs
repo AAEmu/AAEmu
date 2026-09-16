@@ -1,5 +1,8 @@
 namespace AAEmu.Game.Models.Game.Rankings;
 
+using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Items;
+
 /// <summary>
 /// The decisions the ranking boards need: which equipped item an item board measures, and what the
 /// server can honestly put in a board. Nothing here invents a value — a board with no source is left out
@@ -24,6 +27,18 @@ public static class RankingRules
     public static byte[] ItemBoardSlots(uint boardId)
     {
         return ItemBoardSlotTypes.TryGetValue(boardId, out var slots) ? slots : null;
+    }
+
+    /// <summary>
+    /// Whether an item is one a board counts: the tables give each item board the level and grade an item
+    /// has to reach, and an item below either of them is not on the board at all.
+    /// </summary>
+    public static bool ItemCounts(EquipItem item, RankGate gate)
+    {
+        if (item?.Template == null)
+            return false;
+
+        return item.Template.Level >= gate.MinLevel && item.Grade >= gate.MinGrade;
     }
 
     /// <summary>

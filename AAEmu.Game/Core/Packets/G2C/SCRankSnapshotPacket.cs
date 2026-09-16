@@ -1,21 +1,48 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Rankings;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// TODO: nothing constructs this packet yet.
+/// One board of the rankings: the lines it holds, then the tiers its places are grouped into.
 /// </summary>
 /// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
+/// Field order and widths come from the 10.0.2.13 client's serializer, which passes each value's name
+/// alongside the value: the requested type and division, a line count and the lines, a tier count and
+/// the tiers, then the board's own id and when the board was taken. The client caps both lists, so the
+/// counts are capped here too — a longer list would leave it reading past what we wrote. The tiers are
+/// left empty: the tables' tiers are the reward bands of a board rather than holders of a place, and the
+/// client draws whatever this list carries as lines.
 /// </remarks>
-public class SCRankSnapshotPacket(int @type, int divisionId) : GamePacket(SCOffsets.SCRankSnapshotPacket, 1)
+public class SCRankSnapshotPacket(
+    uint type,
+    uint divisionId,
+    IReadOnlyList<RankingOrderedEntry> entries,
+    long boardId,
+    ulong snappedTime)
+    : GamePacket(SCOffsets.SCRankSnapshotPacket, 1)
 {
+    /// <summary>The most lines the client reads from a board.</summary>
+    public const int MaxEntries = 100;
+
+    /// <summary>The most tiers the client reads from a board.</summary>
+    public const int MaxScopes = 20;
+
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write(@type);
+        stream.Write(type);
         stream.Write(divisionId);
+
+        var entryCount = Math.Min(entries?.Count ?? 0, MaxEntries);
+        stream.Write((uint)entryCount);
+        for (var i = 0; i < entryCount; i++)
+            entries[i].Write(stream);
+
+        stream.Write(0u); // no tiers: see the remarks
+
+        stream.Write(boardId);
+        stream.Write(snappedTime);
         return stream;
     }
 }

@@ -34,7 +34,11 @@ public class CSRankPersonalDataPacket() : GamePacket(CSOffsets.CSRankPersonalDat
         // The boards measured by the character's whole gear score, which the World already computes for
         // instance entry and squad limits.
         foreach (var board in RankingGameData.Instance.BoardsMeasuring(RankingGameData.GearScoreDetailType))
-            entries.Add(Line(character, board.Id, character.GearScore));
+        {
+            var score = CSRankSnapshotPacket.ScoreFor(character, board, RankingGameData.Instance.GateFor(board.Id));
+            if (score != null)
+                entries.Add(Line(character, board.Id, score.Value));
+        }
 
         // The item boards measure one equipped weapon each. A character wearing nothing of a board's kind
         // gets no line for it rather than a zero.
@@ -62,8 +66,13 @@ public class CSRankPersonalDataPacket() : GamePacket(CSOffsets.CSRankPersonalDat
                 entries.Add(Line(character, board.Id, best.Value.Score));
         }
 
-        character.SendPacket(new SCRankPersonalDataPacket(0, entries));
-        Logger.Info("Rankings: sent {0} personal line(s) to {1}", entries.Count, character.Name);
+        // The client files each answer under the board its window is showing and drops the ones that name
+        // another board, so a line goes out under its own board and the window takes the one it wants.
+        foreach (var group in entries.GroupBy(line => line.Key))
+            character.SendPacket(new SCRankPersonalDataPacket(group.Key, group.ToList()));
+
+        Logger.Info("Rankings: sent {0} personal line(s) to {1} over {2} board(s)",
+            entries.Count, character.Name, entries.Select(line => line.Key).Distinct().Count());
     }
 
     /// <summary>
@@ -81,8 +90,7 @@ public class CSRankPersonalDataPacket() : GamePacket(CSOffsets.CSRankPersonalDat
             Id = character.Id,
             AccountId = character.AccountId,
             Type = boardId,
-            PrivacyStatus = 0,
-            IsAllocated = true
+            PrivacyStatus = 0
         });
     }
 }

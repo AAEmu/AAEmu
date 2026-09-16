@@ -17,8 +17,7 @@ public class SCRankPersonalDataPacketTests
             Id = 8,
             AccountId = 3,
             Type = 23,
-            PrivacyStatus = 1,
-            IsAllocated = true
+            PrivacyStatus = 1
         };
     }
 
@@ -39,7 +38,9 @@ public class SCRankPersonalDataPacketTests
         await Assert.That(stream.ReadUInt64()).IsEqualTo(3UL);        // accountId
         await Assert.That(stream.ReadInt64()).IsEqualTo(23L);         // type
         await Assert.That(stream.ReadByte()).IsEqualTo((byte)1);      // privacyStatus
-        await Assert.That(stream.ReadBoolean()).IsTrue();             // isAllocated
+        // The client reads an optional sub-data block after this flag; the server has none to send, so it
+        // stays clear and the line ends here.
+        await Assert.That(stream.ReadBoolean()).IsFalse();            // isAllocated
         await Assert.That(stream.LeftBytes).IsEqualTo(0);
     }
 

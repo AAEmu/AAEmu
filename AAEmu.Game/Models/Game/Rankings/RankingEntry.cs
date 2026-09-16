@@ -30,10 +30,7 @@ public class RankingEntry
 
     public byte PrivacyStatus { get; set; }
 
-    /// <summary>Whether the client should show this line as allocated to the holder.</summary>
-    public bool IsAllocated { get; set; }
-
-    public void Write(PacketStream stream)
+    public virtual void Write(PacketStream stream)
     {
         stream.Write(V1);
         stream.Write(V2);
@@ -43,7 +40,28 @@ public class RankingEntry
         stream.Write(AccountId);
         stream.Write(Type);
         stream.Write(PrivacyStatus);
-        stream.Write(IsAllocated);
+
+        // The client reads a flag here and, when it is set, an optional sub-data block: a kind byte plus a
+        // fixed-size detail whose length depends on that kind. This server has no sub-data to send, so the
+        // flag stays clear — raising it without the block would leave the client reading the next line's
+        // bytes as the detail.
+        stream.Write(false);
+    }
+}
+
+/// <summary>
+/// A line of a board, which carries where it stands in addition to the entry itself.
+/// </summary>
+/// <remarks>The client reads a board's lines with the standing last, after the entry's own fields.</remarks>
+public class RankingOrderedEntry : RankingEntry
+{
+    /// <summary>The line's place in its board, 1 for the top of it; 0 when the board has no place to give.</summary>
+    public uint Ranking { get; set; }
+
+    public override void Write(PacketStream stream)
+    {
+        base.Write(stream);
+        stream.Write(Ranking);
     }
 }
 
