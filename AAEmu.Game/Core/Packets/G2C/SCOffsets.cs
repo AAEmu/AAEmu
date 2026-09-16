@@ -544,6 +544,10 @@ public static class SCOffsets
     public const ushort SCServerFileTimeSyncPacket = 0x305; // 10.0.2.13 SC_PACKET_SERVER_FILE_TIME_SYNC (773)
     public const ushort SCRepreSentCharacterPacket = 0x2C4; // 10.0.2.13 SC_PACKET_REPRESENT_CHARACTER (708)
     public const ushort SCRankerAppearance = 0x2C8; // 10.0.2.13 SC_PACKET_RANKER_APPEARANCE (712)
+
+    public const ushort SCEquipSlotReinforceUpdatePacket = 0x2C5; // 10.0.2.13
+    public const ushort SCEquipSlotReinforceLevelEffectUpdatePacket = 0x2C6; // 10.0.2.13
+    public const ushort SCEquipSlotReinforceLevelEffectDeletePacket = 0x2C7; // 10.0.2.13
     public const ushort SCAccountAttendancePacket = 0x2C9; // 10.0.2.13 SC_PACKET_ACCOUNT_ATTENDANCE (713)
     public const ushort SCServerInfoPacket = 0x399; // 10.0.2.13 SC_PACKET_SERVER_INFO (921)
     public const ushort SCUnitOpenEquipInfoPacket = 0x248;
