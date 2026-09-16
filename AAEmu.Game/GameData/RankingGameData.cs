@@ -72,6 +72,7 @@ public class RankingGameData : Singleton<RankingGameData>, IGameDataLoader
     private readonly Dictionary<uint, RankDefinition> _ranks = [];
     private readonly Dictionary<uint, string> _detailTypes = [];
     private readonly Dictionary<uint, RankGate> _gates = [];
+    private readonly Dictionary<uint, (int Kind, int Method)> _gamePointCounters = [];
 
     public void Load(SqliteConnection connection)
     {
@@ -146,10 +147,24 @@ public class RankingGameData : Singleton<RankingGameData>, IGameDataLoader
             }
         }
 
-        Logger.Info("Rankings: {0} boards loaded, {1} of them gear score, {2} of them gated",
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT id, game_point_kind, game_point_method FROM game_point_rank_details";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                _gamePointCounters[reader.GetUInt32("id")] =
+                    (reader.GetInt32("game_point_kind", 0), reader.GetInt32("game_point_method", 0));
+            }
+        }
+
+        Logger.Info("Rankings: {0} boards loaded, {1} of them gear score, {2} of them gated, {3} counting a period total",
             _ranks.Count,
             _ranks.Values.Count(rank => rank.DetailType == GearScoreDetailType),
-            _gates.Count);
+            _gates.Count,
+            _gamePointCounters.Count);
     }
 
     private RankGate Gate(uint rankId)
@@ -199,6 +214,15 @@ public class RankingGameData : Singleton<RankingGameData>, IGameDataLoader
             ExpeditionGearScoreKind or ExpeditionBattleRecordKind or ExpeditionInstanceRatingKind => RankHolderKind.Expedition,
             _ => RankHolderKind.Character
         };
+    }
+
+    /// <summary>
+    /// The running total a board ranks, as <c>game_point_rank_details</c> names it, or null when the board
+    /// does not rank one (a board over a value the World reads directly).
+    /// </summary>
+    public (int Kind, int Method)? GamePointCounterOf(RankDefinition board)
+    {
+        return board != null && _gamePointCounters.TryGetValue(board.Id, out var counter) ? counter : null;
     }
 
     /// <summary>The boards whose value kind is the one asked for, in the table's display order.</summary>

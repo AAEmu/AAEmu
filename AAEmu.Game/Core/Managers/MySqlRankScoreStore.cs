@@ -100,4 +100,44 @@ public sealed class MySqlRankScoreStore : IRankScoreStore
             UpdatedAtUtc = reader.GetDateTime(4)
         };
     }
+
+    public void AddGamePointTotals(MySqlConnection connection, MySqlTransaction transaction, ulong characterId,
+        DateTime periodStartUtc, IReadOnlyDictionary<(int Kind, int Method), long> totals, DateTime updatedAtUtc)
+    {
+        if (totals == null || totals.Count == 0)
+            return;
+
+        foreach (var ((kind, method), amount) in totals)
+        {
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+            command.CommandText =
+                "INSERT INTO character_game_point_totals (character_id,point_kind,point_method,period_start,total,updated_at) " +
+                "VALUES (@character,@kind,@method,@period,@total,@updated) " +
+                "ON DUPLICATE KEY UPDATE total = total + VALUES(total), updated_at = VALUES(updated_at)";
+            command.Parameters.AddWithValue("@character", characterId);
+            command.Parameters.AddWithValue("@kind", kind);
+            command.Parameters.AddWithValue("@method", method);
+            command.Parameters.AddWithValue("@period", periodStartUtc);
+            command.Parameters.AddWithValue("@total", amount);
+            command.Parameters.AddWithValue("@updated", updatedAtUtc);
+            command.ExecuteNonQuery();
+        }
+    }
+
+    public long ReadGamePointTotal(ulong characterId, int kind, int method, DateTime periodStartUtc)
+    {
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT total FROM character_game_point_totals " +
+            "WHERE character_id=@character AND point_kind=@kind AND point_method=@method AND period_start=@period";
+        command.Parameters.AddWithValue("@character", characterId);
+        command.Parameters.AddWithValue("@kind", kind);
+        command.Parameters.AddWithValue("@method", method);
+        command.Parameters.AddWithValue("@period", periodStartUtc);
+
+        var total = command.ExecuteScalar();
+        return total == null || total == DBNull.Value ? 0 : Convert.ToInt64(total);
+    }
 }

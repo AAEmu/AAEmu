@@ -56,6 +56,71 @@ public class RankScoreManager(IRankScoreStore store) : Singleton<RankScoreManage
         }
 
         store.Save(connection, transaction, scores);
+        return scores.Count + SavePeriodTotals(connection, transaction, character, now);
+    }
+
+    /// <summary>
+    /// Writes what the character gained or spent since the last write into the running totals of each
+    /// board's window, and then puts those totals on the boards that rank them.
+    /// </summary>
+    private int SavePeriodTotals(MySqlConnection connection, MySqlTransaction transaction, Character character, DateTime now)
+    {
+        var counters = new List<(RankDefinition Board, int Kind, int Method)>();
+        foreach (var board in RankingGameData.Instance.Ranks)
+        {
+            if (RankingGameData.Instance.HolderKindOf(board) != RankHolderKind.Character)
+                continue;
+
+            if (RankingGameData.Instance.GamePointCounterOf(board) is not { } counter)
+                continue;
+
+            counters.Add((board, counter.Kind, counter.Method));
+        }
+
+        if (counters.Count == 0)
+            return 0;
+
+        // What is waiting has to be added to what is already stored, and the stored figure has to be read
+        // before the write: a read through another connection cannot see this transaction's rows yet.
+        var pending = character.RankGamePointTotals.Pending;
+        var scores = new List<RankScore>();
+        foreach (var (board, kind, method) in counters)
+        {
+            var period = RankingGameData.Instance.PeriodFor(board, now).StartUtc;
+            var stored = store.ReadGamePointTotal(character.Id, kind, method, period);
+            var delta = pending.TryGetValue((kind, method), out var waiting) ? waiting : 0;
+            var total = stored + delta;
+            if (total <= 0)
+                continue;
+
+            scores.Add(new RankScore
+            {
+                RankId = board.Id,
+                HolderKind = RankHolderKind.Character,
+                HolderId = character.Id,
+                AccountId = character.AccountId,
+                WorldId = (byte)AppConfiguration.Instance.Id,
+                Value = total,
+                BareValue = 0,
+                PeriodStartUtc = period,
+                UpdatedAtUtc = now
+            });
+        }
+
+        if (pending.Count > 0)
+        {
+            // Every window keeps its own totals, so what is waiting is filed under each of them.
+            foreach (var window in counters
+                         .Select(entry => RankingGameData.Instance.PeriodFor(entry.Board, now).StartUtc)
+                         .Distinct())
+            {
+                store.AddGamePointTotals(connection, transaction, character.Id, window, pending, now);
+            }
+
+            character.RankGamePointTotals.Clear();
+        }
+
+        store.Save(connection, transaction, scores);
         return scores.Count;
     }
 
