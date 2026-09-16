@@ -1295,7 +1295,9 @@ public class Skill
 
         foreach (var target in possibleTargets)
         {
-            if (target is Unit targetUnit && Template.TargetType == SkillTargetType.Hostile)
+            if (target is Unit targetUnit && CombatDiceRules.RollsForCast(
+                    Template.TargetType == SkillTargetType.Hostile,
+                    HasDamageEffect()))
             {
                 var diceResult = RollCombatDice(caster, targetUnit);
                 if (Template.LevelRuleNoConsideration)
@@ -1323,6 +1325,13 @@ public class Skill
                             break;
                     }
                 }
+
+                // skill_effects.always_hit: the effect lands whatever the dice said. The result is
+                // stored per target, so one always-hit effect on a skill lifts the whole skill's
+                // outcome for that target — that is the granularity DamageEffect can read back.
+                if (SkillMissedFor(diceResult) && HasAlwaysHitDamageEffect())
+                    diceResult = CombatDiceRules.HitTypeFor(Template.DamageTypeId);
+
                 // Auto-attack tasks reuse their Skill instance, so each swing must replace the
                 // previous result for this target instead of latching the first hit or miss forever.
                 HitTypes[targetUnit.ObjId] = diceResult;
@@ -1970,20 +1979,22 @@ public class Skill
         var Target = target as Unit;
         // TODO
         //  -Calculate Hit/Miss Rates
-        //  -Check for AlwaysHit?
         //  -Only Parry if sword equipped?
         var damageType = (DamageType)Template.DamageTypeId;
-        if (Attacker != null)
+        // combat_dice_id (8 kinds) says which rolls this cast makes; damage_type_id still says which
+        // hit-type flag the client is told. Rows that leave the column at 0 keep the damage-type
+        // fallback they had before it was read.
+        var diceKind = CombatDiceRules.Kind(Template.CombatDiceId, Template.DamageTypeId);
+
+        // Avoidance (dodge / parry / block), skipped entirely for the undefendable, always-hit and heal
+        // kinds — and when the blow comes from behind the target, which cannot see it coming.
+        if (Attacker != null && CombatDiceRules.RollsAvoidance(diceKind) && MathUtil.IsFront(attacker, target))
         {
             var bullsEyeMod = Attacker.BullsEye / 1000f * 3f / 100f;
 
             //TODO Check immunity a better way!!!
             //if (target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(361)))
             //return SkillHitType.Immune;
-
-            //Idk if this is right. Double check it
-            if (!MathUtil.IsFront(attacker, target))
-                goto AlwaysHit;
 
             if (Target != null && Random.Shared.Next(0f, 100f) < Target.DodgeRate - bullsEyeMod)
             {
@@ -2017,45 +2028,62 @@ public class Skill
             }
         }
 
-AlwaysHit:
-        switch (damageType)
+        // An always_hit / heal kind lands without a roll; a healer's spell is not dodged. A caster that
+        // is not a Unit has no accuracy to roll against and keeps the outcome it always had.
+        if (Attacker == null)
+            return CombatDiceRules.UnrollableSourceType(Template.DamageTypeId);
+        if (!CombatDiceRules.RollsMiss(diceKind))
+            return CombatDiceRules.HitTypeFor(Template.DamageTypeId);
+
+        var hitChance = damageType switch
         {
-            case DamageType.Melee:
-                if (Attacker != null && Random.Shared.Next(0f, 100f) < AntiMissRules.HitChance(Attacker.MeleeAccuracy, Attacker.MeleeAntiMissMul))
-                    return SkillHitType.MeleeHit;
-                return SkillHitType.MeleeMiss;
-            case DamageType.Magic:
-                if (Attacker != null && Random.Shared.Next(0f, 100f) < AntiMissRules.HitChance(Attacker.SpellAccuracy, Attacker.SpellAntiMissMul))
-                    return SkillHitType.SpellHit;
-                return SkillHitType.SpellMiss;
-            case DamageType.Ranged:
-                if (Attacker != null && Random.Shared.Next(0f, 100f) < AntiMissRules.HitChance(Attacker.RangedAccuracy, Attacker.RangedAntiMissMul))
-                    return SkillHitType.RangedHit;
-                return SkillHitType.RangedMiss;
-            case DamageType.Siege:
-                return SkillHitType.RangedHit;//No siege type?
-            default:
-                return SkillHitType.Invalid;
-        }
+            DamageType.Melee => AntiMissRules.HitChance(Attacker.MeleeAccuracy, Attacker.MeleeAntiMissMul),
+            DamageType.Magic => AntiMissRules.HitChance(Attacker.SpellAccuracy, Attacker.SpellAntiMissMul),
+            DamageType.Ranged => AntiMissRules.HitChance(Attacker.RangedAccuracy, Attacker.RangedAntiMissMul),
+            _ => float.MaxValue
+        };
+
+        return Random.Shared.Next(0f, 100f) < hitChance
+            ? CombatDiceRules.HitTypeFor(Template.DamageTypeId)
+            : CombatDiceRules.MissTypeFor(Template.DamageTypeId);
     }
 
     public bool SkillMissed(uint objId)
     {
         if (HitTypes.TryGetValue(objId, out var hitType))
         {
-            return hitType == SkillHitType.MeleeDodge
-                || hitType == SkillHitType.MeleeParry
-                || hitType == SkillHitType.MeleeBlock
-                || hitType == SkillHitType.MeleeMiss
-                || hitType == SkillHitType.RangedDodge
-                || hitType == SkillHitType.RangedParry
-                || hitType == SkillHitType.RangedBlock
-                || hitType == SkillHitType.RangedMiss
-                || hitType == SkillHitType.Immune;
+            return SkillMissedFor(hitType);
         }
         Logger.Error($"Unit[{objId}] was not found in the CbtDiceRolls.");
         return true;
     }
+
+    /// <summary>Whether a dice result means the cast did not land on that unit.</summary>
+    /// <remarks>
+    /// The spell variants are included: the list used to name only the melee and ranged families, so a
+    /// magic cast that rolled SpellMiss or was resisted was still applied by
+    /// <see cref="Effects.DamageEffect"/>.
+    /// </remarks>
+    public static bool SkillMissedFor(SkillHitType hitType) =>
+        hitType is SkillHitType.MeleeDodge
+            or SkillHitType.MeleeParry
+            or SkillHitType.MeleeBlock
+            or SkillHitType.MeleeMiss
+            or SkillHitType.RangedDodge
+            or SkillHitType.RangedParry
+            or SkillHitType.RangedBlock
+            or SkillHitType.RangedMiss
+            or SkillHitType.SpellMiss
+            or SkillHitType.SpellResist
+            or SkillHitType.Immune;
+
+    /// <summary>Whether any queued effect is a damage effect flagged <c>always_hit</c>.</summary>
+    private bool HasAlwaysHitDamageEffect() =>
+        Template.Effects.Any(effect => effect.AlwaysHit && effect.Template is DamageEffect);
+
+    /// <summary>Whether this cast deals damage at all, which is what makes it roll dice.</summary>
+    private bool HasDamageEffect() =>
+        Template.Effects.Any(effect => effect.Template is DamageEffect);
 
     /// <summary>
     /// Gets the amount of a Mana a skill would use with the caster's modifiers applied
