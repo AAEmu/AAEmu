@@ -61,6 +61,13 @@ public class Skill
     private bool _laborConsumed;
     /// <summary>Charges left after this cast spent one; -1 until the cast spends one.</summary>
     private int _chargesAfterCast = -1;
+    /// <summary>Per-tick mana drain of a running channel; null when the skill charges nothing per tick.</summary>
+    private ChannelingTickTask _channelingTickTask;
+    /// <summary>The channel's own target/targetCaster/skillObject, needed when its effects land at the end.</summary>
+    private BaseUnit _channelingTarget;
+    private SkillCastTarget _channelingTargetCaster;
+    private SkillObject _channelingSkillObject;
+    private Doodad _channelingDoodad;
     private SkillCaster _zoneSkillCaster;
     private bool _cancelled;
     internal event Action<Skill> CancellationRequested;
@@ -285,6 +292,16 @@ public class Skill
             if (caster is Units.Mate)
                 caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.UseSkill, Template.CancelOngoingBuffExceptionTagId);
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.StartSkill, Template.CancelOngoingBuffExceptionTagId);
+        }
+
+        // stop_channeling_on_start_skill: the running channel yields to the new cast. Stop() is the
+        // cancelled path, so the old channel applies no effects; its tick drain and its TlId are released.
+        if (unit.SkillTask is EndChannelingTask runningChannel &&
+            runningChannel.Skill != this &&
+            runningChannel.Skill.Template?.StopChannelingOnStartSkill == true)
+        {
+            Logger.Debug("Skill {0} cancels channel {1} on {2}", Template.Id, runningChannel.Skill.Id, caster.Name);
+            runningChannel.Skill.Stop(caster, runningChannel._channelDoodad);
         }
 
         // Create a new skillObject if needed
@@ -1050,26 +1067,66 @@ public class Skill
 
         caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
         RelayZoneSkillFiredIfNeeded(casterCaster, targetCaster, skillObject);
+
+        // Per-tick mana drain (channeling_mana), one tick per channeling_tick, cancelled at channel end.
+        var tickCount = ChannelingRules.TickCount(Template.ChannelingTime, Template.ChannelingTick, Template.ChannelingMana);
+        if (tickCount > 0)
+        {
+            _channelingTickTask = new ChannelingTickTask(this, caster);
+            TaskManager.Instance.Schedule(_channelingTickTask,
+                TimeSpan.FromMilliseconds(Template.ChannelingTick),
+                TimeSpan.FromMilliseconds(Template.ChannelingTick),
+                tickCount);
+        }
+
+        _channelingDoodad = doodad;
+        _channelingTarget = target;
+        _channelingTargetCaster = targetCaster;
+        _channelingSkillObject = skillObject;
         unit.SkillTask = new EndChannelingTask(this, caster, casterCaster, target, targetCaster, skillObject, doodad);
         TaskManager.Instance.Schedule(unit.SkillTask, TimeSpan.FromMilliseconds(Template.ChannelingTime));
     }
 
-    public void EndChanneling(BaseUnit caster, Doodad channelDoodad, SkillCaster casterCaster)
+    /// <summary>
+    /// Ends a channel. <paramref name="completedNaturally"/> is what separates a channel that ran its
+    /// full <c>channeling_time</c> from one that CSStopCastingPacket, a stun or a death stopped: only the
+    /// first applies the skill's effects, which were previously applied by nothing at all.
+    /// </summary>
+    public void EndChanneling(BaseUnit caster, Doodad channelDoodad, SkillCaster casterCaster, bool completedNaturally = false)
     {
         if (caster is not Unit unit) { return; }
         unit.SkillTask = null;
+        CancelChannelingTicks();
+
+        // The channel's own target: StartChanneling records it, and a Skill built without going through
+        // it (a plot, a test) still has InitialTarget from Use.
+        var channelTarget = _channelingTarget ?? InitialTarget ?? caster;
+        var channelTargetCaster = _channelingTargetCaster ?? new SkillCastUnitTarget(channelTarget.ObjId);
+        var channelSkillObject = _channelingSkillObject ?? new SkillObject();
+
         if (Template.ChannelingBuffId != 0)
         {
             caster.Buffs.RemoveEffect(Template.ChannelingBuffId, Template.Id);
         }
         if (Template.ChannelingTargetBuffId != 0)
         {
-            InitialTarget.Buffs.RemoveEffect(Template.ChannelingTargetBuffId, Template.Id);
+            channelTarget.Buffs.RemoveEffect(Template.ChannelingTargetBuffId, Template.Id);
         }
 
-        channelDoodad?.Delete();
+        (channelDoodad ?? _channelingDoodad)?.Delete();
 
-        EndSkill(caster);
+        if (ChannelingRules.AppliesEffectsOnEnd(completedNaturally))
+        {
+            // The channel ran out: hand off to the ordinary fire path, which applies the effects and
+            // calls EndSkill itself (directly, or from the ApplySkillTask it schedules). Calling
+            // EndSkill here as well would release the TlId twice and end the skill twice. This is the
+            // call EndChannelingTask carried commented out.
+            ScheduleEffects(caster, casterCaster, channelTarget, channelTargetCaster, channelSkillObject);
+        }
+        else
+        {
+            EndSkill(caster);
+        }
 
         // TODO: добавил, так как для квеста 3469 нет события OnItemUse
         // TODO: added since there is no OnItemUse event for quest 3469 and other quests that require the use on non-consuming items
@@ -1079,6 +1136,15 @@ public class Skill
         }
 
         unit.Events.OnChannelingCancel(this, new OnChannelingCancelArgs());
+    }
+
+    private void CancelChannelingTicks()
+    {
+        if (_channelingTickTask == null)
+            return;
+
+        TaskManager.Instance.Cancel(_channelingTickTask);
+        _channelingTickTask = null;
     }
 
     public void ScheduleEffects(BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)

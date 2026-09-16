@@ -141,19 +141,22 @@ public static class SkillUseConditionRules
     public const SkillResult UnlearnedSkillResult = SkillResult.UrkTrainedSkill;
 
     /// <summary>
-    /// Target alive/dead filtering, using the same reading as the plot target filter
-    /// (<c>PlotTargetInfo.FilterTargets</c>): <c>target_alive='f'</c> means only dead units qualify and
-    /// <c>target_dead='f'</c> means dead units do not.
+    /// Target alive/dead filtering for a direct cast, read as a permission pair: <c>target_alive</c> says
+    /// living units may be hit, <c>target_dead</c> says dead ones may.
     /// </summary>
+    /// <remarks>
+    /// The default row is <c>target_alive='t', target_dead='f'</c> (37,111 skills), i.e. living targets
+    /// only, which is also what the plot target filter makes of that pair. The two agree for every
+    /// combination except both-false: 869 skills carry both flags off, and the plot filter's reading
+    /// (<c>if (!TargetAlive) keep dead; if (!TargetDead) keep living</c>) leaves those with no valid
+    /// target at all. Both-false is therefore read as "no restriction" here. Changing the plot filter is
+    /// F4's task, not this one, so the divergent case is left visible in the plot path.
+    /// </remarks>
     public static bool AllowsTarget(bool targetAlive, bool targetDead, bool targetIsDead)
     {
-        if (!targetAlive && targetIsDead)
+        if (targetAlive == targetDead)
             return true;
-        if (!targetAlive)
-            return false;
-        if (!targetDead && targetIsDead)
-            return false;
-        return true;
+        return targetDead == targetIsDead;
     }
 
     private static bool HasBit(long bits, int kind) => (bits & (1L << (kind - 1))) != 0;

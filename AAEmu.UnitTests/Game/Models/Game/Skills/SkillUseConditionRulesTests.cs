@@ -124,16 +124,20 @@ public class SkillUseConditionRulesTests
     }
 
     [Test]
-    public async Task TargetAliveDead_MatchesThePlotFilter()
+    public async Task TargetAliveDead_IsAPermissionPair()
     {
         // Default (alive 't', dead 'f'): corpses are not valid targets.
         await Assert.That(SkillUseConditionRules.AllowsTarget(true, false, targetIsDead: false)).IsTrue();
         await Assert.That(SkillUseConditionRules.AllowsTarget(true, false, targetIsDead: true)).IsFalse();
-        // alive 'f' means only corpses qualify.
-        await Assert.That(SkillUseConditionRules.AllowsTarget(false, false, targetIsDead: true)).IsTrue();
-        await Assert.That(SkillUseConditionRules.AllowsTarget(false, false, targetIsDead: false)).IsFalse();
+        // alive 'f', dead 't': only corpses qualify.
+        await Assert.That(SkillUseConditionRules.AllowsTarget(false, true, targetIsDead: true)).IsTrue();
+        await Assert.That(SkillUseConditionRules.AllowsTarget(false, true, targetIsDead: false)).IsFalse();
         // Both set: either is accepted.
         await Assert.That(SkillUseConditionRules.AllowsTarget(true, true, targetIsDead: true)).IsTrue();
         await Assert.That(SkillUseConditionRules.AllowsTarget(true, true, targetIsDead: false)).IsTrue();
+        // Both clear (869 skills): no restriction. The plot target filter reads this pair as "no target
+        // qualifies"; that reading is not copied here, see the rule's remarks.
+        await Assert.That(SkillUseConditionRules.AllowsTarget(false, false, targetIsDead: true)).IsTrue();
+        await Assert.That(SkillUseConditionRules.AllowsTarget(false, false, targetIsDead: false)).IsTrue();
     }
 }
