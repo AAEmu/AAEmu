@@ -82,21 +82,39 @@ public class BuffRemoveOnRulesTests
     }
 
     [Test]
-    public async Task IsAutoAttack_WeaponAutoAttackSlots_AreAutoAttacks()
+    public async Task IsAutoAttack_TheThreeBasicAttackSkills_AreAutoAttacks()
     {
-        // skills 2 근접 공격 (15), 3 Offhand (16), 4 원거리 공격 (17).
-        await Assert.That(BuffRemoveOnRules.IsAutoAttack(15)).IsTrue();
-        await Assert.That(BuffRemoveOnRules.IsAutoAttack(16)).IsTrue();
-        await Assert.That(BuffRemoveOnRules.IsAutoAttack(17)).IsTrue();
+        // skills 2 근접 공격, 3 Offhand, 4 원거리 공격 — the ids Skill.cs and CSStartSkillPacket test.
+        await Assert.That(BuffRemoveOnRules.IsAutoAttack(2)).IsTrue();
+        await Assert.That(BuffRemoveOnRules.IsAutoAttack(3)).IsTrue();
+        await Assert.That(BuffRemoveOnRules.IsAutoAttack(4)).IsTrue();
     }
 
     [Test]
     public async Task IsAutoAttack_EveryOtherSkill_IsNot()
     {
-        // The rest of the column is -1 "not a weapon auto-attack", and 0 is what the loader falls back to
-        // for a skill with no row value.
-        await Assert.That(BuffRemoveOnRules.IsAutoAttack(-1)).IsFalse();
+        // 0 is what the loader falls back to for a skill with no id, and 1 is the generic attack every
+        // other skill is not.
         await Assert.That(BuffRemoveOnRules.IsAutoAttack(0)).IsFalse();
+        await Assert.That(BuffRemoveOnRules.IsAutoAttack(1)).IsFalse();
+    }
+
+    /// <summary>
+    /// The weapon-slot column is NOT the auto-attack marker, which is the bug this replaced: 543 shipped
+    /// skills name a slot above zero (490 at 15, one at 16, 47 at 17, five at 18), so reading the column
+    /// raised <c>remove_on_autoattack</c> for boss abilities and mount attacks. 10399 방패 휘두르기,
+    /// 12619 올려치기, 16287 질주 and 16064 활쏘기 are in that set; 41 of the 146 carrier buffs set no
+    /// other skill or attack removal flag, so they would have dropped on a boss ability.
+    /// </summary>
+    [Test]
+    public async Task IsAutoAttack_SkillsThatMerelyNameAWeaponSlot_AreNot()
+    {
+        // Slot values 15/16/17 belong to the three basic attacks, but 543 rows carry one and are not
+        // auto-attacks; the predicate no longer takes the slot at all, so the assertion is that a skill
+        // with a slot but an id outside 2/3/4 is not one.
+        await Assert.That(BuffRemoveOnRules.IsAutoAttack(10399)).IsFalse();
+        await Assert.That(BuffRemoveOnRules.IsAutoAttack(16287)).IsFalse();
+        await Assert.That(BuffRemoveOnRules.IsAutoAttack(16064)).IsFalse();
     }
 
     /// <summary>

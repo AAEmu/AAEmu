@@ -547,10 +547,15 @@ public class Buffs : IBuffs
             //   1. the immunity check and the require-tag check refuse the application before AddBuff is
             //      reached at all (BuffEffect.Apply, BuffTemplate.Apply) — a refused buff breaks nothing;
             //   2. the tolerance gate just above drops the CC ladder's immune step and its transform;
-            //   3. HERE — the application is accepted, and only the instances already live are removed,
-            //      so the arriving buff can never break itself (the 29 rows that name their own buff id
-            //      clear the previous instance of a re-grant family instead);
-            //   4. the stack rule below then decides what the arrival does to its own family.
+            //   3. HERE — the arrival has cleared the tolerance gate, and only the instances already live
+            //      are removed, so the arriving buff can never break itself (the 29 rows that name their
+            //      own buff id clear the previous instance of a re-grant family instead);
+            //   4. the stack rule below then decides what the arrival does to its own family — and six of
+            //      its branches return without the buff landing (Refresh, ChargeRefresh, Extend,
+            //      Independent and Multiple), so the breakers run on acceptance by the tolerance gate
+            //      rather than on a guaranteed landing. That is deliberate: the arrival is what the
+            //      content says clears the victim, and the victims are ended before the stack rule gets a
+            //      say in whether the arrival itself survives.
             RemoveBuffsBrokenBy(buff);
 
             buff.Duration = buff.Template.GetDuration(buff.AbLevel);

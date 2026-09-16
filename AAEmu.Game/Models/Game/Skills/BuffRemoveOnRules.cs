@@ -122,15 +122,23 @@ public static class BuffRemoveOnRules
     /// (146 buffs) waits for.
     /// </summary>
     /// <remarks>
-    /// The three basic attacks the client casts are skills 2 근접 공격, 3 Offhand and 4 원거리 공격, and
-    /// they are the only rows in <c>skills</c> that name a slot in <c>weapon_slot_for_autoattack_id</c>
-    /// (15 mainhand, 16 offhand, 17 ranged). Everything else in that column is -1, "not a weapon
-    /// auto-attack", so the column is the content's own answer to "is this an auto-attack" and the ids
-    /// do not have to be repeated here. The carriers are the poses an attack interrupts: the bard songs
-    /// 656-667, 연주/율동 performance buffs, 6176 관악기 연주, 은신 896/6942/22095, 질주 5516/31557 and
-    /// the ship's 11487-11503 어군 탐색.
+    /// The three basic attacks the client casts are the skills themselves: <b>2 근접 공격, 3 Offhand and
+    /// 4 원거리 공격</b>. That is how the rest of the server tests for an auto-attack — <c>Skill.cs</c>'s
+    /// anti-spam pacing and <c>CSStartSkillPacket</c>'s <c>StopAutoAttack</c> branch both test ids 2, 3
+    /// or 4 — so the ids are used here too rather than inferred from a column.
+    ///
+    /// This is deliberately NOT read from <c>weapon_slot_for_autoattack_id</c>. That column looks like the
+    /// content's own marker (it is 15/16/17 on those three rows) but it is not exclusive to them: the
+    /// shipped distribution is -1 on 4,337 rows, 0 on 33,163 and above zero on <b>543</b> (490 at slot 15,
+    /// one at 16, 47 at 17 and five at 18). Reading it as "is an auto-attack" raised the flag for 10399
+    /// 방패 휘두르기, 12619 올려치기, 16287 질주, 16064 활쏘기, the mount attacks and a long tail of boss
+    /// abilities — and 41 of the 146 carrier buffs set no other skill or attack removal flag, so those
+    /// would have dropped on a boss ability rather than on a basic attack.
+    ///
+    /// The carriers are the poses an attack interrupts: the bard songs 656-667, 연주/율동 performance
+    /// buffs, 6176 관악기 연주, 은신 896/6942/22095, 질주 5516/31557 and the ship's 11487-11503 어군 탐색.
     /// </remarks>
-    public static bool IsAutoAttack(int weaponSlotForAutoAttackId) => weaponSlotForAutoAttackId > 0;
+    public static bool IsAutoAttack(uint skillId) => skillId is 2 or 3 or 4;
 
     /// <summary>
     /// Whether a live instance of <paramref name="template"/> is ended by <paramref name="on"/>.

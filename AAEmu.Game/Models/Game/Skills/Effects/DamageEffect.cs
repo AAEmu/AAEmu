@@ -119,10 +119,10 @@ public class DamageEffect : EffectTemplate
             caster.Buffs.TriggerRemoveOn(flag);
 
         // remove_on_autoattack (146 buffs): the poses a basic attack interrupts — the bard songs 656-667,
-        // 연주/율동 performance, 은신, 질주. The skills that are weapon auto-attacks are the ones naming a
-        // slot in weapon_slot_for_autoattack_id (2 근접 공격, 3 Offhand, 4 원거리 공격), which is the
-        // content's own marker for them.
-        if (BuffRemoveOnRules.IsAutoAttack(source?.Skill?.Template?.WeaponSlotForAutoAttackId ?? 0))
+        // 연주/율동 performance, 은신, 질주. A weapon auto-attack is the skill itself (2 근접 공격, 3 Offhand,
+        // 4 원거리 공격), the same test Skill.cs and CSStartSkillPacket already use; the
+        // weapon_slot_for_autoattack_id column is not that marker — see IsAutoAttack's remarks.
+        if (BuffRemoveOnRules.IsAutoAttack(source?.Skill?.Template?.Id ?? 0))
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.AutoAttack);
 
         if (target.Buffs.CheckDamageImmune(DamageType))
