@@ -909,6 +909,8 @@ public partial class Character : Unit, ICharacter
     public CharacterAbilities Abilities { get; set; }
     public CharacterAbilitySets AbilitySets { get; set; }
     public CharacterBotCheck BotCheck { get; } = new();
+
+    public CharacterEquipSlotReinforces EquipSlotReinforces { get; set; }
     public CharacterBlessUthstin BlessUthstin { get; set; } = new();
     public CharacterArchePass ArchePass { get; set; } = new();
     public CharacterPortals Portals { get; set; }
@@ -3983,6 +3985,8 @@ public partial class Character : Unit, ICharacter
             AbilitySets = new CharacterAbilitySets(this);
             AbilitySets.Load(connection);
             AbilitySets.CheckDailyResetAtLogin();
+            EquipSlotReinforces = new CharacterEquipSlotReinforces(this);
+            EquipSlotReinforces.Load(connection);
             BlessUthstin = new CharacterBlessUthstin(this);
             BlessUthstin.Load(connection);
             BlessUthstin.ApplyModifiers();
@@ -4228,6 +4232,7 @@ public partial class Character : Unit, ICharacter
             // Inventory?.Save(connection, transaction);
             Abilities?.Save(connection, transaction);
             AbilitySets?.Save(connection, transaction);
+            EquipSlotReinforces?.Save(connection, transaction);
             BlessUthstin?.Save(connection, transaction);
             ArchePass?.Save(connection, transaction);
             AccountAttendanceManager.Instance.SaveForAccount(AccountId, connection, transaction);

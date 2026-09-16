@@ -192,6 +192,13 @@ public enum ItemTaskType : byte
     /// </summary>
     Teleport = 151,
 
+    /// <summary>
+    /// Paying an equip slot reinforcement step. This client names no task for it either — its
+    /// reinforcement window is driven by the per-slot update packet, not by an item task — so it is
+    /// parked on another empty slot and draws no reaction of its own.
+    /// </summary>
+    EquipSlotReinforce = 174,
+
     BlessUthstinInitStats = 153,
     BlessUthstinChangeStats = 154,
     BlessUthstinExpandMaxStats = 155,

@@ -152,4 +152,70 @@ public class EquipSlotReinforceRulesTests
         // No eligible effect at all.
         await Assert.That(EquipSlotReinforceRules.NormalizeLevelEffectIndex(0, 0)).IsEqualTo(-1);
     }
+
+    [Test]
+    public async Task ApplyExp_BanksWhatFitsAndReportsWhenTheBarIsFull()
+    {
+        var ladder = new[] { Step(1, 200), Step(2, 700) };
+        var state = State(15, 0, 0);
+
+        await Assert.That(EquipSlotReinforceRules.ApplyExp(state, ladder, 150))
+            .IsEqualTo(EquipSlotReinforceChange.ExpGained);
+        await Assert.That(state.Exp).IsEqualTo(150);
+
+        // The surplus is discarded, not carried: 100 more into 50 of room caps the bar at 200.
+        await Assert.That(EquipSlotReinforceRules.ApplyExp(state, ladder, 100))
+            .IsEqualTo(EquipSlotReinforceChange.ExpCapped);
+        await Assert.That(state.Exp).IsEqualTo(200);
+    }
+
+    [Test]
+    public async Task ApplyExp_RefusesAtTheTopOfTheLadder()
+    {
+        var ladder = new[] { Step(1, 200) };
+        var state = State(15, 1, 0);
+
+        await Assert.That(EquipSlotReinforceRules.ApplyExp(state, ladder, 500))
+            .IsEqualTo(EquipSlotReinforceChange.Refused);
+        await Assert.That(state.Exp).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task TryLevelUp_TakesTheLevelAndStartsAFreshBar()
+    {
+        var ladder = new[] { Step(1, 200), Step(2, 700) };
+        var state = State(15, 1, 700);
+
+        var change = EquipSlotReinforceRules.TryLevelUp(state, ladder, out var reached);
+
+        await Assert.That(change).IsEqualTo(EquipSlotReinforceChange.LeveledUp);
+        await Assert.That(state.Level).IsEqualTo((sbyte)2);
+        await Assert.That(state.Exp).IsEqualTo(0);
+        await Assert.That(reached?.NeedExp).IsEqualTo(700);
+    }
+
+    [Test]
+    public async Task TryLevelUp_RefusesOnAPartialBarAndLeavesItAlone()
+    {
+        var ladder = new[] { Step(1, 200), Step(2, 700) };
+        var state = State(15, 1, 699);
+
+        var change = EquipSlotReinforceRules.TryLevelUp(state, ladder, out var reached);
+
+        await Assert.That(change).IsEqualTo(EquipSlotReinforceChange.Refused);
+        await Assert.That(reached).IsNull();
+        await Assert.That(state.Level).IsEqualTo((sbyte)1);
+        await Assert.That(state.Exp).IsEqualTo(699);
+    }
+
+    [Test]
+    public async Task TryLevelUp_RefusesOnceTheLadderEnds()
+    {
+        var ladder = new[] { Step(1, 200) };
+        var state = State(15, 1, 0);
+
+        await Assert.That(EquipSlotReinforceRules.TryLevelUp(state, ladder, out _))
+            .IsEqualTo(EquipSlotReinforceChange.Refused);
+        await Assert.That(state.Level).IsEqualTo((sbyte)1);
+    }
 }

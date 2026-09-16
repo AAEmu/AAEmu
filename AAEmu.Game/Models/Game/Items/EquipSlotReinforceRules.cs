@@ -67,6 +67,49 @@ public static class EquipSlotReinforceRules
         return null;
     }
 
+    /// <summary>
+    /// Banks a feed into a slot's bar and reports what happened. The surplus is discarded rather than
+    /// carried, which is what the client's "experience would overflow" step is about.
+    /// </summary>
+    public static EquipSlotReinforceChange ApplyExp(EquipSlotReinforceState state, IEnumerable<EquipSlotReinforceStep> ladder,
+        int gainExp)
+    {
+        if (state == null)
+            return EquipSlotReinforceChange.Refused;
+
+        var next = NextStep(state.Level, ladder);
+        if (next == null)
+            return EquipSlotReinforceChange.Refused;
+
+        var accepted = ExpAccepted(state.Exp, next.NeedExp, gainExp);
+        if (accepted <= 0)
+            return EquipSlotReinforceChange.Unchanged;
+
+        state.Exp += accepted;
+        return state.Exp >= next.NeedExp ? EquipSlotReinforceChange.ExpCapped : EquipSlotReinforceChange.ExpGained;
+    }
+
+    /// <summary>
+    /// Takes the next level when the bar is full, and reports whether there was one to take. The bar
+    /// resets: its surplus was already discarded when it was fed, and the new level starts its own.
+    /// </summary>
+    public static EquipSlotReinforceChange TryLevelUp(EquipSlotReinforceState state, IEnumerable<EquipSlotReinforceStep> ladder,
+        out EquipSlotReinforceStep reached)
+    {
+        reached = null;
+        if (state == null)
+            return EquipSlotReinforceChange.Refused;
+
+        var next = NextStep(state.Level, ladder);
+        if (!CanLevelUp(state.Level, state.Exp, next))
+            return EquipSlotReinforceChange.Refused;
+
+        state.Level = (sbyte)next.Level;
+        state.Exp = 0;
+        reached = next;
+        return EquipSlotReinforceChange.LeveledUp;
+    }
+
     /// <summary>Total reinforcement level across every slot that belongs to one attribute.</summary>
     public static int AttributeTotal(EquipSlotReinforceAttribute attribute,
         IEnumerable<EquipSlotReinforceState> states,
