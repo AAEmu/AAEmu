@@ -29,6 +29,13 @@ public abstract class LinearMoveSkillController : SkillController
     protected float MoveSpeed { get; set; }
 
     /// <summary>
+    /// How close to <see cref="EndPosition"/> counts as arrived. A leap lands on a target and stops within a
+    /// metre of it, which is what it always did; a dash can be shorter than that and has to be allowed to
+    /// travel its whole length.
+    /// </summary>
+    protected float ArrivalThreshold { get; set; } = 1f;
+
+    /// <summary>
     /// Set while the controller is walking its owner. A controller that already ended (the owner died, a
     /// root landed, the end position was reached) must not move anybody again.
     /// </summary>
@@ -105,7 +112,7 @@ public abstract class LinearMoveSkillController : SkillController
 
         var oldPosition = Owner.Transform.Local.ClonePosition();
         var targetDist = MathUtil.CalculateDistance(Owner.Transform.Local.Position, EndPosition, true);
-        if (targetDist <= 1f)
+        if (targetDist <= ArrivalThreshold)
         {
             End();
             return;

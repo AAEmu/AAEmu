@@ -57,6 +57,9 @@ public class SkillController
                 Logger.Trace($"SkillController: create LeapSkillController");
                 var ctrl = new LeapSkillController(template, owner, target) { State = SCState.Created };
                 return ctrl;
+            case SkillControllerKind.Dash:
+                Logger.Trace($"SkillController: create DashSkillController");
+                return new DashSkillController(template, owner, target) { State = SCState.Created };
             default:
                 // The remaining kinds are named but have no controller on this server: rope is handled
                 // outside the controller system by ShipHarpoonRopeController (kind 5) and rope_ready (9) is
