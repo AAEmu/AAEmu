@@ -547,6 +547,7 @@ public static class SCOffsets
     public const ushort SCSpawnedMonitorNpcsPacket = 0x2D6;
     public const ushort SCMonitorNpcSpawnedPacket = 0x2D7;
     public const ushort SCEventInfoCountPacket = 0x2DD; // 10.0.2.13 SC_PACKET_EVENT_INFO_COUNT (733)
+    public const ushort SCEventEmptyPacket = 0x2DF; // 10.0.2.13 SC_PACKET_EVENT_EMPTY (735)
     public const ushort SCFactionPowerScorePacket = 0x00C; // 10.0.2.13 SC_PACKET_FACTION_POWER_SCORE (12)
     public const ushort SCIncreasedFavoritePortalLimitPacket = 0x08D; // 10.0.2.13 SC_PACKET_INCREASED_FAVORITE_PORTAL_LIMIT (141)
     public const ushort SCInstanceVisitCountsPacket = 0x1EC; // 10.0.2.13 SC_PACKET_INSTANCE_VISIT_COUNTS (492)

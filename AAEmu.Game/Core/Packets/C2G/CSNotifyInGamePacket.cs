@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
@@ -113,9 +113,9 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
         Connection.ActiveChar.SendAllCombatResources();
 
         // The player-frame event window shows during the post-NotifyInGame load and reads its event counts; the
-        // client crashes on show without them. The reference server sends this (all-zero, no active events) at
-        // world entry — emit it here so the window has data before it renders.
-        Connection.ActiveChar.SendPacket(new SCEventInfoCountPacket());
+        // client crashes on show without them. This server runs no board events, so the board goes out empty
+        // here — emit it before the window renders, and again whenever the client asks (CS 0x1B7).
+        Connection.ActiveChar.SendPacket(new SCEventInfoCountPacket(0, 0));
 
         // Daily schedule: load persisted contracts for today, then reset-count budget.
         TodayAssignmentManager.Instance.OnCharacterEnterWorld(Connection.ActiveChar);
