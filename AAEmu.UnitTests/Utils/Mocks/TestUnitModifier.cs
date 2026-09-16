@@ -1,3 +1,4 @@
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
@@ -38,6 +39,10 @@ public static class TestUnitModifier
             Passive = true, // skip the SCBuffCreatedPacket broadcast inside Start()
             AbLevel = 1
         };
+
+        // Start() reads SkillManager.Instance for the skills the buff grants, and SkillManager has no
+        // parameterless constructor, so the singleton has to be registered around the call.
+        using var skillsScope = new SingletonScope<SkillManager>(TestManagers.CreateSkillManager());
 
         template.Start(owner, owner, buff);
     }
