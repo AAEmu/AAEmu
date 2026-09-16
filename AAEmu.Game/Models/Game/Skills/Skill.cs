@@ -321,6 +321,15 @@ public class Skill
         if (ManaCost(unit) > unit.Mp)
             return SkillResult.LackMana;
 
+        // Labor, before anything is committed. The charge itself stays in EndSkill, which is where the
+        // actability multiplier and LaborUnits are known; this only refuses a cast the character cannot
+        // pay for, which the old code let through and then quietly did not charge.
+        if (character != null && Template.ConsumeLaborPower > 0 && !CanAffordLabor(character))
+        {
+            Logger.Trace("Skill {0} blocked for {1}: need labor power", Template.Id, character.Name);
+            return SkillResult.NeedLaborPower;
+        }
+
         // Get a TlId for this skill
         TlId = SkillTlIdManager.GetNextId(caster);
         // if (caster is Character)
@@ -1913,8 +1922,7 @@ public class Skill
         return Template.ConsumeLaborPower > 0 && laborCost < 1 ? 1 : laborCost;
     }
 
-    public bool TryConsumeLabor(Character character)
-    {
+    public bool TryConsumeLabor(Character character)    {
         if (character == null)
             return false;
 
@@ -1938,6 +1946,21 @@ public class Skill
             _laborConsumed = true;
             return true;
         }
+    }
+
+    /// <summary>
+    /// Whether the character can pay this cast's labor from both pools. See
+    /// <see cref="SkillLaborRules"/> for why the cast asks before <see cref="EndSkill"/> debits.
+    /// </summary>
+    public bool CanAffordLabor(Character character)
+    {
+        if (character == null)
+            return false;
+
+        return SkillLaborRules.CanAfford(
+            GetLaborCost(character),
+            character.LaborPower,
+            character.LocalLaborPower);
     }
 
     /// <summary>
