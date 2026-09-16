@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.IO;
+using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
@@ -34,6 +34,7 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
 
     /// <summary>slave_equip_slots: slaveTemplateId → equipSlotId → attach point.</summary>
     private readonly Dictionary<uint, Dictionary<byte, AttachPointKind>> _slaveEquipSlots = [];
+    private readonly Dictionary<uint, List<SlaveInteractionSkill>> _interactionSkills = [];
 
     /// <summary>slave_collision_damages keyed by id.</summary>
     private readonly Dictionary<uint, SlaveCollisionDamageDesc> _slaveCollisionDamages = [];
@@ -434,7 +435,42 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
             _slaveEquipSlots.Count);
         #endregion
 
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText =
+                "SELECT slave_id, skill_id, enable, require_slot_id, slave_equip_kind_id FROM slave_interaction_skills";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var slaveId = reader.GetUInt32("slave_id");
+                    if (!_interactionSkills.TryGetValue(slaveId, out var skills))
+                    {
+                        skills = [];
+                        _interactionSkills[slaveId] = skills;
+                    }
+
+                    skills.Add(new SlaveInteractionSkill(
+                        reader.GetUInt32("skill_id"),
+                        reader.GetBoolean("enable"),
+                        reader.GetUInt32("require_slot_id"),
+                        reader.GetUInt32("slave_equip_kind_id")));
+                }
+            }
+        }
+
+        Logger.Info("Slave interaction skills: {0} slaves offer skills", _interactionSkills.Count);
+
         LoadSlaveAttachmentPointLocations();
+    }
+
+    /// <summary>
+    /// The interaction skills a slave offers, or an empty list for one that offers none (many do not).
+    /// </summary>
+    public IReadOnlyList<SlaveInteractionSkill> GetInteractionSkills(uint slaveTemplateId)
+    {
+        return _interactionSkills.TryGetValue(slaveTemplateId, out var skills) ? skills : [];
     }
 
     public void PostLoad()
