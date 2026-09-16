@@ -7,12 +7,16 @@ namespace AAEmu.UnitTests.Utils.Mocks;
 
 /// <summary>
 /// Puts one <c>unit_modifiers</c> row on a unit the way the content does: through
-/// <see cref="BuffTemplate.Start"/>, which is where a buff's rows are turned into bonuses
-/// (<c>SkillManager</c> loads <c>owner_type='Buff'</c> rows into <c>BuffTemplate.Bonuses</c>). Tests that
-/// check what consumes such a row use this rather than <c>Unit.AddBonus</c> directly so the real buff
-/// plumbing is on the path.
+/// <see cref="BuffTemplate.Start"/>, which is where a buff's rows become bonuses (<c>SkillManager</c> loads
+/// the <c>owner_type='Buff'</c> rows into <c>BuffTemplate.Bonuses</c>). Tests that check what consumes such
+/// a row use this rather than <c>Unit.AddBonus</c> directly, so the real buff plumbing is on the path.
 /// </summary>
-public static class TestBuffModifier
+/// <remarks>
+/// Sibling of the mock the C2a branch (fix/c2a-anti-npc-damage-muls) adds under the name
+/// <c>TestBuffModifier</c>; this one keeps a distinct name so the two branches can land in either order
+/// without a duplicate class.
+/// </remarks>
+public static class TestUnitModifier
 {
     public static void Apply(
         Unit owner,

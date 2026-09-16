@@ -1343,6 +1343,27 @@ public partial class Character : Unit, ICharacter
         }
     }
 
+    /// <summary>
+    /// Siege damage this character takes, composed exactly like the melee/ranged/spell siblings above.
+    /// </summary>
+    /// <remarks>
+    /// Unlike them it does not fold in <c>IncomingDamageMul</c>: siege damage already takes that attribute
+    /// through its own branch in DamageEffect, so folding it here would apply it twice. With no
+    /// <c>incoming_siege_damage_mul</c> row the factor is exactly 1.0 and the branch keeps its current numbers.
+    /// Floored at 0 because rows reach immunity and beyond — buff 14857 stores -1000 and buff 24950 -21000 —
+    /// and a negative factor would turn the hit into a heal. See <see cref="SiegeDamageRules"/>.
+    /// </remarks>
+    [UnitAttribute(UnitAttribute.IncomingSiegeDamageMul)]
+    public override float IncomingSiegeDamageMul
+    {
+        get
+        {
+            var res = 0d;
+            res = CalculateWithBonuses(res, UnitAttribute.IncomingSiegeDamageMul);
+            return SiegeDamageRules.Factor((long)res);
+        }
+    }
+
     [UnitAttribute(UnitAttribute.CastingTimeMul)]
     public override float CastTimeMul
     {

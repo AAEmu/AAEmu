@@ -20,6 +20,29 @@ namespace AAEmu.Game.Models.Game.Units;
 /// Id 14 is used by two <c>unit_modifiers</c> rows (buffs 185/186) but has no row in
 /// <c>enum_unit_attribute</c>, so it has no name to derive and stays unnamed here; the loaders report
 /// it once per start instead of dropping it silently.
+///
+/// Ids with shipped <c>unit_modifiers</c> rows that this server still leaves without a consumer, so the
+/// next reader does not have to re-derive it:
+/// <list type="bullet">
+/// <item><description>
+/// <see cref="SwimSpeedMul"/> (66, 156 rows: 126 Buff, 11 Item, 11 Npc, 3 BuffUnitModifier, 5
+/// ExpeditionBuffGrade): movement is simulated by the zone, not by this process. The world only has an
+/// estimated move rate for the NPC/slave route simulation, which reads <see cref="MoveSpeedMul"/> (10) and
+/// has no swim case, so there is nothing here to scale. The buff is already relayed to the zone, which owns
+/// the actual swim speed.
+/// </description></item>
+/// <item><description>
+/// <c>ignore_shield_bonus</c> (205): two rows, both on <c>(attr_test)</c> placeholders (buff 28506, item
+/// 50774), and no shipped definition of the "shield bonus" the name refers to.
+/// </description></item>
+/// <item><description>
+/// <c>ignore_shield_bonus_mul</c> (206): six rows - the 초승돌: 격파 gems (items 39823 at 13, 40938 at 23,
+/// 39825 at 43), two <c>(attr_test)</c> placeholders at 100 (buff 28507, item 50774) and one row with
+/// <c>enable='f'</c> (buff 11194). The server models a shield as the charge <see cref="IgnoreShieldChance"/>
+/// bypasses, with no bonus amount for a "bonus" multiplier to scale, so wiring it would mean inventing the
+/// quantity it multiplies.
+/// </description></item>
+/// </list>
 /// </remarks>
 public enum UnitAttribute : uint
 {
