@@ -27,27 +27,25 @@ public class PlotTree(uint plotId)
             var stopWatch = new Stopwatch();
             stopWatch.Start();
 
-            var queue = new Queue<(PlotNode node, DateTime timestamp, PlotTargetInfo targetInfo)>();
+            var schedule = new PlotSchedule<(PlotNode node, PlotTargetInfo targetInfo)>();
             var executeQueue = new Queue<(PlotNode node, PlotTargetInfo targetInfo)>();
 
-            queue.Enqueue((RootNode, DateTime.UtcNow, new PlotTargetInfo(state)));
+            schedule.Enqueue((RootNode, new PlotTargetInfo(state)), DateTime.UtcNow);
             byte lastEvent = 1;
-            while (queue.Count > 0)
+            while (schedule.Count > 0)
             {
-                var nodeWatch = new Stopwatch();
-                nodeWatch.Start();
-                var item = queue.Dequeue();
-                var now = DateTime.UtcNow;
-                var node = item.node;
+                // Bite and cancel are polled once per pass rather than once per due node: the wait for a
+                // channel edge is minutes long, and both the rod's bite and CSStopCasting have to land
+                // inside it. Everything below only runs when the earliest node is actually due.
                 if (state.IsChanneling && state.ChannelingFinishRequested())
                 {
-                    ResumeChannelEnd(state, queue, item);
+                    ResumeChannelEnd(state, schedule);
                     lastEvent = 0;
                     continue;
                 }
                 if (state.CancellationRequested())
                 {
-                    var stoppedChannel = ResumeChannelEnd(state, queue, item);
+                    var stoppedChannel = ResumeChannelEnd(state, schedule);
                     if (state.IsCasting || stoppedChannel)
                     {
                         if (state.IsCasting)
@@ -68,24 +66,36 @@ public class PlotTree(uint plotId)
                     return;
                 }
 
-                if (now >= item.timestamp)
+                if (!schedule.TryDequeueDue(DateTime.UtcNow, out var item))
                 {
-                    if (state.Tickets.TryGetValue(node.Event.Id, out var value))
-                        state.Tickets[node.Event.Id] = ++value;
-                    else
-                        state.Tickets.TryAdd(node.Event.Id, 1);
+                    var wait = PlotSchedule<(PlotNode, PlotTargetInfo)>.WaitSliceMs(
+                        schedule.NextDueUtc, DateTime.UtcNow);
+                    if (wait > 0)
+                        await Task.Delay(wait).ConfigureAwait(false);
+                    continue;
+                }
 
-                    var selfLoop = node.Children.Exists(c => c.Event.Id == node.Event.Id);
-                    if (PlotTicketGate.IsExhausted(
-                            state.Tickets[node.Event.Id], node.Event.Tickets, selfLoop))
-                    {
-                        continue;
-                    }
+                var nodeWatch = new Stopwatch();
+                nodeWatch.Start();
+                var now = DateTime.UtcNow;
+                var node = item.node;
 
-                    item.targetInfo.UpdateTargetInfo(node.Event, state);
+                if (state.Tickets.TryGetValue(node.Event.Id, out var value))
+                    state.Tickets[node.Event.Id] = ++value;
+                else
+                    state.Tickets.TryAdd(node.Event.Id, 1);
 
-                    if (item.targetInfo.Target == null)
-                        continue;
+                var selfLoop = node.Children.Exists(c => c.Event.Id == node.Event.Id);
+                if (PlotTicketGate.IsExhausted(
+                        state.Tickets[node.Event.Id], node.Event.Tickets, selfLoop))
+                {
+                    continue;
+                }
+
+                item.targetInfo.UpdateTargetInfo(node.Event, state);
+
+                if (item.targetInfo.Target == null)
+                    continue;
 
                     // enum_plot_variable_kinds id 12 ("targets") is engine-provided: the hit count of
                     // THIS event's target update. Conditions run BEFORE Execute, so the count has to be
@@ -114,43 +124,21 @@ public class PlotTree(uint plotId)
                             foreach (var target in item.targetInfo.EffectedTargets)
                             {
                                 var targetInfo = new PlotTargetInfo(item.targetInfo.Source, target);
-                                queue.Enqueue(
-                                    (
-                                    child,
-                                    now.AddMilliseconds(child.ComputeDelayMs(state, targetInfo)),
-                                    targetInfo
-                                    )
+                                schedule.Enqueue(
+                                    (child, targetInfo),
+                                    now.AddMilliseconds(child.ComputeDelayMs(state, targetInfo))
                                 );
                             }
                         }
                         else
                         {
                             var targetInfo = new PlotTargetInfo(item.targetInfo.Source, item.targetInfo.Target);
-                            queue.Enqueue(
-                                (
-                                child,
-                                now.AddMilliseconds(child.ComputeDelayMs(state, targetInfo)),
-                                targetInfo
-                                )
+                            schedule.Enqueue(
+                                (child, targetInfo),
+                                now.AddMilliseconds(child.ComputeDelayMs(state, targetInfo))
                             );
                         }
                     }
-                }
-                else
-                {
-                    queue.Enqueue((node, item.timestamp, item.targetInfo));
-                    FlushExecutionQueue(executeQueue, state);
-                }
-
-                if (queue.Count > 0)
-                {
-                    var delay = (int)queue.Min(o => (o.timestamp - DateTime.UtcNow).TotalMilliseconds);
-                    delay = Math.Max(delay, 0);
-
-                    // await Task.Delay(delay).ConfigureAwait(false);
-                    if (delay > 0)
-                        await Task.Delay(15).ConfigureAwait(false);
-                }
 
                 if (nodeWatch.ElapsedMilliseconds > 100)
                     Logger.Trace($"Event:{node.Event.Id} Took {nodeWatch.ElapsedMilliseconds} to finish.");
@@ -173,24 +161,22 @@ public class PlotTree(uint plotId)
     /// </summary>
     private bool ResumeChannelEnd(
         PlotState state,
-        Queue<(PlotNode node, DateTime timestamp, PlotTargetInfo targetInfo)> queue,
-        (PlotNode node, DateTime timestamp, PlotTargetInfo targetInfo) current)
+        PlotSchedule<(PlotNode node, PlotTargetInfo targetInfo)> schedule)
     {
-        if (state == null || queue == null)
+        if (state == null || schedule == null)
             return false;
 
-        var waiting = new List<(PlotNode node, DateTime timestamp, PlotTargetInfo targetInfo)>(queue.Count + 1);
-        waiting.Add(current);
-        while (queue.Count > 0)
-            waiting.Add(queue.Dequeue());
+        // Drained in due order: the channel wait is the node entered by a channeling edge, whichever
+        // position it holds on the timeline.
+        var waiting = schedule.DrainAll();
 
         var index = PlotChannelingRules.IndexOfChannelWait(
             waiting,
-            item => item.node?.ParentNextEvent?.Channeling == true);
+            entry => entry.Item.node?.ParentNextEvent?.Channeling == true);
         if (index < 0)
         {
-            foreach (var item in waiting)
-                queue.Enqueue(item);
+            foreach (var entry in waiting)
+                schedule.Enqueue(entry.Item, entry.DueUtc);
             return false;
         }
 
@@ -198,13 +184,13 @@ public class PlotTree(uint plotId)
         state.PermitChanneling();
 
         var channelItem = waiting[index];
-        var channelNode = channelItem.node;
-        channelNode.Execute(state, channelItem.targetInfo);
+        var channelNode = channelItem.Item.node;
+        channelNode.Execute(state, channelItem.Item.targetInfo);
         FollowChannelEnd(
             state,
             channelNode,
-            channelItem.targetInfo,
-            queue,
+            channelItem.Item.targetInfo,
+            schedule,
             enqueueDelayed: !state.CancellationRequested());
 
         return true;
@@ -214,7 +200,7 @@ public class PlotTree(uint plotId)
         PlotState state,
         PlotNode parent,
         PlotTargetInfo targetInfo,
-        Queue<(PlotNode node, DateTime timestamp, PlotTargetInfo targetInfo)> queue,
+        PlotSchedule<(PlotNode node, PlotTargetInfo targetInfo)> schedule,
         bool enqueueDelayed)
     {
         var eligible = new List<PlotNode>(parent.Children?.Count ?? 0);
@@ -237,12 +223,12 @@ public class PlotTree(uint plotId)
             if (delay > 0)
             {
                 if (enqueueDelayed)
-                    queue.Enqueue((child, DateTime.UtcNow.AddMilliseconds(delay), childInfo));
+                    schedule.Enqueue((child, childInfo), DateTime.UtcNow.AddMilliseconds(delay));
                 continue;
             }
 
             child.Execute(state, childInfo);
-            FollowChannelEnd(state, child, childInfo, queue, enqueueDelayed);
+            FollowChannelEnd(state, child, childInfo, schedule, enqueueDelayed);
         }
     }
     private static void FlushExecutionQueue(Queue<(PlotNode node, PlotTargetInfo targetInfo)> executeQueue, PlotState state)
@@ -280,8 +266,7 @@ public class PlotTree(uint plotId)
 
         DoPlotEnd(state);
 
-        if (state.ActiveSkill?.ActivePlotState == state)
-            state.ActiveSkill.ActivePlotState = null;
+        state.ActiveSkill?.ReleaseActivePlotState(state);
     }
 
     /// <summary>
@@ -294,11 +279,8 @@ public class PlotTree(uint plotId)
         if (state == null)
             return;
 
-        if (state.Caster?.ActivePlotState == state)
-            state.Caster.ActivePlotState = null;
-
-        if (state.ActiveSkill?.ActivePlotState == state)
-            state.ActiveSkill.ActivePlotState = null;
+        state.Caster?.ReleaseActivePlotState(state);
+        state.ActiveSkill?.ReleaseActivePlotState(state);
     }
 
     private static void DoPlotEnd(PlotState state)
@@ -322,7 +304,6 @@ public class PlotTree(uint plotId)
 
         state.Caster?.OnSkillEnd(state.ActiveSkill);
         state.ActiveSkill.Callback?.Invoke();
-        if (state.Caster?.ActivePlotState == state)
-            state.Caster.ActivePlotState = null;
+        state.Caster?.ReleaseActivePlotState(state);
     }
 }

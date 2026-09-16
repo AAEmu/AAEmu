@@ -43,7 +43,21 @@ public class Skill
     public SkillTemplate Template { get; set; }
     public byte Level { get; set; }
     public ushort TlId { get; set; }
-    public PlotState ActivePlotState { get; set; }
+
+    private PlotState _activePlotState;
+
+    public PlotState ActivePlotState
+    {
+        get => Volatile.Read(ref _activePlotState);
+        set => Volatile.Write(ref _activePlotState, value);
+    }
+
+    /// <summary>
+    /// Clears the plot slot only while it still holds <paramref name="state"/>; see
+    /// <see cref="Units.Unit.ReleaseActivePlotState"/> for why the compare-exchange matters.
+    /// </summary>
+    public bool ReleaseActivePlotState(PlotState state) =>
+        state != null && Interlocked.CompareExchange(ref _activePlotState, null, state) == state;
     public Dictionary<uint, SkillHitType> HitTypes { get; set; }
     public BaseUnit InitialTarget { get; set; }//Temp Hack Fix. Replace this with UnitsEffected
     private bool _bypassGcd;
