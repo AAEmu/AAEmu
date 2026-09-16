@@ -3,6 +3,11 @@ using AAEmu.Game.Models.Game.Items;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Items;
 
+/// <summary>
+/// One of these tests seeds the shared content-config store with a different unlock delay, so the class
+/// runs alone: a parallel test that reads the delay would otherwise see the seeded value.
+/// </summary>
+[NotInParallel]
 public class ItemSecurityRulesTests
 {
     private static readonly DateTime Now = new(2026, 9, 16, 12, 0, 0, DateTimeKind.Utc);
