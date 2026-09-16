@@ -160,11 +160,28 @@ public class CharacterEquipSlotReinforces
         }
     }
 
+    /// <summary>
+    /// The level the client shows and indexes its material list by. The client's ladder is one-based
+    /// (step N is what it costs to leave level N-1), so a character that has reached level L is working
+    /// on step L+1 — and a character that has reached the top is clamped back onto the last step. The
+    /// stored state stays in "levels reached" terms; this is the wire's view of it.
+    /// </summary>
+    private static sbyte WireLevel(sbyte reachedLevel, byte slotTypeId)
+    {
+        var ladder = EquipSlotReinforceGameData.Instance.Ladder(slotTypeId);
+        var wire = reachedLevel + 1;
+        if (ladder.Count == 0)
+            return (sbyte)wire;
+
+        var max = ladder[^1].Level;
+        return wire > max ? (sbyte)max : (sbyte)wire;
+    }
+
     /// <summary>Publishes one slot's level and bar.</summary>
     public void Send(byte slotTypeId)
     {
         var state = StateOf(slotTypeId);
-        var level = state?.Level ?? 0;
+        var level = WireLevel(state?.Level ?? 0, slotTypeId);
         var exp = state?.Exp ?? 0;
         _owner.SendPacket(new SCEquipSlotReinforceUpdatePacket(_owner.ObjId, slotTypeId, level, exp));
     }
@@ -186,8 +203,8 @@ public class CharacterEquipSlotReinforces
 
         var index = EquipSlotReinforceRules.NormalizeLevelEffectIndex(state.LevelEffectIndex, eligible.Count);
         state.LevelEffectIndex = index;
-        _owner.SendPacket(new SCEquipSlotReinforceLevelEffectUpdatePacket(_owner.ObjId, slotTypeId, state.Level,
-            eligible[index].Id));
+        _owner.SendPacket(new SCEquipSlotReinforceLevelEffectUpdatePacket(_owner.ObjId, slotTypeId,
+            WireLevel(state.Level, slotTypeId), eligible[index].Id));
     }
 
     /// <summary>
@@ -339,7 +356,12 @@ public class CharacterEquipSlotReinforces
             states = _states.Values
                 .Where(state => state.Level > 0 || state.Exp > 0)
                 .OrderBy(state => state.SlotTypeId)
-                .Select(state => state.Clone())
+                .Select(state =>
+                {
+                    var wire = state.Clone();
+                    wire.Level = WireLevel(state.Level, state.SlotTypeId);
+                    return wire;
+                })
                 .ToList();
         }
 
@@ -348,7 +370,8 @@ public class CharacterEquipSlotReinforces
 
     /// <summary>
     /// The slot list on its own, so the wire shape can be pinned without a character behind it: a count
-    /// of slots, then each slot's id, level and bar. Slots that were never fed are left out.
+    /// of slots, then each slot's id, level and bar. Slots that were never fed are left out. Levels are
+    /// written as given — callers hand in the client's view of them (see <c>WireLevel</c>).
     /// </summary>
     public static void WriteSlotInfos(PacketStream stream, IEnumerable<EquipSlotReinforceState> states)
     {
