@@ -1,15 +1,13 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO: the body is parsed but nothing acts on it yet.
+/// Checks a second password the player typed, and counts the wrong answers.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
 public class CSCheckSecondPasswordPacket() : GamePacket(CSOffsets.CSCheckSecondPasswordPacket, 1)
 {
     public int Time { get; private set; }
@@ -21,5 +19,19 @@ public class CSCheckSecondPasswordPacket() : GamePacket(CSOffsets.CSCheckSecondP
         Time = stream.ReadInt32();
         TableIndex = stream.ReadSByte();
         Pass = stream.ReadString();
+
+        var connection = Connection;
+        if (connection?.ActiveChar == null)
+            return;
+
+        var manager = SecondPasswordManager.Instance;
+        var password = manager.Decode(connection.AccountId, (byte)TableIndex, Pass);
+        var failedCount = 0;
+        var success = password != null && manager.Verify(connection.AccountId, password, out failedCount);
+
+        if (success)
+            manager.Forget(connection.AccountId);
+
+        connection.SendPacket(new SCSecondPassCheckedPacket(success, (sbyte)failedCount));
     }
 }
