@@ -351,6 +351,23 @@ public class CombatRelay
         }
 
         // Zone already applied; mirror into World + SC. Caster unknown on wire — self-apply.
+        // The mirror still honours the refusals BuffTemplate.Apply makes: adding unconditionally put a
+        // second World instance (and a second client icon) on a unit that already holds the buff, which is
+        // one of the ways the same effect landed twice.
+        var mirrorDecision = ZoneBuffMirrorRules.Decide(
+            buffTemplate.BuffId,
+            alreadyLive: unit.Buffs.CheckBuff(buffTemplate.BuffId),
+            buffTemplate.RequireBuffId,
+            carriesRequiredBuff: unit.Buffs.CheckBuff(buffTemplate.RequireBuffId),
+            unit.Buffs.GetMissingRequiredBuffTag(buffTemplate));
+        if (mirrorDecision != ZoneBuffMirrorRules.Outcome.Apply)
+        {
+            Logger.Debug(
+                "ZWCreateBuff unit={0} buffType={1} not mirrored: {2}",
+                unitId, buffType, ZoneBuffMirrorRules.Describe(mirrorDecision));
+            return true;
+        }
+
         if (unit is Slave)
             Logger.Info("ZWCreateBuff slave={0} buffType={1}", unitId, buffType);
         unit.Buffs.AddBuff(new Buff(
