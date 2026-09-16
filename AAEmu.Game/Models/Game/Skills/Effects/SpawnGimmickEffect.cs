@@ -2,6 +2,7 @@
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Gimmicks;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Units;
 
@@ -31,33 +32,52 @@ public class SpawnGimmickEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        var casterUnit = (Unit)caster;
+        var casterUnit = caster as Unit;
 
         if (casterUnit == null)
-        // if (casterUnit?.CurrentTarget == null)
+        {
+            Logger.Warn("SpawnGimmickEffect {0}: caster {1} is not a Unit", Id, caster?.ObjId ?? 0);
             return;
+        }
 
-        //if (npc.Gimmick != null)
-        //    return; // don't spawn another Gimmick until the current one disappears
+        if (casterUnit.ParentWorld == null)
+        {
+            Logger.Warn("SpawnGimmickEffect {0}: unit {1} has no world", Id, casterUnit.ObjId);
+            return;
+        }
 
         Logger.Trace($"SpawnGimmickEffect GimmickId={GimmickId}, scale={Scale}, skill={(castObj as CastSkill)?.SkillId}");
 
-        var spawner = new GimmickSpawner(caster.ParentWorld, this, caster);
+        var spawner = new GimmickSpawner(casterUnit.ParentWorld, this, caster);
 
-        // casterUnit.Gimmick = spawner.Spawn(0);
-
-        if (casterUnit.Gimmick == null)
-            return;
-
-        if (casterUnit is { CurrentTarget: Character character })
+        // The constructor is what creates the gimmick, adds it to the world and (for an Npc caster) hangs it
+        // on the unit itself; publish what it made rather than calling Spawn(0), which would create a second
+        // one from UnitId 0 and leave it in the world alongside the real gimmick.
+        var gimmick = spawner.Created;
+        if (gimmick == null)
         {
-            casterUnit.Gimmick.CurrentTarget = character;
+            Logger.Info("SpawnGimmickEffect {0}: gimmick template {1} could not be created", Id, GimmickId);
+            return;
+        }
+
+        if (casterUnit is Npc casterNpc)
+            casterNpc.Gimmick = gimmick;
+
+        // The zone drives a gimmick's movement, so announce this one to it the same way a level spawner
+        // does (SpawnManager, the Gimmicks loop). Without it the zone never learns the gimmick exists.
+        if (WorldIntegration.ZoneAuthority)
+            WorldIntegration.RelayGimmickCreatedToZone?.Invoke(
+                gimmick.ToZoneWireSpawnData(), (int)gimmick.Transform.ZoneId);
+
+        if (casterUnit.CurrentTarget is Character character)
+        {
+            gimmick.CurrentTarget = character;
             return;
         }
 
         foreach (var character2 in WorldManager.GetAround<Character>(casterUnit))
         {
-            casterUnit.Gimmick.CurrentTarget = character2;
+            gimmick.CurrentTarget = character2;
             break;
         }
     }

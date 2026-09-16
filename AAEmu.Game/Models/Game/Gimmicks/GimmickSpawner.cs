@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 using System.Text.Json.Serialization;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.NPChar;
@@ -50,6 +50,18 @@ public class GimmickSpawner : Spawner<Gimmick>
     public float AngVelY { get; set; }
     public float AngVelZ { get; set; }
 
+    /// <summary>
+    /// The gimmick this spawner created for a skill effect, for the caller that has to hold on to it.
+    /// </summary>
+    /// <remarks>
+    /// <see cref="Spawn(uint)"/> is not that gimmick: it creates a second one through
+    /// <c>GimmickManager.Create(objId, UnitId, this)</c>, and <c>UnitId</c> is 0 on this path (the effect
+    /// constructor never sets it), so the old <c>casterUnit.Gimmick = spawner.Spawn(0)</c> would have left a
+    /// GimmickId-0 template-less gimmick registered in the world as well as the real one.
+    /// </remarks>
+    [JsonIgnore]
+    public Gimmick Created { get; set; }
+
     public GimmickSpawner()
     {
         // DefaultConstructor for JSON reading
@@ -75,6 +87,11 @@ public class GimmickSpawner : Spawner<Gimmick>
         Count = 1;
 
         var gimmick = ParentWorld.GimmickManager.Create(GimmickId);
+        // Create answers null for a template id the content does not have (GimmickGameData returned no
+        // template and the id is not the elevator's 0). Dereferencing that used to throw out of the effect.
+        if (gimmick == null)
+            return;
+
         gimmick.Spawner = this;
         gimmick.Spawner.RespawnTime = 0; // don't respawn
         gimmick.Transform = caster.Transform.CloneDetached(gimmick);
@@ -105,6 +122,7 @@ public class GimmickSpawner : Spawner<Gimmick>
         gimmick.SetScale(Scale);
         gimmick.Spawn(); // добавляем в мир
         ParentWorld.GimmickManager.AddActiveGimmick(gimmick);
+        Created = gimmick;
 
         if (caster is Npc npc)
         {

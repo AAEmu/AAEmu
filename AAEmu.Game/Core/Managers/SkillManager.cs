@@ -1868,9 +1868,13 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             OwnerTypeId = (BaseUnitType)reader.GetUInt32("owner_type_id", 0),
                             SubType = reader.GetUInt32("sub_type", 0),
                             PosDirId = reader.GetUInt32("pos_dir_id", 0),
-                            // pos_angle/pos_distance split into _min/_max in 10.0.2.13 schema; use _min
+                            // pos_angle/pos_distance split into _min/_max in 10.0.2.13. Both ends are kept:
+                            // 237 angle rows and 248 distance rows author a band rather than a point, and
+                            // the max was what every one of them needed to scatter.
                             PosAngle = reader.GetFloat("pos_angle_min", 0f),
                             PosDistance = reader.GetFloat("pos_distance_min", 0f),
+                            PosAngleMax = reader.GetFloat("pos_angle_max", 0f),
+                            PosDistanceMax = reader.GetFloat("pos_distance_max", 0f),
                             OriDirId = reader.GetUInt32("ori_dir_id", 0),
                             OriAngle = reader.GetFloat("ori_angle", 0f),
                             UseSummonerFaction = reader.GetBoolean("use_summoner_faction", true),
@@ -1879,7 +1883,9 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             UseSummonerAggroTarget = reader.GetBoolean("use_summoner_aggro_target", true),
                             MateStateId = (MateState)reader.GetUInt32("mate_state_id", 0),
                             // Crimson 963/969: ray-cast land under the high portal XY.
-                            EnableRayCast = reader.GetBoolean("enable_ray_cast", true)
+                            EnableRayCast = reader.GetBoolean("enable_ray_cast", true),
+                            // Height the ray cast starts from (548 rows non-zero).
+                            RayOffSet = reader.GetFloat("ray_off_set", 0f)
                         };
                         _effects["SpawnEffect"][template.Id] = template;
                     }
