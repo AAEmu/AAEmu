@@ -8,12 +8,14 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// that only server packets fill.
 /// </summary>
 /// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value: the zone group as u16, then one option byte. The client's
-/// handler reads that byte as 1 = add the group to its resident map and 2 = remove it, so the
-/// default here is <see cref="Add"/>: this feed only ever announces groups the character is a
-/// resident of. Opcode 0x38 (family chain 0x38 map -> 0x39 info -> 0x3A balance -> 0x3B info list
-/// -> 0x3C member list).
+/// Field order, widths and names come from the 10.0.2.13 client's serializer (0x39C60A10 in
+/// x2game-dev.dll, 0x39AA2090 in x2game.dll), which passes each value's name alongside the value:
+/// the zone group as i16 <c>type</c>, then one i8 <c>option</c>. The option is not decorative: the
+/// retail handler at 0x393553D0 in x2game.dll reads it as a dword, decrements it, and takes the add
+/// path for 1 and the remove path for 2 — anything else returns without touching the resident map.
+/// The default here is <see cref="Add"/>, because this feed only ever announces groups the character
+/// is a resident of. The family chain is 0x38 map -> 0x39 info -> 0x3A balance -> 0x3B info list ->
+/// 0x3C member list, each opcode stamped by the client's constructor for that type.
 /// </remarks>
 public class SCResidentMapPacket(short zoneGroup, byte option = SCResidentMapPacket.Add)
     : GamePacket(SCOffsets.SCResidentMapPacket, 1)

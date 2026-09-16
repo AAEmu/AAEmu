@@ -773,7 +773,13 @@ public static class SCOffsets
     public const ushort SCResidentBalanceInfoPacket = 0x3A; // confirmed:, 7-field shape incl. memberCount
     // links AUSCResidentInfoPacket.
     public const ushort SCResidentInfoPacket = 0x39; // links AUSCResidentMemberInfoPacket // confirmed: reads type u16, type u64, point u32
-    public const ushort SCResidentInfoListPacket = 0x3B; // total s32, count s32, final u8, then rows of type u16/point s32/money u64/u64/u32/u32/u32
+    // SCResidentInfoListPacket, not a guess at the next free slot: the client's own RTTI names the
+    // type (dev .?AUSCResidentInfoListPacket@@, descriptor 0x3A5DD750, vftable 0x3A0B75D0; retail
+    // vftable 0x39E6C5E0) and its constructor is what writes the opcode - mov dword ptr [rcx+8], 0x3B
+    // at 0x3959CE7B in x2game-dev.dll and 0x39404E3B in x2game.dll. The serializer at vftable slot 2
+    // (0x39C74B00 dev / 0x39AB9020 retail) reads total u32, count u32, final u8, then count rows of
+    // i16 type / u32 point / u64 moneyAmount / u64 moneyAmount / i32 x3.
+    public const ushort SCResidentInfoListPacket = 0x3B;
     // 0x00B was a wrong guess for the resident map; 0x0B is SCFactionRelationListPacket. Do not send.
     // from the 10.0.2.13 packet ctor (ctor pattern validated by F7/F8/FA).
     public const ushort SCHouseTradeListPacket = 0x2F7;
