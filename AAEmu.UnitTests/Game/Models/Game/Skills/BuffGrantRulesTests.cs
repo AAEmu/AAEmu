@@ -6,7 +6,7 @@ namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 /// How simultaneous buff grants combine. The overlaps these rules exist for are in the shipped data
 /// (10.0.2.13): the nine glider buffs 실험형 날틀 1029 / 개량형 3528 / 강화형 3529 / 완성형 3530 /
 /// 달빛 그림자 날개 3583 / 뇌우 3584 / 이지 여신의 날개 2098 / 붉은 용 날개 2099 / 용오름 2097 all grant
-/// 날틀 접기 17657, 23 buffs swap 폭탄 발사 준비 35351 and 9 swap 발묶음 12133.
+/// 날틀 접기 17657, and four buffs swap 폭탄 발사 준비 35351 while nine swap 발묶음 12133.
 /// Ids are faked here; the shapes are the live ones.
 /// </summary>
 public class BuffGrantRulesTests
