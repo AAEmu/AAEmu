@@ -31,6 +31,9 @@ public class RankingGameData : Singleton<RankingGameData>, IGameDataLoader
     /// <summary>The value kind whose board holds a character's gear score.</summary>
     public const string GearScoreDetailType = "GearRankDetail";
 
+    /// <summary>The value kind whose boards measure one equipped weapon each.</summary>
+    public const string ItemDetailType = "ItemRankDetail";
+
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private readonly Dictionary<uint, RankDefinition> _ranks = [];
