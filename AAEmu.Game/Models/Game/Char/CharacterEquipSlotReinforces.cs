@@ -190,6 +190,41 @@ public class CharacterEquipSlotReinforces
     }
 
     /// <summary>
+    /// Overwrites one slot's level and bar. The bar is capped at what the level being worked towards
+    /// can hold, so a set can never leave a slot able to level twice on one bar.
+    /// </summary>
+    public bool SetProgress(byte slotTypeId, sbyte level, int exp, out string error)
+    {
+        error = null;
+        var ladder = EquipSlotReinforceGameData.Instance.Ladder(slotTypeId);
+        if (ladder.Count == 0)
+        {
+            error = $"slot {slotTypeId} has no reinforcement ladder";
+            return false;
+        }
+
+        if (level < 0 || level > ladder[^1].Level)
+        {
+            error = $"slot {slotTypeId} has no level {level} (0..{ladder[^1].Level})";
+            return false;
+        }
+
+        var next = EquipSlotReinforceRules.NextStep(level, ladder);
+        var capped = next == null ? 0 : Math.Clamp(exp, 0, next.NeedExp);
+
+        lock (_sync)
+        {
+            var state = GetOrCreate(slotTypeId);
+            state.Level = level;
+            state.Exp = capped;
+        }
+
+        Send(slotTypeId);
+        SendLevelEffect(slotTypeId);
+        return true;
+    }
+
+    /// <summary>
     /// Banks a feed into a slot's bar. The material itself — which item it draws from and what it costs
     /// — belongs to the request that carries it; this only records what the feed was worth.
     /// </summary>
