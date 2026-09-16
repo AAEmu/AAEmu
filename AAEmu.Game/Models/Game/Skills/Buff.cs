@@ -1,8 +1,10 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Skills;
@@ -67,6 +69,176 @@ public class Buff
     /// can take the Zone process down instead of logging an invalid buff id.
     /// </summary>
     public bool RelayedToZone { get; set; }
+
+    /// <summary>
+    /// One unit this aura is holding its slave buff on, and the instance it applied.
+    /// </summary>
+    public readonly record struct AuraRecipient(Unit Unit, uint Index);
+
+    /// <summary>
+    /// The units this aura currently holds its <c>aura_slave_buff_id</c> on, keyed by object id.
+    /// </summary>
+    /// <remarks>
+    /// The applied index is kept so a unit that walks out of the radius loses the instance this aura gave
+    /// it and not another caster's copy of the same family. <see cref="AuraRecipientsLock"/> guards the
+    /// map: the pulse writes it from the task thread, and the buff's own end path drains it.
+    /// </remarks>
+    public Dictionary<uint, AuraRecipient> AuraRecipients { get; } = [];
+
+    public object AuraRecipientsLock { get; } = new();
+
+    private bool _auraScheduled;
+
+    /// <summary>
+    /// Claims the right to schedule this buff's aura pulse, once per instance.
+    /// </summary>
+    /// <remarks>
+    /// <c>BuffTemplate.Start</c> runs again on every refresh and on every stack growth, so the claim has
+    /// to be made here rather than at the call site, or a sixty-stack bard song would carry sixty pulses.
+    /// </remarks>
+    public bool TryClaimAuraPulse()
+    {
+        lock (AuraRecipientsLock)
+        {
+            if (_auraScheduled)
+                return false;
+
+            _auraScheduled = true;
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// One pass of an aura: apply <c>aura_slave_buff_id</c> to the units now inside
+    /// <c>aura_radius</c> that match <c>aura_relation_id</c>, and take it back from the ones that left.
+    /// </summary>
+    /// <remarks>
+    /// Eligibility is decided by <see cref="AuraRules"/>; this method only supplies the live units. The
+    /// nearest eligible units win the <c>aura_max_count</c> slots, so a ceiling that bites always keeps
+    /// the same set instead of however the region happens to enumerate.
+    /// </remarks>
+    public void PulseAura()
+    {
+        var template = Template;
+        var owner = Owner;
+        var caster = Caster;
+        if (template == null || owner == null || caster == null)
+            return;
+
+        var slaveTemplate = SkillManager.Instance.GetBuffTemplate(template.AuraSlaveBuffId);
+        if (slaveTemplate == null)
+            return;
+
+        var around = WorldManager.GetAround<Unit>(owner, template.AuraRadius) ?? [];
+        // The source carries its own aura unless a relation excludes it; the area ticks add their owner
+        // the same way, because a region query is not guaranteed to return the unit at its centre.
+        if (owner is Unit ownerUnit && !around.Contains(ownerUnit))
+            around.Add(ownerUnit);
+
+        var eligible = new List<Unit>();
+        foreach (var candidate in around)
+        {
+            if (candidate?.Buffs == null || candidate.ObjId == 0 || candidate.Hp <= 0)
+                continue;
+            if (!AuraRules.InRadius(template.AuraRadius, owner.GetDistanceTo(candidate)))
+                continue;
+
+            var isCreator = candidate.ObjId == caster.ObjId;
+            var isOwned = isCreator || candidate.GetOwnerCharacter()?.ObjId == caster.ObjId;
+            var relationMatches = SkillTargetingUtil.IsRelationValid(
+                (SkillTargetRelation)template.AuraRelationId, caster, candidate);
+
+            if (AuraRules.AllowsRecipient(
+                    template.AuraCreatorOnly, template.AuraChildOnly, isCreator, isOwned, relationMatches))
+                eligible.Add(candidate);
+        }
+
+        eligible.Sort((a, b) => owner.GetDistanceTo(a).CompareTo(owner.GetDistanceTo(b)));
+
+        var roster = new HashSet<uint>();
+        foreach (var candidate in eligible)
+        {
+            if (!AuraRules.HasRoom(template.AuraMaxCount, roster.Count))
+                break;
+            roster.Add(candidate.ObjId);
+        }
+
+        // A unit that left the radius, or lost its slot to a nearer one, gives the buff back and is
+        // forgotten — otherwise it would never be offered the aura again if it walked back in.
+        List<KeyValuePair<uint, AuraRecipient>> leaving = null;
+        lock (AuraRecipientsLock)
+        {
+            foreach (var entry in AuraRecipients.Where(held => !roster.Contains(held.Key)).ToList())
+            {
+                (leaving ??= []).Add(entry);
+                AuraRecipients.Remove(entry.Key);
+            }
+        }
+
+        if (leaving != null)
+            foreach (var entry in leaving)
+                ReleaseAuraRecipient(entry.Key, entry.Value);
+
+        foreach (var candidate in eligible)
+        {
+            if (!roster.Contains(candidate.ObjId))
+                continue;
+
+            lock (AuraRecipientsLock)
+            {
+                if (AuraRecipients.ContainsKey(candidate.ObjId))
+                    continue;
+            }
+
+            var slave = new Buff(candidate, caster, SkillCaster, slaveTemplate, null, DateTime.UtcNow);
+            candidate.Buffs.AddBuff(slave);
+
+            // A refused application — an immunity, a missing require-tag, a tolerance ladder's immune step
+            // — leaves the instance out of the owner's list. Only what actually landed is tracked, so an
+            // untracked unit is offered the aura again on the next pulse.
+            if (!slave.InUse)
+                continue;
+
+            lock (AuraRecipientsLock)
+            {
+                AuraRecipients[candidate.ObjId] = new AuraRecipient(candidate, slave.Index);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Ends the aura: every unit still holding the slave buff this aura applied gives it back.
+    /// </summary>
+    public void ReleaseAura()
+    {
+        List<KeyValuePair<uint, AuraRecipient>> held;
+        lock (AuraRecipientsLock)
+        {
+            if (AuraRecipients.Count == 0)
+                return;
+
+            held = AuraRecipients.ToList();
+            AuraRecipients.Clear();
+        }
+
+        foreach (var entry in held)
+            ReleaseAuraRecipient(entry.Key, entry.Value);
+    }
+
+    private static void ReleaseAuraRecipient(uint objId, AuraRecipient recipient)
+    {
+        var unit = recipient.Unit;
+        if (unit?.Buffs == null)
+            return;
+
+        var live = unit.Buffs.GetEffectByIndex(recipient.Index);
+        if (live == null)
+            return;
+
+        Logger.Debug("Aura {0} releases buff {1} (index {2}) from {3}",
+            objId, live.Template?.BuffId ?? 0, recipient.Index, objId);
+        unit.Buffs.RemoveEffect(recipient.Index);
+    }
 
     public uint AbLevel { get; set; }
     public BuffEvents Events { get; }
@@ -440,6 +612,9 @@ public class Buff
                 Events.OnDispelled(this, new OnDispelledArgs());
             Triggers.UnsubscribeEvents();
             UnsubscribeSourceDeath();
+            // An aura hands its slave buff back before the instance itself goes, so a dispel, a duration
+            // expiry and a death cleanup all release the recipients the same way.
+            ReleaseAura();
             Owner.Buffs.RemoveEffect(this);
             Template.Dispel(Caster, Owner, this, replace);
 
