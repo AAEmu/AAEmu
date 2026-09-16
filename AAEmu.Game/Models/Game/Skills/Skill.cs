@@ -54,6 +54,8 @@ public class Skill
     private bool _zoneSkillFiredRelayed;
     private bool _zoneSkillEndedRelayed;
     private bool _laborConsumed;
+    /// <summary>Charges left after this cast spent one; -1 until the cast spends one.</summary>
+    private int _chargesAfterCast = -1;
     private SkillCaster _zoneSkillCaster;
     private bool _cancelled;
     internal event Action<Skill> CancellationRequested;
@@ -197,6 +199,7 @@ public class Skill
         _zoneSkillEndedRelayed = false;
         _plotOnlyFireCostsApplied = false;
         _laborConsumed = false;
+        _chargesAfterCast = -1;
         _zoneSkillCaster = null;
         var skillTags = SkillManager.Instance.GetSkillTags(Template.Id);
         var fishingHold = character != null &&
@@ -241,8 +244,14 @@ public class Skill
                 var accountCooldownBlocks = Template.AccountCooldown &&
                                             character != null &&
                                             AccountCooldowns.IsActive(character.AccountId, Template.Id);
+                // A charge skill with an empty pool is on cooldown even when it declares no
+                // cooldown_time at all — 13281 다발 사격 is 5 charges on a 22 s recharge and 0 ms.
+                var chargesExhausted = Template.ChargeCount > 1 &&
+                                       unit.Cooldowns.GetCharges(
+                                           Template.Id, Template.ChargeCount, Template.ChargeCooldownTime) <= 0;
                 if (SkillCooldownGateRules.ShouldWaitForCooldown(
-                        _bypassGcd, fishingHold, Template.Id, cooldownBlocks || accountCooldownBlocks))
+                        _bypassGcd, fishingHold, Template.Id,
+                        cooldownBlocks || accountCooldownBlocks || chargesExhausted))
                 {
                     Logger.Trace($"Skill: CooldownTime [{Template.CooldownTime}] for {Template.Id}");
                     return SkillResult.CooldownTime;
@@ -2039,6 +2048,11 @@ AlwaysHit:
     /// A <c>switch_to_skill_cooldown</c> variant (10534 빛과 어둠 → 36630/36631) takes over the running
     /// family cooldown instead of its own, so the player cannot use the parent and then reset the
     /// family timer by picking a variant with a shorter cooldown — 36632 연속 회복: 번개 declares 0 ms.
+    ///
+    /// A charge skill spends one charge here and arms nothing while the pool still has one, so the
+    /// second use of a 2-charge skill is immediate; only the last charge spent starts the cooldown.
+    /// The spend is tracked on the instance because the plot-only path arms at Use and again at plot
+    /// end, and one cast must not cost two charges.
     /// </remarks>
     internal void ArmCooldowns(Unit unit)
     {
@@ -2051,6 +2065,20 @@ AlwaysHit:
             duration = SkillCooldownGateRules.SwitchToCooldownDuration(
                 duration,
                 unit.Cooldowns.GetRemaining(Template.Id, Template.CooldownTags));
+        }
+
+        if (Template.ChargeCount > 1)
+        {
+            if (_chargesAfterCast < 0)
+            {
+                _chargesAfterCast = unit.Cooldowns.ConsumeCharge(
+                    Template.Id, Template.ChargeCount, Template.ChargeCooldownTime);
+            }
+
+            // Charges left: the skill is usable again right away, so neither its own cooldown nor its
+            // cooldown tag is armed.
+            if (_chargesAfterCast > 0)
+                return;
         }
 
         unit.Cooldowns.AddCooldown(Template.Id, duration, Template.CooldownTags);
