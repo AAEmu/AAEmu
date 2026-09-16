@@ -39,19 +39,52 @@ public static class WorldContentFilterPack
 
     public static int CategoryCount => CategoryNames.Length;
 
-    /// <summary>The client's id for a category name, matched without case. Null when it has no such category.</summary>
+    /// <summary>
+    /// Content type names in the table that are not merely the client's name without its underscores.
+    /// The table stores quest contexts, and the client's only quest-shaped category is <c>quest</c>.
+    /// </summary>
+    private static readonly Dictionary<string, string> TypeAliases = new(StringComparer.Ordinal)
+    {
+        ["questcontext"] = "quest"
+    };
+
+    /// <summary>
+    /// The client's id for a content type, matched on letters and digits alone: the table writes the
+    /// categories without underscores (<c>QuestContext</c>, <c>GameSchedule</c>) while the client's own
+    /// names carry them.
+    /// </summary>
     public static byte? CategoryIdOf(string categoryName)
     {
-        if (string.IsNullOrWhiteSpace(categoryName))
+        var normalized = Normalize(categoryName);
+        if (normalized.Length == 0)
             return null;
+
+        if (TypeAliases.TryGetValue(normalized, out var aliased))
+            normalized = Normalize(aliased);
 
         for (var index = 0; index < CategoryNames.Length; index++)
         {
-            if (string.Equals(CategoryNames[index], categoryName.Trim(), StringComparison.OrdinalIgnoreCase))
+            if (Normalize(CategoryNames[index]) == normalized)
                 return (byte)index;
         }
 
         return null;
+    }
+
+    /// <summary>Letters and digits only, lower case — the form both spellings agree on.</summary>
+    private static string Normalize(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            return string.Empty;
+
+        var builder = new StringBuilder(name.Length);
+        foreach (var c in name)
+        {
+            if (char.IsLetterOrDigit(c))
+                builder.Append(char.ToLowerInvariant(c));
+        }
+
+        return builder.ToString();
     }
 
     /// <summary>

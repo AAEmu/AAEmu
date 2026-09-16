@@ -28,6 +28,18 @@ public class WorldContentFilterPackTests
         await Assert.That(WorldContentFilterPack.CategoryIdOf("Craft")).IsEqualTo((byte)0); // table spells it capitalised
         await Assert.That(WorldContentFilterPack.CategoryIdOf(" festival_zone ")).IsEqualTo((byte)17);
         await Assert.That(WorldContentFilterPack.CategoryIdOf("quest")).IsEqualTo((byte)7);
+
+        // The table writes the categories without underscores: GameSchedule, NpcSpawner, ArchePass ...
+        await Assert.That(WorldContentFilterPack.CategoryIdOf("GameSchedule")).IsEqualTo((byte)3);
+        await Assert.That(WorldContentFilterPack.CategoryIdOf("NpcSpawner")).IsEqualTo((byte)5);
+        await Assert.That(WorldContentFilterPack.CategoryIdOf("ArchePass")).IsEqualTo((byte)12);
+        await Assert.That(WorldContentFilterPack.CategoryIdOf("FestivalZone")).IsEqualTo((byte)17);
+
+        // Quest contexts are the client's quest category.
+        await Assert.That(WorldContentFilterPack.CategoryIdOf("QuestContext")).IsEqualTo((byte)7);
+
+        // Anything else stays unconfigured rather than being guessed onto a neighbour.
+        await Assert.That(WorldContentFilterPack.CategoryIdOf("DoodadAlmighty")).IsNull();
         await Assert.That(WorldContentFilterPack.CategoryIdOf("no_such_category")).IsNull();
         await Assert.That(WorldContentFilterPack.CategoryIdOf(null)).IsNull();
     }
