@@ -448,7 +448,7 @@ public class Slave : Unit
                 else
                     res += (int)bonus.Value;
             }
-            return res;
+            return ClampToLimit(res, UnitAttribute.MaxHealth);
         }
     }
 
@@ -533,7 +533,7 @@ public class Slave : Unit
                 else
                     res += (int)bonus.Value;
             }
-            return res;
+            return ClampToLimit(res, UnitAttribute.MaxMana);
         }
     }
 
@@ -808,7 +808,7 @@ public class Slave : Unit
                 else
                     res += (int)bonus.Value;
             }
-            return res;
+            return ClampToLimit(res, UnitAttribute.Armor);
         }
     }
 
@@ -836,7 +836,7 @@ public class Slave : Unit
                 else
                     res += (int)bonus.Value;
             }
-            return res;
+            return ClampToLimit(res, UnitAttribute.MagicResist);
         }
     }
 
