@@ -107,6 +107,36 @@ public class ItemSecurityRulesTests
     }
 
     [Test]
+    public async Task Apply_LockingAnUnlockingItemCancelsThePendingUnlock()
+    {
+        // The state that used to be a dead end: Secure plus a countdown. Locking again has to end
+        // the countdown, or the item can neither be locked nor unlocked.
+        var item = new Item
+        {
+            ItemFlags = ItemFlag.Secure,
+            UnsecureTime = Now.AddMinutes(ItemSecurityRules.UnlockDelayMinutes - 5)
+        };
+
+        var change = ItemSecurityRules.Apply(item, true, Now, false);
+
+        await Assert.That(change).IsEqualTo(ItemSecurityChange.Locked);
+        await Assert.That(item.HasFlag(ItemFlag.Secure)).IsTrue();
+        await Assert.That(item.UnsecureTime).IsEqualTo(DateTime.MinValue);
+    }
+
+    [Test]
+    public async Task Apply_ARepeatedUnlockDoesNotPushTheDeadlineOut()
+    {
+        var deadline = Now.AddMinutes(ItemSecurityRules.UnlockDelayMinutes);
+        var item = new Item { ItemFlags = ItemFlag.Secure, UnsecureTime = deadline };
+
+        var change = ItemSecurityRules.Apply(item, false, Now.AddHours(1), false);
+
+        await Assert.That(change).IsEqualTo(ItemSecurityChange.Unchanged);
+        await Assert.That(item.UnsecureTime).IsEqualTo(deadline);
+    }
+
+    [Test]
     public async Task Apply_RelocksAnItemWhoseUnlockDelayExpired()
     {
         // The relog path leaves the flag set with a timestamp in the past until something looks at

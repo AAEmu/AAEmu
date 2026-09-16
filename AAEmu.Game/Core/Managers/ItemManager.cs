@@ -3040,7 +3040,11 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         return true;
     }
 
-    private static void SendSecurityUpdate(Character character, Item item, byte previousFlags)
+    /// <summary>
+    /// Publishes one item's security state to its owner. Shared with the world-entry replay in
+    /// <see cref="Inventory.SendItemSecurityStates"/> so both paths write the same body.
+    /// </summary>
+    public static void SendSecurityUpdate(ICharacter character, Item item, byte previousFlags)
     {
         var task = new ItemUpdateSecurity(item, (byte)item.ItemFlags, false,
             item.UnsecureTime != DateTime.MinValue, item.HasFlag(ItemFlag.Unpacked), previousFlags);

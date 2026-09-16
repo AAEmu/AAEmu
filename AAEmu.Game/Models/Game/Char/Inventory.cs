@@ -286,6 +286,35 @@ public class Inventory
     }
 
     /// <summary>
+    /// Re-publishes the security state of everything the character holds locked or unlocking.
+    /// </summary>
+    /// <remarks>
+    /// The item body already carries <see cref="ItemFlag.Secure"/> and the unsecure timestamp, but the
+    /// client builds the padlock state its icons and tooltips read — <c>securityState</c> and
+    /// <c>securityRemainDate</c> — from the <c>ItemUpdateSecurity</c> action alone. Verified
+    /// 2026-09-16: an item the server held locked came back as <c>securityState</c> 2 (unlocked)
+    /// after a client restart until this replay ran, which made a relog look like the lock had been
+    /// dropped. Called once at world entry, after the containers and the unit state have gone out.
+    /// </remarks>
+    public void SendItemSecurityStates()
+    {
+        foreach (var slotType in new[] { SlotType.Equipment, SlotType.Inventory, SlotType.Bank })
+        {
+            if (!_itemContainers.TryGetValue(slotType, out var container) || container == null)
+                continue;
+
+            foreach (var item in container.Items)
+            {
+                if (item == null || !item.HasFlag(ItemFlag.Secure))
+                    continue;
+
+                ItemSecurityRules.ExpireUnlock(item);
+                ItemManager.SendSecurityUpdate(Owner, item, (byte)item.ItemFlags);
+            }
+        }
+    }
+
+    /// <summary>
     /// Consumes a item in specified container list, if the list is null, Bag -> Warehouse -> Equipment order is used.
     /// This function does not verify the total item count and will consume as much as possible
     /// It is recommended to use the ConsumeItem function of a ItemContainer itself as much as possible

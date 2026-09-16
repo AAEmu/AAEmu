@@ -61,6 +61,12 @@ public static class ItemSecurityRules
     /// Applies one lock or unlock request. <paramref name="isSecureException"/> is the template's
     /// verdict from <c>item_secure_exceptions</c>, which only ever blocks locking.
     /// </summary>
+    /// <remarks>
+    /// Locking again while the unlock delay is running cancels that delay — without this an item
+    /// that had been unlocked once was stuck: it kept <see cref="ItemFlag.Secure"/> and a timestamp
+    /// in the future, so locking it changed nothing and the client refused to unlock it a second
+    /// time. A repeated unlock request does not extend the window.
+    /// </remarks>
     public static ItemSecurityChange Apply(Item item, bool lockItem, DateTime now, bool isSecureException)
     {
         if (item == null)
@@ -70,17 +76,27 @@ public static class ItemSecurityRules
 
         if (lockItem)
         {
-            if (item.HasFlag(ItemFlag.Secure))
-                return ItemSecurityChange.Unchanged;
-            if (isSecureException)
-                return ItemSecurityChange.Refused;
+            if (!item.HasFlag(ItemFlag.Secure))
+            {
+                if (isSecureException)
+                    return ItemSecurityChange.Refused;
 
-            item.SetFlag(ItemFlag.Secure);
+                item.SetFlag(ItemFlag.Secure);
+                item.UnsecureTime = DateTime.MinValue;
+                return ItemSecurityChange.Locked;
+            }
+
+            // Already locked. A pending unlock is what locking again is for; with no pending
+            // unlock there is genuinely nothing to do.
+            if (item.UnsecureTime == DateTime.MinValue)
+                return ItemSecurityChange.Unchanged;
+
             item.UnsecureTime = DateTime.MinValue;
             return ItemSecurityChange.Locked;
         }
 
-        if (!item.HasFlag(ItemFlag.Secure))
+        // Not locked, or already counting down (a repeat must not push the deadline out).
+        if (!item.HasFlag(ItemFlag.Secure) || item.UnsecureTime != DateTime.MinValue)
             return ItemSecurityChange.Unchanged;
 
         item.UnsecureTime = now.AddMinutes(UnlockDelayMinutes);

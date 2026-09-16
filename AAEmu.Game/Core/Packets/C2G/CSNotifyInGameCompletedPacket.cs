@@ -23,6 +23,12 @@ public class CSNotifyInGameCompletedPacket() : GamePacket(CSOffsets.CSNotifyInGa
             // A cinema the previous session never finished still owes its buff or teleport.
             // Load only queues it — the effect needs the live connection that entry brings.
             Connection.ActiveChar.Quests.FlushPendingCinemaEndEffects();
+
+            // Locks and pending unlocks are not restored by the item bodies the client received; it
+            // takes them from the security action. That action is discarded while the client is still
+            // on the loading screen (sending it from NotifyInGame produced the packets and no client
+            // state change, 2026-09-16), so replay the state here, once the load has finished.
+            Connection.ActiveChar.Inventory.SendItemSecurityStates();
         }
     }
 
