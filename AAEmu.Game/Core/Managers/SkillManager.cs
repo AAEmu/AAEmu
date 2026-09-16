@@ -616,11 +616,19 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 using (var sqliteReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteReader))
                 {
+                    var duplicateSkillIds = new SortedSet<uint>();
+                    var danglingSkillIds = new SortedSet<uint>();
                     while (reader.Read())
                     {
                         var id = (uint)reader.GetInt32("skill_id", 0);
                         if (!_skills.TryGetValue(id, out var defSkillTemplate))
+                        {
+                            danglingSkillIds.Add(id);
                             continue; // 10.0.2.13: default_skills may reference a skill that didn't load
+                        }
+
+                        if (_defaultSkills.ContainsKey(id))
+                            duplicateSkillIds.Add(id);
                         var skill = new DefaultSkill
                         {
                             Template = defSkillTemplate,
@@ -629,6 +637,18 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         };
                         _defaultSkills[skill.Template.Id] = skill; // 10.0.2.13 default_skills has duplicate skill_ids (e.g. 33984) -> overwrite, don't crash
                     }
+
+                    // One line per table, not per row: default_skills is keyed by skill id, so a second row
+                    // for the same skill silently replaces the first (33984 rows 156/157 and 33985 rows
+                    // 158/160 differ in slot_index and category) and nothing recorded which one won.
+                    if (duplicateSkillIds.Count > 0)
+                        Logger.Warn(
+                            "default_skills: {0} skill id(s) appear more than once and the last row wins ({1})",
+                            duplicateSkillIds.Count, string.Join(", ", duplicateSkillIds));
+                    if (danglingSkillIds.Count > 0)
+                        Logger.Warn(
+                            "default_skills: {0} row(s) name a skill that did not load and were skipped ({1})",
+                            danglingSkillIds.Count, string.Join(", ", danglingSkillIds));
                 }
             }
 
@@ -1011,10 +1031,21 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type='Buff'"; // TODO OwnerType: BuffUnitModifier -> buff_unit_modifiers
                 command.Prepare();
                 var attributeIds = new List<long>();
+                var disabledModifierRows = new SortedSet<uint>();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
                     while (reader.Read())
                     {
+                        // 19 of the 24 165 owner_type='Buff' rows are enable='f' and used to load anyway: buff
+                        // 16007's five attack-speed rows (attributes 10/54/55/74/119 at 665) were the largest
+                        // group, so the buff was twice as fast as the content asks. Every disabled row in
+                        // unit_modifiers belongs to this owner type.
+                        if (!reader.GetBoolean("enable", true))
+                        {
+                            disabledModifierRows.Add(reader.GetUInt32("id", 0));
+                            continue;
+                        }
+
                         var buffId = reader.GetUInt32("owner_id", 0);
                         if (!_buffs.TryGetValue(buffId, out var buff))
                             continue;
@@ -1029,6 +1060,11 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         buff.Bonuses.Add(template);
                     }
                 }
+
+                if (disabledModifierRows.Count > 0)
+                    Logger.Warn(
+                        "unit_modifiers (owner_type='Buff'): {0} disabled row(s) skipped ({1})",
+                        disabledModifierRows.Count, string.Join(", ", disabledModifierRows));
 
                 var unknownIds = UnitAttributeLoadRules.UnknownIds(attributeIds);
                 if (unknownIds.Count > 0)
@@ -2091,11 +2127,18 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
+                    var danglingSkillIds = new SortedSet<uint>();
+                    var danglingEffectIds = new SortedSet<uint>();
                     while (reader.Read())
                     {
                         var skillId = reader.GetUInt32("skill_id", 0);
                         if (!_skills.ContainsKey(skillId))
+                        {
+                            // 96 enabled rows in 10.0.2.13 name a skill id that has no skills row; they were
+                            // dropped one silent row at a time.
+                            danglingSkillIds.Add(skillId);
                             continue;
+                        }
 
                         var template = new SkillEffect();
                         var effectId = reader.GetUInt32("effect_id", 0);
@@ -2104,7 +2147,10 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         template.EffectId = effectId;
 
                         if (!_types.TryGetValue(effectId, out var type))
+                        {
+                            danglingEffectIds.Add(effectId);
                             continue; // 10.0.2.13: effect_id may reference an effect type that didn't load
+                        }
                         if (_effects.TryGetValue(type.Type, out var effect) && effect.TryGetValue(type.ActualId, out var tmpl))
                             template.Template = tmpl; // dangling effect ref (e.g. 3612) -> leave Template null, don't crash
                         template.Weight = reader.GetInt32("weight", 0);
@@ -2129,6 +2175,16 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         template.InteractionSuccessHit = reader.GetBoolean("interaction_success_hit", true);
                         _skills[skillId].Effects.Add(template);
                     }
+
+                    // One summary line per table with the skipped count, rather than nothing at all.
+                    if (danglingSkillIds.Count > 0)
+                        Logger.Warn(
+                            "skill_effects: {0} enabled row(s) name a skill that has no skills row and were skipped ({1})",
+                            danglingSkillIds.Count, string.Join(", ", danglingSkillIds));
+                    if (danglingEffectIds.Count > 0)
+                        Logger.Warn(
+                            "skill_effects: {0} row(s) name an effect type that did not load and were skipped ({1})",
+                            danglingEffectIds.Count, string.Join(", ", danglingEffectIds));
                 }
             }
 
@@ -2513,6 +2569,10 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 using (var sqliteReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteReader))
                 {
+                    // Read every row and filter on enable here rather than in the WHERE clause, so that the
+                    // one summary line below can name what was dropped: two shipped rows are disabled (3852
+                    // and 4995) and their skills used to charge the reagent anyway.
+                    var rows = new List<SkillReagent>();
                     while (reader.Read())
                     {
                         var template = new SkillReagent
@@ -2520,10 +2580,16 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             Id = reader.GetUInt32("id", 0),
                             SkillId = reader.GetUInt32("skill_id", 0),
                             ItemId = reader.GetUInt32("item_id", 0),
-                            Amount = reader.GetInt16("amount")
+                            Amount = reader.GetInt16("amount"),
+                            Enable = reader.GetBoolean("enable", true)
                         };
-                        _skillReagents[template.Id] = template;
+                        rows.Add(template);
                     }
+
+                    _skillReagents = SkillReagentLoadRules.Enabled(rows);
+                    var disabledWarning = SkillReagentLoadRules.DisabledWarning(rows);
+                    if (disabledWarning.Length > 0)
+                        Logger.Warn(disabledWarning);
                 }
             }
             Logger.Info("Skill Reagents loaded");
