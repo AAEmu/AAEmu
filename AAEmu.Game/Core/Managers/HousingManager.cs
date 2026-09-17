@@ -795,6 +795,35 @@ public class HousingManager(
         // 0x38 is SCResidentMapPacket, so the payload was landing on the map handler.
     }
 
+    /// <summary>
+    /// The zone groups the character is a resident of, for the Nuon's-Arrow zone list. Residency
+    /// is owning a house in the group's zones, which is the same rule the map feed uses; the point
+    /// and money columns are not modelled server-side yet, so they go out as zero.
+    /// </summary>
+    public void ResidentZoneGroups(GameConnection connection)
+    {
+        var character = connection.ActiveChar;
+        if (character == null)
+            return;
+
+        var groups = new HashSet<uint>();
+        foreach (var house in _houses.Values)
+        {
+            if (house.OwnerId != character.Id)
+                continue;
+            var zone = zoneManager.GetZoneByKey(house.Transform.ZoneId);
+            if (zone != null)
+                groups.Add(zone.GroupId);
+        }
+
+        var rows = groups
+            .Select(groupId => new ResidentInfoRow((ushort)groupId, 0, 0, 0))
+            .OrderBy(row => row.ZoneGroup)
+            .ToList();
+
+        character.SendPacket(new SCResidentInfoListPacket((uint)rows.Count, rows));
+    }
+
     public void SendTownhallState(GameConnection connection, short zoneGroup)
     {
         var character = connection.ActiveChar;

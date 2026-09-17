@@ -110,6 +110,51 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
         character.SendPacket(new SCSiegeMemberPacket(0, (int)zoneId, character.Id, true));
     }
 
+    /// <summary>
+    /// Answers the siege registration popup: who is registered in the character's current zone
+    /// group and whether the requester is one of them. Ranking is the registration order, which is
+    /// the only order the registration table carries.
+    /// </summary>
+    public void SendRaidTeamRegisterList(GameConnection connection)
+    {
+        var character = connection?.ActiveChar;
+        if (character == null)
+            return;
+
+        var zoneGroupId = ZoneManager.Instance.GetZoneByKey(character.Transform.ZoneId)?.GroupId ?? 0;
+
+        var rows = new List<SiegeRaidRegisterRow>();
+        var registered = false;
+        using (var sql = MySQL.CreateConnection())
+        {
+            using var command = sql.CreateCommand();
+            command.CommandText = """
+                SELECT m.character_id, c.name
+                FROM siege_raid_team_members m
+                LEFT JOIN characters c ON c.id = m.character_id
+                WHERE m.zone_id = @z
+                ORDER BY m.registered_at, m.character_id
+                """;
+            command.Parameters.AddWithValue("@z", zoneGroupId);
+            command.Prepare();
+            using var reader = command.ExecuteReader();
+            uint ranking = 0;
+            while (reader.Read())
+            {
+                var charId = reader.GetUInt32("character_id");
+                ranking++;
+                if (charId == character.Id)
+                    registered = true;
+                rows.Add(new SiegeRaidRegisterRow(ranking,
+                    reader.IsDBNull(reader.GetOrdinal("name")) ? string.Empty : reader.GetString("name"),
+                    charId));
+            }
+        }
+
+        character.SendPacket(new SCSiegeRaidRegisterListPacket(registered, true, (ushort)zoneGroupId,
+            [new SiegeRaidRegisterZone((int)zoneGroupId, rows)]));
+    }
+
     public void UnregisterFromRaidTeam(GameConnection connection, ushort zoneId)
     {
         var character = connection?.ActiveChar;
