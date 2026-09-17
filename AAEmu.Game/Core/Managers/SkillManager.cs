@@ -289,9 +289,10 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         OnTarget: reader.GetBoolean("target", true),
                         BuffId: reader.GetUInt32("buff_id", 0),
                         BuffTagId: buffTagId,
-                        // default_result='f' means the unit must carry the buff or tag; 't' means it must
-                        // not. See SkillRequirementRules for the content evidence.
-                        Require: !reader.GetBoolean("default_result", true),
+                        // Nearly every row refuses the cast in the state it names; the handful that are the
+                        // other way round are listed in SkillRequirementRules.RequireRowsByDesign.
+                        Require: !SkillRequirementRules.IsRowForbidding(
+                            id, reader.GetBoolean("default_result", true)),
                         Message: reader.GetString("message", string.Empty));
                 }
             }

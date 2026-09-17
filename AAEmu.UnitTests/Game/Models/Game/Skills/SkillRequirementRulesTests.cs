@@ -47,11 +47,37 @@ public class SkillRequirementRulesTests
     [Test]
     public async Task RequireRow_BlocksUntilTheUnitCarriesTheTag()
     {
-        // Requirement 15: tag 294 날틀 비행중 (gliding) — the glider skills.
-        var requirements = new[] { RequireTag(294) };
+        // Requirement 58: tag 4981 구속 (restraint) — 자유 (Freedom) is castable only while restrained.
+        var requirements = new[] { RequireTag(4981) };
 
         await Assert.That(Allows(requirements, (0u, 0u))).IsFalse();
-        await Assert.That(Allows(requirements, (0u, 294u))).IsTrue();
+        await Assert.That(Allows(requirements, (0u, 4981u))).IsTrue();
+    }
+
+    [Test]
+    public async Task ForbiddingRows_AreEveryRowButTheFourThatRequireTheirState()
+    {
+        // The mount summon (32211) carries requirement 25, the Nui peace zone. Reading 'f' as "must
+        // carry" demands a peace buff and blocks every mount in the game; the row refuses the cast.
+        await Assert.That(SkillRequirementRules.IsRowForbidding(25, false)).IsTrue();
+        await Assert.That(SkillRequirementRules.IsRowForbidding(192, false)).IsTrue(); // courtroom
+        await Assert.That(SkillRequirementRules.IsRowForbidding(402, false)).IsTrue(); // battlefield wait
+
+        // 105 (landing) also rides on the mount summon, so it must forbid rather than require landing.
+        await Assert.That(SkillRequirementRules.IsRowForbidding(105, false)).IsTrue();
+
+        // 't' rows are forbids either way, e.g. requirement 1 발묶임 (rooted).
+        await Assert.That(SkillRequirementRules.IsRowForbidding(1, true)).IsTrue();
+    }
+
+    [Test]
+    public async Task RequireRows_AreTheStatesTheirSkillExistsIn()
+    {
+        // 15 gliding, 37 downed mount, 58 restraint, 59 fear.
+        foreach (var rowId in new uint[] { 15, 37, 58, 59 })
+            await Assert.That(SkillRequirementRules.IsRowForbidding(rowId, false)).IsFalse();
+
+        await Assert.That(SkillRequirementRules.RequireRowsByDesign.Count).IsEqualTo(4);
     }
 
     [Test]

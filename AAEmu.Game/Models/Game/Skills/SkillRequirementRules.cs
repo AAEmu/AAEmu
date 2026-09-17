@@ -8,7 +8,8 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// <param name="BuffId">The buff id the row names, or 0.</param>
 /// <param name="BuffTagId">The buff tag the row names, or 0.</param>
 /// <param name="Require">
-/// <c>default_result='f'</c>: the unit must carry the buff or tag. <c>'t'</c>: it must not.
+/// The skill may only be cast <i>while</i> the unit carries the buff or tag, instead of being refused
+/// while it does. See <see cref="SkillRequirementRules.IsRowForbidding"/> for when a row means this.
 /// </param>
 /// <param name="Message">The client string shown when the row fails.</param>
 public readonly record struct SkillRequirement(bool OnTarget, uint BuffId, uint BuffTagId, bool Require, string Message);
@@ -18,36 +19,68 @@ public readonly record struct SkillRequirement(bool OnTarget, uint BuffId, uint 
 /// skill carries, none of which were loaded.
 /// </summary>
 /// <remarks>
-/// 338 requirement rows, 1,813 links to individual skills and 339 links to skill tags. The polarity is
-/// <c>default_result</c>, and two pieces of authored content settle it:
-/// <list type="bullet">
-/// <item><description>Requirement 6 is a <c>'t'</c> row whose message is
-/// <c>%s 상태가 아니어야 합니다</c> — "must <i>not</i> be in %s state". It is the only row in the table
-/// that states a polarity in words rather than implying one, and it states this one.</description></item>
-/// <item><description>Requirement 58 is <c>'f'</c> on tag 4981 구속 (기술 사용X), "restraint (skill use
-/// disabled)". A skill-use-disabled tag is a state to refuse a cast in, so a row on it is a <i>forbid</i>
-/// row, which is what <c>'f'</c> means under this reading. What it gates agrees: 자유 (Freedom, 20982),
-/// 강인한 의지 (11429) and 생명력 발산 (10645) are break-free skills, and those have to be castable
-/// precisely while restrained. Requirement 15 is the same shape from the other side — it gates the glider
-/// skills (13430 폭탄 투척, 17657 날틀 접기, 21094 순간 이동) on tag 294 날틀 비행중, and I confirmed
-/// all three really are glider-granted, so requiring the tag is what makes them work.</description></item>
-/// </list>
+/// 338 requirement rows, 1,813 links to individual skills and 339 links to skill tags, all of which went
+/// unenforced before this was loaded.
 ///
-/// The message text is a client string and does <i>not</i> discriminate, on either reading of it. Matching
-/// the literal "cannot use" family — both spacings, <c>사용할 수 없</c> (133 rows) and <c>사용 할 수 없</c>
-/// (12) — covers 94 of the 236 <c>'t'</c> rows (40 %) against 51 of the 102 <c>'f'</c> rows (50 %). Widening
-/// it to any prohibition wording (<c>수 없</c>, <c>불가</c>) covers 154 of 236 (65 %) against 72 of 102
-/// (71 %). The forbid group is the <i>less</i> prohibition-worded of the two either way, which is why the
-/// polarity is read from the flag rather than from the string — requirement 6 and tag 4981 above are what
-/// settle it. The <c>'f'</c> group also carries peace-zone, prisoner and judge strings that read as
-/// restrictions, so the text is not merely noisy but misleading in both directions.
+/// <para>Almost every row is a <i>forbid</i>: a state the player is told the cast is refused in, such as
+/// 발묶임 (rooted) for requirement 1 or 결혼식 (wedding) for 42. Requirements combine with AND — any one
+/// present blocks the cast.</para>
 ///
-/// Forbid rows combine with AND — any one of them present blocks the cast. Require rows combine with OR:
-/// 강인한 의지 carries both 58 and 59, and reading those as AND would demand restraint <i>and</i> fear at
-/// once, so the cast could never happen at all.
+/// <para>The exception is four rows, <see cref="RequireRowsByDesign"/>, whose skill exists only <i>in</i>
+/// the named state and which therefore mean the opposite: 날틀 비행중 (gliding, 15), 말 부상 넘어짐
+/// (a downed mount, 37), 구속 (restraint, 58) and 공포 (fear, 59). Those have to be
+/// castable exactly while the state holds — 자유 (Freedom, 20982) and 강인한 의지 (11429) are break-free
+/// skills — so they combine with OR: the cast needs one of them to hold.</para>
+///
+/// <para><c>default_result</c> is not the polarity. Reading it as "must carry" inverts 97 of the 102
+/// <c>'f'</c> rows into demands for a state that is usually absent, which blocks them nearly everywhere:
+/// the mount-summon tag 358 (탈것 소환, 95 skills) demands a peace-zone buff (25, 115, 232, 286, 371),
+/// a wedding (42), a courtroom (192, 193), intruder status (50), silence (74), purification akium (314),
+/// an unknown force (318), prisoner status (359), a maze event (369) and a banquet (385) all at once;
+/// requirement 58 is what that reading was built on, and it is one of the four exceptions rather than
+/// the rule. Tag 402 평화 지역 가능, "skills usable at a resurrection point" (6,378 skills: 치유 물약
+/// and 대 명상 물약 among them), carries the same twelve rows, so that reading also demands a peace
+/// buff to drink a healing potion anywhere else.</para>
+///
+/// <para>The message text is a client string and carries no polarity of its own: "구속 상태에서는 기술을
+/// 사용할 수 없습니다" (58, a require row) and "누이 여신 주변은 평화 지역 입니다" (25, a forbid row)
+/// are both prohibitions, and only the first names a state the player cannot act in at all. The four
+/// exceptions above are therefore recorded by id, next to the skills that justify them, rather than
+/// inferred from wording.</para>
 /// </remarks>
 public static class SkillRequirementRules
 {
+    /// <summary>
+    /// The rows whose skill is usable only <i>while</i> the row's buff or tag is present. Each is a state
+    /// the player is otherwise barred from acting in, and the skills it gates exist to be used in it:
+    /// <list type="bullet">
+    /// <item><description>15 — tag 294 날틀 비행중 (gliding): the glider skills, e.g. 17657 날틀 접기,
+    /// 13440 날틀 난사. Verified: tag 294 carries no skills of its own, so these 301 skills reach the row
+    /// only through <c>skill_req_skills</c>.</description></item>
+    /// <item><description>37 — tag 371 말 부상 넘어짐 (a downed mount): the skills that revive it.</description></item>
+    /// <item><description>58 — tag 4981 구속 (기술 사용X): 자유 (Freedom, 20982), 강인한 의지 (11429),
+    /// 생명력 발산 (10645) — break-free skills, castable only while restrained.</description></item>
+    /// <item><description>59 — tag 12 공포 (fear): 강인한 의지 (11429) again, which carries 58 and 59
+    /// together. Reading those as AND would demand restraint and fear at once.</description></item>
+    /// </list>
+    /// <para>Requirement 105 (tag 911 날틀 착지, landing) is deliberately <i>not</i> here. It rides on the
+    /// mount-summon skill 32211 as well, and reading it as a require row allows summoning only while the
+    /// player is landing — verified in game, that is the row the summon fails on once 25 is read
+    /// correctly.</para>
+    /// </summary>
+    public static readonly IReadOnlySet<uint> RequireRowsByDesign = new HashSet<uint> { 15, 37, 58, 59 };
+
+    /// <summary>
+    /// Whether one <c>skill_reqs</c> row refuses the cast while its buff or tag is present, as opposed to
+    /// requiring it. Rows that are not forbids are the handful in <see cref="RequireRowsByDesign"/>.
+    /// </summary>
+    /// <param name="rowId">The <c>skill_reqs.id</c>.</param>
+    /// <param name="defaultResult">The row's <c>default_result</c> column.</param>
+    public static bool IsRowForbidding(uint rowId, bool defaultResult)
+    {
+        return defaultResult || !RequireRowsByDesign.Contains(rowId);
+    }
+
     /// <summary>Whether one row fails for a unit in the given state.</summary>
     public static bool Fails(in SkillRequirement requirement, bool hasBuff, bool hasBuffTag)
     {
