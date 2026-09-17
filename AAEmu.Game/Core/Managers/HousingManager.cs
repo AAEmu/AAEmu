@@ -1678,6 +1678,83 @@ public class HousingManager(
     /// <summary>Every loaded building. Used by the recall skills to find one the caster may enter.</summary>
     public IEnumerable<House> GetAllHouses() => _houses.Values;
 
+    /// <summary>
+    /// Performs a rebuild: the house becomes the housing its target names, the materials and labor that target
+    /// costs are spent, and the changed house is announced to the players who can see it and to the Zone.
+    /// </summary>
+    /// <remarks>
+    /// The decision itself is <see cref="HousingRebuildRules.Check"/>, and a refusal changes nothing. The two
+    /// refusals the client has no message for — not the owner, and a target the house's pack does not offer —
+    /// are logged rather than answered: the rebuild window already disables its own OK button for both, so the
+    /// only way to reach them is a cast the window would not have sent.
+    /// </remarks>
+    /// <returns>True when the house was rebuilt.</returns>
+    public bool Rebuild(Character character, House house, HousingRebuildTarget target)
+    {
+        if (character?.Inventory?.Bag == null || house == null || target == null)
+            return false;
+
+        var bag = character.Inventory.Bag;
+        var bagCounts = new Dictionary<uint, int>();
+        foreach (var item in bag.Items)
+        {
+            if (item == null)
+                continue;
+            bagCounts[item.TemplateId] = bagCounts.GetValueOrDefault(item.TemplateId) + item.Count;
+        }
+
+        var pack = HousingGameData.Instance.GetRebuildPackForHousing(house.TemplateId);
+        var refusal = HousingRebuildRules.Check(house.OwnerId == character.Id, pack, target, bagCounts,
+            character.LaborPower);
+        if (refusal != HousingRebuildRefusal.None)
+        {
+            Logger.Warn("Rebuild of house {0} into target {1} refused for {2}: {3}",
+                house.Id, target.Id, character.Name, refusal);
+            switch (refusal)
+            {
+                case HousingRebuildRefusal.MissingMaterials:
+                    character.SendErrorMessage(ErrorMessageType.NotEnoughItem);
+                    break;
+                case HousingRebuildRefusal.NotEnoughLabor:
+                    character.SendErrorMessage(ErrorMessageType.NotEnoughLaborPower);
+                    break;
+            }
+
+            return false;
+        }
+
+        var newTemplate = HousingGameData.Instance.GetTemplate(target.HousingId);
+        if (newTemplate == null)
+        {
+            Logger.Error("Rebuild target {0} names housing {1}, which has no template - house {2} left unchanged",
+                target.Id, target.HousingId, house.Id);
+            return false;
+        }
+
+        foreach (var material in target.Materials)
+            bag.ConsumeItem(AAEmu.Game.Models.Game.Items.Actions.ItemTaskType.SkillEffectGainItem, material.ItemId,
+                material.Count, null);
+
+        if (target.LaborPower > 0)
+            character.ChangeLabor((short)-target.LaborPower, 0);
+
+        // A rebuilt house is a finished one: the target's build steps are what it was built through, and step
+        // -1 is the model the client shows for a completed house.
+        house.Template = newTemplate;
+        house.TemplateId = target.HousingId;
+        house.CurrentStep = -1;
+        house.IsDirty = true;
+
+        house.BroadcastPacket(new SCHouseStatePacket(house), false);
+        if (WorldIntegration.ZoneAuthority)
+            HousingZoneBridge.NotifyZoneHouseCreated(house);
+        UpdateTaxInfo(house);
+
+        Logger.Info("House {0} rebuilt into target {1} (housing {2}) by {3}",
+            house.Id, target.Id, target.HousingId, character.Name);
+        return true;
+    }
+
     public House GetHouseById(uint houseId)
     {
         return _houses.GetValueOrDefault(houseId);
