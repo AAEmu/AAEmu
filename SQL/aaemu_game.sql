@@ -1138,3 +1138,35 @@ COMMENT='Keeps track of the crime events'
 COLLATE='utf8mb4_general_ci'
 ENGINE=InnoDB
 ;
+
+
+-- ----------------------------
+-- Table structure for character_records
+-- ----------------------------
+DROP TABLE IF EXISTS `character_records`;
+CREATE TABLE IF NOT EXISTS `character_records` (
+	`owner` INT UNSIGNED NOT NULL,
+	`record_id` INT UNSIGNED NOT NULL,
+	`value` INT NOT NULL DEFAULT '0',
+	PRIMARY KEY (`owner`, `record_id`) USING BTREE
+)
+COMMENT='Per-character value of each char_records counter'
+COLLATE='utf8mb4_general_ci'
+ENGINE=InnoDB
+;
+
+-- ----------------------------
+-- Table structure for character_achievements
+-- ----------------------------
+DROP TABLE IF EXISTS `character_achievements`;
+CREATE TABLE IF NOT EXISTS `character_achievements` (
+	`owner` INT UNSIGNED NOT NULL,
+	`achievement_id` INT UNSIGNED NOT NULL,
+	`amount` INT NOT NULL DEFAULT '0',
+	`completed_at` DATETIME NULL DEFAULT NULL,
+	PRIMARY KEY (`owner`, `achievement_id`) USING BTREE
+)
+COMMENT='Achievement progress and completion per character'
+COLLATE='utf8mb4_general_ci'
+ENGINE=InnoDB
+;
