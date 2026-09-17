@@ -533,6 +533,7 @@ public static class SCOffsets
     public const ushort SCWorldRestrictOwnerChangePacket = 0x2A2; // 10.0.2.13 SC_PACKET_WORLD_RESTRICT_OWNER_CHANGE (674)
     public const ushort SCLevelRestrictionConfigPacket = 0x2A3;
     public const ushort SCTaxItemConfigPacket = 0x2A4; // 10.0.2.13 SC_PACKET_TAX_ITEM_CONFIG (676)
+    public const ushort SCRebuildHouseTaxInfoPacket = 0x2BA; // 10.0.2.13 SC_PACKET_REBUILD_HOUSE_TAX_INFO (698)
     public const ushort SCInGameShopConfigPacket = 0x2BB; // 10.0.2.13 SC_PACKET_INGAME_SHOP_CONFIG (699)
     public const ushort SCGameRuleConfigPacket = 0x2BC; // 10.0.2.13 SC_PACKET_GAME_RULE_CONFIG (700)
     public const ushort SCHousingAreaConfigPacket = 0x2BD; // 10.0.2.13 SC_PACKET_HOUSING_AREA_CONFIG (701)
