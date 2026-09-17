@@ -1,4 +1,5 @@
 using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
@@ -6,6 +7,7 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Rankings;
+using AAEmu.Game.Models.Tasks.RankTask;
 using MySql.Data.MySqlClient;
 using NLog;
 
@@ -14,57 +16,105 @@ namespace AAEmu.Game.Core.Managers;
 /// <summary>
 /// Scores the ranking boards and keeps them: what a holder is worth, in which window, and where that puts
 /// them. A board shows every holder on the server rather than the ones in world, so the figures are written
-/// as characters are saved and read back when the window asks.
+/// to the database and read back when the window asks.
 /// </summary>
-public class RankScoreManager(IRankScoreStore store) : Singleton<RankScoreManager>
+/// <remarks>
+/// The boards are refreshed on their own hourly tick — the cadence the window itself states ("Refreshed
+/// every 1 h") — while a character's running totals are written with the character, so nothing earned
+/// between two ticks is lost.
+/// </remarks>
+public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) : Singleton<RankScoreManager>, IInitializable
 {
+    /// <summary>How often every board is rebuilt, matching the cadence the window shows.</summary>
+    public static readonly TimeSpan RefreshInterval = TimeSpan.FromHours(1);
+
+    /// <summary>How long after a start the first rebuild runs, so a restarted server has boards.</summary>
+    public static readonly TimeSpan FirstRefreshDelay = TimeSpan.FromMinutes(1);
+
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    /// <summary>
-    /// Writes every board's value for one character, in the window each board is in.
-    /// </summary>
-    /// <returns>How many boards the character was worth a line on.</returns>
-    public int SaveCharacter(MySqlConnection connection, MySqlTransaction transaction, Character character)
+    public void Initialize()
     {
-        if (character == null)
-            return 0;
+        taskManager.Schedule(new RankRefreshTask(), FirstRefreshDelay, RefreshInterval);
+        Logger.Info("Rankings: boards refresh every {0}", RefreshInterval);
+    }
 
+    /// <summary>
+    /// Rebuilds every board: a period board from the running totals everyone has stored, a board over a
+    /// figure held right now from the characters in world, whose equipment is what it is read from.
+    /// </summary>
+    public int Refresh(IReadOnlyList<Character> charactersInWorld)
+    {
+        using var connection = MySQL.CreateConnection();
+        using var transaction = connection.BeginTransaction();
+        var written = Refresh(charactersInWorld, connection, transaction);
+        transaction.Commit();
+        Logger.Info("Rankings: refreshed {0} board line(s)", written);
+        return written;
+    }
+
+    /// <summary>The same rebuild on a caller's connection and transaction.</summary>
+    public int Refresh(IReadOnlyList<Character> charactersInWorld, MySqlConnection connection, MySqlTransaction transaction)
+    {
         var now = DateTime.UtcNow;
-        var scores = new List<RankScore>();
+        var written = 0;
 
         foreach (var board in RankingGameData.Instance.Ranks)
         {
             if (RankingGameData.Instance.HolderKindOf(board) != RankHolderKind.Character)
                 continue;
 
-            var value = CharacterScore(character, board, RankingGameData.Instance.GateFor(board.Id));
-            if (value == null)
+            var period = RankingGameData.Instance.PeriodFor(board, now).StartUtc;
+            var rows = new List<RankScore>();
+
+            if (RankingGameData.Instance.GamePointCounterOf(board) is { } counter)
+            {
+                // Everyone with a total in this window is on the board, whether they are in world or not.
+                rows.AddRange(store.ReadGamePointBoard(board.Id, counter.Kind, counter.Method, period));
+            }
+            else
+            {
+                var gate = RankingGameData.Instance.GateFor(board.Id);
+                foreach (var character in charactersInWorld ?? [])
+                {
+                    var value = CharacterScore(character, board, gate);
+                    if (value == null)
+                        continue;
+
+                    rows.Add(new RankScore
+                    {
+                        RankId = board.Id,
+                        HolderKind = RankHolderKind.Character,
+                        HolderId = character.Id,
+                        AccountId = character.AccountId,
+                        WorldId = (byte)AppConfiguration.Instance.Id,
+                        Value = value.Value,
+                        BareValue = 0,
+                        PeriodStartUtc = period,
+                        UpdatedAtUtc = now
+                    });
+                }
+            }
+
+            if (rows.Count == 0)
                 continue;
 
-            scores.Add(new RankScore
-            {
-                RankId = board.Id,
-                HolderKind = RankHolderKind.Character,
-                HolderId = character.Id,
-                AccountId = character.AccountId,
-                WorldId = (byte)AppConfiguration.Instance.Id,
-                Value = value.Value,
-                BareValue = 0,
-                PeriodStartUtc = RankingGameData.Instance.PeriodFor(board, now).StartUtc,
-                UpdatedAtUtc = now
-            });
+            store.Save(connection, transaction, rows);
+            written += rows.Count;
         }
 
-        store.Save(connection, transaction, scores);
-        return scores.Count + SavePeriodTotals(connection, transaction, character, now);
+        return written;
     }
 
     /// <summary>
-    /// Writes what the character gained or spent since the last write into the running totals of each
-    /// board's window, and then puts those totals on the boards that rank them.
+    /// Writes what a character gained or spent since the last write. The boards themselves are rebuilt on
+    /// their own tick; this only keeps the running totals from being lost between two of them.
     /// </summary>
-    private int SavePeriodTotals(MySqlConnection connection, MySqlTransaction transaction, Character character, DateTime now)
+    public int SaveCharacter(MySqlConnection connection, MySqlTransaction transaction, Character character)
     {
+        if (character == null || !character.RankGamePointTotals.HasPending)
+            return 0;
+
         var counters = new List<(RankDefinition Board, int Kind, int Method)>();
         foreach (var board in RankingGameData.Instance.Ranks)
         {
@@ -80,48 +130,26 @@ public class RankScoreManager(IRankScoreStore store) : Singleton<RankScoreManage
         if (counters.Count == 0)
             return 0;
 
-        // What is waiting has to be added to what is already stored, and the stored figure has to be read
-        // before the write: a read through another connection cannot see this transaction's rows yet.
+        var now = DateTime.UtcNow;
+        var holder = new RankScore
+        {
+            HolderKind = RankHolderKind.Character,
+            HolderId = character.Id,
+            AccountId = character.AccountId,
+            WorldId = (byte)AppConfiguration.Instance.Id
+        };
+
+        // Every window keeps its own totals, so what is waiting is filed under each of them.
         var pending = character.RankGamePointTotals.Pending;
-        var scores = new List<RankScore>();
-        foreach (var (board, kind, method) in counters)
+        foreach (var window in counters
+                     .Select(entry => RankingGameData.Instance.PeriodFor(entry.Board, now).StartUtc)
+                     .Distinct())
         {
-            var period = RankingGameData.Instance.PeriodFor(board, now).StartUtc;
-            var stored = store.ReadGamePointTotal(character.Id, kind, method, period);
-            var delta = pending.TryGetValue((kind, method), out var waiting) ? waiting : 0;
-            var total = stored + delta;
-            if (total <= 0)
-                continue;
-
-            scores.Add(new RankScore
-            {
-                RankId = board.Id,
-                HolderKind = RankHolderKind.Character,
-                HolderId = character.Id,
-                AccountId = character.AccountId,
-                WorldId = (byte)AppConfiguration.Instance.Id,
-                Value = total,
-                BareValue = 0,
-                PeriodStartUtc = period,
-                UpdatedAtUtc = now
-            });
+            store.AddGamePointTotals(connection, transaction, holder, window, pending, now);
         }
 
-        if (pending.Count > 0)
-        {
-            // Every window keeps its own totals, so what is waiting is filed under each of them.
-            foreach (var window in counters
-                         .Select(entry => RankingGameData.Instance.PeriodFor(entry.Board, now).StartUtc)
-                         .Distinct())
-            {
-                store.AddGamePointTotals(connection, transaction, character.Id, window, pending, now);
-            }
-
-            character.RankGamePointTotals.Clear();
-        }
-
-        store.Save(connection, transaction, scores);
-        return scores.Count;
+        character.RankGamePointTotals.Clear();
+        return pending.Count;
     }
 
     /// <summary>The lines of one board, best first, each with the place it holds.</summary>
@@ -221,19 +249,5 @@ public class RankScoreManager(IRankScoreStore store) : Singleton<RankScoreManage
         return kind == RankHolderKind.Expedition
             ? character.Expedition == null ? null : (ulong)character.Expedition.Id
             : character.Id;
-    }
-
-    /// <summary>Scores the characters in world, which is what a board is refreshed from between saves.</summary>
-    public int SaveCharactersInWorld()
-    {
-        var saved = 0;
-        using var connection = AAEmu.Commons.Utils.DB.MySQL.CreateConnection();
-        using var transaction = connection.BeginTransaction();
-        foreach (var character in WorldManager.Instance.GetAllCharacters() ?? [])
-            saved += SaveCharacter(connection, transaction, character);
-
-        transaction.Commit();
-        Logger.Info("Rankings: refreshed {0} board value(s) from the characters in world", saved);
-        return saved;
     }
 }

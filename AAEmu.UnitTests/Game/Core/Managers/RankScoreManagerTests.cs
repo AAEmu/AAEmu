@@ -20,7 +20,7 @@ public class RankScoreManagerTests
     public async Task ReadBoard_HandsOutThePlacesTheStoredValuesEarn()
     {
         var store = new InMemoryStore();
-        var manager = new RankScoreManager(store);
+        var manager = new RankScoreManager(store, Mock.Of<ITaskManager>().Object);
         using var data = SeededBoard(permitTie: true);
         var board = RankingGameData.Instance.GetBoard(23);
 
@@ -43,7 +43,7 @@ public class RankScoreManagerTests
     public async Task ReadBoard_ReadsOnlyTheWindowTheBoardIsIn()
     {
         var store = new InMemoryStore();
-        var manager = new RankScoreManager(store);
+        var manager = new RankScoreManager(store, Mock.Of<ITaskManager>().Object);
         using var data = SeededBoard(permitTie: false);
         var board = RankingGameData.Instance.GetBoard(23);
 
@@ -61,7 +61,7 @@ public class RankScoreManagerTests
     public async Task PersonalLines_CarryTheHoldersOwnStoredValues()
     {
         var store = new InMemoryStore();
-        var manager = new RankScoreManager(store);
+        var manager = new RankScoreManager(store, Mock.Of<ITaskManager>().Object);
         using var data = SeededBoard(permitTie: false);
         var character = new Character(new UnitCustomModelParams()) { Id = 5 };
 
@@ -81,7 +81,7 @@ public class RankScoreManagerTests
     public async Task PersonalLines_LeaveOutBoardsTheHolderHasNoValueOn()
     {
         var store = new InMemoryStore();
-        var manager = new RankScoreManager(store);
+        var manager = new RankScoreManager(store, Mock.Of<ITaskManager>().Object);
         using var data = SeededBoard(permitTie: false);
         var character = new Character(new UnitCustomModelParams()) { Id = 5 };
 
@@ -140,29 +140,30 @@ public class RankScoreManagerTests
     }
 
     [Test]
-    public async Task SaveCharacter_PutsWhatWasGainedOnTheBoardThatRanksIt()
+    public async Task Refresh_PutsWhatWasGainedOnTheBoardThatRanksIt()
     {
         var store = new InMemoryStore();
-        var manager = new RankScoreManager(store);
+        var manager = new RankScoreManager(store, Mock.Of<ITaskManager>().Object);
         using var data = SeededBoard(permitTie: false);
         var character = new Character(new UnitCustomModelParams()) { Id = 5 };
 
         character.RankGamePointTotals.Add(RankGamePoints.Honor, RankGamePoints.Gained, 700);
-
         manager.SaveCharacter(null, null, character);
+        await Assert.That(character.RankGamePointTotals.HasPending).IsFalse(); // written, not pending
+
+        manager.Refresh([], null, null);
 
         var board = RankingGameData.Instance.GetBoard(42);
         var lines = manager.ReadBoard(board, 100);
         await Assert.That(lines.Count).IsEqualTo(1);
         await Assert.That(lines[0].Score.Value).IsEqualTo(700L);
-        await Assert.That(character.RankGamePointTotals.HasPending).IsFalse(); // written, not pending
     }
 
     [Test]
     public async Task SaveCharacter_AddsToTheRunningTotalOfTheWindow()
     {
         var store = new InMemoryStore();
-        var manager = new RankScoreManager(store);
+        var manager = new RankScoreManager(store, Mock.Of<ITaskManager>().Object);
         using var data = SeededBoard(permitTie: false);
         var character = new Character(new UnitCustomModelParams()) { Id = 5 };
 
@@ -172,46 +173,30 @@ public class RankScoreManagerTests
         character.RankGamePointTotals.Add(RankGamePoints.Honor, RankGamePoints.Gained, 300);
         manager.SaveCharacter(null, null, character);
 
+        manager.Refresh([], null, null);
+
         var lines = manager.ReadBoard(RankingGameData.Instance.GetBoard(42), 100);
         await Assert.That(lines[0].Score.Value).IsEqualTo(1000L);
     }
 
     [Test]
-    public async Task SaveCharacter_ReadsTheStoredTotalBeforeWritingTheNewOne()
-    {
-        // The write goes into the caller's transaction, which a read through the store's own connection
-        // cannot see — so the board's figure has to be the stored total plus what is waiting, and the read
-        // has to come first (live 2026-09-17: reading after the write left the period boards empty).
-        var store = new InMemoryStore();
-        var manager = new RankScoreManager(store);
-        using var data = SeededBoard(permitTie: false);
-        var character = new Character(new UnitCustomModelParams()) { Id = 5 };
-
-        character.RankGamePointTotals.Add(RankGamePoints.Honor, RankGamePoints.Gained, 700);
-        manager.SaveCharacter(null, null, character);
-
-        await Assert.That(store.Operations.IndexOf("read-total")).IsLessThan(store.Operations.IndexOf("add-totals"));
-    }
-
-    [Test]
-    public async Task SaveCharacter_LeavesABoardAloneWhenNothingWasCountedForIt()
+    public async Task Refresh_LeavesABoardAloneWhenNothingWasCountedForIt()
     {
         var store = new InMemoryStore();
-        var manager = new RankScoreManager(store);
+        var manager = new RankScoreManager(store, Mock.Of<ITaskManager>().Object);
         using var data = SeededBoard(permitTie: false);
-        var character = new Character(new UnitCustomModelParams()) { Id = 5 };
 
-        manager.SaveCharacter(null, null, character);
+        manager.Refresh([], null, null);
 
         await Assert.That(manager.ReadBoard(RankingGameData.Instance.GetBoard(42), 100)).IsEmpty();
     }
 
     [Test]
-    public async Task SaveCharacter_GivesEachBoardTheCounterTheTableNames()
+    public async Task Refresh_GivesEachBoardTheCounterTheTableNames()
     {
         // game_point_rank_details: 42 (kind 1, gained), 45 (kind 1, spent), 47 (kind 3, spent).
         var store = new InMemoryStore();
-        var manager = new RankScoreManager(store);
+        var manager = new RankScoreManager(store, Mock.Of<ITaskManager>().Object);
         using var data = SeededBoard(permitTie: false);
         var character = new Character(new UnitCustomModelParams()) { Id = 5 };
 
@@ -220,10 +205,23 @@ public class RankScoreManagerTests
         character.RankGamePointTotals.Add(RankGamePoints.Labor, RankGamePoints.Spent, 70);
 
         manager.SaveCharacter(null, null, character);
+        manager.Refresh([], null, null);
 
         await Assert.That(manager.ReadBoard(RankingGameData.Instance.GetBoard(42), 100)[0].Score.Value).IsEqualTo(900L);
         await Assert.That(manager.ReadBoard(RankingGameData.Instance.GetBoard(45), 100)[0].Score.Value).IsEqualTo(200L);
         await Assert.That(manager.ReadBoard(RankingGameData.Instance.GetBoard(47), 100)[0].Score.Value).IsEqualTo(70L);
+    }
+
+    [Test]
+    public async Task SaveCharacter_WithoutAnythingWaiting_WritesNothing()
+    {
+        var store = new InMemoryStore();
+        var manager = new RankScoreManager(store, Mock.Of<ITaskManager>().Object);
+        using var data = SeededBoard(permitTie: false);
+        var character = new Character(new UnitCustomModelParams()) { Id = 5 };
+
+        await Assert.That(manager.SaveCharacter(null, null, character)).IsEqualTo(0);
+        await Assert.That(store.Operations).IsEmpty();
     }
 
     private sealed class InMemoryStore : IRankScoreStore
@@ -234,6 +232,8 @@ public class RankScoreManagerTests
         public List<string> Operations { get; } = [];
 
         private readonly Dictionary<(ulong Character, int Kind, int Method, DateTime Period), long> _totals = [];
+
+        private readonly Dictionary<(ulong Character, int Kind, int Method, DateTime Period), (uint AccountId, byte WorldId)> _holders = [];
 
         public void Save(MySqlConnection connection, MySqlTransaction transaction, IReadOnlyList<RankScore> scores)
         {
@@ -265,14 +265,15 @@ public class RankScoreManagerTests
                                               && row.HolderId == holderId);
         }
 
-        public void AddGamePointTotals(MySqlConnection connection, MySqlTransaction transaction, ulong characterId,
+        public void AddGamePointTotals(MySqlConnection connection, MySqlTransaction transaction, RankScore holder,
             DateTime periodStartUtc, IReadOnlyDictionary<(int Kind, int Method), long> totals, DateTime updatedAtUtc)
         {
             Operations.Add("add-totals");
             foreach (var ((kind, method), amount) in totals)
             {
-                var key = (characterId, kind, method, periodStartUtc);
+                var key = (holder.HolderId, kind, method, periodStartUtc);
                 _totals[key] = _totals.TryGetValue(key, out var current) ? current + amount : amount;
+                _holders[key] = (holder.AccountId, holder.WorldId);
             }
         }
 
@@ -280,6 +281,32 @@ public class RankScoreManagerTests
         {
             Operations.Add("read-total");
             return _totals.TryGetValue((characterId, kind, method, periodStartUtc), out var total) ? total : 0;
+        }
+
+        public List<RankScore> ReadGamePointBoard(uint rankId, int kind, int method, DateTime periodStartUtc)
+        {
+            var rows = new List<RankScore>();
+            foreach (var ((characterId, rowKind, rowMethod, period), total) in _totals)
+            {
+                if (rowKind != kind || rowMethod != method || period != periodStartUtc || total <= 0)
+                    continue;
+
+                var (accountId, worldId) = _holders[(characterId, rowKind, rowMethod, period)];
+                rows.Add(new RankScore
+                {
+                    RankId = rankId,
+                    HolderKind = RankHolderKind.Character,
+                    HolderId = characterId,
+                    AccountId = accountId,
+                    WorldId = worldId,
+                    Value = total,
+                    BareValue = 0,
+                    PeriodStartUtc = periodStartUtc,
+                    UpdatedAtUtc = DateTime.UtcNow
+                });
+            }
+
+            return rows;
         }
     }
 }

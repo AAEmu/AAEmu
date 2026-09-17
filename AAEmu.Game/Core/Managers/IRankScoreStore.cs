@@ -21,9 +21,15 @@ public interface IRankScoreStore
     /// <summary>
     /// Adds what a character gained or spent to the running totals of a window.
     /// </summary>
-    void AddGamePointTotals(MySqlConnection connection, MySqlTransaction transaction, ulong characterId,
+    void AddGamePointTotals(MySqlConnection connection, MySqlTransaction transaction, RankScore holder,
         DateTime periodStartUtc, IReadOnlyDictionary<(int Kind, int Method), long> totals, DateTime updatedAtUtc);
 
     /// <summary>What a character has gained or spent in a window, or 0 when nothing has been counted.</summary>
     long ReadGamePointTotal(ulong characterId, int kind, int method, DateTime periodStartUtc);
+
+    /// <summary>
+    /// Every character's total for one running total in one window, so a period board can be built from
+    /// what is stored rather than from whoever happens to be in world.
+    /// </summary>
+    List<RankScore> ReadGamePointBoard(uint rankId, int kind, int method, DateTime periodStartUtc);
 }

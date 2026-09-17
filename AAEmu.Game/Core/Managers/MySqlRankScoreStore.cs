@@ -101,7 +101,7 @@ public sealed class MySqlRankScoreStore : IRankScoreStore
         };
     }
 
-    public void AddGamePointTotals(MySqlConnection connection, MySqlTransaction transaction, ulong characterId,
+    public void AddGamePointTotals(MySqlConnection connection, MySqlTransaction transaction, RankScore holder,
         DateTime periodStartUtc, IReadOnlyDictionary<(int Kind, int Method), long> totals, DateTime updatedAtUtc)
     {
         if (totals == null || totals.Count == 0)
@@ -112,13 +112,16 @@ public sealed class MySqlRankScoreStore : IRankScoreStore
             using var command = connection.CreateCommand();
             command.Transaction = transaction;
             command.CommandText =
-                "INSERT INTO character_game_point_totals (character_id,point_kind,point_method,period_start,total,updated_at) " +
-                "VALUES (@character,@kind,@method,@period,@total,@updated) " +
-                "ON DUPLICATE KEY UPDATE total = total + VALUES(total), updated_at = VALUES(updated_at)";
-            command.Parameters.AddWithValue("@character", characterId);
+                "INSERT INTO character_game_point_totals (character_id,point_kind,point_method,period_start,account_id,world_id,total,updated_at) " +
+                "VALUES (@character,@kind,@method,@period,@account,@world,@total,@updated) " +
+                "ON DUPLICATE KEY UPDATE total = total + VALUES(total), account_id = VALUES(account_id), " +
+                "world_id = VALUES(world_id), updated_at = VALUES(updated_at)";
+            command.Parameters.AddWithValue("@character", holder.HolderId);
             command.Parameters.AddWithValue("@kind", kind);
             command.Parameters.AddWithValue("@method", method);
             command.Parameters.AddWithValue("@period", periodStartUtc);
+            command.Parameters.AddWithValue("@account", holder.AccountId);
+            command.Parameters.AddWithValue("@world", holder.WorldId);
             command.Parameters.AddWithValue("@total", amount);
             command.Parameters.AddWithValue("@updated", updatedAtUtc);
             command.ExecuteNonQuery();
@@ -139,5 +142,38 @@ public sealed class MySqlRankScoreStore : IRankScoreStore
 
         var total = command.ExecuteScalar();
         return total == null || total == DBNull.Value ? 0 : Convert.ToInt64(total);
+    }
+
+    public List<RankScore> ReadGamePointBoard(uint rankId, int kind, int method, DateTime periodStartUtc)
+    {
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT character_id, account_id, world_id, total, updated_at FROM character_game_point_totals " +
+            "WHERE point_kind=@kind AND point_method=@method AND period_start=@period AND total > 0 " +
+            "ORDER BY total DESC";
+        command.Parameters.AddWithValue("@kind", kind);
+        command.Parameters.AddWithValue("@method", method);
+        command.Parameters.AddWithValue("@period", periodStartUtc);
+
+        var scores = new List<RankScore>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            scores.Add(new RankScore
+            {
+                RankId = rankId,
+                HolderKind = RankHolderKind.Character,
+                HolderId = reader.GetUInt64(0),
+                AccountId = reader.GetUInt32(1),
+                WorldId = reader.GetByte(2),
+                Value = reader.GetInt64(3),
+                BareValue = 0,
+                PeriodStartUtc = periodStartUtc,
+                UpdatedAtUtc = reader.GetDateTime(4)
+            });
+        }
+
+        return scores;
     }
 }
