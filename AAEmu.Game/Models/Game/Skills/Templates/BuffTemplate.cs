@@ -167,7 +167,7 @@ public class BuffTemplate
     public float BossTelescopeRange { get; init; }
     public bool FixAbilityLevelToOne { get; init; }
     public float ImmuneHealth { get; init; }
-    public int MaxLifeTime { get; init; }
+    public uint MaxLifeTime { get; init; }
     public int BalanceLevel { get; init; }
     public bool DisarmamentMainHand { get; init; }
     public bool DisarmamentOffHand { get; init; }

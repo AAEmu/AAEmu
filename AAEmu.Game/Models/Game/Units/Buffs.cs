@@ -676,6 +676,12 @@ public class Buffs : IBuffs
                     buff.Duration = (int)(buff.Duration * ((100 - buffTolerance.CharacterTimeReduction) / 100.0));
             }
 
+            // buffs.max_life_time: the ceiling on how long the instance may live, after every modifier
+            // and every tolerance step has had its say. A duration-0 family with a ceiling is one that
+            // is not meant to be permanent (23749 깃발의 기운 at 11,000 ms, 23151 추격: 파도 at 5,000), so
+            // the clamp is what gives it an expiry to be scheduled from.
+            buff.Duration = BuffLifetimeRules.ClampedDuration(buff.Duration, buff.Template.MaxLifeTime);
+
             if (buff.Duration > 0 && buff.StartTime == DateTime.MinValue)
             {
                 buff.StartTime = DateTime.UtcNow;
