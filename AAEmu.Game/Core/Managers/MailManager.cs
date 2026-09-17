@@ -1076,6 +1076,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
     }
 
     [ThreadStatic] private static int t_persistDeferDepth;
+    [ThreadStatic] private static bool t_persistDeferOwnsGate;
     [ThreadStatic] private static bool t_persistRequested;
     [ThreadStatic] private static WorldSaveStatus t_lastFlushStatus;
 
@@ -1091,8 +1092,13 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
     /// </summary>
     public IDisposable DeferPersist()
     {
+        // The gate is shared with PersistenceOperationScope and the explicit EnterOperation callers (a house
+        // build or demolish, an expedition or family mutation): when one of those already holds it on this
+        // thread, this scope must neither take it again - the lock forbids recursive reads, and a second
+        // EnterOperation throws - nor release it on the way out. Only the scope that took it releases it.
         if (t_persistDeferDepth == 0)
-            PersistenceGate.EnterOperation();
+            t_persistDeferOwnsGate = PersistenceGate.TryEnterOperation();
+
         t_persistDeferDepth++;
         return new PersistScope(this);
     }
@@ -1192,8 +1198,20 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             if (t_persistDeferDepth > 0)
                 return;
 
+            if (!t_persistDeferOwnsGate)
+            {
+                // An enclosing operation still holds the gate on this thread (the house build that consumed the
+                // design item, a demolish, an expedition or family mutation), so the save this would flush could
+                // not take it exclusively anyway. Leave the request standing: the next scope on this thread, or
+                // the periodic save, writes it. Releasing here instead - which is what this used to do - would
+                // hand away a lock this scope never took.
+                return;
+            }
+
             // Release the gate before saving: the save needs it exclusively.
+            t_persistDeferOwnsGate = false;
             PersistenceGate.ExitOperation();
+
             if (!t_persistRequested)
             {
                 t_lastFlushStatus = WorldSaveStatus.Saved;
