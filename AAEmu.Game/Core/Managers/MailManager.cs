@@ -1077,6 +1077,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
 
     [ThreadStatic] private static int t_persistDeferDepth;
     [ThreadStatic] private static bool t_persistDeferOwnsGate;
+    [ThreadStatic] private static bool t_persistFlushing;
     [ThreadStatic] private static bool t_persistRequested;
     [ThreadStatic] private static WorldSaveStatus t_lastFlushStatus;
 
@@ -1167,6 +1168,28 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
 
     private WorldSaveStatus FlushPersist(Action onFailed = null)
     {
+        // A save started on this thread calls back into the mail flush (a house build's tax letter goes out
+        // through MailManager.Send), so an unguarded flush recurses: TrySave runs the save action, that calls
+        // PersistNow, which flushes again - until the stack overflows and takes the process with it. A request
+        // arriving while this thread is already saving is held for the outer save, which is what a save that is
+        // already running is for.
+        if (t_persistFlushing)
+        {
+            t_persistRequested = true;
+            t_lastFlushStatus = WorldSaveStatus.Busy;
+            return WorldSaveStatus.Busy;
+        }
+
+        // An operation on this thread holds the gate shared (a house build, a demolish, an expedition or family
+        // mutation) without a deferral around it: a save cannot take the gate exclusively here either, so the
+        // request waits for the periodic save instead of failing.
+        if (PersistenceGate.IsOperationHeld)
+        {
+            t_persistRequested = true;
+            t_lastFlushStatus = WorldSaveStatus.Busy;
+            return WorldSaveStatus.Busy;
+        }
+
         var saver = SingletonContainer.ServiceProvider?.GetService<ISaveManager>();
         if (saver == null)
         {
@@ -1176,7 +1199,17 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
 
         // A save that is already running took the gate after this operation released it, so
         // it carries everything the operation wrote. Nothing is lost by not saving twice.
-        var status = saver.TrySave(onFailed);
+        WorldSaveStatus status;
+        t_persistFlushing = true;
+        try
+        {
+            status = saver.TrySave(onFailed);
+        }
+        finally
+        {
+            t_persistFlushing = false;
+        }
+
         t_lastFlushStatus = status;
         if (status == WorldSaveStatus.Busy)
             Logger.Debug("Mail persist folded into the save already in progress");
