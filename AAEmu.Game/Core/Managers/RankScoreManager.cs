@@ -426,7 +426,16 @@ public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) :
     public List<RankPlace> ReadBoard(RankDefinition board, int limit)
     {
         var period = RankingGameData.Instance.PeriodFor(board, DateTime.UtcNow);
-        var scores = store.ReadBoard(board.Id, period.StartUtc, limit);
+        return ReadBoard(board, period.StartUtc, limit);
+    }
+
+    /// <summary>
+    /// The lines one board held in one of its windows, best first, each with the place it held. A window
+    /// that has closed keeps its lines, so a season that is over can still be read.
+    /// </summary>
+    public List<RankPlace> ReadBoard(RankDefinition board, DateTime periodStartUtc, int limit)
+    {
+        var scores = store.ReadBoard(board.Id, periodStartUtc, limit);
         return RankScoreboard.Place(scores, board.PermitTie);
     }
 

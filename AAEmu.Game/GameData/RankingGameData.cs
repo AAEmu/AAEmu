@@ -72,7 +72,10 @@ public sealed record RankRewardGrant(
     uint CurrencyId,
     int CurrencyAmount);
 
-/// <summary>What a board's tiers hand out. Deciding a payout is kept apart from paying it.</summary>
+/// <summary>
+/// What a board's tiers hand out, and which window they settle. Deciding a payout is kept apart from
+/// paying it; the same window is what the window's own pre-season view shows.
+/// </summary>
 public static class RankPayouts
 {
     /// <summary>The tier a place falls in, or null when the board gives that place no tier.</summary>
@@ -97,6 +100,18 @@ public static class RankPayouts
     public static RankPeriod Previous(int resetIntervalId, int resetDayOfWeekId, RankPeriod current)
     {
         return RankPeriods.For(current.StartUtc.AddSeconds(-1), resetIntervalId, resetDayOfWeekId);
+    }
+
+    /// <summary>
+    /// The window a board's pre-season view shows: the one that closed most recently, which is the same
+    /// window the payout settles. A board whose window never closes has no season behind it.
+    /// </summary>
+    public static RankPeriod? SeasonOf(RankDefinition board, RankPeriod current)
+    {
+        if (board == null || board.ResetIntervalId == 0)
+            return null;
+
+        return Previous(board.ResetIntervalId, board.ResetDayOfWeekId, current);
     }
 
     /// <summary>

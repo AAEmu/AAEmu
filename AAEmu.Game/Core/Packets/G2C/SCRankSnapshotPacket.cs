@@ -31,6 +31,26 @@ public class SCRankSnapshotPacket(
 
     public override PacketStream Write(PacketStream stream)
     {
+        WriteBoard(stream, type, divisionId, entries, boardId);
+
+        // The board's own answer ends with when the board was taken; the reward answer carries no time
+        // (the window reads its season's off date itself).
+        stream.Write(snappedTime);
+        return stream;
+    }
+
+    /// <summary>
+    /// The part a board's answer shares with the reward answer: the requested type and division, a line
+    /// count and the lines, a tier count and the tiers, then the board's own id.
+    /// </summary>
+    /// <remarks>
+    /// The client reads exactly this much and stops, which a live capture of both answers shows: 79 bytes
+    /// of body whatever follows. The tiers are left empty — the tables' tiers are the reward bands of a
+    /// board rather than holders of a place, and the client draws whatever this list carries as lines.
+    /// </remarks>
+    internal static void WriteBoard(PacketStream stream, uint type, uint divisionId,
+        IReadOnlyList<RankingOrderedEntry> entries, long boardId)
+    {
         stream.Write(type);
         stream.Write(divisionId);
 
@@ -42,7 +62,5 @@ public class SCRankSnapshotPacket(
         stream.Write(0u); // no tiers: see the remarks
 
         stream.Write(boardId);
-        stream.Write(snappedTime);
-        return stream;
     }
 }

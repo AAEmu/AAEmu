@@ -1,4 +1,4 @@
-using AAEmu.Game.GameData;
+﻿using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Rankings;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Rankings;
@@ -88,6 +88,30 @@ public class RankPayoutsTests
 
         await Assert.That(before.StartUtc).IsEqualTo(new DateTime(2026, 9, 6, 0, 0, 0, DateTimeKind.Utc));
         await Assert.That(before.EndUtc).IsEqualTo(week.StartUtc);
+    }
+
+    [Test]
+    public async Task SeasonOf_IsTheWindowThatJustClosed()
+    {
+        var board = new RankDefinition { Id = 43, ResetIntervalId = RankPeriods.Monthly, ResetDayOfWeekId = RankPeriods.NoDay };
+        var september = new RankPeriod(new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc));
+
+        var season = RankPayouts.SeasonOf(board, september);
+
+        await Assert.That(season).IsNotNull();
+        await Assert.That(season.Value.StartUtc).IsEqualTo(new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc));
+        await Assert.That(season.Value.EndUtc).IsEqualTo(september.StartUtc);
+    }
+
+    [Test]
+    public async Task SeasonOf_IsNullForABoardWhoseWindowNeverCloses()
+    {
+        // an on-going board (23, 24/25/26, 27/28/29) has no season behind it
+        var board = new RankDefinition { Id = 23, ResetIntervalId = 0 };
+        var period = new RankPeriod(DateTime.UnixEpoch, DateTime.UnixEpoch);
+
+        await Assert.That(RankPayouts.SeasonOf(board, period)).IsNull();
+        await Assert.That(RankPayouts.SeasonOf(null, period)).IsNull();
     }
 
     [Test]

@@ -53,28 +53,33 @@ public class CSRankSnapshotPacket() : GamePacket(CSOffsets.CSRankSnapshotPacket,
     /// </summary>
     private static List<RankingOrderedEntry> RankedRows(RankDefinition board)
     {
-        var rows = new List<RankingOrderedEntry>();
-        foreach (var place in RankScoreManager.Instance.ReadBoard(board, SCRankSnapshotPacket.MaxEntries))
+        return RankScoreManager.Instance.ReadBoard(board, SCRankSnapshotPacket.MaxEntries)
+            .Select(Row)
+            .ToList();
+    }
+
+    /// <summary>
+    /// One line as the window reads it. The reward answer carries the same lines for a season that has
+    /// closed, so both are built here.
+    /// </summary>
+    internal static RankingOrderedEntry Row(RankPlace place)
+    {
+        return new RankingOrderedEntry
         {
-            rows.Add(new RankingOrderedEntry
-            {
-                V1 = place.Score.Value,
-                V2 = place.Score.BareValue,
-                Timestamp = new DateTimeOffset(place.Score.UpdatedAtUtc, TimeSpan.Zero).ToUnixTimeSeconds(),
-                WorldId = place.Score.WorldId,
-                Id = place.Score.HolderId,
-                AccountId = place.Score.AccountId,
+            V1 = place.Score.Value,
+            V2 = place.Score.BareValue,
+            Timestamp = new DateTimeOffset(place.Score.UpdatedAtUtc, TimeSpan.Zero).ToUnixTimeSeconds(),
+            WorldId = place.Score.WorldId,
+            Id = place.Score.HolderId,
+            AccountId = place.Score.AccountId,
 
-                // The window reads the holder out of the third identity slot — the one a ranker's appearance
-                // is asked for by, and the one its name cache is queried with. An expedition line is named
-                // from the expedition id, which is the same holder id.
-                Type = (long)place.Score.HolderId,
-                PrivacyStatus = 0,
-                SubData = RankingSubData.FromBytes(place.Score.SubData),
-                Ranking = place.Position
-            });
-        }
-
-        return rows;
+            // The window reads the holder out of the third identity slot — the one a ranker's appearance
+            // is asked for by, and the one its name cache is queried with. An expedition line is named
+            // from the expedition id, which is the same holder id.
+            Type = (long)place.Score.HolderId,
+            PrivacyStatus = 0,
+            SubData = RankingSubData.FromBytes(place.Score.SubData),
+            Ranking = place.Position
+        };
     }
 }
