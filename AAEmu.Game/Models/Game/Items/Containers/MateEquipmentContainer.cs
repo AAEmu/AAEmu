@@ -19,22 +19,19 @@ public class MateEquipmentContainer : EquipmentContainer
         if (!base.CanAccept(item, targetSlot))
             return false;
 
-        // What an item counts as in a mate's position, and which kinds that position takes, are the
-        // tables' (slave_equip_kind_lists against the item's own kind): a piece the position does not
-        // list stays out rather than being worn and never drawn.
+        // A mate wears what its own npc's packs list (mate_equip_pack_groups → mate_equip_pack_items): a
+        // mate's TemplateId is the npc it was summoned from, which is the key those tables use. A mate
+        // whose npc carries no pack has no whitelist, and the tables say nothing rather than everything
+        // being refused.
         if (item == null || ParentUnit is not MateUnit mate)
             return true;
 
-        if (targetSlot < 0 || targetSlot >= ContainerSize)
-            return true; // slot range is the base container's business, and it has already had its say
-
-        if (SlaveGameData.Instance.PositionTakesItem(mate.TemplateId, (byte)targetSlot, item.TemplateId))
+        if (MateGameData.Instance.MatePacksList(mate.TemplateId, item.TemplateId))
             return true;
 
         Logger.Warn(
-            "{0} tried to put {1} ({2}) into {3}'s slot {4}, which does not take its kind {5}",
-            Owner?.Name, item.Template?.Name, item.TemplateId, mate.Name, targetSlot,
-            SlaveGameData.Instance.GetItemSlaveEquipKind(item.TemplateId));
+            "{0} tried to put {1} ({2}) on {3}, whose packs do not list it",
+            Owner?.Name, item.Template?.Name, item.TemplateId, mate.Name);
         return false;
     }
 

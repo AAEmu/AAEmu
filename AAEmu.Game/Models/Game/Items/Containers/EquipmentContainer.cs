@@ -1,6 +1,7 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills.Buffs;
@@ -163,6 +164,19 @@ public class EquipmentContainer : ItemContainer
                 Logger.Warn($"{ParentUnit?.Name} ({OwnerId}) ship equip slot out of range {targetSlot}/{ContainerSize}");
                 return false;
             }
+
+            // Which kinds a ship's position takes is the tables' (slave_equip_kind_lists, named by the
+            // position's slave_equip_slots row, against the item's own slave_equip_kind_id). A part whose
+            // kind the position does not list stays out rather than being mounted and never drawn.
+            if (ParentUnit is Slave ship &&
+                !SlaveGameData.Instance.PositionTakesItem(ship.TemplateId, (byte)targetSlot, item.TemplateId))
+            {
+                Logger.Warn(
+                    $"{ship.Name} cannot take {item.Template?.Name} ({item.TemplateId}) in position {targetSlot}: " +
+                    $"its kind {SlaveGameData.Instance.GetItemSlaveEquipKind(item.TemplateId)} is not one this position lists");
+                return false;
+            }
+
             return true;
         }
 
