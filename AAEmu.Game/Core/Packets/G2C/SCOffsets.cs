@@ -635,6 +635,7 @@ public static class SCOffsets
     public const ushort SCDoodadWorldmapTextRemovedPacket = 0x325;
     public const ushort SCDropQuestsByFactionChangePacket = 0x343;
     public const ushort SCDumpGachaRecordPacket = 0x2E4;
+    public const ushort SCAllSiegeRaidTeamInfoPacket = 0x330; // 10.0.2.13
     public const ushort SCElectSiegeRaidOwnerPacket = 0x32F;
     public const ushort SCEnsembleSuggestedPacket = 0x25C;
     public const ushort SCEnsembleRejectPacket = 0x25D;

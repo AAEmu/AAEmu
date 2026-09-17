@@ -172,6 +172,68 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
         character.SendPacket(new SCSiegeMemberPacket(0, (int)zoneId, character.Id, false));
     }
 
+    public List<SiegeRaidTeam> GetRaidTeams(ushort zoneId)
+    {
+        var isWaitWar = GetScheduledPeriod(zoneId, DateTime.UtcNow) == SiegePeriod.ReadyToSiege;
+        return SiegeRaidTeamRules.Group(GetRaidTeamRoster(zoneId), GetDefenderFactionId(zoneId), isWaitWar);
+    }
+
+    /// <summary>
+    /// The faction that holds the ground being fought over - the team the window shows in its defence slot.
+    /// Zero when the zone group has no live Dominion claim, in which case there is nothing defending it yet
+    /// and no row claims to.
+    /// </summary>
+    private static uint GetDefenderFactionId(ushort zoneId)
+    {
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT faction_id FROM dominions WHERE zone_id=@z";
+        command.Parameters.AddWithValue("@z", zoneId);
+        command.Prepare();
+        using var reader = command.ExecuteReader();
+        return reader.Read() ? reader.GetUInt32(0) : 0u;
+    }
+
+    /// <summary>
+    /// The characters registered for the zone group's raid team, each with the alliance it fights for - a team
+    /// is the registrations of one alliance. Registrations come back in the order they were made, which is the
+    /// order the window lists the teams in after the defence.
+    /// </summary>
+    private static List<SiegeRaidTeamMember> GetRaidTeamRoster(ushort zoneId)
+    {
+        var roster = new List<SiegeRaidTeamMember>();
+
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT m.character_id, c.faction_id
+            FROM siege_raid_team_members m
+            JOIN characters c ON c.id = m.character_id
+            WHERE m.zone_id = @z
+            ORDER BY m.registered_at, m.character_id
+            """;
+        command.Parameters.AddWithValue("@z", zoneId);
+        command.Prepare();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+            roster.Add(new SiegeRaidTeamMember(reader.GetUInt32(0), AllianceOf(reader.GetUInt32(1))));
+
+        return roster;
+    }
+
+    /// <summary>
+    /// The top-level Nuia/Haranya/pirate alliance a character's own race-based faction belongs to (a faction
+    /// with no mother is its own alliance) - the same resolution DominionManager.ResolveOwningFaction uses for
+    /// a dominion's owning faction, so a team and the dominion it fights for are named by the same id.
+    /// </summary>
+    private static uint AllianceOf(uint factionId)
+    {
+        var faction = FactionManager.Instance.GetFaction((FactionsEnum)factionId);
+        return faction != null && faction.MotherId != FactionsEnum.Invalid
+            ? (uint)faction.MotherId
+            : factionId;
+    }
+
     public void AddScore(ushort zoneId, uint outlawDelta, uint defenseDelta, uint offenseDelta)
     {
         using var connection = MySQL.CreateConnection();

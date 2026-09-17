@@ -1,5 +1,6 @@
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Sieges;
 using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Managers;
@@ -32,6 +33,13 @@ public interface ISiegeManager : ILoadable
 
     /// <summary>Answers the registration popup with the characters registered in the caller's current zone group.</summary>
     void SendRaidTeamRegisterList(GameConnection connection);
+
+    /// <summary>
+    /// The raid teams the siege window lists for a zone group's siege: one per faction that has registrations,
+    /// the defending faction first and numbered from one. Empty when nobody has registered, which is what the
+    /// window shows as a vacant team.
+    /// </summary>
+    List<SiegeRaidTeam> GetRaidTeams(ushort zoneId);
 
     /// <summary>Adds to a zone group's running siege score counters and broadcasts the update. No confirmed automatic trigger yet - see SiegeManager's doc comment.</summary>
     void AddScore(ushort zoneId, uint outlawDelta, uint defenseDelta, uint offenseDelta);
