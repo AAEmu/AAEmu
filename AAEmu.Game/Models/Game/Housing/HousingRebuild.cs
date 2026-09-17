@@ -144,6 +144,40 @@ public static class HousingRebuildRules
     }
 
     /// <summary>
+    /// The skills that start a rebuild, by skill id, built from the targets packs actually offer.
+    /// </summary>
+    /// <remarks>
+    /// A target no pack names can never be picked, and the shipped tables carry rows like that: six targets
+    /// sit in no pack at all, and one of them is a test row claiming skill 2 — the basic melee attack — with
+    /// 696 materials. Indexing those would make an ordinary swing look like a remodel cast, so the index is
+    /// built from the packs rather than from <c>housing_rebuildings</c> alone. Several targets still share a
+    /// skill; the entry is only a "this is a remodel skill" test, and the row itself is named by the cast.
+    /// </remarks>
+    public static IReadOnlyDictionary<uint, uint> BuildSkillIndex(
+        IEnumerable<HousingRebuildTarget> targets,
+        IEnumerable<HousingRebuildPack> packs)
+    {
+        var byId = new Dictionary<uint, HousingRebuildTarget>();
+        foreach (var target in targets ?? [])
+        {
+            if (target != null)
+                byId[target.Id] = target;
+        }
+
+        var index = new Dictionary<uint, uint>();
+        foreach (var pack in packs ?? [])
+        {
+            foreach (var targetId in pack?.TargetIds ?? [])
+            {
+                if (targetId != 0 && byId.TryGetValue(targetId, out var target) && target.SkillId != 0)
+                    index[target.SkillId] = target.Id;
+            }
+        }
+
+        return index;
+    }
+
+    /// <summary>
     /// The first reason this rebuild cannot go ahead, checked in the order a player would hit them: not the
     /// owner, a target the house's pack does not offer, materials missing from the bag, then labor.
     /// </summary>

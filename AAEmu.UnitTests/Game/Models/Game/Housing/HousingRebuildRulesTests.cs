@@ -145,4 +145,54 @@ public class HousingRebuildRulesTests
         await Assert.That(HousingRebuildRules.Check(true, pack, target, Bag(), laborPower: 0))
             .IsEqualTo(HousingRebuildRefusal.None);
     }
+
+    [Test]
+    public async Task BuildSkillIndex_TakesTheSkillsPacksOffer()
+    {
+        var pack = Pack(2, 3, 4);
+        var targets = new[] { Target(3), Target(4) };
+
+        var index = HousingRebuildRules.BuildSkillIndex(targets, [pack]);
+
+        await Assert.That(index.Keys).IsEquivalentTo(new uint[] { 28831, 28832 });
+    }
+
+    [Test]
+    public async Task BuildSkillIndex_LeavesOutATargetNoPackNames()
+    {
+        // The shipped tables carry a test row that no pack offers and whose skill is the basic melee
+        // attack. Indexed, every swing would look like a remodel cast.
+        var reachable = Target(3);
+        var testRow = new HousingRebuildTarget { Id = 186, Name = "test row", SkillId = 2, HousingId = 999 };
+
+        var index = HousingRebuildRules.BuildSkillIndex([reachable, testRow], [Pack(2, 3)]);
+
+        await Assert.That(index.ContainsKey(2)).IsFalse();
+        await Assert.That(index.ContainsKey(reachable.SkillId)).IsTrue();
+    }
+
+    [Test]
+    public async Task BuildSkillIndex_CollapsesASkillSeveralTargetsShare()
+    {
+        var pack = Pack(2, 3, 4, 5);
+        var targets = new[]
+        {
+            Target(3),
+            new HousingRebuildTarget { Id = 4, Name = "shared", SkillId = 28829, HousingId = 433 },
+            new HousingRebuildTarget { Id = 5, Name = "shared too", SkillId = 28829, HousingId = 434 }
+        };
+
+        var index = HousingRebuildRules.BuildSkillIndex(targets, [pack]);
+
+        await Assert.That(index.ContainsKey(28829)).IsTrue();
+        await Assert.That(index.Count).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task BuildSkillIndex_IsEmptyWithoutPacks()
+    {
+        var index = HousingRebuildRules.BuildSkillIndex([Target(3)], []);
+
+        await Assert.That(index).IsEmpty();
+    }
 }

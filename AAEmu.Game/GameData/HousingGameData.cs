@@ -688,8 +688,6 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
                     LaborPower = reader.GetInt32("labor_power", 0)
                 };
                 _rebuildTargets[target.Id] = target;
-                if (target.SkillId != 0)
-                    _rebuildTargetBySkill[target.SkillId] = target.Id;
             }
         }
 
@@ -749,8 +747,14 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
             }
         }
 
-        Logger.Info("Loaded {0} housing rebuild targets in {1} packs",
-            _rebuildTargets.Count, _rebuildPacks.Count);
+        // After the packs: only what a pack offers can be rebuilt into, and a row nothing offers must not
+        // make its skill look like a remodel skill.
+        foreach (var (skillId, targetId) in HousingRebuildRules.BuildSkillIndex(
+                     _rebuildTargets.Values, _rebuildPacks.Values))
+            _rebuildTargetBySkill[skillId] = targetId;
+
+        Logger.Info("Loaded {0} housing rebuild targets in {1} packs ({2} start skills)",
+            _rebuildTargets.Count, _rebuildPacks.Count, _rebuildTargetBySkill.Count);
     }
 
     private readonly Dictionary<uint, uint> _rebuildPackByHousing = [];
