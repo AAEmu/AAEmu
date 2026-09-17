@@ -34,6 +34,12 @@ public class HouseRebuild : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
+        if (args.Length > 0 && args[0].Equals("create", StringComparison.OrdinalIgnoreCase))
+        {
+            CreateHouse(character, args.AsSpan(1), messageOutput);
+            return;
+        }
+
         if (args.Length == 0)
         {
             ListPacks(messageOutput);
@@ -58,6 +64,32 @@ public class HouseRebuild : ICommand
             $"labor {target.LaborPower}, {target.Materials.Count} material(s)");
         foreach (var material in target.Materials)
             CommandManager.SendNormalText(this, messageOutput, $"  material item {material.ItemId} x{material.Count}");
+    }
+
+    /// <summary>
+    /// Builds a house for the caller where they stand — the server side of placing a design, without the
+    /// client's placement cursor. It is how a rebuild can be looked at on a server that has no player houses:
+    /// build one, then start a rebuild on it.
+    /// </summary>
+    private void CreateHouse(Character character, ReadOnlySpan<string> args, IMessageOutput messageOutput)
+    {
+        if (args.Length == 0 || !uint.TryParse(args[0], out var designId))
+        {
+            CommandManager.SendErrorText(this, messageOutput, "Usage: /houserebuild create <housingDesignId>");
+            return;
+        }
+
+        if (character.Connection == null)
+        {
+            CommandManager.SendErrorText(this, messageOutput, "No connection to build with.");
+            return;
+        }
+
+        var position = character.Transform.World.Position;
+        HousingManager.Instance.ConstructHouseTax(character.Connection, designId,
+            position.X, position.Y, position.Z);
+        CommandManager.SendNormalText(this, messageOutput,
+            $"Constructed housing design {designId} at {position.X:F1}, {position.Y:F1}, {position.Z:F1}.");
     }
 
     private void ListPacks(IMessageOutput messageOutput)
