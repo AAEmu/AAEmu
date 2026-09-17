@@ -875,6 +875,12 @@ public class Buffs : IBuffs
         // imprison-or-trial offer). Guarded by the buff's own shipped length.
         if (GetOwner() is Character arrested && ArrestRules.IsArrestStateBuff(buff.Template.BuffId))
             JusticeManager.Instance.OnArrestStateApplied(arrested);
+
+        // taunt / taunt_with_top_aggro (199 / 133 rows): the buff landed on an NPC and it now attacks the
+        // unit that applied it. Outside the lock, because the publish walks the NPC's aggro table and
+        // hands a packet to the zone. A refused or absorbed application leaves InUse false and is skipped.
+        if (buff.InUse && TauntRules.ForcesTarget(buff.Template.Taunt, buff.Template.TauntWithTopAggro))
+            buff.ApplyTaunt();
     }
 
     private uint AllocateIndex()
@@ -1267,6 +1273,11 @@ public class Buffs : IBuffs
         return _owner?.Target as BaseUnit;
     }
 
+    /// <summary>
+    /// The active buffs that absorb damage: <c>damage_absorption_type_id</c> (231 rows) or a bare
+    /// <c>damage_absorption_per_hit</c> with no type (71 rows, the 돌파/마상 수비 family). Both columns are
+    /// authored, so neither alone decides whether a buff is a shield.
+    /// </summary>
     public IEnumerable<Buff> GetAbsorptionEffects()
     {
         // Create a copy of the list of effects to avoid changing the list while iterating
@@ -1276,7 +1287,39 @@ public class Buffs : IBuffs
             effects = _effects.ToArray();
         }
 
-        return effects.Where(e => e.Template.DamageAbsorptionTypeId > 0);
+        return effects.Where(e => e.Template != null
+                                  && AbsorptionRules.IsShield(
+                                      e.Template.DamageAbsorptionTypeId, e.Template.DamageAbsorptionPerHit));
+    }
+
+    /// <summary>
+    /// The active buffs that can reflect an incoming hit (<c>reflection_chance</c>, 77 rows). A row with no
+    /// chance never reflects, which is what keeps the 30,577 rows that leave the column at 0 out of the
+    /// damage path entirely.
+    /// </summary>
+    public IEnumerable<Buff> GetDamageReflectionEffects()
+    {
+        IEnumerable<Buff> effects;
+        lock (_lock)
+        {
+            effects = _effects.ToArray();
+        }
+
+        return effects.Where(e => e.Template != null && e.Template.ReflectionChance > 0);
+    }
+
+    /// <summary>
+    /// The active buffs that pay for damage out of mana (<c>mana_shield_ratio</c>, 11 rows).
+    /// </summary>
+    public IEnumerable<Buff> GetManaShieldEffects()
+    {
+        IEnumerable<Buff> effects;
+        lock (_lock)
+        {
+            effects = _effects.ToArray();
+        }
+
+        return effects.Where(e => e.Template != null && e.Template.ManaShieldRatio > 0);
     }
 
     public bool HasEffectsMatchingCondition(Func<Buff, bool> predicate)

@@ -3355,7 +3355,7 @@ public partial class Character : Unit, ICharacter
 
     public TimeSpan OnlineTime { get; set; } = TimeSpan.Zero;
 
-    public override void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage)
+    public override void ReduceCurrentHp(BaseUnit attacker, int value, KillReason killReason = KillReason.Damage, DamageType damageType = DamageType.Melee)
     {
         if (AppConfiguration.Instance.World.GodMode)
         {
@@ -3373,7 +3373,7 @@ public partial class Character : Unit, ICharacter
         if (attacker is Character enemyChar && value > 0 && enemyChar.Id != this.Id)
             RecordPvpDamageFrom(enemyChar);
 
-        base.ReduceCurrentHp(attacker, value, killReason);
+        base.ReduceCurrentHp(attacker, value, killReason, damageType);
     }
 
     public void DoRepair(List<Item> items, bool useAaPoint)

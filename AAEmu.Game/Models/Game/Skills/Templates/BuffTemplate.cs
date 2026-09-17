@@ -367,6 +367,12 @@ public class BuffTemplate
         if (buff.Charge == 0)
             buff.Charge = Random.Shared.Next(InitMinCharge, InitMaxCharge);
 
+        // aura_radius / aura_slave_buff_id: the aura buff keeps another buff on the units around its owner.
+        // Start runs again on a refresh and on every stack growth, so the instance itself decides whether
+        // its pulse has already been scheduled.
+        if (AuraRules.IsAura(AuraRadius, AuraSlaveBuffId) && buff.TryClaimAuraPulse())
+            EffectTaskManager.Instance.AddAuraTask(buff, AuraRules.PulseIntervalMs(Tick));
+
         if (!buff.Passive)
         {
             owner.BroadcastPacket(new SCBuffCreatedPacket(buff), true);

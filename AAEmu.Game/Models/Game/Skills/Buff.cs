@@ -1,8 +1,11 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Skills.Utils;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Skills;
@@ -68,10 +71,258 @@ public class Buff
     /// </summary>
     public bool RelayedToZone { get; set; }
 
+    /// <summary>
+    /// One unit this aura is holding its slave buff on, and the instance it applied.
+    /// </summary>
+    public readonly record struct AuraRecipient(Unit Unit, uint Index);
+
+    /// <summary>
+    /// The units this aura currently holds its <c>aura_slave_buff_id</c> on, keyed by object id.
+    /// </summary>
+    /// <remarks>
+    /// The applied index is kept so a unit that walks out of the radius loses the instance this aura gave
+    /// it and not another caster's copy of the same family. <see cref="AuraRecipientsLock"/> guards the
+    /// map: the pulse writes it from the task thread, and the buff's own end path drains it.
+    /// </remarks>
+    public Dictionary<uint, AuraRecipient> AuraRecipients { get; } = [];
+
+    public object AuraRecipientsLock { get; } = new();
+
+    private bool _auraScheduled;
+
+    /// <summary>
+    /// Claims the right to schedule this buff's aura pulse, once per instance.
+    /// </summary>
+    /// <remarks>
+    /// <c>BuffTemplate.Start</c> runs again on every refresh and on every stack growth, so the claim has
+    /// to be made here rather than at the call site, or a sixty-stack bard song would carry sixty pulses.
+    /// </remarks>
+    public bool TryClaimAuraPulse()
+    {
+        lock (AuraRecipientsLock)
+        {
+            if (_auraScheduled)
+                return false;
+
+            _auraScheduled = true;
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// One pass of an aura: apply <c>aura_slave_buff_id</c> to the units now inside
+    /// <c>aura_radius</c> that match <c>aura_relation_id</c>, and take it back from the ones that left.
+    /// </summary>
+    /// <remarks>
+    /// Eligibility is decided by <see cref="AuraRules"/>; this method only supplies the live units. The
+    /// nearest eligible units win the <c>aura_max_count</c> slots, so a ceiling that bites always keeps
+    /// the same set instead of however the region happens to enumerate.
+    /// </remarks>
+    public void PulseAura()
+    {
+        var template = Template;
+        var owner = Owner;
+        var caster = Caster;
+        if (template == null || owner == null || caster == null)
+            return;
+
+        var slaveTemplate = SkillManager.Instance.GetBuffTemplate(template.AuraSlaveBuffId);
+        if (slaveTemplate == null)
+            return;
+
+        var around = WorldManager.GetAround<Unit>(owner, template.AuraRadius) ?? [];
+        // The source carries its own aura unless a relation excludes it; the area ticks add their owner
+        // the same way, because a region query is not guaranteed to return the unit at its centre.
+        if (owner is Unit ownerUnit && !around.Contains(ownerUnit))
+            around.Add(ownerUnit);
+
+        var eligible = new List<Unit>();
+        foreach (var candidate in around)
+        {
+            if (candidate?.Buffs == null || candidate.ObjId == 0 || candidate.Hp <= 0)
+                continue;
+            if (!AuraRules.InRadius(template.AuraRadius, owner.GetDistanceTo(candidate)))
+                continue;
+
+            var isCreator = candidate.ObjId == caster.ObjId;
+            var isOwned = isCreator || candidate.GetOwnerCharacter()?.ObjId == caster.ObjId;
+            var relationMatches = SkillTargetingUtil.IsRelationValid(
+                (SkillTargetRelation)template.AuraRelationId, caster, candidate);
+
+            if (AuraRules.AllowsRecipient(
+                    template.AuraCreatorOnly, template.AuraChildOnly, isCreator, isOwned, relationMatches))
+                eligible.Add(candidate);
+        }
+
+        eligible.Sort((a, b) => owner.GetDistanceTo(a).CompareTo(owner.GetDistanceTo(b)));
+
+        var roster = new HashSet<uint>();
+        foreach (var candidate in eligible)
+        {
+            if (!AuraRules.HasRoom(template.AuraMaxCount, roster.Count))
+                break;
+            roster.Add(candidate.ObjId);
+        }
+
+        // A unit that left the radius, or lost its slot to a nearer one, gives the buff back and is
+        // forgotten — otherwise it would never be offered the aura again if it walked back in.
+        List<KeyValuePair<uint, AuraRecipient>> leaving = null;
+        lock (AuraRecipientsLock)
+        {
+            foreach (var entry in AuraRecipients.Where(held => !roster.Contains(held.Key)).ToList())
+            {
+                (leaving ??= []).Add(entry);
+                AuraRecipients.Remove(entry.Key);
+            }
+        }
+
+        if (leaving != null)
+            foreach (var entry in leaving)
+                ReleaseAuraRecipient(entry.Key, entry.Value);
+
+        foreach (var candidate in eligible)
+        {
+            if (!roster.Contains(candidate.ObjId))
+                continue;
+
+            lock (AuraRecipientsLock)
+            {
+                if (AuraRecipients.ContainsKey(candidate.ObjId))
+                    continue;
+            }
+
+            var slave = new Buff(candidate, caster, SkillCaster, slaveTemplate, null, DateTime.UtcNow);
+            candidate.Buffs.AddBuff(slave);
+
+            // A refused application — an immunity, a missing require-tag, a tolerance ladder's immune step
+            // — leaves the instance out of the owner's list. Only what actually landed is tracked, so an
+            // untracked unit is offered the aura again on the next pulse.
+            if (!slave.InUse)
+                continue;
+
+            lock (AuraRecipientsLock)
+            {
+                AuraRecipients[candidate.ObjId] = new AuraRecipient(candidate, slave.Index);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Ends the aura: every unit still holding the slave buff this aura applied gives it back.
+    /// </summary>
+    public void ReleaseAura()
+    {
+        List<KeyValuePair<uint, AuraRecipient>> held;
+        lock (AuraRecipientsLock)
+        {
+            if (AuraRecipients.Count == 0)
+                return;
+
+            held = AuraRecipients.ToList();
+            AuraRecipients.Clear();
+        }
+
+        foreach (var entry in held)
+            ReleaseAuraRecipient(entry.Key, entry.Value);
+    }
+
+    private static void ReleaseAuraRecipient(uint objId, AuraRecipient recipient)
+    {
+        var unit = recipient.Unit;
+        if (unit?.Buffs == null)
+            return;
+
+        var live = unit.Buffs.GetEffectByIndex(recipient.Index);
+        if (live == null)
+            return;
+
+        Logger.Debug("Aura {0} releases buff {1} (index {2}) from {3}",
+            objId, live.Template?.BuffId ?? 0, recipient.Index, objId);
+        unit.Buffs.RemoveEffect(recipient.Index);
+    }
+
     public uint AbLevel { get; set; }
     public BuffEvents Events { get; }
     public BuffTriggersHandler Triggers { get; }
     public Dictionary<uint, FactionsEnum> saveFactions { get; set; }
+
+    /// <summary>
+    /// Publishes this buff's taunt (<c>buffs.taunt</c> / <c>taunt_with_top_aggro</c>): its owner is an NPC
+    /// and it now attacks the unit that applied the buff.
+    /// </summary>
+    /// <remarks>
+    /// Under zone authority the zone owns NPC AI, so World only asks: <c>WZTargetChanged</c> with
+    /// <c>forceByWorld</c> is the native forced-target call, and <c>WZUpdateAggro</c> is how a threat entry
+    /// is published. The same pair is what the 49554 Taunt skill's <c>change_target</c> special effect
+    /// uses. Standalone the mirror is the authority and is moved directly.
+    /// </remarks>
+    public void ApplyTaunt()
+    {
+        if (Owner is not Npc npc || Caster is not Unit caster || caster.ObjId == npc.ObjId || npc.ObjId == 0)
+            return;
+
+        var template = Template;
+        var topAggro = TauntRules.GrantsTopAggro(template.Taunt, template.TauntWithTopAggro);
+
+        long aggro = 0;
+        if (topAggro)
+        {
+            // Only the mirror is read here, and only to find the entry to beat: the zone's table is the
+            // authority and it applies this value to its own copy.
+            var highest = npc.AggroTable.IsEmpty
+                ? 0L
+                : npc.AggroTable.Values.Max(entry => (long)entry.TotalAggro);
+            var own = npc.AggroTable.TryGetValue(caster.ObjId, out var mine) ? mine.TotalAggro : 0;
+            aggro = TauntRules.TopAggroValue(highest, own);
+        }
+
+        if (WorldIntegration.ZoneAuthority)
+        {
+            WorldIntegration.RelayTargetChangedToZone?.Invoke(npc.ObjId, caster.ObjId, true);
+
+            if (topAggro)
+                WorldIntegration.PublishAggro(npc, caster, TauntRules.PublishableAggro(aggro), new CastBuff(this));
+
+            Logger.Debug("Taunt buff {0} forces npc {1} onto {2} (topAggro={3} aggro={4})",
+                template.BuffId, npc.ObjId, caster.ObjId, topAggro, aggro);
+            return;
+        }
+
+        if (topAggro)
+            npc.AddUnitAggro(AggroKind.Etc, caster, (int)Math.Min(TauntRules.PublishableAggro(aggro), int.MaxValue));
+
+        npc.CurrentTarget = caster;
+        npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, caster.ObjId), true);
+    }
+
+    /// <summary>
+    /// Hands the NPC back when a plain taunt ends. A taunt that also granted top threat leaves the caster
+    /// on top, so the zone's own pick is already right and nothing is published for it.
+    /// </summary>
+    public void ReleaseTaunt()
+    {
+        if (Owner is not Npc npc || Caster is not Unit caster || npc.ObjId == 0)
+            return;
+
+        var template = Template;
+        if (!TauntRules.ForcesTarget(template.Taunt, template.TauntWithTopAggro)
+            || TauntRules.GrantsTopAggro(template.Taunt, template.TauntWithTopAggro))
+            return;
+
+        var topAggroId = npc.AggroTable.GetTopTotalAggroAbuserObjId();
+        var currentTargetId = (npc.CurrentTarget as Unit)?.ObjId ?? 0;
+        if (TauntRules.ReleaseTarget(caster.ObjId, currentTargetId, topAggroId) is not { } release)
+            return;
+
+        if (WorldIntegration.ZoneAuthority)
+        {
+            WorldIntegration.RelayTargetChangedToZone?.Invoke(npc.ObjId, release, false);
+            return;
+        }
+
+        npc.CurrentTarget = npc.ParentWorld?.GetGameObject(release) as Unit;
+        npc.BroadcastPacket(new SCTargetChangedPacket(npc.ObjId, release), true);
+    }
 
     public Buff(IBaseUnit owner, IBaseUnit caster, SkillCaster skillCaster, BuffTemplate template, Skill skill, DateTime time)
     {
@@ -440,6 +691,12 @@ public class Buff
                 Events.OnDispelled(this, new OnDispelledArgs());
             Triggers.UnsubscribeEvents();
             UnsubscribeSourceDeath();
+            // An aura hands its slave buff back before the instance itself goes, so a dispel, a duration
+            // expiry and a death cleanup all release the recipients the same way.
+            ReleaseAura();
+            // A plain taunt ends with the NPC's target: a dispelled 도발 must not pin the mob for the rest
+            // of the encounter. The top-aggro variant is left alone; it keeps the caster on top by design.
+            ReleaseTaunt();
             Owner.Buffs.RemoveEffect(this);
             Template.Dispel(Caster, Owner, this, replace);
 
@@ -519,5 +776,43 @@ public class Buff
         }
 
         return value;
+    }
+
+    /// <summary>
+    /// Takes one hit into this buff's absorption, as its own <c>damage_absorption_type_id</c> and
+    /// <c>damage_absorption_per_hit</c> describe it, and returns the damage that is still owed.
+    /// </summary>
+    /// <remarks>
+    /// This is what the damage path calls; <see cref="ConsumeCharge"/> is the raw "spend the pool" step it
+    /// used to be, and the two differ wherever the authored shape is not a plain pool — a count shield
+    /// spends a hit rather than the damage it absorbed, and a type-0 shield with a per-hit ceiling holds no
+    /// charge to spend at all. <see cref="AbsorptionRules.Apply"/> decides.
+    /// </remarks>
+    public int AbsorbDamage(int value)
+    {
+        var outcome = AbsorptionRules.Apply(
+            Template?.DamageAbsorptionTypeId ?? 0,
+            Template?.DamageAbsorptionPerHit ?? 0,
+            Charge,
+            value);
+
+        var changed = outcome.Charge != Charge;
+        Charge = outcome.Charge;
+
+        if (outcome.Consumed)
+        {
+            // Same contract as ConsumeCharge: the last point of the shield has just been spent, so an
+            // `absorption` trigger runs here, before Exit() unsubscribes it. A shield that swallowed no
+            // damage (a 은신 buff breaking on the first hit) raises nothing, as it did before.
+            if (outcome.Absorbed > 0)
+                Events.OnAbsorptionConsumed(this, new OnAbsorptionConsumedArgs { Amount = outcome.Absorbed });
+            Exit(false);
+        }
+        else if (changed)
+        {
+            NotifyUpdated(reason: 2); // charge consumed
+        }
+
+        return outcome.Remaining;
     }
 }
