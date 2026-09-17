@@ -31,6 +31,18 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
     /// <summary>The records of each kind, so a reporter can find the counters it knows how to fill.</summary>
     private Dictionary<CharRecordKind, List<CharRecords>> _recordsByKind = [];
 
+    /// <summary>Which achievements belong to a sub-category, for the "whole sub-category done" record.</summary>
+    private Dictionary<uint, List<uint>> _achievementsBySubCategory = [];
+
+    /// <summary>The sub-category completion record, by sub-category id.</summary>
+    private Dictionary<uint, uint> _subCategoryRecords = [];
+
+    /// <summary>
+    /// The completion records of achievements the season has switched off. Nothing can set them, so an
+    /// objective that watches one can never be satisfied.
+    /// </summary>
+    private HashSet<uint> _seasonOffCompletionRecords = [];
+
     public void Load(SqliteConnection connection)
     {
         _charRecords.Clear();
@@ -51,17 +63,21 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
                     {
                         Id = reader.GetUInt32("id"),
                         // 10.0.2.13: 'category_id' column removed
+                        AppellationId = reader.GetUInt32("appellation_id", 0),
                         CompleteNum = reader.GetUInt32("complete_num", 0),
                         CompleteOr = reader.GetBoolean("complete_or"),
                         Description = reader.GetString("description", string.Empty),
+                        GradeId = reader.GetUInt32("grade_id", 0),
                         IconId = reader.GetUInt32("icon_id", 0),
                         // 10.0.2.13: 'is_active' column removed
                         IsHidden = reader.GetBoolean("is_hidden"),
                         ItemId = reader.GetUInt32("item_id", 0),
+                        ItemNum = reader.GetUInt32("item_num", 0),
                         Name = reader.GetString("name", string.Empty),
                         OrUnitReqs = reader.GetBoolean("or_unit_reqs"),
                         ParentAchievementId = reader.GetUInt32("parent_achievement_id", 0),
                         Priority = reader.GetUInt32("priority", 0),
+                        SeasonOff = reader.GetBoolean("season_off"),
                         // 10.0.2.13: 'sub_category_id' renamed to 'achievement_sub_category_id'
                         SubCategoryId = reader.GetUInt32("achievement_sub_category_id", 0),
                         Summary = reader.GetString("summary", string.Empty)
@@ -168,6 +184,9 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
 
         _completionRecords = [];
         _recordsByKind = [];
+        _achievementsBySubCategory = [];
+        _subCategoryRecords = [];
+        _seasonOffCompletionRecords = [];
         foreach (var record in _charRecords.Values)
         {
             if (!_recordsByKind.TryGetValue(record.KindId, out var ofKind))
@@ -178,10 +197,37 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
 
             ofKind.Add(record);
 
-            if (record.KindId != CharRecordKind.CompleteAchievement || record.Value1 <= 0)
+            switch (record.KindId)
+            {
+                case CharRecordKind.CompleteAchievement when record.Value1 > 0:
+                    _completionRecords.TryAdd((uint)record.Value1, record.Id);
+                    // The achievement this record counts is looked up below, once every achievement is in.
+                    break;
+                // A sub-category completion record names its sub-category in value1, the same way.
+                case CharRecordKind.CompleteAchievementSubCategory when record.Value1 > 0:
+                    _subCategoryRecords.TryAdd((uint)record.Value1, record.Id);
+                    break;
+            }
+        }
+
+        foreach (var (achievementId, recordId) in _completionRecords)
+        {
+            if (_achievements.GetValueOrDefault(achievementId)?.SeasonOff == true)
+                _seasonOffCompletionRecords.Add(recordId);
+        }
+
+        foreach (var achievement in _achievements.Values)
+        {
+            if (achievement.SubCategoryId == 0)
                 continue;
 
-            _completionRecords.TryAdd((uint)record.Value1, record.Id);
+            if (!_achievementsBySubCategory.TryGetValue(achievement.SubCategoryId, out var members))
+            {
+                members = [];
+                _achievementsBySubCategory.Add(achievement.SubCategoryId, members);
+            }
+
+            members.Add(achievement.Id);
         }
     }
 
@@ -210,4 +256,19 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
     /// <summary>The record that counts this achievement's completion, or 0 when the content has none.</summary>
     public uint GetCompletionRecord(uint achievementId) =>
         _completionRecords.GetValueOrDefault(achievementId);
+
+    /// <summary>Every achievement in a sub-category — what "this whole sub-category is done" means.</summary>
+    public IReadOnlyList<uint> GetSubCategoryAchievements(uint subCategoryId) =>
+        _achievementsBySubCategory.TryGetValue(subCategoryId, out var members) ? members : [];
+
+    /// <summary>The record that counts a sub-category's completion, or 0 when the content has none.</summary>
+    public uint GetSubCategoryRecord(uint subCategoryId) =>
+        _subCategoryRecords.GetValueOrDefault(subCategoryId);
+
+    /// <summary>
+    /// Whether a record counts the completion of an achievement the season has switched off. An objective
+    /// watching one of these can never be satisfied — 391 of the 967 season-off achievements are watched that
+    /// way, and 107 achievements require all of theirs — so such objectives are left out of an evaluation.
+    /// </summary>
+    public bool IsSeasonOffCompletionRecord(uint recordId) => _seasonOffCompletionRecords.Contains(recordId);
 }
