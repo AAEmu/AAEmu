@@ -206,35 +206,29 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
             var heirExp = reader.GetInt64("heir_exp");
             members.Add(new SiegeRaidTeamMemberInfo(characterId, name, level,
                 (byte)HeirGameData.Instance.GetLevelForExp(heirExp), ability1, ability2, ability3,
-                OfflineGearScore(characterId, name, level)));
+                OfflineGearScore(characterId)));
         }
 
         return members;
     }
 
     /// <summary>
-    /// The gear score of a member who is not in the world, scored from their stored equipment. Loading fails
-    /// loudly rather than quietly: a member listed with no gear is a wrong number on screen, so a failure is
-    /// logged and reported as zero instead of being hidden.
+    /// The gear score of a member who is not in the world.
     /// </summary>
-    private static uint OfflineGearScore(uint characterId, string name, byte level)
+    /// <remarks>
+    /// This World scores gear from a character's equipment container, and a character who is not loaded has
+    /// none, so there is nothing to score here yet. <c>ItemManager.LoadPlayerInventory</c> looks like the way in
+    /// and is not: it is obsolete and reads the **in-memory item cache**, which only holds characters who are
+    /// loaded, so it answers an empty set for exactly the members this is for. The right one is the DB-backed
+    /// container accessor (<c>ItemManager.GetItemContainerForCharacter</c>), which is a follow-up: it has to be
+    /// wired into the score path rather than called beside it.
+    /// Reported as zero and logged rather than hidden — a member listed with no gear is a wrong number on
+    /// screen, and the log line says which member and why.
+    /// </remarks>
+    private static uint OfflineGearScore(uint characterId)
     {
-        try
-        {
-            var offline = new Character(new Models.Game.Units.UnitCustomModelParams())
-            {
-                Id = characterId,
-                Name = name,
-                Level = level
-            };
-            ItemManager.Instance.LoadPlayerInventory(offline);
-            return (uint)Math.Max(0, offline.GearScore);
-        }
-        catch (Exception ex)
-        {
-            Logger.Warn(ex, "Could not score the gear of offline character {0}", characterId);
-            return 0;
-        }
+        Logger.Warn("Gear score of offline character {0} is unknown - listed as 0", characterId);
+        return 0;
     }
 
     public void UnregisterFromRaidTeam(GameConnection connection, ushort zoneId)
