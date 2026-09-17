@@ -1448,16 +1448,33 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             ActabilityAdd = reader.GetFloat("actability_add", 0f),
                             ChargedLevelMul = reader.GetFloat("charged_level_mul", 0f),
                             AdjustDamageByHeight = reader.GetBoolean("adjust_damage_by_height", true),
+                            AdjustDamageByRange = reader.GetBoolean("adjust_damage_by_range", false),
+                            OptimumRange = reader.GetFloat("optimum_range", 1f),
+                            RangeDamageMultiplier = reader.GetFloat("range_damage_multipier", 1f),
                             UsePercentDamage = reader.GetBoolean("use_percent_damage", true),
                             PercentMin = reader.GetInt32("percent_min", 0),
                             PercentMax = reader.GetInt32("percent_max", 0),
+                            PercentDamageResourceTypeId = reader.GetInt32("percent_damage_resource_type_id", 1),
                             // use_current_health renamed to use_source_health in 10.0.2.13 schema
                             UseCurrentHealth = reader.GetBoolean("use_source_health", true),
+                            ManaDamage = reader.GetBoolean("mana_damage", false),
+                            CancelProtection = reader.GetBoolean("cancel_protection", true),
                             TargetHealthMin = reader.GetInt32("target_health_min", 0),
                             TargetHealthMax = reader.GetInt32("target_health_max", 0),
                             TargetHealthMul = reader.GetFloat("target_health_mul", 0f),
                             TargetHealthAdd = reader.GetInt32("target_health_add", 0),
-                            FireProc = reader.GetBoolean("fire_proc", true)
+                            FireProc = reader.GetBoolean("fire_proc", true),
+                            // Loaded but not consumed yet: formula 65 (damage_multiplier_by_element) reads
+                            // element_value, element_effect_ratio and element_resist_value, and the server has
+                            // no source for any of them — enum_unit_attribute carries no element attack or
+                            // resist id, and holdables.element_id, item_elements and armor_element_resists are
+                            // not loaded. The field is parsed so the loader matches the table.
+                            UseElementEffect = reader.GetBoolean("use_element_effect", false),
+                            FixedType = reader.GetBoolean("fixed_type", false),
+                            UseCombatResource = reader.GetBoolean("use_combat_resource", false),
+                            CombatResourceMd = reader.GetFloat("combat_resource_md", 1f),
+                            CombatResourceLevelMd = reader.GetFloat("combat_resource_level_md", 1f),
+                            CombatResourceDpsMd = reader.GetFloat("combat_resource_dps_md", 1f)
                         };
                         _effects["DamageEffect"][template.Id] = template;
                     }
