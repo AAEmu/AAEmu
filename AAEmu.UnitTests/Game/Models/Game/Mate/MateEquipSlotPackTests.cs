@@ -32,4 +32,25 @@ public class MateEquipSlotPackTests
         foreach (var slot in Enum.GetValues<MateEquipSlot>())
             await Assert.That(bare.AllowsSlot(slot)).IsFalse();
     }
+
+    [Test]
+    [Arguments(1, MateEquipSlot.Head)]
+    [Arguments(3, MateEquipSlot.Chest)]
+    [Arguments(4, MateEquipSlot.Waist)]
+    [Arguments(7, MateEquipSlot.Feet)]
+    public async Task ForEquipmentSlot_ReadsTheNumbersTheClientsPetViewUses(int slot, MateEquipSlot expected)
+    {
+        // x2ui/hud/pet_action_bar/pet_view.lua: equipSlots = { {1, "Head"}, {3, "Chest"}, {4, "Waist"}, {7, "Feet"}}
+        await Assert.That(MateEquipSlots.ForEquipmentSlot(slot)).IsEqualTo(expected);
+    }
+
+    [Test]
+    [Arguments(0)]
+    [Arguments(2)]
+    [Arguments(5)]
+    [Arguments(8)]
+    public async Task ForEquipmentSlot_IsNullForAPositionAMateDoesNotHave(int slot)
+    {
+        await Assert.That(MateEquipSlots.ForEquipmentSlot(slot)).IsNull();
+    }
 }

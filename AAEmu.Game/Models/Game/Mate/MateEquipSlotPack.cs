@@ -38,3 +38,24 @@ public enum MateEquipSlot : byte
     Waist = 3,
     Feet = 4
 }
+
+/// <summary>
+/// The equipment slot a mate's position is addressed by. The client's own pet view lists them —
+/// <c>equipSlots = { {1, "Head"}, {3, "Chest"}, {4, "Waist"}, {7, "Feet"}}</c> in
+/// <c>x2ui/hud/pet_action_bar/pet_view.lua</c> — and those numbers are what it sends as the mate slot,
+/// so they are the positions a pack's four flags are read with.
+/// </summary>
+public static class MateEquipSlots
+{
+    public static MateEquipSlot? ForEquipmentSlot(int equipSlot)
+    {
+        return equipSlot switch
+        {
+            1 => MateEquipSlot.Head,
+            3 => MateEquipSlot.Chest,
+            4 => MateEquipSlot.Waist,
+            7 => MateEquipSlot.Feet,
+            _ => null
+        };
+    }
+}

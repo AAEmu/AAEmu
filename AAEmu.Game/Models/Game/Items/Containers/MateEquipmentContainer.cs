@@ -1,4 +1,6 @@
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Mate;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 
 // The Mate namespace sits beside this one, so the type needs naming apart from it.
@@ -26,13 +28,28 @@ public class MateEquipmentContainer : EquipmentContainer
         if (item == null || ParentUnit is not MateUnit mate)
             return true;
 
-        if (MateGameData.Instance.MatePacksList(mate.TemplateId, item.TemplateId))
-            return true;
+        if (!MateGameData.Instance.MatePacksList(mate.TemplateId, item.TemplateId))
+        {
+            Logger.Warn(
+                "{0} tried to put {1} ({2}) on {3}, whose packs do not list it",
+                Owner?.Name, item.Template?.Name, item.TemplateId, mate.Name);
+            return false;
+        }
 
-        Logger.Warn(
-            "{0} tried to put {1} ({2}) on {3}, whose packs do not list it",
-            Owner?.Name, item.Template?.Name, item.TemplateId, mate.Name);
-        return false;
+        // And only in a position its own kind of mate may wear at all: the npc's equip-slot pack says
+        // which of the four (mate_equip_slot_packs), and the slot number is the one the client's pet view
+        // addresses them by.
+        var packId = (mate.Template as NpcTemplate)?.MateEquipSlotPackId ?? 0;
+        if (MateEquipSlots.ForEquipmentSlot(targetSlot) is { } position &&
+            !MateGameData.Instance.MateWearsSlot((uint)packId, position))
+        {
+            Logger.Warn(
+                "{0} tried to put {1} ({2}) on {3}'s {4}, which a mate of its kind does not wear",
+                Owner?.Name, item.Template?.Name, item.TemplateId, mate.Name, position);
+            return false;
+        }
+
+        return true;
     }
 
     public override void OnEnterContainer(Item item, ItemContainer lastContainer, byte previousSlot)
