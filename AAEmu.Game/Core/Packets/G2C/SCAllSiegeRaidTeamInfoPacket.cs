@@ -12,8 +12,15 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// alongside the value: a count, then per team the faction id (the window resolves the faction's name from
 /// it), the place it holds in the list, the leader's character id (whose rank the window looks up), the
 /// leader's name, whether it is the defending team, whether the war is still waiting to start, and how many
-/// are registered. A longer list than the window has slots for would leave it showing teams it cannot place,
-/// so it is capped.
+/// are registered.
+/// <para>
+/// The window has three frames — one defence, two offence — so this sends at most that many.
+/// <see cref="MaxTeams"/> is a claim about the window's layout, not a measured bound in the client's reader:
+/// whether a fourth row would desync the batch or simply go undrawn has not been read out of the serializer
+/// (the client keeps no packet-name strings to anchor on, and the serializer address in the layout table
+/// resolves inside an unrelated function). Clamping is therefore the safe reading either way, and a roster
+/// longer than three factions is logged where the list is built rather than silently shortened here.
+/// </para>
 /// </remarks>
 public class SCAllSiegeRaidTeamInfoPacket(IReadOnlyList<SiegeRaidTeam> teams)
     : GamePacket(SCOffsets.SCAllSiegeRaidTeamInfoPacket, 1)

@@ -271,7 +271,20 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
     public List<SiegeRaidTeam> GetRaidTeams(ushort zoneId)
     {
         var isWaitWar = GetScheduledPeriod(zoneId, DateTime.UtcNow) == SiegePeriod.ReadyToSiege;
-        return SiegeRaidTeamRules.Group(GetRaidTeamRoster(zoneId), GetDefenderFactionId(zoneId), isWaitWar);
+        var teams = SiegeRaidTeamRules.Group(GetRaidTeamRoster(zoneId), GetDefenderFactionId(zoneId), isWaitWar);
+
+        // The window has three frames (one defence, two offence). A roster with more factions than that has
+        // nowhere to be drawn, so the extra teams are dropped - loudly, because a silent trim would look
+        // exactly like a faction that never registered.
+        if (teams.Count > SCAllSiegeRaidTeamInfoPacket.MaxTeams)
+        {
+            Logger.Warn(
+                "Zone group {0} has {1} registered raid teams, more than the siege window's {2} frames; sending the first {2}",
+                zoneId, teams.Count, SCAllSiegeRaidTeamInfoPacket.MaxTeams);
+            teams = teams.Take(SCAllSiegeRaidTeamInfoPacket.MaxTeams).ToList();
+        }
+
+        return teams;
     }
 
     /// <summary>
