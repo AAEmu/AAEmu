@@ -25,7 +25,8 @@ public class SaveManagerTests
             mockAuction.Object,
             mockCrime.Object,
             mockAccountAttribute.Object,
-            mockWorld.Object);
+            mockWorld.Object,
+            new RankScoreManager(Mock.Of<IRankScoreStore>().Object, mockTask.Object));
 
         await Assert.That(manager).IsNotNull();
         Mock.VerifyNoOtherCalls(mockTask);

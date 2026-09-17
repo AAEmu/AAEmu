@@ -20,7 +20,8 @@ public class SaveManager(
     IAuctionManager auctionManager,
     ICrimeManager crimeManager,
     IAccountAttributeManager accountAttributeManager,
-    IWorldManager worldManager) : Singleton<SaveManager>, ISaveManager
+    IWorldManager worldManager,
+    RankScoreManager rankScoreManager) : Singleton<SaveManager>, ISaveManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -145,6 +146,9 @@ public class SaveManager(
                         if (c.Save(connection, transaction))
                         {
                             savedCharacters++;
+                            // The ranking boards are kept with the character they score, so a board shows
+                            // holders who are offline as well as the ones in world.
+                            rankScoreManager.SaveCharacter(connection, transaction, c);
                             continue;
                         }
 

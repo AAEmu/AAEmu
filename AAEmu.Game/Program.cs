@@ -205,6 +205,9 @@ public static class Program
                 services.AddSingleton<HeroManager>();
                 services.AddSingleton<IHeroManager>(sp => sp.GetRequiredService<HeroManager>());
 
+                services.AddSingleton<IRankScoreStore, MySqlRankScoreStore>();
+                services.AddSingleton<RankScoreManager>();
+
                 services.AddSingleton<MySqlButlerRepository>();
                 services.AddSingleton<IButlerRepository>(sp => sp.GetRequiredService<MySqlButlerRepository>());
                 services.AddSingleton<ButlerUnbindService>();

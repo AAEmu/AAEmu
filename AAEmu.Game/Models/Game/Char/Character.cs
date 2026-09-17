@@ -22,6 +22,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Rankings;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.StreamAoi;
 using AAEmu.Game.Models.Game.Skills;
@@ -688,6 +689,18 @@ public partial class Character : Unit, ICharacter
     public long BankAaPoint { get; set; }
     public int HonorPoint { get; set; }
     public int VocationPoint { get; set; }
+
+    /// <summary>
+    /// What this character has gained or spent since the ranking boards were last written, for the boards
+    /// that rank a period's total rather than a figure held right now.
+    /// </summary>
+    public GamePointTotals RankGamePointTotals { get; } = new();
+
+    /// <summary>
+    /// What this character has caught or handed in since the boards were last written, for the boards that
+    /// rank a record of what they did rather than a figure they hold.
+    /// </summary>
+    public RankRecords RankRecords { get; } = new();
     /// <summary>
     /// Current Hero-election-period leadership - what candidacy/leaderboard ranking is computed from.
     /// Reset to 0 by HeroManager's roll at the start of each cycle's LeadershipRanking phase, after
@@ -2269,6 +2282,9 @@ public partial class Character : Unit, ICharacter
             expDelta = (int)(expDelta * AppConfiguration.Instance.World.ExpRate);
             var expMul = GetAttribute(UnitAttribute.ExpMul, 0f) + 100f;
             expDelta = (int)Math.Clamp(Math.Round(expDelta * (expMul / 100f)), 0, int.MaxValue);
+
+            // What a character earns in a ranking window is ranked by the period boards.
+            RankGamePointTotals.Add(RankGamePoints.Experience, RankGamePoints.Gained, expDelta);
         }
 
         // level before SCLevelChanged arrives, and accepts positive deltas only. Levels that owe an
@@ -2703,6 +2719,9 @@ public partial class Character : Unit, ICharacter
             var formula = FormulaManager.Instance.GetFormula((uint)FormulaKind.ExpByLaborPower);
             var xpToAdd = (int)(formula.Evaluate(parameters) * expMultiplier);
             AddExp(xpToAdd, true);
+
+            // A ranking board ranks the labor spent in its window.
+            RankGamePointTotals.Add(RankGamePoints.Labor, RankGamePoints.Spent, -change);
         }
 
         // Spending draws on BOTH account-wide pools, offline ("Offline Labor", the account pool) first
@@ -2877,6 +2896,20 @@ public partial class Character : Unit, ICharacter
         // packet below - every GamePointKind goes through this one choke point.
         SendPacket(new SCCharacterGamePointsPacket(this));
         SendPacket(new SCGamePointChangedPacket((byte)kind, change));
+
+        // A ranking board ranks what a character gained or spent in its window, and every game point moves
+        // through here, so the period's totals are kept from this one place.
+        if (change != 0)
+        {
+            var counterKind = kind switch
+            {
+                GamePointKind.Honor => RankGamePoints.Honor,
+                GamePointKind.Vocation => RankGamePoints.LivingPoint,
+                _ => -1
+            };
+            if (counterKind >= 0)
+                RankGamePointTotals.Add(counterKind, change > 0 ? RankGamePoints.Gained : RankGamePoints.Spent, Math.Abs((long)change));
+        }
 
         if (change > 0 && kind is GamePointKind.Honor or GamePointKind.Vocation)
         {
