@@ -33,10 +33,14 @@ public readonly record struct SkillRequirement(bool OnTarget, uint BuffId, uint 
 /// all three really are glider-granted, so requiring the tag is what makes them work.</description></item>
 /// </list>
 ///
-/// The message text is a client string and does <i>not</i> discriminate: 87 of the 236 <c>'t'</c> rows
-/// (37 %) and 46 of the 102 <c>'f'</c> rows (45 %) carry "cannot use while/on X" phrasing, and the
-/// <c>'f'</c> group also carries peace-zone, prisoner and judge strings that read as restrictions. The
-/// polarity is therefore read from the flag, never from the string.
+/// The message text is a client string and does <i>not</i> discriminate, on either reading of it. Matching
+/// the literal "cannot use" family — both spacings, <c>사용할 수 없</c> (133 rows) and <c>사용 할 수 없</c>
+/// (12) — covers 94 of the 236 <c>'t'</c> rows (40 %) against 51 of the 102 <c>'f'</c> rows (50 %). Widening
+/// it to any prohibition wording (<c>수 없</c>, <c>불가</c>) covers 154 of 236 (65 %) against 72 of 102
+/// (71 %). The forbid group is the <i>less</i> prohibition-worded of the two either way, which is why the
+/// polarity is read from the flag rather than from the string — requirement 6 and tag 4981 above are what
+/// settle it. The <c>'f'</c> group also carries peace-zone, prisoner and judge strings that read as
+/// restrictions, so the text is not merely noisy but misleading in both directions.
 ///
 /// Forbid rows combine with AND — any one of them present blocks the cast. Require rows combine with OR:
 /// 강인한 의지 carries both 58 and 59, and reading those as AND would demand restraint <i>and</i> fear at
