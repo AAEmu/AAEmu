@@ -37,6 +37,12 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
 
     /// <summary>slave_equip_slots the other way round: slaveTemplateId → attach point → equipSlotId.</summary>
     private readonly Dictionary<uint, Dictionary<AttachPointKind, byte>> _slaveEquipSlotsByAttachPoint = [];
+
+    /// <summary>slave_equip_slots row id per slave and equip slot, which is what the kind lists name.</summary>
+    private readonly Dictionary<uint, Dictionary<byte, uint>> _slaveEquipSlotIds = [];
+
+    /// <summary>slave_equip_kind_lists keyed by slave_equip_slots row id: the kinds a position takes.</summary>
+    private readonly Dictionary<uint, HashSet<uint>> _slaveEquipSlotKinds = [];
     private readonly Dictionary<uint, List<SlaveInteractionSkill>> _interactionSkills = [];
     private readonly Dictionary<uint, uint> _itemSlaveEquipKinds = [];
 
@@ -419,12 +425,14 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
 
         using (var command = connection.CreateCommand())
         {
-            command.CommandText = "SELECT slave_id, equip_slot_id, attach_point_id FROM slave_equip_slots";
+            command.CommandText =
+                "SELECT id, slave_id, equip_slot_id, attach_point_id FROM slave_equip_slots";
             command.Prepare();
             using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
             {
                 while (reader.Read())
                 {
+                    var slotRowId = reader.GetUInt32("id");
                     var slaveId = reader.GetUInt32("slave_id");
                     var equipSlotId = reader.GetByte("equip_slot_id");
                     var attachPoint = (AttachPointKind)reader.GetByte("attach_point_id");
@@ -436,6 +444,16 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
 
                     slots[equipSlotId] = attachPoint;
 
+                    // slave_equip_kind_lists names a slot by this row's own id, so the id is what the
+                    // kinds of a position are looked up with.
+                    if (!_slaveEquipSlotIds.TryGetValue(slaveId, out var slotIds))
+                    {
+                        slotIds = new Dictionary<byte, uint>();
+                        _slaveEquipSlotIds[slaveId] = slotIds;
+                    }
+
+                    slotIds[equipSlotId] = slotRowId;
+
                     if (!_slaveEquipSlotsByAttachPoint.TryGetValue(slaveId, out var slotsByAttachPoint))
                     {
                         slotsByAttachPoint = new Dictionary<AttachPointKind, byte>();
@@ -443,6 +461,28 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
                     }
 
                     slotsByAttachPoint[attachPoint] = equipSlotId;
+                }
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText =
+                "SELECT slave_equip_slot_id, slave_equip_kind_id FROM slave_equip_kind_lists";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var slotRowId = reader.GetUInt32("slave_equip_slot_id");
+                    var kindId = reader.GetUInt32("slave_equip_kind_id");
+                    if (!_slaveEquipSlotKinds.TryGetValue(slotRowId, out var kinds))
+                    {
+                        kinds = [];
+                        _slaveEquipSlotKinds[slotRowId] = kinds;
+                    }
+
+                    kinds.Add(kindId);
                 }
             }
         }
@@ -499,6 +539,25 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
     public uint? GetItemSlaveEquipKind(uint itemTemplateId)
     {
         return _itemSlaveEquipKinds.TryGetValue(itemTemplateId, out var kind) ? kind : null;
+    }
+
+    /// <summary>
+    /// Whether a slave's or mate's equipment position takes an item: the kinds the position lists
+    /// (<c>slave_equip_kind_lists</c>, named by the position's <c>slave_equip_slots</c> row) against the
+    /// kind the tables give the item. An unknown slave template or position has nothing to say, so the
+    /// item is taken.
+    /// </summary>
+    public bool PositionTakesItem(uint slaveTemplateId, byte equipSlotId, uint itemTemplateId)
+    {
+        if (!_slaveEquipSlotIds.TryGetValue(slaveTemplateId, out var slotIds) ||
+            !slotIds.TryGetValue(equipSlotId, out var slotRowId))
+            return true;
+
+        if (!_slaveEquipSlotKinds.TryGetValue(slotRowId, out var kinds))
+            return true; // the position lists nothing: it takes whatever its template allows
+
+        var itemKind = GetItemSlaveEquipKind(itemTemplateId) ?? 0;
+        return SlaveEquipRules.PositionTakesKind(kinds, itemKind);
     }
 
     public void PostLoad()
