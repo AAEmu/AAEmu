@@ -11,4 +11,7 @@ internal enum SkillControllerKind
     Anchor = 0x6,
     Rotate = 0x7,
     Flowgraph = 0x8,
+    // 10.0.2.13: enum_skill_controller_kinds has 11 rows and stops at 11; there is no 0xA.
+    RopeReady = 0x9,
+    Crawl = 0xB,
 };

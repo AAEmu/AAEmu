@@ -43,9 +43,28 @@ public class Skill
     public SkillTemplate Template { get; set; }
     public byte Level { get; set; }
     public ushort TlId { get; set; }
-    public PlotState ActivePlotState { get; set; }
+
+    private PlotState _activePlotState;
+
+    public PlotState ActivePlotState
+    {
+        get => Volatile.Read(ref _activePlotState);
+        set => Volatile.Write(ref _activePlotState, value);
+    }
+
+    /// <summary>
+    /// Clears the plot slot only while it still holds <paramref name="state"/>; see
+    /// <see cref="Units.Unit.ReleaseActivePlotState"/> for why the compare-exchange matters.
+    /// </summary>
+    public bool ReleaseActivePlotState(PlotState state) =>
+        state != null && Interlocked.CompareExchange(ref _activePlotState, null, state) == state;
     public Dictionary<uint, SkillHitType> HitTypes { get; set; }
     public BaseUnit InitialTarget { get; set; }//Temp Hack Fix. Replace this with UnitsEffected
+    /// <summary>
+    /// The item a <see cref="SkillTargetType.Item"/> cast names, resolved from the client's
+    /// <see cref="SkillCastItemTarget"/>. Null for every other target type.
+    /// </summary>
+    public Item TargetItem { get; set; }
     private bool _bypassGcd;
     /// <summary>ZoneAuthority: avoid double WZSkillStarted (cast-time relays at Use, instant at Cast).</summary>
     private bool _zoneSkillStartedRelayed;
@@ -54,6 +73,20 @@ public class Skill
     private bool _zoneSkillFiredRelayed;
     private bool _zoneSkillEndedRelayed;
     private bool _laborConsumed;
+    /// <summary>Charges left after this cast spent one; -1 until the cast spends one.</summary>
+    private int _chargesAfterCast = -1;
+    /// <summary>Per-tick mana drain of a running channel; null when the skill charges nothing per tick.</summary>
+    private ChannelingTickTask _channelingTickTask;
+    /// <summary>The channel's own target/targetCaster/skillObject, needed when its effects land at the end.</summary>
+    private BaseUnit _channelingTarget;
+    private SkillCastTarget _channelingTargetCaster;
+    private SkillObject _channelingSkillObject;
+    private Doodad _channelingDoodad;
+    /// <summary>The running cast's arguments, kept so a delay can reschedule the same cast.</summary>
+    private SkillCaster _activeCasterCaster;
+    private BaseUnit _activeTarget;
+    private SkillCastTarget _activeTargetCaster;
+    private SkillObject _activeSkillObject;
     private SkillCaster _zoneSkillCaster;
     private bool _cancelled;
     internal event Action<Skill> CancellationRequested;
@@ -176,6 +209,38 @@ public class Skill
 
         unit.ConditionChance = true;
 
+        // Cast gates. Two independent checks, both of which have to pass before anything is spent.
+        //
+        // Gate 1: use_condition_bits and the caster's state - dead, stunned, slept, silenced,
+        // swimming. The client greys out what it can see, but a forged or stale press still reached
+        // Cast() before this gate existed, and silence had no server-side effect at all.
+        var useConditionFailure = SkillUseConditionRules.Evaluate(
+            Template.UseConditionBits,
+            SkillUseConditionRules.ReadState(unit));
+        if (useConditionFailure.HasValue)
+        {
+            Logger.Trace("Skill {0} blocked for {1}: {2}", Template.Id, caster.Name, useConditionFailure.Value);
+            return useConditionFailure.Value;
+        }
+
+        // Gate 2: silence / sleep / stun. A cast started under one of these does not get to run. The
+        // state is already tracked (Buffs.AddBuff interrupts the cast in flight on exactly stun,
+        // silence and sleep) and the client greys the hotbar out, but a forged CSStartSkill used to be
+        // honoured, and the local path never consulted the state at all.
+        //
+        // Players and pets only. An NPC's kit is run by the script that owns it, and a scripted
+        // encounter that applies a sleep to itself and then casts anyway is not this gate's business.
+        if (caster is Character or Units.Mate)
+        {
+            var crowdControl = CrowdControlRules.RejectCast(CrowdControlRules.ReadState(unit));
+            if (crowdControl != null)
+            {
+                Logger.Debug("{0} ({1}) cannot cast {2}: {3}", caster.Name, caster.ObjId, Template.Id, crowdControl);
+                Cancelled = true;
+                return crowdControl.Value;
+            }
+        }
+
         var requirementResult = UnitRequirementsGameData.Instance.CanUseSkill(
             Template,
             caster,
@@ -197,6 +262,7 @@ public class Skill
         _zoneSkillEndedRelayed = false;
         _plotOnlyFireCostsApplied = false;
         _laborConsumed = false;
+        _chargesAfterCast = -1;
         _zoneSkillCaster = null;
         var skillTags = SkillManager.Instance.GetSkillTags(Template.Id);
         var fishingHold = character != null &&
@@ -236,8 +302,23 @@ public class Skill
                 // The skill's own cooldown is armed on cast (Cast / plot-only fire edge) but was never
                 // consulted on the player path: a 15 s skill could be fired again as soon as the gate
                 // above allowed it. SkillCooldownGateRules lists the casts that keep their own pacing.
+                // The skill's cooldown tags are checked too, so using one variant of an action greys out
+                // its siblings (295 ability skills carry a tag).
+                var cooldownBlocks = SkillCooldownGateRules.CooldownBlocksCast(
+                    Template.SwitchToSkillCooldown,
+                    unit.Cooldowns.CheckCooldown(Template.Id),
+                    unit.Cooldowns.CheckTagCooldown(Template.CooldownTags));
+                var accountCooldownBlocks = Template.AccountCooldown &&
+                                            character != null &&
+                                            AccountCooldowns.IsActive(character.AccountId, Template.Id);
+                // A charge skill with an empty pool is on cooldown even when it declares no
+                // cooldown_time at all — 13281 다발 사격 is 5 charges on a 22 s recharge and 0 ms.
+                var chargesExhausted = Template.ChargeCount > 1 &&
+                                       unit.Cooldowns.GetCharges(
+                                           Template.Id, Template.ChargeCount, Template.ChargeCooldownTime) <= 0;
                 if (SkillCooldownGateRules.ShouldWaitForCooldown(
-                        _bypassGcd, fishingHold, Template.Id, unit.Cooldowns.CheckCooldown(Template.Id)))
+                        _bypassGcd, fishingHold, Template.Id,
+                        cooldownBlocks || accountCooldownBlocks || chargesExhausted))
                 {
                     Logger.Trace($"Skill: CooldownTime [{Template.CooldownTime}] for {Template.Id}");
                     return SkillResult.CooldownTime;
@@ -254,6 +335,16 @@ public class Skill
             if (caster is Units.Mate)
                 caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.UseSkill, Template.CancelOngoingBuffExceptionTagId);
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.StartSkill, Template.CancelOngoingBuffExceptionTagId);
+        }
+
+        // stop_channeling_on_start_skill: the running channel yields to the new cast. Stop() is the
+        // cancelled path, so the old channel applies no effects; its tick drain and its TlId are released.
+        if (unit.SkillTask is EndChannelingTask runningChannel &&
+            runningChannel.Skill != this &&
+            runningChannel.Skill.Template?.StopChannelingOnStartSkill == true)
+        {
+            Logger.Debug("Skill {0} cancels channel {1} on {2}", Template.Id, runningChannel.Skill.Id, caster.Name);
+            runningChannel.Skill.Stop(caster, runningChannel._channelDoodad);
         }
 
         // Create a new skillObject if needed
@@ -274,6 +365,26 @@ public class Skill
             return SkillResult.InvalidTarget;
         }
 
+        // skill_reqs: a buff or buff tag on the caster or on the target that forbids or requires the cast
+        // (rooted/stunned/fear "cannot use while X", gliding "only while X"). Checked once the target is
+        // resolved, because 91 of the 338 rows read the target.
+        if (!SkillRequirementRules.AllowsCast(
+                SkillManager.Instance.GetSkillRequirements(Template.Id),
+                requirement => requirement.BuffId > 0 &&
+                               (requirement.OnTarget ? target.Buffs.CheckBuff(requirement.BuffId)
+                                   : caster.Buffs.CheckBuff(requirement.BuffId)),
+                requirement => requirement.BuffTagId > 0 &&
+                               (requirement.OnTarget ? target.Buffs.CheckBuffTag(requirement.BuffTagId)
+                                   : caster.Buffs.CheckBuffTag(requirement.BuffTagId)),
+                out var requirementMessage))
+        {
+            Logger.Trace("Skill {0} blocked by a skill_reqs row for {1}: {2}",
+                Template.Id, caster.Name, requirementMessage);
+            if (character != null && !string.IsNullOrEmpty(requirementMessage))
+                character.SendMessage(requirementMessage);
+            return SkillResult.SkillReqFail;
+        }
+
         // Unmount character if skill asks for it
         if (character is { IsRiding: true } && Template.Unmount)
         {
@@ -289,6 +400,31 @@ public class Skill
         // Check initial mana cost
         if (ManaCost(unit) > unit.Mp)
             return SkillResult.LackMana;
+
+        // Labor, before anything is committed. The charge itself stays in EndSkill, which is where the
+        // actability multiplier and LaborUnits are known; this only refuses a cast the character cannot
+        // pay for, which the old code let through and then quietly did not charge.
+        if (character != null && Template.ConsumeLaborPower > 0 && !CanAffordLabor(character))
+        {
+            Logger.Trace("Skill {0} blocked for {1}: need labor power", Template.Id, character.Name);
+            return SkillResult.NeedLaborPower;
+        }
+
+        // Combat resource band: the caster's pool named by combat_resource_id must be inside
+        // min_combat_resource..max_combat_resource. 16 rows carry a band; the siege and test ones are
+        // real (43711/43712 "fire the cannon" needs exactly one shell), the 외침 family names the pool's
+        // own ceiling.
+        if (Template.CombatResourceId > 0 &&
+            !SkillCombatResourceRules.AllowsCast(
+                Template.MinCombatResource,
+                Template.MaxCombatResource,
+                unit.GetCombatResource(Template.CombatResourceId)))
+        {
+            Logger.Trace("Skill {0} blocked for {1}: combat resource {2} outside {3}..{4}",
+                Template.Id, caster.Name, Template.CombatResourceId,
+                Template.MinCombatResource, Template.MaxCombatResource);
+            return SkillResult.LackCombatResource;
+        }
 
         // Get a TlId for this skill
         TlId = SkillTlIdManager.GetNextId(caster);
@@ -310,32 +446,10 @@ public class Skill
             ForcePlotGraphOnly = true;
         }
 
-        // If skill uses Plots, then start the plot
-        if (Template.Plot != null)
-        {
-            if (Template.PlotOnly || ForcePlotGraphOnly)
-            {
-                // plot_only (and World OnSpawn fill) returns before Cast() — apply start costs here.
-                // GCD for cast-time plot_only is applied when the plot leaves its casting edge
-                // (PlotNode → ApplyPlotOnlyFireCosts). Zone needs WZSkillStarted now (Cast never runs).
-                RelayZoneSkillStartedIfNeeded(casterCaster, targetCaster, skillObject);
-                ConsumeMana(caster);
-                // Arm GCD on press (including 10752's 1000 ms). Waiting until the plot fire-edge
-                // left a 850 ms window where hold-repeat started a new Flamebolt and cancelled
-                // the one that had not Fired yet.
-                ApplyPlotOnlyFireCosts(unit);
-                // Do not send SCSkillStarted here. Plot-only Flamebolt (and the rest of that
-                // family) already drive the cast bar from SCPlotEvent. SkillStarted with a
-                // 1 s RealCastTime locks the whole hotbar, and plot-only never EndSkill's, so
-                // hold-to-repeat dies on the first press.
-                Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this));
-                return SkillResult.Success;
-            }
-
-            Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this));
-        }
-
         // Check if target is within range
+        // The check runs before the plot branch below, not after it: a plot_only skill returned from
+        // Use() before ever reaching this code, so 315 of the 534 ability skills — every plot_only one —
+        // could be cast from any distance at all.
         var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
         var targetDist = unit.GetDistanceTo(target, true);
 
@@ -388,15 +502,44 @@ public class Skill
             or SkillCastPosition2Target
             or SkillCastPosition3Target;
         var unboundedPlacement = placementTarget && Template.MaxRange <= 0;
+        // A plot_only skill with max_range 0 makes the same statement as a placement cast — the plot
+        // decides how far it reaches — so it keeps the old permissive behaviour rather than acquiring a
+        // 0 m limit it never had.
+        var unboundedPlotOnly = (Template.PlotOnly || ForcePlotGraphOnly) && Template.MaxRange <= 0;
 
         // TODO: Remove exception for doodads
         // TODO: Remove exceptions for slave initiated by Doodads (needed to fix repair points on ships)
-        if (!zoneNpcCast && targetDist > maxRangeCheck && !unboundedPlacement && target is not Doodad && target is not Slave)
+        if (!zoneNpcCast && targetDist > maxRangeCheck && !unboundedPlacement && !unboundedPlotOnly && target is not Doodad && target is not Slave)
         {
             SkillTlIdManager.ReleaseId(TlId);
             TlId = 0;
             Logger.Info($"TooFarRange targetDist={targetDist}, maxRangeCheck={maxRangeCheck}, SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
             return SkillResult.TooFarRange;
+        }
+
+        // If skill uses Plots, then start the plot
+        if (Template.Plot != null)
+        {
+            if (Template.PlotOnly || ForcePlotGraphOnly)
+            {
+                // plot_only (and World OnSpawn fill) returns before Cast() — apply start costs here.
+                // GCD for cast-time plot_only is applied when the plot leaves its casting edge
+                // (PlotNode → ApplyPlotOnlyFireCosts). Zone needs WZSkillStarted now (Cast never runs).
+                RelayZoneSkillStartedIfNeeded(casterCaster, targetCaster, skillObject);
+                ConsumeMana(caster);
+                // Arm GCD on press (including 10752's 1000 ms). Waiting until the plot fire-edge
+                // left a 850 ms window where hold-repeat started a new Flamebolt and cancelled
+                // the one that had not Fired yet.
+                ApplyPlotOnlyFireCosts(unit);
+                // Do not send SCSkillStarted here. Plot-only Flamebolt (and the rest of that
+                // family) already drive the cast bar from SCPlotEvent. SkillStarted with a
+                // 1 s RealCastTime locks the whole hotbar, and plot-only never EndSkill's, so
+                // hold-to-repeat dies on the first press.
+                Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this));
+                return SkillResult.Success;
+            }
+
+            Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this));
         }
 
         if (character is { AccessLevel: < 100 })
@@ -474,6 +617,10 @@ public class Skill
             }, true);
 
             unit.SkillTask = new CastTask(this, caster, casterCaster, target, targetCaster, skillObject);
+            _activeCasterCaster = casterCaster;
+            _activeTarget = target;
+            _activeTargetCaster = targetCaster;
+            _activeSkillObject = skillObject;
             TaskManager.Instance.Schedule(unit.SkillTask, TimeSpan.FromMilliseconds(castTime));
         }
         else
@@ -586,8 +733,20 @@ public class Skill
                     break;
                 }
             case SkillTargetType.Item:
-                // TODO ...
-                break;
+                {
+                    // 457 skills name an item as their target — enchant, dye, socket, extract. The
+                    // effects that consume such a cast read the item off targetObj themselves, so what
+                    // was missing here is the resolved instance: without it the skill kept the caster as
+                    // its target and had no way to say which item the cast was about.
+                    if (targetCaster is SkillCastItemTarget itemTarget && itemTarget.Id != 0)
+                    {
+                        TargetItem = ItemManager.Instance.GetItemByItemId(itemTarget.Id);
+                        if (TargetItem == null)
+                            Logger.Warn("SkillTargetType.Item: item {0} not found for skill {1}", itemTarget.Id, Template.Id);
+                    }
+
+                    break;
+                }
             case SkillTargetType.Others:
                 {
                     if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
@@ -801,7 +960,10 @@ public class Skill
         // clears TlId immediately). Cast-time / plot_only already relayed at Use() entry.
         RelayZoneSkillStartedIfNeeded(casterCaster, targetCaster, skillObject);
 
-        if (caster is Npc && Template.SkillControllerId != 0)
+        // A controller drives its owner's position, so it used to be created for NPC casters only. A player's
+        // own leap is the same movement and now gets one too, for a unit the caster controls
+        // (SkillControllerRules); the distance gate below still applies to both.
+        if (Template.SkillControllerId != 0 && SkillControllerRules.CanCreateController(caster, unit))
         {
             var scTemplate = SkillManager.Instance.GetEffectTemplate(Template.SkillControllerId, "SkillController") as SkillControllerTemplate;
 
@@ -839,8 +1001,7 @@ public class Skill
         unit.SkillTask = null;
 
         ConsumeMana(caster);
-        unit.Cooldowns.AddCooldown(Template.Id, (uint)Template.CooldownTime);
-
+        ArmCooldowns(unit);
         // if (Id == 2 || Id == 3 || Id == 4)
         // {
         //     if (caster is Character && caster.CurrentTarget == null)
@@ -975,26 +1136,66 @@ public class Skill
 
         caster.BroadcastPacket(new SCSkillFiredPacket(Id, TlId, casterCaster, targetCaster, this, skillObject), true);
         RelayZoneSkillFiredIfNeeded(casterCaster, targetCaster, skillObject);
+
+        // Per-tick mana drain (channeling_mana), one tick per channeling_tick, cancelled at channel end.
+        var tickCount = ChannelingRules.TickCount(Template.ChannelingTime, Template.ChannelingTick, Template.ChannelingMana);
+        if (tickCount > 0)
+        {
+            _channelingTickTask = new ChannelingTickTask(this, caster);
+            TaskManager.Instance.Schedule(_channelingTickTask,
+                TimeSpan.FromMilliseconds(Template.ChannelingTick),
+                TimeSpan.FromMilliseconds(Template.ChannelingTick),
+                tickCount);
+        }
+
+        _channelingDoodad = doodad;
+        _channelingTarget = target;
+        _channelingTargetCaster = targetCaster;
+        _channelingSkillObject = skillObject;
         unit.SkillTask = new EndChannelingTask(this, caster, casterCaster, target, targetCaster, skillObject, doodad);
-        TaskManager.Instance.Schedule(unit.SkillTask, TimeSpan.FromMilliseconds(Template.ChannelingTime));
+        TaskManager.Instance.Schedule(unit.SkillTask, TimeSpan.FromMilliseconds(EffectiveChannelingTime(unit)));
     }
 
-    public void EndChanneling(BaseUnit caster, Doodad channelDoodad, SkillCaster casterCaster)
+    /// <summary>
+    /// Ends a channel. <paramref name="completedNaturally"/> is what separates a channel that ran its
+    /// full <c>channeling_time</c> from one that CSStopCastingPacket, a stun or a death stopped: only the
+    /// first applies the skill's effects, which were previously applied by nothing at all.
+    /// </summary>
+    public void EndChanneling(BaseUnit caster, Doodad channelDoodad, SkillCaster casterCaster, bool completedNaturally = false)
     {
         if (caster is not Unit unit) { return; }
         unit.SkillTask = null;
+        CancelChannelingTicks();
+
+        // The channel's own target: StartChanneling records it, and a Skill built without going through
+        // it (a plot, a test) still has InitialTarget from Use.
+        var channelTarget = _channelingTarget ?? InitialTarget ?? caster;
+        var channelTargetCaster = _channelingTargetCaster ?? new SkillCastUnitTarget(channelTarget.ObjId);
+        var channelSkillObject = _channelingSkillObject ?? new SkillObject();
+
         if (Template.ChannelingBuffId != 0)
         {
             caster.Buffs.RemoveEffect(Template.ChannelingBuffId, Template.Id);
         }
         if (Template.ChannelingTargetBuffId != 0)
         {
-            InitialTarget.Buffs.RemoveEffect(Template.ChannelingTargetBuffId, Template.Id);
+            channelTarget.Buffs.RemoveEffect(Template.ChannelingTargetBuffId, Template.Id);
         }
 
-        channelDoodad?.Delete();
+        (channelDoodad ?? _channelingDoodad)?.Delete();
 
-        EndSkill(caster);
+        if (ChannelingRules.AppliesEffectsOnEnd(completedNaturally))
+        {
+            // The channel ran out: hand off to the ordinary fire path, which applies the effects and
+            // calls EndSkill itself (directly, or from the ApplySkillTask it schedules). Calling
+            // EndSkill here as well would release the TlId twice and end the skill twice. This is the
+            // call EndChannelingTask carried commented out.
+            ScheduleEffects(caster, casterCaster, channelTarget, channelTargetCaster, channelSkillObject);
+        }
+        else
+        {
+            EndSkill(caster);
+        }
 
         // TODO: добавил, так как для квеста 3469 нет события OnItemUse
         // TODO: added since there is no OnItemUse event for quest 3469 and other quests that require the use on non-consuming items
@@ -1004,6 +1205,15 @@ public class Skill
         }
 
         unit.Events.OnChannelingCancel(this, new OnChannelingCancelArgs());
+    }
+
+    private void CancelChannelingTicks()
+    {
+        if (_channelingTickTask == null)
+            return;
+
+        TaskManager.Instance.Cancel(_channelingTickTask);
+        _channelingTickTask = null;
     }
 
     public void ScheduleEffects(BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject)
@@ -1142,10 +1352,47 @@ public class Skill
             : 0;
     }
 
-    private IEnumerable<BaseUnit> FilterAoeUnits(BaseUnit caster, IEnumerable<BaseUnit> units)
+    private IEnumerable<BaseUnit> FilterAoeUnits(BaseUnit caster, BaseUnit targetSelf, IEnumerable<BaseUnit> units)
     {
         units = SkillTargetingUtil.FilterWithRelation(Template.TargetRelation, caster, units);
-        return units;
+        return FilterAoeShape(caster, targetSelf, units);
+    }
+
+    /// <summary>
+    /// Applies the skill's area shape to the gathered units: the <c>target_area_angle</c> /
+    /// <c>front_angle</c> cone, and the corridor a <c>Line</c> selection describes. See
+    /// <see cref="SkillAreaRules"/> for the readings and their open questions.
+    /// </summary>
+    private IEnumerable<BaseUnit> FilterAoeShape(BaseUnit caster, BaseUnit targetSelf, IEnumerable<BaseUnit> units)
+    {
+        var list = units as List<BaseUnit> ?? units.ToList();
+
+        var halfAngle = SkillAreaRules.ConeHalfAngle(Template.TargetAreaAngle, Template.FrontAngle);
+        if (halfAngle > 0d)
+        {
+            // The bearing is measured from the caster's facing, so a cleave leaves out what is behind it.
+            list = list.Where(unit =>
+                unit != null &&
+                (unit.ObjId == caster.ObjId || SkillAreaRules.IsInsideCone(MathUtil.CalculateAngleFrom(caster, unit), halfAngle)))
+                .ToList();
+        }
+
+        if (SkillAreaRules.UsesCorridor(Template.TargetSelection) && targetSelf != null)
+        {
+            var casterPosition = caster.Transform.World.Position;
+            var targetPosition = targetSelf.Transform.World.Position;
+            var halfWidth = Template.TargetAreaRadius > 0 ? Template.TargetAreaRadius / 2.0 : 0d;
+            list = list.Where(unit =>
+                unit != null &&
+                (unit.ObjId == caster.ObjId || SkillAreaRules.IsWithinCorridor(
+                    (casterPosition.X, casterPosition.Y),
+                    (targetPosition.X, targetPosition.Y),
+                    (unit.Transform.World.Position.X, unit.Transform.World.Position.Y),
+                    halfWidth)))
+                .ToList();
+        }
+
+        return list;
     }
 
     /// <summary>
@@ -1189,12 +1436,13 @@ public class Skill
         // Get a list of all possible targets
         // 10.0.2.13: skills.target_siege removed; the former ship-skill hack (TargetSiege + Source + Slave) no
         // longer has a data source, so AoE skills fall through to the standard target-area handling below.
-        if (Template.TargetAreaRadius > 0)
+        var areaRadius = EffectiveTargetAreaRadius(unit);
+        if (areaRadius > 0)
         {
-            var units = WorldManager.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius, true);
+            var units = WorldManager.GetAround<BaseUnit>(targetSelf, areaRadius, true);
             if (Template.TargetSelection == SkillTargetSelection.Source)
                 units.Add(targetSelf); // Add main target as well
-            units = FilterAoeUnits(caster, units).ToList();
+            units = FilterAoeUnits(caster, targetSelf, units).ToList();
 
             possibleTargets.AddRange(units);
             // TODO : Need to check if this is needed
@@ -1229,7 +1477,9 @@ public class Skill
 
         foreach (var target in possibleTargets)
         {
-            if (target is Unit targetUnit && Template.TargetType == SkillTargetType.Hostile)
+            if (target is Unit targetUnit && CombatDiceRules.RollsForCast(
+                    Template.TargetType == SkillTargetType.Hostile,
+                    HasDamageEffect()))
             {
                 var diceResult = RollCombatDice(caster, targetUnit);
                 if (Template.LevelRuleNoConsideration)
@@ -1257,6 +1507,13 @@ public class Skill
                             break;
                     }
                 }
+
+                // skill_effects.always_hit: the effect lands whatever the dice said. The result is
+                // stored per target, so one always-hit effect on a skill lifts the whole skill's
+                // outcome for that target — that is the granularity DamageEffect can read back.
+                if (SkillMissedFor(diceResult) && HasAlwaysHitDamageEffect())
+                    diceResult = CombatDiceRules.HitTypeFor(Template.DamageTypeId);
+
                 // Auto-attack tasks reuse their Skill instance, so each swing must replace the
                 // previous result for this target instead of latching the first hit or miss forever.
                 HitTypes[targetUnit.ObjId] = diceResult;
@@ -1306,6 +1563,26 @@ public class Skill
             {
                 var targetNpc = target as Npc;
                 var relationState = caster.GetRelationStateTo(target);
+
+                // target_alive / target_dead, the same reading the plot target filter uses. A direct
+                // cast had no such filter at all, so an AoE could still land its effects on a corpse.
+                if (target is Unit aliveStateUnit &&
+                    !SkillUseConditionRules.AllowsTarget(Template.TargetAlive, Template.TargetDead, aliveStateUnit.IsDead))
+                {
+                    continue;
+                }
+
+                // skill_synergy_buff_tags: a synergy-flagged damage effect only lands on a target that
+                // carries one of the skill's synergy tags. Every one of the 21 skills with such effects
+                // also carries an un-flagged damage effect, so an untagged target still takes the base
+                // damage and a tagged one takes the extra rows.
+                if (!SkillSynergyRules.AllowsSynergyEffect(
+                        effect.Template is DamageEffect { Synergy: true },
+                        Template.SynergyBuffTags.Length > 0,
+                        TargetHasSynergyTag(target)))
+                {
+                    continue;
+                }
                 // Level range check
                 if (effect.StartLevel > unit.Level || effect.EndLevel < unit.Level)
                 {
@@ -1349,15 +1626,52 @@ public class Skill
                     continue;
                 }
 
-                if (effect.TargetBuffTagId > 0 && !target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetBuffTagId)))
+                if (effect.TargetBuffTagId > 0)
                 {
-                    continue;
+                    // check_target_tag_src redirects this half of the pair at the caster: the chain skills
+                    // (10534 빛과 어둠, 14929 연속 회복, 35717 근접 공격) carry one effect row for the target's
+                    // tag and a sibling row for the caster's.
+                    var tagOwner = effect.CheckTargetTagSrc ? caster : target;
+                    if (!tagOwner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetBuffTagId)))
+                        continue;
                 }
 
-                if (effect.TargetNoBuffTagId > 0 && target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetNoBuffTagId)))
+                if (effect.TargetNoBuffTagId > 0)
                 {
-                    continue;
+                    var noTagOwner = effect.CheckNoTargetTagSrc ? caster : target;
+                    if (noTagOwner.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.TargetNoBuffTagId)))
+                        continue;
                 }
+
+                // Buff stack bands: one effect row per band of the caster's or the target's stacks of the
+                // corresponding tag (49770/49864/49943/50072 each carry 1..4, 5..15 and 10..15 siblings).
+                if (!SkillCombatResourceRules.AllowsStackBand(
+                        caster is Unit casterUnit ? casterUnit.Buffs.GetStackCountByTagId(effect.SourceBuffTagId) : 0,
+                        effect.SourceBuffStackCountMin, effect.SourceBuffStackCountMax))
+                    continue;
+
+                if (!SkillCombatResourceRules.AllowsStackBand(
+                        target.Buffs.GetStackCountByTagId(effect.TargetBuffTagId),
+                        effect.TargetBuffStackCountMin, effect.TargetBuffStackCountMax))
+                    continue;
+
+                if (!SkillCombatResourceRules.AllowsStackBand(
+                        caster is Unit exceptCasterUnit ? exceptCasterUnit.Buffs.GetStackCountExceptTagId(effect.SourceBuffTagId) : 0,
+                        effect.SourceExceptBuffStackCountMin, effect.SourceExceptBuffStackCountMax))
+                    continue;
+
+                if (!SkillCombatResourceRules.AllowsStackBand(
+                        target.Buffs.GetStackCountExceptTagId(effect.TargetBuffTagId),
+                        effect.TargetExceptBuffStackCountMin, effect.TargetExceptBuffStackCountMax))
+                    continue;
+
+                // The target's combat resource band for this effect, named by target_combat_resource_id.
+                if (!SkillCombatResourceRules.AllowsEffect(
+                        effect.StartCombatResource,
+                        effect.EndCombatResource,
+                        (int)effect.TargetCombatResourceId,
+                        target is Unit resourceTarget ? resourceTarget.GetCombatResource((int)effect.TargetCombatResourceId) : 0))
+                    continue;
 
                 if (effect.TargetNpcTagId > 0)
                 {
@@ -1369,6 +1683,14 @@ public class Skill
 
                 // Dice
                 if (effect.Chance < 100 && Random.Shared.Next(100) > effect.Chance)
+                {
+                    continue;
+                }
+
+                // start_casting_use_chance..end_casting_use_chance: the shipped rows are the default 1..100
+                // except four, and effects land after the cast, so the end value is the one that applies.
+                if (!SkillCombatResourceRules.AllowsCastingUseChance(
+                        Template.CastingTime, effect.EndCastingUseChance, Random.Shared.NextDouble() * 100d))
                 {
                     continue;
                 }
@@ -1830,8 +2152,7 @@ public class Skill
         return Template.ConsumeLaborPower > 0 && laborCost < 1 ? 1 : laborCost;
     }
 
-    public bool TryConsumeLabor(Character character)
-    {
+    public bool TryConsumeLabor(Character character)    {
         if (character == null)
             return false;
 
@@ -1855,6 +2176,97 @@ public class Skill
             _laborConsumed = true;
             return true;
         }
+    }
+
+    /// <summary>
+    /// Whether the character can pay this cast's labor from both pools. See
+    /// <see cref="SkillLaborRules"/> for why the cast asks before <see cref="EndSkill"/> debits.
+    /// </summary>
+    public bool CanAffordLabor(Character character)
+    {
+        if (character == null)
+            return false;
+
+        return SkillLaborRules.CanAfford(
+            GetLaborCost(character),
+            character.LaborPower,
+            character.LocalLaborPower);
+    }
+
+    /// <summary>
+    /// A hit landed on the unit while this skill was casting or channelling. <c>stop_casting_on_big_hit</c>,
+    /// <c>stop_channeling_on_big_hit</c>, <c>casting_cancelable</c>, <c>casting_delayable</c> and formulas
+    /// 2/3 decide what happens; <see cref="SkillCastInterruptRules"/> holds the rule.
+    /// </summary>
+    internal void OnDamageTakenWhileCasting(Unit victim, int damage)
+    {
+        if (victim == null || Cancelled)
+            return;
+
+        var damagePercent = SkillCastInterruptRules.DamagePercent(damage, victim.MaxHp);
+        var bigHit = SkillCastInterruptRules.IsBigHit(damagePercent);
+
+        // A channel is not a cast with a cast time: only the channel's own big-hit flag applies, and it
+        // cancels the channel rather than delaying it. The tick drain and the TlId are released by Stop.
+        if (Template.ChannelingTime > 0)
+        {
+            if (Template.StopChannelingOnBigHit && bigHit)
+            {
+                Logger.Debug("Channel {0} on {1} broken by a {2:0.#}% hit", Template.Id, victim.Name, damagePercent);
+                Stop(victim, _channelingDoodad);
+            }
+
+            return;
+        }
+
+        if (Template.CastingTime <= 0)
+            return;
+
+        var tolerance = SkillCastInterruptRules.ReadCastingTolerance(victim);
+        var cancelPercent = SkillCastInterruptRules.CancelPercent(
+            SkillCastInterruptRules.Evaluate(
+                damagePercent, tolerance, SkillCastInterruptRules.CastingCancelPercentFormulaId));
+        var delayMs = SkillCastInterruptRules.DelayMilliseconds(
+            SkillCastInterruptRules.Evaluate(
+                damagePercent, tolerance, SkillCastInterruptRules.CastingDelayTimeFormulaId));
+
+        var decision = SkillCastInterruptRules.Decide(
+            Template.StopCastingOnBigHit,
+            Template.CastingCancelable,
+            Template.CastingDelayable,
+            damagePercent,
+            cancelPercent,
+            delayMs,
+            Random.Shared.NextDouble() * 100d);
+
+        if (decision.Cancel)
+        {
+            Logger.Debug("Cast {0} on {1} broken by a {2:0.#}% hit", Template.Id, victim.Name, damagePercent);
+            Stop(victim);
+            return;
+        }
+
+        if (decision.DelayMilliseconds > 0)
+        {
+            Logger.Debug("Cast {0} on {1} delayed {2} ms by a {3:0.#}% hit",
+                Template.Id, victim.Name, decision.DelayMilliseconds, damagePercent);
+            DelayActiveCast(victim, decision.DelayMilliseconds);
+        }
+    }
+
+    /// <summary>
+    /// Pushes the running <see cref="CastTask"/> back by <paramref name="delayMilliseconds"/>. The old
+    /// task is cancelled and a fresh one scheduled: TaskManager has no reschedule.
+    /// </summary>
+    private void DelayActiveCast(Unit victim, int delayMilliseconds)
+    {
+        if (victim.SkillTask is not CastTask running || running.Skill != this)
+            return;
+
+        running.Cancel();
+        victim.SkillTask = new CastTask(this, victim, _activeCasterCaster, _activeTarget, _activeTargetCaster,
+            _activeSkillObject);
+        TaskManager.Instance.Schedule(victim.SkillTask, TimeSpan.FromMilliseconds(delayMilliseconds));
     }
 
     /// <summary>
@@ -1896,20 +2308,25 @@ public class Skill
         var Target = target as Unit;
         // TODO
         //  -Calculate Hit/Miss Rates
-        //  -Check for AlwaysHit?
         //  -Only Parry if sword equipped?
         var damageType = (DamageType)Template.DamageTypeId;
-        if (Attacker != null)
+        // combat_dice_id (8 kinds) says which rolls this cast makes; damage_type_id still says which
+        // hit-type flag the client is told. Rows that leave the column at 0 keep the damage-type
+        // fallback they had before it was read.
+        var diceKind = CombatDiceRules.Kind(Template.CombatDiceId, Template.DamageTypeId);
+
+        // Avoidance (dodge / parry / block), skipped entirely for the undefendable, always-hit and heal
+        // kinds — and when the blow comes from behind the target, which cannot see it coming.
+        if (Attacker != null && CombatDiceRules.RollsAvoidance(diceKind) && MathUtil.IsFront(attacker, target))
         {
-            var bullsEyeMod = Attacker.BullsEye / 1000f * 3f / 100f;
+            // Formula 24 (facets_for_bulls_eye, "bulls_eye * 105") off the victim's dodge, block and parry,
+            // over the attacker's facets. Without the row — or before the attacker has facets — the flat
+            // per-rating-point share stays exactly what it was.
+            var bullsEyeMod = CombatFormulaRules.BullsEyeAvoidanceReduction(Attacker.BullsEye, Attacker.Facets);
 
             //TODO Check immunity a better way!!!
             //if (target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(361)))
             //return SkillHitType.Immune;
-
-            //Idk if this is right. Double check it
-            if (!MathUtil.IsFront(attacker, target))
-                goto AlwaysHit;
 
             if (Target != null && Random.Shared.Next(0f, 100f) < Target.DodgeRate - bullsEyeMod)
             {
@@ -1943,45 +2360,80 @@ public class Skill
             }
         }
 
-AlwaysHit:
-        switch (damageType)
+        // An always_hit / heal kind lands without a roll; a healer's spell is not dodged. A caster that
+        // is not a Unit has no accuracy to roll against and keeps the outcome it always had.
+        if (Attacker == null)
+            return CombatDiceRules.UnrollableSourceType(Template.DamageTypeId);
+        if (!CombatDiceRules.RollsMiss(diceKind))
+            return CombatDiceRules.HitTypeFor(Template.DamageTypeId);
+
+        var hitChance = damageType switch
         {
-            case DamageType.Melee:
-                if (Attacker != null && Random.Shared.Next(0f, 100f) < AntiMissRules.HitChance(Attacker.MeleeAccuracy, Attacker.MeleeAntiMissMul))
-                    return SkillHitType.MeleeHit;
-                return SkillHitType.MeleeMiss;
-            case DamageType.Magic:
-                if (Attacker != null && Random.Shared.Next(0f, 100f) < AntiMissRules.HitChance(Attacker.SpellAccuracy, Attacker.SpellAntiMissMul))
-                    return SkillHitType.SpellHit;
-                return SkillHitType.SpellMiss;
-            case DamageType.Ranged:
-                if (Attacker != null && Random.Shared.Next(0f, 100f) < AntiMissRules.HitChance(Attacker.RangedAccuracy, Attacker.RangedAntiMissMul))
-                    return SkillHitType.RangedHit;
-                return SkillHitType.RangedMiss;
-            case DamageType.Siege:
-                return SkillHitType.RangedHit;//No siege type?
-            default:
-                return SkillHitType.Invalid;
-        }
+            DamageType.Melee => AntiMissRules.HitChance(Attacker.MeleeAccuracy, Attacker.MeleeAntiMissMul),
+            DamageType.Magic => AntiMissRules.HitChance(Attacker.SpellAccuracy, Attacker.SpellAntiMissMul),
+            DamageType.Ranged => AntiMissRules.HitChance(Attacker.RangedAccuracy, Attacker.RangedAntiMissMul),
+            _ => float.MaxValue
+        };
+
+        return Random.Shared.Next(0f, 100f) < hitChance
+            ? CombatDiceRules.HitTypeFor(Template.DamageTypeId)
+            : CombatDiceRules.MissTypeFor(Template.DamageTypeId);
     }
 
     public bool SkillMissed(uint objId)
     {
         if (HitTypes.TryGetValue(objId, out var hitType))
         {
-            return hitType == SkillHitType.MeleeDodge
-                || hitType == SkillHitType.MeleeParry
-                || hitType == SkillHitType.MeleeBlock
-                || hitType == SkillHitType.MeleeMiss
-                || hitType == SkillHitType.RangedDodge
-                || hitType == SkillHitType.RangedParry
-                || hitType == SkillHitType.RangedBlock
-                || hitType == SkillHitType.RangedMiss
-                || hitType == SkillHitType.Immune;
+            return SkillMissedFor(hitType);
         }
         Logger.Error($"Unit[{objId}] was not found in the CbtDiceRolls.");
         return true;
     }
+
+    /// <summary>Whether a dice result means the cast did not land on that unit.</summary>
+    /// <remarks>
+    /// The spell variants are included: the list used to name only the melee and ranged families, so a
+    /// magic cast that rolled SpellMiss or was resisted was still applied by
+    /// <see cref="Effects.DamageEffect"/>.
+    /// </remarks>
+    public static bool SkillMissedFor(SkillHitType hitType) =>
+        hitType is SkillHitType.MeleeDodge
+            or SkillHitType.MeleeParry
+            or SkillHitType.MeleeBlock
+            or SkillHitType.MeleeMiss
+            or SkillHitType.RangedDodge
+            or SkillHitType.RangedParry
+            or SkillHitType.RangedBlock
+            or SkillHitType.RangedMiss
+            or SkillHitType.SpellMiss
+            or SkillHitType.SpellResist
+            or SkillHitType.Immune;
+
+    /// <summary>Whether any queued effect is a damage effect flagged <c>always_hit</c>.</summary>
+    private bool HasAlwaysHitDamageEffect() =>
+        Template.Effects.Any(effect => effect.AlwaysHit && effect.Template is DamageEffect);
+
+    /// <summary>
+    /// Whether the target carries one of the buff tags <c>skill_synergy_buff_tags</c> lists for this skill.
+    /// </summary>
+    private bool TargetHasSynergyTag(BaseUnit target)
+    {
+        var tags = Template.SynergyBuffTags;
+        if (target == null || tags.Length == 0)
+            return false;
+
+        foreach (var tagId in tags)
+        {
+            if (tagId > 0 && target.Buffs.CheckBuffTag(tagId))
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>Whether this cast deals damage at all, which is what makes it roll dice.</summary>
+    private bool HasDamageEffect() =>
+        Template.Effects.Any(effect => effect.Template is DamageEffect);
 
     /// <summary>
     /// Gets the amount of a Mana a skill would use with the caster's modifiers applied
@@ -2008,7 +2460,54 @@ AlwaysHit:
         ApplyGlobalCooldown(unit);
         // Skill cooldown is also applied in DoPlotEnd; applying early matches Cast() and blocks re-cast spam.
         if (Template.CooldownTime > 0)
-            unit.Cooldowns.AddCooldown(Template.Id, (uint)Template.CooldownTime);
+            ArmCooldowns(unit);
+    }
+
+    /// <summary>
+    /// Arms the cast's cooldown on the skill id, on every cooldown tag the skill carries, and on the
+    /// account when <c>account_cooldown</c> is set.
+    /// </summary>
+    /// <remarks>
+    /// A <c>switch_to_skill_cooldown</c> variant (10534 빛과 어둠 → 36630/36631) takes over the running
+    /// family cooldown instead of its own, so the player cannot use the parent and then reset the
+    /// family timer by picking a variant with a shorter cooldown — 36632 연속 회복: 번개 declares 0 ms.
+    ///
+    /// A charge skill spends one charge here and arms nothing while the pool still has one, so the
+    /// second use of a 2-charge skill is immediate; only the last charge spent starts the cooldown.
+    /// The spend is tracked on the instance because the plot-only path arms at Use and again at plot
+    /// end, and one cast must not cost two charges.
+    /// </remarks>
+    internal void ArmCooldowns(Unit unit)
+    {
+        if (unit == null)
+            return;
+
+        var duration = Template.CooldownTime > 0 ? (uint)Template.CooldownTime : 0u;
+        if (Template.SwitchToSkillCooldown)
+        {
+            duration = SkillCooldownGateRules.SwitchToCooldownDuration(
+                duration,
+                unit.Cooldowns.GetRemaining(Template.Id, Template.CooldownTags));
+        }
+
+        if (Template.ChargeCount > 1)
+        {
+            if (_chargesAfterCast < 0)
+            {
+                _chargesAfterCast = unit.Cooldowns.ConsumeCharge(
+                    Template.Id, Template.ChargeCount, Template.ChargeCooldownTime);
+            }
+
+            // Charges left: the skill is usable again right away, so neither its own cooldown nor its
+            // cooldown tag is armed.
+            if (_chargesAfterCast > 0)
+                return;
+        }
+
+        unit.Cooldowns.AddCooldown(Template.Id, duration, Template.CooldownTags);
+
+        if (Template.AccountCooldown && unit is Character character)
+            AccountCooldowns.Arm(character.AccountId, Template.Id, duration);
     }
 
     /// <summary>
@@ -2081,18 +2580,45 @@ AlwaysHit:
         if (!SkillCastOverlapRules.ArmsSharedGlobalCooldown(Template.CastingTime, Template.CustomGcd, Template.DefaultGcd))
             return;
 
-        // NOTE: default_gcd overriding custom_gcd is deliberate and matches the data — 29054 of the 29669
-        // skills with default_gcd set carry custom_gcd 0, i.e. "use the server default". The 619 that carry
-        // both are ambiguous and are left on the default rather than guessed at.
-        var gcd = Template.CustomGcd;
-        if (Template.DefaultGcd)
-            gcd = unit is Npc ? 1500 : 1000;
+        // Length order of authority is custom_gcd → weapon_gcd_id → default_gcd: see SkillGcdRules.
+        // weapon_gcd_id names a holdables row (15 한손창 1100 ms, 16 양손창 1200 ms, 17 양손지팡이 1300 ms
+        // on 327 skills, none of which carry a custom_gcd), so those skills follow their weapon class
+        // instead of the flat server default.
+        var weaponGcdSpeed = Template.WeaponGcdId > 0
+            ? ItemManager.Instance.GetHoldable((uint)Template.WeaponGcdId)?.Speed ?? 0
+            : 0;
+        var gcd = SkillGcdRules.ResolveSharedGcd(
+            Template.CustomGcd, Template.DefaultGcd, weaponGcdSpeed, unit is Npc);
         if (gcd <= 0)
             return;
         var gcdMul = SkillGcdRules.SharedGcdMultiplier(
             Template.UseWeaponCooldownTime, unit.GlobalCooldownMul, unit.CastTimeMul);
-        unit.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * gcdMul);
+        unit.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * gcdMul * GlobalCooldownFactor(unit));
     }
+
+    /// <summary>
+    /// The caster's <c>skill_modifiers</c> factor for the armed global cooldown (attribute 15,
+    /// <c>global_cooldown</c>, authored as a per-cent delta: the shipped rows are -3, -10, -12 and -50).
+    /// A caster carrying no such row gets exactly 1.0, so the GCD is what it was.
+    /// </summary>
+    public float GlobalCooldownFactor(Unit caster) =>
+        (float)caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.GlobalCooldown, 1.0);
+
+    /// <summary>
+    /// The radius this cast gathers its area targets with: the template's <c>target_area_radius</c> plus the
+    /// caster's <c>skill_modifiers</c> area_radius rows (attribute 3, authored as a flat metre delta — the
+    /// shipped rows are 1, 2 and 5). No such row leaves the template's radius exactly.
+    /// </summary>
+    public float EffectiveTargetAreaRadius(Unit caster) =>
+        (float)caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.AreaRadius, Template.TargetAreaRadius);
+
+    /// <summary>
+    /// How long the channel lasts: the template's <c>channeling_time</c> plus the caster's
+    /// <c>skill_modifiers</c> channeling_time rows (attribute 11, a flat millisecond delta — the shipped rows
+    /// are 2000 and 4000). No such row leaves the template's value exactly.
+    /// </summary>
+    public int EffectiveChannelingTime(Unit caster) =>
+        (int)caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.ChannelingTime, Template.ChannelingTime);
 
     public void ConsumeMana(BaseUnit caster)
     {

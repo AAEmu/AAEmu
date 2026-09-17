@@ -28,8 +28,9 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// The wedge is measured the way <c>AreaShape.FilterSphereCone</c> measures one — the bearing from the
 /// origin's world facing, which <c>MathUtil.CalculateAngleFrom</c> subtracts the origin's yaw to get — so
 /// a tick area and a skill's sphere cone agree about where "in front" is. The sweep is handed to the shape
-/// unchanged, i.e. read as the half-angle: turning a 120 into ±60 would halve 64 live cones on a reading
-/// the shape code itself still records as unresolved.
+/// unchanged, so the column is read the same way <c>aoe_shapes.value3</c> is: as the full width of the
+/// wedge, 120 meaning ±60. The shape code settles that reading in <c>AreaShape.SphereConeValue3IsFullSweep</c>,
+/// and the two 180 rows are a half circle rather than a no-op.
 /// </remarks>
 public static class TickAreaRules
 {
@@ -69,7 +70,8 @@ public static class TickAreaRules
 
     /// <summary>
     /// Keeps the units whose bearing from <paramref name="origin"/>'s facing is within
-    /// ±<paramref name="sweep"/> degrees.
+    /// ±<paramref name="sweep"/>/2 degrees — <paramref name="sweep"/> is the full width of the wedge,
+    /// the way <c>AreaShape.Value3</c> carries it.
     /// </summary>
     public static List<T> InCone<T>(GameObject origin, List<T> units, float sweep) where T : GameObject
     {

@@ -14,6 +14,10 @@ public interface IBuffs
     bool CheckBuffImmune(BuffTemplate candidate, BaseUnit caster, Skill castingSkill = null);
     bool CheckBuffs(List<uint> ids);
     bool CheckBuffTag(uint tagId);
+    /// <summary>Summed stacks of the owner's buffs carrying <paramref name="tagId"/>; 0 when none.</summary>
+    int GetStackCountByTagId(uint tagId);
+    /// <summary>Summed stacks of the owner's buffs that do NOT carry <paramref name="tagId"/>.</summary>
+    int GetStackCountExceptTagId(uint tagId);
     bool CheckDamageImmune(DamageType damageType);
     bool CheckKnockbackImmune();
     bool CheckManaBurnImmune();
@@ -39,6 +43,7 @@ public interface IBuffs
     void RemoveEffect(uint templateId, uint skillId);
     void RemoveEffectsOnDeath();
     void RemoveStealth();
+    int SetToleranceStep(int toleranceId, int stepIndex);
     void SetOwner(BaseUnit owner);
     void TriggerRemoveOn(BuffRemoveOn on, uint value = 0);
     void TimeoutBuffsFromSkill(uint skillId);

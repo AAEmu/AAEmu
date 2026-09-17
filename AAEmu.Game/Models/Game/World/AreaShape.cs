@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 using AAEmu.Game.Utils;
 
@@ -22,18 +22,16 @@ public class AreaShape
     /// bearing is ±value3/2) rather than the half-angle (±value3).
     /// </summary>
     /// <remarks>
-    /// UNRESOLVED, and deliberately left on the historical reading. The only evidence either way is that
-    /// 108 sphere rows carry value3 exactly 360 — meaningless as a half-angle, exactly "omni" as a full
-    /// sweep — but for those very rows both readings accept every bearing, so the difference is not
-    /// observable there. Flipping this halves 215 cones that are in active use (44 of the 360-rows alone
-    /// back live AoEs), and if the historical reading is right, those skills would quietly stop hitting
-    /// targets they should — indistinguishable from the bug this was meant to fix.
-    ///
-    /// To settle it: stand roughly 40° off a caster's facing inside a known cone skill whose shape has
-    /// value3 60 (e.g. 19232, Crashing Wave's target picker) and see whether the hit lands. Hit ⇒ ±60,
-    /// leave this false. Miss ⇒ ±30, set it true.
+    /// Settled from the shipped data: it is the full sweep. Of the 18,582 sphere rows, 323 carry a
+    /// non-zero value3 — 108 of them exactly 360, and the rest 0.3 to 200. A half-angle reading has to
+    /// explain 180 and 200, and cannot: 180 would be an omni cone spelled differently from the 360 rows
+    /// beside it, and 200 would be ±200°, a 400° arc, which is not a bearing range at all. As a full sweep
+    /// the same rows read naturally — 45 is a 45° cone (34 rows), 90 a quarter circle (20), 120 (10), 180
+    /// a half circle (6, e.g. shape 19121 on 맹독 45493) and 200 a 200° arc (shapes 18214 and 21872, both
+    /// on 칼릴의 검 44784/47828), while 360 stays the omni marker. 195 of the cone shapes are reached by a
+    /// live plot event, so the half-angle they filter at is value3/2.
     /// </remarks>
-    private const bool SphereConeValue3IsFullSweep = false;
+    private const bool SphereConeValue3IsFullSweep = true;
 
     /// <summary>
     /// Sphere cone half-angle in degrees: the bearing from the origin's facing that still counts as a hit.

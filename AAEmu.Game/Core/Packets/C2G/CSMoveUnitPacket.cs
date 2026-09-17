@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Slaves;
@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
 using AAEmu.Game.Models.Game.Units;
@@ -62,6 +63,23 @@ public class CSMoveUnitPacket() : GamePacket(CSOffsets.CSMoveUnitPacket, 1)
 
         // if movement is forbidden when teleporting to instances, then to exit
         if (character.DisabledSetPosition) return;
+
+        // Root / stun / sleep: the player's own movement is refused here, before the ZoneAuthority relay
+        // below can forward it as WZ and before the local path writes Transform. The gate is on the mover
+        // and not on the unit being moved, because the state belongs to the player who sent the packet:
+        // a rooted driver must not steer a hull either, or the root would only block the walk animation.
+        //
+        // Nothing that legitimately moves a unit goes through this packet: Leap and Dash advance the
+        // owner themselves (they build their own UnitMoveType and broadcast SCOneUnitMovement from
+        // Server-side), and a seat ride is a buff, not a CS move. Rejecting here cannot strand either.
+        if (CrowdControlRules.BlocksMovement(CrowdControlRules.ReadState(character)))
+        {
+            // Debug, not Warn: a rooted player holding a movement key repeats this every tick.
+            Logger.Debug(
+                "Rejected movement type {0} for {1} ({2}): the mover is stunned, asleep or rooted",
+                _moveType.Type, character.Name, character.ObjId);
+            return;
+        }
 
         // Commercial: zone owns locomotion — forward CS move as WZ; do not broadcast Game SC as authority.
         if (WorldIntegration.ZoneAuthority && WorldIntegration.RelayMoveToZone != null)

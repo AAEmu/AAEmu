@@ -51,5 +51,26 @@ public enum UnitFormulaKind : byte
     HealDpsInc = 43,
     HealCriticalBonus = 44,
     Block = 45,
-    Dodge = 46
+    Dodge = 46,
+
+    // 10.0.2.13: enum_unit_formula_kinds has 60 rows, ids 1-68 with 3, 4, 8, 9, 56, 57, 58 and 62 absent.
+    // The eight ids above 46 that the 1.2 list stopped short of are named exactly after their row.
+    Mass = 47,
+    SteeringSpeed = 48,
+    ReverseVelocity = 49,
+    MeleeDynamicNormalizable = 50,
+    RangedDynamicNormalizable = 51,
+    MagicDynamicNormalizable = 52,
+    HealDynamicNormalizable = 53,
+    DefenceDynamicNormalizable = 54,
+    MusicDynamicNormalizable = 55,
+    BattleResist = 59,
+    Flexibility = 60,
+    IncomingDamageMul = 61,
+    IgnoreShieldBonusMul = 63,
+    MeleeAntiMissMul = 64,
+    RangedAntiMissMul = 65,
+    SpellAntiMissMul = 66,
+    BullsEye = 67,
+    CastingTimeMul = 68
 }

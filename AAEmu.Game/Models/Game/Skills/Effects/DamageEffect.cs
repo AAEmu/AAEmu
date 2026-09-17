@@ -1,10 +1,11 @@
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Game;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Housing;
@@ -37,7 +38,12 @@ public class DamageEffect : EffectTemplate
     public bool UseChargedBuff { get; set; }
     public uint ChargedBuffId { get; set; }
     public float ChargedMul { get; set; }
-    public float AggroMultiplier { get; set; }
+    /// <summary>
+    /// <c>aggro_multiplier</c>: the factor the damage this hit dealt is worth on the victim's aggro table.
+    /// 1.0 on 10,837 rows, 10.0 on the two 방패 휘두르기 rows whose tooltip reads "위협수준 생성량 높음",
+    /// 3.0 on 3단 베기 and 진공 폭발, and 0.0 on the 77 environmental rows that must pull nothing.
+    /// </summary>
+    public float AggroMultiplier { get; set; } = 1f;
     public int HealthStealRatio { get; set; }
     public int ManaStealRatio { get; set; }
     public float DpsMultiplier { get; set; }
@@ -48,7 +54,12 @@ public class DamageEffect : EffectTemplate
     public uint TargetChargedBuffId { get; set; }
     public float TargetChargedMul { get; set; }
     public float DpsIncMultiplier { get; set; }
-    public bool EngageCombat { get; set; }
+    /// <summary>
+    /// <c>engage_combat</c>: whether this hit is what puts the caster and the victim into combat. 't' on
+    /// 10,572 rows; the 429 that clear it are the scripted and environmental hits (자폭 비행, 감아올리기,
+    /// 메테오 소환, 켈루스의 불덩이) that are not a fight.
+    /// </summary>
+    public bool EngageCombat { get; set; } = true;
     public bool Synergy { get; set; }
     public uint ActabilityGroupId { get; set; }
     public int ActabilityStep { get; set; }
@@ -56,15 +67,99 @@ public class DamageEffect : EffectTemplate
     public float ActabilityAdd { get; set; }
     public float ChargedLevelMul { get; set; }
     public bool AdjustDamageByHeight { get; set; }
+
+    /// <summary>
+    /// <c>adjust_damage_by_range</c> (123 rows): scale the hit by <c>formulas</c> 12's curve around
+    /// <see cref="OptimumRange"/>.
+    /// </summary>
+    public bool AdjustDamageByRange { get; set; }
+
+    /// <summary>
+    /// <c>optimum_range</c>: the distance the <see cref="AdjustDamageByRange"/> curve peaks at. The shipped
+    /// rows use 30 m (99 rows, with <c>range_damage_multipier</c> 1.3 — 폭탄 사격 and the other ranged
+    /// shots), 25 m (17 rows) and a handful of one-offs.
+    /// </summary>
+    public float OptimumRange { get; set; } = 1f;
+
+    /// <summary>
+    /// <c>range_damage_multipier</c> (the column's own spelling): the factor the curve reaches at
+    /// <see cref="OptimumRange"/>, 1.3 on the 99 shipped 30 m rows.
+    /// </summary>
+    public float RangeDamageMultiplier { get; set; } = 1f;
     public bool UsePercentDamage { get; set; }
     public int PercentMin { get; set; }
     public int PercentMax { get; set; }
+
+    /// <summary>
+    /// <c>percent_damage_resource_type_id</c> (<c>enum_percent_damage_resource_types</c>): which pool the
+    /// percentage is read from. 452 of the 491 flagged rows take the victim's maximum health, 39 its current
+    /// health, and the two mana rows take a mana pool.
+    /// </summary>
+    public int PercentDamageResourceTypeId { get; set; } = (int)PercentDamageResourceType.CurrentHealth;
+
     public bool UseCurrentHealth { get; set; }
+
+    /// <summary>
+    /// <c>mana_damage</c> (6 rows): the hit drains the victim's mana instead of its health. Its skill is
+    /// 38807 활력 흡수, "소환수가 적대적인 대상의 활력을 15초동안 지속적으로 흡수하고 ... 마법 피해를
+    /// 입힙니다" — a summon absorbing the target's vitality, with <c>mana_steal_ratio</c> 200..900 handing
+    /// the drained mana back to the caster.
+    /// </summary>
+    public bool ManaDamage { get; set; }
+
+    /// <summary>
+    /// <c>cancel_protection</c>: whether the victim's damage immunity stops this hit. 't' on 10,923 of the
+    /// 11,001 rows and the column's own default, i.e. every ordinary hit; the 78 rows that clear it are the
+    /// mechanical ones that must land regardless — 신 오스트 투석기 발사, 홍염포 발사, 차원 격벽 파괴,
+    /// 고대 히라마 나무거인의 발구르기 and the other siege and device hits.
+    /// </summary>
+    public bool CancelProtection { get; set; } = true;
     public int TargetHealthMin { get; set; }
     public int TargetHealthMax { get; set; }
     public float TargetHealthMul { get; set; }
     public int TargetHealthAdd { get; set; }
-    public bool FireProc { get; set; }
+    /// <summary>
+    /// <c>fire_proc</c>: whether this hit rolls the item procs either side carries — the attacker's
+    /// <c>HitAny</c> and the victim's <c>TakeDamageAny</c>. 't' on 10,760 rows; the 241 that clear it are the
+    /// grapple and stance-swap family (감아올리기, 크게 감아올리기), where a proc answer would be wrong.
+    /// </summary>
+    public bool FireProc { get; set; } = true;
+
+    /// <summary>
+    /// <c>use_combat_resource</c> (16 rows): the hit buys extra damage with the pool the skill declares
+    /// (<c>skills.combat_resource_id</c>), at <see cref="CombatResourceMd"/>. 승자의 외침 and its variants are
+    /// the only family behind it.
+    /// </summary>
+    public bool UseCombatResource { get; set; }
+
+    /// <summary>
+    /// <c>combat_resource_md</c>: the share of the pool added as damage, where 1.0 is 100 % (effect 13204)
+    /// and 12.5 is 1,250 % (effect 13206, the monster-hunting variant).
+    /// </summary>
+    public float CombatResourceMd { get; set; } = 1f;
+
+    /// <summary><c>combat_resource_level_md</c>: damage per caster level. 0 on all 16 rows.</summary>
+    public float CombatResourceLevelMd { get; set; } = 1f;
+
+    /// <summary><c>combat_resource_dps_md</c>: damage per point of the caster's mainhand DPS. 0 on all 16 rows.</summary>
+    public float CombatResourceDpsMd { get; set; } = 1f;
+
+    /// <summary>
+    /// <c>use_element_effect</c> (239 rows): scale the hit by <c>formulas</c> 65,
+    /// <c>(element_value / (element_value + 8000)) * element_effect_ratio * (1 - element_resist_value /
+    /// (element_resist_value + 200))</c>. Loaded, and not consumed yet: the 10.0.2.13 server has no source for
+    /// any of the three variables — <c>enum_unit_attribute</c> carries no element attack or resist id, and
+    /// <c>holdables.element_id</c>, <c>item_elements</c> and <c>armor_element_resists</c> are not loaded.
+    /// </summary>
+    public bool UseElementEffect { get; set; }
+
+    /// <summary>
+    /// <c>fixed_type</c> (46 rows, all of which already set <c>use_fixed_damage</c>, 36 of them siege type).
+    /// Loaded, and not consumed: nothing in the content or the client data this server reads says what the
+    /// flag changes about an authored fixed range, and inventing a meaning would move 46 environmental and
+    /// mechanical hits (붉은 용의 숨결, 광선총 발사, 목표물 제거) on a guess.
+    /// </summary>
+    public bool FixedType { get; set; }
     public List<BonusTemplate> Bonuses { get; set; } = [];
 
     public override bool OnActionTime => false;
@@ -126,7 +221,10 @@ public class DamageEffect : EffectTemplate
         if (BuffRemoveOnRules.IsAutoAttack(source?.Skill?.Template?.Id ?? 0))
             caster.Buffs.TriggerRemoveOn(Buffs.BuffRemoveOn.AutoAttack);
 
-        if (target.Buffs.CheckDamageImmune(DamageType))
+        // cancel_protection: 't' — 10,923 of the 11,001 rows, and the column's own default — keeps the
+        // victim's damage immunity exactly where it was. The 78 rows that clear it are the mechanical siege
+        // and device hits that have to land anyway.
+        if (CancelProtection && target.Buffs.CheckDamageImmune(DamageType))
         {
             target.BroadcastPacket(new SCUnitDamagedPacket(castObj, casterObj, caster.ObjId, target.ObjId, 1, 0)
             {
@@ -154,7 +252,10 @@ public class DamageEffect : EffectTemplate
             return;
         }
 
-        float flexibilityRateMod = trg.Flexibility / 1000 * 3;
+        // The victim's flexibility removes per-cent points from the attacker's critical chance. The rating
+        // is normalised by the victim's facets through formula 25 instead of the flat 3/1000 per point the
+        // code carried; a unit with no facets (0) or a build with no such row keeps the flat value.
+        var flexibilityRateMod = CombatFormulaRules.FlexibilityCriticalChanceReduction(trg.Flexibility, trg.Facets);
         switch (DamageType)
         {
             case DamageType.Melee:
@@ -223,11 +324,14 @@ public class DamageEffect : EffectTemplate
         var weaponDamage = 0.0f;
 
         if (UseMainhandWeapon)
-            weaponDamage = ((Unit)caster).Dps * 0.001f; // TODO : Use only weapon value!
+            weaponDamage = DamageEffectRules.WeaponDps(
+                EquippedWeaponDps((Unit)caster, EquipmentItemSlot.Mainhand), ((Unit)caster).Dps * 0.001f);
         if (UseOffhandWeapon)
-            weaponDamage = ((Unit)caster).OffhandDps * 0.001f + weaponDamage;
+            weaponDamage = DamageEffectRules.WeaponDps(
+                EquippedWeaponDps((Unit)caster, EquipmentItemSlot.Offhand), ((Unit)caster).OffhandDps * 0.001f) + weaponDamage;
         if (UseRangedWeapon)
-            weaponDamage = ((Unit)caster).RangedDps * 0.001f + weaponDamage; // TODO : Use only weapon value!
+            weaponDamage = DamageEffectRules.WeaponDps(
+                EquippedWeaponDps((Unit)caster, EquipmentItemSlot.Ranged), ((Unit)caster).RangedDps * 0.001f) + weaponDamage;
 
         max = DpsMultiplier * weaponDamage + max;
 
@@ -258,6 +362,25 @@ public class DamageEffect : EffectTemplate
 
         min *= Multiplier;
         max *= Multiplier;
+
+        // Distance factors, from the content's own rows: damage_multiplier_by_height (formulas 11) for the
+        // 10,584 rows that leave adjust_damage_by_height set, and damage_multiplier_by_range (formulas 12)
+        // for the 123 that set adjust_damage_by_range. Both are the identity — `min *= 1f` is bit-for-bit
+        // min — for a row that turns the flag off, for a missing formula row and for a table that never
+        // loaded, which is what keeps the 417 rows that opt out of the height term exactly as they were.
+        if (AdjustDamageByHeight)
+        {
+            var heightFactor = FormulaDamageScalingRules.HeightFactorFor((Unit)caster, trg);
+            min *= heightFactor;
+            max *= heightFactor;
+        }
+
+        if (AdjustDamageByRange)
+        {
+            var rangeFactor = FormulaDamageScalingRules.RangeFactorFor((Unit)caster, trg, OptimumRange, RangeDamageMultiplier);
+            min *= rangeFactor;
+            max *= rangeFactor;
+        }
 
         var damageMultiplier = DamageType switch
         {
@@ -340,30 +463,95 @@ public class DamageEffect : EffectTemplate
             max = FixedMax;
         }
 
+        // The authored add-on terms land on the composed range, after every multiplier has had its say, so
+        // `multiplier` cannot rescale them (damage_effects 14893 pairs a fixed 900000000 with a multiplier of
+        // 10, and 861 pairs 35 % of the victim's health with 300). A row without use_percent_damage — 10,510
+        // of the 11,001 — skips the whole block: min += 0f is bit-for-bit min.
+        var percentDamage = DamageEffectRules.NeutralTerm;
+        if (UsePercentDamage)
+        {
+            // percent_damage_resource_type_id picks the pool and use_current_health picks the unit.
+            var resourceType = (PercentDamageResourceType)PercentDamageResourceTypeId;
+            var poolValue = UnitResourcePools.ValueOf(UseCurrentHealth ? (Unit)caster : trg, resourceType);
+            percentDamage = DamageEffectRules.PercentDamageTerm(
+                PercentMin,
+                PercentMax,
+                Random.Shared.NextSingle(),
+                poolValue);
+        }
+
+        // use_combat_resource (16 rows): the extra damage a skill buys with the pool it declares. 승자의
+        // 외침: 불꽃 authors combat_resource_md 1.0 against skills.combat_resource_id 3 (근성, ceiling 5,000)
+        // and reads "중첩된 근성 수치 100% + 자신의 최대 생명력 1%~2%만큼의 추가 근접 피해" — the pool share
+        // plus the percent term above. A skill that declares no pool, and a caster holding none, add 0f.
+        var combatResourceDamage = DamageEffectRules.NeutralTerm;
+        if (UseCombatResource)
+        {
+            var resourceId = source?.Skill?.Template?.CombatResourceId ?? 0;
+            combatResourceDamage = DamageEffectRules.CombatResourceTerm(
+                resourceId == 0 ? 0 : ((Unit)caster).GetCombatResource(resourceId),
+                CombatResourceMd,
+                ((Unit)caster).Level,
+                CombatResourceLevelMd,
+                ((Unit)caster).Dps * 0.001f,
+                CombatResourceDpsMd);
+        }
+
+        min += percentDamage + combatResourceDamage;
+        max += percentDamage + combatResourceDamage;
+
         var finalDamage = Random.Shared.Next(min, max);
 
+        // target_health_*: a scale that only applies while the victim's health percentage is inside the
+        // authored band. No shipped row moves anything (see DamageEffectRules.TargetHealthAdjust), and only
+        // the three rows that author an upper bound are examined at all, so the other 10,998 never ask the
+        // victim for its health percentage.
+        if (TargetHealthMax > 0)
+        {
+            finalDamage = DamageEffectRules.TargetHealthAdjust(
+                finalDamage,
+                trg.Hpp,
+                TargetHealthMin,
+                TargetHealthMax,
+                TargetHealthMul,
+                TargetHealthAdd);
+        }
+
+        // AoE diminishing: the same area skill's successive hits on one unit take the next aoe_diminishings
+        // rate. Off unless the content says otherwise - an empty table, a single-target skill, a skill whose
+        // plot event is not flagged and a buff tick all leave the factor at exactly 1.0f, so the arithmetic
+        // below is bit-for-bit what it was.
+        var aoeDiminishing = AoeDiminishingMultiplier(source, castObj, trg, time);
+        finalDamage *= aoeDiminishing;
         // Buff tag increase (Hellspear's impale combo, for ex)
         if (TargetBuffTagId > 0 && target.Buffs.CheckBuffTag(TargetBuffTagId))
         {
-            // TODO TargetBuffBonus ? (used in 3 DamageEffects)
-            finalDamage *= TargetBuffBonusMul;
+            // target_buff_bonus is the flat half of the same pair: the tag's scale, then the tag's add.
+            // 10,980 of the 11,001 rows author 0, which is the identity here.
+            finalDamage = DamageEffectRules.TargetBuffDamage(finalDamage, TargetBuffBonusMul, TargetBuffBonus);
         }
 
-        // Toughness reduction (PVP Only)
+        // Toughness reduction (PVP Only). The 8000 lives in formula 23 (damage_reduce_radio_by_battle_resist);
+        // the row is evaluated, and a build without it keeps the inline expression exactly.
         if (caster is Character && trg is Character)
-            finalDamage *= 1 - trg.BattleResist / (8000f + trg.BattleResist);
+            finalDamage *= 1 - CombatFormulaRules.BattleResistReduction(trg.BattleResist);
 
         // Do Critical Dmgs
+        var flexibilityBonusReduction = CombatFormulaRules.FlexibilityCriticalBonusReduction(trg.Flexibility);
         switch (hitType)
         {
             case SkillHitType.MeleeCritical:
-                finalDamage *= 1 + (((Unit)caster).MeleeCriticalBonus - trg.Flexibility / 100) / 100;
+                finalDamage *= DamageEffectRules.CriticalFactor(
+                    ((Unit)caster).MeleeCriticalBonus, CriticalBonus, trg.Flexibility);
                 break;
             case SkillHitType.RangedCritical:
-                finalDamage *= 1 + (((Unit)caster).RangedCriticalBonus - trg.Flexibility / 100) / 100;
+                finalDamage *= DamageEffectRules.CriticalFactor(
+                    ((Unit)caster).RangedCriticalBonus, CriticalBonus, trg.Flexibility);
                 break;
             case SkillHitType.SpellCritical:
-                finalDamage *= 1 + (((Unit)caster).SpellCriticalBonus - trg.Flexibility / 100) / 100;
+                finalDamage *= DamageEffectRules.CriticalFactor(
+                    ((Unit)caster).SpellCriticalBonus, CriticalBonus, trg.Flexibility);
+                break;
                 break;
             default:
                 break;
@@ -412,8 +600,13 @@ public class DamageEffect : EffectTemplate
         if (!caster.CanAttack(trg) && !AllowsCanAttackBypass(castObj, caster, trg))
             return;
 
-        trg.ReduceCurrentHp(caster, value, KillReason.Damage, DamageType);
-        ((Unit)caster).SummarizeDamage += value;
+        // mana_damage (6 rows): the hit drains the victim's mana rather than its health. It still counts as a
+        // hostile hit everywhere else - the packet, the aggro table, the events and the caster's stolen-mana
+        // refund all keep working off `value`.
+        if (ManaDamage)
+            trg.ReduceCurrentMp(caster, value);
+        else
+            trg.ReduceCurrentHp(caster, value);        ((Unit)caster).SummarizeDamage += value;
 
         if (healthStolen > 0 || manaStolen > 0)
         {
@@ -457,9 +650,14 @@ public class DamageEffect : EffectTemplate
 
         // TODO : Use proper chance kinds (melee, magic etc.)
 
+        // engage_combat: 't' on 10,572 rows, and 'f' on the 429 scripted and environmental ones (자폭 비행,
+        // 감아올리기, 메테오 소환, 켈루스의 불덩이) that must not be what puts the two units in combat.
         // set for all combatants, for RegenTick
-        trg.IsInBattle = trg.Hp > 0;
-        trg.LastCombatActivity = DateTime.UtcNow;
+        if (EngageCombat)
+        {
+            trg.IsInBattle = trg.Hp > 0;
+            trg.LastCombatActivity = DateTime.UtcNow;
+        }
 
         if (trgCharacter != null)
         {
@@ -469,14 +667,23 @@ public class DamageEffect : EffectTemplate
             {
                 trgCharacter.SetHostileActivity(attackerCharacter);
             }
-            trgCharacter.Procs?.RollProcsForKind(ProcChanceKind.TakeDamageAny);
+
+            // fire_proc: the victim's own take-damage procs, and the attacker's hit procs below. Both keep
+            // rolling for the 10,760 rows that leave the flag set.
+            if (DamageEffectRules.FiresProcs(FireProc))
+                trgCharacter.Procs?.RollProcsForKind(ProcChanceKind.TakeDamageAny);
         }
 
         if (attacker != null)
         {
-            attacker.IsInBattle |= trg.Hp > 0;
-            attacker.LastCombatActivity = DateTime.UtcNow;
-            attacker.Procs?.RollProcsForKind(ProcChanceKind.HitAny);
+            if (EngageCombat)
+            {
+                attacker.IsInBattle |= trg.Hp > 0;
+                attacker.LastCombatActivity = DateTime.UtcNow;
+            }
+
+            if (DamageEffectRules.FiresProcs(FireProc))
+                attacker.Procs?.RollProcsForKind(ProcChanceKind.HitAny);
         }
 
         // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
@@ -523,7 +730,10 @@ public class DamageEffect : EffectTemplate
                         AiAggroEntry.FromDamageValue(caster.ObjId, ((Unit)caster).SummarizeDamage)));
             }
 
-            npc.OnDamageReceived((Unit)caster, value);
+            // aggro_multiplier scales what this hit is worth on the victim's aggro table. Under
+            // ZoneAuthority the aggro is applied by the zone from the WZUnitDamaged relay, whose signature
+            // carries the raw damage, so the factor applies to the local path only.
+            npc.OnDamageReceived((Unit)caster, DamageEffectRules.AggroValue(value, AggroMultiplier));
         }
 
         //Invoke even if damage is 0
@@ -598,9 +808,56 @@ public class DamageEffect : EffectTemplate
         }
     }
 
-    private static bool TryGetSkillCastIds(CastAction castObj, out uint skillId, out ushort tlId)
+    /// <summary>
+    /// The factor AoE diminishing applies to this hit: exactly 1.0f whenever the content does not call for it.
+    /// </summary>
+    /// <remarks>
+    /// A hit diminishes when the table has rows, the hit came from a cast rather than a buff tick, and either
+    /// the casting skill's plot event carries <c>aoe_diminishing</c> or the skill is itself an area skill whose
+    /// plot does. The counter is per (unit, skill) and advances only on a hit that actually diminishes, so a
+    /// skill that is exempt does not spend the next rate for the skill that is not.
+    /// </remarks>
+    private static float AoeDiminishingMultiplier(EffectSource source, CastAction castObj, Unit trg, DateTime time)
     {
-        switch (castObj)
+        if (!AoeDiminishingTable.IsLoaded)
+            return 1.0f;
+
+        // A tick of a damage-over-time is the same application landing again, not a new area hit.
+        if (source?.Buff?.TickEffects.Count > 0)
+            return 1.0f;
+
+        var skillId = source?.Skill?.Template?.Id ?? 0;
+        var plotCast = castObj as CastPlot;
+        if (skillId == 0 && plotCast == null)
+            return 1.0f;
+
+        var isAreaSkill = source?.Skill?.Template is { } skillTemplate &&
+                          AoeDiminishingRules.IsAreaSkill(skillTemplate.TargetAreaCount, skillTemplate.TargetAreaRadius);
+
+        var plotFlagged = false;
+        var plotId = source?.Skill?.Template?.Plot?.Id ?? 0;
+        if (plotId != 0)
+            plotFlagged = source.Skill.Template.Plot.EventTemplate?.AoeDiminishing == true;
+
+        var plotCastFlagged = plotCast != null &&
+                              PlotManager.Instance?.GetEventByPlotId(plotCast.PlotId)?.AoeDiminishing == true;
+
+        if (!AoeDiminishingRules.Diminishes(isAreaSkill, plotFlagged, plotCastFlagged))
+            return 1.0f;
+
+        var counterSkillId = skillId != 0 ? skillId : plotCast?.PlotId ?? 0;
+        var rate = AoeDiminishingTracker.Advance(trg.ObjId, counterSkillId, time, AoeDiminishingTable.Rates);
+        return AoeDiminishingRules.RateMultiplier(rate);
+    }
+
+    /// <summary>
+    /// The DPS of the weapon the caster has in <paramref name="slot"/>, or 0 when the slot holds no weapon.
+    /// </summary>
+    private static float EquippedWeaponDps(Unit caster, EquipmentItemSlot slot) =>
+        (caster.Equipment?.GetItemBySlot((int)slot) as Weapon)?.Dps ?? 0f;
+
+    private static bool TryGetSkillCastIds(CastAction castObj, out uint skillId, out ushort tlId)
+    {        switch (castObj)
         {
             case CastSkill cs:
                 skillId = cs.SkillId;

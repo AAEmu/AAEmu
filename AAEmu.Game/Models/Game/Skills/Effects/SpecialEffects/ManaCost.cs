@@ -4,6 +4,11 @@ using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
+/// <summary>
+/// Charges the caster mana for a skill that carries its cost in the effect instead of in
+/// <c>skills.mana_cost</c>. The formula is unconfirmed — see <see cref="ManaCostRules"/> — and no shipped row
+/// reaches this class.
+/// </summary>
 public class ManaCost : SpecialEffectAction
 {
     protected override SpecialType SpecialEffectActionType => SpecialType.ManaCost;
@@ -21,19 +26,14 @@ public class ManaCost : SpecialEffectAction
         int value3,
         int value4)
     {
-        // TODO ...
-        if (caster is Character) { Logger.Debug("Special effects: ManaCost value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is not Character character)
+            return;
 
-        if (caster is Character character)
-        {
-            // TODO: Value1 is used by Mana Stars, value2 is used by other skills. They are never used both at once.
-            // I think value1 is fixed, and value2 is based on skill level somehow.
-            var manaCost = character.SkillModifiersCache.ApplyModifiers(skill, SkillAttribute.ManaCost, value1 + value2 / 6.35);
-            character.ReduceCurrentMp(null, (int)manaCost);
+        var manaCost = character.SkillModifiersCache.ApplyModifiers(
+            skill, SkillAttribute.ManaCost, ManaCostRules.Compute(value1, value2));
+        character.ReduceCurrentMp(null, (int)manaCost);
 
-            character.LastCast = DateTime.UtcNow;
-            character.IsInPostCast = true;
-            // TODO / 10
-        }
+        character.LastCast = DateTime.UtcNow;
+        character.IsInPostCast = true;
     }
 }

@@ -8,6 +8,8 @@ public class SkillModifiers
 {
     private readonly Dictionary<uint, List<SkillModifier>> _modifiersBySkillId = [];
     private readonly Dictionary<uint, List<SkillModifier>> _modifiersByTagId = [];
+    // The rows the unit's equipped items put here, kept so a gear change can take exactly them back out.
+    private readonly List<SkillModifier> _itemModifiers = [];
 
     public double ApplyModifiers(Skill skill, SkillAttribute attribute, double baseValue)
     {
@@ -83,6 +85,27 @@ public class SkillModifiers
         {
             RemoveModifier(modifier);
         }
+    }
+
+    /// <summary>
+    /// Registers the skill_modifiers rows the item whose template id this is grants (owner_type='Item').
+    /// Called from the gear walk for every equipped item and gem, mirroring the unit_modifiers walk.
+    /// </summary>
+    public void AddItemModifiers(uint itemTemplateId)
+    {
+        foreach (var modifier in SkillManager.Instance.GetItemModifiers(itemTemplateId))
+        {
+            _itemModifiers.Add(modifier);
+            AddModifier(modifier);
+        }
+    }
+
+    /// <summary>Takes back every item-owned modifier. The gear walk calls this before re-adding.</summary>
+    public void RemoveItemModifiers()
+    {
+        foreach (var modifier in _itemModifiers)
+            RemoveModifier(modifier);
+        _itemModifiers.Clear();
     }
 
     public void AddModifier(SkillModifier modifier)

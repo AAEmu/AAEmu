@@ -362,7 +362,26 @@ public class Unit : BaseUnit, IUnit
     public bool IsGlobalCooldownDone => GlobalCooldown > DateTime.UtcNow;
     public object GcdLock { get; set; }
     public DateTime SkillLastUsed { get; set; }
-    public PlotState ActivePlotState { get; set; }
+
+    private PlotState _activePlotState;
+
+    public PlotState ActivePlotState
+    {
+        get => Volatile.Read(ref _activePlotState);
+        set => Volatile.Write(ref _activePlotState, value);
+    }
+
+    /// <summary>
+    /// Clears the plot slot only while it still holds <paramref name="state"/>, and reports whether it did.
+    /// </summary>
+    /// <remarks>
+    /// Two plots overlap in normal play: a combo or a plot_only follow-up cancels the previous plot while
+    /// the newer one is already on the bar, and both trees then run an end path. A plain read-compare-assign
+    /// lets the older tree clear a slot the newer one claimed in between, which leaves the live plot with
+    /// no state for SetVariable / PlotCondition to read. The compare-exchange only ever removes its own.
+    /// </remarks>
+    public bool ReleaseActivePlotState(PlotState state) =>
+        state != null && Interlocked.CompareExchange(ref _activePlotState, null, state) == state;
     public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
     public Dictionary<uint, List<DynamicBonus>> DynamicBonuses { get; set; }
     public UnitCooldowns Cooldowns { get; set; }
@@ -762,6 +781,12 @@ public class Unit : BaseUnit, IUnit
         value = ApplyManaShield(value);
 
         Hp = Math.Max(Hp - value, 0);
+
+        // A hit on a casting unit can break the cast or push it back; a hit on a channelling unit can end
+        // the channel. Only checked while a cast is actually in flight, so the ordinary damage path pays
+        // one null test.
+        if (Hp > 0 && value > 0 && SkillTask?.Skill != null)
+            SkillTask.Skill.OnDamageTakenWhileCasting(this, value);
 
         BroadcastPacket(new SCUnitPointsPacket(ObjId, Hp, Hp > 0 ? Mp : 0), true);
 
@@ -1645,6 +1670,12 @@ public class Unit : BaseUnit, IUnit
 
         Bonuses[GearBonusesIndex] = [];
 
+        // The item-owned modifier rows (buff_modifiers / skill_modifiers with owner_type='Item') follow the
+        // same loadout as the item-owned unit_modifiers below: registered per equipped item and gem, and
+        // taken back in one step here so a piece that left the slots is not left behind.
+        SkillModifiersCache.RemoveItemModifiers();
+        BuffModifiersCache.RemoveItemModifiers();
+
         foreach (var item in Equipment.Items)
         {
             if (item is not EquipItem ei)
@@ -1654,10 +1685,18 @@ public class Unit : BaseUnit, IUnit
             foreach (var template in ItemManager.Instance.GetUnitModifiers(item.TemplateId))
                 AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
 
+            SkillModifiersCache.AddItemModifiers(item.TemplateId);
+            BuffModifiersCache.AddItemModifiers(item.TemplateId);
+
             // Mods from equipped Gems
             foreach (var gem in ei.GemIds)
+            {
                 foreach (var template in ItemManager.Instance.GetUnitModifiers(gem))
                     AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
+
+                SkillModifiersCache.AddItemModifiers(gem);
+                BuffModifiersCache.AddItemModifiers(gem);
+            }
 
             // Synthesis effects. The item stores the effect's group; what it is worth follows from
             // the grade the piece is at and how far into it the piece has come, so a line grows both
@@ -2278,6 +2317,11 @@ public class Unit : BaseUnit, IUnit
 
     public void OnAbuserHealed(object sender, OnHealedArgs args)
     {
+        // heal_effects.ignore_heal_aggro (28 rows): the flagged heal still pays out, it just does not
+        // credit the healer on the healed unit's attackers. This subscription exists for exactly that
+        // credit, so the whole handler is what the flag suppresses.
+        if (args.IgnoreHealAggro)
+            return;
         AddUnitAggro(AggroKind.Heal, args.Healer, args.HealAmount);
     }
 

@@ -874,6 +874,143 @@ public partial class Npc : Unit
         }
     }
 
+    /// <summary>
+    /// The <c>unit_formulas</c> rows of owner <c>npc</c> for the combat ratings this server never computed,
+    /// so that every NPC in the world had a critical chance, a dodge, a parry, a block and facets of exactly
+    /// 0 and could neither crit nor avoid a hit. Each getter reads its row with the same variables the 19
+    /// kinds above use, composes this unit's <c>unit_modifiers</c> bonuses for the owning attribute, and
+    /// normalises over facets the way the player-side getters in <c>Character</c> do.
+    /// </summary>
+    /// <remarks>
+    /// Three NPC ratings are deliberately left at their <c>Unit</c> defaults:
+    /// <list type="bullet">
+    /// <item><description>
+    /// the accuracy ratings (kinds 2/7/11, <c>melee/ranged/spell_anti_miss</c>). An NPC swings with accuracy
+    /// 100, which is the every-swing rating; the rows read 75.6 per-cent for a level-50 kind-1 NPC, so wiring
+    /// them would turn roughly a quarter of every NPC auto-attack in the world into a miss. That is a
+    /// hit-rate change and belongs with the combat-dice work.
+    /// </description></item>
+    /// <item><description>
+    /// <c>heal_dps_inc</c> (43), a raw magnitude that NPC heal ticks would immediately pay out — a separate
+    /// verification from the rates here.
+    /// </description></item>
+    /// <item><description>
+    /// the <c>*_mul</c> kinds (64-68 and the 47-61 block), which this server reads as per-mille deltas from a
+    /// 1000 baseline or as hull-driving values; their NPC rows are 0 or 1 and would break the consumers if
+    /// taken literally (kind 61 <c>incoming_damage_mul</c> reads 0 for every NPC, which would floor all
+    /// incoming damage).
+    /// </description></item>
+    /// </list>
+    /// </remarks>
+    [UnitAttribute(UnitAttribute.Facets)]
+    public override int Facets => (int)NpcFormulaValue(UnitFormulaKind.Facet, UnitAttribute.Facets);
+
+    [UnitAttribute(UnitAttribute.MeleeCritical)]
+    public override float MeleeCritical =>
+        (float)NpcRate(UnitFormulaKind.MeleeCritical, UnitAttribute.MeleeCritical);
+
+    [UnitAttribute(UnitAttribute.RangedCritical)]
+    public override float RangedCritical =>
+        (float)NpcRate(UnitFormulaKind.RangedCritical, UnitAttribute.RangedCritical);
+
+    [UnitAttribute(UnitAttribute.SpellCritical)]
+    public override float SpellCritical =>
+        (float)NpcRate(UnitFormulaKind.SpellCritical, UnitAttribute.SpellCritical);
+
+    // The three critical bonuses are authored in the same per-mille-above-1000 scale the player-side getters
+    // read (1500 -> +50 per-cent of critical damage).
+    [UnitAttribute(UnitAttribute.MeleeCriticalBonus)]
+    public override float MeleeCriticalBonus =>
+        (float)NpcBonusValue(UnitFormulaKind.MeleeCriticalBonus, UnitAttribute.MeleeCriticalBonus);
+
+    [UnitAttribute(UnitAttribute.RangedCriticalBonus)]
+    public override float RangedCriticalBonus =>
+        (float)NpcBonusValue(UnitFormulaKind.RangedCriticalBonus, UnitAttribute.RangedCriticalBonus);
+
+    [UnitAttribute(UnitAttribute.SpellCriticalBonus)]
+    public override float SpellCriticalBonus =>
+        (float)NpcBonusValue(UnitFormulaKind.SpellCriticalBonus, UnitAttribute.SpellCriticalBonus);
+
+    [UnitAttribute(UnitAttribute.Dodge)]
+    public override float DodgeRate => (float)NpcRate(UnitFormulaKind.Dodge, UnitAttribute.Dodge);
+
+    [UnitAttribute(UnitAttribute.MeleeParry)]
+    public override float MeleeParryRate => (float)NpcRate(UnitFormulaKind.MeleeParry, UnitAttribute.MeleeParry);
+
+    [UnitAttribute(UnitAttribute.RangedParry)]
+    public override float RangedParryRate => (float)NpcRate(UnitFormulaKind.RangedParry, UnitAttribute.RangedParry);
+
+    [UnitAttribute(UnitAttribute.Block)]
+    public override float BlockRate => (float)NpcRate(UnitFormulaKind.Block, UnitAttribute.Block);
+
+    [UnitAttribute(UnitAttribute.HealCritical)]
+    public override float HealCritical => (float)NpcRate(UnitFormulaKind.HealCritical, UnitAttribute.HealCritical);
+
+    [UnitAttribute(UnitAttribute.HealCriticalBonus)]
+    public override float HealCriticalBonus =>
+        (float)NpcBonusValue(UnitFormulaKind.HealCriticalBonus, UnitAttribute.HealCriticalBonus);
+
+    /// <summary>The variables every NPC <c>unit_formulas</c> row is evaluated with.</summary>
+    private Dictionary<string, double> NpcFormulaParameters(UnitFormula formula)
+    {
+        return new Dictionary<string, double>
+        {
+            ["level"] = Level,
+            ["heir_level"] = 0, // NPCs have no heir level
+            ["str"] = Str,
+            ["dex"] = Dex,
+            ["sta"] = Sta,
+            ["int"] = Int,
+            ["spi"] = Spi,
+            ["fai"] = Fai,
+            ["npc_template"] =
+            FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcTemplate, (byte)Template.NpcTemplateId),
+            ["npc_kind"] =
+            FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcKind, (byte)Template.NpcKindId),
+            ["npc_grade"] =
+            FormulaManager.Instance.GetUnitVariable(formula.Id, UnitFormulaVariableType.NpcGrade, (byte)Template.NpcGradeId)
+        };
+    }
+
+    /// <summary>
+    /// One NPC formula, with this unit's bonuses for <paramref name="attribute"/> composed on it. A content
+    /// root without the row leaves the rating at nothing instead of throwing.
+    /// </summary>
+    private double NpcFormulaValue(UnitFormulaKind kind, UnitAttribute attribute)
+    {
+        var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, kind);
+        if (formula == null)
+            return 0d;
+
+        return CalculateWithBonuses(formula.Evaluate(NpcFormulaParameters(formula)), attribute);
+    }
+
+    /// <summary>
+    /// A rating as a per-cent chance: its row over this unit's facets, the shape the player-side critical,
+    /// dodge, parry and block getters use. A unit with no facets row (0) keeps the un-normalised rating
+    /// rather than dividing by zero.
+    /// </summary>
+    private double NpcRate(UnitFormulaKind kind, UnitAttribute attribute)
+    {
+        var rating = NpcFormulaValue(kind, attribute);
+        var facets = Facets;
+        return facets > 0 ? rating / facets * 100d : rating;
+    }
+
+    /// <summary>
+    /// One of the critical-bonus rows, in the per-cent the damage pipeline adds: the player-side getters read
+    /// the same rows as per-mille above 1000, so 1500 is +50. A content root without the row keeps the
+    /// <see cref="Unit"/> default (no bonus) instead of the -100 that shifting a zero row would give.
+    /// </summary>
+    private double NpcBonusValue(UnitFormulaKind kind, UnitAttribute attribute)
+    {
+        var formula = FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Npc, kind);
+        if (formula == null)
+            return 0d;
+
+        return (CalculateWithBonuses(formula.Evaluate(NpcFormulaParameters(formula)), attribute) - 1000d) / 10d;
+    }
+
     public int KillExp
     {
         get

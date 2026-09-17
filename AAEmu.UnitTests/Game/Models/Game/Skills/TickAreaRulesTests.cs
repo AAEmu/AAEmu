@@ -85,19 +85,23 @@ public class TickAreaRulesTests
     }
 
     [Test]
-    public async Task InCone_NarrowWedge_DropsTheTargetAt90Degrees()
+    public async Task InCone_WedgeIsTheFullSweep_So120IsHalfWayToTheSide()
     {
         var owner = At(new Unit(), 0f, 0f, 0f);
         var ahead = Units((0f, 50f, 0f))[0];
         var side = Units((50f, 0f, 0f))[0];
 
-        // Buff 3086's 40° wedge: a target square to the caster's side is outside it, and inside a 120°.
+        // The column is the full sweep, so a 40 is a ±20° wedge and a 120 is ±60°: a target square to
+        // the caster's side (90°) is outside both. A 180 is ±90° and is the wedge that reaches it.
         var wide = TickAreaRules.InCone(owner, new List<Unit> { ahead, side }, 120f);
         var narrow = TickAreaRules.InCone(owner, new List<Unit> { ahead, side }, 40f);
+        var half = TickAreaRules.InCone(owner, new List<Unit> { ahead, side }, 180f);
 
-        await Assert.That(wide).Contains(side);
+        await Assert.That(wide).Contains(ahead);
+        await Assert.That(wide).DoesNotContain(side);
         await Assert.That(narrow).Contains(ahead);
         await Assert.That(narrow).DoesNotContain(side);
+        await Assert.That(half).Contains(side);
     }
 
     [Test]
@@ -116,16 +120,19 @@ public class TickAreaRulesTests
     }
 
     [Test]
-    public async Task InCone_TheShipped180Wedge_KeepsEverything()
+    public async Task InCone_TheShipped180Wedge_IsAHalfCircle()
     {
-        // buffs 21546/21547 carry tick_area_angle 180, and ±180 is the whole plane: reading the sweep as
-        // the half-angle, as the shape code does, those two rows are a no-op rather than a half circle.
+        // buffs 21546/21547 carry tick_area_angle 180. As the full sweep that is ±90°, so a unit square
+        // to the caster's side is inside it and one directly behind is not.
         var owner = At(new Unit(), 0f, 0f, 0f);
+        var side = Units((50f, 0f, 0f))[0];
         var behind = Units((0f, -50f, 0f))[0];
 
-        var result = TickAreaRules.InCone(owner, new List<Unit> { behind }, TickAreaRules.ConeSweep(180));
+        var sideways = TickAreaRules.InCone(owner, new List<Unit> { side }, TickAreaRules.ConeSweep(180));
+        var backwards = TickAreaRules.InCone(owner, new List<Unit> { behind }, TickAreaRules.ConeSweep(180));
 
-        await Assert.That(result).Contains(behind);
+        await Assert.That(sideways).Contains(side);
+        await Assert.That(backwards).DoesNotContain(behind);
     }
 
     [Test]

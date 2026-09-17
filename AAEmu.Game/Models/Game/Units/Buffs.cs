@@ -304,6 +304,53 @@ public class Buffs : IBuffs
         return false;
     }
 
+    /// <summary>
+    /// Total stacks of the owner's active buffs carrying <paramref name="tagId"/>. Used by the
+    /// <c>skill_effects.*_buff_stack_count_min/max</c> gates, where skills 49770/49864/49943/50072 carry one
+    /// effect row per stack band of the same tag (1..4, 5..15, 10..15).
+    /// </summary>
+    public int GetStackCountByTagId(uint tagId)
+    {
+        var buffs = SkillManager.Instance.GetBuffsByTagId(tagId);
+        if (buffs == null)
+            return 0;
+
+        IEnumerable<Buff> effects;
+        lock (_lock)
+        {
+            effects = _effects.ToArray();
+        }
+
+        var total = 0;
+        foreach (var effect in effects.ToList())
+            if (effect != null && buffs.Contains(effect.Template.BuffId))
+                total += Math.Max(1, effect.Stack);
+
+        return total;
+    }
+
+    /// <summary>
+    /// Total stacks of the owner's active buffs that do <i>not</i> carry <paramref name="tagId"/> — the
+    /// <c>*_except_buff_stack_count_*</c> half of the same gates.
+    /// </summary>
+    public int GetStackCountExceptTagId(uint tagId)
+    {
+        var tagged = SkillManager.Instance.GetBuffsByTagId(tagId);
+
+        IEnumerable<Buff> effects;
+        lock (_lock)
+        {
+            effects = _effects.ToArray();
+        }
+
+        var total = 0;
+        foreach (var effect in effects.ToList())
+            if (effect != null && (tagged == null || !tagged.Contains(effect.Template.BuffId)))
+                total += Math.Max(1, effect.Stack);
+
+        return total;
+    }
+
     public Buff GetEffectFromBuffId(uint id)
     {
         // Create a copy of the list of effects to avoid changing the list while iterating
@@ -461,6 +508,45 @@ public class Buffs : IBuffs
         AddBuff(new Buff(GetOwner(), caster, casterObj, buff, null, DateTime.UtcNow));
     }
 
+    /// <summary>
+    /// Moves this unit's crowd-control tolerance counters onto another rung of their ladder.
+    /// </summary>
+    /// <remarks>
+    /// Backs the change_buff_tolerance_step special effect (type 157). A counter belongs to one
+    /// <c>buff_tolerances</c> family and its <see cref="BuffToleranceCounter.CurrentStep"/> is the rung
+    /// the family's next application advances from, so this is the only write that reaches the ladder
+    /// outside <see cref="BuffToleranceRules.Decide"/>. See <see cref="BuffToleranceStepRules"/> for why
+    /// the effect's two values are read as "which family" and "which rung".
+    /// </remarks>
+    /// <param name="toleranceId">The family to move, or 0 for every family the unit is tracking.</param>
+    /// <param name="stepIndex">The rung to place it on, 0 being the first; clamped to the ladder.</param>
+    /// <returns>How many counters moved.</returns>
+    public int SetToleranceStep(int toleranceId, int stepIndex)
+    {
+        var now = DateTime.UtcNow;
+        var moved = 0;
+        lock (_lock)
+        {
+            foreach (var (counterToleranceId, counter) in _toleranceCounters)
+            {
+                if (!BuffToleranceStepRules.SelectsFamily(counterToleranceId, toleranceId))
+                    continue;
+
+                var step = BuffToleranceStepRules.StepAt(counter.Tolerance, stepIndex);
+                if (step == null)
+                    continue;
+
+                counter.CurrentStep = step;
+                // The counter is on a rung as of now: the rung it was on and the moment it got there
+                // are one fact, and Decide reads the pair to tell an expired window from a live one.
+                counter.LastStep = now;
+                moved++;
+            }
+        }
+
+        return moved;
+    }
+
     public void AddBuff(Buff buff, uint index = 0, int forcedDuration = 0)
     {
         Buff transformFrom = null;
@@ -475,6 +561,21 @@ public class Buffs : IBuffs
                 return;
 
             buff.State = EffectState.Created;
+
+            // save_pos (8 buffs: the 급습 marking family 24610/24947/24770/27825/27827 and the magic
+            // circles 19037/25850/25851) remembers where its owner stood so a later cast of the recall
+            // skill can return them there. The capture is taken here, at application time, because the
+            // marking skill applies this buff as its FIRST effect and leaps afterwards: by the time the
+            // cast's other effects have run the owner is already somewhere else.
+            if (buff.Template.SavePos)
+                buff.SavedPosition = new SavedPosition(
+                    owner.Transform.ZoneId,
+                    owner.Transform.InstanceId,
+                    owner.Transform.World.Position.X,
+                    owner.Transform.World.Position.Y,
+                    owner.Transform.World.Position.Z,
+                    owner.Transform.World.Rotation.Z);
+
             if (index == 0)
             {
                 buff.Index = AllocateIndex();
@@ -574,6 +675,12 @@ public class Buffs : IBuffs
                 if (buff.Caster is Character && buff.Owner is Character)
                     buff.Duration = (int)(buff.Duration * ((100 - buffTolerance.CharacterTimeReduction) / 100.0));
             }
+
+            // buffs.max_life_time: the ceiling on how long the instance may live, after every modifier
+            // and every tolerance step has had its say. A duration-0 family with a ceiling is one that
+            // is not meant to be permanent (23749 깃발의 기운 at 11,000 ms, 23151 추격: 파도 at 5,000), so
+            // the clamp is what gives it an expiry to be scheduled from.
+            buff.Duration = BuffLifetimeRules.ClampedDuration(buff.Duration, buff.Template.MaxLifeTime);
 
             if (buff.Duration > 0 && buff.StartTime == DateTime.MinValue)
             {

@@ -237,25 +237,53 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         {
             // No idea what this is
             Logger.Warn($"StartSkill: Id {skillId}, undefined use type");
+            // The fallback used to cast any valid template, so a forged skill id the character never
+            // learned was accepted and its effects ran. Ability skills now have to be held: learned, or
+            // granted by a live buff (CharacterSkills.HasSkill covers both). Basic attacks, racial
+            // defaults, common skills and item casts keep the permissive path — quest items and doodad
+            // interactions arrive here.
+            var fallbackTemplate = SkillManager.Instance.GetSkillTemplate(skillId);
+            skill = new Skill(fallbackTemplate);
+            if (!SkillUseConditionRules.AllowsUnlearnedCast(
+                    fallbackTemplate?.AbilityId ?? 0,
+                    isItemCast: false,
+                    isDefaultSkill: SkillManager.Instance.IsDefaultSkill(skillId),
+                    isCommonSkill: SkillManager.Instance.IsCommonSkill(skillId)) &&
+                !Connection.ActiveChar.Skills.HasSkill(skillId))
+            {
+                Logger.Warn("StartSkill rejected unlearned ability skill {0} for {1}", skillId, Connection.ActiveChar.Name);
+                SendSkillResult(skillId, skillCaster, skillCastTarget, skillObject, skill,
+                    SkillUseConditionRules.UnlearnedSkillResult);
+                return;
+            }
+
             // If it's a valid skill cast it. This fixes interactions with quest items/doodads.
-            skill = new Skill(SkillManager.Instance.GetSkillTemplate(skillId));
             skillResult = skill.Use(Connection.ActiveChar, skillCaster, skillCastTarget, skillObject, false,
                 out skillResultErrorValueUShort, out skillResultErrorValue);
         }
 
         if (skillResult != SkillResult.Success)
         {
-            // It actually sends a skill started packet, but not a skill fired or stopped
-            var scSkillStartedPacket = new SCSkillStartedPacket(skillId, 0, skillCaster, skillCastTarget, skill, skillObject)
-            {
-                RealCastTimeDiv10 = 0, BaseCastTimeDiv10 = 0
-            };
-            // ExtraData at the end of the packet is used to mark a use error
-            scSkillStartedPacket.SetSkillResult(skillResult);
-            scSkillStartedPacket.SetResultUShort(skillResultErrorValueUShort);
-            scSkillStartedPacket.SetResultUInt(skillResultErrorValue);
-            Connection.ActiveChar.SendPacket(scSkillStartedPacket);
+            SendSkillResult(skillId, skillCaster, skillCastTarget, skillObject, skill, skillResult,
+                skillResultErrorValueUShort, skillResultErrorValue);
         }
+    }
+
+    /// <summary>
+    /// The result packet for a rejected cast: a SkillStarted with no cast time whose extra data carries
+    /// the error, which is what the local path has always sent and what the client shows.
+    /// </summary>
+    private void SendSkillResult(uint skillId, SkillCaster skillCaster, SkillCastTarget skillCastTarget,
+        SkillObject skillObject, Skill skill, SkillResult result, ushort resultUShort = 0, uint resultUInt = 0)
+    {
+        var packet = new SCSkillStartedPacket(skillId, 0, skillCaster, skillCastTarget, skill, skillObject)
+        {
+            RealCastTimeDiv10 = 0, BaseCastTimeDiv10 = 0
+        };
+        packet.SetSkillResult(result);
+        packet.SetResultUShort(resultUShort);
+        packet.SetResultUInt(resultUInt);
+        Connection.ActiveChar.SendPacket(packet);
     }
 
     private void HandleZoneAuthorityCast(uint skillId, SkillCaster skillCaster, SkillCastTarget skillCastTarget, SkillObject skillObject)
@@ -282,6 +310,23 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         // DB stop_autoattack (Firebolt etc.): cancel weapon AA so the cast isn't mixed with melee swings.
         if (template.StopAutoAttack && skillId is not (2 or 3 or 4))
             character.StopAutoSkill(character);
+
+        // A mount/hull cast is made on the rider's behalf but the skill still has to be one the
+        // character holds; the check is the same on both dispatch paths (this one never consulted
+        // Character.Skills at all).
+        if (skillCaster is not SkillItem &&
+            !SkillUseConditionRules.AllowsUnlearnedCast(
+                template.AbilityId,
+                isItemCast: false,
+                isDefaultSkill: SkillManager.Instance.IsDefaultSkill(skillId),
+                isCommonSkill: SkillManager.Instance.IsCommonSkill(skillId)) &&
+            !character.Skills.HasSkill(skillId))
+        {
+            Logger.Warn("ZoneAuthority StartSkill rejected unlearned ability skill {0} for {1}", skillId, character.Name);
+            SendSkillResult(skillId, skillCaster, skillCastTarget, skillObject, new Skill(template),
+                SkillUseConditionRules.UnlearnedSkillResult);
+            return;
+        }
 
         // Helm / mount bar: caster is the hull (or mate), not the rider. Figurehead skills gate on
         // unit_reqs kind Buff against the ship's item_grade_buffs; casting as the Character always

@@ -41,6 +41,10 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     private Dictionary<uint, List<uint>> _taggedBuffs = [];
     private Dictionary<uint, List<uint>> _skillTags = [];
     private Dictionary<uint, List<uint>> _taggedSkills = [];
+    /// <summary>skill_reqs rows per skill id, from <c>skill_req_skills</c> and <c>skill_req_skill_tags</c>.</summary>
+    private readonly Dictionary<uint, List<SkillRequirement>> _skillRequirements = [];
+    /// <summary>skill_synergy_buff_tags per skill id.</summary>
+    private readonly Dictionary<uint, List<uint>> _synergyTags = [];
     // tagged_immune_buffs / tagged_require_buffs, keyed by the buff that carries the row. Both tables
     // are tiny (2 645 / 309 rows) and were previously loaded nowhere, which made Buffs.CheckBuffImmune
     // a no-op and every tagged_require_buffs prerequisite unenforced.
@@ -53,6 +57,10 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     // Returned for a buff with no rows so the per-application lookups do not allocate.
     private static readonly List<uint> NoTags = [];
     private Dictionary<uint, List<SkillModifier>> _skillModifiers = [];
+    // 172 skill_modifiers rows are owned by an item and 10 by a combat resource; their owner_id is an item
+    // template id or a combat_resources id, not a buff id. See ModifierOwnerRules.
+    private Dictionary<uint, List<SkillModifier>> _itemSkillModifiers = [];
+    private Dictionary<uint, List<SkillModifier>> _combatResourceSkillModifiers = [];
     private Dictionary<uint, List<BuffTriggerTemplate>> _buffTriggers = [];
     private Dictionary<uint, List<CombatBuffTemplate>> _combatBuffs = [];
     private Dictionary<uint, LinearFuncTemplate> _linearFuncs = [];
@@ -249,6 +257,101 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     }
 
     /// <summary>
+    /// The <c>skill_reqs</c> rows a skill carries, or an empty list. See
+    /// <see cref="SkillRequirementRules"/> for what they mean.
+    /// </summary>
+    public IReadOnlyList<SkillRequirement> GetSkillRequirements(uint skillId)
+    {
+        return _skillRequirements.TryGetValue(skillId, out var requirements) ? requirements : [];
+    }
+
+    /// <summary>
+    /// Loads <c>skill_reqs</c>, <c>skill_req_skills</c> and <c>skill_req_skill_tags</c>. The tag links are
+    /// expanded against the already-loaded <c>tagged_skills</c>, so this runs after them.
+    /// </summary>
+    private void LoadSkillRequirements()
+    {
+        using var connection = SQLite.CreateConnection();
+        _skillRequirements.Clear();
+        var requirementTemplates = new Dictionary<uint, SkillRequirement>();
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM skill_reqs";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var id = reader.GetUInt32("id", 0);
+                    var buffTagId = reader.GetUInt32("buff_tag_id", 0);
+                    requirementTemplates[id] = new SkillRequirement(
+                        OnTarget: reader.GetBoolean("target", true),
+                        BuffId: reader.GetUInt32("buff_id", 0),
+                        BuffTagId: buffTagId,
+                        // default_result='f' means the unit must carry the buff or tag; 't' means it must
+                        // not. See SkillRequirementRules for the content evidence.
+                        Require: !reader.GetBoolean("default_result", true),
+                        Message: reader.GetString("message", string.Empty));
+                }
+            }
+        }
+
+        void AddRequirement(uint skillId, SkillRequirement requirement)
+        {
+            if (skillId == 0 || !_skills.ContainsKey(skillId))
+                return;
+
+            if (!_skillRequirements.TryGetValue(skillId, out var requirements))
+                _skillRequirements[skillId] = requirements = [];
+            if (!requirements.Contains(requirement))
+                requirements.Add(requirement);
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM skill_req_skills";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    if (!requirementTemplates.TryGetValue(reader.GetUInt32("skill_req_id", 0), out var requirement))
+                        continue;
+
+                    AddRequirement(reader.GetUInt32("skill_id", 0), requirement);
+                }
+            }
+        }
+
+        var tagLinked = 0;
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM skill_req_skill_tags";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    if (!requirementTemplates.TryGetValue(reader.GetUInt32("skill_req_id", 0), out var requirement))
+                        continue;
+
+                    var skillTagId = reader.GetUInt32("skill_tag_id", 0);
+                    foreach (var skillId in GetSkillsByTag(skillTagId))
+                    {
+                        AddRequirement(skillId, requirement);
+                        tagLinked++;
+                    }
+                }
+            }
+        }
+
+        Logger.Info(
+            "Skill requirements loaded: {0} skill_reqs rows on {1} skills ({2} links through skill tags)",
+            requirementTemplates.Count, _skillRequirements.Count, tagLinked);
+    }
+
+    /// <summary>
     /// Tags refused while <paramref name="buffId"/> is active on a unit (<c>tagged_immune_buffs</c>).
     /// </summary>
     public List<uint> GetBuffImmunityTags(uint buffId)
@@ -300,6 +403,29 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         if (_skillModifiers.TryGetValue(id, out var ownerId))
             return ownerId;
         return [];
+    }
+
+    /// <summary>The modifiers an equipped item grants to skills, keyed by the item template id in owner_id.</summary>
+    public List<SkillModifier> GetItemModifiers(uint itemTemplateId)
+    {
+        return _itemSkillModifiers.TryGetValue(itemTemplateId, out var modifiers) ? modifiers : [];
+    }
+
+    /// <summary>The modifiers a combat resource grants to skills, keyed by combat_resources.id in owner_id.</summary>
+    public List<SkillModifier> GetCombatResourceModifiers(uint combatResourceId)
+    {
+        return _combatResourceSkillModifiers.TryGetValue(combatResourceId, out var modifiers) ? modifiers : [];
+    }
+
+    private static void AddModifier(Dictionary<uint, List<SkillModifier>> table, uint ownerId, SkillModifier modifier)
+    {
+        if (!table.TryGetValue(ownerId, out var list))
+        {
+            list = [];
+            table.Add(ownerId, list);
+        }
+
+        list.Add(modifier);
     }
 
     public List<CombatBuffTemplate> GetCombatBuffs(uint reqBuffId)
@@ -412,6 +538,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
             { "SkillController", [] }, // missing from the effect table
             { "SpawnFishEffect", [] }, // missing from the effect table
             { "ResetAoeDiminishingEffect", [] }, // missing from the effect table
+            { "TargetHistoryClearEffect", [] }, // missing from the effect table; named by plot_effects rows
             // Present in effects but previously unregistered, so GetEffectTemplate logged
             // "No such Effect Type" and returned null - the skill cast and did nothing at all.
             { "DoodadItemChangeEffect", [] },
@@ -435,6 +562,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         _buffTags = [];
         _taggedBuffs = [];
         _skillModifiers = [];
+        _itemSkillModifiers = [];
+        _combatResourceSkillModifiers = [];
         _skillTags = [];
         _taggedSkills = [];
         _buffImmunityTags = [];
@@ -561,6 +690,10 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         template.SkipQuestApplyUseItem = reader.GetBoolean("skip_quest_apply_use_item", false);
                         template.CalcUserLevel = reader.GetBoolean("calc_user_level", false);
                         template.CastingUseable = reader.GetBoolean("casting_useable", false);
+                        // check_obstacle (24,943 rows) and projectile_id (1,935) were never loaded; see
+                        // SkillTemplate for why neither is enforced.
+                        template.CheckObstacle = reader.GetBoolean("check_obstacle", true);
+                        template.ProjectileId = reader.GetUInt32("projectile_id", 0);
                         template.SkipValidateSource = reader.GetBoolean("skip_validate_source", false);
                         template.CharRaceId = reader.GetInt32("char_race_id", 0);
                         template.MaxCombatResource = reader.GetInt32("max_combat_resource", 0);
@@ -569,6 +702,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         template.SwitchToSkillCooldown = reader.GetBoolean("switch_to_skill_cooldown", false);
                         template.SecondCooldownTagId = reader.GetInt32("second_cooldown_tag_id", 0);
                         template.ThirdCooldownTagId = reader.GetInt32("third_cooldown_tag_id", 0);
+                        template.CooldownTags = SkillCooldownGateRules.CooldownTags(
+                            template.CooldownTagId, template.SecondCooldownTagId, template.ThirdCooldownTagId);
                         template.IsDropableBackpack = reader.GetBoolean("is_dropable_backpack", false);
                         template.ChargeCount = reader.GetInt32("charge_count", 0);
                         template.ChargeCooldownTime = reader.GetInt32("charge_cooldown_time", 0);
@@ -895,7 +1030,9 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             BossTelescopeRange = reader.GetFloat("boss_telescope_range", 0f),
                             FixAbilityLevelToOne = reader.GetBoolean("fix_ability_level_to_one", false),
                             ImmuneHealth = reader.GetFloat("immune_health", 0f),
-                            MaxLifeTime = reader.GetInt32("max_life_time", 0),
+                            // Non-negative in all 30,654 shipped rows, so the ceiling is unsigned and zero
+                            // means "no ceiling" rather than a sentinel.
+                            MaxLifeTime = (uint)Math.Max(0, reader.GetInt32("max_life_time", 0)),
                             BalanceLevel = reader.GetInt32("balance_level", 0),
                             DisarmamentMainHand = reader.GetBoolean("disarmament_main_hand", false),
                             DisarmamentOffHand = reader.GetBoolean("disarmament_off_hand", false),
@@ -1033,7 +1170,11 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
             }
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type='Buff'"; // TODO OwnerType: BuffUnitModifier -> buff_unit_modifiers
+                // owner_type is 'Buff' on 24,165 rows and 'Buffs' on 232 (attributes 10 move_speed_mul 210,
+                // 72 turn_speed 11, 124 friction_mul 11 — the Kshanas reinforcement gear buffs 27386-27391
+                // and their siblings). Both name a buff id in owner_id and are the buff's own bonuses, so
+                // they load together; the earlier query took 'Buff' only and dropped all 232.
+                command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type IN ('Buff', 'Buffs')";
                 command.Prepare();
                 var attributeIds = new List<long>();
                 var disabledModifierRows = new SortedSet<uint>();
@@ -1073,7 +1214,65 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
                 var unknownIds = UnitAttributeLoadRules.UnknownIds(attributeIds);
                 if (unknownIds.Count > 0)
-                    Logger.Warn(UnitAttributeLoadRules.Warning("unit_modifiers (owner_type='Buff')", unknownIds));
+                    Logger.Warn(UnitAttributeLoadRules.Warning("unit_modifiers (owner_type='Buff'/'Buffs')", unknownIds));
+            }
+
+            // buff_unit_modifiers (160 rows) is the selector half of the BuffUnitModifier owner type: the
+            // buff in owner_id contributes modifiers to the units that carry tag_id or buff_id, not to every
+            // unit it lands on. The modifiers themselves are the unit_modifiers rows whose owner_id is the
+            // selector's id, loaded below.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM buff_unit_modifiers WHERE enable = 't'";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var buffId = reader.GetUInt32("owner_id", 0);
+                        if (!_buffs.TryGetValue(buffId, out var buff))
+                            continue;
+                        buff.UnitModifierSelectors.Add(new BuffUnitModifierTemplate
+                        {
+                            Id = reader.GetUInt32("id", 0),
+                            TagId = reader.GetUInt32("tag_id", 0),
+                            BuffId = reader.GetUInt32("buff_id", 0)
+                        });
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type='BuffUnitModifier'";
+                command.Prepare();
+                var selectors = new Dictionary<uint, BuffUnitModifierTemplate>();
+                foreach (var buff in _buffs.Values)
+                    foreach (var selector in buff.UnitModifierSelectors)
+                        selectors[selector.Id] = selector;
+
+                var attributeIds = new List<long>();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var selectorId = reader.GetUInt32("owner_id", 0);
+                        if (!selectors.TryGetValue(selectorId, out var selector))
+                            continue;
+                        var attributeId = reader.GetUInt32("unit_attribute_id", 0);
+                        attributeIds.Add(attributeId);
+                        selector.Bonuses.Add(new BonusTemplate
+                        {
+                            Attribute = (UnitAttribute)attributeId, ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id", 0),
+                            Value = reader.GetInt64("value", 0),
+                            LinearLevelBonus = reader.GetInt32("linear_level_bonus", 0)
+                        });
+                    }
+                }
+
+                var unknownIds = UnitAttributeLoadRules.UnknownIds(attributeIds);
+                if (unknownIds.Count > 0)
+                    Logger.Warn(UnitAttributeLoadRules.Warning("unit_modifiers (owner_type='BuffUnitModifier')", unknownIds));
             }
             using (var command = connection.CreateCommand())
             {
@@ -1343,16 +1542,33 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             ActabilityAdd = reader.GetFloat("actability_add", 0f),
                             ChargedLevelMul = reader.GetFloat("charged_level_mul", 0f),
                             AdjustDamageByHeight = reader.GetBoolean("adjust_damage_by_height", true),
+                            AdjustDamageByRange = reader.GetBoolean("adjust_damage_by_range", false),
+                            OptimumRange = reader.GetFloat("optimum_range", 1f),
+                            RangeDamageMultiplier = reader.GetFloat("range_damage_multipier", 1f),
                             UsePercentDamage = reader.GetBoolean("use_percent_damage", true),
                             PercentMin = reader.GetInt32("percent_min", 0),
                             PercentMax = reader.GetInt32("percent_max", 0),
+                            PercentDamageResourceTypeId = reader.GetInt32("percent_damage_resource_type_id", 1),
                             // use_current_health renamed to use_source_health in 10.0.2.13 schema
                             UseCurrentHealth = reader.GetBoolean("use_source_health", true),
+                            ManaDamage = reader.GetBoolean("mana_damage", false),
+                            CancelProtection = reader.GetBoolean("cancel_protection", true),
                             TargetHealthMin = reader.GetInt32("target_health_min", 0),
                             TargetHealthMax = reader.GetInt32("target_health_max", 0),
                             TargetHealthMul = reader.GetFloat("target_health_mul", 0f),
                             TargetHealthAdd = reader.GetInt32("target_health_add", 0),
-                            FireProc = reader.GetBoolean("fire_proc", true)
+                            FireProc = reader.GetBoolean("fire_proc", true),
+                            // Loaded but not consumed yet: formula 65 (damage_multiplier_by_element) reads
+                            // element_value, element_effect_ratio and element_resist_value, and the server has
+                            // no source for any of them — enum_unit_attribute carries no element attack or
+                            // resist id, and holdables.element_id, item_elements and armor_element_resists are
+                            // not loaded. The field is parsed so the loader matches the table.
+                            UseElementEffect = reader.GetBoolean("use_element_effect", false),
+                            FixedType = reader.GetBoolean("fixed_type", false),
+                            UseCombatResource = reader.GetBoolean("use_combat_resource", false),
+                            CombatResourceMd = reader.GetFloat("combat_resource_md", 1f),
+                            CombatResourceLevelMd = reader.GetFloat("combat_resource_level_md", 1f),
+                            CombatResourceDpsMd = reader.GetFloat("combat_resource_dps_md", 1f)
                         };
                         _effects["DamageEffect"][template.Id] = template;
                     }
@@ -1372,7 +1588,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             Id = reader.GetUInt32("id", 0),
                             DispelCount = reader.GetInt32("dispel_count", 0),
                             CureCount = reader.GetInt32("cure_count", 0),
-                            BuffTagId = reader.GetUInt32("buff_tag_id", 0)
+                            BuffTagId = reader.GetUInt32("buff_tag_id", 0),
+                            Stack = reader.GetInt32("stack", 0)
                         };
                         _effects["DispelEffect"][template.Id] = template;
                     }
@@ -1587,6 +1804,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             SlaveApplicable = reader.GetBoolean("slave_applicable", true),
                             IgnoreHealAggro = reader.GetBoolean("ignore_heal_aggro", true),
                             DpsMultiplier = reader.GetFloat("dps_multiplier", 0f),
+                            SelfTargetMul = reader.GetFloat("self_target_multiplier", 1f),
                             ActabilityGroupId = reader.GetUInt32("actability_group_id", 0),
                             ActabilityStep = reader.GetInt32("actability_step", 0),
                             ActabilityMul = reader.GetFloat("actability_mul", 0f),
@@ -1692,7 +1910,21 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             DamageRatio = reader.GetInt32("damage_ratio", 0),
                             LevelMd = reader.GetFloat("level_md", 0f),
                             LevelVaStart = reader.GetInt32("level_va_start", 0),
-                            LevelVaEnd = reader.GetInt32("level_va_end", 0)
+                            LevelVaEnd = reader.GetInt32("level_va_end", 0),
+                            UseFixedCharge = reader.GetBoolean("use_fixed_charge", true),
+                            UsePercentCharge = reader.GetBoolean("use_percent_charge", true),
+                            PercentMin = reader.GetInt32("percent_min", 0),
+                            PercentMax = reader.GetInt32("percent_max", 0),
+                            UseLevelCharge = reader.GetBoolean("use_level_charge", true),
+                            DamageTypeId = reader.GetInt32("damage_type_id", 0),
+                            DpsIncMultiplier = reader.GetFloat("dps_inc_multiplier", 0f),
+                            UseMainhandWeapon = reader.GetBoolean("use_mainhand_weapon", true),
+                            UseOffhandWeapon = reader.GetBoolean("use_offhand_weapon", true),
+                            UseRangedWeapon = reader.GetBoolean("use_ranged_weapon", true),
+                            DpsMultiplier = reader.GetFloat("dps_multiplier", 0f),
+                            ManaDrainRatio = reader.GetFloat("mana_drain_ratio", 0f),
+                            PercentDamageResourceTypeId = reader.GetInt32("percent_damage_resource_type_id", 0),
+                            UseSourceHealth = reader.GetBoolean("use_source_health", true)
                         };
                         _effects["ManaBurnEffect"][template.Id] = template;
                     }
@@ -1853,6 +2085,21 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
             using (var command = connection.CreateCommand())
             {
+                // The ten rates, in id order. AoeDiminishingTable.Rates is what DamageEffect reads; an empty
+                // list means "no table", which is a factor of exactly 1.0f rather than a rate of zero.
+                command.CommandText = "SELECT * FROM aoe_diminishings";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    AoeDiminishingTable.Clear();
+                    while (reader.Read())
+                        AoeDiminishingTable.Add(reader.GetUInt32("id", 0), (int)reader.GetFloat("rate", 100f));
+                    AoeDiminishingTable.Seal();
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
                 command.CommandText = "SELECT * FROM restore_mana_effects";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
@@ -1908,9 +2155,13 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             OwnerTypeId = (BaseUnitType)reader.GetUInt32("owner_type_id", 0),
                             SubType = reader.GetUInt32("sub_type", 0),
                             PosDirId = reader.GetUInt32("pos_dir_id", 0),
-                            // pos_angle/pos_distance split into _min/_max in 10.0.2.13 schema; use _min
+                            // pos_angle/pos_distance split into _min/_max in 10.0.2.13. Both ends are kept:
+                            // 237 angle rows and 248 distance rows author a band rather than a point, and
+                            // the max was what every one of them needed to scatter.
                             PosAngle = reader.GetFloat("pos_angle_min", 0f),
                             PosDistance = reader.GetFloat("pos_distance_min", 0f),
+                            PosAngleMax = reader.GetFloat("pos_angle_max", 0f),
+                            PosDistanceMax = reader.GetFloat("pos_distance_max", 0f),
                             OriDirId = reader.GetUInt32("ori_dir_id", 0),
                             OriAngle = reader.GetFloat("ori_angle", 0f),
                             UseSummonerFaction = reader.GetBoolean("use_summoner_faction", true),
@@ -1919,7 +2170,9 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             UseSummonerAggroTarget = reader.GetBoolean("use_summoner_aggro_target", true),
                             MateStateId = (MateState)reader.GetUInt32("mate_state_id", 0),
                             // Crimson 963/969: ray-cast land under the high portal XY.
-                            EnableRayCast = reader.GetBoolean("enable_ray_cast", true)
+                            EnableRayCast = reader.GetBoolean("enable_ray_cast", true),
+                            // Height the ray cast starts from (548 rows non-zero).
+                            RayOffSet = reader.GetFloat("ray_off_set", 0f)
                         };
                         _effects["SpawnEffect"][template.Id] = template;
                     }
@@ -1941,7 +2194,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             LifeTime = reader.GetFloat("life_time", 0f),
                             DespawnOnCreatorDeath = reader.GetBoolean("despawn_on_creator_death", true),
                             UseSummonerAggroTarget = reader.GetBoolean("use_summoner_aggro_target", true),
-                            ActivationState = reader.GetBoolean("activation_state", true)
+                            ActivationState = reader.GetBoolean("activation_state", true),
+                            UseSummonerFaction = reader.GetBoolean("use_summoner_faction", true)
                         };
                         _effects["NpcSpawnerSpawnEffect"][template.Id] = template;
                     }
@@ -2111,6 +2365,20 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
             using (var command = connection.CreateCommand())
             {
+                command.CommandText = "SELECT * FROM target_history_clear_effects";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var template = new TargetHistoryClearEffect { Id = reader.GetUInt32("id", 0) };
+                        _effects["TargetHistoryClearEffect"][template.Id] = template;
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
                 command.CommandText = "SELECT * FROM effects";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
@@ -2178,6 +2446,24 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         template.AlwaysHit = reader.GetBoolean("always_hit", true);
                         template.ItemSetId = reader.GetUInt32("item_set_id", 0);
                         template.InteractionSuccessHit = reader.GetBoolean("interaction_success_hit", true);
+                        // v10 per-effect gates. See SkillCombatResourceRules for what each one means and
+                        // which of them the shipped content actually uses.
+                        template.StartCombatResource = reader.GetInt32("start_combat_resource", 0);
+                        template.EndCombatResource = reader.GetInt32("end_combat_resource", 0);
+                        template.TargetCombatResourceId = reader.GetUInt32("target_combat_resource_id", 0);
+                        template.ExcuteEffectOnFire = reader.GetBoolean("excute_effect_on_fire", false);
+                        template.StartCastingUseChance = reader.GetInt32("start_casting_use_chance", 1);
+                        template.EndCastingUseChance = reader.GetInt32("end_casting_use_chance", 100);
+                        template.CheckTargetTagSrc = reader.GetBoolean("check_target_tag_src", false);
+                        template.CheckNoTargetTagSrc = reader.GetBoolean("check_no_target_tag_src", false);
+                        template.SourceBuffStackCountMin = reader.GetInt32("source_buff_stack_count_min", 0);
+                        template.SourceBuffStackCountMax = reader.GetInt32("source_buff_stack_count_max", 0);
+                        template.TargetBuffStackCountMin = reader.GetInt32("target_buff_stack_count_min", 0);
+                        template.TargetBuffStackCountMax = reader.GetInt32("target_buff_stack_count_max", 0);
+                        template.SourceExceptBuffStackCountMin = reader.GetInt32("source_except_buff_stack_count_min", 0);
+                        template.SourceExceptBuffStackCountMax = reader.GetInt32("source_except_buff_stack_count_max", 0);
+                        template.TargetExceptBuffStackCountMin = reader.GetInt32("target_except_buff_stack_count_min", 0);
+                        template.TargetExceptBuffStackCountMax = reader.GetInt32("target_except_buff_stack_count_max", 0);
                         _skills[skillId].Effects.Add(template);
                     }
 
@@ -2400,6 +2686,11 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 using (var sqliteReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteReader))
                 {
+                    // 1,612 Buff, 172 Item and 10 CombatResource rows in 10.0.2.13. Only a Buff row is
+                    // granted by the buff its owner_id names — SkillModifiers.AddModifiers is called with a
+                    // buff id — so the other owners are filed under the item or resource they name instead
+                    // of leaking onto a buff that happens to share the id.
+                    var unknownOwners = new List<string>();
                     while (reader.Read())
                     {
                         var template = new SkillModifier
@@ -2415,10 +2706,27 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             Synergy = reader.GetBoolean("synergy", true),
                         };
 
-                        if (!_skillModifiers.ContainsKey(template.OwnerId))
-                            _skillModifiers.Add(template.OwnerId, []);
-                        _skillModifiers[template.OwnerId].Add(template);
+                        switch (ModifierOwnerRules.Classify(template.OwnerType))
+                        {
+                            case ModifierOwner.Buff:
+                                AddModifier(_skillModifiers, template.OwnerId, template);
+                                break;
+                            case ModifierOwner.Item:
+                                AddModifier(_itemSkillModifiers, template.OwnerId, template);
+                                break;
+                            case ModifierOwner.CombatResource:
+                                AddModifier(_combatResourceSkillModifiers, template.OwnerId, template);
+                                break;
+                            default:
+                                unknownOwners.Add(template.OwnerType);
+                                break;
+                        }
                     }
+
+                    if (unknownOwners.Count > 0)
+                        Logger.Warn("10.0.2.13: {0} skill_modifiers rows carry an owner_type this server does " +
+                                    "not file ({1}) and are inert",
+                            unknownOwners.Count, string.Join(", ", unknownOwners.Distinct()));
                 }
             }
 
@@ -2444,6 +2752,38 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     }
                 }
             }
+
+            // skill_reqs + skill_req_skills + skill_req_skill_tags. Loaded after tagged_skills because the
+            // tag links resolve to every skill carrying the tag.
+            LoadSkillRequirements();
+
+            // skill_synergy_buff_tags: the target states that unlock a skill's synergy damage effects.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM skill_synergy_buff_tags";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var skillId = reader.GetUInt32("skill_id", 0);
+                        var tagId = reader.GetUInt32("tag_id", 0);
+                        if (skillId == 0 || tagId == 0 || !_skills.TryGetValue(skillId, out var template))
+                            continue;
+
+                        if (!_synergyTags.TryGetValue(skillId, out var tags))
+                            _synergyTags[skillId] = tags = [];
+                        if (!tags.Contains(tagId))
+                            tags.Add(tagId);
+                    }
+                }
+            }
+
+            foreach (var (skillId, tags) in _synergyTags)
+                _skills[skillId].SynergyBuffTags = [.. tags];
+
+            Logger.Info("Skill synergy tags loaded: {0} tags on {1} skills",
+                _synergyTags.Sum(entry => entry.Value.Count), _synergyTags.Count);
 
             using (var command = connection.CreateCommand())
             {

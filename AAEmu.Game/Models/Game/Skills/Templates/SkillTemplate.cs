@@ -110,6 +110,16 @@ public class SkillTemplate
     public bool SkipQuestApplyUseItem { get; set; }
     public bool CalcUserLevel { get; set; }
     public bool CastingUseable { get; set; }
+    /// <summary>
+    /// <c>skills.check_obstacle</c> (24,943 rows). Loaded; not enforced, because this server's world has no
+    /// line-of-sight query — <c>GeoDataManager</c> exposes terrain height only. See the PR body.
+    /// </summary>
+    public bool CheckObstacle { get; set; }
+    /// <summary>
+    /// <c>skills.projectile_id</c> (1,935 rows). Loaded for completeness; projectile physics is
+    /// client-side and out of scope, see the PR body.
+    /// </summary>
+    public uint ProjectileId { get; set; }
     public bool SkipValidateSource { get; set; }
     public int CharRaceId { get; set; }
     public int MaxCombatResource { get; set; }
@@ -118,6 +128,12 @@ public class SkillTemplate
     public bool SwitchToSkillCooldown { get; set; }
     public int SecondCooldownTagId { get; set; }
     public int ThirdCooldownTagId { get; set; }
+    /// <summary>
+    /// <see cref="CooldownTagId"/>, <see cref="SecondCooldownTagId"/> and
+    /// <see cref="ThirdCooldownTagId"/> as the non-zero, de-duplicated list the cooldown store keys on.
+    /// Built once at load time so a cast does not allocate.
+    /// </summary>
+    public int[] CooldownTags { get; set; } = [];
     public bool IsDropableBackpack { get; set; }
     public int ChargeCount { get; set; }
     public int ChargeCooldownTime { get; set; }
@@ -133,6 +149,11 @@ public class SkillTemplate
     public int CombatResourceId { get; set; }
     public bool UseInputDirection { get; set; }
     public long UseConditionBits { get; set; }
+    /// <summary>
+    /// <c>skill_synergy_buff_tags</c>: the buff tags on a target that unlock this skill's
+    /// <c>synergy</c>-flagged damage effects. Set at load; empty for the 216 skills that have none.
+    /// </summary>
+    public uint[] SynergyBuffTags { get; set; } = [];
     public uint SkillLearnItemId { get; set; }
     public int SkillLearnItemAmount { get; set; }
 }

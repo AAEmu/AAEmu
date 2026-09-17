@@ -23,7 +23,8 @@ public class EndChannelingTask(
 
     public override void Execute()
     {
-        // Skill.ScheduleEffects(_caster, _casterCaster, _target, _targetCaster, _skillObject);
-        Skill.EndChanneling(caster, _channelDoodad, casterCaster);
+        // The timer firing is the channel running out, and that is the case that applies the skill's
+        // effects. A channel stopped early goes through Skill.Stop -> EndChanneling without it.
+        Skill.EndChanneling(caster, _channelDoodad, casterCaster, completedNaturally: true);
     }
 }

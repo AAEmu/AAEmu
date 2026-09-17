@@ -27,10 +27,18 @@ public class HealEffect : EffectTemplate
     public bool SlaveApplicable { get; set; }
     public bool IgnoreHealAggro { get; set; }
     public float DpsMultiplier { get; set; }
+    /// <summary><c>heal_effects.self_target_multiplier</c> — see <see cref="HealEffectRules"/>.</summary>
+    public float SelfTargetMul { get; set; }
     public uint ActabilityGroupId { get; set; }
     public int ActabilityStep { get; set; }
     public float ActabilityMul { get; set; }
     public float ActabilityAdd { get; set; }
+
+    /// <summary>
+    /// The <c>unit_modifiers</c> rows this effect owns (owner_type='HealEffect'), attached at load the way
+    /// <see cref="DamageEffect.Bonuses"/> is. See <see cref="HealEffectRules"/>.
+    /// </summary>
+    public List<BonusTemplate> Bonuses { get; set; } = [];
 
     public override bool OnActionTime => false;
 
@@ -76,6 +84,15 @@ public class HealEffect : EffectTemplate
         min = variableDamage + levelMin;
         max = variableDamage + levelMax;
 
+        // The caster's skill_modifiers heal rows (attribute 12, authored as a per-cent delta: the shipped
+        // rows are 7-20), applied to the composed heal exactly as DamageEffect applies SkillAttribute.Damage
+        // to its composed min/max. No such row leaves the heal bit-for-bit what it was.
+        if (source.Skill != null)
+        {
+            min = (float)caster.SkillModifiersCache.ApplyModifiers(source.Skill, SkillAttribute.Heal, min);
+            max = (float)caster.SkillModifiersCache.ApplyModifiers(source.Skill, SkillAttribute.Heal, max);
+        }
+
         var tickModifier = 1.0f;
         if (source.Buff?.TickEffects.Count > 0 && source.Buff.Duration != 0)
         {
@@ -104,19 +121,41 @@ public class HealEffect : EffectTemplate
             }
         }
 
-        var criticalHeal = Random.Shared.Next(0f, 100f) < ((Unit)caster).HealCritical;
+        // The effect's own heal_critical_mul row (185). 158 of the 160 HealEffect rows carry -2000, which
+        // lands on a multiplier of -1: those heals never roll a critical. No row leaves 1.0, and the branch
+        // below is then exactly what it was.
+        var criticalMultiplier = HealEffectRules.CriticalMultiplier(Bonuses);
+        var criticalHeal = HealEffectRules.CanCrit(criticalMultiplier)
+                           && Random.Shared.Next(0f, 100f) < ((Unit)caster).HealCritical;
 
         var value = (int)Random.Shared.Next(min, max);
+
+        // percent (237 rows): the row heals a share of the healed unit's maximum instead of the
+        // absolute composition above. It replaces that composition — the authored min/max and the
+        // level, DPS, heal skill_modifier and ChargedMul terms all go with it — but it is taken here,
+        // where the composition lands, so everything below still applies: the critical roll,
+        // trg.IncomingHealMul, SelfTargetMultiplier, the caster's HealMul and the actability steps.
+        // Taking it later drops healing reduction, which would make a percent heal the one heal an
+        // anti-heal debuff cannot touch, and leaves a critical percent heal reporting
+        // CriticalHealHit while paying an unmodified share.
+        if (Percent)
+        {
+            value = HealEffectRules.PercentAmount(trg.MaxHp, FixedMin, FixedMax, Random.Shared.Next(0, 101));
+        }
 
         if (criticalHeal)
         {
             value = (int)(value * (1 + ((Unit)caster).HealCriticalBonus / 100));
+            if (criticalMultiplier != 1d)
+                value = (int)(value * criticalMultiplier);
             caster.CombatBuffs.TriggerCombatBuffs((Unit)caster, trg, SkillHitType.SpellCritical, true, source?.Skill);
         }
 
         value = (int)(value * trg.IncomingHealMul);
 
-        if (UseFixedHeal)
+        // Every percent row carries use_fixed_heal as well, so the two arms stay exclusive: the share
+        // taken above is the whole of what a percent row heals.
+        if (!Percent && UseFixedHeal)
         {
             value = Random.Shared.Next(FixedMin, FixedMax);
             if (source.Buff != null && source.IsTrigger)
@@ -126,6 +165,11 @@ public class HealEffect : EffectTemplate
             else
                 value = (int)(value * tickModifier);
         }
+
+        // self_target_multiplier (152 rows at 0.7): a self-heal pays out less for the flagged rows. It is
+        // exactly 1.0 for every other target, so this is a no-op on all but those 152 rows' self-casts.
+        value = (int)(value * HealEffectRules.SelfTargetMultiplier(
+            SelfTargetMul, HealEffectRules.IsSelfTarget(caster.ObjId, trg.ObjId)));
 
         value = (int)(value * ((Unit)caster).HealMul);
 
@@ -172,7 +216,12 @@ public class HealEffect : EffectTemplate
             targetChar.RecordPvpHealFrom(healerChar);
         }
 
-        trg.Events.OnHealed(this, new OnHealedArgs { Healer = (Unit)caster, HealAmount = value });
+        trg.Events.OnHealed(this, new OnHealedArgs
+        {
+            Healer = (Unit)caster,
+            HealAmount = value,
+            IgnoreHealAggro = IgnoreHealAggro
+        });
         trg.PostUpdateCurrentHp(trg, oldHp, trg.Hp, KillReason.Unknown);
     }
 }
