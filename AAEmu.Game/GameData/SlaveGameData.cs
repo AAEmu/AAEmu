@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.IO;
+using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData.Framework;
@@ -34,6 +34,11 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
 
     /// <summary>slave_equip_slots: slaveTemplateId → equipSlotId → attach point.</summary>
     private readonly Dictionary<uint, Dictionary<byte, AttachPointKind>> _slaveEquipSlots = [];
+
+    /// <summary>slave_equip_slots the other way round: slaveTemplateId → attach point → equipSlotId.</summary>
+    private readonly Dictionary<uint, Dictionary<AttachPointKind, byte>> _slaveEquipSlotsByAttachPoint = [];
+    private readonly Dictionary<uint, List<SlaveInteractionSkill>> _interactionSkills = [];
+    private readonly Dictionary<uint, uint> _itemSlaveEquipKinds = [];
 
     /// <summary>slave_collision_damages keyed by id.</summary>
     private readonly Dictionary<uint, SlaveCollisionDamageDesc> _slaveCollisionDamages = [];
@@ -364,13 +369,20 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
 
         using (var command = connection.CreateCommand())
         {
-            command.CommandText = "SELECT item_id, slave_id, doodad_id, doodad_scale FROM item_slave_equipments";
+            command.CommandText = "SELECT item_id, slave_id, doodad_id, doodad_scale, slave_equip_kind_id FROM item_slave_equipments";
             command.Prepare();
             using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
             {
                 while (reader.Read())
                 {
                     var itemId = reader.GetUInt32("item_id");
+
+                    // The equip kind is what an item counts as when it sits in a slave's slot; it is kept
+                    // apart from the visual because kind-only rows have no visual at all.
+                    var equipKind = reader.GetUInt32("slave_equip_kind_id", 0);
+                    if (equipKind != 0 && !_itemSlaveEquipKinds.TryAdd(itemId, equipKind))
+                        Logger.Warn("Duplicate item_slave_equipments equip kind for item_id={0}", itemId);
+
                     var visual = new SlaveEquipVisual(
                         reader.GetUInt32("slave_id", 0),
                         reader.GetUInt32("doodad_id", 0),
@@ -423,6 +435,14 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
                     }
 
                     slots[equipSlotId] = attachPoint;
+
+                    if (!_slaveEquipSlotsByAttachPoint.TryGetValue(slaveId, out var slotsByAttachPoint))
+                    {
+                        slotsByAttachPoint = new Dictionary<AttachPointKind, byte>();
+                        _slaveEquipSlotsByAttachPoint[slaveId] = slotsByAttachPoint;
+                    }
+
+                    slotsByAttachPoint[attachPoint] = equipSlotId;
                 }
             }
         }
@@ -434,7 +454,51 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
             _slaveEquipSlots.Count);
         #endregion
 
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText =
+                "SELECT slave_id, skill_id, enable, require_slot_id, slave_equip_kind_id FROM slave_interaction_skills";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var slaveId = reader.GetUInt32("slave_id");
+                    if (!_interactionSkills.TryGetValue(slaveId, out var skills))
+                    {
+                        skills = [];
+                        _interactionSkills[slaveId] = skills;
+                    }
+
+                    skills.Add(new SlaveInteractionSkill(
+                        reader.GetUInt32("skill_id"),
+                        reader.GetBoolean("enable"),
+                        reader.GetUInt32("require_slot_id"),
+                        reader.GetUInt32("slave_equip_kind_id")));
+                }
+            }
+        }
+
+        Logger.Info("Slave interaction skills: {0} slaves offer skills", _interactionSkills.Count);
+
         LoadSlaveAttachmentPointLocations();
+    }
+
+    /// <summary>
+    /// The interaction skills a slave offers, or an empty list for one that offers none (many do not).
+    /// </summary>
+    public IReadOnlyList<SlaveInteractionSkill> GetInteractionSkills(uint slaveTemplateId)
+    {
+        return _interactionSkills.TryGetValue(slaveTemplateId, out var skills) ? skills : [];
+    }
+
+    /// <summary>
+    /// What an item counts as when it sits in a slave's equipment slot, or null for an item the table does
+    /// not describe (most items are not slave equipment at all).
+    /// </summary>
+    public uint? GetItemSlaveEquipKind(uint itemTemplateId)
+    {
+        return _itemSlaveEquipKinds.TryGetValue(itemTemplateId, out var kind) ? kind : null;
     }
 
     public void PostLoad()
@@ -567,6 +631,18 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
         if (!_slaveEquipSlots.TryGetValue(slaveTemplateId, out var slots))
             return false;
         return slots.TryGetValue(equipSlotId, out attachPoint);
+    }
+
+    /// <summary>
+    /// The equipment slot a slave's attach point belongs to, the reverse of
+    /// <see cref="TryGetEquipAttachPoint"/>, or false for an attach point this slave has no slot at.
+    /// </summary>
+    public bool TryGetEquipSlotForAttachPoint(uint slaveTemplateId, AttachPointKind attachPoint, out byte equipSlotId)
+    {
+        equipSlotId = 0;
+        if (!_slaveEquipSlotsByAttachPoint.TryGetValue(slaveTemplateId, out var slots))
+            return false;
+        return slots.TryGetValue(attachPoint, out equipSlotId);
     }
 
     /// <summary>
