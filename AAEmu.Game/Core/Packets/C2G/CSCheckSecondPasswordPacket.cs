@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -25,6 +25,17 @@ public class CSCheckSecondPasswordPacket() : GamePacket(CSOffsets.CSCheckSecondP
             return;
 
         var manager = SecondPasswordManager.Instance;
+
+        // An account gets so many attempts per window; over that it is answered without the password being
+        // checked at all, which is what keeps a wrong password from costing a key derivation per packet.
+        if (!manager.TryBeginAttempt(connection.AccountId, out var retryAfter))
+        {
+            Logger.Debug("Second password: account {0} is over its attempt window, {1:0}s to wait",
+                connection.AccountId, retryAfter.TotalSeconds);
+            connection.SendPacket(new SCSecondPassCheckedPacket(false, 0));
+            return;
+        }
+
         var password = manager.Decode(connection.AccountId, (byte)TableIndex, Pass);
         var failedCount = 0;
         var success = password != null && manager.Verify(connection.AccountId, password, out failedCount);

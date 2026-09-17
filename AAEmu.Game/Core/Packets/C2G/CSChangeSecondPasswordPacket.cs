@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -34,6 +34,15 @@ public class CSChangeSecondPasswordPacket() : GamePacket(CSOffsets.CSChangeSecon
             return;
 
         var manager = SecondPasswordManager.Instance;
+
+        if (!manager.TryBeginAttempt(connection.AccountId, out var retryAfter))
+        {
+            Logger.Debug("Second password: account {0} is over its attempt window, {1:0}s to wait",
+                connection.AccountId, retryAfter.TotalSeconds);
+            connection.SendPacket(new SCSecondPassChangedPacket(0, 0, 0));
+            return;
+        }
+
         var oldPassword = manager.Decode(connection.AccountId, (byte)OldPassTableIndex, OldPass);
         var newPassword = manager.Decode(connection.AccountId, (byte)NewPassTableIndex, NewPass);
 

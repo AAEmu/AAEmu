@@ -295,6 +295,9 @@ public static class Program
                 services.AddSingleton<ISpecialtySaleStore, MySqlSpecialtySaleStore>();
                 services.AddSingleton<SpecialtySaleCommitter>();
 
+                services.AddSingleton<ISecondPasswordStore, MySqlSecondPasswordStore>();
+                services.AddSingleton<SecondPasswordManager>();
+
                 services.AddSingleton<ShipyardManager>();
                 services.AddSingleton<IShipyardManager>(sp => sp.GetRequiredService<ShipyardManager>());
 

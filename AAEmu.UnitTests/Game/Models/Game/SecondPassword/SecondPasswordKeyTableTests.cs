@@ -7,7 +7,7 @@ public class SecondPasswordKeyTableTests
     [Test]
     public async Task Build_ReturnsFourFullPermutationsOfTheAlphabet()
     {
-        var tables = SecondPasswordKeyTable.Build(new Random(20260916));
+        var tables = SecondPasswordKeyTable.Build(new Random(20260916).Next);
 
         await Assert.That(tables.Length).IsEqualTo(SecondPasswordKeyTable.TableCount);
         foreach (var table in tables)
@@ -22,7 +22,7 @@ public class SecondPasswordKeyTableTests
     [Test]
     public async Task Build_ShufflesTheAlphabetRatherThanHandingItBackInOrder()
     {
-        var tables = SecondPasswordKeyTable.Build(new Random(7));
+        var tables = SecondPasswordKeyTable.Build(new Random(7).Next);
 
         await Assert.That(tables.Any(t => t != SecondPasswordKeyTable.Alphabet)).IsTrue();
     }
@@ -30,9 +30,9 @@ public class SecondPasswordKeyTableTests
     [Test]
     public async Task Build_IsReproducibleForASeedAndDifferentAcrossSeeds()
     {
-        var first = SecondPasswordKeyTable.Build(new Random(42));
-        var second = SecondPasswordKeyTable.Build(new Random(42));
-        var other = SecondPasswordKeyTable.Build(new Random(43));
+        var first = SecondPasswordKeyTable.Build(new Random(42).Next);
+        var second = SecondPasswordKeyTable.Build(new Random(42).Next);
+        var other = SecondPasswordKeyTable.Build(new Random(43).Next);
 
         await Assert.That(first).IsEquivalentTo(second);
         await Assert.That(first[0] == other[0] && first[1] == other[1] && first[2] == other[2] && first[3] == other[3])
@@ -42,7 +42,7 @@ public class SecondPasswordKeyTableTests
     [Test]
     public async Task Decode_ReadsBackWhatEncodeWouldHaveThePlayerClick()
     {
-        var table = SecondPasswordKeyTable.Build(new Random(99))[2];
+        var table = SecondPasswordKeyTable.Build(new Random(99).Next)[2];
         const string password = "1aZ9";
 
         var clicked = SecondPasswordKeyTable.Encode(table, password);
@@ -54,7 +54,7 @@ public class SecondPasswordKeyTableTests
     public async Task Decode_IsNotThePasswordItself()
     {
         // The whole point of the tables: the clicked positions do not spell the password.
-        var table = SecondPasswordKeyTable.Build(new Random(1234))[0];
+        var table = SecondPasswordKeyTable.Build(new Random(1234).Next)[0];
 
         var clicked = SecondPasswordKeyTable.Encode(table, "0000");
         await Assert.That(clicked).IsNotEqualTo("0000");
@@ -64,7 +64,7 @@ public class SecondPasswordKeyTableTests
     [Test]
     public async Task Decode_RefusesClicksTheTableCannotName()
     {
-        var table = SecondPasswordKeyTable.Build(new Random(5))[1];
+        var table = SecondPasswordKeyTable.Build(new Random(5).Next)[1];
 
         await Assert.That(SecondPasswordKeyTable.Decode(table, "!!")).IsNull();   // not a position
         await Assert.That(SecondPasswordKeyTable.Decode(table, null)).IsNull();
@@ -75,7 +75,7 @@ public class SecondPasswordKeyTableTests
     [Test]
     public async Task Encode_RefusesCharactersTheTableDoesNotCarry()
     {
-        var table = SecondPasswordKeyTable.Build(new Random(6))[3];
+        var table = SecondPasswordKeyTable.Build(new Random(6).Next)[3];
 
         await Assert.That(SecondPasswordKeyTable.Encode(table, "ok!")).IsNull();
         await Assert.That(SecondPasswordKeyTable.Encode(table, "ok")).IsNotNull();
@@ -84,7 +84,7 @@ public class SecondPasswordKeyTableTests
     [Test]
     public async Task EveryTableOfOneSetDecodesItsOwnClicks()
     {
-        var tables = SecondPasswordKeyTable.Build(new Random(2026));
+        var tables = SecondPasswordKeyTable.Build(new Random(2026).Next);
         const string password = "Pin42";
 
         for (var i = 0; i < tables.Length; i++)

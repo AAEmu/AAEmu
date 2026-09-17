@@ -1,4 +1,6 @@
-﻿namespace AAEmu.Game.Models.Game.SecondPassword;
+using System.Security.Cryptography;
+
+namespace AAEmu.Game.Models.Game.SecondPassword;
 
 /// <summary>
 /// The scrambled key tables the client shows for the second password, and the mapping between what the
@@ -24,16 +26,27 @@ public static class SecondPasswordKeyTable
     /// <summary>
     /// <see cref="TableCount"/> freshly shuffled tables, each a permutation of <see cref="Alphabet"/>.
     /// </summary>
-    public static string[] Build(Random random)
+    public static string[] Build() => Build(RandomNumberGenerator.GetInt32);
+
+    /// <summary>
+    /// The same shuffle, drawing each swap from the caller's source of indices. A test pins the result by
+    /// passing a counted sequence; the server passes the cryptographic generator.
+    /// </summary>
+    /// <remarks>
+    /// The tables are handed to the client in the clear, so the shuffle is not what keeps the password
+    /// secret — but the indices cost nothing to draw from a cryptographic source, and a predictable
+    /// permutation in a file about password entry invites every reader to work out whether it matters.
+    /// </remarks>
+    public static string[] Build(Func<int, int> nextIndex)
     {
-        ArgumentNullException.ThrowIfNull(random);
+        ArgumentNullException.ThrowIfNull(nextIndex);
         var tables = new string[TableCount];
         for (var i = 0; i < TableCount; i++)
         {
             var chars = Alphabet.ToCharArray();
             for (var j = chars.Length - 1; j > 0; j--)
             {
-                var swap = random.Next(j + 1);
+                var swap = nextIndex(j + 1);
                 (chars[j], chars[swap]) = (chars[swap], chars[j]);
             }
 
