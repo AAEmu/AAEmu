@@ -16,13 +16,32 @@ namespace AAEmu.Game.GameData;
 public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
     private Dictionary<uint, List<BuffModifier>> _buffModifiers;
+    private Dictionary<uint, List<BuffModifier>> _itemModifiers;
+    private Dictionary<uint, List<BuffModifier>> _gradeModifiers;
     private Dictionary<uint, BuffTolerance> _buffTolerances;
     private Dictionary<uint, BuffTolerance> _buffTolerancesById;
 
+    /// <summary>
+    /// The modifiers the buff whose id this is grants to other buffs (owner_type='Buff'). Rows owned by an
+    /// item or an expedition buff grade are not part of this table; see <see cref="ModifierOwnerRules"/>.
+    /// </summary>
     public List<BuffModifier> GetModifiersForBuff(uint ownerId)
     {
         return _buffModifiers.TryGetValue(ownerId, out var modifier) ? modifier : [];
+    }
+
+    /// <summary>The modifiers an equipped item grants, keyed by the item template id in its owner_id.</summary>
+    public List<BuffModifier> GetItemModifiers(uint itemTemplateId)
+    {
+        return _itemModifiers.TryGetValue(itemTemplateId, out var modifier) ? modifier : [];
+    }
+
+    /// <summary>The modifiers an expedition buff grade grants, keyed by expedition_buff_grades.id.</summary>
+    public List<BuffModifier> GetGradeModifiers(uint gradeId)
+    {
+        return _gradeModifiers.TryGetValue(gradeId, out var modifier) ? modifier : [];
     }
 
     public BuffTolerance GetBuffToleranceForBuffTag(uint buffTag)
@@ -33,6 +52,8 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
     public void Load(SqliteConnection connection)
     {
         _buffModifiers = [];
+        _itemModifiers = [];
+        _gradeModifiers = [];
         _buffTolerances = [];
         _buffTolerancesById = [];
 
@@ -46,6 +67,10 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
                 // buff_modifiers.enable: one shipped row is disabled (309, buff 15113's
                 // buff_attribute_id 7 at +50) and used to load with the other 1 056.
                 var disabledRowIds = new List<uint>();
+                // 921 Buff, 115 Item and 21 ExpeditionBuffGrade rows in 10.0.2.13. Only the Buff rows are
+                // granted by the buff the owner_id names; the other two are filed under the owner they
+                // really have, so an item id that coincides with a buff id no longer applies to that buff.
+                var unknownOwners = new List<string>();
                 while (reader.Read())
                 {
                     if (!reader.GetBoolean("enable", true))
@@ -67,15 +92,32 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
                         Synergy = reader.GetBoolean("synergy", true),
                     };
 
-                    if (!_buffModifiers.ContainsKey(template.OwnerId))
-                        _buffModifiers.Add(template.OwnerId, []);
-                    _buffModifiers[template.OwnerId].Add(template);
+                    switch (ModifierOwnerRules.Classify(template.OwnerType))
+                    {
+                        case ModifierOwner.Buff:
+                            Add(_buffModifiers, template.OwnerId, template);
+                            break;
+                        case ModifierOwner.Item:
+                            Add(_itemModifiers, template.OwnerId, template);
+                            break;
+                        case ModifierOwner.ExpeditionBuffGrade:
+                            Add(_gradeModifiers, template.OwnerId, template);
+                            break;
+                        default:
+                            unknownOwners.Add(template.OwnerType);
+                            break;
+                    }
                 }
 
                 if (disabledRowIds.Count > 0)
                     Logger.Warn(
                         "buff_modifiers: {0} disabled row(s) skipped ({1})",
                         disabledRowIds.Count, string.Join(", ", disabledRowIds));
+
+                if (unknownOwners.Count > 0)
+                    Logger.Warn("10.0.2.13: {0} buff_modifiers rows carry an owner_type this server does not " +
+                                "file ({1}) and are inert",
+                        unknownOwners.Count, string.Join(", ", unknownOwners.Distinct()));
             }
         }
 
@@ -136,5 +178,16 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
         {
             _buffTolerances[buffToleranceId].Steps = _buffTolerances[buffToleranceId].Steps.OrderBy(st => st.Id).ToList();
         }
+    }
+
+    private static void Add(Dictionary<uint, List<BuffModifier>> table, uint ownerId, BuffModifier modifier)
+    {
+        if (!table.TryGetValue(ownerId, out var list))
+        {
+            list = [];
+            table.Add(ownerId, list);
+        }
+
+        list.Add(modifier);
     }
 }

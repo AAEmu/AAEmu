@@ -256,6 +256,12 @@ public class BuffTemplate
     public List<BonusTemplate> Bonuses { get; } = [];
     public List<DynamicBonusTemplate> DynamicBonuses { get; } = [];
 
+    /// <summary>
+    /// The <c>buff_unit_modifiers</c> rows this buff owns: modifiers that only reach a unit carrying the tag
+    /// (or the buff) the selector names. See <see cref="BuffUnitModifierTemplate"/>.
+    /// </summary>
+    public List<BuffUnitModifierTemplate> UnitModifierSelectors { get; } = [];
+
     public void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
@@ -318,6 +324,10 @@ public class BuffTemplate
             owner.RemoveBonus(buff.Index, template.Attribute);
         foreach (var template in DynamicBonuses)
             owner.RemoveDynamicBonus(buff.Index, template.Attribute);
+        // A conditional row that did not match was never added; RemoveBonus is a no-op then.
+        foreach (var selector in UnitModifierSelectors)
+            foreach (var template in selector.Bonuses)
+                owner.RemoveBonus(buff.Index, template.Attribute);
     }
 
     public void Start(BaseUnit caster, BaseUnit owner, Buff buff)
@@ -341,6 +351,28 @@ public class BuffTemplate
                     : stored
             };
             owner.AddBonus(buff.Index, bonus);
+        }
+
+        // buff_unit_modifiers: rows this buff contributes only to a unit that carries the tag (or the buff)
+        // the selector names — the same MoveSpeedMul handling as the unconditional rows above.
+        foreach (var selector in UnitModifierSelectors)
+        {
+            if (!selector.Matches(owner))
+                continue;
+
+            foreach (var template in selector.Bonuses)
+            {
+                var stored = BuffStackRules.ScaledModifier(template.Value, template.LinearLevelBonus, buff.AbLevel, stack);
+                var bonus = new Bonus
+                {
+                    Template = template,
+                    Value = template.Attribute == UnitAttribute.MoveSpeedMul
+                            && template.ModifierType == UnitModifierType.Value
+                        ? MoveSpeedMulRules.FlatBonus(stored, propulsionRating)
+                        : stored
+                };
+                owner.AddBonus(buff.Index, bonus);
+            }
         }
 
         // dynamic_unit_modifiers: register as a DynamicBonus tied to the source buff

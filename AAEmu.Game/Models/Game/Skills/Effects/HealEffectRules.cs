@@ -1,3 +1,6 @@
+using AAEmu.Game.Models.Game.Skills.Templates;
+using AAEmu.Game.Models.Game.Units;
+
 namespace AAEmu.Game.Models.Game.Skills.Effects;
 
 /// <summary>
@@ -9,6 +12,11 @@ namespace AAEmu.Game.Models.Game.Skills.Effects;
 /// Every member here answers "no row said otherwise" with the behaviour the effect already had, so a heal
 /// row that authors none of these columns heals exactly what it healed before.
 /// </remarks>
+/// <para>
+/// The type also owns the <c>unit_modifiers</c> rows a heal effect carries (owner_type='HealEffect',
+/// 160 rows in 10.0.2.13, 158 of them attribute 185 <c>heal_critical_mul</c> at -2000), which are what
+/// stops those heals from ever landing a critical.
+/// </para>
 public static class HealEffectRules
 {
     /// <summary>
@@ -68,4 +76,31 @@ public static class HealEffectRules
     /// </summary>
     public static bool IsSelfTarget(uint casterObjId, uint targetObjId) =>
         casterObjId != 0 && casterObjId == targetObjId;
+
+    /// <summary>The per-mille baseline a <c>*_mul</c> attribute is authored as a delta from.</summary>
+    public const long MultiplierBaseline = 1000;
+
+    /// <summary>
+    /// The critical multiplier the effect's own rows give it: the 1000 baseline plus every
+    /// <c>heal_critical_mul</c> value, over 1000. An effect with no such row is exactly 1.0, and the -2000
+    /// the shipped rows carry lands on -1.0, which <see cref="CanCrit"/> reads as "never".
+    /// </summary>
+    public static double CriticalMultiplier(IEnumerable<BonusTemplate> bonuses)
+    {
+        if (bonuses == null)
+            return 1d;
+
+        var perMille = 0L;
+        foreach (var bonus in bonuses)
+        {
+            if (bonus.Attribute != UnitAttribute.HealCriticalMul)
+                continue;
+            perMille += bonus.Value;
+        }
+
+        return (MultiplierBaseline + perMille) / (double)MultiplierBaseline;
+    }
+
+    /// <summary>Whether a heal carrying this multiplier may roll a critical at all.</summary>
+    public static bool CanCrit(double criticalMultiplier) => criticalMultiplier > 0d;
 }

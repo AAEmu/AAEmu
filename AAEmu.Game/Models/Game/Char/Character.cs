@@ -1999,13 +1999,12 @@ public partial class Character : Unit, ICharacter
     {
         get
         {
+            // Every hit reads this (the flexibility and bulls-eye reductions normalise by facets), so a
+            // process with no formulas table — a unit test, or a FormulaManager that never ran Load —
+            // answers the hand-walked bonuses instead of throwing on the null row.
             var formula =
                 FormulaManager.Instance.GetUnitFormula(FormulaOwnerType.Character, UnitFormulaKind.Facet);
-            var parameters = new Dictionary<string, double>
-            {
-                ["level"] = Level
-            };
-            var res = formula.Evaluate(parameters);
+            double res = formula?.Evaluate(new Dictionary<string, double> { ["level"] = Level }) ?? 0d;
             res = CalculateWithBonuses(res, UnitAttribute.Facets);
             return (int)res;
         }

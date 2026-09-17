@@ -1677,6 +1677,12 @@ public class Unit : BaseUnit, IUnit
 
         Bonuses[GearBonusesIndex] = [];
 
+        // The item-owned modifier rows (buff_modifiers / skill_modifiers with owner_type='Item') follow the
+        // same loadout as the item-owned unit_modifiers below: registered per equipped item and gem, and
+        // taken back in one step here so a piece that left the slots is not left behind.
+        SkillModifiersCache.RemoveItemModifiers();
+        BuffModifiersCache.RemoveItemModifiers();
+
         foreach (var item in Equipment.Items)
         {
             if (item is not EquipItem ei)
@@ -1686,10 +1692,18 @@ public class Unit : BaseUnit, IUnit
             foreach (var template in ItemManager.Instance.GetUnitModifiers(item.TemplateId))
                 AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
 
+            SkillModifiersCache.AddItemModifiers(item.TemplateId);
+            BuffModifiersCache.AddItemModifiers(item.TemplateId);
+
             // Mods from equipped Gems
             foreach (var gem in ei.GemIds)
+            {
                 foreach (var template in ItemManager.Instance.GetUnitModifiers(gem))
                     AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
+
+                SkillModifiersCache.AddItemModifiers(gem);
+                BuffModifiersCache.AddItemModifiers(gem);
+            }
 
             // Synthesis effects. The item stores the effect's group; what it is worth follows from
             // the grade the piece is at and how far into it the piece has come, so a line grows both

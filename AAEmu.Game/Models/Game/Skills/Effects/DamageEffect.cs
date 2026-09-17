@@ -252,7 +252,10 @@ public class DamageEffect : EffectTemplate
             return;
         }
 
-        float flexibilityRateMod = trg.Flexibility / 1000 * 3;
+        // The victim's flexibility removes per-cent points from the attacker's critical chance. The rating
+        // is normalised by the victim's facets through formula 25 instead of the flat 3/1000 per point the
+        // code carried; a unit with no facets (0) or a build with no such row keeps the flat value.
+        var flexibilityRateMod = CombatFormulaRules.FlexibilityCriticalChanceReduction(trg.Flexibility, trg.Facets);
         switch (DamageType)
         {
             case DamageType.Melee:
@@ -528,11 +531,13 @@ public class DamageEffect : EffectTemplate
             finalDamage = DamageEffectRules.TargetBuffDamage(finalDamage, TargetBuffBonusMul, TargetBuffBonus);
         }
 
-        // Toughness reduction (PVP Only)
+        // Toughness reduction (PVP Only). The 8000 lives in formula 23 (damage_reduce_radio_by_battle_resist);
+        // the row is evaluated, and a build without it keeps the inline expression exactly.
         if (caster is Character && trg is Character)
-            finalDamage *= 1 - trg.BattleResist / (8000f + trg.BattleResist);
+            finalDamage *= 1 - CombatFormulaRules.BattleResistReduction(trg.BattleResist);
 
         // Do Critical Dmgs
+        var flexibilityBonusReduction = CombatFormulaRules.FlexibilityCriticalBonusReduction(trg.Flexibility);
         switch (hitType)
         {
             case SkillHitType.MeleeCritical:
@@ -546,6 +551,7 @@ public class DamageEffect : EffectTemplate
             case SkillHitType.SpellCritical:
                 finalDamage *= DamageEffectRules.CriticalFactor(
                     ((Unit)caster).SpellCriticalBonus, CriticalBonus, trg.Flexibility);
+                break;
                 break;
             default:
                 break;

@@ -57,6 +57,10 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     // Returned for a buff with no rows so the per-application lookups do not allocate.
     private static readonly List<uint> NoTags = [];
     private Dictionary<uint, List<SkillModifier>> _skillModifiers = [];
+    // 172 skill_modifiers rows are owned by an item and 10 by a combat resource; their owner_id is an item
+    // template id or a combat_resources id, not a buff id. See ModifierOwnerRules.
+    private Dictionary<uint, List<SkillModifier>> _itemSkillModifiers = [];
+    private Dictionary<uint, List<SkillModifier>> _combatResourceSkillModifiers = [];
     private Dictionary<uint, List<BuffTriggerTemplate>> _buffTriggers = [];
     private Dictionary<uint, List<CombatBuffTemplate>> _combatBuffs = [];
     private Dictionary<uint, LinearFuncTemplate> _linearFuncs = [];
@@ -401,6 +405,29 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         return [];
     }
 
+    /// <summary>The modifiers an equipped item grants to skills, keyed by the item template id in owner_id.</summary>
+    public List<SkillModifier> GetItemModifiers(uint itemTemplateId)
+    {
+        return _itemSkillModifiers.TryGetValue(itemTemplateId, out var modifiers) ? modifiers : [];
+    }
+
+    /// <summary>The modifiers a combat resource grants to skills, keyed by combat_resources.id in owner_id.</summary>
+    public List<SkillModifier> GetCombatResourceModifiers(uint combatResourceId)
+    {
+        return _combatResourceSkillModifiers.TryGetValue(combatResourceId, out var modifiers) ? modifiers : [];
+    }
+
+    private static void AddModifier(Dictionary<uint, List<SkillModifier>> table, uint ownerId, SkillModifier modifier)
+    {
+        if (!table.TryGetValue(ownerId, out var list))
+        {
+            list = [];
+            table.Add(ownerId, list);
+        }
+
+        list.Add(modifier);
+    }
+
     public List<CombatBuffTemplate> GetCombatBuffs(uint reqBuffId)
     {
         return _combatBuffs.TryGetValue(reqBuffId, out var buffs) ? buffs : [];
@@ -535,6 +562,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         _buffTags = [];
         _taggedBuffs = [];
         _skillModifiers = [];
+        _itemSkillModifiers = [];
+        _combatResourceSkillModifiers = [];
         _skillTags = [];
         _taggedSkills = [];
         _buffImmunityTags = [];
@@ -1141,7 +1170,11 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
             }
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type='Buff'"; // TODO OwnerType: BuffUnitModifier -> buff_unit_modifiers
+                // owner_type is 'Buff' on 24,165 rows and 'Buffs' on 232 (attributes 10 move_speed_mul 210,
+                // 72 turn_speed 11, 124 friction_mul 11 — the Kshanas reinforcement gear buffs 27386-27391
+                // and their siblings). Both name a buff id in owner_id and are the buff's own bonuses, so
+                // they load together; the earlier query took 'Buff' only and dropped all 232.
+                command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type IN ('Buff', 'Buffs')";
                 command.Prepare();
                 var attributeIds = new List<long>();
                 var disabledModifierRows = new SortedSet<uint>();
@@ -1181,7 +1214,65 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
                 var unknownIds = UnitAttributeLoadRules.UnknownIds(attributeIds);
                 if (unknownIds.Count > 0)
-                    Logger.Warn(UnitAttributeLoadRules.Warning("unit_modifiers (owner_type='Buff')", unknownIds));
+                    Logger.Warn(UnitAttributeLoadRules.Warning("unit_modifiers (owner_type='Buff'/'Buffs')", unknownIds));
+            }
+
+            // buff_unit_modifiers (160 rows) is the selector half of the BuffUnitModifier owner type: the
+            // buff in owner_id contributes modifiers to the units that carry tag_id or buff_id, not to every
+            // unit it lands on. The modifiers themselves are the unit_modifiers rows whose owner_id is the
+            // selector's id, loaded below.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM buff_unit_modifiers WHERE enable = 't'";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var buffId = reader.GetUInt32("owner_id", 0);
+                        if (!_buffs.TryGetValue(buffId, out var buff))
+                            continue;
+                        buff.UnitModifierSelectors.Add(new BuffUnitModifierTemplate
+                        {
+                            Id = reader.GetUInt32("id", 0),
+                            TagId = reader.GetUInt32("tag_id", 0),
+                            BuffId = reader.GetUInt32("buff_id", 0)
+                        });
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM unit_modifiers WHERE owner_type='BuffUnitModifier'";
+                command.Prepare();
+                var selectors = new Dictionary<uint, BuffUnitModifierTemplate>();
+                foreach (var buff in _buffs.Values)
+                    foreach (var selector in buff.UnitModifierSelectors)
+                        selectors[selector.Id] = selector;
+
+                var attributeIds = new List<long>();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var selectorId = reader.GetUInt32("owner_id", 0);
+                        if (!selectors.TryGetValue(selectorId, out var selector))
+                            continue;
+                        var attributeId = reader.GetUInt32("unit_attribute_id", 0);
+                        attributeIds.Add(attributeId);
+                        selector.Bonuses.Add(new BonusTemplate
+                        {
+                            Attribute = (UnitAttribute)attributeId, ModifierType = (UnitModifierType)reader.GetByte("unit_modifier_type_id", 0),
+                            Value = reader.GetInt64("value", 0),
+                            LinearLevelBonus = reader.GetInt32("linear_level_bonus", 0)
+                        });
+                    }
+                }
+
+                var unknownIds = UnitAttributeLoadRules.UnknownIds(attributeIds);
+                if (unknownIds.Count > 0)
+                    Logger.Warn(UnitAttributeLoadRules.Warning("unit_modifiers (owner_type='BuffUnitModifier')", unknownIds));
             }
             using (var command = connection.CreateCommand())
             {
@@ -2595,6 +2686,11 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 using (var sqliteReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteReader))
                 {
+                    // 1,612 Buff, 172 Item and 10 CombatResource rows in 10.0.2.13. Only a Buff row is
+                    // granted by the buff its owner_id names — SkillModifiers.AddModifiers is called with a
+                    // buff id — so the other owners are filed under the item or resource they name instead
+                    // of leaking onto a buff that happens to share the id.
+                    var unknownOwners = new List<string>();
                     while (reader.Read())
                     {
                         var template = new SkillModifier
@@ -2610,10 +2706,27 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             Synergy = reader.GetBoolean("synergy", true),
                         };
 
-                        if (!_skillModifiers.ContainsKey(template.OwnerId))
-                            _skillModifiers.Add(template.OwnerId, []);
-                        _skillModifiers[template.OwnerId].Add(template);
+                        switch (ModifierOwnerRules.Classify(template.OwnerType))
+                        {
+                            case ModifierOwner.Buff:
+                                AddModifier(_skillModifiers, template.OwnerId, template);
+                                break;
+                            case ModifierOwner.Item:
+                                AddModifier(_itemSkillModifiers, template.OwnerId, template);
+                                break;
+                            case ModifierOwner.CombatResource:
+                                AddModifier(_combatResourceSkillModifiers, template.OwnerId, template);
+                                break;
+                            default:
+                                unknownOwners.Add(template.OwnerType);
+                                break;
+                        }
                     }
+
+                    if (unknownOwners.Count > 0)
+                        Logger.Warn("10.0.2.13: {0} skill_modifiers rows carry an owner_type this server does " +
+                                    "not file ({1}) and are inert",
+                            unknownOwners.Count, string.Join(", ", unknownOwners.Distinct()));
                 }
             }
 

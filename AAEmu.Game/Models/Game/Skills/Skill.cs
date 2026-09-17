@@ -960,7 +960,10 @@ public class Skill
         // clears TlId immediately). Cast-time / plot_only already relayed at Use() entry.
         RelayZoneSkillStartedIfNeeded(casterCaster, targetCaster, skillObject);
 
-        if (caster is Npc && Template.SkillControllerId != 0)
+        // A controller drives its owner's position, so it used to be created for NPC casters only. A player's
+        // own leap is the same movement and now gets one too, for a unit the caster controls
+        // (SkillControllerRules); the distance gate below still applies to both.
+        if (Template.SkillControllerId != 0 && SkillControllerRules.CanCreateController(caster, unit))
         {
             var scTemplate = SkillManager.Instance.GetEffectTemplate(Template.SkillControllerId, "SkillController") as SkillControllerTemplate;
 
@@ -1150,7 +1153,7 @@ public class Skill
         _channelingTargetCaster = targetCaster;
         _channelingSkillObject = skillObject;
         unit.SkillTask = new EndChannelingTask(this, caster, casterCaster, target, targetCaster, skillObject, doodad);
-        TaskManager.Instance.Schedule(unit.SkillTask, TimeSpan.FromMilliseconds(Template.ChannelingTime));
+        TaskManager.Instance.Schedule(unit.SkillTask, TimeSpan.FromMilliseconds(EffectiveChannelingTime(unit)));
     }
 
     /// <summary>
@@ -1433,9 +1436,10 @@ public class Skill
         // Get a list of all possible targets
         // 10.0.2.13: skills.target_siege removed; the former ship-skill hack (TargetSiege + Source + Slave) no
         // longer has a data source, so AoE skills fall through to the standard target-area handling below.
-        if (Template.TargetAreaRadius > 0)
+        var areaRadius = EffectiveTargetAreaRadius(unit);
+        if (areaRadius > 0)
         {
-            var units = WorldManager.GetAround<BaseUnit>(targetSelf, Template.TargetAreaRadius, true);
+            var units = WorldManager.GetAround<BaseUnit>(targetSelf, areaRadius, true);
             if (Template.TargetSelection == SkillTargetSelection.Source)
                 units.Add(targetSelf); // Add main target as well
             units = FilterAoeUnits(caster, targetSelf, units).ToList();
@@ -2315,7 +2319,10 @@ public class Skill
         // kinds — and when the blow comes from behind the target, which cannot see it coming.
         if (Attacker != null && CombatDiceRules.RollsAvoidance(diceKind) && MathUtil.IsFront(attacker, target))
         {
-            var bullsEyeMod = Attacker.BullsEye / 1000f * 3f / 100f;
+            // Formula 24 (facets_for_bulls_eye, "bulls_eye * 105") off the victim's dodge, block and parry,
+            // over the attacker's facets. Without the row — or before the attacker has facets — the flat
+            // per-rating-point share stays exactly what it was.
+            var bullsEyeMod = CombatFormulaRules.BullsEyeAvoidanceReduction(Attacker.BullsEye, Attacker.Facets);
 
             //TODO Check immunity a better way!!!
             //if (target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(361)))
@@ -2586,8 +2593,32 @@ public class Skill
             return;
         var gcdMul = SkillGcdRules.SharedGcdMultiplier(
             Template.UseWeaponCooldownTime, unit.GlobalCooldownMul, unit.CastTimeMul);
-        unit.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * gcdMul);
+        unit.GlobalCooldown = DateTime.UtcNow.AddMilliseconds(gcd * gcdMul * GlobalCooldownFactor(unit));
     }
+
+    /// <summary>
+    /// The caster's <c>skill_modifiers</c> factor for the armed global cooldown (attribute 15,
+    /// <c>global_cooldown</c>, authored as a per-cent delta: the shipped rows are -3, -10, -12 and -50).
+    /// A caster carrying no such row gets exactly 1.0, so the GCD is what it was.
+    /// </summary>
+    public float GlobalCooldownFactor(Unit caster) =>
+        (float)caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.GlobalCooldown, 1.0);
+
+    /// <summary>
+    /// The radius this cast gathers its area targets with: the template's <c>target_area_radius</c> plus the
+    /// caster's <c>skill_modifiers</c> area_radius rows (attribute 3, authored as a flat metre delta — the
+    /// shipped rows are 1, 2 and 5). No such row leaves the template's radius exactly.
+    /// </summary>
+    public float EffectiveTargetAreaRadius(Unit caster) =>
+        (float)caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.AreaRadius, Template.TargetAreaRadius);
+
+    /// <summary>
+    /// How long the channel lasts: the template's <c>channeling_time</c> plus the caster's
+    /// <c>skill_modifiers</c> channeling_time rows (attribute 11, a flat millisecond delta — the shipped rows
+    /// are 2000 and 4000). No such row leaves the template's value exactly.
+    /// </summary>
+    public int EffectiveChannelingTime(Unit caster) =>
+        (int)caster.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.ChannelingTime, Template.ChannelingTime);
 
     public void ConsumeMana(BaseUnit caster)
     {

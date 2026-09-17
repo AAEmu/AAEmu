@@ -34,6 +34,12 @@ public class HealEffect : EffectTemplate
     public float ActabilityMul { get; set; }
     public float ActabilityAdd { get; set; }
 
+    /// <summary>
+    /// The <c>unit_modifiers</c> rows this effect owns (owner_type='HealEffect'), attached at load the way
+    /// <see cref="DamageEffect.Bonuses"/> is. See <see cref="HealEffectRules"/>.
+    /// </summary>
+    public List<BonusTemplate> Bonuses { get; set; } = [];
+
     public override bool OnActionTime => false;
 
     public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
@@ -78,6 +84,15 @@ public class HealEffect : EffectTemplate
         min = variableDamage + levelMin;
         max = variableDamage + levelMax;
 
+        // The caster's skill_modifiers heal rows (attribute 12, authored as a per-cent delta: the shipped
+        // rows are 7-20), applied to the composed heal exactly as DamageEffect applies SkillAttribute.Damage
+        // to its composed min/max. No such row leaves the heal bit-for-bit what it was.
+        if (source.Skill != null)
+        {
+            min = (float)caster.SkillModifiersCache.ApplyModifiers(source.Skill, SkillAttribute.Heal, min);
+            max = (float)caster.SkillModifiersCache.ApplyModifiers(source.Skill, SkillAttribute.Heal, max);
+        }
+
         var tickModifier = 1.0f;
         if (source.Buff?.TickEffects.Count > 0 && source.Buff.Duration != 0)
         {
@@ -106,13 +121,20 @@ public class HealEffect : EffectTemplate
             }
         }
 
-        var criticalHeal = Random.Shared.Next(0f, 100f) < ((Unit)caster).HealCritical;
+        // The effect's own heal_critical_mul row (185). 158 of the 160 HealEffect rows carry -2000, which
+        // lands on a multiplier of -1: those heals never roll a critical. No row leaves 1.0, and the branch
+        // below is then exactly what it was.
+        var criticalMultiplier = HealEffectRules.CriticalMultiplier(Bonuses);
+        var criticalHeal = HealEffectRules.CanCrit(criticalMultiplier)
+                           && Random.Shared.Next(0f, 100f) < ((Unit)caster).HealCritical;
 
         var value = (int)Random.Shared.Next(min, max);
 
         if (criticalHeal)
         {
             value = (int)(value * (1 + ((Unit)caster).HealCriticalBonus / 100));
+            if (criticalMultiplier != 1d)
+                value = (int)(value * criticalMultiplier);
             caster.CombatBuffs.TriggerCombatBuffs((Unit)caster, trg, SkillHitType.SpellCritical, true, source?.Skill);
         }
 
