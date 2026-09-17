@@ -19,21 +19,24 @@ public readonly record struct SkillRequirement(bool OnTarget, uint BuffId, uint 
 /// </summary>
 /// <remarks>
 /// 338 requirement rows, 1,813 links to individual skills and 339 links to skill tags. The polarity is
-/// <c>default_result</c>, and the content settles it:
+/// <c>default_result</c>, and two pieces of authored content settle it:
 /// <list type="bullet">
-/// <item><description><b>Forbid</b> (<c>'t'</c>, 236 rows) — 발묶임/기절/수면/공포/넘어짐 (root, stun, sleep,
-/// fear, knockdown) tag rows on movement and combat skills, and the target-side ones ("cannot be used on
-/// a refusing Biam", "cannot be used on an angry wild horse"). All 236 messages read "you cannot use
-/// this while/on X".</description></item>
-/// <item><description><b>Require</b> (<c>'f'</c>, 102 rows) — requirement 15 is tag 294 날틀 비행중
-/// (gliding) and it gates the glider skills (13430 폭탄 투척, 17657 날틀 접기 "fold the glider", 21094 순간
-/// 이동); requirement 58/59 are 구속 (restraint) and 공포 (fear) and they gate 자유 (Freedom, 20982) and
-/// 강인한 의지 (11429). Those are unusable unless the state is present, in both directions.</description></item>
+/// <item><description>Requirement 6 is a <c>'t'</c> row whose message is
+/// <c>%s 상태가 아니어야 합니다</c> — "must <i>not</i> be in %s state". It is the only row in the table
+/// that states a polarity in words rather than implying one, and it states this one.</description></item>
+/// <item><description>Requirement 58 is <c>'f'</c> on tag 4981 구속 (기술 사용X), "restraint (skill use
+/// disabled)". A skill-use-disabled tag is a state to refuse a cast in, so a row on it is a <i>forbid</i>
+/// row, which is what <c>'f'</c> means under this reading. What it gates agrees: 자유 (Freedom, 20982),
+/// 강인한 의지 (11429) and 생명력 발산 (10645) are break-free skills, and those have to be castable
+/// precisely while restrained. Requirement 15 is the same shape from the other side — it gates the glider
+/// skills (13430 폭탄 투척, 17657 날틀 접기, 21094 순간 이동) on tag 294 날틀 비행중, and I confirmed
+/// all three really are glider-granted, so requiring the tag is what makes them work.</description></item>
 /// </list>
 ///
-/// Some <c>'f'</c> rows still carry a "cannot use while X" message (requirement 37 for a downed summon,
-/// 140 for fish), which is why the polarity is read from the flag and not from the string; the messages
-/// are client strings and 20 of the 102 are inconsistent with their own row.
+/// The message text is a client string and does <i>not</i> discriminate: 87 of the 236 <c>'t'</c> rows
+/// (37 %) and 46 of the 102 <c>'f'</c> rows (45 %) carry "cannot use while/on X" phrasing, and the
+/// <c>'f'</c> group also carries peace-zone, prisoner and judge strings that read as restrictions. The
+/// polarity is therefore read from the flag, never from the string.
 ///
 /// Forbid rows combine with AND — any one of them present blocks the cast. Require rows combine with OR:
 /// 강인한 의지 carries both 58 and 59, and reading those as AND would demand restraint <i>and</i> fear at

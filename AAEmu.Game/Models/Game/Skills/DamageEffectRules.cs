@@ -4,8 +4,9 @@ namespace AAEmu.Game.Models.Game.Skills;
 
 /// <summary>
 /// <c>enum_percent_damage_resource_types</c>: which pool a <c>use_percent_damage</c> effect reads its
-/// percentage from. The five rows of the table are 1 current_health, 2 max_health, 3 current_mana and
-/// 4 max_mana.
+/// percentage from. The four rows of the table are 1 current_health, 2 max_health, 3 current_mana and
+/// 4 max_mana. Only the two health pools ship: all 491 rows that set <c>use_percent_damage</c> are type
+/// 1 (39) or type 2 (452), so the mana arms exist against the enum rather than against any live row.
 /// </summary>
 public enum PercentDamageResourceType
 {

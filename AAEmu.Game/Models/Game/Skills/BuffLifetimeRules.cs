@@ -12,8 +12,10 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// <para>
 /// The interesting rows are the duration-0 families that carry one. Duration 0 is this server's
 /// "permanent" — <c>Buff.GetTimeLeft</c> answers -1 for it and no dispel is scheduled — so 23749 깃발의
-/// 기운 (11,000) and 23151 추격: 파도 (5,000), 30 rows in all, are currently permanent buffs the content
-/// says should expire. The clamp gives them their expiry.
+/// 기운 (11,000) and 23151 추격: 파도 (5,000) are currently permanent buffs the content says should
+/// expire. Eight rows are in that position, not more: the 96 split into those 8, the 11 whose base
+/// duration is already past the ceiling, and 77 already inside it, so 19 of the 96 move and 77 do not.
+/// The clamp gives the 8 their expiry.
 /// </para>
 /// </remarks>
 public static class BuffLifetimeRules

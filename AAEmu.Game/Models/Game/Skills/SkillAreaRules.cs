@@ -10,16 +10,21 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// <remarks>
 /// The gather used to be a full sphere around the resolved target: <c>target_area_angle</c> was loaded and
 /// never read, so a 90° cleave hit everything within <c>target_area_radius</c>, including units behind the
-/// caster. 1,364 skills carry an angle below the 360 default; 33 of them are ability skills.
+/// caster. 1,338 skills carry an angle below the 360 default and 26 carry 365, which is past a full
+/// sweep and takes no cone; 33 of the 1,338 are ability skills.
 ///
-/// <c>target_area_angle</c> is read as a half-angle, matching what <c>AreaShape.FilterSphereCone</c>
-/// already does with <c>aoe_shapes.value3</c> and the historical reading that file documents. 360 is "no
-/// cone" and is skipped rather than halving to 180. The same open question applies to both columns — see
-/// the <c>SphereConeValue3IsFullSweep</c> note in <c>AreaShape</c>, which is F6's to settle — and reading
-/// it wider rather than narrower keeps an AoE hitting what it hits today.
+/// <c>target_area_angle</c> is the full width of the cone, read the same way <c>aoe_shapes.value3</c> is:
+/// <c>ConeHalfAngle</c> returns it and the gather halves it, so 120 means ±60. That is the reading
+/// <c>AreaShape.SphereConeValue3IsFullSweep</c> settles for the shape column, and the two have to agree or
+/// a skill's own cone and its shape's cone would disagree about where "in front" ends. 360 is "no cone"
+/// and is skipped rather than halving to 180.
 ///
-/// <c>front_angle</c> only applies when <c>target_area_angle</c> is the 360 default: 39 skills carry both,
-/// and the area angle is the more specific statement.
+/// <c>front_angle</c> only supplies a cone when <c>target_area_angle</c> is the 360 default. 93 skills
+/// carry a usable <c>front_angle</c> (above 0 and below 360): 54 of them have the area angle at its
+/// default and are the ones this column actually shapes, and the other 39 also author a non-default
+/// <c>target_area_angle</c>, which is the more specific statement and shadows them. A further 22 rows
+/// carry 360 and 9 carry a negative angle (-110, -107 twice, -90 five times, -20) — the only negative
+/// angle in either column — and both groups fall through to "no cone" on the guard below.
 ///
 /// <c>target_selection_id</c> is 1 (Source) on 25,912 skills, 2 (Target) on 11,802 and 4 (Location) on 329.
 /// No shipped row uses 3 (Line); the corridor rule is written anyway so that a row which does use it is
