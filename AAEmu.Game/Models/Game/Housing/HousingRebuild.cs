@@ -1,3 +1,5 @@
+using AAEmu.Game.Models.Game.Skills;
+
 namespace AAEmu.Game.Models.Game.Housing;
 
 /// <summary>One material a rebuild target costs (<c>housing_rebuilding_materials</c>).</summary>
@@ -7,9 +9,8 @@ public readonly record struct HousingRebuildMaterial(uint ItemId, int Count);
 /// One rebuild target — a building a house can be changed into (<c>housing_rebuildings</c>).
 /// </summary>
 /// <remarks>
-/// The target is picked in the client's rebuild window and started with the skill the row carries
-/// (<see cref="SkillId"/>): the client casts that skill at the house, and the cast is what the server acts
-/// on. <see cref="HousingId"/> is the housing template the house becomes.
+/// The rebuild window casts the skill the row carries at the house. Several targets share that skill, so
+/// the cast also names <see cref="HousingId"/> — the housing template the house becomes.
 /// </remarks>
 public sealed class HousingRebuildTarget
 {
@@ -33,6 +34,59 @@ public sealed class HousingRebuildPack
 
     /// <summary>The targets this pack offers, in the position the table gives them.</summary>
     public List<uint> TargetIds { get; init; } = [];
+}
+
+/// <summary>How a rebuilt house lands, and which skills the owner needs to carry it out.</summary>
+public static class HousingRebuildLanding
+{
+    /// <summary>The id a house request sends when it means "the house this character is working on".</summary>
+    public const ushort NoHouseId = 0xFFFF;
+
+    /// <summary>
+    /// Whether a request's own id names a house. A window that opens from the house already on screen sends
+    /// <see cref="NoHouseId"/> rather than repeating the id, and that is a house, not a missing one.
+    /// </summary>
+    public static bool NamesAHouse(ushort tlId) => tlId is > 0 and not NoHouseId;
+
+    /// <summary>
+    /// The build step a house sits on after it is rebuilt into a target with
+    /// <paramref name="buildStepCount"/> steps: the completion stage (step 0) when the target has steps,
+    /// finished (-1) when it has none. A remodel is not finished work — the client's own window says the
+    /// building "must go through the Completion stage" — and the completion is the step's own skill cast.
+    /// </summary>
+    public static int LandingStep(int buildStepCount) => buildStepCount > 0 ? 0 : -1;
+
+    /// <summary>
+    /// The skills a house's pack requires of its owner: one start skill per target plus the completion
+    /// skill of every build step the target is built through. Returned in a stable order, without
+    /// duplicates and without zeroes.
+    /// </summary>
+    public static IReadOnlyList<uint> RequiredSkills(IEnumerable<uint> targetSkillIds,
+        IEnumerable<uint> completionSkillIds)
+    {
+        var skills = new List<uint>();
+        foreach (var skillId in targetSkillIds.Concat(completionSkillIds))
+        {
+            if (skillId != 0 && !skills.Contains(skillId))
+                skills.Add(skillId);
+        }
+
+        return skills;
+    }
+
+    /// <summary>Those of <paramref name="required"/> the character does not know yet.</summary>
+    public static IReadOnlyList<uint> MissingSkills(IEnumerable<uint> required, Func<uint, bool> knows) =>
+        required.Where(skillId => !knows(skillId)).ToList();
+}
+
+/// <summary>
+/// How far a house extends for skill range. The plot's garden radius is the building's size;
+/// measuring only to the house origin treats the player as standing in empty space.
+/// </summary>
+public static class HousingDistanceRules
+{
+    public static float OccupiedRadius(float gardenRadius, float scale) =>
+        Math.Max(0f, gardenRadius) * Math.Max(0f, scale);
 }
 
 /// <summary>Why a rebuild was refused, or <see cref="None"/> when it may go ahead.</summary>
@@ -62,6 +116,32 @@ public static class HousingRebuildRules
     /// <summary>Whether <paramref name="pack"/> offers <paramref name="targetId"/> at all.</summary>
     public static bool IsOfferedByPack(HousingRebuildPack pack, uint targetId) =>
         pack?.TargetIds.Contains(targetId) == true;
+
+    /// <summary>
+    /// The pack row Confirm asked for: same start skill as the other designs, plus the housing
+    /// template the extra named. A skill-only match is not enough — one skill starts every target
+    /// in a pack.
+    /// </summary>
+    public static HousingRebuildTarget PickTarget(
+        HousingRebuildPack pack,
+        IEnumerable<HousingRebuildTarget> targets,
+        uint skillId,
+        uint housingId)
+    {
+        if (pack == null || targets == null || skillId == 0 || housingId == 0)
+            return null;
+
+        foreach (var target in targets)
+        {
+            if (target != null
+                && target.SkillId == skillId
+                && target.HousingId == housingId
+                && IsOfferedByPack(pack, target.Id))
+                return target;
+        }
+
+        return null;
+    }
 
     /// <summary>
     /// The first reason this rebuild cannot go ahead, checked in the order a player would hit them: not the
@@ -96,4 +176,20 @@ public static class HousingRebuildRules
             ? HousingRebuildRefusal.NotEnoughLabor
             : HousingRebuildRefusal.None;
     }
+}
+
+/// <summary>
+/// Remodel Confirm shares a start skill across every design in a pack. The extra u32 is the
+/// housing template the player picked; SkillStarted must not echo flag 7 (that flag is also
+/// grade-enchant, and the enchanting extra desyncs the stream).
+/// </summary>
+public static class HousingRebuildSkillCast
+{
+    /// <summary>The housing template Confirm asked the house to become, or 0 when the extra is missing.</summary>
+    public static uint RequestedHousingId(SkillObject skillObject) =>
+        skillObject is SkillObjectHousingRebuild rebuild ? rebuild.HousingId : 0;
+
+    /// <summary>The object SkillStarted may echo: flag None, housing id kept for the rebuild effect.</summary>
+    public static SkillObject ForSkillStarted(uint housingId) =>
+        housingId == 0 ? new SkillObject() : new SkillObjectHousingRebuild { HousingId = housingId };
 }

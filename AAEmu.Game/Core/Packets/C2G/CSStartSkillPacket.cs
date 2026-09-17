@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -57,7 +58,15 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         // generic thirteen-int read would otherwise swallow it and lose which infusions were placed.
         // AbilitySet (15) is registered in IsKnownType so skillsaver activate keeps its slot payload.
         var hasExtraValues = (flag & 8) != 0;
-        if (SkillObject.IsKnownType(flagType))
+        if (HousingGameData.Instance.IsRebuildSkill(skillId)
+            && flagType == (int)SkillObjectType.ItemGradeEnchantingSupport)
+        {
+            // Flag 7 is bits 0-2 on remodel Confirm, and the first u32 is the housing template.
+            // Reading it as grade-enchant consumes the rest of the extra and SkillStarted then
+            // echoes type 7, which the client cannot parse (sc error on SkillStarted).
+            skillObject = HousingRebuildSkillCast.ForSkillStarted(stream.ReadUInt32());
+        }
+        else if (SkillObject.IsKnownType(flagType))
         {
             skillObject = SkillObject.GetByType((SkillObjectType)flagType);
             skillObject.Read(stream);

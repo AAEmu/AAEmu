@@ -12,9 +12,9 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 /// <see cref="HousingManager"/>.
 /// </summary>
 /// <remarks>
-/// The cast skill is what names the target — the effect's own values are zero on both shipped rows — so the
-/// skill id is looked up in the rebuild content. The house is the cast's target: the skill targets a unit, and
-/// a building is one.
+/// The effect's own values are zero on both shipped rows. The house is the cast's target. The
+/// start skill is shared by every design in a pack, so the extra housing template (not the skill
+/// alone) names the row.
 /// </remarks>
 public class RebuildHousing : SpecialEffectAction
 {
@@ -40,10 +40,16 @@ public class RebuildHousing : SpecialEffectAction
             return;
         }
 
-        var rebuild = HousingGameData.Instance.GetRebuildTargetBySkill(skill?.Template?.Id ?? 0);
+        var rebuild = HousingGameData.Instance.GetRebuildTargetForCast(
+            house.TemplateId,
+            skill?.Template?.Id ?? 0,
+            HousingRebuildSkillCast.RequestedHousingId(skillObject));
         if (rebuild == null)
         {
-            Logger.Warn("RebuildHousing: skill {0} is not a housing rebuild", skill?.Template?.Id ?? 0);
+            Logger.Warn(
+                "RebuildHousing: skill {0} housing {1} is not a rebuild this house offers",
+                skill?.Template?.Id ?? 0,
+                HousingRebuildSkillCast.RequestedHousingId(skillObject));
             return;
         }
 

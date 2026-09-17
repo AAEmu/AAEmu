@@ -31,6 +31,23 @@ public class HousingRebuildRulesTests
         items.ToDictionary(item => item.ItemId, item => item.Count);
 
     [Test]
+    public async Task PickTarget_UsesPackAndHousingIdNotTheSharedSkillAlone()
+    {
+        var pack = Pack(2, 3, 4, 5);
+        var harvester = new HousingRebuildTarget { Id = 3, SkillId = 28829, HousingId = 432 };
+        var farmers = new HousingRebuildTarget { Id = 4, SkillId = 28829, HousingId = 433 };
+        var miner = new HousingRebuildTarget { Id = 5, SkillId = 28829, HousingId = 434 };
+        var otherPack = new HousingRebuildTarget { Id = 221, SkillId = 28829, HousingId = 851 };
+        HousingRebuildTarget[] targets = [harvester, farmers, miner, otherPack];
+
+        await Assert.That(HousingRebuildRules.PickTarget(pack, targets, 28829, 432)).IsEqualTo(harvester);
+        await Assert.That(HousingRebuildRules.PickTarget(pack, targets, 28829, 434)).IsEqualTo(miner);
+        await Assert.That(HousingRebuildRules.PickTarget(pack, targets, 28829, 851)).IsNull();
+        await Assert.That(HousingRebuildRules.PickTarget(pack, targets, 28829, 0)).IsNull();
+        await Assert.That(HousingRebuildRules.PickTarget(null, targets, 28829, 432)).IsNull();
+    }
+
+    [Test]
     public async Task IsOfferedByPack_ReadsThePacksTargetList()
     {
         var pack = Pack(2, 3, 4);

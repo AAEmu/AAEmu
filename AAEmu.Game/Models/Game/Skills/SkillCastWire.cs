@@ -22,6 +22,7 @@ public static class SkillCastWire
         // SCSkillFired makes the client drop cast UX (no cast bar / cast anim) and can scramble
         // parsing of later SC packets in the same session. Slot is already stashed from CSStartSkill.
         var flag = skillObject.Flag is SkillObjectType.AbilitySet or SkillObjectType.BlessUthstinPage
+            || skillObject is SkillObjectHousingRebuild
             ? SkillObjectType.None
             : skillObject.Flag;
 

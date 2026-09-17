@@ -760,11 +760,30 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
         _rebuildTargets.GetValueOrDefault(rebuildingId);
 
     /// <summary>
-    /// The rebuild target a cast skill starts, or null when the skill is not a rebuild. The client casts the
-    /// skill the chosen <c>housing_rebuildings</c> row names, so the skill is what identifies the target.
+    /// Whether this skill starts a rebuild. Several targets share one skill, so this is only a
+    /// "this cast is a remodel" test — use <see cref="GetRebuildTargetForCast"/> to name the row.
+    /// </summary>
+    public bool IsRebuildSkill(uint skillId) =>
+        skillId != 0 && _rebuildTargetBySkill.ContainsKey(skillId);
+
+    /// <summary>
+    /// The rebuild target a cast skill starts, or null when the skill is not a rebuild. Several
+    /// targets share one skill; this returns the last loaded row for that skill and is not how
+    /// Confirm is resolved.
     /// </summary>
     public HousingRebuildTarget GetRebuildTargetBySkill(uint skillId) =>
         _rebuildTargetBySkill.TryGetValue(skillId, out var targetId) ? GetRebuildTarget(targetId) : null;
+
+    /// <summary>
+    /// The pack row Confirm asked for: the house's pack, the shared start skill, and the housing
+    /// template the extra named.
+    /// </summary>
+    public HousingRebuildTarget GetRebuildTargetForCast(uint currentHousingId, uint skillId, uint requestedHousingId) =>
+        HousingRebuildRules.PickTarget(
+            GetRebuildPackForHousing(currentHousingId),
+            _rebuildTargets.Values,
+            skillId,
+            requestedHousingId);
 
     /// <summary>The pack with this id, or null.</summary>
     public HousingRebuildPack GetRebuildPack(uint packId) => _rebuildPacks.GetValueOrDefault(packId);
