@@ -4,10 +4,6 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
-using AAEmu.Game.Models;
-using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Rankings;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -69,57 +65,16 @@ public class CSRankSnapshotPacket() : GamePacket(CSOffsets.CSRankSnapshotPacket,
                 Id = place.Score.HolderId,
                 AccountId = place.Score.AccountId,
 
-                // The window reads the holder's character id out of the third identity slot — the one a
-                // ranker's appearance is asked for by, and the one its name cache is queried with.
+                // The window reads the holder out of the third identity slot — the one a ranker's appearance
+                // is asked for by, and the one its name cache is queried with. An expedition line is named
+                // from the expedition id, which is the same holder id.
                 Type = (long)place.Score.HolderId,
                 PrivacyStatus = 0,
+                SubData = RankingSubData.FromBytes(place.Score.SubData),
                 Ranking = place.Position
             });
         }
 
         return rows;
-    }
-
-    /// <summary>
-    /// What a character is worth on a board, or null when the board does not measure them: below the
-    /// board's floor, or wearing nothing the board counts.
-    /// </summary>
-    public static long? ScoreFor(Character character, RankDefinition board, RankGate gate)
-    {
-        if (character == null)
-            return null;
-
-        if (board.DetailType == RankingGameData.GearScoreDetailType)
-        {
-            var score = character.GearScore;
-            return score >= gate.MinScore ? score : null;
-        }
-
-        if (board.DetailType != RankingGameData.ItemDetailType)
-            return null;
-
-        var slots = RankingRules.ItemBoardSlots(board.Id);
-        if (slots == null)
-            return null;
-
-        long? best = null;
-        foreach (var item in character.Inventory?.Equipment?.Items ?? [])
-        {
-            if (item is not EquipItem equip || equip.Template is not WeaponTemplate weapon)
-                continue;
-
-            var holdable = ItemManager.Instance.GetHoldable(weapon.HoldableTemplate?.Id ?? 0);
-            if (holdable == null || !slots.Contains((byte)holdable.SlotTypeId))
-                continue;
-
-            if (!RankingRules.ItemCounts(equip, gate))
-                continue;
-
-            var score = (long)Math.Round(GearScoreCalculator.EvaluateItem(equip));
-            if (best == null || score > best.Value)
-                best = score;
-        }
-
-        return best;
     }
 }

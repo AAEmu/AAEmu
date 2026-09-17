@@ -66,6 +66,30 @@ public class SCRankSnapshotPacketTests
     }
 
     [Test]
+    public async Task Snapshot_CarriesTheDetailALineHasBesideItsFigures()
+    {
+        var row = Row(1, 1247);
+        row.SubData = RankingSubData.ForItem(54160);
+
+        var stream = new SCRankSnapshotPacket(24, 0, [row], 24, 0).Write(new PacketStream());
+
+        stream.Rollback();
+        stream.ReadBytes(8);                                        // the request
+        await Assert.That(stream.ReadUInt32()).IsEqualTo(1u);
+        stream.ReadBytes(8 + 8 + 8 + 1 + 8 + 8 + 8 + 1);            // V1 … privacyStatus
+        await Assert.That(stream.ReadBoolean()).IsTrue();           // the line has a detail
+        await Assert.That(stream.ReadByte()).IsEqualTo((byte)1);    // of the item kind
+        await Assert.That(stream.ReadUInt32()).IsEqualTo(54160u);   // the item template
+        await Assert.That(stream.ReadByte()).IsEqualTo((byte)0);    // the byte the item kind carries but skips
+        await Assert.That(stream.ReadUInt32()).IsEqualTo(1u);       // and then the place it holds
+
+        await Assert.That(stream.ReadUInt32()).IsEqualTo(0u);       // no tiers
+        await Assert.That(stream.ReadInt64()).IsEqualTo(24L);
+        await Assert.That(stream.ReadUInt64()).IsEqualTo(0UL);
+        await Assert.That(stream.LeftBytes).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task Snapshot_CapsTheLinesTheClientReads()
     {
         var rows = Enumerable.Range(0, SCRankSnapshotPacket.MaxEntries + 5).Select(i => Row((uint)i, i)).ToList();

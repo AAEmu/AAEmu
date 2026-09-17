@@ -13,10 +13,16 @@ public static class RankScoreboard
     /// Whether equal values share a place (<c>ranks.permit_tie</c>). A board that does not permit ties
     /// still orders them, but each holder is given the next place instead of the same one.
     /// </param>
+    /// <remarks>
+    /// Equal values are ordered by the board's second figure before the holder id: the guild level board
+    /// settles a tie on the equipment points of the expedition's members, which is the figure that line
+    /// carries beside its level.
+    /// </remarks>
     public static List<RankPlace> Place(IEnumerable<RankScore> scores, bool permitTie)
     {
         var ordered = (scores ?? [])
             .OrderByDescending(score => score.Value)
+            .ThenByDescending(score => score.BareValue)
             .ThenBy(score => score.HolderId)
             .ToList();
 

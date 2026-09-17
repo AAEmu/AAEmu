@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Mails;
@@ -82,8 +83,8 @@ public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) :
                 var gate = RankingGameData.Instance.GateFor(board.Id);
                 foreach (var character in charactersInWorld ?? [])
                 {
-                    var value = CharacterScore(character, board, gate);
-                    if (value == null)
+                    var line = CharacterScore(character, board, gate);
+                    if (line == null)
                         continue;
 
                     rows.Add(new RankScore
@@ -93,8 +94,9 @@ public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) :
                         HolderId = character.Id,
                         AccountId = character.AccountId,
                         WorldId = (byte)AppConfiguration.Instance.Id,
-                        Value = value.Value,
-                        BareValue = 0,
+                        Value = line.Value.Value,
+                        BareValue = line.Value.BareValue,
+                        SubData = line.Value.SubData?.ToBytes(),
                         PeriodStartUtc = period,
                         UpdatedAtUtc = now
                     });
@@ -108,7 +110,93 @@ public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) :
             written += rows.Count;
         }
 
+        written += RefreshExpeditionBoards(now, connection, transaction, charactersInWorld, null);
+
         return written;
+    }
+
+    /// <summary>
+    /// Rebuilds the boards an expedition holds rather than a character. Only the guild level board has a
+    /// source the World owns: the expedition's level, and the equipment points of its members — which is
+    /// the value the character gear board keeps for every character, so an offline member still counts.
+    /// A board whose figure nothing produces is left as it is rather than given a made-up one.
+    /// </summary>
+    /// <param name="expeditions">
+    /// The guilds to build the boards from, or null to take the ones the server holds. A server with no
+    /// board over expeditions never asks for them.
+    /// </param>
+    internal int RefreshExpeditionBoards(DateTime nowUtc, MySqlConnection connection, MySqlTransaction transaction,
+        IReadOnlyList<Character> charactersInWorld, IReadOnlyList<Expedition> expeditions)
+    {
+        var boards = RankingGameData.Instance.Ranks
+            .Where(board => RankingGameData.Instance.HolderKindOf(board) == RankHolderKind.Expedition
+                            && board.KindId == RankingGameData.ExpeditionGearScoreKind)
+            .ToList();
+        if (boards.Count == 0)
+            return 0;
+
+        expeditions ??= Expeditions();
+        if (expeditions.Count == 0)
+            return 0;
+
+        // The members' equipment points are what the character gear board already holds.
+        var gearBoard = RankingGameData.Instance.Ranks
+            .FirstOrDefault(board => board.DetailType == RankingGameData.GearScoreDetailType);
+        if (gearBoard == null)
+            return 0;
+
+        var memberIds = expeditions
+            .SelectMany(expedition => expedition.Members)
+            .Select(member => (ulong)member.CharacterId)
+            .Distinct()
+            .ToList();
+        var kept = store.ReadValues(gearBoard.Id, RankingGameData.Instance.PeriodFor(gearBoard, nowUtc).StartUtc, memberIds);
+        var live = (charactersInWorld ?? [])
+            .GroupBy(character => character.Id)
+            .ToDictionary(group => group.Key, group => (long)group.First().GearScore);
+
+        var written = 0;
+        foreach (var board in boards)
+        {
+            var period = RankingGameData.Instance.PeriodFor(board, nowUtc).StartUtc;
+            var rows = new List<RankScore>();
+
+            foreach (var expedition in expeditions)
+            {
+                var total = 0L;
+                foreach (var member in expedition.Members)
+                {
+                    if (live.TryGetValue(member.CharacterId, out var inWorld))
+                        total += inWorld;
+                    else if (kept.TryGetValue(member.CharacterId, out var stored))
+                        total += stored;
+                }
+
+                rows.Add(new RankScore
+                {
+                    RankId = board.Id,
+                    HolderKind = RankHolderKind.Expedition,
+                    HolderId = (ulong)expedition.Id,
+                    WorldId = (byte)AppConfiguration.Instance.Id,
+                    Value = expedition.Level,
+                    BareValue = total,
+                    SubData = RankingSubData.ForOneCount(expedition.Members.Count).ToBytes(),
+                    PeriodStartUtc = period,
+                    UpdatedAtUtc = nowUtc
+                });
+            }
+
+            store.Save(connection, transaction, rows);
+            written += rows.Count;
+        }
+
+        return written;
+    }
+
+    /// <summary>The expeditions the server holds, or none when the manager is not up.</summary>
+    private static IReadOnlyList<Expedition> Expeditions()
+    {
+        return ExpeditionManager.Instance?.Expeditions?.ToList() ?? [];
     }
 
     /// <summary>
@@ -335,9 +423,10 @@ public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) :
 
     /// <summary>
     /// What a character is worth on a board, or null when the board does not measure them: below the
-    /// board's floor, or wearing nothing the board counts.
+    /// board's floor, or wearing nothing the board counts. A board over equipped pieces carries the piece
+    /// it measured, which is what its window names the line after.
     /// </summary>
-    public static long? CharacterScore(Character character, RankDefinition board, RankGate gate)
+    public static RankLine? CharacterScore(Character character, RankDefinition board, RankGate gate)
     {
         if (character == null)
             return null;
@@ -345,7 +434,7 @@ public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) :
         if (board.DetailType == RankingGameData.GearScoreDetailType)
         {
             var score = character.GearScore;
-            return score >= gate.MinScore ? score : null;
+            return score >= gate.MinScore ? new RankLine(score, 0, null) : null;
         }
 
         if (board.DetailType != RankingGameData.ItemDetailType)
@@ -355,7 +444,7 @@ public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) :
         if (slots == null)
             return null;
 
-        long? best = null;
+        RankLine? best = null;
         foreach (var item in character.Inventory?.Equipment?.Items ?? [])
         {
             if (item is not EquipItem equip || equip.Template is not WeaponTemplate weapon)
@@ -369,8 +458,8 @@ public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) :
                 continue;
 
             var score = (long)Math.Round(GearScoreCalculator.EvaluateItem(equip));
-            if (best == null || score > best.Value)
-                best = score;
+            if (best == null || score > best.Value.Value)
+                best = new RankLine(score, 0, RankingSubData.ForItem(equip.TemplateId));
         }
 
         return best;

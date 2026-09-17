@@ -19,6 +19,13 @@ public interface IRankScoreStore
     RankScore ReadHolder(uint rankId, DateTime periodStartUtc, RankHolderKind kind, ulong holderId);
 
     /// <summary>
+    /// The values of the given holders on one board in one window, by holder id, leaving out the holders
+    /// who are not on it. A board over expeditions is built from its members' values on another board, and
+    /// this reads exactly those members rather than the whole board.
+    /// </summary>
+    Dictionary<ulong, long> ReadValues(uint rankId, DateTime periodStartUtc, IReadOnlyCollection<ulong> holderIds);
+
+    /// <summary>
     /// Adds what a character gained or spent to the running totals of a window.
     /// </summary>
     void AddGamePointTotals(MySqlConnection connection, MySqlTransaction transaction, RankScore holder,

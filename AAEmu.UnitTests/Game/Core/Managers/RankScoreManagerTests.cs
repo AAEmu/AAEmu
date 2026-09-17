@@ -1,8 +1,10 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Rankings;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.UnitTests.Utils;
 using Microsoft.Data.Sqlite;
 using MySql.Data.MySqlClient;
@@ -105,7 +107,7 @@ public class RankScoreManagerTests
         };
     }
 
-    private static SingletonScope<RankingGameData> SeededBoard(bool permitTie)
+    private static SingletonScope<RankingGameData> SeededBoard(bool permitTie, bool withExpeditionBoard = false)
     {
         var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -114,10 +116,12 @@ public class RankScoreManagerTests
             command.CommandText = $"""
                 CREATE TABLE rank_details (id INTEGER, actual_type TEXT);
                 INSERT INTO rank_details VALUES (23, 'GearRankDetail');
+                INSERT INTO rank_details VALUES (28, 'ExpeditionGearScoreRankDetail');
                 INSERT INTO rank_details VALUES (42, 'GamePointRankDetail');
                 CREATE TABLE ranks (id INTEGER, name TEXT, rank_detail_id INTEGER, rank_kind_id INTEGER,
                                     tab_name TEXT, display_order INTEGER, permit_tie BOOLEAN, rank_reset_id INTEGER);
                 INSERT INTO ranks VALUES (23, 'all gear', 23, 9, 'rank_tab_achievement', 1, {(permitTie ? 1 : 0)}, NULL);
+                {(withExpeditionBoard ? "INSERT INTO ranks VALUES (28, 'guild level', 28, 12, 'rank_tab_expedition', 30, 1, NULL);" : string.Empty)}
                 INSERT INTO ranks VALUES (42, 'honor earned', 42, 17, 'rank_tab_get_resource', 81, {(permitTie ? 1 : 0)}, 42);
                 INSERT INTO ranks VALUES (45, 'honor spent', 45, 17, 'rank_tab_use_resource', 91, {(permitTie ? 1 : 0)}, 42);
                 INSERT INTO ranks VALUES (47, 'labor spent', 47, 17, 'rank_tab_use_resource', 93, {(permitTie ? 1 : 0)}, 42);
@@ -261,6 +265,54 @@ public class RankScoreManagerTests
         await Assert.That(store.PayoutMarks.Count(pair => pair.RankId == 42 && pair.Period == previous)).IsEqualTo(1);
     }
 
+    [Test]
+    public async Task RefreshExpeditionBoards_ShowsTheLevelAndTheEquipmentPointsOfEveryMember()
+    {
+        var store = new InMemoryStore();
+        var manager = new RankScoreManager(store, Mock.Of<ITaskManager>().Object);
+        using var data = SeededBoard(permitTie: true, withExpeditionBoard: true);
+
+        // two members: one only known from the character gear board, one standing in world
+        store.Rows.Add(Row(23, 4000, holder: 11));
+        var inWorld = new Character(new UnitCustomModelParams()) { Id = 12 };
+        var expedition = new Expedition
+        {
+            Id = (FactionsEnum)77,
+            Level = 5,
+            Members = [new ExpeditionMember { CharacterId = 11 }, new ExpeditionMember { CharacterId = 12 }]
+        };
+
+        manager.RefreshExpeditionBoards(DateTime.UtcNow, null, null, [inWorld], [expedition]);
+
+        var board = RankingGameData.Instance.GetBoard(28);
+        var lines = manager.ReadBoard(board, 100);
+        await Assert.That(lines.Count).IsEqualTo(1);
+        await Assert.That(lines[0].Score.HolderKind).IsEqualTo(RankHolderKind.Expedition);
+        await Assert.That(lines[0].Score.HolderId).IsEqualTo(77UL);
+        await Assert.That(lines[0].Score.Value).IsEqualTo(5L);   // the guild's level
+
+        // the member in world is counted at what they wear now, the one who is not at what is kept
+        await Assert.That(lines[0].Score.BareValue).IsEqualTo(4000L + inWorld.GearScore);
+
+        var subData = RankingSubData.FromBytes(lines[0].Score.SubData);
+        await Assert.That(subData).IsNotNull();
+        await Assert.That(subData.Counts[0]).IsEqualTo(2);             // the members it counted
+    }
+
+    [Test]
+    public async Task RefreshExpeditionBoards_LeavesABoardNothingProducesAlone()
+    {
+        var store = new InMemoryStore();
+        var manager = new RankScoreManager(store, Mock.Of<ITaskManager>().Object);
+        using var data = SeededBoard(permitTie: false, withExpeditionBoard: true);
+
+        // the guild level board is the only expedition board with a source, so nothing is written for a
+        // server whose guilds are all empty
+        manager.RefreshExpeditionBoards(DateTime.UtcNow, null, null, [], []);
+
+        await Assert.That(store.Rows).IsEmpty();
+    }
+
     private sealed class InMemoryStore : IRankScoreStore
     {
         public List<RankScore> Rows { get; } = [];
@@ -303,6 +355,17 @@ public class RankScoreManagerTests
                                               && row.PeriodStartUtc == periodStartUtc
                                               && row.HolderKind == kind
                                               && row.HolderId == holderId);
+        }
+
+        public Dictionary<ulong, long> ReadValues(uint rankId, DateTime periodStartUtc, IReadOnlyCollection<ulong> holderIds)
+        {
+            Operations.Add("read-values");
+            return Rows
+                .Where(row => row.RankId == rankId
+                              && row.PeriodStartUtc == periodStartUtc
+                              && row.HolderKind == RankHolderKind.Character
+                              && holderIds.Contains(row.HolderId))
+                .ToDictionary(row => row.HolderId, row => row.Value);
         }
 
         public void AddGamePointTotals(MySqlConnection connection, MySqlTransaction transaction, RankScore holder,

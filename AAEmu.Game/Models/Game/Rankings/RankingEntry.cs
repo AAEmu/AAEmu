@@ -30,6 +30,12 @@ public class RankingEntry
 
     public byte PrivacyStatus { get; set; }
 
+    /// <summary>
+    /// What the line carries beside its two figures: the item an item board ranks, or the counts a board
+    /// over expeditions shows. Null when the board's lines carry nothing extra.
+    /// </summary>
+    public RankingSubData SubData { get; set; }
+
     public virtual void Write(PacketStream stream)
     {
         stream.Write(V1);
@@ -41,10 +47,16 @@ public class RankingEntry
         stream.Write(Type);
         stream.Write(PrivacyStatus);
 
-        // The client reads a flag here and, when it is set, an optional sub-data block: a kind byte plus a
-        // fixed-size detail whose length depends on that kind. This server has no sub-data to send, so the
-        // flag stays clear — raising it without the block would leave the client reading the next line's
-        // bytes as the detail.
+        // The client reads a flag here and, when it is set, a sub-data block: a kind byte plus the fixed
+        // payload that kind carries. The block goes before the line's standing, and raising the flag
+        // without writing the block would leave the client reading the rest of the line as detail.
+        if (SubData is { Kind: not RankingSubDataKind.None })
+        {
+            stream.Write(true);
+            SubData.Write(stream);
+            return;
+        }
+
         stream.Write(false);
     }
 }

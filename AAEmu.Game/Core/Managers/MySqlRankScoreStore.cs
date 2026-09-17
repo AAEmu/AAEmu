@@ -11,9 +11,9 @@ namespace AAEmu.Game.Core.Managers;
 public sealed class MySqlRankScoreStore : IRankScoreStore
 {
     private const string UpsertSql =
-        "INSERT INTO character_rank_scores (rank_id,holder_kind,holder_id,period_start,account_id,world_id,value,bare_value,updated_at) " +
-        "VALUES (@rank,@kind,@holder,@period,@account,@world,@value,@bare,@updated) " +
-        "ON DUPLICATE KEY UPDATE account_id=VALUES(account_id),world_id=VALUES(world_id),value=VALUES(value),bare_value=VALUES(bare_value),updated_at=VALUES(updated_at)";
+        "INSERT INTO character_rank_scores (rank_id,holder_kind,holder_id,period_start,account_id,world_id,value,bare_value,sub_data,updated_at) " +
+        "VALUES (@rank,@kind,@holder,@period,@account,@world,@value,@bare,@sub,@updated) " +
+        "ON DUPLICATE KEY UPDATE account_id=VALUES(account_id),world_id=VALUES(world_id),value=VALUES(value),bare_value=VALUES(bare_value),sub_data=VALUES(sub_data),updated_at=VALUES(updated_at)";
 
     public void Save(MySqlConnection connection, MySqlTransaction transaction, IReadOnlyList<RankScore> scores)
     {
@@ -33,6 +33,7 @@ public sealed class MySqlRankScoreStore : IRankScoreStore
             command.Parameters.AddWithValue("@world", score.WorldId);
             command.Parameters.AddWithValue("@value", score.Value);
             command.Parameters.AddWithValue("@bare", score.BareValue);
+            command.Parameters.AddWithValue("@sub", (object)score.SubData ?? DBNull.Value);
             command.Parameters.AddWithValue("@updated", score.UpdatedAtUtc);
             command.ExecuteNonQuery();
         }
@@ -43,7 +44,7 @@ public sealed class MySqlRankScoreStore : IRankScoreStore
         using var connection = MySQL.CreateConnection();
         using var command = connection.CreateCommand();
         command.CommandText =
-            "SELECT holder_kind,holder_id,account_id,world_id,value,bare_value,updated_at " +
+            "SELECT holder_kind,holder_id,account_id,world_id,value,bare_value,sub_data,updated_at " +
             "FROM character_rank_scores WHERE rank_id=@rank AND period_start=@period " +
             "ORDER BY value DESC, holder_id ASC LIMIT @limit";
         command.Parameters.AddWithValue("@rank", rankId);
@@ -63,8 +64,9 @@ public sealed class MySqlRankScoreStore : IRankScoreStore
                 WorldId = reader.GetByte(3),
                 Value = reader.GetInt64(4),
                 BareValue = reader.GetInt64(5),
+                SubData = reader.IsDBNull(6) ? null : (byte[])reader.GetValue(6),
                 PeriodStartUtc = periodStartUtc,
-                UpdatedAtUtc = reader.GetDateTime(6)
+                UpdatedAtUtc = reader.GetDateTime(7)
             });
         }
 
@@ -76,7 +78,7 @@ public sealed class MySqlRankScoreStore : IRankScoreStore
         using var connection = MySQL.CreateConnection();
         using var command = connection.CreateCommand();
         command.CommandText =
-            "SELECT account_id,world_id,value,bare_value,updated_at FROM character_rank_scores " +
+            "SELECT account_id,world_id,value,bare_value,sub_data,updated_at FROM character_rank_scores " +
             "WHERE rank_id=@rank AND period_start=@period AND holder_kind=@kind AND holder_id=@holder";
         command.Parameters.AddWithValue("@rank", rankId);
         command.Parameters.AddWithValue("@period", periodStartUtc);
@@ -96,9 +98,42 @@ public sealed class MySqlRankScoreStore : IRankScoreStore
             WorldId = reader.GetByte(1),
             Value = reader.GetInt64(2),
             BareValue = reader.GetInt64(3),
+            SubData = reader.IsDBNull(4) ? null : (byte[])reader.GetValue(4),
             PeriodStartUtc = periodStartUtc,
-            UpdatedAtUtc = reader.GetDateTime(4)
+            UpdatedAtUtc = reader.GetDateTime(5)
         };
+    }
+
+    public Dictionary<ulong, long> ReadValues(uint rankId, DateTime periodStartUtc, IReadOnlyCollection<ulong> holderIds)
+    {
+        var values = new Dictionary<ulong, long>();
+        if (holderIds == null || holderIds.Count == 0)
+            return values;
+
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+
+        var names = new List<string>(holderIds.Count);
+        var index = 0;
+        foreach (var holderId in holderIds)
+        {
+            var name = "@holder" + index++;
+            names.Add(name);
+            command.Parameters.AddWithValue(name, holderId);
+        }
+
+        command.CommandText =
+            $"SELECT holder_id, value FROM character_rank_scores WHERE rank_id=@rank AND period_start=@period " +
+            $"AND holder_kind=@kind AND holder_id IN ({string.Join(",", names)})";
+        command.Parameters.AddWithValue("@rank", rankId);
+        command.Parameters.AddWithValue("@period", periodStartUtc);
+        command.Parameters.AddWithValue("@kind", (byte)RankHolderKind.Character);
+
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+            values[reader.GetUInt64(0)] = reader.GetInt64(1);
+
+        return values;
     }
 
     public void AddGamePointTotals(MySqlConnection connection, MySqlTransaction transaction, RankScore holder,
