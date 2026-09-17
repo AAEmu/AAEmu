@@ -11,30 +11,32 @@ namespace AAEmu.Game.GameData;
 [GameData]
 public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoader
 {
-    private Dictionary<uint, CharRecords> _charRecords;
-    private Dictionary<uint, Achievements> _achievements;
-    private Dictionary<uint, List<AchievementObjectives>> _achievementObjectives;
-    private Dictionary<uint, List<PreCompletedAchievements>> _preCompletedAchievements;
+    // Empty rather than null before Load runs: a character can be built (and level up) without content, and
+    // the achievement side of that must answer "nothing" rather than throw.
+    private Dictionary<uint, CharRecords> _charRecords = [];
+    private Dictionary<uint, Achievements> _achievements = [];
+    private Dictionary<uint, List<AchievementObjectives>> _achievementObjectives = [];
+    private Dictionary<uint, List<PreCompletedAchievements>> _preCompletedAchievements = [];
 
     /// <summary>Which achievements watch a record, so a reported record only re-evaluates its own.</summary>
-    private Dictionary<uint, List<uint>> _achievementsByRecord;
+    private Dictionary<uint, List<uint>> _achievementsByRecord = [];
 
     /// <summary>
     /// The record a <c>CompleteAchievement</c> achievement counts into, by achievement id. Completing an
     /// achievement is itself a record, which is how the achievements whose objectives are other achievements
     /// (the parent/child chains) hear about it.
     /// </summary>
-    private Dictionary<uint, uint> _completionRecords;
+    private Dictionary<uint, uint> _completionRecords = [];
 
     /// <summary>The records of each kind, so a reporter can find the counters it knows how to fill.</summary>
-    private Dictionary<CharRecordKind, List<CharRecords>> _recordsByKind;
+    private Dictionary<CharRecordKind, List<CharRecords>> _recordsByKind = [];
 
     public void Load(SqliteConnection connection)
     {
-        _charRecords = [];
-        _achievements = [];
-        _achievementObjectives = [];
-        _preCompletedAchievements = [];
+        _charRecords.Clear();
+        _achievements.Clear();
+        _achievementObjectives.Clear();
+        _preCompletedAchievements.Clear();
 
         using (var command = connection.CreateCommand())
         {
