@@ -695,6 +695,12 @@ public partial class Character : Unit, ICharacter
     /// that rank a period's total rather than a figure held right now.
     /// </summary>
     public GamePointTotals RankGamePointTotals { get; } = new();
+
+    /// <summary>
+    /// What this character has caught or handed in since the boards were last written, for the boards that
+    /// rank a record of what they did rather than a figure they hold.
+    /// </summary>
+    public RankRecords RankRecords { get; } = new();
     /// <summary>
     /// Current Hero-election-period leadership - what candidacy/leaderboard ranking is computed from.
     /// Reset to 0 by HeroManager's roll at the start of each cycle's LeadershipRanking phase, after

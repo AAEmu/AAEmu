@@ -23,8 +23,8 @@ namespace AAEmu.Game.Core.Managers;
 /// to the database and read back when the window asks.
 /// </summary>
 /// <remarks>
-/// The boards are refreshed on their own hourly tick — the cadence the window itself states ("Refreshed
-/// every 1 h") — while a character's running totals are written with the character, so nothing earned
+/// The boards are refreshed on their own hourly tick â€” the cadence the window itself states ("Refreshed
+/// every 1 h") â€” while a character's running totals are written with the character, so nothing earned
 /// between two ticks is lost.
 /// </remarks>
 public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) : Singleton<RankScoreManager>, IInitializable
@@ -78,6 +78,12 @@ public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) :
                 // Everyone with a total in this window is on the board, whether they are in world or not.
                 rows.AddRange(store.ReadGamePointBoard(board.Id, counter.Kind, counter.Method, period));
             }
+            else if (RankRecordRules.ForBoardKind(board.KindId) is { } recordKind)
+            {
+                // A board over what a character did is read the same way: everyone with a record in this
+                // window is on it, whether they are in world or not.
+                rows.AddRange(store.ReadRecordBoard(board.Id, recordKind, period));
+            }
             else
             {
                 var gate = RankingGameData.Instance.GateFor(board.Id);
@@ -117,7 +123,7 @@ public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) :
 
     /// <summary>
     /// Rebuilds the boards an expedition holds rather than a character. Only the guild level board has a
-    /// source the World owns: the expedition's level, and the equipment points of its members — which is
+    /// source the World owns: the expedition's level, and the equipment points of its members â€” which is
     /// the value the character gear board keeps for every character, so an offline member still counts.
     /// A board whose figure nothing produces is left as it is rather than given a made-up one.
     /// </summary>
@@ -200,27 +206,16 @@ public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) :
     }
 
     /// <summary>
-    /// Writes what a character gained or spent since the last write. The boards themselves are rebuilt on
-    /// their own tick; this only keeps the running totals from being lost between two of them.
+    /// Writes what a character gained, spent, caught or handed in since the last write. The boards
+    /// themselves are rebuilt on their own tick; this only keeps the figures from being lost between two
+    /// of them.
     /// </summary>
     public int SaveCharacter(MySqlConnection connection, MySqlTransaction transaction, Character character)
     {
-        if (character == null || !character.RankGamePointTotals.HasPending)
+        if (character == null)
             return 0;
 
-        var counters = new List<(RankDefinition Board, int Kind, int Method)>();
-        foreach (var board in RankingGameData.Instance.Ranks)
-        {
-            if (RankingGameData.Instance.HolderKindOf(board) != RankHolderKind.Character)
-                continue;
-
-            if (RankingGameData.Instance.GamePointCounterOf(board) is not { } counter)
-                continue;
-
-            counters.Add((board, counter.Kind, counter.Method));
-        }
-
-        if (counters.Count == 0)
+        if (!character.RankGamePointTotals.HasPending && !character.RankRecords.HasPending)
             return 0;
 
         var now = DateTime.UtcNow;
@@ -232,22 +227,75 @@ public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) :
             WorldId = (byte)AppConfiguration.Instance.Id
         };
 
-        // Every window keeps its own totals, so what is waiting is filed under each of them.
-        var pending = character.RankGamePointTotals.Pending;
-        foreach (var window in counters
-                     .Select(entry => RankingGameData.Instance.PeriodFor(entry.Board, now).StartUtc)
-                     .Distinct())
+        var written = 0;
+
+        var counters = new List<(RankDefinition Board, int Kind, int Method)>();
+        var recordBoards = new List<RankDefinition>();
+        foreach (var board in RankingGameData.Instance.Ranks)
         {
-            store.AddGamePointTotals(connection, transaction, holder, window, pending, now);
+            if (RankingGameData.Instance.HolderKindOf(board) != RankHolderKind.Character)
+                continue;
+
+            if (RankingGameData.Instance.GamePointCounterOf(board) is { } counter)
+                counters.Add((board, counter.Kind, counter.Method));
+            else if (RankRecordRules.ForBoardKind(board.KindId) != null)
+                recordBoards.Add(board);
         }
 
-        character.RankGamePointTotals.Clear();
-        return pending.Count;
+        // Every window keeps its own figures, so what is waiting is filed under each of them.
+        if (character.RankGamePointTotals.HasPending && counters.Count > 0)
+        {
+            var pending = character.RankGamePointTotals.Pending;
+            foreach (var window in counters
+                         .Select(entry => RankingGameData.Instance.PeriodFor(entry.Board, now).StartUtc)
+                         .Distinct())
+            {
+                store.AddGamePointTotals(connection, transaction, holder, window, pending, now);
+            }
+
+            character.RankGamePointTotals.Clear();
+            written += pending.Count;
+        }
+
+        if (character.RankRecords.HasPending && recordBoards.Count > 0)
+        {
+            var records = character.RankRecords.Pending;
+            foreach (var window in recordBoards
+                         .Select(board => RankingGameData.Instance.PeriodFor(board, now).StartUtc)
+                         .Distinct())
+            {
+                store.AddRecords(connection, transaction, holder, window, records, now);
+            }
+
+            character.RankRecords.Clear();
+            written += records.Count;
+        }
+
+        return written;
+    }
+
+    /// <summary>
+    /// Records a catch against the boards that rank what a character caught: how long the fish was, and
+    /// what it weighed. The figures are the item's own, rolled when the fish was created.
+    /// </summary>
+    /// <remarks>
+    /// The window reads both figures in thousandths — it draws the length as <c>length / 1000</c> under a
+    /// centimetre heading and the weight as <c>weight / 1000</c> under a kilogram one — so a fish 249 cm
+    /// long and 448 kg heavy is recorded as 249000 and 448000.
+    /// </remarks>
+    public static void RecordCatch(Character character, BigFish fish)
+    {
+        if (character == null || fish == null)
+            return;
+
+        var caughtAt = fish.CreateTime == default ? DateTime.UtcNow : fish.CreateTime;
+        character.RankRecords.Add(RankRecordKind.FishLength, (long)Math.Round(fish.Length * 1000), caughtAt);
+        character.RankRecords.Add(RankRecordKind.FishWeight, (long)Math.Round(fish.Weight * 1000), caughtAt);
     }
 
     /// <summary>
     /// Pays the boards whose window has ended since the last pass: the standings as they closed, the tier
-    /// each place falls in, and what that tier owes — by mail, with the notice the window listens for.
+    /// each place falls in, and what that tier owes â€” by mail, with the notice the window listens for.
     /// </summary>
     /// <remarks>
     /// A payout is recorded before it is granted, so a restart between the two pays a window once rather

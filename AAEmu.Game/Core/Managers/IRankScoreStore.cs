@@ -40,6 +40,19 @@ public interface IRankScoreStore
     /// </summary>
     List<RankScore> ReadGamePointBoard(uint rankId, int kind, int method, DateTime periodStartUtc);
 
+    /// <summary>
+    /// Adds what a character caught or handed in to their record for a window: the figure stands if its
+    /// kind keeps the best of the window, and adds up if its kind keeps the total.
+    /// </summary>
+    void AddRecords(MySqlConnection connection, MySqlTransaction transaction, RankScore holder,
+        DateTime periodStartUtc, IReadOnlyList<RankRecordEvent> records, DateTime updatedAtUtc);
+
+    /// <summary>
+    /// Every character's record of one kind in one window, so a board over what they did is built from
+    /// what is stored rather than from whoever happens to be in world.
+    /// </summary>
+    List<RankScore> ReadRecordBoard(uint rankId, RankRecordKind kind, DateTime periodStartUtc);
+
     /// <summary>Whether a board's window has already been paid out.</summary>
     bool HasPayout(uint rankId, DateTime periodStartUtc);
 

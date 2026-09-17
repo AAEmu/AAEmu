@@ -1,4 +1,4 @@
-using AAEmu.Commons.Utils.DB;
+﻿using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Models.Game.Rankings;
 using MySql.Data.MySqlClient;
 
@@ -206,6 +206,75 @@ public sealed class MySqlRankScoreStore : IRankScoreStore
                 BareValue = 0,
                 PeriodStartUtc = periodStartUtc,
                 UpdatedAtUtc = reader.GetDateTime(4)
+            });
+        }
+
+        return scores;
+    }
+
+    public void AddRecords(MySqlConnection connection, MySqlTransaction transaction, RankScore holder,
+        DateTime periodStartUtc, IReadOnlyList<RankRecordEvent> records, DateTime updatedAtUtc)
+    {
+        if (records == null || records.Count == 0)
+            return;
+
+        foreach (var record in records)
+        {
+            using var command = connection.CreateCommand();
+            command.Transaction = transaction;
+
+            // The window's best keeps the figure it already had unless the new one beats it; the window's
+            // total always adds. The recorded_at assignment has to come first for the best, because MySQL
+            // applies the assignments left to right and it compares against the value as it still is.
+            command.CommandText = RankRecordRules.AggregateOf(record.Kind) == RankRecordAggregate.Best
+                ? "INSERT INTO character_rank_records (character_id,record_kind,period_start,value,recorded_at,account_id,world_id,updated_at) " +
+                  "VALUES (@character,@kind,@period,@value,@recorded,@account,@world,@updated) " +
+                  "ON DUPLICATE KEY UPDATE recorded_at = IF(VALUES(value) > value, VALUES(recorded_at), recorded_at), " +
+                  "value = GREATEST(value, VALUES(value)), account_id = VALUES(account_id), world_id = VALUES(world_id), updated_at = VALUES(updated_at)"
+                : "INSERT INTO character_rank_records (character_id,record_kind,period_start,value,recorded_at,account_id,world_id,updated_at) " +
+                  "VALUES (@character,@kind,@period,@value,@recorded,@account,@world,@updated) " +
+                  "ON DUPLICATE KEY UPDATE value = value + VALUES(value), recorded_at = VALUES(recorded_at), " +
+                  "account_id = VALUES(account_id), world_id = VALUES(world_id), updated_at = VALUES(updated_at)";
+
+            command.Parameters.AddWithValue("@character", holder.HolderId);
+            command.Parameters.AddWithValue("@kind", (byte)record.Kind);
+            command.Parameters.AddWithValue("@period", periodStartUtc);
+            command.Parameters.AddWithValue("@value", record.Value);
+            command.Parameters.AddWithValue("@recorded", record.RecordedAtUtc);
+            command.Parameters.AddWithValue("@account", holder.AccountId);
+            command.Parameters.AddWithValue("@world", holder.WorldId);
+            command.Parameters.AddWithValue("@updated", updatedAtUtc);
+            command.ExecuteNonQuery();
+        }
+    }
+
+    public List<RankScore> ReadRecordBoard(uint rankId, RankRecordKind kind, DateTime periodStartUtc)
+    {
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT character_id, account_id, world_id, value, recorded_at FROM character_rank_records " +
+            "WHERE record_kind=@kind AND period_start=@period AND value > 0 " +
+            "ORDER BY value DESC";
+        command.Parameters.AddWithValue("@kind", (byte)kind);
+        command.Parameters.AddWithValue("@period", periodStartUtc);
+
+        var scores = new List<RankScore>();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            scores.Add(new RankScore
+            {
+                RankId = rankId,
+                HolderKind = RankHolderKind.Character,
+                HolderId = reader.GetUInt64(0),
+                AccountId = reader.GetUInt32(1),
+                WorldId = reader.GetByte(2),
+                Value = reader.GetInt64(3),
+
+                // The window shows when the figure was recorded, which for a catch is when it was caught.
+                UpdatedAtUtc = reader.GetDateTime(4),
+                PeriodStartUtc = periodStartUtc
             });
         }
 

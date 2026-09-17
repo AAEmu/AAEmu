@@ -2,6 +2,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Expeditions;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Rankings;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
@@ -107,7 +108,8 @@ public class RankScoreManagerTests
         };
     }
 
-    private static SingletonScope<RankingGameData> SeededBoard(bool permitTie, bool withExpeditionBoard = false)
+    private static SingletonScope<RankingGameData> SeededBoard(bool permitTie, bool withExpeditionBoard = false,
+        bool withFishingBoards = false)
     {
         var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
@@ -134,6 +136,12 @@ public class RankScoreManagerTests
                 INSERT INTO game_point_rank_details VALUES (47, 3, 1);
                 CREATE TABLE rank_resets (id INTEGER, reset_interval_id INTEGER, day_of_week_id INTEGER);
                 INSERT INTO rank_resets VALUES (42, 2, 8);
+                {(withFishingBoards ? """
+                INSERT INTO ranks VALUES (20, 'biggest catch', 20, 4, 'rank_tab_fish', 51, 0, 20);
+                INSERT INTO ranks VALUES (21, 'catch in total', 21, 3, 'rank_tab_fish', 52, 0, 21);
+                INSERT INTO rank_resets VALUES (20, 1, 7);
+                INSERT INTO rank_resets VALUES (21, 1, 7);
+                """ : string.Empty)}
                 CREATE TABLE rank_tiers (id INTEGER, rank_id INTEGER, is_local BOOLEAN, scope_from INTEGER, scope_to INTEGER,
                                          reward_item_id INTEGER, reward_item_count INTEGER, reward_item_grade_id INTEGER,
                                          currency_id INTEGER, currency_amount INTEGER);
@@ -313,6 +321,50 @@ public class RankScoreManagerTests
         await Assert.That(store.Rows).IsEmpty();
     }
 
+    [Test]
+    public async Task RecordCatch_ShowsTheLongestCatchAndWhatTheWindowCaughtInTotal()
+    {
+        var store = new InMemoryStore();
+        var manager = new RankScoreManager(store, Mock.Of<ITaskManager>().Object);
+        using var data = SeededBoard(permitTie: false, withFishingBoards: true);
+        var character = new Character(new UnitCustomModelParams()) { Id = 5 };
+
+        // a long, light fish, then a shorter, heavier one; the window reads the figures in thousandths
+        var first = new BigFish { Length = 249.4f, Weight = 448.2f };
+        RankScoreManager.RecordCatch(character, first);
+        await Assert.That(character.RankRecords.HasPending).IsTrue();
+        manager.SaveCharacter(null, null, character);
+        await Assert.That(character.RankRecords.HasPending).IsFalse(); // written, not pending
+
+        var second = new BigFish { Length = 198f, Weight = 700.4f };
+        RankScoreManager.RecordCatch(character, second);
+        manager.SaveCharacter(null, null, character);
+
+        manager.Refresh([], null, null);
+
+        var longest = manager.ReadBoard(RankingGameData.Instance.GetBoard(20), 100);
+        await Assert.That(longest.Count).IsEqualTo(1);
+        await Assert.That(longest[0].Score.Value).IsEqualTo(249400L);   // 249.4 cm, the longest of the window
+
+        var total = manager.ReadBoard(RankingGameData.Instance.GetBoard(21), 100);
+        await Assert.That(total.Count).IsEqualTo(1);
+        await Assert.That(total[0].Score.Value).IsEqualTo(1148600L);    // 448.2 + 700.4 kg together
+    }
+
+    [Test]
+    public async Task RecordCatch_LeavesTheBoardsAloneWhenNothingWasCaught()
+    {
+        var store = new InMemoryStore();
+        var manager = new RankScoreManager(store, Mock.Of<ITaskManager>().Object);
+        using var data = SeededBoard(permitTie: false, withFishingBoards: true);
+
+        manager.SaveCharacter(null, null, new Character(new UnitCustomModelParams()) { Id = 5 });
+        manager.Refresh([], null, null);
+
+        await Assert.That(manager.ReadBoard(RankingGameData.Instance.GetBoard(20), 100)).IsEmpty();
+        await Assert.That(manager.ReadBoard(RankingGameData.Instance.GetBoard(21), 100)).IsEmpty();
+    }
+
     private sealed class InMemoryStore : IRankScoreStore
     {
         public List<RankScore> Rows { get; } = [];
@@ -326,6 +378,9 @@ public class RankScoreManagerTests
         private readonly Dictionary<(ulong Character, int Kind, int Method, DateTime Period), long> _totals = [];
 
         private readonly Dictionary<(ulong Character, int Kind, int Method, DateTime Period), (uint AccountId, byte WorldId)> _holders = [];
+
+        /// <summary>What the store holds of each character's records, keyed as the table is.</summary>
+        private readonly Dictionary<(ulong Character, RankRecordKind Kind, DateTime Period), (long Value, DateTime RecordedAt)> _records = [];
 
         public void Save(MySqlConnection connection, MySqlTransaction transaction, IReadOnlyList<RankScore> scores)
         {
@@ -406,6 +461,50 @@ public class RankScoreManagerTests
                     BareValue = 0,
                     PeriodStartUtc = periodStartUtc,
                     UpdatedAtUtc = DateTime.UtcNow
+                });
+            }
+
+            return rows;
+        }
+
+        public void AddRecords(MySqlConnection connection, MySqlTransaction transaction, RankScore holder,
+            DateTime periodStartUtc, IReadOnlyList<RankRecordEvent> records, DateTime updatedAtUtc)
+        {
+            Operations.Add("add-records");
+            foreach (var record in records)
+            {
+                var key = (holder.HolderId, record.Kind, periodStartUtc);
+                _records.TryGetValue(key, out var current);
+
+                _records[key] = RankRecordRules.AggregateOf(record.Kind) == RankRecordAggregate.Best
+                    ? record.Value > current.Value ? (record.Value, record.RecordedAtUtc) : current
+                    : (current.Value + record.Value, record.RecordedAtUtc);
+
+                _holders[(holder.HolderId, 0, 0, periodStartUtc)] = (holder.AccountId, holder.WorldId);
+            }
+        }
+
+        public List<RankScore> ReadRecordBoard(uint rankId, RankRecordKind kind, DateTime periodStartUtc)
+        {
+            Operations.Add("read-records");
+            var rows = new List<RankScore>();
+            foreach (var ((characterId, rowKind, period), (value, recordedAt)) in _records)
+            {
+                if (rowKind != kind || period != periodStartUtc || value <= 0)
+                    continue;
+
+                var (accountId, worldId) = _holders[(characterId, 0, 0, period)];
+                rows.Add(new RankScore
+                {
+                    RankId = rankId,
+                    HolderKind = RankHolderKind.Character,
+                    HolderId = characterId,
+                    AccountId = accountId,
+                    WorldId = worldId,
+                    Value = value,
+                    BareValue = 0,
+                    PeriodStartUtc = periodStartUtc,
+                    UpdatedAtUtc = recordedAt
                 });
             }
 

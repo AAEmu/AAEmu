@@ -689,6 +689,10 @@ public class LootingContainer(IBaseUnit owner)
                 else
                 {
                     Logger.Trace("AutoEquipTradePack: Tradepack item added to Equipment container successfully.");
+
+                    // A fish that reaches the backpack is a catch, and the boards that rank fishing count it.
+                    if (acquiredItem is BigFish landed)
+                        RankScoreManager.RecordCatch(player, landed);
                 }
             }
             else
