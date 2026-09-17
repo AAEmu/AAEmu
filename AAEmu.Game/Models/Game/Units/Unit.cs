@@ -385,12 +385,6 @@ public class Unit : BaseUnit, IUnit
     public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
     public Dictionary<uint, List<DynamicBonus>> DynamicBonuses { get; set; }
     public UnitCooldowns Cooldowns { get; set; }
-
-    /// <summary>
-    /// Uses left of a charge-bearing skill (skills.charge_count, 26 rows). See
-    /// <see cref="UnitCharges"/> for how a charge replaces the per-cast cooldown.
-    /// </summary>
-    public UnitCharges Charges { get; set; }
     public virtual Expedition Expedition { get; set; }
 
     /// <summary>
@@ -704,7 +698,6 @@ public class Unit : BaseUnit, IUnit
         Equipment = new EquipmentContainer(0, SlotType.Equipment, false, this);
         ChargeLock = new object();
         Cooldowns = new UnitCooldowns();
-        Charges = new UnitCharges();
         CharacterTagging = new Tagging(this); //Adding because Tagging works differently than Aggro
     }
 
