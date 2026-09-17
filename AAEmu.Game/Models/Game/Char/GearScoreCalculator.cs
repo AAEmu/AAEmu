@@ -43,15 +43,15 @@ public static class GearScoreCalculator
         switch (template)
         {
             case WeaponTemplate weapon:
-                parameters["gear_score_multiplier"] = ItemManager.Instance.GetHoldable(weapon.HoldableTemplate?.Id ?? 0)?.GearScoreMultiplier ?? 0;
+                parameters["gear_score_multiplier"] = FromStoredMultiplier(ItemManager.Instance.GetHoldable(weapon.HoldableTemplate?.Id ?? 0)?.GearScoreMultiplier ?? 0);
                 kind = FormulaKind.GearScoreWeaponArmorAcc;
                 break;
             case ArmorTemplate armor:
-                parameters["gear_score_multiplier"] = NormalizeSlotMultiplier(ItemManager.Instance.GetWearableSlot(armor.SlotTemplate?.SlotTypeId ?? 0)?.GearScoreMultiplier ?? 0);
+                parameters["gear_score_multiplier"] = FromStoredMultiplier(ItemManager.Instance.GetWearableSlot(armor.SlotTemplate?.SlotTypeId ?? 0)?.GearScoreMultiplier ?? 0);
                 kind = FormulaKind.GearScoreArmor;
                 break;
             case AccessoryTemplate accessory:
-                parameters["gear_score_multiplier"] = NormalizeSlotMultiplier(ItemManager.Instance.GetWearableSlot(accessory.SlotTemplate?.SlotTypeId ?? 0)?.GearScoreMultiplier ?? 0);
+                parameters["gear_score_multiplier"] = FromStoredMultiplier(ItemManager.Instance.GetWearableSlot(accessory.SlotTemplate?.SlotTypeId ?? 0)?.GearScoreMultiplier ?? 0);
                 kind = FormulaKind.GearScoreAccessory;
                 break;
             default:
@@ -91,10 +91,14 @@ public static class GearScoreCalculator
     }
 
     /// <summary>
-    /// wearable_slots stores the multiplier ×10000 for the special cosmetic tiers
-    /// (0.01/0.02 in the formula) and plain weights elsewhere; the shipped rows are
-    /// already in formula units, so pass through unchanged. Kept as a named hop so a
-    /// future unit fix has one place to land.
+    /// The gear-score multiplier a template column carries, in the units the shipped formulas use.
     /// </summary>
-    private static double NormalizeSlotMultiplier(int raw) => raw;
+    /// <remarks>
+    /// The columns store the multiplier <b>per hundred</b>: a weapon that weighs 2.2 in formula 30 is
+    /// stored as 220, an armor slot that weighs 0.78 in formula 56 as 78, and the two cosmetic tiers
+    /// formula 56 singles out — the ones it compares against 0.01 and 0.02 — as 1 and 2. Feeding the
+    /// stored number straight into a formula that expects the fraction inflates every piece a hundredfold,
+    /// which is a hundredfold on the character's total.
+    /// </remarks>
+    public static double FromStoredMultiplier(int stored) => stored / 100.0;
 }
