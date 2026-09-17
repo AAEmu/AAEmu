@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Slaves;
@@ -11,6 +11,8 @@ public class DispelEffect : EffectTemplate
     public int DispelCount { get; set; }
     public int CureCount { get; set; }
     public uint BuffTagId { get; set; }
+    /// <summary><c>dispel_effects.stack</c> — see <see cref="DispelRules"/>.</summary>
+    public int Stack { get; set; }
 
     public override bool OnActionTime => false;
 
@@ -23,15 +25,18 @@ public class DispelEffect : EffectTemplate
         if (BuffTagId > 0 && !target.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(BuffTagId)))
             return;
 
-        var count = Math.Max(DispelCount, CureCount);
-        if (count <= 0)
-            count = 1;
+        var count = DispelRules.StackCount(Stack, DispelCount, CureCount);
 
         if (BuffTagId > 0)
         {
-            // Tag remove ignores Good/Bad/Hidden and CanAttack — sail fold state is a "debuff"
-            // on a friendly hull; the old CanAttack branch never cured it reliably.
-            target.Buffs.RemoveBuffs(BuffTagId, count);
+            // Tag remove is split by the same Good/Bad rule the untagged path uses rather than removing
+            // max(dispel, cure) applications of whichever kind happened to be there: a cure-only row used to
+            // strip the victim's good buffs. Sail fold state is a "debuff" on a friendly hull, and CureCount
+            // is what those rows author, so it still cures.
+            var kind = DispelRules.TargetsGoodBuffs(caster.CanAttack(target), DispelCount, CureCount)
+                ? BuffKind.Good
+                : BuffKind.Bad;
+            target.Buffs.RemoveBuffs(kind, count, BuffTagId);
             SailFoldBuffs.OnFoldStateDispelled(caster, BuffTagId);
             return;
         }

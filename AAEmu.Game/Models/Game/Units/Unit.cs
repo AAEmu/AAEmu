@@ -2284,6 +2284,11 @@ public class Unit : BaseUnit, IUnit
 
     public void OnAbuserHealed(object sender, OnHealedArgs args)
     {
+        // heal_effects.ignore_heal_aggro (28 rows): the flagged heal still pays out, it just does not
+        // credit the healer on the healed unit's attackers. This subscription exists for exactly that
+        // credit, so the whole handler is what the flag suppresses.
+        if (args.IgnoreHealAggro)
+            return;
         AddUnitAggro(AggroKind.Heal, args.Healer, args.HealAmount);
     }
 

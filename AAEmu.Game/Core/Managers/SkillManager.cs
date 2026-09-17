@@ -1477,7 +1477,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             Id = reader.GetUInt32("id", 0),
                             DispelCount = reader.GetInt32("dispel_count", 0),
                             CureCount = reader.GetInt32("cure_count", 0),
-                            BuffTagId = reader.GetUInt32("buff_tag_id", 0)
+                            BuffTagId = reader.GetUInt32("buff_tag_id", 0),
+                            Stack = reader.GetInt32("stack", 0)
                         };
                         _effects["DispelEffect"][template.Id] = template;
                     }
@@ -1692,6 +1693,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             SlaveApplicable = reader.GetBoolean("slave_applicable", true),
                             IgnoreHealAggro = reader.GetBoolean("ignore_heal_aggro", true),
                             DpsMultiplier = reader.GetFloat("dps_multiplier", 0f),
+                            SelfTargetMul = reader.GetFloat("self_target_multiplier", 1f),
                             ActabilityGroupId = reader.GetUInt32("actability_group_id", 0),
                             ActabilityStep = reader.GetInt32("actability_step", 0),
                             ActabilityMul = reader.GetFloat("actability_mul", 0f),
@@ -1797,7 +1799,21 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             DamageRatio = reader.GetInt32("damage_ratio", 0),
                             LevelMd = reader.GetFloat("level_md", 0f),
                             LevelVaStart = reader.GetInt32("level_va_start", 0),
-                            LevelVaEnd = reader.GetInt32("level_va_end", 0)
+                            LevelVaEnd = reader.GetInt32("level_va_end", 0),
+                            UseFixedCharge = reader.GetBoolean("use_fixed_charge", true),
+                            UsePercentCharge = reader.GetBoolean("use_percent_charge", true),
+                            PercentMin = reader.GetInt32("percent_min", 0),
+                            PercentMax = reader.GetInt32("percent_max", 0),
+                            UseLevelCharge = reader.GetBoolean("use_level_charge", true),
+                            DamageTypeId = reader.GetInt32("damage_type_id", 0),
+                            DpsIncMultiplier = reader.GetFloat("dps_inc_multiplier", 0f),
+                            UseMainhandWeapon = reader.GetBoolean("use_mainhand_weapon", true),
+                            UseOffhandWeapon = reader.GetBoolean("use_offhand_weapon", true),
+                            UseRangedWeapon = reader.GetBoolean("use_ranged_weapon", true),
+                            DpsMultiplier = reader.GetFloat("dps_multiplier", 0f),
+                            ManaDrainRatio = reader.GetFloat("mana_drain_ratio", 0f),
+                            PercentDamageResourceTypeId = reader.GetInt32("percent_damage_resource_type_id", 0),
+                            UseSourceHealth = reader.GetBoolean("use_source_health", true)
                         };
                         _effects["ManaBurnEffect"][template.Id] = template;
                     }
@@ -1958,6 +1974,21 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
 
             using (var command = connection.CreateCommand())
             {
+                // The ten rates, in id order. AoeDiminishingTable.Rates is what DamageEffect reads; an empty
+                // list means "no table", which is a factor of exactly 1.0f rather than a rate of zero.
+                command.CommandText = "SELECT * FROM aoe_diminishings";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    AoeDiminishingTable.Clear();
+                    while (reader.Read())
+                        AoeDiminishingTable.Add(reader.GetUInt32("id", 0), (int)reader.GetFloat("rate", 100f));
+                    AoeDiminishingTable.Seal();
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
                 command.CommandText = "SELECT * FROM restore_mana_effects";
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
@@ -2013,9 +2044,13 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             OwnerTypeId = (BaseUnitType)reader.GetUInt32("owner_type_id", 0),
                             SubType = reader.GetUInt32("sub_type", 0),
                             PosDirId = reader.GetUInt32("pos_dir_id", 0),
-                            // pos_angle/pos_distance split into _min/_max in 10.0.2.13 schema; use _min
+                            // pos_angle/pos_distance split into _min/_max in 10.0.2.13. Both ends are kept:
+                            // 237 angle rows and 248 distance rows author a band rather than a point, and
+                            // the max was what every one of them needed to scatter.
                             PosAngle = reader.GetFloat("pos_angle_min", 0f),
                             PosDistance = reader.GetFloat("pos_distance_min", 0f),
+                            PosAngleMax = reader.GetFloat("pos_angle_max", 0f),
+                            PosDistanceMax = reader.GetFloat("pos_distance_max", 0f),
                             OriDirId = reader.GetUInt32("ori_dir_id", 0),
                             OriAngle = reader.GetFloat("ori_angle", 0f),
                             UseSummonerFaction = reader.GetBoolean("use_summoner_faction", true),
@@ -2024,7 +2059,9 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             UseSummonerAggroTarget = reader.GetBoolean("use_summoner_aggro_target", true),
                             MateStateId = (MateState)reader.GetUInt32("mate_state_id", 0),
                             // Crimson 963/969: ray-cast land under the high portal XY.
-                            EnableRayCast = reader.GetBoolean("enable_ray_cast", true)
+                            EnableRayCast = reader.GetBoolean("enable_ray_cast", true),
+                            // Height the ray cast starts from (548 rows non-zero).
+                            RayOffSet = reader.GetFloat("ray_off_set", 0f)
                         };
                         _effects["SpawnEffect"][template.Id] = template;
                     }
@@ -2046,7 +2083,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                             LifeTime = reader.GetFloat("life_time", 0f),
                             DespawnOnCreatorDeath = reader.GetBoolean("despawn_on_creator_death", true),
                             UseSummonerAggroTarget = reader.GetBoolean("use_summoner_aggro_target", true),
-                            ActivationState = reader.GetBoolean("activation_state", true)
+                            ActivationState = reader.GetBoolean("activation_state", true),
+                            UseSummonerFaction = reader.GetBoolean("use_summoner_faction", true)
                         };
                         _effects["NpcSpawnerSpawnEffect"][template.Id] = template;
                     }

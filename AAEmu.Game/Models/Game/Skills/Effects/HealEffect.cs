@@ -27,6 +27,8 @@ public class HealEffect : EffectTemplate
     public bool SlaveApplicable { get; set; }
     public bool IgnoreHealAggro { get; set; }
     public float DpsMultiplier { get; set; }
+    /// <summary><c>heal_effects.self_target_multiplier</c> — see <see cref="HealEffectRules"/>.</summary>
+    public float SelfTargetMul { get; set; }
     public uint ActabilityGroupId { get; set; }
     public int ActabilityStep { get; set; }
     public float ActabilityMul { get; set; }
@@ -116,7 +118,15 @@ public class HealEffect : EffectTemplate
 
         value = (int)(value * trg.IncomingHealMul);
 
-        if (UseFixedHeal)
+        if (Percent)
+        {
+            // percent (237 rows): the row heals a share of the healed unit's maximum instead of the
+            // absolute composition above. It replaces the number `use_fixed_heal` would have rolled
+            // rather than scaling it — every percent row carries use_fixed_heal as well — so the roll
+            // the client sees is that share and nothing else the row authors composes into it.
+            value = HealEffectRules.PercentAmount(trg.MaxHp, FixedMin, FixedMax, Random.Shared.Next(0, 101));
+        }
+        else if (UseFixedHeal)
         {
             value = Random.Shared.Next(FixedMin, FixedMax);
             if (source.Buff != null && source.IsTrigger)
@@ -126,6 +136,11 @@ public class HealEffect : EffectTemplate
             else
                 value = (int)(value * tickModifier);
         }
+
+        // self_target_multiplier (152 rows at 0.7): a self-heal pays out less for the flagged rows. It is
+        // exactly 1.0 for every other target, so this is a no-op on all but those 152 rows' self-casts.
+        value = (int)(value * HealEffectRules.SelfTargetMultiplier(
+            SelfTargetMul, HealEffectRules.IsSelfTarget(caster.ObjId, trg.ObjId)));
 
         value = (int)(value * ((Unit)caster).HealMul);
 
@@ -172,7 +187,12 @@ public class HealEffect : EffectTemplate
             targetChar.RecordPvpHealFrom(healerChar);
         }
 
-        trg.Events.OnHealed(this, new OnHealedArgs { Healer = (Unit)caster, HealAmount = value });
+        trg.Events.OnHealed(this, new OnHealedArgs
+        {
+            Healer = (Unit)caster,
+            HealAmount = value,
+            IgnoreHealAggro = IgnoreHealAggro
+        });
         trg.PostUpdateCurrentHp(trg, oldHp, trg.Hp, KillReason.Unknown);
     }
 }

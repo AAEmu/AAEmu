@@ -417,6 +417,12 @@ public class OnHealedArgs : EventArgs
 {
     public Unit Healer { get; set; }
     public int HealAmount { get; set; }
+
+    /// <summary>
+    /// <c>heal_effects.ignore_heal_aggro</c> (28 of 954 rows): the heal must not move the healed unit's
+    /// attackers' aggro. The subscriber that credits heal aggro drops the event when this is set.
+    /// </summary>
+    public bool IgnoreHealAggro { get; set; }
 }
 
 public class OnCombatStartedArgs : EventArgs

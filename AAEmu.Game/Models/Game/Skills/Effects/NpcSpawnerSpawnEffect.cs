@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.Models.Game.NPChar;
@@ -15,6 +15,11 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
     public bool DespawnOnCreatorDeath { get; set; }
     public bool UseSummonerAggroTarget { get; set; }
     public bool ActivationState { get; set; }
+    /// <summary>
+    /// <c>npc_spawner_spawn_effects.use_summoner_faction</c> (356 of 7,161 rows): the spawn takes the
+    /// summoner's faction instead of the npc template's.
+    /// </summary>
+    public bool UseSummonerFaction { get; set; }
 
     public override bool OnActionTime => false;
 
@@ -60,6 +65,13 @@ public class NpcSpawnerSpawnEffect : EffectTemplate
 
                 npc.Spawner.RespawnTime = 0; // запретим респавн
                 Logger.Info($"NpcSpawnerSpawnEffect: Do Spawn effect id={Id}, Npc unitId={spawner.UnitId} spawnerId={SpawnerId} worldId={caster.Transform.WorldId}");
+
+                // use_summoner_faction (356 rows): the spawn answers to the summoner's side. It is applied
+                // here, where the World owns the npc it is about to spawn; the ZoneAuthority branch above
+                // hands the spawn to the zone and the WZNpcSpawnerEvent body carries no faction, so a
+                // zone-authored spawn keeps the template's own.
+                if (UseSummonerFaction && caster is Unit summoner && summoner.Faction != null)
+                    npc.Faction = summoner.Faction;
 
                 if (UseSummonerAggroTarget)
                 {

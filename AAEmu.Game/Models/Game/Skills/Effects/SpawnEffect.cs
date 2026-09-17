@@ -20,6 +20,10 @@ public class SpawnEffect : EffectTemplate
     public uint PosDirId { get; set; }
     public float PosAngle { get; set; }
     public float PosDistance { get; set; }
+    /// <summary>Upper end of the placement band. Equal to the minimum on a row that does not scatter.</summary>
+    public float PosAngleMax { get; set; }
+    /// <inheritdoc cref="PosAngleMax"/>
+    public float PosDistanceMax { get; set; }
     public uint OriDirId { get; set; }
     public float OriAngle { get; set; }
     public bool UseSummonerFaction { get; set; }
@@ -29,6 +33,8 @@ public class SpawnEffect : EffectTemplate
     public MateState MateStateId { get; set; }
     /// <summary>When true, non-flying summons snap to terrain under the XY (drop-from-rift).</summary>
     public bool EnableRayCast { get; set; } = true;
+    /// <summary>Height above the anchor's Z that the ray cast starts from.</summary>
+    public float RayOffSet { get; set; }
 
     public override bool OnActionTime => false;
 
@@ -57,6 +63,38 @@ public class SpawnEffect : EffectTemplate
             0 or 3 => positionUnit,
             _ => null
         };
+
+    /// <summary>
+    /// The angle this row places a spawn at, drawn from its own band.
+    /// </summary>
+    /// <remarks>
+    /// 237 rows author a band that is not a point (mate effects 3438/3439 are 0-360), and the loader used to
+    /// keep only <c>pos_angle_min</c>, so those rows all placed every summon on the same bearing. A row whose
+    /// two ends match is exact and unchanged: <see cref="SpawnScatterRules.Scatter"/> returns the minimum.
+    /// </remarks>
+    internal static float ResolvePosAngle(float angleMin, float angleMax) =>
+        SpawnScatterRules.Angle(angleMin, angleMax, Random.Shared.Next(0, 1001));
+
+    /// <summary>
+    /// The distance this row places a spawn at, drawn from its own band.
+    /// </summary>
+    /// <remarks>
+    /// 248 rows author a band that is not a point (mate effect 3438 is 1-5, 2266 is 50-100). Feeding the old
+    /// non-zero guard with this is what keeps "distance 0 means the row left it unset, use 2" working.
+    /// </remarks>
+    internal static float ResolvePosDistance(float distanceMin, float distanceMax) =>
+        SpawnScatterRules.Distance(distanceMin, distanceMax, Random.Shared.Next(0, 1001));
+
+    /// <summary>
+    /// The Z a row's ray cast starts from: the anchor's Z raised by <c>ray_off_set</c>.
+    /// </summary>
+    /// <remarks>
+    /// 548 rows carry a non-zero <c>ray_off_set</c> (50 on 183, 5 on 135, 10 on 74), and it is the last
+    /// unread column in the table. See <see cref="SpawnScatterRules.RayCastOriginZ"/> for why it is read as
+    /// head-room for the cast. A row with 0 — 2,255 of them — is exactly the anchor's own Z, unchanged.
+    /// </remarks>
+    internal static float ResolveRayCastOriginZ(float anchorZ, float rayOffSet) =>
+        SpawnScatterRules.RayCastOriginZ(anchorZ, rayOffSet);
 
     public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
@@ -91,7 +129,9 @@ public class SpawnEffect : EffectTemplate
                         return;
                     }
 
-                    var (xx, yy) = MathUtil.AddDistanceToFrontDeg(PosDistance, positionRelativeToUnit.Transform.World.Position.X, positionRelativeToUnit.Transform.World.Position.Y, PosAngle);
+                    var posDistance = ResolvePosDistance(PosDistance, PosDistanceMax);
+                    var posAngle = ResolvePosAngle(PosAngle, PosAngleMax);
+                    var (xx, yy) = MathUtil.AddDistanceToFrontDeg(posDistance, positionRelativeToUnit.Transform.World.Position.X, positionRelativeToUnit.Transform.World.Position.Y, posAngle);
 
                     spawner.Position.X = xx;
                     spawner.Position.Y = yy;
@@ -108,7 +148,7 @@ public class SpawnEffect : EffectTemplate
                         positionRelativeToUnit,
                         xx,
                         yy,
-                        positionRelativeToUnit.Transform.World.Position.Z,
+                        ResolveRayCastOriginZ(positionRelativeToUnit.Transform.World.Position.Z, RayOffSet),
                         canFly: standaloneCanFly);
 
                     spawner.Position.Yaw = orientationRelativeToUnit.Transform.World.Rotation.Z + OriAngle.DegToRad();
@@ -122,11 +162,24 @@ public class SpawnEffect : EffectTemplate
                 {
                     if (caster is Character player)
                     {
-                        // TODO: Implement OriDirId, PosDirId and MateStateId
-                        using var transform = player.Transform.CloneDetached();
-                        if (PosDistance == 0) { PosDistance = 2; }
-                        transform.World.AddDistanceToFront(PosDistance);
-                        transform.World.Rotate(transform.World.Rotation with { Z = OriAngle.DegToRad() });
+                        // Where the summon lands is the row's, the same way it is for an Npc spawn: pos_dir
+                        // picks the unit it is placed around, pos_distance/pos_angle (each drawn from its own
+                        // band) the offset, and ori_dir/ori_angle the facing. The old code always anchored on
+                        // the caster and turned it by OriAngle alone, so a row that authorises pos_dir 1
+                        // placed its summon behind the caster instead of at the target.
+                        var positionUnit = ResolvePositionUnit(PosDirId, caster, target) ?? player;
+                        var orientationUnit = ResolveOrientationUnit(OriDirId, caster, target, positionUnit) ?? player;
+
+                        var posDistance = ResolvePosDistance(PosDistance, PosDistanceMax);
+                        if (posDistance == 0)
+                            posDistance = 2;
+
+                        using var transform = positionUnit.Transform.CloneDetached();
+                        transform.World.AddDistanceToFront(posDistance);
+                        transform.World.Rotate(transform.World.Rotation with
+                        {
+                            Z = orientationUnit.Transform.World.Rotation.Z + OriAngle.DegToRad()
+                        });
 
                         var slave = player.ParentWorld.SlaveManager.Create(SubType, true, transform);
                         if (slave is { Template: null })
@@ -140,6 +193,15 @@ public class SpawnEffect : EffectTemplate
                 }
             case BaseUnitType.Mate:
                 {
+                    // Left alone on purpose. Only 12 rows set owner_type_id 5, every one of them under
+                    // sub_type 848 (mate effects 3122/3131 are the 드래곤/탈것 family), and the Mate family
+                    // is already spawned by MateManager.AddActiveMateAndSpawn from the owner's saved mate.
+                    // There is no server-side entry point that conjures a mate from a template id alone, so
+                    // implementing this branch means inventing one and a second ownership path with it. The
+                    // row's placement columns are loaded and resolved here either way, so whatever grows that
+                    // entry point has them.
+                    Logger.Debug("SpawnEffect {0}: Mate spawn (sub_type {1}) has no server-side entry point",
+                        Id, SubType);
                     break;
                 }
         }

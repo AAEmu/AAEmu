@@ -27,11 +27,16 @@ public class AggroEffect : EffectTemplate
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
         CompressedGamePackets packetBuilder = null)
     {
-        if (caster is not Character character)
+        // 353 buff_triggers rows carry an AggroEffect and every one of them is cast by an Npc, a mate or a
+        // slave. Requiring a Character caster rolled the value and threw it away for all of them; what the
+        // effect needs is a spawned unit and a target that owns an aggro table.
+        if (!AggroEffectRules.CanCast(caster))
             return;
 
-        if (target is not Npc npc)
+        if (target is not Npc npc || !AggroEffectRules.CanHoldAggro(target))
             return;
+
+        var casterUnit = (Unit)caster;
 
         Logger.Info($"AggroEffect: UseFixedAggro={UseFixedAggro}, UseLevelAggro={UseLevelAggro}, UseChargedBuff={UseChargedBuff}");
 
@@ -40,7 +45,7 @@ public class AggroEffect : EffectTemplate
 
         if (UseLevelAggro)
         {
-            var lvlMd = character.LevelDps * LevelMd;
+            var lvlMd = casterUnit.LevelDps * LevelMd;
             var levelModifier = (((source.Skill?.Level ?? 1) - 1) / 49 * (LevelVaEnd - LevelVaStart) + LevelVaStart) * 0.01f;
 
             min += lvlMd - levelModifier * lvlMd + 0.5f;
@@ -67,13 +72,13 @@ public class AggroEffect : EffectTemplate
         var value = (int)Random.Shared.Next(min, max);
         if (WorldIntegration.ZoneAuthority)
         {
-            WorldIntegration.PublishAggro(npc, character, (uint)Math.Max(0, value), castObj);
+            WorldIntegration.PublishAggro(npc, casterUnit, (uint)Math.Max(0, value), castObj);
             return;
         }
 
         npc.SendPacketToPlayers(
-            [caster, npc],
-            new SCAiAggroPacket(npc.ObjId, AiAggroEntry.FromDirectValue(caster.ObjId, value)));
-        npc.AddUnitAggro(AggroKind.Etc, character, value);
+            [casterUnit, npc],
+            new SCAiAggroPacket(npc.ObjId, AiAggroEntry.FromDirectValue(casterUnit.ObjId, value)));
+        npc.AddUnitAggro(AggroKind.Etc, casterUnit, value);
     }
 }
