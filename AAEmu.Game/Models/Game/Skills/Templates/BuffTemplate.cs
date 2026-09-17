@@ -224,6 +224,34 @@ public class BuffTemplate
     public bool CollidePushable { get; init; }
     public bool OnActionTime => Tick > 0;
 
+    // buffs' gliding_* physics (18 columns, of which gliding and gliding_rotate_speed were already read)
+    // and the six instrument anim ids. No server code consumes them: gliding physics is client- and
+    // zone-side, and the anim ids are what the client plays for a performance instrument. They are loaded
+    // so a later check (a glide-speed or lift clamp, a tick that swaps in an instrument anim) can read
+    // them instead of finding nothing, which is what the TODO at the loader used to leave behind.
+    public float GlidingStartupTime { get; init; }
+    public float GlidingStartupSpeed { get; init; }
+    public float GlidingFallSpeedSlow { get; init; }
+    public float GlidingFallSpeedNormal { get; init; }
+    public float GlidingFallSpeedFast { get; init; }
+    public float GlidingSmoothTime { get; init; }
+    public int GlidingLiftCount { get; init; }
+    public float GlidingLiftHeight { get; init; }
+    public float GlidingLiftValidTime { get; init; }
+    public float GlidingLiftDuration { get; init; }
+    public float GlidingLiftSpeed { get; init; }
+    public float GlidingLandHeight { get; init; }
+    public float GlidingSlidingTime { get; init; }
+    public float GlidingMoveSpeedSlow { get; init; }
+    public float GlidingMoveSpeedNormal { get; init; }
+    public float GlidingMoveSpeedFast { get; init; }
+    public int StringInstrumentStartAnimId { get; init; }
+    public int PercussionInstrumentStartAnimId { get; init; }
+    public int TubeInstrumentStartAnimId { get; init; }
+    public int StringInstrumentTickAnimId { get; init; }
+    public int PercussionInstrumentTickAnimId { get; init; }
+    public int TubeInstrumentTickAnimId { get; init; }
+
     public List<TickEffect> TickEffects { get; } = [];
     public List<BonusTemplate> Bonuses { get; } = [];
     public List<DynamicBonusTemplate> DynamicBonuses { get; } = [];
@@ -412,13 +440,18 @@ public class BuffTemplate
                 RadarManager.Instance.RegisterForPublicTransport(character, TransferTelescopeRange);
             if (TelescopeRange > 0)
                 RadarManager.Instance.RegisterForShips(character, TelescopeRange);
-            // Dash (buffs.id 2675 = skills.toggle_buff_id on 16287): tick_level_mana_cost drains MP.
-            if (buff.Template.Id == (uint)BuffConstants.Dash)
+            // Tick mana cost: tick_level_mana_cost is a multiple of the level curve formula 13 (Dash,
+            // buffs.id 2675 = skills.toggle_buff_id on 16287, and 15931 both carry 0.5) and tick_mana_cost
+            // is a flat amount (4 on buff 108, 100 on 15786, …). Ten rows carry one of the two and every
+            // one of them now drains; Dash keeps its exact cadence and its own buff id (see
+            // TickManaCostRules for the counts and for the one row — 4140 — that has no tick interval).
+            if (TickManaCostRules.PaysPerTick(TickManaCost, TickLevelManaCost, Tick))
             {
                 ManaRegenManager.Instance.Register(
                     character,
                     new ManaRegenTemplate(
-                        character, buff.Template.Tick, buff.Template.TickLevelManaCost, character.Level));
+                        character, buff.Template.Id, buff.Template.Tick, buff.Template.TickLevelManaCost,
+                        character.Level, buff.Template.TickManaCost));
             }
 
             // What this buff grants its owner for as long as it lasts (buff_skills, buff_mount_skills,
@@ -474,7 +507,18 @@ public class BuffTemplate
 
         units = SkillTargetingUtil.FilterWithRelation((SkillTargetRelation)TickAreaRelationId, (Unit)caster, units).ToList();
 
+        // tick_area_angle / tick_area_front_angle narrow that circle to a wedge in front of the owner and
+        // tick_area_max_count caps how many of the units one tick reaches (nearest first). All three are
+        // no-ops on the content that leaves them unset — 539 of the 603 tick radii have no wedge and 481 no
+        // cap — so the gathered list is exactly what it was for those buffs.
+        units = TickAreaRules.Apply(ownerUnit, units, TickAreaAngle, TickAreaFrontAngle, TickAreaMaxCount);
+
         var source = caster;
+        // tick_area_use_origin_source (182 rows) is deliberately NOT read here. The commented-out form
+        // below is the only surviving reading and it contradicts the column's own name — "use the origin
+        // source" reads as "keep the caster", the code as "use the owner" — and the two differ only when a
+        // tick area's holder is not the unit that applied it. Resolving it needs a client observation, so
+        // the column stays unread rather than flipping 182 rows on a guess.
         //if (TickAreaUseOriginSource)
         //source = (Unit)owner;
         var skillObj = new SkillObject(); // TODO ?
@@ -485,7 +529,11 @@ public class BuffTemplate
         {
             foreach (var tickEff in TickEffects)
             {
+                // 10.0.2.13 has buff_tick_effects rows whose effect_id resolves to nothing; the
+                // non-area branch above already skips them instead of dereferencing null.
                 var eff = SkillManager.Instance.GetEffectTemplate(tickEff.EffectId);
+                if (eff == null)
+                    continue;
 
                 foreach (var trg in unitsCopy)
                 //foreach (var trg in units)

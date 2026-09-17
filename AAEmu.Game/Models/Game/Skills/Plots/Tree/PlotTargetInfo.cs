@@ -404,7 +404,11 @@ public class PlotTargetInfo
             args.UnitTypeFlag, maxTargets, found,
             string.Join(" → ", steps.Select(s => $"{s.step}:{s.left}")), taken);
 
-        LogNeighbourhood(origin, shape);
+        // The neighbourhood dump is the second-order detail — it costs another 40 m gather and lists a
+        // dozen units — so it stays on Trace and is skipped outright when Trace is off, leaving one Debug
+        // line per area search.
+        if (Logger.IsTraceEnabled)
+            LogNeighbourhood(origin, shape);
     }
 
     /// <summary>
@@ -430,7 +434,7 @@ public class PlotTargetInfo
             .Take(12)
             .Select(x => $"{x.u.ObjId}({x.u.TemplateId}) d={x.dist:F1} a={MathUtil.ClampDegAngle(MathUtil.CalculateAngleFrom(origin, x.u)):F0}°");
 
-        Logger.Debug("PlotArea   neighbourhood({0}m): {1}", NeighbourhoodProbeRadius, string.Join(", ", near));
+        Logger.Trace("PlotArea   neighbourhood({0}m): {1}", NeighbourhoodProbeRadius, string.Join(", ", near));
     }
 
     /// <summary>How far the neighbourhood dump looks — wide enough to catch units the shape radius missed.</summary>

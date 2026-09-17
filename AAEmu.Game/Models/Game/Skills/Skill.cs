@@ -207,11 +207,15 @@ public class Skill
             {
                 // Basic attacks: short anti-spam only. 500ms blocked the client auto-attack
                 // retry storm and made the hotbar feel unresponsive (CooldownTime).
-                // Zone-driven NPC melee needs a hard cooldown gate; the interval fallback permits
-                // duplicate swings when a key has not yet been recorded.
+                // A non-character caster is a zone-driven NPC here: its swing interval is the one
+                // SkillManager.GetAttackDelay computes from the attack skill and the unit's attack-speed
+                // rating (1300 ms for a unit carrying no speed rows) instead of a flat World constant, so
+                // the zone's own cadence is what reaches the client. See NpcSwingGateRules.
                 var delay = 150;
-                if (Id == 2 || Id == 3 || Id == 4)
-                    delay = character != null ? 100 : 1500;
+                if (BuffRemoveOnRules.IsAutoAttack(Id))
+                    delay = character != null
+                        ? 100
+                        : NpcSwingGateRules.SwingIntervalMs(SkillManager.GetAttackDelay(Template, unit));
 
                 // Instant combo hits skip the 150 ms anti-spam and must not write SkillLastUsed
                 // (that blocked the next parent press). They still wait for the shared GCD the
@@ -446,22 +450,6 @@ public class Skill
         if (Template.CastingTime > 0)
             castTime = (int)(unit.CastTimeMul * unit.SkillModifiersCache.ApplyModifiers(this, SkillAttribute.CastTime, Template.CastingTime));
         castTime = (int)Math.Round(castTime * CastTimeMultiplier);
-
-        /*
-        // TODO: Replace Old code
-        else if (character != null && (Id == 2 || Id == 3 || Id == 4) && !caster.IsAutoAttack)
-        {
-            character.IsAutoAttack = true; // enable auto attack
-            character.SkillId = Id;
-            character.TlId = TlId;
-            character.BroadcastPacket(new SCSkillStartedPacket(Id, 0, casterCaster, targetCaster, this, skillObject)
-            {
-                CastTime = Template.CastingTime
-            }, true);
-            character.AutoAttackTask = new MeleeCastTask(this, character, casterCaster, target, targetCaster, skillObject);
-            TaskManager.Instance.Schedule(character.AutoAttackTask, TimeSpan.FromMilliseconds(300), TimeSpan.FromMilliseconds(1300));
-        }
-        */
 
         if (castTime > 0)
         {

@@ -136,17 +136,27 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
+                    var skipped = 0;
                     while (reader.Read())
                     {
                         var id = reader.GetUInt32("event_id");
                         var condId = reader.GetUInt32("condition_id");
+                        // Bare indexers used to throw KeyNotFoundException on the first dangling foreign key,
+                        // which would abort the whole plot load. Count the rows that cannot be attached and
+                        // report them once per table instead.
+                        if (!_conditions.TryGetValue(condId, out var condition) ||
+                            !_eventTemplates.TryGetValue(id, out var plotEvent))
+                        {
+                            skipped++;
+                            continue;
+                        }
+
                         var template = new PlotEventCondition
                         {
-                            Condition = _conditions[condId], Position = reader.GetInt32("position"), SourceId = (PlotEffectSource)reader.GetInt32("source_id"),
+                            Condition = condition, Position = reader.GetInt32("position"), SourceId = (PlotEffectSource)reader.GetInt32("source_id"),
                             TargetId = (PlotEffectTarget)reader.GetInt32("target_id")
                         };
                         template.NotifyFailure = reader.GetBoolean("notify_failure", true);
-                        var plotEvent = _eventTemplates[id];
                         if (plotEvent.Conditions.Count > 0)
                         {
                             var res = false;
@@ -164,6 +174,9 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                         else
                             plotEvent.Conditions.AddFirst(template);
                     }
+
+                    if (skipped > 0)
+                        Logger.Warn("plot_event_conditions: {0} row(s) name a plot event or condition that did not load and were skipped", skipped);
                 }
             }
 
@@ -173,12 +186,19 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
+                    var skipped = 0;
                     while (reader.Read())
                     {
                         var id = reader.GetUInt32("event_id");
                         var condId = reader.GetUInt32("condition_id");
-                        var template = new PlotAoeCondition { Condition = _conditions[condId], Position = reader.GetInt32("position") };
-                        var plotEvent = _eventTemplates[id];
+                        if (!_conditions.TryGetValue(condId, out var condition) ||
+                            !_eventTemplates.TryGetValue(id, out var plotEvent))
+                        {
+                            skipped++;
+                            continue;
+                        }
+
+                        var template = new PlotAoeCondition { Condition = condition, Position = reader.GetInt32("position") };
                         if (plotEvent.AoeConditions.Count > 0)
                         {
                             var res = false;
@@ -196,6 +216,9 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                         else
                             plotEvent.AoeConditions.AddFirst(template);
                     }
+
+                    if (skipped > 0)
+                        Logger.Warn("plot_aoe_conditions: {0} row(s) name a plot event or condition that did not load and were skipped", skipped);
                 }
             }
 
@@ -205,6 +228,7 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
+                    var skipped = 0;
                     while (reader.Read())
                     {
                         var id = reader.GetUInt32("event_id");
@@ -216,7 +240,12 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                             ActualId = reader.GetUInt32("actual_id"),
                             ActualType = reader.GetString("actual_type")
                         };
-                        var evnt = _eventTemplates[id];
+                        if (!_eventTemplates.TryGetValue(id, out var evnt))
+                        {
+                            skipped++;
+                            continue;
+                        }
+
                         if (evnt.Effects.Count > 0)
                         {
                             var res = false;
@@ -234,6 +263,9 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                         else
                             evnt.Effects.AddFirst(template);
                     }
+
+                    if (skipped > 0)
+                        Logger.Warn("plot_effects: {0} row(s) name a plot event that did not load and were skipped", skipped);
                 }
             }
 
@@ -243,13 +275,21 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                 command.Prepare();
                 using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
                 {
+                    var skipped = 0;
                     while (reader.Read())
                     {
                         var template = new PlotNextEvent();
                         var id = reader.GetUInt32("event_id");
                         var nextId = reader.GetUInt32("next_event_id");
                         template.Id = reader.GetUInt32("id");
-                        template.Event = _eventTemplates[nextId];
+                        if (!_eventTemplates.TryGetValue(nextId, out var nextEvent) ||
+                            !_eventTemplates.TryGetValue(id, out var plotEvent))
+                        {
+                            skipped++;
+                            continue;
+                        }
+
+                        template.Event = nextEvent;
                         template.Position = reader.GetInt32("position");
                         template.PerTarget = reader.GetBoolean("per_target", true);
                         template.Casting = reader.GetBoolean("casting", true);
@@ -263,7 +303,6 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                         template.CancelOnBigHit = reader.GetBoolean("cancel_on_big_hit", true);
                         template.UseExeTime = reader.GetBoolean("use_exe_time", true);
                         template.Fail = reader.GetBoolean("fail", true);
-                        var plotEvent = _eventTemplates[id];
                         if (plotEvent.NextEvents.Count > 0)
                         {
                             var res = false;
@@ -281,6 +320,9 @@ public class PlotManager : Singleton<PlotManager>, IPlotManager
                         else
                             plotEvent.NextEvents.AddFirst(template);
                     }
+
+                    if (skipped > 0)
+                        Logger.Warn("plot_next_events: {0} row(s) name a plot event that did not load and were skipped", skipped);
                 }
             }
 

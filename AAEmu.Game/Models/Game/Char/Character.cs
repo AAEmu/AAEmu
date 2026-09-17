@@ -2333,6 +2333,10 @@ public partial class Character : Unit, ICharacter
         Expedition?.OnCharacterRefresh(this);
         SingletonContainer.ServiceProvider?.GetService<IFamilyManager>()?.OnCharacterRefresh(this);
 
+        // The passive set is re-evaluated before the vitals are refilled: a passive can carry the max
+        // HP/MP bonuses those getters read, and its bonuses were snapshotted at the old ability level.
+        Skills?.ReevaluatePassivesOnLevelUp();
+
         // Level is already on this.Level; MaxHp/MaxMp getters re-evaluate immediately.
         Hp = MaxHp;
         Mp = MaxMp;

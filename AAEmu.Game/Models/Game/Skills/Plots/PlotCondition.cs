@@ -140,11 +140,10 @@ public class PlotCondition
     private static bool ConditionRelation(BaseUnit caster, SkillCaster casterCaster, BaseUnit target,
         SkillCastTarget targetCaster, SkillObject skillObject, int relationType, int unused2, int unused3)
     {
-        if (caster is Character player)
-            player.SendDebugMessage($"ConditionRelation Caster {relationType}");
-        if (target is Character targetPlayer)
-            targetPlayer.SendDebugMessage($"ConditionRelation Target {relationType}");
-        Logger.Warn($"ConditionRelation {relationType} {caster} -> {target}");
+        // Trace, not Warn: a relation evaluation happens once per candidate unit per plot node, so both
+        // the warning and the two SendDebugMessage lines this used to send to the client were pure noise
+        // on the hot path. Nothing here is a failure.
+        Logger.Trace("ConditionRelation {0} {1} -> {2}", relationType, caster?.ObjId ?? 0, target?.ObjId ?? 0);
         // Param1 is either 1, 4 or 5
         switch (relationType)
         {

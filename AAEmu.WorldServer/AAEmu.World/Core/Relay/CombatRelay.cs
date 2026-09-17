@@ -229,9 +229,11 @@ public class CombatRelay
         var caster = new SkillCasterUnit(casterId);
         var skillObject = new SkillObject();
         // After World stopped rejecting those as TooFarRange, bypassGcd=true applied full damage
-        // every tick. NPC casters keep World swing/GCD (SkillLastUsed 800ms for skills 2/3/4);
-        // player casts from Zone still bypass the duplicate World GCD.
-        var bypassGcd = casterUnit is not Npc;
+        // every tick. NPC casters keep World's swing gate (SkillLastUsed), which is now the interval
+        // SkillManager.GetAttackDelay computes for the attack rather than a flat 1500 ms — see
+        // NpcSwingGateRules. Player casts from Zone still bypass the duplicate World GCD, and an NPC cast
+        // the zone marks almighty is the zone asking for its own cadence, so it bypasses the gate too.
+        var bypassGcd = casterUnit is not Npc || NpcSwingGateRules.BypassesWorldGate(casterIsNpc: true, almighty);
         var result = skill.Use(casterUnit, caster, target, skillObject, bypassGcd, out _, out _);
         Logger.Debug(
             "ZWStartSkill caster={0} skill={1} targetType={2} almighty={3} result={4} tl={5}",
@@ -349,6 +351,23 @@ public class CombatRelay
         }
 
         // Zone already applied; mirror into World + SC. Caster unknown on wire — self-apply.
+        // The mirror still honours the refusals BuffTemplate.Apply makes: adding unconditionally put a
+        // second World instance (and a second client icon) on a unit that already holds the buff, which is
+        // one of the ways the same effect landed twice.
+        var mirrorDecision = ZoneBuffMirrorRules.Decide(
+            buffTemplate.BuffId,
+            alreadyLive: unit.Buffs.CheckBuff(buffTemplate.BuffId),
+            buffTemplate.RequireBuffId,
+            carriesRequiredBuff: unit.Buffs.CheckBuff(buffTemplate.RequireBuffId),
+            unit.Buffs.GetMissingRequiredBuffTag(buffTemplate));
+        if (mirrorDecision != ZoneBuffMirrorRules.Outcome.Apply)
+        {
+            Logger.Debug(
+                "ZWCreateBuff unit={0} buffType={1} not mirrored: {2}",
+                unitId, buffType, ZoneBuffMirrorRules.Describe(mirrorDecision));
+            return true;
+        }
+
         if (unit is Slave)
             Logger.Info("ZWCreateBuff slave={0} buffType={1}", unitId, buffType);
         unit.Buffs.AddBuff(new Buff(

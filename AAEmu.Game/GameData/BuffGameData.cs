@@ -8,11 +8,14 @@ using AAEmu.Game.Utils.DB;
 
 using Microsoft.Data.Sqlite;
 
+using NLog;
+
 namespace AAEmu.Game.GameData;
 
 [GameData]
 public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
 {
+    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private Dictionary<uint, List<BuffModifier>> _buffModifiers;
     private Dictionary<uint, BuffTolerance> _buffTolerances;
     private Dictionary<uint, BuffTolerance> _buffTolerancesById;
@@ -40,8 +43,17 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
             using (var sqliteReader = command.ExecuteReader())
             using (var reader = new SQLiteWrapperReader(sqliteReader))
             {
+                // buff_modifiers.enable: one shipped row is disabled (309, buff 15113's
+                // buff_attribute_id 7 at +50) and used to load with the other 1 056.
+                var disabledRowIds = new List<uint>();
                 while (reader.Read())
                 {
+                    if (!reader.GetBoolean("enable", true))
+                    {
+                        disabledRowIds.Add(reader.GetUInt32("id"));
+                        continue;
+                    }
+
                     var template = new BuffModifier
                     {
                         Id = reader.GetUInt32("id"),
@@ -59,6 +71,11 @@ public class BuffGameData : Singleton<BuffGameData>, IGameDataLoader
                         _buffModifiers.Add(template.OwnerId, []);
                     _buffModifiers[template.OwnerId].Add(template);
                 }
+
+                if (disabledRowIds.Count > 0)
+                    Logger.Warn(
+                        "buff_modifiers: {0} disabled row(s) skipped ({1})",
+                        disabledRowIds.Count, string.Join(", ", disabledRowIds));
             }
         }
 
