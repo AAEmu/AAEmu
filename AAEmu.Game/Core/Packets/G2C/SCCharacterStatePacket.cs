@@ -67,8 +67,8 @@ public class SCCharacterStatePacket(Character character) : GamePacket(SCOffsets.
         stream.Write(0u);                                   // totalPlayTime
 
         stream.Write((byte)character.ExpandedExpert);       // expandedExpert (u8)
-        stream.Write((byte)0);                              // remainBotCheckCnt (u8)
-        stream.Write((short)0);                             // failedBotCheckAccumCnt (i16)
+        stream.Write(character.BotCheck.RemainChecks);       // remainBotCheckCnt (u8)
+        stream.Write(character.BotCheck.FailedAnswers);      // failedBotCheckAccumCnt (i16)
 
         for (var i = 0; i < 12; i++)
             stream.Write(0L);                               // instantTime[12]

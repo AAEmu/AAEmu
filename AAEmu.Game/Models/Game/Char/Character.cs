@@ -908,6 +908,7 @@ public partial class Character : Unit, ICharacter
     public CharacterAppellations Appellations { get; set; }
     public CharacterAbilities Abilities { get; set; }
     public CharacterAbilitySets AbilitySets { get; set; }
+    public CharacterBotCheck BotCheck { get; } = new();
     public CharacterBlessUthstin BlessUthstin { get; set; } = new();
     public CharacterArchePass ArchePass { get; set; } = new();
     public CharacterPortals Portals { get; set; }
