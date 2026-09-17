@@ -9,7 +9,7 @@ public sealed class AchievementProgress
 {
     public uint AchievementId { get; set; }
 
-    /// <summary>How many of the achievement's objectives are satisfied.</summary>
+    /// <summary>How far the character has got: a record total, or how many objectives are done.</summary>
     public int Amount { get; set; }
 
     /// <summary>When it was completed, or null while it is still in progress.</summary>
@@ -59,6 +59,13 @@ public sealed class CharacterAchievements
     {
         lock (_sync)
             return _progress.TryGetValue(achievementId, out var progress) && progress.Complete;
+    }
+
+    /// <summary>When the achievement was earned, or null while it is still in progress.</summary>
+    public DateTime? CompletedAt(uint achievementId)
+    {
+        lock (_sync)
+            return _progress.TryGetValue(achievementId, out var progress) ? progress.CompletedAtUtc : null;
     }
 
     /// <summary>Sets an achievement's counter, never lowering it and never touching completion.</summary>

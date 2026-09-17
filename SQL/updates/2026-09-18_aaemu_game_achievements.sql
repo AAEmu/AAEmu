@@ -16,9 +16,10 @@ CREATE TABLE IF NOT EXISTS `character_records` (
   PRIMARY KEY (`owner`, `record_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Per-character value of each char_records counter';
 
--- One row per character per achievement they have made progress on. `amount` is how many of the
--- achievement's objectives are satisfied; `completed_at` is the completion time the client's packets carry,
--- and NULL means still in progress.
+-- One row per character per achievement they have made progress on. `amount` is how far they have got —
+-- the record total the achievement asks for, or how many of its objectives are done, depending on what its
+-- complete_num counts; `completed_at` is the completion time the client's packets carry, and NULL means
+-- still in progress.
 
 CREATE TABLE IF NOT EXISTS `character_achievements` (
   `owner` int unsigned NOT NULL,

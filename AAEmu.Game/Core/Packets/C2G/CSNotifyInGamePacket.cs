@@ -73,6 +73,14 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
         // In-world start/complete checks read the journal after the local player exists.
         Connection.ActiveChar.Quests.SendInitialState();
 
+        // Achievements are pushed, never requested: the client opens its window from whatever this list says,
+        // so progress the character already carries — their level and ability levels, and anything records
+        // kept from an earlier session — has to be resolved before it goes out. Nothing is sent for these:
+        // the list that follows carries the result.
+        AchievementManager.Instance.ReportCharacterProgress(Connection.ActiveChar, sendPackets: false);
+        AchievementManager.Instance.RefreshAll(Connection.ActiveChar);
+        AchievementManager.Instance.SendList(Connection.ActiveChar);
+
         // DO NOT seed the physics clock from the server's Environment.TickCount64 here. That is the SERVER
         // uptime domain (~tens of millions of ms), NOT the client's physics clock (which starts near 0 at
         // client launch). Seeding it made every self/NPC stand carry a tPhy ~89,000,000 ms in the client's

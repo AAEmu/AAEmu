@@ -2355,6 +2355,10 @@ public partial class Character : Unit, ICharacter
         Expedition?.OnCharacterRefresh(this);
         SingletonContainer.ServiceProvider?.GetService<IFamilyManager>()?.OnCharacterRefresh(this);
 
+        // The level is a record the level achievements watch, so a level-up is reported like any other
+        // record once the new level is on this.Level.
+        AchievementManager.Instance.ReportLevel(this);
+
         // The passive set is re-evaluated before the vitals are refilled: a passive can carry the max
         // HP/MP bonuses those getters read, and its bonuses were snapshotted at the old ability level.
         Skills?.ReevaluatePassivesOnLevelUp();
