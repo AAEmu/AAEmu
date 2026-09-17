@@ -36,6 +36,14 @@ public class GuardTowerSettings
 /// </summary>
 public class SiegeZoneSchedule
 {
+    /// <summary>
+    /// The <c>siege_zones</c> row id — the raid zone the client names in its own list of the four siege
+    /// territories (Heedmar, Nuimari, Marcala, Calmlands), which is what the raid team list identifies a team's
+    /// zone by. Distinct from <see cref="ZoneGroupId"/>, which is what our roster and the Dominion claim are
+    /// keyed by.
+    /// </summary>
+    public uint Id { get; init; }
+
     public uint ZoneGroupId { get; init; }
     public int ReinforceDefenseDelayMins { get; init; }
     public uint DefenseMerchantId { get; init; }
@@ -197,6 +205,7 @@ public class SiegeGameData : Singleton<SiegeGameData>, IGameDataLoader
             {
                 var schedule = new SiegeZoneSchedule
                 {
+                    Id = reader.GetUInt32("id"),
                     ZoneGroupId = reader.GetUInt32("zone_group_id"),
                     ReinforceDefenseDelayMins = reader.GetInt32("reinforce_defense_delay_mins", 0),
                     DefenseMerchantId = reader.GetUInt32("defense_merchant_id", 0),

@@ -155,6 +155,88 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
             [new SiegeRaidRegisterZone((int)zoneGroupId, rows)]));
     }
 
+    /// <summary>
+    /// One faction's raid team for a zone group's siege, as the member list shows it: the members that faction
+    /// registered, with what each of them is and how well they are geared.
+    /// </summary>
+    /// <remarks>
+    /// A member who is in the world is read live. A member who is not is read from the database: their heir
+    /// level is their stored heir experience, and their gear score is their stored equipment scored the same way
+    /// a live character's is — the loader is the one an inventory load uses, so an offline member is listed with
+    /// the gear they logged out in rather than as a zero.
+    /// </remarks>
+    public List<SiegeRaidTeamMemberInfo> GetRaidTeamMembers(ushort zoneId, uint factionId)
+    {
+        var members = new List<SiegeRaidTeamMemberInfo>();
+
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT c.id, c.name, c.level, c.ability1, c.ability2, c.ability3, c.heir_exp, c.faction_id
+            FROM siege_raid_team_members m
+            JOIN characters c ON c.id = m.character_id
+            WHERE m.zone_id = @z
+            ORDER BY m.registered_at, m.character_id
+            """;
+        command.Parameters.AddWithValue("@z", zoneId);
+        command.Prepare();
+
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            var characterId = reader.GetUInt32("id");
+            if (AllianceOf(reader.GetUInt32("faction_id")) != factionId)
+                continue;
+
+            var name = reader.IsDBNull(reader.GetOrdinal("name")) ? string.Empty : reader.GetString("name");
+            var level = (byte)Math.Clamp(reader.GetInt32("level"), 0, byte.MaxValue);
+            var ability1 = (byte)Math.Clamp(reader.GetInt32("ability1"), 0, byte.MaxValue);
+            var ability2 = (byte)Math.Clamp(reader.GetInt32("ability2"), 0, byte.MaxValue);
+            var ability3 = (byte)Math.Clamp(reader.GetInt32("ability3"), 0, byte.MaxValue);
+
+            var live = WorldManager.Instance.GetCharacterById(characterId);
+            if (live != null)
+            {
+                members.Add(new SiegeRaidTeamMemberInfo(characterId, live.Name, (byte)live.Level,
+                    live.HeirLevel, (byte)live.Ability1, (byte)live.Ability2, (byte)live.Ability3,
+                    (uint)Math.Max(0, live.GearScore)));
+                continue;
+            }
+
+            var heirExp = reader.GetInt64("heir_exp");
+            members.Add(new SiegeRaidTeamMemberInfo(characterId, name, level,
+                (byte)HeirGameData.Instance.GetLevelForExp(heirExp), ability1, ability2, ability3,
+                OfflineGearScore(characterId, name, level)));
+        }
+
+        return members;
+    }
+
+    /// <summary>
+    /// The gear score of a member who is not in the world, scored from their stored equipment. Loading fails
+    /// loudly rather than quietly: a member listed with no gear is a wrong number on screen, so a failure is
+    /// logged and reported as zero instead of being hidden.
+    /// </summary>
+    private static uint OfflineGearScore(uint characterId, string name, byte level)
+    {
+        try
+        {
+            var offline = new Character(new Models.Game.Units.UnitCustomModelParams())
+            {
+                Id = characterId,
+                Name = name,
+                Level = level
+            };
+            ItemManager.Instance.LoadPlayerInventory(offline);
+            return (uint)Math.Max(0, offline.GearScore);
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, "Could not score the gear of offline character {0}", characterId);
+            return 0;
+        }
+    }
+
     public void UnregisterFromRaidTeam(GameConnection connection, ushort zoneId)
     {
         var character = connection?.ActiveChar;
@@ -233,6 +315,10 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
             ? (uint)faction.MotherId
             : factionId;
     }
+
+    /// <summary>The alliance a character fights for — the faction whose raid team their registrations join.</summary>
+    public uint AllianceOfFaction(Character character) =>
+        character?.Faction == null ? 0 : AllianceOf((uint)character.Faction.Id);
 
     public void AddScore(ushort zoneId, uint outlawDelta, uint defenseDelta, uint offenseDelta)
     {

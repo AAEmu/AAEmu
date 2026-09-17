@@ -38,6 +38,12 @@ public class SiegeWindow : ICommand
             return;
         }
 
+        if (args.Length > 0 && args[0].Equals("members", StringComparison.OrdinalIgnoreCase))
+        {
+            ShowRaidTeamMembers(character, args.AsSpan(1), messageOutput);
+            return;
+        }
+
         uint zoneGroupId;
         if (args.Length > 0)
         {
@@ -58,6 +64,42 @@ public class SiegeWindow : ICommand
             nowForced
                 ? $"Declare window FORCED OPEN for zone group {zoneGroupId}."
                 : $"Declare window override cleared for zone group {zoneGroupId} - back to the real schedule.");
+    }
+
+    /// <summary>
+    /// Reads the caller's own raid team off the roster — the members the member list would show, with the level,
+    /// heir level, abilities and gear score each row carries — prints them and pushes the same answer to the
+    /// caller, so the member list can be seen without waiting for a siege's phase.
+    /// </summary>
+    private void ShowRaidTeamMembers(Character character, ReadOnlySpan<string> args, IMessageOutput messageOutput)
+    {
+        ushort zoneGroupId;
+        if (args.Length > 0)
+        {
+            if (!ushort.TryParse(args[0], out zoneGroupId))
+            {
+                CommandManager.SendErrorText(this, messageOutput, "Usage: /siegewindow members [zoneGroupId]");
+                return;
+            }
+        }
+        else
+        {
+            if (!TryGetCurrentZoneGroup(character, messageOutput, out var currentZoneGroupId))
+                return;
+            zoneGroupId = (ushort)currentZoneGroupId;
+        }
+
+        var factionId = SiegeManager.Instance.AllianceOfFaction(character);
+        var members = SiegeManager.Instance.GetRaidTeamMembers(zoneGroupId, factionId);
+        CommandManager.SendNormalText(this, messageOutput,
+            $"Zone group {zoneGroupId}, faction {factionId}: {members.Count} member(s).");
+        foreach (var member in members)
+            CommandManager.SendNormalText(this, messageOutput,
+                $"  {member.Name} (id {member.CharacterId}): level {member.Level}+{member.HeirLevel}, " +
+                $"abilities {member.Ability1}/{member.Ability2}/{member.Ability3}, gear {member.GearScore}");
+
+        var schedule = GameData.SiegeGameData.Instance.GetSiegeZoneSchedule(zoneGroupId);
+        character.SendPacket(new SCSiegeRaidTeamInfoPacket(0, (ushort)(schedule?.Id ?? 0), members));
     }
 
     /// <summary>
