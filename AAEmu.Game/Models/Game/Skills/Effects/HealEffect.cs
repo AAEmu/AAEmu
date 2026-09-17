@@ -130,6 +130,19 @@ public class HealEffect : EffectTemplate
 
         var value = (int)Random.Shared.Next(min, max);
 
+        // percent (237 rows): the row heals a share of the healed unit's maximum instead of the
+        // absolute composition above. It replaces that composition — the authored min/max and the
+        // level, DPS, heal skill_modifier and ChargedMul terms all go with it — but it is taken here,
+        // where the composition lands, so everything below still applies: the critical roll,
+        // trg.IncomingHealMul, SelfTargetMultiplier, the caster's HealMul and the actability steps.
+        // Taking it later drops healing reduction, which would make a percent heal the one heal an
+        // anti-heal debuff cannot touch, and leaves a critical percent heal reporting
+        // CriticalHealHit while paying an unmodified share.
+        if (Percent)
+        {
+            value = HealEffectRules.PercentAmount(trg.MaxHp, FixedMin, FixedMax, Random.Shared.Next(0, 101));
+        }
+
         if (criticalHeal)
         {
             value = (int)(value * (1 + ((Unit)caster).HealCriticalBonus / 100));
@@ -140,15 +153,9 @@ public class HealEffect : EffectTemplate
 
         value = (int)(value * trg.IncomingHealMul);
 
-        if (Percent)
-        {
-            // percent (237 rows): the row heals a share of the healed unit's maximum instead of the
-            // absolute composition above. It replaces the number `use_fixed_heal` would have rolled
-            // rather than scaling it — every percent row carries use_fixed_heal as well — so the roll
-            // the client sees is that share and nothing else the row authors composes into it.
-            value = HealEffectRules.PercentAmount(trg.MaxHp, FixedMin, FixedMax, Random.Shared.Next(0, 101));
-        }
-        else if (UseFixedHeal)
+        // Every percent row carries use_fixed_heal as well, so the two arms stay exclusive: the share
+        // taken above is the whole of what a percent row heals.
+        if (!Percent && UseFixedHeal)
         {
             value = Random.Shared.Next(FixedMin, FixedMax);
             if (source.Buff != null && source.IsTrigger)

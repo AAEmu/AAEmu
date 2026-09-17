@@ -201,13 +201,56 @@ public class HealEffectPercentTests
         await Assert.That(HealEffectRules.IsSelfTarget(HealerObjId, HealerObjId)).IsTrue();
     }
 
+    [Test]
+    public async Task Percent_IsReducedByTheTargetsIncomingHealMul()
+    {
+        // IncomingHealMul is how healing reduction works, so an anti-heal debuff has to reach a percent
+        // heal too. Taking the share after that multiplier was applied used to overwrite it, which made a
+        // percent heal the one heal nothing could reduce.
+        var healer = CreateHealer();
+        var target = CreateTarget();
+        target.IncomingHealMul = 0.5f;
+
+        Heal(healer, target, new HealEffect { Id = 1, Percent = true, FixedMin = 10, FixedMax = 10 });
+
+        await Assert.That(target.Hp - TargetStartHp).IsEqualTo(50);
+    }
+
+    [Test]
+    public async Task Percent_FoldsInACriticalRoll()
+    {
+        // CriticalHeal 100 makes the roll certain, so this is deterministic. The bonus has to land on the
+        // share: it used to be applied and then discarded, while healHitType still reported a critical.
+        var healer = CreateHealer();
+        healer.HealCritical = 100f;
+        healer.HealCriticalBonus = 50f;
+        var target = CreateTarget();
+
+        Heal(healer, target, new HealEffect { Id = 1, Percent = true, FixedMin = 10, FixedMax = 10 });
+
+        await Assert.That(target.Hp - TargetStartHp).IsEqualTo(150);
+    }
+
+    [Test]
+    public async Task Percent_WithoutACriticalPaysThePlainShare()
+    {
+        // The other half of the pair above: HealCritical 0 means the bonus is not in play at all.
+        var healer = CreateHealer();
+        healer.HealCritical = 0f;
+        healer.HealCriticalBonus = 50f;
+        var target = CreateTarget();
+
+        Heal(healer, target, new HealEffect { Id = 1, Percent = true, FixedMin = 10, FixedMax = 10 });
+
+        await Assert.That(target.Hp - TargetStartHp).IsEqualTo(100);
+    }
+
     private static Unit CreateHealer()
     {
         // A distinct obj id from the target: the self-target multiplier must not fire on a plain heal.
         // MaxHp is well above any heal these tests compose so the clamp never hides a number.
         return new Unit { ObjId = HealerObjId, Level = 50, Hp = TargetStartHp, MaxHp = 100_000, HDps = HealDpsRating };
     }
-
     private static Unit CreateTarget() => new() { ObjId = TargetObjId, Level = 50, Hp = TargetStartHp, MaxHp = TargetMaxHp };
 
     private static void Heal(Unit healer, Unit target, HealEffect effect)
