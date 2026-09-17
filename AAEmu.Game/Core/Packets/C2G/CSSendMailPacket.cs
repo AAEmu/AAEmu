@@ -1,8 +1,10 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Utils;
@@ -18,6 +20,17 @@ public class CSSendMailPacket() : GamePacket(CSOffsets.CSSendMailPacket, 1)
             return;
 
         Logger.Debug($"SendMail by {character.Name}");
+
+        // Sending is one of the three actions an account-protection window covers; the body is read first so
+        // a held-back mail leaves the stream in the same state as an accepted one. Inert unless bit 56 is on.
+        if (!SensitiveOperationGuard.MayPerform(character,
+                Models.Game.SensitiveOperation.SensitiveOperationKind.Mail, out var protectionReason))
+        {
+            if (stream.Count - stream.Pos > 0)
+                stream.ReadBytes(stream.Count - stream.Pos);
+            character.SendMessage(ChatType.System, protectionReason);
+            return;
+        }
 
         // Wire layout from the 10.0.2 client: the sender builds CSSendMailPacket (opcode 0xDB,
         // part_26025.c) from the struct read by FUN_39bdeb70 with the group-mail tail appended by

@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
@@ -44,5 +45,10 @@ public class CSCheckSecondPasswordPacket() : GamePacket(CSOffsets.CSCheckSecondP
             manager.Forget(connection.AccountId);
 
         connection.SendPacket(new SCSecondPassCheckedPacket(success, (sbyte)failedCount));
+
+        // An accepted second password is also the verification an account-protection window waits for, which is
+        // what lifts it (and sends the client's "security mode lifted" notice). No-op unless bit 56 is on.
+        if (success)
+            SensitiveOperationGuard.OnSecondPasswordVerified(connection.ActiveChar);
     }
 }
