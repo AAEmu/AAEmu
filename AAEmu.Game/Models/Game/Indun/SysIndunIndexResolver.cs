@@ -24,6 +24,10 @@ internal static class SysIndunIndexResolver
         uint instanceIndex = 0;
         if (zoneKey != 0)
         {
+            // The client sends back the instance id it was handed in the channel list, so that copy — and the
+            // channel it names — wins over whichever copy of the instance happens to come first.
+            WorldInstance chosen = null;
+            WorldInstance first = null;
             foreach (var world in worlds)
             {
                 if (world.DungeonInstance == null)
@@ -31,13 +35,22 @@ internal static class SysIndunIndexResolver
                 if (!world.Template.ZoneKeys.Contains(zoneKey))
                     continue;
 
-                instanceId = world.Id;
-                instanceIndex = world.ChannelId;
-                break;
+                first ??= world;
+                if (catalogInstId != 0 && world.Id == catalogInstId)
+                {
+                    chosen = world;
+                    break;
+                }
+            }
+
+            var match = chosen ?? first;
+            if (match != null)
+            {
+                instanceId = match.Id;
+                instanceIndex = match.ChannelId;
             }
         }
 
-        _ = catalogInstId;
         _ = dungeonZone;
 
         return new Reply(zoneKey, instanceId, instanceIndex);

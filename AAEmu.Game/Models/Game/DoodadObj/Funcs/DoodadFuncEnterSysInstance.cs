@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj.Templates;
@@ -34,9 +34,9 @@ public class DoodadFuncEnterSysInstance : DoodadFuncTemplate
         }
         else
         {
-            // TODO: Deal with channel dialog
-            // For now just enter the main instance as channel 0
-            IndunManager.Instance.RequestSystemInstance(character, ZoneId, 0, out _);
+            // Instances that offer channels open the client's picker on this list instead of entering: the
+            // player's choice comes back as the copy to enter, which the entry then follows.
+            IndunManager.Instance.SendChannelList(character, ZoneId);
         }
 
     }

@@ -49,11 +49,15 @@ public class CSEnterSysInstancePacket() : GamePacket(CSOffsets.CSEnterSysInstanc
             return;
         }
 
+        // The request names the instance but not the channel: the one the player picked in the channel list
+        // (resolved by CS 0x199) is what decides which copy they land in.
+        var channel = IndunManager.Instance.GetChannelChoice(character.Id)?.ChannelId ?? 0;
+
         Logger.Info(
-            "CSEnterSysInstance char={0} instances.id={1} zoneGroup={2} zoneId={3} bc={4}",
-            character.Name, InstId, dungeonZone.ZoneGroupId, zone.Id, Bc);
+            "CSEnterSysInstance char={0} instances.id={1} zoneGroup={2} zoneId={3} bc={4} channel={5}",
+            character.Name, InstId, dungeonZone.ZoneGroupId, zone.Id, Bc, channel);
 
         character.SendPacket(new SCProcessingInstancePacket((int)zone.ZoneKey));
-        IndunManager.Instance.RequestDungeonInstance(character, zone.Id, 0);
+        IndunManager.Instance.RequestDungeonInstance(character, zone.Id, (uint)channel);
     }
 }

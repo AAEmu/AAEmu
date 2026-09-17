@@ -67,4 +67,46 @@ public class SysIndunIndexResolverTests
         await Assert.That(reply.InstanceId).IsEqualTo(99u);
         await Assert.That(reply.InstanceIndex).IsEqualTo(7u);
     }
+
+    [Test]
+    public async Task Resolve_PrefersTheCopyTheClientPicked()
+    {
+        // The channel list hands out copy ids; the picker sends one back, and that copy's channel is the answer.
+        var worlds = new[]
+        {
+            MakeDungeonWorld(worldId: 42, channelId: 3, zoneKey: 280),
+            MakeDungeonWorld(worldId: 99, channelId: 7, zoneKey: 280)
+        };
+
+        var reply = SysIndunIndexResolver.Resolve(
+            requestZoneKey: 280,
+            catalogInstId: 42,
+            dungeonZone: new IndunZone { ZoneGroupId = 58 },
+            zoneKeysInGroup: [280u],
+            worlds);
+
+        await Assert.That(reply.InstanceId).IsEqualTo(42u);
+        await Assert.That(reply.InstanceIndex).IsEqualTo(3u);
+    }
+
+    [Test]
+    public async Task Resolve_FallsBackToTheFirstCopy_WhenThePickIsUnknown()
+    {
+        // A free-channel row carries no copy, so nothing matches and the first copy is the best answer there is.
+        var worlds = new[]
+        {
+            MakeDungeonWorld(worldId: 42, channelId: 3, zoneKey: 280),
+            MakeDungeonWorld(worldId: 99, channelId: 7, zoneKey: 280)
+        };
+
+        var reply = SysIndunIndexResolver.Resolve(
+            requestZoneKey: 280,
+            catalogInstId: 0,
+            dungeonZone: new IndunZone { ZoneGroupId = 58 },
+            zoneKeysInGroup: [280u],
+            worlds);
+
+        await Assert.That(reply.InstanceId).IsEqualTo(42u);
+        await Assert.That(reply.InstanceIndex).IsEqualTo(3u);
+    }
 }

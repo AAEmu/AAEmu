@@ -1,5 +1,6 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
@@ -89,6 +90,120 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
     {
         var dungeonZone = IndunGameData.Instance.GetDungeonZone(zoneManager.GetZoneById(zoneId).GroupId);
         return dungeonZone.SelectChannel;
+    }
+
+    /// <summary>
+    /// The channel each character last picked in the channel list, so the entry that follows knows which copy
+    /// to put them in. The client's enter request carries no channel of its own.
+    /// </summary>
+    private readonly Dictionary<uint, (uint ZoneKey, int ChannelId)> _channelChoices = [];
+
+    /// <summary>
+    /// Sends the channel list for a system instance. The client's picker opens on this packet — it never asks
+    /// for the list — so it goes out when the player reaches one of the instance's entrances.
+    /// </summary>
+    /// <param name="character">Who is at the entrance.</param>
+    /// <param name="zoneId">The instance zone they are entering (a <c>zones.id</c>).</param>
+    /// <returns>True when a list was sent.</returns>
+    public bool SendChannelList(Character character, uint zoneId)
+    {
+        if (character == null)
+            return false;
+
+        var zone = zoneManager.GetZoneById(zoneId);
+        if (zone == null)
+        {
+            Logger.Warn("SendChannelList: no zone {0} for {1}", zoneId, character.Name);
+            return false;
+        }
+
+        var dungeonZone = IndunGameData.Instance.GetDungeonZone(zone.GroupId);
+        if (dungeonZone == null)
+        {
+            Logger.Warn("SendChannelList: zone {0} (group {1}) is not an instance", zoneId, zone.GroupId);
+            return false;
+        }
+
+        var zoneKeys = zoneManager.GetZoneKeysInZoneGroupById(dungeonZone.ZoneGroupId);
+        if (zoneKeys == null || zoneKeys.Count == 0)
+        {
+            Logger.Warn("SendChannelList: zone group {0} has no zone keys", dungeonZone.ZoneGroupId);
+            return false;
+        }
+
+        var copies = GetChannelsOfZoneGroup(dungeonZone).ToList();
+
+        // These instances exist to spread players over several copies, so bring up the dimensions the list
+        // needs before offering it: a picker with nothing to pick from is not the feature. They are created
+        // without an owner, which is why nobody is queued into them.
+        foreach (var channel in SysIndunChannelRules.ChannelsToCreate(copies.Select(copy => copy.ChannelId)))
+        {
+            var created = CreateSystemInstance(null, zoneKeys[0], (uint)channel);
+            if (created?.World == null)
+            {
+                Logger.Warn("SendChannelList: could not create channel {0} of zone group {1}",
+                    channel, dungeonZone.ZoneGroupId);
+                continue;
+            }
+
+            copies.Add(new SysIndunChannel(
+                channel, created.World.Id, created.World.GetCharacterCount(), (int)dungeonZone.MaxPlayers));
+        }
+
+        var rows = SysIndunChannelRules.Build(copies, (int)dungeonZone.MaxPlayers);
+        character.SendPacket(new SCSysIndunStatPacket(dungeonZone.ZoneGroupId, rows));
+
+        Logger.Info("SendChannelList char={0} zoneGroup={1} instanceId={2} channels={3} capacity={4}",
+            character.Name, dungeonZone.ZoneGroupId, dungeonZone.InstanceCatalogId, rows.Count,
+            dungeonZone.MaxPlayers);
+        return true;
+    }
+
+    /// <summary>The copies of an instance that exist now, one row per channel.</summary>
+    private IEnumerable<SysIndunChannel> GetChannelsOfZoneGroup(IndunZone dungeonZone)
+    {
+        foreach (var zoneKey in zoneManager.GetZoneKeysInZoneGroupById(dungeonZone.ZoneGroupId))
+        {
+            foreach (var dungeon in GetExistingDungeonsByZoneKey(zoneKey))
+            {
+                var world = dungeon.World;
+                if (world == null)
+                    continue;
+
+                yield return new SysIndunChannel(
+                    (int)world.ChannelId, world.Id, world.GetCharacterCount(), (int)dungeonZone.MaxPlayers);
+            }
+        }
+    }
+
+    /// <summary>Remembers which channel a character picked, for the entry that follows.</summary>
+    public void RememberChannelChoice(uint characterId, uint zoneKey, int channelId)    {
+        lock (_lock)
+            _channelChoices[characterId] = (zoneKey, channelId);
+    }
+
+    /// <summary>The channel a character last picked, or null when they never opened the list.</summary>
+    public (uint ZoneKey, int ChannelId)? GetChannelChoice(uint characterId)
+    {
+        lock (_lock)
+            return _channelChoices.TryGetValue(characterId, out var choice) ? choice : null;
+    }
+
+    /// <summary>
+    /// The instance a world copy belongs to, by that copy's id — how a channel the client picked is traced
+    /// back to the zone it is a copy of.
+    /// </summary>
+    public IndunZone GetDungeonZoneOfCopy(uint worldId)
+    {
+        foreach (var worldInstance in worldManager.GetWorlds())
+        {
+            if (worldInstance.Id != worldId)
+                continue;
+
+            return worldInstance.DungeonInstance?._indunZone;
+        }
+
+        return null;
     }
 
     /// <summary>
