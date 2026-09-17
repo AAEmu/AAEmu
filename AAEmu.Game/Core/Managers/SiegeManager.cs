@@ -213,22 +213,42 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
     }
 
     /// <summary>
-    /// The gear score of a member who is not in the world.
+    /// The gear score of a member who is not in the world, scored from their stored equipment.
     /// </summary>
     /// <remarks>
-    /// This World scores gear from a character's equipment container, and a character who is not loaded has
-    /// none, so there is nothing to score here yet. <c>ItemManager.LoadPlayerInventory</c> looks like the way in
-    /// and is not: it is obsolete and reads the **in-memory item cache**, which only holds characters who are
-    /// loaded, so it answers an empty set for exactly the members this is for. The right one is the DB-backed
-    /// container accessor (<c>ItemManager.GetItemContainerForCharacter</c>), which is a follow-up: it has to be
-    /// wired into the score path rather than called beside it.
-    /// Reported as zero and logged rather than hidden — a member listed with no gear is a wrong number on
-    /// screen, and the log line says which member and why.
+    /// The equipment container is the DB-backed one — the accessor builds it for a character id and the
+    /// container loads its own rows, which is what makes this possible without the character being loaded. Not
+    /// <c>ItemManager.LoadPlayerInventory</c>: that one is obsolete and reads the in-memory item cache, which
+    /// holds only loaded characters, so it answers an empty set for exactly the members this is for.
+    /// Scored with the same per-piece calculation a live character's total uses, so a member's number does not
+    /// change depending on whether they are online.
     /// </remarks>
     private static uint OfflineGearScore(uint characterId)
     {
-        Logger.Warn("Gear score of offline character {0} is unknown - listed as 0", characterId);
-        return 0;
+        try
+        {
+            var equipment = ItemManager.Instance.GetItemContainerForCharacter(characterId,
+                Models.Game.Items.SlotType.Equipment, null, 0);
+            if (equipment == null)
+            {
+                Logger.Warn("No equipment container for offline character {0} - gear score listed as 0", characterId);
+                return 0;
+            }
+
+            double total = 0;
+            foreach (var item in equipment.Items)
+            {
+                if (item != null)
+                    total += GearScoreCalculator.EvaluateItem(item);
+            }
+
+            return (uint)Math.Max(0, (int)Math.Round(total));
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, "Could not score the gear of offline character {0} - listed as 0", characterId);
+            return 0;
+        }
     }
 
     public void UnregisterFromRaidTeam(GameConnection connection, ushort zoneId)
