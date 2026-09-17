@@ -1,12 +1,15 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Rankings;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.RankTask;
 using MySql.Data.MySqlClient;
 using NLog;
@@ -58,6 +61,8 @@ public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) :
     {
         var now = DateTime.UtcNow;
         var written = 0;
+
+        written += PayEndedWindows(now, connection, transaction);
 
         foreach (var board in RankingGameData.Instance.Ranks)
         {
@@ -150,6 +155,135 @@ public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) :
 
         character.RankGamePointTotals.Clear();
         return pending.Count;
+    }
+
+    /// <summary>
+    /// Pays the boards whose window has ended since the last pass: the standings as they closed, the tier
+    /// each place falls in, and what that tier owes — by mail, with the notice the window listens for.
+    /// </summary>
+    /// <remarks>
+    /// A payout is recorded before it is granted, so a restart between the two pays a window once rather
+    /// than twice; the standings it was computed from stay in the store either way. Only the window that
+    /// closed most recently is paid: a server down for longer than one whole window leaves the older
+    /// windows unpaid rather than handing out several cycles' rewards in one pass at boot.
+    /// </remarks>
+    public int PayEndedWindows(DateTime nowUtc)
+    {
+        using var connection = MySQL.CreateConnection();
+        using var transaction = connection.BeginTransaction();
+        var paid = PayEndedWindows(nowUtc, connection, transaction);
+        transaction.Commit();
+        return paid;
+    }
+
+    /// <summary>The same payout pass on a caller's connection and transaction.</summary>
+    public int PayEndedWindows(DateTime nowUtc, MySqlConnection connection, MySqlTransaction transaction)
+    {
+        var paid = 0;
+        foreach (var board in RankingGameData.Instance.Ranks)
+        {
+            // A board with no cycle never ends, so it never pays.
+            if (board.ResetIntervalId == 0)
+                continue;
+
+            var previous = RankPayouts.Previous(board.ResetIntervalId, board.ResetDayOfWeekId,
+                RankingGameData.Instance.PeriodFor(board, nowUtc));
+            if (store.HasPayout(board.Id, previous.StartUtc))
+                continue;
+
+            var grants = RankPayouts.Plan(
+                board,
+                RankingGameData.Instance.TiersFor(board.Id),
+                RankScoreboard.Place(store.ReadBoard(board.Id, previous.StartUtc, SCRankSnapshotPacket.MaxEntries), board.PermitTie));
+
+            foreach (var grant in grants)
+                Grant(grant);
+
+            store.MarkPayout(board.Id, previous.StartUtc, nowUtc);
+            if (grants.Count > 0)
+                Logger.Info("Rankings: paid {0} place(s) of board {1} for the window that ended {2:u}",
+                    grants.Count, board.Id, previous.EndUtc);
+
+            paid += grants.Count;
+        }
+
+        return paid;
+    }
+
+    /// <summary>Hands one place its tier's item and currency, and tells a holder in world that it arrived.</summary>
+    private void Grant(RankRewardGrant grant)
+    {
+        var holder = WorldManager.Instance.GetAllCharacters()?.FirstOrDefault(c => c.Id == grant.HolderId);
+
+        if (grant.ItemId > 0 && grant.ItemCount > 0)
+        {
+            // The board is paid to whoever holds the place, so the holder is named from the character
+            // table when they are not in world.
+            var name = holder?.Name ?? NameManager.Instance.GetCharacterName((uint)grant.HolderId);
+            if (!string.IsNullOrEmpty(name))
+            {
+                var mail = new BaseMail
+                {
+                    // The client has no separate mail type for a ranking payout in this build; the notice
+                    // that the window reacts to is the reward-mail packet below.
+                    MailType = MailType.Normal,
+                    Title = "Ranking reward",
+                    ReceiverName = name
+                };
+                mail.Header.SenderName = "Rankings";
+                mail.Header.ReceiverId = (uint)grant.HolderId;
+                mail.Header.Status = MailStatus.Unread;
+                mail.Body.Text = $"Rank {grant.Position} on board {grant.RankId}.";
+                mail.Body.RecvDate = DateTime.UtcNow;
+
+                var item = ItemManager.Instance.Create(grant.ItemId, grant.ItemCount, (byte)grant.ItemGradeId, true);
+                if (item != null)
+                    mail.Body.Attachments.Add(item);
+
+                mail.Send();
+            }
+        }
+
+        if (grant.CurrencyId > 0 && grant.CurrencyAmount > 0 && holder != null)
+            PayCurrency(holder, grant);
+
+        if (holder?.Connection != null)
+            holder.SendPacket(new SCRankRewardMailPacket((int)grant.RankId));
+    }
+
+    /// <summary>
+    /// Pays a currency the game already has, as <c>enum_currencies</c> names it. A holder who is not in
+    /// world is paid the item by mail but not the currency, which has nowhere to land without them loaded.
+    /// </summary>
+    private static void PayCurrency(Character holder, RankRewardGrant grant)
+    {
+        switch ((ContentCurrencyType)grant.CurrencyId)
+        {
+            case ContentCurrencyType.Gold:
+            case ContentCurrencyType.GoldWithAaPoint:
+                holder.AddMoney(SlotType.Inventory, grant.CurrencyAmount);
+                break;
+            case ContentCurrencyType.AaPoint:
+                holder.AddAAPoint(SlotType.Inventory, grant.CurrencyAmount);
+                break;
+            case ContentCurrencyType.HonorPoint:
+                holder.ChangeGamePoints(GamePointKind.Honor, grant.CurrencyAmount);
+                break;
+            case ContentCurrencyType.LivingPoint:
+                holder.ChangeGamePoints(GamePointKind.Vocation, grant.CurrencyAmount);
+                break;
+            case ContentCurrencyType.ContributionPoint:
+                // Contribution belongs to the expedition a character is in, and the boards that pay it are
+                // the expedition boards, which have no values yet.
+                if (!ExpeditionManager.Instance.TryChangeContributionPoints(holder, grant.CurrencyAmount, false))
+                    Logger.Info("Rankings: contribution reward {0} not paid to {1} (no expedition)",
+                        grant.CurrencyAmount, holder.Name);
+                break;
+            default:
+                Logger.Info("Rankings: currency {0} not paid (board {1}, rank {2})",
+                    grant.CurrencyId, grant.RankId, grant.Position);
+                break;
+        }
     }
 
     /// <summary>The lines of one board, best first, each with the place it holds.</summary>

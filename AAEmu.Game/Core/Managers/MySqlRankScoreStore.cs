@@ -176,4 +176,29 @@ public sealed class MySqlRankScoreStore : IRankScoreStore
 
         return scores;
     }
+
+    public bool HasPayout(uint rankId, DateTime periodStartUtc)
+    {
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT EXISTS(SELECT 1 FROM rank_period_payouts WHERE rank_id=@rank AND period_start=@period)";
+        command.Parameters.AddWithValue("@rank", rankId);
+        command.Parameters.AddWithValue("@period", periodStartUtc);
+
+        return Convert.ToInt32(command.ExecuteScalar()) > 0;
+    }
+
+    public void MarkPayout(uint rankId, DateTime periodStartUtc, DateTime paidAtUtc)
+    {
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "INSERT INTO rank_period_payouts (rank_id, period_start, paid_at) VALUES (@rank, @period, @paid) " +
+            "ON DUPLICATE KEY UPDATE paid_at=VALUES(paid_at)";
+        command.Parameters.AddWithValue("@rank", rankId);
+        command.Parameters.AddWithValue("@period", periodStartUtc);
+        command.Parameters.AddWithValue("@paid", paidAtUtc);
+        command.ExecuteNonQuery();
+    }
 }

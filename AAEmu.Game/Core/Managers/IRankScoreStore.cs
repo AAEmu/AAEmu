@@ -32,4 +32,10 @@ public interface IRankScoreStore
     /// what is stored rather than from whoever happens to be in world.
     /// </summary>
     List<RankScore> ReadGamePointBoard(uint rankId, int kind, int method, DateTime periodStartUtc);
+
+    /// <summary>Whether a board's window has already been paid out.</summary>
+    bool HasPayout(uint rankId, DateTime periodStartUtc);
+
+    /// <summary>Records that a board's window has been paid, so it is paid once.</summary>
+    void MarkPayout(uint rankId, DateTime periodStartUtc, DateTime paidAtUtc);
 }

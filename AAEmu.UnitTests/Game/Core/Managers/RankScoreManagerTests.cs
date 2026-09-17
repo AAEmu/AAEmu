@@ -130,6 +130,10 @@ public class RankScoreManagerTests
                 INSERT INTO game_point_rank_details VALUES (47, 3, 1);
                 CREATE TABLE rank_resets (id INTEGER, reset_interval_id INTEGER, day_of_week_id INTEGER);
                 INSERT INTO rank_resets VALUES (42, 2, 8);
+                CREATE TABLE rank_tiers (id INTEGER, rank_id INTEGER, is_local BOOLEAN, scope_from INTEGER, scope_to INTEGER,
+                                         reward_item_id INTEGER, reward_item_count INTEGER, reward_item_grade_id INTEGER,
+                                         currency_id INTEGER, currency_amount INTEGER);
+                INSERT INTO rank_tiers VALUES (1, 42, 0, 1, 1, 0, 0, 0, 0, 0);
                 """;
             command.ExecuteNonQuery();
         }
@@ -224,12 +228,48 @@ public class RankScoreManagerTests
         await Assert.That(store.Operations).IsEmpty();
     }
 
+    [Test]
+    public async Task PayEndedWindows_RecordsTheWindowItPaid()
+    {
+        var store = new InMemoryStore();
+        var manager = new RankScoreManager(store, Mock.Of<ITaskManager>().Object);
+        using var data = SeededBoard(permitTie: false);
+
+        manager.PayEndedWindows(DateTime.UtcNow, null, null);
+
+        var board = RankingGameData.Instance.GetBoard(42);
+        var previous = RankPayouts.Previous(board.ResetIntervalId, board.ResetDayOfWeekId, RankingGameData.Instance.PeriodFor(board, DateTime.UtcNow));
+        await Assert.That(store.HasPayout(board.Id, previous.StartUtc)).IsTrue();
+    }
+
+    [Test]
+    public async Task PayEndedWindows_PaysAWindowOnceAndLeavesItAloneAfterwards()
+    {
+        var store = new InMemoryStore();
+        var manager = new RankScoreManager(store, Mock.Of<ITaskManager>().Object);
+        using var data = SeededBoard(permitTie: false);
+        var board = RankingGameData.Instance.GetBoard(42);
+        var previous = RankPayouts.Previous(board.ResetIntervalId, board.ResetDayOfWeekId, RankingGameData.Instance.PeriodFor(board, DateTime.UtcNow)).StartUtc;
+
+        // a standing in the window that has closed, and a board whose tiers carry no reward, so the pass
+        // exercises the bookkeeping rather than the mail it hands out
+        store.Rows.Add(Row(42, 900, holder: 5, period: previous));
+
+        manager.PayEndedWindows(DateTime.UtcNow, null, null);
+        manager.PayEndedWindows(DateTime.UtcNow, null, null);
+
+        await Assert.That(store.PayoutMarks.Count(pair => pair.RankId == 42 && pair.Period == previous)).IsEqualTo(1);
+    }
+
     private sealed class InMemoryStore : IRankScoreStore
     {
         public List<RankScore> Rows { get; } = [];
 
         /// <summary>What was asked of the store, in order, so a test can pin the order of a read and a write.</summary>
         public List<string> Operations { get; } = [];
+
+        /// <summary>The windows the manager has recorded as paid.</summary>
+        public List<(uint RankId, DateTime Period)> PayoutMarks { get; } = [];
 
         private readonly Dictionary<(ulong Character, int Kind, int Method, DateTime Period), long> _totals = [];
 
@@ -307,6 +347,16 @@ public class RankScoreManagerTests
             }
 
             return rows;
+        }
+
+        public bool HasPayout(uint rankId, DateTime periodStartUtc)
+        {
+            return PayoutMarks.Contains((rankId, periodStartUtc));
+        }
+
+        public void MarkPayout(uint rankId, DateTime periodStartUtc, DateTime paidAtUtc)
+        {
+            PayoutMarks.Add((rankId, periodStartUtc));
         }
     }
 }

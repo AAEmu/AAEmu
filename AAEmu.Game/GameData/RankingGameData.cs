@@ -34,6 +34,112 @@ public class RankDefinition
     public int ResetDayOfWeekId { get; set; } = RankPeriods.NoDay;
 }
 
+/// <summary>One tier of a board: the places it covers, and what a holder in it is paid.</summary>
+public class RankTier
+{
+    public uint Id { get; set; }
+    public uint RankId { get; set; }
+
+    /// <summary>Whether the tier covers places on this world only, or across the server.</summary>
+    public bool IsLocal { get; set; }
+
+    public int ScopeFrom { get; set; }
+    public int ScopeTo { get; set; }
+
+    /// <summary>The reward: an item at a grade, and/or a currency the game already has.</summary>
+    public uint RewardItemId { get; set; }
+    public int RewardItemCount { get; set; }
+    public int RewardItemGradeId { get; set; }
+
+    /// <summary>The currency paid, as <c>enum_currencies</c> names it; 0 when the tier pays none.</summary>
+    public uint CurrencyId { get; set; }
+
+    public int CurrencyAmount { get; set; }
+}
+
+/// <summary>One holder's place in a board and what it earns them.</summary>
+public sealed record RankRewardGrant(
+    RankHolderKind HolderKind,
+    ulong HolderId,
+    uint AccountId,
+    byte WorldId,
+    uint RankId,
+    uint Position,
+    uint TierId,
+    uint ItemId,
+    int ItemCount,
+    int ItemGradeId,
+    uint CurrencyId,
+    int CurrencyAmount);
+
+/// <summary>What a board's tiers hand out. Deciding a payout is kept apart from paying it.</summary>
+public static class RankPayouts
+{
+    /// <summary>The tier a place falls in, or null when the board gives that place no tier.</summary>
+    public static RankTier TierFor(IEnumerable<RankTier> tiers, uint position, bool isLocal)
+    {
+        if (tiers == null)
+            return null;
+
+        return tiers.FirstOrDefault(tier => tier.IsLocal == isLocal
+                                            && position >= tier.ScopeFrom
+                                            && position <= tier.ScopeTo);
+    }
+
+    /// <summary>
+    /// The window that ended when the given one opened, which is the one to pay out.
+    /// </summary>
+    /// <remarks>
+    /// Asked as "the window one second before this one opened" rather than by subtracting the current
+    /// window's length: a monthly window is a calendar month, and September's 30 days would put August's
+    /// start on the 2nd.
+    /// </remarks>
+    public static RankPeriod Previous(int resetIntervalId, int resetDayOfWeekId, RankPeriod current)
+    {
+        return RankPeriods.For(current.StartUtc.AddSeconds(-1), resetIntervalId, resetDayOfWeekId);
+    }
+
+    /// <summary>
+    /// What every placed holder of a board's finished window is owed: the item its tier names at the grade
+    /// the tier names, and the currency it names.
+    /// </summary>
+    public static List<RankRewardGrant> Plan(RankDefinition board, IReadOnlyList<RankTier> tiers,
+        IReadOnlyList<RankPlace> standings)
+    {
+        var grants = new List<RankRewardGrant>();
+        if (board == null || standings == null)
+            return grants;
+
+        foreach (var place in standings)
+        {
+            // The tiers of a place come in a local and a whole-server half, and the shipped local half
+            // carries no reward, so the server half is the one that pays. One world is a whole server.
+            var tier = TierFor(tiers, place.Position, isLocal: false);
+            if (tier == null)
+                continue;
+
+            if (tier.RewardItemId == 0 && tier.CurrencyId == 0)
+                continue;
+
+            grants.Add(new RankRewardGrant(
+                place.Score.HolderKind,
+                place.Score.HolderId,
+                place.Score.AccountId,
+                place.Score.WorldId,
+                board.Id,
+                place.Position,
+                tier.Id,
+                tier.RewardItemId,
+                tier.RewardItemCount,
+                tier.RewardItemGradeId,
+                tier.CurrencyId,
+                tier.CurrencyAmount));
+        }
+
+        return grants;
+    }
+}
+
 /// <summary>What a board counts, and the floor a value has to reach to be counted at all.</summary>
 public class RankGate
 {
@@ -73,6 +179,7 @@ public class RankingGameData : Singleton<RankingGameData>, IGameDataLoader
     private readonly Dictionary<uint, string> _detailTypes = [];
     private readonly Dictionary<uint, RankGate> _gates = [];
     private readonly Dictionary<uint, (int Kind, int Method)> _gamePointCounters = [];
+    private readonly Dictionary<uint, List<RankTier>> _tiersByRank = [];
 
     public void Load(SqliteConnection connection)
     {
@@ -160,11 +267,47 @@ public class RankingGameData : Singleton<RankingGameData>, IGameDataLoader
             }
         }
 
-        Logger.Info("Rankings: {0} boards loaded, {1} of them gear score, {2} of them gated, {3} counting a period total",
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText =
+                "SELECT id, rank_id, is_local, scope_from, scope_to, reward_item_id, reward_item_count, " +
+                "reward_item_grade_id, currency_id, currency_amount FROM rank_tiers";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var tier = new RankTier
+                {
+                    Id = reader.GetUInt32("id"),
+                    RankId = reader.GetUInt32("rank_id"),
+                    IsLocal = reader.GetBoolean("is_local"),
+                    ScopeFrom = reader.GetInt32("scope_from", 0),
+                    ScopeTo = reader.GetInt32("scope_to", 0),
+                    RewardItemId = reader.GetUInt32("reward_item_id", 0),
+                    RewardItemCount = reader.GetInt32("reward_item_count", 0),
+                    RewardItemGradeId = reader.GetInt32("reward_item_grade_id", 0),
+                    CurrencyId = reader.GetUInt32("currency_id", 0),
+                    CurrencyAmount = reader.GetInt32("currency_amount", 0)
+                };
+
+                if (!_tiersByRank.TryGetValue(tier.RankId, out var tiers))
+                {
+                    tiers = [];
+                    _tiersByRank[tier.RankId] = tiers;
+                }
+
+                tiers.Add(tier);
+            }
+        }
+
+        Logger.Info("Rankings: {0} boards loaded, {1} of them gear score, {2} of them gated, {3} counting a period total, {4} tiers over {5} boards",
             _ranks.Count,
             _ranks.Values.Count(rank => rank.DetailType == GearScoreDetailType),
             _gates.Count,
-            _gamePointCounters.Count);
+            _gamePointCounters.Count,
+            _tiersByRank.Values.Sum(tiers => tiers.Count),
+            _tiersByRank.Count);
     }
 
     private RankGate Gate(uint rankId)
@@ -223,6 +366,12 @@ public class RankingGameData : Singleton<RankingGameData>, IGameDataLoader
     public (int Kind, int Method)? GamePointCounterOf(RankDefinition board)
     {
         return board != null && _gamePointCounters.TryGetValue(board.Id, out var counter) ? counter : null;
+    }
+
+    /// <summary>The tiers of a board, which are the places it pays for. Empty when it pays none.</summary>
+    public IReadOnlyList<RankTier> TiersFor(uint rankId)
+    {
+        return _tiersByRank.TryGetValue(rankId, out var tiers) ? tiers : [];
     }
 
     /// <summary>The boards whose value kind is the one asked for, in the table's display order.</summary>
