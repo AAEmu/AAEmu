@@ -37,13 +37,13 @@ public sealed class AchievementManagerTests : SqliteTestBase
     private const uint SubCategoryRecord = 720;
     private const uint LiveChildRecord = 750;
     private const uint SeasonOffChildRecord = 751;
-    private const uint ChainRecord = 760;
-    private const uint ChainCompletionRecord = 761;
+    private const uint ChainRecord = 780;
+    private const uint ChainCompletionRecord = 781;
 
     /// <summary>
-    /// How many achievements the seeded content holds: achievements 1 to 16 less 9, plus the chain pair.
+    /// How many achievements the seeded content holds: achievements 1 to 21 less 9, plus the chain pair.
     /// </summary>
-    private const int ContentAchievements = 17;
+    private const int ContentAchievements = 22;
 
     /// <summary>Enough spare content that a full list needs more than one packet of fifty.</summary>
     private const int FillerAchievements = 60;
@@ -429,6 +429,72 @@ public sealed class AchievementManagerTests : SqliteTestBase
         await Assert.That(_character.Achievements.IsComplete(14)).IsTrue();
     }
 
+    [Test]
+    public async Task EarningAnAchievement_CreditsWhatItPreCompletes()
+    {
+        // Achievement 18 requires 10 of its record; earning it credits 17 (5 of the same record) and 19 pays
+        // a title of its own, so the credit has to reach both the completion and the reward.
+        _character.Appellations = new CharacterAppellations(_character);
+
+        AchievementManager.Instance.Report(_character, 760, 10);
+
+        await Assert.That(_character.Achievements.IsComplete(18)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(17)).IsTrue();
+        await Assert.That(_character.Records.Get(760)).IsEqualTo(10);
+        await Assert.That(_character.Appellations.Appellations).Contains(6002u);
+
+        // Achievement 19 is credited by 17, so the ladder runs one more step.
+        await Assert.That(_character.Achievements.IsComplete(19)).IsTrue();
+    }
+
+    [Test]
+    public async Task CreditedAchievementIsCompleteWithoutMeetingItsObjectives()
+    {
+        // 17's own record is never reported: the credit completes it outright, and does not invent a value
+        // for the record it watches.
+        AchievementManager.Instance.Report(_character, 760, 10);
+
+        await Assert.That(_character.Achievements.IsComplete(17)).IsTrue();
+        await Assert.That(_character.Records.Get(761)).IsEqualTo(0);
+        await Assert.That(_character.Achievements.Amount(17)).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task BackCredit_AppliesOnEntryToWhatWasEarnedBefore()
+    {
+        // A character who already held 18 when this shipped: the credit is applied by the entry pass, and
+        // once only however many times that pass runs.
+        _character.Appellations = new CharacterAppellations(_character);
+        _character.Achievements.Complete(18, DateTime.UtcNow);
+
+        await Assert.That(AchievementManager.Instance.RefreshAll(_character)).IsGreaterThanOrEqualTo(2);
+        await Assert.That(_character.Achievements.IsComplete(17)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(19)).IsTrue();
+        await Assert.That(_character.Appellations.Appellations.Count).IsEqualTo(1);
+
+        await Assert.That(AchievementManager.Instance.RefreshAll(_character)).IsEqualTo(0);
+        await Assert.That(_character.Appellations.Appellations.Count).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task BackCredit_ToleratesARuleCycle()
+    {
+        // 20 and 21 credit each other; the walk must terminate and complete both.
+        _character.Achievements.Complete(20, DateTime.UtcNow);
+        AchievementManager.Instance.RefreshAll(_character);
+
+        await Assert.That(_character.Achievements.IsComplete(21)).IsTrue();
+    }
+
+    [Test]
+    public async Task ForcedCompletion_CreditsWhatItPreCompletes()
+    {
+        await Assert.That(AchievementManager.Instance.Complete(_character, 18)).IsTrue();
+
+        await Assert.That(_character.Achievements.IsComplete(17)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(19)).IsTrue();
+    }
+
     private IEnumerable<ushort> SentOpcodes() =>
         _sentPackets.Select(bytes => BitConverter.ToUInt16(bytes, 6));
 
@@ -492,12 +558,27 @@ public sealed class AchievementManagerTests : SqliteTestBase
         InsertAchievement(16, 1, "t", "Season-off child", seasonOff: true);
         InsertObjective(16, 17, 741);
 
+        // Achievements 17 to 19: a back-credit ladder. Earning 18 credits 17, which credits 19, and 17's own
+        // record is never touched — the credit is what completes it.
+        InsertAchievement(17, 5, "f", "Tier below");
+        InsertObjective(17, 18, 761);
+        InsertAchievement(18, 10, "f", "Tier above");
+        InsertObjective(18, 19, 760);
+        InsertAchievement(19, 1, "t", "Pays for the ladder", appellationId: 6002);
+        InsertObjective(19, 20, 770);
+
+        // Achievements 20 and 21: a rule cycle, to prove the walk terminates.
+        InsertAchievement(20, 1, "t", "Cycle one");
+        InsertObjective(20, 21, 771);
+        InsertAchievement(21, 1, "t", "Cycle two");
+        InsertObjective(21, 22, 772);
+
         // Achievements 30 and 31: a chain whose parent is the lower id, the way 2,173 of the content's 3,259
         // completion links run. The parent is checked before the child that completes it.
         InsertAchievement(30, 1, "t", "Earn the chain child");
-        InsertObjective(30, 20, ChainCompletionRecord);
+        InsertObjective(30, 30, ChainCompletionRecord);
         InsertAchievement(31, 3, "f", "Reach the chain target");
-        InsertObjective(31, 21, ChainRecord);
+        InsertObjective(31, 31, ChainRecord);
 
         // Spare counting achievements on the same record: each is complete on its first kill.
         for (var i = 0; i < FillerAchievements; i++)
@@ -526,9 +607,24 @@ public sealed class AchievementManagerTests : SqliteTestBase
         InsertRecord(731, 25, 11, 0);                       // achievement 16's record
         InsertRecord(LiveChildRecord, 9, 15, 0);            // completing achievement 15
         InsertRecord(SeasonOffChildRecord, 9, 16, 0);       // completing achievement 16 (switched off)
-        InsertRecord(ChainRecord, 25, 12, 0);               // the chain child's own objective
+        InsertRecord(760, 25, 12, 0);                       // achievement 18's record
+        InsertRecord(761, 25, 13, 0);                       // achievement 17's record (credit only)
+        InsertRecord(770, 25, 14, 0);                       // achievement 19's record
+        InsertRecord(771, 25, 15, 0);                       // achievement 20's record
+        InsertRecord(772, 25, 16, 0);                       // achievement 21's record
+        InsertRecord(ChainRecord, 25, 20, 0);               // the chain child's own objective
         InsertRecord(ChainCompletionRecord, 9, 31, 0);      // completing achievement 31
+
+        // The back-credit rules: earning these credits those.
+        InsertPreCompleted(earned: 18, credited: 17);
+        InsertPreCompleted(earned: 17, credited: 19);
+        InsertPreCompleted(earned: 20, credited: 21);
+        InsertPreCompleted(earned: 21, credited: 20);
     }
+
+    private void InsertPreCompleted(uint earned, uint credited) =>
+        Execute($"INSERT INTO pre_completed_achievements (my_achievement_id, completed_achievement_id) " +
+                $"VALUES ({earned}, {credited})");
 
     private void InsertAchievement(uint id, int completeNum, string completeOr, string name,
         uint appellationId = 0, uint subCategoryId = 1, uint itemId = 0, uint itemNum = 0, bool seasonOff = false) =>
