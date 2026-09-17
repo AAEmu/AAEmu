@@ -29,7 +29,9 @@ public class CSAnswerBotCheckInfoPacket() : GamePacket(CSOffsets.CSAnswerBotChec
 
         if (!character.BotCheck.RecordAnswer())
         {
-            Logger.Warn("Bot check: {0} answered '{1}' with no check pending", character.Name, Answer);
+            // Nothing grants a check yet - the quiz flow's question packet is not identified - so an answer
+            // arriving with nothing pending is the state every answer is in, not an anomaly to warn about.
+            Logger.Debug("Bot check: {0} answered '{1}' with no check pending", character.Name, Answer);
             return;
         }
 
