@@ -47,6 +47,15 @@ public readonly record struct SkillRequirement(bool OnTarget, uint BuffId, uint 
 /// are both prohibitions, and only the first names a state the player cannot act in at all. The four
 /// exceptions above are therefore recorded by id, next to the skills that justify them, rather than
 /// inferred from wording.</para>
+///
+/// <para>Requirement 25 was checked in game. It names the Nui peace-zone buff 2149. With the mount-summon
+/// skill 32211 the cast succeeds on the live server while that buff is absent — tested with the zone state
+/// set to War (6), which is not a peace area, and again with it set to Peace (7); both spawned the mount
+/// (<c>MateManager - Mount spawned</c>). So the row does not require the buff, and reading
+/// <c>default_result='f'</c> as "the unit must carry this buff or tag" — what PR #1600 shipped — blocks
+/// the summon in exactly the peace zone the player is standing in, with that row's own message. The four
+/// rows above are the only ones that survived that check as genuine requirements; each is a state the
+/// player is barred from acting in, and its skill exists to be used there.</para>
 /// </remarks>
 public static class SkillRequirementRules
 {
@@ -55,18 +64,23 @@ public static class SkillRequirementRules
     /// the player is otherwise barred from acting in, and the skills it gates exist to be used in it:
     /// <list type="bullet">
     /// <item><description>15 — tag 294 날틀 비행중 (gliding): the glider skills, e.g. 17657 날틀 접기,
-    /// 13440 날틀 난사. Verified: tag 294 carries no skills of its own, so these 301 skills reach the row
-    /// only through <c>skill_req_skills</c>.</description></item>
+    /// 13440 날틀 난사. Tag 294 carries no skills of its own, so these 301 skills reach the row only
+    /// through <c>skill_req_skills</c>.</description></item>
     /// <item><description>37 — tag 371 말 부상 넘어짐 (a downed mount): the skills that revive it.</description></item>
     /// <item><description>58 — tag 4981 구속 (기술 사용X): 자유 (Freedom, 20982), 강인한 의지 (11429),
     /// 생명력 발산 (10645) — break-free skills, castable only while restrained.</description></item>
     /// <item><description>59 — tag 12 공포 (fear): 강인한 의지 (11429) again, which carries 58 and 59
     /// together. Reading those as AND would demand restraint and fear at once.</description></item>
     /// </list>
+    /// <para>Each row above is here because the skills it names only make sense in the named state, which
+    /// is checked against the content rather than assumed. None of the four has been exercised in game —
+    /// there is no glider in the test inventory and nothing applies restraint — so they keep PR #1600's
+    /// behaviour and are unregressed rather than verified.</para>
     /// <para>Requirement 105 (tag 911 날틀 착지, landing) is deliberately <i>not</i> here. It rides on the
     /// mount-summon skill 32211 as well, and reading it as a require row allows summoning only while the
     /// player is landing — verified in game, that is the row the summon fails on once 25 is read
-    /// correctly.</para>
+    /// correctly. Requirement 25 is not here either: it was tested and does not require its buff, see the
+    /// class remarks.</para>
     /// </summary>
     public static readonly IReadOnlySet<uint> RequireRowsByDesign = new HashSet<uint> { 15, 37, 58, 59 };
 
