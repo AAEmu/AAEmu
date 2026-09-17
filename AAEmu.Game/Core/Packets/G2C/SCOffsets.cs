@@ -634,7 +634,13 @@ public static class SCOffsets
     public const ushort SCDropQuestsByFactionChangePacket = 0x343;
     public const ushort SCDumpGachaRecordPacket = 0x2E4;
     public const ushort SCElectSiegeRaidOwnerPacket = 0x32F;
+    public const ushort SCEnsembleSuggestedPacket = 0x25C;
+    public const ushort SCEnsembleRejectPacket = 0x25D;
+    public const ushort SCEnsembleStartedPacket = 0x25E;
     public const ushort SCEnsembleMidiBinReadyPacket = 0x25F;
+    public const ushort SCStartToPerformAnEnsemblePacket = 0x260;
+    public const ushort SCEnsembleCanceledPacket = 0x262;
+    public const ushort SCDeleteEnsembleSoundPacket = 0x263;
     public const ushort SCExpdWarHistoriesPacket = 0x1E;
     public const ushort SCExpeditionApplicantAcceptPacket = 0x45;
     public const ushort SCExpeditionApplicantAddPacket = 0x43;
