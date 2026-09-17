@@ -31,4 +31,24 @@ public class SlaveEquipRulesTests
 
         await Assert.That(SlaveEquipRules.PositionTakesKind(kinds, 0)).IsFalse();
     }
+
+    [Test]
+    public async Task PackAllowed_TakesOnlyThePacksTheSlaveLists()
+    {
+        var allowed = new HashSet<uint> { 8, 17 };
+
+        await Assert.That(SlaveEquipRules.PackAllowed(8, allowed)).IsTrue();
+        await Assert.That(SlaveEquipRules.PackAllowed(17, allowed)).IsTrue();
+        await Assert.That(SlaveEquipRules.PackAllowed(20, allowed)).IsFalse();
+    }
+
+    [Test]
+    public async Task PackAllowed_SaysNothingForAnItemInNoPackOrASlaveWithNoList()
+    {
+        // an item that belongs to no pack, or a slave allow_to_equip_slaves says nothing about, is left to
+        // the position's own rule rather than turned away here
+        await Assert.That(SlaveEquipRules.PackAllowed(0, new HashSet<uint> { 8 })).IsTrue();
+        await Assert.That(SlaveEquipRules.PackAllowed(8, [])).IsTrue();
+        await Assert.That(SlaveEquipRules.PackAllowed(8, null)).IsTrue();
+    }
 }

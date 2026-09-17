@@ -166,14 +166,16 @@ public class EquipmentContainer : ItemContainer
             }
 
             // Which kinds a ship's position takes is the tables' (slave_equip_kind_lists, named by the
-            // position's slave_equip_slots row, against the item's own slave_equip_kind_id). A part whose
-            // kind the position does not list stays out rather than being mounted and never drawn.
+            // position's slave_equip_slots row, against the item's own slave_equip_kind_id), and which
+            // packs a ship may use at all is allow_to_equip_slaves against the item's
+            // item_slave_equipments pack. A part the ship does not take stays out rather than being
+            // mounted and never drawn.
             if (ParentUnit is Slave ship &&
-                !SlaveGameData.Instance.PositionTakesItem(ship.TemplateId, (byte)targetSlot, item.TemplateId))
+                !SlaveGameData.Instance.SlaveAcceptsItem(ship.TemplateId, (byte)targetSlot, item.TemplateId))
             {
                 Logger.Warn(
                     $"{ship.Name} cannot take {item.Template?.Name} ({item.TemplateId}) in position {targetSlot}: " +
-                    $"its kind {SlaveGameData.Instance.GetItemSlaveEquipKind(item.TemplateId)} is not one this position lists");
+                    $"its kind {SlaveGameData.Instance.GetItemSlaveEquipKind(item.TemplateId)} or its pack is not one this ship allows");
                 return false;
             }
 

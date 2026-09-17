@@ -20,4 +20,16 @@ public static class SlaveEquipRules
 
         return itemKind != 0 && slotKinds.Contains(itemKind);
     }
+
+    /// <summary>
+    /// Whether a slave may use an item's equipment pack. An item that belongs to no pack, or a slave the
+    /// table says nothing about, is left to the position's own rule rather than turned away here.
+    /// </summary>
+    public static bool PackAllowed(uint itemPackId, IReadOnlyCollection<uint> slavePacks)
+    {
+        if (itemPackId == 0 || slavePacks == null || slavePacks.Count == 0)
+            return true;
+
+        return slavePacks.Contains(itemPackId);
+    }
 }
