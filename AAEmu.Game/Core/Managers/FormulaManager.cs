@@ -66,7 +66,9 @@ public class FormulaManager : Singleton<FormulaManager>, IFormulaManager
 
     public Formula GetFormula(uint id)
     {
-        return _formulas.TryGetValue(id, out var value) ? value : null;
+        // Guarded like GetUnitFormula: a process that never ran Load has no table at all, and a caller
+        // asking for a content row should get "absent" rather than a NullReferenceException.
+        return _formulas != null && _formulas.TryGetValue(id, out var value) ? value : null;
     }
 
     public FormulaFuncTemplate GetFormulaFunc(uint id)

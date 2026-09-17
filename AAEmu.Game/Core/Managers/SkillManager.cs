@@ -41,6 +41,10 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     private Dictionary<uint, List<uint>> _taggedBuffs = [];
     private Dictionary<uint, List<uint>> _skillTags = [];
     private Dictionary<uint, List<uint>> _taggedSkills = [];
+    /// <summary>skill_reqs rows per skill id, from <c>skill_req_skills</c> and <c>skill_req_skill_tags</c>.</summary>
+    private readonly Dictionary<uint, List<SkillRequirement>> _skillRequirements = [];
+    /// <summary>skill_synergy_buff_tags per skill id.</summary>
+    private readonly Dictionary<uint, List<uint>> _synergyTags = [];
     // tagged_immune_buffs / tagged_require_buffs, keyed by the buff that carries the row. Both tables
     // are tiny (2 645 / 309 rows) and were previously loaded nowhere, which made Buffs.CheckBuffImmune
     // a no-op and every tagged_require_buffs prerequisite unenforced.
@@ -246,6 +250,101 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     public List<uint> GetSkillTags(uint skillId)
     {
         return _skillTags.TryGetValue(skillId, out var tags) ? tags : [];
+    }
+
+    /// <summary>
+    /// The <c>skill_reqs</c> rows a skill carries, or an empty list. See
+    /// <see cref="SkillRequirementRules"/> for what they mean.
+    /// </summary>
+    public IReadOnlyList<SkillRequirement> GetSkillRequirements(uint skillId)
+    {
+        return _skillRequirements.TryGetValue(skillId, out var requirements) ? requirements : [];
+    }
+
+    /// <summary>
+    /// Loads <c>skill_reqs</c>, <c>skill_req_skills</c> and <c>skill_req_skill_tags</c>. The tag links are
+    /// expanded against the already-loaded <c>tagged_skills</c>, so this runs after them.
+    /// </summary>
+    private void LoadSkillRequirements()
+    {
+        using var connection = SQLite.CreateConnection();
+        _skillRequirements.Clear();
+        var requirementTemplates = new Dictionary<uint, SkillRequirement>();
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM skill_reqs";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var id = reader.GetUInt32("id", 0);
+                    var buffTagId = reader.GetUInt32("buff_tag_id", 0);
+                    requirementTemplates[id] = new SkillRequirement(
+                        OnTarget: reader.GetBoolean("target", true),
+                        BuffId: reader.GetUInt32("buff_id", 0),
+                        BuffTagId: buffTagId,
+                        // default_result='f' means the unit must carry the buff or tag; 't' means it must
+                        // not. See SkillRequirementRules for the content evidence.
+                        Require: !reader.GetBoolean("default_result", true),
+                        Message: reader.GetString("message", string.Empty));
+                }
+            }
+        }
+
+        void AddRequirement(uint skillId, SkillRequirement requirement)
+        {
+            if (skillId == 0 || !_skills.ContainsKey(skillId))
+                return;
+
+            if (!_skillRequirements.TryGetValue(skillId, out var requirements))
+                _skillRequirements[skillId] = requirements = [];
+            if (!requirements.Contains(requirement))
+                requirements.Add(requirement);
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM skill_req_skills";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    if (!requirementTemplates.TryGetValue(reader.GetUInt32("skill_req_id", 0), out var requirement))
+                        continue;
+
+                    AddRequirement(reader.GetUInt32("skill_id", 0), requirement);
+                }
+            }
+        }
+
+        var tagLinked = 0;
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM skill_req_skill_tags";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    if (!requirementTemplates.TryGetValue(reader.GetUInt32("skill_req_id", 0), out var requirement))
+                        continue;
+
+                    var skillTagId = reader.GetUInt32("skill_tag_id", 0);
+                    foreach (var skillId in GetSkillsByTag(skillTagId))
+                    {
+                        AddRequirement(skillId, requirement);
+                        tagLinked++;
+                    }
+                }
+            }
+        }
+
+        Logger.Info(
+            "Skill requirements loaded: {0} skill_reqs rows on {1} skills ({2} links through skill tags)",
+            requirementTemplates.Count, _skillRequirements.Count, tagLinked);
     }
 
     /// <summary>
@@ -561,6 +660,10 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         template.SkipQuestApplyUseItem = reader.GetBoolean("skip_quest_apply_use_item", false);
                         template.CalcUserLevel = reader.GetBoolean("calc_user_level", false);
                         template.CastingUseable = reader.GetBoolean("casting_useable", false);
+                        // check_obstacle (24,943 rows) and projectile_id (1,935) were never loaded; see
+                        // SkillTemplate for why neither is enforced.
+                        template.CheckObstacle = reader.GetBoolean("check_obstacle", true);
+                        template.ProjectileId = reader.GetUInt32("projectile_id", 0);
                         template.SkipValidateSource = reader.GetBoolean("skip_validate_source", false);
                         template.CharRaceId = reader.GetInt32("char_race_id", 0);
                         template.MaxCombatResource = reader.GetInt32("max_combat_resource", 0);
@@ -569,6 +672,8 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         template.SwitchToSkillCooldown = reader.GetBoolean("switch_to_skill_cooldown", false);
                         template.SecondCooldownTagId = reader.GetInt32("second_cooldown_tag_id", 0);
                         template.ThirdCooldownTagId = reader.GetInt32("third_cooldown_tag_id", 0);
+                        template.CooldownTags = SkillCooldownGateRules.CooldownTags(
+                            template.CooldownTagId, template.SecondCooldownTagId, template.ThirdCooldownTagId);
                         template.IsDropableBackpack = reader.GetBoolean("is_dropable_backpack", false);
                         template.ChargeCount = reader.GetInt32("charge_count", 0);
                         template.ChargeCooldownTime = reader.GetInt32("charge_cooldown_time", 0);
@@ -2178,6 +2283,24 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         template.AlwaysHit = reader.GetBoolean("always_hit", true);
                         template.ItemSetId = reader.GetUInt32("item_set_id", 0);
                         template.InteractionSuccessHit = reader.GetBoolean("interaction_success_hit", true);
+                        // v10 per-effect gates. See SkillCombatResourceRules for what each one means and
+                        // which of them the shipped content actually uses.
+                        template.StartCombatResource = reader.GetInt32("start_combat_resource", 0);
+                        template.EndCombatResource = reader.GetInt32("end_combat_resource", 0);
+                        template.TargetCombatResourceId = reader.GetUInt32("target_combat_resource_id", 0);
+                        template.ExcuteEffectOnFire = reader.GetBoolean("excute_effect_on_fire", false);
+                        template.StartCastingUseChance = reader.GetInt32("start_casting_use_chance", 1);
+                        template.EndCastingUseChance = reader.GetInt32("end_casting_use_chance", 100);
+                        template.CheckTargetTagSrc = reader.GetBoolean("check_target_tag_src", false);
+                        template.CheckNoTargetTagSrc = reader.GetBoolean("check_no_target_tag_src", false);
+                        template.SourceBuffStackCountMin = reader.GetInt32("source_buff_stack_count_min", 0);
+                        template.SourceBuffStackCountMax = reader.GetInt32("source_buff_stack_count_max", 0);
+                        template.TargetBuffStackCountMin = reader.GetInt32("target_buff_stack_count_min", 0);
+                        template.TargetBuffStackCountMax = reader.GetInt32("target_buff_stack_count_max", 0);
+                        template.SourceExceptBuffStackCountMin = reader.GetInt32("source_except_buff_stack_count_min", 0);
+                        template.SourceExceptBuffStackCountMax = reader.GetInt32("source_except_buff_stack_count_max", 0);
+                        template.TargetExceptBuffStackCountMin = reader.GetInt32("target_except_buff_stack_count_min", 0);
+                        template.TargetExceptBuffStackCountMax = reader.GetInt32("target_except_buff_stack_count_max", 0);
                         _skills[skillId].Effects.Add(template);
                     }
 
@@ -2444,6 +2567,38 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                     }
                 }
             }
+
+            // skill_reqs + skill_req_skills + skill_req_skill_tags. Loaded after tagged_skills because the
+            // tag links resolve to every skill carrying the tag.
+            LoadSkillRequirements();
+
+            // skill_synergy_buff_tags: the target states that unlock a skill's synergy damage effects.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM skill_synergy_buff_tags";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var skillId = reader.GetUInt32("skill_id", 0);
+                        var tagId = reader.GetUInt32("tag_id", 0);
+                        if (skillId == 0 || tagId == 0 || !_skills.TryGetValue(skillId, out var template))
+                            continue;
+
+                        if (!_synergyTags.TryGetValue(skillId, out var tags))
+                            _synergyTags[skillId] = tags = [];
+                        if (!tags.Contains(tagId))
+                            tags.Add(tagId);
+                    }
+                }
+            }
+
+            foreach (var (skillId, tags) in _synergyTags)
+                _skills[skillId].SynergyBuffTags = [.. tags];
+
+            Logger.Info("Skill synergy tags loaded: {0} tags on {1} skills",
+                _synergyTags.Sum(entry => entry.Value.Count), _synergyTags.Count);
 
             using (var command = connection.CreateCommand())
             {

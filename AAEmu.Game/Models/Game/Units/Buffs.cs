@@ -304,6 +304,53 @@ public class Buffs : IBuffs
         return false;
     }
 
+    /// <summary>
+    /// Total stacks of the owner's active buffs carrying <paramref name="tagId"/>. Used by the
+    /// <c>skill_effects.*_buff_stack_count_min/max</c> gates, where skills 49770/49864/49943/50072 carry one
+    /// effect row per stack band of the same tag (1..4, 5..15, 10..15).
+    /// </summary>
+    public int GetStackCountByTagId(uint tagId)
+    {
+        var buffs = SkillManager.Instance.GetBuffsByTagId(tagId);
+        if (buffs == null)
+            return 0;
+
+        IEnumerable<Buff> effects;
+        lock (_lock)
+        {
+            effects = _effects.ToArray();
+        }
+
+        var total = 0;
+        foreach (var effect in effects.ToList())
+            if (effect != null && buffs.Contains(effect.Template.BuffId))
+                total += Math.Max(1, effect.Stack);
+
+        return total;
+    }
+
+    /// <summary>
+    /// Total stacks of the owner's active buffs that do <i>not</i> carry <paramref name="tagId"/> — the
+    /// <c>*_except_buff_stack_count_*</c> half of the same gates.
+    /// </summary>
+    public int GetStackCountExceptTagId(uint tagId)
+    {
+        var tagged = SkillManager.Instance.GetBuffsByTagId(tagId);
+
+        IEnumerable<Buff> effects;
+        lock (_lock)
+        {
+            effects = _effects.ToArray();
+        }
+
+        var total = 0;
+        foreach (var effect in effects.ToList())
+            if (effect != null && (tagged == null || !tagged.Contains(effect.Template.BuffId)))
+                total += Math.Max(1, effect.Stack);
+
+        return total;
+    }
+
     public Buff GetEffectFromBuffId(uint id)
     {
         // Create a copy of the list of effects to avoid changing the list while iterating
