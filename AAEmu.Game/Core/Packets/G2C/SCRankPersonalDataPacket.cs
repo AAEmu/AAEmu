@@ -5,12 +5,14 @@ using AAEmu.Game.Models.Game.Rankings;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// A character's own lines in the rankings: the ranking asked for, then one line per ranking key the
+/// A character's own lines in the rankings: the character they are about, then one line per board the
 /// server can fill.
 /// </summary>
 /// <remarks>
-/// Field order and widths are the client's own: a 64-bit ranking id, a 32-bit count, then each line as a
-/// 32-bit key followed by the entry itself.
+/// Field order and widths are the client's own: a 64-bit holder id, a 32-bit count, then each line as a
+/// 32-bit board key followed by the entry itself. The holder id is the character the lines are for — the
+/// client takes an answer only when that id is the character it is playing, and files every line it
+/// carries under the line's own key, so all of a character's boards travel in one answer.
 /// </remarks>
 public class SCRankPersonalDataPacket(long type, IReadOnlyList<RankingEntryLine> entries)
     : GamePacket(SCOffsets.SCRankPersonalDataPacket, 1)

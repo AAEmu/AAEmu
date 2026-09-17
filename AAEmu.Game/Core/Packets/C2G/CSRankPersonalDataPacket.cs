@@ -30,13 +30,11 @@ public class CSRankPersonalDataPacket() : GamePacket(CSOffsets.CSRankPersonalDat
             return;
 
         // The character's own lines come from where the boards are kept, which is what the window's
-        // "current record" reads: the same figures the board itself is built from.
+        // "current record" reads: the same figures the board itself is built from. They all travel in one
+        // answer, named for the character they are about — the client takes an answer for the character it
+        // is playing and files each line it carries under the line's own board.
         var entries = RankScoreManager.Instance.PersonalLines(character);
-
-        // The client files each answer under the board its window is showing and drops the ones that name
-        // another board, so a line goes out under its own board and the window takes the one it wants.
-        foreach (var group in entries.GroupBy(line => line.Key))
-            character.SendPacket(new SCRankPersonalDataPacket(group.Key, group.ToList()));
+        character.SendPacket(new SCRankPersonalDataPacket(character.Id, entries));
 
         Logger.Info("Rankings: sent {0} personal line(s) to {1} over {2} board(s)",
             entries.Count, character.Name, entries.Select(line => line.Key).Distinct().Count());
