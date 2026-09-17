@@ -20,13 +20,13 @@ public class ConsumeLaborPower : SpecialEffectAction
         int value3,
         int value4)
     {
-        if (caster is Character) { Logger.Debug("Special effects: ConsumeLaborPower value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4); }
+        if (caster is not Character player || skill?.Template == null)
+            return;
 
-        // TODO: Need to factor skill level into how much lp we subtract.
-        if (skill.Template.ConsumeLaborPower > 0)
-        {
-            var player = (Character)caster;
-            player.ChangeLabor((short)-skill.Template.ConsumeLaborPower, skill.Template.ActabilityGroupId);
-        }
+        // value1 is zero on all 71 shipped rows, so the template's cost is what they charge; a row that sets
+        // the slot charges that instead.
+        var cost = LaborPowerRules.ResolveCost(value1, skill.Template.ConsumeLaborPower);
+        if (cost > 0)
+            player.ChangeLabor((short)-cost, skill.Template.ActabilityGroupId);
     }
 }

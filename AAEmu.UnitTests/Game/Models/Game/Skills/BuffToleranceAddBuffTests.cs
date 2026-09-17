@@ -222,6 +222,66 @@ public class BuffToleranceAddBuffTests
         await Assert.That(owner.Buffs.CheckBuff(ImmunityBuffId)).IsFalse();
     }
 
+    [Test]
+    public async Task SetToleranceStep_Zero_PutsEveryFamilyTheOwnerTracksBackOnTheFirstRung()
+    {
+        // 39373 on 40364 결투를 위하여 passes (0, 0): the one type-157 row a skill reaches. That cast
+        // heals, restores mana and resets cooldown tags 378/904/2065, so a fresh ladder is the reading.
+        var (owner, caster) = CreateUnits();
+        owner.Buffs.AddBuff(CreateCcBuff(owner, caster, CcBuffId)); // 0 %
+        owner.Buffs.AddBuff(CreateCcBuff(owner, caster, CcBuffId)); // 25 %
+        await Assert.That(ReadCounter(owner).CurrentStep.TimeReduction).IsEqualTo(25u);
+
+        var moved = owner.Buffs.SetToleranceStep(0, 0);
+
+        await Assert.That(moved).IsEqualTo(1);
+        await Assert.That(ReadCounter(owner).CurrentStep).IsSameReferenceAs(ReadCounter(owner).Tolerance.Steps[0]);
+    }
+
+    [Test]
+    public async Task SetToleranceStep_MovesTheWindowWithTheRung()
+    {
+        var (owner, caster) = CreateUnits();
+        owner.Buffs.AddBuff(CreateCcBuff(owner, caster, CcBuffId));
+
+        owner.Buffs.SetToleranceStep((int)ToleranceId, 2);
+
+        // The counter is on the 50 % rung as of now, so the next CC of the same burst arrives at the
+        // ladder's last step and is refused rather than landing at full duration.
+        await Assert.That(ReadCounter(owner).CurrentStep.TimeReduction).IsEqualTo(50u);
+        await Assert.That(ReadCounter(owner).LastStep).IsGreaterThan(DateTime.UtcNow.AddSeconds(-5));
+        owner.Buffs.RemoveBuff(CcBuffId, notifyZone: false);
+
+        owner.Buffs.AddBuff(CreateCcBuff(owner, caster, CcBuffId));
+
+        await Assert.That(owner.Buffs.CheckBuff(CcBuffId)).IsFalse();
+        await Assert.That(owner.Buffs.CheckBuff(ImmunityBuffId)).IsTrue();
+    }
+
+    [Test]
+    public async Task SetToleranceStep_ForAnotherFamily_LeavesThisCounterAlone()
+    {
+        var (owner, caster) = CreateUnits();
+        owner.Buffs.AddBuff(CreateCcBuff(owner, caster, CcBuffId));
+        owner.Buffs.AddBuff(CreateCcBuff(owner, caster, CcBuffId));
+        var before = ReadCounter(owner).CurrentStep;
+        var beforeAt = ReadCounter(owner).LastStep;
+
+        var moved = owner.Buffs.SetToleranceStep((int)ToleranceId + 50, 0);
+
+        await Assert.That(moved).IsEqualTo(0);
+        await Assert.That(ReadCounter(owner).CurrentStep).IsSameReferenceAs(before);
+        await Assert.That(ReadCounter(owner).LastStep).IsEqualTo(beforeAt);
+    }
+
+    [Test]
+    public async Task SetToleranceStep_WithNothingTracked_MovesNothing()
+    {
+        var (owner, _) = CreateUnits();
+
+        await Assert.That(owner.Buffs.SetToleranceStep(0, 0)).IsEqualTo(0);
+    }
+
     private static (BaseUnit Owner, BaseUnit Caster) CreateUnits() =>
         (new BaseUnit { ObjId = 1 }, new BaseUnit { ObjId = 2 });
 

@@ -362,10 +362,35 @@ public class Unit : BaseUnit, IUnit
     public bool IsGlobalCooldownDone => GlobalCooldown > DateTime.UtcNow;
     public object GcdLock { get; set; }
     public DateTime SkillLastUsed { get; set; }
-    public PlotState ActivePlotState { get; set; }
+
+    private PlotState _activePlotState;
+
+    public PlotState ActivePlotState
+    {
+        get => Volatile.Read(ref _activePlotState);
+        set => Volatile.Write(ref _activePlotState, value);
+    }
+
+    /// <summary>
+    /// Clears the plot slot only while it still holds <paramref name="state"/>, and reports whether it did.
+    /// </summary>
+    /// <remarks>
+    /// Two plots overlap in normal play: a combo or a plot_only follow-up cancels the previous plot while
+    /// the newer one is already on the bar, and both trees then run an end path. A plain read-compare-assign
+    /// lets the older tree clear a slot the newer one claimed in between, which leaves the live plot with
+    /// no state for SetVariable / PlotCondition to read. The compare-exchange only ever removes its own.
+    /// </remarks>
+    public bool ReleaseActivePlotState(PlotState state) =>
+        state != null && Interlocked.CompareExchange(ref _activePlotState, null, state) == state;
     public Dictionary<uint, List<Bonus>> Bonuses { get; set; }
     public Dictionary<uint, List<DynamicBonus>> DynamicBonuses { get; set; }
     public UnitCooldowns Cooldowns { get; set; }
+
+    /// <summary>
+    /// Uses left of a charge-bearing skill (skills.charge_count, 26 rows). See
+    /// <see cref="UnitCharges"/> for how a charge replaces the per-cast cooldown.
+    /// </summary>
+    public UnitCharges Charges { get; set; }
     public virtual Expedition Expedition { get; set; }
 
     /// <summary>
@@ -679,6 +704,7 @@ public class Unit : BaseUnit, IUnit
         Equipment = new EquipmentContainer(0, SlotType.Equipment, false, this);
         ChargeLock = new object();
         Cooldowns = new UnitCooldowns();
+        Charges = new UnitCharges();
         CharacterTagging = new Tagging(this); //Adding because Tagging works differently than Aggro
     }
 

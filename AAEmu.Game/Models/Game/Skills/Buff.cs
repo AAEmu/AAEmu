@@ -49,6 +49,15 @@ public class Buff
     public int Charge { get; set; }
 
     /// <summary>
+    /// Where the owner stood when this instance was applied, for the <c>save_pos</c> families.
+    /// </summary>
+    /// <remarks>
+    /// Written by <see cref="Units.Buffs.AddBuff"/> and read back by the move_to_saved_pos special
+    /// effect; null for every buff whose template does not carry <c>save_pos</c>.
+    /// </remarks>
+    public SavedPosition? SavedPosition { get; set; }
+
+    /// <summary>
     /// How many applications of a multiple-stack family this single instance represents.
     /// </summary>
     /// <remarks>
