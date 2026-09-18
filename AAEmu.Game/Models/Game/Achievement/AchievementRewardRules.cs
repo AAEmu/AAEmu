@@ -36,4 +36,17 @@ public static class AchievementRewardRules
 
     /// <summary>Whether that many of an item have to be mailed rather than put in the bag.</summary>
     public static bool GoesToMail(int freeSpaceForItem, int itemCount) => freeSpaceForItem < itemCount;
+
+    /// <summary>
+    /// The overflow letter's sender. A leading dot is a locale table, not a display name: the client
+    /// runs <c>locale.mail&lt;sender&gt;.&lt;text&gt;</c>, and <c>achievementNew</c> localizes title
+    /// and body through <c>X2Achievement:GetAchievementName</c>.
+    /// </summary>
+    public const string OverflowMailSender = ".achievementNew";
+
+    /// <summary>The locale call the client runs for the letter's title.</summary>
+    public static string OverflowMailTitle(uint achievementId) => $"title({achievementId})";
+
+    /// <summary>The locale call the client runs for the letter's body.</summary>
+    public static string OverflowMailBody(uint achievementId) => $"body({achievementId})";
 }

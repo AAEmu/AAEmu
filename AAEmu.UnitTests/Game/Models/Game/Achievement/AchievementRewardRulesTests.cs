@@ -58,4 +58,12 @@ public class AchievementRewardRulesTests
         await Assert.That(AchievementRewardRules.GoesToMail(freeSpaceForItem: 4, itemCount: 5)).IsTrue();
         await Assert.That(AchievementRewardRules.GoesToMail(freeSpaceForItem: 0, itemCount: 1)).IsTrue();
     }
+
+    [Test]
+    public async Task OverflowMail_UsesTheClientLocaleCalls()
+    {
+        await Assert.That(AchievementRewardRules.OverflowMailSender).IsEqualTo(".achievementNew");
+        await Assert.That(AchievementRewardRules.OverflowMailTitle(3950)).IsEqualTo("title(3950)");
+        await Assert.That(AchievementRewardRules.OverflowMailBody(3950)).IsEqualTo("body(3950)");
+    }
 }
