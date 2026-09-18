@@ -125,4 +125,18 @@ public static class SysIndunChannelRules
 
         return null;
     }
+
+    /// <summary>
+    /// Whether a remembered pick should decide this entry. Only channel instances honour one, and only when
+    /// it names a copy — an ordinary dungeon has its own rejoin and team rules.
+    /// </summary>
+    public static bool HonourPick(bool selectChannel, uint pickedCopyId) =>
+        selectChannel && pickedCopyId != 0;
+
+    /// <summary>
+    /// Whether a copy is served. A missing probe means this process has no hosts to ask, so the copy is
+    /// treated as hosted — the same default a boat handoff uses — rather than as empty.
+    /// </summary>
+    public static bool CopyIsHosted(Func<uint, uint, bool> probe, uint zoneKey, uint worldId) =>
+        probe?.Invoke(zoneKey, worldId) ?? true;
 }

@@ -162,7 +162,8 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
                 if (world == null)
                     continue;
 
-                var hosted = WorldIntegration.IsZoneInstanceLoaded?.Invoke(zoneKey, world.Id) == true;
+                var hosted = SysIndunChannelRules.CopyIsHosted(
+                    WorldIntegration.IsZoneInstanceLoaded, zoneKey, world.Id);
                 yield return new SysIndunChannelCopy(
                     new SysIndunChannel((int)world.ChannelId, world.Id, world.GetCharacterCount(),
                         (int)dungeonZone.MaxPlayers),
@@ -301,8 +302,10 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
         var possibleTargetInstances = GetExistingDungeonsByZoneKey(targetZone.ZoneKey);
 
         // A pick names the dimension to land in, so it is settled before the access rules below: those look for
-        // a party's own copy, which a shared dimension is not.
-        if (pickedCopyId is { } wantedCopy && wantedCopy != 0)
+        // a party's own copy, which a shared dimension is not. Only channel instances honour one — an ordinary
+        // dungeon keeps its rejoin and team rules, including the visit-limit skip those paths use.
+        if (pickedCopyId is { } wantedCopy &&
+            SysIndunChannelRules.HonourPick(dungeonZone.SelectChannel, wantedCopy))
         {
             // Only a copy a host is still serving counts: one that dropped between the list and the entry would
             // put the player in a copy nothing simulates, so it is refused rather than silently substituted.

@@ -154,4 +154,20 @@ public class SysIndunChannelRulesTests
 
         await Assert.That(SysIndunChannelRules.FindCopyForPick(copies, null, null)).IsNull();
     }
+
+    [Test]
+    public async Task HonourPick_OnlyWhenTheInstanceSelectsAChannelAndACopyWasNamed()
+    {
+        await Assert.That(SysIndunChannelRules.HonourPick(selectChannel: true, pickedCopyId: 701)).IsTrue();
+        await Assert.That(SysIndunChannelRules.HonourPick(selectChannel: false, pickedCopyId: 701)).IsFalse();
+        await Assert.That(SysIndunChannelRules.HonourPick(selectChannel: true, pickedCopyId: 0)).IsFalse();
+    }
+
+    [Test]
+    public async Task CopyIsHosted_MissingProbeAssumesHosted()
+    {
+        await Assert.That(SysIndunChannelRules.CopyIsHosted(null, 243, 1)).IsTrue();
+        await Assert.That(SysIndunChannelRules.CopyIsHosted((_, _) => false, 243, 1)).IsFalse();
+        await Assert.That(SysIndunChannelRules.CopyIsHosted((_, _) => true, 243, 1)).IsTrue();
+    }
 }
