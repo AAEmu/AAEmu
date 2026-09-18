@@ -5,7 +5,7 @@ namespace AAEmu.Game.Models.Game.Achievement;
 /// (214 carry one). Either half may be absent.
 /// </summary>
 /// <param name="ItemId">The reward item, or 0.</param>
-/// <param name="ItemCount">How many of it. Content carries 1..50; never negative.</param>
+/// <param name="ItemCount">How many of it. Content carries 1..350; never negative.</param>
 /// <param name="AppellationId">The title, or 0.</param>
 public readonly record struct AchievementReward(uint ItemId, int ItemCount, uint AppellationId)
 {
@@ -21,8 +21,8 @@ public readonly record struct AchievementReward(uint ItemId, int ItemCount, uint
 /// The window draws both halves from its own copy of the content, so this only has to hand them over. The item
 /// goes to the bag when the whole stack fits and by mail when it does not, which is what the client's
 /// "the reward was sent" packet distinguishes (<c>byMail</c>) and what every other reward path in the tree
-/// does; an item that goes to the bag is announced by the achievement's own packet, so its item task type is
-/// left at the neutral one rather than borrowed from another system.
+/// does; an item that goes to the bag is announced by the achievement's own packet. The bag path uses
+/// <c>SkillEffectGainItem</c> so the container publishes the stack — the neutral task type writes nothing.
 /// </remarks>
 public static class AchievementRewardRules
 {

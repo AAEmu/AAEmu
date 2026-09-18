@@ -358,10 +358,10 @@ public class AchievementManager : Singleton<AchievementManager>
     /// <remarks>
     /// Dropping the progress row alone would only last until the next evaluation: the records that completed
     /// the achievement still hold what they held, so the entry path's <see cref="RefreshAll"/> would put it
-    /// straight back. Clearing them is what makes the reset mean anything. A record another achievement also
-    /// watches is cleared with it, because it is one counter and this is a reset of it; a record the engine
-    /// fills from character state (level, ability level) is reported again the next time that state is
-    /// reported, which is as it should be — the character still qualifies.
+    /// straight back. Clearing them is what makes the reset mean anything. A completion record whose
+    /// achievement is still complete is kept: 674 achievements watch those, and a complete child never
+    /// reports again, so clearing it would make the parent unearnable. A record the engine fills from
+    /// character state (level, ability level) is reported again the next time that state is reported.
     /// </remarks>
     public bool Reset(Character character, uint achievementId)
     {
@@ -369,7 +369,13 @@ public class AchievementManager : Singleton<AchievementManager>
             return false;
 
         foreach (var objective in AchievementGameData.Instance.GetObjectives(achievementId))
+        {
+            var completedId = AchievementGameData.Instance.GetAchievementForCompletionRecord(objective.RecordId);
+            if (completedId != 0 && character.Achievements.IsComplete(completedId))
+                continue;
+
             character.Records.Clear(objective.RecordId);
+        }
 
         character.Achievements.Reset(achievementId);
         character.SendPacket(new SCAchievementResetedPacket(achievementId, 0));
@@ -447,7 +453,7 @@ public class AchievementManager : Singleton<AchievementManager>
     /// The achievement that the sub-category record is for is itself filed under that sub-category, so it is
     /// left out of the count: it is what finishing the sub-category pays, not part of finishing it. So are the
     /// achievements the season has switched off, which cannot be earned at all — 34 of the 44 sub-categories
-    /// hold at least one.
+    /// hold at least one — and members with no objectives (47 unused/test rows), which nothing can complete.
     /// </remarks>
     private static IEnumerable<uint> CompletionRecords(Character character, uint achievementId)
     {
@@ -468,6 +474,7 @@ public class AchievementManager : Singleton<AchievementManager>
         if (members.Count == 0 || !members.All(memberId =>
                 payers.Contains(memberId) ||
                 AchievementGameData.Instance.GetAchievement(memberId)?.SeasonOff == true ||
+                AchievementGameData.Instance.GetObjectives(memberId).Count == 0 ||
                 character.Achievements.IsComplete(memberId)))
             yield break;
 
