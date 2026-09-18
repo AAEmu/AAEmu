@@ -276,38 +276,37 @@ public class EquipSlotReinforceRulesTests
     }
 
     [Test]
-    public async Task PickConsumable_TakesTheFirstAlternativeTheCharacterHoldsInFull()
+    public async Task HoldsEveryMember_RequiresTheWholeConsumeSet()
     {
-        // A material's set members are alternatives: here either 5 singles or 1 bulk item pays for it.
-        var members = new[] { (ItemId: 51594u, Count: 5), (ItemId: 211955u, Count: 1) };
+        // Set 237 is 51595 x1 and 51602 x1; kind 1 spends both, not one of them.
+        var members = new[] { (ItemId: 51595u, Count: 1), (ItemId: 51602u, Count: 1) };
 
-        var bulk = EquipSlotReinforceRules.PickConsumable(members, itemId => itemId == 211955 ? 1 : 0);
-        await Assert.That(bulk).IsEqualTo((211955u, 1));
-
-        var singles = EquipSlotReinforceRules.PickConsumable(members, itemId => itemId == 51594 ? 5 : 0);
-        await Assert.That(singles).IsEqualTo((51594u, 5));
+        await Assert.That(EquipSlotReinforceRules.HoldsEveryMember(members,
+            itemId => itemId is 51595 or 51602 ? 1 : 0)).IsTrue();
+        await Assert.That(EquipSlotReinforceRules.HoldsEveryMember(members,
+            itemId => itemId == 51595 ? 1 : 0)).IsFalse();
+        await Assert.That(EquipSlotReinforceRules.HoldsEveryMember(members, _ => 0)).IsFalse();
+        await Assert.That(EquipSlotReinforceRules.HoldsEveryMember([], _ => 99)).IsFalse();
+        await Assert.That(EquipSlotReinforceRules.HoldsEveryMember(null, _ => 99)).IsFalse();
+        await Assert.That(EquipSlotReinforceRules.HoldsEveryMember(members, null)).IsFalse();
     }
 
     [Test]
-    public async Task PickConsumable_RefusesWhenNothingIsHeldInFull()
-    {
-        var members = new[] { (ItemId: 51594u, Count: 5), (ItemId: 211955u, Count: 1) };
-
-        // Four singles is not five, and a partial alternative does not let the bulk one through either.
-        await Assert.That(EquipSlotReinforceRules.PickConsumable(members, itemId => itemId == 51594 ? 4 : 0)).IsNull();
-        await Assert.That(EquipSlotReinforceRules.PickConsumable(members, _ => 0)).IsNull();
-        await Assert.That(EquipSlotReinforceRules.PickConsumable([], _ => 99)).IsNull();
-        await Assert.That(EquipSlotReinforceRules.PickConsumable(null, _ => 99)).IsNull();
-    }
-
-    [Test]
-    public async Task PickConsumable_IgnoresEmptyMembers()
+    public async Task ConsumableMembers_DropsEmptyRows()
     {
         var members = new[] { (ItemId: 0u, Count: 5), (ItemId: 51595u, Count: 0), (ItemId: 51596u, Count: 1) };
 
-        var pick = EquipSlotReinforceRules.PickConsumable(members, _ => 0);
+        await Assert.That(EquipSlotReinforceRules.ConsumableMembers(members))
+            .IsEquivalentTo(new[] { (51596u, 1) });
+    }
 
-        await Assert.That(pick).IsNull();
+    [Test]
+    public async Task MeetsEnableLevel_RefusesBelowTheContentRow()
+    {
+        await Assert.That(EquipSlotReinforceRules.MeetsEnableLevel(50, 50)).IsTrue();
+        await Assert.That(EquipSlotReinforceRules.MeetsEnableLevel(55, 50)).IsTrue();
+        await Assert.That(EquipSlotReinforceRules.MeetsEnableLevel(49, 50)).IsFalse();
+        await Assert.That(EquipSlotReinforceRules.MeetsEnableLevel(50, 0)).IsFalse();
     }
 
     [Test]

@@ -118,27 +118,53 @@ public static class EquipSlotReinforceRules
     }
 
     /// <summary>
-    /// The item a feeding spends: the first member of the material's item set that the character holds
-    /// in full. The members are alternatives — one of them pays for the feed, not all of them — which is
-    /// why a set may list both a single item and a bulk one.
+    /// The items a feeding spends: every member of the material's item set, minus empty rows. The
+    /// materials use <c>item_sets.kind_id</c> 1 (consume), so the window only enables a material when
+    /// each member is held in full, and a feed takes all of them.
     /// </summary>
-    public static (uint ItemId, int Count)? PickConsumable(IEnumerable<(uint ItemId, int Count)> members,
-        Func<uint, int> heldCount)
+    public static List<(uint ItemId, int Count)> ConsumableMembers(
+        IEnumerable<(uint ItemId, int Count)> members)
     {
-        if (members == null || heldCount == null)
-            return null;
+        List<(uint ItemId, int Count)> needed = [];
+        if (members == null)
+            return needed;
 
         foreach (var (itemId, count) in members)
         {
             if (itemId == 0 || count <= 0)
                 continue;
-
-            if (heldCount(itemId) >= count)
-                return (itemId, count);
+            needed.Add((itemId, count));
         }
 
-        return null;
+        return needed;
     }
+
+    /// <summary>Whether the bag holds every member of the material's set in full.</summary>
+    public static bool HoldsEveryMember(IEnumerable<(uint ItemId, int Count)> members,
+        Func<uint, int> heldCount)
+    {
+        if (heldCount == null)
+            return false;
+
+        var needed = ConsumableMembers(members);
+        if (needed.Count == 0)
+            return false;
+
+        foreach (var (itemId, count) in needed)
+        {
+            if (heldCount(itemId) < count)
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Whether the character is at the content's enable level. A missing or non-positive min level
+    /// is not a free pass — the window is hidden below that row.
+    /// </summary>
+    public static bool MeetsEnableLevel(int characterLevel, int minLevel) =>
+        minLevel > 0 && characterLevel >= minLevel;
 
     /// <summary>
     /// The level the client shows and indexes its materials by: one more than the steps taken, clamped

@@ -62,6 +62,13 @@ public class CharacterEquipSlotReinforces
     /// </summary>
     public const string ChangeEffectItemConfigName = "equip_slot_reinforce_change_level_effect_item";
 
+    /// <summary>
+    /// The <c>content_configs</c> row for the lowest level that may use the window
+    /// (<c>enum_content_configs</c> id 237, shipped value 50). The client hides the window below that
+    /// level; a crafted cast is refused here the same way.
+    /// </summary>
+    public const string EnableMinLevelConfigName = "equip_slot_reinforce_enable_min_level";
+
     public CharacterEquipSlotReinforces(Character owner)
     {
         _owner = owner;
@@ -555,6 +562,23 @@ public class CharacterEquipSlotReinforces
     }
 
     /// <summary>
+    /// The window is hidden below the content's enable level. A crafted cast is refused the same way,
+    /// and a missing row is not treated as "any level".
+    /// </summary>
+    private bool IsEnabledForOwner()
+    {
+        if (!ContentConfigGameData.Instance.TryGetInt(EnableMinLevelConfigName, out var minLevel) ||
+            minLevel <= 0)
+        {
+            Logger.Warn("Equip slot reinforce: content config '{0}' is missing, so nothing can be changed",
+                EnableMinLevelConfigName);
+            return false;
+        }
+
+        return EquipSlotReinforceRules.MeetsEnableLevel(_owner.Level, minLevel);
+    }
+
+    /// <summary>
     /// Recomputes the character's gear bonuses after its artifact effects changed, and re-pushes what the
     /// client shows for the character: the unit state carries the attributes a stat panel reads, and the
     /// points packet is what moves a vitals bar's maximum — a bonus that raises or lowers MaxHp/MaxMp lands on
@@ -720,6 +744,9 @@ public class CharacterEquipSlotReinforces
     /// </summary>
     public EquipSlotReinforceChange ReplaceTierEffect(byte slotTypeId, ushort triggerLevel)
     {
+        if (!IsEnabledForOwner())
+            return EquipSlotReinforceChange.Refused;
+
         var tier = EquipSlotReinforceRules.TierAtLevel(slotTypeId, (sbyte)triggerLevel,
             EquipSlotReinforceGameData.Instance.LevelEffects);
         if (tier == null)
@@ -782,14 +809,16 @@ public class CharacterEquipSlotReinforces
     }
 
     /// <summary>
-    /// Banks a feed into a slot's bar, spending the material the request names. The material row picks an
-    /// item set and the set's members are the alternatives that pay for it, so a character holding any one
-    /// of them in full can feed. Every shipped row also charges gold (<c>currency_id</c> 0) at
-    /// <c>currency_value</c>; both the gold and the item are taken together, and a full bar is refused
-    /// before either is spent.
+    /// Banks a feed into a slot's bar, spending the material the request names. The material's item set
+    /// is a consume set: every member is required and every member is taken. Every shipped row also
+    /// charges gold (<c>currency_id</c> 0) at <c>currency_value</c>; the gold and the items are taken
+    /// together, and a full bar or a character below the enable level is refused before either is spent.
     /// </summary>
     public EquipSlotReinforceChange Feed(byte slotTypeId, int materialIndex)
     {
+        if (!IsEnabledForOwner())
+            return EquipSlotReinforceChange.Refused;
+
         var ladder = EquipSlotReinforceGameData.Instance.Ladder(slotTypeId);
         if (ladder.Count == 0)
             return EquipSlotReinforceChange.Refused;
@@ -823,11 +852,11 @@ public class CharacterEquipSlotReinforces
             }
 
             var members = itemSet.Items.Values.Select(item => (item.ItemId, item.Count)).ToList();
-            var pick = EquipSlotReinforceRules.PickConsumable(members,
-                itemId => _owner.Inventory.GetItemsCount(SlotType.Inventory, itemId));
-            if (pick == null)
+            var needed = EquipSlotReinforceRules.ConsumableMembers(members);
+            if (!EquipSlotReinforceRules.HoldsEveryMember(needed,
+                    itemId => _owner.Inventory.GetItemsCount(SlotType.Inventory, itemId)))
             {
-                Logger.Warn("Equip slot reinforce {0}: {1} holds nothing usable from item set {2}",
+                Logger.Warn("Equip slot reinforce {0}: {1} does not hold every member of item set {2}",
                     slotTypeId, _owner.Name, material.NeedMaterialItemSetId);
                 return EquipSlotReinforceChange.Refused;
             }
@@ -837,17 +866,19 @@ public class CharacterEquipSlotReinforces
                     ItemTaskType.EquipSlotReinforce))
                 return EquipSlotReinforceChange.Refused;
 
-            var consumed = _owner.Inventory.ConsumeItem([SlotType.Inventory], ItemTaskType.EquipSlotReinforce,
-                pick.Value.ItemId, pick.Value.Count, null);
-            if (consumed < pick.Value.Count)
+            foreach (var (itemId, count) in needed)
             {
-                var refund = EquipSlotReinforceRules.CurrencyToRefund(material.CurrencyValue, pick.Value.Count,
-                    consumed);
+                var consumed = _owner.Inventory.ConsumeItem([SlotType.Inventory], ItemTaskType.EquipSlotReinforce,
+                    itemId, count, null);
+                if (consumed >= count)
+                    continue;
+
+                var refund = EquipSlotReinforceRules.CurrencyToRefund(material.CurrencyValue, count, consumed);
                 if (refund > 0)
                     _owner.TryRefundCurrency(material.CurrencyId, refund, ItemTaskType.EquipSlotReinforce);
 
                 Logger.Warn("Equip slot reinforce {0}: {1} consumed {2} of {3} x item {4}",
-                    slotTypeId, _owner.Name, consumed, pick.Value.Count, pick.Value.ItemId);
+                    slotTypeId, _owner.Name, consumed, count, itemId);
                 return EquipSlotReinforceChange.Refused;
             }
 
@@ -867,6 +898,9 @@ public class CharacterEquipSlotReinforces
     /// </summary>
     public EquipSlotReinforceChange LevelUp(byte slotTypeId)
     {
+        if (!IsEnabledForOwner())
+            return EquipSlotReinforceChange.Refused;
+
         var ladder = EquipSlotReinforceGameData.Instance.Ladder(slotTypeId);
         if (ladder.Count == 0)
             return EquipSlotReinforceChange.Refused;
