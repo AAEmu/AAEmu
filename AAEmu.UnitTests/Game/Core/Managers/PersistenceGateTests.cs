@@ -8,62 +8,90 @@ namespace AAEmu.UnitTests.Game.Core.Managers;
 /// deferral of its own. The lock forbids recursive reads, so the inner layer must take nothing and release
 /// nothing; before <see cref="PersistenceGate.TryEnterOperation"/> the second entry threw and the whole packet
 /// was abandoned (a house placement that silently did nothing).
+/// The gate is thread-bound, so nothing here awaits while it is held: an awaited assertion may resume on a
+/// pool thread, and the release would then throw on a thread that never took it. Every fact is read inside
+/// the lock and asserted after it is released.
 /// </summary>
 public class PersistenceGateTests
 {
     [Test]
     public async Task TryEnterOperation_OnAFreeThread_TakesTheGate()
     {
+        bool heldWhileTaken;
+        bool heldAfterRelease;
+
         var took = PersistenceGate.TryEnterOperation();
         try
         {
-            await Assert.That(took).IsTrue();
-            await Assert.That(PersistenceGate.IsOperationHeld).IsTrue();
+            heldWhileTaken = PersistenceGate.IsOperationHeld;
         }
         finally
         {
             PersistenceGate.ExitOperation();
         }
 
-        await Assert.That(PersistenceGate.IsOperationHeld).IsFalse();
+        heldAfterRelease = PersistenceGate.IsOperationHeld;
+
+        await Assert.That(took).IsTrue();
+        await Assert.That(heldWhileTaken).IsTrue();
+        await Assert.That(heldAfterRelease).IsFalse();
     }
 
     [Test]
     public async Task TryEnterOperation_InsideAHeldGate_TakesNothingAndDoesNotThrow()
     {
+        bool took;
+        bool heldByTheOuterScope;
+        bool heldAfterRelease;
+
         PersistenceGate.EnterOperation();
         try
         {
-            var took = PersistenceGate.TryEnterOperation();
-
-            await Assert.That(took).IsFalse();
+            took = PersistenceGate.TryEnterOperation();
             // The outer holder still owns it: the inner call neither took a second read nor released the first.
-            await Assert.That(PersistenceGate.IsOperationHeld).IsTrue();
+            heldByTheOuterScope = PersistenceGate.IsOperationHeld;
         }
         finally
         {
             PersistenceGate.ExitOperation();
         }
 
-        await Assert.That(PersistenceGate.IsOperationHeld).IsFalse();
+        heldAfterRelease = PersistenceGate.IsOperationHeld;
+
+        await Assert.That(took).IsFalse();
+        await Assert.That(heldByTheOuterScope).IsTrue();
+        await Assert.That(heldAfterRelease).IsFalse();
     }
 
     [Test]
     public async Task TryEnterOperation_InNestedOperationScope_LeavesTheReleaseToTheOuterOne()
     {
-        using var outer = PersistenceOperationScope.Enter();
-        await Assert.That(outer.OwnsGate).IsTrue();
+        bool outerOwnsGate;
+        bool innerOwnsGate;
+        bool heldWhileTheInnerScopeIsOpen;
+        bool heldAfterTheInnerScopeClosed;
+        bool heldAfterTheOuterScopeClosed;
 
-        using (var inner = PersistenceOperationScope.Enter())
+        using (var outer = PersistenceOperationScope.Enter())
         {
-            await Assert.That(inner.OwnsGate).IsFalse();
-            await Assert.That(PersistenceGate.IsOperationHeld).IsTrue();
+            outerOwnsGate = outer.OwnsGate;
+
+            using (var inner = PersistenceOperationScope.Enter())
+            {
+                innerOwnsGate = inner.OwnsGate;
+                heldWhileTheInnerScopeIsOpen = PersistenceGate.IsOperationHeld;
+            }
+
+            // The inner scope returned without releasing what the outer one took.
+            heldAfterTheInnerScopeClosed = PersistenceGate.IsOperationHeld;
         }
 
-        // The inner scope returned without releasing what the outer one took.
-        await Assert.That(PersistenceGate.IsOperationHeld).IsTrue();
+        heldAfterTheOuterScopeClosed = PersistenceGate.IsOperationHeld;
 
-        outer.Dispose();
-        await Assert.That(PersistenceGate.IsOperationHeld).IsFalse();
+        await Assert.That(outerOwnsGate).IsTrue();
+        await Assert.That(innerOwnsGate).IsFalse();
+        await Assert.That(heldWhileTheInnerScopeIsOpen).IsTrue();
+        await Assert.That(heldAfterTheInnerScopeClosed).IsTrue();
+        await Assert.That(heldAfterTheOuterScopeClosed).IsFalse();
     }
 }
