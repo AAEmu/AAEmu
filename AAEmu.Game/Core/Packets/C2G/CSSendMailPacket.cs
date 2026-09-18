@@ -32,16 +32,14 @@ public class CSSendMailPacket() : GamePacket(CSOffsets.CSSendMailPacket, 1)
             return;
         }
 
-        // Wire layout from the 10.0.2 client: the sender builds CSSendMailPacket (opcode 0xDB,
-        // part_26025.c) from the struct read by FUN_39bdeb70 with the group-mail tail appended by
-        // FUN_39a965d0 and the whole packet read back by FUN_39ac17e0 (part_38658.c):
+        // Wire layout of the client's send-mail packet:
         //   u8 type, str receiverCharName (cap 128), u64 receiverRefId, str title (cap 0x4b0),
         //   str text (cap 0x640), u8 attachments, u64 money x3, u32 money3, u64 extra,
         //   bool groupMail, 10 x (u8 slotType, u8 slot), u32 doodadId (Bc),
         //   u64 groupMoney, u32 userCount, u64 userList[userCount, max 100].
         //
-        // The money widths matter: the three main amounts are u64 on the wire (same helpers as
-        // the S2C mail-body money fields), followed by a fourth u32 amount. Reading them as i32
+        // The money widths matter: the three main amounts are u64 on the wire (the same widths the
+        // S2C mail-body money fields use), followed by a fourth u32 amount. Reading them as i32
         // shifted every later field and made the mailbox doodad check fail for every send.
         var type = (MailType)stream.ReadByte();
         var receiverCharName = stream.ReadString();
