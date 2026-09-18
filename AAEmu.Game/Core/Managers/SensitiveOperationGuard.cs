@@ -136,8 +136,7 @@ public static class SensitiveOperationGuard
             }
         }
 
-        Logger.Info("Account {0} ({1}) {2} sensitive-operation protection", accountId, character.Name,
-            protect ? "entered" : "left");
+        Logger.Info("{0} {1} sensitive-operation protection", character.Name, protect ? "entered" : "left");
         SendState(character.Connection);
         return true;
     }
@@ -159,7 +158,7 @@ public static class SensitiveOperationGuard
         if (SensitiveOperationRules.MayPerform(true, state.Protected, false))
             return true;
 
-        Logger.Info("{0} tried {1} while account {2} is protected", character.Name, kind, accountId);
+        Logger.Info("{0} tried {1} while their account is protected", character.Name, kind);
         reason = "Your account is under protection: verify with your second password before this action.";
         return false;
     }
@@ -181,8 +180,7 @@ public static class SensitiveOperationGuard
         }
 
         character.SendPacket(new SCSensitiveOperationVerifySuccessPacket());
-        Logger.Info("Account {0} ({1}) verified; sensitive-operation protection lifted", accountId,
-            character.Name);
+        Logger.Info("{0} verified; sensitive-operation protection lifted", character.Name);
     }
 
     /// <summary>The state a GM surface reports: the window and whether the guard is on at all.</summary>
