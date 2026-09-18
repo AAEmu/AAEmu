@@ -494,8 +494,8 @@ public class InitialConfig
 
     /// <summary>
     /// UnitDistance <c>over_distance</c> threshold in metres, copied to ClientPlayer+0x3DFC. target.lua
-    /// shows "???" for anything further away, so 0 blanks every target. Retail sniff
-    /// archeage_20260702_001757 SCInitialConfig = 256.0.
+    /// shows "???" for anything further away, so 0 blanks every target. The client is sent
+    /// SCInitialConfig = 256.0.
     /// </summary>
     public float BigModelDistance { get; set; } = 256.0f;
 

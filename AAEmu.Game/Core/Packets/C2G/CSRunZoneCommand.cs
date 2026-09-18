@@ -13,7 +13,7 @@ public class CSRunZoneCommand() : GamePacket(CSOffsets.CSRunZoneCommand, 1)
 {
     private const int NativeCommandCapacity = 0xff;
 
-    // This exhaustive set comes from every CSRunZoneCommand vtable xref in the 10.0.2.13 client.
+    // This exhaustive set is every command name the 10.0.2.13 client accepts here.
     private static readonly HashSet<string> NativeCommands =
     [
         "g_unit_collide_front_bound_rate",

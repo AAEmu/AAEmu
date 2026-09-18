@@ -11,7 +11,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// Opcode 0x149.
 /// </summary>
 /// <remarks>
-/// Wire layout recovered from 10.0.2.13 <c>x2game-dev.dll</c> archive reader (RVA ~0xc881a7):
+/// Wire layout the 10.0.2.13 client's archive reader expects:
 /// <list type="bullet">
 /// <item><c>usedFreeActivationCount</c> u8</item>
 /// <item>exactly <see cref="CharacterAbilitySets.MaxSlots"/> (=5) slots, always written</item>

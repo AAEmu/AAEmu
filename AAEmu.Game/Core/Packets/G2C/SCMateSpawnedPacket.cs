@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// u32 exp, i32 spawnDelayTime and exactly ten i32 mount-skill ids.
 /// </summary>
 /// <remarks>
-/// Two fields moved in 10.0.2.13, measured against the three the binary names (itemId, userState,
+/// Two fields moved in 10.0.2.13, measured against the three the client names (itemId, userState,
 /// spawnDelayTime): a byte joins the front of the block, and the pair between userState and
 /// spawnDelayTime became a single u32, dropping mileage. Writing the v1.2 shape put every mount-skill
 /// walks to resolve each mount_skills row — held whatever the misalignment landed on, and no mount

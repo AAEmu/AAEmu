@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Skills;
 namespace AAEmu.World.Core.Packets.Wz;
 
 // World → Zone combat, skills, buffs and aggro (opcodes 0x020-0x04F).
-// Each body is the dedicate DLL's own serializer for the type, reached through slot 2
+// Each body carries the fields the zone protocol expects for that opcode.
 
 public class WZUnitResurrectionPacket(uint unitId, ulong x, ulong y, float z, float zRot)
     : ZonePacket(WzOpcodes.UnitResurrection)

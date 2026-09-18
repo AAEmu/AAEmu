@@ -10,7 +10,7 @@ public class SummonMate : Item
 
     public override ItemDetailType DetailType => ItemDetailType.Mate;
     // The body is an opaque blob on the client wire; only exp + level below are interpreted.
-    // TODO(v10): decode the trailing bytes via server-side RE or a live capture.
+    // TODO(v10): decode the trailing bytes once their layout is known.
     public override uint DetailBytesLength => 20;
 
     public SummonMate()

@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets;
 
 /// <summary>
 /// had <b>zero</b> L4 frames; live World paths must send plain L5 SC instead.
-/// Encode is hard-gated — set AAEMU_ALLOW_DD04=1 only for deliberate RE experiments.
+/// Encode is hard-gated — set AAEMU_ALLOW_DD04=1 only for deliberate L4 experiments.
 /// </summary>
 public class CompressedGamePackets() : GamePacket(0, 4)
 {
@@ -36,7 +36,7 @@ public class CompressedGamePackets() : GamePacket(0, 4)
         {
             throw new InvalidOperationException(
                 "DD04 (CompressedGamePackets / level-4 zip) is disabled. " +
-                "Retail sniff used 0× L4 — send individual GamePackets. " +
+                "Retail used 0× L4 — send individual GamePackets. " +
                 "Set AAEMU_ALLOW_DD04=1 only for experiments.");
         }
 

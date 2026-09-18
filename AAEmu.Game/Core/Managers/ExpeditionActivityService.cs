@@ -32,7 +32,7 @@ public sealed class ExpeditionActivityService(IExpeditionActivityRepository repo
     public const int MaximumActivityHistoryRows = 50;
     public const int MaximumInstanceHistoryMembers = 50;
     public const int MaximumPortalNameLength = 128;
-    // The native server deadline is not known. The shipped summon dialog closes after 60 seconds;
+    // The server-side deadline is not known. The shipped summon dialog closes after 60 seconds;
     // matching it here prevents stale destinations and retained sessions after the UI can no longer reply.
     public static readonly TimeSpan SummonLifetime = TimeSpan.FromSeconds(60);
     private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;

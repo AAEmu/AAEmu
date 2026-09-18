@@ -6,7 +6,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// <c>.?AUCSRaidRecruitListPacket@@</c> — a request for the raid recruitment listing.
+/// A request for the raid recruitment listing.
 /// The response side is not implemented, so the request is consumed and logged.
 /// </summary>
 public class CSRaidRecruitListPacket() : GamePacket(CSOffsets.CSRaidRecruitListPacket, 1)
