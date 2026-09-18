@@ -631,8 +631,14 @@ public class LootingContainer(IBaseUnit owner)
 
     private bool TryDistributeLootToPlayer(Character player, LootingContainerItemEntry itemEntry, bool didLootAll)
     {
+        using var mutation = player.Inventory.AcquireMutation();
+        // A repeated request must not acquire the same generated fish twice.
+        if (!Items.TryGetValue(itemEntry.ItemIndex, out var currentEntry) || currentEntry != itemEntry)
+            return false;
+
+        var autoEquip = ItemManager.Instance.IsAutoEquipTradePack(itemEntry.Item.TemplateId);
         var freeSpace = player.Inventory.Bag.SpaceLeftForItem(itemEntry.Item, out _);
-        if (freeSpace < itemEntry.Item.Count)
+        if (!autoEquip && freeSpace < itemEntry.Item.Count)
         {
             // player.SendErrorMessage(ErrorMessageType.BagFull);
             player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.Item.Id));
@@ -646,8 +652,10 @@ public class LootingContainer(IBaseUnit owner)
         {
             player.AddMoney(SlotType.Inventory, itemEntry.Item.Count);
         }
-        else if (ItemManager.Instance.IsAutoEquipTradePack(itemEntry.Item.TemplateId))
+        else if (autoEquip)
         {
+            var previousBackpack = player.Inventory.GetEquippedBySlot(EquipmentItemSlot.Backpack);
+            var previousBackpackItemId = player.Inventory.PreviousBackPackItemId;
             // Auto-equip tradepack item branch.
             // Attempt to remove the current backpack item to free up the slot.
             if (player.Inventory.TakeoffBackpack(ItemTaskType.RecoverDoodadItem, true))
@@ -658,6 +666,7 @@ public class LootingContainer(IBaseUnit owner)
                     itemEntry.Item.Grade);
                 if (acquiredItem == null)
                 {
+                    RestoreBackpack();
                     player.SendPacket(new SCLootItemFailedPacket(
                         ErrorMessageType.Invalid,
                         LootOwnerType,
@@ -683,6 +692,7 @@ public class LootingContainer(IBaseUnit owner)
                 {
                     // If adding fails, release the item ID and restore original.
                     ItemManager.Instance.ReleaseId(acquiredItem.Id);
+                    RestoreBackpack();
                     player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.Item.Id));
                     return false;
                 }
@@ -700,6 +710,15 @@ public class LootingContainer(IBaseUnit owner)
                 Logger.Warn("AutoEquipTradePack: Failed to take off backpack for auto-equip tradepack item TemplateId={0}.", itemEntry.Item.TemplateId);
                 player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.Item.Id));
                 return false;
+            }
+
+            void RestoreBackpack()
+            {
+                if (previousBackpack != null &&
+                    !player.Inventory.Equipment.AddOrMoveExistingItem(
+                        ItemTaskType.RecoverDoodadItem, previousBackpack, (int)EquipmentItemSlot.Backpack))
+                    Logger.Fatal("Failed to restore backpack {0} after looting {1}", previousBackpack.Id, itemEntry.Item.TemplateId);
+                player.Inventory.PreviousBackPackItemId = previousBackpackItemId;
             }
         }
         else
