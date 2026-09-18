@@ -6,7 +6,7 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-public class X2EnterWorldResponsePacket(short reason, bool gm, uint token, ushort port, GameConnection connection)
+public class X2EnterWorldResponsePacket(short reason, uint token, ushort port, GameConnection connection)
     : GamePacket(SCOffsets.X2EnterWorldResponsePacket, 5)
 {
     public override PacketStream Write(PacketStream stream)
@@ -29,8 +29,12 @@ public class X2EnterWorldResponsePacket(short reason, bool gm, uint token, ushor
         stream.Write(port);                          // natPort (u16) = stream port
         //   (authority & 1) != 0 → use cl_serveraddr (login TGW IP)
         //   else → inet_ntoa(hostlong) which is 0 for normal login → addr 0.0.0.0 → OpenStream fail.
-        // Retail uses 1. GM level is the high bits; bit0 MUST stay set (100 alone DCs before char select).
-        stream.Write(gm ? 101u : 1u);                // authority (i32): 101 = 100|1
+        // This is a native bitmask, not AAEmu's numeric access level. In r575, bit 0x04
+        // makes character creation require the engine's editor mode. Sending access
+        // level 100 | 1 blocks normal GM clients before CSCreateCharacter.
+        // Keep the retail connection authority;
+        // account/character access levels and server-side gmFlag authorize GM commands.
+        stream.Write(1u);                            // authority (i32)
         return stream;
     }
 }
