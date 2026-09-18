@@ -1143,6 +1143,15 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             return WorldSaveStatus.Saved;
         }
 
+        // A deferral opened under an enclosing PersistenceOperationScope never took the gate, so it must
+        // not release it for the write either. Leave the request standing for the next scope that owns it,
+        // or for the periodic save — the same rule PersistScope.Dispose uses.
+        if (!t_persistDeferOwnsGate)
+        {
+            t_lastFlushStatus = WorldSaveStatus.Busy;
+            return WorldSaveStatus.Busy;
+        }
+
         t_persistRequested = false;
         PersistenceGate.ExitOperation();
         try

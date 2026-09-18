@@ -375,6 +375,37 @@ public sealed class MailTests
         await Assert.That(_saves.SaveCount).IsEqualTo(1);
     }
 
+    [Test]
+    public async Task FlushRequestedNow_InsideAnOperationThatHoldsTheGate_AnswersBusyAndLeavesTheRequest()
+    {
+        WorldSaveStatus status;
+        int savesWhileTheOperationWasOpen;
+        bool gateHeldAfterTheFlush;
+
+        using (PersistenceOperationScope.Enter())
+        {
+            using (_mailManager.DeferPersist())
+            {
+                _mailManager.PersistNow();
+                status = _mailManager.FlushRequestedNow();
+            }
+
+            savesWhileTheOperationWasOpen = _saves.SaveCount;
+            gateHeldAfterTheFlush = PersistenceGate.IsOperationHeld;
+        }
+
+        await Assert.That(status).IsEqualTo(WorldSaveStatus.Busy);
+        await Assert.That(savesWhileTheOperationWasOpen).IsEqualTo(0);
+        await Assert.That(gateHeldAfterTheFlush).IsTrue();
+        await Assert.That(PersistenceGate.IsOperationHeld).IsFalse();
+
+        using (_mailManager.DeferPersist())
+        {
+        }
+
+        await Assert.That(_saves.SaveCount).IsEqualTo(1);
+    }
+
     /// <summary>
     /// A flush asked for while this thread is already saving. The tax letter a house build sends goes out
     /// through MailManager.Send -> EnsurePersisted -> FlushPersist while the placement's own save is still
