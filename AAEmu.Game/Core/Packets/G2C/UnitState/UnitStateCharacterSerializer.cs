@@ -33,7 +33,7 @@ internal static class UnitStateCharacterSerializer
             stream.Write((byte)ability);
 
         // This bc is the DUEL STATE object, not the faction. The client reads the block as
-        // "bc, duelTeamType, camp" (VA 0x39C3A61C4), and we wrote the faction id into it - so every
+        // "bc, duelTeamType, camp", and we wrote the faction id into it - so every
         // player, having a non-zero faction, looked to the client as if they were already duelling,
         // and "That person is already dueling." blocked every invite before the client sent one.
         stream.WriteBc(character.DuelStateObjectId);

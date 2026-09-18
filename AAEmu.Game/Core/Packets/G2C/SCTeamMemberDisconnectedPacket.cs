@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Team;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Client layout (VA 0x39C72430): tid u32, type u64, then the same "person" block
+/// Client layout: tid u32, type u64, then the same "person" block
 /// <see cref="SCTeamRemoteMembersExPacket"/> uses. The member id is EIGHT bytes.
 /// </summary>
 public class SCTeamMemberDisconnectedPacket(uint teamId, ulong id, TeamMember member)

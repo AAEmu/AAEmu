@@ -5,12 +5,12 @@ using AAEmu.Game.Models.Game.Duels;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Client layout (read at RVA 0xC88060), which names every field it reads:
+/// Client layout, which names every field it reads:
 ///
 ///   isWin           bool                    did THIS recipient win
 ///   det             u8                      see <see cref="DuelDetType"/>
-///   opponentUnitIds u32 count, count x bc   helper at RVA 0xC87350
-///   opponentCharIds u32 count, count x u64  helper at RVA 0xACD460
+///   opponentUnitIds u32 count, count x bc
+///   opponentCharIds u32 count, count x u64
 ///
 /// Both lists use the engine's standard vector encoding: a u32 "Size" followed by that many elements.
 /// We used to send "u32 challengerId, u32 challengedId, bc, bc, u8 det" - fifteen bytes of a layout

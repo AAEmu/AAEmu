@@ -25,9 +25,9 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
     private const double DuelDurationTime = 5;    // 5 min
 
     /// <summary>
-    /// How long the client counts down before a duel begins. Not our choice: its countdown handler
-    /// (RVA 0x105E20) writes the constant 0xBB8 = 3000 ms, so anything else here would put our start
-    /// packet out of step with what the player is watching.
+    /// How long the client counts down before a duel begins. Not our choice: the client runs its own
+    /// countdown for a fixed 3000 ms, so anything else here would put our start packet out of step with
+    /// what the player is watching.
     /// </summary>
     private static readonly TimeSpan CountdownDuration = TimeSpan.FromMilliseconds(3000);
 

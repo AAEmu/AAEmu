@@ -249,8 +249,8 @@ public class Team : PacketMarshaler
     
 
     /// <summary>
-    /// The team header, read out of the 10.0.2.13 client's own deserializer (VA 0x39C6D700), which names
-    /// every value it reads:
+    /// The team header, in the layout the 10.0.2.13 client's own reader expects, which names every
+    /// value it reads:
     ///
     ///   id             u32     4       our Id
     ///   type           u64     8       the owner - EIGHT bytes, not four
@@ -265,9 +265,8 @@ public class Team : PacketMarshaler
     ///   type           u64     8
     ///   teamRoleType   i8      1       Solo(0) Party(1) Raid(2) SiegeRaid(3)
     ///
-    /// Widths come from the archive vtable slot each read calls: 0x80 = 4, 0x88 = 2, 0x90 = 1,
-    /// 0x98 = 8, 0xA0 = 4, 0xF8 = 1 (bool), 0x1A0 = 3 (compressed id). Slots 0x30 and 0x40 are
-    /// `mov al,1; ret` here, so every branch guarded by them takes the taken-path.
+    /// The client's own read widths are 4, 2, 1, 8, 4, 1 (bool) and 3 (a compressed id). Its two
+    /// optional blocks are always taken here, so nothing in this header is conditionally skipped.
     ///
     /// The previous version wrote the owner and each of the fifty slot ids as u32 and stopped after the
     /// looting rule. That left the stream 222 bytes short of what the client reads, starting at the

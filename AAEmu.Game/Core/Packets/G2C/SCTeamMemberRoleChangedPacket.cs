@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Team;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Client layout (VA 0x39C773F0): tid u32, type u64, role u8. The member id is EIGHT bytes, as it is
+/// Client layout: tid u32, type u64, role u8. The member id is EIGHT bytes, as it is
 /// in every other team packet that carries one.
 /// </summary>
 public class SCTeamMemberRoleChangedPacket(uint teamId, ulong memberId, MemberRole role)
