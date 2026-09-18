@@ -210,10 +210,12 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
     /// The gear score of a member who is not in the world, scored from their stored equipment.
     /// </summary>
     /// <remarks>
-    /// The equipment container is the DB-backed one — the accessor builds it for a character id and the
-    /// container loads its own rows, which is what makes this possible without the character being loaded. Not
-    /// <c>ItemManager.LoadPlayerInventory</c>: that one is obsolete and reads the in-memory item cache, which
-    /// holds only loaded characters, so it answers an empty set for exactly the members this is for.
+    /// Every persistent container is loaded at startup, so this is a lookup in that set - read-only, and it
+    /// answers null for a character who has none. Not <c>GetItemContainerForCharacter</c>: that one builds an
+    /// empty container with a fresh id and registers it for the next save, which then writes an empty
+    /// <c>item_containers</c> row for that character. Not <c>ItemManager.LoadPlayerInventory</c> either: that
+    /// one is obsolete and reads the in-memory item cache, which holds only loaded characters, so it answers an
+    /// empty set for exactly the members this is for.
     /// Scored with the same per-piece calculation a live character's total uses, so a member's number does not
     /// change depending on whether they are online.
     /// </remarks>
@@ -221,8 +223,8 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
     {
         try
         {
-            var equipment = ItemManager.Instance.GetItemContainerForCharacter(characterId,
-                Models.Game.Items.SlotType.Equipment, null, 0);
+            var equipment = ItemManager.Instance.FindItemContainerFor(characterId,
+                Models.Game.Items.SlotType.Equipment, 0);
             if (equipment == null)
             {
                 Logger.Warn("No equipment container for offline character {0} - gear score listed as 0", characterId);
