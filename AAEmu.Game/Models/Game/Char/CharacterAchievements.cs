@@ -164,6 +164,14 @@ public sealed class CharacterAchievements
         }
     }
 
+    /// <summary>
+    /// Rewrites the character's achievement rows inside the caller's transaction.
+    /// </summary>
+    /// <remarks>
+    /// Nothing here catches: the rows are written in <see cref="Character.Save"/>'s transaction, after the
+    /// rows have been deleted, so a failure that stayed quiet would let the save report success and commit
+    /// with the character's progress gone. The exception has to reach the save so it can roll back.
+    /// </remarks>
     public void Save(MySqlConnection connection, MySqlTransaction transaction)
     {
         if (Owner == null)
@@ -173,34 +181,27 @@ public sealed class CharacterAchievements
         lock (_sync)
             snapshot = _progress.Values.Select(progress => progress.Clone()).ToList();
 
-        try
-        {
-            using var delete = connection.CreateCommand();
-            delete.Connection = connection;
-            delete.Transaction = transaction;
-            delete.CommandText = "DELETE FROM character_achievements WHERE `owner` = @owner";
-            delete.Parameters.AddWithValue("@owner", Owner.Id);
-            delete.ExecuteNonQuery();
+        using var delete = connection.CreateCommand();
+        delete.Connection = connection;
+        delete.Transaction = transaction;
+        delete.CommandText = "DELETE FROM character_achievements WHERE `owner` = @owner";
+        delete.Parameters.AddWithValue("@owner", Owner.Id);
+        delete.ExecuteNonQuery();
 
-            foreach (var progress in snapshot)
-            {
-                using var insert = connection.CreateCommand();
-                insert.Connection = connection;
-                insert.Transaction = transaction;
-                insert.CommandText =
-                    "INSERT INTO character_achievements (`owner`, `achievement_id`, `amount`, `completed_at`) " +
-                    "VALUES (@owner, @achievement, @amount, @completed)";
-                insert.Parameters.AddWithValue("@owner", Owner.Id);
-                insert.Parameters.AddWithValue("@achievement", progress.AchievementId);
-                insert.Parameters.AddWithValue("@amount", progress.Amount);
-                insert.Parameters.AddWithValue("@completed",
-                    progress.CompletedAtUtc.HasValue ? progress.CompletedAtUtc.Value : DBNull.Value);
-                insert.ExecuteNonQuery();
-            }
-        }
-        catch (Exception exception)
+        foreach (var progress in snapshot)
         {
-            Logger.Error(exception, "Failed to save achievements for {0}", Owner.Name);
+            using var insert = connection.CreateCommand();
+            insert.Connection = connection;
+            insert.Transaction = transaction;
+            insert.CommandText =
+                "INSERT INTO character_achievements (`owner`, `achievement_id`, `amount`, `completed_at`) " +
+                "VALUES (@owner, @achievement, @amount, @completed)";
+            insert.Parameters.AddWithValue("@owner", Owner.Id);
+            insert.Parameters.AddWithValue("@achievement", progress.AchievementId);
+            insert.Parameters.AddWithValue("@amount", progress.Amount);
+            insert.Parameters.AddWithValue("@completed",
+                progress.CompletedAtUtc.HasValue ? progress.CompletedAtUtc.Value : DBNull.Value);
+            insert.ExecuteNonQuery();
         }
     }
 }
