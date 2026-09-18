@@ -284,5 +284,27 @@ public static class EquipSlotReinforceRules
 
         return eligible[^1];
     }
+
+    /// <summary>
+    /// Whether a replace can roll a different row: the previous one is excluded, and so is every row the
+    /// character already holds. Spending the stone before this check would pay for a no-op.
+    /// </summary>
+    public static bool HasRerollCandidate(IEnumerable<EquipSlotReinforceUnitModifier> pool, uint currentId,
+        Func<uint, bool> alreadyObtained)
+    {
+        if (pool == null)
+            return false;
+
+        foreach (var modifier in pool)
+        {
+            if (modifier == null || modifier.Weight <= 0 || modifier.Id == currentId)
+                continue;
+            if (alreadyObtained != null && alreadyObtained(modifier.Id))
+                continue;
+            return true;
+        }
+
+        return false;
+    }
 }
 

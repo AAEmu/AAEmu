@@ -122,7 +122,7 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
         // The artifact window's Confirm button: the tail names the material row the player picked for the slot
         // in the byte above. Read it only where it can mean something - a ladder slot - so another skill's tail
         // is never mistaken for one.
-        else if (stream.LeftBytes >= ReinforceFeedTailBytes)
+        else if (skillId == CharacterEquipSlotReinforces.FeedSkillId && stream.LeftBytes >= ReinforceFeedTailBytes)
         {
             var materialRowId = stream.ReadUInt16();
             _ = stream.ReadInt32();

@@ -235,6 +235,18 @@ public class EquipSlotReinforceRulesTests
     }
 
     [Test]
+    public async Task HasRerollCandidate_ExcludesTheCurrentRowAndWhatIsAlreadyHeld()
+    {
+        var pool = new[] { Modifier(1, 10), Modifier(2, 10), Modifier(3, 10), Modifier(4, 0) };
+
+        await Assert.That(EquipSlotReinforceRules.HasRerollCandidate(pool, 1, id => id == 2)).IsTrue();
+        await Assert.That(EquipSlotReinforceRules.HasRerollCandidate(pool, 1, id => id is 2 or 3)).IsFalse();
+        await Assert.That(EquipSlotReinforceRules.HasRerollCandidate(pool, 1, null)).IsTrue();
+        await Assert.That(EquipSlotReinforceRules.HasRerollCandidate([], 1, null)).IsFalse();
+        await Assert.That(EquipSlotReinforceRules.HasRerollCandidate(null, 1, null)).IsFalse();
+    }
+
+    [Test]
     public async Task PickConsumable_TakesTheFirstAlternativeTheCharacterHoldsInFull()
     {
         // A material's set members are alternatives: here either 5 singles or 1 bulk item pays for it.

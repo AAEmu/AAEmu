@@ -49,6 +49,12 @@ public class CharacterEquipSlotReinforces
     public const uint ReplaceEffectSkillId = 38664;
 
     /// <summary>
+    /// The skill the artifact window's Confirm button casts ("equip slot reinforcement"). Its tail names the
+    /// material row; other skills can carry a 6-byte tail that must not be read as one.
+    /// </summary>
+    public const uint FeedSkillId = 38363;
+
+    /// <summary>
     /// The <c>content_configs</c> row naming the item Replace mode spends
     /// (<c>enum_content_configs</c> id 236, shipped value 46682, the "Bound Serendipity Stone" the window's
     /// own Replace dialog shows). The cast does not carry the item, so this is where its price comes from,
@@ -470,19 +476,32 @@ public class CharacterEquipSlotReinforces
     public EquipSlotReinforceUnitModifier RerollTierEffect(byte slotTypeId, uint levelEffectId)
     {
         EquipSlotReinforceEffect previous;
+        EquipSlotReinforceUnitModifier rolled;
         lock (_sync)
         {
-            if (!_effects.Remove((slotTypeId, levelEffectId), out previous))
+            if (!_effects.TryGetValue((slotTypeId, levelEffectId), out previous))
                 return null;
-        }
 
-        var rolled = RollTierEffect(slotTypeId, levelEffectId);
-        if (rolled == null)
-        {
-            // Nothing else in the tier: keep what the slot had rather than leaving it with nothing.
-            lock (_sync)
-                _effects[(slotTypeId, levelEffectId)] = previous;
-            return null;
+            var tier = EquipSlotReinforceGameData.Instance.GetLevelEffectById(levelEffectId);
+            if (tier == null || tier.SlotTypeId != slotTypeId)
+                return null;
+
+            // Exclude the row this slot already holds so a paid replace cannot hand it back. IsObtained
+            // would allow it once the old row is dropped, which is why the check is named here.
+            rolled = EquipSlotReinforceRules.RollModifier(
+                tier.Modifiers,
+                id => id == previous.UnitModifierId || IsObtained(id),
+                Random.Shared.Next());
+            if (rolled == null)
+                return null;
+
+            _effects[(slotTypeId, levelEffectId)] = new EquipSlotReinforceEffect
+            {
+                SlotTypeId = slotTypeId,
+                LevelEffectId = levelEffectId,
+                UnitModifierId = rolled.Id,
+                Applied = true
+            };
         }
 
         SendLevelEffect(slotTypeId, EffectOf(slotTypeId, levelEffectId));
@@ -730,6 +749,14 @@ public class CharacterEquipSlotReinforces
         {
             Logger.Warn("Equip slot reinforce {0}: {1} carries no item {2} to replace with",
                 slotTypeId, _owner.Name, itemId);
+            return EquipSlotReinforceChange.Refused;
+        }
+
+        var previous = EffectOf(slotTypeId, tier.Id);
+        if (previous == null ||
+            !EquipSlotReinforceRules.HasRerollCandidate(tier.Modifiers, previous.UnitModifierId, IsObtained))
+        {
+            Logger.Warn("Equip slot reinforce {0}: tier {1} has no other effect to roll", slotTypeId, tier.Id);
             return EquipSlotReinforceChange.Refused;
         }
 
