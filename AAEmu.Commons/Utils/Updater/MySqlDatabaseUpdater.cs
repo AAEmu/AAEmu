@@ -7,6 +7,15 @@ namespace AAEmu.Commons.Utils.Updater;
 public static class MySqlDatabaseUpdater
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
+
+    /// <summary>
+    /// Sorts migrations consistently regardless of the host file-system ordering.
+    /// </summary>
+    public static void SortUpdateFiles(List<string> files)
+    {
+        ArgumentNullException.ThrowIfNull(files);
+        files.Sort(StringComparer.OrdinalIgnoreCase);
+    }
     /*
         CREATE TABLE `updates` (
           `script_name` varchar(255) NOT NULL,
@@ -205,7 +214,7 @@ public static class MySqlDatabaseUpdater
 
         // Get the Updates Files List
         var updatesFolder = FindUpdatesFolder(moduleNamePrefix, out var allUpdatesFiles);
-        allUpdatesFiles.Sort();
+        SortUpdateFiles(allUpdatesFiles);
         var filesToRun = new List<string>();
         var filesAlreadyUpdated = new List<string>();
 
@@ -255,6 +264,8 @@ public static class MySqlDatabaseUpdater
             if (File.Exists(fName))
                 filesToRun.Add(fName);
         }
+
+        SortUpdateFiles(filesToRun);
 
         if (filesToRun.Count > 0)
         {
