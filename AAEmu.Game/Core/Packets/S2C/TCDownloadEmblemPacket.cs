@@ -10,20 +10,10 @@ public class TCDownloadEmblemPacket() : StreamPacket(TCOffsets.TCDownloadEmblemP
         stream.Write((long)0); // type
         stream.Write(0); // size
         /*
-        if ( *(_DWORD *)(v3 + 8) > 0 )
-        {
-            if ( *(_DWORD *)(v3 + 8) > 3072 )
-                v4 = &dword_3971CDB0; // TODO 3072
-            v5 = *v4;
-            v6 = a3->Reader->field_1C() == 0;
-            v7 = a3->Reader;
-            if ( v6 )
-                v8 = v7->ReadString;
-            else
-                v8 = (void (__stdcall *)(_DWORD, char *, int))v7->ReadString1;
-            v8("emblem", (char *)(v3 + 12), v5);
-        }
-        */
+         * Client-side handling: it takes a size at offset 8; when that size is non-zero it is capped at
+         * 3072 bytes and the payload is read as the string field "emblem" at offset 12.
+         * We only ever send the empty form (size 0) here.
+         */
         stream.Write((ulong)0); // modified
 
         return stream;

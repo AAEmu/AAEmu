@@ -12,9 +12,9 @@ public class TeamMember(Character character = null) : PacketMarshaler
     public bool HasGoneRoundRobin { get; set; } = false;
 
     /// <summary>
-    /// One team member, read out of the client's own deserializer (VA 0x39C7C570). The SAME function is
-    /// called by SCJoinedTeam (once per member) and by SCTeamMemberJoined, so both packets share this
-    /// layout:
+    /// One team member, in the layout the client's own reader expects. The client reads it with the
+    /// same code from SCJoinedTeam (once per member) and from SCTeamMemberJoined, so both packets share
+    /// this layout:
     ///
     ///   type        u64      8    the character id - EIGHT bytes, not four
     ///   name        wstring

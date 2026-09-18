@@ -28,7 +28,7 @@ public class PlotEventEffect
 
         var buffEffect = template as BuffEffect;
         if (buffEffect != null)
-            flag = 2; //We still don't know what this does, but we had it as 6, and it's 2 in our packet sniffing. 
+            flag = 2; //We still don't know what this does, but we had it as 6, and it's 2 on the wire. 
 
         BaseUnit source;
         switch (SourceId)

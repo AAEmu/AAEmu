@@ -4,7 +4,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions;
 
 /// <summary>
 /// Adds an item to the client farmhand bag without resolving a physical client inventory.
-/// x2game 10.0.2.13 action 0x15 (FUN_39CE0C20/FUN_39CE45D0) carries both protocol
+/// The 10.0.2.13 client's item action 0x15 carries both protocol
 /// locations, the canonical item, an optional removed farmhand item id, and an unused
 /// farmhand database id. The owner-7 handler calls ClientButler directly.
 /// </summary>

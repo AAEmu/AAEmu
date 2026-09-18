@@ -36,7 +36,7 @@ public readonly record struct ButlerLaborPowerChargeQuote(
     uint NewButlerLaborPower,
     ushort NewDailyChargedAmount);
 
-/// <summary>Weekly counters held under the native permanent-data keys 7, 8, and 9.</summary>
+/// <summary>Weekly counters held under the client's permanent-data keys 7, 8, and 9.</summary>
 public readonly record struct ButlerProductionCostChargeCounters(
     ulong WeeklyFreeChargeCount,
     ulong WeeklyChargedAmount,
@@ -56,12 +56,12 @@ public readonly record struct ButlerProductionCostChargeQuote(
 /// <summary>Pure farmhand labor-power and production-cost charge calculations.</summary>
 public static class ButlerChargeRules
 {
-    // FUN_3918DB20 selects the full-rate phase until the configured daily quota is exhausted.
+    // The charge rule selects the full-rate phase until the configured daily quota is exhausted.
     private const uint FullRatePercent = 100;
 
     /// <summary>
-    /// Native permanent-data keys used by <c>FUN_39CD7440</c>: free-charge count, weekly charged amount,
-    /// and the world-local weekly-reset timestamp.
+    /// Permanent-data keys the client reads for its charge state: free-charge count, weekly charged
+    /// amount, and the world-local weekly-reset timestamp.
     /// </summary>
     public const sbyte WeeklyFreeChargeCountPermanentDataKey = 7;
     public const sbyte WeeklyChargedAmountPermanentDataKey = 8;

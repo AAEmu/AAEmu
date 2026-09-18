@@ -4,14 +4,14 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Account payment state. Field order, offsets and widths verified against the 10.0.2.13 client's
-/// client serializer, which names each value as it reads it:
+/// Account payment state. Field order, offsets and widths are the 10.0.2.13 client's, which names
+/// each value as it reads it:
 /// payMethod (+0x10, int32), payLocation (+0x14, int32), payStart (+0x18, DateTime),
 /// payEnd (+0x20, DateTime), realPayTime (+0x28, int64), buyPremiumCount (+0x30, int32).
 /// </summary>
 /// <remarks>
-/// payStart and payEnd go through the client's DateTime slot (0x78) while realPayTime goes through the
-/// plain int64 slot (0x98) - so realPayTime is a COUNT, not a timestamp, and it was hardcoded to zero
+/// payStart and payEnd are DateTime-shaped on the wire while realPayTime is a plain int64 - so
+/// realPayTime is a COUNT, not a timestamp, and it was hardcoded to zero
 /// along with buyPremiumCount. Both are now supplied by the caller.
 /// </remarks>
 public class SCAccountInfoPacket(

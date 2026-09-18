@@ -7,7 +7,7 @@ namespace AAEmu.World.Core.Packets.Wz;
 /// <summary>
 /// WZSpawnerList (0x005) — saved indun spawner state.
 /// Wire: [u8 last][u8 count≤100][{u32 id, u32 type, u8 state}×count] (9 B/entry).
-/// Layout and the 100-entry clamp are verified against the packet serializer
+/// Layout and the 100-entry clamp are the zone protocol's; the serializer's
 /// field names are "last", "count", "id", "type", "state".
 /// Empty last=1 chunk opens the join gate and is the correct payload for seamless worlds —
 /// see <see cref="ZoneNpcSpawnerCatalog"/> for the acceptance rules dedicate applies.

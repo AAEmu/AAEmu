@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// The money fields widened to 64 bits and gained a fourth entry, and the rate is new. Writing the
 /// v1.2 shape ran the client out of buffer mid-moneyAmount, so it discarded the quote and never sent
 /// the build request — the placement preview stayed on the ground and nothing else happened. The
-/// binary names all four money fields identically, so the fourth is appended after the total and
+/// client names all four money fields identically, so the fourth is appended after the total and
 /// carries the weekly amount CalculateBuildingTaxInfo already computes.
 /// </remarks>
 public class SCConstructHouseTaxPacket(

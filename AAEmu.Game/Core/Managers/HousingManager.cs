@@ -815,7 +815,7 @@ public class HousingManager(
                 (sbyte)weeksWithoutPay,
                 (byte)weeksPrepay,   // Fix: banked prepaid weeks (was hardcoded 0) — prepayment is not modelled
                 house.Template.HeavyTax,
-                (byte)(FeaturesManager.Fsets.TaxItem ? 1 : 0)   // Fix: 1=HOUSING_TAX_SEAL, was 0=contribution path — the binary leaves the enum unnamed
+                (byte)(FeaturesManager.Fsets.TaxItem ? 1 : 0)   // Fix: 1=HOUSING_TAX_SEAL, was 0=contribution path — the client leaves this enum unnamed
             )
         );
     }
@@ -904,7 +904,7 @@ public class HousingManager(
         }
         foreach (var groupId in groups)
             character.SendPacket(new SCResidentMapPacket((short)groupId));
-        // SCResidentInfoOptionPacket removed: the client build has no such class (RTTI absent);
+        // SCResidentInfoOptionPacket removed: the client build has no such class;
         // 0x38 is SCResidentMapPacket, so the payload was landing on the map handler.
     }
 
@@ -2302,7 +2302,7 @@ public class HousingManager(
                 doodad.Transform.Local.SetZRotation(zRot);
                 //doodad.Transform.WorldId = world.Template.Id;
                 doodad.Transform.InstanceId = world.Id;
-                doodad.Transform.ZoneId = house.Transform?.ZoneId ?? 0; // Fix: zone-stamp markers (was 0, zone binary dropped them)
+                doodad.Transform.ZoneId = house.Transform?.ZoneId ?? 0; // Fix: zone-stamp markers (was 0, the zone server dropped them)
                 doodad.ItemTemplateId = 0; // designId;
                 doodad.ItemId = 0;
                 doodad.OwnerId = house.OwnerId; // Fix: attribute markers so load resolves creator faction

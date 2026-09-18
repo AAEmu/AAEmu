@@ -13,7 +13,7 @@ namespace AAEmu.Game.Models.Game.Items.Actions;
 /// u64  itemId
 /// </code>
 /// <para>
-/// The 10.0.2.13 client serializer at <c>FUN_39CDDC20</c> writes exactly these 11 bytes. Extra slot,
+/// The 10.0.2.13 client serializer writes exactly these 11 bytes. Extra slot,
 /// item, or Butler fields shift the next item action and the packet trailer out of alignment.
 /// </para>
 /// </remarks>

@@ -468,9 +468,9 @@ public sealed class ButlerManager : Singleton<ButlerManager>, IButlerManager, IL
         var wire = ButlerInfoWire.Empty(
             ownerId,
             includeResidenceState
-                // 10.0.2.13 FUN_3918C830 exposes bound state only when this byte matches the
+                // The client exposes bound state only when this byte matches the
                 // current game-server shard byte set by SCShowCurrentWorld. It is not a world
-                // template or instance id. FUN_390CEF60 stores the signed wire byte unchanged.
+                // template or instance id. The client stores the signed wire byte unchanged.
                 ? unchecked((sbyte)_serverWorldId())
                 : CharacterButler.UnboundWorldId,
             butler.Name,

@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// </remarks>
 public static class ManaCostRules
 {
-    /// <summary>The divisor PR #378 reverse-engineered from a single skill; unverified.</summary>
+    /// <summary>The divisor taken from a single skill in PR #378; unverified.</summary>
     public const double Value2Divisor = 6.35;
 
     /// <summary>

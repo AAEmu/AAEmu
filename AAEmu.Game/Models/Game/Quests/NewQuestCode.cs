@@ -55,7 +55,7 @@ public partial class Quest
         // Send the first components, or the one that's used to start this ?
         ComponentId = stepStart.Components.Values.FirstOrDefault()?.Template.Id ?? 0;
 
-        // tracker pin (journal vtable+24) only when status==Progress(1). Ready(3) uses a
+        // tracker pin on the journal entry only when status==Progress(1). Ready(3) uses a
         // different UI path. Never send Invalid(0) on Started — that was leaving the
         // right-hand quest window empty despite 0x18C/0x18E flowing.
         if (Status == QuestStatus.Invalid || Status == QuestStatus.Dropped)

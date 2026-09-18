@@ -5,8 +5,8 @@ using AAEmu.Game.Models.Game.Butlers;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Opcode 0x34B. The 10.0.2.13 serializer <c>FUN_39C885B0</c> treats <paramref name="updatedFlags"/>
-/// as a raw signed field while using these verified bits to select the following state groups.
+/// Opcode 0x34B. The 10.0.2.13 client treats <paramref name="updatedFlags"/> as a raw signed
+/// field while using these bits to select the following state groups.
 /// </summary>
 public class SCButlerInfoUpdatedPacket(
     ushort errorMessage,

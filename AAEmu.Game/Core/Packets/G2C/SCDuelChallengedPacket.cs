@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Client layout (VA 0x39C5B530): the challenger's id as u64, then duelType u8. We wrote a bare u32 -
+/// Client layout: the challenger's id as u64, then duelType u8. We wrote a bare u32 -
 /// five bytes short, so the challenge popup had no valid challenger to answer to.
 /// </summary>
 public class SCDuelChallengedPacket(uint challengerId, byte duelType = 0)

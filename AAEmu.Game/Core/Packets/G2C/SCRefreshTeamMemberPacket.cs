@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Client layout (VA 0x39C79880): tid u32, type u64, bc. The member id is EIGHT bytes.
+/// Client layout: tid u32, type u64, bc. The member id is EIGHT bytes.
 /// </summary>
 public class SCRefreshTeamMemberPacket(uint teamId, ulong memberId, uint objId)
     : GamePacket(SCOffsets.SCRefreshTeamMemberPacket, 1)

@@ -7,13 +7,9 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// The resident zone groups of one character, sent for the Nuon's-Arrow window's zone list.
 /// </summary>
 /// <remarks>
-/// Opcode, field order, widths and names all come from the 10.0.2.13 client. The type is the client's
-/// own <c>.?AUSCResidentInfoListPacket@@</c> (dev type descriptor 0x3A5DD750, vftable 0x3A0B75D0;
-/// retail vftable 0x39E6C5E0) and it is the client's own constructor that stamps this opcode:
-/// <c>mov dword ptr [rcx+8], 0x3B</c> at 0x3959CE7B in x2game-dev.dll and at 0x39404E3B in
-/// x2game.dll. The body comes from the serializer at vftable slot 2 (0x39C74B00 dev, 0x39AB9020
-/// retail), which passes each value's name as it writes it: u32 <c>total</c>, u32 <c>count</c>, bool
-/// <c>final</c>, then <c>count</c> rows written by 0x39C70070 dev / 0x39AB45D0 retail as i16
+/// Opcode, field order, widths and names all come from the 10.0.2.13 client. The client's own
+/// constructor for this type is what stamps the opcode, and its serializer names each value as it
+/// writes it: u32 <c>total</c>, u32 <c>count</c>, bool <c>final</c>, then <c>count</c> rows of i16
 /// <c>type</c>, u32 <c>point</c>, u64 <c>moneyAmount</c>, u64 <c>moneyAmount</c>, then three i32s.
 /// The point and the two money amounts are not modelled server-side, so they go out as zero.
 /// </remarks>
@@ -21,9 +17,8 @@ public class SCResidentInfoListPacket(uint total, IReadOnlyList<ResidentInfoRow>
     : GamePacket(SCOffsets.SCResidentInfoListPacket, 1)
 {
     /// <summary>
-    /// The client reads at most this many rows and its constructor sizes the row array to match:
-    /// 0x39C74B7D in x2game-dev.dll (0x39AB909D in x2game.dll) compares <c>count</c> against 0x64,
-    /// and the constructor at 0x3959CE20 zeroes 100 rows of 0x28 bytes each. A longer list would
+    /// The client reads at most this many rows and sizes its row array to match: it compares
+    /// <c>count</c> against 100 and zeroes 100 rows of 0x28 bytes each. A longer list would
     /// leave rows in the stream for the next packet in the batch to read.
     /// </summary>
     private const int MaxRows = 100;

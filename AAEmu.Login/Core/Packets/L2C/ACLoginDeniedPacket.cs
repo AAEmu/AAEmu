@@ -20,7 +20,7 @@ public class ACLoginDeniedPacket(LoginDeniedReason reason, params int[] vp) : Lo
     public override PacketStream Write(PacketStream stream)
     {
         stream.Write((byte)reason);
-        stream.Write(BuildVpData(), appendSize: true); // vp - binary: [0x00 + int32_le] per entry
+        stream.Write(BuildVpData(), appendSize: true); // vp - bytes: [0x00 + int32_le] per entry
         stream.Write(""); // msg - completely overrides the displayed message
         stream.Write((byte)0); // quitClient - 0 = keep client running on the login screen
 
@@ -28,7 +28,7 @@ public class ACLoginDeniedPacket(LoginDeniedReason reason, params int[] vp) : Lo
     }
 
     /// <summary>
-    /// Builds the binary VP data. Each entry is a 0x00 separator byte followed by a 4-byte little-endian int32.
+    /// Builds the VP payload. Each entry is a 0x00 separator byte followed by a 4-byte little-endian int32.
     /// The client formats each int32 with <c>%d</c> and substitutes them into <c>$1</c>..<c>$9</c> placeholders.
     /// </summary>
     private byte[] BuildVpData()

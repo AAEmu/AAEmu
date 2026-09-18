@@ -48,7 +48,8 @@ public class CSRequestButlerHarvestJobPacket() : GamePacket(CSOffsets.CSRequestB
         ButlerFarmingOperationFailure failure;
         switch (Classify(JobKind, DbHarvestId, HarvestId, Amount))
         {
-            // 10.0.2.13 FUN_391899A0 sends kind 1, database id 0, static harvest id, amount.
+            // The 10.0.2.13 client's register sender writes kind 1, database id 0, static
+            // harvest id, amount.
             case ButlerHarvestRequestOperation.Register:
             {
                 var result = service.RegisterHarvest(character, (uint)HarvestId, Amount);
