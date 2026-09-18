@@ -60,7 +60,8 @@ public class CSRequestSysInstanceIndexPacket() : GamePacket(CSOffsets.CSRequestS
             CatalogInstId,
             dungeonZone,
             zoneKeys,
-            WorldManager.Instance.GetWorlds());
+            WorldManager.Instance.GetWorlds(),
+            WorldIntegration.IsZoneInstanceLoaded);
 
         Logger.Debug(
             "CSRequestSysInstanceIndex char={0} catalog={1} zoneKey={2} -> instanceId={3} index={4}",

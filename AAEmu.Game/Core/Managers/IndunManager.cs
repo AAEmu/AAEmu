@@ -1,4 +1,4 @@
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
@@ -186,6 +186,15 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
     }
 
     /// <summary>
+    /// Drops the remembered dimension once an entry has used it, so it cannot decide a later one.
+    /// </summary>
+    public void ClearInstancePick(uint characterId)
+    {
+        lock (_lock)
+            _instancePicks.Remove(characterId);
+    }
+
+    /// <summary>
     /// The instance a world copy belongs to, by that copy's id — how a channel the client picked is traced
     /// back to the zone it is a copy of.
     /// </summary>
@@ -293,16 +302,27 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
 
         // A pick names the dimension to land in, so it is settled before the access rules below: those look for
         // a party's own copy, which a shared dimension is not.
-        if (pickedCopyId is { } wantedCopy)
+        if (pickedCopyId is { } wantedCopy && wantedCopy != 0)
         {
-            var picked = possibleTargetInstances.FirstOrDefault(copy => copy.World?.Id == wantedCopy);
+            // Only a copy a host is still serving counts: one that dropped between the list and the entry would
+            // put the player in a copy nothing simulates, so it is refused rather than silently substituted.
+            var hostedCopyId = SysIndunChannelRules.FindCopyForPick(
+                GetChannelsOfZoneGroup(dungeonZone), wantedCopy, null);
+            var picked = hostedCopyId is { } copyId
+                ? possibleTargetInstances.FirstOrDefault(candidate => candidate.World?.Id == copyId)
+                : null;
+
             if (picked == null)
             {
-                Logger.Warn("RequestDungeonInstance: picked copy {0} of zone {1} is no longer there for {2}",
+                Logger.Warn("RequestDungeonInstance: picked copy {0} of zone {1} is not hosted for {2}",
                     wantedCopy, targetZone.ZoneKey, character.Name);
                 character.SendErrorMessage(ErrorMessageType.NoServerInstanceResource);
                 return false;
             }
+
+            // A pick names the copy, not a way around the instance's own requirements.
+            if (!VerifyDungeonEnterRequirements(dungeonZone, character, team))
+                return false;
 
             if (IsDungeonFull(picked.World.GetCharacterCount(), picked._indunZone.MaxPlayers))
             {
@@ -311,7 +331,7 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
             }
 
             Logger.Info("RequestDungeonInstance: entering picked copy {0} (channel {1}) for {2}",
-                wantedCopy, picked.World.ChannelId, character.Name);
+                picked.World.Id, picked.World.ChannelId, character.Name);
             return picked.QueuePlayer(character);
         }
 

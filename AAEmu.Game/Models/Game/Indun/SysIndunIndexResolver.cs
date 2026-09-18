@@ -14,7 +14,8 @@ internal static class SysIndunIndexResolver
         uint catalogInstId,
         IndunZone dungeonZone,
         IReadOnlyList<uint> zoneKeysInGroup,
-        IEnumerable<WorldInstance> worlds)
+        IEnumerable<WorldInstance> worlds,
+        Func<uint, uint, bool> isHosted = null)
     {
         var zoneKey = requestZoneKey;
         if (zoneKey == 0 && zoneKeysInGroup is { Count: > 0 })
@@ -33,6 +34,10 @@ internal static class SysIndunIndexResolver
                 if (world.DungeonInstance == null)
                     continue;
                 if (!world.Template.ZoneKeys.Contains(zoneKey))
+                    continue;
+                // A copy no host is serving cannot be entered, so it is not a fallback either: remembering it
+                // would send the entry after this one to a copy nothing simulates.
+                if (isHosted != null && !isHosted(zoneKey, world.Id))
                     continue;
 
                 first ??= world;

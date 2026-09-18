@@ -109,4 +109,44 @@ public class SysIndunIndexResolverTests
         await Assert.That(reply.InstanceId).IsEqualTo(42u);
         await Assert.That(reply.InstanceIndex).IsEqualTo(3u);
     }
+
+    [Test]
+    public async Task Resolve_IgnoresCopiesNoHostIsServing()
+    {
+        // A copy nothing is hosting cannot be entered, so a row that named one resolves to no copy at all
+        // rather than to that copy — remembering it would send the entry after this one nowhere.
+        var worlds = new[] { MakeDungeonWorld(worldId: 99, channelId: 7, zoneKey: 280) };
+
+        var reply = SysIndunIndexResolver.Resolve(
+            requestZoneKey: 280,
+            catalogInstId: 99,
+            dungeonZone: new IndunZone { ZoneGroupId = 58 },
+            zoneKeysInGroup: [280u],
+            worlds,
+            isHosted: (_, worldId) => worldId != 99);
+
+        await Assert.That(reply.InstanceId).IsEqualTo(0u);
+        await Assert.That(reply.InstanceIndex).IsEqualTo(0u);
+    }
+
+    [Test]
+    public async Task Resolve_FallsBackOnlyToACopyAHostIsServing()
+    {
+        var worlds = new[]
+        {
+            MakeDungeonWorld(worldId: 42, channelId: 3, zoneKey: 280),
+            MakeDungeonWorld(worldId: 99, channelId: 7, zoneKey: 280)
+        };
+
+        var reply = SysIndunIndexResolver.Resolve(
+            requestZoneKey: 280,
+            catalogInstId: 999, // gone
+            dungeonZone: new IndunZone { ZoneGroupId = 58 },
+            zoneKeysInGroup: [280u],
+            worlds,
+            isHosted: (_, worldId) => worldId == 99);
+
+        await Assert.That(reply.InstanceId).IsEqualTo(99u);
+        await Assert.That(reply.InstanceIndex).IsEqualTo(7u);
+    }
 }
