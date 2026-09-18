@@ -102,9 +102,8 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
 
             // SCWorldLevelInfo is NOT sent here. The client's world-level manager binds the packet's data to the
             // local player unit, which does not exist until Spawn() runs on NotifyInGame; sending it in the select
-            // burst leaves that unit link (*(ClientPlayer+104)+8) null and the GetWorldLevel HUD provider
-            // null-derefs on player-frame show. The reference sends it ~4s after NotifyInGame — see
-            // CSNotifyInGamePacket.
+            // burst leaves that unit link null and the GetWorldLevel HUD provider null-derefs on player-frame
+            // show. The reference sends it ~4s after NotifyInGame — see CSNotifyInGamePacket.
 
             Connection.SendPacket(new SCCharacterGamePointsPacket(character));
             Connection.ActiveChar.Inventory.Send();

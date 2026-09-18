@@ -493,9 +493,8 @@ public class InitialConfig
     public byte MemberType { get; set; } = 1;
 
     /// <summary>
-    /// UnitDistance <c>over_distance</c> threshold in metres, copied to ClientPlayer+0x3DFC. target.lua
-    /// shows "???" for anything further away, so 0 blanks every target. The client is sent
-    /// SCInitialConfig = 256.0.
+    /// UnitDistance <c>over_distance</c> threshold in metres. Retail servers send SCInitialConfig = 256.0.
+    /// target.lua shows "???" for anything further away, so 0 blanks every target.
     /// </summary>
     public float BigModelDistance { get; set; } = 256.0f;
 

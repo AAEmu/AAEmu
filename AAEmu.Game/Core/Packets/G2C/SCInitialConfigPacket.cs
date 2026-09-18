@@ -54,8 +54,7 @@ public class SCInitialConfigPacket() : GamePacket(SCOffsets.SCInitialConfigPacke
         // account payment method. The native ClientPlayer constructor defaults it to 1.
         stream.Write(config.MemberType); // memberType (i8)
 
-        // UnitDistance over_distance threshold, copied to ClientPlayer+0x3DFC; target.lua shows "???"
-        // beyond it, so 0 blanks every target.
+        // UnitDistance over_distance threshold; target.lua shows "???" beyond it, so 0 blanks every target.
         stream.Write(config.BigModelDistance);  // bigModel (f32)
         stream.Write(config.MaxCharacterSlots); // tmpMaxCharSlot (i8)
 
