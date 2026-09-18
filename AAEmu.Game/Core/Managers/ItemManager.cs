@@ -2797,7 +2797,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         var template = GetTemplate(itemTemplateId);
         return template is BackpackTemplate
         {
-            BackpackType: BackpackType.TradePack or BackpackType.TradeGoods
+            BackpackType: BackpackType.TradePack or BackpackType.TradeGoods or BackpackType.Fish
         } && !template.BindType.HasFlag(ItemBindType.BindOnEquip);
     }
 
