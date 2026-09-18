@@ -262,6 +262,28 @@ public sealed class AchievementManagerTests : SqliteTestBase
     }
 
     [Test]
+    public async Task Reset_ClearsTheRecordsThatWouldOtherwisePutItStraightBack()
+    {
+        AchievementManager.Instance.Report(_character, HouseRecordB, 1);
+        await Assert.That(_character.Achievements.IsComplete(2)).IsTrue();
+        await Assert.That(_character.Records.Get(HouseRecordB)).IsEqualTo(1);
+        _sentPackets.Clear();
+
+        await Assert.That(AchievementManager.Instance.Reset(_character, 2)).IsTrue();
+        // Every record the achievement is judged by goes with it, and the client hears only the reset.
+        await Assert.That(_character.Records.Get(HouseRecordA)).IsEqualTo(0);
+        await Assert.That(_character.Records.Get(HouseRecordB)).IsEqualTo(0);
+        await Assert.That(_character.Records.Get(ArmorRecord)).IsEqualTo(0);
+        await Assert.That(_sentPackets.Count).IsEqualTo(1);
+
+        // Re-evaluating everything, as world entry does, must not earn it again: the records no longer say
+        // the character did any of it.
+        await Assert.That(AchievementManager.Instance.RefreshAll(_character)).IsEqualTo(0);
+        await Assert.That(_character.Achievements.IsComplete(2)).IsFalse();
+        await Assert.That(_character.Achievements.Amount(2)).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task UnknownRecords_AreIgnored()
     {
         await Assert.That(AchievementManager.Instance.Report(_character, 9999, 5)).IsEqualTo(0);

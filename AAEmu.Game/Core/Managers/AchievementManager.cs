@@ -233,11 +233,25 @@ public class AchievementManager : Singleton<AchievementManager>
         return true;
     }
 
-    /// <summary>Forgets an achievement's progress and tells the client to drop it.</summary>
+    /// <summary>
+    /// Forgets an achievement — its progress and the records its objectives are read from — and tells the
+    /// client to drop it.
+    /// </summary>
+    /// <remarks>
+    /// Dropping the progress row alone would only last until the next evaluation: the records that completed
+    /// the achievement still hold what they held, so the entry path's <see cref="RefreshAll"/> would put it
+    /// straight back. Clearing them is what makes the reset mean anything. A record another achievement also
+    /// watches is cleared with it, because it is one counter and this is a reset of it; a record the engine
+    /// fills from character state (level, ability level) is reported again the next time that state is
+    /// reported, which is as it should be — the character still qualifies.
+    /// </remarks>
     public bool Reset(Character character, uint achievementId)
     {
         if (character == null || !AchievementGameData.Instance.HasAchievement(achievementId))
             return false;
+
+        foreach (var objective in AchievementGameData.Instance.GetObjectives(achievementId))
+            character.Records.Clear(objective.RecordId);
 
         character.Achievements.Reset(achievementId);
         character.SendPacket(new SCAchievementResetedPacket(achievementId, 0));
