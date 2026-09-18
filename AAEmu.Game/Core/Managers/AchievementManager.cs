@@ -440,7 +440,7 @@ public class AchievementManager : Singleton<AchievementManager>
     /// The achievement that the sub-category record is for is itself filed under that sub-category, so it is
     /// left out of the count: it is what finishing the sub-category pays, not part of finishing it. So are the
     /// achievements the season has switched off, which cannot be earned at all — 34 of the 44 sub-categories
-    /// hold at least one.
+    /// hold at least one — and members with no objectives (47 unused/test rows), which nothing can complete.
     /// </remarks>
     private static IEnumerable<uint> CompletionRecords(Character character, uint achievementId)
     {
@@ -461,6 +461,7 @@ public class AchievementManager : Singleton<AchievementManager>
         if (members.Count == 0 || !members.All(memberId =>
                 payers.Contains(memberId) ||
                 AchievementGameData.Instance.GetAchievement(memberId)?.SeasonOff == true ||
+                AchievementGameData.Instance.GetObjectives(memberId).Count == 0 ||
                 character.Achievements.IsComplete(memberId)))
             yield break;
 

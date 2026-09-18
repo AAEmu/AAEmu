@@ -41,9 +41,9 @@ public sealed class AchievementManagerTests : SqliteTestBase
     private const uint ChainCompletionRecord = 761;
 
     /// <summary>
-    /// How many achievements the seeded content holds: achievements 1 to 16 less 9, plus the chain pair.
+    /// How many achievements the seeded content holds: achievements 1 to 16 plus the chain pair.
     /// </summary>
-    private const int ContentAchievements = 17;
+    private const int ContentAchievements = 18;
 
     /// <summary>Enough spare content that a full list needs more than one packet of fifty.</summary>
     private const int FillerAchievements = 60;
@@ -389,6 +389,18 @@ public sealed class AchievementManagerTests : SqliteTestBase
     }
 
     [Test]
+    public async Task Completion_OfASubCategory_SkipsMembersWithNoObjectives()
+    {
+        // Achievement 9 is unused content with no objectives. It cannot complete, so it must not hold 12 back.
+        AchievementManager.Instance.Report(_character, 700, 5);
+        AchievementManager.Instance.Report(_character, 710, 1);
+        AchievementManager.Instance.Report(_character, 711, 1);
+
+        await Assert.That(_character.Achievements.IsComplete(9)).IsFalse();
+        await Assert.That(_character.Achievements.IsComplete(12)).IsTrue();
+    }
+
+    [Test]
     public async Task PayReward_ToleratesAnAchievementWithoutAReward()
     {
         await Assert.That(AchievementManager.Instance.PayReward(_character, null)).IsFalse();
@@ -474,6 +486,10 @@ public sealed class AchievementManagerTests : SqliteTestBase
         InsertObjective(10, 11, 710);
         InsertAchievement(11, 1, "t", "Second of the pair", subCategoryId: 90);
         InsertObjective(11, 12, 711);
+
+        // Achievement 9: unused member of the same sub-category, with no objectives. 47 content rows are
+        // this shape; they can never complete and must not hold the payer back.
+        InsertAchievement(9, 0, "t", "Unused", subCategoryId: 90);
 
         // Achievement 12: pays for the whole sub-category, and is filed inside it like the content does.
         InsertAchievement(12, 0, "t", "All of the pair", subCategoryId: 90);
