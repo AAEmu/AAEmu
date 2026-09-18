@@ -47,7 +47,8 @@ public class NpcRemoveSubCommand : SubCommandBase
 
         // Remove Npc
         //npc.Spawner.Despawn(npc);
-        npc.Spawner.Id = 0xffffffff; // removed from the game manually (укажем, что не надо сохранять в файл npc_spawns_new.json командой /save all)
+        if (npc.Spawner != null)
+            npc.Spawner.Id = 0xffffffff; // Do not persist a manually removed spawn. GM-spawned NPCs may have no spawner.
         npc.Hide();
         SendMessage(messageOutput, $"Npc @NPC_NAME({npc.TemplateId}), ObjId: {npc.ObjId}, TemplateId:{npc.TemplateId} removed successfully");
         Logger.Warn($"Npc @NPC_NAME({npc.TemplateId}), ObjId: {npc.ObjId}, TemplateId:{npc.TemplateId} removed successfully");
