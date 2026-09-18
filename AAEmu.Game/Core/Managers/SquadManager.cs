@@ -33,7 +33,7 @@ public interface ISquadManager : IInitializable
     /// <summary>Matchmaking could not seat this member. Clears their queue and un-readies them.</summary>
     void NotifyMatchRejected(Character character);
     void SetPresence(Character character, bool online);
-    /// <summary>One-shot after login: clear a client SquadBase left over from a prior session.</summary>
+    /// <summary>After login, clear stale queue UI only when there is no current squad.</summary>
     void SyncClientSquadAfterLogin(Character character);
 }
 
@@ -254,9 +254,9 @@ public class SquadManager : Singleton<SquadManager>, ISquadManager
     }
 
     /// <summary>
-    /// After character load: if the server has no squad for them, send one Disband so a leftover
-    /// client SquadBase from a previous World session does not grey Recruit. Not used on list
-    /// refresh — that path was spamming Disband/ClearQueue and breaking Enter.
+    /// After character load, clear the queue UI for a character without a squad. A missing squad
+    /// is not a disband event: SCDisbandSquad emits "team disbanded" even on a fresh login.
+    /// Actual squad removal still publishes Disband through DisbandLocked/NotifyGameLeave.
     /// </summary>
     public void SyncClientSquadAfterLogin(Character character)
     {
@@ -269,7 +269,6 @@ public class SquadManager : Singleton<SquadManager>, ISquadManager
                 return;
         }
 
-        character.SendPacket(new SCDisbandSquadPacket());
         character.SendPacket(SCCancelInstantGamePacket.ClearQueue());
     }
 
