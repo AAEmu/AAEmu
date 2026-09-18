@@ -15,7 +15,24 @@ namespace AAEmu.Game.Models.Game.Indun;
 public readonly record struct SysIndunChannel(int ChannelId, uint InstanceId, int Current, int Restrict);
 
 /// <summary>
-/// Which channels a system instance's picker lists, and which ones have to exist for it to be a choice.
+/// A copy of a system instance as the manager sees it: the row it would become, and whether a host is
+/// serving it right now.
+/// </summary>
+/// <param name="Channel">The row for that copy.</param>
+/// <param name="Hosted">Whether a zone host has that copy loaded.</param>
+public readonly record struct SysIndunChannelCopy(SysIndunChannel Channel, bool Hosted);
+
+/// <summary>
+/// The dimension a character picked in the channel list, kept until the enter request that follows it.
+/// The enter request names the instance but carries no channel, so this is what decides the copy.
+/// </summary>
+/// <param name="ZoneKey">The instance zone the list was for.</param>
+/// <param name="WorldId">The copy the row stood for (<c>WorldInstance.Id</c>).</param>
+/// <param name="ChannelId">The channel of that row.</param>
+public readonly record struct SysIndunPick(uint ZoneKey, uint WorldId, int ChannelId);
+
+/// <summary>
+/// Which channels a system instance's picker lists.
 /// </summary>
 /// <remarks>
 /// <para>
@@ -24,9 +41,10 @@ public readonly record struct SysIndunChannel(int ChannelId, uint InstanceId, in
 /// </para>
 /// <para>
 /// The instances that use this picker are the ones built to spread players over several copies of the same
-/// place — the library floors, where a dimension that fills up is left for the next one. A list with a single
-/// row is therefore not the feature: <see cref="ChannelsToCreate"/> says which copies have to exist before the
-/// list is worth sending, and the caller creates them.
+/// place — the library floors, where a dimension that fills up is left for the next one. Those copies are
+/// persistent and hosted like any other zone, so this class only decides what to <em>offer</em>: a copy is
+/// offered when a host has it loaded. Offering a copy nothing serves would put a dimension in front of the
+/// player that cannot be entered, which is worse than a shorter list.
 /// </para>
 /// </remarks>
 public static class SysIndunChannelRules
@@ -34,50 +52,77 @@ public static class SysIndunChannelRules
     /// <summary>The most rows the client reads; its serializer clamps the count to this.</summary>
     public const int MaxChannels = 32;
 
-    /// <summary>How many dimensions to have running, so the player has one to move to when another fills.</summary>
-    public const int MinimumOfferedChannels = 2;
-
     /// <summary>
-    /// The rows for the copies that exist: one per channel, in channel order, capped at what the client reads.
+    /// The rows worth offering: only copies a host is serving, one per channel, in channel order, capped at
+    /// what the client reads.
     /// </summary>
-    /// <param name="existing">The copies of this instance that exist now.</param>
+    /// <param name="copies">The copies of this instance that exist now, with their host state.</param>
     /// <param name="maxPlayers">The instance's capacity, from <c>indun_zones.max_players</c>.</param>
-    public static IReadOnlyList<SysIndunChannel> Build(IEnumerable<SysIndunChannel> existing, int maxPlayers)
+    public static IReadOnlyList<SysIndunChannel> BuildOfferable(IEnumerable<SysIndunChannelCopy> copies,
+        int maxPlayers)
     {
         var rows = new List<SysIndunChannel>();
-        var used = new HashSet<int>();
 
-        foreach (var channel in (existing ?? []).OrderBy(channel => channel.ChannelId))
-        {
-            if (rows.Count >= MaxChannels)
-                break;
-            if (!used.Add(channel.ChannelId))
-                continue;
-
-            rows.Add(channel with { Restrict = maxPlayers });
-        }
+        foreach (var copy in Offerable(copies))
+            rows.Add(copy.Channel with { Restrict = maxPlayers });
 
         return rows;
     }
 
     /// <summary>
-    /// The channels that have to be brought up before the list can offer a choice: the lowest ones no copy is
-    /// using, until there are <see cref="MinimumOfferedChannels"/> of them.
+    /// The copies worth offering: a host is serving them, they name a copy, one per channel, in channel order,
+    /// up to what the client reads.
     /// </summary>
-    public static IReadOnlyList<int> ChannelsToCreate(IEnumerable<int> existingChannels)
+    private static IEnumerable<SysIndunChannelCopy> Offerable(IEnumerable<SysIndunChannelCopy> copies)
     {
-        var used = new HashSet<int>(existingChannels ?? []);
-        var missing = new List<int>();
+        var used = new HashSet<int>();
+        var taken = 0;
 
-        for (var channel = 0; used.Count + missing.Count < MinimumOfferedChannels && missing.Count < MaxChannels;
-             channel++)
+        foreach (var copy in (copies ?? []).OrderBy(copy => copy.Channel.ChannelId))
         {
-            if (used.Contains(channel))
+            if (taken >= MaxChannels)
+                yield break;
+            if (!copy.Hosted)
+                continue;
+            // A row the client cannot resolve back to a copy is not a choice.
+            if (copy.Channel.InstanceId == 0)
+                continue;
+            if (!used.Add(copy.Channel.ChannelId))
                 continue;
 
-            missing.Add(channel);
+            taken++;
+            yield return copy;
+        }
+    }
+
+    /// <summary>
+    /// The copy a pick lands in: the exact copy the client named when it is still there, else the copy on the
+    /// channel it named. Nothing when neither is among the copies a host is serving.
+    /// </summary>
+    /// <param name="copies">The copies of this instance that exist now, with their host state.</param>
+    /// <param name="pickedWorldId">The copy the client named, when it named one.</param>
+    /// <param name="pickedChannel">The channel the client named, when it named one.</param>
+    public static uint? FindCopyForPick(IEnumerable<SysIndunChannelCopy> copies, uint? pickedWorldId,
+        int? pickedChannel)
+    {
+        if (pickedWorldId is { } worldId)
+        {
+            foreach (var copy in Offerable(copies))
+            {
+                if (copy.Channel.InstanceId == worldId)
+                    return copy.Channel.InstanceId;
+            }
         }
 
-        return missing;
+        if (pickedChannel is { } channel)
+        {
+            foreach (var copy in Offerable(copies))
+            {
+                if (copy.Channel.ChannelId == channel)
+                    return copy.Channel.InstanceId;
+            }
+        }
+
+        return null;
     }
 }

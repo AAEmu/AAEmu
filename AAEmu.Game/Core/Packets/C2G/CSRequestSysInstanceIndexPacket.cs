@@ -66,8 +66,9 @@ public class CSRequestSysInstanceIndexPacket() : GamePacket(CSOffsets.CSRequestS
             "CSRequestSysInstanceIndex char={0} catalog={1} zoneKey={2} -> instanceId={3} index={4}",
             character.Name, CatalogInstId, reply.ZoneKey, reply.InstanceId, reply.InstanceIndex);
 
-        // The enter request that follows carries no channel, so the one just resolved is kept for it.
-        IndunManager.Instance.RememberChannelChoice(character.Id, reply.ZoneKey, (int)reply.InstanceIndex);
+        // The enter request that follows carries no channel, so the dimension just resolved is kept for it.
+        IndunManager.Instance.RememberInstancePick(
+            character.Id, new SysIndunPick(reply.ZoneKey, reply.InstanceId, (int)reply.InstanceIndex));
 
         character.SendPacket(new SCSysIndunIndexPacket(reply.ZoneKey, reply.InstanceId, reply.InstanceIndex));
     }

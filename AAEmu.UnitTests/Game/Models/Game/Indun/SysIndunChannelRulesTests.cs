@@ -3,20 +3,23 @@ using AAEmu.Game.Models.Game.Indun;
 namespace AAEmu.UnitTests.Game.Models.Game.Indun;
 
 /// <summary>
-/// Which dimensions the picker lists. These instances exist to spread players over several copies of one
-/// place, so the list is the copies that are running — and there have to be copies to choose between.
+/// Which dimensions the picker lists: the copies that are running and that a host is actually serving.
+/// A row nothing serves is a dimension the player cannot enter, so it must not be offered.
 /// </summary>
 public class SysIndunChannelRulesTests
 {
     private const int Capacity = 50;
 
+    private static SysIndunChannelCopy Hosted(int channel, uint instanceId, int current = 0, bool hosted = true) =>
+        new(new SysIndunChannel(channel, instanceId, current, 0), hosted);
+
     [Test]
-    public async Task Build_ListsCopiesInChannelOrder()
+    public async Task BuildOfferable_ListsCopiesInChannelOrder()
     {
-        var rows = SysIndunChannelRules.Build(
+        var rows = SysIndunChannelRules.BuildOfferable(
         [
-            new SysIndunChannel(ChannelId: 3, InstanceId: 900, Current: 7, Restrict: 0),
-            new SysIndunChannel(ChannelId: 1, InstanceId: 700, Current: 2, Restrict: 0)
+            Hosted(3, 900, current: 7),
+            Hosted(1, 700, current: 2)
         ], Capacity);
 
         await Assert.That(rows.Count).IsEqualTo(2);
@@ -28,35 +31,31 @@ public class SysIndunChannelRulesTests
     }
 
     [Test]
-    public async Task Build_TakesCapacityFromTheZone()
+    public async Task BuildOfferable_TakesCapacityFromTheZone()
     {
         // The client's badge divides current by restrict, so restrict is the instance's own capacity.
-        var rows = SysIndunChannelRules.Build([new SysIndunChannel(0, 700, 5, 0)], Capacity);
+        var rows = SysIndunChannelRules.BuildOfferable([Hosted(0, 700, current: 5)], Capacity);
 
         await Assert.That(rows[0].Restrict).IsEqualTo(Capacity);
     }
 
     [Test]
-    public async Task Build_KeepsEveryCopyIdApart()
+    public async Task BuildOfferable_KeepsEveryCopyIdApart()
     {
         // The row's id is what the client hands back when it picks, so it has to name the copy.
-        var rows = SysIndunChannelRules.Build(
-        [
-            new SysIndunChannel(0, 700, 0, 0),
-            new SysIndunChannel(1, 701, 0, 0)
-        ], Capacity);
+        var rows = SysIndunChannelRules.BuildOfferable([Hosted(0, 700), Hosted(1, 701)], Capacity);
 
         await Assert.That(rows.Select(row => row.InstanceId)).IsEquivalentTo(new[] { 700u, 701u });
     }
 
     [Test]
-    public async Task Build_IgnoresDuplicateChannels()
+    public async Task BuildOfferable_IgnoresDuplicateChannels()
     {
         // Two copies sharing a channel index would draw two rows the client cannot tell apart.
-        var rows = SysIndunChannelRules.Build(
+        var rows = SysIndunChannelRules.BuildOfferable(
         [
-            new SysIndunChannel(1, 700, 4, 0),
-            new SysIndunChannel(1, 701, 9, 0)
+            Hosted(1, 700, current: 4),
+            Hosted(1, 701, current: 9)
         ], Capacity);
 
         await Assert.That(rows.Count(row => row.ChannelId == 1)).IsEqualTo(1);
@@ -64,54 +63,95 @@ public class SysIndunChannelRulesTests
     }
 
     [Test]
-    public async Task Build_StopsAtTheClientsCap()
+    public async Task BuildOfferable_StopsAtTheClientsCap()
     {
-        var existing = Enumerable.Range(0, SysIndunChannelRules.MaxChannels + 5)
-            .Select(i => new SysIndunChannel(i, (uint)(700 + i), 0, 0));
+        var copies = Enumerable.Range(0, SysIndunChannelRules.MaxChannels + 5)
+            .Select(i => Hosted(i, (uint)(700 + i)));
 
-        var rows = SysIndunChannelRules.Build(existing, Capacity);
+        var rows = SysIndunChannelRules.BuildOfferable(copies, Capacity);
 
         await Assert.That(rows.Count).IsEqualTo(SysIndunChannelRules.MaxChannels);
     }
 
     [Test]
-    public async Task Build_ToleratesNoCopies()
+    public async Task BuildOfferable_ToleratesNoCopies()
     {
-        var rows = SysIndunChannelRules.Build(null, Capacity);
+        var rows = SysIndunChannelRules.BuildOfferable(null, Capacity);
 
         await Assert.That(rows.Count).IsEqualTo(0);
     }
 
     [Test]
-    public async Task ChannelsToCreate_AsksForADimensionToMoveToWhenOneIsRunning()
+    public async Task BuildOfferable_SkipsCopiesNoHostIsServing()
     {
-        // The point of the picker is moving to another dimension when the running one fills up.
-        var missing = SysIndunChannelRules.ChannelsToCreate([0]);
+        // A copy that exists as a row but has no host cannot be entered: picking it would strand the player.
+        var rows = SysIndunChannelRules.BuildOfferable(
+        [
+            Hosted(0, 700),
+            Hosted(1, 701, hosted: false),
+            Hosted(2, 702)
+        ], Capacity);
 
-        await Assert.That(missing).IsEquivalentTo(new[] { 1 });
+        await Assert.That(rows.Select(row => row.ChannelId)).IsEquivalentTo(new[] { 0, 2 });
     }
 
     [Test]
-    public async Task ChannelsToCreate_AsksForTheFirstDimensionsWhenNoneRun()
+    public async Task BuildOfferable_SkipsRowsWithoutACopyId()
     {
-        var missing = SysIndunChannelRules.ChannelsToCreate([]);
+        // The client hands the id back on pick and fails on 0, so such a row is not a choice.
+        var rows = SysIndunChannelRules.BuildOfferable([Hosted(0, 0), Hosted(1, 701)], Capacity);
 
-        await Assert.That(missing.Count).IsEqualTo(SysIndunChannelRules.MinimumOfferedChannels);
-        await Assert.That(missing).IsEquivalentTo(new[] { 0, 1 });
+        await Assert.That(rows.Select(row => row.ChannelId)).IsEquivalentTo(new[] { 1 });
     }
 
     [Test]
-    public async Task ChannelsToCreate_AsksForNothingWhenEnoughRun()
+    public async Task BuildOfferable_OffersNothingWhenNoCopyIsHosted()
     {
-        await Assert.That(SysIndunChannelRules.ChannelsToCreate([0, 2])).IsEmpty();
-        await Assert.That(SysIndunChannelRules.ChannelsToCreate([1, 2, 3])).IsEmpty();
+        // Not a list to pad out: an empty result is what tells the caller the instance is not running.
+        var rows = SysIndunChannelRules.BuildOfferable(
+        [
+            Hosted(0, 700, hosted: false),
+            Hosted(1, 701, hosted: false)
+        ], Capacity);
+
+        await Assert.That(rows).IsEmpty();
     }
 
     [Test]
-    public async Task ChannelsToCreate_FillsTheGapsFirst()
+    public async Task FindCopyForPick_TakesTheCopyTheClientNamed()
     {
-        var missing = SysIndunChannelRules.ChannelsToCreate([2]);
+        // The row's id travels back with the pick, so it — not the channel — is the exact answer.
+        var copies = new[] { Hosted(0, 700), Hosted(1, 701) };
 
-        await Assert.That(missing).IsEquivalentTo(new[] { 0 });
+        await Assert.That(SysIndunChannelRules.FindCopyForPick(copies, pickedWorldId: 701, pickedChannel: 0))
+            .IsEqualTo(701u);
+    }
+
+    [Test]
+    public async Task FindCopyForPick_FallsBackToTheChannel()
+    {
+        // A copy that has been rebuilt since the list was sent still has its channel.
+        var copies = new[] { Hosted(0, 700), Hosted(1, 701) };
+
+        await Assert.That(SysIndunChannelRules.FindCopyForPick(copies, pickedWorldId: 999, pickedChannel: 1))
+            .IsEqualTo(701u);
+    }
+
+    [Test]
+    public async Task FindCopyForPick_IgnoresCopiesNoHostIsServing()
+    {
+        // Landing in a copy nothing serves is impossible, so a pick that only names one is not honoured.
+        var copies = new[] { Hosted(0, 700), Hosted(1, 701, hosted: false) };
+
+        await Assert.That(SysIndunChannelRules.FindCopyForPick(copies, pickedWorldId: 701, pickedChannel: 1))
+            .IsNull();
+    }
+
+    [Test]
+    public async Task FindCopyForPick_ReturnsNothingWhenNothingWasPicked()
+    {
+        var copies = new[] { Hosted(0, 700), Hosted(1, 701) };
+
+        await Assert.That(SysIndunChannelRules.FindCopyForPick(copies, null, null)).IsNull();
     }
 }
