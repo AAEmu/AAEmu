@@ -37,13 +37,13 @@ public sealed class AchievementManagerTests : SqliteTestBase
     private const uint SubCategoryRecord = 720;
     private const uint LiveChildRecord = 750;
     private const uint SeasonOffChildRecord = 751;
-    private const uint ChainRecord = 760;
-    private const uint ChainCompletionRecord = 761;
+    private const uint ChainRecord = 780;
+    private const uint ChainCompletionRecord = 781;
 
     /// <summary>
-    /// How many achievements the seeded content holds: achievements 1 to 16 plus the chain pair.
+    /// How many achievements the seeded content holds: achievements 1 to 21 plus the chain pair.
     /// </summary>
-    private const int ContentAchievements = 18;
+    private const int ContentAchievements = 23;
 
     /// <summary>Enough spare content that a full list needs more than one packet of fifty.</summary>
     private const int FillerAchievements = 60;
@@ -482,6 +482,88 @@ public sealed class AchievementManagerTests : SqliteTestBase
         await Assert.That(_character.Achievements.IsComplete(14)).IsTrue();
     }
 
+    [Test]
+    public async Task ObjectivesMet_WithoutPrerequisite_DoesNotComplete()
+    {
+        // 18 asks for 10 of its record and requires 17 first (the workbench / level-30 shape).
+        AchievementManager.Instance.Report(_character, 760, 10);
+
+        await Assert.That(_character.Achievements.IsComplete(18)).IsFalse();
+        await Assert.That(_character.Achievements.Amount(18)).IsEqualTo(10);
+        await Assert.That(_character.Achievements.IsComplete(17)).IsFalse();
+        await Assert.That(_character.Achievements.IsComplete(19)).IsFalse();
+    }
+
+    [Test]
+    public async Task ObjectivesMet_ThenPrerequisiteCompletes_CompletesTheGatedAchievement()
+    {
+        // 18 is already 1/1; completing 17 has to look at 18 again, because 18 does not watch 17's record.
+        AchievementManager.Instance.Report(_character, 760, 10);
+        await Assert.That(_character.Achievements.IsComplete(18)).IsFalse();
+
+        AchievementManager.Instance.Report(_character, 761, 5);
+
+        await Assert.That(_character.Achievements.IsComplete(17)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(18)).IsTrue();
+    }
+
+    [Test]
+    public async Task ForcedCompletion_OfAPrerequisite_CompletesWhatItGates()
+    {
+        AchievementManager.Instance.Report(_character, 760, 10);
+
+        await Assert.That(AchievementManager.Instance.Complete(_character, 17)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(18)).IsTrue();
+    }
+
+    [Test]
+    public async Task PrerequisiteHeld_ThenObjectives_CompletesOnlyTheGatedAchievement()
+    {
+        _character.Appellations = new CharacterAppellations(_character);
+        _character.Achievements.Complete(17, DateTime.UtcNow);
+
+        AchievementManager.Instance.Report(_character, 760, 10);
+
+        await Assert.That(_character.Achievements.IsComplete(18)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(19)).IsFalse();
+        await Assert.That(_character.Appellations.Appellations).IsEmpty();
+    }
+
+    [Test]
+    public async Task EntryRefresh_DoesNotCompletePrerequisitesFromAHolder()
+    {
+        // Holding 18 must not pay 17 or 19 on login — those are gates, not credits.
+        _character.Appellations = new CharacterAppellations(_character);
+        _character.Achievements.Complete(18, DateTime.UtcNow);
+
+        await Assert.That(AchievementManager.Instance.RefreshAll(_character)).IsEqualTo(0);
+        await Assert.That(_character.Achievements.IsComplete(17)).IsFalse();
+        await Assert.That(_character.Achievements.IsComplete(19)).IsFalse();
+        await Assert.That(_character.Appellations.Appellations).IsEmpty();
+    }
+
+    [Test]
+    public async Task PrerequisiteCycle_KeepsBothIncomplete()
+    {
+        // 20 and 21 require each other; meeting both objectives still cannot complete either.
+        AchievementManager.Instance.Report(_character, 771, 1);
+        AchievementManager.Instance.Report(_character, 772, 1);
+
+        await Assert.That(_character.Achievements.IsComplete(20)).IsFalse();
+        await Assert.That(_character.Achievements.IsComplete(21)).IsFalse();
+        await Assert.That(_character.Achievements.Amount(20)).IsEqualTo(1);
+        await Assert.That(_character.Achievements.Amount(21)).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task ForcedCompletion_DoesNotCompletePrerequisites()
+    {
+        await Assert.That(AchievementManager.Instance.Complete(_character, 18)).IsTrue();
+
+        await Assert.That(_character.Achievements.IsComplete(17)).IsFalse();
+        await Assert.That(_character.Achievements.IsComplete(19)).IsFalse();
+    }
+
     private IEnumerable<ushort> SentOpcodes() =>
         _sentPackets.Select(bytes => BitConverter.ToUInt16(bytes, 6));
 
@@ -549,12 +631,27 @@ public sealed class AchievementManagerTests : SqliteTestBase
         InsertAchievement(16, 1, "t", "Season-off child", seasonOff: true);
         InsertObjective(16, 17, 741);
 
+        // Achievements 17 to 19: 18 requires 17 first (the workbench / level-30 shape). 19 is only there so
+        // a leftover credit path would still be visible.
+        InsertAchievement(17, 5, "f", "Prerequisite");
+        InsertObjective(17, 18, 761);
+        InsertAchievement(18, 10, "f", "Gated tier");
+        InsertObjective(18, 19, 760);
+        InsertAchievement(19, 1, "t", "Would have been credited", appellationId: 6002);
+        InsertObjective(19, 20, 770);
+
+        // Achievements 20 and 21: a prerequisite cycle — neither can complete while the other is missing.
+        InsertAchievement(20, 1, "t", "Cycle one");
+        InsertObjective(20, 21, 771);
+        InsertAchievement(21, 1, "t", "Cycle two");
+        InsertObjective(21, 22, 772);
+
         // Achievements 30 and 31: a chain whose parent is the lower id, the way 2,173 of the content's 3,259
         // completion links run. The parent is checked before the child that completes it.
         InsertAchievement(30, 1, "t", "Earn the chain child");
-        InsertObjective(30, 20, ChainCompletionRecord);
+        InsertObjective(30, 30, ChainCompletionRecord);
         InsertAchievement(31, 3, "f", "Reach the chain target");
-        InsertObjective(31, 21, ChainRecord);
+        InsertObjective(31, 31, ChainRecord);
 
         // Spare counting achievements on the same record: each is complete on its first kill.
         for (var i = 0; i < FillerAchievements; i++)
@@ -583,9 +680,23 @@ public sealed class AchievementManagerTests : SqliteTestBase
         InsertRecord(731, 25, 11, 0);                       // achievement 16's record
         InsertRecord(LiveChildRecord, 9, 15, 0);            // completing achievement 15
         InsertRecord(SeasonOffChildRecord, 9, 16, 0);       // completing achievement 16 (switched off)
-        InsertRecord(ChainRecord, 25, 12, 0);               // the chain child's own objective
+        InsertRecord(760, 25, 12, 0);                       // achievement 18's record
+        InsertRecord(761, 25, 13, 0);                       // achievement 17's record
+        InsertRecord(770, 25, 14, 0);                       // achievement 19's record
+        InsertRecord(771, 25, 15, 0);                       // achievement 20's record
+        InsertRecord(772, 25, 16, 0);                       // achievement 21's record
+        InsertRecord(ChainRecord, 25, 20, 0);               // the chain child's own objective
         InsertRecord(ChainCompletionRecord, 9, 31, 0);      // completing achievement 31
+
+        // 18 requires 17; 20 and 21 require each other. 17 does not require 19.
+        InsertPrerequisite(achievementId: 18, requiredId: 17);
+        InsertPrerequisite(achievementId: 20, requiredId: 21);
+        InsertPrerequisite(achievementId: 21, requiredId: 20);
     }
+
+    private void InsertPrerequisite(uint achievementId, uint requiredId) =>
+        Execute($"INSERT INTO pre_completed_achievements (my_achievement_id, completed_achievement_id) " +
+                $"VALUES ({achievementId}, {requiredId})");
 
     private void InsertAchievement(uint id, int completeNum, string completeOr, string name,
         uint appellationId = 0, uint subCategoryId = 1, uint itemId = 0, uint itemNum = 0, bool seasonOff = false) =>

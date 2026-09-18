@@ -45,6 +45,12 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
     /// </summary>
     private HashSet<uint> _seasonOffCompletionRecords = [];
 
+    /// <summary>What an achievement requires first, by the gated achievement.</summary>
+    private Dictionary<uint, List<uint>> _prerequisitesByAchievement = [];
+
+    /// <summary>What completing an achievement unlocks, by the prerequisite.</summary>
+    private Dictionary<uint, List<uint>> _gatedByPrerequisite = [];
+
     public void Load(SqliteConnection connection)
     {
         _charRecords.Clear();
@@ -221,6 +227,28 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
                 _seasonOffCompletionRecords.Add(recordId);
         }
 
+        // my_achievement_id is the gated row; completed_achievement_id is what it requires first.
+        _prerequisitesByAchievement = [];
+        _gatedByPrerequisite = [];
+        foreach (var rule in _preCompletedAchievements.Values.SelectMany(rules => rules))
+        {
+            if (!_prerequisitesByAchievement.TryGetValue(rule.MyAchievementId, out var required))
+            {
+                required = [];
+                _prerequisitesByAchievement.Add(rule.MyAchievementId, required);
+            }
+
+            required.Add(rule.CompletedAchievementId);
+
+            if (!_gatedByPrerequisite.TryGetValue(rule.CompletedAchievementId, out var gated))
+            {
+                gated = [];
+                _gatedByPrerequisite.Add(rule.CompletedAchievementId, gated);
+            }
+
+            gated.Add(rule.MyAchievementId);
+        }
+
         foreach (var achievement in _achievements.Values)
         {
             if (achievement.SubCategoryId == 0)
@@ -283,6 +311,26 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
     /// </summary>
     public uint GetSubCategoryForRecord(uint recordId) =>
         _subCategoryByRecord.GetValueOrDefault(recordId);
+
+    /// <summary>
+    /// The achievements that must already be complete before this one can be.
+    /// </summary>
+    /// <remarks>
+    /// <c>pre_completed_achievements.my_achievement_id</c> is the gated achievement;
+    /// <c>completed_achievement_id</c> is the prerequisite. Compact row 474 is workbench 2074
+    /// requiring the level-30 row 2052 — not a credit from the workbench back onto the level row.
+    /// 266 rows put a level achievement on the completed side the same way. Completing the gated
+    /// achievement does not mark the prerequisite complete, and login does not pay it.
+    /// </remarks>
+    public IReadOnlyList<uint> GetPrerequisites(uint achievementId) =>
+        _prerequisitesByAchievement.TryGetValue(achievementId, out var required) ? required : [];
+
+    /// <summary>
+    /// The achievements that list this one as a prerequisite. Completing it has to re-evaluate them:
+    /// none of the 1,533 gated rows watch the prerequisite's completion record, and 2052 has none.
+    /// </summary>
+    public IReadOnlyList<uint> GetGatedByPrerequisite(uint prerequisiteId) =>
+        _gatedByPrerequisite.TryGetValue(prerequisiteId, out var gated) ? gated : [];
 
     /// <summary>
     /// Whether a record counts the completion of an achievement the season has switched off. An objective

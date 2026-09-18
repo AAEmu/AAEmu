@@ -201,6 +201,13 @@ public class AchievementManager : Singleton<AchievementManager>
                 character.SendPacket(new SCAchievementChangedPacket(achievementId, evaluation.Progress));
         }
 
+        // Objectives can be full while a prerequisite is still missing; progress is stored, completion waits.
+        if (evaluation.Complete &&
+            !AchievementRules.PrerequisitesMet(
+                AchievementGameData.Instance.GetPrerequisites(achievementId),
+                character.Achievements.IsComplete))
+            evaluation = evaluation with { Complete = false };
+
         // Completion only ever happens here, and only if the rules say the target was reached. An achievement
         // that is already complete keeps the time it was first earned, and the reward that came with it.
         if (!evaluation.Complete || !character.Achievements.Complete(achievementId, DateTime.UtcNow))
@@ -336,9 +343,13 @@ public class AchievementManager : Singleton<AchievementManager>
         character.SendPacket(new SCAchievementCompletedPacket(achievementId));
         PayReward(character, AchievementGameData.Instance.GetAchievement(achievementId));
 
-        var completionRecord = AchievementGameData.Instance.GetCompletionRecord(achievementId);
-        if (completionRecord != 0)
-            Report(character, completionRecord, 1);
+        // The records it counts into. Prerequisites are a gate on Refresh, not a credit from this force.
+        foreach (var recordId in CompletionRecords(character, achievementId))
+            Report(character, recordId, 1);
+
+        // Gated rows do not watch this completion record (2052 has none), so they are refreshed by name.
+        RefreshQueue(character, AchievementGameData.Instance.GetGatedByPrerequisite(achievementId),
+            sendPackets: true);
 
         return true;
     }
@@ -438,6 +449,12 @@ public class AchievementManager : Singleton<AchievementManager>
                     visited.Remove(watcher);
                     pending.Enqueue(watcher);
                 }
+            }
+
+            foreach (var gatedId in AchievementGameData.Instance.GetGatedByPrerequisite(achievementId))
+            {
+                visited.Remove(gatedId);
+                pending.Enqueue(gatedId);
             }
         }
 
