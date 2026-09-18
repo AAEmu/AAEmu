@@ -865,7 +865,21 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             {
                 // Real item ids required — Id=0 items cannot be found again to unequip or swap.
                 var newItem = ItemManager.Instance.Create(initialItem.itemId, 1, 0, true);
-                summonedSlave.Equipment.AddOrMoveExistingItem(ItemTaskType.Invalid, newItem, initialItem.equipSlotId);
+                if (!SlaveStarterSeedRules.HasCreatedItem(newItem))
+                {
+                    Logger.Warn(
+                        "SlaveSpawn: starter part tpl={0} slot={1} slave={2} was skipped; the item does not exist",
+                        initialItem.itemId, initialItem.equipSlotId, summonedSlave.TemplateId);
+                    continue;
+                }
+
+                if (!summonedSlave.Equipment.AddOrMoveExistingItem(ItemTaskType.Invalid, newItem, initialItem.equipSlotId))
+                {
+                    Logger.Warn(
+                        "SlaveSpawn: starter part item={0} tpl={1} slot={2} slave={3} was refused and destroyed",
+                        newItem.Id, initialItem.itemId, initialItem.equipSlotId, summonedSlave.TemplateId);
+                    ItemManager.Instance.ReleaseId(newItem.Id);
+                }
             }
         }
 
