@@ -107,8 +107,8 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
             (!activeCharacter.HeirSkills.IsActiveSuccessor(skillId) ||
              skillCaster is not SkillCasterUnit heirCaster || heirCaster.ObjId != activeCharacter.ObjId))
         {
-            // No commercial World binary is available to prove a result code for forged requests.
-            // Fail closed without fabricating an SCSkillStarted result the native server may not use.
+            // No published result code proves what a forged request should get back. Fail closed
+            // rather than fabricating an SCSkillStarted result the server may not send.
             Logger.Warn("StartSkill rejected unselected Heir successor {0} for {1}", skillId, activeCharacter.Name);
             return;
         }

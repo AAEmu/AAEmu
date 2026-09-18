@@ -3,15 +3,15 @@ using AAEmu.Commons.Network;
 namespace AAEmu.UnitTests.Game.Models.Game.Quests;
 
 /// <summary>
-/// Validates Returns 10.0.2.13 quest context wire layout against the CN sniff sample
-/// (sniff_decoded.txt SCQuestsPacket body for one active quest).
+/// Validates the 10.0.2.13 quest context wire layout against a captured SCQuestsPacket
+/// body for one active quest.
 /// </summary>
 public class QuestWireLayoutTests
 {
-    // From sniff: count=1 then quest body (without the leading count u32).
+    // Capture: count=1 then quest body (without the leading count u32).
     // id=1700155 (s64), template=1112, status=3, 10 zero objectives via pish/pisc,
     // isCheckSet=0, three Bc(0)+u32(0), leftTime=-1, component=0, doodad=0, ...
-    private static readonly byte[] SniffQuestBodyWithoutCount = Convert.FromHexString(
+    private static readonly byte[] SampleQuestBodyWithoutCount = Convert.FromHexString(
         "3bf1190000000000" + // s64 id 1700155
         "58040000" +         // u32 template 1112
         "03" +               // u8 status
@@ -29,10 +29,10 @@ public class QuestWireLayoutTests
     );
 
     [Test]
-    public async Task WriteReturnsLayout_MatchesSniffPrefixThroughDoodad()
+    public async Task WriteReturnsLayout_MatchesSamplePrefixThroughDoodad()
     {
         var stream = new PacketStream();
-        // Mirror Quest.Write for the sniff field values (acceptTime is wall-clock — excluded).
+        // Mirror Quest.Write for the captured field values (acceptTime is wall-clock — excluded).
         stream.Write((long)1700155);
         stream.Write(1112u);
         stream.Write((byte)3);
@@ -47,14 +47,14 @@ public class QuestWireLayoutTests
         stream.Write(0L);
 
         var got = stream.GetBytes();
-        await Assert.That(got.Length).IsEqualTo(SniffQuestBodyWithoutCount.Length);
-        await Assert.That(got).IsEquivalentTo(SniffQuestBodyWithoutCount);
+        await Assert.That(got.Length).IsEqualTo(SampleQuestBodyWithoutCount.Length);
+        await Assert.That(got).IsEquivalentTo(SampleQuestBodyWithoutCount);
     }
 
     [Test]
-    public async Task SniffScQuestsPacket_ParsesAsReturnsS64Layout()
+    public async Task CapturedScQuestsPacket_ParsesAsReturnsS64Layout()
     {
-        // Full sniff body including count u32 = 1
+        // Full captured body including count u32 = 1
         var full = Convert.FromHexString(
             "01000000" +
             "3bf11900000000005804000003" +

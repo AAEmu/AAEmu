@@ -34,7 +34,7 @@ Each completed interval rolls the harvest's base loot pack once per requested un
 the bonus pack for that unit. These pack rolls use the content group's ten-million-scale probability, integer item
 weights, and inclusive amount range directly; character, proficiency, quest, World loot-rate, and gold-rate
 modifiers do not apply. Rewards are split by the item template's normal stack limit and sent in groups of at most
-ten attachments. The mail wire uses native `MAIL_FROM_BUTLER` type 49, sender `.butlerHarvest`, title `title`, and
+ten attachments. The mail wire uses `MAIL_FROM_BUTLER` type 49, sender `.butlerHarvest`, title `title`, and
 body `body(itemType, requestedAmount, withBonus)`.
 
 The completion marker, updated or removed job, generated item rows, reward mail, and final Farmhand XP are written

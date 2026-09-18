@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
 /// Client layout: a single u64 "type" - the character id. This shares its serialize function
-/// (RVA 0xC688D0) with CSDeleteCharacter, so the two are byte-for-byte the same on the wire.
+/// with CSDeleteCharacter, so the two are byte-for-byte the same on the wire.
 /// </summary>
 public class CSCancelCharacterDeletePacket() : GamePacket(CSOffsets.CSCancelCharacterDeletePacket, 1)
 {

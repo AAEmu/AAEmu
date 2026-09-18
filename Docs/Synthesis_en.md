@@ -304,8 +304,8 @@ when the piece is in the equipment container.
 The equipment block of the unit state ends in a u64 with **one bit per equipment slot**.
 The client unpacks it to one byte per slot at `unit + 0x1be8` and checks it **last**,
 after establishing the piece has a rolled-attribute pool at all, before folding those
-attributes in (`0xbceedb`: `cmp byte [slot + unit + 0x1be8], 0` -> zero drops the whole
-branch). Everything else about the slot - its own stats, its rune, its nine lunagems -
+attributes in: the client reads one byte per slot and zero drops the whole branch.
+Everything else about the slot - its own stats, its rune, its nine lunagems -
 runs without that byte, which is exactly why only the synthesis rows were missing.
 
 - `EquipmentSerializer.BuildRndAttrActivationMask` sets bit *i* where the item in slot *i*

@@ -30,6 +30,8 @@ public class CSRequestSysInstanceIndexPacket() : GamePacket(CSOffsets.CSRequestS
         if (character == null)
             return;
 
+        // The id the client sends back is the copy it was offered in the channel list, so a catalogue lookup
+        // is only one of the ways to find the instance: the zone it named, or the copy itself, work too.
         var dungeonZone = CatalogInstId != 0
             ? IndunGameData.Instance.GetDungeonZoneByCatalogId(CatalogInstId)
             : null;
@@ -39,6 +41,9 @@ public class CSRequestSysInstanceIndexPacket() : GamePacket(CSOffsets.CSRequestS
             if (zone != null)
                 dungeonZone = IndunGameData.Instance.GetDungeonZone(zone.GroupId);
         }
+
+        if (dungeonZone == null && CatalogInstId != 0)
+            dungeonZone = IndunManager.Instance.GetDungeonZoneOfCopy(CatalogInstId);
 
         if (dungeonZone == null)
         {
@@ -55,11 +60,16 @@ public class CSRequestSysInstanceIndexPacket() : GamePacket(CSOffsets.CSRequestS
             CatalogInstId,
             dungeonZone,
             zoneKeys,
-            WorldManager.Instance.GetWorlds());
+            WorldManager.Instance.GetWorlds(),
+            WorldIntegration.IsZoneInstanceLoaded);
 
         Logger.Debug(
             "CSRequestSysInstanceIndex char={0} catalog={1} zoneKey={2} -> instanceId={3} index={4}",
             character.Name, CatalogInstId, reply.ZoneKey, reply.InstanceId, reply.InstanceIndex);
+
+        // The enter request that follows carries no channel, so the dimension just resolved is kept for it.
+        IndunManager.Instance.RememberInstancePick(
+            character.Id, new SysIndunPick(reply.ZoneKey, reply.InstanceId, (int)reply.InstanceIndex));
 
         character.SendPacket(new SCSysIndunIndexPacket(reply.ZoneKey, reply.InstanceId, reply.InstanceIndex));
     }

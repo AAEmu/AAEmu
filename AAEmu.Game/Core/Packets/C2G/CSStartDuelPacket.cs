@@ -9,7 +9,7 @@ public class CSStartDuelPacket() : GamePacket(CSOffsets.CSStartDuelPacket, 1)
 {
     public override void Read(PacketStream stream)
     {
-        // Client layout (VA 0x39C772B0): challenger id u64, error i16, duelType u8. Reading the id as
+        // Client layout: challenger id u64, error i16, duelType u8. Reading the id as
         // u32 meant a decline looked up the wrong key, threw, and left the duel entry behind - which is
         // how both players stayed "already in a duel" until a restart.
         var challengerId = (uint)stream.ReadUInt64(); // u64 type - who challenged us

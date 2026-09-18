@@ -10,7 +10,7 @@ public class SummonSlave : Item
     private DateTime _repairStartTime;
     public override ItemDetailType DetailType => ItemDetailType.Slave;
     // The body is an opaque blob on the client wire; only the leading fields below are interpreted.
-    // TODO(v10): decode the trailing bytes via server-side RE or a live capture.
+    // TODO(v10): decode the trailing bytes once their layout is known.
     public override uint DetailBytesLength => 33;
 
     public byte SlaveType { get; set; } // Not sure about this, captures show 2 here

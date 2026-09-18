@@ -3,7 +3,7 @@ using AAEmu.Commons.Network;
 namespace AAEmu.World.Core.Packets.Wz;
 
 // World → Zone unit lifecycle, factions and spawners (opcodes 0x000-0x01F).
-// Each body is the dedicate DLL's own serializer for the type, reached through slot 2
+// Each body carries the fields the zone protocol expects for that opcode.
 
 /// <summary>
 /// string whose native receive buffer is capped at 0xff bytes. Zone echoes the id in ZW 0x001.

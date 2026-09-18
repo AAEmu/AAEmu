@@ -8,7 +8,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 /// The player nominated (or cleared) the account's main character in the character select screen.
 /// </summary>
 /// <remarks>
-/// Client layout (serialize at RVA 0xC6B750): u64 "type" - the character id - then bool "isDeleted",
+/// Client layout: u64 "type" - the character id - then bool "isDeleted",
 /// which is set when the nomination is being cleared rather than made.
 ///
 /// The flag only ever travels in this direction. The character list entry has no field for it (its

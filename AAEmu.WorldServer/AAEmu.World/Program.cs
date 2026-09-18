@@ -1165,8 +1165,8 @@ public static class Program
         WorldIntegration.OnZoneBackpackDropped = body =>
         {
             // Zone notifies World a backpack hit the ground; World already owns SC doodad spawn
-            // for player-initiated drops. Log for now so dual-spawn is avoided until body RE
-            // confirms Zone-authored packs need World persistence.
+            // for player-initiated drops. Log for now so dual-spawn is avoided until the zone
+            // protocol confirms Zone-authored packs need World persistence.
             Logger.Info("ZWBackpackDropped len={0}", body?.Length ?? 0);
         };
         WorldIntegration.RelayUnitAttachToZone = (unitId, targetId, attachPoint, attached) =>

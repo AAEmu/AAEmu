@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Team;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Read by the client at VA 0x39C7ED00 as exactly three things:
+/// The client reads exactly three things:
 ///
 ///   team header          (see <see cref="Team.Write"/>)
 ///   member x N           (see <see cref="TeamMember.Write"/>)

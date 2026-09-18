@@ -57,6 +57,9 @@ public class CharacterAbilities
 
         // server mirror first, then notify the client so reconnect/save paths observe the same state.
         Owner.SendPacket(new SCAbilityExpChangedPacket(Owner.ObjId, type, exp));
+
+        // An ability's level is a record the ability-level achievements watch.
+        AchievementManager.Instance.ReportAbilityLevels(Owner);
     }
 
     public void AddActiveExp(int exp)

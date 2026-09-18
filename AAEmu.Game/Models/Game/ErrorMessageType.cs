@@ -802,7 +802,7 @@ public enum ErrorMessageType : short
     NotEnoughGearScore = 1104,									// "not_enough_gear_score";
     TargetExpeditionGearScore = 884,							// "target_expedition_gear_score";
     BlockUserMax = 1311,												// "block_user_max";
-    // Native producer: 10.0.2.13 RegisterHarvest FUN_391899A0.
+    // Returned by the 10.0.2.13 client's RegisterHarvest path.
     ButlerHarvestGradeInsufficient = 0x496,
     ButlerGardenSizeInsufficient = 0x497,
     ButlerProductionCostInsufficient = 0x498

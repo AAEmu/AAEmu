@@ -12,9 +12,7 @@ public class CSEditorGameModePacket() : GamePacket(CSOffsets.CSEditorGameModePac
         var x = Helpers.ConvertLongX(stream.ReadInt64());
         var y = Helpers.ConvertLongY(stream.ReadInt64());
         var z = stream.ReadSingle();
-        // TODO ori? // ((int (__stdcall *)(const char *, char *, _DWORD))a2->Reader->field_5C)("ori", v2 + 40, 0);
-
-        // "ori" is byte[16]. No clue how to read it or what it contains.
+        // The client also carries an "ori" field here; it is byte[16] and its contents are unknown.
 
         Logger.Debug("EditorGameMode, On: {0}", on);
     }

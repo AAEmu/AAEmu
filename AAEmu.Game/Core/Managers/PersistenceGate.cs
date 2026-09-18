@@ -21,6 +21,26 @@ public static class PersistenceGate
     /// <summary>Marks the start of a money operation on this thread. Blocks while a save is reading.</summary>
     public static void EnterOperation() => Gate.EnterReadLock();
 
+    /// <summary>
+    /// Enters the operation side only when this thread does not already hold it, and reports whether this call
+    /// was the one that took it.
+    /// </summary>
+    /// <remarks>
+    /// The gate forbids recursive reads, and several paths reach it in layers: a house build opens an operation
+    /// scope and then consumes the design item from the bag, and an inventory mutation opens a mail-persistence
+    /// deferral of its own. A caller that may be nested inside another operation uses this instead of
+    /// <see cref="EnterOperation"/>, and releases only when it returned true - the same ownership rule
+    /// <see cref="PersistenceOperationScope"/> follows.
+    /// </remarks>
+    public static bool TryEnterOperation()
+    {
+        if (Gate.IsReadLockHeld || Gate.IsWriteLockHeld)
+            return false;
+
+        Gate.EnterReadLock();
+        return true;
+    }
+
     public static void ExitOperation() => Gate.ExitReadLock();
 
     /// <summary>Marks the start of a snapshot. Blocks until every in-flight operation has finished.</summary>

@@ -42,8 +42,8 @@ public static class ButlerContentConfig
     }
 
     /// <summary>
-    /// Gets all required charge limits from <c>content_configs</c>. The client getters at
-    /// <c>FUN_39B633D0</c>/<c>FUN_39B63E80</c> resolve these table values; no gameplay fallback is used.
+    /// Gets all required charge limits from <c>content_configs</c>: the client's own getters resolve
+    /// these table values, and no gameplay fallback is used.
     /// </summary>
     public static ButlerChargeContentConfig RequireChargeLimits()
     {

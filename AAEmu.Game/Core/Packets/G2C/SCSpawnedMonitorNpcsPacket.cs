@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Empty body in CN sniff is count=0 → two zero bytes.
+/// An empty list is count=0 → two zero bytes.
 /// </summary>
 public class SCSpawnedMonitorNpcsPacket(uint[] types = null) : GamePacket(SCOffsets.SCSpawnedMonitorNpcsPacket, 1)
 {

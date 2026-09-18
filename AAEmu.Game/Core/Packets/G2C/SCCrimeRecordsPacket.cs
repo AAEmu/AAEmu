@@ -36,7 +36,7 @@ public readonly record struct CrimeRecordEntry(
 /// exist in total and the rows carried by this packet.
 /// </summary>
 /// <remarks>
-/// Wire layout verified against the 10.0.2.13 client's reader: "trialId" (u64), "trialType" (u32),
+/// Wire layout the 10.0.2.13 client's reader expects: "trialId" (u64), "trialType" (u32),
 /// "total" (u32), "count" (u32); when count &gt; 0 the packet continues with that many row records in
 /// the order above.
 /// </remarks>

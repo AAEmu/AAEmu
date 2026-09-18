@@ -5,8 +5,8 @@ using AAEmu.Game.Models.Game.Butlers;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Opcode 0x34C. The 10.0.2.13 client serializer <c>FUN_39C76380</c> writes the raw job kind,
-/// error, database-harvest key, then the same harvest-data child emitted by <c>FUN_39AAAC00</c>.
+/// Opcode 0x34C. The 10.0.2.13 client serializer writes the raw job kind,
+/// error, database-harvest key, then the same harvest-data child as the Butler harvest-data body.
 /// </summary>
 public class SCButlerHarvestUpdatedPacket(
     byte jobKind,

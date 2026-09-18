@@ -86,8 +86,8 @@ public class FinishStatePacket() : GamePacket(PPOffsets.FinishStatePacket, 2)
                     PremiumGameData.Instance.MaxGradeId,
                     Connection.Characters.Count);
                 // Wire format: the serializer reads
-                // {int32 point, uint8 oldPg, uint8 pg} - point through the int32 vtable slot 0xA0, both
-                // grades through the one-byte slot 0x90 - so this packet is shaped correctly. Nothing is
+                // {int32 point, uint8 oldPg, uint8 pg} - the point as a 32-bit value and both grades as
+                // one byte each - so this packet is shaped correctly. Nothing is
                 // in flight at the handshake, so the old grade IS the current one; claiming a transition
                 // here would be a fabrication, and testing one changed nothing in the client anyway.
                 Connection.SendPacket(new SCUpdatePremiumPointPacket(

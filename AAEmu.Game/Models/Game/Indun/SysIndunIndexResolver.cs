@@ -14,7 +14,8 @@ internal static class SysIndunIndexResolver
         uint catalogInstId,
         IndunZone dungeonZone,
         IReadOnlyList<uint> zoneKeysInGroup,
-        IEnumerable<WorldInstance> worlds)
+        IEnumerable<WorldInstance> worlds,
+        Func<uint, uint, bool> isHosted = null)
     {
         var zoneKey = requestZoneKey;
         if (zoneKey == 0 && zoneKeysInGroup is { Count: > 0 })
@@ -24,20 +25,37 @@ internal static class SysIndunIndexResolver
         uint instanceIndex = 0;
         if (zoneKey != 0)
         {
+            // The client sends back the instance id it was handed in the channel list, so that copy — and the
+            // channel it names — wins over whichever copy of the instance happens to come first.
+            WorldInstance chosen = null;
+            WorldInstance first = null;
             foreach (var world in worlds)
             {
                 if (world.DungeonInstance == null)
                     continue;
                 if (!world.Template.ZoneKeys.Contains(zoneKey))
                     continue;
+                // A copy no host is serving cannot be entered, so it is not a fallback either: remembering it
+                // would send the entry after this one to a copy nothing simulates.
+                if (isHosted != null && !isHosted(zoneKey, world.Id))
+                    continue;
 
-                instanceId = world.Id;
-                instanceIndex = world.ChannelId;
-                break;
+                first ??= world;
+                if (catalogInstId != 0 && world.Id == catalogInstId)
+                {
+                    chosen = world;
+                    break;
+                }
+            }
+
+            var match = chosen ?? first;
+            if (match != null)
+            {
+                instanceId = match.Id;
+                instanceIndex = match.ChannelId;
             }
         }
 
-        _ = catalogInstId;
         _ = dungeonZone;
 
         return new Reply(zoneKey, instanceId, instanceIndex);

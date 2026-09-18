@@ -14,9 +14,8 @@ public class ResidentAndSensitiveOperationPacketTests
         expected.Write((short)7);
         expected.Write(SCResidentMapPacket.Add);
 
-        // The client's serializer (0x39C60A10 in x2game-dev.dll) writes an i16 and then a byte, and
-        // the retail handler at 0x393553D0 in x2game.dll only adds the group to the resident map
-        // when that byte is 1 — anything else leaves residency unset.
+        // The client's serializer writes an i16 and then a byte, and the client only adds the group
+        // to the resident map when that byte is 1 — anything else leaves residency unset.
         await Assert.That(body.Length).IsEqualTo(3);
         await Assert.That(body[2]).IsEqualTo((byte)1);
         await Assert.That(body).IsEquivalentTo(expected.GetBytes());
@@ -43,9 +42,8 @@ public class ResidentAndSensitiveOperationPacketTests
             expected.Write(0);
         }
 
-        // 4 + 4 + 1 header, then 34 bytes a row. The client's serializer (0x39C74B00 in
-        // x2game-dev.dll) writes u32 total, u32 count, bool final and then the rows, and its row
-        // serializer (0x39C70070) writes i16, u32, u64, u64, i32, i32, i32.
+        // 4 + 4 + 1 header, then 34 bytes a row. The client's serializer writes u32 total, u32 count,
+        // bool final and then the rows, and its row serializer writes i16, u32, u64, u64, i32, i32, i32.
         await Assert.That(body.Length).IsEqualTo(9 + (2 * 34));
         await Assert.That(body).IsEquivalentTo(expected.GetBytes());
     }
@@ -56,9 +54,8 @@ public class ResidentAndSensitiveOperationPacketTests
         var rows = Enumerable.Range(0, 101).Select(i => new ResidentInfoRow((ushort)i, 0, 0, 0)).ToList();
         var body = new SCResidentInfoListPacket(101, rows).Write(new PacketStream()).GetBytes();
 
-        // The client's reader caps count at 0x64 (0x39C74B7D in x2game-dev.dll) and its constructor
-        // sizes the row array at 100 rows, so a 101st row would be left in the stream for whatever
-        // packet follows it in the same batch to read.
+        // The client caps count at 0x64 (100) and sizes its row array at 100 rows, so a 101st row
+        // would be left in the stream for whatever packet follows it in the same batch to read.
         await Assert.That(body.Length).IsEqualTo(9 + (100 * 34));
         await Assert.That(body[4..8]).IsEquivalentTo(new PacketStream().Write(100u).GetBytes());
     }

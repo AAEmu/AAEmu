@@ -124,7 +124,7 @@ public sealed class GameService : IHostedService, IDisposable
         LoginNetwork.Instance.Start();
 
         // Keep this independent from TaskManager: initial world/doodad work can saturate its queue long
-        // enough for the 10.0.2.13 client's game-channel receive watchdog to expire. The native server's
+        // enough for the 10.0.2.13 client's game-channel receive watchdog to expire. The retail server's
         // ping scheduler is likewise a network timer, and advances every 1000 ms.
         var gamePingTask = new GamePingTask();
         _gameKeepaliveTimer = new Timer(

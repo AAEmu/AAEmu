@@ -10,7 +10,7 @@ public class SCMailSentPacket(bool groupSending, MailHeader mail, CountUnreadMai
 {
     public override PacketStream Write(PacketStream stream)
     {
-        // Client reader FUN_39a9ecf0: bool groupSending, MailHeader, CountUnreadMail,
+        // Client reader: bool groupSending, MailHeader, CountUnreadMail,
         // then always 10 x (u8 slotType, u8 slot). The header alone desyncs the client,
         // so the leading flag and the counters are load-bearing, not decorative.
         stream.Write(groupSending);

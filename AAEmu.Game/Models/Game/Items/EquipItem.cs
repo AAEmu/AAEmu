@@ -100,7 +100,7 @@ public class EquipItem : Item
     public byte MappingFailBonus { get; set; }
     public byte ElementLevel { get; set; }
     // 18-value gem/socket block carried by the pish/pisc codec. The per-value semantics (which entries are
-    // GemIds/Temper) still need RE of the in-memory gem struct; meanwhile this round-trips byte-correct.
+    // GemIds/Temper) are not pinned down yet; meanwhile this round-trips byte-correct.
     public uint[] GemData { get; set; }
 
     public virtual int Str => 0;

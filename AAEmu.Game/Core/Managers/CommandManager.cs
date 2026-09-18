@@ -68,7 +68,6 @@ public partial class CommandManager : Singleton<CommandManager>, ICommandManager
 
     private static void ForceScriptsReload(Character character)
     {
-        CommandManager.Instance.Clear();
         if (ScriptCompiler.Compile())
             character.SendMessage("[Force Scripts Reload] Success");
         else

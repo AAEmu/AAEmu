@@ -5,7 +5,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// Client layout (serialize at RVA 0xC688D0): a single u64 "type" - the character id.
+/// Client layout: a single u64 "type" - the character id.
 /// </summary>
 /// <remarks>
 /// We read four bytes where the client writes eight, so the id we ended up with was never the one the

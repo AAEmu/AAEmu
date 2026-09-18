@@ -627,7 +627,7 @@ public static class GmCommandDispatcher
 
     #endregion
 
-    #region dumps (chat summary — full SCGmDump* bodies still RE-incomplete)
+    #region dumps (chat summary — full SCGmDump* bodies still incomplete)
 
     private static Character DumpTarget(Character me, string[] args)
     {

@@ -1,9 +1,11 @@
 ﻿using System.Collections.Immutable;
 using System.Reflection;
 using System.Runtime.Loader;
+using System.Runtime.CompilerServices;
 using System.Text;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Managers;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -28,7 +30,10 @@ public static class ScriptCompiler
         _assembly = assembly;
 
         if (_assembly != null)
+        {
+            CommandManager.Instance.Clear();
             OnLoad();
+        }
 
         return true;
     }
@@ -45,6 +50,8 @@ public static class ScriptCompiler
         var types = _assembly.GetTypes();
         foreach (var type in types)
         {
+            if (type.IsDefined(typeof(CompilerGeneratedAttribute), false))
+                continue;
             if (type.IsNested)
                 continue;
             if (type.IsAbstract)
@@ -94,6 +101,9 @@ public static class ScriptCompiler
 
     public static bool CompileScripts(IEnumerable<MetadataReference> references, out Assembly assembly, out ImmutableArray<Diagnostic> diagnostics)
     {
+        // A fresh runtime need not have executed Parallel yet. Include its assembly even
+        // when it was absent from AppDomain.GetAssemblies during reference discovery.
+        references = IncludeRuntimeDependencies(references);
         Logger.Info("Compiling scripts...");
         var files = GetScripts("*.cs");
         var isOk = true;
@@ -223,6 +233,9 @@ public static class ScriptCompiler
         return null; // Location does not belong to any syntax tree
     }
 #pragma warning restore IDE0051 // Remove unused private members
+
+    internal static IEnumerable<MetadataReference> IncludeRuntimeDependencies(IEnumerable<MetadataReference> references) =>
+        references.Append(MetadataReference.CreateFromFile(typeof(Parallel).Assembly.Location));
 
     private static void EnsureDirectory(string dir)
     {

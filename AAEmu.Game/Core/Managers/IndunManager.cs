@@ -1,5 +1,6 @@
 ﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
@@ -92,6 +93,126 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
     }
 
     /// <summary>
+    /// The dimension each character last picked in the channel list, so the entry that follows knows which copy
+    /// to put them in. The client's enter request carries no channel of its own.
+    /// </summary>
+    private readonly Dictionary<uint, SysIndunPick> _instancePicks = [];
+
+    /// <summary>
+    /// Sends the channel list for a system instance. The client's picker opens on this packet — it never asks
+    /// for the list — so it goes out when the player reaches one of the instance's entrances.
+    /// </summary>
+    /// <param name="character">Who is at the entrance.</param>
+    /// <param name="zoneId">The instance zone they are entering (a <c>zones.id</c>).</param>
+    /// <returns>True when a list was sent.</returns>
+    public bool SendChannelList(Character character, uint zoneId)
+    {
+        if (character == null)
+            return false;
+
+        var zone = zoneManager.GetZoneById(zoneId);
+        if (zone == null)
+        {
+            Logger.Warn("SendChannelList: no zone {0} for {1}", zoneId, character.Name);
+            return false;
+        }
+
+        var dungeonZone = IndunGameData.Instance.GetDungeonZone(zone.GroupId);
+        if (dungeonZone == null)
+        {
+            Logger.Warn("SendChannelList: zone {0} (group {1}) is not an instance", zoneId, zone.GroupId);
+            return false;
+        }
+
+        var zoneKeys = zoneManager.GetZoneKeysInZoneGroupById(dungeonZone.ZoneGroupId);
+        if (zoneKeys == null || zoneKeys.Count == 0)
+        {
+            Logger.Warn("SendChannelList: zone group {0} has no zone keys", dungeonZone.ZoneGroupId);
+            return false;
+        }
+
+        var rows = SysIndunChannelRules.BuildOfferable(GetChannelsOfZoneGroup(dungeonZone), (int)dungeonZone.MaxPlayers);
+        if (rows.Count == 0)
+        {
+            // Nothing serves a copy of this instance, so there is no dimension to offer. That is a hosting
+            // problem (the copies are declared and run like any other zone), not something to paper over by
+            // creating copies nothing will load.
+            Logger.Warn("SendChannelList: no hosted copy of zone group {0} (instance {1}) for {2} - " +
+                        "nothing to offer; are its channel copies declared and running?",
+                dungeonZone.ZoneGroupId, dungeonZone.InstanceCatalogId, character.Name);
+            return false;
+        }
+
+        character.SendPacket(new SCSysIndunStatPacket(dungeonZone.ZoneGroupId, rows));
+
+        Logger.Info("SendChannelList char={0} zoneGroup={1} instanceId={2} channels={3} capacity={4}",
+            character.Name, dungeonZone.ZoneGroupId, dungeonZone.InstanceCatalogId, rows.Count,
+            dungeonZone.MaxPlayers);
+        return true;
+    }
+
+    /// <summary>The copies of an instance that exist now, each with whether a host is serving it.</summary>
+    private IEnumerable<SysIndunChannelCopy> GetChannelsOfZoneGroup(IndunZone dungeonZone)
+    {
+        foreach (var zoneKey in zoneManager.GetZoneKeysInZoneGroupById(dungeonZone.ZoneGroupId))
+        {
+            foreach (var dungeon in GetExistingDungeonsByZoneKey(zoneKey))
+            {
+                var world = dungeon.World;
+                if (world == null)
+                    continue;
+
+                var hosted = SysIndunChannelRules.CopyIsHosted(
+                    WorldIntegration.IsZoneInstanceLoaded, zoneKey, world.Id);
+                yield return new SysIndunChannelCopy(
+                    new SysIndunChannel((int)world.ChannelId, world.Id, world.GetCharacterCount(),
+                        (int)dungeonZone.MaxPlayers),
+                    hosted);
+            }
+        }
+    }
+
+    /// <summary>Remembers which dimension a character picked, for the entry that follows.</summary>
+    public void RememberInstancePick(uint characterId, SysIndunPick pick)
+    {
+        lock (_lock)
+            _instancePicks[characterId] = pick;
+    }
+
+    /// <summary>The dimension a character last picked, or null when they never opened the list.</summary>
+    public SysIndunPick? GetInstancePick(uint characterId)
+    {
+        lock (_lock)
+            return _instancePicks.TryGetValue(characterId, out var pick) ? pick : null;
+    }
+
+    /// <summary>
+    /// Drops the remembered dimension once an entry has used it, so it cannot decide a later one.
+    /// </summary>
+    public void ClearInstancePick(uint characterId)
+    {
+        lock (_lock)
+            _instancePicks.Remove(characterId);
+    }
+
+    /// <summary>
+    /// The instance a world copy belongs to, by that copy's id — how a channel the client picked is traced
+    /// back to the zone it is a copy of.
+    /// </summary>
+    public IndunZone GetDungeonZoneOfCopy(uint worldId)
+    {
+        foreach (var worldInstance in worldManager.GetWorlds())
+        {
+            if (worldInstance.Id != worldId)
+                continue;
+
+            return worldInstance.DungeonInstance?._indunZone;
+        }
+
+        return null;
+    }
+
+    /// <summary>
     /// Requests an instance for the character's team or for the player.
     /// </summary>
     /// <param name="character"></param>
@@ -141,8 +262,12 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
     /// <param name="character"></param>
     /// <param name="zoneId"></param>
     /// <param name="channelId"></param>
+    /// <param name="pickedCopyId">
+    /// The copy the character picked in the channel list, when the entry follows a pick. It decides the copy:
+    /// the access rules below match a party's own dungeon, which a shared dimension is not.
+    /// </param>
     /// <returns></returns>
-    public bool RequestDungeonInstance(Character character, uint zoneId, uint channelId)
+    public bool RequestDungeonInstance(Character character, uint zoneId, uint channelId, uint? pickedCopyId = null)
     {
         if (character == null)
         {
@@ -175,6 +300,43 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
         }
 
         var possibleTargetInstances = GetExistingDungeonsByZoneKey(targetZone.ZoneKey);
+
+        // A pick names the dimension to land in, so it is settled before the access rules below: those look for
+        // a party's own copy, which a shared dimension is not. Only channel instances honour one — an ordinary
+        // dungeon keeps its rejoin and team rules, including the visit-limit skip those paths use.
+        if (pickedCopyId is { } wantedCopy &&
+            SysIndunChannelRules.HonourPick(dungeonZone.SelectChannel, wantedCopy))
+        {
+            // Only a copy a host is still serving counts: one that dropped between the list and the entry would
+            // put the player in a copy nothing simulates, so it is refused rather than silently substituted.
+            var hostedCopyId = SysIndunChannelRules.FindCopyForPick(
+                GetChannelsOfZoneGroup(dungeonZone), wantedCopy, null);
+            var picked = hostedCopyId is { } copyId
+                ? possibleTargetInstances.FirstOrDefault(candidate => candidate.World?.Id == copyId)
+                : null;
+
+            if (picked == null)
+            {
+                Logger.Warn("RequestDungeonInstance: picked copy {0} of zone {1} is not hosted for {2}",
+                    wantedCopy, targetZone.ZoneKey, character.Name);
+                character.SendErrorMessage(ErrorMessageType.NoServerInstanceResource);
+                return false;
+            }
+
+            // A pick names the copy, not a way around the instance's own requirements.
+            if (!VerifyDungeonEnterRequirements(dungeonZone, character, team))
+                return false;
+
+            if (IsDungeonFull(picked.World.GetCharacterCount(), picked._indunZone.MaxPlayers))
+            {
+                character.SendErrorMessage(ErrorMessageType.InstanceQuota);
+                return false;
+            }
+
+            Logger.Info("RequestDungeonInstance: entering picked copy {0} (channel {1}) for {2}",
+                picked.World.Id, picked.World.ChannelId, character.Name);
+            return picked.QueuePlayer(character);
+        }
 
         // Rejoin a copy this player already paid for — do not apply the daily cap again.
         foreach (var possibleTargetInstance in possibleTargetInstances)

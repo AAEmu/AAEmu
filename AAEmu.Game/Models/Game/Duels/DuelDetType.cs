@@ -1,8 +1,8 @@
 namespace AAEmu.Game.Models.Game.Duels;
 
 /// <summary>
-/// The outcome code carried by SCDuelEnded. These are the client's own values, taken from the two
-/// message tables its handler indexes with this field (RVA 0x1551118 for a loss, 0x1551130 for a win):
+/// The outcome code carried by SCDuelEnded. These are the client's own values: it looks the field up
+/// in two result-message tables, one for the loser's text and one for the winner's:
 ///
 ///   det 0 -> "result_draw"    both tables
 ///   det 1 -> "result_loser" / "result_winner"   - the isWin flag picks between them

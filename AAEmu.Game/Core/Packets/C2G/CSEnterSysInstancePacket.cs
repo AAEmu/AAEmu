@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Indun;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -49,11 +50,25 @@ public class CSEnterSysInstancePacket() : GamePacket(CSOffsets.CSEnterSysInstanc
             return;
         }
 
+        // The request names the instance but not the dimension: the row the player picked in the channel list
+        // (resolved by CS 0x199) is what decides which copy they land in. It only counts for the instance it was
+        // listed for, and only while it names a copy — otherwise a stale pick for another instance, or one that
+        // resolved to no copy at all, would decide this entry.
+        var remembered = IndunManager.Instance.GetInstancePick(character.Id);
+        var pick = remembered is { WorldId: not 0 } candidate && candidate.ZoneKey == zone.ZoneKey
+            ? candidate
+            : (SysIndunPick?)null;
+        var channel = pick?.ChannelId ?? 0;
+
         Logger.Info(
-            "CSEnterSysInstance char={0} instances.id={1} zoneGroup={2} zoneId={3} bc={4}",
-            character.Name, InstId, dungeonZone.ZoneGroupId, zone.Id, Bc);
+            "CSEnterSysInstance char={0} instances.id={1} zoneGroup={2} zoneId={3} bc={4} channel={5} copy={6}",
+            character.Name, InstId, dungeonZone.ZoneGroupId, zone.Id, Bc, channel,
+            pick?.WorldId.ToString() ?? "none");
+
+        // The entry is the only consumer of a pick, so it does not outlive this request.
+        IndunManager.Instance.ClearInstancePick(character.Id);
 
         character.SendPacket(new SCProcessingInstancePacket((int)zone.ZoneKey));
-        IndunManager.Instance.RequestDungeonInstance(character, zone.Id, 0);
+        IndunManager.Instance.RequestDungeonInstance(character, zone.Id, (uint)channel, pick?.WorldId);
     }
 }

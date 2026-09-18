@@ -82,7 +82,8 @@ public interface IButlerChargeContextResolver
 /// <summary>Database-first farmhand LP and production-cost charging.</summary>
 public sealed class ButlerChargeService : IButlerChargeService
 {
-    // SCButlerInfoUpdated serializer FUN_39C885B0 and applier FUN_390CEF60.
+    // SCButlerInfoUpdated updatedFlags is written as a raw signed 16-bit field; the client applies
+    // each set bit to the matching part of the Butler state.
     internal const short PermanentDatasUpdatedFlags = 0x02;
     internal const short LaborPowerUpdatedFlags = 0x04;
     internal const short LaborPowerAndPermanentDatasUpdatedFlags = 0x06;

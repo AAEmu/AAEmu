@@ -45,8 +45,7 @@ public class SCChatMessagePacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        // Header field order read out of the client's own serializer, which names every value
-        // (SCChatMessage::Read, VA 0x39C71C30):
+        // Header field order as the client's serializer reads it, which names every value:
         //
         //   cliLocale     u8    1     off  0
         //   chat          u64   8     off  1
@@ -58,11 +57,10 @@ public class SCChatMessagePacket : GamePacket
         //                      ---
         //                       26
         //
-        // Widths come from the archive's vtable thunks: +0x90 reads 1, +0x88 reads 2, +0x80 and
-        // +0xA0 read 4, +0x98 reads 8, +0x1A0 reads the 3-byte compressed id, and +0x1A8/+0x1D0
-        // consume nothing at all (they are `ret` stubs on the read side).
+        // Widths are the client reader's own: 1-byte, 2-byte, 4-byte and 8-byte readers, then the
+        // 3-byte compressed id; the two remaining fields consume nothing at all on the read side.
         //
-        // The previous layout was reconstructed from a byte sniff and got the SIZE right - also 26 -
+        // The previous layout was derived from observed bytes and got the SIZE right - also 26 -
         // but split it as i16+i16+u32 | bc | u32 | u8 | u8 | u32+u32+u8. Everything therefore sat one
         // to five bytes off: bc at 8 instead of 9, LanguageType at 15 instead of 20, CharRace at 16
         // instead of 21. name and msg still began at 26, which is why nothing desynced and no message
@@ -102,7 +100,7 @@ public class SCChatMessagePacket : GamePacket
 
         stream.Write(_character != null ? _ability : 0);
         // Trailer is 3 bytes on 10.0.2.13 (not a single option i32/u8).
-        // System sniff ends with 00 FF 00; player chat with 00 02 01 — use system form for
+        // System messages end with 00 FF 00; player chat with 00 02 01 — use system form for
         // non-character messages, zeros+safe defaults otherwise.
         if (_character == null || _type == ChatType.System)
         {

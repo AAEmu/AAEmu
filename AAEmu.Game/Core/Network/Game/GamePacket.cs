@@ -25,9 +25,10 @@ public abstract class GamePacket(ushort typeId, byte level) : PacketBase<GameCon
             if (level == 1 && Connection.EncryptionActive)
                 level = 5;
 
-            // a2=[level][body] to the dispatcher, which reads a2[0]=level via byte_395CF090[level]. The sig
-            // value itself is never looked up — dropping it (earlier mistake) made the client eat the level
-            // byte as the sig and treat the encrypted body's first byte as the level → byte_395CF090[x]=0 → drop.
+            // The client's dispatcher reads the level from the first body byte and looks the signature up in
+            // the level table. The signature value itself is never matched — dropping it (earlier mistake)
+            // made the client eat the level byte as the signature and then treat the encrypted body's first
+            // byte as the level, which is not a valid table entry, so the packet was dropped.
             var packet = new PacketStream()
                 .Write((byte)0xdd)
                 .Write(level);

@@ -3,7 +3,7 @@ using AAEmu.Commons.Network;
 namespace AAEmu.World.Core.Packets.Wz;
 
 // World → Zone zone control, physics and diagnostics (opcodes 0x070-0x0FF).
-// Each body is the dedicate DLL's own serializer for the type, reached through slot 2
+// Each body carries the fields the zone protocol expects for that opcode.
 
 public class WZRequestCombatUnitsPacket(uint unitId, uint unitId2)
     : ZonePacket(WzOpcodes.RequestCombatUnits)
