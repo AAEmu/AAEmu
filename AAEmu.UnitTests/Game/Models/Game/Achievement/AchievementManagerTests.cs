@@ -32,6 +32,11 @@ public sealed class AchievementManagerTests : SqliteTestBase
     private const uint LevelRecord = 500;
     private const uint AbilityLevelRecord = 501;
     private const uint OtherAbilityLevelRecord = 502;
+    private const uint ChainRecord = 760;
+    private const uint ChainCompletionRecord = 761;
+
+    /// <summary>How many achievements the seeded content holds: ids 1 to 7 and the chain pair below.</summary>
+    private const int ContentAchievements = 9;
 
     /// <summary>Enough spare content that a full list needs more than one packet of fifty.</summary>
     private const int FillerAchievements = 60;
@@ -180,9 +185,36 @@ public sealed class AchievementManagerTests : SqliteTestBase
 
         // The full list carries everything at nothing, which is what the client starts from.
         var all = AchievementManager.Instance.BuildList(_character, includeUntouched: true);
-        await Assert.That(all.Count).IsEqualTo(7 + FillerAchievements);
+        await Assert.That(all.Count).IsEqualTo(ContentAchievements + FillerAchievements);
         await Assert.That(all.Single(row => row.Id == 4u).Amount).IsEqualTo(0u);
         await Assert.That(all.Single(row => row.Id == 4u).Complete).IsEqualTo(default(DateTime));
+    }
+
+    [Test]
+    public async Task RefreshAll_RevisitsAWatcherWhoseChildCompletesLaterInThePass()
+    {
+        // Achievement 30 is earned by earning achievement 31, and the full pass walks them in id order: 30 is
+        // checked first, before 31 has completed, so the watcher has to be looked at again when it does.
+        // Otherwise 30 goes out stale and only catches up at the next world entry.
+        _character.Records.Set(ChainRecord, 3);
+
+        await Assert.That(AchievementManager.Instance.RefreshAll(_character)).IsEqualTo(2);
+        await Assert.That(_character.Achievements.IsComplete(31)).IsTrue();
+        await Assert.That(_character.Records.Get(ChainCompletionRecord)).IsEqualTo(1);
+        await Assert.That(_character.Achievements.Amount(30)).IsEqualTo(1);
+        await Assert.That(_character.Achievements.IsComplete(30)).IsTrue();
+    }
+
+    [Test]
+    public async Task RefreshAll_LeavesAChainThatIsStillIncompleteAlone()
+    {
+        // The other half of the same walk: re-queueing is not "complete everything that watches a record".
+        _character.Records.Set(ChainRecord, 2);
+
+        await Assert.That(AchievementManager.Instance.RefreshAll(_character)).IsEqualTo(0);
+        await Assert.That(_character.Achievements.IsComplete(31)).IsFalse();
+        await Assert.That(_character.Records.Get(ChainCompletionRecord)).IsEqualTo(0);
+        await Assert.That(_character.Achievements.IsComplete(30)).IsFalse();
     }
 
     [Test]
@@ -310,6 +342,13 @@ public sealed class AchievementManagerTests : SqliteTestBase
         InsertAchievement(7, 3, "f", "Reach Fight level 3");
         InsertObjective(7, 9, AbilityLevelRecord);
 
+        // Achievements 30 and 31: a chain whose parent is the lower id, the way 2,173 of the content's 3,259
+        // completion links run. The parent is checked before the child that completes it.
+        InsertAchievement(30, 1, "t", "Earn the chain child");
+        InsertObjective(30, 20, ChainCompletionRecord);
+        InsertAchievement(31, 3, "f", "Reach the chain target");
+        InsertObjective(31, 21, ChainRecord);
+
         // Spare counting achievements on the same record: each is complete on its first kill.
         for (var i = 0; i < FillerAchievements; i++)
         {
@@ -328,6 +367,8 @@ public sealed class AchievementManagerTests : SqliteTestBase
         InsertRecord(LevelRecord, 10, 0, 0);                // character level
         InsertRecord(AbilityLevelRecord, 21, 1, 0);         // Fight
         InsertRecord(OtherAbilityLevelRecord, 21, 2, 0);    // Illusion
+        InsertRecord(ChainRecord, 25, 12, 0);               // the chain child's own objective
+        InsertRecord(ChainCompletionRecord, 9, 31, 0);      // completing achievement 31
     }
 
     private void InsertAchievement(uint id, int completeNum, string completeOr, string name) =>

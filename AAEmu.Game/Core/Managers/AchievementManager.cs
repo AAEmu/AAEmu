@@ -260,7 +260,11 @@ public class AchievementManager : Singleton<AchievementManager>
     /// </summary>
     /// <remarks>
     /// A completion is itself a record that other achievements watch (the parent/child chains), so this is a
-    /// queue rather than one pass, and each achievement is still visited once however many ways it is reached.
+    /// queue rather than one pass. A watcher that was already passed over earlier in the pass is looked at
+    /// again when a completion it watches lands: the content is not ordered by id, and 2,173 of its 3,259
+    /// completion links run from a lower parent id to a higher child, so the parent is very often checked
+    /// before the child that would have satisfied it. It still terminates — an achievement completes once
+    /// however many ways it is reached, and only a completion re-queues anything.
     /// </remarks>
     private (int Moved, int Completed) RefreshQueue(Character character, IEnumerable<uint> achievementIds,
         bool sendPackets)
@@ -290,7 +294,10 @@ public class AchievementManager : Singleton<AchievementManager>
 
             character.Records.Report(completionRecord, 1);
             foreach (var watcher in AchievementGameData.Instance.GetAchievementsWatchingRecord(completionRecord))
+            {
+                visited.Remove(watcher);
                 pending.Enqueue(watcher);
+            }
         }
 
         return (moved, completed);
