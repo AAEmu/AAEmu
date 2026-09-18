@@ -1,3 +1,5 @@
 @echo off
-cd ..\AAEmu.Game\bin\Debug\net10.0
-AAEmu.Game.exe
+REM Prefer the zone-authority host. Bare AAEmu.Game.exe is library-era only —
+REM do not run it on :1239 next to World.
+echo Redirect: this branch runs World, not standalone Game.
+call "%~dp0Start AAemu.World.bat"
