@@ -4,6 +4,7 @@ using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Connections;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -32,11 +33,17 @@ public sealed class AchievementManagerTests : SqliteTestBase
     private const uint LevelRecord = 500;
     private const uint AbilityLevelRecord = 501;
     private const uint OtherAbilityLevelRecord = 502;
+    private const uint SubCategoryId = 90;
+    private const uint SubCategoryRecord = 720;
+    private const uint LiveChildRecord = 750;
+    private const uint SeasonOffChildRecord = 751;
     private const uint ChainRecord = 760;
     private const uint ChainCompletionRecord = 761;
 
-    /// <summary>How many achievements the seeded content holds: ids 1 to 7 and the chain pair below.</summary>
-    private const int ContentAchievements = 9;
+    /// <summary>
+    /// How many achievements the seeded content holds: achievements 1 to 16 plus the chain pair.
+    /// </summary>
+    private const int ContentAchievements = 18;
 
     /// <summary>Enough spare content that a full list needs more than one packet of fifty.</summary>
     private const int FillerAchievements = 60;
@@ -281,6 +288,28 @@ public sealed class AchievementManagerTests : SqliteTestBase
     }
 
     [Test]
+    public async Task Reset_KeepsASubCategoryRecordWhoseSubCategoryIsStillComplete()
+    {
+        // Achievement 12 pays for sub-category 90. After 8, 10 and 11 are earned, resetting 12 must leave
+        // the sub-category record — members never complete again, so clearing it would make 12 unearnable.
+        AchievementManager.Instance.Report(_character, 700, 5);
+        AchievementManager.Instance.Report(_character, 710, 1);
+        AchievementManager.Instance.Report(_character, 711, 1);
+        await Assert.That(_character.Achievements.IsComplete(12)).IsTrue();
+        await Assert.That(_character.Records.Get(SubCategoryRecord)).IsEqualTo(1);
+
+        await Assert.That(AchievementManager.Instance.Reset(_character, 12)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(12)).IsFalse();
+        await Assert.That(_character.Records.Get(SubCategoryRecord)).IsEqualTo(1);
+        await Assert.That(_character.Achievements.IsComplete(8)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(10)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(11)).IsTrue();
+
+        await Assert.That(AchievementManager.Instance.RefreshAll(_character)).IsEqualTo(1);
+        await Assert.That(_character.Achievements.IsComplete(12)).IsTrue();
+    }
+
+    [Test]
     public async Task Reset_ClearsTheRecordsThatWouldOtherwisePutItStraightBack()
     {
         AchievementManager.Instance.Report(_character, HouseRecordB, 1);
@@ -351,6 +380,111 @@ public sealed class AchievementManagerTests : SqliteTestBase
         await Assert.That(AchievementManager.Instance.ReportLevel(_character)).IsEqualTo(1);
     }
 
+    [Test]
+    public async Task Completion_PaysTheTitleOnceAndOnlyOnTheFirstCompletion()
+    {
+        _character.Appellations = new CharacterAppellations(_character);
+
+        AchievementManager.Instance.Report(_character, 700, 5);
+
+        await Assert.That(_character.Achievements.IsComplete(8)).IsTrue();
+        await Assert.That(_character.Appellations.Appellations).Contains(6001u);
+
+        // Re-evaluating everything, as entry does, must not pay a second time.
+        AchievementManager.Instance.RefreshAll(_character);
+        await Assert.That(_character.Appellations.Appellations.Count).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task Completion_WithoutABag_ReportsTheTitleButNotTheItem()
+    {
+        _character.Appellations = new CharacterAppellations(_character);
+        _character.Inventory = null;
+        _sentPackets.Clear();
+
+        AchievementManager.Instance.Report(_character, 700, 5);
+
+        // The change, the completion and the title — and no "item sent", because none was.
+        var opcodes = SentOpcodes().ToList();
+        await Assert.That(opcodes).Contains(SCOffsets.SCAchievementChangedPacket);
+        await Assert.That(opcodes).Contains(SCOffsets.SCAchievementCompletedPacket);
+        await Assert.That(opcodes).Contains(SCOffsets.SCAppellationGainedPacket);
+        await Assert.That(opcodes).DoesNotContain(SCOffsets.SCAchievementItemSentPacket);
+    }
+
+    [Test]
+    public async Task Completion_OfEveryMemberOfASubCategory_CompletesItsAchievement()
+    {
+        // Achievements 8, 10 and 11 share sub-category 90; achievement 12 is filed inside the same
+        // sub-category and is what finishing it pays, so it must not be waited on.
+        AchievementManager.Instance.Report(_character, 700, 5);
+        AchievementManager.Instance.Report(_character, 710, 1);
+
+        await Assert.That(_character.Records.Get(SubCategoryRecord)).IsEqualTo(0);
+        await Assert.That(_character.Achievements.IsComplete(12)).IsFalse();
+
+        AchievementManager.Instance.Report(_character, 711, 1);
+
+        await Assert.That(_character.Records.Get(SubCategoryRecord)).IsEqualTo(1);
+        await Assert.That(_character.Achievements.IsComplete(12)).IsTrue();
+    }
+
+    [Test]
+    public async Task Completion_OfASubCategory_SkipsMembersWithNoObjectives()
+    {
+        // Achievement 9 is unused content with no objectives. It cannot complete, so it must not hold 12 back.
+        AchievementManager.Instance.Report(_character, 700, 5);
+        AchievementManager.Instance.Report(_character, 710, 1);
+        AchievementManager.Instance.Report(_character, 711, 1);
+
+        await Assert.That(_character.Achievements.IsComplete(9)).IsFalse();
+        await Assert.That(_character.Achievements.IsComplete(12)).IsTrue();
+    }
+
+    [Test]
+    public async Task PayReward_ToleratesAnAchievementWithoutAReward()
+    {
+        await Assert.That(AchievementManager.Instance.PayReward(_character, null)).IsFalse();
+
+        var plain = AchievementGameData.Instance.GetAchievement(2);
+        await Assert.That(AchievementManager.Instance.PayReward(_character, plain)).IsFalse();
+    }
+
+    [Test]
+    public async Task PayReward_WithoutABag_DoesNotClaimTheItemWasSent()
+    {
+        // Half a reward: the title is paid, and nothing tells the client an item went out when it did not.
+        _character.Appellations = new CharacterAppellations(_character);
+        _character.Inventory = null;
+        _sentPackets.Clear();
+
+        var paid = AchievementManager.Instance.PayReward(_character,
+            AchievementGameData.Instance.GetAchievement(8));
+
+        await Assert.That(paid).IsTrue();
+        await Assert.That(_character.Appellations.Appellations).Contains(6001u);
+        await Assert.That(SentOpcodes()).DoesNotContain(SCOffsets.SCAchievementItemSentPacket);
+    }
+
+    /// <summary>
+    /// The opcode of each packet the character was sent. A level-1 game packet goes out as
+    /// <c>[u16 length][0xdd][level][crc][counter][u16 type]</c>, so the type is six bytes in.
+    /// </summary>
+    [Test]
+    public async Task SeasonOffChild_DoesNotHoldItsParentBack()
+    {
+        // The parent waits for two children, but one of them is switched off this season and can never be
+        // earned — 107 achievements in the content are in exactly that position.
+        AchievementManager.Instance.Report(_character, 740, 1);
+
+        await Assert.That(_character.Achievements.IsComplete(15)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(16)).IsFalse();
+        await Assert.That(_character.Achievements.IsComplete(14)).IsTrue();
+    }
+
+    private IEnumerable<ushort> SentOpcodes() =>
+        _sentPackets.Select(bytes => BitConverter.ToUInt16(bytes, 6));
+
     private void SeedContent()
     {
         // Achievement 1: summing shape, single objective, target 50.
@@ -383,6 +517,38 @@ public sealed class AchievementManagerTests : SqliteTestBase
         InsertAchievement(7, 3, "f", "Reach Fight level 3");
         InsertObjective(7, 9, AbilityLevelRecord);
 
+        // Achievement 8: pays a title and an item, and belongs to sub-category 90 with 10 and 11.
+        InsertAchievement(8, 5, "f", "Reach level 5", appellationId: 6001, subCategoryId: 90,
+            itemId: 7777, itemNum: 5);
+        InsertObjective(8, 10, 700);
+
+        // Achievements 10 and 11: the rest of sub-category 90.
+        InsertAchievement(10, 1, "t", "First of the pair", subCategoryId: 90);
+        InsertObjective(10, 11, 710);
+        InsertAchievement(11, 1, "t", "Second of the pair", subCategoryId: 90);
+        InsertObjective(11, 12, 711);
+
+        // Achievement 9: unused member of the same sub-category, with no objectives. 47 content rows are
+        // this shape; they can never complete and must not hold the payer back.
+        InsertAchievement(9, 0, "t", "Unused", subCategoryId: 90);
+
+        // Achievement 12: pays for the whole sub-category, and is filed inside it like the content does.
+        InsertAchievement(12, 0, "t", "All of the pair", subCategoryId: 90);
+        InsertObjective(12, 13, SubCategoryRecord);
+
+        // Achievement 13: a season-off member of the same sub-category. It can never be earned, so it must not
+        // hold the sub-category's own achievement back.
+        InsertAchievement(13, 1, "t", "Switched off this season", subCategoryId: 90, seasonOff: true);
+
+        // Achievements 14 to 16: a parent that waits for two children, one of which the season switched off.
+        InsertAchievement(14, 0, "t", "Both of the children");
+        InsertObjective(14, 14, LiveChildRecord);
+        InsertObjective(14, 15, SeasonOffChildRecord);
+        InsertAchievement(15, 1, "t", "Live child");
+        InsertObjective(15, 16, 740);
+        InsertAchievement(16, 1, "t", "Season-off child", seasonOff: true);
+        InsertObjective(16, 17, 741);
+
         // Achievements 30 and 31: a chain whose parent is the lower id, the way 2,173 of the content's 3,259
         // completion links run. The parent is checked before the child that completes it.
         InsertAchievement(30, 1, "t", "Earn the chain child");
@@ -408,16 +574,27 @@ public sealed class AchievementManagerTests : SqliteTestBase
         InsertRecord(LevelRecord, 10, 0, 0);                // character level
         InsertRecord(AbilityLevelRecord, 21, 1, 0);         // Fight
         InsertRecord(OtherAbilityLevelRecord, 21, 2, 0);    // Illusion
+        InsertRecord(700, 25, 6, 0);                        // the rewarded achievement's record
+        InsertRecord(710, 25, 7, 0);
+        InsertRecord(711, 25, 8, 0);
+        InsertRecord(SubCategoryRecord, 81, (int)SubCategoryId, 0); // completing sub-category 90
+        InsertRecord(721, 25, 9, 0);                        // achievement 13's own record (never reported)
+        InsertRecord(730, 25, 10, 0);                       // achievement 15's record
+        InsertRecord(731, 25, 11, 0);                       // achievement 16's record
+        InsertRecord(LiveChildRecord, 9, 15, 0);            // completing achievement 15
+        InsertRecord(SeasonOffChildRecord, 9, 16, 0);       // completing achievement 16 (switched off)
         InsertRecord(ChainRecord, 25, 12, 0);               // the chain child's own objective
         InsertRecord(ChainCompletionRecord, 9, 31, 0);      // completing achievement 31
     }
 
-    private void InsertAchievement(uint id, int completeNum, string completeOr, string name) =>
+    private void InsertAchievement(uint id, int completeNum, string completeOr, string name,
+        uint appellationId = 0, uint subCategoryId = 1, uint itemId = 0, uint itemNum = 0, bool seasonOff = false) =>
         Execute($"INSERT INTO achievements (id, name, summary, description, achievement_sub_category_id, " +
                 $"parent_achievement_id, season_off, is_hidden, priority, or_unit_reqs, complete_or, " +
                 $"complete_num, item_id, icon_id, item_num, grade_id, appellation_id, milestone_id) " +
-                $"VALUES ({id}, '{name}', '', '', 1, 0, 'f', 'f', 0, 'f', '{completeOr}', {completeNum}, " +
-                $"0, 0, 0, 0, 0, 0)");
+                $"VALUES ({id}, '{name}', 'a summary', '', {subCategoryId}, 0, " +
+                $"'{(seasonOff ? "t" : "f")}', 'f', 0, 'f', '{completeOr}', " +
+                $"{completeNum}, {itemId}, 0, {itemNum}, 0, {appellationId}, 0)");
 
     private void InsertObjective(uint achievementId, uint objectiveId, uint recordId) =>
         Execute($"INSERT INTO achievement_objectives (id, achievement_id, or_unit_reqs, record_id) " +

@@ -4,6 +4,8 @@ using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Achievement;
 using AAEmu.Game.Models.Game.Achievement.Enums;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Skills;
 
 using NLog;
@@ -200,15 +202,122 @@ public class AchievementManager : Singleton<AchievementManager>
         }
 
         // Completion only ever happens here, and only if the rules say the target was reached. An achievement
-        // that is already complete keeps the time it was first earned.
+        // that is already complete keeps the time it was first earned, and the reward that came with it.
         if (!evaluation.Complete || !character.Achievements.Complete(achievementId, DateTime.UtcNow))
             return new RefreshResult(amountChanged, false);
 
         if (sendPackets)
             character.SendPacket(new SCAchievementCompletedPacket(achievementId));
 
+        PayReward(character, achievement);
+
         Logger.Info("Achievement: {0} completed '{1}' ({2})", character.Name, achievement.Name, achievementId);
         return new RefreshResult(amountChanged, true);
+    }
+
+    /// <summary>
+    /// Hands over what an achievement is worth: its item, to the bag or by mail, and its title.
+    /// </summary>
+    /// <remarks>
+    /// Called once per character per achievement, because completion is one-way — a character who already has
+    /// it cannot be paid again by a later evaluation, and a restart does not re-pay what the database says was
+    /// earned before.
+    /// </remarks>
+    /// <returns>Whether anything was paid.</returns>
+    public bool PayReward(Character character, Achievements achievement)
+    {
+        if (character == null || achievement == null)
+            return false;
+
+        var reward = AchievementRewardRules.RewardOf(achievement);
+        var paid = false;
+
+        if (reward.HasItem)
+        {
+            if (TryPayItem(character, achievement, reward, out var byMail))
+            {
+                character.SendPacket(new SCAchievementItemSentPacket(achievement.Id, byMail));
+                Logger.Info("Achievement: {0} paid {1}x{2} for '{3}' ({4}){5}",
+                    character.Name, reward.ItemCount, reward.ItemId, achievement.Name, achievement.Id,
+                    byMail ? " by mail" : "");
+                paid = true;
+            }
+            else
+            {
+                Logger.Warn("Achievement: {0} could not be paid item {1}x{2} for '{3}' ({4})",
+                    character.Name, reward.ItemCount, reward.ItemId, achievement.Name, achievement.Id);
+            }
+        }
+
+        if (reward.HasAppellation && character.Appellations != null)
+        {
+            character.Appellations.Add(reward.AppellationId);
+            paid = true;
+        }
+
+        return paid;
+    }
+
+    /// <summary>
+    /// The task type a reward item is put in the bag under.
+    /// </summary>
+    /// <remarks>
+    /// The client has no task type for achievement rewards that this tree has identified, and the neutral one
+    /// is not usable here: a container publishes nothing to the client for <c>Invalid</c>, so the item would
+    /// arrive server-side and never appear in the player's bag. This is the type the other system-reward path
+    /// uses for the same shape; the achievement's own "your item was sent" packet carries the context.
+    /// </remarks>
+    private const ItemTaskType RewardItemTask = ItemTaskType.SkillEffectGainItem;
+
+    private static bool TryPayItem(Character character, Achievements achievement, AchievementReward reward,
+        out bool byMail)
+    {
+        byMail = false;
+        var bag = character.Inventory?.Bag;
+        if (bag == null)
+            return false;
+
+        if (!AchievementRewardRules.GoesToMail(bag.SpaceLeftForItem(reward.ItemId), reward.ItemCount))
+            return bag.AcquireDefaultItem(RewardItemTask, reward.ItemId, reward.ItemCount);
+
+        byMail = true;
+        return TryMailItem(character, achievement, reward);
+    }
+
+    private static bool TryMailItem(Character character, Achievements achievement, AchievementReward reward)
+    {
+        var attachments = character.Inventory?.MailAttachments;
+        if (attachments == null)
+            return false;
+
+        if (!attachments.AcquireDefaultItemEx(ItemTaskType.Invalid, reward.ItemId, reward.ItemCount, -1,
+                out var staged, out _, character.Id))
+            return false;
+
+        var mail = new BaseMail
+        {
+            MailType = MailType.Promotion,
+            Title = AchievementRewardRules.OverflowMailTitle(achievement.Id),
+            ReceiverName = character.Name,
+            Header =
+            {
+                SenderName = AchievementRewardRules.OverflowMailSender,
+                ReceiverId = character.Id
+            },
+            Body =
+            {
+                Text = AchievementRewardRules.OverflowMailBody(achievement.Id),
+                SendDate = DateTime.UtcNow,
+                RecvDate = DateTime.UtcNow
+            }
+        };
+
+        mail.Body.Attachments.AddRange(staged);
+        if (mail.Send())
+            return true;
+
+        MailDeliveryRules.TryDiscardStagedAttachments(attachments, staged);
+        return false;
     }
 
     /// <summary>
@@ -225,6 +334,7 @@ public class AchievementManager : Singleton<AchievementManager>
             return false;
 
         character.SendPacket(new SCAchievementCompletedPacket(achievementId));
+        PayReward(character, AchievementGameData.Instance.GetAchievement(achievementId));
 
         var completionRecord = AchievementGameData.Instance.GetCompletionRecord(achievementId);
         if (completionRecord != 0)
@@ -242,8 +352,11 @@ public class AchievementManager : Singleton<AchievementManager>
     /// the achievement still hold what they held, so the entry path's <see cref="RefreshAll"/> would put it
     /// straight back. Clearing them is what makes the reset mean anything. A completion record whose
     /// achievement is still complete is kept: 674 achievements watch those, and a complete child never
-    /// reports again, so clearing it would make the parent unearnable. A record the engine fills from
-    /// character state (level, ability level) is reported again the next time that state is reported.
+    /// reports again, so clearing it would make the parent unearnable. A sub-category record whose
+    /// sub-category is still complete is kept the same way: that record is only reported when a member
+    /// newly completes, so clearing a payer's only objective would make the payer unearnable. A record the
+    /// engine fills from character state (level, ability level) is reported again the next time that state
+    /// is reported.
     /// </remarks>
     public bool Reset(Character character, uint achievementId)
     {
@@ -254,6 +367,10 @@ public class AchievementManager : Singleton<AchievementManager>
         {
             var completedId = AchievementGameData.Instance.GetAchievementForCompletionRecord(objective.RecordId);
             if (completedId != 0 && character.Achievements.IsComplete(completedId))
+                continue;
+
+            var subCategoryId = AchievementGameData.Instance.GetSubCategoryForRecord(objective.RecordId);
+            if (subCategoryId != 0 && SubCategoryIsComplete(character, subCategoryId))
                 continue;
 
             character.Records.Clear(objective.RecordId);
@@ -308,27 +425,87 @@ public class AchievementManager : Singleton<AchievementManager>
 
             completed++;
 
-            var completionRecord = AchievementGameData.Instance.GetCompletionRecord(achievementId);
-            if (completionRecord == 0)
-                continue;
-
-            character.Records.Report(completionRecord, 1);
-            foreach (var watcher in AchievementGameData.Instance.GetAchievementsWatchingRecord(completionRecord))
+            // A completion is a record of its own, and finishing a whole sub-category is another one; both
+            // are reported here so the achievements built on them follow through the same queue.
+            foreach (var recordId in CompletionRecords(character, achievementId))
             {
-                visited.Remove(watcher);
-                pending.Enqueue(watcher);
+                character.Records.Report(recordId, 1);
+                foreach (var watcher in AchievementGameData.Instance.GetAchievementsWatchingRecord(recordId))
+                {
+                    // A watcher passed over earlier in this pass has to be looked at again: the content is
+                    // not ordered by id, so a parent is very often checked before the child that completes
+                    // it, and the completion is what should have satisfied the parent.
+                    visited.Remove(watcher);
+                    pending.Enqueue(watcher);
+                }
             }
         }
 
         return (moved, completed);
     }
 
+    /// <summary>
+    /// The records an achievement's completion counts into: the one naming the achievement, and — once every
+    /// achievement of its sub-category is done — the one naming the sub-category.
+    /// </summary>
+    /// <remarks>
+    /// The achievement that the sub-category record is for is itself filed under that sub-category, so it is
+    /// left out of the count: it is what finishing the sub-category pays, not part of finishing it. So are the
+    /// achievements the season has switched off, which cannot be earned at all — 34 of the 44 sub-categories
+    /// hold at least one — and members with no objectives (47 unused/test rows), which nothing can complete.
+    /// </remarks>
+    private static IEnumerable<uint> CompletionRecords(Character character, uint achievementId)
+    {
+        var completionRecord = AchievementGameData.Instance.GetCompletionRecord(achievementId);
+        if (completionRecord != 0)
+            yield return completionRecord;
+
+        var achievement = AchievementGameData.Instance.GetAchievement(achievementId);
+        if (achievement == null || achievement.SubCategoryId == 0)
+            yield break;
+
+        if (!SubCategoryIsComplete(character, achievement.SubCategoryId))
+            yield break;
+
+        yield return AchievementGameData.Instance.GetSubCategoryRecord(achievement.SubCategoryId);
+    }
+
+    /// <summary>
+    /// Every countable member of the sub-category is done. The payer itself, season-off rows, and members
+    /// with no objectives are left out of that count — the same exclusions <see cref="CompletionRecords"/>
+    /// uses when it reports the sub-category record.
+    /// </summary>
+    private static bool SubCategoryIsComplete(Character character, uint subCategoryId)
+    {
+        var subCategoryRecord = AchievementGameData.Instance.GetSubCategoryRecord(subCategoryId);
+        if (subCategoryRecord == 0)
+            return false;
+
+        var members = AchievementGameData.Instance.GetSubCategoryAchievements(subCategoryId);
+        if (members.Count == 0)
+            return false;
+
+        var payers = AchievementGameData.Instance.GetAchievementsWatchingRecord(subCategoryRecord);
+        return members.All(memberId =>
+            payers.Contains(memberId) ||
+            AchievementGameData.Instance.GetAchievement(memberId)?.SeasonOff == true ||
+            AchievementGameData.Instance.GetObjectives(memberId).Count == 0 ||
+            character.Achievements.IsComplete(memberId));
+    }
+
     private static AchievementEvaluation Evaluate(Character character, Achievements achievement)
     {
         var objectives = AchievementGameData.Instance.GetObjectives(achievement.Id);
-        var rules = new AchievementObjective[objectives.Count];
-        for (var i = 0; i < objectives.Count; i++)
-            rules[i] = new AchievementObjective(objectives[i].Id, objectives[i].RecordId);
+        var rules = new List<AchievementObjective>(objectives.Count);
+        foreach (var objective in objectives)
+        {
+            // An objective that watches a season-off achievement's completion can never be satisfied: it is
+            // not something this achievement waits for.
+            if (AchievementGameData.Instance.IsSeasonOffCompletionRecord(objective.RecordId))
+                continue;
+
+            rules.Add(new AchievementObjective(objective.Id, objective.RecordId));
+        }
 
         // complete_num is a count of objectives or a total of their values (see AchievementRules), and the
         // largest the content asks for is 2,000,000 (achievement 2539, a my_gold total; 2244 asks 1,000,000
