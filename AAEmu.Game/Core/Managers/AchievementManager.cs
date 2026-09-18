@@ -364,8 +364,11 @@ public class AchievementManager : Singleton<AchievementManager>
     /// the achievement still hold what they held, so the entry path's <see cref="RefreshAll"/> would put it
     /// straight back. Clearing them is what makes the reset mean anything. A completion record whose
     /// achievement is still complete is kept: 674 achievements watch those, and a complete child never
-    /// reports again, so clearing it would make the parent unearnable. A record the engine fills from
-    /// character state (level, ability level) is reported again the next time that state is reported.
+    /// reports again, so clearing it would make the parent unearnable. A sub-category record whose
+    /// sub-category is still complete is kept the same way: that record is only reported when a member
+    /// newly completes, so clearing a payer's only objective would make the payer unearnable. A record the
+    /// engine fills from character state (level, ability level) is reported again the next time that state
+    /// is reported.
     /// </remarks>
     public bool Reset(Character character, uint achievementId)
     {
@@ -376,6 +379,10 @@ public class AchievementManager : Singleton<AchievementManager>
         {
             var completedId = AchievementGameData.Instance.GetAchievementForCompletionRecord(objective.RecordId);
             if (completedId != 0 && character.Achievements.IsComplete(completedId))
+                continue;
+
+            var subCategoryId = AchievementGameData.Instance.GetSubCategoryForRecord(objective.RecordId);
+            if (subCategoryId != 0 && SubCategoryIsComplete(character, subCategoryId))
                 continue;
 
             character.Records.Clear(objective.RecordId);
@@ -475,20 +482,33 @@ public class AchievementManager : Singleton<AchievementManager>
         if (achievement == null || achievement.SubCategoryId == 0)
             yield break;
 
-        var subCategoryRecord = AchievementGameData.Instance.GetSubCategoryRecord(achievement.SubCategoryId);
+        if (!SubCategoryIsComplete(character, achievement.SubCategoryId))
+            yield break;
+
+        yield return AchievementGameData.Instance.GetSubCategoryRecord(achievement.SubCategoryId);
+    }
+
+    /// <summary>
+    /// Every countable member of the sub-category is done. The payer itself, season-off rows, and members
+    /// with no objectives are left out of that count — the same exclusions <see cref="CompletionRecords"/>
+    /// uses when it reports the sub-category record.
+    /// </summary>
+    private static bool SubCategoryIsComplete(Character character, uint subCategoryId)
+    {
+        var subCategoryRecord = AchievementGameData.Instance.GetSubCategoryRecord(subCategoryId);
         if (subCategoryRecord == 0)
-            yield break;
+            return false;
 
-        var members = AchievementGameData.Instance.GetSubCategoryAchievements(achievement.SubCategoryId);
+        var members = AchievementGameData.Instance.GetSubCategoryAchievements(subCategoryId);
+        if (members.Count == 0)
+            return false;
+
         var payers = AchievementGameData.Instance.GetAchievementsWatchingRecord(subCategoryRecord);
-        if (members.Count == 0 || !members.All(memberId =>
-                payers.Contains(memberId) ||
-                AchievementGameData.Instance.GetAchievement(memberId)?.SeasonOff == true ||
-                AchievementGameData.Instance.GetObjectives(memberId).Count == 0 ||
-                character.Achievements.IsComplete(memberId)))
-            yield break;
-
-        yield return subCategoryRecord;
+        return members.All(memberId =>
+            payers.Contains(memberId) ||
+            AchievementGameData.Instance.GetAchievement(memberId)?.SeasonOff == true ||
+            AchievementGameData.Instance.GetObjectives(memberId).Count == 0 ||
+            character.Achievements.IsComplete(memberId));
     }
 
     private static AchievementEvaluation Evaluate(Character character, Achievements achievement)

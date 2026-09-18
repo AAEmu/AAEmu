@@ -288,6 +288,28 @@ public sealed class AchievementManagerTests : SqliteTestBase
     }
 
     [Test]
+    public async Task Reset_KeepsASubCategoryRecordWhoseSubCategoryIsStillComplete()
+    {
+        // Achievement 12 pays for sub-category 90. After 8, 10 and 11 are earned, resetting 12 must leave
+        // the sub-category record — members never complete again, so clearing it would make 12 unearnable.
+        AchievementManager.Instance.Report(_character, 700, 5);
+        AchievementManager.Instance.Report(_character, 710, 1);
+        AchievementManager.Instance.Report(_character, 711, 1);
+        await Assert.That(_character.Achievements.IsComplete(12)).IsTrue();
+        await Assert.That(_character.Records.Get(SubCategoryRecord)).IsEqualTo(1);
+
+        await Assert.That(AchievementManager.Instance.Reset(_character, 12)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(12)).IsFalse();
+        await Assert.That(_character.Records.Get(SubCategoryRecord)).IsEqualTo(1);
+        await Assert.That(_character.Achievements.IsComplete(8)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(10)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(11)).IsTrue();
+
+        await Assert.That(AchievementManager.Instance.RefreshAll(_character)).IsEqualTo(1);
+        await Assert.That(_character.Achievements.IsComplete(12)).IsTrue();
+    }
+
+    [Test]
     public async Task Reset_ClearsTheRecordsThatWouldOtherwisePutItStraightBack()
     {
         AchievementManager.Instance.Report(_character, HouseRecordB, 1);

@@ -37,6 +37,7 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
 
     /// <summary>The sub-category completion record, by sub-category id.</summary>
     private Dictionary<uint, uint> _subCategoryRecords = [];
+    private Dictionary<uint, uint> _subCategoryByRecord = [];
 
     /// <summary>
     /// The completion records of achievements the season has switched off. Nothing can set them, so an
@@ -194,6 +195,7 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
         _recordsByKind = [];
         _achievementsBySubCategory = [];
         _subCategoryRecords = [];
+        _subCategoryByRecord = [];
         _seasonOffCompletionRecords = [];
         foreach (var record in _charRecords.Values)
         {
@@ -214,6 +216,7 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
                 // A sub-category completion record names its sub-category in value1, the same way.
                 case CharRecordKind.CompleteAchievementSubCategory when record.Value1 > 0:
                     _subCategoryRecords.TryAdd((uint)record.Value1, record.Id);
+                    _subCategoryByRecord.TryAdd(record.Id, (uint)record.Value1);
                     break;
             }
         }
@@ -301,6 +304,13 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
     /// <summary>The record that counts a sub-category's completion, or 0 when the content has none.</summary>
     public uint GetSubCategoryRecord(uint subCategoryId) =>
         _subCategoryRecords.GetValueOrDefault(subCategoryId);
+
+    /// <summary>
+    /// The sub-category a completion record counts, or 0 when the record is not one. Reset uses this to
+    /// leave a still-complete sub-category's record alone, so a payer that watches it can be earned again.
+    /// </summary>
+    public uint GetSubCategoryForRecord(uint recordId) =>
+        _subCategoryByRecord.GetValueOrDefault(recordId);
 
     /// <summary>
     /// The achievements that must already be complete before this one can be.
