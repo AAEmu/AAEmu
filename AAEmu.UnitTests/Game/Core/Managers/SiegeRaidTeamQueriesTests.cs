@@ -2,6 +2,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Sieges;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Data.Sqlite;
+using TUnit.Assertions.Enums;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
@@ -21,6 +22,9 @@ public class SiegeRaidTeamQueriesTests : IDisposable
     private const uint RegisteredHaranya = 13;
     private const uint SoftDeleted = 14;
     private const uint SoftDeletedAlone = 15;
+
+    /// <summary>A registration whose character row is gone altogether - the popup still lists it, without a name.</summary>
+    private const uint RegisteredWithoutACharacterRow = 16;
 
     private const uint Nuia = 148;
     private const uint Haranya = 149;
@@ -49,7 +53,9 @@ public class SiegeRaidTeamQueriesTests : IDisposable
         Register(SiegeZone, RegisteredNuiaSecond, "2026-01-01 00:00:02");
         Register(SiegeZone, SoftDeleted, "2026-01-01 00:00:03");
         Register(SiegeZone, RegisteredHaranya, "2026-01-01 00:00:04");
-        Register(ZoneWithNothingLeft, SoftDeletedAlone, "2026-01-01 00:00:05");
+        // No characters row for this id at all: the registration outlived the character row as well.
+        Register(SiegeZone, RegisteredWithoutACharacterRow, "2026-01-01 00:00:05");
+        Register(ZoneWithNothingLeft, SoftDeletedAlone, "2026-01-01 00:00:06");
     }
 
     [Test]
@@ -90,6 +96,22 @@ public class SiegeRaidTeamQueriesTests : IDisposable
             .IsEqualTo(0);
     }
 
+    [Test]
+    public async Task RegisterList_LeavesOutASoftDeletedCharacterButKeepsARegistrationWithNoCharacterRow()
+    {
+        var rows = ReadRegisterList(SiegeZone);
+
+        // Registration order, with no row for the deleted character and nothing under its deleted name - the
+        // ranks the popup numbers the remaining rows with shift up accordingly.
+        await Assert.That(rows.Select(row => row.CharacterId)).IsEquivalentTo(
+            new[] { RegisteredNuia, RegisteredNuiaSecond, RegisteredHaranya, RegisteredWithoutACharacterRow },
+            CollectionOrdering.Matching);
+        await Assert.That(rows.Any(row => row.CharacterId == SoftDeleted)).IsFalse();
+        await Assert.That(rows.Any(row => row.Name.StartsWith('!'))).IsFalse();
+        // The LEFT JOIN keeps its own case: a registration with no character row is still listed, unnamed.
+        await Assert.That(rows[^1].Name).IsEqualTo(string.Empty);
+    }
+
     /// <summary>Runs the member-list statement the manager runs, against this database.</summary>
     private List<(uint CharacterId, string Name)> ReadMembers(ushort zoneId)
     {
@@ -120,6 +142,23 @@ public class SiegeRaidTeamQueriesTests : IDisposable
             roster.Add(new SiegeRaidTeamMember(reader.GetUInt32("character_id"), reader.GetUInt32("faction_id")));
 
         return roster;
+    }
+
+    /// <summary>Runs the registration-popup statement the manager runs, against this database.</summary>
+    private List<(uint CharacterId, string Name)> ReadRegisterList(ushort zoneId)
+    {
+        using var command = _connection.CreateCommand();
+        command.CommandText = SiegeRaidTeamQueries.RegisterListSql;
+        command.Parameters.AddWithValue("@z", zoneId);
+        command.Prepare();
+
+        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+        var rows = new List<(uint, string)>();
+        while (reader.Read())
+            rows.Add((reader.GetUInt32("character_id"),
+                reader.IsDBNull("name") ? string.Empty : reader.GetString("name")));
+
+        return rows;
     }
 
     private void Character(uint id, string name, uint factionId, bool deleted = false)

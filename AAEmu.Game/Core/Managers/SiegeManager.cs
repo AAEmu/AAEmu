@@ -128,13 +128,7 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
         using (var sql = MySQL.CreateConnection())
         {
             using var command = sql.CreateCommand();
-            command.CommandText = """
-                SELECT m.character_id, c.name
-                FROM siege_raid_team_members m
-                LEFT JOIN characters c ON c.id = m.character_id
-                WHERE m.zone_id = @z
-                ORDER BY m.registered_at, m.character_id
-                """;
+            command.CommandText = SiegeRaidTeamQueries.RegisterListSql;
             command.Parameters.AddWithValue("@z", zoneGroupId);
             command.Prepare();
             using var reader = command.ExecuteReader();
