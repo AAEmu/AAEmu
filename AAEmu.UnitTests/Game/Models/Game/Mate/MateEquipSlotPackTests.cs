@@ -14,11 +14,11 @@ public class MateEquipSlotPackTests
     [Test]
     public async Task AllowsSlot_ReadsTheFourPositionsTheTableNames()
     {
-        // a riding mate that may wear everything but a helmet (mate_equip_slot_packs row 1)
-        var mount = Pack(head: false, chest: true, waist: true, feet: true);
+        // shipped mate_equip_slot_packs row 1 (ride): head t, chest f, waist t, feet t
+        var mount = Pack(head: true, chest: false, waist: true, feet: true);
 
-        await Assert.That(mount.AllowsSlot(MateEquipSlot.Head)).IsFalse();
-        await Assert.That(mount.AllowsSlot(MateEquipSlot.Chest)).IsTrue();
+        await Assert.That(mount.AllowsSlot(MateEquipSlot.Head)).IsTrue();
+        await Assert.That(mount.AllowsSlot(MateEquipSlot.Chest)).IsFalse();
         await Assert.That(mount.AllowsSlot(MateEquipSlot.Waist)).IsTrue();
         await Assert.That(mount.AllowsSlot(MateEquipSlot.Feet)).IsTrue();
     }
@@ -34,21 +34,20 @@ public class MateEquipSlotPackTests
     }
 
     [Test]
-    [Arguments(1, MateEquipSlot.Head)]
-    [Arguments(3, MateEquipSlot.Chest)]
-    [Arguments(4, MateEquipSlot.Waist)]
-    [Arguments(7, MateEquipSlot.Feet)]
-    public async Task ForEquipmentSlot_ReadsTheNumbersTheClientsPetViewUses(int slot, MateEquipSlot expected)
+    [Arguments(0, MateEquipSlot.Head)]
+    [Arguments(2, MateEquipSlot.Chest)]
+    [Arguments(3, MateEquipSlot.Waist)]
+    [Arguments(6, MateEquipSlot.Feet)]
+    public async Task ForEquipmentSlot_ReadsTheEquipmentItemSlotTheContainerUses(int slot, MateEquipSlot expected)
     {
-        // x2ui/hud/pet_action_bar/pet_view.lua: equipSlots = { {1, "Head"}, {3, "Chest"}, {4, "Waist"}, {7, "Feet"}}
         await Assert.That(MateEquipSlots.ForEquipmentSlot(slot)).IsEqualTo(expected);
     }
 
     [Test]
-    [Arguments(0)]
-    [Arguments(2)]
+    [Arguments(1)]
+    [Arguments(4)]
     [Arguments(5)]
-    [Arguments(8)]
+    [Arguments(7)]
     public async Task ForEquipmentSlot_IsNullForAPositionAMateDoesNotHave(int slot)
     {
         await Assert.That(MateEquipSlots.ForEquipmentSlot(slot)).IsNull();

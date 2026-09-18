@@ -33,6 +33,16 @@ public class SlaveEquipRulesTests
     }
 
     [Test]
+    public async Task PositionTakesKind_LeavesAGroupListedPositionOpen()
+    {
+        // slot 467 lists groups 3, 4, 10, 1; figurehead 43737 is kind 20 and would otherwise be refused
+        var kinds = new HashSet<uint> { 3, 4, 10, 1 };
+
+        await Assert.That(SlaveEquipRules.PositionTakesKind(kinds, 20)).IsTrue();
+        await Assert.That(SlaveEquipRules.PositionTakesKind(kinds, 0)).IsFalse();
+    }
+
+    [Test]
     public async Task PackAllowed_TakesOnlyThePacksTheSlaveLists()
     {
         var allowed = new HashSet<uint> { 8, 17 };
@@ -40,6 +50,16 @@ public class SlaveEquipRulesTests
         await Assert.That(SlaveEquipRules.PackAllowed(8, allowed)).IsTrue();
         await Assert.That(SlaveEquipRules.PackAllowed(17, allowed)).IsTrue();
         await Assert.That(SlaveEquipRules.PackAllowed(20, allowed)).IsFalse();
+    }
+
+    [Test]
+    public async Task PackAllowed_TakesAnyPackOnTheItemsList()
+    {
+        // 다용 함포 42563 lists packs 12, 13, 15, 16; slave 620 allows 12
+        var allowed = new HashSet<uint> { 12 };
+
+        await Assert.That(SlaveEquipRules.PackAllowed([14, 12, 13], allowed)).IsTrue();
+        await Assert.That(SlaveEquipRules.PackAllowed([14], allowed)).IsFalse();
     }
 
     [Test]

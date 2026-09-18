@@ -27,7 +27,7 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
     private readonly Dictionary<uint, SlaveMountSkills> _slaveMountSkills = [];
 
     /// <summary>item_slave_equipments keyed by item_id: the family of slaves the item may be fitted to.</summary>
-    private readonly Dictionary<uint, uint> _itemSlaveEquipPacks = [];
+    private readonly Dictionary<uint, HashSet<uint>> _itemSlaveEquipPacks = [];
 
     /// <summary>allow_to_equip_slaves keyed by slave template: the equipment packs it may use.</summary>
     private readonly Dictionary<uint, HashSet<uint>> _slaveAllowedEquipPacks = [];
@@ -399,8 +399,16 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
                     // The pack is the family of slaves the item may be fitted to; an item's own slave_id
                     // can be empty, so the pack is the relation that always holds.
                     var equipPack = reader.GetUInt32("slave_equip_pack_id", 0);
-                    if (equipPack != 0 && !_itemSlaveEquipPacks.TryAdd(itemId, equipPack))
-                        Logger.Warn("Duplicate item_slave_equipments equip pack for item_id={0}", itemId);
+                    if (equipPack != 0)
+                    {
+                        if (!_itemSlaveEquipPacks.TryGetValue(itemId, out var packs))
+                        {
+                            packs = [];
+                            _itemSlaveEquipPacks.Add(itemId, packs);
+                        }
+
+                        packs.Add(equipPack);
+                    }
 
                     var visual = new SlaveEquipVisual(
                         reader.GetUInt32("slave_id", 0),
@@ -410,6 +418,31 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
                         continue;
                     if (!_itemSlaveEquipments.TryAdd(itemId, visual))
                         Logger.Warn("Duplicate item_slave_equipments row for item_id={0}", itemId);
+                }
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText =
+                "SELECT item_id, slave_equip_pack_id FROM item_slave_equipment_slave_equipslot_packs";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var itemId = reader.GetUInt32("item_id");
+                    var packId = reader.GetUInt32("slave_equip_pack_id", 0);
+                    if (packId == 0)
+                        continue;
+
+                    if (!_itemSlaveEquipPacks.TryGetValue(itemId, out var packs))
+                    {
+                        packs = [];
+                        _itemSlaveEquipPacks.Add(itemId, packs);
+                    }
+
+                    packs.Add(packId);
                 }
             }
         }
@@ -596,17 +629,18 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
     }
 
     /// <summary>
-    /// Whether a slave may use an item at all: the item belongs to an equipment pack
-    /// (<c>item_slave_equipments.slave_equip_pack_id</c>) and <c>allow_to_equip_slaves</c> has to list
-    /// that pack for this slave. An item in no pack, or a slave the table says nothing about, is left to
-    /// the position's own rule.
+    /// Whether a slave may use an item at all: the item belongs to equipment packs
+    /// (<c>item_slave_equipment_slave_equipslot_packs</c> plus the single column on
+    /// <c>item_slave_equipments</c>) and <c>allow_to_equip_slaves</c> has to list one of them for this
+    /// slave. An item in no pack, or a slave the table says nothing about, is left to the position's
+    /// own rule.
     /// </summary>
     public bool SlaveAllowsItem(uint slaveTemplateId, uint itemTemplateId)
     {
-        var itemPack = _itemSlaveEquipPacks.TryGetValue(itemTemplateId, out var packId) ? packId : 0;
+        _itemSlaveEquipPacks.TryGetValue(itemTemplateId, out var itemPacks);
         _slaveAllowedEquipPacks.TryGetValue(slaveTemplateId, out var allowed);
 
-        return SlaveEquipRules.PackAllowed(itemPack, allowed);
+        return SlaveEquipRules.PackAllowed(itemPacks, allowed);
     }
 
     /// <summary>

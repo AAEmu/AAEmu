@@ -40,10 +40,9 @@ public enum MateEquipSlot : byte
 }
 
 /// <summary>
-/// The equipment slot a mate's position is addressed by. The client's own pet view lists them —
-/// <c>equipSlots = { {1, "Head"}, {3, "Chest"}, {4, "Waist"}, {7, "Feet"}}</c> in
-/// <c>x2ui/hud/pet_action_bar/pet_view.lua</c> — and those numbers are what it sends as the mate slot,
-/// so they are the positions a pack's four flags are read with.
+/// The equipment slot a mate's position is addressed by. The mate container is indexed by
+/// <see cref="Items.EquipmentItemSlot"/> (Head 0, Chest 2, Waist 3, Feet 6), which is the value
+/// <c>CanAccept</c> receives.
 /// </summary>
 public static class MateEquipSlots
 {
@@ -51,10 +50,10 @@ public static class MateEquipSlots
     {
         return equipSlot switch
         {
-            1 => MateEquipSlot.Head,
-            3 => MateEquipSlot.Chest,
-            4 => MateEquipSlot.Waist,
-            7 => MateEquipSlot.Feet,
+            (int)Items.EquipmentItemSlot.Head => MateEquipSlot.Head,
+            (int)Items.EquipmentItemSlot.Chest => MateEquipSlot.Chest,
+            (int)Items.EquipmentItemSlot.Waist => MateEquipSlot.Waist,
+            (int)Items.EquipmentItemSlot.Feet => MateEquipSlot.Feet,
             _ => null
         };
     }

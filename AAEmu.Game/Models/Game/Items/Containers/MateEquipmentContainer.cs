@@ -37,8 +37,8 @@ public class MateEquipmentContainer : EquipmentContainer
         }
 
         // And only in a position its own kind of mate may wear at all: the npc's equip-slot pack says
-        // which of the four (mate_equip_slot_packs), and the slot number is the one the client's pet view
-        // addresses them by.
+        // which of the four (mate_equip_slot_packs), and the slot number is the EquipmentItemSlot the
+        // container is indexed by.
         var packId = (mate.Template as NpcTemplate)?.MateEquipSlotPackId ?? 0;
         if (MateEquipSlots.ForEquipmentSlot(targetSlot) is { } position &&
             !MateGameData.Instance.MateWearsSlot((uint)packId, position))
