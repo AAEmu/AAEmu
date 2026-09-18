@@ -325,7 +325,8 @@ public class AchievementManager : Singleton<AchievementManager>
             rules[i] = new AchievementObjective(objectives[i].Id, objectives[i].RecordId);
 
         // complete_num is a count of objectives or a total of their values (see AchievementRules), and the
-        // largest the content asks for is 230,000; the clamp is for safety only, so a bad value cannot wrap.
+        // largest the content asks for is 2,000,000 (achievement 2539, a my_gold total; 2244 asks 1,000,000
+        // and 2538 asks 500,000 behind it); the clamp is for safety only, so a bad value cannot wrap.
         var required = (int)Math.Min(achievement.CompleteNum, int.MaxValue);
         return AchievementRules.Evaluate(required, achievement.CompleteOr, rules, character.Records.Get);
     }
