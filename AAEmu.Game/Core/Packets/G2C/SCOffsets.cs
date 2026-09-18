@@ -825,6 +825,7 @@ public static class SCOffsets
     public const ushort SCStoreTradeFailedPacket = 0x290;
     public const ushort SCSuspectGoingBotTrialPacket = 0x1CC;
     public const ushort SCSysIndunIndexPacket = 0x28D;
+    public const ushort SCSysIndunStatPacket = 0x28C;
     public const ushort SCTeamJointBreakPacket = 0x122;
     public const ushort SCTeamOfficerChangedPacket = 0x32D;
     public const ushort SCTeamSummonSuggestPacket = 0x125;
