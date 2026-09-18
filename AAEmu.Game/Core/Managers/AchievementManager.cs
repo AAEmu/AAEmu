@@ -297,17 +297,16 @@ public class AchievementManager : Singleton<AchievementManager>
         var mail = new BaseMail
         {
             MailType = MailType.Promotion,
-            Title = achievement.Name,
+            Title = AchievementRewardRules.OverflowMailTitle(achievement.Id),
             ReceiverName = character.Name,
             Header =
             {
-                // A local label for the sender, the same convention the other reward mails use.
-                SenderName = ".achievement",
+                SenderName = AchievementRewardRules.OverflowMailSender,
                 ReceiverId = character.Id
             },
             Body =
             {
-                Text = achievement.Summary,
+                Text = AchievementRewardRules.OverflowMailBody(achievement.Id),
                 SendDate = DateTime.UtcNow,
                 RecvDate = DateTime.UtcNow
             }
