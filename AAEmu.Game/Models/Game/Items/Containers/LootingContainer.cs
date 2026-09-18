@@ -636,9 +636,13 @@ public class LootingContainer(IBaseUnit owner)
         if (!Items.TryGetValue(itemEntry.ItemIndex, out var currentEntry) || currentEntry != itemEntry)
             return false;
 
-        var autoEquip = ItemManager.Instance.IsAutoEquipTradePack(itemEntry.Item.TemplateId);
-        var freeSpace = player.Inventory.Bag.SpaceLeftForItem(itemEntry.Item, out _);
-        if (!autoEquip && freeSpace < itemEntry.Item.Count)
+        var autoEquip = itemEntry.Item.Count == 1 &&
+            ItemManager.Instance.IsAutoEquipTradePack(itemEntry.Item.TemplateId);
+        var bag = player.Inventory.Bag;
+        var freeSpace = bag.SpaceLeftForItem(itemEntry.Item, out _);
+        // Space alone does not mean the bag accepts the item (e.g. a multi-pack fish drop).
+        if (!autoEquip && (freeSpace < itemEntry.Item.Count ||
+            !bag.CanAccept(itemEntry.Item, bag.GetUnusedSlot(-1))))
         {
             // player.SendErrorMessage(ErrorMessageType.BagFull);
             player.SendPacket(new SCLootItemFailedPacket(ErrorMessageType.BagFull, LootOwnerType, LootOwner.ObjId, itemEntry.Item.Id));
