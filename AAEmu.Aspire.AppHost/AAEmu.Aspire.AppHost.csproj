@@ -8,9 +8,7 @@
 
     <ItemGroup>
       <PackageReference Include="Aspire.Hosting.MySql" />
-      <PackageReference Include="Microsoft.Extensions.Http" />
       <PackageReference Include="Microsoft.Extensions.Hosting" />
-      <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
       <PackageReference Include="MessagePack" />
     </ItemGroup>
   
