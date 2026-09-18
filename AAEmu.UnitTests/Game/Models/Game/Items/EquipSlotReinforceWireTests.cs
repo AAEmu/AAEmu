@@ -106,18 +106,59 @@ public class EquipSlotReinforceWireTests
         await Assert.That(stream.ReadInt32()).IsEqualTo(15);
         await Assert.That(stream.ReadByte()).IsEqualTo((byte)4);
         await Assert.That(stream.ReadInt32()).IsEqualTo(1600);
-        await Assert.That(stream.ReadUInt32()).IsEqualTo(0u); // level effect list
         await Assert.That(stream.LeftBytes).IsEqualTo(0);
     }
 
     [Test]
-    public async Task UnitStateSlotInfos_WithNoProgressWriteTwoEmptyLists()
+    public async Task UnitStateSlotInfos_WithNoProgressWriteAnEmptyList()
     {
         var stream = new PacketStream();
         CharacterEquipSlotReinforces.WriteSlotInfos(stream, []);
         stream.Rollback();
 
         await Assert.That(stream.ReadUInt32()).IsEqualTo(0u);
+        await Assert.That(stream.LeftBytes).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task UnitStateEffectInfos_WriteTheCompositeKeyAndTheModifierRow()
+    {
+        // Entries are (slot, trigger level) -> the equipment-slot-reinforcement unit modifier row, and the
+        // client's comparator walks them by (level, slot) rather than by the order they were collected in.
+        var entries = new (byte, sbyte, uint)[]
+        {
+            (2, 10, 31),
+            (0, 5, 3),
+            (2, 5, 24)
+        };
+
+        var stream = new PacketStream();
+        CharacterEquipSlotReinforces.WriteEffectInfos(stream, entries);
+        stream.Rollback();
+
+        await Assert.That(stream.ReadUInt32()).IsEqualTo(3u);
+
+        await Assert.That(stream.ReadByte()).IsEqualTo((byte)0);  // ★5 of the head
+        await Assert.That(stream.ReadSByte()).IsEqualTo((sbyte)5);
+        await Assert.That(stream.ReadUInt32()).IsEqualTo(3u);
+
+        await Assert.That(stream.ReadByte()).IsEqualTo((byte)2);  // both chest tiers, level before slot
+        await Assert.That(stream.ReadSByte()).IsEqualTo((sbyte)5);
+        await Assert.That(stream.ReadUInt32()).IsEqualTo(24u);
+
+        await Assert.That(stream.ReadByte()).IsEqualTo((byte)2);
+        await Assert.That(stream.ReadSByte()).IsEqualTo((sbyte)10);
+        await Assert.That(stream.ReadUInt32()).IsEqualTo(31u);
+        await Assert.That(stream.LeftBytes).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task UnitStateEffectInfos_WithNothingRolledWriteAnEmptyList()
+    {
+        var stream = new PacketStream();
+        CharacterEquipSlotReinforces.WriteEffectInfos(stream, []);
+        stream.Rollback();
+
         await Assert.That(stream.ReadUInt32()).IsEqualTo(0u);
         await Assert.That(stream.LeftBytes).IsEqualTo(0);
     }

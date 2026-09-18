@@ -20,6 +20,22 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
 {
+    /// <summary>
+    /// The artifact window appends a tail after <c>inputDirection</c> that no other part of the packet carries,
+    /// and the byte read as <c>inputDirection</c> is itself the equipment slot the window is working on (head 0,
+    /// chest 2, legs 4 — measured against the window's own slot). Two casts are known:
+    /// <list type="bullet">
+    /// <item>the feed, whose tail is the <c>equip_slot_reinforce_materials</c> row the player picked
+    /// (<c>u16</c>, then four bytes that stay zero), 24-byte packet;</item>
+    /// <item>the Replace button, whose tail is the tier it is replacing — the trigger level whose effect line
+    /// the player selected (<c>u16</c>), 20-byte packet, and the skill is
+    /// <see cref="CharacterEquipSlotReinforces.ReplaceEffectSkillId"/>.</item>
+    /// </list>
+    /// Both are queued rather than spent: the cast still has its casting time to run, and the special effect is
+    /// what acts on the choice when it lands.
+    /// </summary>
+    private const int ReinforceFeedTailBytes = sizeof(ushort) + sizeof(int);
+
     public override void Read(PacketStream stream)
     {
         // Ignore if there is no active character set
@@ -93,8 +109,25 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
                 Logger.Warn($"StartSkill: skillObject flag={flag} type={flagType} clamped to None");
             skillObject = new SkillObject();
         }
-        // Always present on CS wire after SkillCastExtra payload.
-        _ = stream.ReadByte(); // inputDirection
+        // Always present on CS wire after SkillCastExtra payload. The artifact window puts the equipment slot it
+        // is working on in this byte, which both of its casts rely on.
+        var inputDirection = stream.ReadByte();
+
+        // The artifact window's Replace button: the tail is the tier whose effect line the player selected.
+        if (skillId == CharacterEquipSlotReinforces.ReplaceEffectSkillId && stream.LeftBytes >= sizeof(ushort))
+        {
+            var triggerLevel = stream.ReadUInt16();
+            Connection?.ActiveChar?.EquipSlotReinforces.QueueEffectReplace(inputDirection, triggerLevel);
+        }
+        // The artifact window's Confirm button: the tail names the material row the player picked for the slot
+        // in the byte above. Read it only where it can mean something - a ladder slot - so another skill's tail
+        // is never mistaken for one.
+        else if (stream.LeftBytes >= ReinforceFeedTailBytes)
+        {
+            var materialRowId = stream.ReadUInt16();
+            _ = stream.ReadInt32();
+            Connection?.ActiveChar?.EquipSlotReinforces.QueueWindowFeed(inputDirection, materialRowId);
+        }
 
         HarpoonMechanicsDebug.LogCsStartSkillIfHarpoon(skillId, flag, flagType, skillCaster, skillCastTarget, skillObject);
 

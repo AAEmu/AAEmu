@@ -44,10 +44,15 @@ internal static class UnitStateCharacterSerializer
 
         (character.BlessUthstin ?? new CharacterBlessUthstin()).WritePageInfos(stream);
 
-        // The reinforcement window's own source: the slot list carries each slot's level and bar.
+        // The reinforcement window's own source: the slot list carries each slot's level and bar, the effect
+        // list the artifact effect it is running. Both go out on every unit state, because the window has no
+        // other state path — the per-slot effect packet is the "you just rolled this" announcement.
         if (character.EquipSlotReinforces is { } reinforces)
             reinforces.WriteInfos(stream);
         else
+        {
             CharacterEquipSlotReinforces.WriteSlotInfos(stream, []);
+            CharacterEquipSlotReinforces.WriteEffectInfos(stream, []);
+        }
     }
 }

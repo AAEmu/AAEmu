@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Units;
 
 using MySql.Data.MySqlClient;
 
@@ -13,7 +14,7 @@ namespace AAEmu.Game.Models.Game.Char;
 
 /// <summary>
 /// A character's equip slot reinforcement progress: one level and one experience bar per slot, plus the
-/// level effect each slot runs. The ladder itself is content
+/// artifact effects the slots have obtained. The ladder itself is content
 /// (<see cref="EquipSlotReinforceGameData"/>); this is where the character stands on it, and it is what
 /// the client's reinforcement window reads — the window is filled by the per-slot update packet and by
 /// nothing else, so it is replayed in full at world entry.
@@ -24,7 +25,34 @@ public class CharacterEquipSlotReinforces
 
     private readonly Character _owner;
     private readonly Dictionary<byte, EquipSlotReinforceState> _states = [];
+
+    /// <summary>
+    /// The artifact effects the character has obtained, keyed by the pair that identifies one: the slot and
+    /// the tier it came from. A tier hands out one row, and it never hands out the same row twice.
+    /// </summary>
+    private readonly Dictionary<(byte SlotTypeId, uint LevelEffectId), EquipSlotReinforceEffect> _effects = [];
+
     private readonly Lock _sync = new();
+
+    /// <summary>
+    /// The pair a running artifact cast carried, spent when that cast lands.
+    /// </summary>
+    private (byte SlotTypeId, uint MaterialRowId)? _queuedWindowFeed;
+
+    /// <summary>The slot and tier a running Replace cast carried, spent when that cast lands.</summary>
+    private (byte SlotTypeId, ushort TriggerLevel)? _queuedEffectReplace;
+
+    /// <summary>
+    /// The skill the artifact window's Replace button casts ("equip slot reinforcement effect replace"). Its
+    /// cast carries the slot and the tier to re-roll, which is the only place either arrives.
+    /// </summary>
+    public const uint ReplaceEffectSkillId = 38664;
+
+    /// <summary>
+    /// The item Replace mode spends: the "Bound Serendipity Stone" the window's own Replace dialog names
+    /// (item 46682). The cast does not carry it, so the price is the one the client itself requires.
+    /// </summary>
+    private const uint ChangeEffectItemId = 46682;
 
     public CharacterEquipSlotReinforces(Character owner)
     {
@@ -45,6 +73,45 @@ public class CharacterEquipSlotReinforces
     {
         lock (_sync)
             return _states.TryGetValue(slotTypeId, out var state) ? state : null;
+    }
+
+    /// <summary>Every artifact effect the character has obtained, ordered by slot and then by tier.</summary>
+    public List<EquipSlotReinforceEffect> Effects
+    {
+        get
+        {
+            lock (_sync)
+                return _effects.Values
+                    .OrderBy(effect => effect.SlotTypeId)
+                    .ThenBy(effect => effect.LevelEffectId)
+                    .Select(effect => effect.Clone())
+                    .ToList();
+        }
+    }
+
+    /// <summary>One slot's obtained effect for one tier, or null when that tier never handed it one.</summary>
+    public EquipSlotReinforceEffect EffectOf(byte slotTypeId, uint levelEffectId)
+    {
+        lock (_sync)
+            return _effects.TryGetValue((slotTypeId, levelEffectId), out var effect) ? effect.Clone() : null;
+    }
+
+    /// <summary>
+    /// The modifier rows the character's slots are running, which is what the gear bonus pass adds to the
+    /// character. Effects the player switched off are left out.
+    /// </summary>
+    public List<EquipSlotReinforceUnitModifier> AppliedModifiers
+    {
+        get
+        {
+            var data = EquipSlotReinforceGameData.Instance;
+            lock (_sync)
+                return _effects.Values
+                    .Where(effect => effect.Applied)
+                    .Select(effect => data.GetUnitModifierById(effect.UnitModifierId))
+                    .Where(modifier => modifier != null)
+                    .ToList();
+        }
     }
 
     /// <summary>
@@ -75,7 +142,7 @@ public class CharacterEquipSlotReinforces
             using (var command = connection.CreateCommand())
             {
                 command.CommandText =
-                    "SELECT `slot_type_id`, `level`, `exp`, `level_effect_index` " +
+                    "SELECT `slot_type_id`, `level`, `exp` " +
                     "FROM character_equip_slot_reinforces WHERE `owner` = @owner";
                 command.Parameters.AddWithValue("@owner", _owner.Id);
                 using var reader = command.ExecuteReader();
@@ -86,8 +153,7 @@ public class CharacterEquipSlotReinforces
                     {
                         SlotTypeId = slotTypeId,
                         Level = reader.GetSByte("level"),
-                        Exp = reader.GetInt32("exp"),
-                        LevelEffectIndex = reader.GetInt32("level_effect_index")
+                        Exp = reader.GetInt32("exp")
                     };
                 }
             }
@@ -103,6 +169,65 @@ public class CharacterEquipSlotReinforces
         {
             Logger.Error(exception, "Failed to load equip slot reinforces for {0}", _owner.Name);
         }
+
+        LoadEffects(connection);
+
+        // Everything a slot is owed is rolled here, before the client is told anything: the unit state carries
+        // the result, and an effect announced later would prompt instead of filling the window.
+        EnsureAllTierEffects();
+    }
+
+    /// <summary>
+    /// Rolls every tier every slot has reached, without announcing anything. Runs once the character is loaded,
+    /// and again is harmless: a tier that already handed out an effect is left alone.
+    /// </summary>
+    private void EnsureAllTierEffects()
+    {
+        foreach (var slotTypeId in EquipSlotReinforceGameData.Instance.SlotTypeIds)
+            EnsureTierEffects(slotTypeId, announce: false);
+    }
+
+    /// <summary>
+    /// Loads the artifact effects the character obtained. Kept apart from the levels so a character whose
+    /// rows predate the effects still gets its levels when this read fails.
+    /// </summary>
+    private void LoadEffects(MySqlConnection connection)
+    {
+        try
+        {
+            var loaded = new Dictionary<(byte SlotTypeId, uint LevelEffectId), EquipSlotReinforceEffect>();
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "SELECT `slot_type_id`, `level_effect_id`, `unit_modifier_id`, `applied` " +
+                    "FROM character_equip_slot_reinforce_effects WHERE `owner` = @owner";
+                command.Parameters.AddWithValue("@owner", _owner.Id);
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    var effect = new EquipSlotReinforceEffect
+                    {
+                        SlotTypeId = reader.GetByte("slot_type_id"),
+                        LevelEffectId = reader.GetUInt32("level_effect_id"),
+                        UnitModifierId = reader.GetUInt32("unit_modifier_id"),
+                        Applied = reader.GetBoolean("applied")
+                    };
+
+                    loaded[(effect.SlotTypeId, effect.LevelEffectId)] = effect;
+                }
+            }
+
+            lock (_sync)
+            {
+                _effects.Clear();
+                foreach (var (key, effect) in loaded)
+                    _effects[key] = effect;
+            }
+        }
+        catch (Exception exception)
+        {
+            Logger.Error(exception, "Failed to load equip slot reinforce effects for {0}", _owner.Name);
+        }
     }
 
     public void Save(MySqlConnection connection, MySqlTransaction transaction)
@@ -111,8 +236,12 @@ public class CharacterEquipSlotReinforces
             return;
 
         List<EquipSlotReinforceState> snapshot;
+        List<EquipSlotReinforceEffect> effects;
         lock (_sync)
+        {
             snapshot = _states.Values.Select(state => state.Clone()).ToList();
+            effects = _effects.Values.Select(effect => effect.Clone()).ToList();
+        }
 
         try
         {
@@ -132,13 +261,38 @@ public class CharacterEquipSlotReinforces
                 command.Transaction = transaction;
                 command.CommandText =
                     "INSERT INTO character_equip_slot_reinforces " +
-                    "(`owner`, `slot_type_id`, `level`, `exp`, `level_effect_index`) " +
-                    "VALUES (@owner, @slot, @level, @exp, @effect)";
+                    "(`owner`, `slot_type_id`, `level`, `exp`) " +
+                    "VALUES (@owner, @slot, @level, @exp)";
                 command.Parameters.AddWithValue("@owner", _owner.Id);
                 command.Parameters.AddWithValue("@slot", state.SlotTypeId);
                 command.Parameters.AddWithValue("@level", state.Level);
                 command.Parameters.AddWithValue("@exp", state.Exp);
-                command.Parameters.AddWithValue("@effect", state.LevelEffectIndex);
+                command.ExecuteNonQuery();
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.Connection = connection;
+                command.Transaction = transaction;
+                command.CommandText = "DELETE FROM character_equip_slot_reinforce_effects WHERE `owner` = @owner";
+                command.Parameters.AddWithValue("@owner", _owner.Id);
+                command.ExecuteNonQuery();
+            }
+
+            foreach (var effect in effects)
+            {
+                using var command = connection.CreateCommand();
+                command.Connection = connection;
+                command.Transaction = transaction;
+                command.CommandText =
+                    "INSERT INTO character_equip_slot_reinforce_effects " +
+                    "(`owner`, `slot_type_id`, `level_effect_id`, `unit_modifier_id`, `applied`) " +
+                    "VALUES (@owner, @slot, @effect, @modifier, @applied)";
+                command.Parameters.AddWithValue("@owner", _owner.Id);
+                command.Parameters.AddWithValue("@slot", effect.SlotTypeId);
+                command.Parameters.AddWithValue("@effect", effect.LevelEffectId);
+                command.Parameters.AddWithValue("@modifier", effect.UnitModifierId);
+                command.Parameters.AddWithValue("@applied", effect.Applied);
                 command.ExecuteNonQuery();
             }
         }
@@ -149,23 +303,27 @@ public class CharacterEquipSlotReinforces
     }
 
     /// <summary>
-    /// Replays every slot of every ladder. The client's window has no other source for these numbers,
-    /// so a character entering the world without this sees a window full of zeroes.
+    /// Replays every slot of every ladder: its level and bar, then the artifact effects it has obtained. The
+    /// client's window has no other source for these numbers, so a character entering the world without this
+    /// sees a window full of zeroes.
     /// </summary>
+    /// <remarks>
+    /// Nothing is rolled here: whatever a slot is owed was rolled when the character loaded, so that the unit
+    /// state — which the client reads this block from, and which it does not re-read on a mid-session push —
+    /// already carries it. Announcing an effect instead would open the client's "New Effect" prompt.
+    /// </remarks>
     public void SendAll()
     {
         foreach (var slotTypeId in EquipSlotReinforceGameData.Instance.SlotTypeIds)
-        {
             Send(slotTypeId);
-            SendLevelEffect(slotTypeId);
-        }
     }
 
     /// <summary>
     /// The level the client shows and indexes its material list by. The client's ladder is one-based
     /// (step N is what it costs to leave level N-1), so a character that has reached level L is working
     /// on step L+1 — and a character that has reached the top is clamped back onto the last step. The
-    /// stored state stays in "levels reached" terms; this is the wire's view of it.
+    /// stored state stays in "levels reached" terms; this is the wire's view of it, and it is also the number
+    /// the tier trigger levels are written against (see <see cref="EnsureTierEffects"/>).
     /// </summary>
     private static sbyte WireLevel(sbyte reachedLevel, byte slotTypeId)
     {
@@ -188,24 +346,210 @@ public class CharacterEquipSlotReinforces
     }
 
     /// <summary>
-    /// Publishes the level effect the slot is running, when it has one. A slot that has not reached a
-    /// trigger level yet has nothing to announce, and its stored choice stays untouched.
+    /// Announces one obtained effect to the client. Both numbers are the client's own keys: the level is the
+    /// tier's trigger level, because that is the level the window files the effect line under, and the id is the
+    /// <c>equip_slot_reinforce_unit_modifiers</c> **row** — the stat itself, which is what the window prints
+    /// (attribute and value). It is not the tier id: sending one of those made the client render a different
+    /// slot's stat, which is how this was pinned.
     /// </summary>
-    public void SendLevelEffect(byte slotTypeId)
+    /// <remarks>
+    /// This is the change path, not the state path: the client answers it with a "New Effect" prompt, so it is
+    /// sent for the one effect an action just produced and never as a replay of everything a slot holds.
+    /// </remarks>
+    private void SendLevelEffect(byte slotTypeId, EquipSlotReinforceEffect effect)
+    {
+        if (effect == null || !effect.Applied)
+            return;
+
+        var tier = EquipSlotReinforceGameData.Instance.GetLevelEffectById(effect.LevelEffectId);
+        if (tier == null)
+            return;
+
+        _owner.SendPacket(new SCEquipSlotReinforceLevelEffectUpdatePacket(_owner.ObjId, slotTypeId,
+            (sbyte)tier.TriggerLevel, effect.UnitModifierId));
+    }
+
+    /// <summary>Announces that an effect the slot held is no longer applied — the window's "None".</summary>
+    private void SendLevelEffectDeleted(byte slotTypeId, uint levelEffectId)
+    {
+        var tier = EquipSlotReinforceGameData.Instance.GetLevelEffectById(levelEffectId);
+        if (tier == null)
+            return;
+
+        _owner.SendPacket(new SCEquipSlotReinforceLevelEffectDeletePacket(_owner.ObjId, slotTypeId,
+            (sbyte)tier.TriggerLevel));
+    }
+
+    /// <summary>
+    /// Rolls the effect for one tier of a slot: one of the tier's modifier rows, picked by weight and never
+    /// one the character already obtained. Reports the row it rolled, or null when the tier had nothing left
+    /// to hand out.
+    /// </summary>
+    public EquipSlotReinforceUnitModifier RollTierEffect(byte slotTypeId, uint levelEffectId)
+    {
+        var tier = EquipSlotReinforceGameData.Instance.GetLevelEffectById(levelEffectId);
+        if (tier == null || tier.SlotTypeId != slotTypeId)
+        {
+            Logger.Warn("Equip slot reinforce {0}: no tier {1} to roll", slotTypeId, levelEffectId);
+            return null;
+        }
+
+        EquipSlotReinforceUnitModifier rolled;
+        lock (_sync)
+        {
+            rolled = EquipSlotReinforceRules.RollModifier(tier.Modifiers, IsObtained, Random.Shared.Next());
+            if (rolled == null)
+                return null;
+
+            _effects[(slotTypeId, levelEffectId)] = new EquipSlotReinforceEffect
+            {
+                SlotTypeId = slotTypeId,
+                LevelEffectId = levelEffectId,
+                UnitModifierId = rolled.Id,
+                Applied = true
+            };
+        }
+
+        Logger.Info(
+            "Equip slot reinforce {0}: {1} rolled artifact effect {2} of tier {3} (level {4} -> attribute {5} {6} {7})",
+            slotTypeId, _owner.Name, rolled.Id, tier.Id, tier.TriggerLevel, rolled.UnitAttributeId,
+            (UnitModifierType)rolled.UnitModifierTypeId, rolled.Value);
+
+        return rolled;
+    }
+
+    /// <summary>
+    /// Rolls every tier the slot's level has reached and that never handed the character an effect. Called when
+    /// a level is gained, and again at world entry so a slot that reached its tier before this existed still
+    /// gets the one effect it is owed.
+    /// </summary>
+    /// <remarks>
+    /// The comparison runs against the client-facing level, not the stored one: a tier's <c>trigger_level</c> is
+    /// the same "Artifact Level N" the window prints and the same number the window shows for the slot, so a
+    /// ★5 tier lands the moment the slot reads level 5. The support ladders confirm the reading — they are four
+    /// steps with tiers at 2, 3 and 4, so one-based they hand out one effect per level, while the stored
+    /// (levels-reached) view would put the ★4 tier on the top step with nothing left to earn it at.
+    /// </remarks>
+    /// <param name="announce">
+    /// Whether each roll is announced to the client. A level-up rolls for one tier and says so; an entry that
+    /// repairs several slots rolls them quietly, because the client's prompt is a single replace dialog.
+    /// </param>
+    public int EnsureTierEffects(byte slotTypeId, bool announce)
     {
         var state = StateOf(slotTypeId);
         if (state == null)
-            return;
+            return 0;
 
-        var eligible = EquipSlotReinforceRules.EligibleLevelEffects(slotTypeId, state.Level,
+        var level = WireLevel(state.Level, slotTypeId);
+        var reached = EquipSlotReinforceRules.EligibleLevelEffects(slotTypeId, level,
             EquipSlotReinforceGameData.Instance.LevelEffects);
-        if (eligible.Count == 0)
+
+        var rolled = 0;
+        foreach (var tier in reached)
+        {
+            if (EffectOf(slotTypeId, tier.Id) != null)
+                continue;
+
+            if (RollTierEffect(slotTypeId, tier.Id) == null)
+                continue;
+
+            rolled++;
+            if (announce)
+                SendLevelEffect(slotTypeId, EffectOf(slotTypeId, tier.Id));
+        }
+
+        return rolled;
+    }
+
+    /// <summary>
+    /// Re-rolls a tier the slot has already obtained, which is what the window's rotate button asks for: the
+    /// old row is dropped and a different one is rolled, because a row can only be obtained once.
+    /// </summary>
+    public EquipSlotReinforceUnitModifier RerollTierEffect(byte slotTypeId, uint levelEffectId)
+    {
+        EquipSlotReinforceEffect previous;
+        lock (_sync)
+        {
+            if (!_effects.Remove((slotTypeId, levelEffectId), out previous))
+                return null;
+        }
+
+        var rolled = RollTierEffect(slotTypeId, levelEffectId);
+        if (rolled == null)
+        {
+            // Nothing else in the tier: keep what the slot had rather than leaving it with nothing.
+            lock (_sync)
+                _effects[(slotTypeId, levelEffectId)] = previous;
+            return null;
+        }
+
+        SendLevelEffect(slotTypeId, EffectOf(slotTypeId, levelEffectId));
+        ApplyEffectsToOwner();
+        return rolled;
+    }
+
+    /// <summary>
+    /// Switches an obtained effect on or off, which is the window's radio: picking a line applies it, and
+    /// "None" takes it off. Announces the change with the effect packet or its delete, then recomputes the
+    /// character's bonuses.
+    /// </summary>
+    public bool SetEffectApplied(byte slotTypeId, uint levelEffectId, bool applied)
+    {
+        EquipSlotReinforceEffect effect;
+        lock (_sync)
+        {
+            if (!_effects.TryGetValue((slotTypeId, levelEffectId), out var found))
+                return false;
+
+            if (found.Applied == applied)
+                return true;
+
+            found.Applied = applied;
+            effect = found.Clone();
+        }
+
+        var tier = EquipSlotReinforceGameData.Instance.GetLevelEffectById(effect.LevelEffectId);
+        if (tier == null)
+            return false;
+
+        if (applied)
+            SendLevelEffect(slotTypeId, effect);
+        else
+            SendLevelEffectDeleted(slotTypeId, effect.LevelEffectId);
+
+        ApplyEffectsToOwner();
+        return true;
+    }
+
+    /// <summary>True when the character already holds this modifier row on any slot.</summary>
+    private bool IsObtained(uint unitModifierId)
+    {
+        foreach (var effect in _effects.Values)
+        {
+            if (effect.UnitModifierId == unitModifierId)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// Recomputes the character's gear bonuses after its artifact effects changed, and re-pushes what the
+    /// client shows for the character: the unit state carries the attributes a stat panel reads, and the
+    /// points packet is what moves a vitals bar's maximum — a bonus that raises or lowers MaxHp/MaxMp lands on
+    /// neither without both.
+    /// </summary>
+    private void ApplyEffectsToOwner()
+    {
+        if (_owner == null)
             return;
 
-        var index = EquipSlotReinforceRules.NormalizeLevelEffectIndex(state.LevelEffectIndex, eligible.Count);
-        state.LevelEffectIndex = index;
-        _owner.SendPacket(new SCEquipSlotReinforceLevelEffectUpdatePacket(_owner.ObjId, slotTypeId,
-            WireLevel(state.Level, slotTypeId), eligible[index].Id));
+        _owner.UpdateGearBonuses(null, null);
+        if (_owner.Connection == null)
+            return;
+
+        _owner.SendPacket(new SCUnitStatePacket(_owner));
+        _owner.SendPacket(new SCUnitPointsPacket(_owner.ObjId, _owner.Hp, _owner.Mp));
     }
 
     /// <summary>
@@ -239,8 +583,164 @@ public class CharacterEquipSlotReinforces
         }
 
         Send(slotTypeId);
-        SendLevelEffect(slotTypeId);
+        var rolled = EnsureTierEffects(slotTypeId, announce: false);
+        if (rolled > 0)
+            ApplyEffectsToOwner();
         return true;
+    }
+
+    /// <summary>
+    /// Feeds a slot from what the artifact window's Confirm button sent: the slot it is on and the
+    /// <c>equip_slot_reinforce_materials</c> row the player picked. The row has to belong to that slot — a
+    /// mismatch is refused loudly rather than fed somewhere the player did not ask for.
+    /// </summary>
+    public EquipSlotReinforceChange FeedFromWindow(byte slotTypeId, uint materialRowId)
+    {
+        var material = EquipSlotReinforceGameData.Instance.GetMaterialById(materialRowId);
+        if (material == null)
+        {
+            Logger.Warn("Equip slot reinforce {0}: material row {1} does not exist", slotTypeId, materialRowId);
+            return EquipSlotReinforceChange.Refused;
+        }
+
+        if (material.SlotTypeId != slotTypeId)
+        {
+            Logger.Warn("Equip slot reinforce {0}: material row {1} belongs to slot {2}",
+                slotTypeId, materialRowId, material.SlotTypeId);
+            return EquipSlotReinforceChange.Refused;
+        }
+
+        // The row has to be one the slot's next step actually offers, or it belongs to another level.
+        var materials = MaterialsForNextStep(material.SlotTypeId);
+        for (var i = 0; i < materials.Count; i++)
+        {
+            if (materials[i].Id == material.Id)
+                return Feed(material.SlotTypeId, i);
+        }
+
+        Logger.Warn("Equip slot reinforce {0}: material row {1} is not offered by the next step",
+            slotTypeId, materialRowId);
+        return EquipSlotReinforceChange.Refused;
+    }
+
+    /// <summary>The materials a slot's next step offers, or an empty list when it has no step left.</summary>
+    private IReadOnlyList<EquipSlotReinforceMaterial> MaterialsForNextStep(byte slotTypeId)
+    {
+        var ladder = EquipSlotReinforceGameData.Instance.Ladder(slotTypeId);
+        if (ladder.Count == 0)
+            return [];
+
+        var next = EquipSlotReinforceRules.NextStep(GetOrCreate(slotTypeId).Level, ladder);
+        return next == null ? [] : EquipSlotReinforceGameData.Instance.Materials(slotTypeId, next.Level);
+    }
+
+    /// <summary>
+    /// Holds what an artifact-window cast carried until that cast finishes. The window sends its choice when the
+    /// player presses Confirm, but the skill it belongs to runs for its whole casting time, so the bar and the
+    /// material are only touched when the cast lands - by the <c>EquipSlotReinforceAddExp</c> effect.
+    /// </summary>
+    public void QueueWindowFeed(byte slotTypeId, uint materialRowId)
+    {
+        lock (_sync)
+            _queuedWindowFeed = (slotTypeId, materialRowId);
+    }
+
+    /// <summary>
+    /// Spends the queued feed. Taken rather than read, so a cast that never lands cannot feed on a later one.
+    /// </summary>
+    public EquipSlotReinforceChange ConsumeQueuedWindowFeed()
+    {
+        (byte SlotTypeId, uint MaterialRowId) queued;
+        lock (_sync)
+        {
+            if (_queuedWindowFeed == null)
+                return EquipSlotReinforceChange.Refused;
+            queued = _queuedWindowFeed.Value;
+            _queuedWindowFeed = null;
+        }
+
+        return FeedFromWindow(queued.SlotTypeId, queued.MaterialRowId);
+    }
+
+    /// <summary>
+    /// Holds what a Replace cast carried: the slot and the tier whose effect the player wants re-rolled. Same
+    /// reasoning as the feed - the skill runs for its casting time, so the roll happens when it lands.
+    /// </summary>
+    public void QueueEffectReplace(byte slotTypeId, ushort triggerLevel)
+    {
+        lock (_sync)
+            _queuedEffectReplace = (slotTypeId, triggerLevel);
+    }
+
+    /// <summary>
+    /// Takes the queued replace request, so a cast that never lands cannot re-roll anything later.
+    /// </summary>
+    public bool ConsumeQueuedEffectReplace(out byte slotTypeId, out ushort triggerLevel)
+    {
+        lock (_sync)
+        {
+            if (_queuedEffectReplace == null)
+            {
+                slotTypeId = 0;
+                triggerLevel = 0;
+                return false;
+            }
+
+            (slotTypeId, triggerLevel) = _queuedEffectReplace.Value;
+            _queuedEffectReplace = null;
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Re-rolls the effect one tier of a slot holds, which is what the window's Replace mode does with a
+    /// serendipity stone: the stone is spent, the row it had is dropped and a different one is rolled out of
+    /// the same tier — "each artifact effect can only be obtained once" is what makes it a different one.
+    /// </summary>
+    public EquipSlotReinforceChange ReplaceTierEffect(byte slotTypeId, ushort triggerLevel)
+    {
+        var tier = EquipSlotReinforceRules.TierAtLevel(slotTypeId, (sbyte)triggerLevel,
+            EquipSlotReinforceGameData.Instance.LevelEffects);
+        if (tier == null)
+        {
+            Logger.Warn("Equip slot reinforce {0}: no tier at level {1} to replace", slotTypeId, triggerLevel);
+            return EquipSlotReinforceChange.Refused;
+        }
+
+        if (EffectOf(slotTypeId, tier.Id) == null)
+        {
+            Logger.Warn("Equip slot reinforce {0}: tier {1} holds no effect to replace", slotTypeId, tier.Id);
+            return EquipSlotReinforceChange.Refused;
+        }
+
+        // Check the price before mutating, exactly like a level-up: a refused replace changes nothing.
+        var carried = _owner.Inventory.GetItemsCount(ChangeEffectItemId);
+        if (carried < 1)
+        {
+            Logger.Warn("Equip slot reinforce {0}: {1} carries no item {2} to replace with",
+                slotTypeId, _owner.Name, ChangeEffectItemId);
+            return EquipSlotReinforceChange.Refused;
+        }
+
+        var consumed = _owner.Inventory.ConsumeItem([SlotType.Inventory], ItemTaskType.EquipSlotReinforce,
+            ChangeEffectItemId, 1, null);
+        if (consumed < 1)
+        {
+            Logger.Warn("Equip slot reinforce {0}: {1} consumed {2} of item {3}",
+                slotTypeId, _owner.Name, consumed, ChangeEffectItemId);
+            return EquipSlotReinforceChange.Refused;
+        }
+
+        var rolled = RerollTierEffect(slotTypeId, tier.Id);
+        if (rolled == null)
+        {
+            Logger.Warn("Equip slot reinforce {0}: tier {1} had nothing left to roll", slotTypeId, tier.Id);
+            return EquipSlotReinforceChange.Refused;
+        }
+
+        Logger.Info("Equip slot reinforce {0}: {1} replaced tier {2} (level {3}) with modifier {4} (attribute {5} {6})",
+            slotTypeId, _owner.Name, tier.Id, tier.TriggerLevel, rolled.Id, rolled.UnitAttributeId, rolled.Value);
+        return EquipSlotReinforceChange.EffectReplaced;
     }
 
     /// <summary>
@@ -366,35 +866,19 @@ public class CharacterEquipSlotReinforces
             slotTypeId, _owner.Name, reached.Level, reached.GainItemLevel);
 
         Send(slotTypeId);
-        SendLevelEffect(slotTypeId);
+
+        // Reaching a tier hands the slot one of that tier's effects. It is rolled here, once, because a row
+        // can only be obtained once and the player is meant to get it without asking for it.
+        var rolled = EnsureTierEffects(slotTypeId, announce: true);
+        if (rolled > 0)
+            ApplyEffectsToOwner();
         return change;
     }
 
     /// <summary>
-    /// Switches a slot to another of the level effects its level has unlocked. The index is a position
-    /// in that eligible list, which is the ordering the client shows.
-    /// </summary>
-    public bool SetLevelEffect(byte slotTypeId, int levelEffectIndex)
-    {
-        var state = StateOf(slotTypeId);
-        if (state == null)
-            return false;
-
-        var eligible = EquipSlotReinforceRules.EligibleLevelEffects(slotTypeId, state.Level,
-            EquipSlotReinforceGameData.Instance.LevelEffects);
-        if (levelEffectIndex < 0 || levelEffectIndex >= eligible.Count)
-            return false;
-
-        state.LevelEffectIndex = levelEffectIndex;
-        _owner.SendPacket(new SCEquipSlotReinforceLevelEffectUpdatePacket(_owner.ObjId, slotTypeId, state.Level,
-            eligible[levelEffectIndex].Id));
-        return true;
-    }
-
-    /// <summary>
-    /// Writes the reinforcement block of a unit state: the level and bar of every slot that has
-    /// progress, then the level-effect choices. The client's reinforcement window is filled from this
-    /// block, so a character carries its progress in the unit state itself.
+    /// Writes the reinforcement block of a unit state: the level and bar of every slot that has progress, then
+    /// the artifact effect each slot is running. The client's reinforcement window is filled from this block and
+    /// from nothing else, so a character carries its progress, and the effects it obtained, in the unit state.
     /// </summary>
     public void WriteInfos(PacketStream stream)
     {
@@ -414,6 +898,25 @@ public class CharacterEquipSlotReinforces
         }
 
         WriteSlotInfos(stream, states);
+        WriteEffectInfos(stream, ActiveEffectEntries());
+    }
+
+    /// <summary>
+    /// The artifact effects to write into a unit state: the applied ones, each as the slot it belongs to, the
+    /// trigger level of the tier that handed it out, and the modifier row it rolled.
+    /// </summary>
+    private List<(byte SlotTypeId, sbyte TriggerLevel, uint UnitModifierId)> ActiveEffectEntries()
+    {
+        var data = EquipSlotReinforceGameData.Instance;
+        lock (_sync)
+        {
+            return _effects.Values
+                .Where(effect => effect.Applied)
+                .Select(effect => (Effect: effect, Tier: data.GetLevelEffectById(effect.LevelEffectId)))
+                .Where(entry => entry.Tier != null)
+                .Select(entry => (entry.Effect.SlotTypeId, (sbyte)entry.Tier.TriggerLevel, entry.Effect.UnitModifierId))
+                .ToList();
+        }
     }
 
     /// <summary>
@@ -434,14 +937,35 @@ public class CharacterEquipSlotReinforces
             stream.Write((byte)state.Level);
             stream.Write(state.Exp);
         }
+    }
 
-        // The effect choices are keyed per (slot, level) on the wire, and the request that sets one is
-        // not implemented yet, so the list goes out empty rather than invented.
-        stream.Write(0u);
+    /// <summary>
+    /// The effect list on its own: a count, then each entry as the pair the client keys it by — the slot and the
+    /// tier's trigger level — followed by the modifier row the slot rolled. That row is the stat itself, which is
+    /// why the client can print an attribute and a value for a tier it considers unlocked, and why the list is
+    /// ordered by (level, slot): it is a composite-key map and the client's own comparator walks it that way.
+    /// Effects the player switched off are left out, so their tier reads as not unlocked.
+    /// </summary>
+    public static void WriteEffectInfos(PacketStream stream,
+        IEnumerable<(byte SlotTypeId, sbyte TriggerLevel, uint UnitModifierId)> entries)
+    {
+        var ordered = entries?
+            .OrderBy(entry => entry.TriggerLevel)
+            .ThenBy(entry => entry.SlotTypeId)
+            .ToList() ?? [];
+
+        stream.Write((uint)ordered.Count);
+        foreach (var (slotTypeId, triggerLevel, unitModifierId) in ordered)
+        {
+            stream.Write(slotTypeId);
+            stream.Write(triggerLevel);
+            stream.Write(unitModifierId);
+        }
     }
 
     /// <summary>Total level across every slot that belongs to one attribute.</summary>
-    public int AttributeTotal(EquipSlotReinforceAttribute attribute)    {
+    public int AttributeTotal(EquipSlotReinforceAttribute attribute)
+    {
         return EquipSlotReinforceRules.AttributeTotal(attribute, States,
             slot => EquipSlotReinforceGameData.Instance.AttributeOf(slot));
     }

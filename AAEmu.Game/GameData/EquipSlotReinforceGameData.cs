@@ -18,7 +18,11 @@ public class EquipSlotReinforceGameData : Singleton<EquipSlotReinforceGameData>,
     private readonly Dictionary<byte, List<EquipSlotReinforceStep>> _ladders = [];
     private readonly Dictionary<byte, EquipSlotReinforceAttribute> _attributeBySlot = [];
     private readonly Dictionary<(byte SlotTypeId, byte Level), List<EquipSlotReinforceMaterial>> _materials = [];
+
+    /// <summary>Every material row by its own id, since that is what the artifact window sends.</summary>
+    private readonly Dictionary<uint, EquipSlotReinforceMaterial> _materialsById = [];
     private readonly Dictionary<uint, EquipSlotReinforceLevelEffect> _levelEffectsById = [];
+    private readonly Dictionary<uint, EquipSlotReinforceUnitModifier> _unitModifiersById = [];
     private readonly List<EquipSlotReinforceLevelEffect> _levelEffects = [];
     private readonly List<EquipSlotReinforceSetEffect> _setEffects = [];
     private readonly List<EquipSlotReinforceBundleEffect> _bundleEffects = [];
@@ -28,7 +32,9 @@ public class EquipSlotReinforceGameData : Singleton<EquipSlotReinforceGameData>,
         _ladders.Clear();
         _attributeBySlot.Clear();
         _materials.Clear();
+        _materialsById.Clear();
         _levelEffectsById.Clear();
+        _unitModifiersById.Clear();
         _levelEffects.Clear();
         _setEffects.Clear();
         _bundleEffects.Clear();
@@ -119,7 +125,21 @@ public class EquipSlotReinforceGameData : Singleton<EquipSlotReinforceGameData>,
             }
 
             list.Add(material);
+
+            // The artifact window names the material a player picked by its row id, and the row carries the
+            // slot it belongs to, so this is what tells the server which slot a feed is for.
+            _materialsById[material.Id] = material;
         }
+    }
+
+    /// <summary>
+    /// A <c>equip_slot_reinforce_materials</c> row by its id, or null. The row knows which slot it feeds
+    /// (<see cref="EquipSlotReinforceMaterial.SlotTypeId"/>), which is how a window that sends only a material
+    /// still lands on the right piece.
+    /// </summary>
+    public EquipSlotReinforceMaterial GetMaterialById(uint materialId)
+    {
+        return _materialsById.GetValueOrDefault(materialId);
     }
 
     private void LoadLevelEffects(SqliteConnection connection)
@@ -144,6 +164,22 @@ public class EquipSlotReinforceGameData : Singleton<EquipSlotReinforceGameData>,
         }
     }
 
+    /// <summary>One <c>equip_slot_reinforce_level_effects</c> row by its id — a slot's tier.</summary>
+    public EquipSlotReinforceLevelEffect GetLevelEffectById(uint levelEffectId)
+    {
+        return _levelEffectsById.GetValueOrDefault(levelEffectId);
+    }
+
+    /// <summary>
+    /// One <c>equip_slot_reinforce_unit_modifiers</c> row by its id. A character stores the artifact effect it
+    /// rolled as this id, so this is how the stored choice turns back into an attribute, a modifier type and
+    /// a value.
+    /// </summary>
+    public EquipSlotReinforceUnitModifier GetUnitModifierById(uint unitModifierId)
+    {
+        return _unitModifiersById.GetValueOrDefault(unitModifierId);
+    }
+
     private void LoadUnitModifiers(SqliteConnection connection)
     {
         using var command = connection.CreateCommand();
@@ -165,6 +201,8 @@ public class EquipSlotReinforceGameData : Singleton<EquipSlotReinforceGameData>,
                 Value = reader.GetInt32("value"),
                 Weight = reader.GetInt32("weight")
             };
+
+            _unitModifiersById[modifier.Id] = modifier;
 
             if (_levelEffectsById.TryGetValue(modifier.LevelEffectId, out var effect))
                 effect.Modifiers.Add(modifier);

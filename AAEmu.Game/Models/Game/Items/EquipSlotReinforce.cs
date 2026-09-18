@@ -105,17 +105,46 @@ public class EquipSlotReinforceState
     public sbyte Level { get; set; }
     public int Exp { get; set; }
 
-    /// <summary>Index of the level effect this slot uses, or -1 while none has been chosen.</summary>
-    public int LevelEffectIndex { get; set; } = -1;
-
     public EquipSlotReinforceState Clone()
     {
         return new EquipSlotReinforceState
         {
             SlotTypeId = SlotTypeId,
             Level = Level,
-            Exp = Exp,
-            LevelEffectIndex = LevelEffectIndex
+            Exp = Exp
+        };
+    }
+}
+
+/// <summary>
+/// One artifact effect a slot has obtained: the tier it came from and the single modifier row the roll gave
+/// it. A tier offers several rows and the player gets one of them, so (slot, tier) identifies the effect and
+/// the row is what it is worth — that is why this stores a row id rather than the stats themselves.
+/// </summary>
+public class EquipSlotReinforceEffect
+{
+    public byte SlotTypeId { get; set; }
+
+    /// <summary>The tier this effect came from, i.e. the <c>equip_slot_reinforce_level_effects</c> row.</summary>
+    public uint LevelEffectId { get; set; }
+
+    /// <summary>The <c>equip_slot_reinforce_unit_modifiers</c> row the roll picked out of that tier.</summary>
+    public uint UnitModifierId { get; set; }
+
+    /// <summary>
+    /// Whether the effect is switched on for the character. It is on from the moment it is rolled, and the
+    /// window's radio is what switches one off again ("None") or back on.
+    /// </summary>
+    public bool Applied { get; set; } = true;
+
+    public EquipSlotReinforceEffect Clone()
+    {
+        return new EquipSlotReinforceEffect
+        {
+            SlotTypeId = SlotTypeId,
+            LevelEffectId = LevelEffectId,
+            UnitModifierId = UnitModifierId,
+            Applied = Applied
         };
     }
 }

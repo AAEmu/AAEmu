@@ -15,6 +15,9 @@ public enum EquipSlotReinforceChange
     /// <summary>The slot had a full bar and took the next level.</summary>
     LeveledUp,
 
+    /// <summary>The slot re-rolled an effect it already held, which is what the Replace window does.</summary>
+    EffectReplaced,
+
     /// <summary>The ladder ends here, or the character does not hold what the step costs.</summary>
     Refused
 }
@@ -196,8 +199,8 @@ public static class EquipSlotReinforceRules
     }
 
     /// <summary>
-    /// Level effects a slot is entitled to at its level, in content order. The player picks one of
-    /// these as the slot's active effect, which is what the index in the per-slot state refers to.
+    /// Level effects a slot is entitled to at its level, in content order — every tier whose trigger level the
+    /// slot has reached. Each of them is meant to have handed the slot one effect by the time it is listed.
     /// </summary>
     public static List<EquipSlotReinforceLevelEffect> EligibleLevelEffects(byte slotTypeId, sbyte level,
         IEnumerable<EquipSlotReinforceLevelEffect> effects)
@@ -216,17 +219,70 @@ public static class EquipSlotReinforceRules
     }
 
     /// <summary>
-    /// The chosen effect index after a level change: kept when it is still eligible, otherwise the
-    /// last eligible one (so a slot never points at an effect it has outgrown or lost).
+    /// The tier a slot reaches at exactly this level, or null when that level unlocks no tier. A tier is a
+    /// <c>equip_slot_reinforce_level_effects</c> row, and the levels it is reached at are its trigger level.
     /// </summary>
-    public static int NormalizeLevelEffectIndex(int currentIndex, int eligibleCount)
+    public static EquipSlotReinforceLevelEffect TierAtLevel(byte slotTypeId, sbyte level,
+        IEnumerable<EquipSlotReinforceLevelEffect> effects)
     {
-        if (eligibleCount <= 0)
-            return -1;
+        if (effects == null)
+            return null;
 
-        if (currentIndex < 0 || currentIndex >= eligibleCount)
-            return eligibleCount - 1;
+        foreach (var effect in effects)
+        {
+            if (effect.SlotTypeId == slotTypeId && effect.TriggerLevel == level)
+                return effect;
+        }
 
-        return currentIndex;
+        return null;
+    }
+
+    /// <summary>
+    /// Rolls one modifier out of a tier. A row's <c>weight</c> is its share of the pool, and a row the
+    /// character already holds is skipped — "each artifact effect can only be obtained once" — which is also
+    /// what makes a re-roll come back with a different row. Returns null when the tier is empty or has
+    /// nothing left to hand out.
+    /// </summary>
+    /// <param name="roll">
+    /// Any integer. It is taken modulo the weight still in the pool, so callers own the randomness and a test
+    /// can pin an outcome by passing a value.
+    /// </param>
+    public static EquipSlotReinforceUnitModifier RollModifier(IEnumerable<EquipSlotReinforceUnitModifier> pool,
+        Func<uint, bool> alreadyObtained, int roll)
+    {
+        if (pool == null)
+            return null;
+
+        List<EquipSlotReinforceUnitModifier> eligible = [];
+        var total = 0;
+        foreach (var modifier in pool)
+        {
+            if (modifier == null || modifier.Weight <= 0)
+                continue;
+
+            if (alreadyObtained != null && alreadyObtained(modifier.Id))
+                continue;
+
+            eligible.Add(modifier);
+            total += modifier.Weight;
+        }
+
+        if (total <= 0)
+            return null;
+
+        var band = roll % total;
+        if (band < 0)
+            band += total;
+
+        foreach (var modifier in eligible)
+        {
+            if (band < modifier.Weight)
+                return modifier;
+
+            band -= modifier.Weight;
+        }
+
+        return eligible[^1];
     }
 }
+

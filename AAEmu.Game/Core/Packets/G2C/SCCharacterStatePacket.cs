@@ -85,9 +85,17 @@ public class SCCharacterStatePacket(Character character) : GamePacket(SCOffsets.
         stream.Write((uint)character.UnitStateType);         // type
         stream.Write(character.AppellationStampId);          // appellationStamp
 
-        // equipSlotReinforces (optional group, always present): slotInfoList + levelEffectList, both empty
-        stream.Write(0u);
-        stream.Write(0u);
+        // equipSlotReinforces: the slot levels and bars, then the artifact effect each slot is running. Both
+        // lists are written even when empty — the group is always present.
+        if (character.EquipSlotReinforces is { } reinforces)
+        {
+            reinforces.WriteInfos(stream);
+        }
+        else
+        {
+            CharacterEquipSlotReinforces.WriteSlotInfos(stream, []);
+            CharacterEquipSlotReinforces.WriteEffectInfos(stream, []);
+        }
 
         stream.Write(false);                                // reservedQuestDropTarget (bool)
         var merchantPurchases = NpcManager.Instance.GetMerchantPurchaseStates(character.Id);
