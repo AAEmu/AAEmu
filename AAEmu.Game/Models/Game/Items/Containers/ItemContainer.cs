@@ -627,7 +627,7 @@ public class ItemContainer
 
             if (preferredItem.Count > 0)
             {
-                itemTasks.Add(new ItemCountDecrease(preferredItem, toRemove));
+                itemTasks.Add(new ItemCountUpdate(preferredItem, -toRemove));
             }
             else
             {
@@ -651,7 +651,7 @@ public class ItemContainer
                 if (i.Count > 0)
                 {
                     Owner?.Inventory.OnConsumedItem(i, toRemove);
-                    itemTasks.Add(new ItemCountDecrease(i, toRemove));
+                    itemTasks.Add(new ItemCountUpdate(i, -toRemove));
                 }
                 else
                 {
@@ -798,12 +798,12 @@ public class ItemContainer
                     var addAmount = Math.Min(freeSpace, amountToAdd);
                     i.Count += addAmount;
                     amountToAdd -= addAmount;
-                    itemTasks.Add(new ItemCountIncrease(i, addAmount));
+                    itemTasks.Add(new ItemCountUpdate(i, addAmount));
                     updatedItemsList.Add(i);
                     Owner?.Inventory.OnAcquiredItem(i, addAmount, true);
                 }
 
-                if (amountToAdd < 0)
+                if (amountToAdd <= 0)
                 {
                     break;
                 }

@@ -20,7 +20,7 @@ public class ItemStackDeltaTests
         };
 
         var stream = new PacketStream();
-        new ItemCountIncrease(item, 300).Write(stream);
+        new ItemCountUpdate(item, 300).Write(stream);
         var body = stream.GetBytes();
 
         await Assert.That(body.Length).IsEqualTo(20);
@@ -44,7 +44,7 @@ public class ItemStackDeltaTests
         };
 
         var stream = new PacketStream();
-        new ItemCountDecrease(item, 40).Write(stream);
+        new ItemCountUpdate(item, -40).Write(stream);
         var body = stream.GetBytes();
 
         await Assert.That(body.Length).IsEqualTo(20);
