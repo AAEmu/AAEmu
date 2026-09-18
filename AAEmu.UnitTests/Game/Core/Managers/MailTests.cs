@@ -332,6 +332,154 @@ public sealed class MailTests
         }
     }
 
+    /// <summary>
+    /// The path that broke a house placement in game. <c>HousingManager.Build</c> opens an operation scope and
+    /// then consumes the design item, and the inventory mutation that consumes it opens a mail-persistence
+    /// deferral of its own. The deferral found the gate already held on this thread; taking it again threw
+    /// LockRecursionException and the placement packet died there, with no house written. The inner layer must
+    /// take nothing and, just as important, release nothing on the way out.
+    /// </summary>
+    [Test]
+    public async Task DeferPersist_InsideAnOperationThatHoldsTheGate_TakesNothingAndReleasesNothing()
+    {
+        bool operationOwnsGate;
+        bool gateHeldAfterTheDeferralClosed;
+        int savesWhileTheOperationWasOpen;
+        bool gateReleasedWithTheOperation;
+
+        using (var operation = PersistenceOperationScope.Enter())
+        {
+            operationOwnsGate = operation.OwnsGate;
+
+            using (_mailManager.DeferPersist())
+            {
+                _mailManager.PersistNow();
+            }
+
+            gateHeldAfterTheDeferralClosed = PersistenceGate.IsOperationHeld;
+            savesWhileTheOperationWasOpen = _saves.SaveCount;
+        }
+
+        gateReleasedWithTheOperation = PersistenceGate.IsOperationHeld;
+
+        await Assert.That(operationOwnsGate).IsTrue();
+        await Assert.That(gateHeldAfterTheDeferralClosed).IsTrue();
+        await Assert.That(savesWhileTheOperationWasOpen).IsEqualTo(0);
+        await Assert.That(gateReleasedWithTheOperation).IsFalse();
+
+        // The request the deferral left standing is not dropped: the next scope writes it.
+        using (_mailManager.DeferPersist())
+        {
+        }
+
+        await Assert.That(_saves.SaveCount).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task FlushRequestedNow_InsideAnOperationThatHoldsTheGate_AnswersBusyAndLeavesTheRequest()
+    {
+        WorldSaveStatus status;
+        int savesWhileTheOperationWasOpen;
+        bool gateHeldAfterTheFlush;
+
+        using (PersistenceOperationScope.Enter())
+        {
+            using (_mailManager.DeferPersist())
+            {
+                _mailManager.PersistNow();
+                status = _mailManager.FlushRequestedNow();
+            }
+
+            savesWhileTheOperationWasOpen = _saves.SaveCount;
+            gateHeldAfterTheFlush = PersistenceGate.IsOperationHeld;
+        }
+
+        await Assert.That(status).IsEqualTo(WorldSaveStatus.Busy);
+        await Assert.That(savesWhileTheOperationWasOpen).IsEqualTo(0);
+        await Assert.That(gateHeldAfterTheFlush).IsTrue();
+        await Assert.That(PersistenceGate.IsOperationHeld).IsFalse();
+
+        using (_mailManager.DeferPersist())
+        {
+        }
+
+        await Assert.That(_saves.SaveCount).IsEqualTo(1);
+    }
+
+    /// <summary>
+    /// A flush asked for while this thread is already saving. The tax letter a house build sends goes out
+    /// through MailManager.Send -> EnsurePersisted -> FlushPersist while the placement's own save is still
+    /// running; unguarded the two alternate — PersistNow, TrySave, FlushPersist, EnsurePersisted, PersistNow —
+    /// until the stack runs out and the process dies with it.
+    /// </summary>
+    [Test]
+    public async Task FlushAskedForByTheSaveItStarted_AnswersBusyInsteadOfSavingAgain()
+    {
+        var nestedStatus = WorldSaveStatus.Failed;
+        var reEntries = 0;
+
+        _saves.OnSave = () =>
+        {
+            if (++reEntries > 2)
+                throw new InvalidOperationException("the mail flush recursed into the save that started it");
+
+            _mailManager.PersistNow();
+            nestedStatus = _mailManager.TakeLastFlushStatus();
+        };
+
+        await Assert.That(_mailManager.FlushRequestedNow()).IsEqualTo(WorldSaveStatus.Saved);
+        await Assert.That(_saves.SaveCount).IsEqualTo(1);
+        await Assert.That(nestedStatus).IsEqualTo(WorldSaveStatus.Busy);
+        // Busy came from the flush itself: the re-entering call never handed the saver a second request.
+        await Assert.That(_saves.BusySkips).IsEqualTo(0);
+
+        // Drain the request it left standing, so it does not carry into the next test on this thread.
+        using (_mailManager.DeferPersist())
+        {
+        }
+
+        await Assert.That(_saves.SaveCount).IsEqualTo(2);
+    }
+
+    /// <summary>
+    /// A flush on a thread that holds the gate through an operation with no deferral around it — the house
+    /// build sending its tax letter, a demolish, an expedition or family mutation. A save cannot take the gate
+    /// exclusively there, so the request waits for the periodic save instead of failing or saving anyway.
+    /// This is also the alternation above entered from the outer call: the flush reaches the saver, which asks
+    /// the mail manager to persist, which flushes again.
+    /// </summary>
+    [Test]
+    public async Task PersistNow_WhileAnOperationHoldsTheGate_AnswersBusyAndWaits()
+    {
+        WorldSaveStatus status;
+        bool gateStillHeld;
+
+        PersistenceGate.EnterOperation();
+        try
+        {
+            _mailManager.PersistNow();
+            status = _mailManager.TakeLastFlushStatus();
+            gateStillHeld = PersistenceGate.IsOperationHeld;
+        }
+        finally
+        {
+            PersistenceGate.ExitOperation();
+        }
+
+        await Assert.That(status).IsEqualTo(WorldSaveStatus.Busy);
+        await Assert.That(gateStillHeld).IsTrue();
+        await Assert.That(_saves.SaveCount).IsEqualTo(0);
+        // The saver was not asked at all, so nothing could have recursed through it.
+        await Assert.That(_saves.BusySkips).IsEqualTo(0);
+
+        // The write was deferred, not lost: the next scope on this thread carries it.
+        using (_mailManager.DeferPersist())
+        {
+        }
+
+        await Assert.That(_saves.SaveCount).IsEqualTo(1);
+    }
+
     [Test]
     public async Task PlayerNotFoundTest()
     {

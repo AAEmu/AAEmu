@@ -1076,6 +1076,8 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
     }
 
     [ThreadStatic] private static int t_persistDeferDepth;
+    [ThreadStatic] private static bool t_persistDeferOwnsGate;
+    [ThreadStatic] private static bool t_persistFlushing;
     [ThreadStatic] private static bool t_persistRequested;
     [ThreadStatic] private static WorldSaveStatus t_lastFlushStatus;
 
@@ -1091,8 +1093,13 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
     /// </summary>
     public IDisposable DeferPersist()
     {
+        // The gate is shared with PersistenceOperationScope and the explicit EnterOperation callers (a house
+        // build or demolish, an expedition or family mutation): when one of those already holds it on this
+        // thread, this scope must neither take it again - the lock forbids recursive reads, and a second
+        // EnterOperation throws - nor release it on the way out. Only the scope that took it releases it.
         if (t_persistDeferDepth == 0)
-            PersistenceGate.EnterOperation();
+            t_persistDeferOwnsGate = PersistenceGate.TryEnterOperation();
+
         t_persistDeferDepth++;
         return new PersistScope(this);
     }
@@ -1136,6 +1143,15 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             return WorldSaveStatus.Saved;
         }
 
+        // A deferral opened under an enclosing PersistenceOperationScope never took the gate, so it must
+        // not release it for the write either. Leave the request standing for the next scope that owns it,
+        // or for the periodic save — the same rule PersistScope.Dispose uses.
+        if (!t_persistDeferOwnsGate)
+        {
+            t_lastFlushStatus = WorldSaveStatus.Busy;
+            return WorldSaveStatus.Busy;
+        }
+
         t_persistRequested = false;
         PersistenceGate.ExitOperation();
         try
@@ -1161,6 +1177,28 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
 
     private WorldSaveStatus FlushPersist(Action onFailed = null)
     {
+        // A save started on this thread calls back into the mail flush (a house build's tax letter goes out
+        // through MailManager.Send), so an unguarded flush recurses: TrySave runs the save action, that calls
+        // PersistNow, which flushes again - until the stack overflows and takes the process with it. A request
+        // arriving while this thread is already saving is held for the outer save, which is what a save that is
+        // already running is for.
+        if (t_persistFlushing)
+        {
+            t_persistRequested = true;
+            t_lastFlushStatus = WorldSaveStatus.Busy;
+            return WorldSaveStatus.Busy;
+        }
+
+        // An operation on this thread holds the gate shared (a house build, a demolish, an expedition or family
+        // mutation) without a deferral around it: a save cannot take the gate exclusively here either, so the
+        // request waits for the periodic save instead of failing.
+        if (PersistenceGate.IsOperationHeld)
+        {
+            t_persistRequested = true;
+            t_lastFlushStatus = WorldSaveStatus.Busy;
+            return WorldSaveStatus.Busy;
+        }
+
         var saver = SingletonContainer.ServiceProvider?.GetService<ISaveManager>();
         if (saver == null)
         {
@@ -1170,7 +1208,17 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
 
         // A save that is already running took the gate after this operation released it, so
         // it carries everything the operation wrote. Nothing is lost by not saving twice.
-        var status = saver.TrySave(onFailed);
+        WorldSaveStatus status;
+        t_persistFlushing = true;
+        try
+        {
+            status = saver.TrySave(onFailed);
+        }
+        finally
+        {
+            t_persistFlushing = false;
+        }
+
         t_lastFlushStatus = status;
         if (status == WorldSaveStatus.Busy)
             Logger.Debug("Mail persist folded into the save already in progress");
@@ -1192,8 +1240,20 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             if (t_persistDeferDepth > 0)
                 return;
 
+            if (!t_persistDeferOwnsGate)
+            {
+                // An enclosing operation still holds the gate on this thread (the house build that consumed the
+                // design item, a demolish, an expedition or family mutation), so the save this would flush could
+                // not take it exclusively anyway. Leave the request standing: the next scope on this thread, or
+                // the periodic save, writes it. Releasing here instead - which is what this used to do - would
+                // hand away a lock this scope never took.
+                return;
+            }
+
             // Release the gate before saving: the save needs it exclusively.
+            t_persistDeferOwnsGate = false;
             PersistenceGate.ExitOperation();
+
             if (!t_persistRequested)
             {
                 t_lastFlushStatus = WorldSaveStatus.Saved;
