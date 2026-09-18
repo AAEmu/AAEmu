@@ -42,7 +42,6 @@ public class Scripts : ICommand
         {
             case "reload":
             case "reboot":
-                CommandManager.Instance.Clear();
                 if (ScriptCompiler.Compile())
                 {
                     CommandManager.SendNormalText(this, messageOutput, "[Scripts] Reload - Success");
