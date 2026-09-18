@@ -430,69 +430,63 @@ public sealed class AchievementManagerTests : SqliteTestBase
     }
 
     [Test]
-    public async Task EarningAnAchievement_CreditsWhatItPreCompletes()
+    public async Task ObjectivesMet_WithoutPrerequisite_DoesNotComplete()
     {
-        // Achievement 18 requires 10 of its record; earning it credits 17 (5 of the same record) and 19 pays
-        // a title of its own, so the credit has to reach both the completion and the reward.
+        // 18 asks for 10 of its record and requires 17 first (the workbench / level-30 shape).
+        AchievementManager.Instance.Report(_character, 760, 10);
+
+        await Assert.That(_character.Achievements.IsComplete(18)).IsFalse();
+        await Assert.That(_character.Achievements.Amount(18)).IsEqualTo(10);
+        await Assert.That(_character.Achievements.IsComplete(17)).IsFalse();
+        await Assert.That(_character.Achievements.IsComplete(19)).IsFalse();
+    }
+
+    [Test]
+    public async Task PrerequisiteHeld_ThenObjectives_CompletesOnlyTheGatedAchievement()
+    {
         _character.Appellations = new CharacterAppellations(_character);
+        _character.Achievements.Complete(17, DateTime.UtcNow);
 
         AchievementManager.Instance.Report(_character, 760, 10);
 
         await Assert.That(_character.Achievements.IsComplete(18)).IsTrue();
-        await Assert.That(_character.Achievements.IsComplete(17)).IsTrue();
-        await Assert.That(_character.Records.Get(760)).IsEqualTo(10);
-        await Assert.That(_character.Appellations.Appellations).Contains(6002u);
-
-        // Achievement 19 is credited by 17, so the ladder runs one more step.
-        await Assert.That(_character.Achievements.IsComplete(19)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(19)).IsFalse();
+        await Assert.That(_character.Appellations.Appellations).IsEmpty();
     }
 
     [Test]
-    public async Task CreditedAchievementIsCompleteWithoutMeetingItsObjectives()
+    public async Task EntryRefresh_DoesNotCompletePrerequisitesFromAHolder()
     {
-        // 17's own record is never reported: the credit completes it outright, and does not invent a value
-        // for the record it watches.
-        AchievementManager.Instance.Report(_character, 760, 10);
-
-        await Assert.That(_character.Achievements.IsComplete(17)).IsTrue();
-        await Assert.That(_character.Records.Get(761)).IsEqualTo(0);
-        await Assert.That(_character.Achievements.Amount(17)).IsEqualTo(0);
-    }
-
-    [Test]
-    public async Task BackCredit_AppliesOnEntryToWhatWasEarnedBefore()
-    {
-        // A character who already held 18 when this shipped: the credit is applied by the entry pass, and
-        // once only however many times that pass runs.
+        // Holding 18 must not pay 17 or 19 on login — those are gates, not credits.
         _character.Appellations = new CharacterAppellations(_character);
         _character.Achievements.Complete(18, DateTime.UtcNow);
 
-        await Assert.That(AchievementManager.Instance.RefreshAll(_character)).IsGreaterThanOrEqualTo(2);
-        await Assert.That(_character.Achievements.IsComplete(17)).IsTrue();
-        await Assert.That(_character.Achievements.IsComplete(19)).IsTrue();
-        await Assert.That(_character.Appellations.Appellations.Count).IsEqualTo(1);
-
         await Assert.That(AchievementManager.Instance.RefreshAll(_character)).IsEqualTo(0);
-        await Assert.That(_character.Appellations.Appellations.Count).IsEqualTo(1);
+        await Assert.That(_character.Achievements.IsComplete(17)).IsFalse();
+        await Assert.That(_character.Achievements.IsComplete(19)).IsFalse();
+        await Assert.That(_character.Appellations.Appellations).IsEmpty();
     }
 
     [Test]
-    public async Task BackCredit_ToleratesARuleCycle()
+    public async Task PrerequisiteCycle_KeepsBothIncomplete()
     {
-        // 20 and 21 credit each other; the walk must terminate and complete both.
-        _character.Achievements.Complete(20, DateTime.UtcNow);
-        AchievementManager.Instance.RefreshAll(_character);
+        // 20 and 21 require each other; meeting both objectives still cannot complete either.
+        AchievementManager.Instance.Report(_character, 771, 1);
+        AchievementManager.Instance.Report(_character, 772, 1);
 
-        await Assert.That(_character.Achievements.IsComplete(21)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(20)).IsFalse();
+        await Assert.That(_character.Achievements.IsComplete(21)).IsFalse();
+        await Assert.That(_character.Achievements.Amount(20)).IsEqualTo(1);
+        await Assert.That(_character.Achievements.Amount(21)).IsEqualTo(1);
     }
 
     [Test]
-    public async Task ForcedCompletion_CreditsWhatItPreCompletes()
+    public async Task ForcedCompletion_DoesNotCompletePrerequisites()
     {
         await Assert.That(AchievementManager.Instance.Complete(_character, 18)).IsTrue();
 
-        await Assert.That(_character.Achievements.IsComplete(17)).IsTrue();
-        await Assert.That(_character.Achievements.IsComplete(19)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(17)).IsFalse();
+        await Assert.That(_character.Achievements.IsComplete(19)).IsFalse();
     }
 
     private IEnumerable<ushort> SentOpcodes() =>
@@ -558,16 +552,16 @@ public sealed class AchievementManagerTests : SqliteTestBase
         InsertAchievement(16, 1, "t", "Season-off child", seasonOff: true);
         InsertObjective(16, 17, 741);
 
-        // Achievements 17 to 19: a back-credit ladder. Earning 18 credits 17, which credits 19, and 17's own
-        // record is never touched — the credit is what completes it.
-        InsertAchievement(17, 5, "f", "Tier below");
+        // Achievements 17 to 19: 18 requires 17 first (the workbench / level-30 shape). 19 is only there so
+        // a leftover credit path would still be visible.
+        InsertAchievement(17, 5, "f", "Prerequisite");
         InsertObjective(17, 18, 761);
-        InsertAchievement(18, 10, "f", "Tier above");
+        InsertAchievement(18, 10, "f", "Gated tier");
         InsertObjective(18, 19, 760);
-        InsertAchievement(19, 1, "t", "Pays for the ladder", appellationId: 6002);
+        InsertAchievement(19, 1, "t", "Would have been credited", appellationId: 6002);
         InsertObjective(19, 20, 770);
 
-        // Achievements 20 and 21: a rule cycle, to prove the walk terminates.
+        // Achievements 20 and 21: a prerequisite cycle — neither can complete while the other is missing.
         InsertAchievement(20, 1, "t", "Cycle one");
         InsertObjective(20, 21, 771);
         InsertAchievement(21, 1, "t", "Cycle two");
@@ -608,23 +602,22 @@ public sealed class AchievementManagerTests : SqliteTestBase
         InsertRecord(LiveChildRecord, 9, 15, 0);            // completing achievement 15
         InsertRecord(SeasonOffChildRecord, 9, 16, 0);       // completing achievement 16 (switched off)
         InsertRecord(760, 25, 12, 0);                       // achievement 18's record
-        InsertRecord(761, 25, 13, 0);                       // achievement 17's record (credit only)
+        InsertRecord(761, 25, 13, 0);                       // achievement 17's record
         InsertRecord(770, 25, 14, 0);                       // achievement 19's record
         InsertRecord(771, 25, 15, 0);                       // achievement 20's record
         InsertRecord(772, 25, 16, 0);                       // achievement 21's record
         InsertRecord(ChainRecord, 25, 20, 0);               // the chain child's own objective
         InsertRecord(ChainCompletionRecord, 9, 31, 0);      // completing achievement 31
 
-        // The back-credit rules: earning these credits those.
-        InsertPreCompleted(earned: 18, credited: 17);
-        InsertPreCompleted(earned: 17, credited: 19);
-        InsertPreCompleted(earned: 20, credited: 21);
-        InsertPreCompleted(earned: 21, credited: 20);
+        // 18 requires 17; 20 and 21 require each other. 17 does not require 19.
+        InsertPrerequisite(achievementId: 18, requiredId: 17);
+        InsertPrerequisite(achievementId: 20, requiredId: 21);
+        InsertPrerequisite(achievementId: 21, requiredId: 20);
     }
 
-    private void InsertPreCompleted(uint earned, uint credited) =>
+    private void InsertPrerequisite(uint achievementId, uint requiredId) =>
         Execute($"INSERT INTO pre_completed_achievements (my_achievement_id, completed_achievement_id) " +
-                $"VALUES ({earned}, {credited})");
+                $"VALUES ({achievementId}, {requiredId})");
 
     private void InsertAchievement(uint id, int completeNum, string completeOr, string name,
         uint appellationId = 0, uint subCategoryId = 1, uint itemId = 0, uint itemNum = 0, bool seasonOff = false) =>

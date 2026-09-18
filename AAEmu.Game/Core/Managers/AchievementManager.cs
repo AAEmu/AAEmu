@@ -201,6 +201,13 @@ public class AchievementManager : Singleton<AchievementManager>
                 character.SendPacket(new SCAchievementChangedPacket(achievementId, evaluation.Progress));
         }
 
+        // Objectives can be full while a prerequisite is still missing; progress is stored, completion waits.
+        if (evaluation.Complete &&
+            !AchievementRules.PrerequisitesMet(
+                AchievementGameData.Instance.GetPrerequisites(achievementId),
+                character.Achievements.IsComplete))
+            evaluation = evaluation with { Complete = false };
+
         // Completion only ever happens here, and only if the rules say the target was reached. An achievement
         // that is already complete keeps the time it was first earned, and the reward that came with it.
         if (!evaluation.Complete || !character.Achievements.Complete(achievementId, DateTime.UtcNow))
@@ -337,13 +344,9 @@ public class AchievementManager : Singleton<AchievementManager>
         character.SendPacket(new SCAchievementCompletedPacket(achievementId));
         PayReward(character, AchievementGameData.Instance.GetAchievement(achievementId));
 
-        // The records it counts into, and then everything holding it credits. The records are reported here
-        // rather than through the queue because the queue would see the achievement as already complete.
+        // The records it counts into. Prerequisites are a gate on Refresh, not a credit from this force.
         foreach (var recordId in CompletionRecords(character, achievementId))
             Report(character, recordId, 1);
-
-        RefreshQueue(character, AchievementGameData.Instance.GetPreCompleted(achievementId),
-            sendPackets: true, seedAsCredits: true);
 
         return true;
     }
@@ -388,120 +391,52 @@ public class AchievementManager : Singleton<AchievementManager>
     /// Re-evaluates a set of achievements and everything their completions lead to.
     /// </summary>
     /// <remarks>
-    /// <para>
     /// A completion is itself a record that other achievements watch (the parent/child chains), so this is a
     /// queue rather than one pass. A watcher that was already passed over earlier in the pass is looked at
     /// again when a completion it watches lands: the content is not ordered by id, and 2,173 of its 3,259
     /// completion links run from a lower parent id to a higher child, so the parent is very often checked
     /// before the child that would have satisfied it. It still terminates — an achievement completes once
     /// however many ways it is reached, and only a completion re-queues anything.
-    /// </para>
-    /// <para>
-    /// Holding an achievement also credits the ones the content says it pre-completes, which is the ladder the
-    /// retired and seasonal content leaves behind: earning tier four credits tier three, which credits tier
-    /// two. That applies to an achievement the character earned in an earlier session as much as to one earned
-    /// now — the entry pass walks every achievement, so a character who was already at tier four when this
-    /// shipped collects the tiers below on their next login.
-    /// </para>
     /// </remarks>
     private (int Moved, int Completed) RefreshQueue(Character character, IEnumerable<uint> achievementIds,
-        bool sendPackets, bool seedAsCredits = false)
+        bool sendPackets)
     {
-        var pending = new Queue<(uint Id, bool Credit)>(achievementIds.Select(id => (id, seedAsCredits)));
-        // Two sets, not one: an achievement the refresh pass has already looked at still has to be credited
-        // when something later in the walk turns out to pre-complete it.
-        var refreshed = new HashSet<uint>();
-        var credited = new HashSet<uint>();
+        var pending = new Queue<uint>(achievementIds);
+        var visited = new HashSet<uint>();
         var moved = 0;
         var completed = 0;
 
         while (pending.Count > 0)
         {
-            var (achievementId, credit) = pending.Dequeue();
-
-            if (credit)
-            {
-                if (!credited.Add(achievementId))
-                    continue;
-
-                var result = Credit(character, achievementId, sendPackets);
-                if (!result.NewlyCompleted)
-                    continue;
-
-                moved++;
-                completed++;
-                foreach (var recordId in CompletionRecords(character, achievementId))
-                {
-                    character.Records.Report(recordId, 1);
-                    foreach (var watcher in AchievementGameData.Instance.GetAchievementsWatchingRecord(recordId))
-                    {
-                        // A watcher the pass has already looked at is looked at again: the content is not
-                        // ordered by id, so it can well have been checked before the completion that
-                        // satisfies it.
-                        refreshed.Remove(watcher);
-                        pending.Enqueue((watcher, false));
-                    }
-                }
-
-                foreach (var lower in AchievementGameData.Instance.GetPreCompleted(achievementId))
-                    pending.Enqueue((lower, true));
-                continue;
-            }
-
-            if (!refreshed.Add(achievementId))
+            var achievementId = pending.Dequeue();
+            if (!visited.Add(achievementId))
                 continue;
 
-            var refreshResult = Refresh(character, achievementId, sendPackets);
-            if (refreshResult.AmountChanged || refreshResult.NewlyCompleted)
+            var result = Refresh(character, achievementId, sendPackets);
+            if (result.AmountChanged || result.NewlyCompleted)
                 moved++;
+            if (!result.NewlyCompleted)
+                continue;
 
-            if (refreshResult.NewlyCompleted)
+            completed++;
+
+            // A completion is a record of its own, and finishing a whole sub-category is another one; both
+            // are reported here so the achievements built on them follow through the same queue.
+            foreach (var recordId in CompletionRecords(character, achievementId))
             {
-                completed++;
-
-                // A completion is a record of its own, and finishing a whole sub-category is another one; both
-                // are reported here so the achievements built on them follow through the same queue.
-                foreach (var recordId in CompletionRecords(character, achievementId))
+                character.Records.Report(recordId, 1);
+                foreach (var watcher in AchievementGameData.Instance.GetAchievementsWatchingRecord(recordId))
                 {
-                    character.Records.Report(recordId, 1);
-                    foreach (var watcher in AchievementGameData.Instance.GetAchievementsWatchingRecord(recordId))
-                    {
-                        // Re-queued the same way: a watcher passed over earlier has to be looked at a second
-                        // time when the completion it was waiting for lands.
-                        refreshed.Remove(watcher);
-                        pending.Enqueue((watcher, false));
-                    }
+                    // A watcher passed over earlier in this pass has to be looked at again: the content is
+                    // not ordered by id, so a parent is very often checked before the child that completes
+                    // it, and the completion is what should have satisfied the parent.
+                    visited.Remove(watcher);
+                    pending.Enqueue(watcher);
                 }
-            }
-
-            // The pre-completed ladder follows what the character holds, however they came to hold it — earned
-            // now, or earned in an earlier session and loaded with the character.
-            if (character.Achievements.IsComplete(achievementId))
-            {
-                foreach (var creditedId in AchievementGameData.Instance.GetPreCompleted(achievementId))
-                    pending.Enqueue((creditedId, true));
             }
         }
 
         return (moved, completed);
-    }
-
-    /// <summary>
-    /// Marks an achievement complete because another one earned it, paying what it is worth, without asking
-    /// whether its own objectives are met — that is the point of the back-credit.
-    /// </summary>
-    private RefreshResult Credit(Character character, uint achievementId, bool sendPackets)
-    {
-        var achievement = AchievementGameData.Instance.GetAchievement(achievementId);
-        if (achievement == null || !character.Achievements.Complete(achievementId, DateTime.UtcNow))
-            return default;
-
-        if (sendPackets)
-            character.SendPacket(new SCAchievementCompletedPacket(achievementId));
-
-        PayReward(character, achievement);
-        Logger.Info("Achievement: {0} credited '{1}' ({2})", character.Name, achievement.Name, achievementId);
-        return new RefreshResult(false, true);
     }
 
     /// <summary>

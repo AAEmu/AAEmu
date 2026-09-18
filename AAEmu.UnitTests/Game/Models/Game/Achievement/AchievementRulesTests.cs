@@ -158,4 +158,21 @@ public class AchievementRulesTests
         await Assert.That(evaluation.Progress).IsEqualTo(0);
         await Assert.That(evaluation.Complete).IsFalse();
     }
+
+    [Test]
+    public async Task PrerequisitesMet_EmptyOrMissing_IsTrue()
+    {
+        await Assert.That(AchievementRules.PrerequisitesMet(null, _ => false)).IsTrue();
+        await Assert.That(AchievementRules.PrerequisitesMet([], _ => false)).IsTrue();
+    }
+
+    [Test]
+    public async Task PrerequisitesMet_NeedsEveryListedAchievement()
+    {
+        var held = new HashSet<uint> { 2052 };
+        await Assert.That(AchievementRules.PrerequisitesMet([2052], held.Contains)).IsTrue();
+        await Assert.That(AchievementRules.PrerequisitesMet([2052, 1], held.Contains)).IsFalse();
+        await Assert.That(AchievementRules.PrerequisitesMet([2074], held.Contains)).IsFalse();
+        await Assert.That(AchievementRules.PrerequisitesMet([2052], null)).IsFalse();
+    }
 }

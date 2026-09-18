@@ -44,7 +44,7 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
     private HashSet<uint> _seasonOffCompletionRecords = [];
 
     /// <summary>What earning an achievement credits, by the achievement earned.</summary>
-    private Dictionary<uint, List<uint>> _preCompletedByEarner = [];
+    private Dictionary<uint, List<uint>> _prerequisitesByAchievement = [];
 
     public void Load(SqliteConnection connection)
     {
@@ -219,17 +219,17 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
                 _seasonOffCompletionRecords.Add(recordId);
         }
 
-        // The back-credit table is indexed the way it is read: earning one achievement credits others.
-        _preCompletedByEarner = [];
+        // my_achievement_id is the gated row; completed_achievement_id is what it requires first.
+        _prerequisitesByAchievement = [];
         foreach (var rule in _preCompletedAchievements.Values.SelectMany(rules => rules))
         {
-            if (!_preCompletedByEarner.TryGetValue(rule.MyAchievementId, out var credited))
+            if (!_prerequisitesByAchievement.TryGetValue(rule.MyAchievementId, out var required))
             {
-                credited = [];
-                _preCompletedByEarner.Add(rule.MyAchievementId, credited);
+                required = [];
+                _prerequisitesByAchievement.Add(rule.MyAchievementId, required);
             }
 
-            credited.Add(rule.CompletedAchievementId);
+            required.Add(rule.CompletedAchievementId);
         }
 
         foreach (var achievement in _achievements.Values)
@@ -282,19 +282,17 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
         _subCategoryRecords.GetValueOrDefault(subCategoryId);
 
     /// <summary>
-    /// The achievements that earning one credits as already completed.
+    /// The achievements that must already be complete before this one can be.
     /// </summary>
     /// <remarks>
-    /// <c>pre_completed_achievements</c> has two columns and no documentation, and the content says which way
-    /// round they go: in 1,097 of the 1,533 rows the achievement named by <c>my_achievement_id</c> asks for
-    /// more than the one named by <c>completed_achievement_id</c>, the same-named ladders run downwards
-    /// (earning tier 4 credits tier 3, which credits tier 2), 934 rows pair two achievements with the same
-    /// name, and 163 credit an achievement the season has switched off. So the <c>my_</c> column is the one
-    /// the player earns and the other is the one credited — the reverse of what the loader's dictionary key
-    /// suggests, which is why the index is built here from both columns rather than trusted from the load.
+    /// <c>pre_completed_achievements.my_achievement_id</c> is the gated achievement;
+    /// <c>completed_achievement_id</c> is the prerequisite. Compact row 474 is workbench 2074
+    /// requiring the level-30 row 2052 — not a credit from the workbench back onto the level row.
+    /// 266 rows put a level achievement on the completed side the same way. Completing the gated
+    /// achievement does not mark the prerequisite complete, and login does not pay it.
     /// </remarks>
-    public IReadOnlyList<uint> GetPreCompleted(uint earnedAchievementId) =>
-        _preCompletedByEarner.TryGetValue(earnedAchievementId, out var credited) ? credited : [];
+    public IReadOnlyList<uint> GetPrerequisites(uint achievementId) =>
+        _prerequisitesByAchievement.TryGetValue(achievementId, out var required) ? required : [];
 
     /// <summary>
     /// Whether a record counts the completion of an achievement the season has switched off. An objective

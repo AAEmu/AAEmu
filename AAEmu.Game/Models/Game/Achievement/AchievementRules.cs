@@ -86,4 +86,27 @@ public static class AchievementRules
         var complete = total >= required;
         return new AchievementEvaluation(Math.Min(total, required), required, satisfied, complete);
     }
+
+    /// <summary>
+    /// Whether every prerequisite achievement is already complete. An empty list is no gate.
+    /// </summary>
+    /// <param name="prerequisites">
+    /// <c>pre_completed_achievements.completed_achievement_id</c> for this achievement's
+    /// <c>my_achievement_id</c>.
+    /// </param>
+    /// <param name="isComplete">Whether the character already holds that achievement.</param>
+    public static bool PrerequisitesMet(IReadOnlyList<uint> prerequisites, Func<uint, bool> isComplete)
+    {
+        if (prerequisites == null || prerequisites.Count == 0)
+            return true;
+
+        isComplete ??= _ => false;
+        foreach (var prerequisiteId in prerequisites)
+        {
+            if (!isComplete(prerequisiteId))
+                return false;
+        }
+
+        return true;
+    }
 }
