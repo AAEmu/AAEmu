@@ -305,6 +305,31 @@ public static class EquipSlotReinforceRules
     }
 
     /// <summary>
+    /// How many of a template sit in the bag. The window counts the bag only, and
+    /// <c>ConsumeItem</c> takes from the bag only; warehouse and equipment must not make a
+    /// feed look affordable and then fail after gold is taken.
+    /// </summary>
+    public static int CountInBag(Func<SlotType, uint, int> count, uint itemId)
+    {
+        if (count == null || itemId == 0)
+            return 0;
+
+        return count(SlotType.Inventory, itemId);
+    }
+
+    /// <summary>
+    /// Currency to put back when the item consume after a charge came up short. Zero when
+    /// nothing was taken or the consume landed in full.
+    /// </summary>
+    public static long CurrencyToRefund(long currencyValue, int needed, int consumed)
+    {
+        if (currencyValue <= 0 || needed <= 0 || consumed >= needed)
+            return 0;
+
+        return currencyValue;
+    }
+
+    /// <summary>
     /// Whether a replace can roll a different row: the previous one is excluded, and so is every row the
     /// character already holds. Spending the stone before this check would pay for a no-op.
     /// </summary>

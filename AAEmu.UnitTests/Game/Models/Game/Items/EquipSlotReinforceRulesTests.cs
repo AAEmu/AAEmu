@@ -257,6 +257,25 @@ public class EquipSlotReinforceRulesTests
     }
 
     [Test]
+    public async Task CountInBag_ReadsInventoryOnly()
+    {
+        int Count(SlotType slot, uint _) => slot == SlotType.Inventory ? 2 : 9;
+
+        await Assert.That(EquipSlotReinforceRules.CountInBag(Count, 51594)).IsEqualTo(2);
+        await Assert.That(EquipSlotReinforceRules.CountInBag(null, 51594)).IsEqualTo(0);
+        await Assert.That(EquipSlotReinforceRules.CountInBag(Count, 0)).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task CurrencyToRefund_OnlyWhenTheConsumeCameUpShort()
+    {
+        await Assert.That(EquipSlotReinforceRules.CurrencyToRefund(200, 5, 2)).IsEqualTo(200);
+        await Assert.That(EquipSlotReinforceRules.CurrencyToRefund(200, 5, 5)).IsEqualTo(0);
+        await Assert.That(EquipSlotReinforceRules.CurrencyToRefund(0, 5, 2)).IsEqualTo(0);
+        await Assert.That(EquipSlotReinforceRules.CurrencyToRefund(200, 0, 0)).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task PickConsumable_TakesTheFirstAlternativeTheCharacterHoldsInFull()
     {
         // A material's set members are alternatives: here either 5 singles or 1 bulk item pays for it.

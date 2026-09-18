@@ -744,7 +744,7 @@ public class CharacterEquipSlotReinforces
         }
 
         var itemId = (uint)changeItemId;
-        var carried = _owner.Inventory.GetItemsCount(itemId);
+        var carried = _owner.Inventory.GetItemsCount(SlotType.Inventory, itemId);
         if (carried < 1)
         {
             Logger.Warn("Equip slot reinforce {0}: {1} carries no item {2} to replace with",
@@ -823,7 +823,8 @@ public class CharacterEquipSlotReinforces
             }
 
             var members = itemSet.Items.Values.Select(item => (item.ItemId, item.Count)).ToList();
-            var pick = EquipSlotReinforceRules.PickConsumable(members, itemId => _owner.Inventory.GetItemsCount(itemId));
+            var pick = EquipSlotReinforceRules.PickConsumable(members,
+                itemId => _owner.Inventory.GetItemsCount(SlotType.Inventory, itemId));
             if (pick == null)
             {
                 Logger.Warn("Equip slot reinforce {0}: {1} holds nothing usable from item set {2}",
@@ -840,6 +841,11 @@ public class CharacterEquipSlotReinforces
                 pick.Value.ItemId, pick.Value.Count, null);
             if (consumed < pick.Value.Count)
             {
+                var refund = EquipSlotReinforceRules.CurrencyToRefund(material.CurrencyValue, pick.Value.Count,
+                    consumed);
+                if (refund > 0)
+                    _owner.TryRefundCurrency(material.CurrencyId, refund, ItemTaskType.EquipSlotReinforce);
+
                 Logger.Warn("Equip slot reinforce {0}: {1} consumed {2} of {3} x item {4}",
                     slotTypeId, _owner.Name, consumed, pick.Value.Count, pick.Value.ItemId);
                 return EquipSlotReinforceChange.Refused;
@@ -878,7 +884,7 @@ public class CharacterEquipSlotReinforces
 
             if (next.LevelUpItemCount > 0)
             {
-                var carried = _owner.Inventory.GetItemsCount(next.LevelUpItemId);
+                var carried = _owner.Inventory.GetItemsCount(SlotType.Inventory, next.LevelUpItemId);
                 if (carried < next.LevelUpItemCount)
                 {
                     Logger.Warn("Equip slot reinforce {0}: {1} needs {2} x item {3} but carries {4}",
