@@ -7,6 +7,16 @@ namespace AAEmu.UnitTests.Game.Models.Game.Items;
 public class ItemCountUpdateTests
 {
     [Test]
+    [Arguments(-1)]
+    [Arguments(256)]
+    public async Task Constructor_RejectsSlotsThatCannotFitOnTheWire(int slot)
+    {
+        var item = new Item(1) { SlotType = SlotType.Inventory, Slot = slot };
+
+        await Assert.That(() => new ItemCountUpdate(item, 1)).Throws<OverflowException>();
+    }
+
+    [Test]
     public async Task Write_UsesTheSlotAndIdentityCapturedAtCreation()
     {
         const ulong originalItemId = 0x0102030405060708;

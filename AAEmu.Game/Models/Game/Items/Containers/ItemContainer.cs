@@ -803,7 +803,7 @@ public class ItemContainer
                     Owner?.Inventory.OnAcquiredItem(i, addAmount, true);
                 }
 
-                if (amountToAdd < 0)
+                if (amountToAdd <= 0)
                 {
                     break;
                 }
