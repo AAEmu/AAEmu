@@ -33,7 +33,7 @@ public interface ISquadManager : IInitializable
     /// <summary>Matchmaking could not seat this member. Clears their queue and un-readies them.</summary>
     void NotifyMatchRejected(Character character);
     void SetPresence(Character character, bool online);
-    /// <summary>After login, clear stale queue UI only when there is no current squad.</summary>
+    /// <summary>After login, deliver a missed disband and clear queue UI when there is no current squad.</summary>
     void SyncClientSquadAfterLogin(Character character);
 }
 
@@ -44,6 +44,8 @@ public class SquadManager : Singleton<SquadManager>, ISquadManager
     private readonly Dictionary<uint, Squad> _squads = [];
     private readonly Dictionary<uint, uint> _characterSquad = [];
     private readonly Dictionary<uint, PendingInvite> _pendingInvites = [];
+    // Like squads, missed disband notifications live only for this server process.
+    private readonly HashSet<uint> _pendingDisbands = [];
     private readonly Lock _lock = new();
     private uint _nextSquadId = 1;
     private uint _nextInvitationId = 1;
@@ -254,9 +256,8 @@ public class SquadManager : Singleton<SquadManager>, ISquadManager
     }
 
     /// <summary>
-    /// After character load, clear the queue UI for a character without a squad. A missing squad
-    /// is not a disband event: SCDisbandSquad emits "team disbanded" even on a fresh login.
-    /// Actual squad removal still publishes Disband through DisbandLocked/NotifyGameLeave.
+    /// After character load, replay a real disband missed while unavailable, then clear queue UI.
+    /// A missing squad alone is not a disband event: SCDisbandSquad also emits "team disbanded".
     /// </summary>
     public void SyncClientSquadAfterLogin(Character character)
     {
@@ -265,11 +266,16 @@ public class SquadManager : Singleton<SquadManager>, ISquadManager
 
         lock (_lock)
         {
+            var missedDisband = _pendingDisbands.Remove(character.Id);
+            // New membership supersedes an old notification; never clear the current squad.
             if (_characterSquad.ContainsKey(character.Id))
                 return;
-        }
 
-        character.SendPacket(SCCancelInstantGamePacket.ClearQueue());
+            // Serialize with Join/Create/Disband so a new squad cannot be cleared between checks and send.
+            if (missedDisband)
+                character.SendPacket(new SCDisbandSquadPacket());
+            character.SendPacket(SCCancelInstantGamePacket.ClearQueue());
+        }
     }
 
     public void Create(Character character, SquadFieldType field, SquadOpenType openType, bool partyInvitation,
@@ -667,7 +673,13 @@ public class SquadManager : Singleton<SquadManager>, ISquadManager
         foreach (var m in squad.Members)
         {
             var ch = WorldManager.Instance.GetCharacterById(m.CharacterId);
-            ch?.SendPacket(new SCDisbandSquadPacket());
+            if (m.Offline || ch?.Connection == null)
+                _pendingDisbands.Add(m.CharacterId);
+            else
+            {
+                _pendingDisbands.Remove(m.CharacterId);
+                ch.SendPacket(new SCDisbandSquadPacket());
+            }
         }
         Logger.Info("Squad disband id={0}", squad.Id);
     }
