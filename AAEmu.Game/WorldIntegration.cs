@@ -768,6 +768,15 @@ public static class WorldIntegration
         return stream.GetBytes();
     }
 
+    public static byte[] BuildWzUnitStateBody(Unit unit,
+        out List<Core.Packets.G2C.UnitState.UnitStateBuffSerializer.SnapshotEntry> writtenBuffs)
+    {
+        writtenBuffs = [];
+        var stream = new PacketStream();
+        new SCUnitStatePacket(unit).WriteWzBody(stream, ResolveWzPlacement(unit), writtenBuffs);
+        return stream.GetBytes();
+    }
+
     /// <summary>
     /// Zone-local XYZ for WZ UnitState. World <see cref="Unit.Transform"/> stays continent (SC).
     /// <paramref name="zoneLocal"/> is already zone-local (ZWSpawnNpc or ConvertToLocal) — never convert it again.

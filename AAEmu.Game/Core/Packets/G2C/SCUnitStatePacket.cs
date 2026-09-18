@@ -23,18 +23,20 @@ public sealed class SCUnitStatePacket : GamePacket
         _baseUnitType = UnitStateWireSerializer.GetBaseUnitType(unit);
     }
 
-    public void WriteWzUnitStateAndBuffs(PacketStream stream, Vector3? placementOverride = null)
+    public void WriteWzUnitStateAndBuffs(PacketStream stream, Vector3? placementOverride = null,
+        ICollection<UnitStateBuffSerializer.SnapshotEntry> writtenBuffs = null)
     {
         UnitStateWireSerializer.Write(stream, _unit, _baseUnitType, placementOverride);
-        UnitStateBuffSerializer.Write(stream, _unit);
+        UnitStateBuffSerializer.Write(stream, _unit, writtenBuffs);
     }
 
     /// <summary>
     /// Writes the Zone UnitState body, its buffs, and action state.
     /// </summary>
-    public void WriteWzBody(PacketStream stream, Vector3? placementOverride = null)
+    public void WriteWzBody(PacketStream stream, Vector3? placementOverride = null,
+        ICollection<UnitStateBuffSerializer.SnapshotEntry> writtenBuffs = null)
     {
-        WriteWzUnitStateAndBuffs(stream, placementOverride);
+        WriteWzUnitStateAndBuffs(stream, placementOverride, writtenBuffs);
         UnitStateActionSerializer.Write(stream, _unit.UnitStateAction);
     }
 

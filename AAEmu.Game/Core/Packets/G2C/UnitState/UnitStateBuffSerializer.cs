@@ -8,31 +8,32 @@ namespace AAEmu.Game.Core.Packets.G2C.UnitState;
 /// </summary>
 public static class UnitStateBuffSerializer
 {
+    public readonly record struct SnapshotEntry(Buff Buff, uint Index, uint Stack);
     private const int MaxGoodBuffs = 32;
     private const int MaxBadBuffs = 20;
     private const int MaxHiddenBuffs = 28;
 
-    public static void Write(PacketStream stream, Unit unit)
+    public static void Write(PacketStream stream, Unit unit, ICollection<SnapshotEntry> written = null)
     {
         var goodBuffs = new List<Buff>();
         var badBuffs = new List<Buff>();
         var hiddenBuffs = new List<Buff>();
         unit.Buffs.GetAllBuffs(goodBuffs, badBuffs, hiddenBuffs, false);
 
-        WriteList(stream, goodBuffs, MaxGoodBuffs);
-        WriteList(stream, badBuffs, MaxBadBuffs);
-        WriteList(stream, hiddenBuffs, MaxHiddenBuffs);
+        WriteList(stream, goodBuffs, MaxGoodBuffs, written);
+        WriteList(stream, badBuffs, MaxBadBuffs, written);
+        WriteList(stream, hiddenBuffs, MaxHiddenBuffs, written);
     }
 
-    private static void WriteList(PacketStream stream, List<Buff> buffs, int maximum)
+    private static void WriteList(PacketStream stream, List<Buff> buffs, int maximum, ICollection<SnapshotEntry> written)
     {
         var count = Math.Min(buffs.Count, maximum);
         stream.Write((byte)count);
         foreach (var effect in buffs.Take(count))
-            WriteRecord(stream, effect);
+            WriteRecord(stream, effect, written);
     }
 
-    private static void WriteRecord(PacketStream stream, Buff effect)
+    private static void WriteRecord(PacketStream stream, Buff effect, ICollection<SnapshotEntry> written)
     {
         // One record per live instance, so a per-caster instance reports its own applications and a
         // one-instance family reports the family total — see Buff.StackCount, which this mirrors.
@@ -60,5 +61,7 @@ public static class UnitStateBuffSerializer
             stack,
             (uint)effect.Charge,
             sourceSkillId);
+        // Record exactly the entries and stacks encoded, including the native per-list limits.
+        written?.Add(new SnapshotEntry(effect, effect.Index, stack));
     }
 }

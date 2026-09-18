@@ -1,17 +1,35 @@
 using System.Collections.Concurrent;
+using AAEmu.Game.Core.Packets.G2C.UnitState;
 
 namespace AAEmu.World.Core.Relay;
 
 /// <summary>
 /// Per-zone record of which buffs each dedicate has been told about, keyed by owning unit and buff
-/// instance index, with the stack last accepted on Create. The zone's own bookkeeping
-/// (<c>ZoneBuffMan</c>) only learns an entry from WZBuffCreated — its Change handler warns
+/// instance index, with the stack last accepted on Create or the UnitState buff snapshot.
+/// The zone's own bookkeeping (<c>ZoneBuffMan</c>) accepts both paths; its Change handler warns
 /// <c>invalid buff id</c> and returns for an unregistered index, and its Destroy handler does the
 /// same, so Updates and Removes must only be sent to zones that accepted the Create.
 /// </summary>
 public static class ZoneBuffRegistry
 {
     private static readonly ConcurrentDictionary<(uint ZoneId, uint InstanceId), Dictionary<(uint Owner, uint Index), uint>> Accepted = new();
+
+    /// <summary>Records World-authored buffs actually serialized into the UnitState snapshot.</summary>
+    public static void MarkSnapshot(uint zoneId, uint instanceId, uint ownerObjId,
+        IEnumerable<UnitStateBuffSerializer.SnapshotEntry> entries)
+    {
+        if (zoneId == 0)
+            return;
+        foreach (var entry in entries)
+        {
+            // The snapshot preserves these buffs, but their updates/removals belong to Zone.
+            if (entry.Buff.ZoneAuthored)
+                continue;
+
+            MarkCreated(zoneId, instanceId, ownerObjId, entry.Index, entry.Stack);
+            entry.Buff.RelayedToZone = true;
+        }
+    }
 
     /// <summary>
     /// Records that a Create for (unit, index) reached this zone instance at <paramref name="stack"/>.
