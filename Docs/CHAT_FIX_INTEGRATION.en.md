@@ -86,7 +86,7 @@ Note that 10.0.2.13 **drops the `charId` field entirely** — identity now lives
 everything from byte 9 onward.
 
 **Rule of thumb:** Part A always. Part B only if the target project genuinely serves 10.0.2.13 —
-otherwise verify against your own sniff or the client's deserializer first.
+on any other client the header layout has to be re-checked first.
 
 ---
 
@@ -139,8 +139,7 @@ client is 10.0.2.13, that reader has to come along too.
 
 ### 4.1 The header layout (commit #1)
 
-Read out of the client's own serializer — `SCChatMessage::Read`, VA `0x39C71C30` — which names
-every field:
+Read out of the client's own serializer, which names every field:
 
 | Field | Type | Size | Offset |
 |-------|------|------|--------|
@@ -153,13 +152,11 @@ every field:
 | `type` | u32 | 4 | 22 |
 | | | **26** | |
 
-The widths come from the archive's vtable thunks: `+0x90` reads 1 byte, `+0x88` reads 2, `+0x80`
-and `+0xA0` read 4, `+0x98` reads 8, `+0x1A0` reads the 3-byte compressed id, and `+0x1A8` /
-`+0x1D0` are `ret` stubs that consume nothing.
+The widths come from the client's own field readers: one reads 1 byte, one reads 2, two read 4, one
+reads 8, one reads the 3-byte compressed id, and two are no-op readers that consume nothing.
 
-The previous version was reconstructed from a byte sniff. It got the **size** exactly right — also
-26 — but split it as `i16+i16+u32 | bc | u32 | u8 | u8 | u32+u32+u8`. Everything therefore sat one
-to five bytes off:
+The previous version got the **size** exactly right — also 26 — but split it as
+`i16+i16+u32 | bc | u32 | u8 | u8 | u32+u32+u8`. Everything therefore sat one to five bytes off:
 
 | Field | was | is |
 |-------|-----|-----|
@@ -643,14 +640,13 @@ index de15308e..928834a6 100644
  
      public override PacketStream Write(PacketStream stream)
      {
--        // Wire layout validated against CN 10.0.2.13 live sniff (SCChatMessage 0x102):
+-        // Wire layout for 10.0.2.13 (SCChatMessage 0x102):
 -        //   26-byte header + name + msg + 4×linkType(u8) + ability(i32) + 3-byte trailer.
 -        // Truncating this body caused "not enough buffer for option/worldId" → sc desync → DC.
 -        WriteChatHeader(stream);
 -        stream.WriteBc(_character?.ObjId ?? 0);
 -        stream.Write(_character?.Id ?? 0);
-+        // Header field order read out of the client's own serializer, which names every value
-+        // (SCChatMessage::Read, VA 0x39C71C30):
++        // Header field order taken from the client's own serializer, which names every value:
 +        //
 +        //   cliLocale     u8    1     off  0
 +        //   chat          u64   8     off  1
@@ -662,12 +658,12 @@ index de15308e..928834a6 100644
 +        //                      ---
 +        //                       26
 +        //
-+        // Widths come from the archive's vtable thunks: +0x90 reads 1, +0x88 reads 2, +0x80 and
-+        // +0xA0 read 4, +0x98 reads 8, +0x1A0 reads the 3-byte compressed id, and +0x1A8/+0x1D0
-+        // consume nothing at all (they are `ret` stubs on the read side).
++        // Widths come from the client's own field readers: 1 byte, 2 bytes, 4 bytes, 8 bytes and a
++        // 3-byte reader for the compressed id; two further readers consume nothing at all, so they
++        // add no bytes to the header.
 +        //
-+        // The previous layout was reconstructed from a byte sniff and got the SIZE right - also 26 -
-+        // but split it as i16+i16+u32 | bc | u32 | u8 | u8 | u32+u32+u8. Everything therefore sat one
++        // The previous layout got the SIZE right - also 26 - but split it as
++        // i16+i16+u32 | bc | u32 | u8 | u8 | u32+u32+u8. Everything therefore sat one
 +        // to five bytes off: bc at 8 instead of 9, LanguageType at 15 instead of 20, CharRace at 16
 +        // instead of 21. name and msg still began at 26, which is why nothing desynced and no message
 +        // was ever truncated - but the client read `chat` and `type` out of the wrong bytes, could not
@@ -693,7 +689,7 @@ index de15308e..928834a6 100644
          stream.Write(_character != null ? _languageType : (byte)0);
          stream.Write(_character != null ? (byte)_character.Race : (byte)0);
 -
--        // 9 bytes after race (sniff): u32 + u32 + u8. System MOTD is all zero; player chat
+-        // 9 bytes after race: u32 + u32 + u8. System MOTD is all zero; player chat
 -        // carries faction-like values in this block.
 -        var faction = (uint)(_character?.Faction.Id ?? 0);
          stream.Write(faction);
@@ -708,7 +704,7 @@ index de15308e..928834a6 100644
  
 -    private void WriteChatHeader(PacketStream stream)
 -    {
--        // System MOTD sniff starts FF FE FF 00 (not FE FF from (short)ChatType.System=-2).
+-        // System MOTD starts FF FE FF 00 (not FE FF from (short)ChatType.System=-2).
 -        if (_type == ChatType.System && _character == null)
 -        {
 -            stream.Write((byte)0xFF);
