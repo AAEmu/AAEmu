@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C.UnitState;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.World.Core.Network;
 using AAEmu.World.Core.Packets.Wz;
@@ -141,9 +142,16 @@ public class PlayerEnterService
         zone.Units.RegisterWithId(bcId, unitStateBody);
         ZoneBuffRegistry.MarkSnapshot(zone.ZoneId, zone.InstanceId, bcId, writtenBuffs);
 
+        RetireEndedSnapshotBuffs(bcId, writtenBuffs);
+    }
+
+    internal static void RetireEndedSnapshotBuffs(uint bcId,
+        IEnumerable<UnitStateBuffSerializer.SnapshotEntry> writtenBuffs)
+    {
         // A timeout may race serialization while its old registry entry is being cleared.
         // After recording the snapshot, retire any entry whose World lifetime already ended.
-        foreach (var entry in writtenBuffs.Where(entry => entry.Buff.IsEnded()))
+        foreach (var entry in writtenBuffs.Where(entry => entry.Buff.IsEnded() &&
+                     BuffCreatedWire.ShouldRelayRemoved(entry.Buff, out _)))
             AAEmu.Game.WorldIntegration.RelayBuffRemovedToZone?.Invoke(bcId, entry.Index);
     }
 

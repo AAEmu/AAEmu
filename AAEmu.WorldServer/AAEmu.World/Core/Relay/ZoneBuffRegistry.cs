@@ -14,7 +14,7 @@ public static class ZoneBuffRegistry
 {
     private static readonly ConcurrentDictionary<(uint ZoneId, uint InstanceId), Dictionary<(uint Owner, uint Index), uint>> Accepted = new();
 
-    /// <summary>Records only buffs actually serialized into the accepted UnitState snapshot.</summary>
+    /// <summary>Records World-authored buffs actually serialized into the UnitState snapshot.</summary>
     public static void MarkSnapshot(uint zoneId, uint instanceId, uint ownerObjId,
         IEnumerable<UnitStateBuffSerializer.SnapshotEntry> entries)
     {
@@ -22,6 +22,10 @@ public static class ZoneBuffRegistry
             return;
         foreach (var entry in entries)
         {
+            // The snapshot preserves these buffs, but their updates/removals belong to Zone.
+            if (entry.Buff.ZoneAuthored)
+                continue;
+
             MarkCreated(zoneId, instanceId, ownerObjId, entry.Index, entry.Stack);
             entry.Buff.RelayedToZone = true;
         }
