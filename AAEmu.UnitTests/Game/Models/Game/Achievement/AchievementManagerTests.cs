@@ -473,6 +473,28 @@ public sealed class AchievementManagerTests : SqliteTestBase
     }
 
     [Test]
+    public async Task ObjectivesMet_ThenPrerequisiteCompletes_CompletesTheGatedAchievement()
+    {
+        // 18 is already 1/1; completing 17 has to look at 18 again, because 18 does not watch 17's record.
+        AchievementManager.Instance.Report(_character, 760, 10);
+        await Assert.That(_character.Achievements.IsComplete(18)).IsFalse();
+
+        AchievementManager.Instance.Report(_character, 761, 5);
+
+        await Assert.That(_character.Achievements.IsComplete(17)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(18)).IsTrue();
+    }
+
+    [Test]
+    public async Task ForcedCompletion_OfAPrerequisite_CompletesWhatItGates()
+    {
+        AchievementManager.Instance.Report(_character, 760, 10);
+
+        await Assert.That(AchievementManager.Instance.Complete(_character, 17)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(18)).IsTrue();
+    }
+
+    [Test]
     public async Task PrerequisiteHeld_ThenObjectives_CompletesOnlyTheGatedAchievement()
     {
         _character.Appellations = new CharacterAppellations(_character);

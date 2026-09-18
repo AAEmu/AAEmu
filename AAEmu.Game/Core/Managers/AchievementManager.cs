@@ -348,6 +348,10 @@ public class AchievementManager : Singleton<AchievementManager>
         foreach (var recordId in CompletionRecords(character, achievementId))
             Report(character, recordId, 1);
 
+        // Gated rows do not watch this completion record (2052 has none), so they are refreshed by name.
+        RefreshQueue(character, AchievementGameData.Instance.GetGatedByPrerequisite(achievementId),
+            sendPackets: true);
+
         return true;
     }
 
@@ -439,6 +443,12 @@ public class AchievementManager : Singleton<AchievementManager>
                     visited.Remove(watcher);
                     pending.Enqueue(watcher);
                 }
+            }
+
+            foreach (var gatedId in AchievementGameData.Instance.GetGatedByPrerequisite(achievementId))
+            {
+                visited.Remove(gatedId);
+                pending.Enqueue(gatedId);
             }
         }
 

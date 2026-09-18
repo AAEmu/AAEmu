@@ -47,6 +47,9 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
     /// <summary>What an achievement requires first, by the gated achievement.</summary>
     private Dictionary<uint, List<uint>> _prerequisitesByAchievement = [];
 
+    /// <summary>What completing an achievement unlocks, by the prerequisite.</summary>
+    private Dictionary<uint, List<uint>> _gatedByPrerequisite = [];
+
     public void Load(SqliteConnection connection)
     {
         _charRecords.Clear();
@@ -223,6 +226,7 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
 
         // my_achievement_id is the gated row; completed_achievement_id is what it requires first.
         _prerequisitesByAchievement = [];
+        _gatedByPrerequisite = [];
         foreach (var rule in _preCompletedAchievements.Values.SelectMany(rules => rules))
         {
             if (!_prerequisitesByAchievement.TryGetValue(rule.MyAchievementId, out var required))
@@ -232,6 +236,14 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
             }
 
             required.Add(rule.CompletedAchievementId);
+
+            if (!_gatedByPrerequisite.TryGetValue(rule.CompletedAchievementId, out var gated))
+            {
+                gated = [];
+                _gatedByPrerequisite.Add(rule.CompletedAchievementId, gated);
+            }
+
+            gated.Add(rule.MyAchievementId);
         }
 
         foreach (var achievement in _achievements.Values)
@@ -302,6 +314,13 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
     /// </remarks>
     public IReadOnlyList<uint> GetPrerequisites(uint achievementId) =>
         _prerequisitesByAchievement.TryGetValue(achievementId, out var required) ? required : [];
+
+    /// <summary>
+    /// The achievements that list this one as a prerequisite. Completing it has to re-evaluate them:
+    /// none of the 1,533 gated rows watch the prerequisite's completion record, and 2052 has none.
+    /// </summary>
+    public IReadOnlyList<uint> GetGatedByPrerequisite(uint prerequisiteId) =>
+        _gatedByPrerequisite.TryGetValue(prerequisiteId, out var gated) ? gated : [];
 
     /// <summary>
     /// Whether a record counts the completion of an achievement the season has switched off. An objective
