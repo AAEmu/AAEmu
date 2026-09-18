@@ -771,14 +771,6 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
         skillId != 0 && _rebuildTargetBySkill.ContainsKey(skillId);
 
     /// <summary>
-    /// The rebuild target a cast skill starts, or null when the skill is not a rebuild. Several
-    /// targets share one skill; this returns the last loaded row for that skill and is not how
-    /// Confirm is resolved.
-    /// </summary>
-    public HousingRebuildTarget GetRebuildTargetBySkill(uint skillId) =>
-        _rebuildTargetBySkill.TryGetValue(skillId, out var targetId) ? GetRebuildTarget(targetId) : null;
-
-    /// <summary>
     /// The pack row Confirm asked for: the house's pack, the shared start skill, and the housing
     /// template the extra named.
     /// </summary>
