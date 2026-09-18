@@ -83,12 +83,11 @@ public class EnterWorldManager(
             streamManager.AddToken(connection.AccountId, connection.Id);
 
             var port = AppConfiguration.Instance.StreamNetwork.Port;
-            // Real client GM UI (toggle_gm_console / X2Gm / CSGmCommand) keys off enter-world
-            // authority + gmFlag — not AAEmu chat "/item". Account access_level>=100 ⇒ GM.
+            // Authorize native GM command requests on the server. Numeric access levels
+            // must not be copied into the enter-world native connection-authority bitmask.
             var accountAccess = accountManager.GetAccountDetails(accountId).AccessLevel;
             if (accountAccess >= 100)
                 connection.AddAttribute("gmFlag", true);
-            var gm = connection.GetAttribute("gmFlag") != null;
 
             //   X2EnterWorldResponse (level 5, carries RSA pubKey) -> ChangeState(0) -> SCWorldQueue.
             // SCWorldQueue is what makes the client start sending FinishState packets, which drive the
@@ -97,7 +96,7 @@ public class EnterWorldManager(
             // Prep RSA *before* Encode so WriteKeyParams does not reset SCMessageCount mid-packet
             // (that reused seq 0 → sequence-mv → frozen WASD while TCP stayed up).
             EncryptionManager.Instance.PrepareEnterWorldKeys(connection.Id, connection.AccountId);
-            connection.SendPacket(new X2EnterWorldResponsePacket(0, gm, connection.Id, port, connection));
+            connection.SendPacket(new X2EnterWorldResponsePacket(0, connection.Id, port, connection));
             connection.EncryptionActive = true;
             connection.SendPacket(new ChangeStatePacket(0));
             // at one-second intervals after this handshake edge.
