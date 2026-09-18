@@ -20,7 +20,8 @@ namespace AAEmu.UnitTests.Game.Core.Managers;
 
 /// <summary>
 /// The account-protection window driven through the guard itself: what a refused action does to the window,
-/// what the client's account-protection packet (CS 0x19A) may and may not do to it, and what lifts it.
+/// what the client's account-protection packet (CS 0x19A) may and may not do to it, what lifts it, and the
+/// millisecond countdown the client is answered with.
 /// </summary>
 /// <remarks>
 /// Process-wide state — the feature set, the guard's clock, the guard's windows and the second-password
@@ -119,7 +120,7 @@ public sealed class SensitiveOperationGuardTests
         QueryClient();
 
         await Assert.That(SensitiveOperationGuard.StateFor(_accountId, Now).Protected).IsFalse();
-        await AssertStateAnswer(mark, protectedFlag: 0, remainSeconds: 0u);
+        await AssertStateAnswer(mark, protectedFlag: 0, remainMilliseconds: 0u);
     }
 
     [Test]
@@ -135,7 +136,7 @@ public sealed class SensitiveOperationGuardTests
         // is a query and the only thing that lifts a window is a verified second password.
         await Assert.That(SensitiveOperationGuard.StateFor(_accountId, Now).Protected).IsTrue();
         await Assert.That(SensitiveOperationGuard.StateFor(_accountId, Now).RemainSeconds).IsEqualTo(540u);
-        await AssertStateAnswer(mark, protectedFlag: 1, remainSeconds: 540u);
+        await AssertStateAnswer(mark, protectedFlag: 1, remainMilliseconds: 540_000u);
     }
 
     [Test]
@@ -148,7 +149,7 @@ public sealed class SensitiveOperationGuardTests
         QueryClient(bodyByte);
 
         await Assert.That(SensitiveOperationGuard.StateFor(_accountId, Now).Protected).IsFalse();
-        await AssertStateAnswer(mark, protectedFlag: 0, remainSeconds: 0u);
+        await AssertStateAnswer(mark, protectedFlag: 0, remainMilliseconds: 0u);
     }
 
     [Test]
@@ -166,7 +167,26 @@ public sealed class SensitiveOperationGuardTests
 
         await Assert.That(SensitiveOperationGuard.StateFor(_accountId, Now).Protected).IsTrue();
         await Assert.That(SensitiveOperationGuard.StateFor(_accountId, Now).RemainSeconds).IsEqualTo(540u);
-        await AssertStateAnswer(mark, protectedFlag: 1, remainSeconds: 540u);
+        await AssertStateAnswer(mark, protectedFlag: 1, remainMilliseconds: 540_000u);
+    }
+
+    [Test]
+    public async Task StateAnswer_CarriesTheRemainingTimeInMilliseconds()
+    {
+        OpenWindow();
+        var mark = _sent.Count;
+
+        // The client counts this field down itself, in milliseconds: its account-protection scripts subtract
+        // the frame delta and print value / 1000. A ten-minute window therefore has to leave here as 600000
+        // and fall as the window does - in seconds it would render as six tenths of a second.
+        QueryClient();
+        await AssertStateAnswer(mark, protectedFlag: 1, remainMilliseconds: 600_000u);
+
+        _clock.Advance(TimeSpan.FromMinutes(1));
+        mark = _sent.Count;
+
+        QueryClient();
+        await AssertStateAnswer(mark, protectedFlag: 1, remainMilliseconds: 540_000u);
     }
 
     [Test]
@@ -236,7 +256,7 @@ public sealed class SensitiveOperationGuardTests
     private void QueryClient(params byte[] body) =>
         new CSProtectSensitiveOperation { Connection = _connection }.Read(new PacketStream(body));
 
-    private async Task AssertStateAnswer(int mark, byte protectedFlag, uint remainSeconds)
+    private async Task AssertStateAnswer(int mark, byte protectedFlag, uint remainMilliseconds)
     {
         await Assert.That(_sent.Count).IsEqualTo(mark + 1);
 
@@ -245,7 +265,7 @@ public sealed class SensitiveOperationGuardTests
 
         var stream = new PacketStream(body);
         await Assert.That(stream.ReadByte()).IsEqualTo(protectedFlag);
-        await Assert.That(stream.ReadUInt32()).IsEqualTo(remainSeconds);
+        await Assert.That(stream.ReadUInt32()).IsEqualTo(remainMilliseconds);
         await Assert.That(stream.LeftBytes).IsEqualTo(0);
     }
 

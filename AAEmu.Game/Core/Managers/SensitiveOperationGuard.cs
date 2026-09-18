@@ -88,8 +88,13 @@ public static class SensitiveOperationGuard
             return;
 
         var state = StateFor(connection.AccountId, UtcNow);
+
+        // The field is milliseconds, not seconds. The client keeps the countdown itself: its account-protection
+        // scripts (x2ui/hud/indicators/account_protection.lua, x2ui/sensitiveoperation/remaintime.lua) seed a
+        // timer with this value, subtract the frame delta from it and print it as value / 1000. Sending seconds
+        // would render a ten-minute window as 0.6 seconds; nothing about the layout changes with the unit.
         character.SendPacket(new SCProtectSensitiveOperationResultPacket(
-            (byte)(state.Protected ? 1 : 0), state.RemainSeconds));
+            (byte)(state.Protected ? 1 : 0), state.RemainSeconds * 1000u));
     }
 
     /// <summary>
