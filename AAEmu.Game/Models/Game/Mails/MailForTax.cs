@@ -2,6 +2,8 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Housing;
+using System.Globalization;
+using System.Text;
 
 namespace AAEmu.Game.Models.Game.Mails;
 
@@ -62,7 +64,7 @@ public class MailForTax : BaseMail
         // Fix: client parses 13 body args (was 11); taxType 1=HOUSING_TAX_SEAL
         var mailTaxType = FeaturesManager.Fsets.TaxItem ? 1 : 0;
         mail.Body.Text = string.Format("body('{0}', '{1}', '{2}', '{3}', '{4}', '{5}', '{6}', '{7}', '{8}', '{9}', '{10}', '{11}', '{12}')",
-            house.Name,                                 // House Name
+            EscapeLuaString(house.Name),                // House Name
             Helpers.UnixTime(house.PlaceDate),          // Tax period start (this might need to be the same as tax due date)
             Helpers.UnixTime(house.ProtectionEndDate),  // Tax period end
             Helpers.UnixTime(paymentDeadLine),          // Tax Due Date
@@ -90,6 +92,23 @@ public class MailForTax : BaseMail
         mail.Header.Status = MailStatus.Unpaid;
 
         return true;
+    }
+
+    // The retail GetMailText consumer evaluates body(...). Names are data, so
+    // quotes, backslashes and controls must not terminate/change that argument.
+    internal static string EscapeLuaString(string value)
+    {
+        var escaped = new StringBuilder();
+        foreach (var ch in value ?? string.Empty)
+        {
+            if (ch is '\'' or '\\')
+                escaped.Append('\\').Append(ch);
+            else if (ch < ' ' || ch == '\u007f')
+                escaped.Append('\\').Append(((int)ch).ToString("D3", CultureInfo.InvariantCulture));
+            else
+                escaped.Append(ch);
+        }
+        return escaped.ToString();
     }
 
     /// <summary>
