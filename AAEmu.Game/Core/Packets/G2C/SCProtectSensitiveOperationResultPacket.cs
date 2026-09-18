@@ -9,7 +9,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// </summary>
 /// <remarks>
 /// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value: a single byte flag followed by the remaining time in seconds.
+/// value's name alongside the value: a single byte flag followed by the remaining time in
+/// milliseconds (the client counts that value down itself and prints it as value / 1000).
 /// </remarks>
 public class SCProtectSensitiveOperationResultPacket(byte protectSensitiveOperation, uint remainTime)
     : GamePacket(SCOffsets.SCProtectSensitiveOperationResultPacket, 1)

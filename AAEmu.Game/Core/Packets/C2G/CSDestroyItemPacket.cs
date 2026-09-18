@@ -1,8 +1,9 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Auction;
+using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 
@@ -22,6 +23,16 @@ public class CSDestroyItemPacket() : GamePacket(CSOffsets.CSDestroyItemPacket, 1
         var amount = stream.ReadUInt32();
 
         var inventory = Connection.ActiveChar.Inventory;
+
+        // Destroying is one of the three actions an account-protection window covers. The guard is inert
+        // unless feature bit 56 is on, so this is a no-op on a default server.
+        if (!SensitiveOperationGuard.MayPerform(Connection.ActiveChar,
+                Models.Game.SensitiveOperation.SensitiveOperationKind.ItemDestruction, out var protectionReason))
+        {
+            Connection.ActiveChar.SendMessage(ChatType.System, protectionReason);
+            return;
+        }
+
         Item item;
         using (inventory.AcquireMutation())
         {
