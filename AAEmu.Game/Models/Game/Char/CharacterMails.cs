@@ -16,8 +16,8 @@ public class CharacterMails
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    /// <summary>Retail mail caps, recovered from the 10.0.2 client: the send gate (FUN_39bdf190)
-    /// requires XlStringLen(title) &lt; 300 and XlStringLen(text) &lt; 400, and the wire structs cap
+    /// <summary>Retail mail caps, recovered from the 10.0.2 client: the send gate requires
+    /// XlStringLen(title) &lt; 300 and XlStringLen(text) &lt; 400, and the wire structs cap
     /// title at 0x4b0 (1200) bytes and text at 0x640 (1600) bytes. Both columns are MySQL text, so
     /// the byte caps also keep the mails-row INSERT safe.</summary>
     private const int MaxMailTitleChars = 300;
@@ -274,7 +274,7 @@ public class CharacterMails
         }
 
         // The server has no group-mail (bulk) support: the client appends a groupMoney u64, a
-        // userCount u32 and a u64 recipient list (FUN_39a965d0) when groupMail is set. Refuse cleanly
+        // userCount u32 and a u64 recipient list when groupMail is set. Refuse cleanly
         // rather than delivering only to the single named receiver.
         if (groupMail || (userList != null && userList.Count > 0))
         {
@@ -282,7 +282,7 @@ public class CharacterMails
             return MailResult.CanNotBeMailed;
         }
 
-        // The three money fields come off the wire as unsigned 64-bit values (FUN_39bdeb70 reads them
+        // The three money fields come off the wire as unsigned 64-bit values (the client reads them
         // with the u64 helper, same as the S2C mail-body money fields). Range-check before the int cast
         // below so a crafted value can neither wrap the affordability check nor overflow MailBody storage.
         //
@@ -309,7 +309,7 @@ public class CharacterMails
             return MailResult.CanNotBeMailed;
         }
 
-        // Retail caps recovered from the 10.0.2 client: the send gate (FUN_39bdf190) requires
+        // Retail caps recovered from the 10.0.2 client: the send gate requires
         // XlStringLen(title) &lt; 300 and XlStringLen(text) &lt; 400, and the wire structs cap title at
         // 1200 bytes and text at 1600 bytes. Enforce both, so a malicious packet can neither desync the
         // client's bounded-string reads nor fail the mails-row INSERT (that save tick batches every

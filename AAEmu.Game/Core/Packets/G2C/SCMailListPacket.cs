@@ -19,7 +19,7 @@ public class SCMailListPacket(bool isSent, uint total, MailHeader mail, byte mai
         stream.Write(isSent);
         stream.Write(total);
         stream.Write(mail);
-        stream.Write(mailBoxListKind); // TODO(v10): kind enum is unnamed in the binary
+        stream.Write(mailBoxListKind); // TODO(v10): kind enum is unnamed in the client
         return stream;
     }
 }

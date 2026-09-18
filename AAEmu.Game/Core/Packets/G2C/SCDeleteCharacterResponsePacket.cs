@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Client layout (read at RVA 0xC59C20), which names every field:
+/// Client layout, which names every field:
 ///
 ///   type                u64   the character id - EIGHT bytes, not four
 ///   deleteStatus        u8

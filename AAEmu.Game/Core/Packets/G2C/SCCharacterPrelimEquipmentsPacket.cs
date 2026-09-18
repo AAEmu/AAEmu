@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// <summary>
 /// SC_PACKET_CHARACTER_PRELIM_EQUIPMENTS (0x079).
 ///   u32 size; then size × { s8 EquipSlot, EquipView }.
-/// CN sniff body <c>020000000f000000001000000000</c> = size=2, slots 15/16 with empty type=0.
+/// Observed body <c>020000000f000000001000000000</c> = size=2, slots 15/16 with empty type=0.
 /// Emitting size=0 leaves the client's preliminary_equipments.lua <c>buttonStatus</c> nil and
 /// breaks the C (character info) window while inventory (I) still works.
 /// </summary>
@@ -21,7 +21,7 @@ public class SCCharacterPrelimEquipmentsPacket() : GamePacket(SCOffsets.SCCharac
         foreach (var slot in DefaultEmptySlots)
         {
             stream.Write(slot); // EquipSlot s8
-            stream.Write(0u);   // EquipView type = empty sentinel (dword_3A6ABA14 == 0)
+            stream.Write(0u);   // EquipView type = 0, the empty sentinel
         }
 
         return stream;

@@ -103,7 +103,7 @@ public class CSAesXorKeyPacket() : GamePacket(CSOffsets.CSAesXorKeyPacket, 1)
         // the character list.
         //
         // This used to name characters[0] unconditionally with success=true. The client's handler for
-        // 0x2C4 stores that id as THE represent character (RVA 0x4DD270), and its delete dialog then
+        // 0x2C4 stores that id as THE represent character, and its delete dialog then
         // refuses the first character on every account with "Must deselect as Main Character before
         // deleting." - a main character nobody had chosen, reasserted at every login. Send whoever the
         // player actually nominated instead, and success=false when that is nobody, which leaves the
