@@ -262,6 +262,25 @@ public sealed class AchievementManagerTests : SqliteTestBase
     }
 
     [Test]
+    public async Task Reset_KeepsACompletionRecordWhoseAchievementIsStillComplete()
+    {
+        // Achievement 30 watches 31's completion. After both are earned, resetting 30 must leave 31's
+        // record — a complete child never reports again, so clearing it would make 30 unearnable.
+        _character.Records.Set(ChainRecord, 3);
+        AchievementManager.Instance.RefreshAll(_character);
+        await Assert.That(_character.Achievements.IsComplete(30)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(31)).IsTrue();
+
+        await Assert.That(AchievementManager.Instance.Reset(_character, 30)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(30)).IsFalse();
+        await Assert.That(_character.Records.Get(ChainCompletionRecord)).IsEqualTo(1);
+        await Assert.That(_character.Achievements.IsComplete(31)).IsTrue();
+
+        await Assert.That(AchievementManager.Instance.RefreshAll(_character)).IsEqualTo(1);
+        await Assert.That(_character.Achievements.IsComplete(30)).IsTrue();
+    }
+
+    [Test]
     public async Task Reset_ClearsTheRecordsThatWouldOtherwisePutItStraightBack()
     {
         AchievementManager.Instance.Report(_character, HouseRecordB, 1);

@@ -27,6 +27,7 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
     /// (the parent/child chains) hear about it.
     /// </summary>
     private Dictionary<uint, uint> _completionRecords = [];
+    private Dictionary<uint, uint> _achievementByCompletionRecord = [];
 
     /// <summary>The records of each kind, so a reporter can find the counters it knows how to fill.</summary>
     private Dictionary<CharRecordKind, List<CharRecords>> _recordsByKind = [];
@@ -167,6 +168,7 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
         }
 
         _completionRecords = [];
+        _achievementByCompletionRecord = [];
         _recordsByKind = [];
         foreach (var record in _charRecords.Values)
         {
@@ -182,6 +184,7 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
                 continue;
 
             _completionRecords.TryAdd((uint)record.Value1, record.Id);
+            _achievementByCompletionRecord.TryAdd(record.Id, (uint)record.Value1);
         }
     }
 
@@ -210,4 +213,11 @@ public class AchievementGameData : Singleton<AchievementGameData>, IGameDataLoad
     /// <summary>The record that counts this achievement's completion, or 0 when the content has none.</summary>
     public uint GetCompletionRecord(uint achievementId) =>
         _completionRecords.GetValueOrDefault(achievementId);
+
+    /// <summary>
+    /// The achievement a completion record counts, or 0 when the record is not one. Reset uses this to
+    /// leave a still-complete child's record alone, so a parent that watches it can be earned again.
+    /// </summary>
+    public uint GetAchievementForCompletionRecord(uint recordId) =>
+        _achievementByCompletionRecord.GetValueOrDefault(recordId);
 }

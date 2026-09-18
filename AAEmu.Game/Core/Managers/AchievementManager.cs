@@ -240,10 +240,10 @@ public class AchievementManager : Singleton<AchievementManager>
     /// <remarks>
     /// Dropping the progress row alone would only last until the next evaluation: the records that completed
     /// the achievement still hold what they held, so the entry path's <see cref="RefreshAll"/> would put it
-    /// straight back. Clearing them is what makes the reset mean anything. A record another achievement also
-    /// watches is cleared with it, because it is one counter and this is a reset of it; a record the engine
-    /// fills from character state (level, ability level) is reported again the next time that state is
-    /// reported, which is as it should be — the character still qualifies.
+    /// straight back. Clearing them is what makes the reset mean anything. A completion record whose
+    /// achievement is still complete is kept: 674 achievements watch those, and a complete child never
+    /// reports again, so clearing it would make the parent unearnable. A record the engine fills from
+    /// character state (level, ability level) is reported again the next time that state is reported.
     /// </remarks>
     public bool Reset(Character character, uint achievementId)
     {
@@ -251,7 +251,13 @@ public class AchievementManager : Singleton<AchievementManager>
             return false;
 
         foreach (var objective in AchievementGameData.Instance.GetObjectives(achievementId))
+        {
+            var completedId = AchievementGameData.Instance.GetAchievementForCompletionRecord(objective.RecordId);
+            if (completedId != 0 && character.Achievements.IsComplete(completedId))
+                continue;
+
             character.Records.Clear(objective.RecordId);
+        }
 
         character.Achievements.Reset(achievementId);
         character.SendPacket(new SCAchievementResetedPacket(achievementId, 0));
