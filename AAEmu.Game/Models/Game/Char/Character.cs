@@ -911,6 +911,12 @@ public partial class Character : Unit, ICharacter
     public CharacterBotCheck BotCheck { get; } = new();
     public CharacterBlessUthstin BlessUthstin { get; set; } = new();
     public CharacterArchePass ArchePass { get; set; } = new();
+
+    /// <summary>The counters achievements are evaluated against (the <c>char_records</c> definitions).</summary>
+    public CharacterRecords Records { get; set; }
+
+    /// <summary>What this character has done towards the achievement list.</summary>
+    public CharacterAchievements Achievements { get; set; }
     public CharacterPortals Portals { get; set; }
     public CharacterFriends Friends { get; set; }
     public CharacterBlocked Blocked { get; set; }
@@ -2348,6 +2354,10 @@ public partial class Character : Unit, ICharacter
     {
         Expedition?.OnCharacterRefresh(this);
         SingletonContainer.ServiceProvider?.GetService<IFamilyManager>()?.OnCharacterRefresh(this);
+
+        // The level is a record the level achievements watch, so a level-up is reported like any other
+        // record once the new level is on this.Level.
+        AchievementManager.Instance.ReportLevel(this);
 
         // The passive set is re-evaluated before the vitals are refilled: a passive can carry the max
         // HP/MP bonuses those getters read, and its bonuses were snapshotted at the old ability level.
@@ -3986,6 +3996,10 @@ public partial class Character : Unit, ICharacter
             BlessUthstin = new CharacterBlessUthstin(this);
             BlessUthstin.Load(connection);
             BlessUthstin.ApplyModifiers();
+            Records = new CharacterRecords(this);
+            Records.Load(connection);
+            Achievements = new CharacterAchievements(this);
+            Achievements.Load(connection);
             ArchePass = new CharacterArchePass(this);
             ArchePass.Load(connection);
             Actability = new CharacterActability(this);
@@ -4230,6 +4244,8 @@ public partial class Character : Unit, ICharacter
             AbilitySets?.Save(connection, transaction);
             BlessUthstin?.Save(connection, transaction);
             ArchePass?.Save(connection, transaction);
+            Records?.Save(connection, transaction);
+            Achievements?.Save(connection, transaction);
             AccountAttendanceManager.Instance.SaveForAccount(AccountId, connection, transaction);
             ScheduleItemManager.Instance.SaveForAccount(AccountId, connection, transaction);
             AccountLiveWallet.SaveForAccount(AccountId, connection, transaction);
