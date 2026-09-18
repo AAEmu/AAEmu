@@ -55,6 +55,23 @@ CREATE TABLE IF NOT EXISTS `character_bless_uthstin_pages` (
   PRIMARY KEY (`owner`, `page_index`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Bless Uthstin applied stats per page';
 
+CREATE TABLE IF NOT EXISTS `character_equip_slot_reinforces` (
+  `owner` int unsigned NOT NULL,
+  `slot_type_id` tinyint unsigned NOT NULL,
+  `level` tinyint NOT NULL DEFAULT 0,
+  `exp` int NOT NULL DEFAULT 0,
+  PRIMARY KEY (`owner`, `slot_type_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Equip slot reinforcement level and exp';
+
+CREATE TABLE IF NOT EXISTS `character_equip_slot_reinforce_effects` (
+  `owner` int unsigned NOT NULL,
+  `slot_type_id` tinyint unsigned NOT NULL,
+  `level_effect_id` int unsigned NOT NULL,
+  `unit_modifier_id` int unsigned NOT NULL,
+  `applied` tinyint(1) NOT NULL DEFAULT 1,
+  PRIMARY KEY (`owner`, `slot_type_id`, `level_effect_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Artifact effect each equip slot rolled, one row per tier';
+
 CREATE TABLE IF NOT EXISTS `character_butlers` (
   `character_id` int unsigned NOT NULL,
   `house_id` int unsigned DEFAULT NULL,

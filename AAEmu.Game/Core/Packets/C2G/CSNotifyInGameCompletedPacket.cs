@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Network;
+using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -29,6 +29,11 @@ public class CSNotifyInGameCompletedPacket() : GamePacket(CSOffsets.CSNotifyInGa
             // on the loading screen (sending it from NotifyInGame produced the packets and no client
             // state change, 2026-09-16), so replay the state here, once the load has finished.
             Connection.ActiveChar.Inventory.SendItemSecurityStates();
+
+            // The reinforcement window reads one level and one bar per slot, and the per-slot packet is
+            // its only source. Replay the whole ladder here, with the load finished, for the same reason
+            // the security state is replayed here and not earlier.
+            Connection.ActiveChar.EquipSlotReinforces.SendAll();
         }
     }
 

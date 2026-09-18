@@ -1720,6 +1720,23 @@ public class Unit : BaseUnit, IUnit
             }
         }
 
+        // Artifact effects: the rows the character's equip slot reinforcement tiers handed it. They are a
+        // fourth source of the same shape as the three above (attribute, modifier type, value), and they
+        // belong to this rebuild rather than to any item, so unequipping a piece cannot take them away.
+        if (this is Character { EquipSlotReinforces: { } reinforces })
+        {
+            foreach (var modifier in reinforces.AppliedModifiers)
+            {
+                var template = new BonusTemplate
+                {
+                    Attribute = (UnitAttribute)modifier.UnitAttributeId,
+                    ModifierType = (UnitModifierType)modifier.UnitModifierTypeId,
+                    Value = modifier.Value
+                };
+                AddBonus(GearBonusesIndex, new Bonus { Template = template, Value = template.Value });
+            }
+        }
+
         // Apply Equipment Effects
         ApplyEquipEffects(itemAdded, itemRemoved);
 
