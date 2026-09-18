@@ -4,23 +4,24 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
+/// <summary>
+/// The remodel window's build-cost request. It carries a house timeline id, but the window itself always
+/// opens from the house that is already being worked on and sends <c>0xFFFF</c> instead of one — so the id
+/// is a hint, not a requirement, and a request without one is answered for that house with
+/// <c>SCRebuildHouseTaxInfoPacket</c>.
+/// </summary>
 /// <remarks>
 /// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
+/// value's name alongside the value: one u16.
 /// </remarks>
 public class CSRebuildHouseTaxInfoPacket() : GamePacket(CSOffsets.CSRebuildHouseTaxInfoPacket, 1)
 {
-    public short Tl { get; private set; }
+    public ushort Tl { get; private set; }
 
     public override void Read(PacketStream stream)
     {
+        Tl = stream.ReadUInt16();
 
-        Tl = stream.ReadInt16();
-
-        // The client uses this request after changing the tax-panel state.  Timeline IDs are
-        // allocated by HousingManager and therefore use the same lookup as the initial panel
-        // request; do not derive a database or world-object ID from this value.
-        if (Tl > 0)
-            HousingManager.Instance.HouseTaxInfo(Connection, (ushort)Tl);
+        HousingManager.Instance.HouseRebuildTaxInfo(Connection, Tl);
     }
 }

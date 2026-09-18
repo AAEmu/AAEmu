@@ -312,6 +312,7 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
             }
         }
 
+        LoadRebuildTables(connection);
     }
 
     public void PostLoad()
@@ -658,4 +659,137 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
         return _housingDecorations.FirstOrDefault(x => x.Value.DoodadId == doodadId).Value;
     }
 
+    // ---------------------------------------------------------------- rebuilds --
+
+    private readonly Dictionary<uint, HousingRebuildTarget> _rebuildTargets = [];
+    private readonly Dictionary<uint, HousingRebuildPack> _rebuildPacks = [];
+    private readonly Dictionary<uint, uint> _rebuildTargetBySkill = [];
+
+    /// <summary>
+    /// The rebuild content: what a house may be changed into, which pack offers it, what it costs. The pack a
+    /// house uses is named by <c>housings.housing_rebuilding_pack_id</c>, the start is a skill cast per target
+    /// (<c>housing_rebuildings.skill_id</c>) and the price is <c>housing_rebuilding_materials</c>.
+    /// </summary>
+    private void LoadRebuildTables(SqliteConnection connection)
+    {
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT id, name, skill_id, housing_id, labor_power FROM housing_rebuildings";
+            command.Prepare();
+            using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+            while (reader.Read())
+            {
+                var target = new HousingRebuildTarget
+                {
+                    Id = reader.GetUInt32("id"),
+                    Name = reader.GetString("name", string.Empty),
+                    SkillId = reader.GetUInt32("skill_id", 0),
+                    HousingId = reader.GetUInt32("housing_id", 0),
+                    LaborPower = reader.GetInt32("labor_power", 0)
+                };
+                _rebuildTargets[target.Id] = target;
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT id, housing_rebuilding_id, item_id, count FROM housing_rebuilding_materials";
+            command.Prepare();
+            using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+            while (reader.Read())
+            {
+                var targetId = reader.GetUInt32("housing_rebuilding_id");
+                if (_rebuildTargets.TryGetValue(targetId, out var target))
+                    target.Materials.Add(new HousingRebuildMaterial(reader.GetUInt32("item_id"), reader.GetInt32("count", 0)));
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT id, name FROM housing_rebuilding_packs";
+            command.Prepare();
+            using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+            while (reader.Read())
+            {
+                var pack = new HousingRebuildPack
+                {
+                    Id = reader.GetUInt32("id"),
+                    Name = reader.GetString("name", string.Empty)
+                };
+                _rebuildPacks[pack.Id] = pack;
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText =
+                "SELECT housing_rebuilding_pack_id, housing_rebuilding_id FROM housing_rebuilding_pack_rebuildings " +
+                "ORDER BY housing_rebuilding_pack_id, position";
+            command.Prepare();
+            using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+            while (reader.Read())
+            {
+                if (_rebuildPacks.TryGetValue(reader.GetUInt32("housing_rebuilding_pack_id"), out var pack))
+                    pack.TargetIds.Add(reader.GetUInt32("housing_rebuilding_id"));
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT id, housing_rebuilding_pack_id FROM housings";
+            command.Prepare();
+            using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+            while (reader.Read())
+            {
+                var packId = reader.GetUInt32("housing_rebuilding_pack_id", 0);
+                if (packId != 0)
+                    _rebuildPackByHousing[reader.GetUInt32("id")] = packId;
+            }
+        }
+
+        // After the packs: only what a pack offers can be rebuilt into, and a row nothing offers must not
+        // make its skill look like a remodel skill.
+        foreach (var (skillId, targetId) in HousingRebuildRules.BuildSkillIndex(
+                     _rebuildTargets.Values, _rebuildPacks.Values))
+            _rebuildTargetBySkill[skillId] = targetId;
+
+        Logger.Info("Loaded {0} housing rebuild targets in {1} packs ({2} start skills)",
+            _rebuildTargets.Count, _rebuildPacks.Count, _rebuildTargetBySkill.Count);
+    }
+
+    private readonly Dictionary<uint, uint> _rebuildPackByHousing = [];
+
+    /// <summary>The rebuild target with this id, or null.</summary>
+    public HousingRebuildTarget GetRebuildTarget(uint rebuildingId) =>
+        _rebuildTargets.GetValueOrDefault(rebuildingId);
+
+    /// <summary>
+    /// Whether this skill starts a rebuild. Several targets share one skill, so this is only a
+    /// "this cast is a remodel" test — use <see cref="GetRebuildTargetForCast"/> to name the row.
+    /// </summary>
+    public bool IsRebuildSkill(uint skillId) =>
+        skillId != 0 && _rebuildTargetBySkill.ContainsKey(skillId);
+
+    /// <summary>
+    /// The pack row Confirm asked for: the house's pack, the shared start skill, and the housing
+    /// template the extra named.
+    /// </summary>
+    public HousingRebuildTarget GetRebuildTargetForCast(uint currentHousingId, uint skillId, uint requestedHousingId) =>
+        HousingRebuildRules.PickTarget(
+            GetRebuildPackForHousing(currentHousingId),
+            _rebuildTargets.Values,
+            skillId,
+            requestedHousingId);
+
+    /// <summary>The pack with this id, or null.</summary>
+    public HousingRebuildPack GetRebuildPack(uint packId) => _rebuildPacks.GetValueOrDefault(packId);
+
+    /// <summary>Every rebuild pack, ordered by id.</summary>
+    public IEnumerable<HousingRebuildPack> GetRebuildPacks() => _rebuildPacks.Values.OrderBy(pack => pack.Id);
+
+    /// <summary>The pack a housing template uses, or null when it may not be rebuilt.</summary>
+    public HousingRebuildPack GetRebuildPackForHousing(uint housingId) =>
+        _rebuildPackByHousing.TryGetValue(housingId, out var packId) ? GetRebuildPack(packId) : null;
+
 }
+

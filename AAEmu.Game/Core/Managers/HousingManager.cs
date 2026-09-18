@@ -73,6 +73,16 @@ public class HousingManager(
     private bool _isCheckingTaxTiming;
 
     /// <summary>
+    /// The house each character is currently working on, by character id (id -> house).
+    /// </summary>
+    /// <remarks>
+    /// A house window asks for its tax panel with the house's own timeline id, but the remodel window that
+    /// opens from it asks with no id at all (0xFFFF) - it means "the house I am working on", not "no house".
+    /// Keeping the last house that answered a panel request is what lets that second window be answered.
+    /// </remarks>
+    private readonly Dictionary<uint, House> _managedHouseByCharacter = [];
+
+    /// <summary>
     /// Gets all houses for a given Account
     /// </summary>
     /// <param name="values"></param>
@@ -659,7 +669,110 @@ public class HousingManager(
         if (!_housesTl.TryGetValue(tlId, out var house))
             return;
 
+        _managedHouseByCharacter[connection.ActiveChar.Id] = house;
         SendHouseTaxInfo(connection.ActiveChar, house);
+    }
+
+    /// <summary>
+    /// Answers the remodel window's build-cost request (<c>CSRebuildHouseTaxInfoPacket</c>).
+    /// </summary>
+    /// <remarks>
+    /// The window opens with no house id (the packet carries 0xFFFF), because it is always opened from the
+    /// house whose window is already up. The reply is the remodel-tax packet for that house — not the
+    /// plaque tax panel and not a construction quote, both of which drive different windows. The owner is
+    /// also taught the pack skills the client will cast to start and finish the remodel.
+    /// </remarks>
+    public void HouseRebuildTaxInfo(GameConnection connection, ushort tlId)
+    {
+        var character = connection?.ActiveChar;
+        if (character == null)
+            return;
+
+        var house = ResolveManagedHouse(connection, tlId);
+        if (house == null)
+        {
+            Logger.Debug("Rebuild tax info for {0} names no house (tl={1}) and none is being worked on",
+                character.Name, tlId);
+            return;
+        }
+
+        _managedHouseByCharacter[character.Id] = house;
+
+        SendRebuildHouseTaxInfo(character, house);
+        GrantRebuildSkills(character, house);
+    }
+
+    /// <summary>
+    /// Pushes the remodel window's tax reply for <paramref name="house"/>. The timeline id in the body is
+    /// the house the client already has, not the 0xFFFF the request used as "the one on screen".
+    /// </summary>
+    private void SendRebuildHouseTaxInfo(Character character, House house)
+    {
+        Logger.Info("Rebuild tax reply house={0} tl={1} design={2}", house.Id, house.TlId, house.TemplateId);
+        character.SendPacket(new SCRebuildHouseTaxInfoPacket(house.TlId, 0u, []));
+    }
+
+    /// <summary>
+    /// The house a request is about: the id it names when it names one, else the house this character is
+    /// working on, else the house they are standing in front of.
+    /// </summary>
+    private House ResolveManagedHouse(GameConnection connection, ushort tlId)
+    {
+        if (HousingRebuildLanding.NamesAHouse(tlId) && _housesTl.TryGetValue(tlId, out var named))
+            return named;
+
+        if (_managedHouseByCharacter.TryGetValue(connection.ActiveChar.Id, out var managed) && managed != null)
+            return managed;
+
+        return connection.ActiveChar.CurrentTarget as House;
+    }
+
+    /// <summary>
+    /// Teaches the owner the pack's own skills if they are missing.
+    /// </summary>
+    /// <remarks>
+    /// Remodelling is a cast: the client starts the target's skill at the house and finishes the target's
+    /// completion stage with the step's skill, and both are refused by the cast path when the character does
+    /// not know them. They are house skills, not ability skills (their templates carry no ability), so the
+    /// house the character owns is what hands them over.
+    /// </remarks>
+    private void GrantRebuildSkills(Character character, House house)
+    {
+        var pack = HousingGameData.Instance.GetRebuildPackForHousing(house.TemplateId);
+        if (pack == null || house.OwnerId != character.Id)
+            return;
+
+        var targetSkills = new List<uint>();
+        var completionSkills = new List<uint>();
+        foreach (var targetId in pack.TargetIds)
+        {
+            var target = HousingGameData.Instance.GetRebuildTarget(targetId);
+            if (target == null)
+                continue;
+
+            targetSkills.Add(target.SkillId);
+
+            var template = HousingGameData.Instance.GetTemplate(target.HousingId);
+            if (template == null)
+                continue;
+
+            completionSkills.AddRange(template.BuildSteps.Values.Select(step => step.SkillId));
+        }
+
+        var required = HousingRebuildLanding.RequiredSkills(targetSkills, completionSkills);
+        foreach (var skillId in HousingRebuildLanding.MissingSkills(required, character.Skills.HasSkill))
+        {
+            var template = skillManager.GetSkillTemplate(skillId);
+            if (template == null)
+            {
+                Logger.Warn("House {0} offers rebuild skill {1}, which has no template - not taught",
+                    house.Id, skillId);
+                continue;
+            }
+
+            character.Skills.AddSkill(template, 1, true);
+            Logger.Info("Taught {0} rebuild skill {1} for house {2}", character.Name, skillId, house.Id);
+        }
     }
 
     private void SendHouseTaxInfo(Character character, House house)
@@ -1706,6 +1819,100 @@ public class HousingManager(
     /// <returns></returns>
     /// <summary>Every loaded building. Used by the recall skills to find one the caster may enter.</summary>
     public IEnumerable<House> GetAllHouses() => _houses.Values;
+
+    /// <summary>
+    /// Performs a rebuild: the house becomes the housing its target names, the materials and labor that target
+    /// costs are spent, and the changed house is announced to the players who can see it and to the Zone.
+    /// </summary>
+    /// <remarks>
+    /// The decision itself is <see cref="HousingRebuildRules.Check"/>, and a refusal changes nothing. The two
+    /// refusals the client has no message for — not the owner, and a target the house's pack does not offer —
+    /// are logged rather than answered: the rebuild window already disables its own OK button for both, so the
+    /// only way to reach them is a cast the window would not have sent.
+    /// </remarks>
+    /// <returns>True when the house was rebuilt.</returns>
+    public bool Rebuild(Character character, House house, HousingRebuildTarget target)
+    {
+        if (character?.Inventory?.Bag == null || house == null || target == null)
+            return false;
+
+        var bag = character.Inventory.Bag;
+        var bagCounts = new Dictionary<uint, int>();
+        foreach (var item in bag.Items)
+        {
+            if (item == null)
+                continue;
+            bagCounts[item.TemplateId] = bagCounts.GetValueOrDefault(item.TemplateId) + item.Count;
+        }
+
+        var pack = HousingGameData.Instance.GetRebuildPackForHousing(house.TemplateId);
+        var refusal = HousingRebuildRules.Check(house.OwnerId == character.Id, pack, target, bagCounts,
+            character.LaborPower);
+        if (refusal != HousingRebuildRefusal.None)
+        {
+            Logger.Warn("Rebuild of house {0} into target {1} refused for {2}: {3}",
+                house.Id, target.Id, character.Name, refusal);
+            switch (refusal)
+            {
+                case HousingRebuildRefusal.MissingMaterials:
+                    character.SendErrorMessage(ErrorMessageType.NotEnoughItem);
+                    break;
+                case HousingRebuildRefusal.NotEnoughLabor:
+                    character.SendErrorMessage(ErrorMessageType.NotEnoughLaborPower);
+                    break;
+            }
+
+            return false;
+        }
+
+        var newTemplate = HousingGameData.Instance.GetTemplate(target.HousingId);
+        if (newTemplate == null)
+        {
+            Logger.Error("Rebuild target {0} names housing {1}, which has no template - house {2} left unchanged",
+                target.Id, target.HousingId, house.Id);
+            return false;
+        }
+
+        foreach (var material in target.Materials)
+            bag.ConsumeItem(AAEmu.Game.Models.Game.Items.Actions.ItemTaskType.SkillEffectGainItem, material.ItemId,
+                material.Count, null);
+
+        if (target.LaborPower > 0)
+            character.ChangeLabor((short)-target.LaborPower, 0);
+
+        // A rebuilt house is not a finished one: it goes through the target's own completion stage, which is
+        // what the window promises ("Remodeled buildings must go through the Completion stage"). Landing on
+        // step 0 hands the player that action; a target with no build steps is finished outright, as it is
+        // when it is placed.
+        house.Template = newTemplate;
+        house.TemplateId = target.HousingId;
+        house.Name = localizationManager.Get("housings", "name", target.HousingId, newTemplate.Name);
+        house.NumAction = 0;
+        house.CurrentStep = HousingRebuildLanding.LandingStep(newTemplate.BuildSteps.Count);
+        house.IsDirty = true;
+        SaveHouseNow(house);
+
+        // The F construction window keys its material row by the client's house type. HouseState
+        // and build-progress update the scaffold and 0/1, but they leave that type on the old
+        // design — live, 330 with no steps, so no Blue Salt Hammer. HouseData is what create
+        // uses to name the type; UnitState carries it on the building itself.
+        character.SendPacket(new SCHouseDataPacket([house]));
+        house.BroadcastPacket(new SCUnitStatePacket(house), false);
+        house.BroadcastPacket(new SCHouseStatePacket(house), false);
+        character.SendPacket(new SCHouseBuildProgressPacket(house.TlId, house.ModelId, house.AllAction,
+            house.CurrentStep == -1 ? house.AllAction : house.CurrentAction));
+        if (WorldIntegration.ZoneAuthority)
+        {
+            HousingZoneBridge.NotifyZoneHouseCreated(house);
+            HousingZoneBridge.NotifyZoneHouseBuildState(house);
+        }
+
+        UpdateTaxInfo(house);
+
+        Logger.Info("House {0} rebuilt into target {1} (housing {2}, step {3}) by {4}",
+            house.Id, target.Id, target.HousingId, house.CurrentStep, character.Name);
+        return true;
+    }
 
     public House GetHouseById(uint houseId)
     {

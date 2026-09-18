@@ -238,6 +238,16 @@ public class SkillObjectUnk6 : SkillObject
     }
 }
 
+/// <summary>
+/// Remodel Confirm's extra: the housing template the house becomes. The CS flag byte is 7, which
+/// is also <see cref="SkillObjectType.ItemGradeEnchantingSupport"/>, so a rebuild skill reads only
+/// this u32 and keeps <see cref="SkillObjectType.None"/> for SkillStarted.
+/// </summary>
+public sealed class SkillObjectHousingRebuild : SkillObject
+{
+    public uint HousingId { get; set; }
+}
+
 public class SkillObjectItemGradeEnchantingSupport : SkillObject
 {
     public uint Id { get; set; }
