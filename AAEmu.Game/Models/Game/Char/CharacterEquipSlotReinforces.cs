@@ -49,10 +49,12 @@ public class CharacterEquipSlotReinforces
     public const uint ReplaceEffectSkillId = 38664;
 
     /// <summary>
-    /// The item Replace mode spends: the "Bound Serendipity Stone" the window's own Replace dialog names
-    /// (item 46682). The cast does not carry it, so the price is the one the client itself requires.
+    /// The <c>content_configs</c> row naming the item Replace mode spends
+    /// (<c>enum_content_configs</c> id 236, shipped value 46682, the "Bound Serendipity Stone" the window's
+    /// own Replace dialog shows). The cast does not carry the item, so this is where its price comes from,
+    /// and a row that is missing refuses the replace loudly rather than spending a guessed item.
     /// </summary>
-    private const uint ChangeEffectItemId = 46682;
+    public const string ChangeEffectItemConfigName = "equip_slot_reinforce_change_level_effect_item";
 
     public CharacterEquipSlotReinforces(Character owner)
     {
@@ -714,20 +716,29 @@ public class CharacterEquipSlotReinforces
         }
 
         // Check the price before mutating, exactly like a level-up: a refused replace changes nothing.
-        var carried = _owner.Inventory.GetItemsCount(ChangeEffectItemId);
+        if (!ContentConfigGameData.Instance.TryGetInt(ChangeEffectItemConfigName, out var changeItemId) ||
+            changeItemId <= 0)
+        {
+            Logger.Warn("Equip slot reinforce {0}: content config '{1}' is missing, so nothing can be replaced",
+                slotTypeId, ChangeEffectItemConfigName);
+            return EquipSlotReinforceChange.Refused;
+        }
+
+        var itemId = (uint)changeItemId;
+        var carried = _owner.Inventory.GetItemsCount(itemId);
         if (carried < 1)
         {
             Logger.Warn("Equip slot reinforce {0}: {1} carries no item {2} to replace with",
-                slotTypeId, _owner.Name, ChangeEffectItemId);
+                slotTypeId, _owner.Name, itemId);
             return EquipSlotReinforceChange.Refused;
         }
 
         var consumed = _owner.Inventory.ConsumeItem([SlotType.Inventory], ItemTaskType.EquipSlotReinforce,
-            ChangeEffectItemId, 1, null);
+            itemId, 1, null);
         if (consumed < 1)
         {
             Logger.Warn("Equip slot reinforce {0}: {1} consumed {2} of item {3}",
-                slotTypeId, _owner.Name, consumed, ChangeEffectItemId);
+                slotTypeId, _owner.Name, consumed, itemId);
             return EquipSlotReinforceChange.Refused;
         }
 
