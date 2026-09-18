@@ -22,11 +22,13 @@ namespace AAEmu.Game.Core.Managers;
 /// account verifies.
 /// </para>
 /// <para>
-/// Verification is the in-game second password, not a web page. The client's verification dialog opens a URL
-/// the server supplies (<c>SCSensitiveOperationVerifyUrlPacket</c> 0x291), which in retail is the publisher's
-/// account page — this stack has no such page, so that packet is deliberately never sent and the second
-/// password (feature bit 57) is the verifier instead. An account with no second password is refused a window
-/// rather than being locked out of its own items.
+/// Verification is the in-game second password (<see cref="Feature.secondpass"/>, bit 46), not a web page. The
+/// client's verification dialog opens a URL the server supplies (<c>SCSensitiveOperationVerifyUrlPacket</c>
+/// 0x291), which in retail is the publisher's account page — this stack has no such page, so that packet is
+/// deliberately never sent and <see cref="OnSecondPasswordVerified"/> is what lifts a window. Nothing the
+/// client sends moves a window: its account-protection request (CS 0x19A) is a state query, so the
+/// <c>/sensitive</c> command is the only way a window is opened outside verification. An account with no
+/// second password is refused a window rather than being locked out of its own items.
 /// </para>
 /// <para>
 /// State is per account and in memory: a window is a session-scale thing, and the World restarting clearing
@@ -40,13 +42,18 @@ public static class SensitiveOperationGuard
     private sealed class Window
     {
         public DateTime ExpiresAtUtc { get; set; }
-        public int PendingSequence { get; set; }
-        public bool HasPendingVerification { get; set; }
     }
 
     private static readonly Dictionary<uint, Window> _windows = [];
     private static readonly object _lock = new();
-    private static int _lastSequence;
+
+    /// <summary>
+    /// The clock the windows run on. Production is the system clock; the test assembly swaps in a fake one so
+    /// a countdown can be walked without sleeping.
+    /// </summary>
+    internal static TimeProvider Clock { get; set; } = TimeProvider.System;
+
+    private static DateTime UtcNow => Clock.GetUtcNow().UtcDateTime;
 
     /// <summary>Whether the guard is switched on for this stack (feature bit 56).</summary>
     public static bool IsEnabled => FeaturesManager.Fsets?.Check(Feature.sensitiveOpeartion) == true;
@@ -80,7 +87,7 @@ public static class SensitiveOperationGuard
         if (character == null || !IsEnabled)
             return;
 
-        var state = StateFor(connection.AccountId, DateTime.UtcNow);
+        var state = StateFor(connection.AccountId, UtcNow);
         character.SendPacket(new SCProtectSensitiveOperationResultPacket(
             (byte)(state.Protected ? 1 : 0), state.RemainSeconds));
     }
@@ -90,6 +97,11 @@ public static class SensitiveOperationGuard
     /// has no second password to verify with — a window nobody can lift would lock the player out of their own
     /// items, so it is never opened in that state.
     /// </summary>
+    /// <remarks>
+    /// The client cannot ask for either: its account-protection packet is a state query, and only a verified
+    /// second password (<see cref="OnSecondPasswordVerified"/>) or this method — the GM surface — moves a
+    /// window.
+    /// </remarks>
     public static bool TrySetProtection(Character character, bool protect, out string refusal)
     {
         refusal = null;
@@ -119,7 +131,7 @@ public static class SensitiveOperationGuard
             {
                 _windows[accountId] = new Window
                 {
-                    ExpiresAtUtc = DateTime.UtcNow.Add(SensitiveOperationRules.DefaultProtectionWindow)
+                    ExpiresAtUtc = UtcNow.Add(SensitiveOperationRules.DefaultProtectionWindow)
                 };
             }
         }
@@ -131,9 +143,10 @@ public static class SensitiveOperationGuard
     }
 
     /// <summary>
-    /// Whether the character may carry out <paramref name="kind"/> right now. A refusal starts (or reuses) a
-    /// verification for the account and says so in chat, because the client has no dialog of its own for this
-    /// and the second password's window is where the player can act on it.
+    /// Whether the character may carry out <paramref name="kind"/> right now. A refusal starts nothing: the
+    /// window is read, not replaced, so a blocked attempt cannot push its expiry back and hold the account
+    /// protected indefinitely. The refusal says so in chat, because the client has no dialog of its own for
+    /// this and the second password's window is where the player can act on it.
     /// </summary>
     public static bool MayPerform(Character character, SensitiveOperationKind kind, out string reason)
     {
@@ -142,50 +155,13 @@ public static class SensitiveOperationGuard
             return true;
 
         var accountId = character.Connection.AccountId;
-        var state = StateFor(accountId, DateTime.UtcNow);
+        var state = StateFor(accountId, UtcNow);
         if (SensitiveOperationRules.MayPerform(true, state.Protected, false))
             return true;
-
-        lock (_lock)
-        {
-            var sequence = SensitiveOperationRules.NextSequence(_lastSequence);
-            _lastSequence = sequence;
-            _windows[accountId] = new Window
-            {
-                ExpiresAtUtc = DateTime.UtcNow.Add(SensitiveOperationRules.DefaultProtectionWindow),
-                PendingSequence = sequence,
-                HasPendingVerification = true
-            };
-        }
 
         Logger.Info("{0} tried {1} while account {2} is protected", character.Name, kind, accountId);
         reason = "Your account is under protection: verify with your second password before this action.";
         return false;
-    }
-
-    /// <summary>
-    /// The client cancelled the verification it was shown (CS 0x19B). Only the sequence that is actually
-    /// pending clears it.
-    /// </summary>
-    public static void CancelVerification(Character character, int sequence)
-    {
-        if (character?.Connection == null)
-            return;
-
-        var accountId = character.Connection.AccountId;
-        lock (_lock)
-        {
-            if (!_windows.TryGetValue(accountId, out var window))
-                return;
-
-            if (!SensitiveOperationRules.CancelsPendingVerification(window.HasPendingVerification,
-                    window.PendingSequence, sequence))
-                return;
-
-            window.HasPendingVerification = false;
-        }
-
-        Logger.Debug("Account {0} cancelled sensitive-operation verification {1}", accountId, sequence);
     }
 
     /// <summary>
@@ -209,20 +185,13 @@ public static class SensitiveOperationGuard
             character.Name);
     }
 
-    /// <summary>Forgets an account's window (a character leaving the world).</summary>
-    public static void Clear(uint accountId)
-    {
-        lock (_lock)
-            _windows.Remove(accountId);
-    }
-
     /// <summary>The state a GM surface reports: the window and whether the guard is on at all.</summary>
     public static string Describe(Character character)
     {
         if (character?.Connection == null)
             return "no character";
 
-        var state = StateFor(character.Connection.AccountId, DateTime.UtcNow);
+        var state = StateFor(character.Connection.AccountId, UtcNow);
         var enabled = IsEnabled ? "on" : "off (feature bit 56)";
         return state.Protected
             ? $"guard {enabled}; this account is protected for another {state.RemainSeconds}s"

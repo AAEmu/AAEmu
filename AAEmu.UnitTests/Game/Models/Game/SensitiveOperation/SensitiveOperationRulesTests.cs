@@ -6,6 +6,10 @@ namespace AAEmu.UnitTests.Game.Models.Game.SensitiveOperation;
 /// The account-protection window's decisions. The one that matters most is the first: with feature bit 56 off
 /// nothing is ever held back, which is how the guard ships.
 /// </summary>
+/// <remarks>
+/// The guard that drives these decisions — the per-account windows and the two packet paths that reach them —
+/// is exercised in <c>AAEmu.UnitTests.Game.Core.Managers.SensitiveOperationGuardTests</c>.
+/// </remarks>
 public class SensitiveOperationRulesTests
 {
     [Test]
@@ -55,25 +59,6 @@ public class SensitiveOperationRulesTests
 
         await Assert.That(SensitiveOperationRules.IsExpired(now.AddSeconds(1), now)).IsFalse();
         await Assert.That(SensitiveOperationRules.IsExpired(now, now)).IsTrue();
-    }
-
-    [Test]
-    public async Task CancelsPendingVerification_OnlyClearsThePendingOne()
-    {
-        await Assert.That(SensitiveOperationRules.CancelsPendingVerification(true, 7, 7)).IsTrue();
-        await Assert.That(SensitiveOperationRules.CancelsPendingVerification(true, 7, 8)).IsFalse();
-        await Assert.That(SensitiveOperationRules.CancelsPendingVerification(false, 7, 7)).IsFalse();
-    }
-
-    [Test]
-    public async Task NextSequence_SkipsZeroAndKeepsCounting()
-    {
-        await Assert.That(SensitiveOperationRules.NextSequence(0)).IsEqualTo(1);
-        await Assert.That(SensitiveOperationRules.NextSequence(41)).IsEqualTo(42);
-
-        // Wrapping past the top of the range restarts at one rather than handing out zero or a negative,
-        // either of which the client reads as "no verification".
-        await Assert.That(SensitiveOperationRules.NextSequence(int.MaxValue)).IsEqualTo(1);
     }
 
     [Test]

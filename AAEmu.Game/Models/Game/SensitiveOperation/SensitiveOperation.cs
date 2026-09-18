@@ -49,21 +49,4 @@ public static class SensitiveOperationRules
 
     /// <summary>Whether a window has run out.</summary>
     public static bool IsExpired(DateTime expiresAtUtc, DateTime nowUtc) => nowUtc >= expiresAtUtc;
-
-    /// <summary>
-    /// Whether a cancel names the verification that is actually pending. A cancel for anything else is
-    /// ignored rather than clearing a verification the player is still looking at.
-    /// </summary>
-    public static bool CancelsPendingVerification(bool hasPending, int pendingSequence, int cancelledSequence) =>
-        hasPending && pendingSequence == cancelledSequence;
-
-    /// <summary>
-    /// The next verification sequence number. The client hands the number back when it cancels, so it must
-    /// change every time a verification starts; zero is skipped because the client treats it as "none".
-    /// </summary>
-    public static int NextSequence(int current)
-    {
-        var next = current + 1;
-        return next <= 0 ? 1 : next;
-    }
 }

@@ -10,10 +10,15 @@ namespace AAEmu.Game.Scripts.Commands;
 /// window, and going straight to "verified".
 /// </summary>
 /// <remarks>
-/// The guard itself is gated by feature bit 56, so on a default server every answer here says it is off. This
-/// command is how the bit's behaviour is driven without a second client: with the bit on, <c>protect</c> opens
-/// a window, the three sensitive actions are then refused, and <c>verify</c> lifts it the way an accepted
-/// second password does.
+/// <para>
+/// With feature bit 56 off — how the guard ships — every answer here says it is off. This command is how the
+/// bit's behaviour is driven without a second client: <c>protect</c> opens a window, the three sensitive
+/// actions are then refused, and <c>verify</c> lifts it the way an accepted second password does.
+/// </para>
+/// <para>
+/// It is also the only way a window is opened at all: the client's account-protection packet (CS 0x19A) is a
+/// state query, so no client input opens or closes one.
+/// </para>
 /// </remarks>
 public class SensitiveOperation : ICommand
 {
@@ -27,7 +32,7 @@ public class SensitiveOperation : ICommand
     public string GetCommandLineHelp() => "<state|protect|clear|verify>";
 
     public string GetCommandHelpText() =>
-        "Account-protection window: state, protect, clear, or verify as if the second password was accepted";
+        "Account-protection window: state, protect or clear (GM), or verify as if the second password was accepted";
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
