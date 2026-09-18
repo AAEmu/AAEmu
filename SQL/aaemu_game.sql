@@ -362,6 +362,14 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `bank_aa_point` bigint NOT NULL DEFAULT '0',
   `honor_point` int NOT NULL DEFAULT '0',
   `vocation_point` int NOT NULL DEFAULT '0',
+  `accumulated_leadership_point` int NOT NULL DEFAULT '0' COMMENT 'Lifetime leadership, never reset',
+  `daily_leadership_point` int unsigned NOT NULL DEFAULT '0' COMMENT 'Leadership earned since last_daily_leadership_point_time',
+  `last_daily_leadership_point_time` datetime NOT NULL DEFAULT '1970-01-01 00:00:00' COMMENT 'When the daily leadership counter last rolled over',
+  `leadership_point` int NOT NULL DEFAULT '0' COMMENT 'Current period leadership; reset by the election roll after leadership_period_point is snapshotted',
+  `leadership_period_point` int NOT NULL DEFAULT '0' COMMENT 'Previous period final leadership; Hero vote eligibility gate',
+  `mobilization_order_today_count` int NOT NULL DEFAULT '0',
+  `mobilization_order_total_count` int NOT NULL DEFAULT '0',
+  `last_mobilization_order_time` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
   `crime_point` int NOT NULL DEFAULT '0',
   `crime_record` int NOT NULL DEFAULT '0',
   `jury_point` int NOT NULL DEFAULT '0',
@@ -390,7 +398,7 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `total_play_time` int unsigned NOT NULL DEFAULT '0',
   `privacy_status` tinyint NOT NULL DEFAULT '0',
   `represent` tinyint(1) NOT NULL DEFAULT 0 COMMENT 'Is this the account main (represent) character',
-  PRIMARY KEY (`id`, `account_id`) USING BTREE
+  PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8 COLLATE = utf8_general_ci COMMENT = 'Basic player character data' ROW_FORMAT = DYNAMIC;
 
 
@@ -714,18 +722,18 @@ CREATE TABLE IF NOT EXISTS `housings` (
 -- ----------------------------
 -- Records of housings
 -- ----------------------------
-INSERT IGNORE INTO `housings` VALUES (1, 0, 0, 0, 139, 'Archeum Lodestone', 19643., 24385.4, 168.9, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (2, 0, 0, 0, 184, 'Archeum Lodestone', 19952.6, 24275.5, 140.4, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (3, 0, 0, 0, 185, 'Archeum Lodestone', 20379.4, 24126.2, 123.6, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (4, 0, 0, 0, 186, 'Archeum Lodestone', 21235.7, 23918.5, 165.0, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (5, 0, 0, 0, 187, 'Archeum Lodestone', 21449.961, 24210.300, 154.376, 0, 0, -0.205, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (6, 0, 0, 0, 188, 'Archeum Lodestone', 22048.2, 24241.1, 154.8, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (7, 0, 0, 0, 189, 'Archeum Lodestone', 19644.0, 25077.6, 164.6, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (8, 0, 0, 0, 190, 'Archeum Lodestone', 20325.6, 25174.6, 172.9, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (9, 0, 0, 0, 191, 'Archeum Lodestone', 20890.8, 25238.5, 193.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (10, 0, 0, 0, 192, 'Archeum Lodestone', 21956, 24881.7, 206.3, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (11, 0, 0, 0, 271, 'Archeum Lodestone', 23060.8, 25148.3, 142.0, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
-INSERT IGNORE INTO `housings` VALUES (12, 0, 0, 0, 272, 'Archeum Lodestone', 21800.3, 26893.9, 137.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0);
+INSERT IGNORE INTO `housings` VALUES (1, 0, 0, 0, 139, 'Archeum Lodestone', 19643., 24385.4, 168.9, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, 1);
+INSERT IGNORE INTO `housings` VALUES (2, 0, 0, 0, 184, 'Archeum Lodestone', 19952.6, 24275.5, 140.4, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, 1);
+INSERT IGNORE INTO `housings` VALUES (3, 0, 0, 0, 185, 'Archeum Lodestone', 20379.4, 24126.2, 123.6, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, 1);
+INSERT IGNORE INTO `housings` VALUES (4, 0, 0, 0, 186, 'Archeum Lodestone', 21235.7, 23918.5, 165.0, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, 1);
+INSERT IGNORE INTO `housings` VALUES (5, 0, 0, 0, 187, 'Archeum Lodestone', 21449.961, 24210.300, 154.376, 0, 0, -0.205, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, 1);
+INSERT IGNORE INTO `housings` VALUES (6, 0, 0, 0, 188, 'Archeum Lodestone', 22048.2, 24241.1, 154.8, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, 1);
+INSERT IGNORE INTO `housings` VALUES (7, 0, 0, 0, 189, 'Archeum Lodestone', 19644.0, 25077.6, 164.6, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, 1);
+INSERT IGNORE INTO `housings` VALUES (8, 0, 0, 0, 190, 'Archeum Lodestone', 20325.6, 25174.6, 172.9, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, 1);
+INSERT IGNORE INTO `housings` VALUES (9, 0, 0, 0, 191, 'Archeum Lodestone', 20890.8, 25238.5, 193.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, 1);
+INSERT IGNORE INTO `housings` VALUES (10, 0, 0, 0, 192, 'Archeum Lodestone', 21956, 24881.7, 206.3, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, 1);
+INSERT IGNORE INTO `housings` VALUES (11, 0, 0, 0, 271, 'Archeum Lodestone', 23060.8, 25148.3, 142.0, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, 1);
+INSERT IGNORE INTO `housings` VALUES (12, 0, 0, 0, 272, 'Archeum Lodestone', 21800.3, 26893.9, 137.7, 0, 0, 0, 0, 0, 0, '0001-01-01 00:00:00', '2043-03-03 00:00:00', 2, 0, 0, 0, 1);
 
 CREATE TABLE IF NOT EXISTS `items` (
   `id` bigint unsigned NOT NULL,
@@ -1139,34 +1147,252 @@ COLLATE='utf8mb4_general_ci'
 ENGINE=InnoDB
 ;
 
+-- Tables and final column shapes synchronized from SQL/updates (aaemu_game only).
 
--- ----------------------------
--- Table structure for character_records
--- ----------------------------
-DROP TABLE IF EXISTS `character_records`;
+CREATE TABLE IF NOT EXISTS `account_attributes` (
+  `account_id` int unsigned NOT NULL,
+  `kind_id` int unsigned NOT NULL,
+  `kind_value` int unsigned NOT NULL DEFAULT 0,
+  `world_id` int unsigned NOT NULL DEFAULT 0,
+  `count` int NOT NULL DEFAULT 0,
+  `starts` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `expires` datetime NOT NULL DEFAULT '9999-12-31 23:59:59',
+  PRIMARY KEY (`account_id`, `kind_id`, `kind_value`, `world_id`),
+  KEY `idx_account_attributes_account` (`account_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE IF NOT EXISTS `character_today_assignments` (
+  `owner` int unsigned NOT NULL,
+  `real_step` int unsigned NOT NULL,
+  `group_id` int unsigned NOT NULL DEFAULT 0,
+  `quest_context_id` int unsigned NOT NULL DEFAULT 0,
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT '1=Ready 2=Progress 3=Done (A_TODAY_STATUS)',
+  `day_key` date NOT NULL,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`owner`, `real_step`),
+  KEY `idx_owner_day` (`owner`, `day_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `character_today_reset_counts` (
+  `owner` int unsigned NOT NULL,
+  `day_key` date NOT NULL,
+  `resets_used` tinyint unsigned NOT NULL DEFAULT 0,
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`owner`),
+  KEY `idx_day` (`day_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `character_today_step_unlocks` (
+  `owner` int unsigned NOT NULL,
+  `real_step` int unsigned NOT NULL,
+  `unlocked_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`owner`, `real_step`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `dominion_locked_zones` (
+  `zone_id` smallint unsigned NOT NULL COMMENT 'zone_group_id the castle system is locked for',
+  `locked_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`zone_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Zone groups where new Dominion/castle claims are currently blocked by a GM';
+
+CREATE TABLE IF NOT EXISTS `dominions` (
+  `zone_id` smallint unsigned NOT NULL COMMENT 'zone_group_id the dominion belongs to; one claim per zone group',
+  `expedition_id` int unsigned NOT NULL COMMENT 'owning Expedition (guild alliance)',
+  `faction_id` int unsigned NOT NULL DEFAULT '0',
+  `house` int unsigned NOT NULL COMMENT 'lodestone House.Id the claim was declared on',
+  `guard_tower_setting_id` int unsigned NOT NULL DEFAULT '0' COMMENT 'guard_tower_settings.id used to resolve TerritoryData on load',
+  `guard_tower_step` tinyint unsigned NOT NULL DEFAULT '0',
+  `castle_tier` tinyint unsigned NOT NULL DEFAULT '0',
+  `tax_rate` int NOT NULL DEFAULT '0',
+  `x` float NOT NULL DEFAULT '0',
+  `y` float NOT NULL DEFAULT '0',
+  `z` float NOT NULL DEFAULT '0',
+  `cur_house_tax_money` int NOT NULL DEFAULT '0',
+  `cur_hunt_tax_money` int NOT NULL DEFAULT '0',
+  `peace_tax_money` int NOT NULL DEFAULT '0',
+  `cur_house_tax_aa_point` int NOT NULL DEFAULT '0',
+  `peace_tax_aa_point` int NOT NULL DEFAULT '0',
+  `last_paid_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_siege_end_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `reign_start_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_tax_rate_changed_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `siege_period` tinyint unsigned NOT NULL DEFAULT '0' COMMENT 'enum_siege_periods id; owned here until SiegeManager exists',
+  `non_pvp_start` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `non_pvp_duration` smallint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`zone_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Live Dominion/Castle claim state, one row per claimed zone group';
+
+CREATE TABLE IF NOT EXISTS `guild_dominions` (
+  `zone_id` smallint unsigned NOT NULL COMMENT 'zone_group_id; one claim per zone group',
+  `expedition_id` int unsigned NOT NULL COMMENT 'owning Expedition',
+  `house` int unsigned NOT NULL COMMENT 'lodestone House.Id the claim was declared on',
+  `guard_tower_setting_id` int unsigned NOT NULL DEFAULT '0',
+  `guard_tower_step` tinyint unsigned NOT NULL DEFAULT '0',
+  `castle_tier` tinyint unsigned NOT NULL DEFAULT '0',
+  `tax_rate` int NOT NULL DEFAULT '0',
+  `x` float NOT NULL DEFAULT '0',
+  `y` float NOT NULL DEFAULT '0',
+  `z` float NOT NULL DEFAULT '0',
+  `cur_house_tax_money` int NOT NULL DEFAULT '0',
+  `cur_hunt_tax_money` int NOT NULL DEFAULT '0',
+  `peace_tax_money` int NOT NULL DEFAULT '0',
+  `cur_house_tax_aa_point` int NOT NULL DEFAULT '0',
+  `peace_tax_aa_point` int NOT NULL DEFAULT '0',
+  `last_paid_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_siege_end_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `reign_start_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `last_tax_rate_changed_time` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `siege_period` tinyint unsigned NOT NULL DEFAULT '0',
+  `non_pvp_start` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `non_pvp_duration` smallint unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`zone_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Guild castle claim state for zone groups without a siege schedule';
+
+CREATE TABLE IF NOT EXISTS `hero_candidates` (
+  `cycle_id` int unsigned NOT NULL COMMENT 'heros.id',
+  `faction_id` int unsigned NOT NULL,
+  `character_id` int unsigned NOT NULL,
+  `leadership_point_at_ranking` int NOT NULL DEFAULT '0' COMMENT 'snapshotted when the candidate list was computed, for the reward-ranking tie-break',
+  `votes` int unsigned NOT NULL DEFAULT '0',
+  `abstained` tinyint(1) NOT NULL DEFAULT '0',
+  `elected` tinyint(1) NOT NULL DEFAULT '0',
+  `candidate_mail_sent` tinyint(1) NOT NULL DEFAULT '1',
+  `reward_mail_sent` tinyint(1) NOT NULL DEFAULT '1',
+  PRIMARY KEY (`cycle_id`, `faction_id`, `character_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Hero election candidates per cycle/faction';
+
+CREATE TABLE IF NOT EXISTS `hero_votes` (
+  `cycle_id` int unsigned NOT NULL,
+  `faction_id` int unsigned NOT NULL,
+  `voter_character_id` int unsigned NOT NULL,
+  `candidate_character_id` int unsigned NOT NULL,
+  PRIMARY KEY (`cycle_id`, `faction_id`, `voter_character_id`, `candidate_character_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Hero election votes cast per cycle/faction';
+
+CREATE TABLE IF NOT EXISTS `hero_dominion_point_gives` (
+  `id` int unsigned NOT NULL AUTO_INCREMENT,
+  `character_id` int unsigned NOT NULL,
+  `zone_group_id` int unsigned NOT NULL,
+  `points` int NOT NULL,
+  `given_at` datetime NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_hero_dominion_point_gives_character` (`character_id`, `given_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `hero_bonus_claims` (
+  `character_id` int unsigned NOT NULL,
+  `cycle_id` int unsigned NOT NULL,
+  `claimed_at` datetime NOT NULL,
+  PRIMARY KEY (`character_id`, `cycle_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `hero_period_resets` (
+  `cycle_id` int unsigned NOT NULL COMMENT 'heros.id',
+  `reset_at` datetime NOT NULL,
+  PRIMARY KEY (`cycle_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Idempotency marker for per-cycle leadership_point_period resets';
+
+CREATE TABLE IF NOT EXISTS `world_doodad_phases` (
+  `template_id` int unsigned NOT NULL,
+  `x` int NOT NULL,
+  `y` int NOT NULL,
+  `func_group_id` int unsigned NOT NULL,
+  `data` int NOT NULL DEFAULT '0',
+  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`template_id`, `x`, `y`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `character_hero_bonus_progress` (
+  `character_id` int unsigned NOT NULL,
+  `today_quest_step_id` int unsigned NOT NULL,
+  `count` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`character_id`, `today_quest_step_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `character_game_point_totals` (
+  `character_id` int unsigned NOT NULL COMMENT 'Character id',
+  `point_kind` tinyint unsigned NOT NULL COMMENT 'game_point_rank_details.game_point_kind: 0 experience, 1 honor, 2 living point, 3 labour',
+  `point_method` tinyint unsigned NOT NULL COMMENT 'game_point_rank_details.game_point_method: 0 gained, 1 spent',
+  `period_start` datetime NOT NULL COMMENT 'The ranking window the total is counted in',
+  `account_id` int unsigned NOT NULL DEFAULT 0 COMMENT 'The holder''s account, so the board can name them',
+  `world_id` tinyint unsigned NOT NULL DEFAULT 0 COMMENT 'The server the holder was last seen on',
+  `total` bigint NOT NULL DEFAULT 0 COMMENT 'The amount gained or spent in that window',
+  `updated_at` datetime NOT NULL COMMENT 'When the total was last written',
+  PRIMARY KEY (`character_id`, `point_kind`, `point_method`, `period_start`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='What a character gained or spent in a ranking window, for the boards that rank a period''s total';
+
+CREATE TABLE IF NOT EXISTS `character_rank_scores` (
+  `rank_id` int unsigned NOT NULL COMMENT 'Board id from ranks',
+  `holder_kind` tinyint unsigned NOT NULL COMMENT '0 character, 1 expedition',
+  `holder_id` bigint unsigned NOT NULL COMMENT 'Character id or expedition id',
+  `period_start` datetime NOT NULL COMMENT 'The window the value was counted in',
+  `account_id` int unsigned NOT NULL DEFAULT 0,
+  `world_id` tinyint unsigned NOT NULL DEFAULT 0 COMMENT 'The server the holder was last seen on',
+  `value` bigint NOT NULL DEFAULT 0 COMMENT 'The figure the board orders by',
+  `bare_value` bigint NOT NULL DEFAULT 0 COMMENT 'The second figure the window shows',
+  `sub_data` varbinary(24) DEFAULT NULL COMMENT 'The line''s own detail block as the client reads it (kind byte and payload), or NULL when the board carries none',
+  `updated_at` datetime NOT NULL COMMENT 'When the value was last written',
+  PRIMARY KEY (`rank_id`, `holder_kind`, `holder_id`, `period_start`) USING BTREE,
+  KEY `ix_rank_scores_board` (`rank_id`, `period_start`, `value`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Ranking board values, one row per holder per board per window; read by the ranking window so offline holders are on the board';
+
+CREATE TABLE IF NOT EXISTS `rank_period_payouts` (
+  `rank_id` int unsigned NOT NULL COMMENT 'Board whose window was paid',
+  `period_start` datetime NOT NULL COMMENT 'The window that was paid out',
+  `paid_at` datetime NOT NULL COMMENT 'When the row was paid, so a restart does not pay it twice',
+  PRIMARY KEY (`rank_id`, `period_start`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Ranking windows that have been paid out; the standings themselves stay in character_rank_scores';
+
+CREATE TABLE IF NOT EXISTS `account_second_passwords` (
+  `account_id` int unsigned NOT NULL COMMENT 'Account the password belongs to',
+  `salt` varchar(64) NOT NULL COMMENT 'Base64 per-password salt the key was derived with',
+  `hash` varchar(128) NOT NULL COMMENT 'Base64 PBKDF2-SHA256 derived key, never the password',
+  `failed_count` int NOT NULL DEFAULT 0 COMMENT 'Wrong answers accumulated, reset on a correct one',
+  `updated_at` datetime NOT NULL COMMENT 'When the row was last written',
+  PRIMARY KEY (`account_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Account second passwords; the actions they guard outlive a World process, so they are kept here';
+
+CREATE TABLE IF NOT EXISTS `character_rank_records` (
+  `character_id` int unsigned NOT NULL COMMENT 'Character the record belongs to',
+  `record_kind` tinyint unsigned NOT NULL COMMENT 'RankRecordKind: 1 the longest fish of the window, 2 what the window''s fish weighed together',
+  `period_start` datetime NOT NULL COMMENT 'The ranking window the record is counted in',
+  `value` bigint NOT NULL DEFAULT 0 COMMENT 'The figure the board ranks: the best of the window, or its total',
+  `recorded_at` datetime NOT NULL COMMENT 'When the figure was recorded, which is what the window shows for a catch',
+  `account_id` int unsigned NOT NULL DEFAULT 0 COMMENT 'The holder''s account, so the board can name them',
+  `world_id` tinyint unsigned NOT NULL DEFAULT 0 COMMENT 'The server the holder was last seen on',
+  `updated_at` datetime NOT NULL COMMENT 'When the record was last written',
+  PRIMARY KEY (`character_id`, `record_kind`, `period_start`) USING BTREE,
+  KEY `ix_rank_records_board` (`record_kind`, `period_start`, `value`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='What a character caught or handed in during a ranking window, for the boards that rank a record rather than a figure held now';
+
+CREATE TABLE IF NOT EXISTS `siege_raid_team_members` (
+  `zone_id` smallint unsigned NOT NULL COMMENT 'zone_group_id, matches dominions/siege_zones',
+  `character_id` int unsigned NOT NULL,
+  `is_offense` tinyint(1) NOT NULL DEFAULT '0',
+  `registered_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`zone_id`, `character_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Siege raid-team registration per zone group';
+
+CREATE TABLE IF NOT EXISTS `siege_scores` (
+  `zone_id` smallint unsigned NOT NULL,
+  `outlaw_point` int unsigned NOT NULL DEFAULT '0',
+  `defense_point` int unsigned NOT NULL DEFAULT '0',
+  `offense_point` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`zone_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Live siege score counters per zone group, reset each siege cycle';
+
 CREATE TABLE IF NOT EXISTS `character_records` (
-	`owner` INT UNSIGNED NOT NULL,
-	`record_id` INT UNSIGNED NOT NULL,
-	`value` INT NOT NULL DEFAULT '0',
-	PRIMARY KEY (`owner`, `record_id`) USING BTREE
-)
-COMMENT='Per-character value of each char_records counter'
-COLLATE='utf8mb4_general_ci'
-ENGINE=InnoDB
-;
+  `owner` int unsigned NOT NULL,
+  `record_id` int unsigned NOT NULL,
+  `value` int NOT NULL DEFAULT 0,
+  PRIMARY KEY (`owner`, `record_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Per-character value of each char_records counter';
 
--- ----------------------------
--- Table structure for character_achievements
--- ----------------------------
-DROP TABLE IF EXISTS `character_achievements`;
 CREATE TABLE IF NOT EXISTS `character_achievements` (
-	`owner` INT UNSIGNED NOT NULL,
-	`achievement_id` INT UNSIGNED NOT NULL,
-	`amount` INT NOT NULL DEFAULT '0',
-	`completed_at` DATETIME NULL DEFAULT NULL,
-	PRIMARY KEY (`owner`, `achievement_id`) USING BTREE
-)
-COMMENT='Achievement progress and completion per character'
-COLLATE='utf8mb4_general_ci'
-ENGINE=InnoDB
-;
+  `owner` int unsigned NOT NULL,
+  `achievement_id` int unsigned NOT NULL,
+  `amount` int NOT NULL DEFAULT 0,
+  `completed_at` datetime NULL DEFAULT NULL,
+  PRIMARY KEY (`owner`, `achievement_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Achievement progress and completion per character';
