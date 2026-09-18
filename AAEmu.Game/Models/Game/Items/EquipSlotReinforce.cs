@@ -42,7 +42,10 @@ public class EquipSlotReinforceMaterial
     public byte RequireLevel { get; set; }
     public int GainExp { get; set; }
 
-    /// <summary>Currency the feeding charges, and how much of it. Zero means the feeding is free.</summary>
+    /// <summary>
+    /// Currency the feeding charges (<see cref="ContentCurrencyType"/>; 0 is gold) and how much of it.
+    /// <see cref="CurrencyValue"/> 0 means the feeding is free.
+    /// </summary>
     public uint CurrencyId { get; set; }
 
     public int CurrencyValue { get; set; }

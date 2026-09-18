@@ -50,6 +50,7 @@ public class EquipSlotReinforceRulesTests
         // A bar that is full for a different level is not a level-up.
         await Assert.That(EquipSlotReinforceRules.CanLevelUp(1, 5000, next)).IsFalse();
         await Assert.That(EquipSlotReinforceRules.CanLevelUp(2, 1200, null)).IsFalse();
+        await Assert.That(EquipSlotReinforceRules.CanLevelUp(9, 0, Step(10, 0))).IsFalse();
     }
 
     [Test]
@@ -60,6 +61,15 @@ public class EquipSlotReinforceRulesTests
         await Assert.That(EquipSlotReinforceRules.NextStep(0, ladder)?.NeedExp).IsEqualTo(200);
         await Assert.That(EquipSlotReinforceRules.NextStep(2, ladder)?.NeedExp).IsEqualTo(1200);
         await Assert.That(EquipSlotReinforceRules.NextStep(3, ladder)).IsNull();
+    }
+
+    [Test]
+    public async Task DisplayLevel_IsOneMoreThanReached_ClampedToTheLadderTop()
+    {
+        await Assert.That(EquipSlotReinforceRules.DisplayLevel(0, 10)).IsEqualTo(1);
+        await Assert.That(EquipSlotReinforceRules.DisplayLevel(9, 10)).IsEqualTo(10);
+        await Assert.That(EquipSlotReinforceRules.DisplayLevel(10, 10)).IsEqualTo(10);
+        await Assert.That(EquipSlotReinforceRules.DisplayLevel(3, 4)).IsEqualTo(4);
     }
 
     [Test]
@@ -74,11 +84,11 @@ public class EquipSlotReinforceRulesTests
             _ => null
         };
 
-        await Assert.That(EquipSlotReinforceRules.AttributeTotal(EquipSlotReinforceAttribute.Offence, states, AttributeOf))
-            .IsEqualTo(10);
-        await Assert.That(EquipSlotReinforceRules.AttributeTotal(EquipSlotReinforceAttribute.Defence, states, AttributeOf))
-            .IsEqualTo(3);
-        await Assert.That(EquipSlotReinforceRules.AttributeTotal(EquipSlotReinforceAttribute.Support, states, AttributeOf))
+        await Assert.That(EquipSlotReinforceRules.AttributeTotal(EquipSlotReinforceAttribute.Offence, states, AttributeOf, _ => 10))
+            .IsEqualTo(12);
+        await Assert.That(EquipSlotReinforceRules.AttributeTotal(EquipSlotReinforceAttribute.Defence, states, AttributeOf, _ => 10))
+            .IsEqualTo(4);
+        await Assert.That(EquipSlotReinforceRules.AttributeTotal(EquipSlotReinforceAttribute.Support, states, AttributeOf, _ => 4))
             .IsEqualTo(0);
     }
 
@@ -90,8 +100,8 @@ public class EquipSlotReinforceRulesTests
         EquipSlotReinforceAttribute? AttributeOf(byte slot) =>
             slot == 15 ? EquipSlotReinforceAttribute.Offence : null;
 
-        await Assert.That(EquipSlotReinforceRules.AttributeTotal(EquipSlotReinforceAttribute.Offence, states, AttributeOf))
-            .IsEqualTo(4);
+        await Assert.That(EquipSlotReinforceRules.AttributeTotal(EquipSlotReinforceAttribute.Offence, states, AttributeOf, _ => 10))
+            .IsEqualTo(5);
     }
 
     [Test]

@@ -51,6 +51,10 @@ public static class EquipSlotReinforceRules
         if (nextStep == null)
             return false;
 
+        // The top row of every ladder ships need_exp 0: it is the cap, not a step that can be taken.
+        if (nextStep.NeedExp <= 0)
+            return false;
+
         return level + 1 == nextStep.Level && exp >= nextStep.NeedExp;
     }
 
@@ -136,10 +140,25 @@ public static class EquipSlotReinforceRules
         return null;
     }
 
-    /// <summary>Total reinforcement level across every slot that belongs to one attribute.</summary>
+    /// <summary>
+    /// The level the client shows and indexes its materials by: one more than the steps taken, clamped
+    /// to the ladder's last row. Bundle thresholds 30/70/24 are 3×10, 7×10 and 6×4 in that space.
+    /// </summary>
+    public static int DisplayLevel(sbyte reachedLevel, int ladderTopLevel)
+    {
+        var shown = reachedLevel + 1;
+        if (shown < 0)
+            return 0;
+        if (ladderTopLevel > 0 && shown > ladderTopLevel)
+            return ladderTopLevel;
+        return shown;
+    }
+
+    /// <summary>Total displayed reinforcement level across every slot that belongs to one attribute.</summary>
     public static int AttributeTotal(EquipSlotReinforceAttribute attribute,
         IEnumerable<EquipSlotReinforceState> states,
-        Func<byte, EquipSlotReinforceAttribute?> attributeOfSlot)
+        Func<byte, EquipSlotReinforceAttribute?> attributeOfSlot,
+        Func<byte, int> ladderTopLevel = null)
     {
         if (states == null || attributeOfSlot == null)
             return 0;
@@ -150,7 +169,7 @@ public static class EquipSlotReinforceRules
             if (state == null || attributeOfSlot(state.SlotTypeId) != attribute)
                 continue;
 
-            total += state.Level;
+            total += DisplayLevel(state.Level, ladderTopLevel?.Invoke(state.SlotTypeId) ?? 0);
         }
 
         return total;

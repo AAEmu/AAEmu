@@ -784,8 +784,9 @@ public class CharacterEquipSlotReinforces
     /// <summary>
     /// Banks a feed into a slot's bar, spending the material the request names. The material row picks an
     /// item set and the set's members are the alternatives that pay for it, so a character holding any one
-    /// of them in full can feed; the row's own currency column is not wired and refuses rather than
-    /// guessing.
+    /// of them in full can feed. Every shipped row also charges gold (<c>currency_id</c> 0) at
+    /// <c>currency_value</c>; both the gold and the item are taken together, and a full bar is refused
+    /// before either is spent.
     /// </summary>
     public EquipSlotReinforceChange Feed(byte slotTypeId, int materialIndex)
     {
@@ -798,7 +799,7 @@ public class CharacterEquipSlotReinforces
         {
             var state = GetOrCreate(slotTypeId);
             var next = EquipSlotReinforceRules.NextStep(state.Level, ladder);
-            if (next == null)
+            if (next == null || next.NeedExp <= 0)
                 return EquipSlotReinforceChange.Refused;
 
             var materials = EquipSlotReinforceGameData.Instance.Materials(slotTypeId, next.Level);
@@ -810,12 +811,8 @@ public class CharacterEquipSlotReinforces
             }
 
             var material = materials[materialIndex];
-            if (material.CurrencyId != 0)
-            {
-                Logger.Warn("Equip slot reinforce {0}: material {1} charges currency {2}, which is not wired",
-                    slotTypeId, material.Id, material.CurrencyId);
+            if (EquipSlotReinforceRules.ExpAccepted(state.Exp, next.NeedExp, material.GainExp) <= 0)
                 return EquipSlotReinforceChange.Refused;
-            }
 
             var itemSet = ItemManager.Instance.GetItemSet(material.NeedMaterialItemSetId);
             if (itemSet == null)
@@ -833,6 +830,11 @@ public class CharacterEquipSlotReinforces
                     slotTypeId, _owner.Name, material.NeedMaterialItemSetId);
                 return EquipSlotReinforceChange.Refused;
             }
+
+            if (material.CurrencyValue > 0 &&
+                !_owner.TryPayCurrency(material.CurrencyId, material.CurrencyValue, false,
+                    ItemTaskType.EquipSlotReinforce))
+                return EquipSlotReinforceChange.Refused;
 
             var consumed = _owner.Inventory.ConsumeItem([SlotType.Inventory], ItemTaskType.EquipSlotReinforce,
                 pick.Value.ItemId, pick.Value.Count, null);
@@ -1005,7 +1007,12 @@ public class CharacterEquipSlotReinforces
     public int AttributeTotal(EquipSlotReinforceAttribute attribute)
     {
         return EquipSlotReinforceRules.AttributeTotal(attribute, States,
-            slot => EquipSlotReinforceGameData.Instance.AttributeOf(slot));
+            slot => EquipSlotReinforceGameData.Instance.AttributeOf(slot),
+            slot =>
+            {
+                var ladder = EquipSlotReinforceGameData.Instance.Ladder(slot);
+                return ladder.Count == 0 ? 0 : ladder[^1].Level;
+            });
     }
 
     /// <summary>Highest set effect level the attribute totals have unlocked.</summary>
