@@ -8,8 +8,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// request tuple, followed by the durable farmhand item id and a raw ErrorMessage value.
 /// </summary>
 /// <remarks>
-/// Opcode and 14-byte body are from 10.0.2.13 FUN_39C76300/FUN_39CDDD60. The success handler is a
-/// no-op; failures use this echoed tuple to release both reserved locations.
+/// Opcode and 14-byte body are the 10.0.2.13 client's own item-swap packet layout. The success
+/// handler is a no-op; failures use this echoed tuple to release both reserved locations.
 /// </remarks>
 public sealed class SCButlerItemSwappedPacket(
     byte bagType,

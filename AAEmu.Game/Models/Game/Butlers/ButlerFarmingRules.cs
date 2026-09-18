@@ -104,7 +104,7 @@ public static class ButlerFarmingRules
         new(costs.GardenSize, costs.IsUnderWater, 0, 0, 0);
 
     /// <summary>
-    /// Calculates the client's displayed cycle length. FUN_3918EA10 rounds adjusted growth
+    /// Calculates the client's displayed cycle length: it rounds adjusted growth
     /// milliseconds, divides by 1000, then compares the resulting seconds to updateTime.
     /// </summary>
     public static bool TryCalculateCycleSeconds(

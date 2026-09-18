@@ -79,7 +79,8 @@ public interface IButlerFarmingAdmissionResolver
 /// </summary>
 public sealed class ButlerFarmingService
 {
-    // SCButlerInfoUpdated key 2 is applied by client FUN_390CF570 as harvestSlot.
+    // The client applies this permanent-data key as harvestSlot in its SCButlerInfoUpdated
+    // handler when updatedFlags carries the permanent-datas bit.
     public const sbyte HarvestSlotExpansionPermanentDataKey = 2;
 
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();

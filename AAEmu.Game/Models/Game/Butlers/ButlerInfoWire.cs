@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Items;
 namespace AAEmu.Game.Models.Game.Butlers;
 
 /// <summary>
-/// The nested Butler state emitted by the 10.0.2.13 client serializer <c>FUN_39CD7A80</c>.
+/// The nested Butler state the 10.0.2.13 client's Butler state serializer writes and reads back.
 /// Collection lengths and the equipment valid-flags word are derived when written so callers
 /// cannot publish mismatched metadata.
 /// </summary>
@@ -25,7 +25,7 @@ public sealed record ButlerInfoWire(
     IReadOnlyDictionary<uint, uint> UnitAttributes)
 {
     /// <summary>
-    /// Builds the exact zero-collection form accepted by <c>FUN_39CD7A80</c>. Scalar values are
+    /// Builds the exact zero-collection form the client's Butler state serializer accepts. Scalar values are
     /// supplied by the authoritative character and bound-house state; this factory does not infer them.
     /// </summary>
     public static ButlerInfoWire Empty(
@@ -119,14 +119,15 @@ public sealed record ButlerInfoWire(
 }
 
 /// <summary>
-/// Farmhand actability payload in <c>FUN_39AA47B0</c>: PISC group/point, then signed 16-bit stat.
-/// Native evidence at <c>0x390CDEA0..0x390CDEBB</c> and <c>FUN_39CEE000</c> identifies the
-/// group key and the distinct point/stat values.
+/// Farmhand actability payload: PISC group/point, then signed 16-bit stat. The group key and
+/// the distinct point/stat values are read straight from the client's own actability
+/// serialization rather than inferred from the field widths.
 /// </summary>
 public readonly record struct ButlerActabilityWire(uint GroupId, uint Point, short Stat);
 
 /// <summary>
-/// Value following each raw signed 64-bit harvest-data key in <c>FUN_39AAAC00</c>.
+/// Value following each raw signed 64-bit harvest-data key in the client's harvest-data
+/// serializer.
 /// </summary>
 public readonly record struct ButlerHarvestDataWire(
     uint HarvestId,
@@ -146,7 +147,8 @@ public readonly record struct ButlerHarvestDataWire(
 }
 
 /// <summary>
-/// Value following each raw signed 64-bit specialty-trade-data key in <c>FUN_39AAACA0</c>.
+/// Value following each raw signed 64-bit specialty-trade-data key in the client's
+/// specialty-trade serializer.
 /// </summary>
 public readonly record struct ButlerSpecialtyTradeDataWire(
     uint SpecialtyType,
