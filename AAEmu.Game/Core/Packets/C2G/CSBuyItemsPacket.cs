@@ -58,7 +58,15 @@ public class CSBuyItemsPacket() : GamePacket(CSOffsets.CSBuyItemsPacket, 1)
             npcObjId, doodadObjId, shopType, buyCount, buybackCount, useAaPoint, openType);
 
         var pack = ResolveMerchantPack(character, npcObjId, doodadObjId);
-        if (pack == null || shopType != (uint)pack.Kind)
+        if (pack == null)
+            return;
+
+        // The 10.0.2.13 client always sends shopType 0 here (observed for gold, honor and vocation
+        // packs alike) - it does not carry the server's MerchantPackKind. Requiring equality made every
+        // non-gold vendor silently reject the purchase with no error and no debit. The pack itself is
+        // already resolved from the NPC the character is standing next to, and each requested good is
+        // still validated against the pack's own currency below, so drop the mismatched comparison.
+        if (shopType != 0 && shopType != (uint)pack.Kind)
             return;
 
         var purchases = new List<Purchase>(requestedGoods.Count);

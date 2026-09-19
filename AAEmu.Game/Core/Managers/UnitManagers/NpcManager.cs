@@ -1127,7 +1127,20 @@ public class NpcManager(
                             continue;
 
                         var itemId = reader.GetUInt32("item_id");
+                        // The client always buys at the grade it resolved locally: items.fixed_grade when the
+                        // template carries one, and grade 0 for anything that cannot be graded. The zone and
+                        // the client DBs disagree with this on many rows (livestock pack 190, most of the
+                        // vocation pack 164 and honor pack 192 - e.g. item 42314 is non-gradable yet the
+                        // row says grade 1), so shop stock loaded from the raw merchant_goods.grade_id never
+                        // matches the request and the purchase silently does nothing. Resolve the stored
+                        // grade the same way the client does; gradable items keep their row grade.
                         var grade = reader.GetByte("grade_id");
+                        if (itemManager.GetTemplate(itemId) is { } shopTemplate)
+                        {
+                            grade = shopTemplate.FixedGrade >= 0
+                                ? (byte)shopTemplate.FixedGrade
+                                : shopTemplate.Gradable ? grade : (byte)0;
+                        }
                         var currency = pack.Kind switch
                         {
                             MerchantPackKind.Money => ShopCurrencyType.Money,
