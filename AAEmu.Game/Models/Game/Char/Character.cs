@@ -2907,8 +2907,27 @@ public partial class Character : Unit, ICharacter
         }
         // The character sheet's game-points table only reflects a resend of the whole set, not the delta
         // packet below - every GamePointKind goes through this one choke point.
-        SendPacket(new SCCharacterGamePointsPacket(this));
-        SendPacket(new SCGamePointChangedPacket((byte)kind, change));
+        // Order matters twice over here, and the two constraints conflict, so it splits by kind:
+        //
+        // Honor - delta first. The client prints "cached + amount", so the line is only right while
+        // its cache still holds the pre-change number; the table then pins the value (same number,
+        // so it raises nothing).
+        //
+        // Everything else - table first, then a zero-amount honor delta. This client has no delta
+        // kind for the other points, so that zero delta exists purely to raise PLAYER_HONOR_POINT:
+        // windows that display game points (the vendor balance, for one) repaint on that event and
+        // re-read every currency, so the table has to land before it fires or they repaint with the
+        // previous value.
+        if (kind == GamePointKind.Honor)
+        {
+            SendPacket(new SCGamePointChangedPacket(1, change));
+            SendPacket(new SCCharacterGamePointsPacket(this));
+        }
+        else
+        {
+            SendPacket(new SCCharacterGamePointsPacket(this));
+            SendPacket(new SCGamePointChangedPacket(1, 0));
+        }
 
         // A ranking board ranks what a character gained or spent in its window, and every game point moves
         // through here, so the period's totals are kept from this one place.
