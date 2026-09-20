@@ -17,6 +17,19 @@ public class CraftOrderInstantFeeRulesTests
     }
 
     [Test]
+    public async Task MinFee_DropsWhenPcActabilityRises()
+    {
+        var formula = new Formula("craft_cost - pc_actability");
+
+        await Assert.That(CraftOrderInstantFeeRules.TryMinFee(
+            formula, craftCost: 100, consumeLp: 0, requireActability: 0, pcActability: 0, out var atZero)).IsTrue();
+        await Assert.That(CraftOrderInstantFeeRules.TryMinFee(
+            formula, craftCost: 100, consumeLp: 0, requireActability: 0, pcActability: 10, out var atTen)).IsTrue();
+        await Assert.That(atZero).IsEqualTo(100);
+        await Assert.That(atTen).IsEqualTo(90);
+    }
+
+    [Test]
     public async Task AdditionalFee_RunsMinThenAdditionalAndRoundsHalfUp()
     {
         var min = new Formula("craft_cost + pc_actability");

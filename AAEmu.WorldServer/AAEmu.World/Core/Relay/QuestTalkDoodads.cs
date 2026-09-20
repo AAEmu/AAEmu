@@ -1,4 +1,4 @@
-﻿using AAEmu.Game;
+using AAEmu.Game;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models;
 using AAEmu.Game.Core.Managers.UnitManagers;

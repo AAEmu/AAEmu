@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;

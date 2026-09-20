@@ -298,21 +298,29 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
         }
 
         var consumeLp = SkillManager.Instance.GetSkillTemplate(craft.SkillId)?.ConsumeLaborPower ?? 0;
+        var listedCount = Math.Max(1, count);
+        var pcActability = character.Actability.GetPoint(craft.ActabilityGroupId, true);
         if (!CraftOrderInstantFeeRules.TryMinFee(
                 FormulaManager.Instance.GetFormula((uint)FormulaKind.MinCraftOrderFee),
                 craft.Cost,
                 consumeLp,
                 craft.ActabilityLimit,
-                0,
+                pcActability,
                 out var minFee))
         {
             RefusePost(character, "min craft order fee cannot be evaluated");
             return;
         }
 
-        if (!CraftOrderRules.IsFeeAcceptable(fee, CraftOrderRules.MinimumFee(minFee)))
+        if (!CraftOrderRules.IsListedFeeAcceptable(fee, listedCount, minFee))
         {
-            RefusePost(character, $"fee {fee} is below the minimum {minFee}");
+            RefusePost(character, $"fee {fee} / {listedCount} is below the minimum {minFee} per run");
+            return;
+        }
+
+        if (!CraftOrderRules.IsEscrowable(fee))
+        {
+            RefusePost(character, $"fee {fee} will not fit a mail");
             return;
         }
 
@@ -345,7 +353,7 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
                 CraftId = craft.Id,
                 ItemId = product.ItemId,
                 Grade = grade,
-                Count = Math.Max(1, count),
+                Count = listedCount,
                 Fee = fee,
                 ActabilityGroupId = actabilityGroupId,
                 ActabilityPoint = (uint)Math.Max(0, craft.ActabilityLimit),
@@ -483,8 +491,9 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
     }
 
     /// <summary>
-    /// Makes a request sheet: the whole material bill is checked first, then consumed, and the sheet
-    /// that carries the craft and the count is handed over. Nothing is consumed when it cannot be paid.
+    /// Makes a request sheet: bag room and the whole material bill are checked first, then the
+    /// materials are consumed and the sheet is handed over. A failed add puts the materials back
+    /// and releases the sheet id. Nothing is consumed when it cannot be paid.
     /// </summary>
     public bool TryCraftSheet(Character character, uint craftId, uint count, out string reason)
     {
@@ -497,6 +506,19 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
         if (!CraftManager.Instance.TryGetCraft(craftId, out var craft) || !CraftOrderRules.IsOrderable(craft))
         {
             reason = $"craft {craftId} cannot be ordered";
+            return false;
+        }
+
+        var sheetItemId = CraftOrderContent.SheetItemId;
+        if (sheetItemId == 0)
+        {
+            reason = $"const_item_types '{CraftOrderContent.SheetItemConstName}' is missing";
+            return false;
+        }
+
+        if (character.Inventory.Bag.SpaceLeftForItem(sheetItemId) < 1)
+        {
+            reason = "no room in the bag";
             return false;
         }
 
@@ -514,6 +536,7 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
             }
         }
 
+        var consumed = new List<(uint ItemId, int Count)>();
         foreach (var material in craft.CraftMaterials)
         {
             var need = CraftOrderSheetRules.MaterialCost(material.Amount, count);
@@ -522,26 +545,23 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
 
             var taken = character.Inventory.Bag.ConsumeItem(
                 ItemTaskType.MakeCraftOrderSheet, material.ItemId, (int)need, null);
+            if (taken > 0)
+                consumed.Add((material.ItemId, (int)taken));
             if (taken != need)
             {
                 // The pass above makes this a bug rather than a player problem; say so loudly.
                 Logger.Error("Craft order sheet: consumed {0} of {1} needed {2} for {3}",
                     taken, need, material.ItemId, character.Name);
+                ReturnConsumedMaterials(character, consumed);
                 reason = $"consumed {taken} of {need} of item {material.ItemId}";
                 return false;
             }
         }
 
-        var sheetItemId = CraftOrderContent.SheetItemId;
-        if (sheetItemId == 0)
-        {
-            reason = $"const_item_types '{CraftOrderContent.SheetItemConstName}' is missing";
-            return false;
-        }
-
         var sheet = ItemManager.Instance.Create<CraftOrderSheetItem>(sheetItemId, 1, 0);
         if (sheet == null)
         {
+            ReturnConsumedMaterials(character, consumed);
             reason = $"no item template {sheetItemId}";
             return false;
         }
@@ -550,6 +570,8 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
 
         if (!character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.MakeCraftOrderSheet, sheet))
         {
+            ItemManager.Instance.ReleaseId(sheet.Id);
+            ReturnConsumedMaterials(character, consumed);
             reason = "no room in the bag";
             return false;
         }
@@ -1077,25 +1099,16 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
         if (SingletonContainer.ServiceProvider == null)
             return;
 
-        long next = 0;
-        foreach (var order in _orders.Values)
-        {
-            if (next == 0 || order.ExpiresUnix < next)
-                next = order.ExpiresUnix;
-        }
-
         if (_expireTask != null)
         {
             TaskManager.Instance.Cancel(_expireTask);
             _expireTask = null;
         }
 
-        if (next <= 0)
+        var delay = CraftOrderPersistRules.NextSweepDelay(
+            DateTimeOffset.UtcNow, _orders.Values.Select(order => order.ExpiresUnix));
+        if (delay <= TimeSpan.Zero)
             return;
-
-        var delay = DateTimeOffset.FromUnixTimeSeconds(next) - DateTimeOffset.UtcNow;
-        if (delay < TimeSpan.Zero)
-            delay = TimeSpan.Zero;
 
         _expireTask = new CraftOrderExpireTask();
         TaskManager.Instance.Schedule(_expireTask, delay);
@@ -1113,7 +1126,7 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
     {
         if (SkipExpiredMail)
             return true;
-        if (order.Fee > int.MaxValue)
+        if (!CraftOrderRules.IsEscrowable(order.Fee))
             return false;
 
         var ownerName = NameManager.Instance.GetCharacterName(order.OwnerId) ?? order.OwnerName;
@@ -1146,6 +1159,18 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
 
         sheet.SetOrder(order.CraftId, order.Grade, Math.Max(1, order.Count), order.ActabilityGroupId);
         return sheet;
+    }
+
+    private static void ReturnConsumedMaterials(Character character, IReadOnlyList<(uint ItemId, int Count)> consumed)
+    {
+        foreach (var (itemId, amount) in consumed)
+        {
+            if (!character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.MakeCraftOrderSheet, itemId, amount))
+            {
+                Logger.Error("Craft order sheet: could not return {0}x {1} to {2}",
+                    amount, itemId, character.Name);
+            }
+        }
     }
 
     private static void RestoreLabor(Character character, int laborCost, int actabilityGroupId)

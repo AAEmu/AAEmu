@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Quests;
+using AAEmu.Game.Models.Game.Quests;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Quests;
 

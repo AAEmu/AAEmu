@@ -36,4 +36,42 @@ public static class CraftOrderPersistRules
 
         return rows.Where(order => !IsExpired(order, nowUnix)).ToList();
     }
+
+    /// <summary>
+    /// When a lapsed listing cannot leave the board (store delete or refund mail failed), wait
+    /// this long before trying again. Flooring that delay to zero re-enters the task ticker
+    /// every tick with the board lock held.
+    /// </summary>
+    public static readonly TimeSpan ExpireRetry = TimeSpan.FromMinutes(1);
+
+    /// <summary>
+    /// How long until the next sweep. A past-due row still on the board uses
+    /// <see cref="ExpireRetry"/>; otherwise the delay is until the nearest future expiry.
+    /// <see cref="TimeSpan.Zero"/> means the board is empty and nothing should be armed.
+    /// </summary>
+    public static TimeSpan NextSweepDelay(DateTimeOffset now, IEnumerable<long> expiresUnix)
+    {
+        if (expiresUnix == null)
+            return TimeSpan.Zero;
+
+        var nowUnix = now.ToUnixTimeSeconds();
+        var hasPastDue = false;
+        long nextFuture = 0;
+        foreach (var expires in expiresUnix)
+        {
+            if (IsExpired(expires, nowUnix))
+                hasPastDue = true;
+            else if (nextFuture == 0 || expires < nextFuture)
+                nextFuture = expires;
+        }
+
+        if (hasPastDue)
+            return ExpireRetry;
+
+        if (nextFuture <= 0)
+            return TimeSpan.Zero;
+
+        var delay = DateTimeOffset.FromUnixTimeSeconds(nextFuture) - now;
+        return delay < TimeSpan.Zero ? ExpireRetry : delay;
+    }
 }

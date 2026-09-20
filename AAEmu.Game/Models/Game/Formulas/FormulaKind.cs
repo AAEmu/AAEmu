@@ -58,8 +58,9 @@ public enum FormulaKind
     GearScoreAccessory = 57,
 
     /// <summary>
-    /// Floor of the Instant complete gold path. Variables: craft_cost, consume_lp,
-    /// require_actability, pc_actability.
+    /// Floor of the post box and of Instant complete gold. Variables: craft_cost, consume_lp,
+    /// require_actability, pc_actability. Post writes the player's actability points;
+    /// Instant writes the product grade into that same slot.
     /// </summary>
     MinCraftOrderFee = 58,
 

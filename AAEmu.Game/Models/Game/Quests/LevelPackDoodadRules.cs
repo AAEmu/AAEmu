@@ -1,4 +1,4 @@
-﻿namespace AAEmu.Game.Models.Game.Quests;
+namespace AAEmu.Game.Models.Game.Quests;
 
 /// <summary>
 /// Which level-pack <c>doodad.g</c> rows World should author when

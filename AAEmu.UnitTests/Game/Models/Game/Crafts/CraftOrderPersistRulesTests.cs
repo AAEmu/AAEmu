@@ -62,6 +62,20 @@ public class CraftOrderPersistRulesTests
     }
 
     [Test]
+    public async Task NextSweepDelay_RetriesPastDueInsteadOfArmingImmediately()
+    {
+        var now = DateTimeOffset.FromUnixTimeSeconds(1_000);
+        await Assert.That(CraftOrderPersistRules.NextSweepDelay(now, null)).IsEqualTo(TimeSpan.Zero);
+        await Assert.That(CraftOrderPersistRules.NextSweepDelay(now, [])).IsEqualTo(TimeSpan.Zero);
+        await Assert.That(CraftOrderPersistRules.NextSweepDelay(now, [900])).IsEqualTo(CraftOrderPersistRules.ExpireRetry);
+        await Assert.That(CraftOrderPersistRules.NextSweepDelay(now, [900, 1_100]))
+            .IsEqualTo(CraftOrderPersistRules.ExpireRetry);
+        await Assert.That(CraftOrderPersistRules.NextSweepDelay(now, [1_100]))
+            .IsEqualTo(TimeSpan.FromSeconds(100));
+        await Assert.That(CraftOrderPersistRules.ExpireRetry).IsEqualTo(TimeSpan.FromMinutes(1));
+    }
+
+    [Test]
     public async Task Sweep_RemovesAnExpiredRowFromMemoryAndStore()
     {
         var manager = CraftOrderManager.Instance;

@@ -57,6 +57,23 @@ public class CraftOrderRulesTests
     }
 
     [Test]
+    public async Task ListedFee_ComparesThePerRunShareToTheFormulaFloor()
+    {
+        await Assert.That(CraftOrderRules.IsListedFeeAcceptable(22, 1, 22)).IsTrue();
+        await Assert.That(CraftOrderRules.IsListedFeeAcceptable(21, 1, 22)).IsFalse();
+        await Assert.That(CraftOrderRules.IsListedFeeAcceptable(110, 5, 22)).IsTrue();
+        await Assert.That(CraftOrderRules.IsListedFeeAcceptable(109, 5, 22)).IsFalse();
+    }
+
+    [Test]
+    public async Task Escrow_StopsAtTheMailCopperWidth()
+    {
+        await Assert.That(CraftOrderRules.IsEscrowable(CraftOrderRules.MaxEscrowCopper)).IsTrue();
+        await Assert.That(CraftOrderRules.IsEscrowable(CraftOrderRules.MaxEscrowCopper + 1)).IsFalse();
+        await Assert.That(CraftOrderRules.MaxEscrowCopper).IsEqualTo((ulong)int.MaxValue);
+    }
+
+    [Test]
     public async Task Orderable_NeedsTheContentFlagAndAProduct()
     {
         await Assert.That(CraftOrderRules.IsOrderable(Craft())).IsTrue();

@@ -34,12 +34,27 @@ public static class CraftOrderRules
     public static bool CanPost(int liveOrders) => liveOrders < EntriesPerCharacter;
 
     /// <summary>
-    /// Money the post dialog treats as the floor: formula <c>MinCraftOrderFee</c> (the same
-    /// bind as <c>X2Craft:GetMinCraftOrderFee</c>), not <c>crafts.cost</c>.
+    /// Mail copper is <c>int</c>. A listed fee above this can be escrowed but cannot be
+    /// filled or refunded, so Post refuses it. This is the wire/type width, not a content row.
+    /// </summary>
+    public const ulong MaxEscrowCopper = int.MaxValue;
+
+    public static bool IsEscrowable(ulong fee) => fee <= MaxEscrowCopper;
+
+    /// <summary>
+    /// Money the post dialog treats as the per-run floor: formula <c>MinCraftOrderFee</c>
+    /// (the same bind as <c>X2Craft:GetMinCraftOrderFee</c>), not <c>crafts.cost</c>.
     /// </summary>
     public static ulong MinimumFee(int formulaCopper) => (ulong)Math.Max(0, formulaCopper);
 
     public static bool IsFeeAcceptable(ulong fee, ulong minimum) => fee >= minimum;
+
+    /// <summary>
+    /// The packet money is the listed total; the box and formula 58 are per run. Compare
+    /// <c>fee / count</c> to the evaluated floor.
+    /// </summary>
+    public static bool IsListedFeeAcceptable(ulong fee, uint count, int formulaCopper) =>
+        CraftOrderFeeStatsRules.UnitFee(fee, count) >= MinimumFee(formulaCopper);
 
     /// <summary>A craft can be ordered when the content marks it so and it produces something.</summary>
     public static bool IsOrderable(Craft craft) => craft is { Orderable: true, CraftProducts.Count: > 0 };

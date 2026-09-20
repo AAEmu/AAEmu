@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers;
