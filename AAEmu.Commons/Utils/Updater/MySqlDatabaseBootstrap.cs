@@ -15,6 +15,7 @@ namespace AAEmu.Commons.Utils.Updater;
 /// </summary>
 public static partial class MySqlDatabaseBootstrap
 {
+    private const string CompletionSentinelTable = "character_achievements";
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     /// <summary>
@@ -44,13 +45,16 @@ public static partial class MySqlDatabaseBootstrap
     /// </summary>
     public static bool EnsureDatabase(MySqlConnectionSettings settings, string baseSchemaFileName)
     {
-        ArgumentNullException.ThrowIfNull(settings);
-        ArgumentException.ThrowIfNullOrWhiteSpace(settings.Database);
-        ArgumentException.ThrowIfNullOrWhiteSpace(baseSchemaFileName);
-        ValidateSchemaName(settings.Database);
+        var database = settings?.Database ?? string.Empty;
 
         try
         {
+            ArgumentNullException.ThrowIfNull(settings);
+            ArgumentException.ThrowIfNullOrWhiteSpace(settings.Database);
+            ArgumentException.ThrowIfNullOrWhiteSpace(baseSchemaFileName);
+            ValidateSchemaName(settings.Database);
+            database = settings.Database;
+
             using (var serverConnection = OpenConnection(settings, string.Empty))
             {
                 if (!SchemaExists(serverConnection, settings.Database))
@@ -61,7 +65,7 @@ public static partial class MySqlDatabaseBootstrap
             }
 
             using var schemaConnection = OpenConnection(settings, settings.Database);
-            if (TableExists(schemaConnection, settings.Database, "characters"))
+            if (TableExists(schemaConnection, settings.Database, CompletionSentinelTable))
                 return true;
 
             var schemaPath = FindBaseSchemaFile(baseSchemaFileName);
@@ -75,9 +79,10 @@ public static partial class MySqlDatabaseBootstrap
             var statements = SplitBaseSchemaStatements(
                 PrepareImportSql(File.ReadAllText(schemaPath), settings.Database));
             var executed = ExecuteStatements(schemaConnection, statements);
-            if (executed <= 0 || !TableExists(schemaConnection, settings.Database, "characters"))
+            if (executed <= 0 || !TableExists(schemaConnection, settings.Database, CompletionSentinelTable))
             {
-                Logger.Fatal("Base schema import did not create the `characters` table in `{0}`", settings.Database);
+                Logger.Fatal("Base schema import did not create the completion table `{0}` in `{1}`",
+                    CompletionSentinelTable, settings.Database);
                 return false;
             }
 
@@ -86,7 +91,7 @@ public static partial class MySqlDatabaseBootstrap
         }
         catch (Exception ex)
         {
-            Logger.Fatal(ex, "Failed to ensure MySQL schema `{0}`", settings.Database);
+            Logger.Fatal(ex, "Failed to ensure MySQL schema `{0}`", database);
             return false;
         }
     }
@@ -255,7 +260,7 @@ public static partial class MySqlDatabaseBootstrap
 
     private static void ValidateSchemaName(string database)
     {
-        if (!SchemaNameRegex().IsMatch(database))
+        if (database.IndexOf('`') >= 0 || database.IndexOf('\0') >= 0)
             throw new ArgumentException($"Invalid MySQL schema name: `{database}`", nameof(database));
     }
 
@@ -318,7 +323,4 @@ public static partial class MySqlDatabaseBootstrap
 
     [GeneratedRegex(@"(?m)^\s*USE[ \t]+`?[^`;\s]+`?\s*;?", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
     private static partial Regex UseDatabaseRegex();
-
-    [GeneratedRegex(@"^[A-Za-z0-9_]+$", RegexOptions.CultureInvariant)]
-    private static partial Regex SchemaNameRegex();
 }

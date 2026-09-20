@@ -1,4 +1,5 @@
 using AAEmu.Commons.Utils.Updater;
+using AAEmu.Commons.Models;
 
 namespace AAEmu.UnitTests.Commons.Utils.Updater;
 
@@ -53,6 +54,30 @@ public class MySqlDatabaseBootstrapTests
         await Assert.That(rewritten).Contains("-- Table structure for auction_house");
         await Assert.That(rewritten).Contains("CREATE TABLE `auction_house`");
         await Assert.That(rewritten).DoesNotContain("auction_hoUSE");
+    }
+
+    [Test]
+    public async Task RewriteBaseSchemaSql_AllowsQuotedMySqlDatabaseNamesWithHyphens()
+    {
+        const string sql = """
+            CREATE DATABASE IF NOT EXISTS `aaemu_game`;
+            USE `aaemu_game`;
+            """;
+
+        var rewritten = MySqlDatabaseBootstrap.RewriteBaseSchemaSql(sql, "aaemu-game");
+
+        await Assert.That(rewritten).Contains("CREATE DATABASE IF NOT EXISTS `aaemu-game`");
+        await Assert.That(rewritten).Contains("USE `aaemu-game`");
+    }
+
+    [Test]
+    public async Task EnsureDatabase_ReportsInvalidQuotedIdentifierAsFailure()
+    {
+        var settings = new MySqlConnectionSettings { Database = "aaemu`game" };
+
+        var result = MySqlDatabaseBootstrap.EnsureDatabase(settings, "aaemu_game.sql");
+
+        await Assert.That(result).IsFalse();
     }
 
     [Test]
