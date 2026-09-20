@@ -387,6 +387,8 @@ CREATE TABLE IF NOT EXISTS `characters` (
   `mobilization_order_today_count` int NOT NULL DEFAULT '0',
   `mobilization_order_total_count` int NOT NULL DEFAULT '0',
   `last_mobilization_order_time` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
+  `last_mobilization_accept_time` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
+  `last_mobilization_not_recv_time` datetime NOT NULL DEFAULT '1970-01-01 00:00:00',
   `crime_point` int NOT NULL DEFAULT '0',
   `crime_record` int NOT NULL DEFAULT '0',
   `jury_point` int NOT NULL DEFAULT '0',

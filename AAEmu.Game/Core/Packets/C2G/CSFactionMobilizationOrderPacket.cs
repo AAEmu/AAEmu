@@ -13,15 +13,15 @@ public class CSFactionMobilizationOrderPacket() : GamePacket(CSOffsets.CSFaction
 {
     public uint Result { get; private set; }
     public ulong HeroId { get; private set; }
-    public short ZoneGroupType { get; private set; }
+    public ushort ZoneGroupType { get; private set; }
 
     public override void Read(PacketStream stream)
     {
         Result = stream.ReadUInt32();
         HeroId = stream.ReadUInt64();
-        ZoneGroupType = stream.ReadInt16();
+        ZoneGroupType = stream.ReadUInt16();
 
-        var character = Connection.ActiveChar;
+        var character = Connection?.ActiveChar;
         if (character == null)
             return;
 

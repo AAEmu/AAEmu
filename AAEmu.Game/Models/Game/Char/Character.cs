@@ -745,6 +745,15 @@ public partial class Character : Unit, ICharacter
     /// <summary>When this character last issued a Mobilization Order. Default means "never issued".</summary>
     public DateTime LastMobilizationOrderTime { get; set; }
 
+    /// <summary>When this character last accepted a Mobilization Order. Default means "never accepted".</summary>
+    public DateTime LastMobilizationAcceptTime { get; set; }
+
+    /// <summary>
+    /// When this character checked "do not receive Mobilization Orders today". Default means unmuted.
+    /// Active for the rest of that UTC day.
+    /// </summary>
+    public DateTime LastMobilizationNotRecvTime { get; set; }
+
     /// <summary>
     /// Body to restore when a CharTransformEffect polymorph ends. Set on the first transform only, so a
     /// second one applied on top cannot overwrite the original and leave the player stuck in a borrowed model.
@@ -3690,6 +3699,8 @@ public partial class Character : Unit, ICharacter
                     character.MobilizationOrderTodayCount = reader.GetInt32("mobilization_order_today_count");
                     character.MobilizationOrderTotalCount = reader.GetInt32("mobilization_order_total_count");
                     character.LastMobilizationOrderTime = reader.GetDateTime("last_mobilization_order_time");
+                    character.LastMobilizationAcceptTime = reader.GetDateTime("last_mobilization_accept_time");
+                    character.LastMobilizationNotRecvTime = reader.GetDateTime("last_mobilization_not_recv_time");
                     character.CrimePoint = reader.GetInt16("crime_point");
                     character.TotalPlayTime = reader.GetUInt32("total_play_time");
                     character.CrimeRecord = reader.GetInt32("crime_record");
@@ -3825,6 +3836,8 @@ public partial class Character : Unit, ICharacter
                     character.MobilizationOrderTodayCount = reader.GetInt32("mobilization_order_today_count");
                     character.MobilizationOrderTotalCount = reader.GetInt32("mobilization_order_total_count");
                     character.LastMobilizationOrderTime = reader.GetDateTime("last_mobilization_order_time");
+                    character.LastMobilizationAcceptTime = reader.GetDateTime("last_mobilization_accept_time");
+                    character.LastMobilizationNotRecvTime = reader.GetDateTime("last_mobilization_not_recv_time");
                     character.CrimePoint = reader.GetInt16("crime_point");
                     character.TotalPlayTime = reader.GetUInt32("total_play_time");
                     character.CrimeRecord = reader.GetInt32("crime_record");
@@ -4112,7 +4125,7 @@ public partial class Character : Unit, ICharacter
                     "`hp`,`mp`,`consumed_lp`,`ability1`,`ability2`,`ability3`," +
                     "`world_id`,`zone_id`,`x`,`y`,`z`,`roll`,`pitch`,`yaw`," +
                     "`faction_id`,`faction_name`,`expedition_id`,`expedition_rejoin_until`,`family`,`family_rejoin_until`,`dead_count`,`dead_time`,`rez_wait_duration`,`rez_time`,`rez_penalty_duration`,`leave_time`," +
-                    "`money`,`money2`,`aa_point`,`bank_aa_point`,`honor_point`,`vocation_point`,`leadership_point`,`leadership_period_point`,`accumulated_leadership_point`,`daily_leadership_point`,`last_daily_leadership_point_time`,`mobilization_order_today_count`,`mobilization_order_total_count`,`last_mobilization_order_time`,`crime_point`,`crime_record`,`jury_point`," +
+                    "`money`,`money2`,`aa_point`,`bank_aa_point`,`honor_point`,`vocation_point`,`leadership_point`,`leadership_period_point`,`accumulated_leadership_point`,`daily_leadership_point`,`last_daily_leadership_point_time`,`mobilization_order_today_count`,`mobilization_order_total_count`,`last_mobilization_order_time`,`last_mobilization_accept_time`,`last_mobilization_not_recv_time`,`crime_point`,`crime_record`,`jury_point`," +
                     "`hostile_faction_kills`,`pvp_honor`,`died_in_pvp`,`died_in_pvp_war_zone`," +
                     "`delete_request_time`,`transfer_request_time`,`delete_time`,`auto_use_aapoint`,`prev_point`,`point`,`gift`," +
                     "`num_inv_slot`,`num_bank_slot`,`expanded_expert`,`slots`,`created_at`,`updated_at`,`return_district`,`online_time`,`total_play_time`,`privacy_status`," +
@@ -4125,7 +4138,7 @@ public partial class Character : Unit, ICharacter
                     "@hp,@mp,@consumed_lp,@ability1,@ability2,@ability3," +
                     "@world_id,@zone_id,@x,@y,@z,@yaw,@pitch,@roll," +
                     "@faction_id,@faction_name,@expedition_id,@expedition_rejoin_until,@family,@family_rejoin_until,@dead_count,@dead_time,@rez_wait_duration,@rez_time,@rez_penalty_duration,@leave_time," +
-                    "@money,@money2,@aa_point,@bank_aa_point,@honor_point,@vocation_point,@leadership_point,@leadership_period_point,@accumulated_leadership_point,@daily_leadership_point,@last_daily_leadership_point_time,@mobilization_order_today_count,@mobilization_order_total_count,@last_mobilization_order_time,@crime_point,@crime_record,@jury_point," +
+                    "@money,@money2,@aa_point,@bank_aa_point,@honor_point,@vocation_point,@leadership_point,@leadership_period_point,@accumulated_leadership_point,@daily_leadership_point,@last_daily_leadership_point_time,@mobilization_order_today_count,@mobilization_order_total_count,@last_mobilization_order_time,@last_mobilization_accept_time,@last_mobilization_not_recv_time,@crime_point,@crime_record,@jury_point," +
                     "@hostile_faction_kills,@pvp_honor,@died_in_pvp,@died_in_pvp_war_zone," +
                     "@delete_request_time,@transfer_request_time,@delete_time,@auto_use_aapoint,@prev_point,@point,@gift," +
                     "@num_inv_slot,@num_bank_slot,@expanded_expert,@slots,@created_at,@updated_at,@return_district,@online_time,@total_play_time,@privacy_status," +
@@ -4198,6 +4211,8 @@ public partial class Character : Unit, ICharacter
                 command.Parameters.AddWithValue("@mobilization_order_today_count", MobilizationOrderTodayCount);
                 command.Parameters.AddWithValue("@mobilization_order_total_count", MobilizationOrderTotalCount);
                 command.Parameters.AddWithValue("@last_mobilization_order_time", LastMobilizationOrderTime);
+                command.Parameters.AddWithValue("@last_mobilization_accept_time", LastMobilizationAcceptTime);
+                command.Parameters.AddWithValue("@last_mobilization_not_recv_time", LastMobilizationNotRecvTime);
                 AccumulatePlayTime();
                 command.Parameters.AddWithValue("@total_play_time", TotalPlayTime);
                 command.Parameters.AddWithValue("@crime_point", CrimePoint);

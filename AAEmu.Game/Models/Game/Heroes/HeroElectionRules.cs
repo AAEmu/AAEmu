@@ -59,6 +59,77 @@ public static class HeroElectionRules
     public static bool IsSameUtcDay(DateTime a, DateTime b) =>
         ServerCalendar.AsUtc(a).Date == ServerCalendar.AsUtc(b).Date;
 
+    /// <summary>True when both instants fall in the same UTC clock hour (year/month/day/hour).</summary>
+    public static bool IsSameUtcHour(DateTime a, DateTime b)
+    {
+        var ua = ServerCalendar.AsUtc(a);
+        var ub = ServerCalendar.AsUtc(b);
+        return ua.Year == ub.Year && ua.Month == ub.Month && ua.Day == ub.Day && ua.Hour == ub.Hour;
+    }
+
+    /// <summary>
+    /// A member may accept one order per UTC hour. A default / epoch stamp means they have never accepted.
+    /// </summary>
+    public static bool CanAcceptMobilizationAgainThisHour(DateTime lastAcceptUtc, DateTime nowUtc)
+    {
+        var last = ServerCalendar.AsUtc(lastAcceptUtc);
+        if (last <= DateTime.UnixEpoch)
+            return true;
+        return !IsSameUtcHour(last, nowUtc);
+    }
+
+    /// <summary>
+    /// The accept-popup checkbox "do not receive today". A default / epoch stamp means they have not muted.
+    /// The mute lasts the rest of the UTC day and clears at the next UTC midnight.
+    /// </summary>
+    public static bool IsMobilizationOrderMutedToday(DateTime lastNotRecvUtc, DateTime nowUtc)
+    {
+        var last = ServerCalendar.AsUtc(lastNotRecvUtc);
+        if (last <= DateTime.UnixEpoch)
+            return false;
+        return IsSameUtcDay(last, nowUtc);
+    }
+
+    /// <summary>Checking the box stamps now; clearing it returns the clock to epoch (unmuted).</summary>
+    public static DateTime MobilizationOrderNotRecvStamp(bool mute, DateTime nowUtc) =>
+        mute ? ServerCalendar.AsUtc(nowUtc) : DateTime.UnixEpoch;
+
+    /// <summary>
+    /// Whether a nation member is offered the accept popup for a new issue. Daily mute and the
+    /// one-accept-per-UTC-hour gate both suppress it; the hour gate lifts at the next clock hour.
+    /// </summary>
+    public static bool ShouldOfferMobilizationOrder(
+        DateTime lastNotRecvUtc, DateTime lastAcceptUtc, DateTime nowUtc) =>
+        !IsMobilizationOrderMutedToday(lastNotRecvUtc, nowUtc)
+        && CanAcceptMobilizationAgainThisHour(lastAcceptUtc, nowUtc);
+
+    /// <summary>Authored stand next to a rally flag (a <c>return_points</c> row of the flag's milestone).</summary>
+    public readonly record struct RallyStand(float X, float Y, float Z, float YawRad, uint ZoneId);
+
+    /// <summary>Picks the stand closest to the flag on the XY plane. Empty list → no stand.</summary>
+    public static bool TryPickRallyStand(float flagX, float flagY, IReadOnlyList<RallyStand> pads, out RallyStand stand)
+    {
+        stand = default;
+        if (pads == null || pads.Count == 0)
+            return false;
+
+        var best = float.PositiveInfinity;
+        var found = false;
+        foreach (var pad in pads)
+        {
+            var dx = pad.X - flagX;
+            var dy = pad.Y - flagY;
+            var d = dx * dx + dy * dy;
+            if (d >= best)
+                continue;
+            best = d;
+            stand = pad;
+            found = true;
+        }
+
+        return found;
+    }
+
     public static bool IsSameIsoWeek(DateTime a, DateTime b)
     {
         var ua = ServerCalendar.AsUtc(a);
@@ -103,6 +174,22 @@ public static class HeroElectionRules
 
     public static bool NeedsInstanceLoad(uint fromInstanceId, uint toInstanceId) =>
         fromInstanceId != toInstanceId;
+
+    /// <summary>
+    /// Same parent world keeps the character's instance. A doodad whose stored instance disagrees
+    /// with the player (common on the open world) must not force an instance load — that is the
+    /// empty-map landing the jail/court path already closed. A different parent world is a real
+    /// crossing and uses the flag's instance.
+    /// </summary>
+    public static uint LandingInstanceId(uint characterInstanceId, uint flagInstanceId, bool sameParentWorld) =>
+        sameParentWorld ? characterInstanceId : flagInstanceId;
+
+    /// <summary>
+    /// Seamless same-cell landing: same zone and the resolved landing instance. A 133↔183 hop
+    /// inside Marianople is a zone change and must FinalizeTransform so the destination streams.
+    /// </summary>
+    public static bool StaysInZone(uint characterZoneId, uint flagZoneId, uint landingInstanceId, uint characterInstanceId) =>
+        characterZoneId == flagZoneId && landingInstanceId == characterInstanceId;
 
     /// <summary>
     /// The Hero activity bonus pays when the term leadership and issued-order counts reach the tier's

@@ -1,15 +1,15 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO: the body is parsed but nothing acts on it yet.
+/// Shared client packet for several small flags. Body is <c>u32 timeType</c>, <c>bool use</c>,
+/// <c>bool saveDb</c>. Mobilization's "do not receive today" checkbox is
+/// <see cref="InstantTimeKind.MobilizationOrderNotRecv"/> with <c>saveDb</c> set.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
 public class CSInstantTimePacket() : GamePacket(CSOffsets.CSInstantTimePacket, 1)
 {
     public uint TimeType { get; private set; }
@@ -21,5 +21,12 @@ public class CSInstantTimePacket() : GamePacket(CSOffsets.CSInstantTimePacket, 1
         TimeType = stream.ReadUInt32();
         Use = stream.ReadBoolean();
         SaveDb = stream.ReadBoolean();
+
+        var character = Connection?.ActiveChar;
+        if (character == null)
+            return;
+
+        if (TimeType == (uint)InstantTimeKind.MobilizationOrderNotRecv)
+            HeroManager.Instance.SetMobilizationOrderNotRecv(character, Use, SaveDb);
     }
 }

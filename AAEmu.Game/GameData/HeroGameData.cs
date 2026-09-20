@@ -101,6 +101,7 @@ public class HeroGameData : Singleton<HeroGameData>, IGameDataLoader
     private Dictionary<uint, HeroBonus> _bonuses = [];
     private List<HeroBonusTodayAssignment> _bonusAssignments = [];
     private Dictionary<uint, HeroBonus> _bonusByGradeId = [];
+    private Dictionary<uint, List<uint>> _returnPointIdsByMilestone = [];
 
     public void Load(SqliteConnection connection)
     {
@@ -110,6 +111,7 @@ public class HeroGameData : Singleton<HeroGameData>, IGameDataLoader
         _rewards = [];
         _bonuses = [];
         _bonusAssignments = [];
+        _returnPointIdsByMilestone = [];
 
         var cyclesById = new Dictionary<uint, HeroCycle>();
         using (var command = connection.CreateCommand())
@@ -253,8 +255,29 @@ public class HeroGameData : Singleton<HeroGameData>, IGameDataLoader
 
         _bonusByGradeId = PairBonusesWithGrades(_rewards, _bonuses.Values);
 
-        Logger.Info("Loaded {0} hero conditions, {1} hero grades, {2} hero rewards, {3} hero bonuses",
-            _conditions.Count, _grades.Count, _rewards.Count, _bonuses.Count);
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT id, milestone_id FROM return_points WHERE milestone_id > 0";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var milestone = reader.GetUInt32("milestone_id", 0);
+                if (milestone == 0)
+                    continue;
+                if (!_returnPointIdsByMilestone.TryGetValue(milestone, out var ids))
+                {
+                    ids = [];
+                    _returnPointIdsByMilestone[milestone] = ids;
+                }
+
+                ids.Add(reader.GetUInt32("id"));
+            }
+        }
+
+        Logger.Info("Loaded {0} hero conditions, {1} hero grades, {2} hero rewards, {3} hero bonuses, {4} rally-pad milestones",
+            _conditions.Count, _grades.Count, _rewards.Count, _bonuses.Count, _returnPointIdsByMilestone.Count);
     }
 
     public void PostLoad()
@@ -350,4 +373,13 @@ public class HeroGameData : Singleton<HeroGameData>, IGameDataLoader
     /// faction (retail: 6 for Nuia/Haranya, 3 for the Pirates). Used to cap how many candidates a single
     /// ballot may select.</summary>
     public int SeatsFor(uint topFactionId) => _rewards.Count(r => r.TopFactionId == topFactionId);
+
+    /// <summary>
+    /// <c>return_points.id</c> rows that share a doodad's <c>milestone_id</c>. Rally flags and their
+    /// stand pads use the same milestone; the nearest loaded pad is the accept landing.
+    /// </summary>
+    public IReadOnlyList<uint> GetReturnPointIdsForMilestone(uint milestoneId) =>
+        milestoneId != 0 && _returnPointIdsByMilestone.TryGetValue(milestoneId, out var ids)
+            ? ids
+            : [];
 }

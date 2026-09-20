@@ -12,12 +12,15 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.Heroes;
 using AAEmu.Game.Models.Game.Mails;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Heroes;
 using AAEmu.Game.Utils;
 
 using MySql.Data.MySqlClient;
+
+using WorldIntegration = AAEmu.Game.WorldIntegration;
 
 using NLog;
 
@@ -46,13 +49,18 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
 
     /// <summary>
     /// One nation's in-flight Mobilization Order. A member may accept a given order once; a newer order
-    /// from the same nation replaces it. Kept in memory: an order is a live rally call, not saved state.
+    /// from the same nation replaces it. The live call is memory-only; issue/accept clocks persist on
+    /// the character so a World restart cannot reset the daily or hourly limits.
     /// </summary>
     private sealed class MobilizationOrder
     {
         public uint HeroId;
         public uint FlagObjId;
         public DateTime ExpiresAt;
+        public float IssuerX;
+        public float IssuerY;
+        public float IssuerZ;
+        public float IssuerYawRad;
         public HashSet<uint> AcceptedCharacterIds { get; } = [];
     }
 
@@ -782,6 +790,23 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
     private static uint ZoneGroupOf(Doodad doodad) =>
         ZoneManager.Instance.GetZoneByKey(doodad.Transform.ZoneId)?.GroupId ?? 0;
 
+    /// <summary>
+    /// The accept-popup checkbox "do not receive today". <paramref name="mute"/> stamps now (or epoch
+    /// when cleared). <paramref name="persist"/> writes immediately so a World kill cannot restore the
+    /// popup; the live checkbox always asks to persist.
+    /// </summary>
+    public void SetMobilizationOrderNotRecv(Character character, bool mute, bool persist)
+    {
+        if (character == null)
+            return;
+
+        character.LastMobilizationNotRecvTime = HeroElectionRules.MobilizationOrderNotRecvStamp(mute, DateTime.UtcNow);
+        if (persist)
+            PersistMobilizationClocks(character);
+        Logger.Info("Mobilization order not-recv mute={0} persist={1} for {2} (stamp {3:o})",
+            mute, persist, character.Name, character.LastMobilizationNotRecvTime);
+    }
+
     /// <summary>Pushes the Hero's own order counters so the client's dialog gate has the flag's zone group and today's count.</summary>
     public void SendMobilizationOrderCount(Character character, MobilizationOrderAction action)
     {
@@ -795,7 +820,8 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
 
     /// <summary>
     /// A seated Hero issues a Mobilization Order from a rally flag. Members of the nation get the accept
-    /// popup; accepting teleports them to the flag (<see cref="AcceptMobilizationOrder"/>).
+    /// popup unless they muted it for the UTC day or already accepted this UTC hour; accepting teleports
+    /// them to the flag's authored stand (<see cref="AcceptMobilizationOrder"/>).
     /// </summary>
     public bool IssueMobilizationOrder(Character character, uint flagObjId)
     {
@@ -830,23 +856,31 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
         character.MobilizationOrderTodayCount++;
         character.MobilizationOrderTotalCount++;
         character.LastMobilizationOrderTime = now;
+        PersistMobilizationClocks(character);
 
+        var issuer = character.Transform.World;
         _activeMobilizationOrders[nationFactionId] = new MobilizationOrder
         {
             HeroId = character.Id,
             FlagObjId = flag.ObjId,
-            ExpiresAt = now + HeroContentConfig.MobilizationAcceptWindow
+            ExpiresAt = now + HeroContentConfig.MobilizationAcceptWindow,
+            IssuerX = issuer.Position.X,
+            IssuerY = issuer.Position.Y,
+            IssuerZ = issuer.Position.Z,
+            IssuerYawRad = issuer.Rotation.Z
         };
 
         var zoneGroupId = ZoneGroupOf(flag);
-        var scOrder = new SCFactionMobilizationOrderPacket(zoneGroupId, character.Id, character.Name);
+        var scOrder = new SCFactionMobilizationOrderPacket((ushort)zoneGroupId, character.Id, character.Name);
         var scUpdated = new SCHeroMobilizationOrderUpdatedPacket(
             (byte)MobilizationOrderAction.Issued, zoneGroupId, character.Id,
             (uint)character.MobilizationOrderTodayCount, (uint)character.MobilizationOrderTotalCount);
         foreach (var member in WorldManager.Instance.GetAllCharacters()
                      .Where(c => c.Faction != null && ResolveNationFactionId(c) == nationFactionId))
         {
-            member.SendPacket(scOrder);
+            if (HeroElectionRules.ShouldOfferMobilizationOrder(
+                    member.LastMobilizationNotRecvTime, member.LastMobilizationAcceptTime, now))
+                member.SendPacket(scOrder);
             member.SendPacket(scUpdated);
         }
 
@@ -859,9 +893,10 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
     }
 
     /// <summary>
-    /// A nation member accepts the current order: teleported to the rally flag and mailed the rally item
-    /// (content_configs.mobilization_order_give_item). Rejects a stale or superseded order, a member below
-    /// the accept level / leadership, and a repeat accept by the same character.
+    /// A nation member accepts the current order: teleported to the flag's stand pad and mailed the rally
+    /// item (content_configs.mobilization_order_give_item). Rejects a stale or superseded order, a member
+    /// below the accept level / leadership, a second accept in the same UTC hour, and a repeat accept of
+    /// the same live order.
     /// </summary>
     public bool AcceptMobilizationOrder(Character character, ulong heroId)
     {
@@ -870,15 +905,38 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
 
         var nationFactionId = ResolveNationFactionId(character);
         if (!_activeMobilizationOrders.TryGetValue(nationFactionId, out var order) || order.HeroId != heroId)
+        {
+            Logger.Warn(
+                "Mobilization accept refused for {0}: no live order matching hero {1} (faction {2}, liveHero={3})",
+                character.Name, heroId, nationFactionId,
+                _activeMobilizationOrders.TryGetValue(nationFactionId, out var live) ? live.HeroId.ToString() : "none");
             return false;
+        }
 
         var now = DateTime.UtcNow;
         if (!HeroElectionRules.CanAcceptMobilizationOrder(now, order.ExpiresAt, character.Level, character.LeadershipPoint,
                 HeroContentConfig.MobilizationAcceptLevel, HeroContentConfig.MobilizationAcceptLeadership))
+        {
+            Logger.Warn(
+                "Mobilization accept refused for {0}: window or threshold (level {1}, leadership {2}, expires {3:o})",
+                character.Name, character.Level, character.LeadershipPoint, order.ExpiresAt);
             return false;
+        }
 
         if (order.AcceptedCharacterIds.Contains(character.Id))
+        {
+            Logger.Warn("Mobilization accept refused for {0}: already rallied this order", character.Name);
             return false;
+        }
+
+        if (!HeroElectionRules.CanAcceptMobilizationAgainThisHour(character.LastMobilizationAcceptTime, now))
+        {
+            Logger.Warn(
+                "Mobilization accept refused for {0}: already accepted this UTC hour (last {1:o})",
+                character.Name, character.LastMobilizationAcceptTime);
+            character.SendErrorMessage(ErrorMessageType.Invalid);
+            return false;
+        }
 
         var flag = FindDoodadAcrossWorlds(order.FlagObjId);
         if (!HeroElectionRules.CanTransferToMobilizationFlag(flag != null, flag?.ParentWorld != null))
@@ -887,7 +945,7 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
             return false;
         }
 
-        if (!TryTransferToRallyFlag(character, flag))
+        if (!TryTransferToRallyStand(character, flag, order))
         {
             Logger.Warn("Mobilization order for faction {0}: could not transfer {1} to flag {2}", nationFactionId, character.Name, order.FlagObjId);
             return false;
@@ -900,47 +958,130 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
         }
 
         order.AcceptedCharacterIds.Add(character.Id);
-        Logger.Info("Mobilization order: {0} rallied to faction {1}'s flag", character.Name, nationFactionId);
+        character.LastMobilizationAcceptTime = now;
+        PersistMobilizationClocks(character);
+        Logger.Info("Mobilization order: {0} rallied to faction {1}'s stand", character.Name, nationFactionId);
         return true;
     }
 
-    private static bool TryTransferToRallyFlag(Character character, Doodad flag)
+    private static bool TryTransferToRallyStand(Character character, Doodad flag, MobilizationOrder order)
     {
         var destination = flag?.Transform;
         if (destination == null || flag.ParentWorld == null)
             return false;
 
-        var position = destination.World.Position;
-        var yaw = destination.World.Rotation.Z.DegToRad();
+        var x = destination.World.Position.X;
+        var y = destination.World.Position.Y;
+        var z = destination.World.Position.Z;
+        var yaw = destination.World.Rotation.Z;
+        var zoneId = destination.ZoneId;
 
-        character.ForceDismount();
-
-        if (HeroElectionRules.NeedsInstanceLoad(character.Transform.InstanceId, destination.InstanceId))
+        if (TryResolveRallyStand(flag, out var stand))
         {
-            // Crossing instances means a loading screen, and the client answers it with
-            // CSInstanceLoaded — which is the only thing that clears DisabledSetPosition.
-            character.DisabledSetPosition = true;
-            character.SendPacket(new SCLoadInstancePacket(
-                destination.WorldId,
-                destination.ZoneId,
-                position.X,
-                position.Y,
-                position.Z,
-                destination.World.Rotation.X.DegToRad(),
-                destination.World.Rotation.Y.DegToRad(),
-                yaw));
-            character.Transform = destination.Clone(character);
+            x = stand.X;
+            y = stand.Y;
+            z = stand.Z;
+            yaw = stand.YawRad;
+            if (stand.ZoneId != 0)
+                zoneId = stand.ZoneId;
         }
-        else
+        else if (ReturnTeleportRules.HasValidDestination(order.IssuerX, order.IssuerY, order.IssuerZ))
         {
-            // Same level: the client streams the new area seamlessly and never sends
-            // CSInstanceLoaded, so blocking movement here would freeze the player server-side.
-            character.SetPosition(position.X, position.Y, position.Z, 0f, 0f, yaw);
-            character.Transform.FinalizeTransform();
+            x = order.IssuerX;
+            y = order.IssuerY;
+            z = order.IssuerZ;
+            yaw = order.IssuerYawRad;
         }
 
-        character.SendPacket(new SCTeleportUnitPacket(TeleportReason.MobilizationOrder, 0, position.X, position.Y, position.Z, yaw));
+        if (!ReturnTeleportRules.HasValidDestination(x, y, z))
+            return false;
+
+        if (!TeleportLandingRules.CanLandInZone(
+                WorldIntegration.ZoneAuthority, WorldIntegration.IsZoneLoaded, zoneId))
+        {
+            Logger.Warn(
+                "Mobilization order: refusing rally for {0} — stand zone {1} cannot be landed",
+                character.Name, zoneId);
+            return false;
+        }
+
+        var destInstanceId = HeroElectionRules.LandingInstanceId(
+            character.Transform.InstanceId,
+            flag.ParentWorld.Id,
+            ReferenceEquals(character.ParentWorld, flag.ParentWorld));
+        var destWorldId = flag.ParentWorld.Template?.Id ?? destination.WorldId;
+        var stayInZone = HeroElectionRules.StaysInZone(
+            character.Transform.ZoneId, zoneId, destInstanceId, character.Transform.InstanceId);
+        SkillTeleportLanding.Apply(
+            character, destWorldId, zoneId, destInstanceId, x, y, z, yaw,
+            TeleportReason.MobilizationOrder, stayInZone);
         return true;
+    }
+
+    private static bool TryResolveRallyStand(Doodad flag, out HeroElectionRules.RallyStand stand)
+    {
+        stand = default;
+        var milestone = flag.Template?.MilestoneId ?? 0;
+        if (milestone == 0)
+            return false;
+
+        var pads = new List<HeroElectionRules.RallyStand>();
+        foreach (var id in HeroGameData.Instance.GetReturnPointIdsForMilestone(milestone))
+        {
+            var portal = PortalManager.Instance.GetReturnPoint(id);
+            if (portal == null || !ReturnTeleportRules.HasValidDestination(portal.X, portal.Y, portal.Z))
+                continue;
+            pads.Add(new HeroElectionRules.RallyStand(portal.X, portal.Y, portal.Z, portal.Yaw.DegToRad(), portal.ZoneId));
+        }
+
+        return HeroElectionRules.TryPickRallyStand(
+            flag.Transform.World.Position.X,
+            flag.Transform.World.Position.Y,
+            pads,
+            out stand);
+    }
+
+    private static void PersistMobilizationClocks(Character character)
+    {
+        if (character == null)
+            return;
+
+        try
+        {
+            SaveManager.Instance.ExecuteOperation((connection, transaction) =>
+            {
+                using var command = connection.CreateCommand();
+                command.Transaction = transaction;
+                command.CommandText =
+                    """
+                    UPDATE characters SET
+                        mobilization_order_today_count=@today,
+                        mobilization_order_total_count=@total,
+                        last_mobilization_order_time=@issued,
+                        last_mobilization_accept_time=@accepted,
+                        last_mobilization_not_recv_time=@notRecv
+                    WHERE id=@id
+                    """;
+                command.Parameters.AddWithValue("@today", character.MobilizationOrderTodayCount);
+                command.Parameters.AddWithValue("@total", character.MobilizationOrderTotalCount);
+                command.Parameters.AddWithValue("@issued", PersistUtc(character.LastMobilizationOrderTime));
+                command.Parameters.AddWithValue("@accepted", PersistUtc(character.LastMobilizationAcceptTime));
+                command.Parameters.AddWithValue("@notRecv", PersistUtc(character.LastMobilizationNotRecvTime));
+                command.Parameters.AddWithValue("@id", character.Id);
+                command.Prepare();
+                return command.ExecuteNonQuery();
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Mobilization clocks failed to persist for {0}", character.Name);
+        }
+    }
+
+    private static DateTime PersistUtc(DateTime value)
+    {
+        var utc = ServerCalendar.AsUtc(value);
+        return utc <= DateTime.UnixEpoch ? DateTime.UnixEpoch : utc;
     }
 
     private static bool SendMobilizationGiveItem(Character character)
