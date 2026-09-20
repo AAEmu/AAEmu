@@ -114,4 +114,46 @@ public class UnitIdleMoveRulesTests
                 250, 0, 0, 0, 40, 0, lastRelayedWasStationary)).IsFalse();
         }
     }
+
+    [Test]
+    public async Task OffGroundHover_IsNeverSuppressed()
+    {
+        // Hellgate / hawk / shark: the hover stand is the client's altitude keepalive.
+        await Assert.That(UnitIdleMoveRules.ShouldSuppress(
+            19628f, 28276f, 153.4f, 0, 0, 0,
+            19628f, 28276f, 153.4f, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, lastRelayedWasStationary: true, holdsAltitude: true)).IsFalse();
+    }
+
+    [Test]
+    public async Task GroundRepeatStand_StaysSuppressedWhenNotOffGround()
+    {
+        // Same hover pose, but a walker. Plaza filter must still fire.
+        await Assert.That(UnitIdleMoveRules.ShouldSuppress(
+            19628f, 28276f, 153.4f, 0, 0, 0,
+            19628f, 28276f, 153.4f, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, lastRelayedWasStationary: true, holdsAltitude: false)).IsTrue();
+    }
+
+    [Test]
+    public async Task OffGround_DoesNotBypassARealStep()
+    {
+        await Assert.That(UnitIdleMoveRules.ShouldSuppress(
+            19628f, 28276f, 153.4f, 0, 0, 0,
+            19629f, 28276f, 153.4f, 0, 0, 0,
+            0, 0, 0, 0, 0, 0, lastRelayedWasStationary: true, holdsAltitude: true)).IsFalse();
+    }
+
+    [Test]
+    public async Task PlazaStand_UnchangedForGroundUnits()
+    {
+        await Assert.That(UnitIdleMoveRules.ShouldSuppress(
+            19628f, 28276f, 295f, 0, 0, 10,
+            19628f, 28276f, 295f, 0, 0, 10,
+            0, 0, 0, 0, 0, 0, true, holdsAltitude: false)).IsTrue();
+        await Assert.That(UnitIdleMoveRules.ShouldSuppress(
+            19628f, 28276f, 295f, 0, 0, 10,
+            19628f, 28276f, 295f, 0, 0, 10,
+            0, 0, 0, 0, 0, 0, true, holdsAltitude: true)).IsFalse();
+    }
 }

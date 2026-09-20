@@ -226,7 +226,8 @@ public class MovementRelay
             move.RotationX, move.RotationY, move.RotationZ,
             move.VelX, move.VelY, move.VelZ,
             deltaX, deltaY, deltaZ,
-            unit.LastRelayedZoneMoveWasStationary);
+            unit.LastRelayedZoneMoveWasStationary,
+            unit is Npc { IsOffGround: true });
     }
 
     /// <summary>
