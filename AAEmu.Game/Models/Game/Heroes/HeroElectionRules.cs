@@ -68,7 +68,10 @@ public static class HeroElectionRules
     }
 
     /// <summary>
-    /// A member may accept one order per UTC hour. A default / epoch stamp means they have never accepted.
+    /// A member may accept one order per UTC clock hour (same year/month/day/hour).
+    /// Compact has no hourly duration knob — the shipped mobilization
+    /// <c>content_configs</c> are daily-max, accept-window, level, and leadership.
+    /// An elapsed-hour window would invent a 3600 s row. Epoch means never accepted.
     /// </summary>
     public static bool CanAcceptMobilizationAgainThisHour(DateTime lastAcceptUtc, DateTime nowUtc)
     {
@@ -103,8 +106,31 @@ public static class HeroElectionRules
         !IsMobilizationOrderMutedToday(lastNotRecvUtc, nowUtc)
         && CanAcceptMobilizationAgainThisHour(lastAcceptUtc, nowUtc);
 
-    /// <summary>Authored stand next to a rally flag (a <c>return_points</c> row of the flag's milestone).</summary>
+    /// <summary>Authored stand next to a rally flag (a loaded <c>return_point.g</c> pad).</summary>
     public readonly record struct RallyStand(float X, float Y, float Z, float YawRad, uint ZoneId);
+
+    /// <summary>
+    /// Prefer pads in the flag's zone. <c>milestones</c> is a release calendar, not a join —
+    /// the stand is the nearest in-zone return pad (the one sitting next to that nation's flag).
+    /// </summary>
+    public static IReadOnlyList<RallyStand> PadsForFlagZone(uint flagZoneId, IReadOnlyList<RallyStand> pads)
+    {
+        if (pads == null || pads.Count == 0)
+            return [];
+        if (flagZoneId == 0)
+            return pads;
+
+        List<RallyStand> same = null;
+        foreach (var pad in pads)
+        {
+            if (pad.ZoneId != flagZoneId)
+                continue;
+            same ??= [];
+            same.Add(pad);
+        }
+
+        return same is { Count: > 0 } ? same : pads;
+    }
 
     /// <summary>Picks the stand closest to the flag on the XY plane. Empty list → no stand.</summary>
     public static bool TryPickRallyStand(float flagX, float flagY, IReadOnlyList<RallyStand> pads, out RallyStand stand)
@@ -174,22 +200,6 @@ public static class HeroElectionRules
 
     public static bool NeedsInstanceLoad(uint fromInstanceId, uint toInstanceId) =>
         fromInstanceId != toInstanceId;
-
-    /// <summary>
-    /// Same parent world keeps the character's instance. A doodad whose stored instance disagrees
-    /// with the player (common on the open world) must not force an instance load — that is the
-    /// empty-map landing the jail/court path already closed. A different parent world is a real
-    /// crossing and uses the flag's instance.
-    /// </summary>
-    public static uint LandingInstanceId(uint characterInstanceId, uint flagInstanceId, bool sameParentWorld) =>
-        sameParentWorld ? characterInstanceId : flagInstanceId;
-
-    /// <summary>
-    /// Seamless same-cell landing: same zone and the resolved landing instance. A 133↔183 hop
-    /// inside Marianople is a zone change and must FinalizeTransform so the destination streams.
-    /// </summary>
-    public static bool StaysInZone(uint characterZoneId, uint flagZoneId, uint landingInstanceId, uint characterInstanceId) =>
-        characterZoneId == flagZoneId && landingInstanceId == characterInstanceId;
 
     /// <summary>
     /// The Hero activity bonus pays when the term leadership and issued-order counts reach the tier's

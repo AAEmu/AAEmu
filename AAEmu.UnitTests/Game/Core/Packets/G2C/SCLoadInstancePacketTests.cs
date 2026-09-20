@@ -22,18 +22,4 @@ public class SCLoadInstancePacketTests
         await Assert.That(BitConverter.ToUInt32(body, 4)).IsEqualTo(zoneId);
         await Assert.That(BitConverter.ToSingle(body, 8)).IsEqualTo(x);
     }
-
-    [Test]
-    public async Task FirstField_IsNotAWorldTemplateId()
-    {
-        const uint liveInstanceId = 0;
-        const uint worldTemplateId = 1;
-
-        var body = new SCLoadInstancePacket(liveInstanceId, 1, 0f, 0f, 0f, 0f, 0f, 0f)
-            .Write(new PacketStream())
-            .GetBytes();
-
-        await Assert.That(BitConverter.ToUInt32(body, 0)).IsEqualTo(liveInstanceId);
-        await Assert.That(BitConverter.ToUInt32(body, 0)).IsNotEqualTo(worldTemplateId);
-    }
 }

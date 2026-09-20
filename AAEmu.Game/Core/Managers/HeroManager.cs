@@ -20,8 +20,6 @@ using AAEmu.Game.Utils;
 
 using MySql.Data.MySqlClient;
 
-using WorldIntegration = AAEmu.Game.WorldIntegration;
-
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
@@ -1011,23 +1009,24 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
     private static bool TryResolveRallyStand(Doodad flag, out HeroElectionRules.RallyStand stand)
     {
         stand = default;
-        var milestone = flag.Template?.MilestoneId ?? 0;
-        if (milestone == 0)
+        if (flag?.Transform == null)
             return false;
 
+        // Milestone is a release calendar, not a flag↔stand join. The authored
+        // pad is the nearest loaded return_point.g destination in the flag's zone.
         var pads = new List<HeroElectionRules.RallyStand>();
-        foreach (var id in HeroGameData.Instance.GetReturnPointIdsForMilestone(milestone))
+        foreach (var portal in PortalManager.Instance.GetLoadedReturnPoints())
         {
-            var portal = PortalManager.Instance.GetReturnPoint(id);
             if (portal == null || !ReturnTeleportRules.HasValidDestination(portal.X, portal.Y, portal.Z))
                 continue;
-            pads.Add(new HeroElectionRules.RallyStand(portal.X, portal.Y, portal.Z, portal.Yaw.DegToRad(), portal.ZoneId));
+            pads.Add(new HeroElectionRules.RallyStand(
+                portal.X, portal.Y, portal.Z, portal.Yaw.DegToRad(), portal.ZoneId));
         }
 
         return HeroElectionRules.TryPickRallyStand(
             flag.Transform.World.Position.X,
             flag.Transform.World.Position.Y,
-            pads,
+            HeroElectionRules.PadsForFlagZone(flag.Transform.ZoneId, pads),
             out stand);
     }
 

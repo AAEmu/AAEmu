@@ -93,17 +93,27 @@ public class Move : ICommand
                     $"[GM] |cFFFFFFFF{character.Name}|r has moved you do position X: {newX}, Y: {newY}, Z: {newZ}");
             }
 
-            // Coords may resolve to another open-world zone; do not pin stayInZone to the old key.
-            SkillTeleportLanding.Apply(
-                targetPlayer,
-                targetPlayer.Transform.WorldId,
-                targetPlayer.Transform.ZoneId,
-                targetPlayer.Transform.InstanceId,
-                newX,
-                newY,
-                newZ,
-                0f,
-                TeleportReason.Gm);
+            var world = targetPlayer.ParentWorld;
+            if (world == null)
+            {
+                CommandManager.SendErrorText(this, messageOutput, "Target has no world.");
+                return;
+            }
+
+            // Coords may resolve to another open-world zone; sample the destination
+            // and go through TryApplyToWorld so a same-zone hop still relays to Zone.
+            var destZone = WorldManager.Instance.GetZoneId(world.Template, newX, newY);
+            if (destZone == 0)
+                destZone = targetPlayer.Transform.ZoneId;
+
+            if (!SkillTeleportLanding.TryApplyToWorld(
+                    targetPlayer, world, destZone, newX, newY, newZ,
+                    targetPlayer.Transform.World.Rotation.Z, TeleportReason.Gm))
+            {
+                CommandManager.SendErrorText(this, messageOutput,
+                    $"Cannot land |cFFFFFFFF{targetPlayer.Name}|r at X: {newX}, Y: {newY}, Z: {newZ}");
+                return;
+            }
 
             CommandManager.SendNormalText(this, messageOutput,
                 $"|cFFFFFFFF{targetPlayer.Name}|r moved to X: {newX}, Y: {newY}, Z: {newZ}");

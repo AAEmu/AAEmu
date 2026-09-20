@@ -105,6 +105,46 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
     }
 
     /// <summary>
+    /// Every loaded return destination (level <c>return_point.g</c>, worldgate, recall).
+    /// Rally stands are picked from this set by zone + nearest XY, not by milestone.
+    /// </summary>
+    public IReadOnlyList<Portal> GetLoadedReturnPoints()
+    {
+        var byId = new Dictionary<uint, Portal>();
+        void Offer(Portal portal)
+        {
+            if (portal == null || portal.Id == 0)
+                return;
+            byId.TryAdd(portal.Id, portal);
+        }
+
+        if (_levelReturns != null)
+        {
+            foreach (var portal in _levelReturns.Values)
+                Offer(portal);
+        }
+
+        if (_worldGates != null)
+        {
+            foreach (var portal in _worldGates.Values)
+                Offer(portal);
+        }
+
+        if (_recalls != null)
+        {
+            foreach (var list in _recalls.Values)
+            {
+                if (list == null)
+                    continue;
+                foreach (var portal in list)
+                    Offer(portal);
+            }
+        }
+
+        return byId.Values.ToList();
+    }
+
+    /// <summary>
     /// GetDistrictReturnPoint - вернуть точку возврата для соответствующего DistrictId
     /// </summary>
     /// <param name="districtId"></param>

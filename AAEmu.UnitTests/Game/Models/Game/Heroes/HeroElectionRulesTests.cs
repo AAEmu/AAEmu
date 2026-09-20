@@ -43,22 +43,6 @@ public class HeroElectionRulesTests
     }
 
     [Test]
-    public async Task LandingInstanceId_KeepsTheCharacterInstanceOnTheSameWorld()
-    {
-        await Assert.That(HeroElectionRules.LandingInstanceId(0, 1, sameParentWorld: true)).IsEqualTo(0u);
-        await Assert.That(HeroElectionRules.LandingInstanceId(0, 1, sameParentWorld: false)).IsEqualTo(1u);
-        await Assert.That(HeroElectionRules.LandingInstanceId(2, 2, sameParentWorld: false)).IsEqualTo(2u);
-    }
-
-    [Test]
-    public async Task StaysInZone_OnlyWhenZoneAndResolvedInstanceMatch()
-    {
-        await Assert.That(HeroElectionRules.StaysInZone(183, 183, 0, 0)).IsTrue();
-        await Assert.That(HeroElectionRules.StaysInZone(133, 183, 0, 0)).IsFalse();
-        await Assert.That(HeroElectionRules.StaysInZone(183, 183, 1, 0)).IsFalse();
-    }
-
-    [Test]
     public async Task CanAcceptMobilizationOrder_WindowAndThresholds()
     {
         var now = new DateTime(2026, 9, 6, 12, 0, 0, DateTimeKind.Utc);
@@ -122,6 +106,29 @@ public class HeroElectionRulesTests
         await Assert.That(stand.Y).IsEqualTo(1f);
         await Assert.That(stand.YawRad).IsEqualTo(1.5f);
         await Assert.That(HeroElectionRules.TryPickRallyStand(0, 0, [], out _)).IsFalse();
+    }
+
+    [Test]
+    public async Task PadsForFlagZone_PrefersTheFlagZoneThenFallsBack()
+    {
+        var pads = new[]
+        {
+            new HeroElectionRules.RallyStand(100, 0, 10, 0, 183),
+            new HeroElectionRules.RallyStand(2, 1, 10, 1.5f, 133),
+            new HeroElectionRules.RallyStand(50, 50, 10, 0, 133)
+        };
+
+        var in183 = HeroElectionRules.PadsForFlagZone(183, pads);
+        await Assert.That(in183.Count).IsEqualTo(1);
+        await Assert.That(in183[0].ZoneId).IsEqualTo(183u);
+
+        var in133 = HeroElectionRules.PadsForFlagZone(133, pads);
+        await Assert.That(in133.Count).IsEqualTo(2);
+        await Assert.That(HeroElectionRules.TryPickRallyStand(0, 0, in133, out var stand)).IsTrue();
+        await Assert.That(stand.X).IsEqualTo(2f);
+
+        await Assert.That(HeroElectionRules.PadsForFlagZone(999, pads).Count).IsEqualTo(3);
+        await Assert.That(HeroElectionRules.PadsForFlagZone(183, []).Count).IsEqualTo(0);
     }
 
     [Test]
