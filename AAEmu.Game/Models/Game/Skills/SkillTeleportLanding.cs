@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Teleport;
+using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 
 using WorldIntegration = AAEmu.Game.WorldIntegration;
@@ -10,14 +11,83 @@ using WorldIntegration = AAEmu.Game.WorldIntegration;
 namespace AAEmu.Game.Models.Game.Skills;
 
 /// <summary>
-/// Applies a skill-driven teleport to the server-side character and tells the client about it. Both
-/// sides have to agree on the landing: crossing instances shows a loading screen and the client answers
-/// it with CSInstanceLoaded (the only packet that clears DisabledSetPosition), while a same-level
-/// teleport is seamless and the server must move the character itself - otherwise only the client moves
-/// and the zone simulation keeps pulling the character back to the old spot.
+/// One landing for every teleport. Open-world hops (same live world, including a 133↔183 city
+/// split) move the character and restream the neighbourhood. Crossing into a dungeon / system
+/// instance goes through that copy so its own units stream. The client answers a real instance
+/// load with CSInstanceLoaded — the only packet that clears DisabledSetPosition.
 /// </summary>
 public static class SkillTeleportLanding
 {
+    /// <summary>
+    /// Open-world hop: keeps the character's live instance so a stored instance on a house,
+    /// flag or portal cannot force an empty-map load.
+    /// </summary>
+    public static void ApplyWorld(
+        Character character,
+        uint zoneId,
+        float x,
+        float y,
+        float z,
+        float yawRad,
+        TeleportReason reason)
+    {
+        var stayInZone = TeleportLandingRules.StaysInZone(
+            character.Transform.ZoneId, zoneId,
+            character.Transform.InstanceId, character.Transform.InstanceId);
+        Apply(character, character.Transform.WorldId, zoneId, character.Transform.InstanceId,
+            x, y, z, yawRad, reason, stayInZone);
+    }
+
+    /// <summary>
+    /// Picks the world restream or the dungeon-enter path from the destination world. A dungeon
+    /// copy is queued (spawn + that instance's units); any other hosted instance loads that copy.
+    /// </summary>
+    public static bool TryApplyToWorld(
+        Character character,
+        WorldInstance destinationWorld,
+        uint zoneId,
+        float x,
+        float y,
+        float z,
+        float yawRad,
+        TeleportReason reason)
+    {
+        if (character == null || destinationWorld == null)
+            return false;
+        if (!ReturnTeleportRules.HasValidDestination(x, y, z))
+            return false;
+
+        var kind = TeleportLandingRules.Classify(
+            ReferenceEquals(character.ParentWorld, destinationWorld),
+            character.Transform.InstanceId,
+            destinationWorld.Id,
+            destinationWorld.DungeonInstance != null);
+
+        switch (kind)
+        {
+            case TeleportLandingKind.World:
+                if (!TeleportLandingRules.CanLandInZone(
+                        WorldIntegration.ZoneAuthority, WorldIntegration.IsZoneLoaded, zoneId))
+                    return false;
+                ApplyWorld(character, zoneId, x, y, z, yawRad, reason);
+                return true;
+            case TeleportLandingKind.InstanceDungeon:
+                return destinationWorld.DungeonInstance.QueuePlayer(character);
+            default:
+                Apply(
+                    character,
+                    destinationWorld.Template?.Id ?? destinationWorld.Id,
+                    zoneId,
+                    destinationWorld.Id,
+                    x,
+                    y,
+                    z,
+                    yawRad,
+                    reason);
+                return true;
+        }
+    }
+
     public static void Apply(
         Character character,
         uint worldId,
@@ -43,8 +113,11 @@ public static class SkillTeleportLanding
         if (loadedInstance)
         {
             character.DisabledSetPosition = true;
-            character.SendPacket(new SCLoadInstancePacket(worldId, zoneId, x, y, z, 0f, 0f, yawRad));
+            // The load packet's first field is the live instance id (the same id dungeon enter
+            // writes). A world-template id here made the client load an empty copy.
+            character.SendPacket(new SCLoadInstancePacket(instanceId, zoneId, x, y, z, 0f, 0f, yawRad));
             character.Transform = new Transform(character, null, zoneId, instanceId, x, y, z, yawRad);
+            _ = worldId;
         }
         else
         {

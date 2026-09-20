@@ -996,8 +996,8 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
         if (!ReturnTeleportRules.HasValidDestination(x, y, z))
             return false;
 
-        if (!TeleportLandingRules.CanLandInZone(
-                WorldIntegration.ZoneAuthority, WorldIntegration.IsZoneLoaded, zoneId))
+        if (!SkillTeleportLanding.TryApplyToWorld(
+                character, flag.ParentWorld, zoneId, x, y, z, yaw, TeleportReason.MobilizationOrder))
         {
             Logger.Warn(
                 "Mobilization order: refusing rally for {0} — stand zone {1} cannot be landed",
@@ -1005,16 +1005,6 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
             return false;
         }
 
-        var destInstanceId = HeroElectionRules.LandingInstanceId(
-            character.Transform.InstanceId,
-            flag.ParentWorld.Id,
-            ReferenceEquals(character.ParentWorld, flag.ParentWorld));
-        var destWorldId = flag.ParentWorld.Template?.Id ?? destination.WorldId;
-        var stayInZone = HeroElectionRules.StaysInZone(
-            character.Transform.ZoneId, zoneId, destInstanceId, character.Transform.InstanceId);
-        SkillTeleportLanding.Apply(
-            character, destWorldId, zoneId, destInstanceId, x, y, z, yaw,
-            TeleportReason.MobilizationOrder, stayInZone);
         return true;
     }
 

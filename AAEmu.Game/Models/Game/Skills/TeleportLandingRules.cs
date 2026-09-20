@@ -1,10 +1,10 @@
 namespace AAEmu.Game.Models.Game.Skills;
 
 /// <summary>
-/// Guards for skill-driven teleports whose destination comes from data (a house, a return point
-/// elected by the player). World routes players by <c>Transform.ZoneId</c> and fails closed, so a
-/// landing in a zone that has no dedicated zone server would leave the character somewhere nobody
-/// simulates - no NPCs, no movement, no way back. Refusing the cast is the safe answer.
+/// Open-world landings vs instance crossings. World hops (including 133↔183 inside one city)
+/// restream the neighbourhood; a dungeon / system instance is entered through that copy so its
+/// own units stream. A landing in a zone that has no dedicate would leave the character somewhere
+/// nobody simulates — refuse those.
 /// </summary>
 public static class TeleportLandingRules
 {
@@ -24,4 +24,34 @@ public static class TeleportLandingRules
     /// </summary>
     public static bool RelaysSameZoneBlink(bool stayInZone, bool zoneAuthority)
         => stayInZone && zoneAuthority;
+
+    /// <summary>
+    /// Same zone and the same live instance: FinalizeTransform must not re-resolve the zone.
+    /// </summary>
+    public static bool StaysInZone(uint fromZoneId, uint toZoneId, uint fromInstanceId, uint toInstanceId) =>
+        fromZoneId == toZoneId && fromInstanceId == toInstanceId;
+
+    /// <summary>
+    /// Same parent world, or the instance ids already match, is an open-world hop even when a
+    /// doodad's stored instance disagrees with the player. A different world that hosts a dungeon
+    /// copy is entered through that dungeon; any other hosted instance (battle field) loads that
+    /// copy.
+    /// </summary>
+    public static TeleportLandingKind Classify(
+        bool sameParentWorld,
+        uint fromInstanceId,
+        uint toInstanceId,
+        bool destHasDungeon)
+    {
+        if (sameParentWorld || fromInstanceId == toInstanceId)
+            return TeleportLandingKind.World;
+        return destHasDungeon ? TeleportLandingKind.InstanceDungeon : TeleportLandingKind.InstanceOther;
+    }
+}
+
+public enum TeleportLandingKind : byte
+{
+    World = 0,
+    InstanceDungeon = 1,
+    InstanceOther = 2
 }
