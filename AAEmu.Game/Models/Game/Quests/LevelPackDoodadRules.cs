@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Quests;
+﻿namespace AAEmu.Game.Models.Game.Quests;
 
 /// <summary>
 /// Which level-pack <c>doodad.g</c> rows World should author when
@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Quests;
 public static class LevelPackDoodadRules
 {
     /// <summary>
-    /// Permanent plant: scene bodies and quest talk/func doodads.
+    /// Permanent plant: scene bodies, quest talk/func doodads, and craft-order boards.
     /// Not tower DoodadAlmighty, not a cell ignore/open list, and not
     /// <c>game_schedule_doodads</c> (Christmas / weekend / festival — those
     /// wait for the schedule). Extra fish schools and vegetation stay on json.
@@ -18,10 +18,11 @@ public static class LevelPackDoodadRules
         bool talkOrQuestFunc,
         bool towerAlmighty,
         bool ignoredPermanent,
-        bool scheduledEvent)
+        bool scheduledEvent,
+        bool boardOpen = false)
     {
         if (towerAlmighty || ignoredPermanent || scheduledEvent)
             return false;
-        return clientDoodad || npcTypeModel || talkOrQuestFunc;
+        return clientDoodad || npcTypeModel || talkOrQuestFunc || boardOpen;
     }
 }

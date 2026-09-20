@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Quests;
+﻿using AAEmu.Game.Models.Game.Quests;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Quests;
 
@@ -31,6 +31,27 @@ public class LevelPackDoodadRulesTests
         await Assert.That(LevelPackDoodadRules.ShouldAuthorPermanent(
             clientDoodad: false, npcTypeModel: false, talkOrQuestFunc: false,
             towerAlmighty: false, ignoredPermanent: false, scheduledEvent: false)).IsFalse();
+    }
+
+    [Test]
+    public async Task ShouldAuthor_BoardOpen_WhenNotTowerIgnoreOrSchedule()
+    {
+        await Assert.That(LevelPackDoodadRules.ShouldAuthorPermanent(
+            clientDoodad: false, npcTypeModel: false, talkOrQuestFunc: false,
+            towerAlmighty: false, ignoredPermanent: false, scheduledEvent: false,
+            boardOpen: true)).IsTrue();
+        await Assert.That(LevelPackDoodadRules.ShouldAuthorPermanent(
+            clientDoodad: false, npcTypeModel: false, talkOrQuestFunc: false,
+            towerAlmighty: true, ignoredPermanent: false, scheduledEvent: false,
+            boardOpen: true)).IsFalse();
+        await Assert.That(LevelPackDoodadRules.ShouldAuthorPermanent(
+            clientDoodad: false, npcTypeModel: false, talkOrQuestFunc: false,
+            towerAlmighty: false, ignoredPermanent: true, scheduledEvent: false,
+            boardOpen: true)).IsFalse();
+        await Assert.That(LevelPackDoodadRules.ShouldAuthorPermanent(
+            clientDoodad: false, npcTypeModel: false, talkOrQuestFunc: false,
+            towerAlmighty: false, ignoredPermanent: false, scheduledEvent: true,
+            boardOpen: true)).IsFalse();
     }
 
     [Test]

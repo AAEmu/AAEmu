@@ -58,6 +58,18 @@ public enum FormulaKind
     GearScoreAccessory = 57,
 
     /// <summary>
+    /// Floor of the Instant complete gold path. Variables: craft_cost, consume_lp,
+    /// require_actability, pc_actability.
+    /// </summary>
+    MinCraftOrderFee = 58,
+
+    /// <summary>
+    /// Extra gold Instant complete charges on top of the listing. Variables: consume_lp,
+    /// craft_count, craft_cost, min_craft_order_fee (the 58 result).
+    /// </summary>
+    CraftOrderAdditionalFee = 61,
+
+    /// <summary>
     /// Coin charged per synthesis attempt. Variables: item_evolving_value (the price already totalled
     /// across the grades the experience travels, each at its own gold_mul), item_level, and
     /// item_evolving_cost_mul - which is unit attribute 223 on the caster, a per-mille discount, not

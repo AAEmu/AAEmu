@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Utils.DB;
 using Microsoft.Data.Sqlite;
@@ -12,6 +12,9 @@ public class CraftManager : Singleton<CraftManager>, ICraftManager
 
     private Dictionary<uint, Craft> _crafts;
     private Dictionary<uint, HashSet<uint>> _craftsByPack;
+
+    /// <summary>Orderable crafts by the item they produce, for the craft order board.</summary>
+    private Dictionary<uint, uint> _orderableCraftsByProduct;
 
     public void Load()
     {
@@ -42,7 +45,9 @@ public class CraftManager : Singleton<CraftManager>, ICraftManager
                             ActabilityLimit = reader.GetInt32("actability_limit", 0),
                             // 10.0.2.13: show_upper_crafts removed
                             RecommendLevel = reader.GetInt32("recommend_level", 0),
-                            VisibleOrder = reader.GetInt32("visible_order", 0)
+                            VisibleOrder = reader.GetInt32("visible_order", 0),
+                            Orderable = reader.GetBoolean("orderable"),
+                            Cost = reader.GetInt32("cost", 0)
                         };
                         _crafts.Add(template.Id, template);
                     }
@@ -102,9 +107,58 @@ public class CraftManager : Singleton<CraftManager>, ICraftManager
             }
 
             LoadCraftPackMembership(connection);
+            LoadActabilityGroups(connection);
+            LoadOrderableProducts();
         }
 
         Logger.Info("Loaded crafts", _crafts.Count);
+    }
+
+    /// <summary>
+    /// Fills in the actability group of every craft that has one, which is what the craft order
+    /// board filters a search by. The group lives on the craft's skill, not on the craft row.
+    /// </summary>
+    internal void LoadActabilityGroups(SqliteConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT c.id AS craft_id, s.actability_group_id AS group_id FROM crafts c " +
+            "JOIN skills s ON s.id = c.skill_id WHERE s.actability_group_id IS NOT NULL";
+        command.Prepare();
+        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+        while (reader.Read())
+        {
+            var craftId = reader.GetUInt32("craft_id");
+            if (_crafts.TryGetValue(craftId, out var craft))
+                craft.ActabilityGroupId = reader.GetUInt32("group_id", 0);
+        }
+    }
+
+    /// <summary>
+    /// Indexes the orderable crafts by the item they produce, so a board request that names an item
+    /// resolves to its craft without a scan. When several orderable crafts make the same item the
+    /// lowest craft id wins, which keeps the answer stable.
+    /// </summary>
+    internal void LoadOrderableProducts()
+    {
+        _orderableCraftsByProduct = [];
+        foreach (var craft in _crafts.Values.Where(craft => craft.Orderable).OrderBy(craft => craft.Id))
+        {
+            foreach (var product in craft.CraftProducts)
+            {
+                if (!_orderableCraftsByProduct.ContainsKey(product.ItemId))
+                    _orderableCraftsByProduct.Add(product.ItemId, craft.Id);
+            }
+        }
+    }
+
+    /// <summary>Resolves the orderable craft that produces an item, if the content has one.</summary>
+    public bool TryFindOrderableCraftByProduct(uint itemId, out Craft craft)
+    {
+        craft = null;
+        return _orderableCraftsByProduct != null &&
+               _orderableCraftsByProduct.TryGetValue(itemId, out var craftId) &&
+               _crafts.TryGetValue(craftId, out craft);
     }
 
     public Craft GetCraftById(uint craftId)

@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -395,7 +395,7 @@ public class Item : PacketMarshaler, IComparable<Item>
         9 => 4,          // Glider              (total 5)
         10 => 12,        // SlaveEquipment      (total 13)
         12 => 10,        // BackpackFreshness   (total 11)
-        13 => 13,        // opaque type 0xD      (total 14)
+        13 => 13,        // CraftOrderSheet     (total 14)
         _ => 0,          // Equipment(1) is structured (EquipItem); 0/unknown carries no body
     };
 

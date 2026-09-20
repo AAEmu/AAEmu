@@ -1,15 +1,14 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Models.Game.Crafts;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO(v10): the body is parsed but nothing acts on it yet.
+/// Asks the craft order board for one page of orders: which actability group to list, how to sort
+/// them, which page, and whether to keep only the orders this character can fill.
 /// </summary>
-/// <remarks>
-/// which passes each field name alongside the value:
-/// int type, sbyte kind, sbyte order, uint page, bool possible
-/// </remarks>
 public class CSSearchCraftOrderPacket() : GamePacket(CSOffsets.CSSearchCraftOrderPacket, 1)
 {
     public int Type { get; private set; }
@@ -25,5 +24,14 @@ public class CSSearchCraftOrderPacket() : GamePacket(CSOffsets.CSSearchCraftOrde
         Order = stream.ReadSByte();
         Page = stream.ReadUInt32();
         Possible = stream.ReadBoolean();
+
+        if (Connection?.ActiveChar is { } character)
+        {
+            // Search is what the board's first tab sends. My List is a different store and
+            // a Load does not fire INSERT, so push own rows before the search page lands.
+            CraftOrderManager.Instance.SendOwnEntries(character);
+            CraftOrderManager.Instance.SendSearch(character,
+                new CraftOrderQuery((uint)Math.Max(0, Type), Kind, Order, Page, Possible));
+        }
     }
 }

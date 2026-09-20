@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -34,6 +34,11 @@ public class CSNotifyInGameCompletedPacket() : GamePacket(CSOffsets.CSNotifyInGa
             // its only source. Replay the whole ladder here, with the load finished, for the same reason
             // the security state is replayed here and not earlier.
             Connection.ActiveChar.EquipSlotReinforces.SendAll();
+
+            // My List reads a client-side store that Load replaces. Post fills it in-session;
+            // a relog clears it, and opening the board from the folio never runs the doodad
+            // func, so the store has to be sent here.
+            CraftOrderManager.Instance.SendOwnEntries(Connection.ActiveChar);
         }
     }
 

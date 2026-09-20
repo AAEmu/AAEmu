@@ -581,7 +581,8 @@ public class Doodad : BaseUnit
                 // from Use(0) would bypass that guard and cause the player's current backpack to be silently
                 // swapped into inventory whenever the client sends a stray CSLootOpenBagPacket (observed
                 // right after a F-pickup followed by a re-place via PutDownBackpackEffect).
-                foreach (var funcWithoutSkill in allFuncsForGroup.Where(f => f.FuncType is "DoodadFuncLootItem" or "DoodadFuncLootPack" or "DoodadFuncCutdowning"))
+                foreach (var funcWithoutSkill in allFuncsForGroup.Where(f =>
+                             DoodadSkillLessUseRules.RunsOnSkillLessUse(f.FuncType)))
                 {
                     if (DoFunc(caster, startedSkillId, funcWithoutSkill))
                     {

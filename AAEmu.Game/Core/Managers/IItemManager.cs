@@ -1,4 +1,4 @@
-using AAEmu.Game.Models.Game.Auction.Templates;
+﻿using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Containers;
@@ -19,6 +19,7 @@ public interface IItemManager : ILoadable
     GradeTemplate GetGradeTemplate(int grade);
     Holdable GetHoldable(uint id);
     uint GetConstHoldableId(string name);
+    uint GetConstItemId(string name);
     bool HasItemInstrumentSound(uint itemId);
     bool HasItemTag(uint itemId, uint tagId);
     EquipSlotEnchantingCost GetEquipSlotEnchantingCost(uint slotTypeId);

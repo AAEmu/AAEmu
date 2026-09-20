@@ -1,4 +1,4 @@
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -112,6 +112,12 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     public uint GetConstSkillId(string name)
     {
         return _constSkillTypes.GetValueOrDefault(name, 0u);
+    }
+
+    /// <summary>For tests: seeds a const skill without opening compact.</summary>
+    public void SetConstSkillForTest(string name, uint skillId)
+    {
+        _constSkillTypes[name] = skillId;
     }
 
     /// <summary>The skill the client uses to take a rider off whatever it is attached to.</summary>

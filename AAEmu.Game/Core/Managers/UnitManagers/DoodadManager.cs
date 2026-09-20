@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.Creatures;
@@ -303,6 +303,25 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                             Id = reader.GetUInt32("id")
                         };
                         _funcTemplates["DoodadFuncIssuanceOfMobilizationOrderUiOpen"].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // doodad_func_craft_order_board_ui_opens - id-only rows (the craft order boards). The
+            // interaction opens the client's board window; the server hands it the caller's orders.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_craft_order_board_ui_opens";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncCraftOrderBoardUiOpen
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
+                        _funcTemplates[nameof(DoodadFuncCraftOrderBoardUiOpen)].Add(func.Id, func);
                     }
                 }
             }
@@ -2915,6 +2934,33 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
         {
             if (template.ClientDoodad)
                 dest.Add(template.Id);
+        }
+    }
+
+    /// <summary>
+    /// Templates whose F-key opens the craft-order board. They are not
+    /// <c>client_doodad</c> and have no quest func, so LevelPack must list
+    /// them or the cell <c>doodad.g</c> stands stay unplanted.
+    /// </summary>
+    public void AddCraftOrderBoardTemplateIds(ISet<uint> dest)
+    {
+        if (dest == null || _templates == null)
+            return;
+
+        foreach (var template in _templates.Values)
+        {
+            foreach (var group in template.FuncGroups)
+            {
+                foreach (var func in GetFuncsForGroup(group.Id))
+                {
+                    if (func.FuncType != nameof(DoodadFuncCraftOrderBoardUiOpen))
+                        continue;
+                    dest.Add(template.Id);
+                    goto NextTemplate;
+                }
+            }
+
+            NextTemplate: ;
         }
     }
 

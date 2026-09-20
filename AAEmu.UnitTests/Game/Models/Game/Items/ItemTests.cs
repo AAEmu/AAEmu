@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Trading;
@@ -9,7 +9,7 @@ public class ItemTests
 {
     [Test]
     [Arguments(ItemDetailType.BackpackFreshness, 10)]
-    [Arguments(ItemDetailType.Unknown13, 13)]
+    [Arguments(ItemDetailType.CraftOrderSheet, 13)]
     [Arguments(ItemDetailType.Unknown14, 8)]
     public async Task GenericDetails_RoundTripExactBytes(ItemDetailType detailType, int detailLength)
     {
@@ -36,7 +36,7 @@ public class ItemTests
             WorldId = 3,
             MadeUnitId = 42,
             CreateTime = new DateTime(2026, 8, 30, 12, 34, 56, DateTimeKind.Utc),
-            DetailType = ItemDetailType.Unknown13,
+            DetailType = ItemDetailType.CraftOrderSheet,
             Detail = Enumerable.Range(1, 13).Select(value => (byte)value).ToArray()
         };
         var split = new Item();
