@@ -57,6 +57,9 @@ public static class UnitIdleMoveRules
     /// <summary>
     /// Whether a zone report may be withheld from clients. <paramref name="lastRelayedWasStationary"/>
     /// is what the relay last accepted for this unit: see the stand-after-motion note below.
+    /// <paramref name="holdsAltitude"/> is <c>Npc.IsOffGround</c> (flier or swimmer). Their hover
+    /// stand is the client's altitude keepalive — withhold it and a never-moving hellgate falls.
+    /// Ground units keep the plaza filter.
     /// </summary>
     public static bool ShouldSuppress(
         float knownX, float knownY, float knownZ,
@@ -65,8 +68,12 @@ public static class UnitIdleMoveRules
         sbyte moveRx, sbyte moveRy, sbyte moveRz,
         short velX, short velY, short velZ,
         sbyte deltaX, sbyte deltaY, sbyte deltaZ,
-        bool lastRelayedWasStationary)
+        bool lastRelayedWasStationary,
+        bool holdsAltitude = false)
     {
+        if (holdsAltitude)
+            return false;
+
         if (!IsStationary(velX, velY, velZ, deltaX, deltaY, deltaZ))
             return false;
 
