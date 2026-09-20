@@ -9,7 +9,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class AddVocation : ICommand
 {
-    public string[] CommandNames { get; set; } = ["vocation", "vocationpoints", "livingpoints"];
+    public string[] CommandNames { get; set; } = ["vocation", "vocationpoints", "livingpoints", "add_vp", "add_vb"];
 
     public void OnLoad()
     {
@@ -36,9 +36,10 @@ public class AddVocation : ICommand
 
         var targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstArg);
 
-        if (!int.TryParse(args[firstArg], out var vocationToAdd))
+        if (args.Length <= firstArg || !int.TryParse(args[firstArg], out var vocationToAdd))
         {
-            vocationToAdd = 0;
+            CommandManager.SendDefaultHelpText(this, messageOutput);
+            return;
         }
 
         if (vocationToAdd != 0)

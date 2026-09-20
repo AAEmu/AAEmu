@@ -36,9 +36,10 @@ public class AddHonor : ICommand
 
         var targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstArg);
 
-        if (!int.TryParse(args[firstArg], out var honorToAdd))
+        if (args.Length <= firstArg || !int.TryParse(args[firstArg], out var honorToAdd))
         {
-            honorToAdd = 0;
+            CommandManager.SendDefaultHelpText(this, messageOutput);
+            return;
         }
 
         if (honorToAdd != 0)

@@ -12,8 +12,10 @@ namespace AAEmu.Game.Core.Packets.G2C;
 public class SCCharacterGamePointsPacket(Character character) : GamePacket(SCOffsets.SCCharacterGamePointsPacket, 1)
 {
     private const int SlotCount = 14;
-    private const int CurrentLeadershipSlot = 11;
-    private const int PeriodLeadershipSlot = 12;
+    public const int HonorSlot = 0;
+    public const int VocationSlot = 1;
+    public const int CurrentLeadershipSlot = 11;
+    public const int PeriodLeadershipSlot = 12;
 
     public override PacketStream Write(PacketStream stream)
     {

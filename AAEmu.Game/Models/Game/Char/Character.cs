@@ -2919,11 +2919,14 @@ public partial class Character : Unit, ICharacter
         // then pins every value to the server's.
         var wireKind = kind switch
         {
-            GamePointKind.Honor => (byte)0,
-            GamePointKind.Vocation => (byte)1,
-            GamePointKind.Leadership => (byte)11,
+            GamePointKind.Honor => (byte)SCCharacterGamePointsPacket.HonorSlot,
+            GamePointKind.Vocation => (byte)SCCharacterGamePointsPacket.VocationSlot,
+            GamePointKind.Leadership => (byte)SCCharacterGamePointsPacket.CurrentLeadershipSlot,
             _ => (byte)0
         };
+        // amount is a signed delta, measured on the 10.0.2.13 client: count=1 kind=0 with +250 moved
+        // the honour slot by +250 and the same packet with -250 took it straight back, so a spend is
+        // announced exactly like a gain.
         SendPacket(new SCGamePointChangedPacket(wireKind, change));
         SendPacket(new SCCharacterGamePointsPacket(this));
 
