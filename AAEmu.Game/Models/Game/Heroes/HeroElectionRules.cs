@@ -110,15 +110,13 @@ public static class HeroElectionRules
     public readonly record struct RallyStand(float X, float Y, float Z, float YawRad, uint ZoneId);
 
     /// <summary>
-    /// Prefer pads in the flag's zone. <c>milestones</c> is a release calendar, not a join —
-    /// the stand is the nearest in-zone return pad (the one sitting next to that nation's flag).
+    /// Pads authored in the flag's zone. An empty list keeps the issuer-position
+    /// fallback — do not hand every pad to <see cref="TryPickRallyStand"/> (no distance cap).
     /// </summary>
     public static IReadOnlyList<RallyStand> PadsForFlagZone(uint flagZoneId, IReadOnlyList<RallyStand> pads)
     {
-        if (pads == null || pads.Count == 0)
+        if (pads == null || pads.Count == 0 || flagZoneId == 0)
             return [];
-        if (flagZoneId == 0)
-            return pads;
 
         List<RallyStand> same = null;
         foreach (var pad in pads)
@@ -129,7 +127,7 @@ public static class HeroElectionRules
             same.Add(pad);
         }
 
-        return same is { Count: > 0 } ? same : pads;
+        return same ?? [];
     }
 
     /// <summary>Picks the stand closest to the flag on the XY plane. Empty list → no stand.</summary>

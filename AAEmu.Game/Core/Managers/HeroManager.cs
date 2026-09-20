@@ -1013,9 +1013,10 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
             return false;
 
         // Milestone is a release calendar, not a flag↔stand join. The authored
-        // pad is the nearest loaded return_point.g destination in the flag's zone.
+        // pad is the return_point.g destination in the flag's zone (editor_name
+        // → compact id). Recall / worldgate JSON is not a stand.
         var pads = new List<HeroElectionRules.RallyStand>();
-        foreach (var portal in PortalManager.Instance.GetLoadedReturnPoints())
+        foreach (var portal in PortalManager.Instance.GetLevelReturnPoints())
         {
             if (portal == null || !ReturnTeleportRules.HasValidDestination(portal.X, portal.Y, portal.Z))
                 continue;

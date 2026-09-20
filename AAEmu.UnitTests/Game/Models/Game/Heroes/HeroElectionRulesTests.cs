@@ -109,7 +109,7 @@ public class HeroElectionRulesTests
     }
 
     [Test]
-    public async Task PadsForFlagZone_PrefersTheFlagZoneThenFallsBack()
+    public async Task PadsForFlagZone_KeepsOnlyTheFlagZone()
     {
         var pads = new[]
         {
@@ -127,7 +127,8 @@ public class HeroElectionRulesTests
         await Assert.That(HeroElectionRules.TryPickRallyStand(0, 0, in133, out var stand)).IsTrue();
         await Assert.That(stand.X).IsEqualTo(2f);
 
-        await Assert.That(HeroElectionRules.PadsForFlagZone(999, pads).Count).IsEqualTo(3);
+        await Assert.That(HeroElectionRules.PadsForFlagZone(999, pads).Count).IsEqualTo(0);
+        await Assert.That(HeroElectionRules.PadsForFlagZone(0, pads).Count).IsEqualTo(0);
         await Assert.That(HeroElectionRules.PadsForFlagZone(183, []).Count).IsEqualTo(0);
     }
 
