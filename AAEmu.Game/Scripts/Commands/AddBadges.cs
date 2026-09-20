@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game.Char;
@@ -9,7 +9,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class AddBadges : ICommand
 {
-    public string[] CommandNames { get; set; } = ["vocation", "vocationpoints", "add_vp", "add_vb"];
+    public string[] CommandNames { get; set; } = ["add_vp", "add_vb"];
 
     public void OnLoad()
     {
@@ -43,7 +43,7 @@ public class AddBadges : ICommand
 
         if (vpToAdd != 0)
         {
-            targetPlayer.ChangeGamePoints((GamePointKind)1, vpToAdd);
+            targetPlayer.ChangeGamePoints(GamePointKind.Vocation, vpToAdd, false);
         }
     }
 }

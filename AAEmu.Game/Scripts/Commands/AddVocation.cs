@@ -23,7 +23,7 @@ public class AddVocation : ICommand
 
     public string GetCommandHelpText()
     {
-        return "Adds VocationPoints (to target player)";
+        return "Adds VocationPoints (to target player). The amount is exact - no gain-rate or +15% living bonus applies.";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
@@ -43,7 +43,7 @@ public class AddVocation : ICommand
 
         if (vocationToAdd != 0)
         {
-            targetPlayer.ChangeGamePoints(GamePointKind.Vocation, vocationToAdd);
+            targetPlayer.ChangeGamePoints(GamePointKind.Vocation, vocationToAdd, false);
             CommandManager.SendNormalText(this, messageOutput,
                 $"[Vocation] {targetPlayer.Name} vocation points: {vocationToAdd:+#;-#;0} -> {targetPlayer.VocationPoint}");
         }
