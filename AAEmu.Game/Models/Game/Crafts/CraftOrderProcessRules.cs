@@ -106,16 +106,23 @@ public static class CraftOrderProcessRules
     public static string MailBodyArgument(uint craftId) => $"body({craftId})";
 
     /// <summary>
-    /// The board's resident cut of a listed fee: <c>fee × permille / 1000</c>. Split so a huge
-    /// fee cannot overflow the multiply. A missing or negative permille is no cut.
+    /// How the resident charge is scaled: <c>content_configs.craft_order_charge_for_resident</c>
+    /// 480 is 4.8 %, the same number the client prints as <c>GetCraftOrderCharge() / 100</c>.
+    /// Auction listing rates use this same 1/10000 scale.
     /// </summary>
-    public static ulong ChargeCut(ulong fee, int permille)
+    public const ulong ChargeRateDivisor = 10_000;
+
+    /// <summary>
+    /// The board's resident cut of a listed fee: <c>fee × rate / 10000</c>. Split so a huge
+    /// fee cannot overflow the multiply. A missing or negative rate is no cut.
+    /// </summary>
+    public static ulong ChargeCut(ulong fee, int rate)
     {
-        if (permille <= 0 || fee == 0)
+        if (rate <= 0 || fee == 0)
             return 0;
 
-        var rate = (ulong)permille;
-        return fee / 1000ul * rate + fee % 1000ul * rate / 1000ul;
+        var cut = (ulong)rate;
+        return fee / ChargeRateDivisor * cut + fee % ChargeRateDivisor * cut / ChargeRateDivisor;
     }
 
     /// <summary>

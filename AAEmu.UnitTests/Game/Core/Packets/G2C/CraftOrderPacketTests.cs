@@ -144,12 +144,13 @@ public class CraftOrderPacketTests
     }
 
     [Test]
-    public async Task Items_RefusesMoreMaterialRowsThanTheClientShows()
+    public async Task Items_ClampsToTheRowsTheClientShows()
     {
         var rows = Enumerable.Range(0, CraftOrderWire.MaterialRowLimit + 1).Select(_ => Material()).ToList();
+        var body = new SCCraftOrderItemsPacket(1, rows).Write(new PacketStream()).GetBytes();
 
-        await Assert.That(() => new SCCraftOrderItemsPacket(1, rows).Write(new PacketStream()))
-            .Throws<InvalidOperationException>();
+        await Assert.That(BitConverter.ToUInt32(body, 8)).IsEqualTo((uint)CraftOrderWire.MaterialRowLimit);
+        await Assert.That(body.Length).IsEqualTo(12 + (CraftOrderWire.MaterialRowLimit * CraftOrderWire.MaterialRowSize));
     }
 
     [Test]

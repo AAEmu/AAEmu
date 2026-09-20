@@ -9,6 +9,15 @@ namespace AAEmu.Game.Models.Game.Crafts;
 public static class CraftOrderSheetRules
 {
     /// <summary>
+    /// ActionResult kind that resets the post frame and leaves craft-order mode.
+    /// The client's POST_CRAFT_ORDER handler listens for this, not the fill kind.
+    /// </summary>
+    public const byte PostActionKind = 1;
+
+    /// <summary>ActionResult kind the board treats as CANCEL_CRAFT_ORDER.</summary>
+    public const byte CancelActionKind = 2;
+
+    /// <summary>
     /// ActionResult kind that clears the restore tab after the sheet is gone. The client treats
     /// kind 3 + true as "drop the selected restore slot"; kinds 0 and 5 close the fill window,
     /// not this one.

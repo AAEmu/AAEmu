@@ -101,9 +101,9 @@ public class CraftOrderProcessRulesTests
     [Test]
     public async Task ChargeCut_IsTheListedFeeTimesPermille()
     {
-        await Assert.That(CraftOrderProcessRules.ChargeCut(20_000_000, 480)).IsEqualTo(9_600_000ul);
-        await Assert.That(CraftOrderProcessRules.ChargeCut(10_000_009, 480)).IsEqualTo(4_800_004ul);
-        await Assert.That(CraftOrderProcessRules.ChargeCut(9, 480)).IsEqualTo(4ul);
+        await Assert.That(CraftOrderProcessRules.ChargeCut(20_000_000, 480)).IsEqualTo(960_000ul);
+        await Assert.That(CraftOrderProcessRules.ChargeCut(10_000_009, 480)).IsEqualTo(480_000ul);
+        await Assert.That(CraftOrderProcessRules.ChargeCut(9, 480)).IsEqualTo(0ul);
         await Assert.That(CraftOrderProcessRules.ChargeCut(1, 480)).IsEqualTo(0ul);
         await Assert.That(CraftOrderProcessRules.ChargeCut(20_000_000, 0)).IsEqualTo(0ul);
         await Assert.That(CraftOrderProcessRules.ChargeCut(20_000_000, -1)).IsEqualTo(0ul);
@@ -112,11 +112,11 @@ public class CraftOrderProcessRulesTests
     [Test]
     public async Task CrafterPayout_IsTheListedFeeMinusThePermilleCut()
     {
-        // 2000g listed, 480 permille (48 %) → 1040g, the split the process window shows.
-        await Assert.That(CraftOrderProcessRules.CrafterPayout(20_000_000, 480)).IsEqualTo(10_400_000ul);
-        await Assert.That(CraftOrderProcessRules.CrafterPayout(10_000_009, 480)).IsEqualTo(5_200_005ul);
+        // 2000g listed, charge 480 = 4.8 % → 1904g to the crafter.
+        await Assert.That(CraftOrderProcessRules.CrafterPayout(20_000_000, 480)).IsEqualTo(19_040_000ul);
+        await Assert.That(CraftOrderProcessRules.CrafterPayout(10_000_009, 480)).IsEqualTo(9_520_009ul);
         await Assert.That(CraftOrderProcessRules.CrafterPayout(0, 480)).IsEqualTo(0ul);
-        await Assert.That(CraftOrderProcessRules.CrafterPayout(9, 480)).IsEqualTo(5ul);
+        await Assert.That(CraftOrderProcessRules.CrafterPayout(9, 480)).IsEqualTo(9ul);
     }
 
     [Test]
@@ -141,9 +141,11 @@ public class CraftOrderProcessRulesTests
     [Test]
     public async Task ProcessActionKind_IsThePcFillKind()
     {
-        // Kind 0 is the fill the process window listens for. Kind 1 is another board action and
-        // leaves the window open; kind 5 is the coupon / instant fill of the same event.
+        // Kind 0 is the fill the process window listens for. Kind 5 is the coupon / instant fill.
+        // Post is 1 and cancel is 2 — those close the post frame / confirm cancel, not this window.
         await Assert.That(CraftOrderProcessRules.ProcessActionKind).IsEqualTo((byte)0);
         await Assert.That(CraftOrderProcessRules.InstantActionKind).IsEqualTo((byte)5);
+        await Assert.That(CraftOrderSheetRules.PostActionKind).IsEqualTo((byte)1);
+        await Assert.That(CraftOrderSheetRules.CancelActionKind).IsEqualTo((byte)2);
     }
 }

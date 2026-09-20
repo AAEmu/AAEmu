@@ -42,21 +42,18 @@ public class CraftOrderRulesTests
     }
 
     [Test]
-    public async Task MinimumFee_ComesFromTheCraftCostColumn()
+    public async Task MinimumFee_IsTheEvaluatedFormulaFloor()
     {
-        await Assert.That(CraftOrderRules.MinimumFee(Craft(cost: 260_000))).IsEqualTo(260_000ul);
-        await Assert.That(CraftOrderRules.MinimumFee(Craft(cost: -5))).IsEqualTo(0ul);
-        await Assert.That(CraftOrderRules.MinimumFee(null)).IsEqualTo(0ul);
+        await Assert.That(CraftOrderRules.MinimumFee(22)).IsEqualTo(22ul);
+        await Assert.That(CraftOrderRules.MinimumFee(-5)).IsEqualTo(0ul);
     }
 
     [Test]
     public async Task Fee_BelowTheMinimumIsRefusedAtTheBoundary()
     {
-        var craft = Craft(cost: 1_000);
-
-        await Assert.That(CraftOrderRules.IsFeeAcceptable(craft, 999)).IsFalse();
-        await Assert.That(CraftOrderRules.IsFeeAcceptable(craft, 1_000)).IsTrue();
-        await Assert.That(CraftOrderRules.IsFeeAcceptable(null, 1_000)).IsFalse();
+        await Assert.That(CraftOrderRules.IsFeeAcceptable(999, 1_000)).IsFalse();
+        await Assert.That(CraftOrderRules.IsFeeAcceptable(1_000, 1_000)).IsTrue();
+        await Assert.That(CraftOrderRules.IsFeeAcceptable(0, 0)).IsTrue();
     }
 
     [Test]

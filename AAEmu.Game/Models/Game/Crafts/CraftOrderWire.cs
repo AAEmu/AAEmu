@@ -107,13 +107,12 @@ public static class CraftOrderWire
         return stream;
     }
 
-    /// <summary>Writes a count-prefixed material list, refusing more than <see cref="MaterialRowLimit"/>.</summary>
+    /// <summary>Writes a count-prefixed material list, keeping at most <see cref="MaterialRowLimit"/>.</summary>
     public static PacketStream WriteMaterialRows(PacketStream stream, IReadOnlyList<CraftOrderMaterialRow> rows)
     {
         var list = rows ?? [];
         if (list.Count > MaterialRowLimit)
-            throw new InvalidOperationException(
-                $"Craft order material list has {list.Count} rows, the client accepts {MaterialRowLimit}");
+            list = list.Take(MaterialRowLimit).ToList();
 
         stream.Write((uint)list.Count);
         foreach (var row in list)

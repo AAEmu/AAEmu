@@ -35,7 +35,7 @@ public class CraftOrderCommand : ICommand
                "craftorder cancel <orderId> - cancel one of your own orders and take the fee back.\n" +
                "craftorder sheet <craftId> [count] - consume a craft's materials and make its request sheet.\n" +
                "craftorder probe [itemId] [fee] [count] [grade] - push one row with these exact values.\n" +
-               "craftorder clear - drop every order (test cleanup).";
+               "craftorder clear - refund every live order (fee + sheet) and drop the board.";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)

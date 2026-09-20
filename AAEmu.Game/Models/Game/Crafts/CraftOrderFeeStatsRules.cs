@@ -9,6 +9,14 @@ public readonly record struct CraftOrderFeeStat(uint CraftId, ulong Lowest, ulon
 /// </summary>
 public static class CraftOrderFeeStatsRules
 {
+    /// <summary>
+    /// The post dialog's fee-info fields are per run: the window multiplies them by
+    /// <c>craftCount</c>. A listed total of <paramref name="fee"/> for <paramref name="count"/>
+    /// runs stores as <c>fee / count</c>.
+    /// </summary>
+    public static ulong UnitFee(ulong fee, uint count) =>
+        count <= 1 ? fee : fee / count;
+
     /// <summary>Lowest and highest of the posted unit fees, or zeroes when the list is empty.</summary>
     public static (ulong Lowest, ulong Highest, bool Any) FromFees(IEnumerable<ulong> fees)
     {

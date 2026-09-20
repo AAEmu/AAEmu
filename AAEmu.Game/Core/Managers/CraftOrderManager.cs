@@ -11,6 +11,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Tasks.Crafts;
 using NLog;
 
 namespace AAEmu.Game.Core.Managers;
@@ -21,7 +22,7 @@ namespace AAEmu.Game.Core.Managers;
 /// Orders are written to <c>craft_orders</c> as soon as they are posted, cancelled, filled, or
 /// they lapse, so a World kill cannot drop a listing or leave its gold escrowed twice.
 /// </summary>
-public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
+public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IInitializable
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -36,6 +37,7 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
     private readonly Dictionary<uint, (ulong Lowest, ulong Highest)> _feeStats = [];
     private ICraftOrderStore _store = new InMemoryCraftOrderStore();
     private ulong _nextId = 1;
+    private Models.Tasks.Task _expireTask;
 
     /// <summary>Tests skip the expire-refund letter when MailManager is not registered.</summary>
     internal bool SkipExpiredMail { get; set; }
@@ -48,28 +50,56 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
     private readonly Dictionary<uint, (uint CraftId, uint Count)> _pendingSheetCrafts = [];
 
     /// <summary>Live orders, for tests and diagnostics.</summary>
-    public IReadOnlyCollection<CraftOrder> Orders => _orders.Values;
+    public IReadOnlyCollection<CraftOrder> Orders
+    {
+        get
+        {
+            lock (_boardLock)
+                return _orders.Values.ToList();
+        }
+    }
 
     public void Clear()
     {
         lock (_boardLock)
         {
+            if (!SkipExpiredMail)
+            {
+                foreach (var order in _orders.Values.ToList())
+                {
+                    if (!_store.Delete(order.Id))
+                        continue;
+                    Untrack(order);
+                    if (!TryMailExpiredRefund(order))
+                        Logger.Warn("Craft order: clear could not refund order {0}", order.Id);
+                }
+            }
+
             ResetBoard();
             _pendingSheetCrafts.Clear();
             _pendingProcessOrders.Clear();
             _pendingRestoreSheets.Clear();
+            if (_expireTask != null && SingletonContainer.ServiceProvider != null)
+                TaskManager.Instance.Cancel(_expireTask);
+            _expireTask = null;
             _store.DeleteAll();
         }
     }
 
-    /// <summary>Reads the persisted board. Expired rows mail their escrow back and leave the table.</summary>
+    /// <summary>Reads the persisted board. The first expiry sweep waits for MailManager (Initialize).</summary>
     public void Load()
     {
         lock (_boardLock)
         {
             _store = new MySqlCraftOrderStore();
-            LoadFromStore(DateTimeOffset.UtcNow);
+            LoadFromStore(DateTimeOffset.UtcNow, sweep: false);
         }
+    }
+
+    /// <summary>Mails listings that lapsed while the process was down, then arms the next expiry.</summary>
+    public void Initialize()
+    {
+        SweepExpired(DateTimeOffset.UtcNow);
     }
 
     internal void UseStore(ICraftOrderStore store)
@@ -78,7 +108,7 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
             _store = store ?? new InMemoryCraftOrderStore();
     }
 
-    internal void LoadFromStore(DateTimeOffset now)
+    internal void LoadFromStore(DateTimeOffset now, bool sweep = true)
     {
         ResetBoard();
         var loaded = _store.LoadAll();
@@ -90,9 +120,10 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
             _feeStats[stat.CraftId] = (stat.Lowest, stat.Highest);
 
         foreach (var order in _orders.Values)
-            RememberFee(order.CraftId, order.Fee, persist: true);
+            RememberFee(order.CraftId, CraftOrderFeeStatsRules.UnitFee(order.Fee, order.Count), persist: true);
 
-        SweepExpiredNoLock(now);
+        if (sweep)
+            SweepExpiredNoLock(now);
         Logger.Info("Craft order: loaded {0} live order(s), {1} fee range(s)",
             _orders.Count, _feeStats.Count);
     }
@@ -100,10 +131,13 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
     /// <summary>The orders one character has posted, newest first.</summary>
     public IReadOnlyList<CraftOrder> OwnOrders(uint characterId)
     {
-        if (!_ordersByOwner.TryGetValue(characterId, out var ids))
-            return [];
+        lock (_boardLock)
+        {
+            if (!_ordersByOwner.TryGetValue(characterId, out var ids))
+                return [];
 
-        return ids.Where(_orders.ContainsKey).Select(id => _orders[id]).Reverse().ToList();
+            return ids.Where(_orders.ContainsKey).Select(id => _orders[id]).Reverse().ToList();
+        }
     }
 
     /// <summary>Drops listings whose 48 hours have run out and mails the escrow back.</summary>
@@ -135,8 +169,11 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
     public void SendSearch(Character character, CraftOrderQuery query)
     {
         SweepExpired(DateTimeOffset.UtcNow);
+        List<CraftOrder> snapshot;
+        lock (_boardLock)
+            snapshot = _orders.Values.ToList();
         var matching = CraftOrderRules.Sorted(
-            _orders.Values
+            snapshot
                 .Where(order => CraftOrderRules.MatchesFilter(order, query,
                     query.Possible ? character.Actability.GetPoint(order.ActabilityGroupId, true) : 0))
                 .ToList(),
@@ -166,20 +203,23 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
     /// <summary>Recent listing-fee range for a craft. Empty when nothing has been posted yet.</summary>
     internal (ulong Lowest, ulong Highest, bool Any) FeeRange(uint craftId)
     {
-        var fees = new List<ulong>();
-        if (_feeStats.TryGetValue(craftId, out var stored))
+        lock (_boardLock)
         {
-            fees.Add(stored.Lowest);
-            fees.Add(stored.Highest);
-        }
+            var fees = new List<ulong>();
+            if (_feeStats.TryGetValue(craftId, out var stored))
+            {
+                fees.Add(stored.Lowest);
+                fees.Add(stored.Highest);
+            }
 
-        foreach (var order in _orders.Values)
-        {
-            if (order.CraftId == craftId)
-                fees.Add(order.Fee);
-        }
+            foreach (var order in _orders.Values)
+            {
+                if (order.CraftId == craftId)
+                    fees.Add(CraftOrderFeeStatsRules.UnitFee(order.Fee, order.Count));
+            }
 
-        return CraftOrderFeeStatsRules.FromFees(fees);
+            return CraftOrderFeeStatsRules.FromFees(fees);
+        }
     }
 
     /// <summary>
@@ -219,29 +259,20 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
     {
         SweepExpired(DateTimeOffset.UtcNow);
         var bagItem = character.Inventory.Bag.GetItemByItemId(itemId);
-        if (bagItem is CraftOrderSheetItem sheet)
+        if (bagItem is not CraftOrderSheetItem sheet)
         {
-            if (!CraftManager.Instance.TryGetCraft(sheet.CraftId, out var sheetCraft) ||
-                !CraftOrderRules.IsOrderable(sheetCraft))
-            {
-                Refuse(character, $"sheet {itemId} has no orderable craft");
-                return;
-            }
-
-            Post(character, sheetCraft, sheet.CraftCount, sheet.CraftGrade, sheet.ActabilityGroupId, fee, sheet);
+            RefusePost(character, $"item {itemId} is not a request sheet");
             return;
         }
 
-        if (!CraftManager.Instance.TryFindOrderableCraftByProduct((uint)itemId, out var craft) ||
-            !CraftOrderRules.IsOrderable(craft))
+        if (!CraftManager.Instance.TryGetCraft(sheet.CraftId, out var sheetCraft) ||
+            !CraftOrderRules.IsOrderable(sheetCraft))
         {
-            Refuse(character, $"item {itemId} has no orderable craft");
+            RefusePost(character, $"sheet {itemId} has no orderable craft");
             return;
         }
 
-        var product = craft.CraftProducts[0];
-        Post(character, craft, (uint)Math.Max(1, product.Amount), CraftOrderSheetRules.GradeOf(craft),
-            craft.ActabilityGroupId, fee, consumeSheet: null);
+        Post(character, sheetCraft, sheet.CraftCount, sheet.CraftGrade, sheet.ActabilityGroupId, fee, sheet);
     }
 
     private void Post(
@@ -255,26 +286,39 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
     {
         if (!CraftOrderRules.CanPost(OwnOrders(character.Id).Count))
         {
-            Refuse(character, $"already at the {CraftOrderRules.EntriesPerCharacter} order cap");
+            RefusePost(character, $"already at the {CraftOrderRules.EntriesPerCharacter} order cap");
             return;
         }
 
         var lifetime = ListingLifetime;
         if (lifetime <= TimeSpan.Zero)
         {
-            Refuse(character, "craft_order_coupons has no listing lifetime");
+            RefusePost(character, "craft_order_coupons has no listing lifetime");
             return;
         }
 
-        if (!CraftOrderRules.IsFeeAcceptable(craft, fee))
+        var consumeLp = SkillManager.Instance.GetSkillTemplate(craft.SkillId)?.ConsumeLaborPower ?? 0;
+        if (!CraftOrderInstantFeeRules.TryMinFee(
+                FormulaManager.Instance.GetFormula((uint)FormulaKind.MinCraftOrderFee),
+                craft.Cost,
+                consumeLp,
+                craft.ActabilityLimit,
+                0,
+                out var minFee))
         {
-            Refuse(character, $"fee {fee} is below the minimum {CraftOrderRules.MinimumFee(craft)}");
+            RefusePost(character, "min craft order fee cannot be evaluated");
+            return;
+        }
+
+        if (!CraftOrderRules.IsFeeAcceptable(fee, CraftOrderRules.MinimumFee(minFee)))
+        {
+            RefusePost(character, $"fee {fee} is below the minimum {minFee}");
             return;
         }
 
         if (fee > 0 && !character.SubtractMoney(SlotType.Inventory, (long)fee, ItemTaskType.PostCraftOrder))
         {
-            Refuse(character, $"cannot escrow {fee} copper");
+            RefusePost(character, $"cannot escrow {fee} copper");
             return;
         }
 
@@ -283,7 +327,7 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
         {
             if (fee > 0)
                 character.AddMoney(SlotType.Inventory, (long)fee, ItemTaskType.PostCraftOrder);
-            Refuse(character, $"cannot take sheet {consumeSheet.Id}");
+            RefusePost(character, $"cannot take sheet {consumeSheet.Id}");
             return;
         }
 
@@ -315,17 +359,19 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
             {
                 if (fee > 0)
                     character.AddMoney(SlotType.Inventory, (long)fee, ItemTaskType.PostCraftOrder);
-                Refuse(character, $"cannot persist order {order.Id}");
+                RefusePost(character, $"cannot persist order {order.Id}");
                 return;
             }
 
             Track(order);
-            RememberFee(order.CraftId, order.Fee, persist: true);
+            RememberFee(order.CraftId, CraftOrderFeeStatsRules.UnitFee(order.Fee, order.Count), persist: true);
+            ArmExpireSweepNoLock();
         }
 
         Logger.Info("Craft order: {0} posted order {1} for item {2} x{3} at {4} copper",
             character.Name, order.Id, order.ItemId, order.Count, order.Fee);
 
+        character.SendPacket(new SCCraftOrderActionResultPacket(CraftOrderSheetRules.PostActionKind, true));
         character.SendPacket(new SCInsertCraftOrderEntryPacket(order.ToWireEntry()));
         SendOwnEntries(character);
     }
@@ -339,17 +385,36 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
         {
             if (!_orders.TryGetValue(orderId, out order) || order.OwnerId != character.Id)
             {
-                Refuse(character, $"order {orderId} is not theirs");
+                RefuseCancel(character, $"order {orderId} is not theirs");
                 return;
             }
+        }
 
-            if (!_store.Delete(order.Id))
+        var sheet = TryCreateSheetForOrder(order);
+        if (sheet == null)
+        {
+            RefuseCancel(character, $"cannot recreate the request sheet for order {order.Id}");
+            return;
+        }
+
+        if (!character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.RestoreCraftOrderSheet, sheet))
+        {
+            ItemManager.Instance.ReleaseId(sheet.Id);
+            RefuseCancel(character, $"no room for the request sheet of order {order.Id}");
+            return;
+        }
+
+        lock (_boardLock)
+        {
+            if (!_orders.ContainsKey(order.Id) || !_store.Delete(order.Id))
             {
-                Refuse(character, $"cannot persist cancel of order {order.Id}");
+                character.Inventory.Bag.RemoveItem(ItemTaskType.RestoreCraftOrderSheet, sheet, true);
+                RefuseCancel(character, $"cannot persist cancel of order {order.Id}");
                 return;
             }
 
             Untrack(order);
+            ArmExpireSweepNoLock();
         }
 
         if (order.Fee > 0 && !character.AddMoney(SlotType.Inventory, (long)order.Fee, ItemTaskType.RestoreCraftOrderSheet))
@@ -360,12 +425,14 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
                     Track(order);
             }
 
-            Refuse(character, $"cannot return {order.Fee} copper");
+            character.Inventory.Bag.RemoveItem(ItemTaskType.RestoreCraftOrderSheet, sheet, true);
+            RefuseCancel(character, $"cannot return {order.Fee} copper");
             return;
         }
 
         Logger.Info("Craft order: {0} cancelled order {1}", character.Name, order.Id);
 
+        character.SendPacket(new SCCraftOrderActionResultPacket(CraftOrderSheetRules.CancelActionKind, true));
         character.SendPacket(new SCDeleteCraftOrderEntryPacket(order.Id, complete: false));
         SendOwnEntries(character);
     }
@@ -373,20 +440,25 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
     /// <summary>Remembers the craft a sheet cast asked for, until that cast's effect lands.</summary>
     public void QueueSheetCraft(uint characterId, uint craftId, uint count)
     {
-        _pendingSheetCrafts[characterId] = (craftId, count);
+        lock (_boardLock)
+            _pendingSheetCrafts[characterId] = (craftId, count);
     }
 
     /// <summary>Remembers the order a process cast named, until that cast's effect lands.</summary>
     public void QueueProcessOrder(uint characterId, ulong orderId)
     {
-        _pendingProcessOrders[characterId] = orderId;
+        lock (_boardLock)
+            _pendingProcessOrders[characterId] = orderId;
     }
 
     /// <summary>Takes the order a character's process cast queued.</summary>
     public bool TryTakeProcessOrder(uint characterId, out ulong orderId)
     {
-        if (_pendingProcessOrders.Remove(characterId, out orderId))
-            return orderId != 0;
+        lock (_boardLock)
+        {
+            if (_pendingProcessOrders.Remove(characterId, out orderId))
+                return orderId != 0;
+        }
 
         orderId = 0;
         return false;
@@ -395,11 +467,14 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
     /// <summary>Takes the craft a character's sheet cast queued, if the folio left one.</summary>
     public bool TryTakeSheetCraft(uint characterId, out uint craftId, out uint count)
     {
-        if (_pendingSheetCrafts.Remove(characterId, out var pending))
+        lock (_boardLock)
         {
-            craftId = pending.CraftId;
-            count = pending.Count;
-            return true;
+            if (_pendingSheetCrafts.Remove(characterId, out var pending))
+            {
+                craftId = pending.CraftId;
+                count = pending.Count;
+                return true;
+            }
         }
 
         craftId = 0;
@@ -487,14 +562,18 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
     /// <summary>Remembers the sheet a restore cast named, until that cast's effect lands.</summary>
     public void QueueRestoreSheet(uint characterId, ulong sheetItemId)
     {
-        _pendingRestoreSheets[characterId] = sheetItemId;
+        lock (_boardLock)
+            _pendingRestoreSheets[characterId] = sheetItemId;
     }
 
     /// <summary>Takes the sheet a character's restore cast queued.</summary>
     public bool TryTakeRestoreSheet(uint characterId, out ulong sheetItemId)
     {
-        if (_pendingRestoreSheets.Remove(characterId, out sheetItemId))
-            return sheetItemId != 0;
+        lock (_boardLock)
+        {
+            if (_pendingRestoreSheets.Remove(characterId, out sheetItemId))
+                return sheetItemId != 0;
+        }
 
         sheetItemId = 0;
         return false;
@@ -573,11 +652,15 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
         }
 
         SweepExpired(DateTimeOffset.UtcNow);
-        if (!_orders.TryGetValue(orderId, out var order))
+        CraftOrder order;
+        lock (_boardLock)
         {
-            RefuseProcess(character, $"order {orderId} is not on the board");
-            reason = $"order {orderId} is not on the board";
-            return false;
+            if (!_orders.TryGetValue(orderId, out order))
+            {
+                RefuseProcess(character, $"order {orderId} is not on the board");
+                reason = $"order {orderId} is not on the board";
+                return false;
+            }
         }
 
         if (CraftOrderProcessRules.IsOwnOrder(order, character.Id))
@@ -747,11 +830,15 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
         }
 
         SweepExpired(DateTimeOffset.UtcNow);
-        if (!_orders.TryGetValue(orderId, out var order))
+        CraftOrder order;
+        lock (_boardLock)
         {
-            RefuseInstant(character, $"order {orderId} is not on the board");
-            reason = $"order {orderId} is not on the board";
-            return false;
+            if (!_orders.TryGetValue(orderId, out order))
+            {
+                RefuseInstant(character, $"order {orderId} is not on the board");
+                reason = $"order {orderId} is not on the board";
+                return false;
+            }
         }
 
         if (!CraftOrderProcessRules.CanInstant(order, character.Id))
@@ -788,19 +875,19 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
             return false;
         }
 
-        var instantSkill = SkillManager.Instance.GetSkillTemplate(CraftOrderContent.InstantSkillId);
-        if (instantSkill == null)
+        if (SkillManager.Instance.GetSkillTemplate(CraftOrderContent.InstantSkillId) == null)
         {
             RefuseInstant(character, $"const_skill_types '{CraftOrderContent.InstantSkillConstName}' is missing");
             reason = "instant skill";
             return false;
         }
 
+        var consumeLp = SkillManager.Instance.GetSkillTemplate(craft.SkillId)?.ConsumeLaborPower ?? 0;
         if (!CraftOrderInstantFeeRules.TryAdditionalFee(
                 FormulaManager.Instance.GetFormula((uint)FormulaKind.MinCraftOrderFee),
                 FormulaManager.Instance.GetFormula((uint)FormulaKind.CraftOrderAdditionalFee),
                 craft.Cost,
-                instantSkill.ConsumeLaborPower,
+                consumeLp,
                 craft.ActabilityLimit,
                 CraftOrderInstantFeeRules.InstantPcActability(order.Grade),
                 order.Count,
@@ -981,6 +1068,37 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
             if (owner != null)
                 SendOwnEntriesNoSweep(owner);
         }
+
+        ArmExpireSweepNoLock();
+    }
+
+    private void ArmExpireSweepNoLock()
+    {
+        if (SingletonContainer.ServiceProvider == null)
+            return;
+
+        long next = 0;
+        foreach (var order in _orders.Values)
+        {
+            if (next == 0 || order.ExpiresUnix < next)
+                next = order.ExpiresUnix;
+        }
+
+        if (_expireTask != null)
+        {
+            TaskManager.Instance.Cancel(_expireTask);
+            _expireTask = null;
+        }
+
+        if (next <= 0)
+            return;
+
+        var delay = DateTimeOffset.FromUnixTimeSeconds(next) - DateTimeOffset.UtcNow;
+        if (delay < TimeSpan.Zero)
+            delay = TimeSpan.Zero;
+
+        _expireTask = new CraftOrderExpireTask();
+        TaskManager.Instance.Schedule(_expireTask, delay);
     }
 
     private void SendOwnEntriesNoSweep(Character character)
@@ -993,8 +1111,6 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
 
     private bool TryMailExpiredRefund(CraftOrder order)
     {
-        if (order.Fee == 0)
-            return true;
         if (SkipExpiredMail)
             return true;
         if (order.Fee > int.MaxValue)
@@ -1004,8 +1120,32 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
         if (string.IsNullOrWhiteSpace(ownerName))
             return false;
 
-        var mail = MailForCraftOrder.ForExpiredRefund(order.OwnerId, ownerName, order.CraftId, (int)order.Fee);
-        return MailManager.Instance.SendBatch([mail]);
+        var sheet = TryCreateSheetForOrder(order);
+        if (order.Fee == 0 && sheet == null)
+            return true;
+
+        var mail = MailForCraftOrder.ForExpiredRefund(
+            order.OwnerId, ownerName, order.CraftId, (int)order.Fee, sheet);
+        if (MailManager.Instance.SendBatch([mail]))
+            return true;
+
+        if (sheet != null)
+            ItemManager.Instance.ReleaseId(sheet.Id);
+        return false;
+    }
+
+    private static CraftOrderSheetItem TryCreateSheetForOrder(CraftOrder order)
+    {
+        var sheetItemId = CraftOrderContent.SheetItemId;
+        if (sheetItemId == 0 || order == null)
+            return null;
+
+        var sheet = ItemManager.Instance.Create<CraftOrderSheetItem>(sheetItemId, 1, 0);
+        if (sheet == null)
+            return null;
+
+        sheet.SetOrder(order.CraftId, order.Grade, Math.Max(1, order.Count), order.ActabilityGroupId);
+        return sheet;
     }
 
     private static void RestoreLabor(Character character, int laborCost, int actabilityGroupId)
@@ -1045,8 +1185,11 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable
             ids.Remove(order.Id);
     }
 
-    private static void Refuse(Character character, string reason) =>
-        Refuse(character, reason, kind: 0);
+    private static void RefusePost(Character character, string reason) =>
+        Refuse(character, reason, CraftOrderSheetRules.PostActionKind);
+
+    private static void RefuseCancel(Character character, string reason) =>
+        Refuse(character, reason, CraftOrderSheetRules.CancelActionKind);
 
     private static void RefuseProcess(Character character, string reason) =>
         Refuse(character, reason, CraftOrderProcessRules.ProcessActionKind);

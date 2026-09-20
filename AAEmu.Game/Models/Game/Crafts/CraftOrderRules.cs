@@ -34,12 +34,12 @@ public static class CraftOrderRules
     public static bool CanPost(int liveOrders) => liveOrders < EntriesPerCharacter;
 
     /// <summary>
-    /// Money the board charges for an order, taken from the craft's own cost column. This is the same
-    /// value the post dialog shows as its minimum.
+    /// Money the post dialog treats as the floor: formula <c>MinCraftOrderFee</c> (the same
+    /// bind as <c>X2Craft:GetMinCraftOrderFee</c>), not <c>crafts.cost</c>.
     /// </summary>
-    public static ulong MinimumFee(Craft craft) => craft == null ? 0 : (ulong)Math.Max(0, craft.Cost);
+    public static ulong MinimumFee(int formulaCopper) => (ulong)Math.Max(0, formulaCopper);
 
-    public static bool IsFeeAcceptable(Craft craft, ulong fee) => craft != null && fee >= MinimumFee(craft);
+    public static bool IsFeeAcceptable(ulong fee, ulong minimum) => fee >= minimum;
 
     /// <summary>A craft can be ordered when the content marks it so and it produces something.</summary>
     public static bool IsOrderable(Craft craft) => craft is { Orderable: true, CraftProducts.Count: > 0 };

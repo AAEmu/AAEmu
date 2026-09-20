@@ -8,6 +8,14 @@ namespace AAEmu.UnitTests.Game.Models.Game.Crafts;
 public class CraftOrderFeeStatsRulesTests
 {
     [Test]
+    public async Task UnitFee_IsTheListedTotalPerRun()
+    {
+        await Assert.That(CraftOrderFeeStatsRules.UnitFee(20_000_000, 1)).IsEqualTo(20_000_000ul);
+        await Assert.That(CraftOrderFeeStatsRules.UnitFee(20_000_000, 5)).IsEqualTo(4_000_000ul);
+        await Assert.That(CraftOrderFeeStatsRules.UnitFee(100, 0)).IsEqualTo(100ul);
+    }
+
+    [Test]
     public async Task FromFees_IsTheMinAndMax()
     {
         var range = CraftOrderFeeStatsRules.FromFees([10_000_000, 20_000_000, 15_000_000]);

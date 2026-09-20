@@ -43,12 +43,23 @@ public sealed class MailForCraftOrder : BaseMail
         return mail;
     }
 
-    /// <summary>The requester's letter when the listing lapses: the escrowed fee comes back.</summary>
-    public static MailForCraftOrder ForExpiredRefund(uint receiverId, string receiverName, uint craftId, int copper)
+    /// <summary>
+    /// The requester's letter when the listing lapses or a GM wipe refunds it: the escrowed
+    /// fee and the request sheet come back.
+    /// </summary>
+    public static MailForCraftOrder ForExpiredRefund(
+        uint receiverId, string receiverName, uint craftId, int copper, Item sheet = null)
     {
         var mail = ForReceiver(receiverId, receiverName, CraftOrderProcessRules.ExpiredMailSender, craftId);
         if (copper > 0)
             mail.AttachMoney(copper);
+        if (sheet != null)
+        {
+            sheet.OwnerId = receiverId;
+            sheet.SlotType = SlotType.Mail;
+            mail.Body.Attachments.Add(sheet);
+        }
+
         return mail;
     }
 

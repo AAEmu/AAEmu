@@ -98,8 +98,7 @@ public sealed class MySqlCraftOrderStore : ICraftOrderStore
             using var command = connection.CreateCommand();
             command.CommandText = "DELETE FROM craft_orders WHERE id = @id";
             command.Parameters.AddWithValue("@id", orderId);
-            command.ExecuteNonQuery();
-            return true;
+            return command.ExecuteNonQuery() == 1;
         }
         catch (Exception ex)
         {

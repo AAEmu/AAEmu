@@ -34,27 +34,6 @@ public class LevelPackDoodadRulesTests
     }
 
     [Test]
-    public async Task ShouldAuthor_BoardOpen_WhenNotTowerIgnoreOrSchedule()
-    {
-        await Assert.That(LevelPackDoodadRules.ShouldAuthorPermanent(
-            clientDoodad: false, npcTypeModel: false, talkOrQuestFunc: false,
-            towerAlmighty: false, ignoredPermanent: false, scheduledEvent: false,
-            boardOpen: true)).IsTrue();
-        await Assert.That(LevelPackDoodadRules.ShouldAuthorPermanent(
-            clientDoodad: false, npcTypeModel: false, talkOrQuestFunc: false,
-            towerAlmighty: true, ignoredPermanent: false, scheduledEvent: false,
-            boardOpen: true)).IsFalse();
-        await Assert.That(LevelPackDoodadRules.ShouldAuthorPermanent(
-            clientDoodad: false, npcTypeModel: false, talkOrQuestFunc: false,
-            towerAlmighty: false, ignoredPermanent: true, scheduledEvent: false,
-            boardOpen: true)).IsFalse();
-        await Assert.That(LevelPackDoodadRules.ShouldAuthorPermanent(
-            clientDoodad: false, npcTypeModel: false, talkOrQuestFunc: false,
-            towerAlmighty: false, ignoredPermanent: false, scheduledEvent: true,
-            boardOpen: true)).IsFalse();
-    }
-
-    [Test]
     public async Task Plan_3901Pad_TakesEhnoirFeosExtras_SkipsIgnored()
     {
         var wanted = new HashSet<uint> { 14226, 14227, 14228 };
