@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
@@ -525,46 +525,26 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
 
         var destination = portal.TeleportPosition;
         var position = destination.World.Position;
-        var yaw = destination.World.Rotation.Z.DegToRad();
 
         Logger.Info("UsePortal: {0} -> {1} zone {2} ({3:0.0}, {4:0.0}, {5:0.0})",
             character.Name, portal.Name, destination.ZoneId, position.X, position.Y, position.Z);
 
         character.SendPacket(new SCUnitPortalUsedPacket(portal.ObjId));
 
-        if (destination.InstanceId != character.Transform.InstanceId)
+        var destWorld = portal.LinkedPortal?.ParentWorld ?? portal.ParentWorld ?? character.ParentWorld;
+        if (!SkillTeleportLanding.TryApplyToWorld(
+                character,
+                destWorld,
+                destination.ZoneId,
+                position.X,
+                position.Y,
+                position.Z,
+                destination.World.Rotation.Z,
+                TeleportReason.Portal))
         {
-            // Crossing instances means a loading screen, and the client answers it with
-            // CSInstanceLoaded — which is the only thing that clears DisabledSetPosition.
-            character.DisabledSetPosition = true;
-            character.SendPacket(
-                new SCLoadInstancePacket(
-                    destination.WorldId,
-                    destination.ZoneId,
-                    position.X,
-                    position.Y,
-                    position.Z,
-                    destination.World.Rotation.X.DegToRad(),
-                    destination.World.Rotation.Y.DegToRad(),
-                    yaw
-                )
-            );
-
-            character.Transform = destination.Clone(character);
+            Logger.Warn("UsePortal: {0} could not land at portal {1} zone {2}",
+                character.Name, portal.Name, destination.ZoneId);
         }
-        else
-        {
-            // Same level: the client streams the new area seamlessly and never sends
-            // CSInstanceLoaded, so blocking movement here would freeze the player server-side.
-            // Move first — SetPosition is a no-op while DisabledSetPosition is set — so the region
-            // change updates Transform.ZoneId and hands the unit over to the destination Zone.
-            character.SetPosition(position.X, position.Y, position.Z, 0f, 0f, yaw);
-            character.Transform.FinalizeTransform();
-        }
-
-        // TODO - ErrorMessage
-        character.SendPacket(new SCTeleportUnitPacket(TeleportReason.Portal, 0,
-            position.X, position.Y, position.Z, yaw));
     }
 
     public static void DeletePortal(Character owner, byte type, uint id)

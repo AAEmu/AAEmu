@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Units.Static;
@@ -572,9 +573,10 @@ public static class GmCommandDispatcher
         if (target is not { IsOnline: true })
             return $"target '{name}' not online";
         var pos = target.Transform.World.Position;
-        me.ForceDismount();
-        me.DisabledSetPosition = true;
-        me.SendPacket(new SCTeleportUnitPacket(TeleportReason.Gm, 0, pos.X, pos.Y, pos.Z + 2f, 0f));
+        if (!SkillTeleportLanding.TryApplyToWorld(
+                me, target.ParentWorld, target.Transform.ZoneId,
+                pos.X, pos.Y, pos.Z + 2f, target.Transform.World.Rotation.Z, TeleportReason.Gm))
+            return $"cannot land at {target.Name}";
         return $"goto {target.Name}";
     }
 
@@ -587,9 +589,10 @@ public static class GmCommandDispatcher
         if (target is not { IsOnline: true })
             return $"target '{name}' not online";
         var pos = me.Transform.World.Position;
-        target.ForceDismount();
-        target.DisabledSetPosition = true;
-        target.SendPacket(new SCTeleportUnitPacket(TeleportReason.Gm, 0, pos.X, pos.Y, pos.Z + 2f, 0f));
+        if (!SkillTeleportLanding.TryApplyToWorld(
+                target, me.ParentWorld, me.Transform.ZoneId,
+                pos.X, pos.Y, pos.Z + 2f, me.Transform.World.Rotation.Z, TeleportReason.Gm))
+            return $"cannot summon {target.Name}";
         target.SendMessage($"[GM] {me.Name} summoned you.");
         return $"summoned {target.Name}";
     }

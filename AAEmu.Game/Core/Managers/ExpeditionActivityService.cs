@@ -605,21 +605,7 @@ public sealed class ExpeditionActivityService(IExpeditionActivityRepository repo
             return false;
         }
 
-        character.ForceDismount();
-        if (character.Transform.InstanceId != destinationWorld.Id)
-        {
-            character.DisabledSetPosition = true;
-            character.SendPacket(new SCLoadInstancePacket(destinationWorld.Template.Id, zoneId, x, y, z, 0f, 0f, yaw));
-            character.Transform = new AAEmu.Game.Models.Game.World.Transform.Transform(
-                character, null, zoneId, destinationWorld.Id, x, y, z, yaw);
-        }
-        else
-        {
-            character.SetPosition(x, y, z, 0f, 0f, yaw);
-            character.Transform.FinalizeTransform();
-        }
-        character.SendPacket(new SCTeleportUnitPacket(reason, 0, x, y, z, yaw));
-        return true;
+        return SkillTeleportLanding.TryApplyToWorld(character, destinationWorld, zoneId, x, y, z, yaw, reason);
     }
 
     private sealed record PendingExpeditionSummon(Character Recipient, Character Summoner, string SummonerName,

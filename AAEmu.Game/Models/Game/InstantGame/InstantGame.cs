@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
@@ -332,18 +332,13 @@ public partial class InstantGame
 
         character.Transform = character.MainWorldPosition.Clone();
         character.Transform.InstanceId = WorldManager.DefaultInstanceId;
-        character.SendPacket(
-            new SCLoadInstancePacket(
-                character.MainWorldPosition.WorldId,
-                character.MainWorldPosition.ZoneId,
-                character.MainWorldPosition.World.Position.X,
-                character.MainWorldPosition.World.Position.Y,
-                character.MainWorldPosition.World.Position.Z,
-                character.MainWorldPosition.World.Rotation.X.DegToRad(),
-                character.MainWorldPosition.World.Rotation.Y.DegToRad(),
-                character.MainWorldPosition.World.Rotation.Z.DegToRad()
-            )
-        );
+        var pos = character.MainWorldPosition.World.Position;
+        var rot = character.MainWorldPosition.World.Rotation;
+        character.SendPacket(new SCLoadInstancePacket(
+            WorldManager.DefaultInstanceId,
+            character.MainWorldPosition.ZoneId,
+            pos.X, pos.Y, pos.Z,
+            rot.X, rot.Y, rot.Z));
     }
 
     private void MoveCharacterToWorld(Character character, uint zoneId, float x, float y, float z)

@@ -70,10 +70,12 @@ public class MoveToLocationEffect : EffectTemplate
         Logger.Info("MoveToLocationEffect: recalling {0} to house {1} ({2:0.0}, {3:0.0}, {4:0.0})",
             character.Name, destination.Id, position.X, position.Y, position.Z);
 
-        SkillTeleportLanding.Apply(character, landing.WorldId, landing.ZoneId, landing.InstanceId,
-            position.X, position.Y, position.Z, yaw, TeleportReason.MoveToLocation,
-            // Recalling to a house in the zone you are already standing in is not a zone change.
-            landing.ZoneId == character.Transform.ZoneId &&
-            landing.InstanceId == character.Transform.InstanceId);
+        if (!SkillTeleportLanding.TryApplyToWorld(
+                character, destination.ParentWorld, landing.ZoneId,
+                position.X, position.Y, position.Z, yaw, TeleportReason.MoveToLocation))
+        {
+            Logger.Warn($"MoveToLocationEffect: {character.Name} could not land at house {destination.Id}");
+            character.SendErrorMessage(ErrorMessageType.InvalidHouseInfo);
+        }
     }
 }
