@@ -57,6 +57,22 @@ public class KillNpcWithoutCorpseRulesTests
     }
 
     [Test]
+    public async Task ExplicitTarget_CountsWhenTheRadiusSearchCannotSeeIt()
+    {
+        // A radius of 0 returns no neighbours, and the search leaves out its origin, so the named
+        // NPC the skill was aimed at is still a victim. A different template is not.
+        await Assert.That(KillNpcWithoutCorpseRules.IsVictim(
+            effectNpcId: 20, vanish: false, unitTemplateId: 20,
+            unitIsCaster: false, unitIsDead: false, inRadius: false, isExplicitTarget: true)).IsTrue();
+        await Assert.That(KillNpcWithoutCorpseRules.IsVictim(
+            effectNpcId: 20, vanish: false, unitTemplateId: 21,
+            unitIsCaster: false, unitIsDead: false, inRadius: false, isExplicitTarget: true)).IsFalse();
+        await Assert.That(KillNpcWithoutCorpseRules.IsVictim(
+            effectNpcId: 0, vanish: true, unitTemplateId: 20,
+            unitIsCaster: false, unitIsDead: false, inRadius: false, isExplicitTarget: true)).IsFalse();
+    }
+
+    [Test]
     public async Task OutsideTheBand_ANonCasterIsLeftAlone()
     {
         await Assert.That(KillNpcWithoutCorpseRules.IsVictim(

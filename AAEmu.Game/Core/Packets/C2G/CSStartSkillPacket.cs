@@ -10,7 +10,6 @@ using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items.Templates;
-using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.Static;
@@ -440,26 +439,6 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
                 {
                     MountSkillTemplateId = mountSkillId
                 };
-            }
-        }
-
-        // Authored interaction plots that start as original-source self-casts run on the NPC the
-        // player picked. The client still names the player as caster; leaving it that way applies
-        // the graph to the player and the NPC never receives the follow-up skill.
-        if (casterUnit == character)
-        {
-            var interactionTarget = world.GetUnit(skillCastTarget.ObjId);
-            var authored = interactionTarget is Npc { Template: not null } offered
-                ? NpcInteractionGameData.Instance.GetSkills(offered.Template.NpcInteractionSetId)
-                : [];
-            if (NpcInteractionCastRules.TryResolveNpcCaster(
-                    character, interactionTarget, skillId, template, authored, out var interactionNpc))
-            {
-                Logger.Info(
-                    "StartSkill interaction remap skill={0} player={1} npc={2} tpl={3}",
-                    skillId, character.Name, interactionNpc.ObjId, interactionNpc.TemplateId);
-                casterUnit = interactionNpc;
-                skillCaster = new SkillCasterUnit(interactionNpc.ObjId);
             }
         }
 

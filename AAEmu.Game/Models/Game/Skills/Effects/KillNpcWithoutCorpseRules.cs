@@ -12,7 +12,8 @@ public static class KillNpcWithoutCorpseRules
     /// <remarks>
     /// A vanish row whose <paramref name="effectNpcId"/> is unset is a self-remove (the caster
     /// disappears). A vanish row that names a template still has to match that template — a nearby
-    /// cleanup skill listing other templates must not take a different unit with it.
+    /// cleanup skill listing other templates must not take a different unit with it. The skill's
+    /// own target counts even when the radius search is empty or leaves the origin out.
     /// </remarks>
     public static bool IsVictim(
         uint effectNpcId,
@@ -20,7 +21,8 @@ public static class KillNpcWithoutCorpseRules
         uint unitTemplateId,
         bool unitIsCaster,
         bool unitIsDead,
-        bool inRadius)
+        bool inRadius,
+        bool isExplicitTarget = false)
     {
         if (unitIsDead)
             return false;
@@ -31,6 +33,6 @@ public static class KillNpcWithoutCorpseRules
         if (unitTemplateId != effectNpcId)
             return false;
 
-        return inRadius || (vanish && unitIsCaster);
+        return inRadius || isExplicitTarget || (vanish && unitIsCaster);
     }
 }

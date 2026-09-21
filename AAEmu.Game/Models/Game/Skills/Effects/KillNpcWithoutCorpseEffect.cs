@@ -30,13 +30,20 @@ public class KillNpcWithoutCorpseEffect : EffectTemplate
         var killer = ExperiencedBy(caster, target);
         var removed = 0;
 
+        // A radius of 0 yields no neighbours, and the search also leaves out its own origin, so the
+        // NPC the skill was aimed at is considered on its own.
+        if (target is Npc skillTarget &&
+            TryRemove(skillTarget, skillTarget == caster, inRadius: false, isExplicitTarget: true, killer, seen))
+            removed++;
+
         foreach (var npc in nearby)
         {
-            if (TryRemove(npc, npc == caster, inRadius: true, killer, seen))
+            if (TryRemove(npc, npc == caster, inRadius: true, isExplicitTarget: false, killer, seen))
                 removed++;
         }
 
-        if (caster is Npc casterNpc && TryRemove(casterNpc, unitIsCaster: true, inRadius: false, killer, seen))
+        if (caster is Npc casterNpc &&
+            TryRemove(casterNpc, unitIsCaster: true, inRadius: false, isExplicitTarget: false, killer, seen))
             removed++;
 
         Logger.Info(
@@ -60,12 +67,13 @@ public class KillNpcWithoutCorpseEffect : EffectTemplate
                ?? target?.GetOwnerCharacter();
     }
 
-    private bool TryRemove(Npc npc, bool unitIsCaster, bool inRadius, Character experiencedBy, HashSet<uint> seen)
+    private bool TryRemove(Npc npc, bool unitIsCaster, bool inRadius, bool isExplicitTarget,
+        Character experiencedBy, HashSet<uint> seen)
     {
         if (npc == null || npc.ObjId == 0 || !seen.Add(npc.ObjId))
             return false;
         if (!KillNpcWithoutCorpseRules.IsVictim(
-                NpcId, Vanish, npc.TemplateId, unitIsCaster, npc.IsDead, inRadius))
+                NpcId, Vanish, npc.TemplateId, unitIsCaster, npc.IsDead, inRadius, isExplicitTarget))
             return false;
 
         RemoveEffectsAndDelete(npc, experiencedBy);
