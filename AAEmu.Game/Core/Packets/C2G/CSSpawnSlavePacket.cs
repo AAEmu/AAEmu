@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Slaves;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -65,10 +66,9 @@ public class CSSpawnSlavePacket() : GamePacket(CSOffsets.CSSpawnSlavePacket, 1)
                 character.Name, slaveId, itemId, summonTemplate.SlaveId);
         }
 
-        // Client picks the spot (SummonPos target); orientation comes from zRot.
+        // Client picks the spot (SummonPos target); zRot is the planted heading, not an addend.
         using var transform = character.Transform.CloneDetached();
-        transform.World.SetPosition(x, y, z);
-        transform.World.Rotate(transform.World.Rotation with { Z = zRot });
+        SlaveSummonSeedRules.ApplySeed(transform.World, x, y, z, zRot);
 
         character.ParentWorld.SlaveManager.Create(
             character, null, summonTemplate.SlaveId, item, hideSpawnEffect, transform);

@@ -759,6 +759,15 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             // Always spawn horizontal(level) and 90° CCW of the player
             spawnPos.Local.SetRotation(0f, 0f, owner?.Transform.World.Rotation.Z + MathF.PI / 2 ?? useSpawner.Position.Yaw);
         }
+        else
+        {
+            Logger.Info(
+                "SlaveSpawn used client seed tpl={0} at ({1:0.0},{2:0.0},{3:0.0})",
+                slaveTemplate.Id,
+                spawnPos.World.Position.X,
+                spawnPos.World.Position.Y,
+                spawnPos.World.Position.Z);
+        }
 
         // Get new Id to save if it has a player as owner (never mint one when SlaveDbId already binds the scroll).
         if (owner?.Id > 0 && dbId <= 0)
@@ -910,7 +919,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
                 summonedSlave.Transform.Local.SetHeight(ownerZ);
         }
 
-        // Retail: CSSpawnSlave.hideSpawnEffect=false (and skill summons, which never send that CS)
+        // Retail: CSSpawnSlave.hideSpawnEffect=false (and skill summons that skip that CS)
         // → UnitState flags bit 11 → client portal_spawn_fx. hideSpawnEffect was previously unused.
         summonedSlave.PendingSpawnPortal = !hideSpawnEffect;
         summonedSlave.Spawn();
