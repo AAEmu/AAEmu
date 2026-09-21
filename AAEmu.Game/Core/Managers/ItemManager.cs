@@ -17,6 +17,7 @@ using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Items.Loots;
 using AAEmu.Game.Models.Game.Items.Procs;
+using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -39,6 +40,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     private Dictionary<int, GradeTemplate> _grades;
     private Dictionary<uint, Holdable> _holdables;
     private Dictionary<string, uint> _constHoldableTypes;
+    private Dictionary<string, uint> _constItemTypes;
     private HashSet<uint> _itemInstrumentSounds;
     private Dictionary<uint, HashSet<uint>> _itemTags;
     private Dictionary<uint, Wearable> _wearables;
@@ -161,6 +163,19 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     public uint GetConstHoldableId(string name)
     {
         return _constHoldableTypes.GetValueOrDefault(name, 0u);
+    }
+
+    /// <summary>Item id behind a <c>const_item_types</c> name, or 0 when absent.</summary>
+    public uint GetConstItemId(string name)
+    {
+        return _constItemTypes?.GetValueOrDefault(name, 0u) ?? 0u;
+    }
+
+    /// <summary>For tests: seeds a const item without opening compact.</summary>
+    public void SetConstItemForTest(string name, uint itemId)
+    {
+        _constItemTypes ??= new Dictionary<string, uint>(StringComparer.Ordinal);
+        _constItemTypes[name] = itemId;
     }
 
     /// <summary>Whether an item has an item-kind entry in <c>instrument_sounds</c>.</summary>
@@ -543,6 +558,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         _grades = [];
         _holdables = [];
         _constHoldableTypes = new Dictionary<string, uint>(StringComparer.Ordinal);
+        _constItemTypes = new Dictionary<string, uint>(StringComparer.Ordinal);
         _itemInstrumentSounds = [];
         _itemTags = [];
         _wearables = [];
@@ -758,6 +774,24 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                     }
                 }
             }
+
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT name, item_id FROM const_item_types";
+                command.Prepare();
+                using (var sqliteReader = command.ExecuteReader())
+                using (var reader = new SQLiteWrapperReader(sqliteReader))
+                {
+                    while (reader.Read())
+                    {
+                        var name = reader.GetString("name", string.Empty);
+                        if (!string.IsNullOrEmpty(name))
+                            _constItemTypes[name] = reader.GetUInt32("item_id", 0);
+                    }
+                }
+            }
+
+            Logger.Info("Loaded {0} item type constants", _constItemTypes.Count);
 
             using (var command = connection.CreateCommand())
             {
@@ -1260,6 +1294,18 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
             var treasureMapItemTemplate = new TreasureMapTemplate { Id = Item.TreasureMapWithCoordinates };
             _templates.Add(treasureMapItemTemplate.Id, treasureMapItemTemplate);
+
+            var craftOrderSheetId = GetConstItemId(CraftOrderContent.SheetItemConstName);
+            if (craftOrderSheetId != 0)
+            {
+                _templates[craftOrderSheetId] = new CraftOrderSheetTemplate { Id = craftOrderSheetId };
+            }
+            else
+            {
+                Logger.Error(
+                    "const_item_types row '{0}' is missing; craft-order request sheets will not be created",
+                    CraftOrderContent.SheetItemConstName);
+            }
 
             using (var command = connection.CreateCommand())
             {
@@ -2580,6 +2626,8 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                     var loadedTemplate = GetTemplate(itemTemplateId);
                     if (loadedTemplate is ItemBagTemplate && nClass != typeof(ItemBag))
                         nClass = typeof(ItemBag);
+                    if (loadedTemplate is CraftOrderSheetTemplate && nClass != typeof(CraftOrderSheetItem))
+                        nClass = typeof(CraftOrderSheetItem);
 
                     Item item;
                     try

@@ -622,8 +622,12 @@ public static class SCOffsets
     public const ushort SCChronicleInfoUpdatePacket = 0x358;
     public const ushort SCCompletedArchePassPacket = 0x340;
     public const ushort SCConnectStateMemberPacket = 0x310;
+    public const ushort SCInsertCraftOrderEntryPacket = 0x232;
+    public const ushort SCCompleteCraftOrderEntryPacket = 0x234;
     public const ushort SCCraftOrderActionResultPacket = 0x235;
     public const ushort SCCraftOrderFeeInfoPacket = 0x236;
+    public const ushort SCCraftOrderItemsPacket = 0x237;
+    public const ushort SCCraftOrderEntrySearchedPacket = 0x238;
     public const ushort SCDeclarationFailureReasonPacket = 0x21;
     public const ushort SCDelegateSquadLeaderPacket = 0x315;
     public const ushort SCDeleteCraftOrderEntryPacket = 0x233;

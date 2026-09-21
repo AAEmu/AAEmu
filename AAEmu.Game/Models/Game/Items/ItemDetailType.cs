@@ -15,7 +15,8 @@ public enum ItemDetailType
     SlaveEquipment = 10,
     Location = 11,
     BackpackFreshness = 12,
-    Unknown13 = 13,
+    /// <summary>A craft-order request sheet: craft, grade, count, actability group.</summary>
+    CraftOrderSheet = 13,
     Unknown14 = 14,
     TypeMax = 15,
 }

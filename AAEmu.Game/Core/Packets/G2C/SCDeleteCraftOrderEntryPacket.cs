@@ -4,12 +4,9 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// TODO: nothing constructs this packet yet.
+/// Removes one craft order from the client's list. <paramref name="type"/> is the order id;
+/// <paramref name="complete"/> is true when the row was filled rather than cancelled.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
 public class SCDeleteCraftOrderEntryPacket(ulong @type, bool complete) : GamePacket(SCOffsets.SCDeleteCraftOrderEntryPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)

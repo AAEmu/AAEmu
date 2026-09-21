@@ -304,6 +304,36 @@ CREATE TABLE IF NOT EXISTS `character_recipes` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Recipes a character has learned by using a recipe item';
 
 
+CREATE TABLE IF NOT EXISTS `craft_orders` (
+  `id` BIGINT UNSIGNED NOT NULL,
+  `owner_id` INT UNSIGNED NOT NULL,
+  `owner_name` VARCHAR(128) NOT NULL,
+  `owner_world_char_key` BIGINT UNSIGNED NOT NULL,
+  `craft_id` INT UNSIGNED NOT NULL,
+  `item_id` INT UNSIGNED NOT NULL,
+  `grade` TINYINT UNSIGNED NOT NULL,
+  `count` INT UNSIGNED NOT NULL,
+  `fee` BIGINT UNSIGNED NOT NULL,
+  `actability_group_id` INT UNSIGNED NOT NULL,
+  `actability_point` INT UNSIGNED NOT NULL,
+  `posted_unix` BIGINT NOT NULL,
+  `expires_unix` BIGINT NOT NULL,
+  `status` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  `kind` TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_craft_orders_owner` (`owner_id`),
+  KEY `idx_craft_orders_expires` (`expires_unix`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Live community craft-order board rows';
+
+
+CREATE TABLE IF NOT EXISTS `craft_order_fee_stats` (
+  `craft_id` INT UNSIGNED NOT NULL,
+  `lowest` BIGINT UNSIGNED NOT NULL,
+  `highest` BIGINT UNSIGNED NOT NULL,
+  PRIMARY KEY (`craft_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Recent craft-order listing fee range per craft';
+
+
 CREATE TABLE IF NOT EXISTS `character_skill_active_types` (
   `owner` int unsigned NOT NULL COMMENT 'Character id',
   `heir_skill_type` int unsigned NOT NULL COMMENT 'Client Heir-skill category key',

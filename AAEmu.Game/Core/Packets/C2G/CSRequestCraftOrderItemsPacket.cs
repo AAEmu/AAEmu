@@ -1,15 +1,13 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO: the body is parsed but nothing acts on it yet.
+/// Asks which materials one item consumes. The restore tab sends a sheet instance id; the post
+/// dialog sends the product type of the craft being posted.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
 public class CSRequestCraftOrderItemsPacket() : GamePacket(CSOffsets.CSRequestCraftOrderItemsPacket, 1)
 {
     public long ItemId { get; private set; }
@@ -17,5 +15,8 @@ public class CSRequestCraftOrderItemsPacket() : GamePacket(CSOffsets.CSRequestCr
     public override void Read(PacketStream stream)
     {
         ItemId = stream.ReadInt64();
+
+        if (Connection?.ActiveChar is { } character)
+            CraftOrderManager.Instance.SendMaterials(character, (ulong)Math.Max(0, ItemId));
     }
 }

@@ -114,6 +114,12 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         return _constSkillTypes.GetValueOrDefault(name, 0u);
     }
 
+    /// <summary>For tests: seeds a const skill without opening compact.</summary>
+    public void SetConstSkillForTest(string name, uint skillId)
+    {
+        _constSkillTypes[name] = skillId;
+    }
+
     /// <summary>The skill the client uses to take a rider off whatever it is attached to.</summary>
     public bool IsDetachSkill(uint skillId)
     {

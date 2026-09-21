@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Packets.Debug;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -102,6 +103,14 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
                 flag,
                 extraValues.ReadCount,
                 string.Join(" ", extraValues.Values.Take(extraValues.ReadCount).Select(v => v.ToString("X8"))));
+
+            // The board's fill cast names the order in this block (low then high). Queue it so a
+            // cancelled cast that still fires the effect, or a missing skill-object, can still
+            // resolve the row.
+            if (CraftOrderContent.IsCraftOrderSkill(skillId) &&
+                Connection.ActiveChar != null &&
+                CraftOrderProcessRules.TryReadOrderId(extraValues, out var processOrderId))
+                CraftOrderManager.Instance.QueueProcessOrder(Connection.ActiveChar.Id, processOrderId);
         }
         else
         {
@@ -109,9 +118,33 @@ public class CSStartSkillPacket() : GamePacket(CSOffsets.CSStartSkillPacket, 1)
                 Logger.Warn($"StartSkill: skillObject flag={flag} type={flagType} clamped to None");
             skillObject = new SkillObject();
         }
-        // Always present on CS wire after SkillCastExtra payload. The artifact window puts the equipment slot it
-        // is working on in this byte, which both of its casts rely on.
-        var inputDirection = stream.ReadByte();
+
+        if (CraftOrderContent.IsRestoreSheetSkill(skillId) && Connection.ActiveChar != null)
+        {
+            var sheetId = skillCaster is SkillItem itemCaster ? itemCaster.ItemId : 0ul;
+            if (sheetId == 0 && skillObject is SkillObjectExtraValues restoreExtras)
+                CraftOrderProcessRules.TryReadOrderId(restoreExtras, out sheetId);
+            if (sheetId != 0)
+                CraftOrderManager.Instance.QueueRestoreSheet(Connection.ActiveChar.Id, sheetId);
+        }
+        // The byte below is normally the input direction, and the artifact window overloads it with the
+        // equipment slot its two casts work on. The craft order sheet skill replaces it entirely: the
+        // craft the player picked in the folio, how many, then one trailing byte. Measured on live casts
+        // — the same craft with count 1 and count 2 differed in exactly those four bytes.
+        byte inputDirection = 0;
+        if (CraftOrderContent.IsMakeSheetSkill(skillId) &&
+            Connection.ActiveChar != null &&
+            stream.LeftBytes >= CraftOrderSheetRules.CastTailBytes)
+        {
+            var craftId = stream.ReadUInt32();
+            var sheetCount = stream.ReadUInt32();
+            _ = stream.ReadByte();
+            CraftOrderManager.Instance.QueueSheetCraft(Connection.ActiveChar.Id, craftId, sheetCount);
+        }
+        else
+        {
+            inputDirection = stream.ReadByte();
+        }
 
         // The artifact window's Replace button: the tail is the tier whose effect line the player selected.
         if (skillId == CharacterEquipSlotReinforces.ReplaceEffectSkillId && stream.LeftBytes >= sizeof(ushort))

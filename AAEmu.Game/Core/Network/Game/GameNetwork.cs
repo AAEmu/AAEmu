@@ -422,6 +422,10 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSTodayAssignmentAcceptAllPacket, 1, typeof(CSTodayAssignmentAcceptAllPacket));
         RegisterPacket(CSOffsets.CSCleanupGardenPacket, 1, typeof(CSCleanupGardenPacket));
         RegisterPacket(CSOffsets.CSSearchCraftOrderPacket, 1, typeof(CSSearchCraftOrderPacket));
+        RegisterPacket(CSOffsets.CSPostCraftOrderPacket, 1, typeof(CSPostCraftOrderPacket));
+        RegisterPacket(CSOffsets.CSCancelCraftOrderPacket, 1, typeof(CSCancelCraftOrderPacket));
+        RegisterPacket(CSOffsets.CSRequestCraftOrderFeePacket, 1, typeof(CSRequestCraftOrderFeePacket));
+        RegisterPacket(CSOffsets.CSRequestCraftOrderItemsPacket, 1, typeof(CSRequestCraftOrderItemsPacket));
         RegisterPacket(CSOffsets.CSUpdateFavoriteCraftsPacket, 1, typeof(CSUpdateFavoriteCraftsPacket));
         RegisterPacket(CSOffsets.CSRunZoneCommand, 1, typeof(CSRunZoneCommand));
         RegisterPacket(CSOffsets.CSICSBuyCountRequestPacket, 1, typeof(CSICSBuyCountRequestPacket));
