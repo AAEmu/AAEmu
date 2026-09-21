@@ -110,6 +110,46 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         return true;
     }
 
+    /// <summary>
+    /// Player summons may plant on a client stand, but the stand still has to sit inside
+    /// <see cref="SlaveTemplate.SpawnValidAreaRance"/> and, for boats, on water deep enough
+    /// for the hull (the same surface test the heading sweep uses).
+    /// </summary>
+    private bool TryAcceptClientSeed(Character owner, SlaveTemplate slaveTemplate, Transform spawnPos)
+    {
+        var caster = owner.Transform.World.Position;
+        var seed = spawnPos.World.Position;
+        if (!SlaveSummonSeedRules.IsWithinValidArea(
+                caster.X, caster.Y, seed.X, seed.Y, slaveTemplate.SpawnValidAreaRance))
+        {
+            Logger.Warn(
+                "SlaveSpawn seed refused: ({0:0.0},{1:0.0}) is outside range {2} of ({3:0.0},{4:0.0}) tpl={5}",
+                seed.X, seed.Y, slaveTemplate.SpawnValidAreaRance, caster.X, caster.Y, slaveTemplate.Id);
+            owner.SendErrorMessage(ErrorMessageType.SlaveSpawnErrorInvalidArea);
+            return false;
+        }
+
+        if (!slaveTemplate.IsABoat())
+            return true;
+
+        var floorHeight = World.Template.GeoData.GetHeight(seed);
+        var surfaceHeight = GetWaterSurfaceFromAreas(World, seed);
+        var shipModel = ModelManager.Instance.GetShipModel(slaveTemplate.ModelId);
+        var minDepth = 5f;
+        if (shipModel != null)
+            minDepth = shipModel.MassBoxSizeZ - shipModel.MassCenterZ + 1f;
+        if (floorHeight <= 0f || !IsBoatSurfaceAllowed(caster.Z, surfaceHeight, floorHeight, minDepth))
+        {
+            Logger.Warn(
+                "SlaveSpawn seed refused: no water at least {0:0.0} deep at ({1:0.0},{2:0.0}); ground {3:0.0}, surface {4:0.0} tpl={5}",
+                minDepth, seed.X, seed.Y, floorHeight, surfaceHeight, slaveTemplate.Id);
+            owner.SendErrorMessage(ErrorMessageType.SlaveSpawnErrorInvalidArea);
+            return false;
+        }
+
+        return true;
+    }
+
     /// <summary>Higher is better: prefer ahead of the caster and near the template forward offset.</summary>
     public static float ScoreBoatSpawnCandidate(float forwardDot, float distance, float preferredDistance) =>
         forwardDot * 100f - MathF.Abs(distance - preferredDistance);
@@ -490,6 +530,15 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         var slaveTemplate = SlaveGameData.Instance.GetSlaveTemplate(useSpawner?.UnitId ?? templateId);
         if (slaveTemplate == null) return null;
 
+        // Client-chosen stand (skill SummonPos or CSSpawnSlave). Bound it before replacing
+        // the active hull so a refused seed cannot despawn a legal boat.
+        if (owner != null
+            && item != null
+            && positionOverride != null
+            && !positionOverride.Local.IsOrigin()
+            && !TryAcceptClientSeed(owner, slaveTemplate, positionOverride))
+            return null;
+
         // Refuse land vehicles while the caster is in water — before touching any active hull.
         if (owner != null && item != null && !slaveTemplate.IsABoat())
         {
@@ -759,6 +808,15 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             // Always spawn horizontal(level) and 90° CCW of the player
             spawnPos.Local.SetRotation(0f, 0f, owner?.Transform.World.Rotation.Z + MathF.PI / 2 ?? useSpawner.Position.Yaw);
         }
+        else
+        {
+            Logger.Info(
+                "SlaveSpawn used client seed tpl={0} at ({1:0.0},{2:0.0},{3:0.0})",
+                slaveTemplate.Id,
+                spawnPos.World.Position.X,
+                spawnPos.World.Position.Y,
+                spawnPos.World.Position.Z);
+        }
 
         // Get new Id to save if it has a player as owner (never mint one when SlaveDbId already binds the scroll).
         if (owner?.Id > 0 && dbId <= 0)
@@ -910,7 +968,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
                 summonedSlave.Transform.Local.SetHeight(ownerZ);
         }
 
-        // Retail: CSSpawnSlave.hideSpawnEffect=false (and skill summons, which never send that CS)
+        // Retail: CSSpawnSlave.hideSpawnEffect=false (and skill summons that skip that CS)
         // → UnitState flags bit 11 → client portal_spawn_fx. hideSpawnEffect was previously unused.
         summonedSlave.PendingSpawnPortal = !hideSpawnEffect;
         summonedSlave.Spawn();

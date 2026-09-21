@@ -1,5 +1,6 @@
 ﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Slaves;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
@@ -42,6 +43,53 @@ public class SpawnSlave : SpecialEffectAction
             "SpawnSlave char={0} item={1} tpl={2} skill={3}",
             owner.Name, skillData.ItemId, skillData.ItemTemplateId, skill?.Id ?? 0);
 
-        owner.ParentWorld.SlaveManager.Create(owner, skillData);
+        float? resolvedX = null;
+        float? resolvedY = null;
+        float? resolvedZ = null;
+        // Skill already ran SetInitialTarget for SummonPos (ObjId MaxValue). Use that world
+        // stand so a deck-local ObjId1 basis is not planted near the map origin.
+        if (target is { ObjId: uint.MaxValue, Transform: not null })
+        {
+            var resolved = target.Transform.World.Position;
+            if (SlaveSummonSeedRules.HasWorldSeed(resolved.X, resolved.Y, resolved.Z))
+            {
+                resolvedX = resolved.X;
+                resolvedY = resolved.Y;
+                resolvedZ = resolved.Z;
+            }
+        }
+
+        var hasSeed = SlaveSummonSeedRules.TryReadWorldSeed(
+            targetObj, resolvedX, resolvedY, resolvedZ, out var seedX, out var seedY, out var seedZ, out var seedYaw);
+        var existing = owner.ParentWorld.SlaveManager.GetActiveSlaveByOwnerObjId(owner.ObjId);
+        var sameItem = existing?.SummoningItem != null
+                       && skillData.ItemId != 0
+                       && existing.SummoningItem.Id == skillData.ItemId;
+        var alreadyAtSeed = hasSeed && existing?.Transform != null
+                            && SlaveSummonSeedRules.IsAlreadyPlantedAtSeed(
+                                existing.Transform.World.Position.X,
+                                existing.Transform.World.Position.Y,
+                                seedX,
+                                seedY);
+        if (SlaveSummonSeedRules.ShouldKeepExistingPlant(sameItem, hasSeed, alreadyAtSeed))
+        {
+            Logger.Info(
+                "SpawnSlave kept existing plant obj={0} item={1} seed={2}",
+                existing.ObjId, skillData.ItemId, hasSeed);
+            return;
+        }
+
+        if (!hasSeed)
+        {
+            owner.ParentWorld.SlaveManager.Create(owner, skillData);
+            return;
+        }
+
+        using var seed = owner.Transform.CloneDetached();
+        SlaveSummonSeedRules.ApplySeed(seed.World, seedX, seedY, seedZ, seedYaw);
+        Logger.Info(
+            "SpawnSlave seed plant item={0} at ({1:0.0},{2:0.0},{3:0.0}) yaw={4:0.00}",
+            skillData.ItemId, seedX, seedY, seedZ, seedYaw);
+        owner.ParentWorld.SlaveManager.Create(owner, skillData, hideSpawnEffect: false, seed);
     }
 }
