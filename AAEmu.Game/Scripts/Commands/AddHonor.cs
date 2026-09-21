@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game.Char;
@@ -7,9 +7,9 @@ using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
 
-public class AddBadges : ICommand
+public class AddHonor : ICommand
 {
-    public string[] CommandNames { get; set; } = ["vocation", "vocationpoints", "add_vp", "add_vb"];
+    public string[] CommandNames { get; set; } = ["honorpoint", "honor", "honorpoints", "add_hp"];
 
     public void OnLoad()
     {
@@ -18,12 +18,12 @@ public class AddBadges : ICommand
 
     public string GetCommandLineHelp()
     {
-        return "(target) <VocationPoints>";
+        return "(target) <HonorPoints>";
     }
 
     public string GetCommandHelpText()
     {
-        return "Adds VocationPoints (to target player)";
+        return "Adds HonorPoints (to target player). The amount is exact - no gain-rate modifiers apply.";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
@@ -36,14 +36,17 @@ public class AddBadges : ICommand
 
         var targetPlayer = WorldManager.Instance.GetTargetOrSelf(character, args[0], out var firstArg);
 
-        if (!int.TryParse(args[firstArg], out var vpToAdd))
+        if (args.Length <= firstArg || !int.TryParse(args[firstArg], out var honorToAdd))
         {
-            vpToAdd = 0;
+            CommandManager.SendDefaultHelpText(this, messageOutput);
+            return;
         }
 
-        if (vpToAdd != 0)
+        if (honorToAdd != 0)
         {
-            targetPlayer.ChangeGamePoints((GamePointKind)1, vpToAdd);
+            targetPlayer.ChangeGamePoints(GamePointKind.Honor, honorToAdd, false);
+            CommandManager.SendNormalText(this, messageOutput,
+                $"[Honor] {targetPlayer.Name} honor points: {honorToAdd:+#;-#;0} -> {targetPlayer.HonorPoint}");
         }
     }
 }

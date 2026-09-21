@@ -2916,8 +2916,28 @@ public partial class Character : Unit, ICharacter
         }
         // The character sheet's game-points table only reflects a resend of the whole set, not the delta
         // packet below - every GamePointKind goes through this one choke point.
+        // The client resizes its entry list to the packet's count and then reads that many
+        // {u8 kind, u32 amount} pairs, so the count has to precede the kind. The kind is a slot
+        // index in its game-point table: 0 honour, 1 vocation, 11 leadership (current period),
+        // 12 leadership (previous period). The honour slot raises PLAYER_HONOR_POINT and the
+        // vocation slot PLAYER_LIVING_POINT, which is what the character sheet's rows - and any
+        // open vendor window - repaint on.
+        //
+        // The delta goes before the table resend: the client prints "cached + amount", so the line
+        // only reads correctly while its cache still holds the pre-change number, and the resend
+        // then pins every value to the server's.
+        var wireKind = kind switch
+        {
+            GamePointKind.Honor => (byte)SCCharacterGamePointsPacket.HonorSlot,
+            GamePointKind.Vocation => (byte)SCCharacterGamePointsPacket.VocationSlot,
+            GamePointKind.Leadership => (byte)SCCharacterGamePointsPacket.CurrentLeadershipSlot,
+            _ => (byte)0
+        };
+        // amount is a signed delta, measured on the 10.0.2.13 client: count=1 kind=0 with +250 moved
+        // the honour slot by +250 and the same packet with -250 took it straight back, so a spend is
+        // announced exactly like a gain.
+        SendPacket(new SCGamePointChangedPacket(wireKind, change));
         SendPacket(new SCCharacterGamePointsPacket(this));
-        SendPacket(new SCGamePointChangedPacket((byte)kind, change));
 
         // A ranking board ranks what a character gained or spent in its window, and every game point moves
         // through here, so the period's totals are kept from this one place.

@@ -8,7 +8,7 @@ namespace AAEmu.Game.Scripts.Commands;
 
 public class ActabilityCmd : ICommand
 {
-    public string[] CommandNames { get; set; } = ["actability", "vocation"];
+    public string[] CommandNames { get; set; } = ["actability", "act"];
 
     public void OnLoad()
     {
