@@ -1,20 +1,35 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game.Features;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
 // confirmed field-by-field; no need to re-derive.
-public class SCInitialConfigPacket() : GamePacket(SCOffsets.SCInitialConfigPacket, 1)
+public class SCInitialConfigPacket : GamePacket
 {
+    private readonly FeatureSet _features;
+
+    public SCInitialConfigPacket()
+        : this(FeaturesManager.Fsets, WorldManager.Instance.IsSnowing)
+    {
+    }
+
+    internal SCInitialConfigPacket(FeatureSet sourceFeatures, bool isSnowing)
+        : base(SCOffsets.SCInitialConfigPacket, 1)
+    {
+        _features = WeatherClientPackets.InitialFeatures(sourceFeatures, isSnowing);
+    }
+
     public override PacketStream Write(PacketStream stream)
     {
         var config = AppConfiguration.Instance.InitialConfig;
 
         stream.Write(config.Host);   // host (zstring, cap 259)
-        FeaturesManager.Fsets.Write(stream); // fset (31-byte bitmap; catalog in Features/Feature.cs)
+        _features.Write(stream); // fset (31-byte bitmap; catalog in Features/Feature.cs)
 
         // Characters per page of the character list, read through X2:GetCandidateOnceRetrieveCount().
         // Only consulted while the useCharacterListPage feature is enabled.

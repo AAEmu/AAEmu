@@ -162,6 +162,18 @@ public class FeatureSet
         return hex.ToString().TrimEnd();
     }
 
+    public FeatureSet Copy()
+    {
+        var copy = new FeatureSet
+        {
+            TaxItem = TaxItem,
+            BackpackProfitShare = BackpackProfitShare,
+            AbilitySetFreeActivationDailyReset = AbilitySetFreeActivationDailyReset
+        };
+        _fset.CopyTo(copy._fset, 0);
+        return copy;
+    }
+
     public void Write(PacketStream stream)
     {
         stream.Write(_fset, true);
