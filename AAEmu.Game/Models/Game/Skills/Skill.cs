@@ -248,8 +248,8 @@ public class Skill
             targetCaster);
         if (requirementResult.ResultKey != SkillResultKeys.ok)
         {
-            if (character != null)
-                Logger.Warn($"{character.Name} ({character.Id}) failed requirements to use skill {Template?.Id} - {requirementResult.ResultKey}");
+            Logger.Info("{0} ({1}:{2}) failed requirements to use skill {3} - {4}",
+                caster.Name, caster.TemplateId, caster.ObjId, Template.Id, requirementResult.ResultKey);
             Cancelled = true;
             skillResultValueUShort = requirementResult.ResultUShort;
             skillResultValueUInt = requirementResult.ResultUInt;
@@ -520,6 +520,10 @@ public class Skill
         // If skill uses Plots, then start the plot
         if (Template.Plot != null)
         {
+            // Captured here, while Use still owns the id: the graph runs on its own thread and a cast-time
+            // skill clears TlId as soon as its cast ends, so the id the client matches plot packets against
+            // has to travel with the plot (PlotState.CastTlId).
+            var plotTlId = TlId;
             if (Template.PlotOnly || ForcePlotGraphOnly)
             {
                 // plot_only (and World OnSpawn fill) returns before Cast() — apply start costs here.
@@ -535,11 +539,11 @@ public class Skill
                 // family) already drive the cast bar from SCPlotEvent. SkillStarted with a
                 // 1 s RealCastTime locks the whole hotbar, and plot-only never EndSkill's, so
                 // hold-to-repeat dies on the first press.
-                Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this));
+                Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this, plotTlId));
                 return SkillResult.Success;
             }
 
-            Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this));
+            Task.Run(() => Template.Plot.RunAsync(caster, casterCaster, target, targetCaster, skillObject, this, plotTlId));
         }
 
         if (character is { AccessLevel: < 100 })
@@ -1860,30 +1864,9 @@ public class Skill
                     ? targetCaster
                     : new SkillCastUnitTarget(target.ObjId);
 
-                if (effect.Template is KillNpcWithoutCorpseEffect nsse)
-                {
-                    // для квеста 3478, требуется чтобы caster был Npc
-                    // для квеста 3993 должен выполняться эффект, а он прерывался из-за неправильного сравнения!
-                    var npc = caster.ParentWorld.GetNpcByTemplateId(nsse.NpcId);
-                    var effectiveNpc = npc ?? target as Npc;
+                effect.Template.Apply(caster, casterCaster, target, thisTargetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
 
-                    // If we have an effective NPC and it is dead, skip the effect - KillNPCWithoutCorpse happens before death
-                    if (effectiveNpc != null && effectiveNpc.IsDead)
-                    {
-                        // Logger.Warn("Effective NPC is dead, skipping KillNpcWithoutCorpseEffect.");
-                    }
-                    else
-                    {
-                        effect.Template.Apply(npc ?? caster, casterCaster, target, thisTargetCaster, new CastSkill(Template.Id, TlId),
-                            new EffectSource(this), skillObject, DateTime.UtcNow, packets);
-                    }
-                }
-                else
-                {
-                    effect.Template.Apply(caster, casterCaster, target, thisTargetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
-
-                    if (player is { SkillCancelled: true }) { Cancelled = true; }
-                }
+                if (player is { SkillCancelled: true }) { Cancelled = true; }
 
                 // Implement consumption of item sets
                 if (effect.ItemSetId > 0)

@@ -18,7 +18,8 @@ public class Plot
 
     public PlotTree Tree { get; set; }
 
-    public async Task RunAsync(BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster, SkillObject skillObject, Skill skill)
+    public async Task RunAsync(BaseUnit caster, SkillCaster casterCaster, BaseUnit target, SkillCastTarget targetCaster,
+        SkillObject skillObject, Skill skill, ushort castTlId)
     {
         if (caster is not Unit casterUnit)
             return;
@@ -54,7 +55,7 @@ public class Plot
                 prev.RequestCancellation();
         }
 
-        var state = new PlotState(caster, casterCaster, target, targetCaster, skillObject, skill);
+        var state = new PlotState(caster, casterCaster, target, targetCaster, skillObject, skill, castTlId);
         casterUnit.ActivePlotState = state;
         skill.ActivePlotState = state;
 

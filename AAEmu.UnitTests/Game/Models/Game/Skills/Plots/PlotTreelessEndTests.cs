@@ -52,7 +52,7 @@ public class PlotTreelessEndTests
         var releasesBefore = ReleasesReported(SkillTlIdManager.ReportStatus());
 
         await skill.Template.Plot.RunAsync(caster, new SkillCasterUnit(caster.ObjId), caster,
-            new SkillCastUnitTarget(caster.ObjId), new SkillObject(), skill);
+            new SkillCastUnitTarget(caster.ObjId), new SkillObject(), skill, skill.TlId);
 
         await Assert.That(skill.TlId).IsEqualTo((ushort)0);
         await Assert.That(caster.ActivePlotState).IsNull();
@@ -95,7 +95,7 @@ public class PlotTreelessEndTests
         var releasesBefore = ReleasesReported(SkillTlIdManager.ReportStatus());
 
         await skill.Template.Plot.RunAsync(caster, new SkillCasterUnit(caster.ObjId), caster,
-            new SkillCastUnitTarget(caster.ObjId), new SkillObject(), skill);
+            new SkillCastUnitTarget(caster.ObjId), new SkillObject(), skill, skill.TlId);
 
         // The plot state is gone from both places, but the cast still owns the skill: the TlId is still
         // held, no cooldown is armed and the callback is untouched, because EndSkill has not run yet.

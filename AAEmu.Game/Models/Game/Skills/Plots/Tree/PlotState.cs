@@ -24,7 +24,8 @@ public class PlotState(
     BaseUnit target,
     SkillCastTarget targetCaster,
     SkillObject skillObject,
-    Skill skill)
+    Skill skill,
+    ushort castTlId = 0)
 {
     private bool _cancellationRequest = false;
     private bool _finishChanneling = false;
@@ -40,6 +41,19 @@ public class PlotState(
     public bool IsChanneling { get; set; }
     public PlotClientEvent LastClientEvent { get; set; }
     public DateTime LastIgnoredStopRefreshUtc { get; set; }
+
+    /// <summary>
+    /// Timeline id of the cast that owns this plot, captured on the thread that launched it.
+    /// </summary>
+    /// <remarks>
+    /// Every plot packet the client receives — <c>SCPlotEvent</c>, <c>SCPlotEnded</c>, the casting and
+    /// channeling stops — is matched by the client against the cast it started when the player pressed the
+    /// key. The graph runs asynchronously and a cast-time skill clears <c>Skill.TlId</c> when its own cast
+    /// ends, so reading the id back off the skill while an event fires yields zero and the client silently
+    /// drops the whole graph, leaving it stuck on the last bar it was shown. The plot therefore carries the
+    /// id it was started with.
+    /// </remarks>
+    public ushort CastTlId { get; } = castTlId;
 
     public Skill ActiveSkill { get; set; } = skill;
     public Unit Caster { get; set; } = caster as Unit;

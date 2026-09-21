@@ -51,13 +51,13 @@ public class PlotTree(uint plotId)
                         if (state.IsCasting)
                         {
                             state.Caster.BroadcastPacket(
-                                new SCPlotCastingStoppedPacket(state.ActiveSkill.TlId, 0, lastEvent),
+                                new SCPlotCastingStoppedPacket(state.CastTlId, 0, lastEvent),
                                 true
                             );
                         }
 
                         state.Caster.BroadcastPacket(
-                            new SCPlotChannelingStoppedPacket(state.ActiveSkill.TlId, 0, 1),
+                            new SCPlotChannelingStoppedPacket(state.CastTlId, 0, 1),
                             true
                         );
                     }
@@ -285,7 +285,7 @@ public class PlotTree(uint plotId)
 
     private static void DoPlotEnd(PlotState state)
     {
-        state.Caster?.BroadcastPacket(new SCPlotEndedPacket(state.ActiveSkill.TlId), true);
+        state.Caster?.BroadcastPacket(new SCPlotEndedPacket(state.CastTlId), true);
         EndPlotChannel(state);
 
         state.ActiveSkill.ArmCooldowns(state.Caster);
