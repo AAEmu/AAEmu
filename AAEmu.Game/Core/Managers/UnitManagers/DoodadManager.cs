@@ -2850,25 +2850,39 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
             }
         }
 
-        // First we skip functions with NextPhase = -1
+        // Preserve the historical generic fallback (quest and other ordinary interaction funcs),
+        // but do not let an unmatched positive skill select a function that has reserved itself
+        // for a different incoming skill. Loot is also only a skill-less continuation: a positive
+        // skill must not grant it merely because no earlier candidate matched.
         foreach (var func in funcsInGroup)
         {
-            if (func.SkillId == 0 && func.NextPhase != -1)
+            if (CanUseAsFallback(func, skillId) && func.NextPhase != -1)
             {
                 return func;
             }
         }
 
-        // Then we search with NextPhase = -1
         foreach (var func in funcsInGroup)
         {
-            if (func.SkillId == 0)
+            if (CanUseAsFallback(func, skillId))
             {
                 return func;
             }
         }
 
         return null;
+    }
+
+    private bool CanUseAsFallback(DoodadFunc func, uint skillId)
+    {
+        if (func.SkillId != 0)
+            return false;
+
+        if (skillId == 0)
+            return true;
+
+        var template = GetFuncTemplate(func.FuncId, func.FuncType);
+        return template is not DoodadFuncLootItem && !DoodadFuncIncomingSkill.HasDeclaredIncomingSkill(template);
     }
 
     public List<DoodadFunc> GetFuncsForGroup(uint funcGroupId)

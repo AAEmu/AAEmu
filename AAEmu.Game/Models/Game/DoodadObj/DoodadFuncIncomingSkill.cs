@@ -24,6 +24,8 @@ public static class DoodadFuncIncomingSkill
         return template switch
         {
             DoodadFuncFakeUse { FakeSkillId: > 0 } fakeUse => fakeUse.FakeSkillId == skillId,
+            DoodadFuncConditionalUse { FakeSkillId: > 0 } conditionalUse => conditionalUse.FakeSkillId == skillId,
+            DoodadFuncConditionalUse { SkillId: > 0 } conditionalUse => conditionalUse.SkillId == skillId,
             DoodadFuncUse { SkillId: > 0 } use => use.SkillId == skillId,
             DoodadFuncSkillHit { SkillId: > 0 } skillHit => skillHit.SkillId == skillId,
             // Evidence pickup: doodad_funcs.func_skill_id is unset on these rows too, so without
@@ -32,4 +34,19 @@ public static class DoodadFuncIncomingSkill
             _ => false
         };
     }
+
+    /// <summary>
+    /// Whether a template reserves its func for an incoming skill. This distinguishes a generic
+    /// skill-less interaction from a skill-gated template whose declared skill did not match.
+    /// </summary>
+    public static bool HasDeclaredIncomingSkill(DoodadFuncTemplate template) => template switch
+    {
+        DoodadFuncFakeUse { FakeSkillId: > 0 } => true,
+        DoodadFuncConditionalUse { FakeSkillId: > 0 } => true,
+        DoodadFuncConditionalUse { SkillId: > 0 } => true,
+        DoodadFuncUse { SkillId: > 0 } => true,
+        DoodadFuncSkillHit { SkillId: > 0 } => true,
+        DoodadFuncEvidenceItemLoot { SkillId: > 0 } => true,
+        _ => false
+    };
 }

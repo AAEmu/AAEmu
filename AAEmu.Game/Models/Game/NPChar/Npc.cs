@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Models;
+using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Skills.SkillControllers;
@@ -52,6 +53,7 @@ public partial class Npc : Unit
     public bool IsWorldAuthored { get; set; }
 
     private bool _towerDefKillQuotaNotified;
+    private int _mentoringChestPrepared;
 
     /// <summary>
     /// A zone mirror whose corpse timer has already sent WZNpcStartDespawn. The zone owns the
@@ -1215,6 +1217,11 @@ public partial class Npc : Unit
         if (eligiblePlayers.Count > 0 || killer is Character)
             ConflictZoneParticipation.RegisterNpcKill(this);
 
+        // Missing legacy mentoring placements are materialized before the common death events run.
+        // Zone-mirrored kills enter through this same path after the native death already occurred,
+        // so the restoration service exposes a newly created chest directly.
+        MentoringChestRestorationService.PrepareForBossDeath(this);
+
         base.DoDie(killer, killReason);
         ClearAllAggroTargetsAndCheckCombatState();
         // AggroTable.Clear();
@@ -1975,6 +1982,7 @@ public partial class Npc : Unit
     {
         // Kill-quota credit is once per life; respawn (or any reuse of this instance) starts a new life.
         ResetTowerDefKillQuotaNotification();
+        ResetMentoringChestPreparation();
         base.Spawn();
     }
 
@@ -2009,5 +2017,15 @@ public partial class Npc : Unit
     internal void ResetTowerDefKillQuotaNotification()
     {
         _towerDefKillQuotaNotified = false;
+    }
+
+    internal bool TryConsumeMentoringChestPreparation()
+    {
+        return Interlocked.Exchange(ref _mentoringChestPrepared, 1) == 0;
+    }
+
+    internal void ResetMentoringChestPreparation()
+    {
+        Interlocked.Exchange(ref _mentoringChestPrepared, 0);
     }
 }
