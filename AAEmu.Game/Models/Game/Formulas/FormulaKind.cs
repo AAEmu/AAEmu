@@ -80,4 +80,10 @@ public enum FormulaKind
 
     /// <summary>Farmhand experience awarded for labor spent. Variables: labor_power and butler_level.</summary>
     ButlerExpByLaborPower = 67,
+
+    /// <summary>
+    /// Item level a reinforced equip slot adds before the gear-score formulas. Variables: item_level
+    /// (the piece) and gain_item_level (the slot ladder's own gain at the level the client shows).
+    /// </summary>
+    EquipSlotReinforceGainItemLevel = 69,
 };

@@ -69,7 +69,7 @@ public class RankScoreManagerTests
         var character = new Character(new UnitCustomModelParams()) { Id = 5 };
 
         var period = RankingGameData.Instance.PeriodFor(RankingGameData.Instance.GetBoard(23), DateTime.UtcNow).StartUtc;
-        store.Rows.Add(Row(23, 9412, holder: 5, period: period));
+        store.Rows.Add(Row(23, 9412, holder: 5, period: period, bare: 9412));
         store.Rows.Add(Row(23, 9999, holder: 6, period: period));
 
         var lines = manager.PersonalLines(character);
@@ -77,7 +77,26 @@ public class RankScoreManagerTests
         await Assert.That(lines.Count).IsEqualTo(1);
         await Assert.That(lines[0].Key).IsEqualTo(23u);
         await Assert.That(lines[0].Entry.V1).IsEqualTo(9412L);
+        await Assert.That(lines[0].Entry.V2).IsEqualTo(9412L);
         await Assert.That(lines[0].Entry.Id).IsEqualTo(5UL);
+    }
+
+    [Test]
+    public async Task PersonalLines_SendTheStonePointsAsTheGapBetweenTheTwoValues()
+    {
+        var store = new InMemoryStore();
+        var manager = new RankScoreManager(store, Mock.Of<ITaskManager>().Object);
+        using var data = SeededBoard(permitTie: false);
+        var character = new Character(new UnitCustomModelParams()) { Id = 5 };
+
+        var period = RankingGameData.Instance.PeriodFor(RankingGameData.Instance.GetBoard(23), DateTime.UtcNow).StartUtc;
+        store.Rows.Add(Row(23, 9776, holder: 5, period: period, bare: 9774));
+
+        var lines = manager.PersonalLines(character);
+
+        await Assert.That(lines.Count).IsEqualTo(1);
+        await Assert.That(lines[0].Entry.V1).IsEqualTo(9776L);
+        await Assert.That(lines[0].Entry.V2).IsEqualTo(9774L);
     }
 
     [Test]
@@ -91,7 +110,7 @@ public class RankScoreManagerTests
         await Assert.That(manager.PersonalLines(character)).IsEmpty();
     }
 
-    private static RankScore Row(uint board, long value, ulong holder, DateTime? period = null)
+    private static RankScore Row(uint board, long value, ulong holder, DateTime? period = null, long bare = 0)
     {
         return new RankScore
         {
@@ -101,7 +120,7 @@ public class RankScoreManagerTests
             AccountId = 3,
             WorldId = 1,
             Value = value,
-            BareValue = 0,
+            BareValue = bare,
             PeriodStartUtc = period ?? RankingGameData.Instance.PeriodFor(
                 RankingGameData.Instance.GetBoard(board), DateTime.UtcNow).StartUtc,
             UpdatedAtUtc = DateTime.UtcNow

@@ -84,6 +84,24 @@ public class CharacterEquipSlotReinforces
         }
     }
 
+    /// <summary>
+    /// Item level the gear-score formulas add for this slot. The level they index is the one the client
+    /// shows (one past the levels reached, clamped to the top of the ladder), and a slot with no progress
+    /// adds nothing.
+    /// </summary>
+    public float ItemLevelGain(byte slotTypeId)
+    {
+        var state = StateOf(slotTypeId);
+        if (state == null || state.Level <= 0)
+            return 0;
+
+        var level = WireLevel(state.Level, slotTypeId);
+        if (level <= 0)
+            return 0;
+
+        return EquipSlotReinforceGameData.Instance.Step(slotTypeId, (byte)level)?.GainItemLevel ?? 0;
+    }
+
     public EquipSlotReinforceState StateOf(byte slotTypeId)
     {
         lock (_sync)

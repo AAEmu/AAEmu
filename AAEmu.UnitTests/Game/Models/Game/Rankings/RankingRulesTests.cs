@@ -43,4 +43,26 @@ public class RankingRulesTests
         await Assert.That(RankingRules.BestItem(null, RankingRules.ItemBoardSlots(24))).IsNull();
         await Assert.That(RankingRules.BestItem(weapons, null)).IsNull();
     }
+
+    [Test]
+    public async Task GearScoreLine_OrdersByTheTotalAndKeepsThePieceAsBare()
+    {
+        // Point details is bare + (total - bare). No stones: both sides are the piece.
+        var none = RankingRules.GearScoreLine(9412, 9412, 0);
+        await Assert.That(none).IsNotNull();
+        await Assert.That(none.Value.Value).IsEqualTo(9412L);
+        await Assert.That(none.Value.BareValue).IsEqualTo(9412L);
+
+        // Two stone points sit beside the piece, not in it.
+        var stones = RankingRules.GearScoreLine(9776, 9774, 0);
+        await Assert.That(stones.Value.Value).IsEqualTo(9776L);
+        await Assert.That(stones.Value.BareValue).IsEqualTo(9774L);
+    }
+
+    [Test]
+    public async Task GearScoreLine_IsNullWhenTheTotalIsBelowTheBoardFloor()
+    {
+        await Assert.That(RankingRules.GearScoreLine(100, 100, 200)).IsNull();
+        await Assert.That(RankingRules.GearScoreLine(200, 180, 200)).IsNotNull();
+    }
 }
