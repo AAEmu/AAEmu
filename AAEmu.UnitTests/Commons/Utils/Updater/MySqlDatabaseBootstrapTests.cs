@@ -1,5 +1,4 @@
 using AAEmu.Commons.Utils.Updater;
-using AAEmu.Commons.Models;
 
 namespace AAEmu.UnitTests.Commons.Utils.Updater;
 
@@ -71,13 +70,39 @@ public class MySqlDatabaseBootstrapTests
     }
 
     [Test]
-    public async Task EnsureDatabase_ReportsInvalidQuotedIdentifierAsFailure()
+    public async Task RewriteBaseSchemaSql_RejectsDatabaseNamesContainingBackticks()
     {
-        var settings = new MySqlConnectionSettings { Database = "aaemu`game" };
+        const string sql = "CREATE DATABASE IF NOT EXISTS `aaemu_game`;";
 
-        var result = MySqlDatabaseBootstrap.EnsureDatabase(settings, "aaemu_game.sql");
+        await Assert.That(() => MySqlDatabaseBootstrap.RewriteBaseSchemaSql(sql, "aaemu`game"))
+            .Throws<ArgumentException>();
+    }
 
-        await Assert.That(result).IsFalse();
+    [Test]
+    public async Task ShouldImportBaseSchema_NewSchemaWithoutMarker_ReturnsTrue()
+    {
+        var shouldImport = MySqlDatabaseBootstrap.ShouldImportBaseSchema(
+            hasCharactersTable: false, hasBootstrapMarker: false);
+
+        await Assert.That(shouldImport).IsTrue();
+    }
+
+    [Test]
+    public async Task ShouldImportBaseSchema_ExistingSchemaWithoutMarker_ReturnsFalse()
+    {
+        var shouldImport = MySqlDatabaseBootstrap.ShouldImportBaseSchema(
+            hasCharactersTable: true, hasBootstrapMarker: false);
+
+        await Assert.That(shouldImport).IsFalse();
+    }
+
+    [Test]
+    public async Task ShouldImportBaseSchema_PartialBootstrapWithMarker_ReturnsTrue()
+    {
+        var shouldImport = MySqlDatabaseBootstrap.ShouldImportBaseSchema(
+            hasCharactersTable: true, hasBootstrapMarker: true);
+
+        await Assert.That(shouldImport).IsTrue();
     }
 
     [Test]

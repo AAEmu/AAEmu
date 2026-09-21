@@ -15,6 +15,8 @@ namespace AAEmu.Commons.Utils.Updater;
 /// </summary>
 public static partial class MySqlDatabaseBootstrap
 {
+    private const string CharactersTable = "characters";
+    private const string BootstrapMarkerTable = "aaemu_bootstrap_import";
     private const string CompletionSentinelTable = "character_achievements";
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -38,6 +40,14 @@ public static partial class MySqlDatabaseBootstrap
     {
         var rewritten = RewriteBaseSchemaSql(sql, targetDatabase);
         return CreateDatabaseRegex().Replace(rewritten, string.Empty);
+    }
+
+    /// <summary>
+    /// Determines whether a base schema import is required for the schema state observed at startup.
+    /// </summary>
+    public static bool ShouldImportBaseSchema(bool hasCharactersTable, bool hasBootstrapMarker)
+    {
+        return !hasCharactersTable || hasBootstrapMarker;
     }
 
     /// <summary>
@@ -65,7 +75,9 @@ public static partial class MySqlDatabaseBootstrap
             }
 
             using var schemaConnection = OpenConnection(settings, settings.Database);
-            if (TableExists(schemaConnection, settings.Database, CompletionSentinelTable))
+            var hasCharactersTable = TableExists(schemaConnection, settings.Database, CharactersTable);
+            var hasBootstrapMarker = TableExists(schemaConnection, settings.Database, BootstrapMarkerTable);
+            if (!ShouldImportBaseSchema(hasCharactersTable, hasBootstrapMarker))
                 return true;
 
             var schemaPath = FindBaseSchemaFile(baseSchemaFileName);
@@ -75,9 +87,10 @@ public static partial class MySqlDatabaseBootstrap
                 return false;
             }
 
-            Logger.Warn("MySQL schema `{0}` is empty; importing `{1}`", settings.Database, schemaPath);
             var statements = SplitBaseSchemaStatements(
                 PrepareImportSql(File.ReadAllText(schemaPath), settings.Database));
+            CreateBootstrapMarker(schemaConnection);
+            Logger.Warn("MySQL schema `{0}` requires base import; importing `{1}`", settings.Database, schemaPath);
             var executed = ExecuteStatements(schemaConnection, statements);
             if (executed <= 0 || !TableExists(schemaConnection, settings.Database, CompletionSentinelTable))
             {
@@ -86,6 +99,7 @@ public static partial class MySqlDatabaseBootstrap
                 return false;
             }
 
+            DropBootstrapMarker(schemaConnection);
             Logger.Info("Imported base schema into `{0}` ({1} statements)", settings.Database, executed);
             return true;
         }
@@ -285,6 +299,20 @@ public static partial class MySqlDatabaseBootstrap
     {
         using var command = connection.CreateCommand();
         command.CommandText = $"CREATE DATABASE IF NOT EXISTS `{database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;";
+        command.ExecuteNonQuery();
+    }
+
+    private static void CreateBootstrapMarker(MySqlConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = $"CREATE TABLE IF NOT EXISTS `{BootstrapMarkerTable}` (`id` tinyint NOT NULL PRIMARY KEY) ENGINE=InnoDB;";
+        command.ExecuteNonQuery();
+    }
+
+    private static void DropBootstrapMarker(MySqlConnection connection)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText = $"DROP TABLE IF EXISTS `{BootstrapMarkerTable}`;";
         command.ExecuteNonQuery();
     }
 
