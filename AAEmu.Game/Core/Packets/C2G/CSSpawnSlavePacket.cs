@@ -67,6 +67,8 @@ public class CSSpawnSlavePacket() : GamePacket(CSOffsets.CSSpawnSlavePacket, 1)
         }
 
         // Client picks the spot (SummonPos target); zRot is the planted heading, not an addend.
+        // Create refuses a stand outside slaves.spawn_valid_area_range, or a boat that is not
+        // deep water, before it replaces any active hull.
         using var transform = character.Transform.CloneDetached();
         SlaveSummonSeedRules.ApplySeed(transform.World, x, y, z, zRot);
 

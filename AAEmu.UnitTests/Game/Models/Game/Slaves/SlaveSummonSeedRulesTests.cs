@@ -14,8 +14,7 @@ public class SlaveSummonSeedRulesTests
             PosX = 12950.25f,
             PosY = 9919.8f,
             PosZ = 100.4f,
-            PosRot = 1.25f,
-            ObjId1 = 700
+            PosRot = 1.25f
         };
 
         await Assert.That(SlaveSummonSeedRules.TryReadWorldSeed(target, out var x, out var y, out var z, out var yaw))
@@ -74,5 +73,50 @@ public class SlaveSummonSeedRulesTests
         await Assert.That(dest.Rotation.X).IsEqualTo(0f);
         await Assert.That(dest.Rotation.Y).IsEqualTo(0f);
         await Assert.That(dest.Rotation.Z).IsEqualTo(1.57f);
+    }
+
+    [Test]
+    public async Task LocalBasisWithoutResolvedWorld_IsNotASeed()
+    {
+        var target = new SkillCastPositionTarget
+        {
+            PosX = 2f,
+            PosY = 3f,
+            PosZ = 1f,
+            PosRot = 0.5f,
+            ObjId1 = 700
+        };
+
+        await Assert.That(SlaveSummonSeedRules.TryReadWorldSeed(target, out _, out _, out _, out _))
+            .IsFalse();
+    }
+
+    [Test]
+    public async Task ResolvedWorld_WinsOverLocalBasis()
+    {
+        var target = new SkillCastPositionTarget
+        {
+            PosX = 2f,
+            PosY = 3f,
+            PosZ = 1f,
+            PosRot = 0.75f,
+            ObjId1 = 700
+        };
+
+        await Assert.That(SlaveSummonSeedRules.TryReadWorldSeed(
+                target, 12950.25f, 9919.8f, 100.4f, out var x, out var y, out var z, out var yaw))
+            .IsTrue();
+        await Assert.That(x).IsEqualTo(12950.25f);
+        await Assert.That(y).IsEqualTo(9919.8f);
+        await Assert.That(z).IsEqualTo(100.4f);
+        await Assert.That(yaw).IsEqualTo(0.75f);
+    }
+
+    [Test]
+    public async Task ValidArea_UsesTheTemplateRange()
+    {
+        await Assert.That(SlaveSummonSeedRules.IsWithinValidArea(100f, 200f, 110f, 200f, 20)).IsTrue();
+        await Assert.That(SlaveSummonSeedRules.IsWithinValidArea(100f, 200f, 130f, 200f, 20)).IsFalse();
+        await Assert.That(SlaveSummonSeedRules.IsWithinValidArea(100f, 200f, 100f, 200f, 0)).IsTrue();
     }
 }

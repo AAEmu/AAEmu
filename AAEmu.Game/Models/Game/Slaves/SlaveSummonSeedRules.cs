@@ -15,27 +15,49 @@ public static class SlaveSummonSeedRules
     /// </summary>
     public const float SamePlantMetres = 1f;
 
-    public static bool TryReadWorldSeed(SkillCastTarget target, out float x, out float y, out float z, out float yaw)
+    public static bool TryReadWorldSeed(SkillCastTarget target, out float x, out float y, out float z, out float yaw) =>
+        TryReadWorldSeed(target, null, null, null, out x, out y, out z, out yaw);
+
+    /// <summary>
+    /// <paramref name="resolvedX"/> / Y / Z are the world stand <see cref="Skill"/> already built
+    /// for a position target (local <c>ObjId1</c> basis included). Raw Pos* is world only when
+    /// that basis is unset.
+    /// </summary>
+    public static bool TryReadWorldSeed(
+        SkillCastTarget target,
+        float? resolvedX,
+        float? resolvedY,
+        float? resolvedZ,
+        out float x,
+        out float y,
+        out float z,
+        out float yaw)
     {
+        yaw = ReadYaw(target);
+        if (resolvedX is float rx && resolvedY is float ry && resolvedZ is float rz && HasWorldSeed(rx, ry, rz))
+        {
+            x = rx;
+            y = ry;
+            z = rz;
+            return true;
+        }
+
         switch (target)
         {
-            case SkillCastPositionTarget position:
+            case SkillCastPositionTarget position when position.ObjId1 == 0:
                 x = position.PosX;
                 y = position.PosY;
                 z = position.PosZ;
-                yaw = position.PosRot;
                 return HasWorldSeed(x, y, z);
             case SkillCastPosition2Target position2:
                 x = position2.PosX;
                 y = position2.PosY;
                 z = position2.PosZ;
-                yaw = 0f;
                 return HasWorldSeed(x, y, z);
             case SkillCastPosition3Target position3:
                 x = position3.PosX;
                 y = position3.PosY;
                 z = position3.PosZ;
-                yaw = position3.Pitch;
                 return HasWorldSeed(x, y, z);
             default:
                 x = 0f;
@@ -44,6 +66,26 @@ public static class SlaveSummonSeedRules
                 yaw = 0f;
                 return false;
         }
+    }
+
+    public static float ReadYaw(SkillCastTarget target) =>
+        target switch
+        {
+            SkillCastPositionTarget position => position.PosRot,
+            SkillCastPosition3Target position3 => position3.Pitch,
+            _ => 0f
+        };
+
+    /// <summary>
+    /// Horizontal reach of a client-chosen stand. <paramref name="rangeMetres"/> is
+    /// <c>slaves.spawn_valid_area_range</c> on the template.
+    /// </summary>
+    public static bool IsWithinValidArea(float casterX, float casterY, float seedX, float seedY, uint rangeMetres)
+    {
+        var dx = seedX - casterX;
+        var dy = seedY - casterY;
+        var range = (float)rangeMetres;
+        return dx * dx + dy * dy <= range * range;
     }
 
     public static bool HasWorldSeed(float x, float y, float z) =>

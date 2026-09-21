@@ -43,7 +43,24 @@ public class SpawnSlave : SpecialEffectAction
             "SpawnSlave char={0} item={1} tpl={2} skill={3}",
             owner.Name, skillData.ItemId, skillData.ItemTemplateId, skill?.Id ?? 0);
 
-        var hasSeed = SlaveSummonSeedRules.TryReadWorldSeed(targetObj, out var seedX, out var seedY, out var seedZ, out var seedYaw);
+        float? resolvedX = null;
+        float? resolvedY = null;
+        float? resolvedZ = null;
+        // Skill already ran SetInitialTarget for SummonPos (ObjId MaxValue). Use that world
+        // stand so a deck-local ObjId1 basis is not planted near the map origin.
+        if (target is { ObjId: uint.MaxValue, Transform: not null })
+        {
+            var resolved = target.Transform.World.Position;
+            if (SlaveSummonSeedRules.HasWorldSeed(resolved.X, resolved.Y, resolved.Z))
+            {
+                resolvedX = resolved.X;
+                resolvedY = resolved.Y;
+                resolvedZ = resolved.Z;
+            }
+        }
+
+        var hasSeed = SlaveSummonSeedRules.TryReadWorldSeed(
+            targetObj, resolvedX, resolvedY, resolvedZ, out var seedX, out var seedY, out var seedZ, out var seedYaw);
         var existing = owner.ParentWorld.SlaveManager.GetActiveSlaveByOwnerObjId(owner.ObjId);
         var sameItem = existing?.SummoningItem != null
                        && skillData.ItemId != 0
