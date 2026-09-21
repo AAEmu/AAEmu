@@ -176,7 +176,6 @@ public static class SCOffsets
     public const ushort SCPlotCastingStoppedPacket = 0xE6; // 10.0.2.13
     public const ushort SCPlotChannelingStoppedPacket = 0xE7; // 10.0.2.13
     public const ushort SCEnvDamagePacket = 0xE8; // 10.0.2.13
-    public const ushort SCOnOffSnowPacket = 0xb4;
     public const ushort SCUnkPacket = 0xb5;
     public const ushort SCBuffCreatedPacket = 0xEB; // 10.0.2.13
     public const ushort SCBuffRemovedPacket = 0xEC; // 10.0.2.13
@@ -818,7 +817,7 @@ public static class SCOffsets
     public const ushort SCSkillCooldownReducePacket = 0x304;
     public const ushort SCSlaveEquipmentExpiredPacket = 0x94;
     public const ushort SCSlaveEquipmentFlagsChangedPacket = 0x96;
-    public const ushort SCSnowingEverywherePacket = 0xE9;
+    public const ushort SCSnowingEverywherePacket = 0xE9; // 10.0.2.13
     public const ushort SCSelectSquadListPacket = 0x30B;
     public const ushort SCCreateSquadPacket = 0x30C;
     public const ushort SCDisbandSquadPacket = 0x30D;

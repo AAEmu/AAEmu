@@ -1305,8 +1305,8 @@ public class WorldManager(
 
     public void OnPlayerJoin(Character character)
     {
-        // Turn snow on off 
-        character.SendPacket(new SCOnOffSnowPacket(IsSnowing));
+        // Replay the current global snow state for the joining player.
+        character.SendPacket(new SCSnowingEverywherePacket(IsSnowing));
 
         // Family stuff
         if (character.Family > 0)

@@ -44,7 +44,7 @@ public class Snow : ICommand
 
             // Turn snow on or off for all online characters,
             // Put this on the script level, so it only gets executed once when GM enables/disables snow
-            WorldManager.Instance.BroadcastPacketToServer(new SCOnOffSnowPacket(isSnowing));
+            WorldManager.Instance.BroadcastPacketToServer(new SCSnowingEverywherePacket(isSnowing));
         }
         else
         {

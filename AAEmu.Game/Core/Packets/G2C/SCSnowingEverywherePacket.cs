@@ -3,12 +3,9 @@ using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
-/// <summary>
-/// TODO: nothing constructs this packet yet.
-/// </summary>
 /// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
+/// Native evidence: ArcheAge 10.0.2.13 serializer at 0x39C51EB0, packet functor at 0x3954F6F0,
+/// receiver at 0x394DABD0, and loading-world state consumer at 0x394AFF00.
 /// </remarks>
 public class SCSnowingEverywherePacket(bool on) : GamePacket(SCOffsets.SCSnowingEverywherePacket, 1)
 {

@@ -59,7 +59,7 @@ public enum Feature
     // ---- fset[7] ----
     sensitiveOpeartion = 56,
     tailCustomizing = 57,
-    fset_7_2_unknown = 58,  // native only - checked in OnLoadingWorldComplete()
+    fset_7_2_unknown = 58,  // unverified client feature flag; meaning unknown
     reportSpamMail = 61,
     banishPlayer = 63,
 
@@ -221,5 +221,3 @@ public enum Feature
     freeDemolishHouse = 241,
     notGainLeaderShipPoint = 242,
 }
-
-
