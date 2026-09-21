@@ -116,6 +116,35 @@ public class FeatureSetTests
         await Assert.That(fset.Check(Feature.useCraftOrder)).IsFalse();
     }
 
+    [Test]
+    public async Task Copy_PreservesWireBytesAndServerOnlySwitchesWithoutSharingState()
+    {
+        var source = new FeatureSet
+        {
+            PlayerLevelLimit = 55,
+            MateLevelLimit = 50,
+            UnknownTimeLimit = 7,
+            ButlerLevelLimit = 30,
+            TaxItem = false,
+            BackpackProfitShare = false,
+            AbilitySetFreeActivationDailyReset = false
+        };
+        source.Set(Feature.siege, true);
+        source.Set(Feature.notGainLeaderShipPoint, true);
+        var sourceBytes = GetBlob(source);
+
+        var copy = source.Copy();
+
+        await Assert.That(GetBlob(copy).SequenceEqual(sourceBytes)).IsTrue();
+        await Assert.That(copy.TaxItem).IsFalse();
+        await Assert.That(copy.BackpackProfitShare).IsFalse();
+        await Assert.That(copy.AbilitySetFreeActivationDailyReset).IsFalse();
+
+        copy.Set(Feature.siege, false);
+        copy.PlayerLevelLimit = 1;
+        await Assert.That(GetBlob(source).SequenceEqual(sourceBytes)).IsTrue();
+    }
+
     private static byte[] WriteAndGetBlob(Action<FeatureSet> configure)
     {
         var fset = new FeatureSet();

@@ -15,6 +15,7 @@ using AAEmu.Game.IO;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Features;
 using AAEmu.Game.Models.Game.Indun;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
@@ -345,10 +346,17 @@ public class WorldManager(
 
     public void Initialize()
     {
+        InitializeSnowState(FeaturesManager.Fsets);
         tickManager.OnTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(1));
         tickManager.OnTick.Subscribe(AutoWaterProbeTick, TimeSpan.FromSeconds(10));
         // Shared game-day clock (seamless zones do not ZW-report ToD).
         TimeManager.Instance.Start();
+    }
+
+    internal void InitializeSnowState(FeatureSet configuredFeatures)
+    {
+        ArgumentNullException.ThrowIfNull(configuredFeatures);
+        IsSnowing = configuredFeatures.Check(Feature.fset_7_2_unknown);
     }
 
     private static readonly Lock AutoWaterProbeLock = new();

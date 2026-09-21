@@ -5,6 +5,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Features;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 
@@ -39,6 +40,20 @@ public class WorldManagerTests
     }
 
     #endregion
+
+    [Test]
+    [Arguments(false)]
+    [Arguments(true)]
+    public async Task InitializeSnowState_UsesConfiguredFeatureOnce(bool configuredSnow)
+    {
+        var manager = CreateWorldManager();
+        var configuredFeatures = new FeatureSet();
+        configuredFeatures.Set(Feature.fset_7_2_unknown, configuredSnow);
+
+        manager.InitializeSnowState(configuredFeatures);
+
+        await Assert.That(manager.IsSnowing).IsEqualTo(configuredSnow);
+    }
 
     #region GetWorld Tests
 

@@ -8,7 +8,9 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Connections;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Features;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Scripts.Commands;
 using AAEmu.UnitTests.Game.Core.Packets.G2C;
@@ -44,6 +46,9 @@ public class SnowTests
         var onlineSession = new RecordingSession(1);
         var onlineCharacter = CreateCharacter(1, onlineSession);
         manager.TryAddCharacter(onlineCharacter);
+        var configuredFeatures = new FeatureSet();
+        configuredFeatures.Set(Feature.fset_7_2_unknown, true);
+        manager.InitializeSnowState(configuredFeatures);
 
         var singleton = typeof(Singleton<WorldManager>)
             .GetField("s_instance", BindingFlags.Static | BindingFlags.NonPublic)!;
@@ -69,6 +74,9 @@ public class SnowTests
             command.Execute(onlineCharacter, [bool.FalseString], null!);
 
             await Assert.That(manager.IsSnowing).IsFalse();
+            var nextLoginFeatures = WeatherClientPackets.InitialFeatures(configuredFeatures, manager.IsSnowing);
+            await Assert.That(nextLoginFeatures.Check(Feature.fset_7_2_unknown)).IsFalse();
+            await Assert.That(configuredFeatures.Check(Feature.fset_7_2_unknown)).IsTrue();
             await Assert.That(onlineSession.Packets.Count).IsEqualTo(2);
             await SCSnowingEverywherePacketTests.AssertSnowPacket(onlineSession.Packets[1], false);
 
