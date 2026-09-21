@@ -2,7 +2,8 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Core.Managers.World;
-using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
@@ -61,8 +62,9 @@ public class Move : ICommand
                 targetPlayer.SendMessage($"[GM] |cFFFFFFFF{character.Name}|r has called upon your presence !");
             }
 
-            targetPlayer.DisabledSetPosition = true;
-            targetPlayer.SendPacket(new SCTeleportUnitPacket(0, 0, myX, myY, myZ, 0f));
+            SkillTeleportLanding.TryApplyToWorld(
+                targetPlayer, character.ParentWorld, character.Transform.ZoneId,
+                myX, myY, myZ, character.Transform.World.Rotation.Z, TeleportReason.Gm);
             CommandManager.SendNormalText(this, messageOutput,
                 $"Moved |cFFFFFFFF{targetPlayer.Name}|r to your location.");
             return;
@@ -75,8 +77,9 @@ public class Move : ICommand
             var targetZ =
                 targetPlayer.Transform.World.Position.Z +
                 2f; // drop me slightly above them to avoid weird collision stuff
-            character.DisabledSetPosition = true;
-            character.SendPacket(new SCTeleportUnitPacket(0, 0, targetX, targetY, targetZ, 0f));
+            SkillTeleportLanding.TryApplyToWorld(
+                character, targetPlayer.ParentWorld, targetPlayer.Transform.ZoneId,
+                targetX, targetY, targetZ, targetPlayer.Transform.World.Rotation.Z, TeleportReason.Gm);
             CommandManager.SendNormalText(this, messageOutput, $"Moved to |cFFFFFFFF{targetPlayer.Name}|r.");
             return;
         }
@@ -90,26 +93,27 @@ public class Move : ICommand
                     $"[GM] |cFFFFFFFF{character.Name}|r has moved you do position X: {newX}, Y: {newY}, Z: {newZ}");
             }
 
-            // Same instance: apply World Transform now. CSTeleportEnded used to
-            // only unlock movement and leave the server on the old cell.
-            var rot = targetPlayer.Transform.World.Rotation;
-            targetPlayer.SetPosition(newX, newY, newZ, rot.X, rot.Y, rot.Z);
-            targetPlayer.Transform.FinalizeTransform();
-            targetPlayer.SendPacket(new SCTeleportUnitPacket(0, 0, newX, newY, newZ, 0f));
+            var world = targetPlayer.ParentWorld;
+            if (world == null)
+            {
+                CommandManager.SendErrorText(this, messageOutput, "Target has no world.");
+                return;
+            }
 
-            // A jump inside one region grid cell is invisible to AddVisibleObject, so without this
-            // the onlookers keep the character at the position they were sent before the move - and
-            // a copy that far away stops them applying the character's own movement packets too.
-            WorldManager.RepositionVisibleObject(targetPlayer);
+            // Coords may resolve to another open-world zone; sample the destination
+            // and go through TryApplyToWorld so a same-zone hop still relays to Zone.
+            var destZone = WorldManager.Instance.GetZoneId(world.Template, newX, newY);
+            if (destZone == 0)
+                destZone = targetPlayer.Transform.ZoneId;
 
-            // The zone only holds a mirror of a player, so tell it where the character went.
-            if (WorldIntegration.ZoneAuthority)
-                WorldIntegration.RelayBlinkToZone?.Invoke(targetPlayer.ObjId, targetPlayer.ObjId, true, newX, newY, newZ);
-
-            // The region grid is a kilometre wide, so a jump that lands in the cell the character is
-            // already filed under leaves AddVisibleObject a no-op: the arrival area then streams
-            // nothing to a client that just re-evaluated what it can see.
-            WorldManager.ResendVisibleObjectsToCharacter(targetPlayer, clientDroppedVisibility: true);
+            if (!SkillTeleportLanding.TryApplyToWorld(
+                    targetPlayer, world, destZone, newX, newY, newZ,
+                    targetPlayer.Transform.World.Rotation.Z, TeleportReason.Gm))
+            {
+                CommandManager.SendErrorText(this, messageOutput,
+                    $"Cannot land |cFFFFFFFF{targetPlayer.Name}|r at X: {newX}, Y: {newY}, Z: {newZ}");
+                return;
+            }
 
             CommandManager.SendNormalText(this, messageOutput,
                 $"|cFFFFFFFF{targetPlayer.Name}|r moved to X: {newX}, Y: {newY}, Z: {newZ}");

@@ -59,6 +59,101 @@ public static class HeroElectionRules
     public static bool IsSameUtcDay(DateTime a, DateTime b) =>
         ServerCalendar.AsUtc(a).Date == ServerCalendar.AsUtc(b).Date;
 
+    /// <summary>True when both instants fall in the same UTC clock hour (year/month/day/hour).</summary>
+    public static bool IsSameUtcHour(DateTime a, DateTime b)
+    {
+        var ua = ServerCalendar.AsUtc(a);
+        var ub = ServerCalendar.AsUtc(b);
+        return ua.Year == ub.Year && ua.Month == ub.Month && ua.Day == ub.Day && ua.Hour == ub.Hour;
+    }
+
+    /// <summary>
+    /// A member may accept one order per UTC clock hour (same year/month/day/hour).
+    /// Compact has no hourly duration knob — the shipped mobilization
+    /// <c>content_configs</c> are daily-max, accept-window, level, and leadership.
+    /// An elapsed-hour window would invent a 3600 s row. Epoch means never accepted.
+    /// </summary>
+    public static bool CanAcceptMobilizationAgainThisHour(DateTime lastAcceptUtc, DateTime nowUtc)
+    {
+        var last = ServerCalendar.AsUtc(lastAcceptUtc);
+        if (last <= DateTime.UnixEpoch)
+            return true;
+        return !IsSameUtcHour(last, nowUtc);
+    }
+
+    /// <summary>
+    /// The accept-popup checkbox "do not receive today". A default / epoch stamp means they have not muted.
+    /// The mute lasts the rest of the UTC day and clears at the next UTC midnight.
+    /// </summary>
+    public static bool IsMobilizationOrderMutedToday(DateTime lastNotRecvUtc, DateTime nowUtc)
+    {
+        var last = ServerCalendar.AsUtc(lastNotRecvUtc);
+        if (last <= DateTime.UnixEpoch)
+            return false;
+        return IsSameUtcDay(last, nowUtc);
+    }
+
+    /// <summary>Checking the box stamps now; clearing it returns the clock to epoch (unmuted).</summary>
+    public static DateTime MobilizationOrderNotRecvStamp(bool mute, DateTime nowUtc) =>
+        mute ? ServerCalendar.AsUtc(nowUtc) : DateTime.UnixEpoch;
+
+    /// <summary>
+    /// Whether a nation member is offered the accept popup for a new issue. Daily mute and the
+    /// one-accept-per-UTC-hour gate both suppress it; the hour gate lifts at the next clock hour.
+    /// </summary>
+    public static bool ShouldOfferMobilizationOrder(
+        DateTime lastNotRecvUtc, DateTime lastAcceptUtc, DateTime nowUtc) =>
+        !IsMobilizationOrderMutedToday(lastNotRecvUtc, nowUtc)
+        && CanAcceptMobilizationAgainThisHour(lastAcceptUtc, nowUtc);
+
+    /// <summary>Authored stand next to a rally flag (a loaded <c>return_point.g</c> pad).</summary>
+    public readonly record struct RallyStand(float X, float Y, float Z, float YawRad, uint ZoneId);
+
+    /// <summary>
+    /// Pads authored in the flag's zone. An empty list keeps the issuer-position
+    /// fallback — do not hand every pad to <see cref="TryPickRallyStand"/> (no distance cap).
+    /// </summary>
+    public static IReadOnlyList<RallyStand> PadsForFlagZone(uint flagZoneId, IReadOnlyList<RallyStand> pads)
+    {
+        if (pads == null || pads.Count == 0 || flagZoneId == 0)
+            return [];
+
+        List<RallyStand> same = null;
+        foreach (var pad in pads)
+        {
+            if (pad.ZoneId != flagZoneId)
+                continue;
+            same ??= [];
+            same.Add(pad);
+        }
+
+        return same ?? [];
+    }
+
+    /// <summary>Picks the stand closest to the flag on the XY plane. Empty list → no stand.</summary>
+    public static bool TryPickRallyStand(float flagX, float flagY, IReadOnlyList<RallyStand> pads, out RallyStand stand)
+    {
+        stand = default;
+        if (pads == null || pads.Count == 0)
+            return false;
+
+        var best = float.PositiveInfinity;
+        var found = false;
+        foreach (var pad in pads)
+        {
+            var dx = pad.X - flagX;
+            var dy = pad.Y - flagY;
+            var d = dx * dx + dy * dy;
+            if (d >= best)
+                continue;
+            best = d;
+            stand = pad;
+            found = true;
+        }
+
+        return found;
+    }
+
     public static bool IsSameIsoWeek(DateTime a, DateTime b)
     {
         var ua = ServerCalendar.AsUtc(a);

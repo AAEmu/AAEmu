@@ -15,6 +15,7 @@ public interface IPortalManager : ILoadable
     Portal GetWorldGatesBySubZoneId(uint subZoneId);
     Portal GetWorldGatesById(uint id);
     Portal GetReturnPoint(uint returnPointId);
+    IReadOnlyList<Portal> GetLevelReturnPoints();
     uint GetDistrictReturnPoint(uint districtId);
     uint GetDistrictReturnPoint(uint districtId, FactionsEnum factionId);
     uint GetDistrictIdByReturnPoint(uint returnPointId, FactionsEnum factionId);

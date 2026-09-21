@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using AAEmu.Game;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -426,6 +426,25 @@ public class Dungeon : IPreparedIndunInstance
     }
 
     /// <summary>
+    /// Leaves the copy into the open world. The load packet's first field is the live instance
+    /// id (0 on the overworld); a world-template id here made the client load an empty Marianople.
+    /// Rotation on the transform is already radians.
+    /// </summary>
+    private static void SendLeaveToMainWorld(Character character)
+    {
+        character.DisabledSetPosition = true;
+        character.Transform = character.MainWorldPosition.Clone();
+        character.Transform.InstanceId = WorldManager.DefaultInstanceId;
+        var pos = character.MainWorldPosition.World.Position;
+        var rot = character.MainWorldPosition.World.Rotation;
+        character.SendPacket(new SCLoadInstancePacket(
+            WorldManager.DefaultInstanceId,
+            character.MainWorldPosition.ZoneId,
+            pos.X, pos.Y, pos.Z,
+            rot.X, rot.Y, rot.Z));
+    }
+
+    /// <summary>
     /// When enter never saved a return snapshot, fall back to the bound return-district recall.
     /// </summary>
     private static bool EnsureLeaveReturn(Character character)
@@ -519,21 +538,7 @@ public class Dungeon : IPreparedIndunInstance
             return;
         }
 
-        character.DisabledSetPosition = true;
-        character.Transform = character.MainWorldPosition.Clone();
-        character.Transform.InstanceId = WorldManager.DefaultInstanceId;
-        character.SendPacket(
-            new SCLoadInstancePacket(
-                character.MainWorldPosition.WorldId,
-                character.MainWorldPosition.ZoneId,
-                character.MainWorldPosition.World.Position.X,
-                character.MainWorldPosition.World.Position.Y,
-                character.MainWorldPosition.World.Position.Z,
-                character.MainWorldPosition.World.Rotation.X.DegToRad(),
-                character.MainWorldPosition.World.Rotation.Y.DegToRad(),
-                character.MainWorldPosition.World.Rotation.Z.DegToRad()
-            )
-        );
+        SendLeaveToMainWorld(character);
         // After the leave teleport: clear squad/instant-game "in match" flags so Register works.
         SquadManager.Instance.NotifyGameLeave(character);
     }
@@ -557,21 +562,7 @@ public class Dungeon : IPreparedIndunInstance
             return;
         }
 
-        character.DisabledSetPosition = true;
-        character.Transform = character.MainWorldPosition.Clone();
-        character.Transform.InstanceId = WorldManager.DefaultInstanceId;
-        character.SendPacket(
-            new SCLoadInstancePacket(
-                character.MainWorldPosition.WorldId,
-                character.MainWorldPosition.ZoneId,
-                character.MainWorldPosition.World.Position.X,
-                character.MainWorldPosition.World.Position.Y,
-                character.MainWorldPosition.World.Position.Z,
-                character.MainWorldPosition.World.Rotation.X.DegToRad(),
-                character.MainWorldPosition.World.Rotation.Y.DegToRad(),
-                character.MainWorldPosition.World.Rotation.Z.DegToRad()
-            )
-        );
+        SendLeaveToMainWorld(character);
         SquadManager.Instance.NotifyGameLeave(character);
     }
 

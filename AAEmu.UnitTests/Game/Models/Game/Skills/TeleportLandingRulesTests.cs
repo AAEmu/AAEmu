@@ -51,4 +51,26 @@ public class TeleportLandingRulesTests
         await Assert.That(TeleportLandingRules.RelaysSameZoneBlink(stayInZone: true, zoneAuthority: false)).IsFalse();
         await Assert.That(TeleportLandingRules.RelaysSameZoneBlink(stayInZone: false, zoneAuthority: false)).IsFalse();
     }
+
+    [Test]
+    public async Task Classify_SameWorldOrSameInstance_IsAWorldLanding()
+    {
+        await Assert.That(TeleportLandingRules.Classify(true, 0, 1, destHasDungeon: true))
+            .IsEqualTo(TeleportLandingKind.World);
+        await Assert.That(TeleportLandingRules.Classify(false, 0, 0, destHasDungeon: true))
+            .IsEqualTo(TeleportLandingKind.World);
+        await Assert.That(TeleportLandingRules.StaysInZone(183, 183, 0, 0)).IsTrue();
+        await Assert.That(TeleportLandingRules.StaysInZone(133, 183, 0, 0)).IsFalse();
+    }
+
+    [Test]
+    public async Task Classify_DifferentWorld_UsesDungeonEnterOrOtherInstanceLoad()
+    {
+        await Assert.That(TeleportLandingRules.Classify(false, 0, 5, destHasDungeon: true))
+            .IsEqualTo(TeleportLandingKind.InstanceDungeon);
+        await Assert.That(TeleportLandingRules.Classify(false, 0, 5, destHasDungeon: false))
+            .IsEqualTo(TeleportLandingKind.InstanceOther);
+        await Assert.That(TeleportLandingRules.Classify(false, 5, 0, destHasDungeon: false))
+            .IsEqualTo(TeleportLandingKind.InstanceOther);
+    }
 }

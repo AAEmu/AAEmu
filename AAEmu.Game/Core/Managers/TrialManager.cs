@@ -296,18 +296,14 @@ public class TrialManager : Singleton<TrialManager>
             seat.ReturnPoint = new TrialReturnPoint(juror.Transform.ZoneId, juror.Transform.InstanceId,
                 juror.Transform.World.Position.X, juror.Transform.World.Position.Y,
                 juror.Transform.World.Position.Z, juror.Transform.World.Rotation.Z);
+        }
 
-            juror.DisabledSetPosition = true;
-            juror.SendPacket(new SCLoadInstancePacket(WorldManager.DefaultWorldTemplateId, courtZoneId,
-                bench.Position.X, bench.Position.Y, bench.Position.Z, 0f, 0f, 0f));
-            juror.Transform = new Transform(juror, null, courtZoneId, courtInstanceId,
-                bench.Position.X, bench.Position.Y, bench.Position.Z, 0f);
-        }
-        else
-        {
-            SkillTeleportLanding.Apply(juror, 0u, 0u, juror.Transform.InstanceId,
-                bench.Position.X, bench.Position.Y, bench.Position.Z, 0f, TeleportReason.Jury);
-        }
+        // The courtroom is open world. A zone hop (or a rare instance leave) goes through the
+        // shared landing so the bench streams; a same-cell seat still restreams the room.
+        var courtWorld = defendantCharacter?.ParentWorld ?? juror.ParentWorld;
+        SkillTeleportLanding.TryApplyToWorld(
+            juror, courtWorld, courtZoneId,
+            bench.Position.X, bench.Position.Y, bench.Position.Z, 0f, TeleportReason.Jury);
 
         juror.Buffs.AddBuff(ArrestRules.SeatedJurorBuff, juror); // 배심원(앉기 버프) - the seated pose
         // The juror's own buff from the shipped data (3621 배심원) marks them as serving.
@@ -978,8 +974,8 @@ public class TrialManager : Singleton<TrialManager>
         if (!sendHome || juror.ReturnPoint is not { } home)
             return;
 
-        SkillTeleportLanding.Apply(character, 0u, home.ZoneId, home.InstanceId,
-            home.X, home.Y, home.Z, home.Yaw, TeleportReason.Etc);
+        SkillTeleportLanding.ApplyWorld(
+            character, home.ZoneId, home.X, home.Y, home.Z, home.Yaw, TeleportReason.Etc);
     }
 
     // ---------------------------------------------------------------------------------------------
