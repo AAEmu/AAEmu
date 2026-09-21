@@ -137,7 +137,7 @@
             "fset_4_7_unknown": true,       // custom UI / addon Lua loading (1.2 customUiButton)
             "fset_5_1_unknown": true,       // tailoring thread-cut mesh — e_custom_thread_cut_mesh + 6 m height check
             "fset_5_2_unknown": true,       // character & diary transfer (cast_transfer_*, diary_transfer_*)
-            "fset_7_2_unknown": false,      // unverified client feature flag; meaning unknown
+            "fset_7_2_unknown": false,      // OnLoadingWorldComplete hook — ON enables global snow overlay
             "fset_9_6_unknown": true,       // mate item equip validation (CheckMateItemEquip)
             "fset_11_2_unknown": true,      // doodad descriptor lookup
             "fset_12_0_unknown": true,      // inventory slot swap — CSSwapItemsPacket (0x67), bag slots only

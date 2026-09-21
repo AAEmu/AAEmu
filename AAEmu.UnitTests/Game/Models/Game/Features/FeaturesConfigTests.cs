@@ -60,7 +60,7 @@ public class FeaturesConfigTests
             fset.Set(Enum.Parse<Feature>(name, true), enabled);
 
         await Assert.That(fset.ToString()).IsEqualTo(
-            // All bits on except fset_7_2_unknown (unverified client flag), restriction/moderation/dev-security switches,
+            // All bits on except fset_7_2_unknown (snow), restriction/moderation/dev-security switches,
             // aaPoint (bit 44), fset_12_1_unknown (bag repair collector; no special-effect 121),
             // buyPremiuminSelChar (Patron is granted, not sold), fset_24_7_unknown / fgt (bit 199),
             // and scalar bytes 1/8/10/26 (FeaturesManager fills those from level caps at boot).
