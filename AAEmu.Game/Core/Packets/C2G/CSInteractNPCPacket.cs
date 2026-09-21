@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.NPChar;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -40,10 +41,13 @@ public class CSInteractNPCPacket() : GamePacket(CSOffsets.CSInteractNPCPacket, 1
         // F-talk only sent this packet. Without the skill list the client opens
         // a directing window that cannot confirm (no start packet). Same body
         // as right-click CSStartInteraction, extraInfo=1 / empty pick.
-        var option = NpcInteractionRules.PrimarySkill(
+        // Every offered skill becomes a button on the client's dynamic action bar, so the NPC's
+        // service skill and the actions of its authored interaction set are listed together.
+        var skills = NpcInteractionRules.ComposeSkills(
             npc.Template,
-            QuestManager.Instance.IsQuestTalkNpc(npc.TemplateId));
-        character.SendPacket(new SCNpcInteractionSkillListPacket(objId, 0, 1, 0, 0, 0, [option]));
+            QuestManager.Instance.IsQuestTalkNpc(npc.TemplateId),
+            NpcInteractionGameData.Instance.GetSkills(npc.Template.NpcInteractionSetId));
+        character.SendPacket(new SCNpcInteractionSkillListPacket(objId, 0, 1, 0, 0, 0, [.. skills]));
 
         // The cargo dialog reads the native goods cache without requesting its initial page.
         if (npc.Template.TradeGoodBuy)

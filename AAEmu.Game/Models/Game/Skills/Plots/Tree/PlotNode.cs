@@ -127,11 +127,11 @@ public class PlotNode
 
             var targetCount = (byte)targetInfo.EffectedTargets.Count;
 
-            var packet = new SCPlotEventPacket(skill.TlId, Event.Id, skill.Template.Id, casterPlotObj,
+            var packet = new SCPlotEventPacket(state.CastTlId, Event.Id, skill.Template.Id, casterPlotObj,
                 targetPlotObj, unkId, castWire, flag, 0, targetCount, channelingTime: channelWire);
             state.LastClientEvent = new PlotClientEvent
             {
-                Tl = skill.TlId,
+                Tl = state.CastTlId,
                 EventId = Event.Id,
                 SkillId = skill.Template.Id,
                 Caster = casterPlotObj,
@@ -148,7 +148,7 @@ public class PlotNode
             else
             {
                 state.Caster.BroadcastPacket(packet, true);
-                RelayPlotEventToZoneIfNeeded(skill.TlId, Event.Id, skill.Template.Id, casterPlotObj, targetPlotObj,
+                RelayPlotEventToZoneIfNeeded(state.CastTlId, Event.Id, skill.Template.Id, casterPlotObj, targetPlotObj,
                     0ul, unkId, (uint)castTime, (uint)channelingMs, flag, targetCount, targetInfo);
             }
 

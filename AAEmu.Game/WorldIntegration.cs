@@ -897,6 +897,7 @@ public static class WorldIntegration
         }
 
         npc.IsZoneMirror = true;
+        npc.IsWorldAuthored = true;
         // Continent on WZ, same as the player. Dedicate subtracts origin for sectors.
         // Sending zone-local here made Crimson army Create start `invalid sector pos` and fall through.
         var body = BuildWzNpcStateBody(
@@ -1045,8 +1046,8 @@ public static class WorldIntegration
     }
 
     /// <summary>
-    /// Retires a World-side NPC mirror. Zone-owned NPCs remain mirrored and keep their broadcast
-    /// id until ZWRemoveNpc confirms retirement; failed pre-handoff spawns delete and release now.
+    /// Retires a World-side NPC. Zone-created mirrors stay allocated until <c>ZWRemoveNpc</c>
+    /// confirms; World-authored units (and failed pre-handoff spawns) delete and release now.
     /// </summary>
     public static void DeleteNpcMirror(Npc npc, bool notifyZone)
     {
@@ -1055,13 +1056,21 @@ public static class WorldIntegration
 
         CancelNpcHandoff(npc.ObjId);
 
-        if (notifyZone && ZoneAuthority && RelayNpcStartDespawnToZone != null)
+        if (notifyZone
+            && NpcDespawnAckRules.WaitForZoneRemoveAck(ZoneAuthority, npc.IsWorldAuthored)
+            && RelayNpcStartDespawnToZone != null)
         {
             // Keep the mirror and its id reserved until ZWRemoveNpc confirms the authority has
             // retired the unit. Releasing earlier could recycle the bc while Zone still owns it.
             PublishNpcDespawn(npc);
             npc.ParentWorld?.SpawnManager?.ScheduleZoneDespawnAck(npc);
             return;
+        }
+
+        if (notifyZone && ZoneAuthority)
+        {
+            npc.ParentWorld?.SpawnManager?.CancelDespawn(npc);
+            RelayUnitRemovedToZone?.Invoke(npc.ObjId);
         }
 
         var objId = npc.ObjId;

@@ -3,6 +3,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.StaticValues;
@@ -29,32 +30,40 @@ public class CSStartInteractionPacket() : GamePacket(CSOffsets.CSStartInteractio
         {
             character.CurrentInteractionObject = npc;
 
-            // The returned skillsList is supposed to be a list of what actions you can take, and the client will
-            // use the first one regardless of what you put in there.
-            // Also noted is that even when you send a zero (0) skill list back (one skill of 0),
-            // it will still use the first action that is prompted to the user. This effectively makes quest NPCS
-            // right-clickable as intended
-            // This could later be used to implement some of the anti-cheating
-            // 0 is the intended default or else quests go wonky
+            // The client renders one dynamic action per entry, so the reply carries everything the NPC
+            // offers: the gated store front, the service skill its template flags name, and the skills
+            // its authored interaction set adds. An empty list is a valid answer; a zero entry is not,
+            // because the client resolves an icon per entry and reports skill type 0 as a missing asset.
+            //
+            // pickId is not a menu index and is not validated here: it is the client's pick handle for
+            // pick-based interactions and arrives as -1 on the plain interact/reply path, while choosing
+            // an entry on the interaction bar makes the client cast that skill itself. What the NPC may
+            // offer is therefore decided when the list is built - the gated stores below and the authored
+            // set - and the skill a client then casts is checked by the skill's own requirements.
+            var skills = NpcInteractionRules
+                .ComposeSkills(
+                    npc.Template,
+                    QuestManager.Instance.IsQuestTalkNpc(npc.TemplateId),
+                    NpcInteractionGameData.Instance.GetSkills(npc.Template.NpcInteractionSetId))
+                .ToList();
 
-            uint option = 0;
+            var storeSkill = 0u;
             if (npc.Template.TradeGoodBuy)
             {
                 if (SpecialtyManager.Instance.CanStartTradeGoodInteraction(character, npc))
-                    option = SkillsEnum.UseTradeGoodStore;
+                    storeSkill = SkillsEnum.UseTradeGoodStore;
             }
             else if (npc.Template.Specialty)
-             {
-                 if (SpecialtyManager.Instance.CanStartSpecialtyInteraction(character, npc))
-                     option = SkillsEnum.UseSpecialtyStore;
-             }
-            else
-                option = NpcInteractionRules.PrimarySkill(
-                    npc.Template,
-                    QuestManager.Instance.IsQuestTalkNpc(npc.TemplateId));
+            {
+                if (SpecialtyManager.Instance.CanStartSpecialtyInteraction(character, npc))
+                    storeSkill = SkillsEnum.UseSpecialtyStore;
+            }
+
+            if (storeSkill > 0 && !skills.Contains(storeSkill))
+                skills.Insert(0, storeSkill);
 
             character.SendPacket(new SCNpcInteractionSkillListPacket(npcObjId, objId, extraInfo,
-                pickId, mouseButton, modifierKeys, [option]));
+                pickId, mouseButton, modifierKeys, [.. skills]));
         }
 
         var slave = character?.ParentWorld?.GetUnit(npcObjId);

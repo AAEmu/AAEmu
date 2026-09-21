@@ -43,6 +43,14 @@ public partial class Npc : Unit
     /// Jul 18: full Face+equip UnitState on visibility worked (Nuian 警备兵). Later Soft gates/Skin rewrite broke it.
     /// </summary>
     public bool IsZoneMirror { get; set; }
+
+    /// <summary>
+    /// World created this unit and announced it to the zone (<see cref="WorldIntegration.PublishNpcSpawn"/>).
+    /// The zone only holds a copy; World retires it immediately instead of waiting for
+    /// <c>ZWRemoveNpc</c> that the dedicate never sends for a unit it did not spawn.
+    /// </summary>
+    public bool IsWorldAuthored { get; set; }
+
     private bool _towerDefKillQuotaNotified;
 
     /// <summary>

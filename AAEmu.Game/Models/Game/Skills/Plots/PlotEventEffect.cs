@@ -116,7 +116,7 @@ public class PlotEventEffect
             state.CasterCaster,
             target,
             state.TargetCaster,
-            new CastPlot(evt.PlotId, state.ActiveSkill.TlId, evt.Id, state.ActiveSkill.Template.Id),
+            new CastPlot(evt.PlotId, state.CastTlId, evt.Id, state.ActiveSkill.Template.Id),
             new EffectSource(state.ActiveSkill, deferUntilPlotEventProcessed),
             state.SkillObject,
             DateTime.UtcNow,

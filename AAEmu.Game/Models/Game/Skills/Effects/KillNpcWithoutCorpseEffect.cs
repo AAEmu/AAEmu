@@ -22,27 +22,33 @@ public class KillNpcWithoutCorpseEffect : EffectTemplate
     {
         Logger.Info($"KillNpcWithoutCorpseEffect npc={NpcId}, Radius={Radius}, GiveExp={GiveExp}, Vanish={Vanish}");
 
-        if (caster is Character) { return; } // does not apply to the character
-        if (Vanish)
+        var origin = target ?? caster;
+        var nearby = origin == null
+            ? []
+            : WorldManager.GetAround<Npc>(origin, Radius) ?? [];
+        var seen = new HashSet<uint>();
+        var killer = ExperiencedBy(caster, target);
+        var removed = 0;
+
+        // A radius of 0 yields no neighbours, and the search also leaves out its own origin, so the
+        // NPC the skill was aimed at is considered on its own.
+        if (target is Npc skillTarget &&
+            TryRemove(skillTarget, skillTarget == caster, inRadius: false, isExplicitTarget: true, killer, seen))
+            removed++;
+
+        foreach (var npc in nearby)
         {
-            // Fixed: "Trainer Daru" disappears after selling a bear
-            // quest 3449, buff=4112
-            RemoveEffectsAndDelete((Unit)caster, ExperiencedBy(caster, target));
+            if (TryRemove(npc, npc == caster, inRadius: true, isExplicitTarget: false, killer, seen))
+                removed++;
         }
-        else
-        {
-            var npcs = WorldManager.GetAround<Npc>(target, Radius);
-            if (caster is Npc thisNpc)
-                npcs.Add(thisNpc);
-            if (npcs == null) { return; }
-            // The unit the exp is credited to is the one the removed npcs are resolved against, and it is the
-            // same for all of them: the effect runs on one plot step.
-            var killer = ExperiencedBy(caster, target);
-            foreach (var npc in npcs.Where(npc => npc.TemplateId == NpcId))
-            {
-                RemoveEffectsAndDelete(npc, killer);
-            }
-        }
+
+        if (caster is Npc casterNpc &&
+            TryRemove(casterNpc, unitIsCaster: true, inRadius: false, isExplicitTarget: false, killer, seen))
+            removed++;
+
+        Logger.Info(
+            "KillNpcWithoutCorpseEffect npc={0} vanish={1} origin={2} nearby={3} removed={4}",
+            NpcId, Vanish, origin?.ObjId ?? 0, nearby.Count, removed);
     }
 
     /// <summary>
@@ -50,10 +56,8 @@ public class KillNpcWithoutCorpseEffect : EffectTemplate
     /// to the unit the effect was applied to.
     /// </summary>
     /// <remarks>
-    /// <c>kill_npc_without_corpse_effects.give_exp</c> is set on 17 of the 1,849 rows (effects 437, 723, 1237-1244,
-    /// 1442-1443, 1606, 2020, 2172, 2950) and was not loaded. The effect runs with the npc as its caster — the
-    /// skill pipeline resolves the template id to an npc and applies it with that npc, or with the target when
-    /// there is none — so the player is not the caster here.
+    /// <c>kill_npc_without_corpse_effects.give_exp</c> is a row flag and was not loaded. The player is
+    /// never a victim; only NPCs whose template the row names are removed.
     /// </remarks>
     private static Character ExperiencedBy(BaseUnit caster, BaseUnit target)
     {
@@ -61,6 +65,19 @@ public class KillNpcWithoutCorpseEffect : EffectTemplate
         return npc?.CurrentAggroTarget as Character
                ?? caster?.GetOwnerCharacter()
                ?? target?.GetOwnerCharacter();
+    }
+
+    private bool TryRemove(Npc npc, bool unitIsCaster, bool inRadius, bool isExplicitTarget,
+        Character experiencedBy, HashSet<uint> seen)
+    {
+        if (npc == null || npc.ObjId == 0 || !seen.Add(npc.ObjId))
+            return false;
+        if (!KillNpcWithoutCorpseRules.IsVictim(
+                NpcId, Vanish, npc.TemplateId, unitIsCaster, npc.IsDead, inRadius, isExplicitTarget))
+            return false;
+
+        RemoveEffectsAndDelete(npc, experiencedBy);
+        return true;
     }
 
     private void RemoveEffectsAndDelete(Unit unit, Character experiencedBy)
