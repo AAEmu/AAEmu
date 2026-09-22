@@ -106,6 +106,8 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     private Dictionary<uint, uint> _wearableItemLookConverts;
 
     private Dictionary<uint, ItemProcTemplate> _itemProcTemplates;
+    /// <summary><c>item_proc_bindings</c>: the procs an item carries, by item template id.</summary>
+    private Dictionary<uint, List<uint>> _itemProcBindings;
     private Dictionary<ArmorType, Dictionary<ItemGrade, ArmorGradeBuff>> _armorGradeBuffs;
     private Dictionary<uint, EquipItemSet> _equipItemSets;
     private Dictionary<uint, ItemSet> _itemSets;
@@ -427,6 +429,14 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         return _itemProcTemplates.GetValueOrDefault(templateId);
     }
 
+    /// <summary>The <c>item_proc_bindings</c> procs of one item template; empty for the items that carry none.</summary>
+    public IReadOnlyList<uint> GetItemProcIds(uint itemId)
+    {
+        if (_itemProcBindings != null && _itemProcBindings.TryGetValue(itemId, out var procIds))
+            return procIds;
+        return [];
+    }
+
     public List<BonusTemplate> GetUnitModifiers(uint itemId)
     {
         if (_itemUnitModifiers.TryGetValue(itemId, out var modifiers))
@@ -591,6 +601,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         */
         _itemDoodadTemplates = [];
         _itemProcTemplates = [];
+        _itemProcBindings = [];
         _armorGradeBuffs = [];
         _itemUnitModifiers = [];
         _equipItemSets = [];
@@ -965,9 +976,40 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                             CooldownSec = reader.GetUInt32("cooldown_sec"),
                             Finisher = reader.GetBoolean("finisher", true),
                             ItemLevelBasedChanceBonus = reader.GetUInt32("item_level_based_chance_bonus"),
+                            TriggerSkillId = reader.GetUInt32("trigger_skill_id", 0),
+                            TriggerTagId = reader.GetUInt32("trigger_tag_id", 0),
+                            OrUnitReqs = reader.GetBoolean("or_unit_reqs", true),
                         };
 
                         _itemProcTemplates.Add(template.Id, template);
+                    }
+                }
+            }
+
+            using (var command = connection.CreateCommand())
+            {
+                // item_proc_bindings: 186 rows, 102 distinct procs, on 135 weapons, 21 armors, 9 accessories and
+                // 18 gems (item 4687 carries three). The client loads the same three columns in x2game-dev.dll
+                // 0x39b15360 (LoadItemProcBindingDescs). The two rows on items 39248 and 39249 ([test] gloves,
+                // items.proc_lifetime 1 and 3) are the only bound procs meant to run out; the lifetime charge is
+                // not implemented, so those two are left off rather than firing for good.
+                command.CommandText = "SELECT b.item_id, b.proc_id FROM item_proc_bindings b " +
+                                      "INNER JOIN items ON items.id = b.item_id WHERE items.proc_lifetime = 0";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var itemId = reader.GetUInt32("item_id");
+                        var procId = reader.GetUInt32("proc_id");
+                        if (!_itemProcBindings.TryGetValue(itemId, out var procIds))
+                        {
+                            procIds = [];
+                            _itemProcBindings.Add(itemId, procIds);
+                        }
+
+                        if (!procIds.Contains(procId))
+                            procIds.Add(procId);
                     }
                 }
             }

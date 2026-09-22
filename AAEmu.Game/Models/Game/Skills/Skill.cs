@@ -71,6 +71,11 @@ public class Skill
     /// <see cref="SkillCastItemTarget"/>. Null for every other target type.
     /// </summary>
     public Item TargetItem { get; set; }
+    /// <summary>
+    /// Set on a skill an item proc casts: its own fire edge and its hits do not roll item procs again
+    /// (<see cref="Items.Procs.ItemProcRules.SourceMayProc"/>).
+    /// </summary>
+    public bool FromItemProc { get; set; }
     private bool _bypassGcd;
     /// <summary>ZoneAuthority: avoid double WZSkillStarted (cast-time relays at Use, instant at Cast).</summary>
     private bool _zoneSkillStartedRelayed;
@@ -1104,6 +1109,11 @@ public class Skill
         {
             ConsumeMana(caster);
             ArmCooldowns(unit);
+            // fire_skill item procs (enum_proc_chance_type 19): the fire edge of the cast, once its costs are
+            // paid. A pure-unsupported cast pays no mana and no cooldown, so it raises none of them either;
+            // 13 of the 26 fire_skill procs name no trigger skill or tag, so rolling them off an uncharged
+            // cast would let a player spam it for procs.
+            unit.Procs?.OnSkillFired(this, target);
         }
         // if (Id == 2 || Id == 3 || Id == 4)
         // {
@@ -2572,6 +2582,11 @@ public class Skill
         // Skill cooldown is also applied in DoPlotEnd; applying early matches Cast() and blocks re-cast spam.
         if (Template.CooldownTime > 0)
             ArmCooldowns(unit);
+        // The plot-only fire edge, for the fire_skill item procs: six of the ten trigger_skill_id rows name a
+        // plot_only skill (11934, 11943, 11973, 15096, 16210, 16783), which never reaches Cast(). A
+        // pure-unsupported cast is refused the roll in Cast() for the same reason, so it gets none here.
+        if (!IsPureUnsupportedCast())
+            unit.Procs?.OnSkillFired(this, InitialTarget);
     }
 
     /// <summary>

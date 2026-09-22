@@ -6,7 +6,6 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items;
-using AAEmu.Game.Models.Game.Items.Procs;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.NPChar;
@@ -648,8 +647,6 @@ public class DamageEffect : EffectTemplate
             }
         }
 
-        // TODO : Use proper chance kinds (melee, magic etc.)
-
         // engage_combat: 't' on 10,572 rows, and 'f' on the 429 scripted and environmental ones (자폭 비행,
         // 감아올리기, 메테오 소환, 켈루스의 불덩이) that must not be what puts the two units in combat.
         // set for all combatants, for RegenTick
@@ -669,9 +666,11 @@ public class DamageEffect : EffectTemplate
             }
 
             // fire_proc: the victim's own take-damage procs, and the attacker's hit procs below. Both keep
-            // rolling for the 10,760 rows that leave the flag set.
+            // rolling for the 10,760 rows that leave the flag set. The damage type and the hit type pick the
+            // kinds (take_damage_melee, take_damage_spell_crit and so on, see ItemProcRules); the attacker is
+            // the unit a victim-side proc skill is cast at when it targets another unit.
             if (DamageEffectRules.FiresProcs(FireProc))
-                trgCharacter.Procs?.RollProcsForKind(ProcChanceKind.TakeDamageAny);
+                trgCharacter.Procs?.OnDamageTaken(DamageType, hitType, attacker, source?.Skill);
         }
 
         if (attacker != null)
@@ -682,8 +681,10 @@ public class DamageEffect : EffectTemplate
                 attacker.LastCombatActivity = DateTime.UtcNow;
             }
 
+            // The victim is the unit an attacker-side proc skill is cast at; whether the hit killed it feeds the
+            // one finisher row (proc 46).
             if (DamageEffectRules.FiresProcs(FireProc))
-                attacker.Procs?.RollProcsForKind(ProcChanceKind.HitAny);
+                attacker.Procs?.OnHit(DamageType, hitType, trg, source?.Skill, trg.Hp <= 0);
         }
 
         // TODO: Gotta figure out how to tell if it should be applied on getting hit, or on hitting
