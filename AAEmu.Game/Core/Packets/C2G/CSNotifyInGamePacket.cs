@@ -8,6 +8,7 @@ using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Items;
+using AAEmu.Game.Models.StaticValues;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -103,7 +104,11 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
             zoneChat.AnnounceTo(Connection.ActiveChar);  // already a member from OnZoneChange - tell the client anyway
         ChatManager.Instance.GetNationChat(Connection.ActiveChar.Race).JoinChannel(Connection.ActiveChar); // nation
         // TODO: Implement crime system, actual jury channel doesn't exist yet
-        Connection.ActiveChar.SendPacket(new SCJoinedChatChannelPacket(ChatType.Judge, 0, Connection.ActiveChar.Faction.MotherId)); //trial
+        // The court's chat is not scoped to a faction: the server addresses each trial's own members, and
+        // the client matches a chat message to a joined channel by the faction it was announced with. The
+        // announcement therefore carries faction 0 (FactionsEnum.Invalid), the same value TrialManager's
+        // SCChatMessagePacket sends with - a parent faction here would name no channel and drop the text.
+        Connection.ActiveChar.SendPacket(new SCJoinedChatChannelPacket(ChatType.Judge, 0, FactionsEnum.Invalid)); //trial
         ChatManager.Instance.SyncFactionChannel(Connection.ActiveChar); // faction
         ChatManager.Instance.GetGlobalChat().JoinChannel(Connection.ActiveChar); // CSM - server-wide, both factions
 

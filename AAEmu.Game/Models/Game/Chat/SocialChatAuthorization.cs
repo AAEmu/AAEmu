@@ -16,10 +16,24 @@ public static class SocialChatAuthorization
         return faction.MotherId == FactionsEnum.Invalid ? faction.Id : faction.MotherId;
     }
 
+    /// <summary>Faction chat is authorized by the channel the character is in, not by its faction id.</summary>
+    /// <remarks>
+    /// A character is put into a faction channel only by ChatManager.SyncFactionChannel - at login and
+    /// on a permanent allegiance change - and taken out of one only by it or by LeaveAllChannels. No
+    /// client packet reaches JoinChannel, so membership is the server's own record that the character
+    /// was synced into that channel; a client cannot claim a membership it was never given.
+    /// <para>
+    /// Re-resolving the channel from Character.Faction instead would break every temporary faction
+    /// change: duels, the buffs that carry a faction_id, battlefield teams and GM /setfaction move the
+    /// faction without moving the channel, so the message would go to a channel the client never
+    /// joined and be dropped, while the real faction channel no longer matched the sender and filtered
+    /// out everything they were sent.
+    /// </para>
+    /// </remarks>
     public static bool CanSendFactionChat(ChatChannel channel, Character character) =>
-        channel != null && character?.Faction != null && channel.ChatType == ChatType.Ally &&
-        channel.Faction == ResolveFactionChatId(character.Faction) && channel.Contains(character);
+        channel != null && character != null && channel.ChatType == ChatType.Ally && channel.Contains(character);
 
+    /// <summary>The recipients of a send are the channel's members, so membership is the same check.</summary>
     public static bool CanReceiveFactionChat(ChatChannel channel, Character character) =>
         character is { IsOnline: true } && CanSendFactionChat(channel, character);
 

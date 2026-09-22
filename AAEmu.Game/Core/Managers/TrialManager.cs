@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.Justice;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Game.World.Transform;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Justice;
 
 using NLog;
@@ -200,7 +201,10 @@ public class TrialManager : Singleton<TrialManager>
                 !SocialChatAuthorization.CanUseTrialChat(trial, recipient, isCurrent))
                 continue;
 
-            recipient.SendPacket(new SCChatMessagePacket(ChatType.Judge, origin, message, ability, languageType));
+            // Faction 0 is the faction the court channel was announced with at login; the client drops a
+            // message whose channel descriptor it never joined, so these two have to keep agreeing.
+            recipient.SendPacket(new SCChatMessagePacket(ChatType.Judge, origin, message, ability, languageType,
+                0, FactionsEnum.Invalid));
             sent++;
         }
 

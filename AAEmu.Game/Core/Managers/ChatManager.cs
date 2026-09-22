@@ -194,12 +194,35 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
 
     public int SendFactionMessage(Character origin, string message, int ability = 0, byte languageType = 0)
     {
-        var channel = GetFactionChat(origin);
+        // The channel the character is actually in, not the one its faction id names today: the two
+        // only differ while a temporary faction change is in force, and then only the channel is the
+        // one the client joined and can read.
+        var channel = GetJoinedFactionChat(origin);
         if (!SocialChatAuthorization.CanSendFactionChat(channel, origin))
             return 0;
 
         return channel.SendMessageWhere(origin, ChatType.Ally, message,
             recipient => SocialChatAuthorization.CanReceiveFactionChat(channel, recipient), ability, languageType);
+    }
+
+    /// <summary>The faction channel a character is a member of, or null when it is in none.</summary>
+    /// <remarks>
+    /// Membership is server-assigned - see <see cref="SocialChatAuthorization.CanSendFactionChat"/> -
+    /// so the lookup is by membership rather than by faction id on purpose. A character is in one
+    /// faction channel at a time because <see cref="SyncFactionChannel"/> leaves the others.
+    /// </remarks>
+    public ChatChannel GetJoinedFactionChat(Character character)
+    {
+        if (character == null)
+            return null;
+
+        foreach (var channel in FactionChannels.Values)
+        {
+            if (channel.Contains(character))
+                return channel;
+        }
+
+        return null;
     }
 
     public ChatChannel SyncFactionChannel(Character character)
