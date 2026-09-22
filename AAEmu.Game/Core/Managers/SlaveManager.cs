@@ -165,6 +165,23 @@ public class SlaveManager(WorldInstance parentWorldInstance)
     }
 
     /// <summary>
+    /// The slaves a character summoned itself, in world order: the hulls SCMySlavePacket announces (a summoner
+    /// and a summoning item), not the sails and cannons that share the summoner and carry no item. This is
+    /// the set a my_slave (target type 26) cast may land on, see SummonTargetRules.
+    /// </summary>
+    public List<Slave> GetSummonedSlaves(uint summonerObjId)
+    {
+        lock (_slaveListLock)
+        {
+            return World.GetAllSlaves()
+                .Where(slave => slave.Summoner?.ObjId == summonerObjId &&
+                                slave.SummoningItem != null &&
+                                !slave.IsDead && !slave.IsDespawning)
+                .ToList();
+        }
+    }
+
+    /// <summary>
     /// Returns a list of all Slaves of specific SlaveKind
     /// </summary>
     /// <param name="kind"></param>

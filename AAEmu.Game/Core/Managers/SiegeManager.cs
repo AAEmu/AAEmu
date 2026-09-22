@@ -31,6 +31,9 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
     /// <summary>GM testing override - see ISiegeManager.ToggleDeclareWindowOverride. Not persisted.</summary>
     private readonly HashSet<uint> _forcedOpenDeclareWindows = [];
 
+    /// <summary>Kept in memory - the siege_offense_hq_user relation is tested once per unit per area-trigger pass.</summary>
+    private readonly SiegeOffenseRosterCache _offenseRosters = new(ReadOffenseRosterFromDatabase);
+
     public void Load()
     {
         // Run once shortly after boot to correct any drift from server downtime, then every minute -
@@ -106,6 +109,8 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
         command.Parameters.AddWithValue("@o", isOffense);
         command.Prepare();
         command.ExecuteNonQuery();
+
+        _offenseRosters.Invalidate(zoneId);
 
         character.SendPacket(new SCSiegeMemberPacket(0, (int)zoneId, character.Id, true));
     }
@@ -282,6 +287,8 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
         command.Prepare();
         command.ExecuteNonQuery();
 
+        _offenseRosters.Invalidate(zoneId);
+
         character.SendPacket(new SCSiegeMemberPacket(0, (int)zoneId, character.Id, false));
     }
 
@@ -352,6 +359,26 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
         return faction != null && faction.MotherId != FactionsEnum.Invalid
             ? (uint)faction.MotherId
             : factionId;
+    }
+
+    public IReadOnlySet<uint> GetOffenseRaidTeam(ushort zoneId) => _offenseRosters.Get(zoneId);
+
+    public void ForgetOffenseRaidTeams() => _offenseRosters.InvalidateAll();
+
+    private static HashSet<uint> ReadOffenseRosterFromDatabase(ushort zoneId)
+    {
+        var roster = new HashSet<uint>();
+
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = SiegeRaidTeamQueries.OffenseRosterSql;
+        command.Parameters.AddWithValue("@z", zoneId);
+        command.Prepare();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+            roster.Add(reader.GetUInt32(0));
+
+        return roster;
     }
 
     /// <summary>The alliance a character fights for — the faction whose raid team their registrations join.</summary>

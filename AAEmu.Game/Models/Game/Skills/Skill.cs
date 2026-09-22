@@ -46,6 +46,12 @@ public class Skill
 
     private PlotState _activePlotState;
 
+    /// <summary>
+    /// Why <see cref="GetInitialTarget"/> found nothing, when the client's own answer for that refusal
+    /// (x2game-dev.dll FUN_39800cc0) is more specific than NoTarget.
+    /// </summary>
+    private SkillResult? _initialTargetFailure;
+
     public PlotState ActivePlotState
     {
         get => Volatile.Read(ref _activePlotState);
@@ -355,8 +361,8 @@ public class Skill
         InitialTarget = target;
         if (target == null)
         {
-            Logger.Trace($"Skill: SkillResult.NoTarget! - Skill {Template.Id}, Caster {caster.Name} ({caster.ObjId})");
-            return SkillResult.NoTarget; // We should try to make sure this doesn't happen, but can happen with NPC skills
+            Logger.Trace($"Skill: SkillResult.{_initialTargetFailure ?? SkillResult.NoTarget}! - Skill {Template.Id}, Caster {caster.Name} ({caster.ObjId})");
+            return _initialTargetFailure ?? SkillResult.NoTarget; // We should try to make sure this doesn't happen, but can happen with NPC skills
         }
 
         if (SportFishCombat.IsUnusableTarget(target))
@@ -451,9 +457,12 @@ public class Skill
         // Use() before ever reaching this code, so 315 of the 534 ability skills — every plot_only one —
         // could be cast from any distance at all.
         var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
+        // x2game-dev.dll FUN_39261740 puts skill attribute 17 (min_range) on the minimum the same way
+        // attribute 2 goes on the maximum; one skill_modifiers row carries it (2144, buff 27701, +4).
+        var skillMinRange = caster.ApplySkillModifiers(this, SkillAttribute.MinRange, Template.MinRange);
         var targetDist = unit.GetDistanceTo(target, true);
 
-        var minRangeCheck = Template.MinRange * 1.0;
+        var minRangeCheck = skillMinRange;
         var maxRangeCheck = skillRange;
 
         // HackFix: for quest Unblock the Spring ( 3707 ), unable to use the boulder because of being "too close"
@@ -485,14 +494,6 @@ public class Skill
         // Zone melee (skill 2) as TooFarRange while the NPC visually swung and dealt no SC damage.
         var zoneNpcCast = WorldIntegration.ZoneAuthority && caster is Npc;
 
-        if (!zoneNpcCast && targetDist < minRangeCheck)
-        {
-            SkillTlIdManager.ReleaseId(TlId);
-            TlId = 0;
-            Logger.Info($"TooCloseRange targetDist={targetDist}, minRangeCheck={minRangeCheck}, SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
-            return SkillResult.TooCloseRange;
-        }
-
         // A position-targeted skill is cast at a spot on the ground rather than at a unit, and its
         // template carries max_range 0 because the client decides where the placement is legal.
         // Measuring the distance to that spot and comparing it against 0 rejects every cast:
@@ -507,14 +508,24 @@ public class Skill
         // 0 m limit it never had.
         var unboundedPlotOnly = (Template.PlotOnly || ForcePlotGraphOnly) && Template.MaxRange <= 0;
 
+        // The band and its verdicts are SkillRangeRules: too close at or inside the minimum, too far beyond
+        // the maximum, and nothing measured at all when the resolved target is the caster (the client skips
+        // ValidateLocation for a self cast, FUN_39800cc0). The old strict "closer than" let a target standing
+        // exactly at min_range through, and the missing self exemption refused every self-target kit skill
+        // that carries a minimum, since the distance to oneself is 0.
         // TODO: Remove exception for doodads
         // TODO: Remove exceptions for slave initiated by Doodads (needed to fix repair points on ships)
-        if (!zoneNpcCast && targetDist > maxRangeCheck && !unboundedPlacement && !unboundedPlotOnly && target is not Doodad && target is not Slave)
+        var band = SkillRangeRules.Band.Of(minRangeCheck, maxRangeCheck,
+            unboundedPlacement || unboundedPlotOnly || target is Doodad || target is Slave);
+        var rangeFailure = zoneNpcCast || !SkillRangeRules.Measures(caster.ObjId, target.ObjId)
+            ? null
+            : SkillRangeRules.Check(targetDist, band);
+        if (rangeFailure != null)
         {
             SkillTlIdManager.ReleaseId(TlId);
             TlId = 0;
-            Logger.Info($"TooFarRange targetDist={targetDist}, maxRangeCheck={maxRangeCheck}, SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
-            return SkillResult.TooFarRange;
+            Logger.Info($"{rangeFailure} targetDist={targetDist}, band={band.Min}..{(band.MaxUnbounded ? "unbounded" : band.Max)}, SkillTlId {TlId} for Skill {Template.Id}, Caster {caster.Name} ({caster.TemplateId}:{caster.ObjId}) with target {target.Name} ({target.TemplateId}:{target.ObjId})");
+            return rangeFailure.Value;
         }
 
         // If skill uses Plots, then start the plot
@@ -640,6 +651,7 @@ public class Skill
 
     private BaseUnit GetInitialTarget(BaseUnit caster, SkillCaster skillCaster, SkillCastTarget targetCaster)
     {
+        _initialTargetFailure = null;
         if (caster is not Unit)
             return null;
 
@@ -764,7 +776,9 @@ public class Skill
 
                     if (target != null && caster.ObjId == target.ObjId)
                     {
-                        return null; //TODO отправлять ошибку?
+                        // x2game-dev.dll FUN_39800cc0: an others cast (16) on oneself is INVALID_TARGET.
+                        _initialTargetFailure = SkillResult.InvalidTarget;
+                        return null;
                     }
 
                     break;
@@ -782,7 +796,9 @@ public class Skill
 
                     if (target != null && caster.ObjId == target.ObjId)
                     {
-                        return null; // Not allowed on self
+                        // x2game-dev.dll FUN_39800cc0: a friendly_others cast (17) on oneself is CANNOT_USE_FOR_SELF.
+                        _initialTargetFailure = SkillResult.CannotUseForSelf;
+                        return null;
                     }
 
                     var relation2 = caster.GetRelationStateTo(target);
@@ -792,8 +808,6 @@ public class Skill
                     break;
                 }
             case SkillTargetType.GeneralUnit:
-            case SkillTargetType.ChildSlave:
-            case SkillTargetType.MySlave:
                 {
                     if (targetCaster.Type is SkillCastTargetType.Unit or SkillCastTargetType.Doodad)
                     {
@@ -809,6 +823,23 @@ public class Skill
                         return null; //TODO отправлять ошибку?
                     }
 
+                    break;
+                }
+            case SkillTargetType.MySlave:
+                {
+                    // The hull the server announced as mine (SCMySlavePacket), whichever unit the packet
+                    // names; see SummonTargetRules.
+                    target = ResolveSummonTarget(caster, targetCaster, SummonedSlaveObjIds(caster), named: false);
+                    if (target == null)
+                        return null;
+                    break;
+                }
+            case SkillTargetType.ChildSlave:
+                {
+                    // A part of my own slave, and only the one the packet names; see SummonTargetRules.
+                    target = ResolveSummonTarget(caster, targetCaster, ChildSlaveObjIds(caster), named: true);
+                    if (target == null)
+                        return null;
                     break;
                 }
             case SkillTargetType.Pos:
@@ -828,11 +859,20 @@ public class Skill
             case SkillTargetType.Party:
             case SkillTargetType.Raid:
             case SkillTargetType.Line:
-            case SkillTargetType.Pet:
                 target = targetCaster.ObjId > 0
                     ? caster.ParentWorld.GetBaseUnit(targetCaster.ObjId)
                     : caster;
                 break;
+            case SkillTargetType.Pet:
+                {
+                    // One of the caster's own active mates, the first when the packet names none of them:
+                    // the client resolves a pet cast from its pet list, not from the packet. It used to be
+                    // whatever unit was named, or the caster itself. See SummonTargetRules.
+                    target = ResolveSummonTarget(caster, targetCaster, ActiveMateObjIds(caster), named: false);
+                    if (target == null)
+                        return null;
+                    break;
+                }
             case SkillTargetType.SummonPos:
             case SkillTargetType.CommanderPos:
                 if (targetCaster is SkillCastPositionTarget or SkillCastPosition2Target or SkillCastPosition3Target)
@@ -874,6 +914,58 @@ public class Skill
         }
 
         return target;
+    }
+
+    /// <summary>
+    /// The summon a pet, my_slave or child_slave cast lands on, or null with <see cref="_initialTargetFailure"/>
+    /// set: NoTarget when the caster owns nothing of the kind (the client's answer for an empty pet list) or
+    /// the pick is gone from the world, InvalidTarget when the named part is not the caster's own.
+    /// </summary>
+    private BaseUnit ResolveSummonTarget(BaseUnit caster, SkillCastTarget targetCaster, List<uint> owned, bool named)
+    {
+        var pick = named
+            ? SummonTargetRules.PickNamed(owned, targetCaster.ObjId)
+            : SummonTargetRules.Pick(owned, targetCaster.ObjId);
+        var target = pick == 0 ? null : caster.ParentWorld.GetBaseUnit(pick);
+        if (target == null)
+        {
+            _initialTargetFailure = pick == 0 && owned.Count > 0 ? SkillResult.InvalidTarget : SkillResult.NoTarget;
+            Logger.Debug("Skill {0} ({1}) by {2}: no usable summon, packet named {3}, owned [{4}]",
+                Template.Id, Template.TargetType, caster.ObjId, targetCaster.ObjId, string.Join(",", owned));
+            return null;
+        }
+
+        targetCaster.ObjId = target.ObjId;
+        return target;
+    }
+
+    /// <summary>The active mates of the caster's owner (a character owns itself), in summon order.</summary>
+    private static List<uint> ActiveMateObjIds(BaseUnit caster)
+    {
+        var owner = caster as Character ?? caster.GetOwnerCharacter();
+        var mateManager = owner?.ParentWorld?.MateManager;
+        return mateManager == null ? [] : mateManager.GetActiveMates(owner.Id).Select(mate => mate.ObjId).ToList();
+    }
+
+    /// <summary>The hulls the caster's owner summoned, the ones SCMySlavePacket names.</summary>
+    private static List<uint> SummonedSlaveObjIds(BaseUnit caster)
+    {
+        var owner = caster as Character ?? caster.GetOwnerCharacter();
+        var slaveManager = owner?.ParentWorld?.SlaveManager;
+        return slaveManager == null ? [] : slaveManager.GetSummonedSlaves(owner.ObjId).Select(slave => slave.ObjId).ToList();
+    }
+
+    /// <summary>The parts attached to the caster's own hull (the caster itself when it is the hull).</summary>
+    private static List<uint> ChildSlaveObjIds(BaseUnit caster)
+    {
+        var hull = caster as Slave;
+        if (hull == null)
+        {
+            var owner = caster as Character ?? caster.GetOwnerCharacter();
+            hull = owner?.ParentWorld?.SlaveManager?.GetSummonedSlaves(owner.ObjId).FirstOrDefault();
+        }
+
+        return hull?.AttachedSlaves?.Select(slave => slave.ObjId).ToList() ?? [];
     }
 
     private static BaseUnit ResolveOwnerTarget(BaseUnit caster)

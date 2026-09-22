@@ -24,6 +24,8 @@ using AAEmu.Game.Models.Tasks.Characters;
 using AAEmu.Game.Utils;
 using AAEmu.Game.Utils.DB;
 
+using Microsoft.Extensions.DependencyInjection;
+
 using MySql.Data.MySqlClient;
 
 using NLog;
@@ -749,6 +751,10 @@ public class CharacterManager(
         ButlerManager.Instance.RemoveCharacter(character.Id);
         (SingletonContainer.ServiceProvider?.GetService(typeof(ExpeditionRecruitmentService)) as
             ExpeditionRecruitmentService)?.DeleteCharacterApplications(character.Id);
+
+        // A zone group's offense roster is held in memory for the siege_offense_hq_user relation and is read
+        // without a deleted character (c.deleted = 0), so dropping the character drops the cached rosters too.
+        SingletonContainer.ServiceProvider?.GetService<ISiegeManager>()?.ForgetOffenseRaidTeams();
 
         // Demolish owned houses
         var myHouses = new Dictionary<uint, House>();
