@@ -334,13 +334,17 @@ public class BeautyshopEditRulesTests
         await Assert.That(Validate(model)).IsEqualTo(BeautyshopEditError.None);
 
         model = ValidModel();
-        model.Face.MovableDecalScale = 1.83f;
+        model.Face.MovableDecalScale = 2.01f;
         await Assert.That(Validate(model)).IsEqualTo(BeautyshopEditError.ValueOutOfRange);
 
         model = ValidModel();
         model.Face.MovableDecalScale = 1.82f;
         model.Face.MovableDecalRotate = -169.2f;
         await Assert.That(Validate(model)).IsEqualTo(BeautyshopEditError.None);
+
+        model = ValidModel();
+        model.Face.MovableDecalRotate = -180.1f;
+        await Assert.That(Validate(model)).IsEqualTo(BeautyshopEditError.ValueOutOfRange);
 
         model = ValidModel();
         model.Face.MovableDecalRotate = 356.5f;
@@ -353,6 +357,25 @@ public class BeautyshopEditRulesTests
         model = ValidModel();
         model.Face.NormalMapWeight = -0.01f;
         await Assert.That(Validate(model)).IsEqualTo(BeautyshopEditError.ValueOutOfRange);
+    }
+
+    [Test]
+    public async Task ValidateModel_AcceptsEveryScarSliderPosition()
+    {
+        // customizing_new/beautyshop.lua SCAR_STYLE_TYPE maps the 0 to 100 size and rotation sliders to
+        // scale v*0.017+0.3 and rotation v*3.6-180, and character creation sends the same values.
+        var model = ValidModel();
+        model.Face.MovableDecalScale = 2f;     // size slider 100
+        model.Face.MovableDecalRotate = 180f;  // rotation slider 100
+        await Assert.That(Validate(model)).IsEqualTo(BeautyshopEditError.None);
+
+        for (var slider = 0; slider <= 100; slider++)
+        {
+            model = ValidModel();
+            model.Face.MovableDecalScale = (float)((slider * 0.017) + 0.3);
+            model.Face.MovableDecalRotate = (float)((slider * 3.6) - 180); // rotation slider 0 is -180
+            await Assert.That(Validate(model)).IsEqualTo(BeautyshopEditError.None);
+        }
     }
 
     [Test]

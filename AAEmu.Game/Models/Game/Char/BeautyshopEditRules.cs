@@ -93,12 +93,16 @@ public static class BeautyshopEditRules
     public static readonly byte[] FixedDecalCategories = [2, 3, 4, 5, 6, 6];
 
     /// <summary>
-    /// The movable decal transform bounds every shipped preset stays inside
-    /// (total_character_customs, all 1589 rows of owner types 1 to 3): scale 0 to 1.82, rotation -169.2
-    /// to 356.4 degrees. Every weight and both two-tone widths there stay in 0 to 1.
+    /// The movable decal transform bounds. Every shipped preset stays inside scale 0 to 1.82 and
+    /// rotation -169.2 to 356.4 degrees (total_character_customs, all 1589 rows of owner types 1 to 3),
+    /// but the scar sliders run 0 to 100 and the client maps them to scale v*0.017+0.3 (0.3 to 2.0) and
+    /// rotation v*3.6-180 (-180 to 180) in customizing_new/beautyshop.lua; character creation uses the
+    /// same sliders and the salon sends the whole face block back, so the mapped range is accepted too.
+    /// The preset maximum rotation stays for values saved before this. Every weight and both two-tone
+    /// widths there stay in 0 to 1.
     /// </summary>
-    public const float MaxMovableDecalScale = 1.82f;
-    public const float MinMovableDecalRotate = -169.2f;
+    public const float MaxMovableDecalScale = 2f;
+    public const float MinMovableDecalRotate = -180f;
     public const float MaxMovableDecalRotate = 356.4f;
 
     /// <summary>
