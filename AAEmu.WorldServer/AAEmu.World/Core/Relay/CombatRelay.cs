@@ -329,10 +329,13 @@ public class CombatRelay
         var npcId = stream.ReadBc();
         var targetId = stream.ReadBc();
 
-        Logger.Info(
-            "ZWMakeAggroTargetHostile {0} npcContext=[{1}] targetContext=[{2}]",
-            NpcAiDiagnostics.Source(connection), NpcAiDiagnostics.Unit(connection, npcId),
-            NpcAiDiagnostics.Unit(connection, targetId));
+        if (Logger.IsDebugEnabled)
+        {
+            Logger.Debug(
+                "ZWMakeAggroTargetHostile {0} npcContext=[{1}] targetContext=[{2}]",
+                NpcAiDiagnostics.Source(connection), NpcAiDiagnostics.Unit(connection, npcId),
+                NpcAiDiagnostics.Unit(connection, targetId));
+        }
 
         if (!WorldIntegration.IsStreamedUnitForAnyClient(npcId) &&
             !WorldIntegration.IsStreamedUnitForAnyClient(targetId))

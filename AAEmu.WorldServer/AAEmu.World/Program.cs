@@ -386,19 +386,23 @@ public static class Program
             var sourceSnapshot = NpcAiDiagnostics.Snapshot(zone, aggroSourceId);
             if (targetSnapshot.IsNpc)
             {
-                Logger.Info(
-                    "WZ damage handoff destinationZone={0} destinationInstance={1} destinationSession={2} " +
-                    "source={3} sourceZone={4} sourceInstance={5} sourceTracked={6} sourcePlayer={7} " +
-                    "target={8} targetNpc={9} targetTracked={10} targetTemplate={11} targetSpawner={12} " +
-                    "targetSpawnerType={13} targetAi={14}:{15} targetAiParam={16} " +
-                    "targetTransformZone={17} targetTransformInstance={18}",
-                    zone.ZoneId, zone.InstanceId, zone.Id,
-                    aggroSourceId, sourceSnapshot.TransformZoneId, sourceSnapshot.TransformInstanceId,
-                    sourceSnapshot.Tracked, sourceSnapshot.IsPlayer,
-                    targetId, targetSnapshot.IsNpc, targetSnapshot.Tracked, targetSnapshot.TemplateId,
-                    targetSnapshot.SpawnerId, targetSnapshot.SpawnerType, targetSnapshot.AiFileId,
-                    targetSnapshot.AiFileName, targetSnapshot.NpcAiParamId,
-                    targetSnapshot.TransformZoneId, targetSnapshot.TransformInstanceId);
+                if (Logger.IsDebugEnabled)
+                {
+                    Logger.Debug(
+                        "WZ damage handoff destinationZone={0} destinationInstance={1} destinationSession={2} " +
+                        "source={3} sourceZone={4} sourceInstance={5} sourceTracked={6} sourcePlayer={7} " +
+                        "target={8} targetNpc={9} targetTracked={10} targetTemplate={11} targetSpawner={12} " +
+                        "targetSpawnerType={13} targetAi={14}:{15} targetAiParam={16} " +
+                        "targetTransformZone={17} targetTransformInstance={18}",
+                        zone.ZoneId, zone.InstanceId, zone.Id,
+                        aggroSourceId, sourceSnapshot.TransformZoneId, sourceSnapshot.TransformInstanceId,
+                        sourceSnapshot.Tracked, sourceSnapshot.IsPlayer,
+                        targetId, targetSnapshot.IsNpc, targetSnapshot.Tracked, targetSnapshot.TemplateId,
+                        targetSnapshot.SpawnerId, targetSnapshot.SpawnerType, targetSnapshot.AiFileId,
+                        targetSnapshot.AiFileName, targetSnapshot.NpcAiParamId,
+                        targetSnapshot.TransformZoneId, targetSnapshot.TransformInstanceId);
+                }
+
                 // Registry presence is the first World-side gate only; native lookup still needs a Zone trace.
                 if (sourceSnapshot.IsPlayer && (!targetSnapshot.Tracked || !sourceSnapshot.Tracked))
                 {
