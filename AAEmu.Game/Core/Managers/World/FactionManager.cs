@@ -13,8 +13,10 @@ public class FactionManager(ILocalizationManager localizationManager) : Singleto
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
     private bool _loaded = false;
 
-    private Dictionary<FactionsEnum, SystemFaction> _systemFactions;
-    private List<FactionRelation> _relations;
+    private Dictionary<FactionsEnum, SystemFaction> _systemFactions = [];
+    private List<FactionRelation> _relations = [];
+    /// <summary>Content state under each hero agreement overlay; null when the pair had no content row.</summary>
+    private readonly Dictionary<(uint, uint), RelationState?> _diplomacyBaseStates = [];
 
     public SystemFaction GetFaction(FactionsEnum id)
     {
@@ -103,6 +105,88 @@ public class FactionManager(ILocalizationManager localizationManager) : Singleto
         }
 
         _loaded = true;
+    }
+
+    /// <summary>Adds a relation row the way Load does: once to the list and to both factions' Relations.</summary>
+    internal void AddRelation(FactionRelation relation)
+    {
+        if (relation == null)
+            return;
+        _relations.Add(relation);
+        _systemFactions.GetValueOrDefault(relation.Id)?.Relations.TryAdd(relation.Id2, relation);
+        _systemFactions.GetValueOrDefault(relation.Id2)?.Relations.TryAdd(relation.Id, relation);
+    }
+
+    /// <summary>The loaded row for a pair in either direction, or null.</summary>
+    public FactionRelation GetRelation(FactionsEnum a, FactionsEnum b)
+    {
+        foreach (var relation in _relations)
+        {
+            if ((relation.Id == a && relation.Id2 == b) || (relation.Id == b && relation.Id2 == a))
+                return relation;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Overlays a hero agreement on the loaded table. The same row object sits in both factions'
+    /// Relations, so GetRelationState (combat, targeting, chat) and the login and zone lists all see
+    /// the new state at once. A pair without a content row gets one that ClearDiplomacy removes.
+    /// </summary>
+    public FactionRelation ApplyDiplomacy(FactionDiplomacyAgreement agreement)
+    {
+        if (agreement == null || _relations == null)
+            return null;
+
+        var id = (FactionsEnum)agreement.Faction1;
+        var id2 = (FactionsEnum)agreement.Faction2;
+        var relation = GetRelation(id, id2);
+        if (relation == null)
+        {
+            relation = new FactionRelation { Id = id, Id2 = id2, State = RelationState.Neutral };
+            _relations.Add(relation);
+            _systemFactions.GetValueOrDefault(id)?.Relations.TryAdd(id2, relation);
+            _systemFactions.GetValueOrDefault(id2)?.Relations.TryAdd(id, relation);
+            _diplomacyBaseStates[(agreement.Faction1, agreement.Faction2)] = null;
+        }
+        else if (!relation.HasDiplomacy)
+        {
+            _diplomacyBaseStates[(agreement.Faction1, agreement.Faction2)] = relation.State;
+        }
+
+        relation.State = agreement.State;
+        relation.NextState = agreement.NextState;
+        relation.UpdateTime = agreement.UpdateTime;
+        relation.ChangeTime = agreement.ChangeTime;
+        relation.UpdaterId = agreement.UpdaterId;
+        relation.UpdaterName = agreement.UpdaterName ?? string.Empty;
+        relation.ConfirmerId = agreement.ConfirmerId;
+        relation.ConfirmerName = agreement.ConfirmerName ?? string.Empty;
+        return relation;
+    }
+
+    /// <summary>Puts the content relation back; the row is removed again when the pair had none.</summary>
+    public FactionRelation ClearDiplomacy(uint faction1, uint faction2)
+    {
+        var id = (FactionsEnum)faction1;
+        var id2 = (FactionsEnum)faction2;
+        var relation = GetRelation(id, id2);
+        if (relation == null)
+            return null;
+
+        relation.ClearDiplomacy();
+        if (_diplomacyBaseStates.Remove((faction1, faction2), out var baseState) && baseState == null)
+        {
+            _relations.Remove(relation);
+            _systemFactions.GetValueOrDefault(id)?.Relations.Remove(id2);
+            _systemFactions.GetValueOrDefault(id2)?.Relations.Remove(id);
+            return relation;
+        }
+
+        if (baseState != null)
+            relation.State = baseState.Value;
+        return relation;
     }
 
     public void SendRelations(Character character)

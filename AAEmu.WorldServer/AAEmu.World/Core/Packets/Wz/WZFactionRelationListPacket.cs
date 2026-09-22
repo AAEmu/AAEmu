@@ -75,13 +75,14 @@ public class WZFactionRelationListPacket : ZonePacket
             stream.Write(id);
             stream.Write(id2);
             stream.Write((byte)relation.State);
-            stream.Write((byte)relation.State); // nState
-            stream.Write(0ul); // updateTime
-            stream.Write(0ul); // changeTime
-            stream.Write(0L); // updaterId
-            stream.Write(""); // updaterName
-            stream.Write(0L); // confirmerId
-            stream.Write(""); // confirmerName
+            // A content row keeps nState = state as before; a hero agreement carries the state it reverts to.
+            stream.Write((byte)(relation.HasDiplomacy ? relation.NextState : relation.State)); // nState
+            stream.Write(relation.UpdateTime); // updateTime (0 on a content row)
+            stream.Write(relation.ChangeTime); // changeTime
+            stream.Write((ulong)relation.UpdaterId); // updaterId
+            stream.Write(relation.UpdaterName ?? string.Empty); // updaterName
+            stream.Write((ulong)relation.ConfirmerId); // confirmerId
+            stream.Write(relation.ConfirmerName ?? string.Empty); // confirmerName
         }
     }
 }

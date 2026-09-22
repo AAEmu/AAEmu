@@ -334,6 +334,47 @@ CREATE TABLE IF NOT EXISTS `craft_order_fee_stats` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Recent craft-order listing fee range per craft';
 
 
+CREATE TABLE IF NOT EXISTS `faction_relations` (
+  `faction1_id` INT UNSIGNED NOT NULL,
+  `faction2_id` INT UNSIGNED NOT NULL,
+  `state` TINYINT UNSIGNED NOT NULL,
+  `next_state` TINYINT UNSIGNED NOT NULL,
+  `update_unix` BIGINT NOT NULL,
+  `change_unix` BIGINT NOT NULL,
+  `updater_id` INT UNSIGNED NOT NULL,
+  `updater_name` VARCHAR(128) NOT NULL,
+  `confirmer_id` INT UNSIGNED NOT NULL,
+  `confirmer_name` VARCHAR(128) NOT NULL,
+  PRIMARY KEY (`faction1_id`, `faction2_id`),
+  KEY `idx_faction_relations_change` (`change_unix`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Live hero diplomacy agreements overlaid on system_faction_relations';
+
+
+CREATE TABLE IF NOT EXISTS `faction_relation_histories` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `faction1_id` INT UNSIGNED NOT NULL,
+  `faction2_id` INT UNSIGNED NOT NULL,
+  `state` TINYINT UNSIGNED NOT NULL,
+  `next_state` TINYINT UNSIGNED NOT NULL,
+  `update_unix` BIGINT NOT NULL,
+  `change_unix` BIGINT NOT NULL,
+  `updater_id` INT UNSIGNED NOT NULL,
+  `updater_name` VARCHAR(128) NOT NULL,
+  `confirmer_id` INT UNSIGNED NOT NULL,
+  `confirmer_name` VARCHAR(128) NOT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Past hero diplomacy agreements (SCFactionRelationHistory)';
+
+
+CREATE TABLE IF NOT EXISTS `faction_relation_counts` (
+  `character_id` INT UNSIGNED NOT NULL,
+  `other_id` INT UNSIGNED NOT NULL,
+  `count` INT UNSIGNED NOT NULL,
+  `updated_unix` BIGINT NOT NULL,
+  PRIMARY KEY (`character_id`, `other_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Hero diplomacy request and denial counters (SCFactionRelationCount)';
+
+
 CREATE TABLE IF NOT EXISTS `character_skill_active_types` (
   `owner` int unsigned NOT NULL COMMENT 'Character id',
   `heir_skill_type` int unsigned NOT NULL COMMENT 'Client Heir-skill category key',

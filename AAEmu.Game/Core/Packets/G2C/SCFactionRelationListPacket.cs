@@ -6,6 +6,9 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCFactionRelationListPacket : GamePacket
 {
+    /// <summary>The client reads at most 200 entries per packet (x2game-dev.dll 0x39c701f0 clamps count to 200).</summary>
+    public const int MaxEntriesPerPacket = 200;
+
     private readonly FactionRelation[] _relations;
 
     public SCFactionRelationListPacket() : base(SCOffsets.SCFactionRelationListPacket, 1)
@@ -20,23 +23,46 @@ public class SCFactionRelationListPacket : GamePacket
 
     public override PacketStream Write(PacketStream stream)
     {
-        // id(u32) | id2(u32) | state(u8) | nState(u8) | updateTime(i64) | changeTime(i64) |
-        // updaterId(i64) | updaterName(str) | confirmerId(i64) | confirmerName(str).
         stream.Write((byte)_relations.Length);
         foreach (var relation in _relations)
         {
-            stream.Write((uint)relation.Id);        // "type" (faction1 id)
-            stream.Write((uint)relation.Id2);       // "type" (faction2 id)
-            stream.Write((byte)relation.State);     // "state"
-            stream.Write((byte)0);                  // "nState" (pending relation state)
-            stream.Write(DateTime.MinValue);        // "updateTime"
-            stream.Write(DateTime.MinValue);        // "changeTime"
-            stream.Write(0L);                       // "type" (updaterId)
-            stream.Write("");                       // "updaterName"
-            stream.Write(0L);                       // "type" (confirmerId)
-            stream.Write("");                       // "confirmerName"
+            FactionRelationWire.Write(stream,
+                (uint)relation.Id, (uint)relation.Id2, relation.State,
+                // A plain content row keeps the nState 0 this packet always sent; an agreement carries what it reverts to.
+                relation.HasDiplomacy ? relation.NextState : 0,
+                relation.UpdateTime, relation.ChangeTime,
+                relation.UpdaterId, relation.UpdaterName, relation.ConfirmerId, relation.ConfirmerName);
         }
 
         return stream;
     }
+}
+
+/// <summary>
+/// One relation entry as the client reads it (x2game-dev.dll 0x39398a90, shared by
+/// SCFactionRelationList, SCFactionRelationHistory and WZFactionRelationList):
+/// type(i32) | type(i32) | state(i8) | nState(i8) | updateTime(i64) | changeTime(i64) |
+/// type(u64) updaterId | updaterName(str) | type(u64) confirmerId | confirmerName(str).
+/// The client sorts the two ids ascending after reading them.
+/// </summary>
+public static class FactionRelationWire
+{
+    public static void Write(PacketStream stream, uint id, uint id2, RelationState state, RelationState nextState,
+        DateTime updateTime, DateTime changeTime, ulong updaterId, string updaterName, ulong confirmerId, string confirmerName)
+    {
+        stream.Write(id);
+        stream.Write(id2);
+        stream.Write((byte)state);
+        stream.Write((byte)nextState);
+        stream.Write(updateTime);
+        stream.Write(changeTime);
+        stream.Write(updaterId);
+        stream.Write(updaterName ?? string.Empty);
+        stream.Write(confirmerId);
+        stream.Write(confirmerName ?? string.Empty);
+    }
+
+    public static void Write(PacketStream stream, FactionDiplomacyAgreement entry) =>
+        Write(stream, entry.Faction1, entry.Faction2, entry.State, entry.NextState, entry.UpdateTime, entry.ChangeTime,
+            entry.UpdaterId, entry.UpdaterName, entry.ConfirmerId, entry.ConfirmerName);
 }
