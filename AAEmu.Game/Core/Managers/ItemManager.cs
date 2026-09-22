@@ -3047,7 +3047,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         // Unpacking is its own content watch: the collection entry records the unpack event separately
         // from having obtained the item.
         if (character.Collections != null)
-            CollectionsManager.Instance.Discover(character, item.TemplateId, CollectionDiscoverySource.Unpacked);
+            CollectionsManager.Instance.Discover(character, item.TemplateId, item.Grade, CollectionDiscoverySource.Unpacked);
 
         return true;
     }

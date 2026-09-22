@@ -958,10 +958,10 @@ public class Inventory
         if (Owner is Character character && character.Collections != null)
         {
             if (fromItem != null && fromItem._holdingContainer == Equipment)
-                CollectionsManager.Instance.Discover(character, fromItem.TemplateId,
+                CollectionsManager.Instance.Discover(character, fromItem.TemplateId, fromItem.Grade,
                     CollectionDiscoverySource.Equipped);
             if (itemInTargetSlot != null && itemInTargetSlot._holdingContainer == Equipment)
-                CollectionsManager.Instance.Discover(character, itemInTargetSlot.TemplateId,
+                CollectionsManager.Instance.Discover(character, itemInTargetSlot.TemplateId, itemInTargetSlot.Grade,
                     CollectionDiscoverySource.Equipped);
         }
 
@@ -1311,13 +1311,12 @@ public class Inventory
         {
             // Collection discovery rides the same acquisition moment quests use: an item landing in the
             // kit records its encyclopedia/collection entry, and a landing in the equipment container
-            // counts as the equip event the content watches instead.
+            // counts as the equip event the content watches instead. During the character-list restore the
+            // character has no records yet, so this is deferred and world entry backfills it.
             if (Owner is Character discoveryOwner && discoveryOwner.Collections != null)
             {
-                CollectionsManager.Instance.Discover(discoveryOwner, item.TemplateId,
-                    item._holdingContainer?.ContainerType == SlotType.Equipment
-                        ? CollectionDiscoverySource.Equipped
-                        : CollectionDiscoverySource.Acquired);
+                CollectionsManager.Instance.Discover(discoveryOwner, item.TemplateId, item.Grade,
+                    CollectionsManager.SourceForContainer(item._holdingContainer?.ContainerType ?? SlotType.Inventory));
             }
 
             var container = item._holdingContainer;

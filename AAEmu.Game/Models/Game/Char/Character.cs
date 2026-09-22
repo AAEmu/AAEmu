@@ -2242,8 +2242,8 @@ public partial class Character : Unit, ICharacter
         ModelParams = modelParams;
         Subscribers = [];
         ChargeLock = new object();
-        // Constructed up front, not at load: item containers restore their contents around the load, and
-        // those restores report discoveries that must land in a live set rather than be dropped.
+        // Constructed up front, not at load: the character list restores items before the records exist. Those
+        // discoveries are deferred, and world entry backfills them from the items the character holds.
         Collections = new CharacterCollections(this);
         // FishSchool = new FishSchool(this);
         //Events.OnDisconnect += OnDisconnect;

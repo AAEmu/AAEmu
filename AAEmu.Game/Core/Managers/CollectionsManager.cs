@@ -4,6 +4,7 @@ using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Achievement;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Collections;
+using AAEmu.Game.Models.Game.Items;
 
 using NLog;
 
@@ -14,6 +15,13 @@ public enum CollectionDiscoveryResult
 {
     /// <summary>The discovery itself was malformed (no character, no collection state, no entry id).</summary>
     Rejected,
+
+    /// <summary>
+    /// The character's records and achievements are not loaded yet, as while the character list restores
+    /// items. Nothing was recorded; <see cref="CollectionsManager.BackfillHeldItems"/> replays held items at
+    /// world entry.
+    /// </summary>
+    Deferred,
 
     /// <summary>The item type is not part of any shipped collection or encyclopedia content.</summary>
     UnknownEntry,
@@ -54,14 +62,83 @@ public class CollectionsManager : Singleton<CollectionsManager>
     /// (obtaining, unpacking and equipping are separate content watches over the same item), and a
     /// record report keeps the high-water mark, so repeating an event cannot move anything twice.
     /// </remarks>
-    public CollectionDiscoveryResult Discover(Character character, uint itemTypeId,
-        CollectionDiscoverySource source)
+    /// <param name="itemGrade">The item's grade; records that ask for a grade only move when it meets theirs.</param>
+    public CollectionDiscoveryResult Discover(Character character, uint itemTypeId, byte itemGrade,
+        CollectionDiscoverySource source) =>
+        Discover(character, itemTypeId, itemGrade, source, character?.WorldEntryCompleted ?? false);
+
+    /// <summary>
+    /// Replays discovery over every item the character holds. Items restored for the character list arrive
+    /// before the character's records and achievements exist, so they are deferred, and world entry calls this
+    /// once those have loaded.
+    /// </summary>
+    /// <remarks>
+    /// Each item counts as the event its container implies (<see cref="SourceForContainer"/>), exactly as the
+    /// restore would have reported it. Nothing is sent: the replay after world entry delivers the rows, and a
+    /// report keeps the high-water mark, so running this again on a later world entry moves nothing.
+    /// </remarks>
+    /// <returns>How many entries were discovered for the first time.</returns>
+    public int BackfillHeldItems(Character character)
+    {
+        if (character?.Inventory?._itemContainers == null)
+            return 0;
+
+        var held = new List<(Item Item, SlotType ContainerType)>();
+        foreach (var container in character.Inventory._itemContainers.Values)
+        {
+            if (container == null || container.ContainerType is SlotType.None or SlotType.Mail or SlotType.Trade)
+                continue;
+
+            foreach (var item in container.Items.ToList())
+                held.Add((item, container.ContainerType));
+        }
+
+        return BackfillItems(character, held);
+    }
+
+    /// <summary>
+    /// The replay behind <see cref="BackfillHeldItems"/>: discovers each held item as the event its container
+    /// implies, without sending anything.
+    /// </summary>
+    /// <returns>How many entries were discovered for the first time.</returns>
+    public int BackfillItems(Character character, IEnumerable<(Item Item, SlotType ContainerType)> heldItems)
+    {
+        if (character == null || heldItems == null)
+            return 0;
+
+        var discovered = 0;
+        foreach (var (item, containerType) in heldItems)
+        {
+            if (item == null)
+                continue;
+
+            if (Discover(character, item.TemplateId, item.Grade, SourceForContainer(containerType), sendPackets: false) ==
+                CollectionDiscoveryResult.Discovered)
+                discovered++;
+        }
+
+        return discovered;
+    }
+
+    /// <summary>The discovery event an item arriving in a container of this type counts as.</summary>
+    public static CollectionDiscoverySource SourceForContainer(SlotType containerType) =>
+        containerType == SlotType.Equipment ? CollectionDiscoverySource.Equipped : CollectionDiscoverySource.Acquired;
+
+    private CollectionDiscoveryResult Discover(Character character, uint itemTypeId, byte itemGrade,
+        CollectionDiscoverySource source, bool sendPackets)
     {
         if (character?.Collections == null || itemTypeId == 0)
         {
             Logger.Warn("Collections: rejected a malformed discovery (character {0}, item type {1})",
                 character?.Name ?? "<null>", itemTypeId);
             return CollectionDiscoveryResult.Rejected;
+        }
+
+        if (character.Records == null || character.Achievements == null)
+        {
+            Logger.Trace("Collections: deferred item type {0} for {1} until its progress is loaded",
+                itemTypeId, character.Name);
+            return CollectionDiscoveryResult.Deferred;
         }
 
         var content = CollectionGameData.Instance;
@@ -76,8 +153,7 @@ public class CollectionsManager : Singleton<CollectionsManager>
         var firstDiscovery = character.Collections.TryDiscover(itemTypeId);
 
         // World-entry state is queued, not pushed: the replay after NotifyInGameCompleted delivers it.
-        var sendPackets = character.WorldEntryCompleted;
-        foreach (var recordId in content.GetRecordsToReport(itemTypeId, source))
+        foreach (var recordId in content.GetRecordsToReport(itemTypeId, itemGrade, source))
             AchievementManager.Instance.Report(character, recordId, 1, sendPackets);
 
         if (firstDiscovery)

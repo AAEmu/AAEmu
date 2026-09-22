@@ -9,6 +9,7 @@ using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Collections;
+using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Units;
 
 using Microsoft.Extensions.DependencyInjection;
@@ -35,12 +36,25 @@ public sealed class CollectionsManagerTests : SqliteTestBase
     private const uint CollectUnpackRecord = 2003;
     private const uint RecordOnlyItemRecord = 2004;
     private const uint GeneralGetRecord = 2005;
+    private const uint WonderGradeRecord = 2007;
+    private const uint CommonFloorRecord = 2008;
+    private const uint UnknownGradeRecord = 2009;
 
     // Item types.
     private const uint CollectItem = 70001;
     private const uint EquipItem = 70002;
     private const uint UnpackItem = 70003;
     private const uint RecordOnlyItem = 70004;
+    private const uint GradedItem = 70005;
+    private const uint CommonFloorItem = 70006;
+    private const uint UnknownGradeItem = 70007;
+
+    // Item grades, seeded with the shipped ranking: grade 1 ranks below grade 0.
+    private const byte CommonGrade = 0;
+    private const byte CrudeGrade = 1;
+    private const byte RareGrade = 3;
+    private const byte WonderGrade = 8;
+    private const byte EpicGrade = 9;
     private const uint EncyclopediaMember = 60001;
     private const uint DroppedMemberItem = 60002;
     private const uint DanglingMemberItem = 99999;
@@ -70,6 +84,7 @@ public sealed class CollectionsManagerTests : SqliteTestBase
         Execute("CREATE TABLE achievement_categories (id INTEGER PRIMARY KEY, achievement_kind_id INTEGER)");
         Execute("CREATE TABLE achievement_sub_categories (id INTEGER PRIMARY KEY, achievement_category_id INTEGER)");
         Execute("CREATE TABLE items (id INTEGER PRIMARY KEY)");
+        Execute("CREATE TABLE item_grades (id INTEGER PRIMARY KEY, grade_order INTEGER)");
         Execute("CREATE TABLE item_guide_impls (id INTEGER PRIMARY KEY)");
         Execute("CREATE TABLE item_guide_a_categories (id INTEGER PRIMARY KEY, item_guide_impl_id INTEGER)");
         Execute("CREATE TABLE item_guide_b_categories (id INTEGER PRIMARY KEY, item_guide_a_category_id INTEGER)");
@@ -155,25 +170,65 @@ public sealed class CollectionsManagerTests : SqliteTestBase
         await Assert.That(_collectionData.IsCollectionAchievement(101u)).IsTrue();
         await Assert.That(_collectionData.IsCollectionAchievement(102u)).IsTrue();
         // Achievement 50 watches the same item type but belongs to a general category.
+        await Assert.That(_collectionData.IsCollectionAchievement(104u)).IsTrue();
         await Assert.That(_collectionData.IsCollectionAchievement(50u)).IsFalse();
-        await Assert.That(_collectionData.CollectionAchievementIds.Count).IsEqualTo(3);
+        await Assert.That(_collectionData.CollectionAchievementIds.Count).IsEqualTo(4);
     }
 
     [Test]
     public async Task Load_WatchRecordsResolvePerSourceEvent()
     {
-        var acquired = _collectionData.GetRecordsToReport(CollectItem, CollectionDiscoverySource.Acquired);
+        var acquired = _collectionData.GetRecordsToReport(CollectItem, CommonGrade, CollectionDiscoverySource.Acquired);
         await Assert.That(acquired.Count).IsEqualTo(2);
         await Assert.That(acquired).Contains(CollectGetRecord);
         await Assert.That(acquired).Contains(GeneralGetRecord);
-        await Assert.That(_collectionData.GetRecordsToReport(EquipItem, CollectionDiscoverySource.Equipped))
+        await Assert.That(_collectionData.GetRecordsToReport(EquipItem, CommonGrade, CollectionDiscoverySource.Equipped))
             .Contains(CollectEquipRecord);
-        await Assert.That(_collectionData.GetRecordsToReport(UnpackItem, CollectionDiscoverySource.Unpacked))
+        await Assert.That(_collectionData.GetRecordsToReport(UnpackItem, CommonGrade, CollectionDiscoverySource.Unpacked))
             .Contains(CollectUnpackRecord);
         // The same item reports nothing on a source its content does not watch.
-        await Assert.That(_collectionData.GetRecordsToReport(EquipItem,
+        await Assert.That(_collectionData.GetRecordsToReport(EquipItem, CommonGrade,
                 CollectionDiscoverySource.Acquired).Count)
             .IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Load_GradedRecordsReportOnlyAtOrAboveTheirGrade()
+    {
+        await Assert.That(_collectionData.GetRecordsToReport(GradedItem, RareGrade, CollectionDiscoverySource.Acquired))
+            .IsEmpty();
+        await Assert.That(_collectionData.GetRecordsToReport(GradedItem, WonderGrade, CollectionDiscoverySource.Acquired))
+            .Contains(WonderGradeRecord);
+        await Assert.That(_collectionData.GetRecordsToReport(GradedItem, EpicGrade, CollectionDiscoverySource.Acquired))
+            .Contains(WonderGradeRecord);
+
+        // "At least common" ranks by grade order: crude is below it even though its id is higher.
+        await Assert.That(_collectionData.GetRecordsToReport(CommonFloorItem, CommonGrade, CollectionDiscoverySource.Acquired))
+            .Contains(CommonFloorRecord);
+        await Assert.That(_collectionData.GetRecordsToReport(CommonFloorItem, WonderGrade, CollectionDiscoverySource.Acquired))
+            .Contains(CommonFloorRecord);
+        await Assert.That(_collectionData.GetRecordsToReport(CommonFloorItem, CrudeGrade, CollectionDiscoverySource.Acquired))
+            .IsEmpty();
+    }
+
+    [Test]
+    public async Task GradeMeets_RanksByGradeOrderAndRefusesUnknownGrades()
+    {
+        await Assert.That(_collectionData.GradeMeets(CrudeGrade, CollectionGameData.AnyGrade)).IsTrue();
+        await Assert.That(_collectionData.GradeMeets(CommonGrade, CrudeGrade)).IsTrue();
+        await Assert.That(_collectionData.GradeMeets(CrudeGrade, CommonGrade)).IsFalse();
+        await Assert.That(_collectionData.GradeMeets(EpicGrade, WonderGrade)).IsTrue();
+        await Assert.That(_collectionData.GradeMeets(RareGrade, WonderGrade)).IsFalse();
+        // A grade with no item_grades row cannot prove it meets anything.
+        await Assert.That(_collectionData.GradeMeets(55, WonderGrade)).IsFalse();
+    }
+
+    [Test]
+    public async Task Load_SkipsARecordThatAsksForAnUnknownGrade()
+    {
+        await Assert.That(_collectionData.GetRecordsToReport(UnknownGradeItem, EpicGrade,
+            CollectionDiscoverySource.Acquired)).IsEmpty();
+        await Assert.That(_collectionData.IsKnownEntry(UnknownGradeItem)).IsFalse();
     }
 
     [Test]
@@ -190,7 +245,7 @@ public sealed class CollectionsManagerTests : SqliteTestBase
     [Test]
     public async Task Discover_UnknownEntryIsRejectedAndNotPersisted()
     {
-        var result = CollectionsManager.Instance.Discover(_character, NotAnEntryItem,
+        var result = CollectionsManager.Instance.Discover(_character, NotAnEntryItem, CommonGrade,
             CollectionDiscoverySource.Acquired);
 
         await Assert.That(result).IsEqualTo(CollectionDiscoveryResult.UnknownEntry);
@@ -201,7 +256,7 @@ public sealed class CollectionsManagerTests : SqliteTestBase
     [Test]
     public async Task Discover_FirstAcquisitionPersistsMovesProgressAndCompletes()
     {
-        var result = CollectionsManager.Instance.Discover(_character, CollectItem,
+        var result = CollectionsManager.Instance.Discover(_character, CollectItem, CommonGrade,
             CollectionDiscoverySource.Acquired);
 
         await Assert.That(result).IsEqualTo(CollectionDiscoveryResult.Discovered);
@@ -222,11 +277,11 @@ public sealed class CollectionsManagerTests : SqliteTestBase
     [Test]
     public async Task Discover_ReplayedDiscoveryNeitherDoubleCountsNorRepays()
     {
-        CollectionsManager.Instance.Discover(_character, CollectItem,
+        CollectionsManager.Instance.Discover(_character, CollectItem, CommonGrade,
             CollectionDiscoverySource.Acquired);
         _sentPackets.Clear();
 
-        var replay = CollectionsManager.Instance.Discover(_character, CollectItem,
+        var replay = CollectionsManager.Instance.Discover(_character, CollectItem, CommonGrade,
             CollectionDiscoverySource.Acquired);
 
         await Assert.That(replay).IsEqualTo(CollectionDiscoveryResult.AlreadyKnown);
@@ -245,20 +300,20 @@ public sealed class CollectionsManagerTests : SqliteTestBase
     {
         // The equip watch does not move on a plain acquisition: the entry is discovered, but the
         // content record that watches equipping waits for the equip event.
-        await Assert.That(CollectionsManager.Instance.Discover(_character, EquipItem,
+        await Assert.That(CollectionsManager.Instance.Discover(_character, EquipItem, CommonGrade,
                 CollectionDiscoverySource.Acquired))
             .IsEqualTo(CollectionDiscoveryResult.Discovered);
         await Assert.That(_character.Records.Get(CollectEquipRecord)).IsEqualTo(0);
         await Assert.That(_character.Achievements.IsComplete(101u)).IsFalse();
 
         // The equip event arrives later for an entry discovered earlier and still progresses.
-        await Assert.That(CollectionsManager.Instance.Discover(_character, EquipItem,
+        await Assert.That(CollectionsManager.Instance.Discover(_character, EquipItem, CommonGrade,
                 CollectionDiscoverySource.Equipped))
             .IsEqualTo(CollectionDiscoveryResult.AlreadyKnown);
         await Assert.That(_character.Records.Get(CollectEquipRecord)).IsEqualTo(1);
         await Assert.That(_character.Achievements.IsComplete(101u)).IsTrue();
 
-        await Assert.That(CollectionsManager.Instance.Discover(_character, UnpackItem,
+        await Assert.That(CollectionsManager.Instance.Discover(_character, UnpackItem, CommonGrade,
                 CollectionDiscoverySource.Unpacked))
             .IsEqualTo(CollectionDiscoveryResult.Discovered);
         await Assert.That(_character.Records.Get(CollectUnpackRecord)).IsEqualTo(1);
@@ -266,17 +321,88 @@ public sealed class CollectionsManagerTests : SqliteTestBase
     }
 
     [Test]
+    public async Task Discover_GradedAchievementCompletesOnlyForAnItemOfThatGrade()
+    {
+        // A lower-grade copy discovers the entry but moves nothing the grade requirement guards.
+        await Assert.That(CollectionsManager.Instance.Discover(_character, GradedItem, RareGrade,
+                CollectionDiscoverySource.Acquired))
+            .IsEqualTo(CollectionDiscoveryResult.Discovered);
+        await Assert.That(_character.Records.Get(WonderGradeRecord)).IsEqualTo(0);
+        await Assert.That(_character.Achievements.IsComplete(104u)).IsFalse();
+
+        await Assert.That(CollectionsManager.Instance.Discover(_character, GradedItem, WonderGrade,
+                CollectionDiscoverySource.Acquired))
+            .IsEqualTo(CollectionDiscoveryResult.AlreadyKnown);
+        await Assert.That(_character.Records.Get(WonderGradeRecord)).IsEqualTo(1);
+        await Assert.That(_character.Achievements.IsComplete(104u)).IsTrue();
+    }
+
+    [Test]
+    public async Task Discover_BeforeTheCharactersProgressLoads_IsDeferredAndTouchesNothing()
+    {
+        // The character list restores items before the records and achievements exist.
+        _character.Records = null;
+        _character.Achievements = null;
+
+        var result = CollectionsManager.Instance.Discover(_character, CollectItem, CommonGrade,
+            CollectionDiscoverySource.Acquired);
+
+        await Assert.That(result).IsEqualTo(CollectionDiscoveryResult.Deferred);
+        await Assert.That(_character.Collections.Count).IsEqualTo(0);
+        await Assert.That(_sentPackets.Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task BackfillItems_AfterProgressLoads_ReplaysWhatTheRestoreDeferred()
+    {
+        _character.Records = null;
+        _character.Achievements = null;
+        var bagItem = new Item { TemplateId = CollectItem, Grade = CommonGrade };
+        var wornItem = new Item { TemplateId = EquipItem, Grade = CommonGrade };
+        await Assert.That(CollectionsManager.Instance.Discover(_character, bagItem.TemplateId, bagItem.Grade,
+                CollectionDiscoverySource.Acquired))
+            .IsEqualTo(CollectionDiscoveryResult.Deferred);
+
+        // World entry loads the progress, then replays the items the character holds.
+        _character.Records = new CharacterRecords(_character);
+        _character.Achievements = new CharacterAchievements(_character);
+        (Item, SlotType)[] held = [(bagItem, SlotType.Inventory), (wornItem, SlotType.Equipment)];
+
+        await Assert.That(CollectionsManager.Instance.BackfillItems(_character, held)).IsEqualTo(2);
+        await Assert.That(_character.Records.Get(CollectGetRecord)).IsEqualTo(1);
+        await Assert.That(_character.Records.Get(CollectEquipRecord)).IsEqualTo(1);
+        await Assert.That(_character.Achievements.IsComplete(100u)).IsTrue();
+        await Assert.That(_character.Achievements.IsComplete(101u)).IsTrue();
+
+        // The next world entry replays the same items and moves nothing.
+        _sentPackets.Clear();
+        await Assert.That(CollectionsManager.Instance.BackfillItems(_character, held)).IsEqualTo(0);
+        await Assert.That(_sentPackets.Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task SourceForContainer_EquipmentIsTheEquipEventAndEverythingElseAnAcquisition()
+    {
+        await Assert.That(CollectionsManager.SourceForContainer(SlotType.Equipment))
+            .IsEqualTo(CollectionDiscoverySource.Equipped);
+        await Assert.That(CollectionsManager.SourceForContainer(SlotType.Inventory))
+            .IsEqualTo(CollectionDiscoverySource.Acquired);
+        await Assert.That(CollectionsManager.SourceForContainer(SlotType.Bank))
+            .IsEqualTo(CollectionDiscoverySource.Acquired);
+    }
+
+    [Test]
     public async Task Discover_MalformedRequestsAreRejected()
     {
-        await Assert.That(CollectionsManager.Instance.Discover(null, CollectItem,
+        await Assert.That(CollectionsManager.Instance.Discover(null, CollectItem, CommonGrade,
                 CollectionDiscoverySource.Acquired))
             .IsEqualTo(CollectionDiscoveryResult.Rejected);
-        await Assert.That(CollectionsManager.Instance.Discover(_character, 0,
+        await Assert.That(CollectionsManager.Instance.Discover(_character, 0, CommonGrade,
                 CollectionDiscoverySource.Acquired))
             .IsEqualTo(CollectionDiscoveryResult.Rejected);
 
         _character.Collections = null;
-        await Assert.That(CollectionsManager.Instance.Discover(_character, CollectItem,
+        await Assert.That(CollectionsManager.Instance.Discover(_character, CollectItem, CommonGrade,
                 CollectionDiscoverySource.Acquired))
             .IsEqualTo(CollectionDiscoveryResult.Rejected);
         await Assert.That(_sentPackets.Count).IsEqualTo(0);
@@ -290,8 +416,8 @@ public sealed class CollectionsManagerTests : SqliteTestBase
         // During the load nothing may reach the player: state resolves, packets wait. The members used
         // here carry no reward, so the load window stays packet-clean by construction.
         _character.WorldEntryCompleted = false;
-        CollectionsManager.Instance.Discover(_character, EquipItem, CollectionDiscoverySource.Equipped);
-        CollectionsManager.Instance.Discover(_character, UnpackItem, CollectionDiscoverySource.Unpacked);
+        CollectionsManager.Instance.Discover(_character, EquipItem, CommonGrade, CollectionDiscoverySource.Equipped);
+        CollectionsManager.Instance.Discover(_character, UnpackItem, CommonGrade, CollectionDiscoverySource.Unpacked);
         await Assert.That(_sentPackets.Count).IsEqualTo(0);
         await Assert.That(_character.Collections.InitialSyncPending).IsTrue();
         await Assert.That(_character.Achievements.IsComplete(101u)).IsTrue();
@@ -440,6 +566,13 @@ public sealed class CollectionsManagerTests : SqliteTestBase
         InsertAchievement(103, 1, "t", "Dangling member", subCategoryId: 404);
         InsertObjective(103, 103, CollectGetRecord);
 
+        // Achievement 104: collection member that asks for the item at wonder grade or better.
+        InsertAchievement(104, 1, "t", "Collect the wonder item", subCategoryId: CollectionSubCategory);
+        InsertObjective(104, 104, WonderGradeRecord);
+
+        foreach (var (grade, order) in new[] { (0, 1), (1, 0), (2, 2), (3, 3), (8, 8), (9, 9) })
+            Execute($"INSERT INTO item_grades (id, grade_order) VALUES ({grade}, {order})");
+
         // Watch records: kind ids follow the shipped record kinds for obtain / equip / unpack.
         InsertRecord(CollectGetRecord, 29, CollectItem, -1);
         InsertRecord(CollectEquipRecord, 83, EquipItem, -1);
@@ -448,6 +581,11 @@ public sealed class CollectionsManagerTests : SqliteTestBase
         InsertRecord(GeneralGetRecord, 29, CollectItem, -1);
         // A watch row without an item target: skipped, never discovered into.
         InsertRecord(2006, 29, 0, -1);
+        // value2 is the item grade the record asks for.
+        InsertRecord(WonderGradeRecord, 29, GradedItem, WonderGrade);
+        InsertRecord(CommonFloorRecord, 29, CommonFloorItem, CommonGrade);
+        // A grade item_grades does not hold: skipped at load.
+        InsertRecord(UnknownGradeRecord, 29, UnknownGradeItem, 77);
 
         foreach (var itemId in new[]
                  {

@@ -37,8 +37,15 @@ public class CollectionGameData : Singleton<CollectionGameData>, IGameDataLoader
     /// <summary>The catalog key that names the collection achievement kind.</summary>
     public const string CollectionKindName = "collection";
 
+    /// <summary>A watch record's <c>value2</c> when it accepts the item at any grade.</summary>
+    public const int AnyGrade = -1;
+
+    /// <summary>One watch record and the item grade it asks for (<see cref="AnyGrade"/> for any).</summary>
+    private readonly record struct WatchRecord(uint Id, int RequiredGrade);
+
     private HashSet<uint> _collectionAchievementIds = [];
-    private Dictionary<(CharRecordKind Kind, uint ItemType), List<uint>> _recordsByItem = [];
+    private Dictionary<(CharRecordKind Kind, uint ItemType), List<WatchRecord>> _recordsByItem = [];
+    private Dictionary<int, int> _gradeOrder = [];
     private HashSet<uint> _itemEntries = [];
     private Dictionary<uint, List<uint>> _guidesByItem = [];
     private int _encyclopediaGuideCount;
@@ -62,9 +69,10 @@ public class CollectionGameData : Singleton<CollectionGameData>, IGameDataLoader
     public int EncyclopediaGuideCount => _encyclopediaGuideCount;
 
     /// <summary>
-    /// The record ids a discovery of this item type reports into, for the event it arrived from.
+    /// The record ids a discovery of this item type reports into, for the event it arrived from. A record
+    /// that asks for a grade is only included when the item's grade meets it.
     /// </summary>
-    public IReadOnlyList<uint> GetRecordsToReport(uint itemTypeId, CollectionDiscoverySource source)
+    public IReadOnlyList<uint> GetRecordsToReport(uint itemTypeId, byte itemGrade, CollectionDiscoverySource source)
     {
         var kind = source switch
         {
@@ -74,13 +82,50 @@ public class CollectionGameData : Singleton<CollectionGameData>, IGameDataLoader
             _ => throw new ArgumentOutOfRangeException(nameof(source), source, "Unknown discovery source"),
         };
 
-        return _recordsByItem.TryGetValue((kind, itemTypeId), out var records) ? records : [];
+        if (!_recordsByItem.TryGetValue((kind, itemTypeId), out var records))
+            return [];
+
+        var reported = new List<uint>(records.Count);
+        foreach (var record in records)
+        {
+            if (GradeMeets(itemGrade, record.RequiredGrade))
+                reported.Add(record.Id);
+        }
+
+        return reported;
+    }
+
+    /// <summary>
+    /// Whether an item of <paramref name="itemGrade"/> satisfies a record that asks for
+    /// <paramref name="requiredGrade"/>: any grade, or that grade or better by <c>item_grades.grade_order</c>.
+    /// </summary>
+    /// <remarks>
+    /// The order column is what ranks grades; the ids do not (grade 1 ranks below grade 0), so the ids are never
+    /// compared directly.
+    /// </remarks>
+    public bool GradeMeets(int itemGrade, int requiredGrade)
+    {
+        if (requiredGrade < 0)
+            return true;
+
+        if (!_gradeOrder.TryGetValue(requiredGrade, out var needed))
+            return false; // refused at load; unreachable for a loaded record
+
+        if (!_gradeOrder.TryGetValue(itemGrade, out var held))
+        {
+            Logger.Error("CollectionGameData: item grade {0} has no item_grades row; a record asking for grade {1} is not reported",
+                itemGrade, requiredGrade);
+            return false;
+        }
+
+        return held >= needed;
     }
 
     public void Load(SqliteConnection connection)
     {
         _collectionAchievementIds = [];
         _recordsByItem = [];
+        _gradeOrder = [];
         _itemEntries = [];
         _guidesByItem = [];
         _encyclopediaGuideCount = 0;
@@ -91,8 +136,29 @@ public class CollectionGameData : Singleton<CollectionGameData>, IGameDataLoader
         var subCategoryCategory = LoadSubCategories(connection, knownCategories, collectionCategoryIds,
             out var collectionSubCategories);
         LoadAchievementMembership(connection, subCategoryCategory, collectionSubCategories);
+        LoadItemGrades(connection);
         LoadWatchRecords(connection);
         LoadEncyclopedia(connection);
+    }
+
+    /// <summary>The rank of every item grade, which a watch record's grade requirement is compared by.</summary>
+    private void LoadItemGrades(SqliteConnection connection)
+    {
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT id, grade_order FROM item_grades";
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var id = reader.GetInt32("id");
+                if (!_gradeOrder.TryAdd(id, reader.GetInt32("grade_order")))
+                    Logger.Error("CollectionGameData: duplicate item_grades row {0} — keeping the first", id);
+            }
+        }
+
+        if (_gradeOrder.Count == 0)
+            Logger.Error("CollectionGameData: item_grades is empty; every watch record that asks for a grade is skipped");
     }
 
     public void PostLoad()
@@ -262,11 +328,12 @@ public class CollectionGameData : Singleton<CollectionGameData>, IGameDataLoader
 
         var itemless = 0;
         var outOfRange = 0;
+        var unknownGrade = 0;
 
         using (var command = connection.CreateCommand())
         {
             command.CommandText =
-                "SELECT id, kind_id, value1 FROM char_records WHERE kind_id IN (@getKind, @unpackKind, @equipKind)";
+                "SELECT id, kind_id, value1, value2 FROM char_records WHERE kind_id IN (@getKind, @unpackKind, @equipKind)";
             command.Parameters.AddWithValue("@getKind", getItemKind);
             command.Parameters.AddWithValue("@unpackKind", unpackItemKind);
             command.Parameters.AddWithValue("@equipKind", equipItemKind);
@@ -292,11 +359,25 @@ public class CollectionGameData : Singleton<CollectionGameData>, IGameDataLoader
                     continue;
                 }
 
+                // value2 is the item grade the record asks for, or AnyGrade.
+                var requiredGrade = reader.IsDBNull("value2") ? AnyGrade : reader.GetInt32("value2");
+                if (requiredGrade < 0)
+                {
+                    requiredGrade = AnyGrade;
+                }
+                else if (!_gradeOrder.ContainsKey(requiredGrade))
+                {
+                    Logger.Error("CollectionGameData: char_records row {0} asks for item grade {1}, which item_grades does not hold — skipping",
+                        id, requiredGrade);
+                    unknownGrade++;
+                    continue;
+                }
+
                 var key = ((CharRecordKind)reader.GetUInt32("kind_id"), (uint)value1);
                 if (!_recordsByItem.TryGetValue(key, out var records))
                     _recordsByItem[key] = records = [];
 
-                records.Add(id);
+                records.Add(new WatchRecord(id, requiredGrade));
                 _itemEntries.Add((uint)value1);
             }
         }
@@ -305,6 +386,8 @@ public class CollectionGameData : Singleton<CollectionGameData>, IGameDataLoader
             Logger.Trace("CollectionGameData: {0} item watch records carry no item target", itemless);
         if (outOfRange > 0)
             Logger.Error("CollectionGameData: skipped {0} item watch records with out-of-range targets", outOfRange);
+        if (unknownGrade > 0)
+            Logger.Error("CollectionGameData: skipped {0} item watch records that ask for an unknown item grade", unknownGrade);
     }
 
     /// <summary>The encyclopedia guides and their item members, with dangling references skipped loudly.</summary>
