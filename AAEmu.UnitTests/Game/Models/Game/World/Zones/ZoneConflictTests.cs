@@ -132,22 +132,15 @@ public class ZoneConflictTests
     }
 
     [Test]
-    public async Task ScheduledPersistenceFailure_RetryCallbackPersistsAndPublishesRecoveredState()
+    public async Task ScheduledTransition_AppliesWithoutPersistingOrRetrying()
     {
         var notifications = new List<(ZoneConflictType Previous, ZoneConflictType Current)>();
         var scheduled = new List<DateTime>();
         var saveAttempts = 0;
-        var persisted = new List<ConflictZoneRuntimeState>();
         var conflict = new ZoneConflict(
             new ZoneGroup { Id = 20 },
             (_, previous, current) => notifications.Add((previous, current)),
-            state =>
-            {
-                saveAttempts++;
-                if (saveAttempts == 1)
-                    throw new InvalidOperationException("store unavailable");
-                persisted.Add(state);
-            },
+            _ => saveAttempts++,
             due => scheduled.Add(due))
         {
             ZoneGroupId = 20
@@ -156,21 +149,17 @@ public class ZoneConflictTests
 
         conflict.BindSchedule([new ConflictZoneScheduleEntry(2, 1200, ZoneConflictType.War)], mondayNoon);
 
-        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Tension);
-        await Assert.That(conflict.NextStateTime).IsEqualTo(DateTime.MinValue);
-        await Assert.That(notifications).IsEmpty();
-        await Assert.That(scheduled).Count().IsEqualTo(1);
-        await Assert.That(scheduled[0]).IsGreaterThan(DateTime.UtcNow);
-
-        conflict.RetryScheduledStatePersistence();
-
-        await Assert.That(saveAttempts).IsEqualTo(2);
-        await Assert.That(persisted).Count().IsEqualTo(1);
+        // The row of a schedule-driven zone is never read back, so the transition neither waits on the
+        // store nor gets retried when the store is unavailable.
+        await Assert.That(saveAttempts).IsEqualTo(0);
         await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.War);
-        await Assert.That(conflict.NextStateTime).IsGreaterThan(DateTime.UtcNow);
-        await Assert.That(persisted[0]).IsEqualTo(conflict.CaptureRuntimeState());
-        await Assert.That(notifications).Count().IsEqualTo(1);
-        await Assert.That(notifications[0]).IsEqualTo((ZoneConflictType.Tension, ZoneConflictType.War));
+        // The weekly entry is already due at mondayNoon, so the next change is the following week's.
+        await Assert.That(conflict.NextStateTime).IsEqualTo(mondayNoon.AddDays(7).ToUniversalTime());
+        await Assert.That(notifications).IsEquivalentTo(new[]
+        {
+            (Previous: ZoneConflictType.Tension, Current: ZoneConflictType.War)
+        });
+        await Assert.That(scheduled).IsEquivalentTo(new[] { conflict.NextStateTime });
     }
 
     [Test]
