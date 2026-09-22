@@ -37,7 +37,7 @@ public class TestChatChannel : ICommand
             foreach (var c in channels)
             {
                 CommandManager.SendNormalText(this, messageOutput,
-                    $"T:{c.ChatType} ST:{c.SubType} F:{c.Faction} => {c.InternalId} - {c.InternalName} ({c.Members.Count})");
+                    $"T:{c.ChatType} ST:{c.SubType} F:{c.Faction} => {c.InternalId} - {c.InternalName} ({c.MemberCount})");
             }
 
             CommandManager.SendNormalText(this, messageOutput, $"End of list");

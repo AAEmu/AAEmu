@@ -119,31 +119,31 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
     {
         var res = 0;
         foreach (var c in ZoneChannels)
-            if (c.Value.Members.Count <= 0)
+            if (c.Value.MemberCount <= 0)
             {
                 ZoneChannels.TryRemove(c.Key, out _);
                 res++;
             }
         foreach (var c in PartyChannels)
-            if (c.Value.Members.Count <= 0)
+            if (c.Value.MemberCount <= 0)
             {
                 PartyChannels.TryRemove(c.Key, out _);
                 res++;
             }
         foreach (var c in RaidChannels)
-            if (c.Value.Members.Count <= 0)
+            if (c.Value.MemberCount <= 0)
             {
                 RaidChannels.TryRemove(c.Key, out _);
                 res++;
             }
         foreach (var c in GuildChannels)
-            if (c.Value.Members.Count <= 0)
+            if (c.Value.MemberCount <= 0)
             {
                 GuildChannels.TryRemove(c.Key, out _);
                 res++;
             }
         foreach (var c in FamilyChannels)
-            if (c.Value.Members.Count <= 0)
+            if (c.Value.MemberCount <= 0)
             {
                 FamilyChannels.TryRemove(c.Key, out _);
                 res++;
@@ -170,7 +170,16 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
     /// <returns></returns>
     public ChatChannel GetFactionChat(FactionsEnum factionMotherId)
     {
-        return FactionChannels.GetValueOrDefault(factionMotherId, NullChannel);
+        if (factionMotherId == FactionsEnum.Invalid)
+            return NullChannel;
+
+        return FactionChannels.GetOrAdd(factionMotherId, id => new ChatChannel
+        {
+            ChatType = ChatType.Ally,
+            Faction = id,
+            InternalId = (uint)id,
+            InternalName = $"Faction {id}"
+        });
     }
 
     /// <summary>
@@ -180,7 +189,52 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
     /// <returns></returns>
     public ChatChannel GetFactionChat(Character character)
     {
-        return GetFactionChat(character.Faction.MotherId);
+        return GetFactionChat(SocialChatAuthorization.ResolveFactionChatId(character?.Faction));
+    }
+
+    public int SendFactionMessage(Character origin, string message, int ability = 0, byte languageType = 0)
+    {
+        // The channel the character is actually in, not the one its faction id names today: the two
+        // only differ while a temporary faction change is in force, and then only the channel is the
+        // one the client joined and can read.
+        var channel = GetJoinedFactionChat(origin);
+        if (!SocialChatAuthorization.CanSendFactionChat(channel, origin))
+            return 0;
+
+        return channel.SendMessageWhere(origin, ChatType.Ally, message,
+            recipient => SocialChatAuthorization.CanReceiveFactionChat(channel, recipient), ability, languageType);
+    }
+
+    /// <summary>The faction channel a character is a member of, or null when it is in none.</summary>
+    /// <remarks>
+    /// Membership is server-assigned - see <see cref="SocialChatAuthorization.CanSendFactionChat"/> -
+    /// so the lookup is by membership rather than by faction id on purpose. A character is in one
+    /// faction channel at a time because <see cref="SyncFactionChannel"/> leaves the others.
+    /// </remarks>
+    public ChatChannel GetJoinedFactionChat(Character character)
+    {
+        if (character == null)
+            return null;
+
+        foreach (var channel in FactionChannels.Values)
+        {
+            if (channel.Contains(character))
+                return channel;
+        }
+
+        return null;
+    }
+
+    public ChatChannel SyncFactionChannel(Character character)
+    {
+        var current = GetFactionChat(character);
+        foreach (var channel in FactionChannels.Values)
+        {
+            if (!ReferenceEquals(channel, current))
+                channel.LeaveChannel(character);
+        }
+        current.JoinChannel(character);
+        return current;
     }
 
     /// <summary>

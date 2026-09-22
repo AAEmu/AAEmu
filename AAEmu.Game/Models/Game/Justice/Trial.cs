@@ -124,15 +124,21 @@ public class Trial
     {
         get
         {
-            var ids = new List<uint> { DefendantId };
-            foreach (var juror in Jurors)
-                ids.Add(juror.CharacterId);
-            return ids;
+            lock (Jurors)
+            {
+                var ids = new List<uint> { DefendantId };
+                foreach (var juror in Jurors)
+                    ids.Add(juror.CharacterId);
+                return ids;
+            }
         }
     }
 
-    public TrialJuror FindJuror(uint characterId) =>
-        Jurors.FirstOrDefault(j => j.CharacterId == characterId);
+    public TrialJuror FindJuror(uint characterId)
+    {
+        lock (Jurors)
+            return Jurors.FirstOrDefault(j => j.CharacterId == characterId);
+    }
 
     /// <summary>True when the chair is already taken by another juror of this trial.</summary>
     public bool IsSeatTaken(int court, int juryNumber) =>

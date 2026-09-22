@@ -61,7 +61,7 @@ public class CSSendChatMessagePacket() : GamePacket(CSOffsets.CSSendChatMessageP
                 else
                 if (target.Faction.MotherId != Connection.ActiveChar.Faction.MotherId)
                 {
-                    // TODO: proper hostile check
+                    // Diplomacy-aware whisper rules still need direct chat/native evidence.
                     Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatCannotWhisperToHostile);
                 }
                 else
@@ -137,14 +137,10 @@ public class CSSendChatMessagePacket() : GamePacket(CSOffsets.CSSendChatMessageP
                     Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotInFamily);
                 }
                 break;
-            /*
-        case ChatType.Judge:
-            // TODO: Need a check so only defendant and jury can talk here, the client does some checks too, but let's make sure
-            ChatManager.Instance.GetNationChat(Connection.ActiveChar.Race).SendPacket(
-                new SCChatMessagePacket(type, Connection.ActiveChar, message, ability, languageType)
-                );
-            break;
-            */
+            case ChatType.Judge:
+                if (TrialManager.Instance.SendChatMessage(Connection.ActiveChar, message, ability, languageType) == 0)
+                    Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotInTrial);
+                break;
             case ChatType.Region: //nation (birth place/race, includes pirates etc)
                 ChatManager.Instance.GetNationChat(Connection.ActiveChar.Race).SendMessage(Connection.ActiveChar, message, ability, languageType);
                 break;
@@ -152,7 +148,8 @@ public class CSSendChatMessagePacket() : GamePacket(CSOffsets.CSSendChatMessageP
                 ChatManager.Instance.GetGlobalChat().SendMessage(Connection.ActiveChar, message, ability, languageType);
                 break;
             case ChatType.Ally: //faction (by current allegiance)
-                ChatManager.Instance.GetFactionChat(Connection.ActiveChar.Faction.MotherId).SendMessage(Connection.ActiveChar, message, ability, languageType);
+                if (ChatManager.Instance.SendFactionMessage(Connection.ActiveChar, message, ability, languageType) == 0)
+                    Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatNotJoinedChannel);
                 break;
             default:
                 Logger.Warn("Unsupported chat type {0} from {1}", type, Connection.ActiveChar.Name);

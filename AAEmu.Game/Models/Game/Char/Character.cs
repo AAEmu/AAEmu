@@ -3003,6 +3003,8 @@ public partial class Character : Unit, ICharacter
         BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, oldFaction, newFaction, false), true);
         Faction = FactionManager.Instance.GetFaction(newFaction);
         RaidRecruitmentManager.Instance.OnFactionChanged(this);
+        if (IsOnline)
+            ChatManager.Instance.SyncFactionChannel(this);
         if (WorldIntegration.ZoneAuthority)
             WorldIntegration.RelayUnitFactionChangedToZone?.Invoke(ObjId, (int)oldFaction, (int)newFaction, false);
         HousingManager.Instance.UpdateOwnedHousingFaction(Id, newFaction);

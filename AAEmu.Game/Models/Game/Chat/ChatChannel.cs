@@ -7,6 +7,7 @@ namespace AAEmu.Game.Models.Game.Chat;
 
 public class ChatChannel
 {
+    private readonly Lock _membersLock = new();
     /// <summary>
     /// Chat channel type
     /// </summary>
@@ -26,6 +27,21 @@ public class ChatChannel
     /// Current members in this channel
     /// </summary>
     public List<Character> Members { get; set; } = [];
+
+    public int MemberCount
+    {
+        get
+        {
+            lock (_membersLock)
+                return Members.Count;
+        }
+    }
+
+    public bool Contains(Character character)
+    {
+        lock (_membersLock)
+            return Members.Contains(character);
+    }
 
     /// <summary>
     /// Internal Id
@@ -47,11 +63,12 @@ public class ChatChannel
         if (character == null)
             return false;
 
-        if (Members.Contains(character))
-            return false;
-
-        // character.SendMessage(ChatType.System, "ChatManager.JoinChannel {0} - {1} - {2}", chatType, internalId, internalName);
-        Members.Add(character);
+        lock (_membersLock)
+        {
+            if (Members.Contains(character))
+                return false;
+            Members.Add(character);
+        }
         character.SendPacket(new SCJoinedChatChannelPacket(ChatType, SubType, Faction, AnnouncedName));
 
         return true;
@@ -86,7 +103,10 @@ public class ChatChannel
             return false;
 
         // character.SendMessage(ChatType.System, "ChatManager.LeaveChannel {0} - {1} - {2}", chatType, internalId, internalName);
-        if (Members.Remove(character))
+        bool removed;
+        lock (_membersLock)
+            removed = Members.Remove(character);
+        if (removed)
         {
             character.SendPacket(new SCLeavedChatChannelPacket(ChatType, SubType, Faction));
             return true;
@@ -112,10 +132,19 @@ public class ChatChannel
     /// joined - which is why these callers cannot simply build the packet themselves.
     /// </remarks>
     public int SendMessage(Character origin, ChatType type, string msg, int ability = 0, byte languageType = 0)
+        => SendMessageWhere(origin, type, msg, _ => true, ability, languageType);
+
+    public int SendMessageWhere(Character origin, ChatType type, string msg, Func<Character, bool> predicate,
+        int ability = 0, byte languageType = 0)
     {
         var res = 0;
-        foreach (var m in Members)
+        Character[] members;
+        lock (_membersLock)
+            members = Members.ToArray();
+        foreach (var m in members)
         {
+            if (!predicate(m))
+                continue;
             m.SendPacket(new SCChatMessagePacket(type, origin ?? m, msg, ability, languageType, SubType, Faction));
             res++;
         }
@@ -123,15 +152,7 @@ public class ChatChannel
     }
 
     public int SendMessage(Character origin, string msg, int ability = 0, byte languageType = 0)
-    {
-        var res = 0;
-        foreach (var m in Members)
-        {
-            m.SendPacket(new SCChatMessagePacket(ChatType, origin ?? m, msg, ability, languageType, SubType, Faction));
-            res++;
-        }
-        return res;
-    }
+        => SendMessageWhere(origin, ChatType, msg, _ => true, ability, languageType);
 
     /// <summary>
     /// Sends a GamePacket to all members of the chat channel
@@ -141,7 +162,10 @@ public class ChatChannel
     public int SendPacket(GamePacket packet)
     {
         var res = 0;
-        foreach (var m in Members)
+        Character[] members;
+        lock (_membersLock)
+            members = Members.ToArray();
+        foreach (var m in members)
         {
             m.SendPacket(packet);
             res++;
