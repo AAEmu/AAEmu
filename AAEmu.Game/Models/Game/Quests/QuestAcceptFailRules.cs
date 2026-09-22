@@ -12,7 +12,11 @@ public static class QuestAcceptFailRules
 {
     public static QuestStatusFailed RequirementNotMet => QuestStatusFailed.UnitRequirementCheck;
 
-    /// <summary>The level gate has a row of its own; race and start unit_reqs share the generic one.</summary>
+    /// <summary>
+    /// The level gate has a row of its own and the race mask shares the generic one. A Start component's
+    /// unit_reqs row is not mapped here at all: it is answered with SCQuestUnitReqFailed, which carries
+    /// the row's own result.
+    /// </summary>
     public static QuestStatusFailed LevelNotMet => QuestStatusFailed.LevelNotMatch;
 
     /// <summary>

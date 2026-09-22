@@ -263,7 +263,8 @@ public class CharacterQuests(Character owner)
                 "User {0} ({1}) does not meet context requirements for quest {2}: level={3}, minLevel={4}, maxLevel={5}, race={6}, raceMask={7}",
                 Owner.Name, Owner.Id, questId, Owner.Level, template.MinLevel, template.MaxLevel, Owner.Race,
                 template.RaceMask);
-            // The client names the level gate itself; race and the start unit_reqs share the generic row.
+            // The client names the level gate itself; the race mask shares the generic row. Start unit_reqs
+            // are answered below with the row that refused.
             NotifyAcceptFailed(
                 questId,
                 template.MeetsLevelRequirements(Owner)
@@ -273,18 +274,24 @@ public class CharacterQuests(Character owner)
             return false;
         }
 
-        // Check if start step components are active
+        // Start component unit_reqs. No quest_contexts row has more than one Start component, so the
+        // walk sees at most one component; the row that refuses is what the client is told about.
         var startComponentTemplate = template.GetComponents(QuestComponentKind.Start);
         foreach (var questComponentTemplate in startComponentTemplate)
         {
-            if (!UnitRequirementsGameData.Instance.CanComponentRun(questComponentTemplate, Owner))
+            var requirement = UnitRequirementsGameData.Instance.EvaluateComponent(questComponentTemplate, Owner);
+            if (QuestStartRequirementRules.Passes(requirement))
+                continue;
+
+            LogAcceptRefused(answerClient,
+                "User {0} ({1}) does not meet requirements to start new Quest {2}, ComponentId {3}: {4} (u16 {5}, u32 {6}, display {7})",
+                Owner.Name, Owner.Id, questId, questComponentTemplate.Id,
+                QuestStartRequirementRules.WireResult(requirement), requirement.ResultUShort, requirement.ResultUInt,
+                requirement.DisplayMessage);
+            if (!forcibly)
             {
-                LogAcceptRefused(answerClient, $"User {Owner.Name} ({Owner.Id}) does not meet requirements to start new Quest {questId}, ComponentId {questComponentTemplate.Id}");
-                if (!forcibly)
-                {
-                    NotifyAcceptFailed(questId, QuestAcceptFailRules.RequirementNotMet, answerClient);
-                    return false;
-                }
+                NotifyStartRequirementFailed(questId, requirement, answerClient);
+                return false;
             }
         }
 
@@ -359,6 +366,22 @@ public class CharacterQuests(Character owner)
             return;
 
         Owner.SendPacket(new SCQuestContextFailedPacket(questId, reason));
+    }
+
+    /// <summary>
+    /// Answers a refused accept with the unit_reqs row that refused it. SCQuestUnitReqFailed is the
+    /// client's channel for exactly this: its handler (x2game-dev.dll 0x397BBB60) formats the result
+    /// through the skill-result display path, which honours the row's display gate, and raises
+    /// QUEST_QUICK_CLOSE_EVENT for the quest, which quest_context_directing.lua answers by ending
+    /// directing mode. SCQuestContextFailed would close the same window with a second, generic
+    /// message, so this path sends only the one packet.
+    /// </summary>
+    private void NotifyStartRequirementFailed(uint questId, UnitReqsValidationResult requirement, bool answerClient)
+    {
+        if (!answerClient)
+            return;
+
+        Owner.SendPacket(new SCQuestUnitReqFailedPacket(questId, Owner.ObjId, requirement));
     }
 
     /// <summary>
