@@ -190,6 +190,8 @@ public static class Program
             NpcScheduleGate.Start();
             NpcSpawnRelay.RemirrorAllZones();
             QuestTalkDoodads.EnsureAllWorlds();
+            foreach (var readyWorld in WorldManager.Instance.GetWorlds() ?? [])
+                StarterChainActorAudit.Report(readyWorld);
             zoneHost.ConfigureWarmWorldFactory(
                 templateName =>
                 {

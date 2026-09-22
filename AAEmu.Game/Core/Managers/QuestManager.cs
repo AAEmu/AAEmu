@@ -79,6 +79,12 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
         return result;
     }
 
+    /// <summary>Every loaded quest template, for boot audits that scan the whole set.</summary>
+    public IReadOnlyCollection<QuestTemplate> GetTemplates()
+    {
+        return _questTemplates.Values;
+    }
+
     public bool IsQuestTalkNpc(uint npcTemplateId)
     {
         return QuestTalkNpcRules.IsTalkNpc(_talkNpcIds, npcTemplateId);
