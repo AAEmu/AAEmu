@@ -264,6 +264,25 @@ public class ItemProcRulesTests
     }
 
     [Test]
+    public async Task SkillCooldownBlocks_RefusesAProcWhileItsSkillIsCoolingDown()
+    {
+        // Procs 116-119, 121, 122, 124 and 125 cast with bypassGcd, which in Skill.Use also skips the skill's own
+        // cooldown check while the cast still arms it, so Apply refuses on the skill's cooldown as well.
+        await Assert.That(ItemProcRules.SkillCooldownBlocks(true)).IsTrue();
+        await Assert.That(ItemProcRules.SkillCooldownBlocks(false)).IsFalse();
+    }
+
+    [Test]
+    public async Task SkillCooldownBlocks_IsASeparateGateFromTheProcCooldown()
+    {
+        // Proc 118: cooldown_sec 0, so its own window never blocks, while skill 31317 sits on 60 s.
+        var now = new DateTime(2026, 9, 21, 12, 0, 0, DateTimeKind.Utc);
+
+        await Assert.That(ItemProcRules.CooldownBlocks(now, 0, now.AddSeconds(1))).IsFalse();
+        await Assert.That(ItemProcRules.SkillCooldownBlocks(true)).IsTrue();
+    }
+
+    [Test]
     public async Task RollPasses_RateZeroNeverPasses()
     {
         for (var roll = 0; roll < 100; roll++)

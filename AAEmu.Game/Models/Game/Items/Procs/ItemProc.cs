@@ -74,6 +74,13 @@ public class ItemProc(uint templateId)
         if (ItemProcRules.CooldownBlocks(LastProc, Template.CooldownSec, DateTime.UtcNow))
             return false;
 
+        // bypassGcd also skipped the proc skill's own cooldown: in Skill.Use both CheckCooldown (line 314) and
+        // ShouldWaitForCooldown (line 324) sit inside the same if (!_bypassGcd) block, while Cast still arms that
+        // cooldown (ArmCooldowns, line 1019). Procs 116, 117, 118, 119, 121, 122, 124 and 125 cast skills whose
+        // cooldown_time (60-180 s) outlasts their cooldown_sec (0-1 s), so they fired on every roll.
+        if (ItemProcRules.SkillCooldownBlocks(owner.Cooldowns.CheckCooldown(Template.SkillId)))
+            return false;
+
         if (!ignoreRoll && !ItemProcRules.RollPasses(Template.ChanceRate, Random.Shared.Next(0, 100)))
             return false;
 
@@ -116,7 +123,7 @@ public class ItemProc(uint templateId)
             // bypassGcd: the triggering skill wrote the owner's SkillLastUsed a moment ago in this same call
             // stack, so the 150 ms anti-spam gate would turn every proc on an instant trigger into
             // CooldownTime, and a proc that did fire would swallow the player's next press. The proc's own
-            // cooldown_sec is the gate.
+            // cooldown_sec and the proc skill's own cooldown, checked above, are the gates.
             result = skill.Use(owner, caster, castTarget, null, true, out _);
         }
         finally

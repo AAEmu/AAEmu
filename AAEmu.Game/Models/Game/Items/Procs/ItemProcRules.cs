@@ -131,6 +131,17 @@ public static class ItemProcRules
         cooldownSec > 0 && now < lastProc.AddSeconds(cooldownSec);
 
     /// <summary>
+    /// Whether the proc skill's own cooldown still refuses the proc. A proc casts with <c>bypassGcd</c> to get
+    /// past the shared global cooldown, and in <c>Skill.Use</c> that same flag skips the whole block holding
+    /// <c>unit.Cooldowns.CheckCooldown(Template.Id)</c> (Skill.cs:314) and
+    /// <see cref="SkillCooldownGateRules.ShouldWaitForCooldown"/> (Skill.cs:324), while the cast still arms that
+    /// cooldown (ArmCooldowns, Skill.cs:1019). So procs 116-119, 121, 122, 124 and 125, whose skills carry a
+    /// 60-180 s <c>cooldown_time</c> against a <c>cooldown_sec</c> of 0 or 1, would otherwise fire on every roll.
+    /// Both gates hold: the window above and the skill's own cooldown here.
+    /// </summary>
+    public static bool SkillCooldownBlocks(bool skillCooldownActive) => skillCooldownActive;
+
+    /// <summary>
     /// <c>chance_rate</c> is a plain percentage (0-100 across every row), rolled against a draw from 0..99: rate 0
     /// never passes, rate 100 always does, and a 15 % proc passes exactly 15 draws in 100.
     /// </summary>
