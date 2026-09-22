@@ -45,6 +45,8 @@ public class ItemCapScale : SpecialEffectAction
         var maxScale = equipItem.Template?.MaxEnchantScaleId ?? 0;
         equipItem.EnchantScale = (ushort)Math.Min(maxScale, rolled);
         equipItem.IsDirty = true;
+        if (equipItem.SlotType == SlotType.Equipment)
+            owner.InvalidateGearScore();
 
         owner.SendPacket(new SCItemDetailUpdatedPacket(equipItem));
 

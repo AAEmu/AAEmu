@@ -950,7 +950,7 @@ public partial class Character : Unit, ICharacter
 
     /// <summary>
     /// Server-side gear score (sum over equipped pieces, client's own formula set).
-    /// Cached until the equipment container changes.
+    /// Cached until equipment, a slot's reinforcement level, or a worn piece's temper changes.
     /// </summary>
     public int GearScore
     {

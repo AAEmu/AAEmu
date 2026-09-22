@@ -38,6 +38,8 @@ public class ItemCapScaleReset : SpecialEffectAction
 
         equipItem.EnchantScale = 0;
         equipItem.IsDirty = true;
+        if (equipItem.SlotType == SlotType.Equipment)
+            owner.InvalidateGearScore();
 
         owner.SendPacket(new SCItemDetailUpdatedPacket(equipItem));
 

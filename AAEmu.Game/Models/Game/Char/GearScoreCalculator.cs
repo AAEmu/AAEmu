@@ -13,9 +13,11 @@ namespace AAEmu.Game.Models.Game.Char;
 /// Per equipped piece, one of the shipped <c>formulas</c> rows is evaluated:
 /// <see cref="FormulaKind.GearScoreWeaponArmorAcc"/> (weapons, from holdables),
 /// <see cref="FormulaKind.GearScoreArmor"/>, <see cref="FormulaKind.GearScoreAccessory"/> —
-/// then <see cref="FormulaKind.GearScoreSocket"/> plus
-/// <see cref="FormulaKind.GearScoreEnchantingGem"/> once per filled socket, using that stone's level.
-/// The unit's score is the sum over all equipped pieces.
+/// then <see cref="FormulaKind.GearScoreSocket"/> once per filled socket, at that stone's level.
+/// <see cref="FormulaKind.GearScoreEnchantingGem"/> is not part of that per-socket sum: the ranking
+/// window showed one level-1 lunagem as +2, and the socket formula at that level is 2. Adding the
+/// gem formula per socket would make the same stone 2.5.
+/// The unit's score is the sum over the pieces that count, truncated to an integer.
 /// </summary>
 public static class GearScoreCalculator
 {
@@ -95,6 +97,7 @@ public static class GearScoreCalculator
 
         var piece = TruncateTenth(FormulaManager.Instance.GetFormula((uint)kind)?.Evaluate(parameters) ?? 0);
         var socket = FormulaManager.Instance.GetFormula((uint)FormulaKind.GearScoreSocket);
+        // Socket formula only. The gem formula is not added per stone; see the class remarks.
         var gems = ScoreGems(GemItemLevels(equip.GemIds, GemLevel),
             gemLevel => TruncateTenth(socket?.Evaluate(new Dictionary<string, double> { ["item_level"] = gemLevel }) ?? 0),
             _ => 0);
@@ -199,7 +202,12 @@ public static class GearScoreCalculator
         return levels;
     }
 
-    /// <summary>Socket formula plus gem formula, once per filled stone.</summary>
+    /// <summary>
+    /// Once per filled stone: <paramref name="socketAt"/> plus <paramref name="gemAt"/>.
+    /// The live score passes a zero gem term. A level-1 stone is then 2, which is the second number
+    /// the ranking window showed for one lunagem. Passing the gem formula as well (<c>item_level * 0.5</c>)
+    /// would make that stone 2.5.
+    /// </summary>
     public static double ScoreGems(IEnumerable<int> gemItemLevels, Func<double, double> socketAt, Func<double, double> gemAt)
     {
         if (gemItemLevels == null || socketAt == null || gemAt == null)
@@ -222,10 +230,13 @@ public static class GearScoreCalculator
         return null;
     }
 
+    /// <summary>The integer the boards and the siege roster store: the fractional part of the sum is dropped.</summary>
+    public static int TruncatedTotal(GearScoreParts parts) => (int)Math.Truncate(parts.Total);
+
     /// <summary>
     /// Total gear score across a character's equipped pieces.
     /// </summary>
-    public static int Evaluate(Character character) => (int)Math.Truncate(EvaluateParts(character).Total);
+    public static int Evaluate(Character character) => TruncatedTotal(EvaluateParts(character));
 
     /// <summary>
     /// A character's equipped score split the same way the ranking window shows it.
@@ -235,14 +246,28 @@ public static class GearScoreCalculator
         if (character?.Inventory?.Equipment == null)
             return default;
 
+        return Sum(character.Inventory.Equipment.Items,
+            slot => character.EquipSlotReinforces?.ItemLevelGain((byte)slot) ?? 0);
+    }
+
+    /// <summary>
+    /// One score over a list of pieces: the same slot filter, slot item-level bonus, and per-piece math
+    /// a live character uses. <paramref name="slotGainItemLevel"/> is the ladder gain for a slot, or null
+    /// when the wearer has no reinforcement.
+    /// </summary>
+    public static GearScoreParts Sum(IEnumerable<Item> items, Func<int, double> slotGainItemLevel)
+    {
         double total = 0;
         double bare = 0;
-        foreach (var item in character.Inventory.Equipment.Items)
+        if (items == null)
+            return default;
+
+        foreach (var item in items)
         {
             if (item == null || !CountsTowardGearScore(item.Slot))
                 continue;
 
-            var gain = character.EquipSlotReinforces?.ItemLevelGain((byte)item.Slot) ?? 0;
+            var gain = slotGainItemLevel?.Invoke(item.Slot) ?? 0;
             var parts = EvaluateItemParts(item, gain);
             total += parts.Total;
             bare += parts.Bare;

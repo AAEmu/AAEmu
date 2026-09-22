@@ -39,12 +39,6 @@ public class GearScoreCalculatorTests
         await Assert.That(stones.RoundedTotal).IsEqualTo(9776);
         await Assert.That(stones.RoundedBare).IsEqualTo(9774);
         await Assert.That(stones.RoundedGems).IsEqualTo(2);
-
-        // A level-1 stone is 2.5 before rounding, and the window shows that as +2.
-        var levelOne = GearScoreCalculator.Combine(9412, 2.5);
-        await Assert.That(levelOne.RoundedBare).IsEqualTo(9412);
-        await Assert.That(levelOne.RoundedGems).IsEqualTo(2);
-        await Assert.That(levelOne.RoundedTotal).IsEqualTo(9414);
     }
 
     [Test]
@@ -103,14 +97,23 @@ public class GearScoreCalculatorTests
     }
 
     [Test]
-    public async Task ScoreGems_UsesEachStonesLevelInTheSocketAndGemFormulas()
+    public async Task ScoreGems_AddsTheSocketFormulaAtEachStonesLevel()
     {
-        // Socket formula is item_level * 2, gem formula is item_level * 0.5.
+        // Socket formula is item_level * 2. The gem formula (item_level * 0.5) is not part of the
+        // per-socket sum: one level-1 lunagem showed as +2 on the ranking window, and two level-70
+        // stones are 280 that way rather than 350.
         static double Socket(double level) => level * 2;
-        static double Gem(double level) => level * 0.5;
 
-        await Assert.That(GearScoreCalculator.ScoreGems([1], Socket, Gem)).IsEqualTo(2.5);
+        await Assert.That(GearScoreCalculator.ScoreGems([1], Socket, _ => 0)).IsEqualTo(2);
+        await Assert.That(GearScoreCalculator.ScoreGems([70, 70], Socket, _ => 0)).IsEqualTo(280);
         // Feeding the piece's level (68) instead of the stone's is what painted +170.
-        await Assert.That(GearScoreCalculator.ScoreGems([68], Socket, Gem)).IsEqualTo(170);
+        await Assert.That(GearScoreCalculator.ScoreGems([68], Socket, _ => 0)).IsEqualTo(136);
+    }
+
+    [Test]
+    public async Task TruncatedTotal_DropsTheFractionOfTheSum()
+    {
+        var parts = new GearScoreCalculator.GearScoreParts(80.9, 80);
+        await Assert.That(GearScoreCalculator.TruncatedTotal(parts)).IsEqualTo(80);
     }
 }

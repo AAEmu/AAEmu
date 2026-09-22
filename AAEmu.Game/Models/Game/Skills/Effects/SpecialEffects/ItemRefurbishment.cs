@@ -168,6 +168,9 @@ public class ItemRefurbishment : SpecialEffectAction
         var afterScale = itemBroken ? (ushort)0 : equipItem.EnchantScale;
         // The rung itself, which is what the window prints as "+N". The ladder's own scale column
         // runs ten times that - reporting it turned a +1 to +3 step into "+10 -> +30".
+        if (equipItem.SlotType == SlotType.Equipment && (itemBroken || afterScale != beforeScale))
+            owner.InvalidateGearScore();
+
         owner.SendPacket(new SCItemRefurbishmentResultPacket(result, equipItem, value1,
             (short)beforeScale, (short)afterScale));
 
