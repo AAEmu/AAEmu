@@ -412,6 +412,34 @@ public class FeaturesConfig
 }
 
 /// <summary>
+/// Schedule-driven weather phases. Configure in <c>AAEmu.Game/Configurations/Weather.json</c>
+/// under <c>Weather.Phases</c>. Each phase names a <c>game_schedules</c> row and the weather that
+/// row's window produces; the row owns every timing, so no schedule ships here. An empty list
+/// keeps the cycle off and says so at boot.
+/// </summary>
+public class WeatherConfig
+{
+    public List<WeatherPhaseConfig> Phases { get; set; } = [];
+}
+
+/// <summary>One weather phase bound to one content schedule row.</summary>
+public class WeatherPhaseConfig
+{
+    /// <summary>
+    /// Content catalog key: the id of the <c>game_schedules</c> row whose window opens this phase.
+    /// A row that does not exist is reported at every refresh and the phase is skipped.
+    /// </summary>
+    public int ScheduleId { get; set; }
+
+    /// <summary>
+    /// Weather state this window produces, as a <c>WeatherState</c> name
+    /// (<c>Clear</c>, <c>Rain</c>, <c>Wind</c>, <c>Snow</c>), case-insensitive. An unknown name is
+    /// reported at boot and the phase is skipped rather than guessed.
+    /// </summary>
+    public string State { get; set; } = string.Empty;
+}
+
+/// <summary>
 /// Server policy carried by SCInitialConfigPacket (opcode 0x007). Only values the server decides live
 /// here; everything the server already knows — the feature blob, starting labor, the account's premium
 /// window, the War-zone honor rate — is read from its owning source at send time.

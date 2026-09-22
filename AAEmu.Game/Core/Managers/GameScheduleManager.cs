@@ -56,6 +56,14 @@ public class GameScheduleManager(
         _gameSchedules = gameSchedules;
     }
 
+    /// <summary>Content row behind a <c>game_schedules</c> id, or null when the id names no row.</summary>
+    public GameSchedules GetSchedule(int gameScheduleId)
+    {
+        if (_gameSchedules == null)
+            return null;
+        return _gameSchedules.TryGetValue(gameScheduleId, out var schedule) ? schedule : null;
+    }
+
     public void LoadGameScheduleSpawners(Dictionary<int, GameScheduleSpawners> gameScheduleSpawners)
     {
         _gameScheduleSpawners = gameScheduleSpawners;

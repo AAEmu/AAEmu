@@ -13,12 +13,15 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Features;
 using AAEmu.Game.Models.Game.Indun;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Schedules;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Weather;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils.DB;
@@ -347,6 +350,7 @@ public class WorldManager(
     public void Initialize()
     {
         InitializeSnowState(FeaturesManager.Fsets);
+        ConfigureWeatherCycle(AppConfiguration.Instance.Weather, GameScheduleManager.Instance.GetSchedule);
         tickManager.OnTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(1));
         tickManager.OnTick.Subscribe(AutoWaterProbeTick, TimeSpan.FromSeconds(10));
         // Shared game-day clock (seamless zones do not ZW-report ToD).
@@ -357,6 +361,59 @@ public class WorldManager(
     {
         ArgumentNullException.ThrowIfNull(configuredFeatures);
         IsSnowing = configuredFeatures.Check(Feature.fset_7_2_unknown);
+    }
+
+    /// <summary>The weather cycle this world is currently hooked to, if any.</summary>
+    private WeatherManager _weatherCycleSource;
+
+    /// <summary>
+    /// Binds the schedule-driven weather cycle to this world and evaluates it once against the
+    /// current clock. Restart policy: the state is re-derived from the configured phases and
+    /// their content rows on every start — nothing runtime-only survives a boot, matching how
+    /// <see cref="InitializeSnowState"/> re-seeds snow from its configured source.
+    /// </summary>
+    internal void ConfigureWeatherCycle(WeatherConfig weatherConfig, Func<int, GameSchedules> scheduleLookup)
+    {
+        var weather = WeatherManager.Instance;
+        weather.Configure(weatherConfig, scheduleLookup);
+
+        if (!ReferenceEquals(_weatherCycleSource, weather))
+        {
+            _weatherCycleSource = weather;
+            weather.StateChanged += ApplyWeatherTransition;
+        }
+
+        weather.Refresh(DateTime.UtcNow);
+    }
+
+    /// <summary>
+    /// Applies a weather transition the way the established snow path works: precipitation the
+    /// client knows about rides <see cref="SCSnowingEverywherePacket"/> plus the feature bit that
+    /// <see cref="InitializeSnowState"/> seeds for joining clients, and only the edges into or out
+    /// of snow move that state — an enabled feature-bit snow lever is not turned off by an
+    /// unrelated rain or wind transition. Rain and wind have no registered client packet in this
+    /// build, so they advance the server-side cycle only.
+    /// </summary>
+    private void ApplyWeatherTransition(WeatherState previous, WeatherState current)
+    {
+        if (current == WeatherState.Snow || previous == WeatherState.Snow)
+        {
+            var snowing = current == WeatherState.Snow;
+            if (snowing != IsSnowing)
+            {
+                IsSnowing = snowing;
+                BroadcastPacketToServer(new SCSnowingEverywherePacket(snowing));
+            }
+
+            return;
+        }
+
+        if (current != previous)
+        {
+            Logger.Info(
+                "Weather state is {0}; this state has no registered client packet, so only the server-side cycle moved.",
+                current);
+        }
     }
 
     private static readonly Lock AutoWaterProbeLock = new();

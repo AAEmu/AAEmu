@@ -156,6 +156,10 @@ public static class NpcScheduleGate
         GameScheduleRelay.Tick();
         TowerDefScheduler.Tick();
 
+        // Weather phases are bound to the same content schedules, so they follow this cadence.
+        // The manager contains its own handler failures; an unconfigured cycle is a no-op.
+        WeatherManager.Instance.Refresh(DateTime.UtcNow);
+
         if (justClosed.Count > 0)
             RetireClosedSpawns(justClosed);
 

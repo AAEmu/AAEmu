@@ -69,6 +69,7 @@ public partial class AppConfiguration
     public ButlerConfig Butler { get; set; } = new();
     public UccConfig Ucc { get; set; } = new();
     public FeaturesConfig Features { get; set; } = new();
+    public WeatherConfig Weather { get; set; } = new();
     public TowerDefsConfig TowerDefs { get; set; } = new();
     public StreamAoiConfig StreamAoi { get; set; } = new();
     public InitialConfig InitialConfig { get; set; } = new();
