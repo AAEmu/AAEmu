@@ -27,12 +27,12 @@ public class ZoneSimRelay
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     public bool TryHandle(ushort opcode, byte[] body, int bodyLen)
-        => TryHandle(0, opcode, body, bodyLen);
+        => TryHandle(null, 0, opcode, body, bodyLen);
 
     public bool TryHandle(ZoneConnection connection, ushort opcode, byte[] body, int bodyLen)
-        => TryHandle(connection.ZoneId, opcode, body, bodyLen);
+        => TryHandle(connection, connection.ZoneId, opcode, body, bodyLen);
 
-    private static bool TryHandle(uint zoneId, ushort opcode, byte[] body, int bodyLen)
+    private static bool TryHandle(ZoneConnection? connection, uint zoneId, ushort opcode, byte[] body, int bodyLen)
     {
         var stream = new PacketStream(body);
         return opcode switch
@@ -41,7 +41,7 @@ public class ZoneSimRelay
             ZwOpcodes.EnterArea => HandleEnterArea(stream),
             ZwOpcodes.LeaveArea => HandleLeaveArea(stream),
             ZwOpcodes.NpcSaid => HandleNpcSaid(stream),
-            ZwOpcodes.UnitModelPostureChanged => HandleUnitModelPostureChanged(body, stream),
+            ZwOpcodes.UnitModelPostureChanged => HandleUnitModelPostureChanged(connection, body, stream),
             ZwOpcodes.UnitFell => HandleUnitFell(stream),
             ZwOpcodes.UnitCollision => HandleUnitCollision(stream),
             ZwOpcodes.UnitCollisionResult => HandleUnitCollisionResult(stream),
@@ -391,7 +391,7 @@ public class ZoneSimRelay
         return true;
     }
 
-    private static bool HandleUnitModelPostureChanged(byte[] body, PacketStream stream)
+    private static bool HandleUnitModelPostureChanged(ZoneConnection? connection, byte[] body, PacketStream stream)
     {
         if (stream.Count < 3)
             return false;
@@ -406,7 +406,17 @@ public class ZoneSimRelay
 
         WorldIntegration.BroadcastPacketToUnitViewers(
             new SCOpaquePacket(SCOffsets.SCUnitModelPostureChangedPacket, body), unitId);
-        Logger.Debug("ZWUnitModelPostureChanged unit={0} len={1}", unitId, body.Length);
+        if (connection != null && Logger.IsDebugEnabled)
+        {
+            Logger.Debug(
+                "ZWUnitModelPostureChanged unit={0} len={1} {2} unitContext=[{3}]",
+                unitId, body.Length, NpcAiDiagnostics.Source(connection),
+                NpcAiDiagnostics.Unit(connection, unitId));
+        }
+        else if (Logger.IsDebugEnabled)
+        {
+            Logger.Debug("ZWUnitModelPostureChanged unit={0} len={1}", unitId, body.Length);
+        }
         return true;
     }
 

@@ -30,14 +30,8 @@ public class Heal : ICommand
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
     {
-        var playerTarget = character.CurrentTarget;
-
-        var chatTarget = args.Length > 0 ? args[0] : "";
-        var targetPlayer = WorldManager.Instance.GetCharacter(chatTarget);
-        if (chatTarget != string.Empty && targetPlayer != null)
-        {
-            playerTarget = targetPlayer;
-        }
+        var (targetPlayer, playerTarget) = ResolveTarget(
+            character, args, WorldManager.Instance.GetCharacter);
 
         if (targetPlayer != null && playerTarget != null)
         {
@@ -54,6 +48,8 @@ public class Heal : ICommand
                 targetPlayer.Mp = targetPlayer.MaxMp;
                 targetPlayer.BroadcastPacket(
                     new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp), true);
+                if (WorldIntegration.ZoneAuthority)
+                    WorldIntegration.RelayUnitPointsToZone?.Invoke(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp);
                 targetPlayer.PostUpdateCurrentHp(targetPlayer, oldHp, targetPlayer.Hp, KillReason.Unknown);
             }
         }
@@ -70,9 +66,28 @@ public class Heal : ICommand
                 unit.Hp = unit.MaxHp;
                 unit.Mp = unit.MaxMp;
                 unit.BroadcastPacket(new SCUnitPointsPacket(unit.ObjId, unit.Hp, unit.Mp), true);
+                if (WorldIntegration.ZoneAuthority)
+                    WorldIntegration.RelayUnitPointsToZone?.Invoke(unit.ObjId, unit.Hp, unit.Mp);
                 character.SendMessage($"{unit.Name} => {unit.Hp}/{unit.MaxHp} HP, {unit.Mp}/{unit.MaxMp} MP");
                 unit.PostUpdateCurrentHp(unit, oldHp, unit.Hp, KillReason.Unknown);
             }
         }
+    }
+
+    internal static (Character TargetPlayer, Unit PlayerTarget) ResolveTarget(
+        Character character, string[] args, Func<string, Character> findCharacter)
+    {
+        if (args.Length > 0 && args[0].Equals("self", StringComparison.OrdinalIgnoreCase))
+            return (character, character);
+
+        if (args.Length > 0)
+        {
+            var namedCharacter = findCharacter(args[0]);
+            if (namedCharacter != null)
+                return (namedCharacter, namedCharacter);
+        }
+
+        var currentTarget = character.CurrentTarget as Unit;
+        return (currentTarget as Character, currentTarget);
     }
 }

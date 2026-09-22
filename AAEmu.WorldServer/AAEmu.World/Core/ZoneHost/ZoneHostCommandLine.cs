@@ -57,6 +57,11 @@ public static class ZoneHostCommandLine
             AddCVar(arguments, "r_Driver", "Null");
         }
 
+        AddCVar(arguments, "npc_move_skip_standing", config.NpcMoveSkipStanding.ToString());
+        AddCVar(arguments, "npc_move_skip_disabledAI", config.NpcMoveSkipDisabledAi.ToString());
+        AddCVar(arguments, "npc_movement_skip", config.NpcMovementSkip.ToString());
+        AddCVar(arguments, "ai_systemupdate", config.AiSystemUpdate.ToString());
+
         if (!string.IsNullOrWhiteSpace(config.ExtraArguments))
             arguments.AddRange(SplitArguments(config.ExtraArguments));
 
