@@ -152,6 +152,14 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
     }
 
     /// <summary>
+    /// The quest_monster_npcs members of a <c>quest_monster_groups</c> entry, empty for an unknown group.
+    /// </summary>
+    public IReadOnlyList<uint> GetGroupNpcIds(uint groupId)
+    {
+        return _groupNpcs.TryGetValue(groupId, out var npcIds) ? npcIds : [];
+    }
+
+    /// <summary>
     /// Adds a quest to a Evaluation request queue
     /// </summary>
     /// <param name="quest"></param>
@@ -298,6 +306,7 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
         foreach (var template in _questTemplates.Values)
         {
             QuestTalkNpcRules.AddTalkNpcs(template, _talkNpcIds);
+            QuestTalkNpcRules.AddTalkNpcGroups(template, _talkNpcIds, GetGroupNpcIds);
             QuestTalkDoodadRules.AddTalkDoodads(template, _talkDoodadIds);
         }
 
@@ -1933,6 +1942,234 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
                         CompleteRank = reader.GetInt32("complete_rank", 0),
                         UseAlias = reader.GetBoolean("use_alias", true),
                         QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
+                    AddActTemplate(template);
+                }
+            }
+        }
+        // Start, Ready and Reward act types the loader skipped until now; the same client factory
+        // (x2game-dev.dll FUN_39d49b40) resolves them and each act class names its client reader.
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM quest_act_con_accept_npc_groups";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActConAcceptNpcGroup", actId);
+                    if (parentComponent == null)
+                        continue;
+                    var template = new QuestActConAcceptNpcGroup(parentComponent)
+                    {
+                        DetailId = actId, QuestMonsterGroupId = reader.GetUInt32("quest_monster_group_id", 0)
+                    };
+                    AddActTemplate(template);
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM quest_act_con_report_npc_groups";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActConReportNpcGroup", actId);
+                    if (parentComponent == null)
+                        continue;
+                    var template = new QuestActConReportNpcGroup(parentComponent)
+                    {
+                        DetailId = actId, QuestMonsterGroupId = reader.GetUInt32("quest_monster_group_id", 0),
+                        UseAlias = reader.GetBoolean("use_alias", true),
+                        QuestActObjAliasId = reader.GetUInt32("quest_act_obj_alias_id", 0)
+                    };
+                    AddActTemplate(template);
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM quest_act_con_accept_level_ranges";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActConAcceptLevelRange", actId);
+                    if (parentComponent == null)
+                        continue;
+                    var template = new QuestActConAcceptLevelRange(parentComponent)
+                    {
+                        DetailId = actId, LevelMin = reader.GetInt32("level_min", 0), LevelMax = reader.GetInt32("level_max", 0)
+                    };
+                    AddActTemplate(template);
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM quest_act_supply_actabilities";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActSupplyActability", actId);
+                    if (parentComponent == null)
+                        continue;
+                    var template = new QuestActSupplyActability(parentComponent)
+                    {
+                        DetailId = actId, ActabilityGroupId = reader.GetUInt32("actability_group_id", 0), Point = reader.GetInt32("point", 0)
+                    };
+                    AddActTemplate(template);
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM quest_act_supply_leadership_points";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActSupplyLeadershipPoint", actId);
+                    if (parentComponent == null)
+                        continue;
+                    var template = new QuestActSupplyLeadershipPoint(parentComponent)
+                    {
+                        DetailId = actId, Point = reader.GetInt32("point", 0)
+                    };
+                    AddActTemplate(template);
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM quest_act_supply_local_lps";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActSupplyLocalLp", actId);
+                    if (parentComponent == null)
+                        continue;
+                    var template = new QuestActSupplyLocalLp(parentComponent)
+                    {
+                        DetailId = actId, LocalLp = reader.GetInt32("local_lp", 0)
+                    };
+                    AddActTemplate(template);
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM quest_act_supply_resident_points";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActSupplyResidentPoint", actId);
+                    if (parentComponent == null)
+                        continue;
+                    var template = new QuestActSupplyResidentPoint(parentComponent)
+                    {
+                        DetailId = actId, ZoneGroupId = reader.GetUInt32("zone_group_id", 0), Point = reader.GetInt32("point", 0)
+                    };
+                    AddActTemplate(template);
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM quest_act_supply_resident_charges";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActSupplyResidentCharge", actId);
+                    if (parentComponent == null)
+                        continue;
+                    var template = new QuestActSupplyResidentCharge(parentComponent)
+                    {
+                        DetailId = actId, ZoneGroupId = reader.GetUInt32("zone_group_id", 0), Charge = reader.GetInt32("charge", 0)
+                    };
+                    AddActTemplate(template);
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM quest_act_supply_faction_changes";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActSupplyFactionChange", actId);
+                    if (parentComponent == null)
+                        continue;
+                    var template = new QuestActSupplyFactionChange(parentComponent)
+                    {
+                        DetailId = actId, SystemFactionId = reader.GetUInt32("system_faction_id", 0),
+                        IgnoreLimit = reader.GetBoolean("ignore_limit", true),
+                        InferiorEscape = reader.GetBoolean("inferior_escape", true)
+                    };
+                    AddActTemplate(template);
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM quest_act_supply_ranked_items";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActSupplyRankedItem", actId);
+                    if (parentComponent == null)
+                        continue;
+                    var template = new QuestActSupplyRankedItem(parentComponent)
+                    {
+                        DetailId = actId, Rank = reader.GetInt32("rank", 0), ItemId = reader.GetUInt32("item_id", 0),
+                        GradeId = reader.GetByte("grade_id"), Count = reader.GetInt32("count", 0)
+                    };
+                    AddActTemplate(template);
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM quest_act_supply_result_ranked_items";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var actId = reader.GetUInt32("id");
+                    var parentComponent = GetComponentByActTemplate("QuestActSupplyResultRankedItem", actId);
+                    if (parentComponent == null)
+                        continue;
+                    var template = new QuestActSupplyResultRankedItem(parentComponent)
+                    {
+                        DetailId = actId, Result = reader.GetBoolean("result", true), Rank = reader.GetInt32("rank", 0),
+                        ItemId = reader.GetUInt32("item_id", 0), GradeId = reader.GetByte("grade_id"), Count = reader.GetInt32("count", 0)
                     };
                     AddActTemplate(template);
                 }
