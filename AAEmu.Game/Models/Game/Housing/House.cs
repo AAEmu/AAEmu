@@ -347,7 +347,29 @@ public sealed class House : Unit
         return true;
     }
 
-    private const int UccSlotCount = 5;
+    public const int UccSlotCount = 5;
+
+    private HouseUccSlot[] _uccSlots;
+
+    /// <summary>
+    /// The five user-content slots the client reads from the house payload on every load, so an
+    /// applied UCC replays after a relog without any extra packet. Created on first access so
+    /// houses without database rows keep the empty layout the client already accepts.
+    /// </summary>
+    public HouseUccSlot[] UccSlots
+    {
+        get
+        {
+            if (_uccSlots == null)
+            {
+                _uccSlots = new HouseUccSlot[UccSlotCount];
+                for (var i = 0; i < UccSlotCount; i++)
+                    _uccSlots[i] = new HouseUccSlot();
+            }
+
+            return _uccSlots;
+        }
+    }
 
     public PacketStream Write(PacketStream stream)
     {
@@ -392,14 +414,16 @@ public sealed class House : Unit
         stream.Write(ButlerManager.Instance.IsHouseBound(Id));   // isBoundButler
         stream.Write(0);                                        // unnamed i32 at struct +0x82
 
-        // Five ucc slots, each houseId + u64 + kind + position. Empty until user-created content
-        // is modelled; the client reads all five unconditionally.
+        // Five ucc slots, each houseId + u64 + kind + position. The client reads all five
+        // unconditionally: an empty slot stays zeroed and an applied slot carries the house id
+        // it belongs to, the applied UCC and its placement.
         for (var i = 0; i < UccSlotCount; i++)
         {
-            stream.Write(0);   // houseId (i32)
-            stream.Write(0ul); // u64
-            stream.Write(0u);  // ucc_kind
-            stream.Write(0u);  // ucc_positon
+            var slot = UccSlots[i];
+            stream.Write(slot.Occupied ? (int)Id : 0); // houseId (i32)
+            stream.Write(slot.UccId);                  // u64
+            stream.Write(slot.Kind);                   // ucc_kind
+            stream.Write(slot.Position);               // ucc_positon
         }
 
         for (var i = 0; i < 2; i++)

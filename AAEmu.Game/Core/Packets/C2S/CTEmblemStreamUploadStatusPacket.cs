@@ -10,6 +10,8 @@ public class CTEmblemStreamUploadStatusPacket() : StreamPacket(CTOffsets.CTEmble
     {
         var status = stream.ReadByte();
 
-        UccManager.Instance.ConfirmDefaultUcc(Connection);
+        // Zero means every part went out and the upload is finalized (and grants); any other value is a
+        // failed upload that is acknowledged and discarded without granting or charging anything.
+        UccManager.Instance.HandleUploadStatus(Connection, status);
     }
 }

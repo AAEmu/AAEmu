@@ -266,6 +266,7 @@ public class HousingManager(
         }
 
         Logger.Info($"Loaded {_houses.Count} Player Buildings");
+        LoadUccSlots();
         ApplyAuthoredLodestonePlacements();
 
         var houseCheckTask = new HousingTaxTask();
@@ -387,6 +388,20 @@ public class HousingManager(
                 }
 
                 _removedHousings.Clear();
+            }
+        }
+
+        var staleUccSlots = _uccSlotCleanup.Pending();
+        if (staleUccSlots.Count > 0)
+        {
+            try
+            {
+                DeleteUccSlotRows(connection, transaction, staleUccSlots);
+                _uccSlotCleanup.Deleted(staleUccSlots);
+            }
+            catch (MySqlException ex)
+            {
+                Logger.Error($"housing_ucc_slots rows of removed houses {string.Join(",", staleUccSlots)} could not be deleted ({ex.Message}); retrying on the next save");
             }
         }
 
@@ -1502,6 +1517,7 @@ public class HousingManager(
 
             // TODO: better house killing handling
             _removedHousings.Add(house.Id);
+            ForgetUccSlots(house);
         }
         else
         {
@@ -1558,6 +1574,7 @@ public class HousingManager(
 
         // Remove house from housing tables
         _removedHousings.Add(house.Id);
+        ForgetUccSlots(house);
         _houses.Remove(house.Id);
         _housesTl.Remove(house.TlId);
         housingTldManager.ReleaseId(house.TlId);
@@ -1968,7 +1985,7 @@ public class HousingManager(
     /// </summary>
     /// <param name="houseTlId"></param>
     /// <returns></returns>
-    private House GetHouseByTlId(ushort houseTlId)
+    public House GetHouseByTlId(ushort houseTlId)
     {
         return _housesTl.GetValueOrDefault(houseTlId);
     }
@@ -2315,6 +2332,135 @@ public class HousingManager(
         using var transaction = connection.BeginTransaction();
         house.Save(connection, transaction);
         transaction.Commit();
+    }
+
+    /// <summary>
+    /// Loads the per-house user-content slots from their own table. The table lives outside the
+    /// shared housing row, so a missing table only degrades this feature: the slots stay empty
+    /// instead of preventing houses from loading at all.
+    /// </summary>
+    private void LoadUccSlots()
+    {
+        try
+        {
+            using var connection = MySQL.CreateConnection();
+            var rowHouseIds = new List<uint>();
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText =
+                    "SELECT house_id, slot, ucc_id, ucc_kind, ucc_position FROM housing_ucc_slots";
+                command.Prepare();
+                using var reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    var houseId = reader.GetUInt32("house_id");
+                    rowHouseIds.Add(houseId);
+                    if (!_houses.TryGetValue(houseId, out var house))
+                        continue;
+
+                    var slotIndex = reader.GetByte("slot");
+                    if (slotIndex >= House.UccSlotCount)
+                        continue;
+
+                    var slot = house.UccSlots[slotIndex];
+                    slot.UccId = reader.GetUInt64("ucc_id");
+                    slot.Kind = reader.GetUInt32("ucc_kind");
+                    slot.Position = reader.GetUInt32("ucc_position");
+                }
+            }
+
+            // Rows of a house that no longer exists would land on the next house given that id.
+            var orphans = HouseUccSlotCleanup.Orphans(rowHouseIds, _houses.ContainsKey);
+            if (orphans.Count > 0)
+            {
+                DeleteUccSlotRows(connection, null, orphans);
+                Logger.Warn("housing_ucc_slots: deleted the rows of {0} removed house(s): {1}",
+                    orphans.Count, string.Join(",", orphans));
+            }
+        }
+        catch (MySqlException ex)
+        {
+            Logger.Warn(
+                $"housing_ucc_slots could not be read ({ex.Message}); house UCC slots start empty for this session");
+        }
+    }
+
+    private readonly HouseUccSlotCleanup _uccSlotCleanup = new();
+
+    /// <summary>
+    /// Clears a removed house's crest slots and deletes their rows. A failed delete is retried by the next
+    /// world save (see <see cref="HouseUccSlotCleanup"/>).
+    /// </summary>
+    private void ForgetUccSlots(House house)
+    {
+        foreach (var slot in house.UccSlots)
+            slot.Clear();
+
+        if (!SaveHouseUccSlots(house))
+            _uccSlotCleanup.MarkPending(house.Id);
+    }
+
+    private static void DeleteUccSlotRows(MySqlConnection connection, MySqlTransaction transaction,
+        IReadOnlyCollection<uint> houseIds)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = $"DELETE FROM housing_ucc_slots WHERE house_id IN({string.Join(",", houseIds)})";
+        command.Prepare();
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>
+    /// Rewrites a house's user-content slots in their own table. A database failure is not fatal:
+    /// the applied state stays in memory and the write is retried on the next change, which is the
+    /// pre-feature behaviour for the housing row itself.
+    /// </summary>
+    public bool SaveHouseUccSlots(House house)
+    {
+        try
+        {
+            using var connection = MySQL.CreateConnection();
+            using var transaction = connection.BeginTransaction();
+
+            using (var delete = connection.CreateCommand())
+            {
+                delete.Transaction = transaction;
+                delete.CommandText = "DELETE FROM housing_ucc_slots WHERE house_id = @houseId";
+                delete.Parameters.AddWithValue("@houseId", house.Id);
+                delete.Prepare();
+                delete.ExecuteNonQuery();
+            }
+
+            for (var i = 0; i < House.UccSlotCount; i++)
+            {
+                var slot = house.UccSlots[i];
+                if (!slot.Occupied)
+                    continue;
+
+                using var insert = connection.CreateCommand();
+                insert.Transaction = transaction;
+                insert.CommandText =
+                    "INSERT INTO housing_ucc_slots (house_id, slot, ucc_id, ucc_kind, ucc_position) " +
+                    "VALUES (@houseId, @slot, @uccId, @kind, @position)";
+                insert.Parameters.AddWithValue("@houseId", house.Id);
+                insert.Parameters.AddWithValue("@slot", i);
+                insert.Parameters.AddWithValue("@uccId", slot.UccId);
+                insert.Parameters.AddWithValue("@kind", slot.Kind);
+                insert.Parameters.AddWithValue("@position", slot.Position);
+                insert.Prepare();
+                insert.ExecuteNonQuery();
+            }
+
+            transaction.Commit();
+            _uccSlotCleanup.Written(house.Id);
+            return true;
+        }
+        catch (MySqlException ex)
+        {
+            Logger.Warn(
+                $"housing_ucc_slots could not be written for house {house.Id} ({ex.Message}); the applied UCC stays in memory until a later save succeeds");
+            return false;
+        }
     }
 
     private void SetForSaleMarkers(House house, bool isForSale)

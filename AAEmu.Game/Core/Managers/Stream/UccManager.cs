@@ -21,9 +21,9 @@ namespace AAEmu.Game.Core.Managers.Stream;
 public class UccManager(IUccIdManager uccIdManager) : Singleton<UccManager>, IUccManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-    private Dictionary<uint, Ucc> _uploadQueue;
-    private Dictionary<uint, UccUploadHandle> _complexUploadParts;
-    private Dictionary<ulong, Ucc> _uccs;
+    private Dictionary<uint, Ucc> _uploadQueue = [];
+    private Dictionary<uint, UccUploadHandle> _complexUploadParts = [];
+    private Dictionary<ulong, Ucc> _uccs = [];
     private Dictionary<uint, ulong> _downloadQueue; // connection, UCCId
     private static readonly object s_lockObject = new();
 
@@ -377,6 +377,70 @@ public class UccManager(IUccIdManager uccIdManager) : Singleton<UccManager>, IUc
 
         connection.SendPacket(new TCEmblemStreamRecvStatusPacket(EmblemStreamStatus.End));
         Save(ucc);
+    }
+
+    /// <summary>
+    /// The upload-status byte the client sends once it has tried every part of an upload: zero when
+    /// every part went out, anything else when sending failed.
+    /// </summary>
+    public const byte UploadStatusComplete = 0;
+
+    /// <summary>What the server does after reading a client upload-status byte.</summary>
+    public enum UccUploadStatusAction
+    {
+        /// <summary>The upload completed: finalize it and grant what a finished upload grants.</summary>
+        ConfirmUpload,
+
+        /// <summary>The upload did not complete: discard it, grant nothing, acknowledge the failure.</summary>
+        UploadFailed,
+    }
+
+    /// <summary>
+    /// Maps a client upload-status byte onto the server's response. Only the all-parts-sent status
+    /// confirms; every other value fails closed, so a failed upload can never reach the grant path.
+    /// </summary>
+    public static UccUploadStatusAction ClassifyUploadStatus(byte status) =>
+        status == UploadStatusComplete ? UccUploadStatusAction.ConfirmUpload : UccUploadStatusAction.UploadFailed;
+
+    /// <summary>True while an upload for this connection is still waiting to be finalized.</summary>
+    public bool HasPendingUpload(StreamConnection connection) =>
+        connection != null && _uploadQueue.ContainsKey(connection.Id);
+
+    /// <summary>
+    /// Handles the upload-status byte the client reports for an emblem upload. A failure is
+    /// acknowledged with the end-of-transfer status and drops the queued upload before any money or
+    /// item can change hands; only completion reaches the granting confirm path.
+    /// </summary>
+    public UccUploadStatusAction HandleUploadStatus(StreamConnection connection, byte status)
+    {
+        var action = ClassifyUploadStatus(status);
+        if (action == UccUploadStatusAction.ConfirmUpload)
+            ConfirmDefaultUcc(connection);
+        else
+            FailUpload(connection);
+
+        return action;
+    }
+
+    /// <summary>
+    /// Drops a queued upload after the client reported that it did not complete. Nothing is granted
+    /// and nothing is charged, and the client still gets an acknowledgement so its transfer state
+    /// machine does not stall.
+    /// </summary>
+    public void FailUpload(StreamConnection connection)
+    {
+        if (connection == null)
+            return;
+
+        var hadPending = _uploadQueue.Remove(connection.Id, out _);
+        _complexUploadParts.Remove(connection.Id, out _);
+
+        if (hadPending)
+            Logger.Warn("Emblem upload for connection {0} reported failure; the queued upload was discarded", connection.Id);
+        else
+            Logger.Warn("Emblem upload for connection {0} reported failure with no queued upload", connection.Id);
+
+        connection.SendPacket(new TCEmblemStreamRecvStatusPacket(EmblemStreamStatus.End));
     }
 
     public static void CreateStamp(Character player, Item sourceInk)
