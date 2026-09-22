@@ -2109,6 +2109,38 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
 
 
 
+            // doodad_func_spawns
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT * FROM doodad_func_spawns";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncSpawn
+                        {
+                            Id = reader.GetUInt32("id"),
+                            OwnerTypeId = (BaseUnitType)reader.GetUInt32("owner_type_id"),
+                            SubType = reader.GetUInt32("sub_type"),
+                            PosDirId = reader.GetUInt32("pos_dir_id"),
+                            PosAngleMin = reader.GetFloat("pos_angle_min"),
+                            PosAngleMax = reader.GetFloat("pos_angle_max"),
+                            PosDistanceMin = reader.GetFloat("pos_distance_min"),
+                            PosDistanceMax = reader.GetFloat("pos_distance_max"),
+                            OriDirId = reader.GetUInt32("ori_dir_id"),
+                            OriAngle = reader.GetFloat("ori_angle"),
+                            UseSummonerFaction = reader.GetBoolean("use_summoner_faction", false),
+                            LifeTime = reader.GetFloat("life_time"),
+                            DespawnOnCreatorDeath = reader.GetBoolean("despawn_on_creator_death", true),
+                            UseSummonerAggroTarget = reader.GetBoolean("use_summoner_aggro_target", true),
+                            MateStateId = reader.GetUInt32("mate_state_id")
+                        };
+                        _funcTemplates[nameof(DoodadFuncSpawn)].Add(func.Id, func);
+                    }
+                }
+            }
+
             // doodad_func_spawn_gimmicks
             using (var command = connection.CreateCommand())
             {
