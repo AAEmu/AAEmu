@@ -11,6 +11,11 @@ namespace AAEmu.UnitTests.Game.Models.Game.Skills.Effects.SpecialEffects;
 /// Type 80 stop_channeling ends the target's running channel the way an interrupt does. The setup
 /// mirrors SkillCastInterruptRulesTests: a bare unit holding an EndChannelingTask.
 /// </summary>
+/// <remarks>
+/// Off the parallel runner: Skill.Stop releases a timeline id, and ChannelingRulesTests counts the
+/// global release total across one call, so a release from here landing in between fails it.
+/// </remarks>
+[NotInParallel]
 public class StopChannelingTests
 {
     private static Skill ChannelSkill(Unit caster) => new()
