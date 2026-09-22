@@ -393,6 +393,8 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSAddResidentServicePointPacket, 1, typeof(CSAddResidentServicePointPacket));
         RegisterPacket(CSOffsets.CSFactionRelationHistoryGetPacket, 1, typeof(CSFactionRelationHistoryGetPacket));
         RegisterPacket(CSOffsets.CSFactionRelationCountGetPacket, 1, typeof(CSFactionRelationCountGetPacket));
+        RegisterPacket(CSOffsets.CSFactionRelationRequestPacket, 1, typeof(CSFactionRelationRequestPacket));
+        RegisterPacket(CSOffsets.CSFactionRelationResponsePacket, 1, typeof(CSFactionRelationResponsePacket));
         RegisterPacket(CSOffsets.CSExpeditionNoticeUpatePacket, 1, typeof(CSExpeditionNoticeUpatePacket));
         RegisterPacket(CSOffsets.CSExpeditionRecruitmentsGetPacket, 1, typeof(CSExpeditionRecruitmentsGetPacket));
         RegisterPacket(CSOffsets.CSExpeditionRecruitmentAddPacket, 1, typeof(CSExpeditionRecruitmentAddPacket));

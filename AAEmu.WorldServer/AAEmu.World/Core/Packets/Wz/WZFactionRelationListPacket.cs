@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.World.Core.Network;
@@ -36,7 +37,13 @@ public class WZFactionRelationListPacket : ZonePacket
         IReadOnlyList<FactionRelation> all;
         try
         {
-            all = FactionManager.Instance.GetZoneRelations()
+            // With the agreement relay unwired nothing tells a zone when a term ends, so a zone that
+            // comes online during one gets the content table instead of a neutral overlay it would
+            // keep until it restarts.
+            var relations = WorldIntegration.RelayFactionRelationsToZones != null
+                ? FactionManager.Instance.GetZoneRelations()
+                : FactionManager.Instance.GetContentZoneRelations();
+            all = relations
                 .OrderBy(relation => Math.Min((uint)relation.Id, (uint)relation.Id2))
                 .ThenBy(relation => Math.Max((uint)relation.Id, (uint)relation.Id2))
                 .ToList();
@@ -75,13 +82,14 @@ public class WZFactionRelationListPacket : ZonePacket
             stream.Write(id);
             stream.Write(id2);
             stream.Write((byte)relation.State);
-            stream.Write((byte)relation.State); // nState
-            stream.Write(0ul); // updateTime
-            stream.Write(0ul); // changeTime
-            stream.Write(0L); // updaterId
-            stream.Write(""); // updaterName
-            stream.Write(0L); // confirmerId
-            stream.Write(""); // confirmerName
+            // A content row keeps nState = state as before; a hero agreement carries the state it reverts to.
+            stream.Write((byte)(relation.HasDiplomacy ? relation.NextState : relation.State)); // nState
+            stream.Write(relation.UpdateTime); // updateTime (0 on a content row)
+            stream.Write(relation.ChangeTime); // changeTime
+            stream.Write((ulong)relation.UpdaterId); // updaterId
+            stream.Write(relation.UpdaterName ?? string.Empty); // updaterName
+            stream.Write((ulong)relation.ConfirmerId); // confirmerId
+            stream.Write(relation.ConfirmerName ?? string.Empty); // confirmerName
         }
     }
 }

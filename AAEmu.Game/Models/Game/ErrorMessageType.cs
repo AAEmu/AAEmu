@@ -802,6 +802,13 @@ public enum ErrorMessageType : short
     NotEnoughGearScore = 1104,									// "not_enough_gear_score";
     TargetExpeditionGearScore = 884,							// "target_expedition_gear_score";
     BlockUserMax = 1311,												// "block_user_max";
+    // Hero diplomacy answers (enum_error_messages 1135..1140).
+    FactionDiplomacyTimeout = 1135,										// "faction_diplomacy_timeout";
+    FactionDiplomacyLimitExceeded = 1136,								// "faction_diplomacy_limit_exceeded";
+    FactionDiplomacyRefuseLimitExceeded = 1137,							// "faction_diplomacy_refuse_limit_exceeded";
+    FactionDiplomacyConsidering = 1138,									// "faction_diplomacy_considering";
+    AlreadyHaveOtherFactionRelation = 1139,								// "already_have_other_faction_relation";
+    TargetAlreadyHaveOtherFactionRelation = 1140,						// "target_already_have_other_faction_relation";
     // Returned by the 10.0.2.13 client's RegisterHarvest path.
     ButlerHarvestGradeInsufficient = 0x496,
     ButlerGardenSizeInsufficient = 0x497,

@@ -1,10 +1,12 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO(v10): the body is parsed but nothing acts on it yet.
+/// X2Nation:CanGetRelationCount: the request window asks for the viewer's diplomacy counters
+/// before it lists heroes. Answered with SCFactionRelationCount.
 /// </summary>
 /// <remarks>
 /// packet has no body. Every parameterless C2S type folds onto that one function, so the
@@ -14,5 +16,10 @@ public class CSFactionRelationCountGetPacket() : GamePacket(CSOffsets.CSFactionR
 {
     public override void Read(PacketStream stream)
     {
+        var character = Connection?.ActiveChar;
+        if (character == null)
+            return;
+
+        FactionDiplomacyManager.Instance.SendCounts(character);
     }
 }

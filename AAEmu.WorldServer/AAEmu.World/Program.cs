@@ -1042,6 +1042,23 @@ public static class Program
             zone.SendPacket(new WZUnitFactionChangedPacket(unitId, oldFaction, newFaction, temp));
             Logger.Info("WZUnitFactionChanged → zone unit={0} {1}→{2}", unitId, oldFaction, newFaction);
         };
+        // Off unless AAEMU_WZ_FACTION_RELATION_RELAY=1: the dedicate's WZFactionRelationList handler is
+        // only known as the bring-online accumulator (chunks until count reaches total), and whether
+        // it accepts the table again after the join gate is not verified. Fail closed: leave the relay
+        // unwired, and WZFactionRelationListPacket.SendAllFromGame then seeds a zone that comes online
+        // during an agreement with the content relation, so no zone holds a start without an end.
+        if (Environment.GetEnvironmentVariable("AAEMU_WZ_FACTION_RELATION_RELAY") == "1")
+        {
+            WorldIntegration.RelayFactionRelationsToZones = () =>
+            {
+                foreach (var zone in PlayerEnterService.AllLoadedZones())
+                {
+                    WZFactionRelationListPacket.SendAllFromGame(zone);
+                    Logger.Info("WZFactionRelationList → zone {0} (hero agreement changed)", zone.ZoneId);
+                }
+            };
+            Logger.Info("WZFactionRelationList relay enabled (AAEMU_WZ_FACTION_RELATION_RELAY=1)");
+        }
         WorldIntegration.RelayUnitExpeditionChangedToZone = (unitId, oldExpedition, newExpedition) =>
         {
             var zone = PlayerEnterService.ForUnit(unitId);
@@ -1451,6 +1468,7 @@ public static class Program
             WorldIntegration.RelaySkillStoppedToZone = null;
             WorldIntegration.RelayCastingStoppedToZone = null;
             WorldIntegration.RelayUnitFactionChangedToZone = null;
+            WorldIntegration.RelayFactionRelationsToZones = null;
             WorldIntegration.RelayUnitExpeditionChangedToZone = null;
             WorldIntegration.RelayEscapeSlaveToZone = null;
             WorldIntegration.RelayShipControlChangeToZone = null;

@@ -357,6 +357,7 @@ public static class Program
 
                 services.AddSingleton<FactionManager>();
                 services.AddSingleton<IFactionManager>(sp => sp.GetRequiredService<FactionManager>());
+                services.AddSingleton<FactionDiplomacyManager>();
 
                 services.AddSingleton<SpecialtyManager>();
                 services.AddSingleton<ISpecialtyManager>(sp => sp.GetRequiredService<SpecialtyManager>());
