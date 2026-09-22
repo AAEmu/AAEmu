@@ -6,21 +6,23 @@ public class IndunRoundRulesTests
 {
     private static readonly DateTime T0 = new(2026, 9, 21, 12, 0, 0, DateTimeKind.Utc);
 
-    /// <summary>Zone group 125 shape: round 1 and every fifth round carry a 120 s timer, the fifth ones are boss rounds.</summary>
+    /// <summary>
+    /// Zone group 125 shape, verified against <c>indun_rounds</c>: every fifth round is a boss round, and
+    /// the 120 s timer sits on rounds 1, 5, 10, 15, 20, 25 and 30 only, so the boss rounds 35..50 have none.
+    /// </summary>
     private static List<IndunRound> ChallengeTower(int total = 50)
     {
         var rounds = new List<IndunRound>();
         for (var i = 1; i <= total; i++)
         {
-            var fifth = i % 5 == 0;
             rounds.Add(new IndunRound
             {
                 Id = (uint)i,
                 ZoneGroupId = 125,
                 Round = i,
                 SpawnerId = 188246u + (uint)i,
-                TimerSeconds = i == 1 || fifth ? 120 : 0,
-                BossRound = fifth
+                TimerSeconds = i is 1 or 5 or 10 or 15 or 20 or 25 or 30 ? 120 : 0,
+                BossRound = i % 5 == 0
             });
         }
 
@@ -147,20 +149,20 @@ public class IndunRoundRulesTests
     }
 
     [Test]
-    public async Task NextRoundIsBoss_ReadsTheFollowingRow()
+    public async Task IsBossRound_ReadsTheRowOfThatRound()
     {
         var rounds = ChallengeTower();
-        await Assert.That(IndunRoundRules.NextRoundIsBoss(rounds, 4)).IsTrue();
-        await Assert.That(IndunRoundRules.NextRoundIsBoss(rounds, 5)).IsFalse();
-        await Assert.That(IndunRoundRules.NextRoundIsBoss(rounds, 0)).IsFalse();
+        await Assert.That(IndunRoundRules.IsBossRound(rounds, 5)).IsTrue();
+        await Assert.That(IndunRoundRules.IsBossRound(rounds, 4)).IsFalse();
+        await Assert.That(IndunRoundRules.IsBossRound(rounds, 0)).IsFalse();
     }
 
     [Test]
-    public async Task NextRoundIsBoss_FalsePastTheEndOrWithoutRows()
+    public async Task IsBossRound_FalseWithoutThatRow()
     {
-        await Assert.That(IndunRoundRules.NextRoundIsBoss(ChallengeTower(), 50)).IsFalse();
-        await Assert.That(IndunRoundRules.NextRoundIsBoss([], 0)).IsFalse();
-        await Assert.That(IndunRoundRules.NextRoundIsBoss(null, 0)).IsFalse();
+        await Assert.That(IndunRoundRules.IsBossRound(ChallengeTower(), 51)).IsFalse();
+        await Assert.That(IndunRoundRules.IsBossRound([], 5)).IsFalse();
+        await Assert.That(IndunRoundRules.IsBossRound(null, 5)).IsFalse();
     }
 
     [Test]
@@ -321,12 +323,17 @@ public class IndunRoundRulesTests
     }
 
     [Test]
-    public async Task State_NextRoundIsBossReadsTheFollowingRow()
+    public async Task State_NextRoundIsBossDescribesTheRoundReached()
     {
         var state = new IndunRoundState(ChallengeTower());
         state.ApplyNextRound(1);
         state.ApplyNextRound(3);
         await Assert.That(state.CurrentRound).IsEqualTo(4);
+        await Assert.That(state.NextRoundIsBoss).IsFalse();
+
+        // Clearing round 4 advances to the boss round 5 before the end alarm reports it.
+        state.ApplyNextRound(1);
+        await Assert.That(state.CurrentRound).IsEqualTo(5);
         await Assert.That(state.NextRoundIsBoss).IsTrue();
     }
 

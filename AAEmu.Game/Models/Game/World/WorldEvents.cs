@@ -50,6 +50,12 @@ public class OnDoodadPhaseChangedArgs : EventArgs
     public Doodad Doodad { get; set; }
     /// <summary>The phase the doodad settled on after its phase funcs ran.</summary>
     public uint FuncGroupId { get; set; }
+
+    /// <summary>
+    /// The copy's round timer as it stood when the phase change was raised. Read there once, because the
+    /// first subscriber's action chain ends the round and every later subscriber must still see it.
+    /// </summary>
+    public bool RoundTimerRunning { get; set; }
 }
 
 public class OnIndunDifficultChangedArgs : EventArgs

@@ -1043,7 +1043,9 @@ public class Doodad : BaseUnit
 
     /// <summary>
     /// Indun copies subscribe <see cref="WorldEvents.OnDoodadPhaseChanged"/> (indun_event_doodad_phase_changeds,
-    /// 14 rows). The open world has no subscriber, so only a dungeon world is raised.
+    /// 14 rows). The open world has no subscriber, so only a dungeon world is raised. The round timer is read
+    /// here, once, so that every subscriber of one phase change gates on the same value: the first action
+    /// chain ends the round, and a subscriber reading the timer live would see it already stopped.
     /// </summary>
     private void RaiseDungeonPhaseChanged()
     {
@@ -1051,7 +1053,12 @@ public class Doodad : BaseUnit
         if (world?.DungeonInstance == null)
             return;
 
-        world.Events.OnDoodadPhaseChanged(world, new OnDoodadPhaseChangedArgs { Doodad = this, FuncGroupId = FuncGroupId });
+        world.Events.OnDoodadPhaseChanged(world, new OnDoodadPhaseChangedArgs
+        {
+            Doodad = this,
+            FuncGroupId = FuncGroupId,
+            RoundTimerRunning = world.DungeonInstance.Rounds.IsTimerRunning(DateTime.UtcNow)
+        });
     }
 
     /// <summary>

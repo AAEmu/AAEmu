@@ -24,7 +24,6 @@ internal class IndunEventNoInAggroLists : IndunEvent
         _armed[worldInstance.Id] = false;
         worldInstance.Events.OnUnitCombatStart += OnUnitCombatStart;
         worldInstance.Events.OnUnitCombatEnd += OnUnitCombatEnd;
-        worldInstance.Events.OnUnitKilled += OnUnitKilled;
     }
 
     public override void UnSubscribe(WorldInstance worldInstance)
@@ -32,7 +31,6 @@ internal class IndunEventNoInAggroLists : IndunEvent
         _armed.TryRemove(worldInstance.Id, out _);
         worldInstance.Events.OnUnitCombatStart -= OnUnitCombatStart;
         worldInstance.Events.OnUnitCombatEnd -= OnUnitCombatEnd;
-        worldInstance.Events.OnUnitKilled -= OnUnitKilled;
     }
 
     private bool IsTagged(Npc npc) =>
@@ -52,12 +50,6 @@ internal class IndunEventNoInAggroLists : IndunEvent
             CheckDisengaged(world, npc);
     }
 
-    private void OnUnitKilled(object sender, OnUnitKilledArgs args)
-    {
-        if (args?.Victim is Npc npc && sender is WorldInstance world)
-            CheckDisengaged(world, npc);
-    }
-
     private void CheckDisengaged(WorldInstance world, Npc npc)
     {
         if (!IsTagged(npc) || !_armed.TryGetValue(world.Id, out var armed))
@@ -70,7 +62,11 @@ internal class IndunEventNoInAggroLists : IndunEvent
         IndunManager.Instance.DoIndunActions(StartActionId, world);
     }
 
-    /// <summary>A tagged NPC still alive with a combat flag or a non-empty aggro table keeps the event armed.</summary>
+    /// <summary>
+    /// A tagged NPC still alive with a combat flag or a non-empty aggro table keeps the event armed. A dead
+    /// one is already out of the fight, so the check only considers the living; that is what lets the death
+    /// of the last tagged NPC fire this.
+    /// </summary>
     private bool AnyTaggedNpcInCombat(WorldInstance world)
     {
         var npcs = new List<Npc>();

@@ -52,7 +52,12 @@ public sealed class IndunRoundState
 
     public uint CurrentSpawnerId => Current?.SpawnerId ?? 0;
 
-    public bool NextRoundIsBoss => IndunRoundRules.NextRoundIsBoss(_rounds, CurrentRound);
+    /// <summary>
+    /// <c>boss_round</c> of <see cref="CurrentRound"/>; the wire <c>nextRoundBoss</c>. At an end alarm
+    /// <see cref="CurrentRound"/> is already the round about to be played, so this describes that round and
+    /// not the one after it.
+    /// </summary>
+    public bool NextRoundIsBoss => IndunRoundRules.IsBossRound(_rounds, CurrentRound);
 
     public bool IsTimerRunning(DateTime nowUtc) =>
         IndunRoundRules.IsTimerRunning(_roundStartedUtc, Current?.TimerSeconds ?? 0, nowUtc);

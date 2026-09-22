@@ -18,7 +18,8 @@ public class IndunRound
     public uint SpawnerId { get; init; }
 
     /// <summary>
-    /// <c>timer</c>: 120 on the boss rounds of zone group 125 and on its round 1, 0 everywhere else.
+    /// <c>timer</c>: 120 on the zone group 125 rows 1, 5, 10, 15, 20, 25 and 30, 0 on every other row of
+    /// all three zone groups, including the 125 boss rounds 35, 40, 45 and 50.
     /// Read as seconds, the unit its sibling <c>indun_zones.option</c> times (ready_time, play_time) use.
     /// </summary>
     public int TimerSeconds { get; init; }

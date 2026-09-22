@@ -24,7 +24,7 @@ public static class IndunRoundRules
 
     /// <summary>
     /// <c>indun_action_next_rounds.round_add</c> is 1, 4 or 5 on seven rows and 0 on the eighth. The counter
-    /// never passes the last round: the +5 skip of zone group 125 (action 302) lands on 50 from 46..50.
+    /// never passes the last round; the clamp is the guard for a row that would overshoot.
     /// </summary>
     public static int NextRound(int current, int total, int roundAdd)
     {
@@ -60,15 +60,18 @@ public static class IndunRoundRules
         _ => false,
     };
 
-    /// <summary><c>boss_round</c> of the round after <paramref name="current"/>; false past the last row.</summary>
-    public static bool NextRoundIsBoss(IReadOnlyList<IndunRound> rounds, int current)
+    /// <summary>
+    /// <c>boss_round</c> of the round whose number is <paramref name="round"/>, the round the play status packet
+    /// reports and, at an end alarm, the one about to be played; false without such a row.
+    /// </summary>
+    public static bool IsBossRound(IReadOnlyList<IndunRound> rounds, int round)
     {
         if (rounds == null)
             return false;
-        foreach (var round in rounds)
+        foreach (var row in rounds)
         {
-            if (round.Round == current + 1)
-                return round.BossRound;
+            if (row.Round == round)
+                return row.BossRound;
         }
 
         return false;

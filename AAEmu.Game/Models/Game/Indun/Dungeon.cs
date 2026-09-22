@@ -817,6 +817,9 @@ public class Dungeon : IPreparedIndunInstance
 
             playing = Rounds.Playing;
             round = Rounds.CurrentRound;
+            // The counters the packet reports are the ones read under this lock: at an end alarm the
+            // NextRound of the round just cleared has already moved CurrentRound, so both describe the
+            // round about to be played and not the one that just ended.
             nextRoundBoss = Rounds.NextRoundIsBoss;
         }
 
