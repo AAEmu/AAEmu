@@ -7,6 +7,7 @@ public interface IRadarManager : IInitializable
     void RegisterForPublicTransport(Character player, float checkRange);
     void RegisterForFishSchool(Character player, float checkRange);
     void RegisterForShips(Character player, float checkRange);
+    void RegisterForBosses(Character player, uint sourceId, float checkRange);
     void RadarTick(TimeSpan delta);
     void UnRegister(Character player);
 }

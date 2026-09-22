@@ -472,6 +472,8 @@ public class BuffTemplate
                 RadarManager.Instance.RegisterForPublicTransport(character, TransferTelescopeRange);
             if (TelescopeRange > 0)
                 RadarManager.Instance.RegisterForShips(character, TelescopeRange);
+            if (BossTelescopeRange > 0)
+                RadarManager.Instance.RegisterForBosses(character, buff.Index, BossTelescopeRange);
             // Tick mana cost: tick_level_mana_cost is a multiple of the level curve formula 13 (Dash,
             // buffs.id 2675 = skills.toggle_buff_id on 16287, and 15931 both carry 0.5) and tick_mana_cost
             // is a flat amount (4 on buff 108, 100 on 15786, …). Ten rows carry one of the two and every
@@ -618,6 +620,8 @@ public class BuffTemplate
                 RadarManager.Instance.RegisterForPublicTransport(character, 0f);
             if (TelescopeRange > 0)
                 RadarManager.Instance.RegisterForShips(character, 0f);
+            if (BossTelescopeRange > 0)
+                RadarManager.Instance.RegisterForBosses(character, buff.Index, 0f);
             // Give back what Start granted. Dispel is the single exit every end path goes through —
             // timeout, Exit, RemoveBuff, purge, death — so the revoke belongs here rather than next to
             // any one of them. Buffs.RemoveBuff calls this twice for the same buff; the second call

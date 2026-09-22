@@ -1391,7 +1391,10 @@ public static class WorldIntegration
                 var isMirror = existing is Npc { IsZoneMirror: true };
                 if (ZoneMirrorIdRules.IsIdempotentRemirror(
                         existingZoneId, existingInstanceId, isMirror, zoneId, instanceId))
+                {
+                    MonitorNpcGameData.Instance.OnSpawn(bcId, templateId);
                     return true;
+                }
 
                 Logger.Warn(
                     "MirrorZoneNpcSpawn: bc={0} already owned zone={1} instance={2} incoming zone={3} instance={4} tpl={5}",
@@ -1447,6 +1450,8 @@ public static class WorldIntegration
             // Tower stage portals: OnSpawn plot graphs (army SpawnEffect). Dedic is silent;
             // World graph with zone skill relay suppressed (see CastOnSpawnPlotSkills).
             npc.CastOnSpawnPlotSkills();
+
+            MonitorNpcGameData.Instance.OnSpawn(bcId, templateId);
 
             if ((bcId - 0x00F00000) <= 5 || (bcId - 0x00F00000) % 100 == 0 || bcId <= 5 || bcId % 100 == 0
                 || npc.IsMirrorStreamPriority)
@@ -1587,6 +1592,7 @@ public static class WorldIntegration
 
         try
         {
+            MonitorNpcGameData.Instance.OnRemove(bcId);
             var unit = FindUnitAcrossWorlds(bcId);
             if (unit == null)
                 return;
