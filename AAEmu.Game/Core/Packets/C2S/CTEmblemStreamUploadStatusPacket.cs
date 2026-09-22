@@ -10,6 +10,9 @@ public class CTEmblemStreamUploadStatusPacket() : StreamPacket(CTOffsets.CTEmble
     {
         var status = stream.ReadByte();
 
-        UccManager.Instance.ConfirmDefaultUcc(Connection);
+        // The status decides what happens next: only a completed upload is finalized (and grants),
+        // progress keeps the queued upload open, and every other value is treated as a failed upload
+        // that is acknowledged and discarded without granting or charging anything.
+        UccManager.Instance.HandleUploadStatus(Connection, status);
     }
 }

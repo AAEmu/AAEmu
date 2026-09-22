@@ -809,6 +809,16 @@ CREATE TABLE IF NOT EXISTS `housings` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Player buildings';
 
+
+CREATE TABLE IF NOT EXISTS `housing_ucc_slots` (
+  `house_id` int unsigned NOT NULL,
+  `slot` tinyint unsigned NOT NULL,
+  `ucc_id` bigint unsigned NOT NULL DEFAULT '0',
+  `ucc_kind` int unsigned NOT NULL DEFAULT '0',
+  `ucc_position` int unsigned NOT NULL DEFAULT '0',
+  PRIMARY KEY (`house_id`,`slot`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Applied user-content slots of player buildings';
+
 -- ----------------------------
 -- Records of housings
 -- ----------------------------
