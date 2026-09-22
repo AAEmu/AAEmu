@@ -64,6 +64,12 @@ public class FaceModel : PacketMarshaler
         return true;
     }
 
+    public int FixedDecalAssetCount => FixedDecalAsset.Length;
+
+    /// <summary>Read access for validation; null when the index is outside the six slots.</summary>
+    public FixedDecalAsset GetFixedDecalAsset(int index) =>
+        index >= 0 && index < FixedDecalAsset.Length ? FixedDecalAsset[index] : null;
+
     public override void Read(PacketStream stream)
     {
         MovableDecalAssetId = stream.ReadUInt32();

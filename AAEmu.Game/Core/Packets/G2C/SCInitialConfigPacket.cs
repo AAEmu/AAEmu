@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Features;
 
 namespace AAEmu.Game.Core.Packets.G2C;
@@ -53,7 +54,10 @@ public class SCInitialConfigPacket : GamePacket
         // flags go out false. Publishing enable and premium true puts the lobby into its character
         // reservation gate: the client stops sending CSSelectCharacter for an existing character and
         // routes to character create instead.
-        stream.Write(false);                           // enable
+        // enable is also the lobby's "pre-select character period" gate (x2game-dev.dll FUN_394e7640 copies
+        // it to client+0x365b, FUN_394d6cf0 reads it before ApplyEditCharacter), so it is shared with the
+        // CSEditCharacter handler through CharacterEditRules.
+        stream.Write(CharacterEditRules.PreSelectCharacterPeriod); // enable
         stream.Write(false);                           // pcbang
         stream.Write(false);                           // premium
         stream.Write(config.PremiumMaxCharacterSlots); // maxCh (i8)

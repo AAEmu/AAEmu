@@ -89,6 +89,12 @@ public partial class Character : Unit, ICharacter
     public bool WorldEntryCompleted { get; set; }
 
     /// <summary>
+    /// Set while the client is inside the beauty shop (SCToggleBeautyshopResponse true was sent and no
+    /// leave has arrived). CSBeautyshopData is only honoured inside that window.
+    /// </summary>
+    public DateTime? BeautyshopEnteredAt { get; set; }
+
+    /// <summary>
     /// Optional delay after Completed before first mirror UnitState (AAEMU_MIRROR_NPC_GRACE_MS).
     /// </summary>
     public long MirrorNpcStreamNotBeforeTick { get; set; }
@@ -4116,6 +4122,64 @@ public partial class Character : Unit, ICharacter
                     {
                         // Really failed here
                         Logger.Fatal(eRollback, $"Character save rollback failed for {Id} - {Name}");
+                    }
+                    DiscardAccountLiveClears();
+                }
+            }
+        }
+        return saved;
+    }
+
+    /// <summary>
+    /// Saves only unit_model_params and the character's items, in one transaction. This is the lobby
+    /// character edit's save: a character from GameConnection.Characters comes from Character.Load,
+    /// which never runs Buffs.LoadActiveBuffs, so the full SaveDirectlyToDatabase would have
+    /// Buffs.SaveActiveBuffs delete the character's character_active_buffs rows.
+    /// </summary>
+    public bool SaveModelParamsAndItemsDirectlyToDatabase()
+    {
+        bool saved;
+        using (var sqlConnection = MySQL.CreateConnection())
+        {
+            using (var transaction = sqlConnection.BeginTransaction())
+            {
+                try
+                {
+                    Updated = DateTime.UtcNow;
+                    using (var command = sqlConnection.CreateCommand())
+                    {
+                        command.Connection = sqlConnection;
+                        command.Transaction = transaction;
+                        command.CommandText =
+                            "UPDATE `characters` SET `unit_model_params`=@unit_model_params, `updated_at`=@updated_at WHERE `id`=@id";
+                        command.Parameters.AddWithValue("@unit_model_params", ModelParams.Write(new PacketStream()).GetBytes());
+                        command.Parameters.AddWithValue("@updated_at", Updated);
+                        command.Parameters.AddWithValue("@id", Id);
+                        saved = command.ExecuteNonQuery() == 1;
+                    }
+
+                    if (!saved)
+                    {
+                        transaction.Rollback();
+                        DiscardAccountLiveClears();
+                        return false;
+                    }
+
+                    ItemManager.Instance.Save(sqlConnection, transaction);
+                    transaction.Commit();
+                    ConfirmAccountLiveSaved();
+                }
+                catch (Exception e)
+                {
+                    saved = false;
+                    Logger.Error(e, $"Model params save failed for {Id} - {Name}");
+                    try
+                    {
+                        transaction.Rollback();
+                    }
+                    catch (Exception eRollback)
+                    {
+                        Logger.Fatal(eRollback, $"Model params save rollback failed for {Id} - {Name}");
                     }
                     DiscardAccountLiveClears();
                 }
