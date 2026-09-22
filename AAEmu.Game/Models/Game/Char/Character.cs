@@ -89,6 +89,12 @@ public partial class Character : Unit, ICharacter
     public bool WorldEntryCompleted { get; set; }
 
     /// <summary>
+    /// Set while the client is inside the beauty shop (SCToggleBeautyshopResponse true was sent and no
+    /// leave has arrived). CSBeautyshopData is only honoured inside that window.
+    /// </summary>
+    public DateTime? BeautyshopEnteredAt { get; set; }
+
+    /// <summary>
     /// Optional delay after Completed before first mirror UnitState (AAEMU_MIRROR_NPC_GRACE_MS).
     /// </summary>
     public long MirrorNpcStreamNotBeforeTick { get; set; }

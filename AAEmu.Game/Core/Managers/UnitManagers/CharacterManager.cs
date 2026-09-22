@@ -8,6 +8,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
@@ -1259,40 +1260,289 @@ public class CharacterManager(
         //inventory.Equip[(int) slot] = item;
     }
 
-    public static void ApplyBeautySalon(Character character, uint hairModel, UnitCustomModelParams modelParams)
+    /// <summary>buffs.id 3619 강제 연행 (forced escort to trial); the client's own gate refuses the shop under it (FUN_396f6c60).</summary>
+    private const uint EscortBuffId = 3619;
+
+    /// <summary>enum_equip_slot 22 'horns'; the server enum still calls it Reserved.</summary>
+    private const EquipmentItemSlot HornsSlot = EquipmentItemSlot.Reserved;
+
+    /// <summary>The model the character's customization tables are keyed by (characters.model_id).</summary>
+    public bool TryGetModelId(Race race, Gender gender, out uint modelId)
     {
-        // TODO: Add support for future X-day Salon Certificate items
-
-        if (character.Inventory.GetItemsCount(SlotType.Inventory, Item.SalonCertificate) <= 0)
-            return;
-
-        var oldHair = character.Equipment.GetItemBySlot((byte)EquipmentItemSlot.Hair);
-
-        // Check if hair changed
-        if (oldHair != null && oldHair.TemplateId != hairModel)
+        if (_templates.TryGetValue((byte)(16 * (byte)gender + (byte)race), out var template))
         {
-            // Remove old hair item
-            oldHair._holdingContainer.RemoveItem(ItemTaskType.Invalid, oldHair, true);
-            // Create new hair item
-            if (!character.Equipment.AcquireDefaultItemEx(ItemTaskType.Invalid, hairModel, 1, -1,
-                    out var newItemsList, out var _, character.Id, (int)EquipmentItemSlot.Hair))
-            {
-                Logger.Error($"Failed to add new hairstyle for player {character.Name} ({character.Id})!");
-            }
+            modelId = template.ModelId;
+            return true;
+        }
 
-            if (newItemsList.Count != 1)
+        modelId = 0;
+        return false;
+    }
+
+    /// <summary>
+    /// CSBeautyshopBypass: open the shop. gender true is the gender-transfer purchase, which nothing
+    /// here implements, so it is refused. A refusal answers toggle false, the same packet the client
+    /// uses to leave, so a modified client cannot get stuck in shop mode.
+    /// </summary>
+    public void EnterBeautyshop(Character character, bool genderTransfer)
+    {
+        if (genderTransfer)
+        {
+            Logger.Debug($"Beautyshop: gender transfer entry from {character.Name} ({character.Id}) refused, not implemented");
+            character.SendPacket(new SCToggleBeautyshopResponsePacket(false));
+            return;
+        }
+
+        var verdict = BeautyshopEditRules.CanEnter(
+            character.IsDead,
+            character.Buffs?.CheckBuff(EscortBuffId) ?? false,
+            character.BeautyshopEnteredAt != null);
+        if (verdict != BeautyshopEnterError.None)
+        {
+            Logger.Debug($"Beautyshop: {character.Name} ({character.Id}) cannot enter: {verdict}");
+            if (verdict != BeautyshopEnterError.AlreadyInside)
+                character.SendPacket(new SCToggleBeautyshopResponsePacket(false));
+            return;
+        }
+
+        character.BeautyshopEnteredAt = DateTime.UtcNow;
+        character.SendPacket(new SCToggleBeautyshopResponsePacket(true));
+    }
+
+    /// <summary>CSLeaveBeautyshop: end the session. The client only drops shop mode on the toggle false reply.</summary>
+    public void LeaveBeautyshop(Character character)
+    {
+        character.BeautyshopEnteredAt = null;
+        character.SendPacket(new SCToggleBeautyshopResponsePacket(false));
+    }
+
+    /// <summary>
+    /// CSBeautyshopData, in the order validate, charge, persist, broadcast. Outside a session the
+    /// request is refused and nothing changes. The ticket is a period pass and is not consumed (see
+    /// BeautyshopEditRules.IsValidTicket); a running game_schedule_beautyshops window pays instead.
+    /// Persistence is one transaction (SaveDirectlyToDatabase); when it fails the model and the
+    /// swapped body parts are put back and the client is dropped out of the shop unchanged.
+    /// </summary>
+    public void ApplyBeautyshopEdit(Character character, BeautyshopEditRequest request)
+    {
+        if (character.BeautyshopEnteredAt == null)
+        {
+            Logger.Debug($"Beautyshop: edit from {character.Name} ({character.Id}) outside a session, refused");
+            character.SendPacket(new SCToggleBeautyshopResponsePacket(false));
+            return;
+        }
+
+        if (request.Race != (byte)character.Race || request.Gender != (byte)character.Gender
+            || !TryGetModelId(character.Race, character.Gender, out var modelId))
+        {
+            Logger.Debug($"Beautyshop: {character.Name} ({character.Id}) sent race {request.Race}/gender {request.Gender} for a {character.Race}/{character.Gender}, refused");
+            LeaveBeautyshop(character);
+            return;
+        }
+
+        var catalog = CharacterCustomizationGameData.Instance;
+        var bodyPartError = BeautyshopEditRules.ValidateBodyPart(catalog, modelId, CustomizingCategory.Hair, request.HairItemId);
+        if (bodyPartError == BeautyshopEditError.None)
+            bodyPartError = BeautyshopEditRules.ValidateBodyPart(catalog, modelId, CustomizingCategory.Horn, request.HornItemId);
+        if (bodyPartError == BeautyshopEditError.None)
+            bodyPartError = BeautyshopEditRules.ValidateBodyPart(catalog, modelId, CustomizingCategory.Tail, request.TailItemId);
+        var modelError = bodyPartError == BeautyshopEditError.None
+            ? BeautyshopEditRules.ValidateModel(catalog, modelId, (byte)character.Race, (byte)character.Gender, request.Model)
+            : bodyPartError;
+        if (modelError != BeautyshopEditError.None)
+        {
+            Logger.Debug($"Beautyshop: {character.Name} ({character.Id}) sent an invalid appearance ({modelError}), refused");
+            LeaveBeautyshop(character);
+            return;
+        }
+
+        // Charge. The client reports what it found (or the none id with count 0), the bag decides.
+        var now = DateTime.UtcNow;
+        var holdsTicket = false;
+        foreach (var item in character.Inventory?.Bag?.Items ?? [])
+        {
+            if (item != null && BeautyshopEditRules.IsValidTicket(item.TemplateId, item.ExpirationTime, now, catalog.TicketItemIds))
             {
-                Logger.Error($"Something failed during hairstyle creation for player {character.Name} ({character.Id})!");
+                holdsTicket = true;
+                break;
             }
         }
-        character.ModelParams = modelParams;
 
-        character.BroadcastPacket(new SCCharacterGenderAndModelModifiedPacket(character), true);
+        // SCInitialConfigPacket publishes pcbang false for every account.
+        var freeWindow = BeautyshopEditRules.IsFreeWindowOpen(
+            catalog.BeautyshopSchedules, GameScheduleManager.Instance.GetRunningGameScheduleIds(), accountIsPcBang: false);
+        var charge = BeautyshopEditRules.DecideCharge(holdsTicket, freeWindow);
+        if (charge == BeautyshopCharge.Rejected)
+        {
+            Logger.Debug($"Beautyshop: {character.Name} ({character.Id}) holds no valid ticket (client offered {request.TicketItemId} x{request.TicketCount}) and no free window runs");
+            // The code the client itself shows for a missing ticket (FUN_396105e0, 0x2d2). The session stays open.
+            character.SendErrorMessage(ErrorMessageType.NotEnoughRequiredItem);
+            return;
+        }
 
-        if (character.Inventory.Bag.ConsumeItem(ItemTaskType.EditCosmetic, Item.SalonCertificate, 1, null) <= 0)
-            Logger.Error($"Could not consume salon certificate for player {character.Name} ({character.Id})!");
+        // Persist, then broadcast.
+        var swaps = new List<(EquipmentItemSlot Slot, uint TemplateId)>();
+        if (!BeautyshopEditRules.IsNone(request.HairItemId))
+            swaps.Add((EquipmentItemSlot.Hair, (uint)request.HairItemId));
+        if (!BeautyshopEditRules.IsNone(request.HornItemId))
+            swaps.Add((HornsSlot, (uint)request.HornItemId));
+        if (!BeautyshopEditRules.IsNone(request.TailItemId))
+            swaps.Add((EquipmentItemSlot.Tail, (uint)request.TailItemId));
 
-        // The client will do a salon leave request after it gets the SCCharacterGenderAndModelModifiedPacket
+        var merged = BeautyshopEditRules.MergeModel(character.ModelParams, request.Model);
+        if (!ApplyAppearance(character, merged, swaps))
+        {
+            Logger.Error($"Beautyshop: appearance save failed for {character.Name} ({character.Id}), rolled back");
+            LeaveBeautyshop(character);
+            return;
+        }
+
+        Logger.Info($"Beautyshop: {character.Name} ({character.Id}) changed appearance, paid by {charge}");
+        character.BroadcastPacket(new SCCharacterGenderAndModelModifiedPacket(
+            character,
+            character.Equipment?.GetItemBySlot((int)EquipmentItemSlot.Hair)?.TemplateId ?? 0,
+            character.Equipment?.GetItemBySlot((int)HornsSlot)?.TemplateId ?? 0,
+            genderTransfer: false), true);
+        // The owner's client answers with CSLeaveBeautyshop (FUN_394dc910), which closes the session.
+    }
+
+    /// <summary>
+    /// CSEditCharacter from the lobby: the same appearance rules as the salon, no cost, and only inside
+    /// the published pre-select period, which this server does not publish (CharacterEditRules).
+    /// Rejections are logged and unanswered: a stock client never sends this outside the period.
+    /// </summary>
+    public void EditCharacter(GameConnection connection, CharacterEditRequest request)
+    {
+        var owned = connection.Characters != null && connection.Characters.TryGetValue(request.CharacterId, out var character);
+        character = owned ? connection.Characters[request.CharacterId] : null;
+        var verdict = CharacterEditRules.Validate(
+            CharacterEditRules.PreSelectCharacterPeriod,
+            connection.State == GameState.Lobby,
+            owned,
+            sameName: character != null && string.Equals(character.Name, request.Name?.NormalizeName(), StringComparison.Ordinal),
+            sameRace: character != null && character.Race == request.Race,
+            sameGender: character != null && character.Gender == request.Gender,
+            sameLevel: character != null && character.Level == request.Level,
+            sameAbilities: character != null && character.Ability1 == request.Ability1 && character.Ability2 == request.Ability2 && character.Ability3 == request.Ability3);
+        if (verdict != CharacterEditError.None)
+        {
+            Logger.Debug($"EditCharacter: account {connection.AccountId} character {request.CharacterId} refused: {verdict}");
+            return;
+        }
+
+        if (!TryGetModelId(character.Race, character.Gender, out var modelId))
+        {
+            Logger.Debug($"EditCharacter: no character template for {character.Race}/{character.Gender}, refused");
+            return;
+        }
+
+        var catalog = CharacterCustomizationGameData.Instance;
+        var itemsVerdict = CharacterEditRules.ValidateBodyItems(catalog, modelId, request.BodyItems);
+        if (itemsVerdict != CharacterEditError.None)
+        {
+            Logger.Debug($"EditCharacter: {character.Name} ({character.Id}) sent an unknown body item, refused");
+            return;
+        }
+
+        var modelError = BeautyshopEditRules.ValidateModel(catalog, modelId, (byte)character.Race, (byte)character.Gender, request.Model);
+        if (modelError != BeautyshopEditError.None)
+        {
+            Logger.Debug($"EditCharacter: {character.Name} ({character.Id}) sent an invalid appearance ({modelError}), refused");
+            return;
+        }
+
+        var swaps = new List<(EquipmentItemSlot Slot, uint TemplateId)>();
+        for (var i = 0; i < CharacterEditRules.BodyItemCount; i++)
+        {
+            if (request.BodyItems[i] != 0)
+                swaps.Add((CharacterEditRules.BodySlot(i), request.BodyItems[i]));
+        }
+
+        var merged = BeautyshopEditRules.MergeModel(character.ModelParams, request.Model);
+        if (!ApplyAppearance(character, merged, swaps))
+        {
+            Logger.Error($"EditCharacter: save failed for {character.Name} ({character.Id}), rolled back");
+            return;
+        }
+
+        connection.SendPacket(new SCEditCharacterResponsePacket(character));
+    }
+
+    /// <summary>
+    /// Swap the requested body parts and the model in memory, then save the character and its items
+    /// in one transaction. On failure everything is put back: the previous model object and a fresh
+    /// item of each replaced template in its slot (the removed item objects are gone by then).
+    /// </summary>
+    private bool ApplyAppearance(Character character, UnitCustomModelParams newModel,
+        IReadOnlyList<(EquipmentItemSlot Slot, uint TemplateId)> swaps)
+    {
+        var oldModel = character.ModelParams;
+        var undo = new List<(EquipmentItemSlot Slot, uint TemplateId)>();
+        foreach (var (slot, templateId) in swaps)
+        {
+            var current = character.Equipment?.GetItemBySlot((int)slot);
+            if (current?.TemplateId == templateId)
+                continue;
+            if (!SwapBodyPart(character, slot, templateId, out var previousTemplateId))
+            {
+                RollbackSwaps(character, undo);
+                return false;
+            }
+
+            undo.Add((slot, previousTemplateId));
+        }
+
+        character.ModelParams = newModel;
+        if (character.SaveDirectlyToDatabase())
+            return true;
+
+        character.ModelParams = oldModel;
+        RollbackSwaps(character, undo);
+        return false;
+    }
+
+    private void RollbackSwaps(Character character, List<(EquipmentItemSlot Slot, uint TemplateId)> undo)
+    {
+        for (var i = undo.Count - 1; i >= 0; i--)
+        {
+            if (!SwapBodyPart(character, undo[i].Slot, undo[i].TemplateId, out _))
+                Logger.Error($"Appearance rollback could not restore slot {undo[i].Slot} item {undo[i].TemplateId} for {character.Name} ({character.Id})");
+        }
+    }
+
+    /// <summary>
+    /// Replace the item in a body slot by a fresh item of the given template (0 empties the slot). Item
+    /// tasks stay silent (ItemTaskType.Invalid): the appearance packet carries the hair and horn ids
+    /// and the equipment container broadcasts the slot change to everyone else.
+    /// </summary>
+    private bool SwapBodyPart(Character character, EquipmentItemSlot slot, uint templateId, out uint previousTemplateId)
+    {
+        previousTemplateId = 0;
+        var equipment = character.Equipment;
+        if (equipment == null)
+            return false;
+
+        var current = equipment.GetItemBySlot((int)slot);
+        if (current != null)
+        {
+            previousTemplateId = current.TemplateId;
+            if (!equipment.RemoveItem(ItemTaskType.Invalid, current, true))
+                return false;
+        }
+
+        if (templateId == 0)
+            return true;
+
+        var item = itemManager.Create(templateId, 1, 0);
+        if (item == null)
+            return false;
+        item.SlotType = SlotType.Equipment;
+        item.Slot = (int)slot;
+        if (equipment.AddOrMoveExistingItem(ItemTaskType.Invalid, item, (int)slot))
+            return true;
+
+        itemManager.ReleaseId(item.Id);
+        return false;
     }
 
     public virtual bool IsCharacterPendingDeletion(string name)
