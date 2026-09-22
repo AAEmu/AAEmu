@@ -384,6 +384,11 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
 
         if (!persisted)
         {
+            // Insert reports false for a write that committed and then lost its connection too. A
+            // surviving row would load on the next boot and mail the fee and the sheet a second
+            // time, so drop it before handing either back.
+            _store.Delete(order.Id);
+
             // The fee and the sheet were already taken. The sheet carries the materials, so it
             // comes back the same way a cancel hands it back.
             if (fee > 0)

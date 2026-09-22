@@ -22,7 +22,7 @@ namespace AAEmu.UnitTests.Game.Core.Managers;
 /// Escrow through the real <see cref="CraftOrderManager"/> against the store interface: what a
 /// post takes and writes, what comes back when the row cannot be written, and what a lapsed or
 /// wiped listing mails back. The store double fails on demand. The MySQL store is one statement
-/// per call and is not exercised here.
+/// per call — one transaction for the wipe — and is not exercised here.
 ///
 /// Inputs are shipped rows: craft 64 (cost 1, actability_limit 0, skill 14621 with consume_lp 20 in
 /// actability group 18, product item 4014), the request sheet item 44539 behind
@@ -155,6 +155,22 @@ public sealed class CraftOrderManagerEscrowTests
         await Assert.That(returned[0].CraftCount).IsEqualTo(2u);
         await Assert.That(returned[0].CraftGrade).IsEqualTo((byte)0);
         await Assert.That(returned[0].ActabilityGroupId).IsEqualTo(ActabilityGroupId);
+    }
+
+    [Test]
+    public async Task Post_RowWriteFailure_DropsARowThatCommittedBeforeTheConnectionDropped()
+    {
+        var poster = Poster();
+        var sheet = SheetInBag(poster, count: 2);
+        _store.FailInserts = true;
+        // Insert reports false for a row MySQL can still be holding.
+        _store.CommitRowDespiteFailedInsert = true;
+
+        _manager.Post(poster, sheet.Id, FloorForTwoRuns);
+
+        await Assert.That(_store.LoadAll()).IsEmpty();
+        await Assert.That(poster.Money).IsEqualTo(StartingMoney);
+        await Assert.That(poster.Inventory.Bag.Items.OfType<CraftOrderSheetItem>().Count()).IsEqualTo(1);
     }
 
     [Test]
@@ -352,8 +368,23 @@ public sealed class CraftOrderManagerEscrowTests
         public bool FailInserts { get; set; }
         public bool FailWipe { get; set; }
 
+        /// <summary>A failed insert whose row MySQL kept anyway, the drop-after-commit case.</summary>
+        public bool CommitRowDespiteFailedInsert { get; set; }
+
         public IReadOnlyList<CraftOrder> LoadAll() => _inner.LoadAll();
-        public bool Insert(CraftOrder order) => !FailInserts && _inner.Insert(order);
+
+        public bool Insert(CraftOrder order)
+        {
+            if (FailInserts)
+            {
+                if (CommitRowDespiteFailedInsert)
+                    _inner.Insert(order);
+                return false;
+            }
+
+            return _inner.Insert(order);
+        }
+
         public bool Delete(ulong orderId) => _inner.Delete(orderId);
         public bool DeleteAll() => !FailWipe && _inner.DeleteAll();
         public IReadOnlyList<CraftOrderFeeStat> LoadFeeStats() => _inner.LoadFeeStats();

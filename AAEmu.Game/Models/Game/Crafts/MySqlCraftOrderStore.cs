@@ -4,7 +4,10 @@ using NLog;
 
 namespace AAEmu.Game.Models.Game.Crafts;
 
-/// <summary>MySQL store for the live board. Each mutate is its own connection so a World kill cannot leave escrow without a row.</summary>
+/// <summary>
+/// MySQL store for the live board. Each mutate is its own connection so a World kill cannot leave
+/// escrow without a row, and the whole-board wipe is one transaction so it cannot half-apply.
+/// </summary>
 public sealed class MySqlCraftOrderStore : ICraftOrderStore
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
@@ -107,16 +110,23 @@ public sealed class MySqlCraftOrderStore : ICraftOrderStore
         }
     }
 
+    /// <summary>
+    /// Wipes both tables in one transaction. Two statements on their own would let the second
+    /// fail after the first committed, leaving the board claiming orders MySQL no longer has.
+    /// </summary>
     public bool DeleteAll()
     {
         try
         {
             using var connection = MySQL.CreateConnection();
+            using var transaction = connection.BeginTransaction();
             using var command = connection.CreateCommand();
+            command.Transaction = transaction;
             command.CommandText = "DELETE FROM craft_orders";
             command.ExecuteNonQuery();
             command.CommandText = "DELETE FROM craft_order_fee_stats";
             command.ExecuteNonQuery();
+            transaction.Commit();
             return true;
         }
         catch (Exception ex)
