@@ -22,19 +22,21 @@ public class UnitReqNationTests
     }
 
     [Test]
-    public async Task WesternCharacterIsNotEastZoneNationMember()
+    public async Task SystemFactionsAreNotPlayerNations()
     {
-        var west = UnitReqNation.EffectiveNationId((uint)FactionsEnum.Nuian, (uint)FactionsEnum.NuiaAlliance);
-        await Assert.That(UnitReqNation.IsNationMemberOfZone(west, (uint)FactionsEnum.HaranyaAlliance))
-            .IsFalse();
-        await Assert.That(UnitReqNation.IsNationMemberOfZone(west, (uint)FactionsEnum.NuiaAlliance))
-            .IsTrue();
+        // The client compares the faction id with 1000 (x2game-dev.dll 0x392B1000); every system_factions
+        // row (ids up to 221) is below it, so alliance and race members alike are not nation members.
+        await Assert.That(UnitReqNation.IsPlayerNationMember((uint)FactionsEnum.Nuian)).IsFalse();
+        await Assert.That(UnitReqNation.IsPlayerNationMember((uint)FactionsEnum.NuiaAlliance)).IsFalse();
+        await Assert.That(UnitReqNation.IsPlayerNationMember((uint)FactionsEnum.HaranyaAlliance)).IsFalse();
+        await Assert.That(UnitReqNation.IsPlayerNationMember(0)).IsFalse();
     }
 
     [Test]
-    public async Task EmptyZoneFactionNeverMatches()
+    public async Task ThresholdIsInclusive()
     {
-        await Assert.That(UnitReqNation.IsNationMemberOfZone((uint)FactionsEnum.NuiaAlliance, 0))
-            .IsFalse();
+        await Assert.That(UnitReqNation.IsPlayerNationMember(UnitReqNation.PlayerNationFactionIdStart - 1)).IsFalse();
+        await Assert.That(UnitReqNation.IsPlayerNationMember(UnitReqNation.PlayerNationFactionIdStart)).IsTrue();
+        await Assert.That(UnitReqNation.IsPlayerNationMember(UnitReqNation.PlayerNationFactionIdStart + 1)).IsTrue();
     }
 }

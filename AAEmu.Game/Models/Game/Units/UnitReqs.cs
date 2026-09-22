@@ -38,6 +38,16 @@ public class UnitReqs
 
     public UnitReqsValidationResult Validate(BaseUnit owner, BaseUnit target, Item targetItem = null)
     {
+        var result = EvaluateKind(owner, target, targetItem);
+        // The list evaluator (x2game-dev.dll 0x39796DA0) copies the failing row's display_msg into the
+        // result's display gate; a passing row never reaches it.
+        if (result.ResultKey != SkillResultKeys.ok)
+            result.DisplayMessage = DisplayMessage;
+        return result;
+    }
+
+    private UnitReqsValidationResult EvaluateKind(BaseUnit owner, BaseUnit target, Item targetItem)
+    {
         UnitReqsValidationResult Ret(SkillResultKeys errorKey, bool success)
         {
             return success
@@ -52,13 +62,24 @@ public class UnitReqs
                 : new UnitReqsValidationResult(errorKey, 0, value);
         }
 
+        // Failure whose native byte has no SkillResultKeys member yet: the key gives the closest wire byte
+        // and NativeResult carries the byte the client evaluator writes (see UnitReqsValidationResult).
+        UnitReqsValidationResult RetNative(SkillResult native, ushort detail, uint value, bool success)
+        {
+            return success
+                ? new UnitReqsValidationResult(SkillResultKeys.ok, 0, 0)
+                : new UnitReqsValidationResult(SkillResultKeys.skill_failure, detail, value) { NativeResult = native };
+        }
+
         var unit = owner as Unit;
         var targetUnit = target as Unit;
         var player = owner as Character;
         switch (KindType)
         {
             case UnitReqsKindType.Level:
-                return Ret(SkillResultKeys.skill_urk_level, unit != null && unit.Level >= Value1 && (Value2 == 0 || unit.Level <= Value2));
+                // x2game-dev.dll 0x392B13B0 reads only value1 (level >= value1); value2 is never read. The one
+                // enabled row that carries a value2 (id 37420 on skill 14703, 1..10) gets the client's reading.
+                return Ret(SkillResultKeys.skill_urk_level, unit != null && unit.Level >= Value1);
 
             case UnitReqsKindType.Ability:
                 return Ret(SkillResultKeys.skill_urk_ability, player != null && player.Abilities.GetAbilityLevel((AbilityType)Value1) >= Value2);
@@ -135,6 +156,9 @@ public class UnitReqs
                     player != null && CraftManager.Instance.HasCraft(Value1));
 
             case UnitReqsKindType.DoodadRange:
+                // 0x397959C0 passes outright when value1 is the doodad sentinel (0 at 0x3D4FCA60).
+                if (Value1 == 0)
+                    return Ret(SkillResultKeys.ok, true);
                 if (owner == null)
                     return new UnitReqsValidationResult(SkillResultKeys.skill_urk_doodad_range, 0, Value1);
                 var rangeCheck = Value2 / 1000f;
@@ -186,8 +210,9 @@ public class UnitReqs
                 return Ret(SkillResultKeys.skill_urk_equip_weapon_type, hasWeaponType);
 
             case UnitReqsKindType.TargetHealthLessThan:
+                // 0x392B17B0: value1 0 compares current HP, anything else the integer percent; passes at or below value2.
                 return Ret(SkillResultKeys.skill_urk_target_health_less_than,
-                    targetUnit?.Hpp >= Value1 && targetUnit.Hpp <= Value2);
+                    targetUnit != null && UnitReqOperatorRules.PassesPoolCompare(Value1, targetUnit.Hp, targetUnit.MaxHp, Value2, lessThan: true));
 
             case UnitReqsKindType.TargetNpc:
                 return RetWithValue(SkillResultKeys.skill_urk_target_npc, Value1,
@@ -281,7 +306,8 @@ public class UnitReqs
                 var groupTarget = targetUnit as Npc;
                 var inNpcGroup = groupTarget != null &&
                     QuestManager.Instance.CheckGroupNpc(Value1, groupTarget.TemplateId);
-                return RetWithValue(SkillResultKeys.skill_urk_target_npc_group, Value1,
+                // 0x39795600 writes zero detail and value on failure.
+                return Ret(SkillResultKeys.skill_urk_target_npc_group,
                     UnitReqTargetNpcGroupRules.Passes(groupTarget != null, inNpcGroup, Value2));
 
             case UnitReqsKindType.AreaSphere:
@@ -306,37 +332,42 @@ public class UnitReqs
                 return Ret(SkillResultKeys.skill_urk_not_under_water, !unit?.IsUnderWater ?? false);
 
             case UnitReqsKindType.FactionMatch:
-                return RetWithValue(SkillResultKeys.skill_urk_faction_match, Value1, (uint)(unit?.Faction?.Id ?? 0) == Value1);
+                // 0x39793B30 accepts the unit's faction or its mother faction; only kind 55 is the exact match.
+                return RetWithValue(SkillResultKeys.skill_urk_faction_match, Value1,
+                    unit != null && UnitReqOperatorRules.PassesFactionMatch(FactionIdOf(unit), MotherIdOf(unit), Value1));
 
             case UnitReqsKindType.Tod:
                 var currentTime = (uint)Math.Floor(TimeManager.Instance.GetTime * 100f);
                 return Ret(SkillResultKeys.skill_urk_tod, currentTime >= Value1 && currentTime <= Value2);
 
             case UnitReqsKindType.MotherFaction:
-                return Ret(SkillResultKeys.skill_urk_mother_faction, EffectiveNationId(unit) == Value1);
+                // 0x397939D0 compares the root of value1 with the root of the unit's faction (0x396B6D10).
+                return Ret(SkillResultKeys.skill_urk_mother_faction, SharesRootFaction(unit, Value1));
 
             case UnitReqsKindType.ActAbilityPoint:
+                // 0x39793D00 always adds the attribute bonus and never reads value3 (all 218 rows carry 0).
                 return RetWithValue(SkillResultKeys.skill_urk_actability_point, Value1,
-                    player != null && player.Actability.GetPoint(Value1, Value3 == 0) >= Value2);
+                    player != null && player.Actability.GetPoint(Value1, true) >= Value2);
 
+            // Kinds 44..47 and 50 share one shape in the client (0x39793E70, 0x397956B0, 0x39793EF0,
+            // 0x39793F70): value1 0 needs the point at least value2, anything else at most value2, and the
+            // failure carries value1 in the u32. The 27 CrimeRecord quest rows are mostly (1, 9): a record of
+            // at most nine, which the old "value1 <= record <= value2" reading refused at record 0.
             case UnitReqsKindType.CrimePoint:
-                return Ret(SkillResultKeys.skill_urk_crime_point,
-                    player != null && player.CrimePoint >= Value1 &&
-                    (Value2 == 0 || player.CrimePoint <= Value2));
+                return RetWithValue(SkillResultKeys.skill_urk_crime_point, Value1,
+                    player != null && UnitReqOperatorRules.PassesBound(Value1, player.CrimePoint, Value2));
 
             case UnitReqsKindType.HonorPoint:
-                return Ret(SkillResultKeys.skill_urk_honor_point,
-                    player?.HonorPoint >= Value1 && player.HonorPoint <= Value2);
+                return RetWithValue(SkillResultKeys.skill_urk_honor_point, Value1,
+                    player != null && UnitReqOperatorRules.PassesBound(Value1, player.HonorPoint, Value2));
 
             case UnitReqsKindType.CrimeRecord:
-                return Ret(SkillResultKeys.skill_urk_crime_record,
-                    player != null && player.CrimeRecord >= Value1 &&
-                    (Value2 == 0 || player.CrimeRecord <= Value2));
+                return RetWithValue(SkillResultKeys.skill_urk_crime_record, Value1,
+                    player != null && UnitReqOperatorRules.PassesBound(Value1, player.CrimeRecord, Value2));
 
             case UnitReqsKindType.JuryPoint:
-                return Ret(SkillResultKeys.skill_urk_jury_point,
-                    player != null && player.JuryPoint >= Value1 &&
-                    (Value2 == 0 || player.JuryPoint <= Value2));
+                return RetWithValue(SkillResultKeys.skill_urk_jury_point, Value1,
+                    player != null && UnitReqOperatorRules.PassesBound(Value1, player.JuryPoint, Value2));
 
             case UnitReqsKindType.SourceOwnerType:
                 return Ret(SkillResultKeys.skill_urk_source_owner_type,
@@ -347,9 +378,8 @@ public class UnitReqs
                     player?.Appellations.Appellations.Contains(Value1) ?? false);
 
             case UnitReqsKindType.LivingPoint:
-                return Ret(SkillResultKeys.skill_urk_living_point,
-                    player != null && player.VocationPoint >= Value1 &&
-                    (Value2 == 0 || player.VocationPoint <= Value2));
+                return RetWithValue(SkillResultKeys.skill_urk_living_point, Value1,
+                    player != null && UnitReqOperatorRules.PassesBound(Value1, player.VocationPoint, Value2));
 
             case UnitReqsKindType.InZone:
                 var inZone = ZoneManager.Instance.GetZoneByKey(owner.Transform.ZoneId);
@@ -362,41 +392,71 @@ public class UnitReqs
 
 
             case UnitReqsKindType.VerdictOnly:
-                return UnsupportedRequirement();
+                // 0x39794130 passes while the character block field that kind 47 reads as the jury point is non-zero.
+                return Ret(SkillResultKeys.skill_urk_verdict_only, player != null && player.JuryPoint != 0);
 
             case UnitReqsKindType.FactionMatchOnly:
                 // Is this the same as UnitReqsKindType.FactionMatch ? 
                 return RetWithValue(SkillResultKeys.skill_urk_faction_match_only, Value1, (uint)(unit?.Faction?.Id ?? 0) == Value1);
 
             case UnitReqsKindType.MotherFactionOnly:
-                return Ret(SkillResultKeys.skill_urk_mother_faction_only, EffectiveNationId(unit) == Value1);
+                // 0x39793A30 is the same root comparison as kind 42 with its own result byte.
+                return Ret(SkillResultKeys.skill_urk_mother_faction_only, SharesRootFaction(unit, Value1));
 
             case UnitReqsKindType.FactionMatchOnlyNot:
                 return Ret(SkillResultKeys.skill_urk_faction_match_only_not, (uint)(unit?.Faction?.Id ?? 0) != Value1);
 
             case UnitReqsKindType.MotherFactionOnlyNot:
-                return Ret(SkillResultKeys.skill_urk_mother_faction_only_not, EffectiveNationId(unit) != Value1);
+                // 0x39793A90: the negation of kind 56, value1 in the u32; a missing unit fails like the client.
+                return RetWithValue(SkillResultKeys.skill_urk_mother_faction_only_not, Value1,
+                    unit != null && !SharesRootFaction(unit, Value1));
 
             case UnitReqsKindType.NationMember:
-                return Ret(SkillResultKeys.skill_urk_nation_member, IsNationMemberOfCurrentZone(owner, unit));
+                // 0x392B1000: the unit's faction id is at least the player-nation threshold; value1 is not read.
+                return Ret(SkillResultKeys.skill_urk_nation_member,
+                    unit != null && UnitReqNation.IsPlayerNationMember(FactionIdOf(unit)));
 
             case UnitReqsKindType.NationMemberNot:
-                return Ret(SkillResultKeys.skill_urk_nation_member_not, !IsNationMemberOfCurrentZone(owner, unit));
-            // case UnitReqsKindType.DominionMemberAtPos:
-            // case UnitReqsKindType.DominionMemberAtPosNot:
-            // case UnitReqsKindType.Housing:
-            // case UnitReqsKindType.HealthMargin:
-            // case UnitReqsKindType.ManaMargin:
+                return Ret(SkillResultKeys.skill_urk_nation_member_not,
+                    unit != null && !UnitReqNation.IsPlayerNationMember(FactionIdOf(unit)));
+
+            case UnitReqsKindType.DominionMemberAtPos:
+                // Inline in 0x397964B0: the owner of the dominion covering the unit's current zone (dominion
+                // service 0x39CFBEF0, zero when unclaimed) must equal the unit's owner key (0x396B6BE0).
+                return Ret(SkillResultKeys.skill_urk_dominion_member_at_pos, IsDominionMemberAtPosition(owner, unit));
+
+            case UnitReqsKindType.DominionMemberAtPosNot:
+                // Fails with 0x82 exactly when the kind 62 comparison holds; an unresolvable unit fails closed.
+                return Ret(SkillResultKeys.skill_urk_dominion_member_at_pos_not,
+                    owner?.Transform != null && unit != null && !IsDominionMemberAtPosition(owner, unit));
+
+            case UnitReqsKindType.Housing:
+                // 0x397961E0 walks the housing service list and compares each template's field +0x1C, the
+                // housings.category_id that kind 83 compares on the target house, with value1; value2 1 needs a
+                // match, anything else needs none. The owned-house list is the server's reading of that walk.
+                return RetWithValue(SkillResultKeys.skill_urk_housing, Value1,
+                    player != null && UnitReqOperatorRules.PassesHousing(Value2,
+                        HousingManager.Instance.OwnsHouseOfCategory(player.Id, Value1)));
+
+            case UnitReqsKindType.HealthMargin:
+                // 0x392B18F0: max HP minus current HP must reach value1, failing 0x84 with value1
+                // (no enabled rows in 10.0.2.13, and no key maps to 0x84 yet).
+                return RetNative(SkillResult.UrkHealthMargin, 0, Value1,
+                    unit != null && UnitReqOperatorRules.PassesMargin(unit.MaxHp, unit.Hp, Value1));
+
+            case UnitReqsKindType.ManaMargin:
+                // 0x392B1970: max MP minus current MP must reach value1 (no enabled rows in 10.0.2.13).
+                return RetWithValue(SkillResultKeys.skill_urk_mana_margin, Value1,
+                    unit != null && UnitReqOperatorRules.PassesMargin(unit.MaxMp, unit.Mp, Value1));
 
             case UnitReqsKindType.LaborPowerMargin:
-                // Headroom across BOTH pools: the account cap plus the local cap, minus what is held in
-                // either. Both pools are account-wide, so the margin the client shows spans both.
-                var remainingLaborMargin = player == null
-                    ? 0
-                    : TimedRewardsManager.GetMaxLabor(player.PremiumGrade, player.Connection?.Payment?.PremiumState ?? false, player.AccountId) +
-                      player.MaxLocalLaborPower -
-                      (player.LaborPower + player.LocalLaborPower);
-                return RetWithValue(SkillResultKeys.skill_urk_labor_power_margin, Value1, Value1 <= remainingLaborMargin);
+                // 0x39794590 asks the labor service for max and current with selector 0, the account pool
+                // (selector 1 is the local pool of kind 99), and passes when max - current >= value1.
+                if (player == null)
+                    return RetWithValue(SkillResultKeys.skill_urk_labor_power_margin, Value1, false);
+                var accountLaborCap = TimedRewardsManager.GetMaxLabor(player.PremiumGrade, player.Connection?.Payment?.PremiumState ?? false, player.AccountId);
+                return RetWithValue(SkillResultKeys.skill_urk_labor_power_margin, Value1,
+                    UnitReqOperatorRules.PassesMargin(accountLaborCap, player.LaborPower, Value1));
 
             case UnitReqsKindType.LaborPowerMarginLocal:
                 var remainingLocalLaborMargin = player != null
@@ -413,20 +473,41 @@ public class UnitReqs
             case UnitReqsKindType.MaxLevel:
                 return Ret(SkillResultKeys.skill_urk_max_level, player?.Level <= Value1);
 
+            // The three leadership kinds (0x39795780, 0x39794380, 0x39795810) read value1 as the bound
+            // selector and value2 as the threshold, and all fail with result 0x90, detail 0x355
+            // (enum_error_messages 853 WRONG_LEADERSHIP_POINT) and value1 in the u32.
             case UnitReqsKindType.LeadershipTotal:
-                return RetWithValue(SkillResultKeys.skill_urk_leadership_total, Value1,
-                    player != null && player.AccumulatedLeadershipPoint >= Value1);
+                if (player != null && UnitReqOperatorRules.PassesBound(Value1, player.AccumulatedLeadershipPoint, Value2))
+                    return Ret(SkillResultKeys.skill_urk_leadership_total, true);
+                return new UnitReqsValidationResult(SkillResultKeys.skill_urk_leadership_total, LeadershipFailureDetail, Value1);
 
             case UnitReqsKindType.LeadershipCurrent:
-                return RetWithValue(SkillResultKeys.skill_urk_leadership_current, Value1,
-                    player != null && player.LeadershipPoint >= Value1);
+                // Kind 78 also writes 0x90 (the leadership-total byte), so it reports through that key.
+                if (player != null && UnitReqOperatorRules.PassesBound(Value1, player.LeadershipPoint, Value2))
+                    return Ret(SkillResultKeys.skill_urk_leadership_current, true);
+                return new UnitReqsValidationResult(SkillResultKeys.skill_urk_leadership_total, LeadershipFailureDetail, Value1);
 
             case UnitReqsKindType.LeadershipPeriod:
-                return RetWithValue(SkillResultKeys.skill_urk_leadership_period, Value1,
-                    player != null && player.LeadershipPeriodPoint >= Value1);
+                if (player != null && UnitReqOperatorRules.PassesBound(Value1, player.LeadershipPeriodPoint, Value2))
+                    return Ret(SkillResultKeys.skill_urk_leadership_period, true);
+                // The native evaluator (x2game-dev.dll FUN_39795810) fails this kind with result 0x90, detail
+                // 0x355 (enum_error_messages 853 WRONG_LEADERSHIP_POINT) and the row's value1 in the u32.
+                const ushort leadershipPeriodFailureDetail = 0x355;
+                return new UnitReqsValidationResult(
+                    SkillResultKeys.skill_urk_leadership_period,
+                    leadershipPeriodFailureDetail,
+                    Value1);
 
             case UnitReqsKindType.Hero:
-                return Ret(SkillResultKeys.skill_urk_hero, player != null && HeroManager.Instance.IsCurrentHero(player));
+                // 0x39794430: value1 0 passes any seated hero; otherwise the seated record's grade byte must
+                // equal value1 (hero_grades tier, ItemArmor rows use 1..4). Failure: detail 0x356, value1 in the u32.
+                var heroPasses = player != null && UnitReqOperatorRules.PassesHero(
+                    Value1,
+                    Value1 == 0 && HeroManager.Instance.IsCurrentHero(player),
+                    Value1 == 0 ? 0 : HeroManager.Instance.GradeOf(player));
+                return heroPasses
+                    ? Ret(SkillResultKeys.skill_urk_hero, true)
+                    : new UnitReqsValidationResult(SkillResultKeys.skill_urk_hero, HeroFailureDetail, Value1);
 
             case UnitReqsKindType.NotHero:
                 return Ret(SkillResultKeys.skill_urk_not_hero, player != null && !HeroManager.Instance.IsCurrentHero(player));
@@ -440,7 +521,13 @@ public class UnitReqs
                     player != null && player.Expedition?.OwnerId == player.Id);
 
             case UnitReqsKindType.ExpeditionMember:
-                return Ret(SkillResultKeys.skill_urk_expedition_member, player?.Expedition?.Id > 0);
+                // 0x39794230: no expedition fails with detail 0x328; then the member role byte (owner 255,
+                // faction service +0x370) must reach value1, else detail 0x506. The 255 rows are owner-only skills.
+                var expeditionMemberDetail = UnitReqOperatorRules.ExpeditionMemberDetail(
+                    player?.Expedition?.GetMember(player)?.Role, Value1);
+                return expeditionMemberDetail == 0
+                    ? Ret(SkillResultKeys.skill_urk_expedition_member, true)
+                    : new UnitReqsValidationResult(SkillResultKeys.skill_urk_expedition_member, expeditionMemberDetail, 0);
 
             case UnitReqsKindType.ExceptProgressQuestContext:
                 var exceptProgressActiveQuest = player?.Quests.ActiveQuests.GetValueOrDefault(Value1);
@@ -464,7 +551,9 @@ public class UnitReqs
                     !ownsExcludedItem);
 
             case UnitReqsKindType.LessActAbilityPoint:
-                return RetWithValue(SkillResultKeys.skill_urk_less_actability_point, Value1,
+                // 0x39793DB0 adds the attribute bonus only when value3 is 0 and packs value1 * 0x2000000 + value2 into the u32.
+                return RetWithValue(SkillResultKeys.skill_urk_less_actability_point,
+                    UnitReqOperatorRules.LessActAbilityDetail(Value1, Value2),
                     player != null && player.Actability.GetPoint(Value1, Value3 == 0) < Value2);
 
             case UnitReqsKindType.OwnQuestItemGroup:
@@ -497,12 +586,14 @@ public class UnitReqs
                 return Ret(SkillResultKeys.skill_urk_under_water, unit?.IsUnderWater ?? false);
 
             case UnitReqsKindType.OwnAppellation:
+                // 0x397958A0 passes outright when value1 is the appellation sentinel (0 at 0x3D4FCA68).
                 return RetWithValue(SkillResultKeys.skill_urk_own_appellation, Value1,
-                    player?.Appellations.Appellations.Contains(Value1) ?? false);
+                    Value1 == 0 || (player?.Appellations.Appellations.Contains(Value1) ?? false));
 
             case UnitReqsKindType.EquipAppellation:
+                // 0x39794970: same sentinel, then the active appellation must be value1.
                 return RetWithValue(SkillResultKeys.skill_urk_equip_appellation, Value1,
-                    player?.Appellations.ActiveAppellation == Value1);
+                    Value1 == 0 || player?.Appellations.ActiveAppellation == Value1);
 
             case UnitReqsKindType.EmptySlotInventory:
                 if (player?.Inventory.Bag.FreeSlotCount > 0)
@@ -515,8 +606,8 @@ public class UnitReqs
                     0);
 
             case UnitReqsKindType.HeirLevel:
-                return RetWithValue(SkillResultKeys.skill_urk_heir_level, Value1,
-                    unit?.HeirLevel >= Value1);
+                // 0x392B1400 writes zero detail and value on failure.
+                return Ret(SkillResultKeys.skill_urk_heir_level, unit?.HeirLevel >= Value1);
 
             case UnitReqsKindType.InZoneGroup:
                 var currentZoneGroup = owner?.Transform != null
@@ -530,13 +621,11 @@ public class UnitReqs
                     unit?.Cooldowns.CheckCooldown(Value1) ?? false);
 
             case UnitReqsKindType.FullRechargedLaborPower:
-                var maximumLabor = player == null
-                    ? 0
-                    : TimedRewardsManager.GetMaxLabor(player.PremiumGrade, player.Connection?.Payment?.PremiumState ?? false, player.AccountId) +
-                      player.MaxLocalLaborPower;
-                // Both pools count towards "fully recharged", because maximumLabor is both caps added up.
+                // 0x39794A60 fails with 0xB1 once the pool is at its cap, so a labor potion can be drunk only
+                // while there is room. The nine owning skills pair with AddLaborPower rows whose second value
+                // is 1, the character-local pool (premium_grades.max_local_labor).
                 return Ret(SkillResultKeys.skill_urk_full_recharged_labor_power,
-                    player != null && player.LaborPower + player.LocalLaborPower >= maximumLabor);
+                    player != null && UnitReqOperatorRules.PassesNotFullyRecharged(player.LocalLaborPower, player.MaxLocalLaborPower));
 
             case UnitReqsKindType.ExpeditionMemberNot:
                 return Ret(SkillResultKeys.skill_urk_expedition_member_not,
@@ -562,14 +651,15 @@ public class UnitReqs
                     memberRaid is { IsParty: false } && memberRaid.OwnerId != player.Id);
 
             case UnitReqsKindType.Dual:
-                var dualUnit = Value1 == 1 ? targetUnit : unit;
-                var isDualWielding = dualUnit?.GetWeaponWieldKind() == WeaponWieldKind.DuelWielded;
-                return Value2 switch
-                {
-                    0 => Ret(SkillResultKeys.skill_urk_dual, !isDualWielding),
-                    1 => Ret(SkillResultKeys.skill_urk_no_dual, isDualWielding),
-                    _ => UnsupportedRequirement()
-                };
+                // "Dual" is the duel: 0x39795D60 reads the unit's duel id from the same combat component that
+                // kind 117 reads the expedition battle from (vtable +0x68 versus +0x80) and compares it with the
+                // zero sentinel at 0x3D4FCA6C. value1 1 tests the target, value2 0 needs a duel (URK_DUAL),
+                // 1 needs none (URK_NO_DUAL), anything else passes. Owners: 40364 "for the duel", 43061.
+                var duelUnit = Value1 == 1 ? targetUnit : unit;
+                if (duelUnit == null)
+                    return Ret(SkillResultKeys.skill_failure, false);
+                return Ret(Value2 == 0 ? SkillResultKeys.skill_urk_dual : SkillResultKeys.skill_urk_no_dual,
+                    UnitReqOperatorRules.PassesStateGate(Value2, duelUnit.IsInDuel));
 
             case UnitReqsKindType.TargetItemTag:
                 return RetWithValue(SkillResultKeys.skill_urk_target_item_tag, Value1,
@@ -592,31 +682,48 @@ public class UnitReqs
 
                 return Ret(SkillResultKeys.skill_failure, false);
 
+            case UnitReqsKindType.NoEquipItemTag:
+                // 0x392B1210 is the mirror of kind 134: the tag must exist and no equipped item may carry it;
+                // both failures are plain FAILURE. Its 45 rows sit on ItemArmor/ItemAccessory owners.
+                if (unit == null || !TagsGameData.Instance.Exists(Value1))
+                    return Ret(SkillResultKeys.skill_failure, false);
+
+                for (var slot = 0; slot < EquipmentSerializer.SlotCount; slot++)
+                {
+                    var taggedItem = unit.Equipment.GetItemBySlot(slot);
+                    if (taggedItem != null && ItemManager.Instance.HasItemTag(taggedItem.TemplateId, Value1))
+                        return Ret(SkillResultKeys.skill_failure, false);
+                }
+
+                return Ret(SkillResultKeys.ok, true);
+
             case UnitReqsKindType.CombatResource:
                 if (unit == null)
                     return Ret(SkillResultKeys.skill_invalid_source, false);
                 return Ret(SkillResultKeys.skill_urk_combat_resource,
                     (long)unit.GetCombatResource((int)Value1) >= Value2);
 
+            // Kinds 95..97 and 138/139 (0x392B1A50, 0x392B1AF0, 0x392B1B90, 0x392B1850, 0x392B1C30) share the
+            // kind 26 shape: value1 0 compares the absolute pool, anything else the integer percent, against value2.
             case UnitReqsKindType.TargetManaLessThan:
                 return Ret(SkillResultKeys.skill_urk_target_mana_less_than,
-                    targetUnit != null && targetUnit.Mpp >= Value1 && targetUnit.Mpp <= Value2);
+                    targetUnit != null && UnitReqOperatorRules.PassesPoolCompare(Value1, targetUnit.Mp, targetUnit.MaxMp, Value2, lessThan: true));
 
             case UnitReqsKindType.TargetManaMoreThan:
                 return Ret(SkillResultKeys.skill_urk_target_mana_more_than,
-                    targetUnit != null && targetUnit.Mpp >= Value1 && targetUnit.Mpp >= Value2);
+                    targetUnit != null && UnitReqOperatorRules.PassesPoolCompare(Value1, targetUnit.Mp, targetUnit.MaxMp, Value2, lessThan: false));
 
             case UnitReqsKindType.TargetHealthMoreThan:
                 return Ret(SkillResultKeys.skill_urk_target_health_more_than,
-                    targetUnit != null && targetUnit.Hpp >= Value1 && targetUnit.Hpp >= Value2);
+                    targetUnit != null && UnitReqOperatorRules.PassesPoolCompare(Value1, targetUnit.Hp, targetUnit.MaxHp, Value2, lessThan: false));
 
             case UnitReqsKindType.SourceHealthLessThan:
                 return Ret(SkillResultKeys.skill_urk_source_health_less_than,
-                    unit != null && unit.Hpp >= Value1 && unit.Hpp <= Value2);
+                    unit != null && UnitReqOperatorRules.PassesPoolCompare(Value1, unit.Hp, unit.MaxHp, Value2, lessThan: true));
 
             case UnitReqsKindType.SourceHealthMoreThan:
                 return Ret(SkillResultKeys.skill_urk_source_health_more_than,
-                    unit != null && unit.Hpp >= Value1 && unit.Hpp >= Value2);
+                    unit != null && UnitReqOperatorRules.PassesPoolCompare(Value1, unit.Hp, unit.MaxHp, Value2, lessThan: false));
 
             case UnitReqsKindType.FamilyRole:
                 var family = player?.Family > 0
@@ -657,15 +764,19 @@ public class UnitReqs
                         .GetHousingZoneByPosition(world, position.X, position.Y).Count == 0);
 
             case UnitReqsKindType.PremiumArchePass:
+                // 0x39794E60 reads no operand: the pass in progress must carry the premium flag.
                 return Ret(SkillResultKeys.skill_urk_premium_arche_pass,
-                    player?.ArchePass?.HasPremium(Value1) == true);
+                    player?.ArchePass?.HasPremium() == true);
 
             case UnitReqsKindType.EnableArchePass:
+                // 0x39794EE0: no pass in progress is URK_ENABLE_ARCHE_PASS; value1 0 (sentinel 0x3D4FCA74)
+                // accepts any pass, otherwise a pass in progress that is not value1 is ..._WITH_TYPE.
+                var anyArchePass = player?.ArchePass?.HasProgress() == true;
                 return Ret(
-                    Value1 == 0
-                        ? SkillResultKeys.skill_urk_enable_arche_pass
-                        : SkillResultKeys.skill_urk_enable_arche_pass_with_type,
-                    player?.ArchePass?.HasProgress(Value1) == true);
+                    anyArchePass
+                        ? SkillResultKeys.skill_urk_enable_arche_pass_with_type
+                        : SkillResultKeys.skill_urk_enable_arche_pass,
+                    UnitReqOperatorRules.PassesEnableArchePass(Value1, anyArchePass, Value1 != 0 && player.ArchePass.HasProgress(Value1)));
 
             case UnitReqsKindType.Ulc:
                 if (player == null || !UlcGameData.Instance.Exists(Value1))
@@ -687,6 +798,136 @@ public class UnitReqs
                     Value1,
                     false);
 
+            case UnitReqsKindType.DominionMember:
+                // Inline in 0x397964B0: the unit's owner key holds at least one dominion (0x39CFBF30); fails 0x9C.
+                return RetNative(SkillResult.UrkDominionMember, 0, 0, unit != null && DominionCountOf(unit) > 0);
+
+            case UnitReqsKindType.DominionMemberNot:
+                // Fails 0x9D when the owner key holds any dominion (no enabled rows in 10.0.2.13).
+                return RetNative(SkillResult.UrkDominionMemberNot, 0, 0, unit != null && DominionCountOf(unit) == 0);
+
+            case UnitReqsKindType.InZoneGroupHousingExist:
+                // The client evaluator passes this kind unconditionally, so the rule is the server's. value1 is
+                // housings.id (654/655/656 territory castle tiers, 135/170 castle gates) and value2 is 1 on all
+                // 73 rows, which sit on the territory warehouse specialty skills in OR groups per tier. The
+                // reading here is that the house must stand in the unit's zone group; any other value2 fails closed.
+                if (Value2 != 1)
+                    return UnsupportedRequirement();
+                var housingGroupId = CurrentZoneGroupId(owner);
+                return Ret(SkillResultKeys.skill_failure,
+                    housingGroupId != null && HousingManager.Instance.HasHouseTemplateInZoneGroup(Value1, housingGroupId.Value));
+
+            case UnitReqsKindType.ExpeditionLevel:
+                // 0x39794830: the expedition level lies within value1..value2 inclusive (either order); a
+                // character without an expedition reads level 0. Failure: 0xA1 with detail 0x3A1.
+                return RetNative((SkillResult)ExpeditionLevelNativeResult, ExpeditionLevelFailureDetail, 0,
+                    player != null && UnitReqOperatorRules.PassesExpeditionLevel(Value1, Value2, player.Expedition?.Level ?? 0));
+
+            case UnitReqsKindType.IsResident:
+                // 0x39795B70: value1 0 (sentinel 0x3D4FCA3C) means the current zone group. value2 0 is the
+                // resident-map lookup (0x39173FE0), fail 0xA2 / 0x3C2. The value2 != 0 branch keys another map
+                // by zone_groups field +0x44 and has no enabled rows, so it stays closed.
+                if (Value2 != 0)
+                    return UnsupportedRequirement();
+                var residentGroupId = Value1 == 0 ? CurrentZoneGroupId(owner) : Value1;
+                return RetNative((SkillResult)IsResidentNativeResult, ResidentFailureDetail, 0,
+                    player != null && residentGroupId != null &&
+                    HousingManager.Instance.IsResidentOfZoneGroup(player.Id, residentGroupId.Value));
+
+            case UnitReqsKindType.ResidentServicePoint:
+                // 0x39795C50: resident of the zone group (else 0xA3 / 0x3C2), then service points at least value2
+                // (else 0xA3 / 0x3C3). The server does not model resident service points yet and reports zero,
+                // so the two rows (100, 150) fail on the point test until it does.
+                var serviceGroupId = Value1 == 0 ? CurrentZoneGroupId(owner) : Value1;
+                var isServiceResident = player != null && serviceGroupId != null &&
+                                        HousingManager.Instance.IsResidentOfZoneGroup(player.Id, serviceGroupId.Value);
+                if (!isServiceResident)
+                    return RetNative((SkillResult)ResidentServicePointNativeResult, ResidentFailureDetail, 0, false);
+                const int modelledResidentServicePoints = 0;
+                return RetNative((SkillResult)ResidentServicePointNativeResult, ResidentServicePointFailureDetail, 0,
+                    modelledResidentServicePoints >= Value2);
+
+            case UnitReqsKindType.AchievementComplete:
+                // 0x39794C70: the achievement record for value1 must carry a completion time; fails 0xB4 with value1.
+                return RetNative(SkillResult.UrkAchievementComplete, 0, Value1,
+                    player?.Achievements?.IsComplete(Value1) == true);
+
+            case UnitReqsKindType.ExpeditionBattle:
+                // 0x39795E70: value1 1 tests the target; the unit's expedition battle id (combat component
+                // vtable +0x80) against the zero sentinel. value2 0 needs a battle (0xB9), 1 needs none (0xBA),
+                // anything else passes. The one row (skill 40364, value2 1) refuses a duel during a guild war.
+                var battleUnit = Value1 == 1 ? targetUnit : unit;
+                if (battleUnit == null)
+                    return Ret(SkillResultKeys.skill_failure, false);
+                var inExpeditionBattle = (battleUnit as Character)?.Expedition?.IsAtWar == true;
+                return RetNative(Value2 == 0 ? SkillResult.UrkExpeditionBattle : SkillResult.UrkNoExpeditionBattle, 0, 0,
+                    UnitReqOperatorRules.PassesStateGate(Value2, inExpeditionBattle));
+
+            case UnitReqsKindType.DominionCount:
+                // 0x39794DF0 counts the dominions held by the unit's owner key (0x396ADAB0): value2 0 needs at
+                // least value1 (0xBD), anything else at most value1 (0xBC). No source is INVALID_SOURCE.
+                if (unit == null)
+                    return Ret(SkillResultKeys.skill_invalid_source, false);
+                return RetNative(Value2 == 0 ? SkillResult.UrkDominionCountLess : SkillResult.UrkDominionCountMore, 0, 0,
+                    UnitReqOperatorRules.PassesDominionCount(Value2, DominionCountOf(unit), Value1));
+
+            case UnitReqsKindType.GearScore:
+                // 0x392B0D50: value1 0 needs gear score at least value2, anything else at most; the failure u32
+                // is value2, negated for the upper bound. Only characters carry a gear score.
+                return RetNative(SkillResult.UrkGearScore, 0, UnitReqOperatorRules.GearScoreDetail(Value1, Value2),
+                    player != null && UnitReqOperatorRules.PassesGearScore(Value1, player.GearScore, Value2));
+
+            case UnitReqsKindType.FactionPower:
+                // 0x39795F80 tests whether faction value1 is in the client's faction-power set, filled from the
+                // faction power score feed the server does not model (SCFactionPowerScore is sent as zeros).
+                return MissingState("faction power scores are not modelled");
+
+            case UnitReqsKindType.FactionChangePossibleFromTo:
+                // 0x39794F90 passes when the faction service's per-(from, to) quota record (0x39CD5C90: limit
+                // minus two counters) is positive. That record is server-fed and the server keeps no such quota.
+                return MissingState("faction change quotas are not modelled");
+
+            case UnitReqsKindType.FactionChangeCooldown:
+                // 0x39794FF0 passes once the character's faction change cooldown end (character block +0x3B60)
+                // is in the past. The server keeps no faction change timestamp.
+                return MissingState("faction change cooldown is not modelled");
+
+            case UnitReqsKindType.ConflictZoneState:
+                // 0x39795130 needs a conflict record for the unit's zone group and compares the state test
+                // selected by value1 with value2 (see UnitReqOperatorRules.PassesConflictZoneState).
+                if (owner == null)
+                    return Ret(SkillResultKeys.skill_invalid_source, false);
+                var conflictGroupId = CurrentZoneGroupId(owner);
+                var zoneConflict = conflictGroupId != null ? ZoneManager.Instance.GetZoneGroupById(conflictGroupId.Value)?.Conflict : null;
+                return RetNative(SkillResult.UrkConflictZoneState, 0, 0,
+                    zoneConflict != null && UnitReqOperatorRules.PassesConflictZoneState(Value1, Value2, zoneConflict.CurrentZoneState));
+
+            case UnitReqsKindType.ZoneScoreLevel:
+                // 0x397962C0: value1 is zone_score_kinds.id, value3 the level from zone_score_levels, value2 the
+                // comparison (0 at least, 1 at most, 2 equal). The per-character score map (block +0x3BC0) is
+                // not modelled server-side.
+                return MissingState("zone scores are not modelled");
+
+            case UnitReqsKindType.ZoneScore:
+                // 0x397963E0: same operands against the raw score.
+                return MissingState("zone scores are not modelled");
+
+            case UnitReqsKindType.TowerDefStep:
+                // 0x39795310: value1 is the zone group, value2 the tower_defs id, value3 a one-based prog index no
+                // larger than the tower's prog count; the running event's step in that group must be value3 - 1.
+                if (owner == null)
+                    return Ret(SkillResultKeys.skill_invalid_source, false);
+                var towerProgCount = TowerDefGameData.Instance.GetTowerDef(Value2)?.Progs?.Count ?? 0;
+                var towerStep = Value1 == 0 || Value2 == 0 ? null : WorldIntegration.GetTowerDefCurrentStep?.Invoke((ushort)Value1, Value2);
+                return RetNative(SkillResult.UrkTowerDefStep, 0, 0,
+                    UnitReqOperatorRules.PassesTowerDefStep(towerStep, Value3, towerProgCount));
+
+            case UnitReqsKindType.VisualRaceTimeMoreThan:
+                // 0x39795420 passes when the visual race expiry (unit +0x1C28) is at least value1 hours past
+                // XlGetCurrentFileTime. The server only echoes the client's creation-time value for that field
+                // and has no clock in its units, so the one row (skill 47673, 696 h) fails closed.
+                return MissingState("visual race expiry clock is not modelled");
+
             default:
                 return UnsupportedRequirement();
         }
@@ -699,20 +940,83 @@ public class UnitReqs
             return new UnitReqsValidationResult(SkillResultKeys.skill_urk_unknown, 0, 0);
         }
 
-        static uint EffectiveNationId(Unit unit)
+        // The rule is recovered (see the case comment) but the server holds no source for its input. The
+        // native handlers of these kinds all fail with plain FAILURE.
+        UnitReqsValidationResult MissingState(string missing)
         {
-            var factionId = (uint)(unit?.Faction?.Id ?? 0);
-            var motherId = (uint)(unit?.Faction?.MotherId ?? 0);
-            return UnitReqNation.EffectiveNationId(factionId, motherId);
+            Logger.Debug(
+                "UnitReq {0} failed closed, {1}: id={2} owner={3}:{4} values={5},{6},{7}",
+                KindType, missing, Id, OwnerType, OwnerId, Value1, Value2, Value3);
+            return new UnitReqsValidationResult(SkillResultKeys.skill_failure, 0, 0);
         }
 
-        static bool IsNationMemberOfCurrentZone(BaseUnit owner, Unit unit)
+        static uint FactionIdOf(Unit unit) => (uint)(unit?.Faction?.Id ?? 0);
+
+        static uint MotherIdOf(Unit unit) => (uint)(unit?.Faction?.MotherId ?? 0);
+
+        // Root comparison of kinds 42/56/59: the faction service walk (0x39CCD710) returns the input id when
+        // the faction is unknown, so an unlisted value1 is its own root.
+        static bool SharesRootFaction(Unit unit, uint value1)
         {
-            var zone = owner?.Transform != null
-                ? ZoneManager.Instance.GetZoneByKey(owner.Transform.ZoneId)
+            if (unit == null)
+                return false;
+            var required = FactionManager.Instance.GetFaction((FactionsEnum)value1);
+            return UnitReqOperatorRules.SharesRootFaction(
+                FactionIdOf(unit), MotherIdOf(unit), value1, (uint)(required?.MotherId ?? 0));
+        }
+
+        static uint? CurrentZoneGroupId(BaseUnit owner)
+        {
+            return owner?.Transform != null
+                ? ZoneManager.Instance.GetZoneByKey(owner.Transform.ZoneId)?.GroupId
                 : null;
-            var zoneFaction = (uint)(zone?.FactionId ?? 0);
-            return UnitReqNation.IsNationMemberOfZone(EffectiveNationId(unit), zoneFaction);
+        }
+
+        static uint DominionOwnerKeyOf(Unit unit)
+        {
+            return UnitReqOperatorRules.DominionOwnerKey(
+                (uint)((unit as Character)?.Expedition?.Id ?? 0), FactionIdOf(unit), MotherIdOf(unit));
+        }
+
+        // Claims live in two registries: siege zones in DominionManager, the guild-only zone groups in
+        // GuildDominionManager; both key by the house's zone key, which is what Transform.ZoneId holds.
+        static bool IsDominionMemberAtPosition(BaseUnit owner, Unit unit)
+        {
+            if (owner?.Transform == null || unit == null)
+                return false;
+            var zoneKey = (ushort)owner.Transform.ZoneId;
+            var dominion = DominionManager.Instance.GetByZoneId(zoneKey) ?? GuildDominionManager.Instance.GetByZoneId(zoneKey);
+            return dominion != null && UnitReqOperatorRules.IsDominionOwnedBy(
+                dominion.ExpeditionId, dominion.OwningFactionId, DominionOwnerKeyOf(unit));
+        }
+
+        static int DominionCountOf(Unit unit)
+        {
+            var ownerKey = DominionOwnerKeyOf(unit);
+            return DominionManager.Instance.Dominions
+                .Concat(GuildDominionManager.Instance.GuildDominions)
+                .Count(dominion => UnitReqOperatorRules.IsDominionOwnedBy(dominion.ExpeditionId, dominion.OwningFactionId, ownerKey));
         }
     }
+
+    /// <summary>Detail the three leadership kinds write on failure (enum_error_messages 853 WRONG_LEADERSHIP_POINT).</summary>
+    private const ushort LeadershipFailureDetail = 0x355;
+
+    /// <summary>Detail kind 79 writes on failure (x2game-dev.dll 0x39794430).</summary>
+    private const ushort HeroFailureDetail = 0x356;
+
+    /// <summary>Detail kind 90 writes on failure (0x39794830).</summary>
+    private const ushort ExpeditionLevelFailureDetail = 0x3A1;
+
+    /// <summary>Detail kinds 91 and 92 write when the character is not a resident (0x39795B70, 0x39795C50).</summary>
+    private const ushort ResidentFailureDetail = 0x3C2;
+
+    /// <summary>Detail kind 92 writes when the service points are short (0x39795C50).</summary>
+    private const ushort ResidentServicePointFailureDetail = 0x3C3;
+
+    // Result bytes the evaluators of kinds 90, 91 and 92 write. The client's result-to-symbol switch
+    // (0x39D23B10) has no case for 0xA1..0xA3, and SkillResult has no member for them yet.
+    private const byte ExpeditionLevelNativeResult = 0xA1;
+    private const byte IsResidentNativeResult = 0xA2;
+    private const byte ResidentServicePointNativeResult = 0xA3;
 }
