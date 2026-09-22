@@ -32,6 +32,7 @@ public class ZoneConflict(
     private IReadOnlyList<ConflictZoneScheduleEntry> _schedule = [];
     private IReadOnlyList<ConflictZoneDailyWarStart> _dailyWarStarts = [];
     private DateTime _scheduledStateTime = DateTime.MinValue;
+    private bool _scheduledPersistenceRetryPending;
     public ushort ZoneGroupId { get; set; }
     public int[] NumKills { get; } = new int[5];
     public int[] NoKillMin { get; } = new int[5];
@@ -282,11 +283,13 @@ public class ZoneConflict(
                 previousState != _currentZoneState);
             if (!TryPersistLocked(before))
                 persistenceFailed = true;
+            else
+                _scheduledPersistenceRetryPending = false;
         }
 
         if (persistenceFailed)
         {
-            ScheduleNextState(DateTime.UtcNow.Add(PersistenceRetryDelay));
+            ScheduleScheduledPersistenceRetry();
             return;
         }
 
@@ -298,6 +301,52 @@ public class ZoneConflict(
         }
 
         PublishState(publication);
+    }
+
+    private void ScheduleScheduledPersistenceRetry()
+    {
+        var retryAt = DateTime.UtcNow.Add(PersistenceRetryDelay);
+        lock (_stateLock)
+        {
+            if (_scheduledPersistenceRetryPending)
+                return;
+            _scheduledPersistenceRetryPending = true;
+        }
+
+        if (_scheduleOverride != null)
+        {
+            _scheduleOverride(retryAt);
+            return;
+        }
+
+        try
+        {
+            if (TaskManager.Instance.Schedule(new ZoneSchedulePersistenceRetryTask(this), PersistenceRetryDelay))
+                return;
+            Logger.Error("ZoneGroup {0}: failed to schedule conflict schedule persistence retry.", ZoneGroupId);
+        }
+        catch (Exception exception)
+        {
+            Logger.Error(exception, "ZoneGroup {0}: failed to schedule conflict schedule persistence retry.", ZoneGroupId);
+        }
+
+        lock (_stateLock)
+            _scheduledPersistenceRetryPending = false;
+    }
+
+    public void RetryScheduledStatePersistence()
+    {
+        lock (_transitionLock)
+        {
+            lock (_stateLock)
+            {
+                if (!_scheduledPersistenceRetryPending)
+                    return;
+                _scheduledPersistenceRetryPending = false;
+            }
+
+            ApplyScheduledStateLocked(DateTime.Now);
+        }
     }
 
     public void SetTimerTask()

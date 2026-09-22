@@ -132,14 +132,22 @@ public class ZoneConflictTests
     }
 
     [Test]
-    public async Task ScheduledPersistenceFailure_PreservesCommittedPhaseAndSchedulesRetry()
+    public async Task ScheduledPersistenceFailure_RetryCallbackPersistsAndPublishesRecoveredState()
     {
         var notifications = new List<(ZoneConflictType Previous, ZoneConflictType Current)>();
         var scheduled = new List<DateTime>();
+        var saveAttempts = 0;
+        var persisted = new List<ConflictZoneRuntimeState>();
         var conflict = new ZoneConflict(
             new ZoneGroup { Id = 20 },
             (_, previous, current) => notifications.Add((previous, current)),
-            _ => throw new InvalidOperationException("store unavailable"),
+            state =>
+            {
+                saveAttempts++;
+                if (saveAttempts == 1)
+                    throw new InvalidOperationException("store unavailable");
+                persisted.Add(state);
+            },
             due => scheduled.Add(due))
         {
             ZoneGroupId = 20
@@ -153,6 +161,16 @@ public class ZoneConflictTests
         await Assert.That(notifications).IsEmpty();
         await Assert.That(scheduled).Count().IsEqualTo(1);
         await Assert.That(scheduled[0]).IsGreaterThan(DateTime.UtcNow);
+
+        conflict.RetryScheduledStatePersistence();
+
+        await Assert.That(saveAttempts).IsEqualTo(2);
+        await Assert.That(persisted).Count().IsEqualTo(1);
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.War);
+        await Assert.That(conflict.NextStateTime).IsGreaterThan(DateTime.UtcNow);
+        await Assert.That(persisted[0]).IsEqualTo(conflict.CaptureRuntimeState());
+        await Assert.That(notifications).Count().IsEqualTo(1);
+        await Assert.That(notifications[0]).IsEqualTo((ZoneConflictType.Tension, ZoneConflictType.War));
     }
 
     [Test]
