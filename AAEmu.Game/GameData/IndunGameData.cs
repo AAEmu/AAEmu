@@ -22,6 +22,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
     private Dictionary<uint, IndunZone> _indunZones;
     private Dictionary<uint, IndunRoom> _indunRooms;
     private Dictionary<uint, List<IndunRound>> _indunRounds;
+    private Dictionary<uint, HashSet<byte>> _difficultiesByZoneGroup;
 
     public IndunZone GetDungeonZone(uint zoneGroupId)
     {
@@ -76,6 +77,14 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
         return [];
     }
 
+    public bool IsDifficultyAvailable(uint zoneGroupId, byte difficult) =>
+        _difficultiesByZoneGroup != null &&
+        _difficultiesByZoneGroup.TryGetValue(zoneGroupId, out var difficulties) &&
+        difficulties.Contains(difficult);
+
+    public bool HasDifficultyOptions(uint zoneGroupId) =>
+        _difficultiesByZoneGroup != null && _difficultiesByZoneGroup.ContainsKey(zoneGroupId);
+
     private void AddIndunEvent(IndunEvent indunEvent)
     {
         if (!_indunEvents.ContainsKey(indunEvent.ZoneGroupId))
@@ -107,6 +116,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
         _indunZones = [];
         _indunRooms = [];
         _indunRounds = [];
+        _difficultiesByZoneGroup = [];
 
         #region Actions
         using (var command = connection.CreateCommand())
@@ -283,6 +293,28 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
 
                     _indunActions.Add(action.Id, action);
                 }
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT instances.target_id AS zone_group_id, instance_difficult_infos.difficult
+                                    FROM instance_difficult_infos
+                                    JOIN instances ON instances.id = instance_difficult_infos.instance_id
+                                    WHERE instances.target_type = 'IndunZone'";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var zoneGroupId = reader.GetUInt32("zone_group_id");
+                var difficult = (byte)reader.GetUInt32("difficult");
+                if (!_difficultiesByZoneGroup.TryGetValue(zoneGroupId, out var difficulties))
+                {
+                    difficulties = [];
+                    _difficultiesByZoneGroup.Add(zoneGroupId, difficulties);
+                }
+                difficulties.Add(difficult);
             }
         }
         #endregion

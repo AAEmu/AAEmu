@@ -28,13 +28,22 @@ public class CSSelectInstanceDifficultPacket() : GamePacket(CSOffsets.CSSelectIn
             "CSSelectInstanceDifficult char={0} difficult={1} invalidCheck={2}",
             character.Name, Difficult, InvalidCheck);
 
-        // Inside a copy the pick is that copy's difficulty (zone group 146 opens its lock on it through
-        // indun_event_difficult_changeds); outside, it waits for the next copy this character enters.
-        if (character.ParentWorld?.DungeonInstance is { } dungeon)
-            dungeon.SetDifficult(Difficult);
+        // A difficulty-doodad response may mutate only the copy whose permission-checked interaction
+        // reserved this character. An ordinary H-window pick remains pending for the next copy.
+        var dungeon = character.ParentWorld?.DungeonInstance;
+        var selectedForReply = Difficult;
+        if (dungeon?.HasDifficultySelection(character) == true)
+        {
+            if (dungeon.SetDifficult(character, Difficult))
+                selectedForReply = dungeon.Difficult ?? Difficult;
+            else
+                selectedForReply = dungeon.Difficult ?? 0;
+        }
         else
+        {
             IndunManager.Instance.RememberSelectedDifficult(character.Id, Difficult);
+        }
 
-        character.SendPacket(new SCSelectedInstanceDifficultPacket((sbyte)Difficult, showUi: true));
+        character.SendPacket(new SCSelectedInstanceDifficultPacket((sbyte)selectedForReply, showUi: true));
     }
 }

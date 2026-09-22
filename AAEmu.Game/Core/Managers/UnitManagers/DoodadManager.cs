@@ -1228,6 +1228,19 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                 }
             }
 
+            // doodad_func_exit_global_induns
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT id FROM doodad_func_exit_global_induns";
+                command.Prepare();
+                using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+                while (reader.Read())
+                {
+                    var func = new DoodadFuncExitGlobalIndun { Id = reader.GetUInt32("id") };
+                    _funcTemplates[nameof(DoodadFuncExitGlobalIndun)].Add(func.Id, func);
+                }
+            }
+
             // doodad_func_fake_uses
             using (var command = connection.CreateCommand())
             {
@@ -1340,6 +1353,19 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
             }
 
 
+
+            // doodad_func_instance_difficult_ui_opens
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT id FROM doodad_func_instance_difficult_ui_opens";
+                command.Prepare();
+                using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+                while (reader.Read())
+                {
+                    var func = new DoodadFuncInstanceDifficultUiOpen { Id = reader.GetUInt32("id") };
+                    _funcTemplates[nameof(DoodadFuncInstanceDifficultUiOpen)].Add(func.Id, func);
+                }
+            }
 
             // doodad_func_insert_counters
             using (var command = connection.CreateCommand())

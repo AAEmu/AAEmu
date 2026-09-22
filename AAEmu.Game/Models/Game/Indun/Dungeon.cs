@@ -54,6 +54,7 @@ public class Dungeon : IPreparedIndunInstance
     public IndunRoundState Rounds { get; }
     /// <summary>The H-window difficulty applied to this copy; null until a pick reaches it.</summary>
     public byte? Difficult { get; private set; }
+    private readonly IndunDifficultySelectionState _difficultySelection = new();
     /// <summary>Raised once per copy, on the NextRound that clears its last round. The reward path hangs here.</summary>
     public static event Action<Dungeon> DungeonCompleted;
     //private static Dictionary<uint, Dictionary<uint, int>> _attempts; // <ownerId, <zoneGroupId, attempts>> - dungeon attempts used
@@ -628,6 +629,9 @@ public class Dungeon : IPreparedIndunInstance
             return;
         }
 
+        lock (_lock)
+            _difficultySelection.Release(character.Id);
+
         Logger.Info($"Player {character.Name} ({character.Id}) has exited from dungeon {World}!");
 
         if (character.ParentWorld?.DungeonInstance == null)
@@ -667,6 +671,9 @@ public class Dungeon : IPreparedIndunInstance
     private void OnDisconnect(object sender, OnDisconnectArgs args)
     {
         Logger.Info($"[Dungeon] instanceId={_zoneInstanceId.InstanceId}, zoneId={_zoneInstanceId.ZoneId} player={args.Player.Name} disconnected!");
+
+        lock (_lock)
+            _difficultySelection.Release(args.Player.Id);
 
         if (IsSystem)
         {
@@ -852,17 +859,80 @@ public class Dungeon : IPreparedIndunInstance
     }
 
     /// <summary>H-window pick (CSSelectInstanceDifficultPacket) applied to this copy; raises IndunEventDifficultChanged.</summary>
-    public void SetDifficult(byte difficult)
+    public bool SetDifficult(byte difficult)
     {
-        if (Difficult == difficult)
-            return;
-
-        Difficult = difficult;
         var world = World;
         if (world == null)
-            return;
+            return false;
+
+        var hasOptions = IndunGameData.Instance.HasDifficultyOptions(GetZoneGroupId);
+        if (hasOptions && !IndunGameData.Instance.IsDifficultyAvailable(GetZoneGroupId, difficult))
+            return false;
+
+        lock (_lock)
+        {
+            // Difficulty drives an indun action chain. The first accepted selection owns the copy;
+            // packet replay or a second player cannot run that chain, and its rewards, again.
+            if (Difficult == difficult)
+                return true;
+            if (hasOptions && Difficult != null)
+                return false;
+            Difficult = difficult;
+        }
 
         world.Events.OnIndunDifficultChanged(world, new OnIndunDifficultChangedArgs { Difficult = difficult });
+        return true;
+    }
+
+    public bool BeginDifficultySelection(Character character, Action completion)
+    {
+        if (character == null || World == null || character.ParentWorld != World || !World.HasCharacter(character.Id))
+            return false;
+        lock (_lock)
+        {
+            return _difficultySelection.Reserve(character.Id, Difficult, completion);
+        }
+    }
+
+    public bool HasDifficultySelection(Character character)
+    {
+        if (character == null)
+            return false;
+        lock (_lock)
+            return character.ParentWorld == World && World?.HasCharacter(character.Id) == true &&
+                   _difficultySelection.IsReservedBy(character.Id);
+    }
+
+    public bool SetDifficult(Character character, byte difficult)
+    {
+        if (character == null)
+            return false;
+
+        Action completion;
+        bool changed;
+        WorldInstance world;
+        lock (_lock)
+        {
+            world = World;
+            if (world == null || character.ParentWorld != world || !world.HasCharacter(character.Id))
+                return false;
+
+            var selected = Difficult;
+            if (!_difficultySelection.TryApply(
+                    character.Id,
+                    ref selected,
+                    difficult,
+                    IndunGameData.Instance.IsDifficultyAvailable(GetZoneGroupId, difficult),
+                    out completion,
+                    out changed))
+                return false;
+            Difficult = selected;
+        }
+
+        if (changed)
+            world.Events.OnIndunDifficultChanged(world, new OnIndunDifficultChangedArgs { Difficult = difficult });
+        completion?.Invoke();
+        return true;
     }
 
     private void BroadcastToPlayers(GamePacket packet)
