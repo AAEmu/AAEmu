@@ -39,6 +39,11 @@ public class CSNotifyInGameCompletedPacket() : GamePacket(CSOffsets.CSNotifyInGa
             // a relog clears it, and opening the board from the folio never runs the doodad
             // func, so the store has to be sent here.
             CraftOrderManager.Instance.SendOwnEntries(Connection.ActiveChar);
+
+            // The collection view is drawn from the achievement list, and discoveries resolved while the
+            // load was still running were held back for exactly this point — the load has finished now,
+            // so replay the collection rows alongside the other post-entry state.
+            CollectionsManager.Instance.FlushInitialSync(Connection.ActiveChar);
         }
     }
 

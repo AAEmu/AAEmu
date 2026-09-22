@@ -934,6 +934,9 @@ public partial class Character : Unit, ICharacter
 
     /// <summary>What this character has done towards the achievement list.</summary>
     public CharacterAchievements Achievements { get; set; }
+
+    /// <summary>The collection/encyclopedia entries this character has discovered.</summary>
+    public CharacterCollections Collections { get; set; }
     public CharacterPortals Portals { get; set; }
     public CharacterFriends Friends { get; set; }
     public CharacterBlocked Blocked { get; set; }
@@ -2239,6 +2242,9 @@ public partial class Character : Unit, ICharacter
         ModelParams = modelParams;
         Subscribers = [];
         ChargeLock = new object();
+        // Constructed up front, not at load: item containers restore their contents around the load, and
+        // those restores report discoveries that must land in a live set rather than be dropped.
+        Collections = new CharacterCollections(this);
         // FishSchool = new FishSchool(this);
         //Events.OnDisconnect += OnDisconnect;
         //Events.OnCombatStarted += OnEnterCombat;
@@ -4047,6 +4053,11 @@ public partial class Character : Unit, ICharacter
             Records.Load(connection);
             Achievements = new CharacterAchievements(this);
             Achievements.Load(connection);
+            Collections ??= new CharacterCollections(this);
+            // Restored rows are validated against the shipped content through an injected resolver: the
+            // content singleton is not touched from the persistence path, so a row whose content has
+            // disappeared is dropped loudly here instead of silently revived.
+            Collections.Load(connection, entryId => CollectionGameData.Instance.IsKnownEntry(entryId));
             ArchePass = new CharacterArchePass(this);
             ArchePass.Load(connection);
             Actability = new CharacterActability(this);
@@ -4354,6 +4365,7 @@ public partial class Character : Unit, ICharacter
             ArchePass?.Save(connection, transaction);
             Records?.Save(connection, transaction);
             Achievements?.Save(connection, transaction);
+            Collections?.Save(connection, transaction);
             AccountAttendanceManager.Instance.SaveForAccount(AccountId, connection, transaction);
             ScheduleItemManager.Instance.SaveForAccount(AccountId, connection, transaction);
             AccountLiveWallet.SaveForAccount(AccountId, connection, transaction);

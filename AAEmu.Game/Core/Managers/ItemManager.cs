@@ -9,6 +9,7 @@ using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Auction.Templates;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Collections;
 using AAEmu.Game.Models.Game.Features;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
@@ -3042,6 +3043,12 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         character.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.ItemTaskThistimeUnpack, updateItemTask, []));
         if (item.Template is EquipItemTemplate { ChargeLifetime: > 0 })
             character.SendPacket(new SCSyncItemLifespanPacket(true, item.Id, item.TemplateId, item.UnpackTime));
+
+        // Unpacking is its own content watch: the collection entry records the unpack event separately
+        // from having obtained the item.
+        if (character.Collections != null)
+            CollectionsManager.Instance.Discover(character, item.TemplateId, CollectionDiscoverySource.Unpacked);
+
         return true;
     }
 
