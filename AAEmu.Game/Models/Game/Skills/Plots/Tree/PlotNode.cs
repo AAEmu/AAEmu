@@ -125,10 +125,12 @@ public class PlotNode
             else
                 targetPlotObj = new PlotObject(targetInfo.Target);
 
-            var targetCount = (byte)targetInfo.EffectedTargets.Count;
+            // SCPlotEvent carries the concrete units selected by an Area/Random* node. Its PlotObject
+            // target is often a synthetic position and therefore cannot stand in for this list.
+            var targetUnitIds = PlotTargetInfo.RealTargetUnitIds(targetInfo.EffectedTargets);
 
             var packet = new SCPlotEventPacket(state.CastTlId, Event.Id, skill.Template.Id, casterPlotObj,
-                targetPlotObj, unkId, castWire, flag, 0, targetCount, channelingTime: channelWire);
+                targetPlotObj, unkId, castWire, flag, 0, targetUnitIds, channelingTime: channelWire);
             state.LastClientEvent = new PlotClientEvent
             {
                 Tl = state.CastTlId,
@@ -139,7 +141,7 @@ public class PlotNode
                 UnkId = unkId,
                 CastWire = castWire,
                 Flag = flag,
-                TargetCount = targetCount,
+                TargetUnitIds = targetUnitIds,
                 ChannelWire = channelWire
             };
 
@@ -149,7 +151,7 @@ public class PlotNode
             {
                 state.Caster.BroadcastPacket(packet, true);
                 RelayPlotEventToZoneIfNeeded(state.CastTlId, Event.Id, skill.Template.Id, casterPlotObj, targetPlotObj,
-                    0ul, unkId, (uint)castTime, (uint)channelingMs, flag, targetCount, targetInfo);
+                    0ul, unkId, (uint)castTime, (uint)channelingMs, flag, targetUnitIds);
             }
 
             Logger.Trace($"Execute Took {stopwatch.ElapsedMilliseconds} to finish.");
@@ -182,8 +184,7 @@ public class PlotNode
         uint castTimeMs,
         uint channelingTimeMs,
         byte flag,
-        byte targetUnitCount,
-        PlotTargetInfo targetInfo)
+        IReadOnlyList<uint> targetUnitIds)
     {
         if (!WorldIntegration.ZoneAuthority)
             return;
@@ -192,18 +193,9 @@ public class PlotNode
         if (WorldIntegration.RelayPlotEventToZone == null)
             return;
 
-        var targetIds = new List<uint>();
-        if (targetUnitCount > 0 && targetInfo.EffectedTargets.Count > 0)
-        {
-            foreach (var t in targetInfo.EffectedTargets)
-            {
-                // Area/RandomArea synthetic targets use ObjId=MaxValue — not valid bc ids.
-                if (t.ObjId != 0 && t.ObjId != uint.MaxValue)
-                    targetIds.Add(t.ObjId);
-            }
-        }
-        else if (targetPlotObj.Type == PlotObjectType.UNIT && targetPlotObj.UnitId != 0)
-            targetIds.Add(targetPlotObj.UnitId);
+        var zoneTargetUnitIds = targetUnitIds?.ToArray() ?? [];
+        if (zoneTargetUnitIds.Length == 0 && targetPlotObj.Type == PlotObjectType.UNIT && targetPlotObj.UnitId != 0)
+            zoneTargetUnitIds = [targetPlotObj.UnitId];
 
         WorldIntegration.RelayPlotEventToZone(
             tl,
@@ -217,6 +209,6 @@ public class PlotNode
             channelingTimeMs,
             true,
             false,
-            targetIds.ToArray());
+            zoneTargetUnitIds);
     }
 }

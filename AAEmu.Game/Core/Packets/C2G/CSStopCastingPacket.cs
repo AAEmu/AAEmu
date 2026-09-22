@@ -121,19 +121,6 @@ public class CSStopCastingPacket() : GamePacket(CSOffsets.CSStopCastingPacket, 1
         Logger.Debug(
             "StopCasting refreshed rod plot tl={0} event={1} skill={2} char={3}",
             last.Tl, last.EventId, last.SkillId, Connection.ActiveChar.Name);
-        state.Caster.BroadcastPacket(
-            new SCPlotEventPacket(
-                last.Tl,
-                last.EventId,
-                last.SkillId,
-                last.Caster,
-                last.Target,
-                last.UnkId,
-                last.CastWire,
-                last.Flag,
-                0,
-                last.TargetCount,
-                channelingTime: last.ChannelWire),
-            true);
+        state.Caster.BroadcastPacket(last.ToPacket(), true);
     }
 }

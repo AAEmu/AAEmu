@@ -1,7 +1,7 @@
 namespace AAEmu.Game.Models.Game.Skills;
 
 /// <summary>
-/// Which buffs a BuffSteal (special type 16) row takes off the target and puts on the caster.
+/// Which buffs a BuffSteal (special type 16) row transfers between the effect source and target.
 /// </summary>
 /// <remarks>
 /// content, 10.0.2.13 game_decrypted: 14 rows, 12 of them reachable through <c>effects</c> and all 12
@@ -10,11 +10,21 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// 이로운 효과 2개 탈취" (steal two beneficial effects) and 23707 / 39096 say "적대상의 이로운 효과 1개를
 /// 빼앗아옵니다" (steal one). <c>value4</c> restricts the take to one buff tag — 229 on effect 34212 and 1229
 /// on effect 44232, both real <c>tagged_buffs.tag_id</c> families with 10 and 1 members — and is 0 on the
-/// other ten rows. <c>value1</c> and <c>value2</c> are 1 on the two 돌려주기 44205 rows (51347/51348, which
-/// take 2 and 3) and 0 elsewhere, so neither slot tracks the count and neither is read.
+/// other ten rows. <c>value1</c> and <c>value2</c> are 1 on the four 돌려주기 44205 rows — 51347/51348
+/// through the skill's own <c>skill_effects</c> and 58194/58195 through its plot 5721 (events 51517
+/// "버프 넘기기 2개" and 51518 "버프 넘기기 3개") — whose text says to return the caster's harmful effects
+/// to the enemy. Because those fields co-vary in every shipped row, only the proven paired 1/1 signature
+/// selects that reverse transfer mode.
 /// </remarks>
 public static class BuffStealRules
 {
+    public readonly record struct TransferMode(BuffKind Kind, bool ReverseDirection);
+
+    public static TransferMode ResolveMode(int value1, int value2) =>
+        value1 == 1 && value2 == 1
+            ? new TransferMode(BuffKind.Bad, true)
+            : new TransferMode(BuffKind.Good, false);
+
     /// <summary>One buff the target is holding, with the tags its template belongs to.</summary>
     public readonly record struct StealCandidate(
         int Index,
@@ -31,13 +41,14 @@ public static class BuffStealRules
     /// <paramref name="requiredTagId"/> of 0 takes anything; <paramref name="maxCount"/> below 1 takes
     /// nothing.
     /// </summary>
-    public static List<StealCandidate> Select(IEnumerable<StealCandidate> candidates, int maxCount, uint requiredTagId)
+    public static List<StealCandidate> Select(IEnumerable<StealCandidate> candidates, int maxCount,
+        uint requiredTagId, BuffKind kind)
     {
         if (candidates == null || maxCount < 1)
             return [];
 
         return candidates
-            .Where(candidate => candidate.Kind == BuffKind.Good && !candidate.Passive && !candidate.System)
+            .Where(candidate => candidate.Kind == kind && !candidate.Passive && !candidate.System)
             .Where(candidate => requiredTagId == 0 || candidate.Tags?.Contains(requiredTagId) == true)
             .OrderBy(candidate => candidate.Index)
             .Take(maxCount)

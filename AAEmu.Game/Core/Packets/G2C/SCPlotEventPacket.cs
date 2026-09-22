@@ -18,7 +18,7 @@ public class SCPlotEventPacket(
     ushort castingTime,
     byte flag,
     ulong itemId = 0L,
-    byte targetUnitCount = 1,
+    IReadOnlyList<uint> targetUnitIds = null,
     byte inputDirection = 0,
     ushort channelingTime = 0)
     : GamePacket(SCOffsets.SCPlotEventPacket, 1)
@@ -35,12 +35,11 @@ public class SCPlotEventPacket(
         stream.Write(castingTime);
         stream.WriteBc(0);
         stream.Write(channelingTime);
+        var ids = targetUnitIds ?? [];
+        var targetUnitCount = (byte)Math.Min(ids.Count, byte.MaxValue);
         stream.Write(targetUnitCount);
-        if (targetUnitCount > 0)
-        {
-            for (var i = 0; i < targetUnitCount; i++)
-                stream.WriteBc(target.UnitId);
-        }
+        for (var i = 0; i < targetUnitCount; i++)
+            stream.WriteBc(ids[i]);
         stream.Write(flag);
         if ((flag & 8) != 0)
         {

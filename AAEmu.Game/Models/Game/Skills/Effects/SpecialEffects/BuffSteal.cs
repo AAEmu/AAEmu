@@ -4,9 +4,9 @@ using AAEmu.Game.Models.Game.Units;
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 
 /// <summary>
-/// Moves beneficial effects from the target onto the caster — the 소드락질 (Leech) skills 10104 / 23707 /
-/// 39096 and 돌려주기 44205 carry it. The instance is re-created on the caster from the same template and
-/// keeps the time it had left.
+/// Transfers effects between the plot source and target. The ordinary 소드락질 (Leech) rows take beneficial
+/// effects from the target; 돌려주기 (Reversal) marks both value1 and value2 to return the source's harmful
+/// effects to the target. The transferred instance keeps the time it had left.
 /// </summary>
 public class BuffSteal : SpecialEffectAction
 {
@@ -33,11 +33,17 @@ public class BuffSteal : SpecialEffectAction
         if (count < 1)
             return;
 
+        var mode = BuffStealRules.ResolveMode(value1, value2);
+        var donor = mode.ReverseDirection ? caster : target;
+        var recipient = mode.ReverseDirection ? target : caster;
+
         // Passives and system buffs are part of what the unit is, not something a leech can take; the
         // shipped rows name tags that only hold ordinary buffs. GetAllBuffs is the Buffs API that classifies
         // by kind, so the rule can tell 이로운 효과 (beneficial) from a debuff.
-        var held = new List<Buff>();
-        target.Buffs.GetAllBuffs(held, [], [], includeAllPassives: false);
+        var good = new List<Buff>();
+        var bad = new List<Buff>();
+        donor.Buffs.GetAllBuffs(good, bad, [], includeAllPassives: false);
+        var held = mode.Kind == BuffKind.Bad ? bad : good;
 
         var candidates = held
             .Where(buff => buff.Template != null)
@@ -50,10 +56,15 @@ public class BuffSteal : SpecialEffectAction
                 SkillManager.Instance.GetBuffTags(buff.Template.BuffId) ?? []))
             .ToList();
 
-        foreach (var candidate in BuffStealRules.Select(candidates, count, requiredTagId))
+        foreach (var candidate in BuffStealRules.Select(candidates, count, requiredTagId, mode.Kind))
         {
-            var source = target.Buffs.GetEffectByIndex((uint)candidate.Index);
+            var source = donor.Buffs.GetEffectByIndex((uint)candidate.Index);
             if (source?.Template == null)
+                continue;
+
+            // The recipient is about to be given the effect, so it passes the same tag-immunity gate every
+            // other application uses. A refused effect is left on the donor rather than dispelled and lost.
+            if (recipient.Buffs.CheckBuffImmune(source.Template, caster, skill))
                 continue;
 
             // Permanent instances answer -1; handing that to AddBuff would write a negative duration, so a
@@ -61,7 +72,7 @@ public class BuffSteal : SpecialEffectAction
             var remaining = source.GetTimeLeft();
             var forcedDuration = remaining < 0 ? 0 : (int)remaining;
 
-            var stolen = new Buff(caster, caster, casterObj, source.Template, skill, DateTime.UtcNow)
+            var transferred = new Buff(recipient, caster, casterObj, source.Template, skill, DateTime.UtcNow)
             {
                 AbLevel = source.AbLevel,
                 Charge = source.Charge,
@@ -71,8 +82,8 @@ public class BuffSteal : SpecialEffectAction
             // Dispel before the list removal, the pair Buffs.RemoveBuff performs: without it the victim and
             // everyone watching keep the icon of a buff that is now on somebody else.
             source.Template.Dispel(source.Caster, source.Owner, source);
-            target.Buffs.RemoveEffect(source);
-            caster.Buffs.AddBuff(stolen, forcedDuration: forcedDuration);
+            donor.Buffs.RemoveEffect(source);
+            recipient.Buffs.AddBuff(transferred, forcedDuration: forcedDuration);
         }
     }
 }
