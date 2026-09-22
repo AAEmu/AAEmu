@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Features;
@@ -31,14 +32,13 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
     private readonly HashSet<long> _reservedMailIds = [];
     // Unused: private object _lock = new();
 
-    public static int CostNormal { get; set; } = 50;
-    public static int CostNormalAttachment { get; set; } = 30;
-    public static int CostExpress { get; set; } = 100;
-    public static int CostExpressAttachment { get; set; } = 80;
-    public static int CostFreeAttachmentCount { get; set; } = 1;
-    public static TimeSpan NormalMailDelay { get; set; } = TimeSpan.FromMinutes(30); // Default is 30 minutes
+    // Internal sender marker on the system letter that parks a cash-on-delivery payment until
+    // its offline sender claims it. An identifier, not display content: the letter's wording
+    // comes from Configurations/Mail.json (Mail.CodPayment).
+    private const string CodPaymentSenderName = ".codPayment";
 
     // Unread/read retention is per mail type: see MailRetentionRules.
+    // Charges and the normal-delivery delay live in MailFeeRules (content_configs, no built-in values).
     /// <summary>The sender's Sent history keeps a letter this long, regardless of the receiver.</summary>
     public static TimeSpan SentMailExpiry { get; set; } = TimeSpan.FromDays(30);
 
@@ -720,6 +720,16 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             originalReceiverId = mail.Header.ReceiverId;
             var originalReceiverName = mail.Header.ReceiverName;
 
+            // A cash-on-delivery charge is a price tag, not held coin: the sender was never
+            // debited for it. Once the letter turns around the original sender would otherwise
+            // face their own charge (or meet it again on a re-return), so drop it here and keep
+            // the attachment count honest. Copper and item attachments travel back untouched.
+            if (mail.Body.BillingAmount != 0)
+            {
+                mail.Body.BillingAmount = 0;
+                mail.Header.Attachments = mail.GetTotalAttachmentCount();
+            }
+
             mail.Header.ReceiverId = destinationId;
             mail.ReceiverName = destinationName;
             mail.Header.SenderId = originalReceiverId;
@@ -873,7 +883,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                         {
                             Id = reader.GetInt32("id"), Title = reader.GetString("title"), MailType = (MailType)reader.GetInt32("type"),
                             ReceiverName = reader.GetString("receiver_name"),
-                            OpenDate = reader.GetDateTime("open_date"),
+                            OpenDate = ServerCalendar.AsUtc(reader.GetDateTime("open_date")),
                             Header =
                             {
                                 Status = (MailStatus)reader.GetInt32("status"),
@@ -890,8 +900,8 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                                 CopperCoins = reader.GetInt32("money_amount_1"),
                                 BillingAmount = reader.GetInt32("money_amount_2"),
                                 MoneyAmount2 = reader.GetInt32("money_amount_3"),
-                                SendDate = reader.GetDateTime("send_date"),
-                                RecvDate = reader.GetDateTime("received_date")
+                                SendDate = ServerCalendar.AsUtc(reader.GetDateTime("send_date")),
+                                RecvDate = ServerCalendar.AsUtc(reader.GetDateTime("received_date"))
                             }
                         };
 
@@ -936,7 +946,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                         tempMail.ReceiverDeleted = reader.GetInt32("receiver_deleted") != 0;
 
                         // Set internal delivered flag
-                        tempMail.IsDelivered = tempMail.Body.RecvDate <= DateTime.UtcNow;
+                        tempMail.IsDelivered = tempMail.Body.RecvDate <= ServerCalendar.UtcNow;
                         tempMail.IsDirty = false;
 
                         // Remove from delete list if it's a recycled Id
@@ -1385,29 +1395,32 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
     /// </summary>
     private static bool IsReceiverExpired(BaseMail mail, DateTime now)
     {
+        var current = ServerCalendar.AsUtc(now);
         var type = mail.Header.Type;
         if (MailRetentionRules.IgnoresReadState(type))
-            return mail.Body.RecvDate + MailRetentionRules.DemolitionRetention <= now;
+            return ServerCalendar.AsUtc(mail.Body.RecvDate) + MailRetentionRules.DemolitionRetention <= current;
 
         if (mail.Header.Status == MailStatus.Read)
         {
             var readAt = mail.Header.OpenDate == default ? mail.Body.RecvDate : mail.Header.OpenDate;
-            return readAt + MailRetentionRules.ReadRetention <= now;
+            return ServerCalendar.AsUtc(readAt) + MailRetentionRules.ReadRetention <= current;
         }
 
-        return mail.Body.RecvDate + MailRetentionRules.UnreadRetention(type) <= now;
+        return ServerCalendar.AsUtc(mail.Body.RecvDate) + MailRetentionRules.UnreadRetention(type) <= current;
     }
 
     /// <summary>
     /// Sender: Sent history expires 30 days after send, regardless of the receiver.
     /// A row is removed only once both sides are gone.
+    /// Internal so retention can be driven deterministically from a supplied clock.
     /// </summary>
-    private void ExpireDueMails(DateTime now)
+    internal void ExpireDueMails(DateTime now)
     {
+        var current = ServerCalendar.AsUtc(now);
         var changed = false;
         foreach (var (id, mail) in _allPlayerMails.ToList())
         {
-            if (!mail.ReceiverDeleted && IsReceiverExpired(mail, now))
+            if (!mail.ReceiverDeleted && IsReceiverExpired(mail, current))
             {
                 var receiver = worldManager.GetCharacterById(mail.Header.ReceiverId);
                 var wasUnread = mail.Header.Status != MailStatus.Read;
@@ -1428,7 +1441,7 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             }
 
             if (!mail.SenderDeleted &&
-                mail.Body.SendDate + SentMailExpiry <= now)
+                ServerCalendar.AsUtc(mail.Body.SendDate) + SentMailExpiry <= current)
             {
                 DeleteForSender(mail);
                 changed = true;
@@ -1459,13 +1472,175 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
             return false;
         }
 
-        // Only tax mail supported
-        if (mail.MailType != MailType.Billing)
+        if (mail.MailType == MailType.Billing)
+        {
+            return PayHouseTaxCharge(character, mail, autoUseAAPoint);
+        }
+
+        return PayCodCharge(character, mail, autoUseAAPoint);
+    }
+
+    /// <summary>
+    /// Cash on delivery: the receiver pays the letter's charge once, the sender is credited the
+    /// same amount, and the goods move to the receiver in the same operation - so no letter can
+    /// sit paid-but-unclaimed and be auto-returned or destroyed by the retention sweep.
+    /// Settlement serializes on the mail store lock, so a return that got there first refuses
+    /// the payment outright and a letter that was already settled can never be re-charged.
+    /// </summary>
+    private bool PayCodCharge(Character character, BaseMail mail, bool autoUseAAPoint)
+    {
+        var amount = mail.Body.BillingAmount;
+        if (amount <= 0)
         {
             character.SendErrorMessage(ErrorMessageType.MailInvalid);
             return false;
         }
 
+        // The charge settles in the letter's own currency (gold). Point payment is refused
+        // rather than converted: nothing in the letter's roles says what a conversion would cost.
+        if (autoUseAAPoint)
+        {
+            character.SendErrorMessage(ErrorMessageType.MailInvalid);
+            return false;
+        }
+
+        // Goods must fit before any coin moves; a payment that cannot deliver would strand the
+        // receiver's money against a letter they can no longer act on.
+        if (mail.Body.Attachments.Count > 0 && character.Inventory?.Bag == null)
+        {
+            character.SendErrorMessage(ErrorMessageType.MailInvalid);
+            return false;
+        }
+        foreach (var item in mail.Body.Attachments)
+        {
+            if (item == null)
+                continue;
+            if (character.Inventory.Bag.SpaceLeftForItem(item, out _) < item.Count)
+            {
+                character.SendErrorMessage(ErrorMessageType.BagFull);
+                return false;
+            }
+        }
+
+        using var persist = DeferPersist();
+
+        uint senderId;
+        lock (_allPlayerMails)
+        {
+            // Re-validate under the store lock: a concurrent return/flip or a second payment
+            // must find the letter exactly as it was or nothing moves.
+            if (!_allPlayerMails.TryGetValue(mail.Id, out var tracked) ||
+                !ReferenceEquals(tracked, mail) ||
+                !MailDeliveryRules.IsPublished(mail) ||
+                mail.Header.ReceiverId != character.Id ||
+                mail.Body.BillingAmount != amount)
+            {
+                character.SendErrorMessage(ErrorMessageType.MailInvalid);
+                return false;
+            }
+
+            mail.Body.BillingAmount = 0;
+            mail.Header.Attachments = mail.GetTotalAttachmentCount();
+            senderId = mail.Header.SenderId;
+        }
+
+        if (!character.SubtractMoney(SlotType.Inventory, amount, ItemTaskType.Mail))
+        {
+            RestoreCodCharge(mail, amount);
+            return false;
+        }
+
+        var sender = worldManager.GetCharacterById(senderId);
+        var senderIsOnline = sender is { IsOnline: true };
+        BaseMail receipt = null;
+        if (senderIsOnline)
+        {
+            if (!sender.ChangeMoney(SlotType.Inventory, amount, ItemTaskType.Mail))
+            {
+                character.ChangeMoney(SlotType.Inventory, amount, ItemTaskType.Mail);
+                RestoreCodCharge(mail, amount);
+                return false;
+            }
+        }
+        else
+        {
+            // Offline sender: park the payment on a system letter through the normal mail
+            // path, the same way auction proceeds reach an absent seller. The letter's wording
+            // is configuration (Configurations/Mail.json); without it the settlement is
+            // refused and the payment refunded rather than a wordless letter sent.
+            var wording = AppConfiguration.Instance.Mail.CodPayment;
+            if (string.IsNullOrEmpty(wording.Title) || string.IsNullOrEmpty(wording.Text))
+            {
+                Logger.Error("Mail.CodPayment wording is missing in Configurations/Mail.json; refunding COD payment {0} instead of parking it for sender {1}", amount, senderId);
+                character.ChangeMoney(SlotType.Inventory, amount, ItemTaskType.Mail);
+                RestoreCodCharge(mail, amount);
+                character.SendErrorMessage(ErrorMessageType.MailInvalid);
+                return false;
+            }
+
+            var senderName = nameManager.GetCharacterName(senderId);
+            if (string.IsNullOrEmpty(senderName))
+            {
+                character.ChangeMoney(SlotType.Inventory, amount, ItemTaskType.Mail);
+                RestoreCodCharge(mail, amount);
+                character.SendErrorMessage(ErrorMessageType.MailInvalid);
+                return false;
+            }
+
+            receipt = new BaseMail
+            {
+                MailType = MailType.BalanceReceipt,
+                Title = wording.Title,
+                ReceiverName = senderName,
+                Header = { SenderId = 0, SenderName = CodPaymentSenderName, ReceiverId = senderId },
+                Body = { Text = wording.Text, SendDate = ServerCalendar.UtcNow, RecvDate = ServerCalendar.UtcNow }
+            };
+            receipt.AttachMoney(amount);
+            if (!Send(receipt, publishNow: false))
+            {
+                character.ChangeMoney(SlotType.Inventory, amount, ItemTaskType.Mail);
+                RestoreCodCharge(mail, amount);
+                return false;
+            }
+        }
+
+        if (!WorldSnapshotCommit.FlushNow(bypassCharges: false, onFailed: () =>
+            {
+                if (receipt != null)
+                    DiscardUnpersisted(receipt);
+                if (senderIsOnline)
+                    sender.SubtractMoney(SlotType.Inventory, amount, ItemTaskType.Mail);
+                character.ChangeMoney(SlotType.Inventory, amount, ItemTaskType.Mail);
+                RestoreCodCharge(mail, amount);
+            }))
+            return false;
+
+        if (receipt != null)
+            PublishDelivered(receipt);
+
+        character.SendPacket(new SCChargeMoneyPaidPacket(mail.Id));
+
+        // Hand over the goods in the same operation. Money attachments stay claimable as usual.
+        if (mail.Body.Attachments.Count > 0)
+            character.Mails.GetAttached(mail.Id, takeMoney: false, takeItems: true, takeAllSelected: true);
+        return true;
+    }
+
+    private void RestoreCodCharge(BaseMail mail, int amount)
+    {
+        lock (_allPlayerMails)
+        {
+            if (!_allPlayerMails.TryGetValue(mail.Id, out var tracked) || !ReferenceEquals(tracked, mail))
+                return;
+            if (mail.Body.BillingAmount != 0)
+                return;
+            mail.Body.BillingAmount = amount;
+            mail.Header.Attachments = mail.GetTotalAttachmentCount();
+        }
+    }
+
+    private bool PayHouseTaxCharge(Character character, BaseMail mail, bool autoUseAAPoint)
+    {
         var houseId = (uint)(mail.Header.Extra & 0xFFFFFFFF); // Extract house DB Id from Extra
         var houseZoneGroup = (mail.Header.Extra >> 48) & 0xFFFF; // Extract zone group Id from Extra
         var house = housingManager.Value.GetHouseById(houseId);

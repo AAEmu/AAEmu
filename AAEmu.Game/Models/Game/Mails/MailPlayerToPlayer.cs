@@ -25,25 +25,24 @@ public class MailPlayerToPlayer : BaseMail
         var mailFee = 0;
         var attachmentCost = 0;
         var attachmentCountForFee = Body.Attachments.Count;
-
         if (Body.CopperCoins > 0)
             attachmentCountForFee++;
 
         if (MailType == MailType.Normal)
         {
-            mailFee += MailManager.CostNormal;
-            attachmentCost = MailManager.CostNormalAttachment;
+            mailFee += MailFeeRules.NormalMailCost;
+            attachmentCost = MailFeeRules.NormalAttachmentCost;
         }
         else if (MailType == MailType.Express)
         {
-            mailFee += MailManager.CostExpress;
-            attachmentCost = MailManager.CostExpressAttachment;
+            mailFee += MailFeeRules.ExpressMailCost;
+            attachmentCost = MailFeeRules.ExpressAttachmentCost;
         }
         // If Invalid mail type, assume zero cost
 
-        // Add cost based on attachments past the first one
-        if (attachmentCountForFee > MailManager.CostFreeAttachmentCount)
-            mailFee += (attachmentCountForFee - MailManager.CostFreeAttachmentCount) * attachmentCost;
+        // Add cost based on attachments past the free slots
+        if (attachmentCountForFee > MailFeeRules.FreeAttachmentCount)
+            mailFee += (attachmentCountForFee - MailFeeRules.FreeAttachmentCount) * attachmentCost;
 
         return mailFee;
     }

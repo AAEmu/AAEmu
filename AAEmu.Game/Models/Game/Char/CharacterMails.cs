@@ -365,7 +365,7 @@ public class CharacterMails
 
         // Delay applies to the RECIPIENT only; the sender's Sent copy is never gated by it.
         if (mailType == MailType.Normal)
-            mail.Body.RecvDate = DateTime.UtcNow + MailManager.NormalMailDelay;
+            mail.Body.RecvDate = DateTime.UtcNow + MailFeeRules.NormalMailDelay;
 
 
         // The deferred scope is the only write. If the snapshot did not commit, do not report
@@ -423,6 +423,14 @@ public class CharacterMails
         if (!TryGetOwnMail(mailId, false, out var thisMail))
         {
             Self.SendErrorMessage(ErrorMessageType.MailInvalid);
+            return false;
+        }
+
+        // A cash-on-delivery letter must be settled before anything leaves it: taking the goods
+        // first would deliver them while the sender's payment never happened.
+        if (thisMail.Body.BillingAmount > 0)
+        {
+            Self.SendErrorMessage(ErrorMessageType.MailPayChargeFirst);
             return false;
         }
 
@@ -647,5 +655,45 @@ public class CharacterMails
         // longer addressed to this inbox, so it is excluded) for the SCMailReturnedPacket above.
         // Adjusting again here would double-count the return; just publish the refreshed totals.
         SendUnreadMailCount();
+    }
+
+    /// <summary>
+    /// Reports a received player letter as spam. The first accepted report re-types the letter
+    /// to <see cref="MailType.Spam"/>; later reports of the same letter are accepted but change
+    /// nothing, so counters and contents are never adjusted twice. The report touches neither
+    /// attachments nor coin - the letter stays fully claimable.
+    /// </summary>
+    public void ReportSpam(long mailId, string reportedSender)
+    {
+        if (!TryFindStoredMail(mailId, out _))
+        {
+            NotifyMailGone(mailId);
+            return;
+        }
+
+        if (!TryGetOwnMail(mailId, false, out var mail))
+        {
+            Self.SendErrorMessage(ErrorMessageType.MailInvalid);
+            return;
+        }
+
+        // Only player letters are reportable (the client hides the button for the rest), and the
+        // sender name sent alongside the id must match the letter it names.
+        if (mail.Header.SenderId == 0 ||
+            mail.MailType is not (MailType.Normal or MailType.Express or MailType.Spam) ||
+            (reportedSender != null &&
+             !string.Equals(reportedSender, mail.Header.SenderName, StringComparison.InvariantCultureIgnoreCase)))
+        {
+            Self.SendErrorMessage(ErrorMessageType.MailInvalid);
+            return;
+        }
+
+        if (mail.MailType != MailType.Spam)
+        {
+            mail.MailType = MailType.Spam;
+            MailManager.Instance.PersistNow();
+        }
+
+        Self.SendPacket(new SCSpamMailReportedPacket());
     }
 }

@@ -4,12 +4,9 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO(v10): the body is parsed but nothing acts on it yet.
+/// Reports a received player letter as spam. The body carries the letter id and the
+/// sender name the report refers to; both are handed to the mailbox for validation.
 /// </summary>
-/// <remarks>
-/// which passes each field name alongside the value:
-/// ulong type, string sender
-/// </remarks>
 public class CSReportSpamMailPacket() : GamePacket(CSOffsets.CSReportSpamMailPacket, 1)
 {
     public ulong Type { get; private set; }
@@ -19,5 +16,8 @@ public class CSReportSpamMailPacket() : GamePacket(CSOffsets.CSReportSpamMailPac
     {
         Type = stream.ReadUInt64();
         Sender = stream.ReadString();
+
+        Logger.Debug("ReportSpamMail, mailId: {0}, sender: {1}", Type, Sender);
+        Connection.ActiveChar?.Mails.ReportSpam((long)Type, Sender);
     }
 }

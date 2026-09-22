@@ -362,6 +362,23 @@ public class SpecialtyConfig
     public double TradePackMailDelayInMinutes { get; set; } = 480f;
 }
 
+/// <summary>
+/// Mail system letters whose wording is server-owned. Configure in
+/// <c>AAEmu.Game/Configurations/Mail.json</c> under <c>Mail.CodPayment</c>. A missing value
+/// fails the settlement loudly instead of sending a letter with no wording.
+/// </summary>
+public class MailConfig
+{
+    public CodPaymentMailConfig CodPayment { get; set; } = new();
+}
+
+/// <summary>Wording of the system letter that parks a cash-on-delivery payment for an offline sender.</summary>
+public class CodPaymentMailConfig
+{
+    public string Title { get; set; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
+}
+
 public class UccConfig
 {
     /// <summary>
