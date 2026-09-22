@@ -42,7 +42,7 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
     /// DetailType, DetailId, Template
     /// </summary>
     private readonly Dictionary<string, Dictionary<uint, QuestActTemplate>> _actTemplatesByDetailType = [];
-    private readonly Dictionary<uint, List<uint>> _groupItems = [];
+    private readonly Dictionary<uint, List<QuestGroupItemEntry>> _groupItems = [];
     private readonly Dictionary<uint, List<uint>> _groupNpcs = [];
     private readonly Dictionary<uint, HashSet<uint>> _contextGroupMembers = [];
     private readonly Dictionary<uint, QuestComponentTemplate> _componentTemplates = [];
@@ -111,11 +111,12 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
     }
 
     /// <summary>
-    /// Gets list of ItemIds of a specific Quest Item Group
+    /// Gets the quest_item_group_items rows of a specific Quest Item Group, with the grades each
+    /// row accepts (empty when the row is not grade-gated).
     /// </summary>
     /// <param name="groupId"></param>
     /// <returns></returns>
-    public List<uint> GetGroupItems(uint groupId)
+    public List<QuestGroupItemEntry> GetGroupItems(uint groupId)
     {
         return _groupItems.TryGetValue(groupId, out var item) ? item : [];
     }
@@ -128,7 +129,7 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
     /// <returns></returns>
     public bool CheckGroupItem(uint groupId, uint itemId)
     {
-        return _groupItems.GetValueOrDefault(groupId)?.Contains(itemId) ?? false;
+        return _groupItems.GetValueOrDefault(groupId)?.Any(entry => entry.ItemId == itemId) ?? false;
     }
 
     /// <summary>
@@ -401,7 +402,8 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
     }
 
     /// <summary>
-    /// Load Item group data
+    /// Load Item group data. A grade-gated item contributes one row per grade it accepts
+    /// (QuestItemGroupGatherRules); the rows are merged so the act can sum the listed grades.
     /// </summary>
     /// <param name="connection"></param>
     private void LoadQuestItemGroups(SqliteConnection connection)
@@ -414,16 +416,26 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
         {
             var groupId = reader.GetUInt32("quest_item_group_id");
             var itemId = reader.GetUInt32("item_id");
-            List<uint> items;
-            if (!_groupItems.TryGetValue(groupId, out var itemList))
+            if (!_groupItems.TryGetValue(groupId, out var entries))
             {
-                items = [];
-                _groupItems.Add(groupId, items);
+                entries = [];
+                _groupItems.Add(groupId, entries);
             }
-            else
-                items = itemList;
 
-            items.Add(itemId);
+            if (!reader.GetBoolean("use_grade"))
+            {
+                entries.Add(new QuestGroupItemEntry(itemId, []));
+                continue;
+            }
+
+            var existing = entries.FindIndex(entry => entry.ItemId == itemId && entry.Grades is { Length: > 0 });
+            if (existing < 0)
+                entries.Add(new QuestGroupItemEntry(itemId, [reader.GetUInt32("item_grade_id")]));
+            else
+                entries[existing] = entries[existing] with
+                {
+                    Grades = [.. entries[existing].Grades, reader.GetUInt32("item_grade_id")]
+                };
         }
     }
 

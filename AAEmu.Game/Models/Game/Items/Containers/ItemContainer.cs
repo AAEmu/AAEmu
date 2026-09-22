@@ -565,12 +565,13 @@ public class ItemContainer
     /// <param name="templateId">Item templateId to search for</param>
     /// <param name="amountToConsume">Amount of item units to consume</param>
     /// <param name="preferredItem">If not null, use this Item as primary source for consume</param>
+    /// <param name="gradeToConsume">Only consume items of this grade; every grade when -1</param>
     /// <returns>The amount of items that was actually consumed, 0 when failed or not found</returns>
-    public int ConsumeItem(ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem)
+    public int ConsumeItem(ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem, int gradeToConsume = -1)
     {
         using var mutation = MutationInventory?.AcquireMutation();
         lock (MutationSyncRoot)
-            return ConsumeItemCore(taskType, templateId, amountToConsume, preferredItem);
+            return ConsumeItemCore(taskType, templateId, amountToConsume, preferredItem, gradeToConsume);
     }
 
     public bool ConsumeCommittedItem(ItemTaskType taskType, Item item)
@@ -596,9 +597,9 @@ public class ItemContainer
         }
     }
 
-    private int ConsumeItemCore(ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem)
+    private int ConsumeItemCore(ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem, int gradeToConsume = -1)
     {
-        if (!GetAllItemsByTemplate(templateId, -1, out var foundItems, out _))
+        if (!GetAllItemsByTemplate(templateId, gradeToConsume, out var foundItems, out _))
         {
             return 0; // Nothing found
         }

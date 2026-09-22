@@ -1,6 +1,8 @@
 ﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Items.Containers;
 using AAEmu.Game.Models.Game.Quests.Templates;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Utils;
 
 namespace AAEmu.Game.Models.Game.Quests.Acts;
 
@@ -47,13 +49,20 @@ public class QuestActObjEffectFire(QuestComponentTemplate parentComponent) : Que
             return;
 
         // Same forwarding as QuestActObjInteraction: the team-mates' handlers see a
-        // SourceCharacterId that is not their own and do not forward again.
+        // SourceCharacterId that is not their own and do not forward again. The credit stops at the
+        // team kill-credit range Npc.DoDie uses, so a team-mate across the world does not get the fire.
         var team = TeamManager.Instance.GetTeamByObjId(owner.ObjId);
         if (team == null)
             return;
         foreach (var member in team.Members)
         {
             if (member?.Character == null || member.Character.Id == owner.Id)
+                continue;
+            if (!QuestEffectFireRules.SharesAtRange(
+                    owner.Transform.ZoneId,
+                    member.Character.Transform.ZoneId,
+                    MathUtil.CalculateDistance(owner.Transform.World.Position, member.Character.Transform.World.Position, true),
+                    LootingContainer.MaxLootingRange))
                 continue;
             member.Character.Events.OnEffectFire(sender, args);
         }

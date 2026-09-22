@@ -469,8 +469,8 @@ public class UnitReqs
 
             case UnitReqsKindType.OwnQuestItemGroup:
                 return Ret(SkillResultKeys.skill_urk_own_quest_item_group,
-                    player != null && QuestManager.Instance.GetGroupItems(Value1).Any(itemId =>
-                        player.Inventory.GetAllItemsByTemplate(null, itemId, -1, out _, out _)));
+                    player != null && QuestManager.Instance.GetGroupItems(Value1).Any(entry =>
+                        player.Inventory.GetAllItemsByTemplate(null, entry.ItemId, -1, out _, out _)));
 
             case UnitReqsKindType.House:
                 if (target is not House { Template: not null } targetHouse)

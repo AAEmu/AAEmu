@@ -112,7 +112,7 @@ public partial class QuestManager
         // Trigger the item group acquire event
         // Check what groups this item belongs to
         // TODO: Optimize this to be added after item and quest loading
-        var itemGroupsForThisItem = _groupItems.Where(x => x.Value.Contains(templateId)).Select(x => x.Key);
+        var itemGroupsForThisItem = _groupItems.Where(x => x.Value.Any(entry => entry.ItemId == templateId)).Select(x => x.Key);
         foreach (var itemGroup in itemGroupsForThisItem)
         {
             owner?.Events?.OnItemGroupGather(owner, new OnItemGroupGatherArgs { ItemId = templateId, Count = count, ItemGroupId = itemGroup });

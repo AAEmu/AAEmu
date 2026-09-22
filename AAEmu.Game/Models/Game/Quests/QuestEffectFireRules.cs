@@ -21,4 +21,11 @@ public static class QuestEffectFireRules
     /// </summary>
     public static bool SharesWithTeam(bool teamShare, uint ownerCharacterId, uint sourceCharacterId)
         => teamShare && ownerCharacterId != 0 && ownerCharacterId == sourceCharacterId;
+
+    /// <summary>
+    /// A forwarded fire only reaches a team-mate the kill credit would reach: the same zone and
+    /// LootingContainer.MaxLootingRange, the range Npc.DoDie applies to tag-team members.
+    /// </summary>
+    public static bool SharesAtRange(uint ownerZoneId, uint memberZoneId, float distance, float maxRange)
+        => ownerZoneId == memberZoneId && distance <= maxRange;
 }

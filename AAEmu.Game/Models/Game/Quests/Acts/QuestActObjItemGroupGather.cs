@@ -26,7 +26,7 @@ public class QuestActObjItemGroupGather(QuestComponentTemplate parentComponent) 
     private int CountInBag(Quest quest)
         => QuestItemGroupGatherRules.CountInGroup(
             QuestManager.Instance.GetGroupItems(ItemGroupId),
-            itemId => quest.Owner.Inventory.GetItemsCount(itemId));
+            (itemId, grade) => quest.Owner.Inventory.GetItemsCount(itemId, grade));
 
     public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
@@ -77,9 +77,9 @@ public class QuestActObjItemGroupGather(QuestComponentTemplate parentComponent) 
             return;
         var plan = QuestItemGroupGatherRules.CleanupPlan(
             QuestManager.Instance.GetGroupItems(ItemGroupId),
-            itemId => quest.Owner.Inventory.GetItemsCount(itemId),
+            (itemId, grade) => quest.Owner.Inventory.GetItemsCount(itemId, grade),
             Math.Min(GetObjective(quest), MaxObjective()));
-        foreach (var (itemId, count) in plan)
-            quest.Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, itemId, count, null);
+        foreach (var (itemId, count, grade) in plan)
+            quest.Owner.Inventory.ConsumeItem(null, ItemTaskType.QuestRemoveSupplies, itemId, count, null, grade);
     }
 }
