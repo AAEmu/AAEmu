@@ -45,10 +45,32 @@ public class PlotAuctionManager : Singleton<PlotAuctionManager>, ILoadable, IIni
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    /// <summary>The client disables the exit button inside the final 20 minutes of the bid
-    /// window (LAST_20_MINUTES_SECONDS, limited_auction_tab.lua line 277); the server holds the
-    /// same line so the escrow cannot be pulled out from under a closing auction.</summary>
-    internal static readonly TimeSpan ExitLockout = TimeSpan.FromMinutes(20);
+    private const string ExitGuardSecondsKey = "plot_auction_exit_guard_seconds";
+    private static bool _exitGuardMissingWarned;
+
+    /// <summary>
+    /// The client disables its exit button inside the final minutes of the bid window
+    /// (limited_auction_tab.lua LAST_20_MINUTES_SECONDS). Shipped content carries no row for the
+    /// server-side mirror, so the guard applies only when a <c>content_configs</c> row with this key
+    /// exists; with no row exits are allowed and the gap is logged once, loudly. Never a literal.
+    /// </summary>
+    internal static TimeSpan ExitLockout
+    {
+        get
+        {
+            if (AAEmu.Game.GameData.ContentConfigGameData.Instance.TryGetInt(ExitGuardSecondsKey, out var seconds) && seconds > 0)
+                return TimeSpan.FromSeconds(seconds);
+            if (!_exitGuardMissingWarned)
+            {
+                _exitGuardMissingWarned = true;
+                Logger.Warn(
+                    "content_configs row '{0}' is absent: auction exits carry no closing-window guard.",
+                    ExitGuardSecondsKey);
+            }
+
+            return TimeSpan.Zero;
+        }
+    }
 
     private readonly object _lock = new();
     private readonly IWorldManager _worldManager;

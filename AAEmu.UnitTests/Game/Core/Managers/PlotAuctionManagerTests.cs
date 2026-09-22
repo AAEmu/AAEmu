@@ -294,6 +294,8 @@ public sealed class PlotAuctionManagerTests
     [Test]
     public async Task Exit_InsideTheLast20Minutes_IsRefusedAndTheEscrowStaysHeld()
     {
+        // The closing-window guard comes from content (20 minutes here); no literal lives in the manager.
+        AAEmu.Game.GameData.ContentConfigGameData.Instance.SetForTest("plot_auction_exit_guard_seconds", 1200);
         await Assert.That(_manager.PlaceBid(_alice, ActivityId, LockoutConfigId, FirstFloor))
             .IsEqualTo(PlotAuctionErrorCodes.Success);
 
@@ -302,6 +304,21 @@ public sealed class PlotAuctionManagerTests
         await Assert.That(_alice.Money).IsEqualTo(StartingMoney - FirstFloor);
         await Assert.That(_manager.BidsFor(LockoutConfigId).Count).IsEqualTo(1);
         await Assert.That(_mails._allPlayerMails).IsEmpty();
+    }
+
+    [Test]
+    public async Task Exit_WithoutAGuardRow_IsAllowedNearCloseAndRefundsTheEscrow()
+    {
+        // A 0 row exercises the same no-guard path as an absent row (the singleton cannot unseed),
+        // and the escrow returns exactly once.
+        AAEmu.Game.GameData.ContentConfigGameData.Instance.SetForTest("plot_auction_exit_guard_seconds", 0);
+        await Assert.That(_manager.PlaceBid(_alice, ActivityId, LockoutConfigId, FirstFloor))
+            .IsEqualTo(PlotAuctionErrorCodes.Success);
+
+        var exit = _manager.ExitBid(_alice, ActivityId, LockoutConfigId);
+        await Assert.That(exit).IsEqualTo(PlotAuctionErrorCodes.Success);
+        await Assert.That(_alice.Money).IsEqualTo(StartingMoney);
+        await Assert.That(_manager.BidsFor(LockoutConfigId).Count).IsEqualTo(0);
     }
 
     [Test]
