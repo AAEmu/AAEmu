@@ -13,12 +13,15 @@ using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.IO;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Features;
 using AAEmu.Game.Models.Game.Indun;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Schedules;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.Weather;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.World.Transform;
 using AAEmu.Game.Utils.DB;
@@ -106,7 +109,8 @@ public class WorldManager(
     public WorldInstance MainWorld { get; set; }
 
     /// <summary>
-    /// Flag to keep track is the global snowing effect is enabled
+    /// The global snow state clients are shown. Decided by <see cref="SnowStateRules"/> from the
+    /// configured feature bit, the weather cycle and an operator hold.
     /// </summary>
     public bool IsSnowing { get; set; }
 
@@ -347,6 +351,7 @@ public class WorldManager(
     public void Initialize()
     {
         InitializeSnowState(FeaturesManager.Fsets);
+        ConfigureWeatherCycle(AppConfiguration.Instance.Weather, GameScheduleManager.Instance.GetSchedule);
         tickManager.OnTick.Subscribe(ActiveRegionTick, TimeSpan.FromSeconds(1));
         tickManager.OnTick.Subscribe(AutoWaterProbeTick, TimeSpan.FromSeconds(10));
         // Shared game-day clock (seamless zones do not ZW-report ToD).
@@ -356,7 +361,83 @@ public class WorldManager(
     internal void InitializeSnowState(FeatureSet configuredFeatures)
     {
         ArgumentNullException.ThrowIfNull(configuredFeatures);
-        IsSnowing = configuredFeatures.Check(Feature.fset_7_2_unknown);
+        lock (_snowLock)
+        {
+            _configuredSnow = configuredFeatures.Check(Feature.fset_7_2_unknown);
+            _weatherCycleSnow = false;
+            _snowHold = null;
+            IsSnowing = _configuredSnow;
+        }
+    }
+
+    private readonly Lock _snowLock = new();
+    private bool _configuredSnow;
+    private bool _weatherCycleSnow;
+    private bool? _snowHold;
+
+    /// <summary>
+    /// Operator snow switch. A value holds snow on or off whatever the configured bit and the weather
+    /// cycle say; null releases the hold and hands snow back to them. The result is always
+    /// broadcast, so a repeated command re-sends the state to every online player.
+    /// </summary>
+    public void SetSnowHold(bool? snowing)
+    {
+        lock (_snowLock)
+        {
+            _snowHold = snowing;
+            PublishSnowState(alwaysBroadcast: true);
+        }
+    }
+
+    /// <summary>Recomputes the effective snow state and broadcasts it when it moved.</summary>
+    private void PublishSnowState(bool alwaysBroadcast)
+    {
+        var snowing = SnowStateRules.Effective(_snowHold, _configuredSnow, _weatherCycleSnow);
+        if (!alwaysBroadcast && snowing == IsSnowing)
+            return;
+
+        IsSnowing = snowing;
+        BroadcastPacketToServer(new SCSnowingEverywherePacket(snowing));
+    }
+
+    /// <summary>The weather cycle this world is currently hooked to, if any.</summary>
+    private WeatherManager _weatherCycleSource;
+
+    /// <summary>
+    /// Binds the schedule-driven weather cycle to this world and evaluates it once against the
+    /// current clock. Restart policy: the state is re-derived from the configured phases and
+    /// their content rows on every start — nothing runtime-only survives a boot, matching how
+    /// <see cref="InitializeSnowState"/> re-seeds snow from its configured source.
+    /// </summary>
+    internal void ConfigureWeatherCycle(WeatherConfig weatherConfig, Func<int, GameSchedules> scheduleLookup)
+    {
+        var weather = WeatherManager.Instance;
+        weather.Configure(weatherConfig, scheduleLookup);
+
+        if (!ReferenceEquals(_weatherCycleSource, weather))
+        {
+            _weatherCycleSource = weather;
+            weather.StateChanged += ApplyWeatherTransition;
+        }
+
+        weather.Refresh(DateTime.UtcNow);
+        ApplyWeatherState(weather.CurrentState);
+    }
+
+    private void ApplyWeatherTransition(WeatherState previous, WeatherState current) => ApplyWeatherState(current);
+
+    /// <summary>
+    /// Records whether the cycle has a snow phase open and republishes the snow state through
+    /// <see cref="SCSnowingEverywherePacket"/>. The cycle only contributes its own snow: closing a
+    /// phase does not turn off snow the configured bit or an operator hold keeps on.
+    /// </summary>
+    private void ApplyWeatherState(WeatherState current)
+    {
+        lock (_snowLock)
+        {
+            _weatherCycleSnow = current == WeatherState.Snow;
+            PublishSnowState(alwaysBroadcast: false);
+        }
     }
 
     private static readonly Lock AutoWaterProbeLock = new();

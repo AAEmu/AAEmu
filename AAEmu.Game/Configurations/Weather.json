@@ -1,0 +1,17 @@
+{
+    // Schedule-driven snow. Each phase binds one game_schedules row: the content row owns the
+    // window (daily time, weekday, calendar bounds); this file only says which weather that
+    // window produces. An empty list keeps dynamic weather off and says so at boot.
+    //
+    //   "Phases": [
+    //     { "ScheduleId": <game_schedules id>, "State": "Snow" }
+    //   ]
+    //
+    // Exactly one phase may be open at a time; an overlap is reported and keeps the previous
+    // state. State names are WeatherState values (Clear/Snow); an unknown name or a schedule id
+    // with no row is reported loudly and the phase is skipped. A phase only adds its own snow:
+    // closing it leaves snow on when the Features.json snow bit or a /snow hold keeps it on.
+    "Weather": {
+        "Phases": []
+    }
+}
