@@ -18,12 +18,19 @@ public class UnitReqsFailureDetailTests
     private static UnitReqs LeadershipPeriod(uint required) =>
         new() { KindType = UnitReqsKindType.LeadershipPeriod, Value1 = required };
 
+    /// <summary>
+    /// The shape every content row has (all six are value1 0, value2 1000): the client evaluator
+    /// FUN_39795810 reads value1 as the bound selector (0 means at least) and value2 as the threshold.
+    /// </summary>
+    private static UnitReqs LeadershipPeriodAtLeast(uint threshold) =>
+        new() { KindType = UnitReqsKindType.LeadershipPeriod, Value1 = 0, Value2 = threshold };
+
     [Test]
     public async Task LeadershipPeriod_PassesAtTheThreshold()
     {
         var player = Player(5);
 
-        var result = LeadershipPeriod(5).Validate(player, player);
+        var result = LeadershipPeriodAtLeast(5).Validate(player, player);
 
         await Assert.That(result.ResultKey).IsEqualTo(SkillResultKeys.ok);
         await Assert.That(result.ResultUShort).IsEqualTo((ushort)0);
