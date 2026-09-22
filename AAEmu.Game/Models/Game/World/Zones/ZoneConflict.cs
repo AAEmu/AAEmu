@@ -25,12 +25,15 @@ public class ZoneConflict(
     /// <summary><c>conflict_zone_realtime_schedules</c> rows for this zone, or empty for a
     /// participation-driven zone. Bound once at boot by <see cref="BindSchedule"/>.</summary>
     private IReadOnlyList<ConflictZoneScheduleEntry> _schedule = [];
+    private IReadOnlyList<ConflictZoneDailyWarStart> _dailyWarStarts = [];
     private DateTime _scheduledStateTime = DateTime.MinValue;
     public ushort ZoneGroupId { get; set; }
     public int[] NumKills { get; } = new int[5];
     public int[] NoKillMin { get; } = new int[5];
     public int[] NumNpcKills { get; } = new int[5];
     public int[] NumQuestCompletions { get; } = new int[5];
+    public ConflictZoneDailyWarStart[] DailyWarStarts { get; } =
+        Enumerable.Repeat(new ConflictZoneDailyWarStart(-1, 0), 12).ToArray();
 
     public int ConflictMin { get; set; }
     public int WarMin { get; set; }
@@ -84,7 +87,7 @@ public class ZoneConflict(
         get
         {
             lock (_stateLock)
-                return _schedule.Count > 0;
+                return _schedule.Count > 0 || _dailyWarStarts.Count > 0;
         }
     }
 
@@ -99,7 +102,7 @@ public class ZoneConflict(
             StatePublication? publication;
             lock (_stateLock)
             {
-                if (!ConflictZoneEscalationRules.AcceptsParticipation(_currentZoneState, _schedule.Count > 0, NumKills))
+                if (!ConflictZoneEscalationRules.AcceptsParticipation(_currentZoneState, IsScheduleDrivenLocked(), NumKills))
                     return;
 
                 var previousState = _currentZoneState;
@@ -122,7 +125,7 @@ public class ZoneConflict(
             StatePublication? publication;
             lock (_stateLock)
             {
-                if (!ConflictZoneEscalationRules.AcceptsParticipation(_currentZoneState, _schedule.Count > 0, NumNpcKills))
+                if (!ConflictZoneEscalationRules.AcceptsParticipation(_currentZoneState, IsScheduleDrivenLocked(), NumNpcKills))
                     return;
 
                 var previousState = _currentZoneState;
@@ -146,7 +149,7 @@ public class ZoneConflict(
             StatePublication? publication;
             lock (_stateLock)
             {
-                if (!ConflictZoneEscalationRules.AcceptsParticipation(_currentZoneState, _schedule.Count > 0, NumQuestCompletions))
+                if (!ConflictZoneEscalationRules.AcceptsParticipation(_currentZoneState, IsScheduleDrivenLocked(), NumQuestCompletions))
                     return;
 
                 var previousState = _currentZoneState;
@@ -210,6 +213,26 @@ public class ZoneConflict(
         }
     }
 
+    public bool BindDailyWarWindows(IReadOnlyList<ConflictZoneDailyWarStart> starts, DateTime nowLocal)
+    {
+        lock (_transitionLock)
+        {
+            var candidate = starts?.Where(x => ConflictZoneScheduleRules.DecodeDailyWarStart(x).HasValue).ToArray() ?? [];
+            if (ConflictZoneScheduleRules.ResolveDailyWarWindow(
+                    candidate, ConflictMin, WarMin, PeaceMin, nowLocal) is null)
+            {
+                Logger.Warn("ZoneGroup {0}: ignored invalid daily conflict-zone war window", ZoneGroupId);
+                return false;
+            }
+
+            lock (_stateLock)
+                _dailyWarStarts = candidate;
+
+            ApplyScheduledStateLocked(nowLocal);
+            return true;
+        }
+    }
+
     /// <summary>
     /// Re-resolves a scheduled zone against the wall clock and arms the timer for the next entry.
     /// </summary>
@@ -225,13 +248,17 @@ public class ZoneConflict(
         DateTime nextChangeLocal;
         lock (_stateLock)
         {
-            if (ConflictZoneScheduleRules.Resolve(_schedule, nowLocal) is not { } position)
+            var position = _schedule.Count > 0
+                ? ConflictZoneScheduleRules.Resolve(_schedule, nowLocal)
+                : ConflictZoneScheduleRules.ResolveDailyWarWindow(
+                    _dailyWarStarts, ConflictMin, WarMin, PeaceMin, nowLocal);
+            if (position is not { } resolved)
                 return;
 
             var previousState = _currentZoneState;
-            _currentZoneState = position.State;
-            _nextStateTime = position.NextChange.ToUniversalTime();
-            nextChangeLocal = position.NextChange;
+            _currentZoneState = resolved.State;
+            _nextStateTime = resolved.NextChange.ToUniversalTime();
+            nextChangeLocal = resolved.NextChange;
             publication = new StatePublication(
                 previousState,
                 _currentZoneState,
@@ -368,7 +395,7 @@ public class ZoneConflict(
                     return;
 
                 _scheduledStateTime = DateTime.MinValue;
-                scheduleDriven = _schedule.Count > 0;
+                scheduleDriven = IsScheduleDrivenLocked();
                 if (!scheduleDriven)
                 {
                     Logger.Debug(
@@ -470,6 +497,8 @@ public class ZoneConflict(
                                        ConflictZoneEscalationRules.HasThresholds(NumQuestCompletions);
         return ConflictZoneEscalationRules.NextTimedState(_currentZoneState, hasParticipationCounters, PeaceMin);
     }
+
+    private bool IsScheduleDrivenLocked() => _schedule.Count > 0 || _dailyWarStarts.Count > 0;
 
     private readonly record struct StatePublication(
         ZoneConflictType PreviousState,

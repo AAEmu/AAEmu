@@ -43,11 +43,22 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
         foreach (var conflict in _conflicts.Values)
         {
             var schedule = ConflictZoneGameData.Instance.GetSchedule(conflict.ZoneGroupId);
-            if (schedule.Count == 0)
-                continue;
-
-            conflict.BindSchedule(schedule, now);
-            scheduled++;
+            if (schedule.Count > 0)
+            {
+                conflict.BindSchedule(schedule, now);
+                scheduled++;
+            }
+            else
+            {
+                var starts = conflict.DailyWarStarts
+                    .Where(x => ConflictZoneScheduleRules.DecodeDailyWarStart(x).HasValue)
+                    .ToArray();
+                if (starts.Length > 0)
+                {
+                    if (conflict.BindDailyWarWindows(starts, now))
+                        scheduled++;
+                }
+            }
         }
 
         Logger.Info("Started {0} scheduled conflict-zone cycles ({1} conflict zones loaded)", scheduled, _conflicts.Count);
@@ -218,6 +229,13 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
                                 template.NoKillMin[i] = reader.GetInt32($"no_kill_min_{i}");
                                 template.NumNpcKills[i] = reader.GetInt32($"num_npc_kills_{i}", 0);
                                 template.NumQuestCompletions[i] = reader.GetInt32($"num_quest_completions_{i}", 0);
+                            }
+
+                            for (var i = 0; i < template.DailyWarStarts.Length; i++)
+                            {
+                                template.DailyWarStarts[i] = new ConflictZoneDailyWarStart(
+                                    reader.GetInt32($"war_st_hour_{i}", -1),
+                                    reader.GetInt32($"war_st_min_{i}", 0));
                             }
 
                             template.ConflictMin = reader.GetInt32("conflict_min");

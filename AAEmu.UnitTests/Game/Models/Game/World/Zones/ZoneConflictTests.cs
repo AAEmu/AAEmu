@@ -6,6 +6,54 @@ namespace AAEmu.UnitTests.Game.Models.Game.World.Zones;
 public class ZoneConflictTests
 {
     [Test]
+    public async Task ThresholdEscalation_PreservesConflictDeadlineAndAdvancesToWar()
+    {
+        var conflict = SteppedZone();
+        for (var level = 0; level < conflict.NoKillMin.Length; level++)
+            conflict.NoKillMin[level] = 10;
+
+        var before = DateTime.UtcNow;
+        conflict.AddZoneKill(6);
+
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Conflict);
+        await Assert.That(conflict.NextStateTime).IsGreaterThanOrEqualTo(before.AddMinutes(10));
+        conflict.ForceNextState();
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.War);
+        await Assert.That(conflict.NextStateTime).IsGreaterThanOrEqualTo(before.AddMinutes(90));
+    }
+
+    [Test]
+    public async Task DailyWarWindow_DrivesStateAndIgnoresParticipation()
+    {
+        var conflict = SteppedZone();
+        conflict.ConflictMin = 720;
+        conflict.WarMin = 720;
+        conflict.PeaceMin = 0;
+        var atWarStart = new DateTime(2026, 9, 22, 7, 0, 0, DateTimeKind.Local);
+
+        conflict.BindDailyWarWindows([new ConflictZoneDailyWarStart(7, 0)], atWarStart);
+        conflict.AddZoneKill(100);
+
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.War);
+        await Assert.That(conflict.KillCount).IsEqualTo(0u);
+    }
+
+    [Test]
+    public async Task InvalidDailyWarWindow_DoesNotDisableParticipation()
+    {
+        var conflict = SteppedZone();
+        var now = new DateTime(2026, 9, 22, 7, 0, 0, DateTimeKind.Local);
+
+        var bound = conflict.BindDailyWarWindows([new ConflictZoneDailyWarStart(7, 0)], now);
+        conflict.AddZoneKill(2);
+
+        await Assert.That(bound).IsFalse();
+        await Assert.That(conflict.IsScheduleDriven).IsFalse();
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Danger);
+        await Assert.That(conflict.KillCount).IsEqualTo(2u);
+    }
+
+    [Test]
     public async Task SetState_NotifiesAfterAuthoritativeStateChanges()
     {
         var notifications = new List<(ushort ZoneGroupId, ZoneConflictType Previous, ZoneConflictType Current)>();
