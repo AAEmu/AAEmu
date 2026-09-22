@@ -131,4 +131,32 @@ public class FactionManagerDiplomacyTests
         await Assert.That(nuia.GetRelationState(haranya)).IsEqualTo(RelationState.Hostile);
         await Assert.That(manager.ClearDiplomacy(1, 2)).IsNull();
     }
+
+    [Test]
+    public async Task ContentZoneRelations_SendTheOverlaidPairInItsContentState()
+    {
+        var manager = Seeded();
+        manager.ApplyDiplomacy(Agreement(Nuia, Haranya));
+
+        var zoneRows = manager.GetZoneRelations();
+        var contentRows = manager.GetContentZoneRelations();
+
+        await Assert.That(zoneRows.Count).IsEqualTo(1);
+        await Assert.That(zoneRows[0].State).IsEqualTo(RelationState.Neutral);
+        await Assert.That(contentRows.Count).IsEqualTo(1);
+        await Assert.That(contentRows[0].State).IsEqualTo(RelationState.Hostile);
+        await Assert.That(contentRows[0].HasDiplomacy).IsFalse();
+    }
+
+    [Test]
+    public async Task ContentZoneRelations_DropAPairContentHasNoRowFor()
+    {
+        var manager = new FactionManager(null);
+        manager.AddFaction(new SystemFaction { Id = (FactionsEnum)Nuia });
+        manager.AddFaction(new SystemFaction { Id = (FactionsEnum)Haranya });
+        manager.ApplyDiplomacy(Agreement(Nuia, Haranya));
+
+        await Assert.That(manager.GetZoneRelations().Count).IsEqualTo(1);
+        await Assert.That(manager.GetContentZoneRelations().Count).IsEqualTo(0);
+    }
 }

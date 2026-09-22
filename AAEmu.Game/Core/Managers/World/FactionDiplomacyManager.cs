@@ -126,9 +126,11 @@ public class FactionDiplomacyManager(IFactionManager factionManager, ITaskManage
         var targetNation = target == null ? 0u : (uint)DominionManager.ResolveOwningFaction(target);
 
         FactionDiplomacyRefusal refusal;
+        List<FactionDiplomacyAgreement> ended;
+        List<FactionDiplomacyProposal> timedOut;
         lock (_sync)
         {
-            SweepNoLock(now);
+            (ended, timedOut) = SweepNoLock(now);
             var context = new FactionDiplomacyRequestContext(
                 RequesterIsHero: HeroManager.Instance.IsCurrentHero(requester),
                 TargetOnline: target != null,
@@ -164,6 +166,8 @@ public class FactionDiplomacyManager(IFactionManager factionManager, ITaskManage
             }
         }
 
+        PublishSweep(ended, timedOut);
+
         if (refusal != FactionDiplomacyRefusal.None)
         {
             Logger.Debug("Faction diplomacy request {0} -> {1} refused: {2}", requester.Name, targetCharacterId, refusal);
@@ -187,9 +191,11 @@ public class FactionDiplomacyManager(IFactionManager factionManager, ITaskManage
         FactionDiplomacyProposal proposal;
         FactionDiplomacyRefusal refusal;
         FactionDiplomacyAgreement agreement = null;
+        List<FactionDiplomacyAgreement> ended;
+        List<FactionDiplomacyProposal> timedOut;
         lock (_sync)
         {
-            SweepNoLock(now);
+            (ended, timedOut) = SweepNoLock(now);
             proposal = _proposals.FirstOrDefault(p => p.TargetId == responder.Id);
             refusal = FactionDiplomacyRules.EvaluateResponse(proposal, responder.Id, now, FactionDiplomacyContentConfig.ProposalTimeout);
             if (refusal == FactionDiplomacyRefusal.None)
@@ -221,8 +227,19 @@ public class FactionDiplomacyManager(IFactionManager factionManager, ITaskManage
             }
         }
 
+        PublishSweep(ended, timedOut);
+
         if (refusal != FactionDiplomacyRefusal.None)
         {
+            // The client's dialog timer starts when the request packet arrives, so its own false can
+            // reach the server after the sweep dropped the request. That is a denial too late to
+            // count, not something to show the hero as an error.
+            if (!ok && refusal is FactionDiplomacyRefusal.ProposalNotFound or FactionDiplomacyRefusal.Timeout)
+            {
+                Logger.Debug("Faction diplomacy answer from {0} ignored: no request left to answer", responder.Name);
+                return false;
+            }
+
             Logger.Debug("Faction diplomacy answer from {0} refused: {1}", responder.Name, refusal);
             responder.SendErrorMessage(FactionDiplomacyRules.ToError(refusal));
             return false;
@@ -285,6 +302,16 @@ public class FactionDiplomacyManager(IFactionManager factionManager, ITaskManage
             ArmSweepNoLock(now);
         }
 
+        PublishSweep(ended, timedOut);
+    }
+
+    /// <summary>
+    /// Publishes what a sweep removed: an ended agreement goes back to its content relation for the
+    /// clients and the zones, and a timed-out requester gets 1135. Called after the lock, both from
+    /// the sweep task and from a request or answer that swept first.
+    /// </summary>
+    private void PublishSweep(List<FactionDiplomacyAgreement> ended, List<FactionDiplomacyProposal> timedOut)
+    {
         foreach (var agreement in ended)
         {
             PublishRelation(agreement.Faction1, agreement.Faction2);

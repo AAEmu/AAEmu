@@ -422,7 +422,8 @@ public static class WorldIntegration
     /// <summary>
     /// A hero agreement started or ended: every loaded zone gets the relation table again
     /// (WZFactionRelationList) so its NPC hostility follows. Left null, the World relation lookup
-    /// and the client lists still update; only zone-side NPCs keep the state from their bring-online.
+    /// and the client lists still update; zone-side NPCs keep the content state their bring-online
+    /// sent, because a zone that comes online during a term is seeded without the overlay.
     /// </summary>
     public static Action RelayFactionRelationsToZones { get; set; }
 

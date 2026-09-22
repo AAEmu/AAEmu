@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.World.Core.Network;
@@ -36,7 +37,13 @@ public class WZFactionRelationListPacket : ZonePacket
         IReadOnlyList<FactionRelation> all;
         try
         {
-            all = FactionManager.Instance.GetZoneRelations()
+            // With the agreement relay unwired nothing tells a zone when a term ends, so a zone that
+            // comes online during one gets the content table instead of a neutral overlay it would
+            // keep until it restarts.
+            var relations = WorldIntegration.RelayFactionRelationsToZones != null
+                ? FactionManager.Instance.GetZoneRelations()
+                : FactionManager.Instance.GetContentZoneRelations();
+            all = relations
                 .OrderBy(relation => Math.Min((uint)relation.Id, (uint)relation.Id2))
                 .ThenBy(relation => Math.Max((uint)relation.Id, (uint)relation.Id2))
                 .ToList();

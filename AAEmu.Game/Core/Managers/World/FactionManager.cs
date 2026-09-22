@@ -29,7 +29,35 @@ public class FactionManager(ILocalizationManager localizationManager) : Singleto
 
     /// <summary>Faction relations with both ids ≥ 100 (Zone WZFactionRelationList filter).</summary>
     public IReadOnlyList<FactionRelation> GetZoneRelations() =>
-        _relations?.Where(r => (uint)r.Id >= 100 && (uint)r.Id2 >= 100).ToList() ?? [];
+        ZoneRelations().ToList();
+
+    /// <summary>
+    /// The same rows with the hero agreement overlay left off: an overlaid pair is sent in the state
+    /// it reverts to, and a row an agreement added for a pair content has none for is left out. The
+    /// World's Zone relay is off by default, so a zone that comes online during an agreement would
+    /// otherwise take the neutral overlay and never be told the agreement ended.
+    /// </summary>
+    public IReadOnlyList<FactionRelation> GetContentZoneRelations()
+    {
+        var rows = new List<FactionRelation>();
+        foreach (var relation in ZoneRelations())
+        {
+            if (!relation.HasDiplomacy)
+            {
+                rows.Add(relation);
+                continue;
+            }
+
+            var (low, high) = FactionDiplomacyRules.NormalizePair((uint)relation.Id, (uint)relation.Id2);
+            if (_diplomacyBaseStates.TryGetValue((low, high), out var baseState) && baseState != null)
+                rows.Add(new FactionRelation { Id = relation.Id, Id2 = relation.Id2, State = baseState.Value });
+        }
+
+        return rows;
+    }
+
+    private IEnumerable<FactionRelation> ZoneRelations() =>
+        _relations?.Where(r => (uint)r.Id >= 100 && (uint)r.Id2 >= 100) ?? [];
 
     public void AddFaction(SystemFaction faction)
     {

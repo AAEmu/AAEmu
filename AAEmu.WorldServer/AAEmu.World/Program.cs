@@ -1043,21 +1043,21 @@ public static class Program
         };
         // Off unless AAEMU_WZ_FACTION_RELATION_RELAY=1: the dedicate's WZFactionRelationList handler is
         // only known as the bring-online accumulator (chunks until count reaches total), and whether
-        // it accepts the table again after the join gate is not verified. Fail closed: log, do nothing.
-        WorldIntegration.RelayFactionRelationsToZones = () =>
+        // it accepts the table again after the join gate is not verified. Fail closed: leave the relay
+        // unwired, and WZFactionRelationListPacket.SendAllFromGame then seeds a zone that comes online
+        // during an agreement with the content relation, so no zone holds a start without an end.
+        if (Environment.GetEnvironmentVariable("AAEMU_WZ_FACTION_RELATION_RELAY") == "1")
         {
-            if (Environment.GetEnvironmentVariable("AAEMU_WZ_FACTION_RELATION_RELAY") != "1")
+            WorldIntegration.RelayFactionRelationsToZones = () =>
             {
-                Logger.Debug("WZFactionRelationList resend skipped: AAEMU_WZ_FACTION_RELATION_RELAY is not 1");
-                return;
-            }
-
-            foreach (var zone in PlayerEnterService.AllLoadedZones())
-            {
-                WZFactionRelationListPacket.SendAllFromGame(zone);
-                Logger.Info("WZFactionRelationList → zone {0} (hero agreement changed)", zone.ZoneId);
-            }
-        };
+                foreach (var zone in PlayerEnterService.AllLoadedZones())
+                {
+                    WZFactionRelationListPacket.SendAllFromGame(zone);
+                    Logger.Info("WZFactionRelationList → zone {0} (hero agreement changed)", zone.ZoneId);
+                }
+            };
+            Logger.Info("WZFactionRelationList relay enabled (AAEMU_WZ_FACTION_RELATION_RELAY=1)");
+        }
         WorldIntegration.RelayUnitExpeditionChangedToZone = (unitId, oldExpedition, newExpedition) =>
         {
             var zone = PlayerEnterService.ForUnit(unitId);
