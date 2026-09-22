@@ -180,6 +180,7 @@ public class ItemChangeMapping : SpecialEffectAction
         // Read before the rewrite: the pool the piece is leaving is what its banked progress is
         // measured against.
         var sourceCategoryId = (equipItem.Template as EquipItemTemplate)?.RndAttrCategoryId ?? 0;
+        var sourceGrade = equipItem.Grade;
 
         // The client reads the old grade and gear score off the result packet's first item, so it
         // needs the piece as it was. Build a throwaway stand-in before the rewrite - no id is handed
@@ -270,6 +271,12 @@ public class ItemChangeMapping : SpecialEffectAction
 
         owner.SendPacket(new SCItemChangeMappingResultPacket(oldSnapshot, equipItem, bonusRate,
             ItemChangeMappingResult.Success));
+
+        // The piece was rewritten in place, so no add or remove reached the quest observer and the
+        // grade may have moved with it. An item group gather is graded, so re-count the item it now
+        // is; the zero count adds nothing anywhere. A mapping that changes neither is left alone.
+        if (equipItem.TemplateId != oldTemplateId || equipItem.Grade != sourceGrade)
+            QuestManager.Instance.DoItemsAcquiredEvents(owner, equipItem.TemplateId, 0);
 
         Logger.Debug("ItemChangeMapping: {0} awakened item {1} from {2} to {3} (group {4})",
             owner.Name, equipItem.Id, oldTemplateId, equipItem.TemplateId, group.Id);

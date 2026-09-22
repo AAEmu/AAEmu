@@ -72,7 +72,8 @@ public class QuestItemGroupGatherRulesTests
     [Test]
     public async Task CleanupPlan_TakesOnlyTheGradesTheObjectiveCounted()
     {
-        // Group 85 holds 45217 at grade 3 and grade 7; only the grade 7 copy may be removed.
+        // Group 85 lists 45217 at grades 2..12, so a grade-3 copy would be planned before grade 7;
+        // only the grades the counter reports are taken, and here that is the two grade-7 copies.
         var plan = QuestItemGroupGatherRules.CleanupPlan(Group85, (id, grade) => id == 45217 && grade == 7 ? 2 : 0, 3).ToList();
         await Assert.That(plan).IsEquivalentTo([(45217u, 2, 7)]);
     }

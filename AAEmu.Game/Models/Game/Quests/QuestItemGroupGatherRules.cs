@@ -20,8 +20,10 @@ public static class QuestItemGroupGatherRules
 {
     /// <summary>
     /// A gated item only counts copies whose grade the group lists for it: six groups (64, 65, 68,
-    /// 83, 85, 94) hold 104 such rows and their names read "grade or above" ("(고급 이상)"), so
-    /// summing the listed grades is what the group asks for. An ungated entry counts every grade.
+    /// 83, 85, 94) hold 104 such rows and each lists the grades it accepts - 68 grade 6 alone, 65
+    /// grade 4 (some items 3 and 4), 83 grade 7, 85 every grade from 2 to 12 - so summing the listed
+    /// grades is what the group asks for. Only 85 "(고급 이상)" and 94 "(유물 이상)" name a floor in
+    /// the group name; the rest name none. An ungated entry counts every grade.
     /// </summary>
     public static int CountInGroup(IEnumerable<QuestGroupItemEntry> groupItems, Func<uint, int, int> countOfGrade)
     {

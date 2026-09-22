@@ -210,6 +210,12 @@ public class GradeEnchant : SpecialEffectAction
                 character.SendPacket(new SCItemDetailUpdatedPacket(item));
         }
 
+        // A success, great success or downgrade moves the grade in place, which raises nothing the
+        // quest observer sees. An item group gather is graded, so re-count it; the zero count adds
+        // nothing anywhere and cannot credit an item the quest already counted.
+        if (!itemBroken && item.Grade != initialGrade)
+            QuestManager.Instance.DoItemsAcquiredEvents(character, item.TemplateId, 0);
+
         if (cost > 0)
             character.SubtractMoney(SlotType.Inventory, cost);
 

@@ -184,6 +184,11 @@ public class ItemEvolving : SpecialEffectAction
         {
             owner.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.Evolving,
                 [new ItemGradeChange(equipItem, equipItem.Grade)], []));
+
+            // The step moves the grade in place, so nothing reaches the quest observer: no item was
+            // added or removed. An item group gather is graded and has to be re-counted, which is
+            // quest 10359 (group 68). Zero adds nothing, so no act can count the item twice.
+            QuestManager.Instance.DoItemsAcquiredEvents(owner, equipItem.TemplateId, 0);
         }
 
         owner.SendPacket(new SCItemDetailUpdatedPacket(equipItem));
