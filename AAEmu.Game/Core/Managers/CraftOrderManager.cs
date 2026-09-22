@@ -59,17 +59,26 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
         }
     }
 
-    public void Clear()
+    /// <summary>
+    /// GM wipe. The store goes first, then every order the board still holds is refunded from its
+    /// board copy: a row that had already left MySQL is still escrow the poster paid, so it is not
+    /// skipped. A wipe that fails leaves the board as it is, so memory and MySQL stay in step.
+    /// </summary>
+    public bool Clear()
     {
         lock (_boardLock)
         {
+            var orders = _orders.Values.ToList();
+            if (!_store.DeleteAll())
+            {
+                Logger.Error("Craft order: clear could not wipe the store; the board keeps its {0} order(s)", orders.Count);
+                return false;
+            }
+
             if (!SkipExpiredMail)
             {
-                foreach (var order in _orders.Values.ToList())
+                foreach (var order in orders)
                 {
-                    if (!_store.Delete(order.Id))
-                        continue;
-                    Untrack(order);
                     if (!TryMailExpiredRefund(order))
                         Logger.Warn("Craft order: clear could not refund order {0}", order.Id);
                 }
@@ -82,7 +91,7 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
             if (_expireTask != null && SingletonContainer.ServiceProvider != null)
                 TaskManager.Instance.Cancel(_expireTask);
             _expireTask = null;
-            _store.DeleteAll();
+            return true;
         }
     }
 
@@ -342,6 +351,7 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
         var now = DateTimeOffset.UtcNow;
         var product = craft.CraftProducts[0];
         CraftOrder order;
+        bool persisted;
         lock (_boardLock)
         {
             order = new CraftOrder
@@ -363,17 +373,24 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
                 Kind = 0
             };
 
-            if (!_store.Insert(order))
+            persisted = _store.Insert(order);
+            if (persisted)
             {
-                if (fee > 0)
-                    character.AddMoney(SlotType.Inventory, (long)fee, ItemTaskType.PostCraftOrder);
-                RefusePost(character, $"cannot persist order {order.Id}");
-                return;
+                Track(order);
+                RememberFee(order.CraftId, CraftOrderFeeStatsRules.UnitFee(order.Fee, order.Count), persist: true);
+                ArmExpireSweepNoLock();
             }
+        }
 
-            Track(order);
-            RememberFee(order.CraftId, CraftOrderFeeStatsRules.UnitFee(order.Fee, order.Count), persist: true);
-            ArmExpireSweepNoLock();
+        if (!persisted)
+        {
+            // The fee and the sheet were already taken. The sheet carries the materials, so it
+            // comes back the same way a cancel hands it back.
+            if (fee > 0)
+                character.AddMoney(SlotType.Inventory, (long)fee, ItemTaskType.PostCraftOrder);
+            ReturnSheet(character, order);
+            RefusePost(character, $"cannot persist order {order.Id}");
+            return;
         }
 
         Logger.Info("Craft order: {0} posted order {1} for item {2} x{3} at {4} copper",
@@ -430,7 +447,12 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
             lock (_boardLock)
             {
                 if (_store.Insert(order))
+                {
+                    // Back on the board, so the expiry timer has to cover it again: a sweep that
+                    // ran while the row was off the board re-armed without it.
                     Track(order);
+                    ArmExpireSweepNoLock();
+                }
             }
 
             character.Inventory.Bag.RemoveItem(ItemTaskType.RestoreCraftOrderSheet, sheet, true);
@@ -814,7 +836,12 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
             lock (_boardLock)
             {
                 if (_store.Insert(order))
+                {
+                    // Back on the board, so the expiry timer has to cover it again: a sweep that
+                    // ran while the row was off the board re-armed without it.
                     Track(order);
+                    ArmExpireSweepNoLock();
+                }
             }
 
             RefuseProcess(character, $"cannot mail order {order.Id}");
@@ -1001,7 +1028,12 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
             lock (_boardLock)
             {
                 if (_store.Insert(order))
+                {
+                    // Back on the board, so the expiry timer has to cover it again: a sweep that
+                    // ran while the row was off the board re-armed without it.
                     Track(order);
+                    ArmExpireSweepNoLock();
+                }
             }
 
             RefuseInstant(character, $"cannot mail order {order.Id}");
@@ -1068,15 +1100,28 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
         foreach (var order in expired)
         {
             if (!_store.Delete(order.Id))
+            {
+                // Either the row is gone behind the board's back or the store is down. The two are
+                // not told apart, so the order stays on the board and the retry shows in the log.
+                Logger.Warn("Craft order: expired order {0} could not be deleted from the store; retrying in {1}",
+                    order.Id, CraftOrderPersistRules.ExpireRetry);
                 continue;
+            }
 
             Untrack(order);
             if (!TryMailExpiredRefund(order))
             {
                 if (_store.Insert(order))
+                {
                     Track(order);
+                    Logger.Warn("Craft order: expired order {0} for {1} could not be refunded by mail; retrying in {2}",
+                        order.Id, order.OwnerName, CraftOrderPersistRules.ExpireRetry);
+                }
                 else
+                {
                     Logger.Error("Craft order: expired order {0} left the store and the refund mail failed", order.Id);
+                }
+
                 continue;
             }
 
@@ -1145,6 +1190,28 @@ public class CraftOrderManager : Singleton<CraftOrderManager>, ILoadable, IIniti
         if (sheet != null)
             ItemManager.Instance.ReleaseId(sheet.Id);
         return false;
+    }
+
+    /// <summary>
+    /// Hands the request sheet back for an order that did not make it onto the board. The slot the
+    /// sheet just left is still free, so a failed add is an item problem and is logged as one.
+    /// </summary>
+    private static void ReturnSheet(Character character, CraftOrder order)
+    {
+        var sheet = TryCreateSheetForOrder(order);
+        if (sheet == null)
+        {
+            Logger.Error("Craft order: could not recreate the request sheet of order {0} for {1}",
+                order.Id, character.Name);
+            return;
+        }
+
+        if (!character.Inventory.Bag.AddOrMoveExistingItem(ItemTaskType.RestoreCraftOrderSheet, sheet))
+        {
+            ItemManager.Instance.ReleaseId(sheet.Id);
+            Logger.Error("Craft order: could not return the request sheet of order {0} to {1}",
+                order.Id, character.Name);
+        }
     }
 
     private static CraftOrderSheetItem TryCreateSheetForOrder(CraftOrder order)
