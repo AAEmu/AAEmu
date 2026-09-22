@@ -1362,6 +1362,25 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                 }
             }
 
+            // doodad_func_instant_ui_opens
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT id, zone_group_id FROM doodad_func_instant_ui_opens";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncInstantUiOpen
+                        {
+                            Id = reader.GetUInt32("id"),
+                            ZoneGroupId = reader.GetUInt32("zone_group_id")
+                        };
+                        _funcTemplates[nameof(DoodadFuncInstantUiOpen)].Add(func.Id, func);
+                    }
+                }
+            }
+
             // doodad_func_item_changers — the sowable options on a farm plot, ordered within their phase.
             // DoodadItemChangeEffect selects between them by position, so preserve the DB order.
             using (var command = connection.CreateCommand())
@@ -1381,6 +1400,21 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                             SkillId = reader.GetUInt32("skill_id")
                         };
                         _phaseFuncTemplates["DoodadFuncItemChanger"].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // doodad_func_item_changer_ui_opens
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT id FROM doodad_func_item_changer_ui_opens";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncItemChangerUiOpen { Id = reader.GetUInt32("id") };
+                        _funcTemplates[nameof(DoodadFuncItemChangerUiOpen)].Add(func.Id, func);
                     }
                 }
             }
@@ -1489,6 +1523,21 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
 
 
 
+
+            // doodad_func_nuons_arrow_ui_opens
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT id FROM doodad_func_nuons_arrow_ui_opens";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncNuonsArrowUiOpen { Id = reader.GetUInt32("id") };
+                        _funcTemplates[nameof(DoodadFuncNuonsArrowUiOpen)].Add(func.Id, func);
+                    }
+                }
+            }
 
             // doodad_func_navi_mark_pos_to_maps
             using (var command = connection.CreateCommand())
@@ -2083,6 +2132,21 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                             Defense = reader.GetBoolean("defense", true)
                         };
                         _phaseFuncTemplates["DoodadFuncSiegePeriod"].Add(func.Id, func);
+                    }
+                }
+            }
+
+            // doodad_func_siege_raids
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT id FROM doodad_func_siege_raids";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncSiegeRaid { Id = reader.GetUInt32("id") };
+                        _funcTemplates[nameof(DoodadFuncSiegeRaid)].Add(func.Id, func);
                     }
                 }
             }
