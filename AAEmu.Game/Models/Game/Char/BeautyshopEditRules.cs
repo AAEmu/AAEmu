@@ -48,7 +48,9 @@ public enum BeautyshopEditError
     UnknownBodyMap,
     UnknownMovableDecal,
     UnknownFixedDecal,
+    MissingFace,
     ValueNotFinite,
+    ValueOutOfRange,
     ModifierTooLong
 }
 
@@ -91,6 +93,15 @@ public static class BeautyshopEditRules
     public static readonly byte[] FixedDecalCategories = [2, 3, 4, 5, 6, 6];
 
     /// <summary>
+    /// The movable decal transform bounds every shipped preset stays inside
+    /// (total_character_customs, all 1589 rows of owner types 1 to 3): scale 0 to 1.82, rotation -169.2
+    /// to 356.4 degrees. Every weight and both two-tone widths there stay in 0 to 1.
+    /// </summary>
+    public const float MaxMovableDecalScale = 1.82f;
+    public const float MinMovableDecalRotate = -169.2f;
+    public const float MaxMovableDecalRotate = 356.4f;
+
+    /// <summary>
     /// The client's "no item" sentinel for a customizing slot is a runtime-initialised static
     /// (x2game-dev.dll DAT_3b4e162c, compared in FUN_396105e0 before every asset lookup), so its value
     /// is not in the image. 0 and -1 are both treated as "leave that slot alone"; neither is a valid
@@ -121,7 +132,9 @@ public static class BeautyshopEditRules
     /// Every id in the requested appearance block must exist for the character's model. Colors sent as
     /// raw RGBA (defaultHairColor, twoToneHair, lip, pupils, eyebrow, deco) have no content domain and
     /// pass as-is; the two color ids are checked against customizing_item_asset_colors by category only,
-    /// because 34 of the 146 shipped presets reference a color row of another model.
+    /// because 34 of the 146 shipped presets reference a color row of another model. The block must
+    /// carry the face (ext at least Face): MergeModel clones the request and the character is saved and
+    /// broadcast with whatever it holds, so a block without one erases the stored face for good.
     /// </summary>
     public static BeautyshopEditError ValidateModel(
         ICharacterCustomizationCatalog catalog, uint modelId, byte race, byte gender, UnitCustomModelParams requested)
@@ -138,6 +151,8 @@ public static class BeautyshopEditRules
             return BeautyshopEditError.UnknownHornColor;
         if (!float.IsFinite(requested.TwoToneFirstWidth) || !float.IsFinite(requested.TwoToneSecondWidth))
             return BeautyshopEditError.ValueNotFinite;
+        if (!IsUnitWeight(requested.TwoToneFirstWidth) || !IsUnitWeight(requested.TwoToneSecondWidth))
+            return BeautyshopEditError.ValueOutOfRange;
 
         // skin_colors rows are per model; every creatable model has its own (8 to 21 rows each).
         if (!catalog.IsSkinColor(modelId, requested.SkinColorId))
@@ -151,7 +166,7 @@ public static class BeautyshopEditRules
 
         var face = requested.Face;
         if (face == null)
-            return BeautyshopEditError.None;
+            return BeautyshopEditError.MissingFace;
 
         if (!IsNone(face.NormalMapId) && !catalog.IsFaceNormalMap(modelId, face.NormalMapId))
             return BeautyshopEditError.UnknownFaceMap;
@@ -169,12 +184,17 @@ public static class BeautyshopEditRules
         }
         if (!float.IsFinite(face.MovableDecalWeight) || !float.IsFinite(face.MovableDecalScale) || !float.IsFinite(face.MovableDecalRotate))
             return BeautyshopEditError.ValueNotFinite;
+        if (!IsUnitWeight(face.MovableDecalWeight) || face.MovableDecalScale is < 0f or > MaxMovableDecalScale
+            || face.MovableDecalRotate is < MinMovableDecalRotate or > MaxMovableDecalRotate)
+            return BeautyshopEditError.ValueOutOfRange;
 
         for (var i = 0; i < FixedDecalCategories.Length && i < face.FixedDecalAssetCount; i++)
         {
             var slot = face.GetFixedDecalAsset(i);
             if (!float.IsFinite(slot.AssetWeight))
                 return BeautyshopEditError.ValueNotFinite;
+            if (!IsUnitWeight(slot.AssetWeight))
+                return BeautyshopEditError.ValueOutOfRange;
             if (IsNone(slot.AssetId))
                 continue;
             if (!catalog.TryGetFaceDecal(slot.AssetId, out var fixedDecal)
@@ -184,11 +204,16 @@ public static class BeautyshopEditRules
 
         if (!float.IsFinite(face.NormalMapWeight))
             return BeautyshopEditError.ValueNotFinite;
+        if (!IsUnitWeight(face.NormalMapWeight))
+            return BeautyshopEditError.ValueOutOfRange;
         if (face.Modifier != null && face.Modifier.Length > MaxModifierLength)
             return BeautyshopEditError.ModifierTooLong;
 
         return BeautyshopEditError.None;
     }
+
+    /// <summary>A blend weight or width the presets keep between 0 and 1; NaN fails the comparison.</summary>
+    private static bool IsUnitWeight(float value) => value is >= 0f and <= 1f;
 
     /// <summary>
     /// The salon has no control for the race-change override (that is special effect 189,
@@ -211,7 +236,8 @@ public static class BeautyshopEditRules
     /// A ticket pays while it has not run out. The five shipped tickets (tag 4990, items 50445 to 50449)
     /// are period passes: max_stack_size 1 and exp_abs_lifetime 1440, 4320, 10080, 21600 and 43200
     /// minutes, which only makes sense if a pass covers every edit inside its period, so nothing is
-    /// consumed. ExpirationTime is unset (MinValue) on items whose template carries no lifetime.
+    /// consumed. The set only holds templates with a lifetime (tag 4990 also carries the retired 51915,
+    /// which has none and the loader drops), so MinValue means a legacy row without a stored expire_time.
     /// </summary>
     public static bool IsValidTicket(uint templateId, DateTime expirationTime, DateTime now, IReadOnlySet<uint> ticketItemIds) =>
         ticketItemIds.Contains(templateId) && (expirationTime == DateTime.MinValue || expirationTime > now);

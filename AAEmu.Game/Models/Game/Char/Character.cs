@@ -4128,6 +4128,64 @@ public partial class Character : Unit, ICharacter
         return saved;
     }
 
+    /// <summary>
+    /// Saves only unit_model_params and the character's items, in one transaction. This is the lobby
+    /// character edit's save: a character from GameConnection.Characters comes from Character.Load,
+    /// which never runs Buffs.LoadActiveBuffs, so the full SaveDirectlyToDatabase would have
+    /// Buffs.SaveActiveBuffs delete the character's character_active_buffs rows.
+    /// </summary>
+    public bool SaveModelParamsAndItemsDirectlyToDatabase()
+    {
+        bool saved;
+        using (var sqlConnection = MySQL.CreateConnection())
+        {
+            using (var transaction = sqlConnection.BeginTransaction())
+            {
+                try
+                {
+                    Updated = DateTime.UtcNow;
+                    using (var command = sqlConnection.CreateCommand())
+                    {
+                        command.Connection = sqlConnection;
+                        command.Transaction = transaction;
+                        command.CommandText =
+                            "UPDATE `characters` SET `unit_model_params`=@unit_model_params, `updated_at`=@updated_at WHERE `id`=@id";
+                        command.Parameters.AddWithValue("@unit_model_params", ModelParams.Write(new PacketStream()).GetBytes());
+                        command.Parameters.AddWithValue("@updated_at", Updated);
+                        command.Parameters.AddWithValue("@id", Id);
+                        saved = command.ExecuteNonQuery() == 1;
+                    }
+
+                    if (!saved)
+                    {
+                        transaction.Rollback();
+                        DiscardAccountLiveClears();
+                        return false;
+                    }
+
+                    ItemManager.Instance.Save(sqlConnection, transaction);
+                    transaction.Commit();
+                    ConfirmAccountLiveSaved();
+                }
+                catch (Exception e)
+                {
+                    saved = false;
+                    Logger.Error(e, $"Model params save failed for {Id} - {Name}");
+                    try
+                    {
+                        transaction.Rollback();
+                    }
+                    catch (Exception eRollback)
+                    {
+                        Logger.Fatal(eRollback, $"Model params save rollback failed for {Id} - {Name}");
+                    }
+                    DiscardAccountLiveClears();
+                }
+            }
+        }
+        return saved;
+    }
+
     public bool Save(MySqlConnection connection, MySqlTransaction transaction)
     {
         bool result;

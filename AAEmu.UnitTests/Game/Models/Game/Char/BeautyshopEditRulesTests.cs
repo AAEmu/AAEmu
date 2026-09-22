@@ -312,11 +312,47 @@ public class BeautyshopEditRulesTests
     }
 
     [Test]
-    public async Task ValidateModel_HairOnlyBlockSkipsTheFaceChecks()
+    public async Task ValidateModel_BlockWithoutAFaceIsRefused()
     {
-        // ext below Face carries no face block; the T1/T2 fields are still checked.
+        // ext below Face carries no face block, and the merge would save the character without one.
         var model = new UnitCustomModelParams(UnitCustomModelType.Skin) { Race = 1, Gender = 1, SkinColorId = 1, BodyWeight = 1f };
+        await Assert.That(Validate(model)).IsEqualTo(BeautyshopEditError.MissingFace);
+
+        model = new UnitCustomModelParams(UnitCustomModelType.Hair) { Race = 1, Gender = 1, SkinColorId = 1, BodyWeight = 1f };
+        await Assert.That(Validate(model)).IsEqualTo(BeautyshopEditError.MissingFace);
+    }
+
+    [Test]
+    public async Task ValidateModel_FloatsOutsideThePresetRangesAreRefused()
+    {
+        var model = ValidModel();
+        model.TwoToneFirstWidth = 1.5f;
+        await Assert.That(Validate(model)).IsEqualTo(BeautyshopEditError.ValueOutOfRange);
+
+        model = ValidModel();
+        model.BodyWeight = -1f; // no preset source for the body weight: only finiteness is checked
         await Assert.That(Validate(model)).IsEqualTo(BeautyshopEditError.None);
+
+        model = ValidModel();
+        model.Face.MovableDecalScale = 1.83f;
+        await Assert.That(Validate(model)).IsEqualTo(BeautyshopEditError.ValueOutOfRange);
+
+        model = ValidModel();
+        model.Face.MovableDecalScale = 1.82f;
+        model.Face.MovableDecalRotate = -169.2f;
+        await Assert.That(Validate(model)).IsEqualTo(BeautyshopEditError.None);
+
+        model = ValidModel();
+        model.Face.MovableDecalRotate = 356.5f;
+        await Assert.That(Validate(model)).IsEqualTo(BeautyshopEditError.ValueOutOfRange);
+
+        model = ValidModel();
+        model.Face.SetFixedDecalAsset(1, 726, 1.01f);
+        await Assert.That(Validate(model)).IsEqualTo(BeautyshopEditError.ValueOutOfRange);
+
+        model = ValidModel();
+        model.Face.NormalMapWeight = -0.01f;
+        await Assert.That(Validate(model)).IsEqualTo(BeautyshopEditError.ValueOutOfRange);
     }
 
     [Test]

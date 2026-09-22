@@ -1390,7 +1390,7 @@ public class CharacterManager(
             swaps.Add((EquipmentItemSlot.Tail, (uint)request.TailItemId));
 
         var merged = BeautyshopEditRules.MergeModel(character.ModelParams, request.Model);
-        if (!ApplyAppearance(character, merged, swaps))
+        if (!ApplyAppearance(character, merged, swaps, lobbyCharacter: false))
         {
             Logger.Error($"Beautyshop: appearance save failed for {character.Name} ({character.Id}), rolled back");
             LeaveBeautyshop(character);
@@ -1459,7 +1459,7 @@ public class CharacterManager(
         }
 
         var merged = BeautyshopEditRules.MergeModel(character.ModelParams, request.Model);
-        if (!ApplyAppearance(character, merged, swaps))
+        if (!ApplyAppearance(character, merged, swaps, lobbyCharacter: true))
         {
             Logger.Error($"EditCharacter: save failed for {character.Name} ({character.Id}), rolled back");
             return;
@@ -1472,9 +1472,11 @@ public class CharacterManager(
     /// Swap the requested body parts and the model in memory, then save the character and its items
     /// in one transaction. On failure everything is put back: the previous model object and a fresh
     /// item of each replaced template in its slot (the removed item objects are gone by then).
+    /// <paramref name="lobbyCharacter"/> narrows the save to unit_model_params and the items: a lobby
+    /// character never ran Buffs.LoadActiveBuffs, so the full save would delete its saved buffs.
     /// </summary>
     private bool ApplyAppearance(Character character, UnitCustomModelParams newModel,
-        IReadOnlyList<(EquipmentItemSlot Slot, uint TemplateId)> swaps)
+        IReadOnlyList<(EquipmentItemSlot Slot, uint TemplateId)> swaps, bool lobbyCharacter)
     {
         var oldModel = character.ModelParams;
         var undo = new List<(EquipmentItemSlot Slot, uint TemplateId)>();
@@ -1493,7 +1495,10 @@ public class CharacterManager(
         }
 
         character.ModelParams = newModel;
-        if (character.SaveDirectlyToDatabase())
+        var saved = lobbyCharacter
+            ? character.SaveModelParamsAndItemsDirectlyToDatabase()
+            : character.SaveDirectlyToDatabase();
+        if (saved)
             return true;
 
         character.ModelParams = oldModel;

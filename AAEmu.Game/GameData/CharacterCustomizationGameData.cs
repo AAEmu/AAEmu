@@ -15,7 +15,11 @@ namespace AAEmu.Game.GameData;
 [GameData]
 public class CharacterCustomizationGameData : Singleton<CharacterCustomizationGameData>, IGameDataLoader, ICharacterCustomizationCatalog
 {
-    /// <summary>tags.id 4990 '뷰티샵- 미용 이용권' (beauty shop: beauty ticket) tags the five period passes 50445 to 50449.</summary>
+    /// <summary>
+    /// tags.id 4990 '뷰티샵- 미용 이용권' (beauty shop: beauty ticket). It tags the five period passes
+    /// 50445 to 50449 and the retired test item 51915, which carries no lifetime; only the passes are
+    /// loaded below.
+    /// </summary>
     public const uint BeautyTicketTagId = 4990;
 
     private Dictionary<(uint ModelId, uint ItemId), CustomizingBodyPart> _bodyParts = [];
@@ -120,8 +124,13 @@ public class CharacterCustomizationGameData : Singleton<CharacterCustomizationGa
         ReadRows(connection, "SELECT game_schedule_id, is_pcbang FROM game_schedule_beautyshops", reader =>
             _beautyshopSchedules.Add((reader.GetInt32("game_schedule_id", 0), reader.GetBoolean("is_pcbang"))));
 
-        ReadRows(connection, "SELECT item_id FROM tagged_items WHERE tag_id = " + BeautyTicketTagId, reader =>
-            _ticketItemIds.Add(reader.GetUInt32("item_id")));
+        // 6 tagged rows. 51915 ('머리 모양 변경권_test') is a retired test item with exp_abs_lifetime 0,
+        // so its ExpirationTime never leaves MinValue and it would pass as a ticket that never expires;
+        // only the five period passes 50445 to 50449 carry a lifetime.
+        ReadRows(connection,
+            "SELECT ti.item_id FROM tagged_items ti JOIN items i ON i.id = ti.item_id " +
+            "WHERE ti.tag_id = " + BeautyTicketTagId + " AND i.exp_abs_lifetime > 0",
+            reader => _ticketItemIds.Add(reader.GetUInt32("item_id")));
     }
 
     public void PostLoad()
