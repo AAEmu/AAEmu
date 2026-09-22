@@ -53,7 +53,11 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
     public Func<Dungeon, Character, bool> PreparedCanQueue { get; set; } = (dungeon, character) =>
         dungeon.CanQueuePlayer(character);
 
-    public Func<IndunZone, Character, bool> FinalAdmissionCheck { get; set; } = (zone, character) =>
+    /// <summary>
+    /// Content-authored entrance schedule and permission tags. Checked when a player applies to the queue
+    /// and again right before the prepared copy is queued, because either can change while they wait.
+    /// </summary>
+    public Func<IndunZone, Character, bool> AdmissionCheck { get; set; } = (zone, character) =>
         IndunManager.Instance.VerifyDungeonAdmission(zone, character);
 
     public Func<Dungeon, Character, bool> PreparedQueuePlayer { get; set; } = (dungeon, character) =>
@@ -78,6 +82,14 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
         var dungeonZone = IndunGameData.Instance.GetDungeonZoneByCatalogId(catalogId);
         if (dungeonZone == null)
             return false;
+
+        // Refused while applying, the same way the entry path refuses it: queueing through a closed window
+        // only to be turned away when the copy is ready wastes the wait and the copy.
+        if (!AdmissionCheck(dungeonZone, character))
+        {
+            character.SendPacket(new SCAppliedToInstantGamePacket(catalogId, errorMessageId: 1));
+            return true;
+        }
 
         if (character.Level < dungeonZone.LevelMin || character.Level > dungeonZone.LevelMax)
         {
@@ -753,16 +765,7 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
 
         // This is deliberately the last call before QueuePlayer, which charges the daily entry and
         // changes copy membership. Queue and invitation time may span a schedule edge or buff change.
-        return FinalAdmissionCheck(dungeonZone, character) && PreparedQueuePlayer(dungeon, character);
-    }
-
-    private static List<Character> Partition(List<Character> characters, Func<Character, bool> canAdmit,
-        List<Character> rejected)
-    {
-        var admitted = new List<Character>();
-        foreach (var ch in characters)
-            (canAdmit(ch) ? admitted : rejected).Add(ch);
-        return admitted;
+        return AdmissionCheck(dungeonZone, character) && PreparedQueuePlayer(dungeon, character);
     }
 
     /// <summary>
@@ -833,6 +836,15 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
             var ch = WorldManager.Instance.GetCharacterById(charId);
             if (ch == null)
                 continue;
+
+            // Same apply-time admission as TryApply, so a squad is turned away on the Register button
+            // rather than after its copy is built.
+            if (!AdmissionCheck(dungeonZone, ch))
+            {
+                ch.SendPacket(new SCAppliedToInstantGamePacket(catalogId, errorMessageId: 1));
+                return true;
+            }
+
             if (ch.Level < dungeonZone.LevelMin || ch.Level > dungeonZone.LevelMax)
             {
                 ch.SendPacket(new SCAppliedToInstantGamePacket(catalogId, errorMessageId: 1));

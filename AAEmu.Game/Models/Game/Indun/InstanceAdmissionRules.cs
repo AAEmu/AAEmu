@@ -75,11 +75,13 @@ public static class InstanceAdmissionRules
 
         foreach (var permission in permissions)
         {
-            // The only IndunZone blacklist in the 10.0.2 corpus is buff tag 5947 (Daru transformation), on
-            // instances 50, 51, 55 and 80. The title (3889), guild buff (2445), hero blessing (2532) and
-            // equipment (3428) rows belong to BattleField instances, whose target_type the IndunZone loader
-            // never reads, so whitelist item/skill semantics here would be guessing. Refusing the blacklisted
-            // buff is the intended behaviour for this path.
+            // The only IndunZone blacklist in the 10.0.2 corpus is buff tag 5947 on instances 50, 51, 55 and
+            // 80, all with permission_white_list_bit = 0. The tags row is '다루 변신' and its desc is
+            // '다루 변신을 해제하기 위한 태그' ("tag for releasing the Daru transformation"). The same tag sits
+            // on BattleField instances 2, 4, 5, 7, 11, 60, 69, 76 and 78 beside title tag 3889, which reads as
+            // strip-on-entry there, but those rows are never loaded here: IndunGameData takes
+            // instance_permission_tags where target_type = 'IndunZone'. Refusing the blacklisted buff is this
+            // path's reading of that blacklist, not something any IndunZone row states.
             var whiteListed = (whiteListBits & (1u << (int)permission.Kind)) != 0;
             if (!whiteListed && hasTag(permission.Kind, permission.TagId))
                 return InstanceAdmissionFailure.ProhibitedTag;

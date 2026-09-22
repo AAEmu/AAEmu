@@ -147,7 +147,7 @@ public class IndunManagerTests
         var queueCalls = 0;
         var order = new List<string>();
         manager.PreparedCanQueue = (_, _) => true;
-        manager.FinalAdmissionCheck = (_, _) => { order.Add("admission"); return false; };
+        manager.AdmissionCheck = (_, _) => { order.Add("admission"); return false; };
         manager.PreparedQueuePlayer = (_, _) => { order.Add("queue"); queueCalls++; return true; };
         var method = typeof(IndunMatchmakingManager).GetMethod("TryEnterPreparedPlayer",
             BindingFlags.Instance | BindingFlags.NonPublic)!;
