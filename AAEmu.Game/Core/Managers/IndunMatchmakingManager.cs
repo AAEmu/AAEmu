@@ -838,17 +838,19 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
                 continue;
 
             // Same apply-time admission as TryApply, so a squad is turned away on the Register button
-            // rather than after its copy is built.
+            // rather than after its copy is built. Both refusals answer false: SquadManager.ApplyMatching
+            // reads true as "queued" and latches MatchingApplied/Joining, which would leave the squad
+            // showing as matching with nothing queued and block Register (SquadRules.cs:89-90).
             if (!AdmissionCheck(dungeonZone, ch))
             {
                 ch.SendPacket(new SCAppliedToInstantGamePacket(catalogId, errorMessageId: 1));
-                return true;
+                return false;
             }
 
             if (ch.Level < dungeonZone.LevelMin || ch.Level > dungeonZone.LevelMax)
             {
                 ch.SendPacket(new SCAppliedToInstantGamePacket(catalogId, errorMessageId: 1));
-                return true;
+                return false;
             }
             TryWithdraw(ch);
             queued.Add(new IndunMatchApplicant(charId, squadId, now));
