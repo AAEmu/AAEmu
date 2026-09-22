@@ -189,6 +189,8 @@ public class ItemEvolving : SpecialEffectAction
             // added or removed. An item group gather is graded and has to be re-counted, which is
             // quest 10359 (group 68). Zero adds nothing, so no act can count the item twice.
             QuestManager.Instance.DoItemsAcquiredEvents(owner, equipItem.TemplateId, 0);
+            CollectionsManager.Instance.DiscoverInPlaceChange(owner, equipItem.TemplateId, equipItem.Grade,
+                equipItem.SlotType == SlotType.Equipment);
         }
 
         owner.SendPacket(new SCItemDetailUpdatedPacket(equipItem));

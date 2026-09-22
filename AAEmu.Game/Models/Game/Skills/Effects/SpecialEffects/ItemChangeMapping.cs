@@ -279,7 +279,13 @@ public class ItemChangeMapping : SpecialEffectAction
         // grade may have moved with it. An item group gather is graded, so re-count the item it now
         // is; the zero count adds nothing anywhere. A mapping that changes neither is left alone.
         if (equipItem.TemplateId != oldTemplateId || equipItem.Grade != sourceGrade)
+        {
             QuestManager.Instance.DoItemsAcquiredEvents(owner, equipItem.TemplateId, 0);
+            // The piece was rewritten in place. Report the template and grade it is now, including
+            // the obtain watch when it stays worn.
+            CollectionsManager.Instance.DiscoverInPlaceChange(owner, equipItem.TemplateId, equipItem.Grade,
+                equipItem.SlotType == SlotType.Equipment);
+        }
 
         Logger.Debug("ItemChangeMapping: {0} awakened item {1} from {2} to {3} (group {4})",
             owner.Name, equipItem.Id, oldTemplateId, equipItem.TemplateId, group.Id);

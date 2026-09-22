@@ -381,6 +381,49 @@ public sealed class CollectionsManagerTests : SqliteTestBase
     }
 
     [Test]
+    public async Task DiscoverInPlaceChange_ReportsTheObtainWatchAtTheNewGrade()
+    {
+        CollectionsManager.Instance.DiscoverInPlaceChange(_character, GradedItem, RareGrade, equipped: false);
+        await Assert.That(_character.Records.Get(WonderGradeRecord)).IsEqualTo(0);
+        await Assert.That(_character.Achievements.IsComplete(104u)).IsFalse();
+
+        CollectionsManager.Instance.DiscoverInPlaceChange(_character, GradedItem, WonderGrade, equipped: false);
+        await Assert.That(_character.Records.Get(WonderGradeRecord)).IsEqualTo(1);
+        await Assert.That(_character.Achievements.IsComplete(104u)).IsTrue();
+    }
+
+    [Test]
+    public async Task DiscoverInPlaceChange_WornItem_ReportsTheEquipWatchToo()
+    {
+        CollectionsManager.Instance.DiscoverInPlaceChange(_character, EquipItem, CommonGrade, equipped: true);
+
+        await Assert.That(_character.Records.Get(CollectEquipRecord)).IsEqualTo(1);
+        await Assert.That(_character.Achievements.IsComplete(101u)).IsTrue();
+    }
+
+    [Test]
+    public async Task BackfillItems_WornItem_ReportsTheObtainWatch()
+    {
+        var worn = new Item { TemplateId = GradedItem, Grade = WonderGrade };
+
+        await Assert.That(CollectionsManager.Instance.BackfillItems(_character, [(worn, SlotType.Equipment)]))
+            .IsEqualTo(1);
+        await Assert.That(_character.Records.Get(WonderGradeRecord)).IsEqualTo(1);
+        await Assert.That(_character.Achievements.IsComplete(104u)).IsTrue();
+    }
+
+    [Test]
+    public async Task BackfillItems_WornItemBelowTheWatchedGrade_DoesNotMoveTheObtainRecord()
+    {
+        var worn = new Item { TemplateId = GradedItem, Grade = RareGrade };
+
+        CollectionsManager.Instance.BackfillItems(_character, [(worn, SlotType.Equipment)]);
+
+        await Assert.That(_character.Records.Get(WonderGradeRecord)).IsEqualTo(0);
+        await Assert.That(_character.Achievements.IsComplete(104u)).IsFalse();
+    }
+
+    [Test]
     public async Task SourceForContainer_EquipmentIsTheEquipEventAndEverythingElseAnAcquisition()
     {
         await Assert.That(CollectionsManager.SourceForContainer(SlotType.Equipment))

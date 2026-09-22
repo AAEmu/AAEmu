@@ -214,7 +214,13 @@ public class GradeEnchant : SpecialEffectAction
         // quest observer sees. An item group gather is graded, so re-count it; the zero count adds
         // nothing anywhere and cannot credit an item the quest already counted.
         if (!itemBroken && item.Grade != initialGrade)
+        {
             QuestManager.Instance.DoItemsAcquiredEvents(character, item.TemplateId, 0);
+            // The grade moved on an item the character already holds, so the obtain watch has to
+            // hear the new grade. A worn piece also reports the equip watch.
+            CollectionsManager.Instance.DiscoverInPlaceChange(character, item.TemplateId, item.Grade,
+                item.SlotType == SlotType.Equipment);
+        }
 
         if (cost > 0)
             character.SubtractMoney(SlotType.Inventory, cost);

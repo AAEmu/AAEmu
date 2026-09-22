@@ -73,9 +73,10 @@ public class CollectionsManager : Singleton<CollectionsManager>
     /// once those have loaded.
     /// </summary>
     /// <remarks>
-    /// Each item counts as the event its container implies (<see cref="SourceForContainer"/>), exactly as the
-    /// restore would have reported it. Nothing is sent: the replay after world entry delivers the rows, and a
-    /// report keeps the high-water mark, so running this again on a later world entry moves nothing.
+    /// Each item counts as the event its container implies (<see cref="SourceForContainer"/>). A worn item
+    /// also counts as obtained: a grade reached while it stays equipped never enters a container, and an
+    /// obtain watch has no equip record to move. Nothing is sent: the replay after world entry delivers the
+    /// rows, and a report keeps the high-water mark, so running this again on a later world entry moves nothing.
     /// </remarks>
     /// <returns>How many entries were discovered for the first time.</returns>
     public int BackfillHeldItems(Character character)
@@ -98,7 +99,7 @@ public class CollectionsManager : Singleton<CollectionsManager>
 
     /// <summary>
     /// The replay behind <see cref="BackfillHeldItems"/>: discovers each held item as the event its container
-    /// implies, without sending anything.
+    /// implies, and a worn item as obtained as well, without sending anything.
     /// </summary>
     /// <returns>How many entries were discovered for the first time.</returns>
     public int BackfillItems(Character character, IEnumerable<(Item Item, SlotType ContainerType)> heldItems)
@@ -112,6 +113,13 @@ public class CollectionsManager : Singleton<CollectionsManager>
             if (item == null)
                 continue;
 
+            // A worn piece is still an item the character obtained. Reporting only the equip event
+            // leaves an obtain watch (there is no equip record for it) stuck at the grade it was put on.
+            if (containerType == SlotType.Equipment &&
+                Discover(character, item.TemplateId, item.Grade, CollectionDiscoverySource.Acquired, sendPackets: false) ==
+                CollectionDiscoveryResult.Discovered)
+                discovered++;
+
             if (Discover(character, item.TemplateId, item.Grade, SourceForContainer(containerType), sendPackets: false) ==
                 CollectionDiscoveryResult.Discovered)
                 discovered++;
@@ -123,6 +131,18 @@ public class CollectionsManager : Singleton<CollectionsManager>
     /// <summary>The discovery event an item arriving in a container of this type counts as.</summary>
     public static CollectionDiscoverySource SourceForContainer(SlotType containerType) =>
         containerType == SlotType.Equipment ? CollectionDiscoverySource.Equipped : CollectionDiscoverySource.Acquired;
+
+    /// <summary>
+    /// Reports a grade or template change on an item the character already holds. The item did not
+    /// enter a container, so the obtain watch is reported at the new template and grade, and a worn
+    /// piece also reports the equip watch.
+    /// </summary>
+    public void DiscoverInPlaceChange(Character character, uint itemTypeId, byte itemGrade, bool equipped)
+    {
+        Discover(character, itemTypeId, itemGrade, CollectionDiscoverySource.Acquired);
+        if (equipped)
+            Discover(character, itemTypeId, itemGrade, CollectionDiscoverySource.Equipped);
+    }
 
     private CollectionDiscoveryResult Discover(Character character, uint itemTypeId, byte itemGrade,
         CollectionDiscoverySource source, bool sendPackets)
