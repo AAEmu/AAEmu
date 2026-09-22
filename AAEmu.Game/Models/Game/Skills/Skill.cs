@@ -1004,8 +1004,15 @@ public class Skill
         }
         unit.SkillTask = null;
 
-        ConsumeMana(caster);
-        ArmCooldowns(unit);
+        if (IsPureUnsupportedCast())
+        {
+            Logger.Debug("Skill {0}: every effect is an unsupported special effect, mana and cooldown not charged", Template.Id);
+        }
+        else
+        {
+            ConsumeMana(caster);
+            ArmCooldowns(unit);
+        }
         // if (Id == 2 || Id == 3 || Id == 4)
         // {
         //     if (caster is Character && caster.CurrentTarget == null)
@@ -1423,6 +1430,22 @@ public class Skill
         }
 
         return sawSpecial;
+    }
+
+    private bool? _pureUnsupportedCast;
+
+    /// <summary>
+    /// Whether every effect this skill's <c>skill_effects</c> rows declare is a special effect nobody
+    /// here executes (<see cref="SpecialEffectOwnershipRules"/>). Such a cast changes nothing, so
+    /// <see cref="Cast"/> skips its mana, cooldown and charges and <see cref="EndSkill"/> its labor,
+    /// the way the item branch above already skips reagents. Read from the template rather than the
+    /// resolved list because mana and cooldown are charged before the effects are gathered.
+    /// </summary>
+    private bool IsPureUnsupportedCast()
+    {
+        _pureUnsupportedCast ??= SpecialEffectOwnershipRules.IsPureUnsupportedCast(
+            (Template?.Effects ?? []).Select(effect => (effect.Template as SpecialEffect)?.SpecialEffectTypeId));
+        return _pureUnsupportedCast.Value;
     }
 
     public void ApplyEffects(BaseUnit caster, SkillCaster casterCaster, BaseUnit targetSelf, SkillCastTarget targetCaster, SkillObject skillObject)
@@ -2099,7 +2122,8 @@ public class Skill
 
         if (caster is Character character)
         {
-            TryConsumeLabor(character);
+            if (!IsPureUnsupportedCast())
+                TryConsumeLabor(character);
 
             // Add vocation where needed
             if (Template.GainLifePoint > 0 && !Cancelled)
