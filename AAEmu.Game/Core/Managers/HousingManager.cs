@@ -58,7 +58,10 @@ public class HousingManager(
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private const uint ForSaleMarkerDoodadId = 6760;
+    private const string HouseForSaleDoodadKey = "house_for_sale";
+
+    /// <summary>The for-sale sign doodad, from <c>const_doodad_types</c>. A missing row fails loudly.</summary>
+    private static uint ForSaleMarkerDoodadId => ConstDoodadTypeGameData.Instance.Require(HouseForSaleDoodadKey);
     private const int HoursForFailedTaxToReturnHouse = 22;
 
     /// <summary>The wreck stays standing this long after the removal debuff finishes the house.</summary>
