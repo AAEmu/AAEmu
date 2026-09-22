@@ -1,4 +1,5 @@
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.StaticValues;
 
@@ -158,5 +159,22 @@ public class FactionManagerDiplomacyTests
 
         await Assert.That(manager.GetZoneRelations().Count).IsEqualTo(1);
         await Assert.That(manager.GetContentZoneRelations().Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task CharacterDeletionDropsOnlyThatCharactersCachedCounters()
+    {
+        var store = new InMemoryFactionDiplomacyStore();
+        store.UpsertCount(new FactionDiplomacyCount(42, 99, 2, Now));
+        store.UpsertCount(new FactionDiplomacyCount(99, 42, 3, Now));
+        store.UpsertCount(new FactionDiplomacyCount(99, 100, 1, Now));
+        var diplomacy = new FactionDiplomacyManager(Seeded(), Mock.Of<ITaskManager>().Object);
+        diplomacy.UseStore(store);
+        diplomacy.LoadFromStore(Now);
+
+        diplomacy.OnCharacterDeleted(42);
+
+        await Assert.That(diplomacy.HasCountFor(42)).IsFalse();
+        await Assert.That(diplomacy.HasCountFor(99)).IsTrue();
     }
 }
