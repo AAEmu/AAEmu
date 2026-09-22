@@ -62,6 +62,11 @@ public class BuffSteal : SpecialEffectAction
             if (source?.Template == null)
                 continue;
 
+            // The recipient is about to be given the effect, so it passes the same tag-immunity gate every
+            // other application uses. A refused effect is left on the donor rather than dispelled and lost.
+            if (recipient.Buffs.CheckBuffImmune(source.Template, caster, skill))
+                continue;
+
             // Permanent instances answer -1; handing that to AddBuff would write a negative duration, so a
             // permanent buff is re-applied from its template instead (duration 0 = permanent there too).
             var remaining = source.GetTimeLeft();

@@ -10,9 +10,11 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// 이로운 효과 2개 탈취" (steal two beneficial effects) and 23707 / 39096 say "적대상의 이로운 효과 1개를
 /// 빼앗아옵니다" (steal one). <c>value4</c> restricts the take to one buff tag — 229 on effect 34212 and 1229
 /// on effect 44232, both real <c>tagged_buffs.tag_id</c> families with 10 and 1 members — and is 0 on the
-/// other ten rows. <c>value1</c> and <c>value2</c> are 1 only on the two 돌려주기 44205 rows (58194/58195),
-/// whose text says to return the caster's harmful effects to the enemy. Because those fields co-vary in
-/// every shipped row, only the proven paired 1/1 signature selects that reverse transfer mode.
+/// other ten rows. <c>value1</c> and <c>value2</c> are 1 on the four 돌려주기 44205 rows — 51347/51348
+/// through the skill's own <c>skill_effects</c> and 58194/58195 through its plot 5721 (events 51517
+/// "버프 넘기기 2개" and 51518 "버프 넘기기 3개") — whose text says to return the caster's harmful effects
+/// to the enemy. Because those fields co-vary in every shipped row, only the proven paired 1/1 signature
+/// selects that reverse transfer mode.
 /// </remarks>
 public static class BuffStealRules
 {
