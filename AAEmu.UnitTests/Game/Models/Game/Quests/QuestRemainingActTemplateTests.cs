@@ -9,7 +9,7 @@ namespace AAEmu.UnitTests.Game.Models.Game.Quests;
 
 /// <summary>
 /// The 14 Start, Ready and Reward act types over their content rows: each loads its row, takes no
-/// objective slot, and the five that need a missing subsystem say so through IUnsupportedRewardAct.
+/// objective slot, and the four that need a missing subsystem say so through IUnsupportedRewardAct.
 /// </summary>
 public class QuestRemainingActTemplateTests
 {
@@ -83,16 +83,17 @@ public class QuestRemainingActTemplateTests
         await Assert.That(mail.CountsAsAnObjective).IsFalse();
     }
 
-    // quest_act_supply_resident_points 1 and quest_act_supply_resident_charges 1 (quest 9334, zone
-    // group 33), quest_act_supply_faction_changes 13 (quest 9902, 161, ignore_limit t),
+    // quest_act_supply_resident_charges 1 (quest 9334, zone group 33),
+    // quest_act_supply_faction_changes 13 (quest 9902, 161, ignore_limit t),
     // quest_act_supply_ranked_items 1 (quest 6572, rank 1, 43779 x8) and
     // quest_act_supply_result_ranked_items 9 (quest 11132, win, rank 1, 51578 x15).
+    // Resident points are not here: their 10, 15 or 30 are worth less than the rest of the Reward
+    // step, so that act completes without them instead of refusing the accept.
     [Test]
     public async Task MissingSubsystemRewards_LoadAndNameWhatIsMissing()
     {
         QuestActTemplate[] acts =
         [
-            new QuestActSupplyResidentPoint(Component(9334, QuestComponentKind.Reward)) { DetailId = 1, ZoneGroupId = 33, Point = 10 },
             new QuestActSupplyResidentCharge(Component(9334, QuestComponentKind.Reward)) { DetailId = 1, ZoneGroupId = 33, Charge = 10000 },
             new QuestActSupplyFactionChange(Component(9902, QuestComponentKind.Reward)) { DetailId = 13, SystemFactionId = 161, IgnoreLimit = true },
             new QuestActSupplyRankedItem(Component(6572, QuestComponentKind.Reward)) { DetailId = 1, Rank = 1, ItemId = 43779, GradeId = 0, Count = 8 },
@@ -105,10 +106,10 @@ public class QuestRemainingActTemplateTests
             await Assert.That(act.CountsAsAnObjective).IsFalse();
         }
 
-        var ranked = (QuestActSupplyRankedItem)acts[3];
+        var ranked = (QuestActSupplyRankedItem)acts[2];
         await Assert.That(ranked.Count).IsEqualTo(8);
         await Assert.That(ranked.ItemId).IsEqualTo(43779u);
-        var result = (QuestActSupplyResultRankedItem)acts[4];
+        var result = (QuestActSupplyResultRankedItem)acts[3];
         await Assert.That(result.Result).IsTrue();
         await Assert.That(result.Count).IsEqualTo(15);
     }
@@ -126,10 +127,16 @@ public class QuestRemainingActTemplateTests
             new QuestActSupplyLeadershipPoint(Component(2971, QuestComponentKind.Reward)),
             new QuestActSupplyLocalLp(Component(11175, QuestComponentKind.Reward)),
             new QuestActSupplySkill(Component(10452, QuestComponentKind.Ready)),
-            new QuestActObjSendMail(Component(8952, QuestComponentKind.Start))
+            new QuestActObjSendMail(Component(8952, QuestComponentKind.Start)),
+            new QuestActSupplyResidentPoint(Component(9334, QuestComponentKind.Reward)) { DetailId = 1, ZoneGroupId = 33, Point = 10 }
         ];
         foreach (var act in acts)
             await Assert.That(act is IUnsupportedRewardAct).IsFalse();
+
+        // quest_act_supply_resident_points 1 (quest 9334, zone group 33): still loads its row.
+        var residentPoints = (QuestActSupplyResidentPoint)acts[9];
+        await Assert.That(residentPoints.ZoneGroupId).IsEqualTo(33u);
+        await Assert.That(residentPoints.Point).IsEqualTo(10);
     }
 
     // QuestManager.Load registers every direct QuestActTemplate subclass of the Acts namespace as a

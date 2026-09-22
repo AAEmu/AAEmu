@@ -286,6 +286,18 @@ public class CharacterQuests(Character owner)
             return false;
         }
 
+        // Start's own level range is a second gate the context level cannot cover: quest 10930 has
+        // min_level 0 and a 10..19 range act. RunCurrentStep's false is dropped below, so an
+        // out-of-range accept would sit in the journal at Start instead of being refused.
+        if (!forcibly && QuestAcceptLevelRangeRules.RefusesAccept(template, Owner.Level))
+        {
+            LogAcceptRefused(answerClient,
+                "User {0} ({1}) does not meet the Start level range for quest {2}: level={3}",
+                Owner.Name, Owner.Id, questId, Owner.Level);
+            NotifyAcceptFailed(questId, QuestAcceptFailRules.LevelNotMet, answerClient);
+            return false;
+        }
+
         // Check if start step components are active
         var startComponentTemplate = template.GetComponents(QuestComponentKind.Start);
         foreach (var questComponentTemplate in startComponentTemplate)

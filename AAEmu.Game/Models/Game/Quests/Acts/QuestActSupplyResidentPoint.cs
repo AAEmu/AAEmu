@@ -8,21 +8,21 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 /// and dummy quest 9334). The client reader LoadQuestActSupplyResidentPointDescs (x2game-dev.dll
 /// FUN_39d482b0) reads id, point, zone_group_id. The server has no resident progression to add to:
 /// HousingManager answers the resident packets with zero points and balances and nothing loads
-/// resident_conditions or resident_rewards, so the accept is refused (QuestRewardSupportRules) and
-/// a quest that still reaches this act reports once and completes without the points.
+/// resident_conditions or resident_rewards. The points are 10, 15 or 30, so the rest of the Reward
+/// step is worth more than the refusal: the accept is not refused (unlike QuestActSupplyResidentCharge,
+/// whose balance is the whole grant) and a quest that reaches this act reports once and completes
+/// without the points.
 /// </summary>
-public class QuestActSupplyResidentPoint(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent), IUnsupportedRewardAct
+public class QuestActSupplyResidentPoint(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {
     public uint ZoneGroupId { get; set; }
     public int Point { get; set; }
 
-    public string MissingSubsystem => "resident points";
-
     public override bool RunAct(Quest quest, QuestAct questAct, int currentObjectiveCount)
     {
         if (QuestUnsupportedProgressActRules.ReportOnce(QuestActTemplateName))
-            Logger.Warn("{0} is not supported (no {1}); quest {2} for {3} completes without that reward",
-                QuestActTemplateName, MissingSubsystem, quest.TemplateId, quest.Owner.Name);
+            Logger.Warn("{0} is not supported (no resident points); quest {1} for {2} completes without that reward",
+                QuestActTemplateName, quest.TemplateId, quest.Owner.Name);
         Logger.Debug($"{QuestActTemplateName}({DetailId}).RunAct: Quest: {quest.TemplateId}, Owner {quest.Owner.Name} ({quest.Owner.Id}), ZoneGroupId {ZoneGroupId}, Point {Point} skipped");
         return true;
     }

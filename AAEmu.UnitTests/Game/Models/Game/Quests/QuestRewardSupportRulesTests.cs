@@ -9,9 +9,9 @@ public class QuestRewardSupportRulesTests
 {
     // Quest 9334, Reward component 40675: quest_act_supply_resident_points 1 (zone group 33, 10),
     // quest_act_supply_resident_charges 1 (33, 10000), quest_act_supply_coppers 3721 and
-    // quest_act_supply_appellations 390.
+    // quest_act_supply_appellations 390. The points do not refuse the accept, the charge does.
     [Test]
-    public async Task Quest9334_ResidentPointIsTheFirstUnsupportedReward()
+    public async Task Quest9334_ResidentChargeIsTheFirstUnsupportedReward()
     {
         var template = Quest(9334, 40675, reward =>
         {
@@ -22,8 +22,8 @@ public class QuestRewardSupportRulesTests
         });
 
         var unsupported = QuestRewardSupportRules.FirstUnsupported(template);
-        await Assert.That(unsupported is QuestActSupplyResidentPoint).IsTrue();
-        await Assert.That(unsupported.MissingSubsystem).IsEqualTo("resident points");
+        await Assert.That(unsupported is QuestActSupplyResidentCharge).IsTrue();
+        await Assert.That(unsupported.MissingSubsystem).IsEqualTo("resident balance");
         await Assert.That(QuestRewardSupportRules.RefusesAccept(template, false)).IsTrue();
     }
 
@@ -31,9 +31,25 @@ public class QuestRewardSupportRulesTests
     public async Task Quest9334_GmAddIsNotRefused()
     {
         var template = Quest(9334, 40675, reward =>
-            reward.ActTemplates.Add(new QuestActSupplyResidentPoint(reward) { DetailId = 1, ZoneGroupId = 33, Point = 10 }));
+            reward.ActTemplates.Add(new QuestActSupplyResidentCharge(reward) { DetailId = 1, ZoneGroupId = 33, Charge = 10000 }));
 
         await Assert.That(QuestRewardSupportRules.RefusesAccept(template, true)).IsFalse();
+    }
+
+    // The 40 Auroria territory quests of category 155 (9356 to 10325) hold a resident point act
+    // beside exp, copper, items and honor (quest 10318, Reward component 44904: item 48078 x3 and
+    // resident points 42, zone group 34, 10). Their 10 or 15 points are not worth refusing the rest.
+    [Test]
+    public async Task AuroriaResidentPointsAlone_DoNotRefuseTheAccept()
+    {
+        var template = Quest(10318, 44904, reward =>
+        {
+            reward.ActTemplates.Add(new QuestActSupplyItem(reward) { DetailId = 9787, ItemId = 48078, Count = 3 });
+            reward.ActTemplates.Add(new QuestActSupplyResidentPoint(reward) { DetailId = 42, ZoneGroupId = 34, Point = 10 });
+        });
+
+        await Assert.That(QuestRewardSupportRules.FirstUnsupported(template)).IsNull();
+        await Assert.That(QuestRewardSupportRules.RefusesAccept(template, false)).IsFalse();
     }
 
     // Quest 7823, Reward component with quest_act_supply_items 6612 only.
