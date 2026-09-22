@@ -5,7 +5,11 @@
 
 /// <summary>
 /// Skill result byte values used by the 10.0.2.13 client.
-/// Recovered from the client's SkillResult-to-symbol switch.
+/// Bytes come from the client's result-to-symbol switch, x2game-dev.dll FUN_39D23B10 (195 cases, 0x00..0xCB,
+/// default "URK_UNKNOWN"). The display path FUN_397EBE90 hands that symbol to the UI, which looks up ui_texts
+/// key "skill_" + lower(symbol) in category 89; when the 16-bit detail field is set it shows that
+/// enum_error_messages id instead. Bytes the switch has no case for (0xAC, 0xB0, 0xC7) are pinned by the
+/// per-kind evaluators named on the members. SkillResultWireTableTests pins the whole table.
 /// </summary>
 public enum SkillResult : byte
 {
@@ -73,7 +77,7 @@ public enum SkillResult : byte
     InvalidAccountAttribute = 0x3D,
     FestivalZone = 0x3E,
     AlreadyOtherPlayerBound = 0x3F,
-    UrkUnknown = 0x40, // First unassigned value; the client stringifier returns URK_UNKNOWN.
+    UrkUnknown = 0x40, // No case in FUN_39D23B10; the display path FUN_397EBE90 returns without a message for 0x40.
     CannotUnsummonUnderStunSleepRoot = 0x41,
     LackCombatResource = 0x42,
     LackSourceItemSet = 0x43,
@@ -177,11 +181,11 @@ public enum SkillResult : byte
     UrkLaborPowerMarginLocal = 0xA9,
     UrkHeirLevel = 0xAA,
     UrkInZoneGroup = 0xAB,
-    UrkSkillCooldown = 0xAC,
+    UrkSkillCooldown = 0xAC, // No symbol in FUN_39D23B10; the kind 102 evaluator FUN_392B0C70 writes 0xAC.
     UrkUnderWater = 0xAD,
     UrkOwnAppellation = 0xAE,
     UrkEquipAppellation = 0xAF,
-    UrkEmptySlotInventory = 0xB0,
+    UrkEmptySlotInventory = 0xB0, // No symbol in FUN_39D23B10; the kind 106 evaluator FUN_392B0CD0 writes 0xB0 with detail 0x19 (BAG_FULL).
     UrkFullRechargedLaborPower = 0xB1,
     UrkExpeditionMemberNot = 0xB2,
     UrkPirateMemberLimit = 0xB3,
@@ -204,7 +208,7 @@ public enum SkillResult : byte
     UrkCannotUseByUlcActivate = 0xC4,
     UrkItemLookChangeMapping = 0xC5,
     UrkEnableArchePassWithType = 0xC6,
-    UrkCombatResource = 0xC7,
+    UrkCombatResource = 0xC7, // No symbol in FUN_39D23B10; the kind 136 evaluator FUN_39796100 writes 0xC7.
     UrkAddArchePassPoint = 0xC8,
     UrkTowerDefStep = 0xC9,
     UrkSourceHealthLessThan = 0xCA,
@@ -537,10 +541,13 @@ public static class SkillResultHelper
             SkillResultKeys.skill_urk_house_only => SkillResult.UrkHouseOnly,
             SkillResultKeys.skill_urk_hero => SkillResult.UrkHero,
             SkillResultKeys.skill_urk_not_hero => SkillResult.UrkNotHero,
-            SkillResultKeys.skill_urk_not_hero_not_candidate => SkillResult.UrkNotHero,
+            // Kind 128 has no symbol of its own: the client evaluator FUN_39795090 writes plain FAILURE (0x01).
+            SkillResultKeys.skill_urk_not_hero_not_candidate => SkillResult.Failure,
             SkillResultKeys.skill_urk_leadership_total => SkillResult.UrkLeadershipTotal,
             SkillResultKeys.skill_urk_leadership_current => SkillResult.UrkLeadershipCurrent,
-            SkillResultKeys.skill_urk_leadership_period => SkillResult.UrkLeadershipCurrent,
+            // Kind 127 reuses the leadership-total byte: the client evaluator FUN_39795810 writes 0x90 with
+            // detail 0x355 (WRONG_LEADERSHIP_POINT); UnitReqs supplies that detail.
+            SkillResultKeys.skill_urk_leadership_period => SkillResult.UrkLeadershipTotal,
             SkillResultKeys.skill_urk_doodad_target_hostile => SkillResult.UrkDoodadTargetHostile,
             SkillResultKeys.skill_urk_target_nobuff_tag => SkillResult.UrkTargetNoBuffTag,
             SkillResultKeys.skill_urk_target_nobuff_tag_no_target => SkillResult.UrkTargetNoBuffTagNoTarget,
