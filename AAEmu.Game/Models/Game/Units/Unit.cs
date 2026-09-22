@@ -658,6 +658,27 @@ public class Unit : BaseUnit, IUnit
             if (this is Character ch && ch.CurrentTarget != null)
                 WorldIntegration.RelayRequestCombatUnitsToZone?.Invoke(ObjId, ch.CurrentTarget.ObjId);
         }
+
+        RaiseDungeonCombatTransition(value);
+    }
+
+    /// <summary>
+    /// Indun copies subscribe <see cref="WorldEvents.OnUnitCombatStart"/> and <see cref="WorldEvents.OnUnitCombatEnd"/>
+    /// (indun_event_npc_combat_starteds, _endeds, _no_in_aggro_lists). Raised on the NPC's own flag transition,
+    /// so zone-authored transitions (SetBattleStateFromZone) count too; the open world has no subscriber.
+    /// </summary>
+    private void RaiseDungeonCombatTransition(bool inBattle)
+    {
+        if (this is not Npc)
+            return;
+        var world = ParentWorld;
+        if (world?.DungeonInstance == null)
+            return;
+
+        if (inBattle)
+            world.Events.OnUnitCombatStart(world, new OnUnitCombatStartArgs { Npc = this });
+        else
+            world.Events.OnUnitCombatEnd(world, new OnUnitCombatEndArgs { Npc = this });
     }
 
     public bool IsInDuel { get; set; }

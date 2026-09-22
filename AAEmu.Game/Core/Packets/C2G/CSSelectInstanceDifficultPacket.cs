@@ -1,4 +1,5 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 
@@ -26,6 +27,13 @@ public class CSSelectInstanceDifficultPacket() : GamePacket(CSOffsets.CSSelectIn
         Logger.Debug(
             "CSSelectInstanceDifficult char={0} difficult={1} invalidCheck={2}",
             character.Name, Difficult, InvalidCheck);
+
+        // Inside a copy the pick is that copy's difficulty (zone group 146 opens its lock on it through
+        // indun_event_difficult_changeds); outside, it waits for the next copy this character enters.
+        if (character.ParentWorld?.DungeonInstance is { } dungeon)
+            dungeon.SetDifficult(Difficult);
+        else
+            IndunManager.Instance.RememberSelectedDifficult(character.Id, Difficult);
 
         character.SendPacket(new SCSelectedInstanceDifficultPacket((sbyte)Difficult, showUi: true));
     }

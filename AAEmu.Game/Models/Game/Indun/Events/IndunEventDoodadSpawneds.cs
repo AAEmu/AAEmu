@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.GameData;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Models.Game.Indun.Events;
@@ -15,19 +15,18 @@ internal class IndunEventDoodadSpawneds : IndunEvent
 
     public override void UnSubscribe(WorldInstance worldInstance)
     {
-        worldInstance.Events.OnDoodadSpawn += OnDoodadSpawn;
+        // Was "+=", which stacked one more handler on every unsubscribe.
+        worldInstance.Events.OnDoodadSpawn -= OnDoodadSpawn;
     }
 
     private void OnDoodadSpawn(object sender, OnDoodadSpawnArgs args)
     {
         var doodad = args.Doodad;
         if (doodad == null || sender is not WorldInstance world) { return; }
-        Logger.Warn($"IndunEventDoodadSpawneds - {doodad.TemplateId}, {DoodadAlmightyId}");
         if (doodad.TemplateId != DoodadAlmightyId) { return; }
 
-        var action = IndunGameData.Instance.GetIndunActionById(StartActionId);
-        action.Execute(world);
-
-        //IndunManager.DoIndunActions(StartActionId, world);
+        Logger.Debug($"IndunEventDoodadSpawneds - {doodad.TemplateId}, {DoodadAlmightyId}");
+        // The whole next_action_id chain, not only its first action.
+        IndunManager.Instance.DoIndunActions(StartActionId, world);
     }
 }

@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.GameData;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.World;
 
@@ -21,15 +21,10 @@ internal class IndunEventNpcSpawneds : IndunEvent
     private void OnUnitSpawn(object sender, OnUnitSpawnArgs args)
     {
         if (args.Npc is not Npc npc || sender is not WorldInstance world) { return; }
+        if (npc.TemplateId != NpcId) { return; }
 
-        if (npc.TemplateId != NpcId)
-        {
-            Logger.Warn($"IndunEventNpcSpawneds - need npc={npc.TemplateId}, not npc={NpcId}");
-            return;
-        }
-
-        Logger.Warn($"IndunEventNpcSpawneds - {NpcId}");
-        var action = IndunGameData.Instance.GetIndunActionById(StartActionId);
-        action.Execute(world);
+        Logger.Debug($"IndunEventNpcSpawneds - {NpcId}");
+        // The whole next_action_id chain, not only its first action.
+        IndunManager.Instance.DoIndunActions(StartActionId, world);
     }
 }

@@ -1030,6 +1030,7 @@ public class Doodad : BaseUnit
 
                 // the phase change packet call must be after the phase functions to have the correct FuncGroupId in the packet
                 BroadcastPacket(new SCDoodadPhaseChangedPacket(this), true); // change the phase to display doodad
+                RaiseDungeonPhaseChanged();
 
                 return stop; // if true, it did not pass the check for the quest (it must be aborted)
             });
@@ -1038,6 +1039,19 @@ public class Doodad : BaseUnit
         {
             _phaseDepth = 0;
         }
+    }
+
+    /// <summary>
+    /// Indun copies subscribe <see cref="WorldEvents.OnDoodadPhaseChanged"/> (indun_event_doodad_phase_changeds,
+    /// 14 rows). The open world has no subscriber, so only a dungeon world is raised.
+    /// </summary>
+    private void RaiseDungeonPhaseChanged()
+    {
+        var world = ParentWorld;
+        if (world?.DungeonInstance == null)
+            return;
+
+        world.Events.OnDoodadPhaseChanged(world, new OnDoodadPhaseChangedArgs { Doodad = this, FuncGroupId = FuncGroupId });
     }
 
     /// <summary>

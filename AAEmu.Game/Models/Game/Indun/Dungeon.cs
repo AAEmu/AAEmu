@@ -3,6 +3,7 @@ using AAEmu.Game;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game;
@@ -49,6 +50,12 @@ public class Dungeon : IPreparedIndunInstance
     public HashSet<Character> EnterRequests { get; } = [];
     private bool _isTeamOwned;
     private readonly Dictionary<uint, bool> _rooms;
+    /// <summary>Round counter for zone groups with indun_rounds rows (125, 126, 130); inert (TotalRounds 0) elsewhere.</summary>
+    public IndunRoundState Rounds { get; }
+    /// <summary>The H-window difficulty applied to this copy; null until a pick reaches it.</summary>
+    public byte? Difficult { get; private set; }
+    /// <summary>Raised once per copy, on the NextRound that clears its last round. The reward path hangs here.</summary>
+    public static event Action<Dungeon> DungeonCompleted;
     //private static Dictionary<uint, Dictionary<uint, int>> _attempts; // <ownerId, <zoneGroupId, attempts>> - dungeon attempts used
     //private const int FreeAttempts = 3;  // free attempts
     //private const int ExtraAttempts = 2; // additional attempts
@@ -99,6 +106,7 @@ public class Dungeon : IPreparedIndunInstance
         _indunZone = indunZone;
         _leaveRequests = new ConcurrentDictionary<uint, DateTime>();
         _rooms = [];
+        Rounds = new IndunRoundState(IndunGameData.Instance.GetRounds(indunZone.ZoneGroupId));
 
         _isTeamOwned = team != null;
         _ownerTeam = team;
@@ -254,6 +262,10 @@ public class Dungeon : IPreparedIndunInstance
     public void AddPlayer(Character character)
     {
         Logger.Info($"[Dungeon] Adding player {character.Name} to dungeon {_zoneInstanceId.InstanceId}, {_zoneInstanceId.ZoneId}");
+
+        // A pick made in the H-window before entering lands on the first copy this character enters.
+        if (Difficult is null && IndunManager.Instance.TryTakeSelectedDifficult(character.Id, out var pickedDifficult))
+            SetDifficult(pickedDifficult);
 
         lock (_lock)
         {
@@ -741,6 +753,10 @@ public class Dungeon : IPreparedIndunInstance
         Logger.Info($"Registering Indun Events...");
         foreach (var ev in IndunGameData.Instance.GetIndunEvents(_indunZone.ZoneGroupId))
         {
+            // The constructor and DungeonLoaderTask both register (the loader again once the content is
+            // spawned, which IndunEventNoAliveChInRoom needs). Unsubscribe first so no handler is
+            // attached twice and every event fires once per cause.
+            ev?.UnSubscribe(World);
             ev?.Subscribe(World);
         }
     }
@@ -764,6 +780,98 @@ public class Dungeon : IPreparedIndunInstance
         _rooms[roomId] = true;
     }
 
+    /// <summary>IndunActionNextRound. Completion is granted once per copy, whatever fires it a second time.</summary>
+    internal void ApplyNextRound(int roundAdd)
+    {
+        bool completed;
+        lock (_lock)
+        {
+            completed = Rounds.ApplyNextRound(roundAdd);
+        }
+
+        Logger.Info($"[{World}] round {Rounds.CurrentRound}/{Rounds.TotalRounds} after +{roundAdd}{(completed ? ", completed" : string.Empty)}");
+        if (completed)
+            DungeonCompleted?.Invoke(this);
+    }
+
+    /// <summary>IndunActionRoundAlarm: one SCIndunRoundPlayStatusPacket (0x2DB) to every player in the copy.</summary>
+    internal void RoundAlarm(byte roundAlarmKindId, bool showUi)
+    {
+        bool playing, success, nextRoundBoss;
+        int round;
+        lock (_lock)
+        {
+            switch (roundAlarmKindId)
+            {
+                case IndunRoundRules.AlarmKindStart:
+                    Rounds.StartRound(DateTime.UtcNow);
+                    success = false;
+                    break;
+                case IndunRoundRules.AlarmKindEnd:
+                    success = Rounds.EndRound();
+                    break;
+                default:
+                    Logger.Debug($"[{World}] round alarm kind {roundAlarmKindId} is not in enum_indun_round_alarm_kinds");
+                    return;
+            }
+
+            playing = Rounds.Playing;
+            round = Rounds.CurrentRound;
+            nextRoundBoss = Rounds.NextRoundIsBoss;
+        }
+
+        BroadcastToPlayers(new SCIndunRoundPlayStatusPacket(playing, success, IndunRoundRules.ToWireRound(round), nextRoundBoss, showUi));
+    }
+
+    /// <summary>SCIndunInitialRoundInfoPacket (0x2D9) on instance load, so a relog sees the live counter.</summary>
+    public void SendInitialRoundInfo(Character character)
+    {
+        if (character == null || !Rounds.HasRounds)
+            return;
+
+        sbyte current, total;
+        bool playing;
+        lock (_lock)
+        {
+            current = IndunRoundRules.ToWireRound(Rounds.CurrentRound);
+            total = IndunRoundRules.ToWireRound(Rounds.TotalRounds);
+            playing = Rounds.Playing;
+        }
+
+        character.SendPacket(new SCIndunInitialRoundInfoPacket(current, total, playing));
+    }
+
+    /// <summary>IndunActionSendMailReward: the first claim per copy per instance_reward_kind_id wins.</summary>
+    internal bool TryClaimMailReward(uint instanceRewardKindId)
+    {
+        lock (_lock)
+            return Rounds.TryMarkMailReward(instanceRewardKindId);
+    }
+
+    /// <summary>H-window pick (CSSelectInstanceDifficultPacket) applied to this copy; raises IndunEventDifficultChanged.</summary>
+    public void SetDifficult(byte difficult)
+    {
+        if (Difficult == difficult)
+            return;
+
+        Difficult = difficult;
+        var world = World;
+        if (world == null)
+            return;
+
+        world.Events.OnIndunDifficultChanged(world, new OnIndunDifficultChangedArgs { Difficult = difficult });
+    }
+
+    private void BroadcastToPlayers(GamePacket packet)
+    {
+        var world = World;
+        if (world == null)
+            return;
+
+        foreach (var character in world.GetAllCharacters())
+            character?.SendPacket(packet);
+    }
+
     public uint GetDungeonWorldId()
     {
         return World.Id;
@@ -782,7 +890,8 @@ public class Dungeon : IPreparedIndunInstance
             {
                 if (ev is not IndunEventNoAliveChInRooms room) { continue; }
 
-                if (IsRoomCleared(room.RoomId)) { return; }
+                // A cleared room must not stop the scan of the other rooms.
+                if (IsRoomCleared(room.RoomId)) { continue; }
 
                 var indunRoom = IndunGameData.Instance.GetRoom(room.RoomId);
                 var doodad = room.GetRoomDoodad(World.Id);
