@@ -1028,6 +1028,15 @@ public class HousingManager(
         var character = connection.ActiveChar;
         if (character == null)
             return;
+        SendTownhallState(connection, zoneGroup);
+        character.SendPacket(new SCHouseTradeListPacket(GetTradeListings(zoneGroup)));
+    }
+
+    /// <summary>
+    /// Every public, priced listing standing in the zone group - the Sales tab rows.
+    /// </summary>
+    internal List<House> GetTradeListings(short zoneGroup)
+    {
         var rows = new List<House>();
         foreach (var house in _houses.Values)
         {
@@ -1036,8 +1045,7 @@ public class HousingManager(
             if (zoneManager.GetZoneByKey(house.Transform.ZoneId)?.GroupId == zoneGroup)
                 rows.Add(house);
         }
-        SendTownhallState(connection, zoneGroup);
-        character.SendPacket(new SCHouseTradeListPacket(rows));
+        return rows;
     }
 
 
@@ -2551,6 +2559,13 @@ public class HousingManager(
         if (house == null)
             return false;
 
+        if (house.Template == null)
+        {
+            // No housing row backs this house; fail loudly instead of dereferencing it below.
+            seller?.SendErrorMessage(ErrorMessageType.InvalidHouseInfo);
+            return false;
+        }
+
         if (seller != null && house.OwnerId != seller.Id)
         {
             seller.SendErrorMessage(ErrorMessageType.HouseCannotSellAsNotOwner);
@@ -2592,6 +2607,14 @@ public class HousingManager(
         if (buyerId != 0 && buyerId == house.OwnerId)
         {
             seller?.SendErrorMessage(ErrorMessageType.HouseCannotSellToOneself);
+            return false;
+        }
+
+        if (house.OwnerId == 0 || nameManager.GetCharacterName(house.OwnerId) == null)
+        {
+            // The proceeds settle to the current owner by mail; a listing whose recipient can
+            // never resolve could not complete, so it is refused before any charge or marker.
+            seller?.SendErrorMessage(ErrorMessageType.InvalidHouseInfo);
             return false;
         }
 
@@ -2794,58 +2817,107 @@ public class HousingManager(
     /// <returns></returns>
     public bool CancelForSale(House house, bool returnCertificates = true)
     {
+        if (house == null)
+            return false;
+
         if (house.SellPrice <= 0)
         {
             // Fix: idempotent recovery, client sale cache can stick, always emit clear-signal
             house.BroadcastPacket(new SCHouseResetForSalePacket(house.TlId, house.Name), false);
             SetForSaleMarkers(house, false);
-        SaveHouseNow(house);
             return true;
         }
         var certAmount = CalculateSaleCertifcates(house, house.SellPrice);
         var owner = worldManager.GetCharacterById(house.OwnerId);
 
-        house.SellPrice = 0;
-        house.SellToPlayerId = 0;
-        house.SellPublic = true;
-        // Can only return certificates if owner is online and is the one resetting the sale
-        if (certAmount > 0 && returnCertificates && owner != null)
+        var previousPrice = house.SellPrice;
+        var previousSellTo = house.SellToPlayerId;
+        var previousPublic = house.SellPublic;
+
+        void RestoreListing()
         {
-            if (owner.Inventory.MailAttachments.AcquireDefaultItemEx(ItemTaskType.Invalid,
-                Item.BuildingManagementTitle, certAmount, -1, out var addedItems, out _, 0))
+            house.SellPrice = previousPrice;
+            house.SellToPlayerId = previousSellTo;
+            house.SellPublic = previousPublic;
+        }
+
+        BaseMail certMail = null;
+        var rolledBack = false;
+        var flushed = false;
+
+        // One World snapshot carries the cleared listing and the certificate refund together,
+        // so a crash can never keep the listing while the certificates are already gone (or
+        // the other way round).
+        using (WorldSnapshotCommit.Begin(bypassCharges: false))
+        {
+            house.SellPrice = 0;
+            house.SellToPlayerId = 0;
+            house.SellPublic = true;
+
+            // Can only return certificates if owner is online and is the one resetting the sale
+            if (certAmount > 0 && returnCertificates && owner != null)
             {
-                // Mail container is set up to never update existing items, so we can discard that result
-                var mail = new BaseMail
+                if (owner.Inventory.MailAttachments.AcquireDefaultItemEx(ItemTaskType.Invalid,
+                    Item.BuildingManagementTitle, certAmount, -1, out var addedItems, out _, 0))
                 {
-                    MailType = MailType.HousingSale,
-                    Header =
+                    // Mail container is set up to never update existing items, so we can discard that result
+                    certMail = new BaseMail
                     {
-                        ReceiverId = house.OwnerId,
-                        SenderName = ".houseSellCancel"
-                    },
-                    ReceiverName = nameManager.GetCharacterName(house.OwnerId),
-                    Title = "title(" + zoneManager.GetZoneByKey(house.Transform.ZoneId)?.GroupId.ToString() + ",'" + house.Name + "')",
-                    Body =
+                        MailType = MailType.HousingSale,
+                        Header =
+                        {
+                            ReceiverId = house.OwnerId,
+                            SenderName = ".houseSellCancel"
+                        },
+                        ReceiverName = nameManager.GetCharacterName(house.OwnerId),
+                        Title = "title(" + zoneManager.GetZoneByKey(house.Transform.ZoneId)?.GroupId.ToString() + ",'" + house.Name + "')",
+                        Body =
+                        {
+                            Text = "body('" + house.Name + "', " + Item.BuildingManagementTitle.ToString() + ", " + certAmount.ToString() + ")"
+                        }
+                    };
+                    certMail.Body.Attachments.AddRange(addedItems);
+                    certMail.Body.SendDate = DateTime.UtcNow;
+                    certMail.Body.RecvDate = DateTime.UtcNow.AddMilliseconds(1);
+                    if (!certMail.Send())
                     {
-                        Text = "body('" + house.Name + "', " + Item.BuildingManagementTitle.ToString() + ", " + certAmount.ToString() + ")"
+                        RestoreListing();
+                        return false;
                     }
-                };
-                mail.Body.Attachments.AddRange(addedItems);
-                mail.Body.SendDate = DateTime.UtcNow;
-                mail.Body.RecvDate = DateTime.UtcNow.AddMilliseconds(1);
-                mail.Send();
+                }
+                else
+                {
+                    // Failed to create Appraisal certificate ?
+                    Logger.Warn("CancelForSale - Failed to create Appraisal Certificates for mail");
+                    RestoreListing();
+                    return false;
+                }
             }
-            else
+
+            WorldSnapshotCommit.RequestFlush(bypassCharges: false);
+            flushed = WorldSnapshotCommit.FlushNow(bypassCharges: false, onFailed: () =>
             {
-                // Failed to create Appraisal certificate ?
-                Logger.Warn("CancelForSale - Failed to create Appraisal Certificates for mail");
-                return false;
+                rolledBack = true;
+                RestoreListing();
+                if (certMail != null)
+                    mailManager.DiscardUnpersisted(certMail);
+            });
+        }
+
+        if (!flushed || !WorldSnapshotCommit.AcceptedLast(bypassCharges: false, failNextPersist: false))
+        {
+            if (!rolledBack)
+            {
+                RestoreListing();
+                if (certMail != null)
+                    mailManager.DiscardUnpersisted(certMail);
             }
+            Logger.Warn("CancelForSale: snapshot rejected for house {0}, listing kept", house.Id);
+            return false;
         }
 
         house.BroadcastPacket(new SCHouseResetForSalePacket(house.TlId, house.Name), false);
         SetForSaleMarkers(house, false);
-        SaveHouseNow(house);
 
         return true;
     }
@@ -2935,6 +3007,24 @@ public class HousingManager(
             return false;
         }
 
+        var previousOwner = house.OwnerId;
+        var previousOwnerName = nameManager.GetCharacterName(previousOwner);
+        if (previousOwner == 0 || previousOwnerName == null)
+        {
+            // The proceeds settle to the current owner by mail; without a resolvable recipient
+            // the purchase could not complete, so it is refused before any charge is taken.
+            character.SendErrorMessage(ErrorMessageType.InternalError);
+            return false;
+        }
+
+        var salePrice = house.SellPrice;
+        var previousAccountId = house.AccountId;
+        var previousCoOwnerId = house.CoOwnerId;
+        var previousPermission = house.Permission;
+        var previousFactionId = house.Faction?.Id ?? 0;
+        var previousSellTo = house.SellToPlayerId;
+        var previousPublic = house.SellPublic;
+
         var purchasePreparation = PrepareOwnershipTransfer(
             () => character.SubtractMoney(SlotType.Inventory, (int)house.SellPrice, ItemTaskType.BuyHouse),
             () => butlerManager.UnbindHouse(house.Id),
@@ -2956,9 +3046,6 @@ public class HousingManager(
             return false;
         }
 
-        var previousOwner = house.OwnerId;
-        var previousOwnerName = nameManager.GetCharacterName(previousOwner);
-
         // Mail confirmation mail to new owner
         var newOwnerMail = new BaseMail
         {
@@ -2977,7 +3064,7 @@ public class HousingManager(
                 RecvDate = DateTime.UtcNow.AddMilliseconds(1)
             }
         };
-        newOwnerMail.Send();
+        var ownerLetterSent = newOwnerMail.Send();
 
         // Send sales money to previous owner
         var profitMail = new BaseMail
@@ -2998,7 +3085,19 @@ public class HousingManager(
                 RecvDate = DateTime.UtcNow.AddMilliseconds(1)
             }
         };
-        profitMail.Send();
+        var proceedsLetterSent = profitMail.Send();
+        if (!ownerLetterSent || !proceedsLetterSent)
+        {
+            // Neither letter may survive alone: discard whatever was staged and give the buyer
+            // back the charged price, leaving the listing exactly as it was.
+            mailManager.DiscardUnpersisted(newOwnerMail);
+            mailManager.DiscardUnpersisted(profitMail);
+            if (!character.AddMoney(SlotType.Inventory, house.SellPrice, ItemTaskType.BuyHouse))
+                Logger.Error("BuyHouse: failed to refund {0} copper to character {1} after the sale letters were refused",
+                    house.SellPrice, character.Id);
+            character.SendErrorMessage(ErrorMessageType.InternalError);
+            return false;
+        }
 
         ReturnHouseItemsToOwner(house, false, false, character);
 
@@ -3013,7 +3112,48 @@ public class HousingManager(
         UpdateHouseFaction(house, character.Faction.Id);
         UpdateTaxInfo(house); // send tax due mails etc. if needed ...
 
-        // TODO: broadcast changes
+        void RestoreListing()
+        {
+            house.OwnerId = previousOwner;
+            house.AccountId = previousAccountId;
+            house.CoOwnerId = previousCoOwnerId;
+            house.Permission = previousPermission;
+            house.SellPrice = salePrice;
+            house.SellToPlayerId = previousSellTo;
+            house.SellPublic = previousPublic;
+            UpdateHouseFaction(house, previousFactionId);
+            mailManager.DiscardUnpersisted(newOwnerMail);
+            mailManager.DiscardUnpersisted(profitMail);
+        }
+
+        // One World snapshot commits the ownership change, the wallet move and both letters
+        // together; a rejected snapshot rolls the whole purchase back so the transfer is
+        // exactly-once across a restart.
+        var rolledBack = false;
+        WorldSnapshotCommit.RequestFlush(bypassCharges: false);
+        var flushed = WorldSnapshotCommit.FlushNow(bypassCharges: false, onFailed: () =>
+        {
+            rolledBack = true;
+            RestoreListing();
+            if (!character.AddMoney(SlotType.Inventory, house.SellPrice, ItemTaskType.BuyHouse))
+                Logger.Error("BuyHouse: failed to refund {0} copper to character {1} after the sale snapshot was rejected",
+                    house.SellPrice, character.Id);
+        });
+
+        if (!flushed || !WorldSnapshotCommit.AcceptedLast(bypassCharges: false, failNextPersist: false))
+        {
+            if (!rolledBack)
+            {
+                RestoreListing();
+                if (!character.AddMoney(SlotType.Inventory, house.SellPrice, ItemTaskType.BuyHouse))
+                    Logger.Error("BuyHouse: failed to refund {0} copper to character {1} after the sale was rejected",
+                        house.SellPrice, character.Id);
+            }
+            Logger.Warn("BuyHouse: snapshot rejected for house {0}, purchase rolled back", house.Id);
+            character.SendErrorMessage(ErrorMessageType.InternalError);
+            return false;
+        }
+
         house.BroadcastPacket(
             new SCHouseSoldPacket(
                 house.TlId,
@@ -3022,9 +3162,9 @@ public class HousingManager(
                 character.AccountId,
                 character.Name,
                 house.Name), false);
-
+        // Zone peers keep rendering the old owner until the house state is pushed again.
+        house.BroadcastPacket(new SCHouseStatePacket(house), false);
         SetForSaleMarkers(house, false);
-        SaveHouseNow(house);
 
         character.SendPacket(new SCHouseDataPacket([house]));
         var oldOwner = worldManager.GetCharacterById(previousOwner);
