@@ -120,7 +120,10 @@ public sealed class RaidRecruitment
     public required Character Owner { get; init; }
     public uint OwnerId => Owner.Id;
 
-    /// <summary>The team the post recruits for; 0 while the poster is solo, set once the first applicant joins.</summary>
+    /// <summary>
+    /// The team the post recruits for; 0 while the poster is solo, set when the board seats their first
+    /// applicant or when they join a team the post can recruit for.
+    /// </summary>
     public uint TeamId { get; set; }
 
     public int TypeId { get; init; }

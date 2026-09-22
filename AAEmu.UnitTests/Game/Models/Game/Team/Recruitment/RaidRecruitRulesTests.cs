@@ -291,6 +291,28 @@ public class RaidRecruitRulesTests
     }
 
     [Test]
+    public async Task CanRecruitFor_NeedsTheSameInviteRightsManualAcceptUses()
+    {
+        var solo = TeamFacts.None;
+        var party = new TeamFacts(1, OwnerId: 7, OfficerId: 0, IsParty: true, ActorIsMember: true);
+        var raid = new TeamFacts(2, OwnerId: 7, OfficerId: 8, IsParty: false, ActorIsMember: true);
+        await Assert.That(RaidRecruitRules.CanRecruitFor(7, solo)).IsFalse();
+        await Assert.That(RaidRecruitRules.CanRecruitFor(7, party)).IsTrue();
+        // A plain member has no invite rights, which is where a bound post would answer TEAM_FULL.
+        await Assert.That(RaidRecruitRules.CanRecruitFor(9, party with { ActorIsMember = true })).IsFalse();
+        await Assert.That(RaidRecruitRules.CanRecruitFor(8, raid)).IsTrue();
+        await Assert.That(RaidRecruitRules.CanRecruitFor(7, raid with { ActorIsMember = false })).IsFalse();
+    }
+
+    [Test]
+    public async Task HasSeatFor_StopsAtTheHeadcountAndTheMemberLimit()
+    {
+        await Assert.That(RaidRecruitRules.HasSeatFor(memberCount: 4, headcount: 5, memberLimit: 50)).IsTrue();
+        await Assert.That(RaidRecruitRules.HasSeatFor(memberCount: 5, headcount: 5, memberLimit: 50)).IsFalse();
+        await Assert.That(RaidRecruitRules.HasSeatFor(memberCount: 50, headcount: 50, memberLimit: 50)).IsFalse();
+    }
+
+    [Test]
     public async Task ToMemberRole_MapsTheFiveClientRolesAndNothingElse()
     {
         await Assert.That(RaidRecruitRules.ToMemberRole(0)).IsEqualTo(MemberRole.Undecided);

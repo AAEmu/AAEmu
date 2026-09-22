@@ -247,9 +247,12 @@ public class RaidRecruitmentManager(ITickManager tickManager) : Singleton<RaidRe
             owners.Add(entry.OwnerId);
             applicant.SendPacket(new SCRaidApplicantAddPacket(entry.ToRecord(MemberCount(entry))));
 
-            // Auto-Invite (ui_texts 8827) approves on the spot; the applicant still confirms through the
-            // accept popup, which is the only path that seats anyone.
-            if (entry.AutoJoin)
+            // Auto-Invite (ui_texts 8827) approves on the spot, but only while a seat is free; the rest wait
+            // as Pending for the recruiter. Approving past the headcount turns the accept popup into a
+            // TEAM_FULL for the applicants who answer first. The applicant still confirms through the popup,
+            // which is the only path that seats anyone.
+            if (entry.AutoJoin &&
+                RaidRecruitRules.OpenSeats(MemberCount(entry), entry.AcceptedPendingCount, entry.Headcount, Team.RaidMemberLimit) > 0)
                 Approve(entry, application);
         }
     }
@@ -458,6 +461,38 @@ public class RaidRecruitmentManager(ITickManager tickManager) : Singleton<RaidRe
             var entry = FindByTeam(team.Id);
             if (entry != null)
                 Remove(entry, notify: true);
+        }
+    }
+
+    /// <summary>
+    /// A solo poster has just joined a team, through an ordinary invite or by seating their own applicant.
+    /// The post follows their new team when it can recruit for it; otherwise the poster cannot seat anyone
+    /// (TryAddRecruitedMember would answer TEAM_FULL) or the headcount is already met, so the post is
+    /// deleted and stops advertising.
+    /// </summary>
+    public void OnMemberJoined(Team team, Character character)
+    {
+        if (team == null || character == null)
+            return;
+        lock (_lock)
+        {
+            var entry = _byOwner.GetValueOrDefault(character.Id);
+            if (entry == null || entry.TeamId == team.Id || !team.IsMember(character.Id))
+                return;
+
+            // The board keeps one post per team; a team that is already advertising is not given a second.
+            var teamPost = FindByTeam(team.Id);
+            var facts = FactsFor(character, out _);
+            if (teamPost == null && RaidRecruitRules.CanRecruitFor(character.Id, facts) &&
+                RaidRecruitRules.HasSeatFor(team.MembersCount(), entry.Headcount, team.MemberLimit))
+            {
+                entry.TeamId = team.Id;
+                SendToRecruiters(entry, new SCRaidRecruitAddPacket(entry.ToRecord(MemberCount(entry))));
+                return;
+            }
+
+            Logger.Debug("Raid recruit post of {0} deleted: its team {1} cannot take the post", character.Name, team.Id);
+            Remove(entry, notify: true);
         }
     }
 

@@ -214,6 +214,17 @@ public static class RaidRecruitRules
     /// <summary>ui_texts 8829: the applicant list must be empty to switch to auto join.</summary>
     public static bool CanEnableAutoJoin(int applicantCount) => applicantCount == 0;
 
+    /// <summary>
+    /// A post can only recruit for a team its poster holds invite rights on, the way manual accept seats
+    /// through CanInvite; anything else is the TEAM_FULL a plain member's post would hit.
+    /// </summary>
+    public static bool CanRecruitFor(uint posterId, in TeamFacts team) =>
+        team.TeamId != 0 && team.ActorIsMember && CanInvite(posterId, team);
+
+    /// <summary>Whether the team has room under the post's headcount for one more applicant.</summary>
+    public static bool HasSeatFor(int memberCount, uint headcount, int memberLimit) =>
+        memberCount < Math.Min((long)headcount, memberLimit);
+
     /// <summary>The client's apply gate (raid_recruit_mgr_view.lua line 390) plus the checks its bindings make.</summary>
     public static RaidRecruitError CanApply(in RaidApplyCheck check)
     {

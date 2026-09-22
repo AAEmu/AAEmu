@@ -297,6 +297,7 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
                 target.Events?.OnTeamJoin(
                     activeInvitation,
                     new OnTeamJoinArgs { Team = activeTeam, Player = target });
+                RaidRecruitmentManager.Instance.OnMemberJoined(activeTeam, target);
             }
         }
 
@@ -466,6 +467,8 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         // Trigger events
         activeInvitation.Owner.Events?.OnTeamJoin(activeInvitation, new OnTeamJoinArgs { Team = newTeam, Player = activeInvitation.Owner });
         activeInvitation.Target.Events?.OnTeamJoin(activeInvitation, new OnTeamJoinArgs { Team = newTeam, Player = activeInvitation.Target });
+        RaidRecruitmentManager.Instance.OnMemberJoined(newTeam, activeInvitation.Owner);
+        RaidRecruitmentManager.Instance.OnMemberJoined(newTeam, activeInvitation.Target);
     }
 
     public void CreateSoloTeam(Character character, bool asParty)
@@ -851,6 +854,7 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
                 chatManager.GetRaidChat(activeTeam).JoinChannel(applicant);
             chatManager.GetPartyChat(activeTeam, applicant).JoinChannel(applicant);
             applicant.Events?.OnTeamJoin(owner, new OnTeamJoinArgs { Team = activeTeam, Player = applicant });
+            RaidRecruitmentManager.Instance.OnMemberJoined(activeTeam, applicant);
         }
 
         if (role != MemberRole.Undecided && activeTeam.ChangeRole(applicant.Id, role))
