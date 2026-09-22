@@ -114,6 +114,10 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
 
             Connection.ActiveChar.Quests.SendInitialState();
 
+            // The chronicle (saga book) records are pushed, never requested — the story tab opens
+            // from whatever this list says, so it goes out in the select burst with the quest lists.
+            Connection.ActiveChar.SagaProgress?.SendInitialState();
+
             Connection.ActiveChar.Actability.Send();
             Connection.ActiveChar.Mails.SendUnreadMailCount();
             Connection.ActiveChar.Appellations.Send();

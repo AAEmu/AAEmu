@@ -220,6 +220,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSDropQuestContextPacket, 1, typeof(CSDropQuestContextPacket));
         RegisterPacket(CSOffsets.CSResetQuestContextPacket, 1, typeof(CSResetQuestContextPacket));
         RegisterPacket(CSOffsets.CSAcceptCheatQuestContextPacket, 1, typeof(CSAcceptCheatQuestContextPacket));
+        RegisterPacket(CSOffsets.CSChronicleInfoBuyPacket, 1, typeof(CSChronicleInfoBuyPacket));
         RegisterPacket(CSOffsets.CSQuestTalkMadePacket, 1, typeof(CSQuestTalkMadePacket));
         RegisterPacket(CSOffsets.CSQuestStartWithPacket, 1, typeof(CSQuestStartWithPacket));
         RegisterPacket(CSOffsets.CSTryQuestCompleteAsLetItDonePacket, 1, typeof(CSTryQuestCompleteAsLetItDonePacket));
