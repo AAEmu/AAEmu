@@ -136,6 +136,28 @@ public class IndunManagerTests
         await Assert.That(accepted).IsFalse();
     }
 
+    [Test]
+    public async Task PreparedMatch_ChangedAdmissionStopsBeforeQueuePlayer()
+    {
+        var manager = new IndunMatchmakingManager();
+        var character = new Character(new UnitCustomModelParams()) { Id = 4, ObjId = 4, Name = "BuffExpired" };
+        var dungeonZone = new IndunZone { ZoneGroupId = 930, InstanceCatalogId = 931 };
+        var queueCalls = 0;
+        var order = new List<string>();
+        manager.PreparedCanQueue = (_, _) => true;
+        manager.FinalAdmissionCheck = (_, _) => { order.Add("admission"); return false; };
+        manager.PreparedQueuePlayer = (_, _) => { order.Add("queue"); queueCalls++; return true; };
+        var method = typeof(IndunMatchmakingManager).GetMethod("TryEnterPreparedPlayer",
+            BindingFlags.Instance | BindingFlags.NonPublic)!;
+
+        var admitted = (bool)method.Invoke(manager, [null, dungeonZone, character])!;
+
+        await Assert.That(admitted).IsFalse();
+        await Assert.That(queueCalls).IsEqualTo(0);
+        await Assert.That(order.Count).IsEqualTo(1);
+        await Assert.That(order[0]).IsEqualTo("admission");
+    }
+
     private static IndunManager CreateAdmissionManager(
         Zone zone,
         IndunZone indun)

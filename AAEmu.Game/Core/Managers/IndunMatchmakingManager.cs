@@ -50,6 +50,15 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
     public Func<uint, IReadOnlyList<uint>, IPreparedIndunInstance> PrepareInstance { get; set; } =
         DefaultPrepareInstance;
 
+    public Func<Dungeon, Character, bool> PreparedCanQueue { get; set; } = (dungeon, character) =>
+        dungeon.CanQueuePlayer(character);
+
+    public Func<IndunZone, Character, bool> FinalAdmissionCheck { get; set; } = (zone, character) =>
+        IndunManager.Instance.VerifyDungeonAdmission(zone, character);
+
+    public Func<Dungeon, Character, bool> PreparedQueuePlayer { get; set; } = (dungeon, character) =>
+        dungeon.QueuePlayer(character);
+
     public void Initialize()
     {
         TickManager.Instance.OnTick.Subscribe(OnTick, TimeSpan.FromSeconds(1));
@@ -651,9 +660,11 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
     private void EnterDungeon(IndunMatchSession session)
     {
         var zone = ZoneManager.Instance.GetZoneByKey(session.ZoneKey);
-        if (zone == null)
+        var dungeonZone = IndunGameData.Instance.GetDungeonZoneByCatalogId(session.CatalogId);
+        if (zone == null || dungeonZone == null)
         {
-            Logger.Warn("IndunMatchmaking missing zone key={0} catalog={1}", session.ZoneKey, session.CatalogId);
+            Logger.Warn("IndunMatchmaking missing zone or dungeon data key={0} catalog={1}",
+                session.ZoneKey, session.CatalogId);
             CleanupSession(session);
             return;
         }
@@ -688,17 +699,18 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
         // only publish playing-state after that call succeeds — level, gear, party, capacity, and
         // restore-cooldown can still refuse on the fallback path after the daily check.
         var rejected = new List<Character>();
-        var candidates = preparedDungeon != null
-            ? Partition(characters, preparedDungeon.CanQueuePlayer, rejected)
-            : Partition(characters, ch => CanAdmitFreshVisit(session, ch), rejected);
-        foreach (var ch in rejected)
-            ch.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
-
         var entered = new List<Character>();
-        foreach (var ch in candidates)
+        foreach (var ch in characters)
         {
+            if (preparedDungeon == null && !CanAdmitFreshVisit(session, ch))
+            {
+                ch.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
+                rejected.Add(ch);
+                continue;
+            }
+
             var admitted = preparedDungeon != null
-                ? preparedDungeon.QueuePlayer(ch)
+                ? TryEnterPreparedPlayer(preparedDungeon, dungeonZone, ch)
                 : IndunManager.Instance.RequestDungeonInstance(ch, zone.Id, 0);
             if (!IndunMatchEnterRules.ShouldPublishEnter(admitted))
             {
@@ -729,6 +741,19 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
             session.CatalogId, session.MatchingKey, entered.Count, zone.Id, worldInstanceId, rejected.Count);
 
         CleanupSession(session);
+    }
+
+    private bool TryEnterPreparedPlayer(Dungeon dungeon, IndunZone dungeonZone, Character character)
+    {
+        if (!PreparedCanQueue(dungeon, character))
+        {
+            character.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
+            return false;
+        }
+
+        // This is deliberately the last call before QueuePlayer, which charges the daily entry and
+        // changes copy membership. Queue and invitation time may span a schedule edge or buff change.
+        return FinalAdmissionCheck(dungeonZone, character) && PreparedQueuePlayer(dungeon, character);
     }
 
     private static List<Character> Partition(List<Character> characters, Func<Character, bool> canAdmit,

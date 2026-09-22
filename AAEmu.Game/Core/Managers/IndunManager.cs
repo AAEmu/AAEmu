@@ -537,7 +537,11 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
         return true;
     }
 
-    private bool VerifyDungeonAdmission(IndunZone dungeonZone, Character character)
+    /// <summary>
+    /// Revalidates the content-authored schedule and permission tags at the point a player enters.
+    /// Matchmaking calls this again after an invitation because either condition can change while queued.
+    /// </summary>
+    public bool VerifyDungeonAdmission(IndunZone dungeonZone, Character character)
     {
         var utcNow = AdmissionUtcNow();
         var entranceNow = dungeonZone.UseUtcEntranceTimes
