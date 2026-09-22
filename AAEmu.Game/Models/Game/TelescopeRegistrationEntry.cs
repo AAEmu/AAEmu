@@ -8,6 +8,8 @@ public class TelescopeRegistrationEntry
     private float _showPublicTransportRange;
     private float _showFishSchoolRange;
     private float _showShipTelescopeRange;
+    private float _showBossTelescopeRange;
+    private readonly Dictionary<uint, float> _bossTelescopeRanges = [];
     public Character Player { get; set; }
 
     public float ShowPublicTransportRange
@@ -47,5 +49,23 @@ public class TelescopeRegistrationEntry
         }
     }
 
-    public bool IsActive => ShowPublicTransportRange > 0 || ShowFishSchoolRange > 0 || ShowShipTelescopeRange > 0;
+    public float ShowBossTelescopeRange => _showBossTelescopeRange;
+
+    public void SetBossTelescopeRange(uint sourceId, float range)
+    {
+        if (range > 0)
+            _bossTelescopeRanges[sourceId] = range;
+        else
+            _bossTelescopeRanges.Remove(sourceId);
+
+        var effectiveRange = _bossTelescopeRanges.Count == 0 ? 0f : _bossTelescopeRanges.Values.Max();
+        if (Math.Abs(_showBossTelescopeRange - effectiveRange) < 1f)
+            return;
+        _showBossTelescopeRange = effectiveRange;
+        Player?.SendPacket(new SCBossTelescopeToggledPacket(
+            _showBossTelescopeRange > 0, _showBossTelescopeRange));
+    }
+
+    public bool IsActive => ShowPublicTransportRange > 0 || ShowFishSchoolRange > 0 ||
+                            ShowShipTelescopeRange > 0 || ShowBossTelescopeRange > 0;
 }

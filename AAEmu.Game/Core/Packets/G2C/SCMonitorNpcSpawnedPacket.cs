@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
 /// value's name alongside the value:
 /// </remarks>
-public class SCMonitorNpcSpawnedPacket(int @type, bool spawned) : GamePacket(SCOffsets.SCMonitorNpcSpawnedPacket, 1)
+public class SCMonitorNpcSpawnedPacket(uint @type, bool spawned) : GamePacket(SCOffsets.SCMonitorNpcSpawnedPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
