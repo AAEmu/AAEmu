@@ -8,7 +8,8 @@ namespace AAEmu.Game.Models.Game.Units;
 /// The item procs a unit carries and the events that roll them. A proc reaches a unit from one of three places:
 /// <c>equip_item_set_bonuses.proc_id</c> (76 rows, 57 procs) through <see cref="AddProc"/>, and
 /// <c>item_proc_bindings</c> (186 rows, 102 procs) or <c>holdables.item_proc_id</c> (holdables 24 and 29, proc 69)
-/// through <see cref="SyncItemProcs"/>. Every one of the 202 <c>item_procs</c> rows is reachable through one of them.
+/// through <see cref="SyncItemProcs"/>. The three cover 157 of the 202 <c>item_procs</c> rows; the other 45 are
+/// reachable through none of them.
 /// </summary>
 public class UnitProcs(Unit owner)
 {

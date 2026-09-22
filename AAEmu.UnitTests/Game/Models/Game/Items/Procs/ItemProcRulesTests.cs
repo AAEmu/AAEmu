@@ -294,7 +294,7 @@ public class ItemProcRulesTests
     [Test]
     public async Task TargetSide_UnitTargetsAreTheOtherSide()
     {
-        // The three target types the 30 non-self proc skills use, and the unit types alongside them.
+        // The target types the 40 non-self proc skills use, and the unit types alongside them.
         await Assert.That(ItemProcRules.TargetSide(SkillTargetType.Friendly)).IsEqualTo(ItemProcTargetSide.Other);
         await Assert.That(ItemProcRules.TargetSide(SkillTargetType.Hostile)).IsEqualTo(ItemProcTargetSide.Other);
         await Assert.That(ItemProcRules.TargetSide(SkillTargetType.AnyUnit)).IsEqualTo(ItemProcTargetSide.Other);
@@ -310,6 +310,28 @@ public class ItemProcRulesTests
         await Assert.That(ItemProcRules.TargetSide(SkillTargetType.Item)).IsEqualTo(ItemProcTargetSide.Unsupported);
         await Assert.That(ItemProcRules.TargetSide(SkillTargetType.Doodad)).IsEqualTo(ItemProcTargetSide.Unsupported);
         await Assert.That(ItemProcRules.TargetSide(SkillTargetType.Line)).IsEqualTo(ItemProcTargetSide.Unsupported);
+    }
+
+    [Test]
+    public async Task RequirementTargetIsOwner_TheTakeDamageKindsOnly()
+    {
+        // Procs 87, 114 and 153 are take_damage_any with a self-target skill: their kind 26 band is the wearer's.
+        foreach (var kind in Enum.GetValues<ProcChanceKind>())
+        {
+            var takeDamage = (int)kind is >= 9 and <= 16;
+
+            await Assert.That(ItemProcRules.RequirementTargetIsOwner(kind)).IsEqualTo(takeDamage);
+        }
+    }
+
+    [Test]
+    public async Task RequirementTargetIsOwner_HitAndHealReadTheOtherSide()
+    {
+        // Procs 173 and 198 are hit_heal rows whose band is the health of the unit the wearer healed.
+        await Assert.That(ItemProcRules.RequirementTargetIsOwner(ProcChanceKind.HitHeal)).IsFalse();
+        await Assert.That(ItemProcRules.RequirementTargetIsOwner(ProcChanceKind.HitHealCrit)).IsFalse();
+        await Assert.That(ItemProcRules.RequirementTargetIsOwner(ProcChanceKind.HitAny)).IsFalse();
+        await Assert.That(ItemProcRules.RequirementTargetIsOwner(ProcChanceKind.FireSkill)).IsFalse();
     }
 
     [Test]

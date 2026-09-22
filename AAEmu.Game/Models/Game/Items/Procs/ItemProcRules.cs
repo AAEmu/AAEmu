@@ -91,6 +91,18 @@ public static class ItemProcRules
         hitType is SkillHitType.MeleeCritical or SkillHitType.SpellCritical or SkillHitType.RangedCritical;
 
     /// <summary>
+    /// Whether the unit_reqs check reads the wearer instead of the other side of the event. The take-damage
+    /// kinds (9-16) are raised on the unit that was hit, so <c>other</c> is the attacker there and the bands
+    /// that matter (procs 87, 114 and 153, all self-target take_damage_any) are the wearer's own. The hit and
+    /// heal kinds read the other side: procs 173 and 198 are hit_heal rows whose band reads the healed unit.
+    /// </summary>
+    public static bool RequirementTargetIsOwner(ProcChanceKind chanceKind) => chanceKind switch
+    {
+        >= ProcChanceKind.TakeDamageAny and <= ProcChanceKind.TakeDamageSiege => true,
+        _ => false
+    };
+
+    /// <summary>
     /// Whether the skill behind the event is the one the row asks for. <c>trigger_skill_id</c> (10 rows, all
     /// kind 19: proc 109 answers 11943 불협 화음 and nothing else) and <c>trigger_tag_id</c> (6 rows, tag 378
     /// "player skills", 782 skills: procs 174-179, the 노르예트 arena jewellery) are filters; a row that sets
@@ -126,11 +138,12 @@ public static class ItemProcRules
 
     /// <summary>
     /// Which unit the proc skill is cast at, from the proc skill's own <c>skills.target_type_id</c>. Self (0,
-    /// 172 rows) is the wearer. Friendly (1), hostile (4) and any_unit (5), the other 30 rows, are the unit on
-    /// the other side of the event: proc 109's text is "즉시 적 대상에게 피해를 입히지만" (deals damage to the enemy
-    /// target at once) and proc 111's is "대상에게 ... 생명력을 추가로 치유합니다" (heals the target for more), both on
-    /// the target of the fired skill. The relation check is the skill's own: a hostile proc skill handed a
-    /// friendly unit fails its target resolution and does not fire. Target types no row ships are unsupported.
+    /// 162 rows) is the wearer. Friendly (1, 2 rows), hostile (4, 36) and any_unit (5, 2), the other 40 rows,
+    /// are the unit on the other side of the event: proc 109's text is "즉시 적 대상에게 피해를 입히지만" (deals
+    /// damage to the enemy target at once) and proc 111's is "대상에게 ... 생명력을 추가로 치유합니다" (heals the
+    /// target for more), both on the target of the fired skill. The relation check is the skill's own: a
+    /// hostile proc skill handed a friendly unit fails its target resolution and does not fire. Target types
+    /// no row ships are unsupported.
     /// </summary>
     public static ItemProcTargetSide TargetSide(SkillTargetType procSkillTargetType) => procSkillTargetType switch
     {

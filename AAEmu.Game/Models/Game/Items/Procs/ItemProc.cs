@@ -78,9 +78,13 @@ public class ItemProc(uint templateId)
             return false;
 
         // The 19 unit_reqs rows with owner_type "ItemProc": a buff or buff tag on the wearer (kinds 15, 30 and 98)
-        // and a health band (kind 26), the latter read off the other side of the event.
+        // and a health band (kind 26). The band reads the requirement target's Hpp, and on a take-damage proc
+        // that is the wearer - procs 87, 114 and 153 (a 20 %, 15 % and 50 % band) all use a take_damage_any
+        // trigger with a self-target skill, so their names mean the wearer's health. The hit and heal kinds keep
+        // the other side: procs 173 and 198 are hit_heal rows whose band reads the health of the healed unit.
+        var requirementTarget = ItemProcRules.RequirementTargetIsOwner(Template.ChanceKind) ? owner : other ?? owner;
         if (!UnitRequirementsGameData.Instance.MeetOwnerRequirements(
-                UnitReqsOwnerType, TemplateId, Template.OrUnitReqs, owner, other ?? owner))
+                UnitReqsOwnerType, TemplateId, Template.OrUnitReqs, owner, requirementTarget))
             return false;
 
         var target = ItemProcRules.TargetSide(Template.SkillTemplate.TargetType) switch
@@ -98,7 +102,7 @@ public class ItemProc(uint templateId)
 
         // The cast used to go out as a Doodad-typed target carrying the wearer's own ObjId. Skill.GetInitialTarget
         // resolves that to the wearer, so a hostile proc skill failed CanAttack against its own caster and came
-        // back NoTarget: none of the 30 rows whose skill targets another unit ever fired.
+        // back NoTarget: none of the 40 rows whose skill targets another unit ever fired.
         var caster = SkillCaster.GetByType(SkillCasterType.Unit);
         caster.ObjId = owner.ObjId;
         var castTarget = SkillCastTarget.GetByType(SkillCastTargetType.Unit);
@@ -109,7 +113,11 @@ public class ItemProc(uint templateId)
         _inFlight = true;
         try
         {
-            result = skill.Use(owner, caster, castTarget, null, false, out _);
+            // bypassGcd: the triggering skill wrote the owner's SkillLastUsed a moment ago in this same call
+            // stack, so the 150 ms anti-spam gate would turn every proc on an instant trigger into
+            // CooldownTime, and a proc that did fire would swallow the player's next press. The proc's own
+            // cooldown_sec is the gate.
+            result = skill.Use(owner, caster, castTarget, null, true, out _);
         }
         finally
         {
