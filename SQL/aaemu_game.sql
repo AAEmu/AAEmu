@@ -1280,6 +1280,16 @@ CREATE TABLE IF NOT EXISTS `character_today_step_unlocks` (
   PRIMARY KEY (`owner`, `real_step`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+CREATE TABLE IF NOT EXISTS `conflict_zone_runtime_states` (
+  `zone_group_id` SMALLINT UNSIGNED NOT NULL,
+  `state` TINYINT UNSIGNED NOT NULL,
+  `kill_count` INT UNSIGNED NOT NULL DEFAULT 0,
+  `npc_kill_count` INT UNSIGNED NOT NULL DEFAULT 0,
+  `quest_completion_count` INT UNSIGNED NOT NULL DEFAULT 0,
+  `next_state_time` DATETIME(6) NULL,
+  PRIMARY KEY (`zone_group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Durable conflict-zone counters, state and transition deadline';
+
 CREATE TABLE IF NOT EXISTS `dominion_locked_zones` (
   `zone_id` smallint unsigned NOT NULL COMMENT 'zone_group_id the castle system is locked for',
   `locked_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
