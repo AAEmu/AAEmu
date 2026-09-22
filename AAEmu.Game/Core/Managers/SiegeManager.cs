@@ -327,6 +327,22 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
             : factionId;
     }
 
+    public IReadOnlySet<uint> GetOffenseRaidTeam(ushort zoneId)
+    {
+        var roster = new HashSet<uint>();
+
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = SiegeRaidTeamQueries.OffenseRosterSql;
+        command.Parameters.AddWithValue("@z", zoneId);
+        command.Prepare();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+            roster.Add(reader.GetUInt32(0));
+
+        return roster;
+    }
+
     /// <summary>The alliance a character fights for — the faction whose raid team their registrations join.</summary>
     public uint AllianceOfFaction(Character character) =>
         character?.Faction == null ? 0 : AllianceOf((uint)character.Faction.Id);

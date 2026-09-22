@@ -41,6 +41,16 @@ internal static class SiegeRaidTeamQueries
         """;
 
     /// <summary>
+    /// The offense side alone: who registered as an attacker, for the siege_offense_hq_user target relation.
+    /// </summary>
+    internal const string OffenseRosterSql = """
+        SELECT m.character_id
+        FROM siege_raid_team_members m
+        JOIN characters c ON c.id = m.character_id
+        WHERE m.zone_id = @z AND m.is_offense = 1 AND c.deleted = 0
+        """;
+
+    /// <summary>
     /// The registration popup's list: every registration of the zone group in the order it was made, with the
     /// name to show against it.
     /// </summary>

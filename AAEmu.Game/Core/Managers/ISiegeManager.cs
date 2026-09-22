@@ -41,6 +41,12 @@ public interface ISiegeManager : ILoadable
     /// </summary>
     List<SiegeRaidTeam> GetRaidTeams(ushort zoneId);
 
+    /// <summary>
+    /// The characters registered on the offense side of a zone group's raid team (siege_raid_team_members
+    /// with is_offense set, live characters only). Read by the siege_offense_hq_user target relation.
+    /// </summary>
+    IReadOnlySet<uint> GetOffenseRaidTeam(ushort zoneId);
+
     /// <summary>Adds to a zone group's running siege score counters and broadcasts the update. No confirmed automatic trigger yet - see SiegeManager's doc comment.</summary>
     void AddScore(ushort zoneId, uint outlawDelta, uint defenseDelta, uint offenseDelta);
 
