@@ -1,4 +1,5 @@
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 
 namespace AAEmu.UnitTests.Game.GameData;
@@ -106,6 +107,32 @@ public class BuffModifierOwnerTests : SqliteTestBase
         await Assert.That(grade.Count).IsEqualTo(1);
         await Assert.That(grade[0].OwnerType).IsEqualTo("ExpeditionBuffGrade");
         await Assert.That(grade[0].Value).IsEqualTo(-20000);
+    }
+
+    [Test]
+    public async Task ExpeditionModifiersAreReplacedWhenPurchasedGradeChanges()
+    {
+        InsertModifier(1, 10, "ExpeditionBuffGrade", 2385, (int)BuffAttribute.Duration, -20000);
+        InsertModifier(2, 11, "ExpeditionBuffGrade", 2385, (int)BuffAttribute.Duration, -40000);
+        BuffGameData.Instance.Load(Connection);
+        var cache = new BuffModifiers();
+        var unrelated = new BuffModifier
+        {
+            Id = 99, BuffId = 2385, BuffAttribute = BuffAttribute.Duration,
+            UnitModifierType = AAEmu.Game.Models.Game.Units.UnitModifierType.Value, Value = 500
+        };
+        cache.AddModifier(unrelated);
+
+        cache.ReplaceExpeditionModifiers([10]);
+        await Assert.That(cache.GetModifiersForBuffId(2385).Select(row => row.Value))
+            .IsEquivalentTo([500, -20000]);
+
+        cache.ReplaceExpeditionModifiers([11]);
+        await Assert.That(cache.GetModifiersForBuffId(2385).Select(row => row.Value))
+            .IsEquivalentTo([500, -40000]);
+
+        cache.ReplaceExpeditionModifiers([]);
+        await Assert.That(cache.GetModifiersForBuffId(2385).Single()).IsSameReferenceAs(unrelated);
     }
 
     [Test]

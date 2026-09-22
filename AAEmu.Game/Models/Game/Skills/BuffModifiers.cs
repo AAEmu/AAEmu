@@ -12,6 +12,7 @@ public class BuffModifiers
     private readonly Dictionary<uint, List<BuffModifier>> _modifiersByTagId = [];
     // The rows the unit's equipped items put here, kept so a gear change can take exactly them back out.
     private readonly List<BuffModifier> _itemModifiers = [];
+    private readonly List<BuffModifier> _expeditionModifiers = [];
 
     public double ApplyModifiers(BuffTemplate buff, BuffAttribute attribute, double baseValue)
     {
@@ -108,6 +109,20 @@ public class BuffModifiers
         foreach (var modifier in _itemModifiers)
             RemoveModifier(modifier);
         _itemModifiers.Clear();
+    }
+
+    public void ReplaceExpeditionModifiers(IEnumerable<uint> gradeIds)
+    {
+        foreach (var modifier in _expeditionModifiers)
+            RemoveModifier(modifier);
+        _expeditionModifiers.Clear();
+
+        foreach (var gradeId in gradeIds)
+        foreach (var modifier in BuffGameData.Instance.GetGradeModifiers(gradeId))
+        {
+            _expeditionModifiers.Add(modifier);
+            AddModifier(modifier);
+        }
     }
 
     public void AddModifier(BuffModifier modifier)

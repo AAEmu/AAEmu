@@ -363,8 +363,8 @@ public enum UnitAttribute : uint
 
     /// <summary>
     /// 10.0.2's <c>enum_unit_attribute</c> has no row for 127 either, but
-    /// <c>ExpeditionBuffGameData.GetBonusEffects</c> hands it out for expedition buff 10
-    /// ("명예로운 생활" / honorable living). Kept as a normal member because server code produces it.
+    /// expedition buff 10's authoritative <c>unit_modifiers</c> rows use it. Kept as a normal member
+    /// so the content id is not lost while battlefield honor awards remain unavailable.
     /// </summary>
     HonorPointGainBattleFieldMul = 127,
 

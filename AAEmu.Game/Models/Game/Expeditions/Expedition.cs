@@ -130,14 +130,20 @@ public class Expedition : SystemFaction
     public void ApplyBuffBonuses(Character character)
     {
         character.Bonuses[Buffs.ExpeditionBonusesIndex] = [];
+        var gradeIds = new List<uint>();
         foreach (var (buffId, grade) in PurchasedBuffGrades)
         {
-            foreach (var (attribute, modifierType, value) in ExpeditionBuffGameData.GetBonusEffects(buffId, grade))
+            var gradeTemplate = ExpeditionBuffGameData.Instance.GetGrade(buffId, grade);
+            if (gradeTemplate == null)
+                continue;
+            gradeIds.Add(gradeTemplate.Id);
+            foreach (var (attribute, modifierType, value) in ExpeditionBuffGameData.Instance.GetBonusEffects(buffId, grade))
             {
                 var template = new BonusTemplate { Attribute = attribute, ModifierType = modifierType, Value = value };
                 character.AddBonus(Buffs.ExpeditionBonusesIndex, new Bonus { Template = template, Value = value });
             }
         }
+        character.BuffModifiersCache.ReplaceExpeditionModifiers(gradeIds);
         character.SendPacket(new SCUnitStatePacket(character));
         // SCUnitState alone updates the client's cached Max Hp/Mp (the sheet's denominator) but does NOT
         // redraw the visible HP/MP bar - that only happens on SCUnitPointsPacket, per the same two-packet
@@ -146,6 +152,12 @@ public class Expedition : SystemFaction
         // the bar redraws against the new max.
         character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
     }
+
+    public int GetSummonLimitBonus() => PurchasedBuffGrades.Sum(purchase =>
+        ExpeditionBuffGameData.Instance.GetGrade(purchase.Key, purchase.Value)?.SummonLimit ?? 0);
+
+    public int GetPortalPointLimitBonus() => PurchasedBuffGrades.Sum(purchase =>
+        ExpeditionBuffGameData.Instance.GetGrade(purchase.Key, purchase.Value)?.PortalPointLimit ?? 0);
 
     /// <summary>Called after a buff purchase changes <see cref="PurchasedBuffGrades"/> - every online member's stats need the new total, not just the purchaser's.</summary>
     public void ApplyBuffBonusesToAllOnline(IWorldManager worldManager = null)

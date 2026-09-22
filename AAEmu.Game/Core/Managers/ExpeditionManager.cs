@@ -301,6 +301,7 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             publicAssignments.OnCharacterLogout(character);
         chatManager.GetGuildChat(expedition)?.LeaveChannel(character);
         character.Bonuses[Buffs.ExpeditionBonusesIndex] = [];
+        character.BuffModifiersCache.ReplaceExpeditionModifiers([]);
         character.SendPacket(new SCUnitStatePacket(character));
         character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
     }
