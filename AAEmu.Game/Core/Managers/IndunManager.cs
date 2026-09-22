@@ -32,6 +32,78 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
     internal Func<Character, InstancePermissionTagKind, uint, bool> AdmissionTagMatcher { get; set; } =
         CharacterHasPermissionTag;
 
+    /// <summary>
+    /// Zone-permission asks this server opened and that no answer has settled yet, by character id.
+    /// This is the authority behind CS 0x058: an answer only changes permission for a character
+    /// holding an open ask, and the ask is consumed by the answer.
+    /// </summary>
+    private readonly Dictionary<uint, ZonePermissionSession> _zonePermissionAsks = [];
+
+    /// <summary>
+    /// Opens the zone-permission ask for a character. The 10.0.2.13 catalog has no dedicated
+    /// server-to-client ask packet (SC 0x086 carries no fields), so this records the authority an
+    /// answer is judged against and leaves the prompt to whatever opens it.
+    /// </summary>
+    /// <param name="character">Who is being asked.</param>
+    /// <param name="zoneGroupId">The zone group the ask is for; 0 is not a zone group and is refused.</param>
+    /// <returns>True when the ask was opened.</returns>
+    public bool OpenZonePermissionAsk(Character character, uint zoneGroupId)
+    {
+        if (character == null || zoneGroupId == 0)
+        {
+            Logger.Warn("OpenZonePermissionAsk refused: characterId={0} zoneGroupId={1}",
+                character?.Id ?? 0u, zoneGroupId);
+            return false;
+        }
+
+        lock (_lock)
+            _zonePermissionAsks[character.Id] = new ZonePermissionSession(zoneGroupId, ServerCalendar.UtcNow);
+
+        Logger.Info("Zone permission ask opened char={0} zoneGroup={1}", character.Name, zoneGroupId);
+        return true;
+    }
+
+    /// <summary>True while this character still owes the server an answer.</summary>
+    public bool HasOpenZonePermissionAsk(uint characterId)
+    {
+        lock (_lock)
+            return _zonePermissionAsks.ContainsKey(characterId);
+    }
+
+    /// <summary>
+    /// Judges a CS 0x058 answer against the open ask. Only an open ask may settle permission: a
+    /// solicited answer consumes it (Accepted on OK, Declined on Cancel), anything without one changes
+    /// nothing and is logged, and a body byte the dialog cannot produce leaves the ask untouched.
+    /// </summary>
+    public ZonePermissionVerdict AnswerZonePermission(Character character, byte answer)
+    {
+        if (character == null)
+            return ZonePermissionVerdict.NoOpenAsk;
+
+        lock (_lock)
+        {
+            if (!_zonePermissionAsks.TryGetValue(character.Id, out var ask))
+            {
+                Logger.Warn("Zone permission answer with no open ask: char={0} answer={1}",
+                    character.Id, answer);
+                return ZonePermissionVerdict.NoOpenAsk;
+            }
+
+            if (answer > 1)
+            {
+                Logger.Warn(
+                    "Malformed zone permission answer {0}: char={1} zoneGroup={2} — ask left open",
+                    answer, character.Id, ask.ZoneGroupId);
+                return ZonePermissionVerdict.Malformed;
+            }
+
+            _zonePermissionAsks.Remove(character.Id);
+            Logger.Info("Zone permission {0} char={1} zoneGroup={2}",
+                answer == 1 ? "accepted" : "declined", character.Id, ask.ZoneGroupId);
+            return answer == 1 ? ZonePermissionVerdict.Accepted : ZonePermissionVerdict.Declined;
+        }
+    }
+
     public void Initialize()
     {
         tickManager.OnTick.Subscribe(IndunInfoTick, TimeSpan.FromSeconds(30), true);

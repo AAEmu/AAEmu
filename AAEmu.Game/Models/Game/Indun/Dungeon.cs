@@ -903,6 +903,18 @@ public class Dungeon : IPreparedIndunInstance
                    _difficultySelection.IsReservedBy(character.Id);
     }
 
+    /// <summary>
+    /// True while this copy's difficulty selection is open in someone else's hands — the authorization
+    /// question behind a refused second picker.
+    /// </summary>
+    internal bool HasDifficultySelectionHeldByOther(Character character)
+    {
+        if (character == null)
+            return false;
+        lock (_lock)
+            return _difficultySelection.IsHeld && !_difficultySelection.IsReservedBy(character.Id);
+    }
+
     public bool SetDifficult(Character character, byte difficult)
     {
         if (character == null)

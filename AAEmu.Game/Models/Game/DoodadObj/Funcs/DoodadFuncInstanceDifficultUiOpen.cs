@@ -19,10 +19,18 @@ public class DoodadFuncInstanceDifficultUiOpen : DoodadFuncTemplate
 
         var world = character.ParentWorld;
         var dungeon = world?.DungeonInstance;
-        if (dungeon == null || owner.ParentWorld != world ||
-            !dungeon.BeginDifficultySelection(character,
-                () => owner.DoChangePhase(character, nextPhase)))
+        if (dungeon == null || owner.ParentWorld != world)
             return;
+
+        if (!dungeon.BeginDifficultySelection(character,
+                () => owner.DoChangePhase(character, nextPhase)))
+        {
+            // The copy's selection is held by whoever opened it first: this player is told so instead
+            // of being left waiting for a window that never opens, and the holder's reservation stands.
+            if (dungeon.HasDifficultySelectionHeldByOther(character))
+                character.SendErrorMessage(ErrorMessageType.AlreadyInteractingSomeoneElse);
+            return;
+        }
 
         character.SendPacket(new SCSelectedInstanceDifficultPacket((sbyte)(dungeon.Difficult ?? 0), showUi: true));
     }

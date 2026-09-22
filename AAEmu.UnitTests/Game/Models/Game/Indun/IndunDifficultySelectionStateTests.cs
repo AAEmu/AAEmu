@@ -52,4 +52,19 @@ public class IndunDifficultySelectionStateTests
         await Assert.That(selected).IsEqualTo((byte)4);
         await Assert.That(completions).IsEqualTo(1);
     }
+
+    [Test]
+    public async Task Held_FlagTracksWhoseHandsTheSelectionIsIn()
+    {
+        var state = new IndunDifficultySelectionState();
+        await Assert.That(state.IsHeld).IsFalse();
+
+        state.Reserve(10, null, () => { });
+        await Assert.That(state.IsHeld).IsTrue();
+        await Assert.That(state.IsReservedBy(10)).IsTrue();
+        await Assert.That(state.IsReservedBy(11)).IsFalse();
+
+        state.TakeCompletion(10);
+        await Assert.That(state.IsHeld).IsFalse();
+    }
 }
