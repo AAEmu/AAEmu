@@ -593,6 +593,7 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         if (!activeTeam.RemoveMember(target.Id))
             return;
 
+        RaidRecruitmentManager.Instance.OnMemberLeft(activeTeam, target.Id);
         if (!activeTeam.IsParty)
             chatManager.GetRaidChat(activeTeam).LeaveChannel(target);
         chatManager.GetPartyChat(activeTeam, target).LeaveChannel(target);
@@ -629,6 +630,7 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
     private void DisbandTeam(Team activeTeam)
     {
         _ownerHandoverOffers.Remove(activeTeam.Id);
+        RaidRecruitmentManager.Instance.OnTeamDisbanded(activeTeam);
         activeTeam.BroadcastPacket(new SCTeamDismissedPacket((int)activeTeam.Id));
         foreach (var member in activeTeam.Members)
         {
@@ -661,6 +663,20 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         if (activeTeam?.OwnerId != unit.Id || !activeTeam.IsMember((uint)memberId))
             return;
 
+        // NOT_CHANGE_RAID_RECRUIT_OWNER and _TARGET (enum_error_messages 1000, 1001; ui_texts 8813, 8814): a
+        // recruiting raid does not delegate its leader, and not to someone who is recruiting either.
+        if (RaidRecruitmentManager.Instance.IsRecruiting(unit.Id))
+        {
+            unit.SendErrorMessage(ErrorMessageType.NotChangeRaidRecruitOwner);
+            return;
+        }
+
+        if (RaidRecruitmentManager.Instance.IsRecruiting((uint)memberId))
+        {
+            unit.SendErrorMessage(ErrorMessageType.NotChangeRaidRecruitTarget);
+            return;
+        }
+
         _ownerHandoverOffers.Remove(activeTeam.Id);
         activeTeam.OwnerId = (uint)memberId;
         if (activeTeam.OfficerId == memberId)
@@ -677,6 +693,11 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         var activeTeam = GetActiveTeam((uint)teamId);
         if (activeTeam == null || activeTeam.IsParty || activeTeam.OwnerId == candidateId ||
             !activeTeam.IsMember((uint)candidateId) || _ownerHandoverOffers.ContainsKey(activeTeam.Id))
+            return false;
+
+        // Same refusal as MakeTeamOwner: a recruiting raid keeps its leader (enum_error_messages 1000, 1001).
+        if (RaidRecruitmentManager.Instance.IsRecruiting(activeTeam.OwnerId) ||
+            RaidRecruitmentManager.Instance.IsRecruiting((uint)candidateId))
             return false;
 
         var owner = GetTeamCharacter(activeTeam, activeTeam.OwnerId);
@@ -773,6 +794,68 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
 
         activeTeam.OfficerId = memberId;
         activeTeam.BroadcastPacket(new SCTeamOfficerChangedPacket(teamId, memberId));
+    }
+
+    /// <summary>
+    /// Seats an applicant the raid recruitment board approved and who confirmed the accept popup
+    /// (CSRaidApplicantAcceptReply). Auto-Invite's own text (ui_texts 8827) says a raid is formed once an
+    /// applicant is approved, so a solo recruiter gets a raid team of the two of them; a party with no free
+    /// slot is converted to a raid first, as CSConvertToRaidTeam does; a team with room takes the member the
+    /// way an accepted invitation would. The recruiter must hold invite rights on the team.
+    /// </summary>
+    public bool TryAddRecruitedMember(Character owner, Character applicant, MemberRole role)
+    {
+        if (owner == null || applicant == null || owner.Id == applicant.Id ||
+            !owner.IsOnline || !applicant.IsOnline || GetActiveTeamByUnit(applicant.Id) != null)
+            return false;
+
+        var activeTeam = GetActiveTeamByUnit(owner.Id);
+        if (activeTeam == null)
+        {
+            CreateNewTeam(new InvitationTemplate
+            {
+                Owner = owner,
+                Target = applicant,
+                TeamRole = TeamRoleType.Raid,
+                Time = DateTime.UtcNow
+            });
+            activeTeam = GetActiveTeamByUnit(owner.Id);
+            if (activeTeam == null || !activeTeam.IsMember(applicant.Id))
+                return false;
+        }
+        else
+        {
+            if (!CanInvite(activeTeam, owner))
+                return false;
+
+            if (activeTeam.MembersCount() >= activeTeam.MemberLimit)
+            {
+                if (!activeTeam.IsParty)
+                    return false;
+                ConvertToRaid(owner, (int)activeTeam.Id);
+                if (activeTeam.IsParty)
+                    return false;
+            }
+
+            var (newTeamMember, party) = activeTeam.AddMember(applicant);
+            if (newTeamMember == null)
+                return false;
+
+            applicant.SendPacket(new SCJoinedTeamPacket(activeTeam));
+            if (activeTeam.OfficerId != 0)
+                applicant.SendPacket(new SCTeamOfficerChangedPacket((int)activeTeam.Id, activeTeam.OfficerId));
+            applicant.InParty = true;
+            applicant.SendPacket(new SCTeamPingPosPacket(activeTeam.Id, true, activeTeam.PingPosition, 0));
+            activeTeam.BroadcastPacket(new SCTeamMemberJoinedPacket(activeTeam.Id, newTeamMember, party), applicant.Id);
+            if (!activeTeam.IsParty)
+                chatManager.GetRaidChat(activeTeam).JoinChannel(applicant);
+            chatManager.GetPartyChat(activeTeam, applicant).JoinChannel(applicant);
+            applicant.Events?.OnTeamJoin(owner, new OnTeamJoinArgs { Team = activeTeam, Player = applicant });
+        }
+
+        if (role != MemberRole.Undecided && activeTeam.ChangeRole(applicant.Id, role))
+            activeTeam.BroadcastPacket(new SCTeamMemberRoleChangedPacket(activeTeam.Id, applicant.Id, role));
+        return true;
     }
 
     public void ConvertToRaid(Character owner, int teamId)

@@ -1041,6 +1041,7 @@ public partial class Character : Unit, ICharacter
             FriendMananger.Instance.SendStatusChange(this, true, value);
             if (!value)
             {
+                RaidRecruitmentManager.Instance.OnCharacterOffline(this);
                 TeamManager.Instance.SetOffline(this);
                 SquadManager.Instance.SetPresence(this, online: false);
             }
@@ -2995,6 +2996,7 @@ public partial class Character : Unit, ICharacter
         var oldFaction = Faction.Id;
         BroadcastPacket(new SCUnitFactionChangedPacket(ObjId, Name, oldFaction, newFaction, false), true);
         Faction = FactionManager.Instance.GetFaction(newFaction);
+        RaidRecruitmentManager.Instance.OnFactionChanged(this);
         if (WorldIntegration.ZoneAuthority)
             WorldIntegration.RelayUnitFactionChangedToZone?.Invoke(ObjId, (int)oldFaction, (int)newFaction, false);
         HousingManager.Instance.UpdateOwnedHousingFaction(Id, newFaction);

@@ -4,12 +4,9 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// TODO: nothing constructs this packet yet.
+/// Drops one application from the applicant's client: u64 type, the post's owner id (x2game-dev.dll
+/// FUN_39c688d0). Sent for a withdrawal, a declined accept and whenever the post itself goes away.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
 public class SCRaidApplicantDelPacket(ulong @type) : GamePacket(SCOffsets.SCRaidApplicantDelPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)

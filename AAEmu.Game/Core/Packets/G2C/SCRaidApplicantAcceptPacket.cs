@@ -4,12 +4,10 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// TODO: nothing constructs this packet yet.
+/// Tells an applicant the recruiter approved them: u64 type (the post's owner id), u32 role
+/// (x2game-dev.dll FUN_39c63d50). The client opens the 60 s accept popup and answers with
+/// CSRaidApplicantAcceptReply, which is what seats them.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
 public class SCRaidApplicantAcceptPacket(ulong @type, uint role) : GamePacket(SCOffsets.SCRaidApplicantAcceptPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)

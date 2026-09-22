@@ -1,15 +1,13 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO: the body is parsed but nothing acts on it yet.
+/// X2Team:RaidRecruitOption(autoJoin): bool autoJoin (x2game-dev.dll FUN_39c54840), the applicant window's
+/// Auto-Invite / Manual Invite radio. Answered with SCRaidRecruitOption.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
 public class CSRaidRecruitOptionPacket() : GamePacket(CSOffsets.CSRaidRecruitOptionPacket, 1)
 {
     public bool AutoJoin { get; private set; }
@@ -17,5 +15,6 @@ public class CSRaidRecruitOptionPacket() : GamePacket(CSOffsets.CSRaidRecruitOpt
     public override void Read(PacketStream stream)
     {
         AutoJoin = stream.ReadBoolean();
+        RaidRecruitmentManager.Instance.SetOption(Connection.ActiveChar, AutoJoin);
     }
 }

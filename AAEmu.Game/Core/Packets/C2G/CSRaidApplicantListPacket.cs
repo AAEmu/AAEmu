@@ -1,23 +1,23 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO: the body is parsed but nothing acts on it yet.
+/// X2Team:RaidApplicantList(): bool bSubRecruiter, u64 type (x2game-dev.dll FUN_39c6bdb0). The binding
+/// FUN_399f1db0 sends the client's team owner id and raises the flag only for a siege raid's officer.
+/// Answered with SCRaidApplicantList.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
 public class CSRaidApplicantListPacket() : GamePacket(CSOffsets.CSRaidApplicantListPacket, 1)
 {
-    public bool BSubRecruiter { get; private set; }
-    public ulong TypeValue { get; private set; }
+    public bool SubRecruiter { get; private set; }
+    public ulong OwnerId { get; private set; }
 
     public override void Read(PacketStream stream)
     {
-        BSubRecruiter = stream.ReadBoolean();
-        TypeValue = stream.ReadUInt64();
+        SubRecruiter = stream.ReadBoolean();
+        OwnerId = stream.ReadUInt64();
+        RaidRecruitmentManager.Instance.ListApplicants(Connection.ActiveChar, SubRecruiter, OwnerId);
     }
 }

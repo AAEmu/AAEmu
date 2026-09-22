@@ -333,6 +333,15 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSSecurityReportPacket, 1, typeof(CSSecurityReportPacket));
         RegisterPacket(CSOffsets.CSRequestMonitorNpcsInfoPacket, 1, typeof(CSRequestMonitorNpcsInfoPacket));
         RegisterPacket(CSOffsets.CSRaidRecruitListPacket, 1, typeof(CSRaidRecruitListPacket));
+        RegisterPacket(CSOffsets.CSRaidRecruitAddPacket, 1, typeof(CSRaidRecruitAddPacket));
+        RegisterPacket(CSOffsets.CSRaidRecruitDetailPacket, 1, typeof(CSRaidRecruitDetailPacket));
+        RegisterPacket(CSOffsets.CSRaidRecruitOptionPacket, 1, typeof(CSRaidRecruitOptionPacket));
+        RegisterPacket(CSOffsets.CSRaidApplicantAddPacket, 1, typeof(CSRaidApplicantAddPacket));
+        RegisterPacket(CSOffsets.CSRaidApplicantDelPacket, 1, typeof(CSRaidApplicantDelPacket));
+        RegisterPacket(CSOffsets.CSRaidApplicantListPacket, 1, typeof(CSRaidApplicantListPacket));
+        RegisterPacket(CSOffsets.CSRaidApplicantAcceptPacket, 1, typeof(CSRaidApplicantAcceptPacket));
+        RegisterPacket(CSOffsets.CSRaidApplicantAcceptReplyPacket, 1, typeof(CSRaidApplicantAcceptReplyPacket));
+        RegisterPacket(CSOffsets.CSRaidApplicantRejectPacket, 1, typeof(CSRaidApplicantRejectPacket));
         RegisterPacket(CSOffsets.CSUIContentTogglePacket, 1, typeof(CSUIContentTogglePacket));
         RegisterPacket(CSOffsets.CSReopenRandomBoxRefreshPacket, 1, typeof(CSReopenRandomBoxRefreshPacket));
         RegisterPacket(CSOffsets.CSFriendAcceptPacket, 1, typeof(CSFriendAcceptPacket));
