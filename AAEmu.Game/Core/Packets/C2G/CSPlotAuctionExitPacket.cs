@@ -1,15 +1,12 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO: the body is parsed but nothing acts on it yet.
+/// Withdraws the character's standing plot-auction bid (the Exit button).
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
 public class CSPlotAuctionExitPacket() : GamePacket(CSOffsets.CSPlotAuctionExitPacket, 1)
 {
     public uint ActivityId { get; private set; }
@@ -19,5 +16,11 @@ public class CSPlotAuctionExitPacket() : GamePacket(CSOffsets.CSPlotAuctionExitP
     {
         ActivityId = stream.ReadUInt32();
         AuctionConfigId = stream.ReadUInt32();
+
+        var character = Connection.ActiveChar;
+        if (character == null)
+            return;
+
+        PlotAuctionManager.Instance.ExitBid(character, ActivityId, AuctionConfigId);
     }
 }

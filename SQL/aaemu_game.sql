@@ -349,6 +349,26 @@ CREATE TABLE IF NOT EXISTS `craft_order_fee_stats` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Recent craft-order listing fee range per craft';
 
 
+CREATE TABLE IF NOT EXISTS `plot_auctions` (
+  `id` INT UNSIGNED NOT NULL COMMENT 'plot_auction_config.id',
+  `activity_id` INT UNSIGNED NOT NULL COMMENT 'game_activities.id the auction belongs to',
+  `settled` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '1 once settlement consumed every escrow row',
+  `base_price` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Standing leading bid the floor is computed from; 0 before the first bid',
+  `updated_unix` BIGINT NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Plot (housing land) auction state machine rows';
+
+
+CREATE TABLE IF NOT EXISTS `character_plot_auction_bids` (
+  `auction_id` INT UNSIGNED NOT NULL COMMENT 'plot_auction_config.id',
+  `character_id` INT UNSIGNED NOT NULL COMMENT 'Bidding character',
+  `bid_amount` BIGINT UNSIGNED NOT NULL COMMENT 'Escrowed copper held for this standing bid',
+  `bid_time_unix` BIGINT NOT NULL COMMENT 'When the standing bid was placed (tie-break)',
+  PRIMARY KEY (`auction_id`,`character_id`),
+  KEY `idx_character_plot_auction_bids_character` (`character_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Plot auction bid escrow: exactly one held amount per character per auction';
+
+
 CREATE TABLE IF NOT EXISTS `faction_relations` (
   `faction1_id` INT UNSIGNED NOT NULL,
   `faction2_id` INT UNSIGNED NOT NULL,

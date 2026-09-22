@@ -776,6 +776,7 @@ public static class SCOffsets
     public const ushort SCPassportIssuedPacket = 0x2F8;
     public const ushort SCPirateMemberLimitCountPacket = 0x32A;
     public const ushort SCPlotAuctionBidResponsePacket = 0x395;
+    public const ushort SCPlotAuctionInfoPacket = 0x396;
     public const ushort SCPlotAuctionBidUpdatePacket = 0x397;
     public const ushort SCPremiumBonusListPacket = 0x2D1;
     public const ushort SCProtectSensitiveOperationResultPacket = 0x28E;

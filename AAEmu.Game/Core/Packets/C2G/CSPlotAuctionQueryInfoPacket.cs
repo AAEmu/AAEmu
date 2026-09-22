@@ -1,15 +1,14 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO: the body is parsed but nothing acts on it yet.
+/// Asks for the plot-auction bid map of one activity. The client's call sites put the config
+/// id in the plotId slot (limited_auction_tab.lua line 273), so this is config-id shaped on
+/// both directions of the wire.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
 public class CSPlotAuctionQueryInfoPacket() : GamePacket(CSOffsets.CSPlotAuctionQueryInfoPacket, 1)
 {
     public uint ActivityId { get; private set; }
@@ -19,5 +18,11 @@ public class CSPlotAuctionQueryInfoPacket() : GamePacket(CSOffsets.CSPlotAuction
     {
         ActivityId = stream.ReadUInt32();
         PlotId = stream.ReadUInt32();
+
+        var character = Connection.ActiveChar;
+        if (character == null)
+            return;
+
+        PlotAuctionManager.Instance.QueryInfo(character, ActivityId, PlotId);
     }
 }

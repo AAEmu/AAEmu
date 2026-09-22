@@ -273,6 +273,7 @@ public static class Program
                 services.AddSingleton<NameManager>();
                 services.AddSingleton<INameManager>(sp => sp.GetRequiredService<NameManager>());
 
+                services.AddSingleton<PlotAuctionManager>();
                 services.AddSingleton<PlotManager>();
                 services.AddSingleton<IPlotManager>(sp => sp.GetRequiredService<PlotManager>());
 
