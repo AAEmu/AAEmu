@@ -341,11 +341,17 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
 
     public bool CanComponentRun(QuestComponentTemplate questComponent, BaseUnit ownerUnit)
     {
-        return MeetOwnerRequirements(
-            "QuestComponent",
-            questComponent.Id,
-            questComponent.OrUnitReqs,
-            ownerUnit);
+        return QuestStartRequirementRules.Passes(EvaluateComponent(questComponent, ownerUnit));
+    }
+
+    /// <summary>
+    /// The component's unit_reqs folded by <see cref="QuestStartRequirementRules.Evaluate"/>. On a refusal
+    /// the result is the failing row's own, display gate included, so an accept can tell the client which
+    /// row refused it.
+    /// </summary>
+    public UnitReqsValidationResult EvaluateComponent(QuestComponentTemplate questComponent, BaseUnit ownerUnit)
+    {
+        return EvaluateOwnerRequirements("QuestComponent", questComponent.Id, questComponent.OrUnitReqs, ownerUnit);
     }
 
     /// <summary>
@@ -353,30 +359,28 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
     /// </summary>
     public bool MeetOwnerRequirements(string ownerType, uint ownerId, bool orUnitReqs, BaseUnit ownerUnit)
     {
-        var reqs = GetRequirement(ownerType, ownerId).ToList();
-        if (reqs.Count == 0)
-            return true;
+        return QuestStartRequirementRules.Passes(EvaluateOwnerRequirements(ownerType, ownerId, orUnitReqs, ownerUnit));
+    }
 
+    /// <summary>
+    /// Folds the rows of a (owner_type, owner_id) pair with the list evaluator's policy. The rows are
+    /// validated lazily, so an AND group stops at the row that refuses and an OR group at the row that
+    /// passes, as the client's walk does.
+    /// </summary>
+    public UnitReqsValidationResult EvaluateOwnerRequirements(string ownerType, uint ownerId, bool orUnitReqs, BaseUnit ownerUnit)
+    {
         var target = (ownerUnit as Unit)?.CurrentTarget ?? ownerUnit;
-        var res = !orUnitReqs;
-        foreach (var unitReq in reqs)
-        {
-            var validateRes = unitReq.Validate(ownerUnit, target);
-            var reqRes = validateRes.ResultKey == SkillResultKeys.ok;
+        return QuestStartRequirementRules.Evaluate(
+            orUnitReqs,
+            GetRequirement(ownerType, ownerId).Select(unitReq => unitReq.Validate(ownerUnit, target)));
+    }
 
-            if (orUnitReqs && reqRes)
-            {
-                res = true;
-                break;
-            }
-
-            if (!orUnitReqs && !reqRes)
-            {
-                res = false;
-                break;
-            }
-        }
-
-        return res;
+    /// <summary>Replaces the loaded rows with the ones a test drives.</summary>
+    public void SetForTest(params UnitReqs[] rows)
+    {
+        _unitReqs = rows.ToDictionary(row => row.Id);
+        _unitReqsByOwnerType = rows
+            .GroupBy(row => row.OwnerType)
+            .ToDictionary(group => group.Key, group => group.ToList());
     }
 }
