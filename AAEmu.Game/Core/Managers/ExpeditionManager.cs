@@ -18,6 +18,7 @@ using AAEmu.Game.Models.Game.Expeditions.Recruitment;
 using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
+using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.Units;
@@ -1751,6 +1752,13 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
             transaction.Commit();
             transition.Commit();
         }
+
+        // Progress act QuestActObjInviteTeamFaction credits the inviter once the join is committed.
+        inviter.Events?.OnInviteTeamFaction(inviter, new OnInviteTeamFactionArgs
+        {
+            InviteType = QuestActObjInviteType.Expedition,
+            Invited = invited
+        });
     }
 
     public void OnCharacterLogout(Character character)

@@ -1211,6 +1211,16 @@ public partial class Npc : Unit
                 QuestManager.Instance.DoOnMonsterHuntEvents(pl, this);
             }
         }
+        // Contribution hunts (quest_act_obj_monster_contr_hunts / _contr_group_hunts) credit every
+        // character on the aggro table; read here because base.DoDie clears the table afterwards.
+        var contributors = AggroTable.Values
+            .Select(aggro => aggro.Owner)
+            .OfType<Character>()
+            .Distinct()
+            .ToList();
+        if (contributors.Count > 0)
+            QuestManager.Instance.DoOnMonsterContrHuntEvents(this, contributors);
+
         // Conflict/war-zone participation counts one kill per NPC death. The reward branches above
         // can cover a whole team, so counting there would multiply the kill; only deaths that
         // actually credited a player count.

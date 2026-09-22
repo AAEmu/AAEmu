@@ -69,6 +69,15 @@ public class UnitEvents
     public EventHandler<OnInteractionArgs> OnInteraction = delegate { };
     public EventHandler<OnDoodadPhaseCheckArgs> OnDoodadPhaseCheck = delegate { };
     public EventHandler<OnExpressFireArgs> OnExpressFire = delegate { };
+    /// <summary>A skill effect (effects.id) applied by a character: Skill effect loop and BuffTrigger.</summary>
+    public EventHandler<OnEffectFireArgs> OnEffectFire = delegate { };
+    /// <summary>Contribution kill credit: every character on the NPC's aggro table at death (Npc.DoDie).</summary>
+    public EventHandler<OnMonsterContrHuntArgs> OnMonsterContrHunt = delegate { };
+    public EventHandler<OnMonsterContrGroupHuntArgs> OnMonsterContrGroupHunt = delegate { };
+    /// <summary>A committed trade pack sale (SpecialtyManager.SellSpecialty).</summary>
+    public EventHandler<OnSellBackpackGoodArgs> OnSellBackpackGood = delegate { };
+    /// <summary>The inviter's side of a committed team-faction join (ExpeditionManager.ReplyInvite).</summary>
+    public EventHandler<OnInviteTeamFactionArgs> OnInviteTeamFaction = delegate { };
     public EventHandler<OnLevelUpArgs> OnLevelUp = delegate { };
     public EventHandler<OnMateLevelUpArgs> OnMateLevelUp = delegate { };
     public EventHandler<OnAbilityLevelUpArgs> OnAbilityLevelUp = delegate { };
@@ -201,6 +210,44 @@ public class OnExpressFireArgs : EventArgs
 {
     public uint NpcId { get; set; } // Npc.TemplateId
     public uint EmotionId { get; set; }
+}
+
+public class OnEffectFireArgs : EventArgs
+{
+    /// <summary>effects.id, the key of quest_act_obj_effect_fires.effect_id.</summary>
+    public uint EffectId { get; set; }
+    public uint SkillId { get; set; }
+    /// <summary>Character.Id of the unit that applied the effect; team_share forwards keep it.</summary>
+    public uint SourceCharacterId { get; set; }
+}
+
+public class OnMonsterContrHuntArgs : EventArgs
+{
+    public uint NpcId { get; set; } // Npc.TemplateId
+    public uint Count { get; set; }
+    public Transform Transform { get; set; }
+    /// <summary>Contributor to NPC distance at death, for long_dist 'f' rows.</summary>
+    public float Distance { get; set; }
+}
+
+public class OnMonsterContrGroupHuntArgs : EventArgs
+{
+    public uint GroupId { get; set; } // quest_monster_groups.id
+    public uint Count { get; set; }
+    public Transform Transform { get; set; }
+    public float Distance { get; set; }
+}
+
+public class OnSellBackpackGoodArgs : EventArgs
+{
+    public uint NpcTemplateId { get; set; }
+    public uint BackpackTemplateId { get; set; }
+}
+
+public class OnInviteTeamFactionArgs : EventArgs
+{
+    public QuestActObjInviteType InviteType { get; set; }
+    public Unit Invited { get; set; }
 }
 
 public class OnLevelUpArgs : EventArgs

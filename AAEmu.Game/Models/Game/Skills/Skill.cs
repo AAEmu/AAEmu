@@ -1969,6 +1969,7 @@ public class Skill
             }
         }
 
+        var firedEffectIds = new HashSet<uint>();
         // Apply the effects that need to happen
         foreach (var (target, effect) in effectsToApply)
         {
@@ -1982,6 +1983,17 @@ public class Skill
                 effect.Template.Apply(caster, casterCaster, target, thisTargetCaster, new CastSkill(Template.Id, TlId), new EffectSource(this), skillObject, DateTime.UtcNow, packets);
 
                 if (player is { SkillCancelled: true }) { Cancelled = true; }
+
+                // Progress act QuestActObjEffectFire counts the effects.id a character applied. One count
+                // per cast per effect id: a multi-target hit is one fire, the conservative reading of
+                // quest_act_obj_effect_fires.count (QuestEffectFireRules).
+                if (player is { SkillCancelled: false } && firedEffectIds.Add(effect.EffectId))
+                    player.Events?.OnEffectFire(player, new OnEffectFireArgs
+                    {
+                        EffectId = effect.EffectId,
+                        SkillId = Template.Id,
+                        SourceCharacterId = player.Id
+                    });
 
                 // Implement consumption of item sets
                 if (effect.ItemSetId > 0)

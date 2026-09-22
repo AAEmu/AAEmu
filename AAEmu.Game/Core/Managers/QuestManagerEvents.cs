@@ -112,7 +112,7 @@ public partial class QuestManager
         // Trigger the item group acquire event
         // Check what groups this item belongs to
         // TODO: Optimize this to be added after item and quest loading
-        var itemGroupsForThisItem = _groupItems.Where(x => x.Value.Contains(templateId)).Select(x => x.Key);
+        var itemGroupsForThisItem = _groupItems.Where(x => x.Value.Any(entry => entry.ItemId == templateId)).Select(x => x.Key);
         foreach (var itemGroup in itemGroupsForThisItem)
         {
             owner?.Events?.OnItemGroupGather(owner, new OnItemGroupGatherArgs { ItemId = templateId, Count = count, ItemGroupId = itemGroup });
@@ -232,6 +232,40 @@ public partial class QuestManager
             Killer = owner,
             Victim = npc
         });
+    }
+
+    /// <summary>
+    /// Contribution kills for QuestActObjMonsterContrHunt and QuestActObjMonsterContrGroupHunt: one
+    /// credit per character on the NPC's aggro table at death (QuestContributionHuntRules). The
+    /// distance travels with the event so a long_dist 'f' row can apply the ordinary credit range.
+    /// </summary>
+    public void DoOnMonsterContrHuntEvents(Npc npc, IReadOnlyCollection<Character> contributors)
+    {
+        if (npc == null || contributors == null || contributors.Count == 0)
+            return;
+
+        var npcGroups = _groupNpcs.Where(x => x.Value.Contains(npc.TemplateId)).Select(x => x.Key).ToList();
+        foreach (var contributor in contributors)
+        {
+            var distance = contributor.GetDistanceTo(npc, true);
+            contributor.Events?.OnMonsterContrHunt(contributor, new OnMonsterContrHuntArgs
+            {
+                NpcId = npc.TemplateId,
+                Count = 1,
+                Transform = npc.Transform,
+                Distance = distance
+            });
+            foreach (var npcGroup in npcGroups)
+            {
+                contributor.Events?.OnMonsterContrGroupHunt(contributor, new OnMonsterContrGroupHuntArgs
+                {
+                    GroupId = npcGroup,
+                    Count = 1,
+                    Transform = npc.Transform,
+                    Distance = distance
+                });
+            }
+        }
     }
 
     /// <summary>

@@ -1,4 +1,5 @@
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Tasks.Skills;
@@ -137,6 +138,16 @@ public class BuffTrigger
 
             template.Effect.Apply(source, casterObj, target, new SkillCastUnitTarget(target.ObjId),
                 new CastBuff(_buff), effectSource, null, DateTime.UtcNow);
+
+            // Progress act QuestActObjEffectFire: 12 of its 146 effect ids are reached only through
+            // buff_triggers.effect_id (QuestEffectFireRules); the character the row applies it by fired it.
+            if (source is Character firedBy)
+                firedBy.Events?.OnEffectFire(firedBy, new OnEffectFireArgs
+                {
+                    EffectId = template.EffectId,
+                    SkillId = _buff?.Skill?.Template?.Id ?? 0,
+                    SourceCharacterId = firedBy.Id
+                });
         }
 
         if (delayMs <= 0)

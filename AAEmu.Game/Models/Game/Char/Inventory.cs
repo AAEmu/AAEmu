@@ -324,14 +324,15 @@ public class Inventory
     /// <param name="templateId">Item TemplateId to consume</param>
     /// <param name="amountToConsume">Number of units to Consume</param>
     /// <param name="preferredItem">preferred Item to take units from</param>
+    /// <param name="gradeToConsume">Only consume items of this grade; every grade when -1</param>
     /// <returns></returns>
-    public int ConsumeItem(SlotType[] containersToCheck, ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem)
+    public int ConsumeItem(SlotType[] containersToCheck, ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem, int gradeToConsume = -1)
     {
         using var mutation = AcquireMutation();
-        return ConsumeItemCore(containersToCheck, taskType, templateId, amountToConsume, preferredItem);
+        return ConsumeItemCore(containersToCheck, taskType, templateId, amountToConsume, preferredItem, gradeToConsume);
     }
 
-    private int ConsumeItemCore(SlotType[] containersToCheck, ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem)
+    private int ConsumeItemCore(SlotType[] containersToCheck, ItemTaskType taskType, uint templateId, int amountToConsume, Item preferredItem, int gradeToConsume = -1)
     {
         SlotType[] containerList;
         if (containersToCheck != null && containersToCheck.Length > 0)
@@ -343,7 +344,7 @@ public class Inventory
         {
             if (_itemContainers.TryGetValue(cli, out var c))
             {
-                var used = c.ConsumeItem(taskType, templateId, amountToConsume, preferredItem);
+                var used = c.ConsumeItem(taskType, templateId, amountToConsume, preferredItem, gradeToConsume);
                 res += used;
                 amountToConsume -= used;
             }
