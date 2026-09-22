@@ -50,6 +50,19 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
     public Func<uint, IReadOnlyList<uint>, IPreparedIndunInstance> PrepareInstance { get; set; } =
         DefaultPrepareInstance;
 
+    public Func<Dungeon, Character, bool> PreparedCanQueue { get; set; } = (dungeon, character) =>
+        dungeon.CanQueuePlayer(character);
+
+    /// <summary>
+    /// Content-authored entrance schedule and permission tags. Checked when a player applies to the queue
+    /// and again right before the prepared copy is queued, because either can change while they wait.
+    /// </summary>
+    public Func<IndunZone, Character, bool> AdmissionCheck { get; set; } = (zone, character) =>
+        IndunManager.Instance.VerifyDungeonAdmission(zone, character);
+
+    public Func<Dungeon, Character, bool> PreparedQueuePlayer { get; set; } = (dungeon, character) =>
+        dungeon.QueuePlayer(character);
+
     public void Initialize()
     {
         TickManager.Instance.OnTick.Subscribe(OnTick, TimeSpan.FromSeconds(1));
@@ -69,6 +82,14 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
         var dungeonZone = IndunGameData.Instance.GetDungeonZoneByCatalogId(catalogId);
         if (dungeonZone == null)
             return false;
+
+        // Refused while applying, the same way the entry path refuses it: queueing through a closed window
+        // only to be turned away when the copy is ready wastes the wait and the copy.
+        if (!AdmissionCheck(dungeonZone, character))
+        {
+            character.SendPacket(new SCAppliedToInstantGamePacket(catalogId, errorMessageId: 1));
+            return true;
+        }
 
         if (character.Level < dungeonZone.LevelMin || character.Level > dungeonZone.LevelMax)
         {
@@ -651,9 +672,11 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
     private void EnterDungeon(IndunMatchSession session)
     {
         var zone = ZoneManager.Instance.GetZoneByKey(session.ZoneKey);
-        if (zone == null)
+        var dungeonZone = IndunGameData.Instance.GetDungeonZoneByCatalogId(session.CatalogId);
+        if (zone == null || dungeonZone == null)
         {
-            Logger.Warn("IndunMatchmaking missing zone key={0} catalog={1}", session.ZoneKey, session.CatalogId);
+            Logger.Warn("IndunMatchmaking missing zone or dungeon data key={0} catalog={1}",
+                session.ZoneKey, session.CatalogId);
             CleanupSession(session);
             return;
         }
@@ -688,17 +711,18 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
         // only publish playing-state after that call succeeds — level, gear, party, capacity, and
         // restore-cooldown can still refuse on the fallback path after the daily check.
         var rejected = new List<Character>();
-        var candidates = preparedDungeon != null
-            ? Partition(characters, preparedDungeon.CanQueuePlayer, rejected)
-            : Partition(characters, ch => CanAdmitFreshVisit(session, ch), rejected);
-        foreach (var ch in rejected)
-            ch.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
-
         var entered = new List<Character>();
-        foreach (var ch in candidates)
+        foreach (var ch in characters)
         {
+            if (preparedDungeon == null && !CanAdmitFreshVisit(session, ch))
+            {
+                ch.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
+                rejected.Add(ch);
+                continue;
+            }
+
             var admitted = preparedDungeon != null
-                ? preparedDungeon.QueuePlayer(ch)
+                ? TryEnterPreparedPlayer(preparedDungeon, dungeonZone, ch)
                 : IndunManager.Instance.RequestDungeonInstance(ch, zone.Id, 0);
             if (!IndunMatchEnterRules.ShouldPublishEnter(admitted))
             {
@@ -731,13 +755,17 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
         CleanupSession(session);
     }
 
-    private static List<Character> Partition(List<Character> characters, Func<Character, bool> canAdmit,
-        List<Character> rejected)
+    private bool TryEnterPreparedPlayer(Dungeon dungeon, IndunZone dungeonZone, Character character)
     {
-        var admitted = new List<Character>();
-        foreach (var ch in characters)
-            (canAdmit(ch) ? admitted : rejected).Add(ch);
-        return admitted;
+        if (!PreparedCanQueue(dungeon, character))
+        {
+            character.SendErrorMessage(ErrorMessageType.InstanceVisitLimit);
+            return false;
+        }
+
+        // This is deliberately the last call before QueuePlayer, which charges the daily entry and
+        // changes copy membership. Queue and invitation time may span a schedule edge or buff change.
+        return AdmissionCheck(dungeonZone, character) && PreparedQueuePlayer(dungeon, character);
     }
 
     /// <summary>
@@ -808,10 +836,21 @@ public class IndunMatchmakingManager : Singleton<IndunMatchmakingManager>, IIndu
             var ch = WorldManager.Instance.GetCharacterById(charId);
             if (ch == null)
                 continue;
+
+            // Same apply-time admission as TryApply, so a squad is turned away on the Register button
+            // rather than after its copy is built. Both refusals answer false: SquadManager.ApplyMatching
+            // reads true as "queued" and latches MatchingApplied/Joining, which would leave the squad
+            // showing as matching with nothing queued and block Register (SquadRules.cs:89-90).
+            if (!AdmissionCheck(dungeonZone, ch))
+            {
+                ch.SendPacket(new SCAppliedToInstantGamePacket(catalogId, errorMessageId: 1));
+                return false;
+            }
+
             if (ch.Level < dungeonZone.LevelMin || ch.Level > dungeonZone.LevelMax)
             {
                 ch.SendPacket(new SCAppliedToInstantGamePacket(catalogId, errorMessageId: 1));
-                return true;
+                return false;
             }
             TryWithdraw(ch);
             queued.Add(new IndunMatchApplicant(charId, squadId, now));

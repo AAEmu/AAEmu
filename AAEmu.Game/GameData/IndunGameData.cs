@@ -661,7 +661,8 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
         {
             command.CommandText =
                 "SELECT id, target_id, enter_count, reset_item_id, reset_limit, reset_item_increase_scale, permit_enter_count_item_id, " +
-                "direct_matching, matching_invitation_type_id, min_matching_time, apply_waiting_time, matching_cleanup_term, matching_intergration_level_id " +
+                "direct_matching, matching_invitation_type_id, min_matching_time, apply_waiting_time, matching_cleanup_term, matching_intergration_level_id, " +
+                "permission_white_list_bit, use_utc " +
                 "FROM instances WHERE target_type = 'IndunZone'";
             command.Prepare();
             using var sqliteReader = command.ExecuteReader();
@@ -686,6 +687,58 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                 zone.ApplyWaitingTimeMs = reader.GetUInt32("apply_waiting_time", 0);
                 zone.MatchingCleanupTermMs = reader.GetUInt32("matching_cleanup_term", 0);
                 zone.MatchingIntegrationLevelId = (byte)reader.GetUInt32("matching_intergration_level_id", 0);
+                zone.PermissionWhiteListBit = reader.GetUInt32("permission_white_list_bit", 0);
+                zone.UseUtcEntranceTimes = reader.GetBoolean("use_utc");
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT iet.instance_id, iet.day_of_week, iet.start_hour, iet.start_minute,
+                                           iet.end_hour, iet.end_minute
+                                    FROM instance_entrance_times iet
+                                    INNER JOIN instances i ON i.id = iet.instance_id
+                                    WHERE i.target_type = 'IndunZone'
+                                    ORDER BY iet.instance_id, iet.day_of_week, iet.start_hour, iet.start_minute";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var zone = GetDungeonZoneByCatalogId(reader.GetUInt32("instance_id"));
+                zone?.EntranceTimes.Add(new InstanceEntranceTime(
+                    (int)reader.GetUInt32("day_of_week"),
+                    (int)reader.GetUInt32("start_hour"),
+                    (int)reader.GetUInt32("start_minute"),
+                    (int)reader.GetUInt32("end_hour"),
+                    (int)reader.GetUInt32("end_minute")));
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT ipt.instance_id, ipt.kind_id, ipt.tag_id
+                                    FROM instance_permission_tags ipt
+                                    INNER JOIN instances i ON i.id = ipt.instance_id
+                                    WHERE i.target_type = 'IndunZone'
+                                    ORDER BY ipt.instance_id, ipt.kind_id, ipt.id";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var kindId = reader.GetUInt32("kind_id");
+                if (kindId != (uint)InstancePermissionTagKind.Buff)
+                {
+                    var instanceId = reader.GetUInt32("instance_id");
+                    throw new InvalidDataException(
+                        $"IndunZone instance {instanceId} uses unsupported permission tag kind {kindId}; refusing to load an unenforced admission rule.");
+                }
+
+                var zone = GetDungeonZoneByCatalogId(reader.GetUInt32("instance_id"));
+                zone?.PermissionTags.Add(new InstancePermissionTag(
+                    (InstancePermissionTagKind)kindId,
+                    reader.GetUInt32("tag_id")));
             }
         }
         #endregion

@@ -60,6 +60,18 @@ public class IndunZone
     /// </summary>
     public uint InstanceCatalogId { get; set; }
 
+    /// <summary>Use UTC rather than the server's local civil time for entrance windows.</summary>
+    public bool UseUtcEntranceTimes { get; set; }
+
+    /// <summary>
+    /// Raw <c>instances.permission_white_list_bit</c>. Current IndunZone content leaves it clear and uses
+    /// blacklist buff tags; other target types own their whitelist behavior.
+    /// </summary>
+    public uint PermissionWhiteListBit { get; set; }
+
+    public List<InstanceEntranceTime> EntranceTimes { get; } = [];
+    public List<InstancePermissionTag> PermissionTags { get; } = [];
+
     /// <summary><c>instances.reset_item_id</c> for IVT_RESET tickets.</summary>
     public uint ResetItemId { get; set; }
     /// <summary><c>instances.reset_limit</c> (0 = unlimited).</summary>
