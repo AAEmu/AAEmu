@@ -14,6 +14,17 @@ namespace AAEmu.Game.Models.Game.Skills.Plots.Tree;
 
 public class PlotTargetInfo
 {
+    /// <summary>
+    /// Returns the concrete units represented by a plot selection for the SC/WZ target-id list.
+    /// Position anchors use <see cref="uint.MaxValue"/> and are not valid packed object ids.
+    /// </summary>
+    public static uint[] RealTargetUnitIds(IEnumerable<BaseUnit> targets) => (targets ?? [])
+        .Where(t => t != null && t.ObjId != 0 && t.ObjId != uint.MaxValue)
+        .Select(t => t.ObjId)
+        .Distinct()
+        .Take(byte.MaxValue)
+        .ToArray();
+
     public BaseUnit Source { get; set; }
     /// <summary>enum_plot_area_target_kinds: which unit an area shape is aimed at.</summary>
     private BaseUnit ResolveAreaAnchor(AreaShape shape, PlotState state, BaseUnit currentPosition) =>

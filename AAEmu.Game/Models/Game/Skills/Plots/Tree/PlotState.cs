@@ -1,6 +1,7 @@
 ﻿using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.Game.Skills.Plots;
+using AAEmu.Game.Core.Packets.G2C;
 
 namespace AAEmu.Game.Models.Game.Skills.Plots.Tree;
 
@@ -14,8 +15,12 @@ public sealed class PlotClientEvent
     public uint UnkId { get; init; }
     public ushort CastWire { get; init; }
     public byte Flag { get; init; }
-    public byte TargetCount { get; init; }
+    public uint[] TargetUnitIds { get; init; } = [];
     public ushort ChannelWire { get; init; }
+
+    public SCPlotEventPacket ToPacket() => new(
+        Tl, EventId, SkillId, Caster, Target, UnkId, CastWire, Flag, 0, TargetUnitIds,
+        channelingTime: ChannelWire);
 }
 
 public class PlotState(
