@@ -1,4 +1,5 @@
 ﻿using AAEmu.Game.Core.Managers.UnitManagers;
+using AAEmu.Game.Models.Game.DoodadObj.Funcs;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.DoodadObj;
@@ -23,5 +24,17 @@ public class DoodadFunc
         // Helm attachments store occupy skill on doodad_funcs.func_skill_id; F-use often arrives with skillId 0.
         var appliedSkill = skillId != 0 ? skillId : SkillId;
         template?.Use(caster, owner, appliedSkill, nextPhase);
+
+        // Some FakeUse rows are gated by doodad_funcs.func_skill_id rather than the template's
+        // fake_skill_id. Only advance after this row's declared skill was dispatched; accepting any
+        // positive skill here lets unrelated interactions trigger the func.
+        if (caster != null &&
+            template is DoodadFuncFakeUse &&
+            SkillId > 0 &&
+            appliedSkill == SkillId &&
+            nextPhase > 0)
+        {
+            owner.ToNextPhase = true;
+        }
     }
 }

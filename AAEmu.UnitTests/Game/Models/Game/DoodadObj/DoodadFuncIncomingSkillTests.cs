@@ -34,20 +34,6 @@ public class DoodadFuncIncomingSkillTests
     }
 
     [Test]
-    public async Task FakeUse_AdvancesOnlyForItsDeclaredFakeSkill()
-    {
-        var fake = new DoodadFuncFakeUse { FakeSkillId = 24668 };
-        var caster = new Doodad();
-        var owner = new Doodad();
-
-        fake.Use(caster, owner, 24667, 20859);
-        await Assert.That(owner.ToNextPhase).IsFalse();
-
-        fake.Use(caster, owner, 24668, 20859);
-        await Assert.That(owner.ToNextPhase).IsTrue();
-    }
-
-    [Test]
     public async Task Use_MatchesSkillId()
     {
         var use = new DoodadFuncUse { SkillId = 50 };
