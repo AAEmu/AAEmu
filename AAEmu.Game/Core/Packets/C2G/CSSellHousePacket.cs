@@ -28,6 +28,11 @@ public class CSSellHousePacket() : GamePacket(CSOffsets.CSSellHousePacket, 1)
         while (stream.HasBytes)
             stream.ReadByte();
 
+        // Character select still dispatches this packet. With no character it must not fall through
+        // to the command clear, which accepts a null caller.
+        if (Connection.ActiveChar == null)
+            return;
+
         Logger.Debug("SellHouse, Tl: {0}, MoneyAmount: {1}, SellTo: {2}, IsPublic: {3}", tl, moneyAmount, sellTo, isPublic);
 
         // Get buyer Id
@@ -54,7 +59,7 @@ public class CSSellHousePacket() : GamePacket(CSOffsets.CSSellHousePacket, 1)
             HousingManager.Instance.SetForSale(tl, (uint)moneyAmount, sellToId, Connection.ActiveChar, isPublic);
         }
         else
-            HousingManager.Instance.CancelForSale(tl, true);
+            HousingManager.Instance.CancelForSale(tl, Connection.ActiveChar, true);
     }
 }
 
