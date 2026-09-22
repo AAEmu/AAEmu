@@ -63,8 +63,9 @@ public class CraftOrderCommand : ICommand
                 Probe(character, args, messageOutput);
                 break;
             case "clear":
-                CraftOrderManager.Instance.Clear();
-                messageOutput.SendMessage($"[{CommandNames[0]}] board cleared");
+                messageOutput.SendMessage(CraftOrderManager.Instance.Clear()
+                    ? $"[{CommandNames[0]}] board cleared"
+                    : $"[{CommandNames[0]}] clear refused: the store could not be wiped, the board is unchanged");
                 break;
             default:
                 messageOutput.SendMessage($"[{CommandNames[0]}] {GetCommandLineHelp()}");

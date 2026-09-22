@@ -11,6 +11,9 @@ public static class CraftOrderSheetRules
     /// <summary>
     /// ActionResult kind that resets the post frame and leaves craft-order mode.
     /// The client's POST_CRAFT_ORDER handler listens for this, not the fill kind.
+    /// x2game-dev.dll 0x394e1ec0 (the SCCraftOrderActionResult handler) raises UI event 0x23a
+    /// for kind 1 and 0x239 for kind 2; the event table 0x393c5bc0 registers from 0x3a7f2fb0,
+    /// which puts POST_CRAFT_ORDER at index 0x23a and CANCEL_CRAFT_ORDER at 0x239.
     /// </summary>
     public const byte PostActionKind = 1;
 
