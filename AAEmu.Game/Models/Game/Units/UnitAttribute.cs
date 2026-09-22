@@ -361,14 +361,7 @@ public enum UnitAttribute : uint
     /// </summary>
     MeleeBlock = 21,
 
-    /// <summary>
-    /// 10.0.2's <c>enum_unit_attribute</c> has no row for 127 either, but
-    /// expedition buff 10's authoritative <c>unit_modifiers</c> rows use it. Kept as a normal member
-    /// so the content id is not lost while battlefield honor awards remain unavailable.
-    /// </summary>
-    HonorPointGainBattleFieldMul = 127,
-
-    // The nine below are missing from that table *and* unreferenced by every server code path (grep of
+    // The ten below are missing from that table *and* unreferenced by every server code path (grep of
     // AAEmu.Game, AAEmu.World and AAEmu.UnitTests), so nothing can produce them. They are obsolete
     // rather than deleted so the ids cannot be reused for something else unnoticed.
     [Obsolete("Id 20 is not in the 10.0.2 enum_unit_attribute table and has no consumer.")]
@@ -397,5 +390,8 @@ public enum UnitAttribute : uint
 
     [Obsolete("Id 126 is not in the 10.0.2 enum_unit_attribute table and has no consumer.")]
     HonorPointGainBattleField = 126,
+
+    [Obsolete("Id 127 is not in the 10.0.2 enum_unit_attribute table and has no consumer.")]
+    HonorPointGainBattleFieldMul = 127,
 
 }

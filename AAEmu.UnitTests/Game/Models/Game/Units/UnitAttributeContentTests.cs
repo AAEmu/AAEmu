@@ -31,7 +31,7 @@ public class UnitAttributeContentTests
     /// <summary>Of those, the ones no content and no code can produce.</summary>
     private static readonly uint[] DroppedAndObsolete =
     [
-        20, 59, 60, 65, 79, 80, 84, 85, 126
+        20, 59, 60, 65, 79, 80, 84, 85, 126, 127
     ];
 
     private static Dictionary<uint, string> MembersById()
@@ -129,9 +129,8 @@ public class UnitAttributeContentTests
             .ToList();
         await Assert.That(notObsolete).IsEmpty();
 
-        // 21 is live: unit_attribute_limits row 8 bounds it. 127 is live: ExpeditionBuffGameData hands
-        // it out for expedition buff 10. Obsoleting either would hide a working id.
-        var liveButObsolete = new[] { UnitAttribute.MeleeBlock, UnitAttribute.HonorPointGainBattleFieldMul }
+        // 21 is live: unit_attribute_limits row 8 bounds it. Obsoleting it would hide a working id.
+        var liveButObsolete = new[] { UnitAttribute.MeleeBlock }
             .Where(value => enumType.GetField(value.ToString())
                 .GetCustomAttributes(typeof(ObsoleteAttribute), false).Length != 0)
             .ToList();
