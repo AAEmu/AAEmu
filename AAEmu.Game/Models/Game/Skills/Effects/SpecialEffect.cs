@@ -17,25 +17,18 @@ public class SpecialEffect : EffectTemplate
 
     public override bool OnActionTime => false;
 
-    private static readonly Dictionary<SpecialType, bool> ImplementedCache = [];
-
     /// <summary>
-    /// Whether an action class exists for this special type. Callers use it to tell "the skill did
-    /// something" apart from "the skill was a no-op", which matters before charging the player for
-    /// the cast.
+    /// Whether a cast of this type does something the player should be charged for: World executes it
+    /// (<see cref="SpecialEffectOwnership.Gameplay"/>), or the client plays it and World is right to
+    /// stay out (<see cref="SpecialEffectOwnership.ClientVisual"/>). An action class on its own proves
+    /// nothing, since several only log; <see cref="SpecialEffectOwnershipRules"/> is the answer, and
+    /// <see cref="Skill.IsPureNoOpCast"/> reads it before charging reagents.
     /// </summary>
-    public static bool IsImplemented(SpecialType specialType)
-    {
-        lock (ImplementedCache)
-        {
-            if (ImplementedCache.TryGetValue(specialType, out var known))
-                return known;
+    public static bool IsImplemented(SpecialType specialType) =>
+        SpecialEffectOwnershipRules.CountsAsExecuted(SpecialEffectOwnershipRules.Classify(specialType));
 
-            var exists = ResolveActionType(specialType) != null;
-            ImplementedCache[specialType] = exists;
-            return exists;
-        }
-    }
+    /// <summary>Whether an action class exists under SpecialEffects for the type. The tests pin the table against it.</summary>
+    public static bool HasActionClass(SpecialType specialType) => ResolveActionType(specialType) != null;
 
     private static Type ResolveActionType(SpecialType specialType)
     {
@@ -52,13 +45,18 @@ public class SpecialEffect : EffectTemplate
             "SpecialEffect, Special: {0}, Values: [{1}, {2}, {3}, {4}, {5}, {6}, {7}]",
             SpecialEffectTypeId, Value1, Value2, Value3, Value4, Value5, Value6, Value7);
 
+        var ownership = SpecialEffectOwnershipRules.Classify(SpecialEffectTypeId);
+        if (ownership == SpecialEffectOwnership.ClientVisual)
+            return; // the client plays it from the fired skill or the plot event; nothing runs here
+
         var classType = ResolveActionType(SpecialEffectTypeId);
         if (classType == null)
         {
-            // We don't need to log every missing effect as some are client-sided
-            if (SpecialEffectTypeId == SpecialType.Projectile)
-                return;
-            Logger.Warn("Unknown special effect: {0}", SpecialEffectTypeId);
+            if (ownership == SpecialEffectOwnership.Gameplay)
+                Logger.Warn("Special effect {0} is classified gameplay but has no action class", SpecialEffectTypeId);
+            else
+                Logger.Debug("Unsupported special effect {0} on skill {1}: nothing executed",
+                    SpecialEffectTypeId, source.Skill?.Template?.Id ?? 0);
             return;
         }
 
