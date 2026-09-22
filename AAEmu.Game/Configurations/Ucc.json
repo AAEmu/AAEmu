@@ -1,14 +1,6 @@
 {
     "Ucc": {
         "CacheVersion": 5,
-        "CrestInkCreationCost": 50000,
-        "ItemApply": {
-            "MaterialItemId": 17662,
-            "MaterialCount": 1
-        },
-        "HousingApply": {
-            "MaterialItemId": 17662,
-            "MaterialCount": 1
-        }
+        "CrestInkCreationCost": 50000
     }
 }

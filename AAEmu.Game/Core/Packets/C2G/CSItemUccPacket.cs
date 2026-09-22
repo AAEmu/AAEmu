@@ -8,8 +8,8 @@ using AAEmu.Game.Models.Game.Ucc;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// Applies the UCC carried by one of the sender's own items to a batch of the sender's own items.
-/// Authorization, material consumption and persistence are decided by <see cref="UccApplyService"/>;
+/// Applies the UCC printed by one of the sender's own crest stamps to a batch of the sender's own items.
+/// Authorization, stamp consumption and persistence are decided by <see cref="UccApplyService"/>;
 /// this class only parses the body and reports the outcome.
 /// </summary>
 /// <remarks>
@@ -67,9 +67,8 @@ public class CSItemUccPacket() : GamePacket(CSOffsets.CSItemUccPacket, 1)
                 Connection.SendPacket(new SCItemTaskSuccessPacket(ItemTaskType.GainItemWithUcc, bits, []));
                 break;
 
-            case UccApplyOutcome.MissingMaterialConfig:
             case UccApplyOutcome.NoChange:
-                // The service already logged the missing row; an unchanged repeat request is silent.
+                // An unchanged repeat request is silent.
                 break;
 
             default:

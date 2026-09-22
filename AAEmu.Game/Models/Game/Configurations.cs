@@ -375,33 +375,6 @@ public class UccConfig
     /// transmits no price and game content has no Crest Ink price row, so this remains server policy.
     /// </summary>
     public int CrestInkCreationCost { get; set; } = 50000;
-
-    /// <summary>
-    /// Material consumed when an applied UCC targets inventory items. Null when the config file
-    /// carries no row; the item-apply path then refuses every request loudly instead of falling
-    /// back to a shipped value.
-    /// </summary>
-    public UccApplyMaterialConfig ItemApply { get; set; }
-
-    /// <summary>
-    /// Material consumed when an applied UCC targets a house slot. Null when the config file
-    /// carries no row; the housing-apply path then refuses every request loudly instead of falling
-    /// back to a shipped value. Removals are free and are not gated by this row.
-    /// </summary>
-    public UccApplyMaterialConfig HousingApply { get; set; }
-}
-
-/// <summary>
-/// One configured material row for a UCC apply: which item template is consumed and how many
-/// units of it a single successful apply pays.
-/// </summary>
-public class UccApplyMaterialConfig
-{
-    /// <summary>Item template consumed on a successful apply.</summary>
-    public uint MaterialItemId { get; set; }
-
-    /// <summary>Units of that template consumed on a single successful apply.</summary>
-    public int MaterialCount { get; set; }
 }
 
 public class FeaturesConfig

@@ -12,8 +12,9 @@ using AAEmu.Game.Models.Stream;
 namespace AAEmu.UnitTests.Game.Core.Managers.Stream;
 
 /// <summary>
-/// Upload-status handling: an upload that reports failure is acknowledged, its queued upload is
-/// discarded, and the granting confirm path is never reached for it.
+/// Upload-status handling: the client reports zero once every part went out and anything else when
+/// sending failed. A failed upload is acknowledged, its queued upload is discarded, and the granting
+/// confirm path is never reached for it.
 /// </summary>
 public sealed class UccUploadStatusTests
 {
@@ -61,7 +62,8 @@ public sealed class UccUploadStatusTests
         await Assert.That(manager.HasPendingUpload(connection)).IsTrue();
         await Assert.That(session.Sent.Count).IsEqualTo(1); // the readiness acknowledgement only
 
-        var action = manager.HandleUploadStatus(connection, 5);
+        // One is what the client sends after a part failed to go out.
+        var action = manager.HandleUploadStatus(connection, 1);
 
         await Assert.That(action).IsEqualTo(UccManager.UccUploadStatusAction.UploadFailed);
         await Assert.That(manager.HasPendingUpload(connection)).IsFalse();
@@ -69,33 +71,20 @@ public sealed class UccUploadStatusTests
 
         // With the queue empty there is nothing left for a later completion status to grant, and
         // confirming an empty queue sends nothing at all.
-        var late = manager.HandleUploadStatus(connection, UccManager.UploadStatusTransferComplete);
+        var late = manager.HandleUploadStatus(connection, UccManager.UploadStatusComplete);
         await Assert.That(late).IsEqualTo(UccManager.UccUploadStatusAction.ConfirmUpload);
         await Assert.That(manager.HasPendingUpload(connection)).IsFalse();
         await Assert.That(session.Sent.Count).IsEqualTo(2);
     }
 
     [Test]
-    public async Task ReadyUploadStatus_KeepsUploadPendingWithoutGranting()
+    public async Task UploadStatus_Classification_ZeroConfirmsAndEverythingElseFails()
     {
-        var (manager, connection, session) = CreatePendingUpload();
-
-        var action = manager.HandleUploadStatus(connection, UccManager.UploadStatusTransferReady);
-
-        await Assert.That(action).IsEqualTo(UccManager.UccUploadStatusAction.TransferInProgress);
-        await Assert.That(manager.HasPendingUpload(connection)).IsTrue();
-        await Assert.That(session.Sent.Count).IsEqualTo(2); // readiness ack plus a progress ack
-    }
-
-    [Test]
-    public async Task UploadStatus_Classification_OnlyCompletionReachesTheGrantingAction()
-    {
-        await Assert.That(UccManager.ClassifyUploadStatus(UccManager.UploadStatusTransferComplete))
+        await Assert.That(UccManager.UploadStatusComplete).IsEqualTo((byte)0);
+        await Assert.That(UccManager.ClassifyUploadStatus(0))
             .IsEqualTo(UccManager.UccUploadStatusAction.ConfirmUpload);
-        await Assert.That(UccManager.ClassifyUploadStatus(UccManager.UploadStatusTransferReady))
-            .IsEqualTo(UccManager.UccUploadStatusAction.TransferInProgress);
 
-        foreach (var status in new byte[] { 0, 1, 2, 5, 255 })
+        foreach (var status in new byte[] { 1, 2, 3, 4, 5, 255 })
         {
             await Assert.That(UccManager.ClassifyUploadStatus(status))
                 .IsEqualTo(UccManager.UccUploadStatusAction.UploadFailed);

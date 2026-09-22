@@ -380,13 +380,10 @@ public class UccManager(IUccIdManager uccIdManager) : Singleton<UccManager>, IUc
     }
 
     /// <summary>
-    /// The client's transfer-status vocabulary on this stream: it reports readiness before it starts
-    /// sending parts and completion once the last part is in. Only completion finalizes an upload.
+    /// The upload-status byte the client sends once it has tried every part of an upload: zero when
+    /// every part went out, anything else when sending failed.
     /// </summary>
-    public const byte UploadStatusTransferReady = 4;
-
-    /// <inheritdoc cref="UploadStatusTransferReady"/>
-    public const byte UploadStatusTransferComplete = 3;
+    public const byte UploadStatusComplete = 0;
 
     /// <summary>What the server does after reading a client upload-status byte.</summary>
     public enum UccUploadStatusAction
@@ -394,24 +391,16 @@ public class UccManager(IUccIdManager uccIdManager) : Singleton<UccManager>, IUc
         /// <summary>The upload completed: finalize it and grant what a finished upload grants.</summary>
         ConfirmUpload,
 
-        /// <summary>The client reports progress; the queued upload stays open and nothing is granted.</summary>
-        TransferInProgress,
-
         /// <summary>The upload did not complete: discard it, grant nothing, acknowledge the failure.</summary>
         UploadFailed,
     }
 
     /// <summary>
-    /// Maps a client upload-status byte onto the server's response. Anything outside the
-    /// readiness/completion vocabulary fails closed, so a failed upload can never reach the
-    /// grant path.
+    /// Maps a client upload-status byte onto the server's response. Only the all-parts-sent status
+    /// confirms; every other value fails closed, so a failed upload can never reach the grant path.
     /// </summary>
-    public static UccUploadStatusAction ClassifyUploadStatus(byte status) => status switch
-    {
-        UploadStatusTransferComplete => UccUploadStatusAction.ConfirmUpload,
-        UploadStatusTransferReady => UccUploadStatusAction.TransferInProgress,
-        _ => UccUploadStatusAction.UploadFailed,
-    };
+    public static UccUploadStatusAction ClassifyUploadStatus(byte status) =>
+        status == UploadStatusComplete ? UccUploadStatusAction.ConfirmUpload : UccUploadStatusAction.UploadFailed;
 
     /// <summary>True while an upload for this connection is still waiting to be finalized.</summary>
     public bool HasPendingUpload(StreamConnection connection) =>
@@ -425,18 +414,10 @@ public class UccManager(IUccIdManager uccIdManager) : Singleton<UccManager>, IUc
     public UccUploadStatusAction HandleUploadStatus(StreamConnection connection, byte status)
     {
         var action = ClassifyUploadStatus(status);
-        switch (action)
-        {
-            case UccUploadStatusAction.ConfirmUpload:
-                ConfirmDefaultUcc(connection);
-                break;
-            case UccUploadStatusAction.TransferInProgress:
-                connection.SendPacket(new TCEmblemStreamRecvStatusPacket(EmblemStreamStatus.Continue));
-                break;
-            default:
-                FailUpload(connection);
-                break;
-        }
+        if (action == UccUploadStatusAction.ConfirmUpload)
+            ConfirmDefaultUcc(connection);
+        else
+            FailUpload(connection);
 
         return action;
     }

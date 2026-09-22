@@ -1,4 +1,5 @@
 using AAEmu.Game.Core.Managers;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
@@ -15,19 +16,19 @@ public enum UccApplyOutcome
     /// <summary>Everything the request asked for is already in that state, so nothing was consumed.</summary>
     NoChange,
 
-    /// <summary>The configured material row for this apply kind is absent or invalid; the request is skipped.</summary>
-    MissingMaterialConfig,
-
     /// <summary>The sender does not own the source, the target, or the house.</summary>
     Unauthorized,
 
     /// <summary>A referenced object does not exist.</summary>
     NotFound,
 
-    /// <summary>The request body is malformed or carries no usable placement.</summary>
+    /// <summary>The request body is malformed, carries no usable placement, or its source is not a crest stamp.</summary>
     InvalidRequest,
 
-    /// <summary>The sender does not hold the configured material; nothing was consumed.</summary>
+    /// <summary>A target item is not one of the templates that can carry a crest; nothing was consumed.</summary>
+    NotApplicable,
+
+    /// <summary>The crest stamp could not be consumed; nothing was applied.</summary>
     InsufficientMaterial,
 }
 
@@ -88,22 +89,19 @@ public sealed class UccHousingApplyResult
 }
 
 /// <summary>
-/// The character-scoped half of a UCC apply: finding items the sender owns and paying the
-/// configured material through the normal inventory item-task path.
+/// The character-scoped half of a UCC apply: finding items the sender owns and spending the crest stamp
+/// through the normal inventory item-task path.
 /// </summary>
 public interface IUccApplyInventory
 {
     /// <summary>Returns an item of the sender's own containers, or null when it is not owned or unknown.</summary>
     Item FindOwnedItem(ulong itemId);
 
-    /// <summary>Returns the sender's own item carrying the given UCC (deterministic lowest id), or null.</summary>
-    Item FindOwnedCarrier(ulong uccId);
+    /// <summary>Returns the sender's own crest stamp carrying the given UCC (deterministic lowest id), or null.</summary>
+    Item FindOwnedStamp(ulong uccId);
 
-    /// <summary>Units of the template the sender holds in their inventory.</summary>
-    int OwnedCount(uint templateId);
-
-    /// <summary>Consumes units through the item-task path and returns how many were actually consumed.</summary>
-    int Consume(uint templateId, int count, Item preferredItem);
+    /// <summary>Consumes one unit of that exact stamp through the item-task path; false when it could not.</summary>
+    bool ConsumeStamp(Item stamp);
 }
 
 /// <summary>The world-scoped half of a UCC apply: resolving the target house and writing its slots.</summary>
@@ -116,57 +114,72 @@ public interface IUccHousingStore
 }
 
 /// <summary>
-/// Authorization, material consumption and slot/item mutation for UCC apply requests.
+/// Authorization, stamp consumption and slot/item mutation for UCC apply requests.
 /// Every request is preflighted before anything is consumed: a rejected request changes nothing.
 /// </summary>
+/// <remarks>
+/// A crest is applied with a crest stamp, and every stamp carries the UCC of the crest it prints. The apply
+/// therefore spends the stamp the request names, never another item of the same template, which would be a
+/// stamp for a different crest.
+/// </remarks>
 public sealed class UccApplyService
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private readonly UccConfig _config;
     private readonly IUccApplyInventory _inventory;
     private readonly IUccHousingStore _housing;
+    private readonly Func<uint, bool> _takesCrest;
 
-    public UccApplyService(UccConfig config, IUccApplyInventory inventory, IUccHousingStore housing)
+    /// <param name="takesCrest">Whether an item template can carry a crest (the shipped applicable list).</param>
+    public UccApplyService(IUccApplyInventory inventory, IUccHousingStore housing, Func<uint, bool> takesCrest)
     {
-        _config = config;
         _inventory = inventory;
         _housing = housing;
+        _takesCrest = takesCrest;
     }
 
     /// <summary>Builds the runtime service bound to a character's inventory and the housing registry.</summary>
     public static UccApplyService ForCharacter(Character character) =>
-        new(AppConfiguration.Instance.Ucc, new CharacterUccApplyInventory(character), new HousingManagerUccStore());
+        new(new CharacterUccApplyInventory(character), new HousingManagerUccStore(), UccGameData.Instance.TakesCrest);
 
-    private static bool IsUsableRow(UccApplyMaterialConfig row) =>
-        row is { MaterialItemId: not 0, MaterialCount: >= 0 };
+    private static bool IsStamp(Item item) => item is { UccId: not 0 } && item.TemplateId == Item.CrestStamp;
 
     /// <summary>
-    /// Applies the UCC carried by an item the sender owns to every listed target the sender owns.
-    /// <paramref name="sourceRef"/> may name the carrier item itself or the UCC it carries; both
-    /// readings are resolved against the sender's own containers, so neither can reach a foreign item.
+    /// Everyone a house crest change has to reach: the players who have the house loaded, and the applier
+    /// even when the house is outside their view, each once.
+    /// </summary>
+    public static List<Character> HousingUpdateRecipients(Character applier, IEnumerable<Character> viewers)
+    {
+        var recipients = new List<Character>();
+        foreach (var viewer in viewers ?? [])
+        {
+            if (viewer != null && !recipients.Any(r => ReferenceEquals(r, viewer)))
+                recipients.Add(viewer);
+        }
+
+        if (applier != null && !recipients.Any(r => ReferenceEquals(r, applier)))
+            recipients.Add(applier);
+        return recipients;
+    }
+
+    /// <summary>
+    /// Applies the UCC printed by a crest stamp the sender owns to every listed target the sender owns.
+    /// <paramref name="sourceRef"/> may name the stamp itself or the UCC it carries; both readings are
+    /// resolved against the sender's own stamps, so neither can reach a foreign item or a crested piece.
     /// </summary>
     public UccItemApplyResult ApplyToItems(long sourceRef, IReadOnlyList<ulong> targetIds)
     {
-        var row = _config?.ItemApply;
-        if (!IsUsableRow(row))
-        {
-            Logger.Error("UCC item apply skipped: no usable Ucc.ItemApply material row is configured");
-            return new UccItemApplyResult(UccApplyOutcome.MissingMaterialConfig,
-                "Ucc.ItemApply material row is missing");
-        }
-
         if (sourceRef <= 0 || targetIds is null || targetIds.Count == 0)
             return new UccItemApplyResult(UccApplyOutcome.InvalidRequest, "request carries no source or no targets");
 
         var source = _inventory.FindOwnedItem((ulong)sourceRef);
-        if (source is null || source.UccId == 0)
-            source = _inventory.FindOwnedCarrier((ulong)sourceRef);
-        if (source is null || source.UccId == 0)
+        if (!IsStamp(source))
+            source = _inventory.FindOwnedStamp((ulong)sourceRef);
+        if (!IsStamp(source))
         {
-            Logger.Warn("UCC item apply rejected: the sender owns no item carrying UCC reference {0}", sourceRef);
+            Logger.Warn("UCC item apply rejected: the sender owns no crest stamp for reference {0}", sourceRef);
             return new UccItemApplyResult(UccApplyOutcome.Unauthorized,
-                "no owned item carries the requested UCC");
+                "no owned crest stamp carries the requested UCC");
         }
 
         var uccId = source.UccId;
@@ -185,6 +198,14 @@ public sealed class UccApplyService
                     $"target item {targetId} is not owned");
             }
 
+            if (_takesCrest == null || !_takesCrest(target.TemplateId))
+            {
+                Logger.Warn("UCC item apply rejected: target item {0} (template {1}) cannot carry a crest",
+                    targetId, target.TemplateId);
+                return new UccItemApplyResult(UccApplyOutcome.NotApplicable,
+                    $"target item {targetId} cannot carry a crest");
+            }
+
             if (target.UccId == uccId)
                 continue; // already carries this UCC; a repeat request must not pay again
 
@@ -197,48 +218,33 @@ public sealed class UccApplyService
                 UccId = uccId,
             };
 
-        if (_inventory.OwnedCount(row.MaterialItemId) < row.MaterialCount)
+        var stampTemplate = source.TemplateId;
+        if (!_inventory.ConsumeStamp(source))
         {
-            Logger.Warn("UCC item apply rejected: sender holds less than the configured material {0} x{1}",
-                row.MaterialItemId, row.MaterialCount);
+            Logger.Warn("UCC item apply aborted: crest stamp {0} could not be consumed, nothing applied", source.Id);
             return new UccItemApplyResult(UccApplyOutcome.InsufficientMaterial,
-                "configured material is not in the sender's inventory");
+                "the crest stamp could not be consumed");
         }
-
-        var preferred = source.TemplateId == row.MaterialItemId ? source : null;
-        var consumed = _inventory.Consume(row.MaterialItemId, row.MaterialCount, preferred);
-        if (consumed <= 0)
-        {
-            Logger.Warn("UCC item apply aborted: material {0} x{1} could not be consumed, nothing applied",
-                row.MaterialItemId, row.MaterialCount);
-            return new UccItemApplyResult(UccApplyOutcome.InsufficientMaterial,
-                "configured material could not be consumed");
-        }
-
-        if (consumed < row.MaterialCount)
-            Logger.Error(
-                "UCC item apply paid {0} of the configured {1} units of material {2}; continuing with the applied UCC",
-                consumed, row.MaterialCount, row.MaterialItemId);
 
         foreach (var target in changed)
         {
             target.UccId = uccId; // the setter marks the item dirty, so the existing item save persists it
         }
 
-        Logger.Info("UCC item apply: character {0} applied UCC {1} to {2} item(s), paid material {3} x{4}",
-            source.OwnerId, uccId, changed.Count, row.MaterialItemId, consumed);
+        Logger.Info("UCC item apply: character {0} applied UCC {1} to {2} item(s), spent crest stamp {3}",
+            source.OwnerId, uccId, changed.Count, source.Id);
 
         var result = new UccItemApplyResult(UccApplyOutcome.Applied, null) { UccId = uccId };
         result.ChangedItems.AddRange(changed);
-        result.ConsumedItemId = row.MaterialItemId;
-        result.ConsumedCount = consumed;
+        result.ConsumedItemId = stampTemplate;
+        result.ConsumedCount = 1;
         return result;
     }
 
     /// <summary>
     /// Applies or removes a UCC on one of a house's five user-content slots. The sender must be the
-    /// house's owner or co-owner. Removal consumes nothing; a successful apply pays the configured
-    /// housing material exactly once and writes the slot table.
+    /// house's owner or co-owner. Removal consumes nothing; a successful apply spends the crest stamp it
+    /// names and writes the slot table.
     /// </summary>
     public UccHousingApplyResult ApplyToHousing(Character character, ushort tlId,
         long sourceItemId, sbyte kind, sbyte slotIndex, int pos, bool hasPlacement, bool isRemove)
@@ -264,14 +270,6 @@ public sealed class UccApplyService
         if (isRemove)
             return RemoveFromHousing(house, tlId, slotIndex, position, hasPlacement);
 
-        var row = _config?.HousingApply;
-        if (!IsUsableRow(row))
-        {
-            Logger.Error("UCC housing apply skipped: no usable Ucc.HousingApply material row is configured");
-            return new UccHousingApplyResult(UccApplyOutcome.MissingMaterialConfig,
-                "Ucc.HousingApply material row is missing");
-        }
-
         if (!hasPlacement || slotIndex < 0 || slotIndex >= House.UccSlotCount)
             return new UccHousingApplyResult(UccApplyOutcome.InvalidRequest,
                 "housing apply carries no source item or an out-of-range slot")
@@ -292,6 +290,17 @@ public sealed class UccApplyService
             };
         }
 
+        if (!IsStamp(source))
+        {
+            Logger.Warn("UCC housing apply rejected: source item {0} (template {1}) is not a crest stamp",
+                source.Id, source.TemplateId);
+            return new UccHousingApplyResult(UccApplyOutcome.InvalidRequest, "the source is not a crest stamp")
+            {
+                HouseId = house.Id,
+                HouseTl = tlId,
+            };
+        }
+
         var slot = slots[slotIndex];
         var kindValue = (uint)(byte)kind;
         if (slot.UccId == source.UccId && slot.Kind == kindValue && slot.Position == position)
@@ -306,38 +315,20 @@ public sealed class UccApplyService
             };
         }
 
-        if (_inventory.OwnedCount(row.MaterialItemId) < row.MaterialCount)
+        var uccId = source.UccId;
+        var stampTemplate = source.TemplateId;
+        if (!_inventory.ConsumeStamp(source))
         {
-            Logger.Warn("UCC housing apply rejected: sender holds less than the configured material {0} x{1}",
-                row.MaterialItemId, row.MaterialCount);
+            Logger.Warn("UCC housing apply aborted: crest stamp {0} could not be consumed, nothing applied", source.Id);
             return new UccHousingApplyResult(UccApplyOutcome.InsufficientMaterial,
-                "configured material is not in the sender's inventory")
+                "the crest stamp could not be consumed")
             {
                 HouseId = house.Id,
                 HouseTl = tlId,
             };
         }
 
-        var preferred = source.TemplateId == row.MaterialItemId ? source : null;
-        var consumed = _inventory.Consume(row.MaterialItemId, row.MaterialCount, preferred);
-        if (consumed <= 0)
-        {
-            Logger.Warn("UCC housing apply aborted: material {0} x{1} could not be consumed, nothing applied",
-                row.MaterialItemId, row.MaterialCount);
-            return new UccHousingApplyResult(UccApplyOutcome.InsufficientMaterial,
-                "configured material could not be consumed")
-            {
-                HouseId = house.Id,
-                HouseTl = tlId,
-            };
-        }
-
-        if (consumed < row.MaterialCount)
-            Logger.Error(
-                "UCC housing apply paid {0} of the configured {1} units of material {2}; continuing with the applied UCC",
-                consumed, row.MaterialCount, row.MaterialItemId);
-
-        slot.UccId = source.UccId;
+        slot.UccId = uccId;
         slot.Kind = kindValue;
         slot.Position = position;
 
@@ -349,8 +340,8 @@ public sealed class UccApplyService
             UccKind = slot.Kind,
             UccPos = slot.Position,
             Persisted = _housing.SaveUccSlots(house),
-            ConsumedItemId = row.MaterialItemId,
-            ConsumedCount = consumed,
+            ConsumedItemId = stampTemplate,
+            ConsumedCount = 1,
         };
         result.ChangedSlots.Add(slotIndex);
 
@@ -358,8 +349,8 @@ public sealed class UccApplyService
             Logger.Warn("UCC housing apply: house {0} slot {1} updated in memory only", house.Id, slotIndex);
         else
             Logger.Info(
-                "UCC housing apply: character {0} applied UCC {1} to house {2} slot {3}, paid material {4} x{5}",
-                character.Id, slot.UccId, house.Id, slotIndex, row.MaterialItemId, consumed);
+                "UCC housing apply: character {0} applied UCC {1} to house {2} slot {3}, spent crest stamp {4}",
+                character.Id, slot.UccId, house.Id, slotIndex, source.Id);
 
         return result;
     }
@@ -427,7 +418,7 @@ public sealed class CharacterUccApplyInventory(Character character) : IUccApplyI
 {
     public Item FindOwnedItem(ulong itemId) => character.Inventory?.GetItemById(itemId);
 
-    public Item FindOwnedCarrier(ulong uccId)
+    public Item FindOwnedStamp(ulong uccId)
     {
         if (uccId == 0)
             return null;
@@ -439,7 +430,7 @@ public sealed class CharacterUccApplyInventory(Character character) : IUccApplyI
         Item best = null;
         foreach (var item in bag.Items)
         {
-            if (item is null || item.UccId != uccId)
+            if (item is null || item.UccId != uccId || item.TemplateId != Item.CrestStamp)
                 continue;
             if (best is null || item.Id < best.Id)
                 best = item;
@@ -448,22 +439,14 @@ public sealed class CharacterUccApplyInventory(Character character) : IUccApplyI
         return best;
     }
 
-    public int OwnedCount(uint templateId)
+    public bool ConsumeStamp(Item stamp)
     {
-        if (character.Inventory is null)
-            return 0;
-
-        character.Inventory.GetAllItemsByTemplate([SlotType.Inventory], templateId, -1, out _, out var counted);
-        return counted;
-    }
-
-    public int Consume(uint templateId, int count, Item preferredItem)
-    {
-        if (count <= 0)
-            return 0;
-
         var bag = character.Inventory?.Bag;
-        return bag?.ConsumeItem(ItemTaskType.ImprintUcc, templateId, count, preferredItem) ?? 0;
+        if (bag == null || stamp == null || !ReferenceEquals(stamp._holdingContainer, bag))
+            return false;
+
+        // The stamp is the preferred item, so the one unit comes out of exactly that stamp.
+        return bag.ConsumeItem(ItemTaskType.ImprintUcc, stamp.TemplateId, 1, stamp) == 1;
     }
 }
 

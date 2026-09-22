@@ -1,4 +1,3 @@
-using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Units;
@@ -9,53 +8,42 @@ using AAEmu.Game.Models.Game.Ucc;
 namespace AAEmu.UnitTests.Game.Models.Ucc;
 
 /// <summary>
-/// UCC apply authorization, material consumption, persistence and replay. A rejected request must
-/// consume nothing; a successful one pays exactly the configured material once.
+/// UCC apply authorization, stamp consumption, persistence and replay. A rejected request must consume
+/// nothing; a successful one spends exactly the crest stamp it names, once.
 /// </summary>
 public sealed class UccApplyServiceTests
 {
     private const ulong CarrierUccId = 42;
+    private const ulong OtherUccId = 43;
     private const ushort HouseTargetLabel = 500;
     private const int HousePosition = 1234;
+    private const uint CrestableTemplate = 900001;
+    private const uint UncrestableTemplate = 900002;
 
     private sealed class FakeInventory(List<Item> items) : IUccApplyInventory
     {
         public List<Item> Items { get; } = items;
 
-        public List<(uint TemplateId, int Count, ulong PreferredId)> ConsumeCalls { get; } = [];
+        public List<ulong> ConsumedStampIds { get; } = [];
+
+        public bool RefuseConsume { get; init; }
 
         public Item FindOwnedItem(ulong itemId) => Items.FirstOrDefault(i => i.Id == itemId);
 
-        public Item FindOwnedCarrier(ulong uccId) =>
-            Items.Where(i => i.UccId == uccId).OrderBy(i => i.Id).FirstOrDefault();
+        public Item FindOwnedStamp(ulong uccId) =>
+            Items.Where(i => i.UccId == uccId && i.TemplateId == Item.CrestStamp).OrderBy(i => i.Id).FirstOrDefault();
 
-        public int OwnedCount(uint templateId) =>
-            Items.Where(i => i.TemplateId == templateId).Sum(i => i.Count);
-
-        public int Consume(uint templateId, int count, Item preferredItem)
+        public bool ConsumeStamp(Item stamp)
         {
-            ConsumeCalls.Add((templateId, count, preferredItem?.Id ?? 0));
-            if (count <= 0)
-                return 0;
+            if (RefuseConsume || stamp == null || !Items.Contains(stamp) || stamp.Count <= 0)
+                return false;
 
-            var remaining = count;
-            var candidates = Items
-                .Where(i => i.TemplateId == templateId)
-                .OrderByDescending(i => preferredItem != null && i.Id == preferredItem.Id)
-                .ToList();
-
-            foreach (var item in candidates)
-            {
-                if (remaining == 0)
-                    break;
-                var take = Math.Min(item.Count, remaining);
-                item.Count -= take;
-                remaining -= take;
-            }
+            ConsumedStampIds.Add(stamp.Id);
+            stamp.Count -= 1;
 
             // An exhausted stack leaves the inventory, like the real container does.
             Items.RemoveAll(i => i.Count <= 0);
-            return count - remaining;
+            return true;
         }
     }
 
@@ -98,134 +86,160 @@ public sealed class UccApplyServiceTests
 
     private static ItemTemplate Template(uint id) => new() { Id = id };
 
-    private static Item Carrier() =>
-        new(9100, Template(Item.CrestStamp), 1) { OwnerId = 10, UccId = CarrierUccId };
+    private static Item Stamp(ulong id = 9100, ulong uccId = CarrierUccId, int count = 1) =>
+        new(id, Template(Item.CrestStamp), count) { OwnerId = 10, UccId = uccId };
 
-    private static Item Gear(ulong id) => new(id, Template(900001), 1) { OwnerId = 10 };
+    private static Item Gear(ulong id, uint template = CrestableTemplate) => new(id, Template(template), 1) { OwnerId = 10 };
 
-    private static UccConfig ConfigWithStampMaterial() => new()
-    {
-        ItemApply = new UccApplyMaterialConfig { MaterialItemId = Item.CrestStamp, MaterialCount = 1 },
-        HousingApply = new UccApplyMaterialConfig { MaterialItemId = Item.CrestStamp, MaterialCount = 1 },
-    };
+    private static bool TakesCrest(uint templateId) => templateId == CrestableTemplate;
+
+    private static UccApplyService Service(FakeInventory inventory, FakeHousingStore housing = null) =>
+        new(inventory, housing ?? new FakeHousingStore(), TakesCrest);
 
     [Test]
     public async Task ItemApply_UnauthorizedTarget_RejectsAndConsumesNothing()
     {
-        var source = Carrier();
+        var source = Stamp();
         var inventory = new FakeInventory([source]);
-        var service = new UccApplyService(ConfigWithStampMaterial(), inventory, new FakeHousingStore());
         var foreignGear = Gear(9200);
 
-        var result = service.ApplyToItems((long)source.Id, [foreignGear.Id]);
+        var result = Service(inventory).ApplyToItems((long)source.Id, [foreignGear.Id]);
 
         await Assert.That(result.Outcome).IsEqualTo(UccApplyOutcome.Unauthorized);
-        await Assert.That(inventory.ConsumeCalls.Count).IsEqualTo(0);
+        await Assert.That(inventory.ConsumedStampIds).IsEmpty();
         await Assert.That(source.Count).IsEqualTo(1);
-        await Assert.That(source.UccId).IsEqualTo(CarrierUccId);
         await Assert.That(foreignGear.UccId).IsEqualTo(0ul);
     }
 
     [Test]
-    public async Task ItemApply_Success_ConsumesConfiguredMaterialOnceAndAppliesTheUcc()
+    public async Task ItemApply_Success_SpendsTheSourceStampOnceAndAppliesTheUcc()
     {
-        var source = Carrier();
-        var materialStack = new Item(9150, Template(Item.CrestInk), 3) { OwnerId = 10 };
+        var source = Stamp();
         var gear = Gear(9300);
-        var inventory = new FakeInventory([source, materialStack, gear]);
-        var config = new UccConfig
-        {
-            ItemApply = new UccApplyMaterialConfig { MaterialItemId = Item.CrestInk, MaterialCount = 1 },
-        };
-        var service = new UccApplyService(config, inventory, new FakeHousingStore());
+        var inventory = new FakeInventory([source, gear]);
 
-        var result = service.ApplyToItems((long)source.Id, [gear.Id]);
+        var result = Service(inventory).ApplyToItems((long)source.Id, [gear.Id]);
 
         await Assert.That(result.Outcome).IsEqualTo(UccApplyOutcome.Applied);
         await Assert.That(result.UccId).IsEqualTo(CarrierUccId);
         await Assert.That(gear.UccId).IsEqualTo(CarrierUccId);
         await Assert.That(gear.IsDirty).IsTrue();
-        await Assert.That(inventory.ConsumeCalls.Count).IsEqualTo(1);
-        await Assert.That(inventory.ConsumeCalls[0].TemplateId).IsEqualTo(Item.CrestInk);
-        await Assert.That(inventory.ConsumeCalls[0].Count).IsEqualTo(1);
-        await Assert.That(materialStack.Count).IsEqualTo(2);
+        await Assert.That(inventory.ConsumedStampIds).IsEquivalentTo(new[] { source.Id });
+        await Assert.That(result.ConsumedItemId).IsEqualTo(Item.CrestStamp);
+        await Assert.That(result.ConsumedCount).IsEqualTo(1);
         await Assert.That(result.ChangedItems.Count).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task ItemApply_WithAnotherCrestsStampInTheBag_SpendsOnlyTheNamedStamp()
+    {
+        // The other stamp is the lower id, so a take-any-of-the-template consume would pick it first.
+        var otherCrest = Stamp(9050, OtherUccId);
+        var source = Stamp(9100, CarrierUccId);
+        var gear = Gear(9300);
+        var inventory = new FakeInventory([otherCrest, source, gear]);
+
+        var result = Service(inventory).ApplyToItems((long)source.Id, [gear.Id]);
+
+        await Assert.That(result.Outcome).IsEqualTo(UccApplyOutcome.Applied);
+        await Assert.That(inventory.ConsumedStampIds).IsEquivalentTo(new[] { source.Id });
+        await Assert.That(otherCrest.Count).IsEqualTo(1);
+        await Assert.That(gear.UccId).IsEqualTo(CarrierUccId);
+    }
+
+    [Test]
+    public async Task ItemApply_SourceThatIsNotAStamp_IsRefusedAndConsumesNothing()
+    {
+        // A crested cloak carries the UCC too, but it is not what prints it.
+        var crestedCloak = new Item(9100, Template(CrestableTemplate), 1) { OwnerId = 10, UccId = CarrierUccId };
+        var otherCrest = Stamp(9050, OtherUccId);
+        var gear = Gear(9300);
+        var inventory = new FakeInventory([crestedCloak, otherCrest, gear]);
+
+        var result = Service(inventory).ApplyToItems((long)crestedCloak.Id, [gear.Id]);
+
+        await Assert.That(result.Outcome).IsEqualTo(UccApplyOutcome.Unauthorized);
+        await Assert.That(inventory.ConsumedStampIds).IsEmpty();
+        await Assert.That(crestedCloak.Count).IsEqualTo(1);
+        await Assert.That(otherCrest.Count).IsEqualTo(1);
+        await Assert.That(gear.UccId).IsEqualTo(0ul);
+    }
+
+    [Test]
+    public async Task ItemApply_SourceNamedByItsUcc_ResolvesTheStampNotACrestedPiece()
+    {
+        var crestedCloak = new Item(9001, Template(CrestableTemplate), 1) { OwnerId = 10, UccId = CarrierUccId };
+        var source = Stamp(9100, CarrierUccId);
+        var gear = Gear(9300);
+        var inventory = new FakeInventory([crestedCloak, source, gear]);
+
+        var result = Service(inventory).ApplyToItems((long)CarrierUccId, [gear.Id]);
+
+        await Assert.That(result.Outcome).IsEqualTo(UccApplyOutcome.Applied);
+        await Assert.That(inventory.ConsumedStampIds).IsEquivalentTo(new[] { source.Id });
+        await Assert.That(crestedCloak.Count).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task ItemApply_TargetThatCannotCarryACrest_IsRefusedAndConsumesNothing()
+    {
+        var source = Stamp();
+        var weapon = Gear(9300, UncrestableTemplate);
+        var inventory = new FakeInventory([source, weapon]);
+
+        var result = Service(inventory).ApplyToItems((long)source.Id, [weapon.Id]);
+
+        await Assert.That(result.Outcome).IsEqualTo(UccApplyOutcome.NotApplicable);
+        await Assert.That(inventory.ConsumedStampIds).IsEmpty();
+        await Assert.That(weapon.UccId).IsEqualTo(0ul);
     }
 
     [Test]
     public async Task ItemApply_SecondIdenticalRequest_ChangesNothingAndConsumesNothingMore()
     {
-        var source = Carrier();
-        var materialStack = new Item(9150, Template(Item.CrestInk), 3) { OwnerId = 10 };
+        var source = Stamp(count: 2);
         var gear = Gear(9300);
-        var inventory = new FakeInventory([source, materialStack, gear]);
-        var config = new UccConfig
-        {
-            ItemApply = new UccApplyMaterialConfig { MaterialItemId = Item.CrestInk, MaterialCount = 1 },
-        };
-        var service = new UccApplyService(config, inventory, new FakeHousingStore());
+        var inventory = new FakeInventory([source, gear]);
+        var service = Service(inventory);
 
         var first = service.ApplyToItems((long)source.Id, [gear.Id]);
         var second = service.ApplyToItems((long)source.Id, [gear.Id]);
 
         await Assert.That(first.Outcome).IsEqualTo(UccApplyOutcome.Applied);
         await Assert.That(second.Outcome).IsEqualTo(UccApplyOutcome.NoChange);
-        await Assert.That(inventory.ConsumeCalls.Count).IsEqualTo(1);
-        await Assert.That(materialStack.Count).IsEqualTo(2);
+        await Assert.That(inventory.ConsumedStampIds.Count).IsEqualTo(1);
+        await Assert.That(source.Count).IsEqualTo(1);
         await Assert.That(gear.UccId).IsEqualTo(CarrierUccId);
     }
 
     [Test]
-    public async Task ItemApply_MissingMaterialRow_SkipsWithoutConsumingOrChangingAnything()
+    public async Task ItemApply_StampThatCannotBeConsumed_AppliesNothing()
     {
-        var source = Carrier();
+        var source = Stamp();
         var gear = Gear(9300);
-        var inventory = new FakeInventory([source, gear]);
-        var service = new UccApplyService(new UccConfig(), inventory, new FakeHousingStore());
+        var inventory = new FakeInventory([source, gear]) { RefuseConsume = true };
 
-        var result = service.ApplyToItems((long)source.Id, [gear.Id]);
-
-        await Assert.That(result.Outcome).IsEqualTo(UccApplyOutcome.MissingMaterialConfig);
-        await Assert.That(inventory.ConsumeCalls.Count).IsEqualTo(0);
-        await Assert.That(gear.UccId).IsEqualTo(0ul);
-        await Assert.That(source.Count).IsEqualTo(1);
-    }
-
-    [Test]
-    public async Task ItemApply_InsufficientMaterial_FailsWithoutConsumingOrChangingAnything()
-    {
-        var source = Carrier();
-        var gear = Gear(9300);
-        var inventory = new FakeInventory([source, gear]); // no configured material in the bag
-        var config = new UccConfig
-        {
-            ItemApply = new UccApplyMaterialConfig { MaterialItemId = Item.CrestInk, MaterialCount = 1 },
-        };
-        var service = new UccApplyService(config, inventory, new FakeHousingStore());
-
-        var result = service.ApplyToItems((long)source.Id, [gear.Id]);
+        var result = Service(inventory).ApplyToItems((long)source.Id, [gear.Id]);
 
         await Assert.That(result.Outcome).IsEqualTo(UccApplyOutcome.InsufficientMaterial);
-        await Assert.That(inventory.ConsumeCalls.Count).IsEqualTo(0);
         await Assert.That(gear.UccId).IsEqualTo(0ul);
-        await Assert.That(source.UccId).IsEqualTo(CarrierUccId);
+        await Assert.That(source.Count).IsEqualTo(1);
     }
 
     [Test]
     public async Task HousingApply_NonOwner_IsRejectedAndConsumesNothing()
     {
         var stranger = new Character(new UnitCustomModelParams()) { Id = 2 };
-        var source = Carrier();
+        var source = Stamp();
         var inventory = new FakeInventory([source]);
         var store = new FakeHousingStore();
         store.Houses[HouseTargetLabel] = new House { Id = 7, OwnerId = 1 };
-        var service = new UccApplyService(ConfigWithStampMaterial(), inventory, store);
 
-        var result = service.ApplyToHousing(stranger, HouseTargetLabel, (long)source.Id, 1, 2,
+        var result = Service(inventory, store).ApplyToHousing(stranger, HouseTargetLabel, (long)source.Id, 1, 2,
             HousePosition, hasPlacement: true, isRemove: false);
 
         await Assert.That(result.Outcome).IsEqualTo(UccApplyOutcome.Unauthorized);
-        await Assert.That(inventory.ConsumeCalls.Count).IsEqualTo(0);
+        await Assert.That(inventory.ConsumedStampIds).IsEmpty();
         await Assert.That(store.SavedHouseIds.Count).IsEqualTo(0);
         await Assert.That(store.Houses[HouseTargetLabel].UccSlots[2].UccId).IsEqualTo(0ul);
     }
@@ -234,18 +248,18 @@ public sealed class UccApplyServiceTests
     public async Task HousingApply_Owner_PersistsTheSlotAndItReplaysAfterReload()
     {
         var owner = new Character(new UnitCustomModelParams()) { Id = 1 };
-        var source = Carrier();
+        var source = Stamp();
         var inventory = new FakeInventory([source]);
         var store = new FakeHousingStore();
         store.Houses[HouseTargetLabel] = new House { Id = 7, OwnerId = 1 };
-        var service = new UccApplyService(ConfigWithStampMaterial(), inventory, store);
 
-        var result = service.ApplyToHousing(owner, HouseTargetLabel, (long)source.Id, 3, 2,
+        var result = Service(inventory, store).ApplyToHousing(owner, HouseTargetLabel, (long)source.Id, 3, 2,
             HousePosition, hasPlacement: true, isRemove: false);
 
         await Assert.That(result.Outcome).IsEqualTo(UccApplyOutcome.Applied);
         await Assert.That(result.Persisted).IsTrue();
         await Assert.That(result.ConsumedCount).IsEqualTo(1);
+        await Assert.That(inventory.ConsumedStampIds).IsEquivalentTo(new[] { source.Id });
         await Assert.That(store.SavedHouseIds.Count).IsEqualTo(1);
         await Assert.That(store.Houses[HouseTargetLabel].UccSlots[2].UccId).IsEqualTo(CarrierUccId);
         await Assert.That(store.Houses[HouseTargetLabel].UccSlots[2].Kind).IsEqualTo(3u);
@@ -261,14 +275,50 @@ public sealed class UccApplyServiceTests
     }
 
     [Test]
+    public async Task HousingApply_WithAnotherCrestsStampInTheBag_SpendsOnlyTheNamedStamp()
+    {
+        var owner = new Character(new UnitCustomModelParams()) { Id = 1 };
+        var otherCrest = Stamp(9050, OtherUccId);
+        var source = Stamp(9100, CarrierUccId);
+        var inventory = new FakeInventory([otherCrest, source]);
+        var store = new FakeHousingStore();
+        store.Houses[HouseTargetLabel] = new House { Id = 7, OwnerId = 1 };
+
+        var result = Service(inventory, store).ApplyToHousing(owner, HouseTargetLabel, (long)source.Id, 3, 2,
+            HousePosition, hasPlacement: true, isRemove: false);
+
+        await Assert.That(result.Outcome).IsEqualTo(UccApplyOutcome.Applied);
+        await Assert.That(inventory.ConsumedStampIds).IsEquivalentTo(new[] { source.Id });
+        await Assert.That(otherCrest.Count).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task HousingApply_SourceThatIsNotAStamp_IsRefusedAndConsumesNothing()
+    {
+        var owner = new Character(new UnitCustomModelParams()) { Id = 1 };
+        var crestedCloak = new Item(9100, Template(CrestableTemplate), 1) { OwnerId = 10, UccId = CarrierUccId };
+        var inventory = new FakeInventory([crestedCloak]);
+        var store = new FakeHousingStore();
+        store.Houses[HouseTargetLabel] = new House { Id = 7, OwnerId = 1 };
+
+        var result = Service(inventory, store).ApplyToHousing(owner, HouseTargetLabel, (long)crestedCloak.Id, 3, 2,
+            HousePosition, hasPlacement: true, isRemove: false);
+
+        await Assert.That(result.Outcome).IsEqualTo(UccApplyOutcome.InvalidRequest);
+        await Assert.That(inventory.ConsumedStampIds).IsEmpty();
+        await Assert.That(crestedCloak.Count).IsEqualTo(1);
+        await Assert.That(store.SavedHouseIds.Count).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task HousingApply_SecondIdenticalRequest_ConsumesNothingMore()
     {
         var owner = new Character(new UnitCustomModelParams()) { Id = 1 };
-        var source = Carrier();
+        var source = Stamp();
         var inventory = new FakeInventory([source]);
         var store = new FakeHousingStore();
         store.Houses[HouseTargetLabel] = new House { Id = 7, OwnerId = 1 };
-        var service = new UccApplyService(ConfigWithStampMaterial(), inventory, store);
+        var service = Service(inventory, store);
 
         var first = service.ApplyToHousing(owner, HouseTargetLabel, (long)source.Id, 3, 2,
             HousePosition, hasPlacement: true, isRemove: false);
@@ -276,10 +326,9 @@ public sealed class UccApplyServiceTests
             HousePosition, hasPlacement: true, isRemove: false);
 
         await Assert.That(first.Outcome).IsEqualTo(UccApplyOutcome.Applied);
-        // The first apply paid the configured material (the carrier itself), so the repeat request
-        // has no owned source left and cannot pay again.
+        // The first apply spent the only stamp, so the repeat request has no owned source left.
         await Assert.That(second.Outcome).IsEqualTo(UccApplyOutcome.Unauthorized);
-        await Assert.That(inventory.ConsumeCalls.Count).IsEqualTo(1);
+        await Assert.That(inventory.ConsumedStampIds.Count).IsEqualTo(1);
         await Assert.That(store.SavedHouseIds.Count).IsEqualTo(1);
     }
 
@@ -287,15 +336,15 @@ public sealed class UccApplyServiceTests
     public async Task HousingRemove_ClearsTheSlotWithoutConsumingAnything()
     {
         var owner = new Character(new UnitCustomModelParams()) { Id = 1 };
-        var source = Carrier();
+        var source = Stamp();
         var inventory = new FakeInventory([source]);
         var store = new FakeHousingStore();
         store.Houses[HouseTargetLabel] = new House { Id = 7, OwnerId = 1 };
-        var service = new UccApplyService(ConfigWithStampMaterial(), inventory, store);
+        var service = Service(inventory, store);
 
         _ = service.ApplyToHousing(owner, HouseTargetLabel, (long)source.Id, 3, 2,
             HousePosition, hasPlacement: true, isRemove: false);
-        var consumesAfterApply = inventory.ConsumeCalls.Count;
+        var consumesAfterApply = inventory.ConsumedStampIds.Count;
 
         // A removal carries no source item, so it names the position it clears.
         var removal = service.ApplyToHousing(owner, HouseTargetLabel, 0, 0, 0,
@@ -303,7 +352,7 @@ public sealed class UccApplyServiceTests
 
         await Assert.That(removal.Outcome).IsEqualTo(UccApplyOutcome.Applied);
         await Assert.That(store.Houses[HouseTargetLabel].UccSlots[2].UccId).IsEqualTo(0ul);
-        await Assert.That(inventory.ConsumeCalls.Count).IsEqualTo(consumesAfterApply);
+        await Assert.That(inventory.ConsumedStampIds.Count).IsEqualTo(consumesAfterApply);
         await Assert.That(store.SavedHouseIds.Count).IsEqualTo(2);
 
         var reloaded = store.ReloadHouse(HouseTargetLabel);
@@ -311,21 +360,20 @@ public sealed class UccApplyServiceTests
     }
 
     [Test]
-    public async Task HousingApply_MissingMaterialRow_SkipsWithoutConsumingOrSaving()
+    public async Task HousingUpdateRecipients_ReachesEveryViewerAndTheApplierOnce()
     {
-        var owner = new Character(new UnitCustomModelParams()) { Id = 1 };
-        var source = Carrier();
-        var inventory = new FakeInventory([source]);
-        var store = new FakeHousingStore();
-        store.Houses[HouseTargetLabel] = new House { Id = 7, OwnerId = 1 };
-        var service = new UccApplyService(new UccConfig(), inventory, store);
+        var applier = new Character(new UnitCustomModelParams()) { Id = 1 };
+        var neighbour = new Character(new UnitCustomModelParams()) { Id = 2 };
 
-        var result = service.ApplyToHousing(owner, HouseTargetLabel, (long)source.Id, 3, 2,
-            HousePosition, hasPlacement: true, isRemove: false);
+        var inView = UccApplyService.HousingUpdateRecipients(applier, [applier, neighbour, neighbour]);
+        await Assert.That(inView.Count).IsEqualTo(2);
+        await Assert.That(ReferenceEquals(inView[0], applier)).IsTrue();
+        await Assert.That(ReferenceEquals(inView[1], neighbour)).IsTrue();
 
-        await Assert.That(result.Outcome).IsEqualTo(UccApplyOutcome.MissingMaterialConfig);
-        await Assert.That(inventory.ConsumeCalls.Count).IsEqualTo(0);
-        await Assert.That(store.SavedHouseIds.Count).IsEqualTo(0);
-        await Assert.That(store.Houses[HouseTargetLabel].UccSlots[2].UccId).IsEqualTo(0ul);
+        // An applier outside the house's view still hears the result of their own request.
+        var outOfView = UccApplyService.HousingUpdateRecipients(applier, [neighbour]);
+        await Assert.That(outOfView.Count).IsEqualTo(2);
+        await Assert.That(ReferenceEquals(outOfView[0], neighbour)).IsTrue();
+        await Assert.That(ReferenceEquals(outOfView[1], applier)).IsTrue();
     }
 }

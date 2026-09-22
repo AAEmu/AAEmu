@@ -1,13 +1,16 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Ucc;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// Applies or removes a UCC on one of a house's user-content slots. Authorization, material
+/// Applies or removes a UCC on one of a house's user-content slots. Authorization, crest stamp
 /// consumption and slot persistence are decided by <see cref="UccApplyService"/>;
 /// this class only parses the body and reports the outcome.
 /// </summary>
@@ -54,12 +57,18 @@ public class CSHousingUccApplyPacket() : GamePacket(CSOffsets.CSHousingUccApplyP
         switch (result.Outcome)
         {
             case UccApplyOutcome.Applied:
-                Connection.SendPacket(new SCUpdateHousingUccPacket(Tl, result.UccId, result.UccKind, result.UccPos, false));
+            {
+                // Everyone who has the house loaded sees the crest change, not only the applier.
+                var update = new SCUpdateHousingUccPacket(Tl, result.UccId, result.UccKind, result.UccPos, false);
+                var house = HousingManager.Instance.GetHouseByTlId((ushort)Tl);
+                List<Character> viewers = house != null ? WorldManager.GetAround<Character>(house) : [];
+                foreach (var recipient in UccApplyService.HousingUpdateRecipients(character, viewers))
+                    recipient.SendPacket(update);
                 break;
+            }
 
             case UccApplyOutcome.NoChange:
-            case UccApplyOutcome.MissingMaterialConfig:
-                // The service already logged a missing material row; an unchanged repeat is silent.
+                // An unchanged repeat is silent.
                 break;
 
             default:
