@@ -1,11 +1,33 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Indun;
 using AAEmu.Game.Models.Game.Units;
+using AAEmu.Game.Models.Game.World;
+using AAEmu.Game.Models.Game.World.Zones;
+
+using System.Reflection;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
+[NotInParallel]
 public class IndunManagerTests
 {
+    private object _originalIndunZones;
+
+    [Before(Test)]
+    public void SaveIndunZones()
+    {
+        _originalIndunZones = GetIndunZonesField().GetValue(IndunGameData.Instance)!;
+    }
+
+    [After(Test)]
+    public void RestoreIndunZones()
+    {
+        GetIndunZonesField().SetValue(IndunGameData.Instance, _originalIndunZones);
+    }
+
     [Test]
     public async Task RequestLeaveInstance_RejectsCharacterOutsideCurrentDungeon()
     {
@@ -52,4 +74,84 @@ public class IndunManagerTests
 
         await Assert.That(result).IsEqualTo(false);
     }
+
+    [Test]
+    public async Task RequestSystemInstance_ClosedSchedule_StopsBeforeWorldLookup()
+    {
+        var now = new DateTime(2026, 9, 21, 12, 0, 0, DateTimeKind.Utc); // Monday
+        var zone = new Zone { Id = 900, ZoneKey = 901, GroupId = 902 };
+        var indun = new IndunZone { ZoneGroupId = zone.GroupId, InstanceCatalogId = 903, UseUtcEntranceTimes = true };
+        indun.EntranceTimes.Add(new InstanceEntranceTime(2, 0, 0, 0, 0)); // Tuesday only
+
+        var manager = CreateAdmissionManager(zone, indun);
+        manager.AdmissionUtcNow = () => now;
+
+        var accepted = manager.RequestSystemInstance(
+            new Character(new UnitCustomModelParams()) { Id = 1, ObjId = 1, Name = "Closed" },
+            zone.Id,
+            0,
+            out var dungeon);
+
+        await Assert.That(accepted).IsFalse();
+        await Assert.That(dungeon).IsNull();
+    }
+
+    [Test]
+    public async Task RequestSystemInstance_ProhibitedBuffTag_StopsBeforeWorldLookup()
+    {
+        var zone = new Zone { Id = 910, ZoneKey = 911, GroupId = 912 };
+        var indun = new IndunZone { ZoneGroupId = zone.GroupId, InstanceCatalogId = 913, UseUtcEntranceTimes = true };
+        indun.PermissionTags.Add(new InstancePermissionTag(InstancePermissionTagKind.Buff, 5947));
+
+        var manager = CreateAdmissionManager(zone, indun);
+        manager.AdmissionTagMatcher = (_, kind, tagId) =>
+            kind == InstancePermissionTagKind.Buff && tagId == 5947;
+
+        var accepted = manager.RequestSystemInstance(
+            new Character(new UnitCustomModelParams()) { Id = 2, ObjId = 2, Name = "Transformed" },
+            zone.Id,
+            0,
+            out var dungeon);
+
+        await Assert.That(accepted).IsFalse();
+        await Assert.That(dungeon).IsNull();
+    }
+
+    [Test]
+    public async Task RequestDungeonInstance_ClosedSchedule_StopsBeforeInstanceLookup()
+    {
+        var now = new DateTime(2026, 9, 21, 12, 0, 0, DateTimeKind.Utc); // Monday
+        var zone = new Zone { Id = 920, ZoneKey = 921, GroupId = 922 };
+        var indun = new IndunZone { ZoneGroupId = zone.GroupId, InstanceCatalogId = 923, UseUtcEntranceTimes = true };
+        indun.EntranceTimes.Add(new InstanceEntranceTime(2, 0, 0, 0, 0)); // Tuesday only
+
+        var manager = CreateAdmissionManager(zone, indun);
+        manager.AdmissionUtcNow = () => now;
+
+        var accepted = manager.RequestDungeonInstance(
+            new Character(new UnitCustomModelParams()) { Id = 3, ObjId = 3, Name = "ClosedDungeon" },
+            zone.Id,
+            0);
+
+        await Assert.That(accepted).IsFalse();
+    }
+
+    private static IndunManager CreateAdmissionManager(
+        Zone zone,
+        IndunZone indun)
+    {
+        var tick = Mock.Of<ITickManager>();
+        var world = Mock.Of<IWorldManager>();
+        world.GetWorldTemplateByZoneKey(zone.ZoneKey).Returns(new WorldTemplate { Id = 1, Name = "admission-test" });
+        world.GetWorlds().Throws(new InvalidOperationException("Admission rejection must happen before world lookup."));
+        var zones = Mock.Of<IZoneManager>();
+        zones.GetZoneById(zone.Id).Returns(zone);
+
+        GetIndunZonesField().SetValue(IndunGameData.Instance, new Dictionary<uint, IndunZone> { [indun.ZoneGroupId] = indun });
+
+        return new IndunManager(tick.Object, world.Object, zones.Object, Mock.Of<ITeamManager>().Object);
+    }
+
+    private static FieldInfo GetIndunZonesField() =>
+        typeof(IndunGameData).GetField("_indunZones", BindingFlags.Instance | BindingFlags.NonPublic)!;
 }

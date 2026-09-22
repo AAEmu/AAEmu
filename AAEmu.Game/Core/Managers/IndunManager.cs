@@ -28,6 +28,9 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
     private Dictionary<uint, Dictionary<uint, int>> PermitBonusCount { get; } = [];
     // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
     private readonly object _lock = new();
+    internal Func<DateTime> AdmissionUtcNow { get; set; } = () => ServerCalendar.UtcNow;
+    internal Func<Character, InstancePermissionTagKind, uint, bool> AdmissionTagMatcher { get; set; } =
+        CharacterHasPermissionTag;
 
     public void Initialize()
     {
@@ -236,6 +239,10 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
             return false;
         }
 
+        var dungeonZone = IndunGameData.Instance.GetDungeonZone(zone.GroupId);
+        if (dungeonZone == null || !VerifyDungeonAdmission(dungeonZone, character))
+            return false;
+
         foreach (var possibleDungeon in GetExistingDungeonsByZoneKey(zone.ZoneKey))
         {
             if (possibleDungeon.World.ChannelId == channelId)
@@ -298,6 +305,11 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
             // Not a dungeon
             return false;
         }
+
+        // Admission is checked before the paid-entry/rejoin paths. A visit count is not charged twice, but a
+        // closed entrance or a currently prohibited character state still blocks crossing the entrance.
+        if (!VerifyDungeonAdmission(dungeonZone, character))
+            return false;
 
         var possibleTargetInstances = GetExistingDungeonsByZoneKey(targetZone.ZoneKey);
 
@@ -479,6 +491,9 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
     /// <returns></returns>
     private bool VerifyDungeonEnterRequirements(IndunZone dungeonZone, Character character, Team team)
     {
+        if (!VerifyDungeonAdmission(dungeonZone, character))
+            return false;
+
         // Check access count
         if (!CheckEntryAttemptCount(character.Id, dungeonZone.ZoneGroupId, dungeonZone, false))
         {
@@ -520,6 +535,50 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
         // 10.0.2.13: indun_zones.item_id removed; the item-requirement check was dead (ItemId always 0)
 
         return true;
+    }
+
+    private bool VerifyDungeonAdmission(IndunZone dungeonZone, Character character)
+    {
+        var utcNow = AdmissionUtcNow();
+        var entranceNow = dungeonZone.UseUtcEntranceTimes
+            ? utcNow
+            : TimeZoneInfo.ConvertTimeFromUtc(utcNow, TimeZoneInfo.Local);
+        if (!InstanceAdmissionRules.IsOpen(dungeonZone.EntranceTimes, entranceNow))
+        {
+            Logger.Warn(
+                "Requesting closed instance, characterId: {0}, zoneGroupId: {1}, instanceId: {2}, time: {3:O}, useUtc: {4}",
+                character.Id, dungeonZone.ZoneGroupId, dungeonZone.InstanceCatalogId, entranceNow,
+                dungeonZone.UseUtcEntranceTimes);
+            character.SendErrorMessage(ErrorMessageType.TryLaterInstance);
+            return false;
+        }
+
+        var tagFailure = InstanceAdmissionRules.CheckTags(
+            dungeonZone.PermissionTags,
+            dungeonZone.PermissionWhiteListBit,
+            (kind, tagId) => AdmissionTagMatcher(character, kind, tagId));
+        if (tagFailure != InstanceAdmissionFailure.None)
+        {
+            Logger.Warn(
+                "Requesting instance with invalid permission tags ({0}), characterId: {1}, zoneGroupId: {2}, instanceId: {3}",
+                tagFailure, character.Id, dungeonZone.ZoneGroupId, dungeonZone.InstanceCatalogId);
+            character.SendErrorMessage(ErrorMessageType.ProhibitedInInstance);
+            return false;
+        }
+
+        return true;
+    }
+
+    private static bool CharacterHasPermissionTag(
+        Character character,
+        InstancePermissionTagKind kind,
+        uint tagId)
+    {
+        return kind switch
+        {
+            InstancePermissionTagKind.Buff => character.Buffs?.CheckBuffTag(tagId) == true,
+            _ => false
+        };
     }
 
     /// <summary>
