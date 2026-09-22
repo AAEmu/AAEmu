@@ -1,10 +1,25 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 public class IndunManagerTests
 {
+    [Test]
+    public async Task RequestLeaveInstance_RejectsCharacterOutsideCurrentDungeon()
+    {
+        var manager = new IndunManager(
+            Mock.Of<ITickManager>().Object,
+            Mock.Of<IWorldManager>().Object,
+            Mock.Of<IZoneManager>().Object,
+            Mock.Of<ITeamManager>().Object);
+
+        var result = manager.RequestLeaveInstance(new AAEmu.Game.Models.Game.Char.Character(new UnitCustomModelParams()));
+
+        await Assert.That(result).IsFalse();
+    }
+
     [Test]
     public void Initialize_SubscribesToTickManager()
     {

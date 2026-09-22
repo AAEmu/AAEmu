@@ -757,19 +757,15 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
     {
         if (character == null)
             return false;
-        
-        // Remove from all possible different types of dungeons
-        // System dungeons (mirage/library)
-        foreach (var worldInstance in worldManager.GetWorlds().Where(w => w.HasCharacter(character.Id)))
-        {
-            
-            character.Events.OnDungeonLeave(worldInstance, new OnDungeonLeaveArgs { Player = character });
-            // dungeon.LeaveSysInstance(character); // Already called in the OnDungeonLeave event
-            return true;
-        }
 
-        // No instance found that needs exiting
-        return false;
+        // The current copy is authoritative. Searching every world by character id can let a stale
+        // membership entry route an exit (and its completion hooks) through the wrong dungeon.
+        var world = character.ParentWorld;
+        if (world?.DungeonInstance == null || !world.HasCharacter(character.Id))
+            return false;
+
+        character.Events.OnDungeonLeave(world, new OnDungeonLeaveArgs { Player = character });
+        return true;
     }
 
     public void DoIndunActions(uint startActionId, WorldInstance worldInstance)
