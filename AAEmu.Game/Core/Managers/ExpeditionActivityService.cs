@@ -57,7 +57,8 @@ public sealed class ExpeditionActivityService(IExpeditionActivityRepository repo
                 !ReferenceEquals(summoner.Expedition, expedition) || expedition.GetMember(summoner) == null)
                 return [];
 
-            var limit = ExpeditionLevelGameData.Instance.GetLevel(expedition.Level)?.SummonLimit ?? 0;
+            var limit = (ExpeditionLevelGameData.Instance.GetLevel(expedition.Level)?.SummonLimit ?? 0) +
+                        expedition.GetSummonLimitBonus();
             var summonItemIdValue = expeditionManager.GetContentConfig("expedition_summon_item");
             if (limit <= 0 || summonItemIdValue is <= 0 or > uint.MaxValue)
                 return [];
@@ -251,7 +252,8 @@ public sealed class ExpeditionActivityService(IExpeditionActivityRepository repo
                 return renamed;
             }
 
-            var limit = ExpeditionLevelGameData.Instance.GetLevel(expedition.Level)?.PortalPointLimit ?? 0;
+            var limit = (ExpeditionLevelGameData.Instance.GetLevel(expedition.Level)?.PortalPointLimit ?? 0) +
+                        expedition.GetPortalPointLimitBonus();
             var position = actor.Transform.World.Position;
             var portal = new ExpeditionPortalPoint
             {
