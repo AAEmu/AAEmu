@@ -37,6 +37,11 @@ public class CSInstanceLoadedPacket() : GamePacket(CSOffsets.CSInstanceLoadedPac
         me.Transform.FinalizeTransform();
         WorldManager.ResendVisibleObjectsToCharacter(me, clientDroppedVisibility: true);
 
+        // The mentoring accept sources removed in 4.0 are restored only after the client confirms a
+        // successful dungeon load. Re-entry and reconnect are harmless: active and same-day completed
+        // quests are rejected by the restoration gate.
+        me.Quests.TryStartRestoredMentoringQuestOnDungeonEntry();
+
         Logger.Debug("InstanceLoaded.");
     }
 }

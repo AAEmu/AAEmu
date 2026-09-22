@@ -54,11 +54,6 @@ public class DoodadFuncFakeUse : DoodadFuncTemplate
                 owner.ToNextPhase = true;
                 // Removed the duplicate skill call
             }
-
-            if (skillId > 0 && nextPhase > 0) // TODO quest ID=3357, Harvest the Cotton didn't work
-            {
-                owner.ToNextPhase = true;
-            }
         }
 
         if (FakeSkillId == 0 && SkillId == 0)

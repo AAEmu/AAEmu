@@ -23,6 +23,17 @@ public class DoodadFuncIncomingSkillTests
     }
 
     [Test]
+    public async Task ConditionalUse_MatchesItsDeclaredFakeOrDirectSkill()
+    {
+        var fake = new DoodadFuncConditionalUse { FakeSkillId = 12312 };
+        var direct = new DoodadFuncConditionalUse { SkillId = 12313 };
+
+        await Assert.That(DoodadFuncIncomingSkill.TemplateAccepts(fake, 12312)).IsTrue();
+        await Assert.That(DoodadFuncIncomingSkill.TemplateAccepts(fake, 12313)).IsFalse();
+        await Assert.That(DoodadFuncIncomingSkill.TemplateAccepts(direct, 12313)).IsTrue();
+    }
+
+    [Test]
     public async Task Use_MatchesSkillId()
     {
         var use = new DoodadFuncUse { SkillId = 50 };

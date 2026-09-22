@@ -60,6 +60,25 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
         return _questTemplates.GetValueOrDefault(id);
     }
 
+    /// <summary>
+    /// Returns restored mentoring quests authored for the dungeon zone. Eligibility remains on the
+    /// loaded quest context and Start-component requirements rather than being repeated here.
+    /// </summary>
+    public IReadOnlyList<QuestTemplate> GetRestoredMentoringQuests(uint contentZoneId)
+    {
+        if (contentZoneId == 0)
+            return [];
+
+        var result = new List<QuestTemplate>();
+        foreach (var questId in MentoringQuestRestoration.QuestIds)
+        {
+            if (_questTemplates.TryGetValue(questId, out var template) && template.ZoneId == contentZoneId)
+                result.Add(template);
+        }
+
+        return result;
+    }
+
     public bool IsQuestTalkNpc(uint npcTemplateId)
     {
         return QuestTalkNpcRules.IsTalkNpc(_talkNpcIds, npcTemplateId);

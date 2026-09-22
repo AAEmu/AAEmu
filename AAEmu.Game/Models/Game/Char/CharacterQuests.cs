@@ -210,6 +210,54 @@ public class CharacterQuests(Character owner)
     }
 
     /// <summary>
+    /// Restores the normal entry point for the original dungeon mentoring quests. The 4.0 data still
+    /// contains their objectives and rewards, but no longer exposes every original accept source to the
+    /// client. A successful dungeon load therefore starts the level-appropriate quest directly.
+    /// </summary>
+    public bool TryStartRestoredMentoringQuestOnDungeonEntry() =>
+        TryStartRestoredMentoringQuestOnDungeonEntry(
+            ZoneManager.Instance,
+            QuestManager.Instance,
+            component => UnitRequirementsGameData.Instance.CanComponentRun(component, Owner),
+            (questId, acceptorType, acceptorId) => AddQuest(questId, false, acceptorType, acceptorId));
+
+    internal bool TryStartRestoredMentoringQuestOnDungeonEntry(
+        IZoneManager zoneManager,
+        IQuestManager questManager,
+        Func<QuestComponentTemplate, bool> meetsStartRequirements,
+        Func<uint, QuestAcceptorType, uint, bool> startQuest)
+    {
+        var isDungeonInstance = Owner.ParentWorld?.DungeonInstance != null;
+        // Transform.ZoneId is the runtime zones.zone_key. QuestTemplate.ZoneId is quest_contexts.zone_id,
+        // which references zones.id, so resolve the key before comparing the authored quest zone.
+        var contentZoneId = zoneManager.GetZoneByKey(Owner.Transform?.ZoneId ?? 0)?.Id ?? 0;
+
+        foreach (var template in questManager.GetRestoredMentoringQuests(contentZoneId))
+        {
+            if (!MentoringQuestRestoration.CanStartOnDungeonEntry(
+                    template,
+                    Owner,
+                    contentZoneId,
+                    isDungeonInstance,
+                    HasQuest(template.Id),
+                    HasQuestCompleted(template.Id),
+                    meetsStartRequirements))
+            {
+                continue;
+            }
+
+            var acceptorType = QuestAcceptorType.Unknown;
+            var acceptorId = 0u;
+            // Hieronimus and Marmas retain their NPC accept acts. The two earlier dungeons have empty
+            // Start components in 4.0 and intentionally remain Unknown for this server-authored entry.
+            QuestAcceptRules.FillUnknownAcceptor(template, ref acceptorType, ref acceptorId);
+            return startQuest(template.Id, acceptorType, acceptorId);
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Starts a given quest from specific defined quest starter
     /// </summary>
     /// <param name="questId"></param>
