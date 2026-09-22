@@ -75,6 +75,10 @@ public class CharacterCustomizationGameData : Singleton<CharacterCustomizationGa
             var slotTypeId = reader.GetInt32("slot_type_id", 0);
             if (slotTypeId < 23 || slotTypeId > 29)
                 return;
+            // compact.sqlite3 includes incomplete rows (for example, a visible model/slot row with no item).
+            // They cannot describe an equippable body part, so keep them out of the validation index.
+            if (reader.IsDBNull("model_id") || reader.IsDBNull("item_id"))
+                return;
             _bodyPartItems.Add((reader.GetUInt32("model_id"), (EquipmentItemSlot)(slotTypeId - 4), reader.GetUInt32("item_id")));
         });
 
