@@ -206,6 +206,31 @@ public class QuestAct(QuestComponent parentComponent, QuestActTemplate template)
         Template.OnExpressFire(this, sender, args);
     }
 
+    public virtual void OnEffectFire(object sender, OnEffectFireArgs args)
+    {
+        Template.OnEffectFire(this, sender, args);
+    }
+
+    public virtual void OnMonsterContrHunt(object sender, OnMonsterContrHuntArgs args)
+    {
+        Template.OnMonsterContrHunt(this, sender, args);
+    }
+
+    public virtual void OnMonsterContrGroupHunt(object sender, OnMonsterContrGroupHuntArgs args)
+    {
+        Template.OnMonsterContrGroupHunt(this, sender, args);
+    }
+
+    public virtual void OnSellBackpackGood(object sender, OnSellBackpackGoodArgs args)
+    {
+        Template.OnSellBackpackGood(this, sender, args);
+    }
+
+    public virtual void OnInviteTeamFaction(object sender, OnInviteTeamFactionArgs args)
+    {
+        Template.OnInviteTeamFaction(this, sender, args);
+    }
+
     /// <summary>
     /// OnLevelUp 
     /// </summary>

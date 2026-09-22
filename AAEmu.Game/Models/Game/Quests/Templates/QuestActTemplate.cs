@@ -353,6 +353,31 @@ public class QuestActTemplate(QuestComponentTemplate parentComponent)
         //
     }
 
+    public virtual void OnEffectFire(QuestAct questAct, object sender, OnEffectFireArgs args)
+    {
+        //
+    }
+
+    public virtual void OnMonsterContrHunt(QuestAct questAct, object sender, OnMonsterContrHuntArgs args)
+    {
+        //
+    }
+
+    public virtual void OnMonsterContrGroupHunt(QuestAct questAct, object sender, OnMonsterContrGroupHuntArgs args)
+    {
+        //
+    }
+
+    public virtual void OnSellBackpackGood(QuestAct questAct, object sender, OnSellBackpackGoodArgs args)
+    {
+        //
+    }
+
+    public virtual void OnInviteTeamFaction(QuestAct questAct, object sender, OnInviteTeamFactionArgs args)
+    {
+        //
+    }
+
     /// <summary>
     /// OnLevelUp 
     /// </summary>

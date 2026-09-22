@@ -15,6 +15,7 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 using AAEmu.Game.Models.Game.Skills.Templates;
 using AAEmu.Game.Models.Game.Trading;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Specialty;
@@ -2348,16 +2349,32 @@ public class SpecialtyManager(
         // Cargo purchase already takes these locks in this order. Keep sale mutation
         // serialized with it and with all other state changes for this character.
         bool sold;
+        uint soldToNpcTemplateId;
+        uint soldBackpackTemplateId;
         lock (_marketLock)
             lock (player.StateSyncRoot)
-                sold = SellSpecialtyLocked(player, npcObjId);
+                sold = SellSpecialtyLocked(player, npcObjId, out soldToNpcTemplateId, out soldBackpackTemplateId);
         if (sold)
+        {
             BroadcastCurrentRatios();
+            // Progress act QuestActObjSellBackpackGood, raised after the locks and only for a committed sale.
+            player.Events?.OnSellBackpackGood(player, new OnSellBackpackGoodArgs
+            {
+                NpcTemplateId = soldToNpcTemplateId,
+                BackpackTemplateId = soldBackpackTemplateId
+            });
+        }
         return sold;
     }
 
-    private bool SellSpecialtyLocked(Character player, uint npcObjId)
+    private bool SellSpecialtyLocked(
+        Character player,
+        uint npcObjId,
+        out uint npcTemplateId,
+        out uint backpackTemplateId)
     {
+        npcTemplateId = 0;
+        backpackTemplateId = 0;
         if (!TryResolveSpecialtyOutlet(
                 player,
                 npcObjId,
@@ -2372,6 +2389,8 @@ public class SpecialtyManager(
             player.SendErrorMessage(ErrorMessageType.StoreBackpackNogoods);
             return false;
         }
+        npcTemplateId = npc.TemplateId;
+        backpackTemplateId = backpack.TemplateId;
         var isCargo = backpack.Template is BackpackTemplate { BackpackType: BackpackType.TradeGoods };
         var saleSkill = SelectSaleSkill(backpack.Template, _specialtySaleSkill, _tradeGoodSaleSkill);
         var sellLevelLimit = isCargo

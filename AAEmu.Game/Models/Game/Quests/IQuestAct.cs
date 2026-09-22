@@ -72,6 +72,11 @@ public interface IQuestAct
     void OnLaborPower(object sender, OnLaborPowerArgs args);
     void OnQuestProgressStat(object sender, OnQuestProgressStatArgs args);
     void OnExpressFire(object sender, OnExpressFireArgs args);
+    void OnEffectFire(object sender, OnEffectFireArgs args);
+    void OnMonsterContrHunt(object sender, OnMonsterContrHuntArgs args);
+    void OnMonsterContrGroupHunt(object sender, OnMonsterContrGroupHuntArgs args);
+    void OnSellBackpackGood(object sender, OnSellBackpackGoodArgs args);
+    void OnInviteTeamFaction(object sender, OnInviteTeamFactionArgs args);
     void OnLevelUp(object sender, OnLevelUpArgs args);
     void OnMateLevelUp(object sender, OnMateLevelUpArgs args);
     void OnAbilityLevelUp(object sender, OnAbilityLevelUpArgs args);

@@ -7,6 +7,8 @@ public class BuffTriggerTemplate
     public uint Id { get; set; }
     public BuffEventTriggerKind Kind { get; set; }
     public EffectTemplate Effect { get; set; }
+    /// <summary>buff_triggers.effect_id (effects.id), kept for QuestActObjEffectFire.</summary>
+    public uint EffectId { get; set; }
     public bool UseDamageAmount { get; set; }
     public uint TargetBuffTagId { get; set; }
     public uint TargetNoBuffTagId { get; set; }
