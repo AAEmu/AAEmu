@@ -7,10 +7,11 @@ namespace AAEmu.Game.Models.Game.World.Zones;
 public readonly record struct ConflictZoneSchedulePosition(ZoneConflictType State, DateTime StateStart, DateTime NextChange);
 
 /// <summary>
-/// Calendar and threshold math for conflict zones. <c>conflict_zone_realtime_schedules</c> is a
-/// weekly wall-clock table (day-of-week + HHMM), so the current state is always "the last entry at
-/// or before now", wrapping into the previous week when now precedes that week's first entry. A
-/// zone with no schedule keeps the kill-driven cycle in <see cref="ZoneConflict"/>.
+/// Calendar math for conflict zones. <c>conflict_zone_realtime_schedules</c> is a weekly wall-clock
+/// table (day-of-week + HHMM), so the current state is always "the last entry at or before now",
+/// wrapping into the previous week when now precedes that week's first entry. A zone with no
+/// schedule keeps the kill-driven cycle in <see cref="ZoneConflict"/>, whose thresholds and state
+/// order live in <see cref="ConflictZoneEscalationRules"/>.
 /// </summary>
 public static class ConflictZoneScheduleRules
 {
@@ -88,54 +89,4 @@ public static class ConflictZoneScheduleRules
 
         return new ConflictZoneSchedulePosition(state, start, next);
     }
-
-    /// <summary>
-    /// Highest conflict state reached by one participation counter. Escalation stops at
-    /// <see cref="ZoneConflictType.Conflict"/> — War and Peace are timer states, not kill states.
-    /// A counter whose thresholds are all zero does not escalate the zone. The comparison is
-    /// cumulative and strictly greater-than, matching the shipped <c>AddZoneKill</c> behaviour.
-    /// </summary>
-    public static ZoneConflictType AdvanceFromCounter(ZoneConflictType current, long count, IReadOnlyList<int> thresholds)
-    {
-        if (thresholds == null || thresholds.Count == 0 || current >= ZoneConflictType.Conflict)
-            return current;
-
-        var hasThreshold = false;
-        foreach (var threshold in thresholds)
-        {
-            if (threshold == 0)
-                continue;
-            hasThreshold = true;
-            break;
-        }
-
-        if (!hasThreshold)
-            return current;
-
-        var level = (int)current;
-        var maxLevel = Math.Min(thresholds.Count, (int)ZoneConflictType.Conflict);
-        while (level < maxLevel && count > thresholds[level])
-            level++;
-
-        return (ZoneConflictType)level;
-    }
-
-    /// <summary>
-    /// Highest state reached by any of the three participation counters (PvP kills, listed NPC
-    /// kills, listed quest completions).
-    /// </summary>
-    public static ZoneConflictType AdvanceByParticipation(
-        ZoneConflictType current,
-        long pvpKills, IReadOnlyList<int> pvpThresholds,
-        long npcKills, IReadOnlyList<int> npcThresholds,
-        long questCompletions, IReadOnlyList<int> questThresholds)
-    {
-        var best = current;
-        best = Max(best, AdvanceFromCounter(current, pvpKills, pvpThresholds));
-        best = Max(best, AdvanceFromCounter(current, npcKills, npcThresholds));
-        best = Max(best, AdvanceFromCounter(current, questCompletions, questThresholds));
-        return best;
-    }
-
-    private static ZoneConflictType Max(ZoneConflictType a, ZoneConflictType b) => a >= b ? a : b;
 }

@@ -108,6 +108,13 @@ public partial class Character
         var zoneState = conflictData?.CurrentZoneState ?? ZoneConflictType.Peace;
 
         var relationState = killer.GetRelationStateTo(this);
+
+        // Kill-driven escalation runs in the trouble states (Tension..Crisis), where AwardPvpHonor
+        // pays nothing and returns first, so the count has to happen ahead of the honor table.
+        // AddZoneKill ignores Conflict, War and Peace itself; those are timer states.
+        if (ConflictZoneEscalationRules.CountsPvpKill(relationState))
+            conflictData?.AddZoneKill();
+
         if (relationState != RelationState.Friendly)
         {
             enemy.HostileFactionKills++;
@@ -229,7 +236,7 @@ public partial class Character
     /// <summary>
     /// Awards PvP honor to the killer (and assists) based on zone conflict state.
     /// Conflict: 10 solo (6 killer + 4 each assist). War: 20 solo (16 killer + 4 each assist).
-    /// Also registers the kill in the zone conflict system.
+    /// The zone kill counter is fed by <see cref="ProcessPvpDeath"/> before this runs.
     /// </summary>
     private void AwardPvpHonor(Character killer, Zone victimZone, ZoneConflict conflictData, ZoneConflictType zoneState)
     {
@@ -250,9 +257,6 @@ public partial class Character
                 // No honor outside Conflict/War zones
                 return;
         }
-
-        // Register zone kill (drives zone state escalation)
-        conflictData?.AddZoneKill();
 
         var pvpRate = AppConfiguration.Instance.World.PvpHonorRate;
         var assistIds = CollectAssists(killer);
