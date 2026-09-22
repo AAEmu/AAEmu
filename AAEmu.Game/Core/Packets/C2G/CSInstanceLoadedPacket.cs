@@ -42,6 +42,9 @@ public class CSInstanceLoadedPacket() : GamePacket(CSOffsets.CSInstanceLoadedPac
         // quests are rejected by the restoration gate.
         me.Quests.TryStartRestoredMentoringQuestOnDungeonEntry();
 
+        // Zone groups with indun_rounds rows show their counter on load and again after a relog.
+        me.ParentWorld?.DungeonInstance?.SendInitialRoundInfo(me);
+
         Logger.Debug("InstanceLoaded.");
     }
 }

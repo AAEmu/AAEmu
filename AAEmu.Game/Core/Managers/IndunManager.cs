@@ -774,19 +774,39 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
 
     public void DoIndunActions(uint startActionId, WorldInstance worldInstance)
     {
-        while (true)
+        // 18 of the 263 indun_events rows have no start_action_id and used to NRE here. Every
+        // next_action_id in content resolves and none cycles; the visited set only stops a bad row.
+        var visited = new HashSet<uint>();
+        var actionId = startActionId;
+        while (actionId != 0 && visited.Add(actionId))
         {
-            var action = IndunGameData.Instance.GetIndunActionById(startActionId);
-            action.Execute(worldInstance);
-            Logger.Warn($"DoIndunActions: world={worldInstance.Id}, action.Id={action.Id}, action.NextActionId={action.NextActionId}");
-            if (action.NextActionId > 0)
+            var action = IndunGameData.Instance.GetIndunActionById(actionId);
+            if (action == null)
             {
-                startActionId = action.NextActionId;
-                continue;
+                Logger.Debug($"DoIndunActions: world={worldInstance?.Id}, action {actionId} is not loaded");
+                return;
             }
 
-            break;
+            action.Execute(worldInstance);
+            Logger.Warn($"DoIndunActions: world={worldInstance?.Id}, action.Id={action.Id}, action.NextActionId={action.NextActionId}");
+            actionId = action.NextActionId;
         }
+    }
+
+    /// <summary>H-window difficulty picks (CSSelectInstanceDifficultPacket) made outside a copy, by character id.</summary>
+    private Dictionary<uint, byte> SelectedDifficult { get; } = [];
+
+    public void RememberSelectedDifficult(uint characterId, byte difficult)
+    {
+        lock (_lock)
+            SelectedDifficult[characterId] = difficult;
+    }
+
+    /// <summary>Hands the pending pick to the copy the character enters, once.</summary>
+    public bool TryTakeSelectedDifficult(uint characterId, out byte difficult)
+    {
+        lock (_lock)
+            return SelectedDifficult.Remove(characterId, out difficult);
     }
 
     public bool CheckEntryAttemptCount(uint characterId, uint zoneGroupId, IndunZone indunZone, bool addAsNewEnty)

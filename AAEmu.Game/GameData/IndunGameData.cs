@@ -7,6 +7,7 @@ using AAEmu.Game.Models.Game.Indun.Events;
 using AAEmu.Game.Utils.DB;
 
 using Microsoft.Data.Sqlite;
+using NLog;
 
 namespace AAEmu.Game.GameData;
 
@@ -14,10 +15,13 @@ namespace AAEmu.Game.GameData;
 // ReSharper disable once ClassNeverInstantiated.Global
 public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
 {
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+
     private Dictionary<uint, IndunAction> _indunActions;
     private Dictionary<uint, List<IndunEvent>> _indunEvents;
     private Dictionary<uint, IndunZone> _indunZones;
     private Dictionary<uint, IndunRoom> _indunRooms;
+    private Dictionary<uint, List<IndunRound>> _indunRounds;
 
     public IndunZone GetDungeonZone(uint zoneGroupId)
     {
@@ -64,6 +68,22 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
         return null;
     }
 
+    /// <summary><c>indun_rounds</c> rows of a zone group ordered by round; empty for the 47 zone groups without any.</summary>
+    public IReadOnlyList<IndunRound> GetRounds(uint zoneGroupId)
+    {
+        if (_indunRounds != null && _indunRounds.TryGetValue(zoneGroupId, out var rounds))
+            return rounds;
+        return [];
+    }
+
+    private void AddIndunEvent(IndunEvent indunEvent)
+    {
+        if (!_indunEvents.ContainsKey(indunEvent.ZoneGroupId))
+            _indunEvents.Add(indunEvent.ZoneGroupId, []);
+
+        _indunEvents[indunEvent.ZoneGroupId].Add(indunEvent);
+    }
+
     public IndunEvent GetIndunEventById(uint eventId)
     {
         if (_indunEvents == null) { return null; }
@@ -86,6 +106,7 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
         _indunEvents = [];
         _indunZones = [];
         _indunRooms = [];
+        _indunRounds = [];
 
         #region Actions
         using (var command = connection.CreateCommand())
@@ -180,6 +201,84 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                         DetailId = reader.GetUInt32("detail_id"),
                         ZoneGroupId = reader.GetUInt16("zone_group_id"),
                         NextActionId = reader.GetUInt32("next_action_id", 0)
+                    };
+
+                    _indunActions.Add(action.Id, action);
+                }
+            }
+        }
+        // The three kinds below (18 rows) complete the 357-row table; kinds and columns from
+        // enum_indun_round_alarm_kinds, indun_action_next_rounds, indun_action_send_mail_rewards.
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT indun_actions.*, round_alarm_kind_id, show_ui FROM indun_actions
+                                        LEFT JOIN indun_action_round_alarms
+                                        ON indun_actions.detail_id = indun_action_round_alarms.id
+                                        WHERE indun_actions.detail_type = 'IndunActionRoundAlarm'";
+            command.Prepare();
+            using (var sqliteReader = command.ExecuteReader())
+            using (var reader = new SQLiteWrapperReader(sqliteReader))
+            {
+                while (reader.Read())
+                {
+                    var action = new IndunActionRoundAlarm
+                    {
+                        Id = reader.GetUInt32("id"),
+                        DetailId = reader.GetUInt32("detail_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        NextActionId = reader.GetUInt32("next_action_id", 0),
+                        RoundAlarmKindId = (byte)reader.GetUInt32("round_alarm_kind_id", 0),
+                        ShowUi = reader.GetBoolean("show_ui", true)
+                    };
+
+                    _indunActions.Add(action.Id, action);
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT indun_actions.*, round_add FROM indun_actions
+                                        LEFT JOIN indun_action_next_rounds
+                                        ON indun_actions.detail_id = indun_action_next_rounds.id
+                                        WHERE indun_actions.detail_type = 'IndunActionNextRound'";
+            command.Prepare();
+            using (var sqliteReader = command.ExecuteReader())
+            using (var reader = new SQLiteWrapperReader(sqliteReader))
+            {
+                while (reader.Read())
+                {
+                    var action = new IndunActionNextRound
+                    {
+                        Id = reader.GetUInt32("id"),
+                        DetailId = reader.GetUInt32("detail_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        NextActionId = reader.GetUInt32("next_action_id", 0),
+                        RoundAdd = reader.GetInt32("round_add", 0)
+                    };
+
+                    _indunActions.Add(action.Id, action);
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT indun_actions.*, instance_reward_kind_id FROM indun_actions
+                                        LEFT JOIN indun_action_send_mail_rewards
+                                        ON indun_actions.detail_id = indun_action_send_mail_rewards.id
+                                        WHERE indun_actions.detail_type = 'IndunActionSendMailReward'";
+            command.Prepare();
+            using (var sqliteReader = command.ExecuteReader())
+            using (var reader = new SQLiteWrapperReader(sqliteReader))
+            {
+                while (reader.Read())
+                {
+                    var action = new IndunActionSendMailReward
+                    {
+                        Id = reader.GetUInt32("id"),
+                        DetailId = reader.GetUInt32("detail_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        NextActionId = reader.GetUInt32("next_action_id", 0),
+                        InstanceRewardKindId = reader.GetUInt32("instance_reward_kind_id", 0)
                     };
 
                     _indunActions.Add(action.Id, action);
@@ -357,6 +456,130 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
                 }
             }
         }
+        // The five kinds below (41 rows) complete the 263-row table.
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT indun_events.*, doodad_almighty_id, doodad_func_group_id, check_status_id FROM indun_events
+                                        LEFT JOIN indun_event_doodad_phase_changeds
+                                        ON indun_events.condition_id = indun_event_doodad_phase_changeds.id
+                                        WHERE indun_events.condition_type = 'IndunEventDoodadPhaseChanged'";
+            command.Prepare();
+            using (var sqliteReader = command.ExecuteReader())
+            using (var reader = new SQLiteWrapperReader(sqliteReader))
+            {
+                while (reader.Read())
+                {
+                    AddIndunEvent(new IndunEventDoodadPhaseChangeds
+                    {
+                        Id = reader.GetUInt32("id"),
+                        ConditionId = reader.GetUInt32("condition_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        StartActionId = reader.GetUInt32("start_action_id", 0),
+                        DoodadAlmightyId = reader.GetUInt32("doodad_almighty_id", 0),
+                        DoodadFuncGroupId = reader.GetUInt32("doodad_func_group_id", 0),
+                        CheckStatusId = reader.GetUInt32("check_status_id", 0)
+                    });
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT indun_events.*, tag_id FROM indun_events
+                                        LEFT JOIN indun_event_no_in_aggro_lists
+                                        ON indun_events.condition_id = indun_event_no_in_aggro_lists.id
+                                        WHERE indun_events.condition_type = 'IndunEventNoInAggroList'";
+            command.Prepare();
+            using (var sqliteReader = command.ExecuteReader())
+            using (var reader = new SQLiteWrapperReader(sqliteReader))
+            {
+                while (reader.Read())
+                {
+                    AddIndunEvent(new IndunEventNoInAggroLists
+                    {
+                        Id = reader.GetUInt32("id"),
+                        ConditionId = reader.GetUInt32("condition_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        StartActionId = reader.GetUInt32("start_action_id", 0),
+                        TagId = reader.GetUInt32("tag_id", 0)
+                    });
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT indun_events.*, npc_id, buff_id, npc_info_broadcasting_id FROM indun_events
+                                        LEFT JOIN indun_event_npc_info_broadcastings
+                                        ON indun_events.condition_id = indun_event_npc_info_broadcastings.id
+                                        WHERE indun_events.condition_type = 'IndunEventNpcInfoBroadcasting'";
+            command.Prepare();
+            using (var sqliteReader = command.ExecuteReader())
+            using (var reader = new SQLiteWrapperReader(sqliteReader))
+            {
+                while (reader.Read())
+                {
+                    AddIndunEvent(new IndunEventNpcInfoBroadcastings
+                    {
+                        Id = reader.GetUInt32("id"),
+                        ConditionId = reader.GetUInt32("condition_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        StartActionId = reader.GetUInt32("start_action_id", 0),
+                        NpcId = reader.GetUInt32("npc_id", 0),
+                        BuffId = reader.GetUInt32("buff_id", 0),
+                        NpcInfoBroadcastingId = (byte)reader.GetUInt32("npc_info_broadcasting_id", 0)
+                    });
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT indun_events.*, source_faction_id, zone_score_kind_id, level, change_way FROM indun_events
+                                        LEFT JOIN indun_event_zone_score_level_changeds
+                                        ON indun_events.condition_id = indun_event_zone_score_level_changeds.id
+                                        WHERE indun_events.condition_type = 'IndunEventZoneScoreLevelChanged'";
+            command.Prepare();
+            using (var sqliteReader = command.ExecuteReader())
+            using (var reader = new SQLiteWrapperReader(sqliteReader))
+            {
+                while (reader.Read())
+                {
+                    AddIndunEvent(new IndunEventZoneScoreLevelChangeds
+                    {
+                        Id = reader.GetUInt32("id"),
+                        ConditionId = reader.GetUInt32("condition_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        StartActionId = reader.GetUInt32("start_action_id", 0),
+                        SourceFactionId = reader.GetUInt32("source_faction_id", 0),
+                        ZoneScoreKindId = reader.GetUInt32("zone_score_kind_id", 0),
+                        Level = reader.GetInt32("level", 0),
+                        ChangeWay = reader.GetInt32("change_way", 0)
+                    });
+                }
+            }
+        }
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT indun_events.*, min_difficult, max_difficult FROM indun_events
+                                        LEFT JOIN indun_event_difficult_changeds
+                                        ON indun_events.condition_id = indun_event_difficult_changeds.id
+                                        WHERE indun_events.condition_type = 'IndunEventDifficultChanged'";
+            command.Prepare();
+            using (var sqliteReader = command.ExecuteReader())
+            using (var reader = new SQLiteWrapperReader(sqliteReader))
+            {
+                while (reader.Read())
+                {
+                    AddIndunEvent(new IndunEventDifficultChangeds
+                    {
+                        Id = reader.GetUInt32("id"),
+                        ConditionId = reader.GetUInt32("condition_id"),
+                        ZoneGroupId = reader.GetUInt16("zone_group_id"),
+                        StartActionId = reader.GetUInt32("start_action_id", 0),
+                        MinDifficult = reader.GetInt32("min_difficult", 0),
+                        MaxDifficult = reader.GetInt32("max_difficult", 0)
+                    });
+                }
+            }
+        }
         #endregion
         #region Zones
         using (var command = connection.CreateCommand())
@@ -457,6 +680,46 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
             }
         }
         #endregion
+        #region Rounds
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT * FROM indun_rounds ORDER BY zone_group_id, round";
+            command.Prepare();
+            using (var sqliteReader = command.ExecuteReader())
+            using (var reader = new SQLiteWrapperReader(sqliteReader))
+            {
+                while (reader.Read())
+                {
+                    var round = new IndunRound
+                    {
+                        Id = reader.GetUInt32("id"),
+                        ZoneGroupId = reader.GetUInt32("zone_group_id"),
+                        Round = reader.GetInt32("round", 0),
+                        SpawnerId = reader.GetUInt32("spawner_id", 0),
+                        TimerSeconds = reader.GetInt32("timer", 0),
+                        BossRound = reader.GetBoolean("boss_round", true)
+                    };
+
+                    if (!_indunRounds.TryGetValue(round.ZoneGroupId, out var rounds))
+                    {
+                        rounds = [];
+                        _indunRounds.Add(round.ZoneGroupId, rounds);
+                    }
+
+                    rounds.Add(round);
+                }
+            }
+        }
+        #endregion
+
+        var eventCount = 0;
+        foreach (var events in _indunEvents.Values)
+            eventCount += events.Count;
+        var roundCount = 0;
+        foreach (var rounds in _indunRounds.Values)
+            roundCount += rounds.Count;
+        // Content has 357 actions, 263 events and 77 rounds; a lower count here means a kind went unloaded.
+        Logger.Info($"Loaded {_indunActions.Count} indun actions, {eventCount} indun events, {roundCount} indun rounds");
     }
 
     public void PostLoad()
