@@ -118,14 +118,16 @@ public class IndunManagerTests
     }
 
     [Test]
-    public async Task RequestDungeonInstance_ClosedSchedule_StopsBeforeInstanceLookup()
+    public async Task RequestDungeonInstance_ClosedSchedule_RejectedWithoutCreatingInstance()
     {
         var now = new DateTime(2026, 9, 21, 12, 0, 0, DateTimeKind.Utc); // Monday
         var zone = new Zone { Id = 920, ZoneKey = 921, GroupId = 922 };
         var indun = new IndunZone { ZoneGroupId = zone.GroupId, InstanceCatalogId = 923, UseUtcEntranceTimes = true };
         indun.EntranceTimes.Add(new InstanceEntranceTime(2, 0, 0, 0, 0)); // Tuesday only
 
-        var manager = CreateAdmissionManager(zone, indun);
+        // A dungeon rejoin must stay reachable while the window is closed, so the schedule is checked at
+        // VerifyDungeonEnterRequirements after the rejoin loop rather than before the copy lookup.
+        var manager = CreateAdmissionManager(zone, indun, allowWorldLookup: true);
         manager.AdmissionUtcNow = () => now;
 
         var accepted = manager.RequestDungeonInstance(
@@ -160,12 +162,16 @@ public class IndunManagerTests
 
     private static IndunManager CreateAdmissionManager(
         Zone zone,
-        IndunZone indun)
+        IndunZone indun,
+        bool allowWorldLookup = false)
     {
         var tick = Mock.Of<ITickManager>();
         var world = Mock.Of<IWorldManager>();
         world.GetWorldTemplateByZoneKey(zone.ZoneKey).Returns(new WorldTemplate { Id = 1, Name = "admission-test" });
-        world.GetWorlds().Throws(new InvalidOperationException("Admission rejection must happen before world lookup."));
+        if (allowWorldLookup)
+            world.GetWorlds().Returns([]);
+        else
+            world.GetWorlds().Throws(new InvalidOperationException("Admission rejection must happen before world lookup."));
         var zones = Mock.Of<IZoneManager>();
         zones.GetZoneById(zone.Id).Returns(zone);
 

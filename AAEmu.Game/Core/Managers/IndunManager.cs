@@ -306,11 +306,10 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
             return false;
         }
 
-        // Admission is checked before the paid-entry/rejoin paths. A visit count is not charged twice, but a
-        // closed entrance or a currently prohibited character state still blocks crossing the entrance.
-        if (!VerifyDungeonAdmission(dungeonZone, character))
-            return false;
-
+        // No schedule or tag check here: the rejoin paths below run first and must stay reachable while the
+        // entrance window is closed, because instances 50/51/55 are reentry=true and a member who drops
+        // mid-run has to get back into the copy their party already paid for. Every fresh entry is still
+        // gated by VerifyDungeonEnterRequirements.
         var possibleTargetInstances = GetExistingDungeonsByZoneKey(targetZone.ZoneKey);
 
         // A pick names the dimension to land in, so it is settled before the access rules below: those look for
