@@ -10,7 +10,8 @@ namespace AAEmu.Game.Models.Game.Indun.Events;
 /// <c>indun_event_no_in_aggro_lists</c> (10 rows; zone groups 105, 120, 146): the NPCs tagged <c>tag_id</c>
 /// have nobody left on their aggro lists. Content names it a wipe check ("noinaggrolist로 전멸체크",
 /// "칼릴탈몬 전멸") and a fight-over signal ("헤임달과 전투종료"): the tagged NPCs are alive and out of
-/// combat. Armed by the first tagged combat start, it fires once when the last tagged NPC leaves combat.
+/// combat. Armed by the first tagged combat start, it fires once when the last living tagged NPC leaves
+/// combat. A dead tagged NPC never counts, so the killing blow that removes the last one stays silent.
 /// </summary>
 internal class IndunEventNoInAggroLists : IndunEvent
 {
@@ -52,9 +53,13 @@ internal class IndunEventNoInAggroLists : IndunEvent
 
     private void CheckDisengaged(WorldInstance world, Npc npc)
     {
-        if (!IsTagged(npc) || !_armed.TryGetValue(world.Id, out var armed))
+        if (npc == null || npc.Hp <= 0 || npc.IsDead || !IsTagged(npc) || !_armed.TryGetValue(world.Id, out var armed))
             return;
-        if (!IndunEventRules.ShouldFireNoInAggroList(armed, AnyTaggedNpcInCombat(world)))
+
+        var anyAlive = false;
+        var anyInCombat = false;
+        CollectTaggedNpcState(world, ref anyAlive, ref anyInCombat);
+        if (!IndunEventRules.ShouldFireNoInAggroList(armed, anyAlive, anyInCombat))
             return;
 
         _armed[world.Id] = false;
@@ -63,11 +68,11 @@ internal class IndunEventNoInAggroLists : IndunEvent
     }
 
     /// <summary>
-    /// A tagged NPC still alive with a combat flag or a non-empty aggro table keeps the event armed. A dead
-    /// one is already out of the fight, so the check only considers the living; that is what lets the death
-    /// of the last tagged NPC fire this.
+    /// Scans the copy's tagged NPCs once: <paramref name="anyAlive"/> is set when at least one of them is
+    /// alive, <paramref name="anyInCombat"/> when one of the living still has a combat flag or a non-empty
+    /// aggro table. A dead tagged NPC counts for neither, so the killing blow cannot fire the event.
     /// </summary>
-    private bool AnyTaggedNpcInCombat(WorldInstance world)
+    private void CollectTaggedNpcState(WorldInstance world, ref bool anyAlive, ref bool anyInCombat)
     {
         var npcs = new List<Npc>();
         foreach (var region in world.Regions)
@@ -77,10 +82,10 @@ internal class IndunEventNoInAggroLists : IndunEvent
         {
             if (npc == null || npc.Hp <= 0 || npc.IsDead || !IsTagged(npc))
                 continue;
-            if (npc.IsInBattle || !npc.AggroTable.IsEmpty)
-                return true;
-        }
 
-        return false;
+            anyAlive = true;
+            if (npc.IsInBattle || !npc.AggroTable.IsEmpty)
+                anyInCombat = true;
+        }
     }
 }

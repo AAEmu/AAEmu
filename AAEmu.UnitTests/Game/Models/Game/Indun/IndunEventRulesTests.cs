@@ -38,22 +38,32 @@ public class IndunEventRulesTests
     }
 
     [Test]
-    public async Task ShouldFireNoInAggroList_WhenArmedAndNobodyFights()
+    public async Task ShouldFireNoInAggroList_WhenArmedAndTheLastLivingNpcLeavesCombat()
     {
-        await Assert.That(IndunEventRules.ShouldFireNoInAggroList(armed: true, anyTaggedNpcInCombat: false)).IsTrue();
+        await Assert.That(IndunEventRules.ShouldFireNoInAggroList(armed: true, anyTaggedNpcAlive: true, anyTaggedNpcInCombat: false)).IsTrue();
     }
 
     [Test]
     public async Task ShouldFireNoInAggroList_NotWhileATaggedNpcFights()
     {
-        await Assert.That(IndunEventRules.ShouldFireNoInAggroList(armed: true, anyTaggedNpcInCombat: true)).IsFalse();
+        await Assert.That(IndunEventRules.ShouldFireNoInAggroList(armed: true, anyTaggedNpcAlive: true, anyTaggedNpcInCombat: true)).IsFalse();
+    }
+
+    [Test]
+    public async Task ShouldFireNoInAggroList_NotWhenTheKillTookTheLastTaggedNpc()
+    {
+        // Unit.ReduceCurrentHp raises OnUnitCombatEnd on the killing blow (Unit.cs:975) before DoDie
+        // clears IsInBattle, and the dead tagged NPC is out of the fight at that point.
+        await Assert.That(IndunEventRules.ShouldFireNoInAggroList(armed: true, anyTaggedNpcAlive: false, anyTaggedNpcInCombat: false)).IsFalse();
+        await Assert.That(IndunEventRules.ShouldFireNoInAggroList(armed: true, anyTaggedNpcAlive: false, anyTaggedNpcInCombat: true)).IsFalse();
     }
 
     [Test]
     public async Task ShouldFireNoInAggroList_NotBeforeAnyEngagement()
     {
-        await Assert.That(IndunEventRules.ShouldFireNoInAggroList(armed: false, anyTaggedNpcInCombat: false)).IsFalse();
-        await Assert.That(IndunEventRules.ShouldFireNoInAggroList(armed: false, anyTaggedNpcInCombat: true)).IsFalse();
+        await Assert.That(IndunEventRules.ShouldFireNoInAggroList(armed: false, anyTaggedNpcAlive: true, anyTaggedNpcInCombat: false)).IsFalse();
+        await Assert.That(IndunEventRules.ShouldFireNoInAggroList(armed: false, anyTaggedNpcAlive: true, anyTaggedNpcInCombat: true)).IsFalse();
+        await Assert.That(IndunEventRules.ShouldFireNoInAggroList(armed: false, anyTaggedNpcAlive: false, anyTaggedNpcInCombat: false)).IsFalse();
     }
 
     [Test]

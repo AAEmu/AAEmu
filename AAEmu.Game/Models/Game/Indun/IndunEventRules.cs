@@ -17,10 +17,12 @@ public static class IndunEventRules
     public static bool ShouldFireCombatEnd(ISet<uint> inCombatObjIds, uint objId) => inCombatObjIds.Remove(objId);
 
     /// <summary>
-    /// <c>IndunEventNoInAggroList</c> fires on the edge where the last tagged NPC leaves combat, once per
-    /// engagement: armed by the first tagged combat start, disarmed by the fire.
+    /// <c>IndunEventNoInAggroList</c> fires on the edge where the last living tagged NPC leaves combat, once
+    /// per engagement: armed by the first tagged combat start, disarmed by the fire. A dead tagged NPC is
+    /// out of the fight and never counts, so a kill that leaves none of them alive does not fire this.
     /// </summary>
-    public static bool ShouldFireNoInAggroList(bool armed, bool anyTaggedNpcInCombat) => armed && !anyTaggedNpcInCombat;
+    public static bool ShouldFireNoInAggroList(bool armed, bool anyTaggedNpcAlive, bool anyTaggedNpcInCombat) =>
+        armed && anyTaggedNpcAlive && !anyTaggedNpcInCombat;
 
     /// <summary><c>indun_event_difficult_changeds.min_difficult..max_difficult</c> (row 1: 0..12), inclusive.</summary>
     public static bool DifficultInRange(int difficult, int minDifficult, int maxDifficult) =>
