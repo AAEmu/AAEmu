@@ -266,7 +266,10 @@ public class ItemChangeMapping : SpecialEffectAction
         // piece already being worn never reached the character sheet. Re-total here; the piece is
         // only in the sum at all while it sits in the equipment container.
         if (equipItem.SlotType == SlotType.Equipment)
+        {
+            owner.InvalidateGearScore();
             owner.UpdateGearBonuses(null, null);
+        }
 
         owner.SendPacket(new SCItemChangeMappingResultPacket(oldSnapshot, equipItem, bonusRate,
             ItemChangeMappingResult.Success));

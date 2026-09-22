@@ -84,6 +84,33 @@ public class CharacterEquipSlotReinforces
         }
     }
 
+    /// <summary>
+    /// Item level the gear-score formulas add for this slot. The level they index is the one the client
+    /// shows (one past the levels reached, clamped to the top of the ladder), and a slot with no progress
+    /// adds nothing.
+    /// </summary>
+    public float ItemLevelGain(byte slotTypeId)
+    {
+        var state = StateOf(slotTypeId);
+        return state == null ? 0 : ItemLevelGainFor(slotTypeId, state.Level);
+    }
+
+    /// <summary>
+    /// Item level the gear-score formulas add for a stored slot level, without a live character.
+    /// The level they index is the one the client shows.
+    /// </summary>
+    public static float ItemLevelGainFor(byte slotTypeId, sbyte reachedLevel)
+    {
+        if (reachedLevel <= 0)
+            return 0;
+
+        var level = WireLevel(reachedLevel, slotTypeId);
+        if (level <= 0)
+            return 0;
+
+        return EquipSlotReinforceGameData.Instance.Step(slotTypeId, (byte)level)?.GainItemLevel ?? 0;
+    }
+
     public EquipSlotReinforceState StateOf(byte slotTypeId)
     {
         lock (_sync)
@@ -628,6 +655,7 @@ public class CharacterEquipSlotReinforces
         }
 
         Send(slotTypeId);
+        _owner?.InvalidateGearScore();
         var rolled = EnsureTierEffects(slotTypeId, announce: false);
         if (rolled > 0)
             ApplyEffectsToOwner();
@@ -945,6 +973,7 @@ public class CharacterEquipSlotReinforces
         Logger.Info("Equip slot reinforce {0}: {1} reached level {2} (item level +{3})",
             slotTypeId, _owner.Name, reached.Level, reached.GainItemLevel);
 
+        _owner.InvalidateGearScore();
         Send(slotTypeId);
 
         // Reaching a tier hands the slot one of that tier's effects. It is rolled here, once, because a row

@@ -32,7 +32,7 @@ public class SiegeManagerOfflineGearTests
         await MakeContainerIdsAvailable();
         var containers = new Dictionary<ulong, ItemContainer>();
         using var items = new SingletonScope<ItemManager>(CreateItemManager(containers));
-        using var formulas = new SingletonScope<FormulaManager>(CreateFormulaManager());
+        using var formulas = new SingletonScope<FormulaManager>(CreateFormulaManager("item_level * item_grade * gear_score_multiplier"));
 
         await Assert.That(OfflineGearScore(CharacterId)).IsEqualTo(0u);
         // Nothing was built for the character on the way: the save loop has no new container to write.
@@ -49,12 +49,32 @@ public class SiegeManagerOfflineGearTests
         containers.Add(equipment.ContainerId, equipment);
 
         using var items = new SingletonScope<ItemManager>(CreateItemManager(containers));
-        using var formulas = new SingletonScope<FormulaManager>(CreateFormulaManager());
+        using var formulas = new SingletonScope<FormulaManager>(CreateFormulaManager("item_level * item_grade * gear_score_multiplier"));
 
         // A weight of 1.00 (the stored 100 is hundredths) and no grade row, so the two pieces are worth their
         // levels - the same per-piece result a live character's total is built from.
         await Assert.That(OfflineGearScore(CharacterId)).IsEqualTo(80u);
         await Assert.That(containers.Count).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task OfflineGear_TruncatesTheSumAndSkipsABodySlot()
+    {
+        var containers = new Dictionary<ulong, ItemContainer>();
+        var equipment = new ItemContainer(CharacterId, SlotType.Equipment, false, null) { ContainerId = 79 };
+        var worn = ArmorPiece(1, 10);
+        worn.Slot = 0;
+        var body = ArmorPiece(2, 40);
+        body.Slot = 19;
+        equipment.Items.Add(worn);
+        equipment.Items.Add(body);
+        containers.Add(equipment.ContainerId, equipment);
+
+        using var items = new SingletonScope<ItemManager>(CreateItemManager(containers));
+        using var formulas = new SingletonScope<FormulaManager>(CreateFormulaManager("item_level * item_grade * gear_score_multiplier + 0.9"));
+
+        // 10.9 from the worn piece, the body slot left out. Rounding that sum would store 11.
+        await Assert.That(OfflineGearScore(CharacterId)).IsEqualTo(10u);
     }
 
     [Test]
@@ -67,18 +87,23 @@ public class SiegeManagerOfflineGearTests
         containers.Add(someoneElse.ContainerId, someoneElse);
 
         using var items = new SingletonScope<ItemManager>(CreateItemManager(containers));
-        using var formulas = new SingletonScope<FormulaManager>(CreateFormulaManager());
+        using var formulas = new SingletonScope<FormulaManager>(CreateFormulaManager("item_level * item_grade * gear_score_multiplier"));
 
         await Assert.That(OfflineGearScore(CharacterId)).IsEqualTo(0u);
         await Assert.That(containers.Count).IsEqualTo(1);
     }
 
-    private static EquipItem ArmorPiece(ulong id, byte level) => new(id, new ArmorTemplate
+    private static EquipItem ArmorPiece(ulong id, byte level)
     {
-        Id = 100 + (uint)id,
-        Level = level,
-        SlotTemplate = new WearableSlot { SlotTypeId = ArmorSlotTypeId, GearScoreMultiplier = 100 }
-    }, 1);
+        var item = new EquipItem(id, new ArmorTemplate
+        {
+            Id = 100 + (uint)id,
+            Level = level,
+            SlotTemplate = new WearableSlot { SlotTypeId = ArmorSlotTypeId, GearScoreMultiplier = 100 }
+        }, 1);
+        item.Slot = (int)ArmorSlotTypeId;
+        return item;
+    }
 
     private static ItemManager CreateItemManager(Dictionary<ulong, ItemContainer> containers)
     {
@@ -95,12 +120,12 @@ public class SiegeManagerOfflineGearTests
         return manager;
     }
 
-    private static FormulaManager CreateFormulaManager()
+    private static FormulaManager CreateFormulaManager(string text)
     {
         var manager = new FormulaManager();
         SetField(manager, "_formulas", new Dictionary<uint, Formula>
         {
-            [(uint)ArmorFormula] = new("item_level * item_grade * gear_score_multiplier")
+            [(uint)ArmorFormula] = new(text)
         });
         return manager;
     }

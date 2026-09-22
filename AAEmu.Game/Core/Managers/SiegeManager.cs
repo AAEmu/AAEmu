@@ -225,20 +225,47 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
                 return 0;
             }
 
-            double total = 0;
-            foreach (var item in equipment.Items)
-            {
-                if (item != null)
-                    total += GearScoreCalculator.EvaluateItem(item);
-            }
-
-            return (uint)Math.Max(0, (int)Math.Round(total));
+            var gains = SlotItemLevelGains(characterId);
+            var parts = GearScoreCalculator.Sum(equipment.Items,
+                slot => gains.GetValueOrDefault((byte)slot));
+            return (uint)Math.Max(0, GearScoreCalculator.TruncatedTotal(parts));
         }
         catch (Exception ex)
         {
             Logger.Warn(ex, "Could not score the gear of offline character {0} - listed as 0", characterId);
             return 0;
         }
+    }
+
+    /// <summary>
+    /// Ladder gain per reinforced slot for a character who is not loaded. Empty when the table cannot be
+    /// read, which leaves those pieces at their template level rather than failing the whole score.
+    /// </summary>
+    private static Dictionary<byte, float> SlotItemLevelGains(uint characterId)
+    {
+        var gains = new Dictionary<byte, float>();
+        try
+        {
+            using var connection = MySQL.CreateConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                "SELECT `slot_type_id`, `level` FROM character_equip_slot_reinforces " +
+                "WHERE `owner` = @owner AND `level` > 0";
+            command.Parameters.AddWithValue("@owner", characterId);
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                var slot = (byte)reader.GetInt32("slot_type_id");
+                var level = (sbyte)reader.GetInt32("level");
+                gains[slot] = CharacterEquipSlotReinforces.ItemLevelGainFor(slot, level);
+            }
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn(ex, "Could not read slot reinforcement for offline character {0}", characterId);
+        }
+
+        return gains;
     }
 
     public void UnregisterFromRaidTeam(GameConnection connection, ushort zoneId)

@@ -490,8 +490,8 @@ public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) :
 
         if (board.DetailType == RankingGameData.GearScoreDetailType)
         {
-            var score = character.GearScore;
-            return score >= gate.MinScore ? new RankLine(score, 0, null) : null;
+            var parts = GearScoreCalculator.EvaluateParts(character);
+            return RankingRules.GearScoreLine((long)Math.Truncate(parts.Total), (long)Math.Truncate(parts.Bare), gate.MinScore);
         }
 
         if (board.DetailType != RankingGameData.ItemDetailType)
@@ -514,9 +514,12 @@ public class RankScoreManager(IRankScoreStore store, ITaskManager taskManager) :
             if (!RankingRules.ItemCounts(equip, gate))
                 continue;
 
-            var score = (long)Math.Round(GearScoreCalculator.EvaluateItem(equip));
-            if (best == null || score > best.Value.Value)
-                best = new RankLine(score, 0, RankingSubData.ForItem(equip.TemplateId));
+            var gain = character.EquipSlotReinforces?.ItemLevelGain((byte)equip.Slot) ?? 0;
+            var parts = GearScoreCalculator.EvaluateItemParts(equip, gain);
+            var total = (long)Math.Truncate(parts.Total);
+            var bare = (long)Math.Truncate(parts.Bare);
+            if (best == null || total > best.Value.Value)
+                best = RankingRules.GearScoreLine(total, bare, 0, RankingSubData.ForItem(equip.TemplateId));
         }
 
         return best;

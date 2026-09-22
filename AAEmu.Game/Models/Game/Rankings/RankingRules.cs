@@ -65,4 +65,16 @@ public static class RankingRules
 
         return best;
     }
+
+    /// <summary>
+    /// A gear-score line: the board orders by <paramref name="total"/>, and the window's point
+    /// details are <c>bare + (total - bare)</c>. Null when the total is below the board's floor.
+    /// </summary>
+    public static RankLine? GearScoreLine(long total, long bare, int minScore, RankingSubData subData = null)
+    {
+        if (total < minScore)
+            return null;
+
+        return new RankLine(total, bare, subData);
+    }
 }

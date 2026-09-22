@@ -27,4 +27,93 @@ public class GearScoreCalculatorTests
     {
         await Assert.That(GearScoreCalculator.FromStoredMultiplier(0)).IsEqualTo(0.0);
     }
+
+    [Test]
+    public async Task Combine_KeepsThePieceAsBareAndAddsGemsToTheTotal()
+    {
+        var none = GearScoreCalculator.Combine(9412, 0);
+        await Assert.That(none.RoundedTotal).IsEqualTo(9412);
+        await Assert.That(none.RoundedBare).IsEqualTo(9412);
+
+        var stones = GearScoreCalculator.Combine(9774, 2);
+        await Assert.That(stones.RoundedTotal).IsEqualTo(9776);
+        await Assert.That(stones.RoundedBare).IsEqualTo(9774);
+        await Assert.That(stones.RoundedGems).IsEqualTo(2);
+    }
+
+    [Test]
+    public async Task ItemLevelForScore_AddsTheReinforceFormulaResultRatherThanTheLadderGain()
+    {
+        // A level-68 piece whose slot ladder says 2.5 does not become 70.5. The reinforce formula
+        // turns that 2.5 into the bonus that is actually added (1.222 for this piece).
+        var level = GearScoreCalculator.ItemLevelForScore(68, 2.5, (_, _) => 1.222);
+
+        await Assert.That(level).IsEqualTo(69.222);
+        await Assert.That(GearScoreCalculator.ItemLevelForScore(68, 0, (_, _) => 5)).IsEqualTo(68);
+    }
+
+    [Test]
+    public async Task TemperMultiplier_LeavesAnUntemperedPieceAloneAndScalesATemperedOne()
+    {
+        await Assert.That(GearScoreCalculator.TemperMultiplier(0)).IsEqualTo(1);
+        await Assert.That(GearScoreCalculator.TemperMultiplier(200)).IsEqualTo(1.2);
+        await Assert.That(GearScoreCalculator.TemperMultiplier(10)).IsEqualTo(1.01);
+    }
+
+    [Test]
+    public async Task TruncateTenth_DropsAnythingPastOneDecimal()
+    {
+        await Assert.That(GearScoreCalculator.TruncateTenth(650.43)).IsEqualTo(650.4);
+        await Assert.That(GearScoreCalculator.TruncateTenth(1496.4319)).IsEqualTo(1496.4);
+        await Assert.That(GearScoreCalculator.TruncateTenth(0)).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task CountsTowardGearScore_KeepsWornGearAndLeavesTheBodySlotsOut()
+    {
+        await Assert.That(GearScoreCalculator.CountsTowardGearScore(0)).IsTrue();
+        await Assert.That(GearScoreCalculator.CountsTowardGearScore(15)).IsTrue();
+        await Assert.That(GearScoreCalculator.CountsTowardGearScore(26)).IsTrue();
+        await Assert.That(GearScoreCalculator.CountsTowardGearScore(27)).IsTrue();
+        await Assert.That(GearScoreCalculator.CountsTowardGearScore(19)).IsFalse();
+        await Assert.That(GearScoreCalculator.CountsTowardGearScore(24)).IsFalse();
+        await Assert.That(GearScoreCalculator.CountsTowardGearScore(31)).IsFalse();
+    }
+
+    [Test]
+    public async Task GemItemLevels_UseTheStoneAndSkipEmptySockets()
+    {
+        var levels = GearScoreCalculator.GemItemLevels([0, 9, 0], id => id == 9 ? 1 : null);
+
+        await Assert.That(levels).IsEquivalentTo(new[] { 1 });
+    }
+
+    [Test]
+    public async Task GemItemLevels_SkipAStoneWhoseTemplateIsMissing()
+    {
+        var levels = GearScoreCalculator.GemItemLevels([4], _ => null);
+
+        await Assert.That(levels).IsEmpty();
+    }
+
+    [Test]
+    public async Task ScoreGems_AddsTheSocketFormulaAtEachStonesLevel()
+    {
+        // Socket formula is item_level * 2. The gem formula (item_level * 0.5) is not part of the
+        // per-socket sum: one level-1 lunagem showed as +2 on the ranking window, and two level-70
+        // stones are 280 that way rather than 350.
+        static double Socket(double level) => level * 2;
+
+        await Assert.That(GearScoreCalculator.ScoreGems([1], Socket, _ => 0)).IsEqualTo(2);
+        await Assert.That(GearScoreCalculator.ScoreGems([70, 70], Socket, _ => 0)).IsEqualTo(280);
+        // Feeding the piece's level (68) instead of the stone's is what painted +170.
+        await Assert.That(GearScoreCalculator.ScoreGems([68], Socket, _ => 0)).IsEqualTo(136);
+    }
+
+    [Test]
+    public async Task TruncatedTotal_DropsTheFractionOfTheSum()
+    {
+        var parts = new GearScoreCalculator.GearScoreParts(80.9, 80);
+        await Assert.That(GearScoreCalculator.TruncatedTotal(parts)).IsEqualTo(80);
+    }
 }
