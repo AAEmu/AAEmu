@@ -367,6 +367,7 @@ public static class Program
                 services.AddSingleton<WorldManager>();
                 services.AddSingleton<IWorldManager>(sp => sp.GetRequiredService<WorldManager>());
 
+                services.AddSingleton<IConflictZoneRuntimeStore, MySqlConflictZoneRuntimeStore>();
                 services.AddSingleton<ZoneManager>();
                 services.AddSingleton<IZoneManager>(sp => sp.GetRequiredService<ZoneManager>());
 

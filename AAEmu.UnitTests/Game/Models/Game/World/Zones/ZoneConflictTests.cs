@@ -6,6 +6,156 @@ namespace AAEmu.UnitTests.Game.Models.Game.World.Zones;
 public class ZoneConflictTests
 {
     [Test]
+    public async Task RuntimeState_RestoresParticipationAcrossRestart()
+    {
+        ConflictZoneRuntimeState saved = default;
+        var beforeRestart = new ZoneConflict(
+            new ZoneGroup { Id = 14 },
+            persist: state => saved = state)
+        {
+            ZoneGroupId = 14
+        };
+        for (var level = 0; level < 5; level++)
+            beforeRestart.NumKills[level] = 10;
+        beforeRestart.AddZoneKill(7);
+
+        var afterRestart = new ZoneConflict(new ZoneGroup { Id = 14 }) { ZoneGroupId = 14 };
+        for (var level = 0; level < 5; level++)
+            afterRestart.NumKills[level] = 10;
+        afterRestart.RestoreRuntimeState(saved, DateTime.UtcNow);
+
+        await Assert.That(afterRestart.CurrentZoneState).IsEqualTo(ZoneConflictType.Tension);
+        await Assert.That(afterRestart.KillCount).IsEqualTo(7u);
+    }
+
+    [Test]
+    public async Task PersistenceFailure_RollsBackParticipationMutation()
+    {
+        var conflict = new ZoneConflict(
+            new ZoneGroup { Id = 14 },
+            persist: _ => throw new InvalidOperationException("store unavailable"))
+        {
+            ZoneGroupId = 14
+        };
+        for (var level = 0; level < 5; level++)
+            conflict.NumKills[level] = 1;
+
+        conflict.AddZoneKill(2);
+
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Tension);
+        await Assert.That(conflict.KillCount).IsEqualTo(0u);
+        await Assert.That(conflict.NextStateTime).IsEqualTo(DateTime.MinValue);
+    }
+
+    [Test]
+    public async Task RestoreExpiredDeadline_ReconcilesOnceFromPersistedBoundary()
+    {
+        var notifications = new List<(ZoneConflictType Previous, ZoneConflictType Current)>();
+        var persisted = new List<ConflictZoneRuntimeState>();
+        var conflict = new ZoneConflict(
+            new ZoneGroup { Id = 14 },
+            (_, previous, current) => notifications.Add((previous, current)),
+            state => persisted.Add(state))
+        {
+            ZoneGroupId = 14,
+            ConflictMin = 10,
+            WarMin = 90,
+            PeaceMin = 70
+        };
+        var now = DateTime.UtcNow;
+        var deadline = now.AddMinutes(-5);
+
+        conflict.RestoreRuntimeState(
+            new ConflictZoneRuntimeState(14, ZoneConflictType.Conflict, 0, 0, 0, deadline),
+            now);
+
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.War);
+        await Assert.That(conflict.NextStateTime).IsEqualTo(deadline.AddMinutes(90));
+        await Assert.That(notifications).IsEmpty();
+        await Assert.That(persisted).Count().IsEqualTo(1);
+        await Assert.That(persisted[0].State).IsEqualTo(ZoneConflictType.War);
+    }
+
+    [Test]
+    public async Task RestoreWeeksOldRepeatingCycle_SkipsWholeCyclesWithoutPastDeadline()
+    {
+        var conflict = new ZoneConflict(new ZoneGroup { Id = 30 })
+        {
+            ZoneGroupId = 30,
+            ConflictMin = 5,
+            WarMin = 80,
+            PeaceMin = 0
+        };
+        var now = DateTime.UtcNow;
+        var oldDeadline = now.AddDays(-21);
+
+        conflict.RestoreRuntimeState(
+            new ConflictZoneRuntimeState(30, ZoneConflictType.Conflict, 0, 0, 0, oldDeadline),
+            now);
+
+        await Assert.That(conflict.NextStateTime).IsGreaterThan(now);
+        await Assert.That(conflict.NextStateTime).IsLessThanOrEqualTo(now.AddMinutes(80));
+    }
+
+    [Test]
+    public async Task TimerPersistenceFailure_PreservesCommittedPhaseAndSchedulesRetry()
+    {
+        var fail = false;
+        var scheduled = new List<DateTime>();
+        var conflict = new ZoneConflict(
+            new ZoneGroup { Id = 14 },
+            persist: _ =>
+            {
+                if (fail)
+                    throw new InvalidOperationException("store unavailable");
+            },
+            scheduleOverride: due => scheduled.Add(due))
+        {
+            ZoneGroupId = 14,
+            ConflictMin = 10,
+            WarMin = 90,
+            PeaceMin = 70
+        };
+        var deadline = DateTime.UtcNow.AddSeconds(-1);
+        conflict.RestoreRuntimeState(
+            new ConflictZoneRuntimeState(14, ZoneConflictType.Conflict, 0, 0, 0, deadline),
+            deadline.AddSeconds(-1));
+        scheduled.Clear();
+        fail = true;
+
+        conflict.CheckTimer();
+
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Conflict);
+        await Assert.That(conflict.NextStateTime).IsEqualTo(deadline);
+        await Assert.That(scheduled).Count().IsEqualTo(1);
+        await Assert.That(scheduled[0]).IsGreaterThan(DateTime.UtcNow);
+    }
+
+    [Test]
+    public async Task ScheduledPersistenceFailure_PreservesCommittedPhaseAndSchedulesRetry()
+    {
+        var notifications = new List<(ZoneConflictType Previous, ZoneConflictType Current)>();
+        var scheduled = new List<DateTime>();
+        var conflict = new ZoneConflict(
+            new ZoneGroup { Id = 20 },
+            (_, previous, current) => notifications.Add((previous, current)),
+            _ => throw new InvalidOperationException("store unavailable"),
+            due => scheduled.Add(due))
+        {
+            ZoneGroupId = 20
+        };
+        var mondayNoon = new DateTime(2026, 9, 14, 12, 0, 0, DateTimeKind.Local);
+
+        conflict.BindSchedule([new ConflictZoneScheduleEntry(2, 1200, ZoneConflictType.War)], mondayNoon);
+
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Tension);
+        await Assert.That(conflict.NextStateTime).IsEqualTo(DateTime.MinValue);
+        await Assert.That(notifications).IsEmpty();
+        await Assert.That(scheduled).Count().IsEqualTo(1);
+        await Assert.That(scheduled[0]).IsGreaterThan(DateTime.UtcNow);
+    }
+
+    [Test]
     public async Task ThresholdEscalation_PreservesConflictDeadlineAndAdvancesToWar()
     {
         var conflict = SteppedZone();

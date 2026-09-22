@@ -14,7 +14,9 @@ using NLog;
 
 namespace AAEmu.Game.Core.Managers.World;
 
-public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, IZoneManager
+public class ZoneManager(
+    IWorldManager worldManager,
+    IConflictZoneRuntimeStore runtimeStore = null) : Singleton<ZoneManager>, IZoneManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -24,6 +26,7 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
     private Dictionary<ushort, ZoneConflict> _conflicts;
     private Dictionary<uint, ZoneGroupBannedTag> _groupBannedTags;
     private Dictionary<uint, ZoneClimateElem> _climateElem;
+    private readonly IConflictZoneRuntimeStore _runtimeStore = runtimeStore;
 
     public event Action<ushort, ZoneConflictType, ZoneConflictType> ZoneConflictStateChanged;
 
@@ -40,6 +43,9 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
     {
         var scheduled = 0;
         var now = DateTime.Now;
+        IReadOnlyDictionary<ushort, ConflictZoneRuntimeState> saved = new Dictionary<ushort, ConflictZoneRuntimeState>();
+        if (_runtimeStore != null)
+            saved = _runtimeStore.LoadAll();
         foreach (var conflict in _conflicts.Values)
         {
             var schedule = ConflictZoneGameData.Instance.GetSchedule(conflict.ZoneGroupId);
@@ -57,6 +63,12 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
                 {
                     if (conflict.BindDailyWarWindows(starts, now))
                         scheduled++;
+                    else if (saved.TryGetValue(conflict.ZoneGroupId, out var state))
+                        conflict.RestoreRuntimeState(state, now.ToUniversalTime());
+                }
+                else if (saved.TryGetValue(conflict.ZoneGroupId, out var state))
+                {
+                    conflict.RestoreRuntimeState(state, now.ToUniversalTime());
                 }
             }
         }
@@ -218,7 +230,10 @@ public class ZoneManager(IWorldManager worldManager) : Singleton<ZoneManager>, I
                         var zoneGroupId = reader.GetUInt16("zone_group_id");
                         if (_groups.ContainsKey(zoneGroupId))
                         {
-                            var template = new ZoneConflict(_groups[zoneGroupId], OnZoneConflictStateChanged)
+                            var template = new ZoneConflict(
+                                _groups[zoneGroupId],
+                                OnZoneConflictStateChanged,
+                                _runtimeStore == null ? null : _runtimeStore.Save)
                             {
                                 ZoneGroupId = zoneGroupId
                             };
