@@ -328,7 +328,16 @@ public partial class InstantGame
         // Reset players on Start
         Task.Run(async () =>
         {
-            await Delay(TimeSpan.FromSeconds(3), _endGameTokenSource.Token);
+            // The reset grace after Start comes from content (instant_game_start_reset_delay_seconds);
+            // no row means no grace, logged loudly. Never a literal.
+            var startResetDelay =
+                AAEmu.Game.GameData.ContentConfigGameData.Instance.TryGetInt("instant_game_start_reset_delay_seconds", out var resetDelaySeconds) && resetDelaySeconds > 0
+                    ? TimeSpan.FromSeconds(resetDelaySeconds)
+                    : TimeSpan.Zero;
+            if (startResetDelay == TimeSpan.Zero)
+                NLog.LogManager.GetCurrentClassLogger()
+                    .Warn("content_configs row 'instant_game_start_reset_delay_seconds' is absent: the start reset applies immediately.");
+            await Delay(startResetDelay, _endGameTokenSource.Token);
             foreach (var (character, _) in _characterCorps)
             {
                 if (character == null)

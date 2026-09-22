@@ -41,10 +41,32 @@ public static class InstantGameWireContract
 
     /// <summary>
     /// Value for <c>SCInviteToInstantGame.invitationTime</c> — how long the client keeps the join
-    /// dialog offer alive, in milliseconds. Wire value; the content column that looks like it
-    /// (<c>instances.matching_cleanup_term</c>) is used for the server-side fill window instead.
+    /// dialog offer alive, in milliseconds. The retail source row is not pinned: no shipped content
+    /// row carries it, so this reads the <c>content_configs</c> key <c>instant_game_invite_window_ms</c>
+    /// when present and otherwise sends 0 (the client applies its own dialog timing), logging the gap
+    /// once, loudly. Never a literal.
     /// </summary>
-    public const uint InviteWindowMs = 300_000;
+    private const string InviteWindowMsKey = "instant_game_invite_window_ms";
+    private static bool _inviteWindowMissingWarned;
+    private static readonly NLog.Logger Logger = NLog.LogManager.GetCurrentClassLogger();
+
+    public static uint InviteWindowMs
+    {
+        get
+        {
+            if (AAEmu.Game.GameData.ContentConfigGameData.Instance.TryGetInt(InviteWindowMsKey, out var ms) && ms > 0)
+                return (uint)ms;
+            if (!_inviteWindowMissingWarned)
+            {
+                _inviteWindowMissingWarned = true;
+                Logger.Warn(
+                    "content_configs row '{0}' is absent: instant-game invites carry no server dialog window.",
+                    InviteWindowMsKey);
+            }
+
+            return 0;
+        }
+    }
 
     /// <summary>
     /// Value for <c>SCInviteToInstantGame.maxEntry</c> that makes the client open the plain
