@@ -498,6 +498,7 @@ public static class CSOffsets
     public const ushort CSResetHeirSkillPacket = 0x1C5;
     public const ushort CSDepartToForeignServerPacket = 0x1C7;
     public const ushort CSArrivedFromAbroadPacket = 0x1C8;
+    public const ushort CSRaidRecruitAddPacket = 0x1C9; // 10.0.2.13, PacketAudit/client-opcodes.tsv
     public const ushort CSRaidRecruitDelPacket = 0x1CA;
     public const ushort CSEquipSlotReinforceLevelUpPacket = 0x1D4;
     public const ushort CSRequestSquadListPacket = 0x1D7;

@@ -1,25 +1,25 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO: the body is parsed but nothing acts on it yet.
+/// X2Team:RaidApplicantAdd(ownerId, role, createTime): u64 type (the post's owner id), u32 role
+/// (TMROLE_*), i64 createTime, the row's stamp (x2game-dev.dll FUN_39c6bc10). Answered with
+/// SCRaidApplicantAdd, then SCRaidApplicantAccept when the post auto-invites.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
 public class CSRaidApplicantAddPacket() : GamePacket(CSOffsets.CSRaidApplicantAddPacket, 1)
 {
-    public ulong TypeValue { get; private set; }
+    public ulong OwnerId { get; private set; }
     public uint Role { get; private set; }
     public long CreateTime { get; private set; }
 
     public override void Read(PacketStream stream)
     {
-        TypeValue = stream.ReadUInt64();
+        OwnerId = stream.ReadUInt64();
         Role = stream.ReadUInt32();
         CreateTime = stream.ReadInt64();
+        RaidRecruitmentManager.Instance.Apply(Connection.ActiveChar, OwnerId, Role, CreateTime);
     }
 }

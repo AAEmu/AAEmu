@@ -786,6 +786,11 @@ public static class SCOffsets
     public const ushort SCRaidRecruitDelPacket = 0x2FB;
     public const ushort SCRaidRecruitDetailPacket = 0x2FE;
     public const ushort SCRaidRecruitOptionPacket = 0x2FD;
+    // 10.0.2.13, PacketAudit/client-opcodes.tsv (heap-registered SC types)
+    public const ushort SCRaidRecruitAddPacket = 0x2FA;
+    public const ushort SCRaidRecruitListPacket = 0x2FC;
+    public const ushort SCRaidApplicantAddPacket = 0x2FF;
+    public const ushort SCRaidApplicantListPacket = 0x303;
     public const ushort SCRandomShopBaseInfoUpdatePacket = 0x36B;
     public const ushort SCRandomShopInfoResetPacket = 0x369;
     public const ushort SCReopenRandomBoxRemovePacket = 0x388;

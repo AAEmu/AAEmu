@@ -1,21 +1,20 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO: the body is parsed but nothing acts on it yet.
+/// X2Team:RaidApplicantDel(ownerId): u64 type, the post's owner id (x2game-dev.dll FUN_39c688d0). The
+/// applicant withdraws; answered with SCRaidApplicantDel.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
 public class CSRaidApplicantDelPacket() : GamePacket(CSOffsets.CSRaidApplicantDelPacket, 1)
 {
-    public ulong TypeValue { get; private set; }
+    public ulong OwnerId { get; private set; }
 
     public override void Read(PacketStream stream)
     {
-        TypeValue = stream.ReadUInt64();
+        OwnerId = stream.ReadUInt64();
+        RaidRecruitmentManager.Instance.Withdraw(Connection.ActiveChar, OwnerId);
     }
 }

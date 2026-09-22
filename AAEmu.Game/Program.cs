@@ -325,6 +325,7 @@ public static class Program
 
                 services.AddSingleton<TeamManager>();
                 services.AddSingleton<ITeamManager>(sp => sp.GetRequiredService<TeamManager>());
+                services.AddSingleton<RaidRecruitmentManager>();
 
                 services.AddSingleton<TickManager>();
                 services.AddSingleton<ITickManager>(sp => sp.GetRequiredService<TickManager>());

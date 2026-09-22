@@ -809,6 +809,18 @@ public enum ErrorMessageType : short
     FactionDiplomacyConsidering = 1138,									// "faction_diplomacy_considering";
     AlreadyHaveOtherFactionRelation = 1139,								// "already_have_other_faction_relation";
     TargetAlreadyHaveOtherFactionRelation = 1140,						// "target_already_have_other_faction_relation";
+    // Raid recruitment, ids from enum_error_messages. The client raises 1121 and 1127 itself before
+    // posting (x2game-dev.dll FUN_399f1860) and 1002 and 1012 before asking for a detail (FUN_399f1b10),
+    // so these are the codes its UI already renders.
+    NotChangeRaidRecruitOwner = 1000,                           // "not_change_raid_recruit_owner";
+    NotChangeRaidRecruitTarget = 1001,                          // "not_change_raid_recruit_target";
+    NotJoinRaid = 1002,                                         // "not_join_raid";
+    RaidCannotApplyMyRaid = 1012,                               // "raid_cantnot_apply_my_raid";
+    RaidApplyIsDuplicate = 1013,                                // "raid_apply_is_duplicate";
+    RaidCannotRequiredLevel = 1016,                             // "raid_cantnot_required_level";
+    DoNotMakeSiegeRaidRecruit = 1121,                           // "do_not_make_siege_raid_recruit";
+    NotFoundSiegeRaidRecruit = 1122,                            // "not_found_siege_raid_recruit";
+    DoNotMakeRecruitInSiegeRaidTeam = 1127,                     // "do_not_make_recruit_in_siege_raid_team";
     // Returned by the 10.0.2.13 client's RegisterHarvest path.
     ButlerHarvestGradeInsufficient = 0x496,
     ButlerGardenSizeInsufficient = 0x497,
