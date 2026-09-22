@@ -45,6 +45,43 @@ public class QuestTalkNpcRulesTests
         await Assert.That(QuestTalkNpcRules.IsTalkNpc(dest, 4220)).IsTrue();
     }
 
+    // quest 7823: Start quest_act_con_accept_npc_groups 1 (group 698, 78 npcs, first 758 and 879) and
+    // Ready quest_act_con_report_npc_groups 1 (group 702, 9 npcs, first 15600).
+    [Test]
+    public async Task AcceptAndReportGroups_AddTheirMembers()
+    {
+        var dest = new HashSet<uint>();
+        var groups = new Dictionary<uint, IReadOnlyList<uint>>
+        {
+            [698] = [758, 879],
+            [702] = [15600]
+        };
+        QuestTalkNpcRules.AddTalkNpcGroups(TemplateWith(
+            start => start.ActTemplates.Add(new QuestActConAcceptNpcGroup(start) { QuestMonsterGroupId = 698 }),
+            ready => ready.ActTemplates.Add(new QuestActConReportNpcGroup(ready) { QuestMonsterGroupId = 702 })),
+            dest,
+            groupId => groups.TryGetValue(groupId, out var npcs) ? npcs : []);
+
+        await Assert.That(QuestTalkNpcRules.IsTalkNpc(dest, 758)).IsTrue();
+        await Assert.That(QuestTalkNpcRules.IsTalkNpc(dest, 879)).IsTrue();
+        await Assert.That(QuestTalkNpcRules.IsTalkNpc(dest, 15600)).IsTrue();
+        await Assert.That(QuestTalkNpcRules.IsTalkNpc(dest, 4220)).IsFalse();
+    }
+
+    // quest_act_con_report_npc_groups 137 (dummy quest 9146) names group 895, which has no members.
+    [Test]
+    public async Task EmptyGroup_AddsNothing()
+    {
+        var dest = new HashSet<uint>();
+        QuestTalkNpcRules.AddTalkNpcGroups(TemplateWith(
+            start => { },
+            ready => ready.ActTemplates.Add(new QuestActConReportNpcGroup(ready) { QuestMonsterGroupId = 895 })),
+            dest,
+            _ => []);
+
+        await Assert.That(dest.Count).IsEqualTo(0);
+    }
+
     private static QuestTemplate TemplateWith(
         Action<QuestComponentTemplate> startFill,
         Action<QuestComponentTemplate> readyFill)

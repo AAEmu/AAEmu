@@ -305,6 +305,31 @@ public class CharacterQuests(Character owner)
             return false;
         }
 
+        // A Reward act the server cannot grant yet refuses the accept (QuestRewardSupportRules):
+        // holding the quest at Reward would re-run its sibling grants on every re-evaluation, and
+        // finishing it would hand the quest out without that reward.
+        if (QuestRewardSupportRules.RefusesAccept(template, forcibly))
+        {
+            var unsupported = QuestRewardSupportRules.FirstUnsupported(template);
+            LogAcceptRefused(answerClient,
+                "User {0} ({1}) cannot accept quest {2}: its {3} reward needs {4}, which the server does not have",
+                Owner.Name, Owner.Id, questId, unsupported.GetType().Name, unsupported.MissingSubsystem);
+            NotifyAcceptFailed(questId, QuestAcceptFailRules.RequirementNotMet, answerClient);
+            return false;
+        }
+
+        // Start's own level range is a second gate the context level cannot cover: quest 10930 has
+        // min_level 0 and a 10..19 range act. RunCurrentStep's false is dropped below, so an
+        // out-of-range accept would sit in the journal at Start instead of being refused.
+        if (!forcibly && QuestAcceptLevelRangeRules.RefusesAccept(template, Owner.Level))
+        {
+            LogAcceptRefused(answerClient,
+                "User {0} ({1}) does not meet the Start level range for quest {2}: level={3}",
+                Owner.Name, Owner.Id, questId, Owner.Level);
+            NotifyAcceptFailed(questId, QuestAcceptFailRules.LevelNotMet, answerClient);
+            return false;
+        }
+
         if (!forcibly && !template.MeetsContextRequirements(Owner))
         {
             LogAcceptRefused(answerClient,

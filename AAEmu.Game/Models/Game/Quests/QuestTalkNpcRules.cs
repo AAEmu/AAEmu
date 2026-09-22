@@ -40,6 +40,40 @@ public static class QuestTalkNpcRules
         }
     }
 
+    /// <summary>
+    /// Members of the quest_monster_groups an accept or report group act names, resolved through
+    /// the loaded quest_monster_npcs (QuestManager.GetGroupNpcIds).
+    /// </summary>
+    public static void AddTalkNpcGroups(IQuestTemplate template, ISet<uint> dest, Func<uint, IReadOnlyList<uint>> groupNpcs)
+    {
+        if (template?.Components == null || dest == null || groupNpcs == null)
+            return;
+
+        foreach (var component in template.Components.Values)
+        {
+            if (component?.ActTemplates == null)
+                continue;
+
+            foreach (var act in component.ActTemplates)
+            {
+                var groupId = act switch
+                {
+                    QuestActConAcceptNpcGroup accept => accept.QuestMonsterGroupId,
+                    QuestActConReportNpcGroup report => report.QuestMonsterGroupId,
+                    _ => 0u
+                };
+                if (groupId == 0)
+                    continue;
+
+                foreach (var npcId in groupNpcs(groupId) ?? [])
+                {
+                    if (npcId != 0)
+                        dest.Add(npcId);
+                }
+            }
+        }
+    }
+
     public static bool IsTalkNpc(ISet<uint> talkNpcs, uint npcTemplateId)
     {
         return npcTemplateId != 0 && talkNpcs != null && talkNpcs.Contains(npcTemplateId);

@@ -63,6 +63,15 @@ public class AcceptQuestEffect : EffectTemplate
             }
         }
 
+        // A buff_triggers row fires this effect with its buff as the source (BuffTrigger builds the
+        // EffectSource from the buff template); 24 of the 25 quests with a Start
+        // QuestActConAcceptBuff start this way and that act wants the buff as the acceptor.
+        if (source?.Buff != null)
+        {
+            character.Quests.AddQuestFromBuff(QuestId, source.Buff.Id);
+            return;
+        }
+
         // The above workaround didn't yield any results, use the normal QuestId defined for this effect
         character.Quests.AddQuest(QuestId);
     }
