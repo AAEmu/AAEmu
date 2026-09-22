@@ -1,8 +1,0 @@
-{
-    "Mail": {
-        "CodPayment": {
-            "Title": "Payment for your mail",
-            "Text": "A payment for your mail has arrived."
-        }
-    }
-}

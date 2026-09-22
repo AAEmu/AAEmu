@@ -661,7 +661,7 @@ public class CharacterMails
     /// Reports a received player letter as spam. The first accepted report re-types the letter
     /// to <see cref="MailType.Spam"/>; later reports of the same letter are accepted but change
     /// nothing, so counters and contents are never adjusted twice. The report touches neither
-    /// attachments nor coin - the letter stays fully claimable.
+    /// attachments nor coin - the letter stays fully claimable, and its receiver can still return it.
     /// </summary>
     public void ReportSpam(long mailId, string reportedSender)
     {

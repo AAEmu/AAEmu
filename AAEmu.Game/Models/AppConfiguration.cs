@@ -68,7 +68,6 @@ public partial class AppConfiguration
     public SpecialtyConfig Specialty { get; set; } = new();
     public ButlerConfig Butler { get; set; } = new();
     public UccConfig Ucc { get; set; } = new();
-    public MailConfig Mail { get; set; } = new();
     public FeaturesConfig Features { get; set; } = new();
     public TowerDefsConfig TowerDefs { get; set; } = new();
     public StreamAoiConfig StreamAoi { get; set; } = new();

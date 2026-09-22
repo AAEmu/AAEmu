@@ -39,4 +39,17 @@ public static class MailRetentionRules
     /// <summary>Demolition notices ignore the read/unread distinction.</summary>
     public static bool IgnoresReadState(MailType type) =>
         type is MailType.Demolish or MailType.DemolishWithPenalty;
+
+    /// <summary>
+    /// Whether an expiring letter goes back to its sender rather than being deleted: unread mail
+    /// does, and so does a player letter whose cash-on-delivery charge is still unpaid, read or
+    /// not. Its receiver cannot take the goods before paying, so deleting it would destroy the
+    /// sender's items and coin. The return clears the charge.
+    /// </summary>
+    public static bool ReturnsOnExpiry(BaseMail mail) =>
+        mail.Header.Status != MailStatus.Read || HasUnpaidCharge(mail);
+
+    /// <summary>A player letter still carrying a cash-on-delivery charge.</summary>
+    public static bool HasUnpaidCharge(BaseMail mail) =>
+        mail.Header.SenderId > 0 && mail.Body.BillingAmount > 0;
 }

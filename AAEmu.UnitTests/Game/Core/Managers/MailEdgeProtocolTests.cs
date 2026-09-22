@@ -39,10 +39,6 @@ public sealed class MailEdgeProtocolTests
     [Before(Test)]
     public void Setup()
     {
-        // The parked-payment letter's wording is configuration (Configurations/Mail.json);
-        // unit tests do not load that file, so seed it here the way other typed config is seeded.
-        AppConfiguration.Instance.Mail.CodPayment.Title = "Payment for your mail";
-        AppConfiguration.Instance.Mail.CodPayment.Text = "A payment for your mail has arrived.";
         _saves = new RecordingSaveManager();
         _character = new CharacterMock { AccountId = 1, Id = ReceiverId, Name = ReceiverName, Money = 1000 };
         _senderCharacter = new CharacterMock { AccountId = 1, Id = SenderId, Name = SenderName, Money = 0 };
@@ -246,6 +242,26 @@ public sealed class MailEdgeProtocolTests
     }
 
     [Test]
+    public async Task ReportSpam_LeavesTheLetterReturnable()
+    {
+        var mail = SeedCodLetter(2004L, withItem: true);
+
+        _mails.ReportSpam(mail.Id, SenderName);
+        await Assert.That(mail.MailType).IsEqualTo(MailType.Spam);
+
+        // A reported letter cannot be deleted while it holds attachments, so returning it is the
+        // way out that does not require paying its charge.
+        _mails.ReturnMail(mail.Id);
+
+        await Assert.That(mail.Header.ReceiverId).IsEqualTo(SenderId);
+        await Assert.That(mail.Header.Returned).IsTrue();
+        await Assert.That(mail.Body.BillingAmount).IsEqualTo(0);
+        await Assert.That(mail.Body.CopperCoins).IsEqualTo(77);
+        await Assert.That(mail.Body.Attachments.Count).IsEqualTo(1);
+        await Assert.That(_character.Money).IsEqualTo(1000);
+    }
+
+    [Test]
     public async Task ReportSpam_OnALetterAddressedToSomebodyElse_IsRefused()
     {
         var mail = SeedLetter(2002L);
@@ -358,7 +374,8 @@ public sealed class MailEdgeProtocolTests
     public async Task Expiry_OfAReadLetter_ReleasesItsContentsWithoutTouchingAnyBalance()
     {
         var boundary = new DateTime(2030, 6, 15, 0, 0, 0, DateTimeKind.Utc);
-        var mail = SeedCodLetter(4101L, withItem: true);
+        var mail = SeedLetter(4101L, withItem: true);
+        mail.AttachMoney(77, 0, 0);
         mail.Header.Status = MailStatus.Read;
         mail.OpenDate = boundary.AddDays(-5); // ReadRetention window
         mail.Body.RecvDate = boundary.AddDays(-10);
@@ -368,10 +385,47 @@ public sealed class MailEdgeProtocolTests
 
         await Assert.That(mail.Header.Returned).IsFalse();
         await Assert.That(mail.Body.CopperCoins).IsEqualTo(0);
-        await Assert.That(mail.Body.BillingAmount).IsEqualTo(0);
         await Assert.That(mail.Body.Attachments.Count).IsEqualTo(0);
         await Assert.That((int)mail.Header.Attachments).IsEqualTo(0);
         await Assert.That(_character.Money).IsEqualTo(1000);
+    }
+
+    [Test]
+    public async Task Expiry_OfAReadLetterWithAnUnpaidCharge_GoesBackToTheSender()
+    {
+        // The receiver opened it but never paid: they could neither take the goods nor delete it,
+        // so the sweep returns it instead of destroying the sender's items and coin.
+        var boundary = new DateTime(2030, 6, 15, 0, 0, 0, DateTimeKind.Utc);
+        var mail = SeedCodLetter(4102L, withItem: true);
+        mail.Header.Status = MailStatus.Read;
+        mail.OpenDate = boundary.AddDays(-5); // ReadRetention window
+        mail.Body.RecvDate = boundary.AddDays(-10);
+        mail.Body.SendDate = boundary.AddDays(-1);
+
+        _mailManager.ExpireDueMails(boundary);
+
+        await Assert.That(mail.Header.ReceiverId).IsEqualTo(SenderId);
+        await Assert.That(mail.Header.Returned).IsTrue();
+        await Assert.That(mail.ReceiverDeleted).IsFalse();
+        await Assert.That(mail.Body.BillingAmount).IsEqualTo(0);
+        await Assert.That(mail.Body.CopperCoins).IsEqualTo(77);
+        await Assert.That(mail.Body.Attachments.Count).IsEqualTo(1);
+        await Assert.That(_character.Money).IsEqualTo(1000);
+        await Assert.That(_senderCharacter.Money).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task ReturnsOnExpiry_UnreadOrUnpaid()
+    {
+        var unread = SeedLetter(4103L);
+        var read = SeedLetter(4104L);
+        read.Header.Status = MailStatus.Read;
+        var readUnpaid = SeedCodLetter(4105L, withItem: false);
+        readUnpaid.Header.Status = MailStatus.Read;
+
+        await Assert.That(MailRetentionRules.ReturnsOnExpiry(unread)).IsTrue();
+        await Assert.That(MailRetentionRules.ReturnsOnExpiry(read)).IsFalse();
+        await Assert.That(MailRetentionRules.ReturnsOnExpiry(readUnpaid)).IsTrue();
     }
 
     [Test]
@@ -464,13 +518,17 @@ public sealed class MailEdgeProtocolTests
         await Assert.That(mail.Body.BillingAmount).IsEqualTo(0);
         await Assert.That(mail.Body.CopperCoins).IsEqualTo(77);
 
-        var receipts = _mailManager._allPlayerMails.Values
-            .Where(m => m.MailType == MailType.BalanceReceipt)
-            .ToList();
+        var receipts = Receipts();
         await Assert.That(receipts.Count).IsEqualTo(1);
         await Assert.That(receipts[0].Header.ReceiverId).IsEqualTo(SenderId);
         await Assert.That(receipts[0].Body.CopperCoins).IsEqualTo(500);
         await Assert.That(MailDeliveryRules.IsPublished(receipts[0])).IsTrue();
+
+        // The client's own charge-paid letter: its locale entry supplies the sender, title and body.
+        await Assert.That(receipts[0].MailType).IsEqualTo(MailType.SysExpress);
+        await Assert.That(receipts[0].Header.SenderId).IsEqualTo(0u);
+        await Assert.That(receipts[0].Title).IsEqualTo("title");
+        await Assert.That(receipts[0].Body.Text).IsEqualTo("body");
     }
 
     [Test]
@@ -496,8 +554,7 @@ public sealed class MailEdgeProtocolTests
 
         await Assert.That(paid).IsFalse();
         await Assert.That(_character.Money).IsEqualTo(1000);
-        await Assert.That(_mailManager._allPlayerMails.Values.Any(m => m.MailType == MailType.BalanceReceipt))
-            .IsFalse();
+        await Assert.That(Receipts()).IsEmpty();
     }
 
     [Test]
@@ -515,14 +572,18 @@ public sealed class MailEdgeProtocolTests
         await Assert.That(mail.Header.ReceiverId).IsEqualTo(SenderId);
         await Assert.That(mail.Body.CopperCoins).IsEqualTo(77);
         await Assert.That(mail.Body.BillingAmount).IsEqualTo(0);
-        var receipts = _mailManager._allPlayerMails.Values
-            .Where(m => m.MailType == MailType.BalanceReceipt)
-            .ToList();
+        var receipts = Receipts();
         await Assert.That(receipts.Count).IsEqualTo(1);
         await Assert.That(receipts[0].Body.CopperCoins).IsEqualTo(500);
         await Assert.That(_character.Money).IsEqualTo(500);
         await Assert.That(_mailManager._allPlayerMails.Values.Sum(m => (long)m.Body.CopperCoins)).IsEqualTo(577);
     }
+
+    /// <summary>The charge-paid letters parked for the sender.</summary>
+    private List<BaseMail> Receipts() =>
+        _mailManager._allPlayerMails.Values
+            .Where(m => m.Header.SenderName == ".chargePay")
+            .ToList();
 
     #endregion
 }

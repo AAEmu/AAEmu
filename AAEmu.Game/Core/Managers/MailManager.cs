@@ -32,10 +32,10 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
     private readonly HashSet<long> _reservedMailIds = [];
     // Unused: private object _lock = new();
 
-    // Internal sender marker on the system letter that parks a cash-on-delivery payment until
-    // its offline sender claims it. An identifier, not display content: the letter's wording
-    // comes from Configurations/Mail.json (Mail.CodPayment).
-    private const string CodPaymentSenderName = ".codPayment";
+    // Sender key of the client's own "requested amount has been paid" letter, which parks a
+    // cash-on-delivery payment until its offline sender claims it. The client resolves the
+    // sender name, title and body from its locale table by this key.
+    private const string ChargePaySenderName = ".chargePay";
 
     // Unread/read retention is per mail type: see MailRetentionRules.
     // Charges and the normal-delivery delay live in MailFeeRules (content_configs, no built-in values).
@@ -1425,13 +1425,14 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
                 var receiver = worldManager.GetCharacterById(mail.Header.ReceiverId);
                 var wasUnread = mail.Header.Status != MailStatus.Read;
 
-                // Unread mail hands its attachments back to the sender; read mail's are deleted.
+                // Unread mail hands its attachments back to the sender; read mail's are deleted,
+                // except a letter whose charge was never paid (MailRetentionRules.ReturnsOnExpiry).
                 // The return flips the letter in place (the original receiver becomes the sender),
                 // so the copy to drop is the flip's sender side. DeleteForReceiver here would free
                 // the returned attachments and hide the letter from the player it was returned to.
                 // A returned letter is never returned a second time: it already travelled back once,
                 // so returning it again would bounce it between the two mailboxes every window.
-                if (wasUnread && !mail.Header.Returned && TryReturnExpiredToSender(mail))
+                if (MailRetentionRules.ReturnsOnExpiry(mail) && !mail.Header.Returned && TryReturnExpiredToSender(mail))
                     DeleteForSender(mail);
                 else if (!mail.ReceiverDeleted)
                     DeleteForReceiver(mail);
@@ -1565,19 +1566,8 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
         else
         {
             // Offline sender: park the payment on a system letter through the normal mail
-            // path, the same way auction proceeds reach an absent seller. The letter's wording
-            // is configuration (Configurations/Mail.json); without it the settlement is
-            // refused and the payment refunded rather than a wordless letter sent.
-            var wording = AppConfiguration.Instance.Mail.CodPayment;
-            if (string.IsNullOrEmpty(wording.Title) || string.IsNullOrEmpty(wording.Text))
-            {
-                Logger.Error("Mail.CodPayment wording is missing in Configurations/Mail.json; refunding COD payment {0} instead of parking it for sender {1}", amount, senderId);
-                character.ChangeMoney(SlotType.Inventory, amount, ItemTaskType.Mail);
-                RestoreCodCharge(mail, amount);
-                character.SendErrorMessage(ErrorMessageType.MailInvalid);
-                return false;
-            }
-
+            // path, the same way auction proceeds reach an absent seller. It is the client's
+            // own charge-paid letter, so its title and body are the locale keys it resolves.
             var senderName = nameManager.GetCharacterName(senderId);
             if (string.IsNullOrEmpty(senderName))
             {
@@ -1589,11 +1579,11 @@ public class MailManager(IMailIdManager mailIdManager, INameManager nameManager,
 
             receipt = new BaseMail
             {
-                MailType = MailType.BalanceReceipt,
-                Title = wording.Title,
+                MailType = MailType.SysExpress,
+                Title = "title",
                 ReceiverName = senderName,
-                Header = { SenderId = 0, SenderName = CodPaymentSenderName, ReceiverId = senderId },
-                Body = { Text = wording.Text, SendDate = ServerCalendar.UtcNow, RecvDate = ServerCalendar.UtcNow }
+                Header = { SenderId = 0, SenderName = ChargePaySenderName, ReceiverId = senderId },
+                Body = { Text = "body", SendDate = ServerCalendar.UtcNow, RecvDate = ServerCalendar.UtcNow }
             };
             receipt.AttachMoney(amount);
             if (!Send(receipt, publishNow: false))
