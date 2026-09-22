@@ -105,6 +105,25 @@ public class FactionDiplomacyManager(IFactionManager factionManager, ITaskManage
             return _proposals.Any(p => p.TargetId == characterId || p.RequesterId == characterId);
     }
 
+    /// <summary>Removes transient per-character diplomacy state after the character row is durably deleted.</summary>
+    public void OnCharacterDeleted(uint characterId)
+    {
+        lock (_sync)
+        {
+            _proposals.RemoveAll(proposal =>
+                proposal.RequesterId == characterId || proposal.TargetId == characterId);
+            foreach (var key in _counts.Keys
+                         .Where(key => key.Item1 == characterId || key.Item2 == characterId).ToArray())
+                _counts.Remove(key);
+        }
+    }
+
+    internal bool HasCountFor(uint characterId)
+    {
+        lock (_sync)
+            return _counts.Keys.Any(key => key.Item1 == characterId || key.Item2 == characterId);
+    }
+
     /// <summary>CSFactionRelationRequest: <paramref name="targetCharacterId"/> is the hero picked in the request window.</summary>
     public bool Request(Character requester, ulong targetCharacterId)
     {

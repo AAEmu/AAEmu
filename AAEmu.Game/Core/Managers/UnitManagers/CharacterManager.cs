@@ -747,6 +747,8 @@ public class CharacterManager(
     public void DeleteCharacterAssets(Character character)
     {
         ButlerManager.Instance.RemoveCharacter(character.Id);
+        (SingletonContainer.ServiceProvider?.GetService(typeof(FactionDiplomacyManager)) as
+            FactionDiplomacyManager)?.OnCharacterDeleted(character.Id);
         (SingletonContainer.ServiceProvider?.GetService(typeof(ExpeditionRecruitmentService)) as
             ExpeditionRecruitmentService)?.DeleteCharacterApplications(character.Id);
 
@@ -772,8 +774,9 @@ public class CharacterManager(
         if (character.Family > 0)
             familyManager.RemoveDeletedCharacter(character);
 
-        // TODO: Remove from player nation
-        // TODO: Delete leadership
+        // Player-nation roster/leader cleanup remains unsupported: this schema has no dynamic-nation
+        // roster or successor record. CharacterNationDeletionStore only clears state carried by the
+        // character row and the transient per-character diplomacy counters.
 
         // Return player mail addressed to this character so another player's attachments cannot be
         // consumed by a later full wipe. Delivery state is irrelevant here: visible inbox mail has
@@ -875,6 +878,8 @@ public class CharacterManager(
                 var deletedName = character.Name;
                 if (AppConfiguration.Instance.Account.DeleteReleaseName)
                     deletedName = "!" + character.Name;
+
+                CharacterNationDeletionStore.Stage(dbConnection, transaction, character.Id);
 
                 command.Connection = dbConnection;
                 command.Transaction = transaction;
