@@ -106,4 +106,153 @@ public class ZoneConflictTests
 
         await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Tension);
     }
+
+    /// <summary>A participation zone with one distinct threshold per trouble level.</summary>
+    private static ZoneConflict SteppedZone(List<(ZoneConflictType Previous, ZoneConflictType Current)> notifications = null)
+    {
+        var conflict = new ZoneConflict(
+            new ZoneGroup { Id = 14 },
+            (_, previous, current) => notifications?.Add((previous, current)))
+        {
+            ZoneGroupId = 14,
+            ConflictMin = 10,
+            WarMin = 90,
+            PeaceMin = 70
+        };
+        for (var level = 0; level < 5; level++)
+        {
+            conflict.NumKills[level] = level + 1;
+            conflict.NumNpcKills[level] = level + 1;
+            conflict.NumQuestCompletions[level] = level + 1;
+        }
+
+        return conflict;
+    }
+
+    [Test]
+    public async Task AddZoneKill_WalksEveryTroubleStateIntoConflictAtTheThresholds()
+    {
+        var notifications = new List<(ZoneConflictType Previous, ZoneConflictType Current)>();
+        var conflict = SteppedZone(notifications);
+
+        // Thresholds 1..5, strictly greater-than: kill n+1 leaves level n.
+        conflict.AddZoneKill();
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Tension);
+        conflict.AddZoneKill();
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Danger);
+        conflict.AddZoneKill();
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Dispute);
+        conflict.AddZoneKill();
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Unrest);
+        conflict.AddZoneKill();
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Crisis);
+        await Assert.That(conflict.KillCount).IsEqualTo(5u);
+        await Assert.That(conflict.NextStateTime).IsEqualTo(DateTime.MinValue);
+
+        var before = DateTime.UtcNow;
+        conflict.AddZoneKill();
+
+        // Conflict closes the round: counters reset and the conflict_min timer is armed.
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Conflict);
+        await Assert.That(conflict.KillCount).IsEqualTo(0u);
+        await Assert.That(conflict.NextStateTime).IsGreaterThanOrEqualTo(before.AddMinutes(10));
+        await Assert.That(conflict.NextStateTime).IsLessThanOrEqualTo(DateTime.UtcNow.AddMinutes(10));
+        await Assert.That(notifications).IsEquivalentTo(new[]
+        {
+            (Previous: ZoneConflictType.Tension, Current: ZoneConflictType.Danger),
+            (Previous: ZoneConflictType.Danger, Current: ZoneConflictType.Dispute),
+            (Previous: ZoneConflictType.Dispute, Current: ZoneConflictType.Unrest),
+            (Previous: ZoneConflictType.Unrest, Current: ZoneConflictType.Crisis),
+            (Previous: ZoneConflictType.Crisis, Current: ZoneConflictType.Conflict)
+        });
+    }
+
+    [Test]
+    public async Task AddZoneKill_IsIgnoredInTheTimedStates()
+    {
+        var conflict = SteppedZone();
+        conflict.SetState(ZoneConflictType.Conflict);
+
+        conflict.AddZoneKill(50);
+        await Assert.That(conflict.KillCount).IsEqualTo(0u);
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Conflict);
+
+        conflict.SetState(ZoneConflictType.War);
+        conflict.AddZoneKill(50);
+        await Assert.That(conflict.KillCount).IsEqualTo(0u);
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.War);
+
+        conflict.SetState(ZoneConflictType.Peace);
+        conflict.AddZoneKill(50);
+        await Assert.That(conflict.KillCount).IsEqualTo(0u);
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Peace);
+    }
+
+    [Test]
+    public async Task AddNpcKillAndAddQuestCompletion_WalkTheSameLadder()
+    {
+        var conflict = SteppedZone();
+
+        conflict.AddNpcKill(2);
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Danger);
+
+        // Counters do not add up: two more quests only reach stage two on their own ladder.
+        conflict.AddQuestCompletion(2);
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Danger);
+
+        conflict.AddQuestCompletion(4);
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Conflict);
+        await Assert.That(conflict.NpcKillCount).IsEqualTo(0u);
+        await Assert.That(conflict.QuestCompletionCount).IsEqualTo(0u);
+    }
+
+    [Test]
+    public async Task AddZoneKill_ShippedZone14ReachesConflictAtTheFiftyFirstKill()
+    {
+        // conflict_zones row 14 e_steppe_belt: num_kills_0..4 = 50, conflict_min 10.
+        var conflict = new ZoneConflict(new ZoneGroup { Id = 14 }) { ZoneGroupId = 14, ConflictMin = 10 };
+        for (var level = 0; level < 5; level++)
+            conflict.NumKills[level] = 50;
+
+        conflict.AddZoneKill(50);
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Tension);
+        await Assert.That(conflict.KillCount).IsEqualTo(50u);
+
+        conflict.AddZoneKill();
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Conflict);
+        await Assert.That(conflict.KillCount).IsEqualTo(0u);
+    }
+
+    [Test]
+    public async Task AddZoneKill_DoesNothingOnAZoneWithoutThresholds()
+    {
+        // conflict_zones row 57 o_ruins_of_gold: every num_kills_N is 0.
+        var conflict = new ZoneConflict(new ZoneGroup { Id = 57 }) { ZoneGroupId = 57, ConflictMin = 10 };
+
+        conflict.AddZoneKill(10_000);
+
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Tension);
+        await Assert.That(conflict.KillCount).IsEqualTo(0u);
+    }
+
+    [Test]
+    public async Task ForceNextState_WalksConflictWarPeaceThenRestartsTheCount()
+    {
+        var conflict = SteppedZone();
+        conflict.AddZoneKill(6);
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Conflict);
+
+        conflict.ForceNextState();
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.War);
+        conflict.ForceNextState();
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Peace);
+        conflict.ForceNextState();
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Tension);
+        await Assert.That(conflict.NextStateTime).IsEqualTo(DateTime.MinValue);
+
+        // The next round counts from zero again.
+        conflict.AddZoneKill();
+        await Assert.That(conflict.CurrentZoneState).IsEqualTo(ZoneConflictType.Tension);
+        await Assert.That(conflict.KillCount).IsEqualTo(1u);
+    }
 }

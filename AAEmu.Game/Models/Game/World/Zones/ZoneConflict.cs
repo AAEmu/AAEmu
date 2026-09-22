@@ -89,7 +89,8 @@ public class ZoneConflict(
     }
 
     /// <summary>
-    /// Call this function if a PvP kill happens in a zone
+    /// Call this when a player kills a non-friendly player in the zone (<see cref="ConflictZoneEscalationRules.CountsPvpKill"/>).
+    /// Counts only in the trouble states of an unscheduled zone that has <c>num_kills_N</c> thresholds.
     /// </summary>
     public void AddZoneKill(uint NumberOfKills = 1)
     {
@@ -98,7 +99,7 @@ public class ZoneConflict(
             StatePublication? publication;
             lock (_stateLock)
             {
-                if (_schedule.Count > 0 || _currentZoneState >= ZoneConflictType.Conflict || AllZero(NumKills))
+                if (!ConflictZoneEscalationRules.AcceptsParticipation(_currentZoneState, _schedule.Count > 0, NumKills))
                     return;
 
                 var previousState = _currentZoneState;
@@ -121,7 +122,7 @@ public class ZoneConflict(
             StatePublication? publication;
             lock (_stateLock)
             {
-                if (_schedule.Count > 0 || _currentZoneState >= ZoneConflictType.Conflict || AllZero(NumNpcKills))
+                if (!ConflictZoneEscalationRules.AcceptsParticipation(_currentZoneState, _schedule.Count > 0, NumNpcKills))
                     return;
 
                 var previousState = _currentZoneState;
@@ -145,8 +146,7 @@ public class ZoneConflict(
             StatePublication? publication;
             lock (_stateLock)
             {
-                if (_schedule.Count > 0 || _currentZoneState >= ZoneConflictType.Conflict ||
-                    AllZero(NumQuestCompletions))
+                if (!ConflictZoneEscalationRules.AcceptsParticipation(_currentZoneState, _schedule.Count > 0, NumQuestCompletions))
                     return;
 
                 var previousState = _currentZoneState;
@@ -166,7 +166,7 @@ public class ZoneConflict(
     /// </summary>
     private StatePublication? ApplyParticipationLocked(ZoneConflictType previousState)
     {
-        var next = ConflictZoneScheduleRules.AdvanceByParticipation(
+        var next = ConflictZoneEscalationRules.AdvanceByParticipation(
             _currentZoneState,
             KillCount, NumKills,
             NpcKillCount, NumNpcKills,
@@ -179,10 +179,9 @@ public class ZoneConflict(
 
         if (next == ZoneConflictType.Conflict)
         {
-            KillCount = 0;
-            NpcKillCount = 0;
-            QuestCompletionCount = 0;
-            _nextStateTime = DateTime.UtcNow.AddMinutes(ConflictMin);
+            ResetParticipationCounters();
+            _nextStateTime = DateTime.UtcNow.AddMinutes(
+                ConflictZoneEscalationRules.TimedStateMinutes(next, ConflictMin, WarMin, PeaceMin));
         }
         else
         {
@@ -191,17 +190,6 @@ public class ZoneConflict(
 
         Logger.Info($"ZoneGroup {ZoneGroupId} escalated {previousState} → {next}");
         return new StatePublication(previousState, next, _nextStateTime, true);
-    }
-
-    private static bool AllZero(int[] values)
-    {
-        foreach (var value in values)
-        {
-            if (value != 0)
-                return false;
-        }
-
-        return true;
     }
 
     /// <summary>
@@ -419,23 +407,17 @@ public class ZoneConflict(
             return null;
 
         var previousState = _currentZoneState;
-        switch (state)
+        if (ConflictZoneEscalationRules.IsTroubleState(state))
         {
-            case ZoneConflictType.Conflict:
-                ResetParticipationCounters();
-                _nextStateTime = DateTime.UtcNow.AddMinutes(ConflictMin);
-                break;
-            case ZoneConflictType.War:
-                ResetParticipationCounters();
-                _nextStateTime = DateTime.UtcNow.AddMinutes(WarMin);
-                break;
-            case ZoneConflictType.Peace:
-                ResetParticipationCounters();
-                _nextStateTime = DateTime.UtcNow.AddMinutes(PeaceMin);
-                break;
-            default:
-                _nextStateTime = DateTime.MinValue;
-                break;
+            _nextStateTime = DateTime.MinValue;
+        }
+        else
+        {
+            // Entering a timed state closes the participation round; the next cycle needs a fresh
+            // count. A 0-minute state (peace_min 0) arms an already-due timer and moves straight on.
+            ResetParticipationCounters();
+            _nextStateTime = DateTime.UtcNow.AddMinutes(
+                ConflictZoneEscalationRules.TimedStateMinutes(state, ConflictMin, WarMin, PeaceMin));
         }
 
         _currentZoneState = state;
@@ -483,16 +465,10 @@ public class ZoneConflict(
 
     private ZoneConflictType GetNextStateLocked()
     {
-        if (_currentZoneState < ZoneConflictType.Peace)
-        {
-            return _currentZoneState == ZoneConflictType.War && PeaceMin <= 0
-                ? ZoneConflictType.Conflict
-                : _currentZoneState + 1;
-        }
-
-        var hasParticipationCounters = !AllZero(NumKills) || !AllZero(NumNpcKills) ||
-                                       !AllZero(NumQuestCompletions);
-        return hasParticipationCounters ? ZoneConflictType.Tension : ZoneConflictType.Conflict;
+        var hasParticipationCounters = ConflictZoneEscalationRules.HasThresholds(NumKills) ||
+                                       ConflictZoneEscalationRules.HasThresholds(NumNpcKills) ||
+                                       ConflictZoneEscalationRules.HasThresholds(NumQuestCompletions);
+        return ConflictZoneEscalationRules.NextTimedState(_currentZoneState, hasParticipationCounters, PeaceMin);
     }
 
     private readonly record struct StatePublication(
