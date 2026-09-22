@@ -181,6 +181,7 @@ public static class Program
         };
         WorldIntegration.DescribeTowerDefs = TowerDefScheduler.Describe;
         WorldIntegration.SyncTowerDefsToCharacter = TowerDefScheduler.SyncToCharacter;
+        WorldIntegration.GetTowerDefCurrentStep = TowerDefScheduler.CurrentStepOf;
         WorldIntegration.OnTowerDefEventNpcMirrored = TowerDefScheduler.OnEventNpcMirrored;
         WorldIntegration.OnMainWorldReady = () =>
         {

@@ -961,6 +961,50 @@ public class HousingManager(
     }
 
     /// <summary>
+    /// unit_reqs kind 91 IsResident. The client's check (x2game-dev.dll 0x39173FE0) is a lookup in the
+    /// resident map that <see cref="SendResidentMap"/> feeds, so residency is the same rule: an owned
+    /// house in one of the group's zones.
+    /// </summary>
+    public bool IsResidentOfZoneGroup(uint characterId, uint zoneGroupId)
+    {
+        foreach (var house in _houses.Values)
+        {
+            if (house.OwnerId != characterId)
+                continue;
+            if (zoneManager.GetZoneByKey(house.Transform.ZoneId)?.GroupId == zoneGroupId)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>unit_reqs kind 64 Housing: an owned house whose housings.category_id is the given category.</summary>
+    public bool OwnsHouseOfCategory(uint characterId, uint categoryId)
+    {
+        foreach (var house in _houses.Values)
+        {
+            if (house.OwnerId == characterId && house.Template?.CategoryId == categoryId)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>unit_reqs kind 88 InZoneGroupHousingExist: any house of housings.id templateId standing in the zone group.</summary>
+    public bool HasHouseTemplateInZoneGroup(uint templateId, uint zoneGroupId)
+    {
+        foreach (var house in _houses.Values)
+        {
+            if (house.TemplateId != templateId)
+                continue;
+            if (zoneManager.GetZoneByKey(house.Transform.ZoneId)?.GroupId == zoneGroupId)
+                return true;
+        }
+
+        return false;
+    }
+
+    /// <summary>
     /// Townhall Sales tab: every public listing in the zone group, sent as
     /// SCHouseTradeListPacket (0x2F7).
     /// </summary>

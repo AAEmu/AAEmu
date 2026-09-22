@@ -642,6 +642,13 @@ public static class WorldIntegration
     public static Action<Character> SyncTowerDefsToCharacter { get; set; }
 
     /// <summary>
+    /// unit_reqs kind 137 TowerDefStep: the step the active-info map shows for a running tower_defs
+    /// event in a zone group (0 before its first wave), or null when it is not running there.
+    /// Args: zoneGroupId, towerDefId. Set by World from <c>TowerDefScheduler.CurrentStepOf</c>.
+    /// </summary>
+    public static Func<ushort, uint, int?> GetTowerDefCurrentStep { get; set; }
+
+    /// <summary>
     /// Portal seed NPC mirror ready — refresh map pins. Arg: NPC template id.
     /// </summary>
     public static Action<uint> OnTowerDefEventNpcMirrored { get; set; }

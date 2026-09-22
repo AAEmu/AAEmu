@@ -6,13 +6,21 @@ namespace AAEmu.Game.Models.Game.Units;
 /// </summary>
 public static class UnitReqNation
 {
+    /// <summary>
+    /// First faction id of a player nation. Kinds 60/61 in the client evaluator (x2game-dev.dll
+    /// 0x392B1000 and 0x392B1050) compare the unit's faction id against this constant at 0x3A586644;
+    /// system_factions ends at id 221, so only runtime nation factions reach it.
+    /// </summary>
+    public const uint PlayerNationFactionIdStart = 1000;
+
     public static uint EffectiveNationId(uint factionId, uint motherId)
         => motherId != 0 ? motherId : factionId;
 
     /// <summary>
-    /// <c>nation_member</c> with value1=0: character's nation must match the zone's faction
-    /// (west zones 148, east 149). Empty zone faction never matches.
+    /// <c>nation_member</c> (60) passes for a unit whose faction is a player nation; <c>nation_member_not</c>
+    /// (61) is the negation. Neither reads value1. The owning content is the territory delivery and
+    /// nation officer quests, and the nation-versus-alliance variants of the war zone portals.
     /// </summary>
-    public static bool IsNationMemberOfZone(uint effectiveNationId, uint zoneFactionId)
-        => zoneFactionId != 0 && effectiveNationId == zoneFactionId;
+    public static bool IsPlayerNationMember(uint factionId)
+        => factionId >= PlayerNationFactionIdStart;
 }

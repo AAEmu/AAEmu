@@ -992,6 +992,37 @@ public static class TowerDefScheduler
             active.Count, list.Count);
     }
 
+    /// <summary>
+    /// unit_reqs kind 137: the step the active-info map shows for this tower in this zone group, resolved
+    /// exactly as <see cref="BuildActiveInfoList"/> resolves it (host zone groups, announce group as the
+    /// fallback, 0 before the first wave), or null when the tower is not running there.
+    /// </summary>
+    public static int? CurrentStepOf(ushort zoneGroupId, uint towerDefId)
+    {
+        lock (Sync)
+        {
+            if (!Running.TryGetValue(towerDefId, out var state))
+                return null;
+
+            var hostZones = state.HostZoneIds.Count > 0
+                ? state.HostZoneIds
+                : [state.AnnounceZoneId];
+            foreach (var zoneId in hostZones)
+            {
+                if (zoneId == 0)
+                    continue;
+                var group = state.AnnounceZoneGroupId;
+                var zone = ZoneSession.Instance.GetByZoneId(zoneId);
+                if (zone != null)
+                    group = (ushort)ZoneGroupOf(zone);
+                if (group == zoneGroupId)
+                    return state.CurrentStep < 0 ? 0 : state.CurrentStep;
+            }
+
+            return null;
+        }
+    }
+
     /// <summary>Late-join / after load: send the current map snapshot to one player.</summary>
     public static void SyncToCharacter(AAEmu.Game.Models.Game.Char.Character character)
     {
