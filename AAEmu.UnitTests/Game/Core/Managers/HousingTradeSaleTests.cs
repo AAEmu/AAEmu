@@ -313,6 +313,18 @@ public sealed class HousingTradeSaleTests
     }
 
     [Test]
+    public async Task CancelForSale_PlayerPacketWithNoCharacter_KeepsTheListing()
+    {
+        var result = _manager.CancelForSale(HouseTl, null, true);
+
+        await Assert.That(result).IsFalse();
+        await Assert.That(_house.SellPrice).IsEqualTo((uint)Price);
+        await Assert.That(_house.OwnerId).IsEqualTo(SellerId);
+        await Assert.That(_saves.SaveCount).IsEqualTo(0);
+        await Assert.That(_manager.GetTradeListings(ZoneGroupId).Count).IsEqualTo(1);
+    }
+
+    [Test]
     public async Task SetForSale_MissingHousingRow_FailsLoudly()
     {
         var noTemplate = MakeHouse(600, 60, ZoneKey, hasTemplate: false);

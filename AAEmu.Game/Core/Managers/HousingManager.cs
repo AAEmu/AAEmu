@@ -2941,8 +2941,17 @@ public class HousingManager(
     public bool CancelForSale(ushort houseTlId, bool returnCertificates = true) =>
         CancelForSale(GetHouseByTlId(houseTlId), returnCertificates);
 
-    public bool CancelForSale(ushort houseTlId, Character caller, bool returnCertificates = true) =>
-        CancelForSale(GetHouseByTlId(houseTlId), returnCertificates, caller);
+    /// <summary>
+    /// Player cancel. A missing caller is a connection that has not entered the world, not a GM
+    /// clear — the command path uses the <see cref="House"/> overload and may pass no caller.
+    /// </summary>
+    public bool CancelForSale(ushort houseTlId, Character caller, bool returnCertificates = true)
+    {
+        if (caller == null)
+            return false;
+
+        return CancelForSale(GetHouseByTlId(houseTlId), returnCertificates, caller);
+    }
 
     /// <summary>
     /// Updates all furniture on the house to a new owner and broadcasts packets for it
