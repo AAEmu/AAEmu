@@ -95,7 +95,7 @@ public class BaseMail
                && Header.SenderId > 0
                && Header.SenderId != Header.ReceiverId
                && !Header.Returned
-               && (MailType == MailType.Normal || MailType == MailType.Express);
+               && MailType is MailType.Normal or MailType.Express or MailType.Spam;
     }
 
     /// <summary>

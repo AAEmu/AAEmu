@@ -7,6 +7,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Mails;
+using AAEmu.UnitTests.Game.GameData;
 using AAEmu.UnitTests.Utils.Mocks;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -26,6 +27,7 @@ public sealed class MailTests
     {
         _saves = new RecordingSaveManager();
         _character = new CharacterMock { AccountId = 1, Id = 1, Name = "tester", Money = 1000 };
+        ContentConfigTestSeed.Mail();
 
         _mails = new CharacterMails(_character);
 
@@ -98,7 +100,9 @@ public sealed class MailTests
         var itemSlots = new List<(SlotType slotType, byte slot)>();
 
         await Assert.That(_mails.SendMailToPlayer(type, receiverCharName, title, text, attachments, money0, money1, money2, money3, extra, itemSlots)).IsEqualTo(MailResult.Success);
-        await Assert.That(_character.Money).IsEqualTo(400);
+        // The express postage comes from content_configs (express_mail_cost): 500 + the 500
+        // attached coin consumes the whole balance, so a stale built-in fee would show here.
+        await Assert.That(_character.Money).IsEqualTo(0);
     }
 
     /// <summary>
@@ -123,7 +127,7 @@ public sealed class MailTests
 
         await Assert.That(result).IsEqualTo(MailResult.Success);
         await Assert.That(_saves.SaveCount).IsEqualTo(1);
-        await Assert.That(committedMoney).IsEquivalentTo([400L]);
+        await Assert.That(committedMoney).IsEquivalentTo([0L]);
         await Assert.That(committedMails).IsEquivalentTo([1]);
     }
 

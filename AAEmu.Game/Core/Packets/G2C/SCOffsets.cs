@@ -281,7 +281,7 @@ public static class SCOffsets
     public const ushort SCAttachmentTakenPacket = 0x162; // 10.0.2.13
     public const ushort SCChargeMoneyPaidPacket = 0x163; // 10.0.2.13
     public const ushort SCMailDeletedPacket = 0x164; // 10.0.2.13
-    public const ushort SCSpamReportedPacket = 0x120;
+    public const ushort SCSpamMailReportedPacket = 0x2D3; // 10.0.2.13
     public const ushort SCMailReturnedPacket = 0x165; // 10.0.2.13
     public const ushort SCMailStatusUpdatedPacket = 0x166; // 10.0.2.13
     public const ushort SCMailRemovedPacket = 0x167; // 10.0.2.13
