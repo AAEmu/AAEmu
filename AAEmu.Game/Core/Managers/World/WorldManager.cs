@@ -109,7 +109,8 @@ public class WorldManager(
     public WorldInstance MainWorld { get; set; }
 
     /// <summary>
-    /// Flag to keep track is the global snowing effect is enabled
+    /// The global snow state clients are shown. Decided by <see cref="SnowStateRules"/> from the
+    /// configured feature bit, the weather cycle and an operator hold.
     /// </summary>
     public bool IsSnowing { get; set; }
 
@@ -360,7 +361,43 @@ public class WorldManager(
     internal void InitializeSnowState(FeatureSet configuredFeatures)
     {
         ArgumentNullException.ThrowIfNull(configuredFeatures);
-        IsSnowing = configuredFeatures.Check(Feature.fset_7_2_unknown);
+        lock (_snowLock)
+        {
+            _configuredSnow = configuredFeatures.Check(Feature.fset_7_2_unknown);
+            _weatherCycleSnow = false;
+            _snowHold = null;
+            IsSnowing = _configuredSnow;
+        }
+    }
+
+    private readonly Lock _snowLock = new();
+    private bool _configuredSnow;
+    private bool _weatherCycleSnow;
+    private bool? _snowHold;
+
+    /// <summary>
+    /// Operator snow switch. A value holds snow on or off whatever the configured bit and the weather
+    /// cycle say; null releases the hold and hands snow back to them. The result is always
+    /// broadcast, so a repeated command re-sends the state to every online player.
+    /// </summary>
+    public void SetSnowHold(bool? snowing)
+    {
+        lock (_snowLock)
+        {
+            _snowHold = snowing;
+            PublishSnowState(alwaysBroadcast: true);
+        }
+    }
+
+    /// <summary>Recomputes the effective snow state and broadcasts it when it moved.</summary>
+    private void PublishSnowState(bool alwaysBroadcast)
+    {
+        var snowing = SnowStateRules.Effective(_snowHold, _configuredSnow, _weatherCycleSnow);
+        if (!alwaysBroadcast && snowing == IsSnowing)
+            return;
+
+        IsSnowing = snowing;
+        BroadcastPacketToServer(new SCSnowingEverywherePacket(snowing));
     }
 
     /// <summary>The weather cycle this world is currently hooked to, if any.</summary>
@@ -384,35 +421,22 @@ public class WorldManager(
         }
 
         weather.Refresh(DateTime.UtcNow);
+        ApplyWeatherState(weather.CurrentState);
     }
 
+    private void ApplyWeatherTransition(WeatherState previous, WeatherState current) => ApplyWeatherState(current);
+
     /// <summary>
-    /// Applies a weather transition the way the established snow path works: precipitation the
-    /// client knows about rides <see cref="SCSnowingEverywherePacket"/> plus the feature bit that
-    /// <see cref="InitializeSnowState"/> seeds for joining clients, and only the edges into or out
-    /// of snow move that state — an enabled feature-bit snow lever is not turned off by an
-    /// unrelated rain or wind transition. Rain and wind have no registered client packet in this
-    /// build, so they advance the server-side cycle only.
+    /// Records whether the cycle has a snow phase open and republishes the snow state through
+    /// <see cref="SCSnowingEverywherePacket"/>. The cycle only contributes its own snow: closing a
+    /// phase does not turn off snow the configured bit or an operator hold keeps on.
     /// </summary>
-    private void ApplyWeatherTransition(WeatherState previous, WeatherState current)
+    private void ApplyWeatherState(WeatherState current)
     {
-        if (current == WeatherState.Snow || previous == WeatherState.Snow)
+        lock (_snowLock)
         {
-            var snowing = current == WeatherState.Snow;
-            if (snowing != IsSnowing)
-            {
-                IsSnowing = snowing;
-                BroadcastPacketToServer(new SCSnowingEverywherePacket(snowing));
-            }
-
-            return;
-        }
-
-        if (current != previous)
-        {
-            Logger.Info(
-                "Weather state is {0}; this state has no registered client packet, so only the server-side cycle moved.",
-                current);
+            _weatherCycleSnow = current == WeatherState.Snow;
+            PublishSnowState(alwaysBroadcast: false);
         }
     }
 

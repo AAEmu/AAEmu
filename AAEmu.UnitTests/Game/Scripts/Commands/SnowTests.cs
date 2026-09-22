@@ -86,6 +86,13 @@ public class SnowTests
 
             await Assert.That(joiningSession.Packets).HasSingleItem();
             await SCSnowingEverywherePacketTests.AssertSnowPacket(joiningSession.Packets[0], false);
+
+            // auto releases the hold: the configured snow bit is back in charge.
+            command.Execute(onlineCharacter, ["auto"], null!);
+
+            await Assert.That(manager.IsSnowing).IsTrue();
+            await Assert.That(onlineSession.Packets.Count).IsEqualTo(3);
+            await SCSnowingEverywherePacketTests.AssertSnowPacket(onlineSession.Packets[2], true);
         }
         finally
         {

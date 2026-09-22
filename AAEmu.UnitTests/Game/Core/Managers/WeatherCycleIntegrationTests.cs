@@ -15,6 +15,7 @@ using AAEmu.Game.Models.Game.Features;
 using AAEmu.Game.Models.Game.Schedules;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Models.Game.Weather;
+using AAEmu.Game.Scripts.Commands;
 using AAEmu.UnitTests.Game.Core.Packets.G2C;
 
 using DayOfWeek = AAEmu.Game.Models.Game.Schedules.DayOfWeek;
@@ -117,7 +118,7 @@ public class WeatherCycleIntegrationTests
     }
 
     [Test]
-    public async Task RainCyclePhase_LeavesConfiguredSnowLeverAlone()
+    public async Task SnowPhaseClosing_KeepsConfiguredSnowOn()
     {
         var (manager, previousWorld, previousWeather) = CreateWiredWorld();
 
@@ -126,13 +127,14 @@ public class WeatherCycleIntegrationTests
             var onlineSession = new RecordingSession(1);
             manager.TryAddCharacter(CreateCharacter(1, onlineSession));
             manager.InitializeSnowState(FeaturesWithSnow(true));
+            manager.ConfigureWeatherCycle(ConfigWithPhase(6, "Snow"), Lookup(FutureSchedule(6)));
 
-            manager.ConfigureWeatherCycle(
-                ConfigWithPhase(6, "Rain"),
-                Lookup(Schedule(6, startDate: DateTime.UtcNow.Date.AddDays(-1), endDate: DateTime.UtcNow.Date.AddDays(1))));
+            WeatherManager.Instance.Refresh(InsideFutureWindow);
+            await Assert.That(WeatherManager.Instance.CurrentState).IsEqualTo(WeatherState.Snow);
+            WeatherManager.Instance.Refresh(PastEveryWindow);
+            await Assert.That(WeatherManager.Instance.CurrentState).IsEqualTo(WeatherState.Clear);
 
-            // Only the snow edges move snow state: a rain transition must not flip it or push
-            // packets the rain state has no right to send.
+            // The phase never turned snow on, so closing it must not turn the configured snow off.
             await Assert.That(manager.IsSnowing).IsTrue();
             await Assert.That(onlineSession.Packets).IsEmpty();
 
@@ -146,6 +148,112 @@ public class WeatherCycleIntegrationTests
             Restore(previousWorld, previousWeather);
         }
     }
+
+    [Test]
+    public async Task SnowPhaseClosing_KeepsOperatorSnowOn()
+    {
+        var (manager, previousWorld, previousWeather) = CreateWiredWorld();
+
+        try
+        {
+            var onlineSession = new RecordingSession(1);
+            var operatorCharacter = CreateCharacter(1, onlineSession);
+            manager.TryAddCharacter(operatorCharacter);
+            manager.InitializeSnowState(FeaturesWithSnow(false));
+            manager.ConfigureWeatherCycle(ConfigWithPhase(6, "Snow"), Lookup(FutureSchedule(6)));
+
+            new Snow().Execute(operatorCharacter, [bool.TrueString], null!);
+            await Assert.That(onlineSession.Packets).HasSingleItem();
+
+            WeatherManager.Instance.Refresh(InsideFutureWindow);
+            WeatherManager.Instance.Refresh(PastEveryWindow);
+
+            await Assert.That(manager.IsSnowing).IsTrue();
+            await Assert.That(onlineSession.Packets).HasSingleItem();
+            await SCSnowingEverywherePacketTests.AssertSnowPacket(onlineSession.Packets[0], true);
+        }
+        finally
+        {
+            Restore(previousWorld, previousWeather);
+        }
+    }
+
+    [Test]
+    public async Task OperatorSnowOff_HoldsThroughTheNextSnowPhase()
+    {
+        var (manager, previousWorld, previousWeather) = CreateWiredWorld();
+
+        try
+        {
+            var onlineSession = new RecordingSession(1);
+            var operatorCharacter = CreateCharacter(1, onlineSession);
+            manager.TryAddCharacter(operatorCharacter);
+            manager.InitializeSnowState(FeaturesWithSnow(false));
+            manager.ConfigureWeatherCycle(ConfigWithPhase(6, "Snow"), Lookup(FutureSchedule(6)));
+
+            WeatherManager.Instance.Refresh(InsideFutureWindow);
+            await Assert.That(manager.IsSnowing).IsTrue();
+            await Assert.That(onlineSession.Packets).HasSingleItem();
+
+            new Snow().Execute(operatorCharacter, [bool.FalseString], null!);
+            await Assert.That(manager.IsSnowing).IsFalse();
+            await Assert.That(onlineSession.Packets).HasCount().EqualTo(2);
+            await SCSnowingEverywherePacketTests.AssertSnowPacket(onlineSession.Packets[1], false);
+
+            // The phase closes and opens again: the hold stands and nothing more is sent.
+            WeatherManager.Instance.Refresh(PastEveryWindow);
+            WeatherManager.Instance.Refresh(InsideFutureWindow);
+            await Assert.That(WeatherManager.Instance.CurrentState).IsEqualTo(WeatherState.Snow);
+            await Assert.That(manager.IsSnowing).IsFalse();
+            await Assert.That(onlineSession.Packets).HasCount().EqualTo(2);
+        }
+        finally
+        {
+            Restore(previousWorld, previousWeather);
+        }
+    }
+
+    [Test]
+    public async Task SnowAuto_HandsSnowBackToTheCycle()
+    {
+        var (manager, previousWorld, previousWeather) = CreateWiredWorld();
+
+        try
+        {
+            var onlineSession = new RecordingSession(1);
+            var operatorCharacter = CreateCharacter(1, onlineSession);
+            manager.TryAddCharacter(operatorCharacter);
+            manager.InitializeSnowState(FeaturesWithSnow(false));
+            manager.ConfigureWeatherCycle(ConfigWithPhase(6, "Snow"), Lookup(FutureSchedule(6)));
+
+            WeatherManager.Instance.Refresh(InsideFutureWindow);
+            var command = new Snow();
+            command.Execute(operatorCharacter, [bool.FalseString], null!);
+            command.Execute(operatorCharacter, ["auto"], null!);
+
+            // Released during the open phase: the cycle's snow comes straight back.
+            await Assert.That(manager.IsSnowing).IsTrue();
+            await Assert.That(onlineSession.Packets).HasCount().EqualTo(3);
+            await SCSnowingEverywherePacketTests.AssertSnowPacket(onlineSession.Packets[2], true);
+
+            // And the cycle owns it again, so closing the phase turns it off.
+            WeatherManager.Instance.Refresh(PastEveryWindow);
+            await Assert.That(manager.IsSnowing).IsFalse();
+            await Assert.That(onlineSession.Packets).HasCount().EqualTo(4);
+            await SCSnowingEverywherePacketTests.AssertSnowPacket(onlineSession.Packets[3], false);
+        }
+        finally
+        {
+            Restore(previousWorld, previousWeather);
+        }
+    }
+
+    private static readonly DateTime InsideFutureWindow = new(2090, 1, 1, 12, 0, 0, DateTimeKind.Utc);
+    private static readonly DateTime PastEveryWindow = new(2098, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+
+    /// <summary>A snow window that is closed now and open on <see cref="InsideFutureWindow"/>.</summary>
+    private static GameSchedules FutureSchedule(int id) =>
+        Schedule(id, startDate: new DateTime(2090, 1, 1), endDate: new DateTime(2090, 1, 2));
 
     private static (WorldManager Manager, object PreviousWorld, object PreviousWeather) CreateWiredWorld()
     {

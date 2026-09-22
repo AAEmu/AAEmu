@@ -2,7 +2,6 @@
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
-using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Utils.Scripts;
 
 namespace AAEmu.Game.Scripts.Commands;
@@ -18,12 +17,12 @@ public class Snow : ICommand
 
     public string GetCommandLineHelp()
     {
-        return "<true||false>";
+        return "<true||false||auto>";
     }
 
     public string GetCommandHelpText()
     {
-        return "Enables or disables snow effect across the server";
+        return "Holds the snow effect on or off across the server; auto hands it back to the configured feature and the weather cycle";
     }
 
     public void Execute(Character character, string[] args, IMessageOutput messageOutput)
@@ -35,16 +34,17 @@ public class Snow : ICommand
             return;
         }
 
-        // determine if we received true,false or something else             
+        if (string.Equals(args[0], "auto", StringComparison.OrdinalIgnoreCase))
+        {
+            WorldManager.Instance.SetSnowHold(null);
+            return;
+        }
+
+        // determine if we received true,false or something else
         if (bool.TryParse(args[0], out var isSnowing))
         {
-            // Set Snowing state to user input, This will 
-            // Enable Snow on all players who log into the server
-            WorldManager.Instance.IsSnowing = isSnowing;
-
-            // Turn snow on or off for all online characters,
-            // Put this on the script level, so it only gets executed once when GM enables/disables snow
-            WorldManager.Instance.BroadcastPacketToServer(new SCSnowingEverywherePacket(isSnowing));
+            // Holds snow for everyone online and everyone who logs in, until auto releases it.
+            WorldManager.Instance.SetSnowHold(isSnowing);
         }
         else
         {

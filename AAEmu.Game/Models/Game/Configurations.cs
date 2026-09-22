@@ -412,7 +412,7 @@ public class FeaturesConfig
 }
 
 /// <summary>
-/// Schedule-driven weather phases. Configure in <c>AAEmu.Game/Configurations/Weather.json</c>
+/// Schedule-driven snow phases. Configure in <c>AAEmu.Game/Configurations/Weather.json</c>
 /// under <c>Weather.Phases</c>. Each phase names a <c>game_schedules</c> row and the weather that
 /// row's window produces; the row owns every timing, so no schedule ships here. An empty list
 /// keeps the cycle off and says so at boot.
@@ -432,9 +432,8 @@ public class WeatherPhaseConfig
     public int ScheduleId { get; set; }
 
     /// <summary>
-    /// Weather state this window produces, as a <c>WeatherState</c> name
-    /// (<c>Clear</c>, <c>Rain</c>, <c>Wind</c>, <c>Snow</c>), case-insensitive. An unknown name is
-    /// reported at boot and the phase is skipped rather than guessed.
+    /// Weather state this window produces, as a <c>WeatherState</c> name (<c>Clear</c>, <c>Snow</c>),
+    /// case-insensitive. An unknown name is reported at boot and the phase is skipped rather than guessed.
     /// </summary>
     public string State { get; set; } = string.Empty;
 }

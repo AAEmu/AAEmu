@@ -44,18 +44,18 @@ public class WeatherManagerTests
     }
 
     [Test]
-    public async Task Refresh_RainWindowStartsAndEndsOnContentTimes()
+    public async Task Refresh_SnowWindowStartsAndEndsOnContentTimes()
     {
         var manager = new WeatherManager();
         var transitions = RecordTransitions(manager);
-        manager.Configure(Config((11, "Rain")), Lookup(Schedule(11, startHour: 8, endHour: 10)));
+        manager.Configure(Config((11, "Snow")), Lookup(Schedule(11, startHour: 8, endHour: 10)));
 
         var beforeWindow = manager.Refresh(Utc(2026, 9, 22, 7, 59));
         await Assert.That(beforeWindow.CurrentState).IsEqualTo(WeatherState.Clear);
         await Assert.That(beforeWindow.Transitioned).IsFalse();
 
         var insideWindow = manager.Refresh(Utc(2026, 9, 22, 8, 1));
-        await Assert.That(insideWindow.CurrentState).IsEqualTo(WeatherState.Rain);
+        await Assert.That(insideWindow.CurrentState).IsEqualTo(WeatherState.Snow);
         await Assert.That(insideWindow.Transitioned).IsTrue();
         await Assert.That(insideWindow.ActiveScheduleId).IsEqualTo((int?)11);
         await Assert.That(insideWindow.Errors).IsEmpty();
@@ -64,36 +64,38 @@ public class WeatherManagerTests
         await Assert.That(afterWindow.CurrentState).IsEqualTo(WeatherState.Clear);
 
         await Assert.That(transitions).HasCount().EqualTo(2);
-        await Assert.That(transitions[0]).IsEqualTo((WeatherState.Clear, WeatherState.Rain));
-        await Assert.That(transitions[1]).IsEqualTo((WeatherState.Rain, WeatherState.Clear));
+        await Assert.That(transitions[0]).IsEqualTo((WeatherState.Clear, WeatherState.Snow));
+        await Assert.That(transitions[1]).IsEqualTo((WeatherState.Snow, WeatherState.Clear));
     }
 
     [Test]
-    public async Task Refresh_WindWindowStartsAndEndsOnContentTimes()
-    {
-        var manager = new WeatherManager();
-        var transitions = RecordTransitions(manager);
-        manager.Configure(Config((12, "Wind")), Lookup(Schedule(12, startHour: 12, endHour: 14)));
-
-        await Assert.That(manager.Refresh(Utc(2026, 9, 22, 11, 59)).CurrentState)
-            .IsEqualTo(WeatherState.Clear);
-        await Assert.That(manager.Refresh(Utc(2026, 9, 22, 12, 30)).CurrentState)
-            .IsEqualTo(WeatherState.Wind);
-        await Assert.That(manager.Refresh(Utc(2026, 9, 22, 14, 1)).CurrentState)
-            .IsEqualTo(WeatherState.Clear);
-
-        await Assert.That(transitions).HasCount().EqualTo(2);
-        await Assert.That(transitions[0]).IsEqualTo((WeatherState.Clear, WeatherState.Wind));
-        await Assert.That(transitions[1]).IsEqualTo((WeatherState.Wind, WeatherState.Clear));
-    }
-
-    [Test]
-    public async Task Refresh_CycleWalksRainThenWindAcrossTheDay()
+    public async Task Refresh_WindowHonoursContentMinutes()
     {
         var manager = new WeatherManager();
         var transitions = RecordTransitions(manager);
         manager.Configure(
-            Config((1, "Rain"), (2, "Wind")),
+            Config((12, "Snow")),
+            Lookup(Schedule(12, startHour: 12, startMinute: 15, endHour: 14, endMinute: 45)));
+
+        await Assert.That(manager.Refresh(Utc(2026, 9, 22, 12, 14)).CurrentState)
+            .IsEqualTo(WeatherState.Clear);
+        await Assert.That(manager.Refresh(Utc(2026, 9, 22, 12, 15)).CurrentState)
+            .IsEqualTo(WeatherState.Snow);
+        await Assert.That(manager.Refresh(Utc(2026, 9, 22, 14, 45)).CurrentState)
+            .IsEqualTo(WeatherState.Snow);
+        await Assert.That(manager.Refresh(Utc(2026, 9, 22, 14, 46)).CurrentState)
+            .IsEqualTo(WeatherState.Clear);
+
+        await Assert.That(transitions).HasCount().EqualTo(2);
+    }
+
+    [Test]
+    public async Task Refresh_CycleWalksTwoSnowWindowsAcrossTheDay()
+    {
+        var manager = new WeatherManager();
+        var transitions = RecordTransitions(manager);
+        manager.Configure(
+            Config((1, "Snow"), (2, "Snow")),
             Lookup(
                 Schedule(1, startHour: 8, endHour: 10),
                 Schedule(2, startHour: 12, endHour: 14)));
@@ -105,17 +107,17 @@ public class WeatherManagerTests
         await Assert.That(states).IsEquivalentTo(
         [
             WeatherState.Clear,
-            WeatherState.Rain,
+            WeatherState.Snow,
             WeatherState.Clear,
-            WeatherState.Wind,
+            WeatherState.Snow,
             WeatherState.Clear,
         ]);
 
         await Assert.That(transitions).HasCount().EqualTo(4);
-        await Assert.That(transitions[0]).IsEqualTo((WeatherState.Clear, WeatherState.Rain));
-        await Assert.That(transitions[1]).IsEqualTo((WeatherState.Rain, WeatherState.Clear));
-        await Assert.That(transitions[2]).IsEqualTo((WeatherState.Clear, WeatherState.Wind));
-        await Assert.That(transitions[3]).IsEqualTo((WeatherState.Wind, WeatherState.Clear));
+        await Assert.That(transitions[0]).IsEqualTo((WeatherState.Clear, WeatherState.Snow));
+        await Assert.That(transitions[1]).IsEqualTo((WeatherState.Snow, WeatherState.Clear));
+        await Assert.That(transitions[2]).IsEqualTo((WeatherState.Clear, WeatherState.Snow));
+        await Assert.That(transitions[3]).IsEqualTo((WeatherState.Snow, WeatherState.Clear));
     }
 
     [Test]
@@ -123,17 +125,17 @@ public class WeatherManagerTests
     {
         var manager = new WeatherManager();
         var transitions = RecordTransitions(manager);
-        manager.Configure(Config((21, "Rain")), Lookup(Schedule(21, startHour: 22, endHour: 2)));
+        manager.Configure(Config((21, "Snow")), Lookup(Schedule(21, startHour: 22, endHour: 2)));
 
         await Assert.That(manager.Refresh(Utc(2026, 9, 22, 21, 59)).CurrentState)
             .IsEqualTo(WeatherState.Clear);
 
         await Assert.That(manager.Refresh(Utc(2026, 9, 22, 23, 30)).CurrentState)
-            .IsEqualTo(WeatherState.Rain);
+            .IsEqualTo(WeatherState.Snow);
 
         // The window continues past the UTC date flip without a second transition.
         var afterFlip = manager.Refresh(Utc(2026, 9, 23, 1, 30));
-        await Assert.That(afterFlip.CurrentState).IsEqualTo(WeatherState.Rain);
+        await Assert.That(afterFlip.CurrentState).IsEqualTo(WeatherState.Snow);
         await Assert.That(afterFlip.Transitioned).IsFalse();
 
         await Assert.That(manager.Refresh(Utc(2026, 9, 23, 3, 30)).CurrentState)
@@ -141,25 +143,25 @@ public class WeatherManagerTests
 
         // The next UTC day opens the window again.
         await Assert.That(manager.Refresh(Utc(2026, 9, 23, 22, 15)).CurrentState)
-            .IsEqualTo(WeatherState.Rain);
+            .IsEqualTo(WeatherState.Snow);
 
         await Assert.That(transitions).HasCount().EqualTo(3);
-        await Assert.That(transitions[0]).IsEqualTo((WeatherState.Clear, WeatherState.Rain));
-        await Assert.That(transitions[1]).IsEqualTo((WeatherState.Rain, WeatherState.Clear));
-        await Assert.That(transitions[2]).IsEqualTo((WeatherState.Clear, WeatherState.Rain));
+        await Assert.That(transitions[0]).IsEqualTo((WeatherState.Clear, WeatherState.Snow));
+        await Assert.That(transitions[1]).IsEqualTo((WeatherState.Snow, WeatherState.Clear));
+        await Assert.That(transitions[2]).IsEqualTo((WeatherState.Clear, WeatherState.Snow));
     }
 
     [Test]
     public async Task Refresh_UnspecifiedKindMoment_IsReadAsUtcNotLocal()
     {
         var manager = new WeatherManager();
-        manager.Configure(Config((31, "Rain")), Lookup(Schedule(31, startHour: 22, endHour: 2)));
+        manager.Configure(Config((31, "Snow")), Lookup(Schedule(31, startHour: 22, endHour: 2)));
 
         // MySQL-style Unspecified timestamps must be taken at face value as UTC.
         var moment = new DateTime(2026, 9, 22, 23, 30, 0, DateTimeKind.Unspecified);
         var result = manager.Refresh(moment);
 
-        await Assert.That(result.CurrentState).IsEqualTo(WeatherState.Rain);
+        await Assert.That(result.CurrentState).IsEqualTo(WeatherState.Snow);
     }
 
     [Test]
@@ -168,14 +170,14 @@ public class WeatherManagerTests
         var manager = new WeatherManager();
         var transitions = RecordTransitions(manager);
         manager.Configure(
-            Config((41, "Wind")),
+            Config((41, "Snow")),
             Lookup(Schedule(41, startDate: new DateTime(2026, 9, 20), endDate: new DateTime(2026, 9, 25))));
 
         await Assert.That(manager.Refresh(Utc(2026, 9, 21, 23, 59)).CurrentState)
-            .IsEqualTo(WeatherState.Wind);
+            .IsEqualTo(WeatherState.Snow);
 
         var afterMidnight = manager.Refresh(Utc(2026, 9, 22, 0, 1));
-        await Assert.That(afterMidnight.CurrentState).IsEqualTo(WeatherState.Wind);
+        await Assert.That(afterMidnight.CurrentState).IsEqualTo(WeatherState.Snow);
         await Assert.That(afterMidnight.Transitioned).IsFalse();
 
         await Assert.That(manager.Refresh(Utc(2026, 9, 26, 0, 1)).CurrentState)
@@ -190,17 +192,17 @@ public class WeatherManagerTests
         var manager = new WeatherManager();
         var transitions = RecordTransitions(manager);
         manager.Configure(
-            Config((51, "Rain")),
+            Config((51, "Snow")),
             Lookup(Schedule(51, day: DayOfWeek.Monday)));
 
         await Assert.That(manager.Refresh(Utc(2026, 9, 20, 23, 59)).CurrentState) // Sunday
             .IsEqualTo(WeatherState.Clear);
 
         await Assert.That(manager.Refresh(Utc(2026, 9, 21, 0, 1)).CurrentState) // Monday
-            .IsEqualTo(WeatherState.Rain);
+            .IsEqualTo(WeatherState.Snow);
 
         var laterOnMonday = manager.Refresh(Utc(2026, 9, 21, 23, 59));
-        await Assert.That(laterOnMonday.CurrentState).IsEqualTo(WeatherState.Rain);
+        await Assert.That(laterOnMonday.CurrentState).IsEqualTo(WeatherState.Snow);
         await Assert.That(laterOnMonday.Transitioned).IsFalse();
 
         await Assert.That(manager.Refresh(Utc(2026, 9, 22, 0, 1)).CurrentState) // Tuesday
@@ -210,31 +212,32 @@ public class WeatherManagerTests
     }
 
     [Test]
-    public async Task Refresh_ClockJump_LandsOnTheTargetStatesDirectly()
+    public async Task Refresh_ClockJump_EmitsNoEdgesForTheGapItSkipped()
     {
         var manager = new WeatherManager();
         var transitions = RecordTransitions(manager);
         manager.Configure(
-            Config((1, "Rain"), (2, "Wind")),
+            Config((1, "Snow"), (2, "Snow")),
             Lookup(
                 Schedule(1, startHour: 8, endHour: 10),
                 Schedule(2, startHour: 12, endHour: 14)));
 
         await Assert.That(manager.Refresh(Utc(2026, 9, 22, 9)).CurrentState)
-            .IsEqualTo(WeatherState.Rain);
+            .IsEqualTo(WeatherState.Snow);
 
-        // Jump forward over the gap: exactly one transition, straight to wind.
-        await Assert.That(manager.Refresh(Utc(2026, 9, 22, 13)).CurrentState)
-            .IsEqualTo(WeatherState.Wind);
+        // Jump forward over the clear gap into the next window: the state never visibly left snow.
+        var jumped = manager.Refresh(Utc(2026, 9, 22, 13));
+        await Assert.That(jumped.CurrentState).IsEqualTo(WeatherState.Snow);
+        await Assert.That(jumped.Transitioned).IsFalse();
+        await Assert.That(jumped.ActiveScheduleId).IsEqualTo((int?)2);
 
-        // Jump backwards to the small hours of the next day: back to clear.
+        // Jump to the small hours of the next day: back to clear.
         await Assert.That(manager.Refresh(Utc(2026, 9, 23, 3)).CurrentState)
             .IsEqualTo(WeatherState.Clear);
 
-        await Assert.That(transitions).HasCount().EqualTo(3);
-        await Assert.That(transitions[0]).IsEqualTo((WeatherState.Clear, WeatherState.Rain));
-        await Assert.That(transitions[1]).IsEqualTo((WeatherState.Rain, WeatherState.Wind));
-        await Assert.That(transitions[2]).IsEqualTo((WeatherState.Wind, WeatherState.Clear));
+        await Assert.That(transitions).HasCount().EqualTo(2);
+        await Assert.That(transitions[0]).IsEqualTo((WeatherState.Clear, WeatherState.Snow));
+        await Assert.That(transitions[1]).IsEqualTo((WeatherState.Snow, WeatherState.Clear));
     }
 
     [Test]
@@ -242,12 +245,12 @@ public class WeatherManagerTests
     {
         var manager = new WeatherManager();
         manager.Configure(
-            Config((999, "Wind"), (11, "Rain")),
+            Config((999, "Snow"), (11, "Snow")),
             Lookup(Schedule(11, startHour: 8, endHour: 10)));
 
         var result = manager.Refresh(Utc(2026, 9, 22, 9));
 
-        await Assert.That(result.CurrentState).IsEqualTo(WeatherState.Rain);
+        await Assert.That(result.CurrentState).IsEqualTo(WeatherState.Snow);
         await Assert.That(result.Errors).HasSingleItem();
         await Assert.That(result.Errors[0]).Contains("999");
         await Assert.That(result.Errors[0]).Contains("has no row");
@@ -258,7 +261,7 @@ public class WeatherManagerTests
     {
         var manager = new WeatherManager();
         var transitions = RecordTransitions(manager);
-        manager.Configure(Config((999, "Rain")), Lookup());
+        manager.Configure(Config((999, "Snow")), Lookup());
 
         var result = manager.Refresh(Utc(2026, 9, 22, 9));
 
@@ -273,17 +276,38 @@ public class WeatherManagerTests
     {
         var manager = new WeatherManager();
         manager.Configure(
-            Config((11, "Hail"), (12, "Wind")),
+            Config((11, "Hail"), (12, "Snow")),
             Lookup(
                 Schedule(11, startHour: 8, endHour: 10),
                 Schedule(12, startHour: 8, endHour: 10)));
 
         var result = manager.Refresh(Utc(2026, 9, 22, 9));
 
-        await Assert.That(result.CurrentState).IsEqualTo(WeatherState.Wind);
+        await Assert.That(result.CurrentState).IsEqualTo(WeatherState.Snow);
         await Assert.That(result.Errors).HasSingleItem();
         await Assert.That(result.Errors[0]).Contains("Hail");
         await Assert.That(result.Errors[0]).Contains("not a weather state");
+    }
+
+    [Test]
+    public async Task Refresh_RainAndWindAreNotWeatherStates()
+    {
+        // The client has no packet for either, so a phase naming one is refused instead of being
+        // tracked as a state nothing can show.
+        var manager = new WeatherManager();
+        var transitions = RecordTransitions(manager);
+        manager.Configure(
+            Config((11, "Rain"), (12, "Wind")),
+            Lookup(
+                Schedule(11, startHour: 8, endHour: 10),
+                Schedule(12, startHour: 8, endHour: 10)));
+
+        var result = manager.Refresh(Utc(2026, 9, 22, 9));
+
+        await Assert.That(result.CurrentState).IsEqualTo(WeatherState.Clear);
+        await Assert.That(result.Errors).HasCount().EqualTo(2);
+        await Assert.That(result.Errors.All(error => error.Contains("not a weather state"))).IsTrue();
+        await Assert.That(transitions).IsEmpty();
     }
 
     [Test]
@@ -292,30 +316,29 @@ public class WeatherManagerTests
         var manager = new WeatherManager();
         var transitions = RecordTransitions(manager);
         manager.Configure(
-            Config((1, "Rain"), (2, "Wind")),
+            Config((1, "Snow"), (2, "Snow")),
             Lookup(
-                Schedule(1, startHour: 8, endHour: 10),
-                Schedule(2, startHour: 9, endHour: 11)));
+                Schedule(1, startHour: 9, endHour: 11),
+                Schedule(2, startHour: 9, endHour: 12)));
 
         await Assert.That(manager.Refresh(Utc(2026, 9, 22, 8, 30)).CurrentState)
-            .IsEqualTo(WeatherState.Rain);
+            .IsEqualTo(WeatherState.Clear);
 
         // Both windows are open at 09:30: the conflict is reported and the previous state stands.
         var overlap = manager.Refresh(Utc(2026, 9, 22, 9, 30));
-        await Assert.That(overlap.CurrentState).IsEqualTo(WeatherState.Rain);
+        await Assert.That(overlap.CurrentState).IsEqualTo(WeatherState.Clear);
         await Assert.That(overlap.Transitioned).IsFalse();
         await Assert.That(overlap.Errors).HasSingleItem();
         await Assert.That(overlap.Errors[0]).Contains("overlap");
 
-        await Assert.That(manager.Refresh(Utc(2026, 9, 22, 10, 30)).CurrentState)
-            .IsEqualTo(WeatherState.Wind);
         await Assert.That(manager.Refresh(Utc(2026, 9, 22, 11, 30)).CurrentState)
+            .IsEqualTo(WeatherState.Snow);
+        await Assert.That(manager.Refresh(Utc(2026, 9, 22, 12, 30)).CurrentState)
             .IsEqualTo(WeatherState.Clear);
 
-        await Assert.That(transitions).HasCount().EqualTo(3);
-        await Assert.That(transitions[0]).IsEqualTo((WeatherState.Clear, WeatherState.Rain));
-        await Assert.That(transitions[1]).IsEqualTo((WeatherState.Rain, WeatherState.Wind));
-        await Assert.That(transitions[2]).IsEqualTo((WeatherState.Wind, WeatherState.Clear));
+        await Assert.That(transitions).HasCount().EqualTo(2);
+        await Assert.That(transitions[0]).IsEqualTo((WeatherState.Clear, WeatherState.Snow));
+        await Assert.That(transitions[1]).IsEqualTo((WeatherState.Snow, WeatherState.Clear));
     }
 
     [Test]
@@ -329,7 +352,7 @@ public class WeatherManagerTests
         malformed.StYear = 2026;
         malformed.StMonth = 13;
         malformed.StDay = 1;
-        manager.Configure(Config((71, "Rain")), Lookup(malformed));
+        manager.Configure(Config((71, "Snow")), Lookup(malformed));
 
         var result = manager.Refresh(Utc(2026, 9, 22, 9));
 
@@ -342,20 +365,20 @@ public class WeatherManagerTests
     [Test]
     public async Task Restart_FreshManagerReDerivesStateFromClockAndContent()
     {
-        var config = Config((11, "Rain"));
+        var config = Config((11, "Snow"));
         var lookup = Lookup(Schedule(11, startHour: 8, endHour: 10));
 
         var firstBoot = new WeatherManager();
         firstBoot.Configure(config, lookup);
         await Assert.That(firstBoot.Refresh(Utc(2026, 9, 22, 9)).CurrentState)
-            .IsEqualTo(WeatherState.Rain);
+            .IsEqualTo(WeatherState.Snow);
 
         // A restart starts from scratch and still lands on the state the clock implies.
         var secondBoot = new WeatherManager();
         var transitions = RecordTransitions(secondBoot);
         secondBoot.Configure(config, lookup);
         await Assert.That(secondBoot.Refresh(Utc(2026, 9, 22, 9)).CurrentState)
-            .IsEqualTo(WeatherState.Rain);
+            .IsEqualTo(WeatherState.Snow);
         await Assert.That(transitions).HasCount().EqualTo(1);
 
         await Assert.That(secondBoot.Refresh(Utc(2026, 9, 22, 15)).CurrentState)
@@ -365,13 +388,13 @@ public class WeatherManagerTests
     [Test]
     public async Task Restart_DoesNotCarryRuntimeStateIntoTheNewBoot()
     {
-        var config = Config((11, "Rain"));
+        var config = Config((11, "Snow"));
         var lookup = Lookup(Schedule(11, startHour: 8, endHour: 10));
 
         var beforeRestart = new WeatherManager();
         beforeRestart.Configure(config, lookup);
         await Assert.That(beforeRestart.Refresh(Utc(2026, 9, 22, 9)).CurrentState)
-            .IsEqualTo(WeatherState.Rain);
+            .IsEqualTo(WeatherState.Snow);
 
         var afterRestart = new WeatherManager();
         var transitions = RecordTransitions(afterRestart);
@@ -384,13 +407,12 @@ public class WeatherManagerTests
     }
 
     [Test]
-    public async Task SnowPhase_EmitsSnowTransitions()
+    public async Task SnowPhase_StateNameIsCaseInsensitive()
     {
         var manager = new WeatherManager();
         var transitions = RecordTransitions(manager);
         manager.Configure(Config((3, "snow")), Lookup(Schedule(3, startHour: 8, endHour: 10)));
 
-        // Configuration is case-insensitive and maps onto the typed state.
         await Assert.That(manager.Refresh(Utc(2026, 9, 22, 9)).CurrentState)
             .IsEqualTo(WeatherState.Snow);
         await Assert.That(manager.Refresh(Utc(2026, 9, 22, 11)).CurrentState)
