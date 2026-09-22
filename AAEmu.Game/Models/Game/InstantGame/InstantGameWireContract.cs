@@ -40,6 +40,13 @@ public static class InstantGameWireContract
     public const uint FirstRound = 1;
 
     /// <summary>
+    /// Value for <c>SCInviteToInstantGame.invitationTime</c> — how long the client keeps the join
+    /// dialog offer alive, in milliseconds. Wire value; the content column that looks like it
+    /// (<c>instances.matching_cleanup_term</c>) is used for the server-side fill window instead.
+    /// </summary>
+    public const uint InviteWindowMs = 300_000;
+
+    /// <summary>
     /// Value for <c>SCInviteToInstantGame.maxEntry</c> that makes the client open the plain
     /// "Enter Instance" dialog (<c>DLG_TASK_JOIN_INSTANT_GAME</c>). Any other value opens the squad
     /// "Allow Team Queue" dialog instead. A dungeon invite must send this; a battle field keeps

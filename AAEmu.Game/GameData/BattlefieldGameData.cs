@@ -59,7 +59,12 @@ public class BattlefieldGameData : Singleton<BattlefieldGameData>, IGameDataLoad
 
         using (var command = connection.CreateCommand())
         {
-            command.CommandText = "SELECT id,target_id,instance_ui_kind_id,squad_not_use FROM instances WHERE target_type='BattleField'";
+            // Matching timing for a battle field lives on its instances row: apply_waiting_time
+            // expires a queue that never fills, matching_cleanup_term expires a match that never
+            // filled. Both are milliseconds, same as the Indun zone columns they parallel.
+            command.CommandText =
+                "SELECT id,target_id,instance_ui_kind_id,squad_not_use,apply_waiting_time,matching_cleanup_term " +
+                "FROM instances WHERE target_type='BattleField'";
             command.Prepare();
             using var sqliteReader = command.ExecuteReader();
             using var reader = new SQLiteWrapperReader(sqliteReader);
@@ -71,6 +76,8 @@ public class BattlefieldGameData : Singleton<BattlefieldGameData>, IGameDataLoad
                 battlefield.InstanceId = reader.GetUInt32("id");
                 battlefield.InstanceUiKindId = reader.GetUInt32("instance_ui_kind_id");
                 battlefield.SquadNotUse = reader.GetBoolean("squad_not_use", true);
+                battlefield.ApplyWaitingTimeMs = reader.GetUInt32("apply_waiting_time");
+                battlefield.MatchingCleanupTermMs = reader.GetUInt32("matching_cleanup_term");
             }
         }
 
@@ -79,35 +86,11 @@ public class BattlefieldGameData : Singleton<BattlefieldGameData>, IGameDataLoad
             if (rankDetailIds.TryGetValue(battlefield.InstanceId, out var rankDetailId))
                 battlefield.InstanceRankDetailId = rankDetailId;
 
-        using (var command = connection.CreateCommand())
+        var scoreRules = LoadGameScoreRules(connection);
+        foreach (var ruleSet in LoadGameRuleSets(connection, ruleSetToBattlefield, scoreRules).Values)
         {
-            command.CommandText = "SELECT * FROM game_rule_sets";
-            command.Prepare();
-            using (var sqliteReader = command.ExecuteReader())
-            using (var reader = new SQLiteWrapperReader(sqliteReader))
-            {
-                while (reader.Read())
-                {
-                    // 10.0.2.13: battle_field_id, corps_size, corps1_id, corps2_id and
-                    // time_opening were removed from game_rule_sets; only the columns below
-                    // remain. Removed model fields are left at their defaults.
-                    var ruleSetId = reader.GetUInt32("id");
-                    ruleSetToBattlefield.TryGetValue(ruleSetId, out var battlefieldId);
-
-                    var gsr = new GameRuleSet
-                    {
-                        Id = ruleSetId,
-                        BattlefieldId = battlefieldId,
-                        TimeEnding = reader.GetInt32("time_ending"),
-                        TimePlaying = reader.GetInt32("time_playing"),
-                        TimeReady = reader.GetInt32("time_ready"),
-                        VictoryScore = reader.GetInt32("victory_score")
-                    };
-
-                    if (battlefieldId != 0u && _battlefields.TryGetValue(battlefieldId, out var battlefield))
-                        battlefield.RuleSet = gsr;
-                }
-            }
+            if (ruleSet.BattlefieldId != 0u && _battlefields.TryGetValue(ruleSet.BattlefieldId, out var battlefield))
+                battlefield.RuleSet = ruleSet;
         }
 
         var pathFile = Path.Combine(FileManager.AppPath, "Data", "battlefields.json");
@@ -129,6 +112,76 @@ public class BattlefieldGameData : Singleton<BattlefieldGameData>, IGameDataLoad
 
     public void PostLoad()
     {
+    }
+
+    /// <summary>
+    /// The <c>game_rule_sets</c> rows, keyed by rule set id, with their timing/victory fields, the
+    /// reverse battlefield link, and the rule set's <c>game_score_rules</c> rows resolved.
+    /// </summary>
+    internal static Dictionary<uint, GameRuleSet> LoadGameRuleSets(SqliteConnection connection,
+        IReadOnlyDictionary<uint, uint> ruleSetToBattlefield,
+        IReadOnlyDictionary<uint, List<GameScoreRule>> scoreRules)
+    {
+        var result = new Dictionary<uint, GameRuleSet>();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT * FROM game_rule_sets";
+        command.Prepare();
+        using var sqliteReader = command.ExecuteReader();
+        using var reader = new SQLiteWrapperReader(sqliteReader);
+        while (reader.Read())
+        {
+            // 10.0.2.13: battle_field_id, corps_size, corps1_id, corps2_id and
+            // time_opening were removed from game_rule_sets; only the columns below
+            // remain. Removed model fields are left at their defaults.
+            var ruleSetId = reader.GetUInt32("id");
+            ruleSetToBattlefield.TryGetValue(ruleSetId, out var battlefieldId);
+
+            result[ruleSetId] = new GameRuleSet
+            {
+                Id = ruleSetId,
+                BattlefieldId = battlefieldId,
+                TimeEnding = reader.GetInt32("time_ending"),
+                TimePlaying = reader.GetInt32("time_playing"),
+                TimeReady = reader.GetInt32("time_ready"),
+                TimeResurrectionDelay = reader.GetInt32("time_resurrection_delay"),
+                VictoryScore = reader.GetInt32("victory_score"),
+                VictoryKillCount = reader.GetInt32("victory_kill_count"),
+                VictoryByScore = reader.GetBoolean("victory_by_score"),
+                ScoreRules = scoreRules?.GetValueOrDefault(ruleSetId) ?? [],
+            };
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// All <c>game_score_rules</c> rows grouped by <c>rule_set_id</c>, the content table behind
+    /// every per-event score a match awards.
+    /// </summary>
+    internal static Dictionary<uint, List<GameScoreRule>> LoadGameScoreRules(SqliteConnection connection)
+    {
+        var result = new Dictionary<uint, List<GameScoreRule>>();
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT rule_set_id,rule_set_corps,event_id,event_value,event_score,event_tag_id FROM game_score_rules";
+        command.Prepare();
+        using var sqliteReader = command.ExecuteReader();
+        using var reader = new SQLiteWrapperReader(sqliteReader);
+        while (reader.Read())
+        {
+            var ruleSetId = reader.GetUInt32("rule_set_id");
+            var rule = new GameScoreRule(
+                reader.GetInt32("rule_set_corps"),
+                reader.GetInt32("event_id"),
+                reader.GetInt32("event_value"),
+                reader.GetInt32("event_score"),
+                reader.GetUInt32("event_tag_id"));
+            if (!result.TryGetValue(ruleSetId, out var rules))
+                result[ruleSetId] = rules = [];
+            rules.Add(rule);
+        }
+
+        return result;
     }
 
     /// <summary>

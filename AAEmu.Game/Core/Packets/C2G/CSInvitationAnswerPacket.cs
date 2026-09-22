@@ -18,7 +18,18 @@ public class CSInvitationAnswerPacket() : GamePacket(CSOffsets.CSInvitationAnswe
         if (character == null)
             return;
 
-        if (!IndunMatchmakingManager.Instance.TryInvitationAnswer(character, InvitationTime, Acceptance))
-            Logger.Debug("CSInvitationAnswer ignored char={0} acceptance={1}", character.Name, Acceptance);
+        // The join dialog belongs to a battle field match the moment the character holds an invite
+        // for one; without this branch the accept never reached the match and the ready stage was
+        // unreachable. A dungeon invitee has no CurrentInstantGame and falls through to Indun.
+        if (character.CurrentInstantGame is { } instantGame)
+        {
+            instantGame.PlayerInviteResponse(character, Acceptance, 0ul);
+            return;
+        }
+
+        if (IndunMatchmakingManager.Instance.TryInvitationAnswer(character, InvitationTime, Acceptance))
+            return;
+
+        Logger.Debug("CSInvitationAnswer ignored char={0} acceptance={1}", character.Name, Acceptance);
     }
 }

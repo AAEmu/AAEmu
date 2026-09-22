@@ -265,6 +265,11 @@ public class EnterWorldManager(
             // restored, and a reservation nobody releases blocks the player from ever duelling again.
             DuelManager.Instance.OnCharacterLogout(activeChar);
 
+            // Same release on the orderly leave (logout / character select): a battlefield queue
+            // slot or match must not survive the character, or the queue fills with ghosts and the
+            // match keeps a handle on a character that is about to be deleted.
+            InstantGameManager.Instance.OnCharacterLogout(activeChar);
+
             // A defendant or a juror leaving the world has to leave their trial behind, and an arrest
             // that is still counting down holds a promise to a character who is about to be gone.
             JusticeManager.Instance.OnCharacterLogout(activeChar);

@@ -32,22 +32,68 @@ public partial class InstantGame
     private readonly InstantGameTeamResult _corps1Result;
     private readonly InstantGameTeamResult _corps2Result;
     private readonly Dictionary<Character, InstantGameTeamMember> _members;
-    private readonly Dictionary<Character, uint> _expeditionAtEntry;
 
-    private readonly WorldInstance _world;
     private readonly Battlefield _battlefield;
     private readonly ZoneInstanceId _zoneInstanceId;
+    private readonly uint _worldInstanceId;
+    private readonly Action _releaseWorld;
 
     private readonly CancellationTokenSource _endGameTokenSource;
     private int _resultSent;
+    private int _finishStarted;
+    private int _tornDown;
 
-    public InstantGame(Battlefield battlefield)
+    /// <summary>How the match ended; set by the victory/time-over derivation before the result goes out.</summary>
+    private BattlefieldEndingReason _endingReason = BattlefieldEndingReason.TimeoverDraw;
+
+    /// <summary>
+    /// Where the match is in Queue → ready → enter → score → finish → leave. One-directional; see
+    /// <see cref="InstantGamePhase"/>.
+    /// </summary>
+    public InstantGamePhase Phase { get; private set; } = InstantGamePhase.Filling;
+
+    /// <summary>
+    /// UTC moment this match was created. Drives the underfilled expiry: a match that never fills
+    /// gives up after the battle field's <c>instances.matching_cleanup_term</c>.
+    /// </summary>
+    internal DateTime FillingSinceUtc { get; set; }
+
+    internal int PlayerCount => _players.Count;
+
+    /// <summary>
+    /// The staged waits of the lifecycle (ready hold, countdown, respawn, playing, ending).
+    /// Injectable so tests can walk every phase without waiting on wall-clock time.
+    /// </summary>
+    internal Func<TimeSpan, CancellationToken, Task> Delay { get; set; } =
+        (delay, token) => Task.Delay(delay, token);
+
+    public InstantGame(Battlefield battlefield) : this(battlefield, CreateBattlefieldCopy(battlefield))
+    {
+    }
+
+    private static WorldInstance CreateBattlefieldCopy(Battlefield battlefield)
+    {
+        var worldTemplate = WorldManager.Instance.GetWorldTemplateByZoneKey(battlefield.ZoneKey);
+        return WorldManager.Instance.CreateWorldInstance(worldTemplate, 0);
+    }
+
+    private InstantGame(Battlefield battlefield, WorldInstance world)
+        : this(battlefield, world.Id, () =>
+        {
+            // Cleans the instance up and returns the instance Id to the pool
+            WorldManager.Instance.RemoveWorld(world.Id);
+            world.Dispose();
+        })
+    {
+    }
+
+    /// <summary>Test seam: a match bound to a plain instance id instead of the heavy world machinery.</summary>
+    internal InstantGame(Battlefield battlefield, uint worldInstanceId, Action releaseWorld)
     {
         _battlefield = battlefield;
         _players = [];
 
         _members = new Dictionary<Character, InstantGameTeamMember>();
-        _expeditionAtEntry = new Dictionary<Character, uint>();
         _corps1Result = new InstantGameTeamResult(VictoryState.Lose, _battlefield.RuleSet.Corps1FactionId);
         _corps2Result = new InstantGameTeamResult(VictoryState.Lose, _battlefield.RuleSet.Corps2FactionId);
 
@@ -59,19 +105,23 @@ public partial class InstantGame
 
         _characterCorps = new Dictionary<Character, InstantCorps>();
 
-        var worldTemplate = WorldManager.Instance.GetWorldTemplateByZoneKey(_battlefield.ZoneKey);
-        _world = WorldManager.Instance.CreateWorldInstance(worldTemplate, 0);
-        _zoneInstanceId = new ZoneInstanceId(_battlefield.ZoneKey, _world.Id);
+        _worldInstanceId = worldInstanceId;
+        _zoneInstanceId = new ZoneInstanceId(_battlefield.ZoneKey, worldInstanceId);
+        _releaseWorld = releaseWorld;
+        FillingSinceUtc = ServerCalendar.UtcNow;
 
         _endGameTokenSource = new CancellationTokenSource();
     }
 
     public void AddPlayer(Character character, InstantCorps corps)
     {
+        if (character == null || Phase != InstantGamePhase.Filling)
+            return;
+
         if (_players.Contains(character))
         {
             // Player already exists in game, remove for correction
-            RemovePlayer(character);
+            ReleasePlayer(character);
         }
         _players.Add(character);
         var factionId = corps == InstantCorps.Corps1 ? _battlefield.RuleSet.Corps1FactionId : _battlefield.RuleSet.Corps2FactionId;
@@ -80,34 +130,65 @@ public partial class InstantGame
 
         var maxEntry = (uint)(_battlefield.RuleSet.CorpsSize * 2);
         character.SendPacket(new SCInviteToInstantGamePacket(
-            invitationTime: 300000,
+            invitationTime: InstantGameWireContract.InviteWindowMs,
             zoneInstanceId: _zoneInstanceId,
             type: _battlefield.Id,
-            matchingKey: _world.Id,
+            matchingKey: _worldInstanceId,
             accept: (uint)_players.Count,
             maxEntry: maxEntry));
         character.CurrentInstantGame = this;
     }
 
-    public bool RemovePlayer(Character character)
+    /// <summary>True when the character still holds any slot in this match.</summary>
+    internal bool ContainsPlayer(Character character) => character != null && _players.Contains(character);
+
+    /// <summary>
+    /// Drops a player who declined or cancelled while the match is still filling. A player already
+    /// inside the copy leaves through the full leave path; one still sitting at the dialog is
+    /// released silently because the dialog itself is what changed state on the client.
+    /// </summary>
+    /// <returns>True when the character belonged to this match.</returns>
+    internal bool WithdrawPlayer(Character character)
+    {
+        if (character == null || !_players.Contains(character))
+            return false;
+
+        if (character.Transform != null && character.Transform.InstanceId == _worldInstanceId)
+            LeaveInstantGame(character);
+        else
+            ReleasePlayer(character);
+        return true;
+    }
+
+    /// <summary>
+    /// Drops every per-player reference this match holds — roster, corps, member tallies, the kill
+    /// subscription and the character's back-reference — without sending or moving anything.
+    /// This is the single exit used by leave, withdraw, expiry and disconnect.
+    /// </summary>
+    /// <returns>True when the character was tracked at all.</returns>
+    internal bool ReleasePlayer(Character character)
     {
         if (character == null)
             return false;
 
-        if (!_players.Contains(character))
-            return false;
+        var released = _players.Remove(character);
+        foreach (var side in _corps.Values)
+            side.Remove(character);
+        if (_characterCorps.Remove(character))
+            released = true;
+        if (_members.Remove(character, out var member))
+        {
+            // The scoreboard line survives until the result (id + name + tallies are values now);
+            // only the live character object is handed back.
+            member.Present = false;
+            released = true;
+        }
 
-        _players.Remove(character);
-
-        if (_corps.TryGetValue((uint)InstantCorps.Corps1, out var charsInCorps1))
-            charsInCorps1.Remove(character);
-
-        if (_corps.TryGetValue((uint)InstantCorps.Corps2, out var charsInCorps2))
-            charsInCorps2.Remove(character);
-
-        _characterCorps.Remove(character);
-        character.CurrentInstantGame = null;
-        return true;
+        // Unsubscribing a handler that was never added is a no-op, so this is safe on every path.
+        character.Events.OnKill -= OnKill;
+        if (character.CurrentInstantGame == this)
+            character.CurrentInstantGame = null;
+        return released;
     }
 
     public bool IsFull => _players.Count == _battlefield.RuleSet.CorpsSize * 2;
@@ -133,6 +214,11 @@ public partial class InstantGame
 
     public void PlayerInviteResponse(Character character, bool joins, ulong qualifierId)
     {
+        if (character == null || Phase != InstantGamePhase.Filling)
+            return;
+        if (!_characterCorps.ContainsKey(character))
+            return;
+
         if (!joins)
         {
             // Next room, remove from current game then readd to requeue
@@ -146,12 +232,20 @@ public partial class InstantGame
         MoveCharacterToWorld(character, _battlefield.ZoneKey, spawn.X, spawn.Y, spawn.Z);
     }
 
+    /// <summary>
+    /// The client confirmed it loaded the match copy (CSInstanceLoaded). Idempotent per phase: a
+    /// duplicate load, a non-invitee or a match that already opened is ignored instead of being
+    /// counted twice.
+    /// </summary>
     public void OnEnterWorld(Character character, ulong qualifierId)
     {
-        var corps = _characterCorps[character];
-        if (_battlefield.IsExpeditionContent && character.Expedition is { } expedition &&
-            expedition.GetMember(character) != null)
-            _expeditionAtEntry[character] = (uint)expedition.Id;
+        if (character == null || Phase != InstantGamePhase.Filling)
+            return;
+        if (!_characterCorps.TryGetValue(character, out var corps))
+            return;
+        if (_members.ContainsKey(character))
+            return;
+
         character.SendPacket(new SCInstantGameJoinedPacket(_zoneInstanceId, _battlefield.Id));
 
         if (corps == InstantCorps.Corps1)
@@ -161,15 +255,25 @@ public partial class InstantGame
 
         character.Events.OnKill += OnKill;
 
-        var member = new InstantGameTeamMember { Character = character };
+        var member = new InstantGameTeamMember
+        {
+            CharacterId = character.Id,
+            CharacterName = character.Name,
+            Present = true,
+        };
+        if (_battlefield.IsExpeditionContent && character.Expedition is { } memberExpedition &&
+            memberExpedition.GetMember(character) != null)
+            member.ExpeditionId = (uint)memberExpedition.Id;
         _members.Add(character, member);
 
         var result = corps == InstantCorps.Corps1 ? _corps1Result : _corps2Result;
         result.Members.Add(member);
         member.Corps = result;
 
-        // TODO: This can be done better.
-        // TODO: Game expire after 60 seconds if not enough players
+        // Entering an instance is what commits a squad member to it (same crossing the Indun
+        // enter path takes through SquadManager).
+        SquadManager.Instance.NotifyGameEnter(character);
+
         if (_members.Count == _battlefield.RuleSet.CorpsSize * 2)
             BeginOpening();
     }
@@ -182,15 +286,19 @@ public partial class InstantGame
     /// </summary>
     private void BeginOpening()
     {
+        if (Phase != InstantGamePhase.Filling)
+            return;
+        Phase = InstantGamePhase.Opening;
+
         BroadcastPacket(new SCInstantGameReadyPacket(_zoneInstanceId, _battlefield.Id,
             Helpers.UnixTimeNowInMilli(), BuildReadyRoster()));
 
         Task.Run(async () =>
         {
-            await Task.Delay(TimeSpan.FromSeconds(_battlefield.RuleSet.TimeReady), _endGameTokenSource.Token);
+            await Delay(TimeSpan.FromSeconds(_battlefield.RuleSet.TimeReady), _endGameTokenSource.Token);
             BroadcastPacket(new SCInstantGameCountDownPacket(_zoneInstanceId, Helpers.UnixTimeNowInMilli()));
 
-            await Task.Delay(CountdownDuration, _endGameTokenSource.Token);
+            await Delay(CountdownDuration, _endGameTokenSource.Token);
             Start();
         }, _endGameTokenSource.Token);
     }
@@ -210,13 +318,17 @@ public partial class InstantGame
 
     private void Start()
     {
+        if (Phase != InstantGamePhase.Opening)
+            return;
+        Phase = InstantGamePhase.Playing;
+
         BroadcastPacket(new SCInstantGameStartPacket(_zoneInstanceId, Helpers.UnixTimeNowInMilli(),
             InstantGameWireContract.FirstRound));
 
         // Reset players on Start
         Task.Run(async () =>
         {
-            await Task.Delay(3000);
+            await Delay(TimeSpan.FromSeconds(3), _endGameTokenSource.Token);
             foreach (var (character, _) in _characterCorps)
             {
                 if (character == null)
@@ -234,18 +346,47 @@ public partial class InstantGame
                 // Reset Cooldowns
                 character.ResetAllSkillCooldowns(false);
             }
-        });
+        }, _endGameTokenSource.Token);
         Task.Run(async () =>
         {
-            await Task.Delay(_battlefield.RuleSet.TimePlaying * 60 * 1000, _endGameTokenSource.Token);
+            await Delay(TimeSpan.FromMinutes(_battlefield.RuleSet.TimePlaying), _endGameTokenSource.Token);
+            ApplyTimeOver();
             await EndGame();
         }, _endGameTokenSource.Token);
     }
 
+    /// <summary>
+    /// The playing clock ran out: decide the match from the final tallies, per this rule set's
+    /// <c>victory_by_score</c>. A finish already declared by a victory threshold is left alone.
+    /// </summary>
+    private void ApplyTimeOver()
+    {
+        if (_finishStarted != 0)
+            return;
+
+        var (reason, corps1State, corps2State) = InstantGameResultRules.DeriveTimeOver(
+            _corps1Result.Score, _corps2Result.Score,
+            _corps1Result.TotalKills, _corps2Result.TotalKills,
+            _battlefield.RuleSet.VictoryByScore);
+        _endingReason = reason;
+        _corps1Result.State = corps1State;
+        _corps2Result.State = corps2State;
+    }
+
+    /// <summary>
+    /// Finish. Safe to call more than once and from any owner (playing clock, a victory, a test):
+    /// only the first call sends the result and runs the teardown, so rewards are recorded once.
+    /// </summary>
     public async Task EndGame()
     {
+        if (Phase is InstantGamePhase.Ending or InstantGamePhase.Finished)
+            return;
+        if (Interlocked.Exchange(ref _finishStarted, 1) != 0)
+            return;
+        Phase = InstantGamePhase.Ending;
+
         SendResult();
-        await Task.Delay(_battlefield.RuleSet.TimeEnding * 60 * 1000);
+        await Delay(TimeSpan.FromMinutes(_battlefield.RuleSet.TimeEnding), CancellationToken.None);
         DestroyInstantGame();
     }
 
@@ -253,7 +394,7 @@ public partial class InstantGame
     {
         if (Interlocked.Exchange(ref _resultSent, 1) != 0)
             return;
-        BroadcastPacket(new SCInstantGameEndPacket(_zoneInstanceId, BattlefieldEndingReason.AchievementScore,
+        BroadcastPacket(new SCInstantGameEndPacket(_zoneInstanceId, _endingReason,
             _corps1Result,
             _corps2Result));
         if (!_battlefield.CanRecordExpeditionHistory || !ExpeditionActivityServices.TryGet(out var activityService))
@@ -288,12 +429,12 @@ public partial class InstantGame
         // a score differential would turn a losing team's negative value into a very large client value.
         var score = checked((uint)Math.Max(0, result.Score));
         foreach (var group in result.Members
-                     .Where(member => _expeditionAtEntry.ContainsKey(member.Character))
-                     .GroupBy(member => _expeditionAtEntry[member.Character]))
+                     .Where(member => member.ExpeditionId != 0)
+                     .GroupBy(member => member.ExpeditionId))
         {
             var members = group.Select(member => new ExpeditionInstanceHistoryMember(
-                0, member.Character.Id,
-                _players.Contains(member.Character)
+                0, member.CharacterId,
+                member.Present
                     ? ExpeditionInstanceMemberStatus.Finished
                     : ExpeditionInstanceMemberStatus.Started)).ToArray();
             activityService.RecordInstanceResult(group.Key, _battlefield.InstanceRankDetailId, _battlefield.InstanceId,
@@ -303,25 +444,72 @@ public partial class InstantGame
 
     private void DestroyInstantGame()
     {
-        foreach (var character in _players.ToList())
-        {
-            LeaveInstantGame(character);
-        }
+        if (!TryBeginTeardown())
+            return;
+        FinishTeardown();
+    }
 
-        // TODO: Unbind all events from characters
-        WorldManager.Instance.RemoveWorld(_world.Id);
-        // Cleans the instance up and returns the instance Id to the pool
-        _world.Dispose();
+    /// <summary>
+    /// A fill window that closed (cleanup term hit, or nobody left) without the match ever opening.
+    /// Everyone still attached is released through the normal leave path — entered players are
+    /// returned to the world, dialog-only players just get their invite cleared — and the copy goes
+    /// back. No result is sent for a match that never played.
+    /// </summary>
+    internal void AbandonFilling()
+    {
+        if (!TryBeginTeardown())
+            return;
+        FinishTeardown();
+    }
+
+    private bool TryBeginTeardown()
+    {
+        if (Interlocked.Exchange(ref _tornDown, 1) != 0)
+            return false;
+        Phase = InstantGamePhase.Finished;
+        foreach (var character in _players.ToList())
+            LeaveInstantGame(character);
+        return true;
+    }
+
+    private void FinishTeardown()
+    {
+        // Cancel only: pending staged waits observe the cancellation and unwind. Disposing the
+        // source here would make a straggler respawn task's token registration throw instead.
+        _endGameTokenSource.Cancel();
+        _releaseWorld();
         InstantGameManager.Instance.RemoveGame(this);
     }
 
+    /// <summary>
+    /// One player's exit — leave packet, match end, disconnect or fill-window expiry. Restores
+    /// faction and squad only for a player who actually entered, hands the copy's location back to
+    /// anyone standing in it, and clears the invite/queue UI of anyone who never got in.
+    /// </summary>
     public void LeaveInstantGame(Character character)
     {
-        // Warning: Null exception exists if player does not exist in the world when this is ran (Most likely from disconnecting or character select)
+        if (character == null)
+            return;
 
-        RemovePlayer(character);
-        character.SetFaction(character.OriginFaction.Id);
-        character.Events.OnKill -= OnKill;
+        var enteredMatch = _members.ContainsKey(character);
+        var insideCopy = character.Transform != null && character.Transform.InstanceId == _worldInstanceId;
+
+        ReleasePlayer(character);
+
+        if (enteredMatch)
+        {
+            character.SetFaction(character.OriginFaction.Id);
+            SquadManager.Instance.NotifyGameLeave(character);
+        }
+
+        if (!insideCopy)
+        {
+            // Never made it into the copy: the dialog / queue screen they are still sitting on has
+            // to go, or the client waits on a match that no longer exists.
+            character.SendPacket(SCCancelInstantGamePacket.ClearQueue());
+            return;
+        }
+
         character.DisabledSetPosition = true;
 
         if (character.MainWorldPosition == null)
@@ -345,8 +533,9 @@ public partial class InstantGame
     {
         character.DisabledSetPosition = true;
         character.MainWorldPosition ??= character.Transform.CloneDetached(character);
-        character.Transform.ApplyWorldSpawnPosition(new WorldSpawnPosition { ZoneId = zoneId, X = x, Y = y, Z = z }, _world.Id);
-        character.SendPacket(new SCLoadInstancePacket(_world.Id, zoneId, x, y, z, 0, 0, 0));
+        character.Transform.ApplyWorldSpawnPosition(
+            new WorldSpawnPosition { ZoneId = zoneId, X = x, Y = y, Z = z }, _worldInstanceId);
+        character.SendPacket(new SCLoadInstancePacket(_worldInstanceId, zoneId, x, y, z, 0, 0, 0));
     }
 
     public void BroadcastPacket(GamePacket packet)
