@@ -427,6 +427,25 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
             }
 
 
+            // doodad_func_build_condition_ui_opens
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT id FROM doodad_func_build_condition_ui_opens";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncBuildConditionUiOpen
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
+                        _funcTemplates[nameof(DoodadFuncBuildConditionUiOpen)].Add(func.Id, func);
+                    }
+                }
+            }
+
+
             // doodad_func_buy_fish_items
             using (var command = connection.CreateCommand())
             {
