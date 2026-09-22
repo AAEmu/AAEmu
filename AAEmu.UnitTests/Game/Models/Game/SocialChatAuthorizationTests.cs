@@ -1,6 +1,9 @@
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Expeditions;
+using AAEmu.Game.Models.Game.Faction;
+using AAEmu.Game.Models.Game.Justice;
+using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.UnitTests.Game.Models.Game;
@@ -24,4 +27,37 @@ public class SocialChatAuthorizationTests
         expedition.Members.Clear();
         await Assert.That(SocialChatAuthorization.CanSendGuildChat(expedition, character)).IsFalse();
     }
+
+    [Test]
+    public async Task FactionScope_UsesRootFactionAndGroupsContentChildrenUnderTheirMother()
+    {
+        var playerNation = new SystemFaction
+            { Id = (FactionsEnum)501, MotherId = FactionsEnum.Invalid, DiplomacyTarget = true };
+        var racialChild = new SystemFaction
+            { Id = FactionsEnum.Nuian, MotherId = FactionsEnum.NuiaAlliance, DiplomacyTarget = false };
+
+        await Assert.That(SocialChatAuthorization.ResolveFactionChatId(playerNation)).IsEqualTo((FactionsEnum)501);
+        await Assert.That(SocialChatAuthorization.ResolveFactionChatId(racialChild)).IsEqualTo(FactionsEnum.NuiaAlliance);
+    }
+
+    [Test]
+    public async Task TrialChat_RequiresCurrentCaseAndASeatedRole()
+    {
+        var defendant = new Character(new UnitCustomModelParams()) { Id = 1 };
+        var juror = new Character(new UnitCustomModelParams()) { Id = 2 };
+        var invited = new Character(new UnitCustomModelParams()) { Id = 3 };
+        var trial = new Trial { DefendantId = defendant.Id };
+        trial.Jurors.Add(new TrialJuror { CharacterId = juror.Id });
+        trial.Invited.Add(invited.Id);
+
+        await Assert.That(SocialChatAuthorization.CanUseTrialChat(trial, defendant, true)).IsTrue();
+        await Assert.That(SocialChatAuthorization.CanUseTrialChat(trial, juror, true)).IsTrue();
+        await Assert.That(SocialChatAuthorization.CanUseTrialChat(trial, invited, true)).IsFalse();
+        await Assert.That(SocialChatAuthorization.CanUseTrialChat(trial, defendant, false)).IsFalse();
+    }
+
+    private static Character CharacterWithFaction(FactionsEnum id) => new(new UnitCustomModelParams())
+    {
+        Faction = new SystemFaction { Id = id, MotherId = FactionsEnum.Invalid, DiplomacyTarget = true }
+    };
 }

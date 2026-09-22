@@ -119,31 +119,31 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
     {
         var res = 0;
         foreach (var c in ZoneChannels)
-            if (c.Value.Members.Count <= 0)
+            if (c.Value.MemberCount <= 0)
             {
                 ZoneChannels.TryRemove(c.Key, out _);
                 res++;
             }
         foreach (var c in PartyChannels)
-            if (c.Value.Members.Count <= 0)
+            if (c.Value.MemberCount <= 0)
             {
                 PartyChannels.TryRemove(c.Key, out _);
                 res++;
             }
         foreach (var c in RaidChannels)
-            if (c.Value.Members.Count <= 0)
+            if (c.Value.MemberCount <= 0)
             {
                 RaidChannels.TryRemove(c.Key, out _);
                 res++;
             }
         foreach (var c in GuildChannels)
-            if (c.Value.Members.Count <= 0)
+            if (c.Value.MemberCount <= 0)
             {
                 GuildChannels.TryRemove(c.Key, out _);
                 res++;
             }
         foreach (var c in FamilyChannels)
-            if (c.Value.Members.Count <= 0)
+            if (c.Value.MemberCount <= 0)
             {
                 FamilyChannels.TryRemove(c.Key, out _);
                 res++;
@@ -170,7 +170,16 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
     /// <returns></returns>
     public ChatChannel GetFactionChat(FactionsEnum factionMotherId)
     {
-        return FactionChannels.GetValueOrDefault(factionMotherId, NullChannel);
+        if (factionMotherId == FactionsEnum.Invalid)
+            return NullChannel;
+
+        return FactionChannels.GetOrAdd(factionMotherId, id => new ChatChannel
+        {
+            ChatType = ChatType.Ally,
+            Faction = id,
+            InternalId = (uint)id,
+            InternalName = $"Faction {id}"
+        });
     }
 
     /// <summary>
@@ -180,7 +189,29 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
     /// <returns></returns>
     public ChatChannel GetFactionChat(Character character)
     {
-        return GetFactionChat(character.Faction.MotherId);
+        return GetFactionChat(SocialChatAuthorization.ResolveFactionChatId(character?.Faction));
+    }
+
+    public int SendFactionMessage(Character origin, string message, int ability = 0, byte languageType = 0)
+    {
+        var channel = GetFactionChat(origin);
+        if (!SocialChatAuthorization.CanSendFactionChat(channel, origin))
+            return 0;
+
+        return channel.SendMessageWhere(origin, ChatType.Ally, message,
+            recipient => SocialChatAuthorization.CanReceiveFactionChat(channel, recipient), ability, languageType);
+    }
+
+    public ChatChannel SyncFactionChannel(Character character)
+    {
+        var current = GetFactionChat(character);
+        foreach (var channel in FactionChannels.Values)
+        {
+            if (!ReferenceEquals(channel, current))
+                channel.LeaveChannel(character);
+        }
+        current.JoinChannel(character);
+        return current;
     }
 
     /// <summary>

@@ -184,6 +184,29 @@ public class TrialManager : Singleton<TrialManager>
         return _trials.Values.FirstOrDefault(t => t.DefendantId == characterId);
     }
 
+    /// <summary>Sends court chat only for the defendant and jurors seated in the case currently being heard.</summary>
+    public int SendChatMessage(Character origin, string message, int ability = 0, byte languageType = 0)
+    {
+        var trial = origin == null ? null : GetLiveTrialOf(origin.Id);
+        var isCurrent = trial != null && _courtTrial[trial.Court] == trial.Id;
+        if (!SocialChatAuthorization.CanUseTrialChat(trial, origin, isCurrent))
+            return 0;
+
+        var sent = 0;
+        foreach (var characterId in trial.ParticipantIds.Distinct())
+        {
+            var recipient = WorldManager.Instance.GetCharacterById(characterId);
+            if (recipient is not { IsOnline: true } ||
+                !SocialChatAuthorization.CanUseTrialChat(trial, recipient, isCurrent))
+                continue;
+
+            recipient.SendPacket(new SCChatMessagePacket(ChatType.Judge, origin, message, ability, languageType));
+            sent++;
+        }
+
+        return sent;
+    }
+
     /// <summary>Volunteering as a juror hands out the next waiting number, as the client's court UI asks.</summary>
     public void OnWaitingNumberRequest(Character character)
     {
@@ -274,7 +297,8 @@ public class TrialManager : Singleton<TrialManager>
             Seat = juryNumber,
             IsWest = bench.IsWest
         };
-        trial.Jurors.Add(seat);
+        lock (trial.Jurors)
+            trial.Jurors.Add(seat);
         _jurorTrial[juror.Id] = trial.Id;
         _standby[trial.Court].Remove(juror.Id);
         trial.Invited.Remove(juror.Id);
@@ -960,7 +984,8 @@ public class TrialManager : Singleton<TrialManager>
     private void ReleaseJuror(Trial trial, TrialJuror juror, bool sendHome)
     {
         _jurorTrial.Remove(juror.CharacterId);
-        trial.Jurors.Remove(juror);
+        lock (trial.Jurors)
+            trial.Jurors.Remove(juror);
         trial.Invited.Remove(juror.CharacterId);
         trial.Summoned.Remove(juror.CharacterId);
 
