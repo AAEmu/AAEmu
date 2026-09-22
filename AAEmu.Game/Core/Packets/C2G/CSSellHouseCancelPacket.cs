@@ -11,6 +11,6 @@ public class CSSellHouseCancelPacket() : GamePacket(CSOffsets.CSSellHouseCancelP
         var tl = stream.ReadUInt16();
 
         Logger.Debug("SellHouseCancel, Tl: {0}", tl);
-        HousingManager.Instance.CancelForSale(tl, true);
+        HousingManager.Instance.CancelForSale(tl, Connection.ActiveChar, true);
     }
 }

@@ -238,6 +238,7 @@ public sealed class HousingTradeSaleTests
             && m.Header.ReceiverId == SellerId
             && m.Body.CopperCoins == Price)).IsTrue();
         await Assert.That(_manager.GetTradeListings(ZoneGroupId).Count).IsEqualTo(0);
+        _butler.UnbindHouse(HouseId, true).WasCalled(Times.Once);
     }
 
     [Test]
@@ -295,6 +296,19 @@ public sealed class HousingTradeSaleTests
         await Assert.That(_house.SellPrice).IsEqualTo((uint)Price);
         await Assert.That(_saves.SaveCount).IsEqualTo(0);
         await Assert.That(_mails.AllPlayerMails.Count).IsEqualTo(0);
+        await Assert.That(_manager.GetTradeListings(ZoneGroupId).Count).IsEqualTo(1);
+        _butler.UnbindHouse(HouseId, true).WasCalled(Times.Never);
+    }
+
+    [Test]
+    public async Task CancelForSale_BySomeoneElse_KeepsTheListing()
+    {
+        var result = _manager.CancelForSale(_house, true, _buyer);
+
+        await Assert.That(result).IsFalse();
+        await Assert.That(_house.SellPrice).IsEqualTo((uint)Price);
+        await Assert.That(_house.OwnerId).IsEqualTo(SellerId);
+        await Assert.That(_saves.SaveCount).IsEqualTo(0);
         await Assert.That(_manager.GetTradeListings(ZoneGroupId).Count).IsEqualTo(1);
     }
 
