@@ -425,6 +425,12 @@ public partial class Character
             if (Faction.Id != FactionsEnum.Pirate)
             {
                 SetFaction(FactionsEnum.Pirate);
+                // The crime path is a permanent conversion — unlike the temporary ones duels, faction
+                // buffs and battlefields apply — so the faction channel has to move with it. SetPirate
+                // does the same for the voluntary path; without this a new pirate keeps reading and
+                // writing the old nation's channel until relog.
+                if (IsOnline)
+                    ChatManager.Instance.SyncFactionChannel(this);
                 if (Expedition != null && Expedition.MotherId != FactionsEnum.Pirate)
                 {
                     ExpeditionManager.Instance.Kick(this.Connection, this.Id);
