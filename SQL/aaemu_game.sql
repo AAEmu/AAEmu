@@ -1506,3 +1506,9 @@ CREATE TABLE IF NOT EXISTS `character_achievements` (
   `completed_at` datetime NULL DEFAULT NULL,
   PRIMARY KEY (`owner`, `achievement_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Achievement progress and completion per character';
+
+CREATE TABLE IF NOT EXISTS `character_collections` (
+  `owner` int unsigned NOT NULL,
+  `item_type_id` int unsigned NOT NULL,
+  PRIMARY KEY (`owner`, `item_type_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Discovered collection/encyclopedia entries per character';

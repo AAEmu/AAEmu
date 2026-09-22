@@ -78,6 +78,9 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
         // so progress the character already carries — their level and ability levels, and anything records
         // kept from an earlier session — has to be resolved before it goes out. Nothing is sent for these:
         // the list that follows carries the result.
+        // Items restored for the character list were deferred because the records did not exist yet; they are
+        // discovered here, before the list is resolved and sent.
+        CollectionsManager.Instance.BackfillHeldItems(Connection.ActiveChar);
         AchievementManager.Instance.ReportCharacterProgress(Connection.ActiveChar, sendPackets: false);
         AchievementManager.Instance.RefreshAll(Connection.ActiveChar);
         AchievementManager.Instance.SendList(Connection.ActiveChar);

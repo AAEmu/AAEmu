@@ -3,8 +3,9 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Auction;
+using AAEmu.Game.Models.Game.Collections;
+using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Containers;
@@ -952,6 +953,18 @@ public class Inventory
         if (targetContainer != sourceContainer)
             targetContainer.ApplyBindRules(taskType);
 
+        // The client's swap flow moves items straight between containers, so an equip arrives here and
+        // never through the acquire path: whichever item ended up in the equipment container was equipped.
+        if (Owner is Character character && character.Collections != null)
+        {
+            if (fromItem != null && fromItem._holdingContainer == Equipment)
+                CollectionsManager.Instance.Discover(character, fromItem.TemplateId, fromItem.Grade,
+                    CollectionDiscoverySource.Equipped);
+            if (itemInTargetSlot != null && itemInTargetSlot._holdingContainer == Equipment)
+                CollectionsManager.Instance.Discover(character, itemInTargetSlot.TemplateId, itemInTargetSlot.Grade,
+                    CollectionDiscoverySource.Equipped);
+        }
+
         return itemTasks.Count > 0;
     }
 
@@ -1296,6 +1309,16 @@ public class Inventory
         //if ((item?.Template.LootQuestId > 0) && (count != 0))
         if (count > 0 && item != null)
         {
+            // Collection discovery rides the same acquisition moment quests use: an item landing in the
+            // kit records its encyclopedia/collection entry, and a landing in the equipment container
+            // counts as the equip event the content watches instead. During the character-list restore the
+            // character has no records yet, so this is deferred and world entry backfills it.
+            if (Owner is Character discoveryOwner && discoveryOwner.Collections != null)
+            {
+                CollectionsManager.Instance.Discover(discoveryOwner, item.TemplateId, item.Grade,
+                    CollectionsManager.SourceForContainer(item._holdingContainer?.ContainerType ?? SlotType.Inventory));
+            }
+
             var container = item._holdingContainer;
             if (container != null &&
                 ItemWalletRules.ShouldCreditOnAcquire(item.TemplateId, container.ContainerType, convertWallet: true) &&
