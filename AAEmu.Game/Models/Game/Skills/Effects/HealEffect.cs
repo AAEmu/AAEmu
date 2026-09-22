@@ -223,5 +223,9 @@ public class HealEffect : EffectTemplate
             IgnoreHealAggro = IgnoreHealAggro
         });
         trg.PostUpdateCurrentHp(trg, oldHp, trg.Hp, KillReason.Unknown);
+
+        // hit_heal / hit_heal_crit item procs (enum_proc_chance_type 17 and 18, 10 rows) on the healer, once the
+        // heal has landed. The healed unit is the other side of the event.
+        ((Unit)caster).Procs?.OnHeal(criticalHeal, trg, source?.Skill);
     }
 }

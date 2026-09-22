@@ -357,9 +357,19 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
     /// <summary>
     /// Validates unit_reqs rows for a (owner_type, owner_id) pair using the same AND/OR rule as components.
     /// </summary>
-    public bool MeetOwnerRequirements(string ownerType, uint ownerId, bool orUnitReqs, BaseUnit ownerUnit)
+    public bool MeetOwnerRequirements(string ownerType, uint ownerId, bool orUnitReqs, BaseUnit ownerUnit) =>
+        MeetOwnerRequirements(ownerType, ownerId, orUnitReqs, ownerUnit, (ownerUnit as Unit)?.CurrentTarget ?? ownerUnit);
+
+    /// <summary>
+    /// The same check against an explicit target, for owners whose target is not the unit's selection: an item
+    /// proc reads the other side of the hit that rolled it.
+    /// </summary>
+    public bool MeetOwnerRequirements(string ownerType, uint ownerId, bool orUnitReqs, BaseUnit ownerUnit, BaseUnit target)
     {
-        return QuestStartRequirementRules.Passes(EvaluateOwnerRequirements(ownerType, ownerId, orUnitReqs, ownerUnit));
+        return QuestStartRequirementRules.Passes(
+            QuestStartRequirementRules.Evaluate(
+                orUnitReqs,
+                GetRequirement(ownerType, ownerId).Select(unitReq => unitReq.Validate(ownerUnit, target))));
     }
 
     /// <summary>

@@ -1676,6 +1676,11 @@ public class Unit : BaseUnit, IUnit
         SkillModifiersCache.RemoveItemModifiers();
         BuffModifiersCache.RemoveItemModifiers();
 
+        // The procs the worn pieces carry themselves: item_proc_bindings on the piece and on its gems (18 of the
+        // 186 rows sit on enchanting gems), plus holdables.item_proc_id on a weapon (holdables 24 and 29 carry
+        // proc 69). Synced as one set once the loadout is known; the set-bonus procs stay with the sets.
+        var itemProcIds = new List<uint>();
+
         foreach (var item in Equipment.Items)
         {
             if (item is not EquipItem ei)
@@ -1687,6 +1692,9 @@ public class Unit : BaseUnit, IUnit
 
             SkillModifiersCache.AddItemModifiers(item.TemplateId);
             BuffModifiersCache.AddItemModifiers(item.TemplateId);
+            itemProcIds.AddRange(ItemManager.Instance.GetItemProcIds(item.TemplateId));
+            if (item.Template is WeaponTemplate { HoldableTemplate.ItemProcId: > 0 } procWeapon)
+                itemProcIds.Add((uint)procWeapon.HoldableTemplate.ItemProcId);
 
             // Mods from equipped Gems
             foreach (var gem in ei.GemIds)
@@ -1696,6 +1704,7 @@ public class Unit : BaseUnit, IUnit
 
                 SkillModifiersCache.AddItemModifiers(gem);
                 BuffModifiersCache.AddItemModifiers(gem);
+                itemProcIds.AddRange(ItemManager.Instance.GetItemProcIds(gem));
             }
 
             // Synthesis effects. The item stores the effect's group; what it is worth follows from
@@ -1744,6 +1753,7 @@ public class Unit : BaseUnit, IUnit
         ApplyWeaponWieldBuff();
         ApplyArmorGradeBuff(itemAdded, itemRemoved);
         ApplyEquipItemSetBonuses();
+        Procs?.SyncItemProcs(itemProcIds);
 
         // Gear that raises MaxHp/MaxMp left current points on the old ceiling (pet armor: 8194/9423).
         if (wasFullHp)
