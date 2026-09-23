@@ -218,8 +218,10 @@ public class DirectChatMessageTests
             BlockedId = pair.Receiver.Id
         };
 
+        pair.SenderWire.Packets.Clear();
         await Assert.That(manager.SendDirectChatMessage(pair.Sender, session.Id, "after the block")).IsEqualTo(0);
         await Assert.That(CountOf(pair.ReceiverWire, SCOffsets.SCOneAndOneChatAddMessagePacket)).IsEqualTo(0);
+        await Assert.That(ReadErrorType(pair.SenderWire.Packets[0])).IsEqualTo(ErrorMessageType.WhisperDisabled);
     }
 
     [Test]

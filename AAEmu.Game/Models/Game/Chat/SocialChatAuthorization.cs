@@ -63,8 +63,7 @@ public static class SocialChatAuthorization
         sender.Id != receiver.Id &&
         sender.IsOnline && receiver.IsOnline &&
         sender.Faction != null && receiver.Faction != null &&
-        sender.Faction.MotherId == receiver.Faction.MotherId &&
-        !EitherHasBlocked(sender, receiver);
+        sender.Faction.MotherId == receiver.Faction.MotherId;
 
     /// <summary>True when either character's block list names the other.</summary>
     public static bool EitherHasBlocked(Character first, Character second) =>

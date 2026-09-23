@@ -515,7 +515,8 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
         if (first == null || second == null)
             return null;
 
-        if (!SocialChatAuthorization.CanSendDirectChat(first, second))
+        if (SocialChatAuthorization.EitherHasBlocked(first, second) ||
+            !SocialChatAuthorization.CanSendDirectChat(first, second))
         {
             Logger.Warn("Refusing one-to-one chat start between {0} and {1}",
                 first.Name, second.Name);
@@ -586,6 +587,12 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
         {
             // Dropped, not parked - see SendDirectChatMessage remarks.
             sender.SendErrorMessage(ErrorMessageType.WhisperNoTarget);
+            return 0;
+        }
+
+        if (SocialChatAuthorization.EitherHasBlocked(sender, peer))
+        {
+            sender.SendErrorMessage(ErrorMessageType.WhisperDisabled);
             return 0;
         }
 

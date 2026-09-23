@@ -58,11 +58,12 @@ public class CSSendChatMessagePacket() : GamePacket(CSOffsets.CSSendChatMessageP
                 {
                     Connection.ActiveChar.SendErrorMessage(ErrorMessageType.WhisperNoTarget);
                 }
-                else
-                if (!SocialChatAuthorization.CanSendDirectChat(Connection.ActiveChar, target))
+                else if (SocialChatAuthorization.EitherHasBlocked(Connection.ActiveChar, target))
                 {
-                    // Same diplomacy rule as the native one-to-one packet family - see
-                    // SocialChatAuthorization.CanSendDirectChat.
+                    Connection.ActiveChar.SendErrorMessage(ErrorMessageType.WhisperDisabled);
+                }
+                else if (!SocialChatAuthorization.CanSendDirectChat(Connection.ActiveChar, target))
+                {
                     Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatCannotWhisperToHostile);
                 }
                 else
