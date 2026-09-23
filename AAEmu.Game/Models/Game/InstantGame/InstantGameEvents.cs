@@ -129,6 +129,12 @@ public partial class InstantGame
 
             spawn = corps == InstantCorps.Corps1 ? _battlefield.Spawns.Corps2Spawn : _battlefield.Spawns.Corps1Spawn;
 
+            var killerHere = false;
+            lock (_rosterLock)
+                killerHere = _members.ContainsKey(killer);
+            if (!killerHere)
+                return;
+
             if (_battlefield.Id == (uint)InstantGameType.Gladiator)
             {
                 if (killer.Hp == 0)

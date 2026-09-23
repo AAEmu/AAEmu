@@ -322,7 +322,10 @@ public partial class InstantGame
     private List<InstantGameRosterMember> BuildReadyRoster()
     {
         var worldId = (byte)Math.Min(byte.MaxValue, AppConfiguration.Instance.Id);
-        return _characterCorps
+        KeyValuePair<Character, InstantCorps>[] corps;
+        lock (_rosterLock)
+            corps = _characterCorps.ToArray();
+        return corps
             .Select(entry => new InstantGameRosterMember(
                 worldId,
                 entry.Value == InstantCorps.Corps1
@@ -334,12 +337,21 @@ public partial class InstantGame
 
     private void Start()
     {
-        if (Phase != InstantGamePhase.Opening)
-            return;
-        Phase = InstantGamePhase.Playing;
+        Character[] players;
+        Character[] corps;
+        lock (_rosterLock)
+        {
+            if (Phase != InstantGamePhase.Opening)
+                return;
+            Phase = InstantGamePhase.Playing;
+            players = _players.ToArray();
+            corps = _characterCorps.Keys.ToArray();
+        }
 
-        BroadcastPacket(new SCInstantGameStartPacket(_zoneInstanceId, Helpers.UnixTimeNowInMilli(),
-            InstantGameWireContract.FirstRound));
+        var start = new SCInstantGameStartPacket(_zoneInstanceId, Helpers.UnixTimeNowInMilli(),
+            InstantGameWireContract.FirstRound);
+        foreach (var player in players)
+            player.SendPacket(start);
 
         Task.Run(async () =>
         {
@@ -350,7 +362,7 @@ public partial class InstantGame
 
         // Content has no start-reset delay, so the reset runs on this call. A character with no
         // level yet has no computed max, and forcing it would throw.
-        foreach (var (character, _) in _characterCorps)
+        foreach (var character in corps)
         {
             if (character == null || character.Level <= 0)
                 continue;
@@ -500,16 +512,18 @@ public partial class InstantGame
             return;
 
         var enteredMatch = _members.ContainsKey(character);
-        var diedInMatch = enteredMatch && _members.TryGetValue(character, out var member) && member.Deaths > 0;
+        var diedInMatch = enteredMatch && character.IsDead;
         var insideCopy = character.Transform != null && character.Transform.InstanceId == _worldInstanceId;
+
+        // Broadcast the home faction before ReleasePlayer writes it quietly. After that write,
+        // SetFaction sees no change and sends nothing.
+        if (enteredMatch && character.OriginFaction != null)
+            character.SetFaction(character.OriginFaction.Id);
 
         ReleasePlayer(character);
 
         if (enteredMatch)
-        {
-            character.SetFaction(character.OriginFaction.Id);
             SquadManager.Instance.NotifyGameLeave(character);
-        }
 
         if (!insideCopy)
         {
@@ -561,9 +575,10 @@ public partial class InstantGame
 
     public void BroadcastPacket(GamePacket packet)
     {
-        foreach (var player in _players)
-        {
+        Character[] players;
+        lock (_rosterLock)
+            players = _players.ToArray();
+        foreach (var player in players)
             player.SendPacket(packet);
-        }
     }
 }
