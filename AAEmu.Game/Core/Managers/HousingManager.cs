@@ -18,6 +18,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Auction;
 using AAEmu.Game.Models.Game.Dominions;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Residents;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Mails;
@@ -80,6 +81,15 @@ public class HousingManager(
     /// repeating the same error on every placement attempt.
     /// </summary>
     private readonly HashSet<uint> _plotBoundsMissingLogged = [];
+
+    /// <summary>
+    /// The zone groups each character's client has already been told it resides in
+    /// (character id -&gt; announced group ids). The resident map only ever changes through
+    /// SCResidentMap, so each membership change is announced exactly once per client session and
+    /// re-announces are suppressed; <see cref="ResetResidentAnnounce"/> forgets it when a fresh
+    /// session enters the world (the client's map starts empty again).
+    /// </summary>
+    private readonly Dictionary<uint, HashSet<uint>> _announcedResidentGroups = [];
 
     /// <summary>
     /// The house each character is currently working on, by character id (id -> house).
@@ -879,9 +889,10 @@ public class HousingManager(
         foreach (var ownerId in owners)
         {
             var owner = WorldManager.Instance.GetCharacterById(ownerId);
+            var settled = ResidentManager.Instance.GetState(ownerId, (ushort)zoneGroup);
             rows.Add(new ResidentMemberRow(
-                0, // TODO: service points are not modelled server-side yet
-                DateTime.UtcNow,
+                settled?.ServicePoint ?? 0u,
+                settled?.UpdatedAt ?? ServerCalendar.AsUtc(DateTime.UtcNow),
                 ownerId,
                 owner?.Name ?? NameManager.Instance.GetCharacterName(ownerId) ?? string.Empty,
                 owner?.Level ?? (byte)0,
@@ -909,15 +920,47 @@ public class HousingManager(
     /// own (0x01D never arrives), so every other trigger replays the full set.
     /// </summary>
     /// <summary>
-    /// Resident-map feed: one 0x37 per zone group the character owns houses in. The
-    /// client's isResident is a map-contains-group lookup, so without these the
-    /// townhall reads Outsider. Called on world entry and on every townhall trigger.
+    /// Resident-map feed: one 0x37 per zone group the character owns houses in, as a membership
+    /// diff — each join announces Add and each leave announces Remove, exactly once per client
+    /// session (the client's isResident is a map-contains-group lookup, and re-announcing a group
+    /// it already holds is wasted traffic). Called on world entry (after
+    /// <see cref="ResetResidentAnnounce"/> — a fresh client map starts empty) and on every
+    /// townhall trigger.
     /// </summary>
     public void SendResidentMap(GameConnection connection, uint characterId)
     {
         var character = connection.ActiveChar;
         if (character == null)
             return;
+
+        var groups = OwnResidentGroups(characterId);
+        List<uint> adds, removes;
+        lock (_announcedResidentGroups)
+        {
+            if (!_announcedResidentGroups.TryGetValue(characterId, out var announced))
+                _announcedResidentGroups[characterId] = announced = [];
+            (adds, removes) = ResidentMapAnnounce.Push(groups, announced);
+        }
+
+        foreach (var groupId in adds)
+            character.SendPacket(new SCResidentMapPacket((short)groupId, SCResidentMapPacket.Add));
+        foreach (var groupId in removes)
+            character.SendPacket(new SCResidentMapPacket((short)groupId, SCResidentMapPacket.Remove));
+
+        // SCResidentInfoOptionPacket removed: the client build has no such class;
+        // 0x38 is SCResidentMapPacket, so the payload was landing on the map handler.
+    }
+
+    /// <summary>Forgets what a character's client has been told — call when a fresh session enters the world.</summary>
+    public void ResetResidentAnnounce(uint characterId)
+    {
+        lock (_announcedResidentGroups)
+            _announcedResidentGroups.Remove(characterId);
+    }
+
+    /// <summary>The zone groups the character resides in: owning a house in one of the group's zones.</summary>
+    private HashSet<uint> OwnResidentGroups(uint characterId)
+    {
         var groups = new HashSet<uint>();
         foreach (var house in _houses.Values)
         {
@@ -927,16 +970,14 @@ public class HousingManager(
             if (zone != null)
                 groups.Add(zone.GroupId);
         }
-        foreach (var groupId in groups)
-            character.SendPacket(new SCResidentMapPacket((short)groupId));
-        // SCResidentInfoOptionPacket removed: the client build has no such class;
-        // 0x38 is SCResidentMapPacket, so the payload was landing on the map handler.
+        return groups;
     }
 
     /// <summary>
     /// The zone groups the character is a resident of, for the Nuon's-Arrow zone list. Residency
     /// is owning a house in the group's zones, which is the same rule the map feed uses; the point
-    /// and money columns are not modelled server-side yet, so they go out as zero.
+    /// and money columns come from the resident settlement (personal point, personal charge, zone
+    /// charge aggregate).
     /// </summary>
     public void ResidentZoneGroups(GameConnection connection)
     {
@@ -944,18 +985,12 @@ public class HousingManager(
         if (character == null)
             return;
 
-        var groups = new HashSet<uint>();
-        foreach (var house in _houses.Values)
-        {
-            if (house.OwnerId != character.Id)
-                continue;
-            var zone = zoneManager.GetZoneByKey(house.Transform.ZoneId);
-            if (zone != null)
-                groups.Add(zone.GroupId);
-        }
-
-        var rows = groups
-            .Select(groupId => new ResidentInfoRow((ushort)groupId, 0, 0, 0))
+        var rows = OwnResidentGroups(character.Id)
+            .Select(groupId => new ResidentInfoRow(
+                (ushort)groupId,
+                ResidentManager.Instance.GetServicePoint(character.Id, (ushort)groupId),
+                ResidentManager.Instance.GetCharge(character.Id, (ushort)groupId),
+                ResidentManager.Instance.GetZoneChargeSum((ushort)groupId)))
             .OrderBy(row => row.ZoneGroup)
             .ToList();
 
@@ -968,8 +1003,99 @@ public class HousingManager(
         if (character == null)
             return;
         SendResidentMap(connection, character.Id);
-        character.SendPacket(new SCResidentInfoPacket(zoneGroup, 0, 0));
-        character.SendPacket(new SCResidentBalanceInfoPacket(zoneGroup, 0, GetResidentCount(zoneGroup), 0, 0, 0, 0));
+
+        var zoneGroup16 = (ushort)zoneGroup;
+        var point = ResidentManager.Instance.GetServicePoint(character.Id, zoneGroup16);
+        character.SendPacket(new SCResidentInfoPacket(zoneGroup, 0, point));
+        character.SendPacket(new SCResidentBalanceInfoPacket(
+            zoneGroup,
+            0,
+            GetResidentCount(zoneGroup),
+            point,
+            ResidentManager.Instance.GetZonePointSum(zoneGroup16),
+            ResidentManager.Instance.GetCharge(character.Id, zoneGroup16),
+            ResidentManager.Instance.GetZoneChargeSum(zoneGroup16)));
+    }
+
+    /// <summary>
+    /// CSAddResidentServicePoint: a resident contributes service points to a zone group. The
+    /// residency gate is the same rule the unit_reqs ResidentServicePoint check uses; a
+    /// contribution from a non-resident is refused loudly. type2 is forwarded unused — its
+    /// 10.0.2.13 meaning is not pinned and is not guessed at.
+    /// </summary>
+    public void ResidentAddServicePoint(GameConnection connection, short zoneGroup, ulong type2, uint point)
+    {
+        var character = connection.ActiveChar;
+        if (character == null)
+            return;
+        if (zoneGroup <= 0)
+        {
+            Logger.Warn("Resident service point: zone group {0} is not a valid zone group; {1} point(s) from {2} refused",
+                zoneGroup, point, character.Name);
+            return;
+        }
+        if (!IsResidentOfZoneGroup(character.Id, (uint)zoneGroup))
+        {
+            Logger.Warn("Resident service point: {0} is not a resident of zone group {1}; {2} point(s) refused",
+                character.Name, zoneGroup, point);
+            return;
+        }
+
+        var status = ResidentManager.Instance.AddServicePoint(character.Id, zoneGroup, point);
+        Logger.Debug("Resident service point: {0} -> zone group {1}: {2} point(s), {3}",
+            character.Name, zoneGroup, point, status);
+        SendTownhallState(connection, zoneGroup);
+    }
+
+    /// <summary>
+    /// CSAddResidentCharge: a resident pays a charge into a zone group's balance. type2 and the
+    /// second moneyAmount are refused loudly inside the settlement when non-zero — their
+    /// 10.0.2.13 meaning is unresolved; nothing is written on a refusal.
+    /// </summary>
+    public void ResidentAddCharge(GameConnection connection, short zoneGroup, ulong type2, ulong moneyAmount, ulong moneyAmount2)
+    {
+        var character = connection.ActiveChar;
+        if (character == null)
+            return;
+        if (zoneGroup <= 0)
+        {
+            Logger.Warn("Resident charge: zone group {0} is not a valid zone group; {1} copper from {2} refused",
+                zoneGroup, moneyAmount, character.Name);
+            return;
+        }
+        if (!IsResidentOfZoneGroup(character.Id, (uint)zoneGroup))
+        {
+            Logger.Warn("Resident charge: {0} is not a resident of zone group {1}; {2} copper refused",
+                character.Name, zoneGroup, moneyAmount);
+            return;
+        }
+
+        var status = ResidentManager.Instance.AddCharge(character.Id, zoneGroup, type2, moneyAmount, moneyAmount2);
+        Logger.Debug("Resident charge: {0} -> zone group {1}: {2} copper, {3}",
+            character.Name, zoneGroup, moneyAmount, status);
+        SendTownhallState(connection, zoneGroup);
+    }
+
+    /// <summary>
+    /// CSResidentBalanceAll: no body — the answer is the full townhall state replayed for every
+    /// zone group the character resides in (the map part of each replay is diffed, so each group
+    /// is still announced exactly once).
+    /// </summary>
+    public void ResidentBalanceAll(GameConnection connection)
+    {
+        var character = connection.ActiveChar;
+        if (character == null)
+            return;
+
+        var groups = OwnResidentGroups(character.Id).OrderBy(groupId => groupId).ToList();
+        if (groups.Count == 0)
+        {
+            Logger.Debug("Resident balance-all: {0} resides in no zone group", character.Name);
+            return;
+        }
+
+        foreach (var groupId in groups)
+            SendTownhallState(connection, (short)groupId);
     }
 
     private uint GetResidentCount(int zoneGroup)

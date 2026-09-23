@@ -1,10 +1,12 @@
 using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO(v10): the body is parsed but nothing acts on it yet.
+/// Asks for the balance of every zone group the character resides in: the server replays the full
+/// townhall state (map diff, info, balance) for each one.
 /// </summary>
 /// <remarks>
 /// packet has no body. Every parameterless C2S type folds onto that one function, so the
@@ -14,5 +16,6 @@ public class CSResidentBalanceAllPacket() : GamePacket(CSOffsets.CSResidentBalan
 {
     public override void Read(PacketStream stream)
     {
+        HousingManager.Instance.ResidentBalanceAll(Connection);
     }
 }

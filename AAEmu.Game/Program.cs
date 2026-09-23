@@ -145,6 +145,7 @@ public static class Program
                 services.AddSingleton<CraftManager>();
                 services.AddSingleton<ICraftManager>(sp => sp.GetRequiredService<CraftManager>());
                 services.AddSingleton<CraftOrderManager>();
+                services.AddSingleton<ResidentManager>();
 
                 services.AddSingleton<CrimeManager>();
                 services.AddSingleton<ICrimeManager>(sp => sp.GetRequiredService<CrimeManager>());
