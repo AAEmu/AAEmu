@@ -2,8 +2,9 @@
 
 namespace AAEmu.Game.Models.Game.InstantGame;
 
-public class MatchmakingApplicant(Character charObj)
+public class MatchmakingApplicant(Character charObj, DateTime timeApplied)
 {
-    public DateTime TimeApplied { get; } = DateTime.UtcNow;
+    /// <summary>UTC moment the applicant queued; drives the queue expiry (content: apply_waiting_time).</summary>
+    public DateTime TimeApplied { get; } = timeApplied;
     public Character CharObj { get; } = charObj;
 }

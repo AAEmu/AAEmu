@@ -45,6 +45,10 @@ public class CSInstanceLoadedPacket() : GamePacket(CSOffsets.CSInstanceLoadedPac
         // Zone groups with indun_rounds rows show their counter on load and again after a relog.
         me.ParentWorld?.DungeonInstance?.SendInitialRoundInfo(me);
 
+        // The load just confirmed is the battle field copy this character was invited into: this
+        // is the join event that seats them in the match (idempotent inside the match).
+        me.CurrentInstantGame?.OnEnterWorld(me, 0ul);
+
         Logger.Debug("InstanceLoaded.");
     }
 }

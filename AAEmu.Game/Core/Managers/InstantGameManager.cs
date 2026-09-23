@@ -3,7 +3,9 @@ using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Indun.Matching;
 using AAEmu.Game.Models.Game.InstantGame;
 using AAEmu.Game.Models.Game.InstantGame.Static;
 using AAEmu.Game.Models.Game.Skills;
@@ -24,6 +26,15 @@ public class InstantGameManager : Singleton<InstantGameManager>, IInstantGameMan
 
     private readonly Lock _lock = new();
 
+    /// <summary>Clock behind queue and fill-window stamps; injectable for tests.</summary>
+    public Func<DateTime> UtcNow { get; set; } = () => ServerCalendar.UtcNow;
+
+    /// <summary>
+    /// Creates a match together with the copy it plays in. Injectable for tests: the production
+    /// default builds a real world instance, which unit tests have no world loaded for.
+    /// </summary>
+    public Func<Battlefield, InstantGame> CreateGame { get; set; } = battlefield => new InstantGame(battlefield);
+
     public void Initialize()
     {
         // 15 seconds between each matchmaking query
@@ -32,6 +43,9 @@ public class InstantGameManager : Singleton<InstantGameManager>, IInstantGameMan
 
     public void ApplyToBattlefield(uint battlefieldId, InstantCorps corps, Character character)
     {
+        if (character == null)
+            return;
+
         lock (_lock)
         {
             ref var applicants =
@@ -58,7 +72,7 @@ public class InstantGameManager : Singleton<InstantGameManager>, IInstantGameMan
                 return;
             }
 
-            applicants.Add(new MatchmakingApplicant(character));
+            applicants.Add(new MatchmakingApplicant(character, UtcNow()));
         }
 
         _log.Trace("[Matchmaking] Added player " + character.Name + " to matchmaking queue for battlefield " +
@@ -69,7 +83,7 @@ public class InstantGameManager : Singleton<InstantGameManager>, IInstantGameMan
 
     public void WithdrawFromBattlefield(Character character)
     {
-        // Removes player from matchmaking if they cancel the queue. 
+        // Removes player from matchmaking if they cancel the queue.
         // Player not offline or invalid.
 
         if (character == null)
@@ -93,12 +107,12 @@ public class InstantGameManager : Singleton<InstantGameManager>, IInstantGameMan
                 }
             }
             // Removes player from an invited game if they decline.
-            foreach (var game in _instantGames)
+            foreach (var game in _instantGames.ToList())
             {
-                if (game.RemovePlayer(character))
+                if (game.WithdrawPlayer(character))
                 {
                     _log.Trace("[Matchmaking] " + character.Name + " declined arena invitation.");
-                    if (!_queueList.Contains(game))
+                    if (game.Phase == InstantGamePhase.Filling && !_queueList.Contains(game))
                     {
                         _queueList.Add(game);
                         _log.Trace("[Matchmaking] Adding game to queue list.");
@@ -143,7 +157,10 @@ public class InstantGameManager : Singleton<InstantGameManager>, IInstantGameMan
             game = games[0];
         }
         else // Create a new game if there is no current one to matchmake for.
-            game = new InstantGame(BattlefieldGameData.Instance.GetBattlefield(bfId));
+        {
+            game = CreateGame(BattlefieldGameData.Instance.GetBattlefield(bfId));
+            game.FillingSinceUtc = UtcNow();
+        }
 
         // Loop through the matchmaking list to fill current and new games.
         var queueCount = applicants.Count;
@@ -156,14 +173,14 @@ public class InstantGameManager : Singleton<InstantGameManager>, IInstantGameMan
                 {
                     _log.Trace("[Matchmaking] Removing queued game from queueList.");
                 }
-                break; // Matchmaking complete if game is full. 
+                break; // Matchmaking complete if game is full.
             }
 
             // Obtain character of player matchmaking and remove them from queue to add them into a game.
             var playerCharacter = WorldManager.Instance.GetCharacterById(applicants[0].CharObj.Id);
             applicants.Remove(applicants[0]);
 
-            // Add player and invite to instant game                        
+            // Add player and invite to instant game
             if (playerCharacter != null)
             {
                 game.AddPlayer(playerCharacter, game.GetCorps());
@@ -248,17 +265,144 @@ public class InstantGameManager : Singleton<InstantGameManager>, IInstantGameMan
 
     public void BattlefieldTick(TimeSpan delta)
     {
+        var now = UtcNow();
+        List<Action> deferred = [];
         lock (_lock)
         {
-            foreach (var (bfId, players) in _matchmakingQueue)
+            ExpireQueuedApplicants(now, deferred);
+
+            foreach (var bfId in _matchmakingQueue.Keys.ToList())
             {
                 CheckMatchmakingQueue(bfId);
             }
+
+            ReapUnfilledGames(now, deferred);
+        }
+
+        // Packets and teardowns leave the lock: releasing a player re-enters this manager
+        // (RemoveGame), and world teardown has no business running under the queue lock.
+        foreach (var action in deferred)
+            action();
+    }
+
+    /// <summary>
+    /// A queue that never fills releases everybody: each expired applicant is dropped from the
+    /// queue and acked with the queue-clear cancel, so no one sits on a screen for a match that is
+    /// no longer coming. Expiry window is the battle field's own
+    /// <c>instances.apply_waiting_time</c> (0 disables it); the timing rule itself is the same one
+    /// the Indun queue uses.
+    /// </summary>
+    private void ExpireQueuedApplicants(DateTime now, List<Action> deferred)
+    {
+        foreach (var (battlefieldId, applicants) in _matchmakingQueue.ToList())
+        {
+            var waitingTimeMs = BattlefieldGameData.Instance.GetBattlefield(battlefieldId)?.ApplyWaitingTimeMs ?? 0u;
+            foreach (var applicant in applicants.ToList())
+            {
+                if (!IndunMatchReadyRules.IsQueueExpired(applicant.TimeApplied, now, waitingTimeMs))
+                    continue;
+
+                applicants.Remove(applicant);
+                var character = applicant.CharObj;
+                deferred.Add(() =>
+                {
+                    character?.SendPacket(SCCancelInstantGamePacket.ClearQueue());
+                    _log.Info("[Matchmaking] Queue expired char={0} battlefield={1}",
+                        character?.Name, battlefieldId);
+                });
+            }
+
+            if (applicants.Count == 0)
+                _matchmakingQueue.Remove(battlefieldId);
+        }
+    }
+
+    /// <summary>
+    /// A match that is still filling when its cleanup term runs out is abandoned: everyone
+    /// attached is released through the leave path (entered players returned to the world,
+    /// dialog-only players get their invite cleared) and the copy is disposed. Empty fillers go
+    /// immediately — there is nothing left to wait for.
+    /// </summary>
+    private void ReapUnfilledGames(DateTime now, List<Action> deferred)
+    {
+        foreach (var game in _instantGames.ToList())
+        {
+            if (game.Phase != InstantGamePhase.Filling && game.Phase != InstantGamePhase.Opening)
+                continue;
+
+            var empty = game.PlayerCount == 0 && game.Phase == InstantGamePhase.Filling;
+            var cleanupTermMs = BattlefieldGameData.Instance.GetBattlefield(game.BattlefieldId)?.MatchingCleanupTermMs ?? 0u;
+            var since = game.Phase == InstantGamePhase.Opening ? game.OpeningSinceUtc : game.FillingSinceUtc;
+            var expired = IndunMatchReadyRules.IsInviteExpired(since, now, cleanupTermMs);
+            if (!empty && !expired)
+                continue;
+
+            _instantGames.Remove(game);
+            _queueList.Remove(game);
+            _log.Info("[Matchmaking] Expiring unfilled match battlefield={0} players={1} expired={2}",
+                game.BattlefieldId, game.PlayerCount, expired);
+            deferred.Add(game.AbandonFilling);
         }
     }
 
     public void RemoveGame(InstantGame game)
     {
-        _instantGames.Remove(game);
+        lock (_lock)
+        {
+            _instantGames.Remove(game);
+            _queueList.Remove(game);
+        }
+    }
+
+    /// <summary>
+    /// A crash or logout has to give back everything the character still holds: its slot in the
+    /// matchmaking queue and any per-player match state (roster entries, the kill subscription,
+    /// the match back-reference). No packets are sent on this path — the connection is going away.
+    /// Squad instance flags recover through the squad login/list recovery, the same way they do
+    /// after an instance disconnect.
+    /// </summary>
+    public void OnCharacterLogout(Character character)
+    {
+        if (character == null)
+            return;
+
+        List<InstantGame> matches = [];
+        var queued = false;
+        lock (_lock)
+        {
+            foreach (var applicants in _matchmakingQueue.Values)
+                queued |= applicants.RemoveAll(applicant => applicant.CharObj == character) > 0;
+
+            foreach (var game in _instantGames)
+                if (game.ContainsPlayer(character))
+                    matches.Add(game);
+        }
+
+        foreach (var game in matches)
+            game.ReleasePlayer(character);
+
+        if (queued || matches.Count > 0)
+            _log.Info("[Matchmaking] Released disconnected char={0} queued={1} matches={2}",
+                character.Name, queued, matches.Count);
+    }
+
+    // Introspection for tests: state assertions without reaching into the collections.
+    internal int GetQueueCount(uint battlefieldId)
+    {
+        lock (_lock)
+            return _matchmakingQueue.TryGetValue(battlefieldId, out var applicants) ? applicants.Count : 0;
+    }
+
+    internal bool IsQueued(Character character)
+    {
+        lock (_lock)
+            return _matchmakingQueue.Values.Any(applicants =>
+                applicants.Any(applicant => applicant.CharObj == character));
+    }
+
+    internal bool IsTrackedGame(InstantGame game)
+    {
+        lock (_lock)
+            return _instantGames.Contains(game);
     }
 }

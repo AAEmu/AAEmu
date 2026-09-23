@@ -97,6 +97,10 @@ public class GameConnection
             // mid-duel stayed registered as duelling and was refused every duel after relogging.
             DuelManager.Instance.OnCharacterLogout(ActiveChar);
 
+            // A battlefield queue slot or match must not outlive the character that filled it: this
+            // path releases both (the match unbinds its kill handler and drops every reference).
+            InstantGameManager.Instance.OnCharacterLogout(ActiveChar);
+
             // A crash bypasses the normal leave-world task, so it must also release family invitations
             // and mark family/guild presence offline. It is also how a defendant or a juror drops out
             // of a trial, and how an arrest promise is left hanging for a character who is no longer
