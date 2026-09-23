@@ -25,26 +25,28 @@ public class CharacterSkills(Character owner)
     private Character Owner { get; } = owner;
 
     /// <summary>
-    /// Try to learn a new Skill
+    /// Try to learn a new Skill.
     /// </summary>
-    /// <param name="skillId"></param>
-    public void AddSkill(uint skillId)
+    /// <returns>True when the skill is learned afterwards, including when it was already known.</returns>
+    public bool AddSkill(uint skillId)
     {
         // Successors are selected through CSActivateHeirSkill and remain separate from the learned
         // base-skill table. Accepting one here would persist it as an ordinary learned skill.
         if (HeirGameData.Instance.TryGetHeirSkillForSuccessor(skillId, out _, out _))
         {
             Logger.Warn("LearnSkill reject {0}: {1} is a Heir successor", Owner.Name, skillId);
-            return;
+            return false;
         }
 
         // Check if what we want to learn is part of an active skill tree (or not part of one)
         var template = SkillManager.Instance.GetSkillTemplate(skillId);
+        if (template == null)
+            return false;
         if (template.AbilityId > 0 &&
             template.AbilityId != Owner.Ability1 &&
             template.AbilityId != Owner.Ability2 &&
             template.AbilityId != Owner.Ability3)
-            return;
+            return false;
 
         // Get total skill points for the player's level
         var points = ExperienceManager.Instance.GetSkillPointsForLevel(Owner.Level);
@@ -59,7 +61,7 @@ public class CharacterSkills(Character owner)
                 "LearnSkill reject {0}: skill={1} cost={2} remaining={3} (levelBudget={4})",
                 Owner.Name, skillId, template.SkillPoints, points,
                 ExperienceManager.Instance.GetSkillPointsForLevel(Owner.Level));
-            return;
+            return false;
         }
 
         // Check if we already learned it
@@ -67,6 +69,7 @@ public class CharacterSkills(Character owner)
             Owner.SendPacket(new SCSkillLearnedPacket(skill));
         else
             AddSkill(template, 1, true);
+        return true;
     }
 
     /// <summary>
