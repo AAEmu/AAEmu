@@ -515,12 +515,18 @@ public partial class InstantGame
         var diedInMatch = enteredMatch && character.IsDead;
         var insideCopy = character.Transform != null && character.Transform.InstanceId == _worldInstanceId;
 
-        // Broadcast the home faction before ReleasePlayer writes it quietly. After that write,
-        // SetFaction sees no change and sends nothing.
-        if (enteredMatch && character.OriginFaction != null)
-            character.SetFaction(character.OriginFaction.Id);
+        // SetFaction copies the current faction into OriginFaction before it broadcasts.
+        // Keep the home faction and put it back after ReleasePlayer, which reads OriginFaction.
+        var homeFaction = enteredMatch ? character.OriginFaction : null;
+        if (homeFaction != null)
+            character.SetFaction(homeFaction.Id);
 
         ReleasePlayer(character);
+        if (homeFaction != null)
+        {
+            character.OriginFaction = homeFaction;
+            character.Faction = homeFaction;
+        }
 
         if (enteredMatch)
             SquadManager.Instance.NotifyGameLeave(character);

@@ -265,7 +265,9 @@ public class InstantGameLifecycleTests
         game.OnEnterWorld(second, 0ul);
         // Duplicate load confirmation must not seat anyone twice.
         game.OnEnterWorld(first, 0ul);
-        await WaitUntil(() => game.Phase == InstantGamePhase.Playing, "the match to start playing");
+        await WaitUntil(
+            () => env.SessionOf(second).CountOf(SCOffsets.SCInstantGameStartPacket) >= 1,
+            "the start packet");
 
         var lifecycleOpcodes = env.SessionOf(second).Opcodes
             .Where(opcode => opcode is SCOffsets.SCInstantGameReadyPacket
