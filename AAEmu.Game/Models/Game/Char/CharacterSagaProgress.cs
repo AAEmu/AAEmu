@@ -1,7 +1,6 @@
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game;
-using AAEmu.Game.Models.Game.Milestones;
 using AAEmu.Game.Models.Game.Sagas;
 using MySql.Data.MySqlClient;
 using NLog;
@@ -72,23 +71,6 @@ public class CharacterSagaProgress(Character owner)
                 while (reader.Read())
                 {
                     var groupId = reader.GetUInt32("saga_quest_group_id");
-                    var grantKey = reader.GetUInt32("grant_key");
-                    if (groupId == MilestoneProgressState.GrantScope)
-                    {
-                        // GF-W14 milestone grants ride this ledger too, keyed by milestone id
-                        // under the non-group scope; their content check is the milestone row.
-                        if (!MilestoneGameData.Instance.Catalog.Contains(grantKey))
-                        {
-                            Logger.Error(
-                                "Saga: milestone grant for milestone {0} on {1} has no content row, dropped",
-                                grantKey, Owner.Name);
-                            continue;
-                        }
-
-                        grants.Add(new SagaRewardGrantRow(groupId, grantKey));
-                        continue;
-                    }
-
                     if (!catalog.TryGetGroup(groupId, out _))
                     {
                         Logger.Error(
@@ -97,7 +79,7 @@ public class CharacterSagaProgress(Character owner)
                         continue;
                     }
 
-                    grants.Add(new SagaRewardGrantRow(groupId, grantKey));
+                    grants.Add(new SagaRewardGrantRow(groupId, reader.GetUInt32("grant_key")));
                 }
             }
 
