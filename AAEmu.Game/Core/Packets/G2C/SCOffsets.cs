@@ -621,15 +621,10 @@ public static class SCOffsets
     public const ushort SCChargeSkillCooldownChangedPacket = 0x31D;
     public const ushort SCChronicleInfoBuyPacket = 0x355;
     public const ushort SCChronicleInfoDeletePacket = 0x356;
-<<<<<<< HEAD
     public const ushort SCChronicleInfoListPacket = 0x357;
     public const ushort SCContentRosterDeletePacket = 0x35E; // 10.0.2.13: bool result, bool isExpired, u16 ErrorMessage
-    public const ushort SCSurveyFormSavePacket = 0x364; // 10.0.2.13: u16 ErrorMessage, u32 type, bool result
-=======
-    public const ushort SCContentRosterDeletePacket = 0x35E; // 10.0.2.13: bool result, bool isExpired, u16 ErrorMessage
     public const ushort SCContentRosterSavePacket = 0x360; // 10.0.2.13: bool result, u16 ErrorMessage
-    public const ushort SCSurveyFormSavePacket = 0x364; // 10.0.2.13: u16 ErrorMessage, u32 type, u8 result
->>>>>>> 7b73310c (fix(roster): report roster and survey results as success or failure)
+    public const ushort SCSurveyFormSavePacket = 0x364; // 10.0.2.13: u16 ErrorMessage, u32 type, bool result
     public const ushort SCChronicleInfoUpdatePacket = 0x358;
     public const ushort SCCompletedArchePassPacket = 0x340;
     public const ushort SCConnectStateMemberPacket = 0x310;
