@@ -99,24 +99,7 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
 
         _housingSizes = LoadHousingSizes(connection);
 
-        using (var command = connection.CreateCommand())
-        {
-            command.CommandText = "SELECT * FROM item_housings";
-            command.Prepare();
-            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
-            {
-                while (reader.Read())
-                {
-                    var template = new HousingItemHousings
-                    {
-                        Id = reader.GetUInt32("id"),
-                        Item_Id = reader.GetUInt32("item_id"),
-                        Design_Id = reader.GetUInt32("design_id")
-                    };
-                    _housingItemHousings.Add(template);
-                }
-            }
-        }
+        _housingItemHousings = LoadItemHousings(connection);
 
         Logger.Info("Loading Housing Templates...");
         // Define the folder path where your housing binding files reside.
@@ -407,6 +390,58 @@ public class HousingGameData : Singleton<HousingGameData>, IGameDataLoader
 
         return sizes;
     }
+
+    /// <summary>
+    /// Loads the <c>item_housings</c> table: the item → design pairing the client's CreateHouse
+    /// uses, including the <c>completion</c> flag that separates the complete kit (the twin
+    /// "completed blueprint" item on the same design) from the plain construction design.
+    /// </summary>
+    internal static List<HousingItemHousings> LoadItemHousings(SqliteConnection connection)
+    {
+        var rows = new List<HousingItemHousings>();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT id, item_id, design_id, completion FROM item_housings";
+        command.Prepare();
+        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+        while (reader.Read())
+        {
+            rows.Add(new HousingItemHousings
+            {
+                Id = reader.GetUInt32("id"),
+                Item_Id = reader.GetUInt32("item_id"),
+                Design_Id = reader.GetUInt32("design_id"),
+                Completion = reader.GetBoolean("completion")
+            });
+        }
+
+        return rows;
+    }
+
+    /// <summary>
+    /// Resolves the complete-kit flag for one CreateHouse request out of the item_housings rows.
+    /// Fail-loud: false means no row pairs this item template with the requested design, so the
+    /// caller must refuse the request instead of defaulting to an unbuilt/kit-less guess — the flag
+    /// decides whether the placed house starts finished, and content that cannot say which way is
+    /// missing content, not a plain design.
+    /// </summary>
+    internal static bool TryResolveCompleteKit(List<HousingItemHousings> rows, uint itemTemplateId,
+        uint designId, out bool completeKit)
+    {
+        completeKit = false;
+        if (rows is null)
+            return false;
+
+        var row = rows.Find(r => r.Item_Id == itemTemplateId && r.Design_Id == designId);
+        if (row is null)
+            return false;
+
+        completeKit = row.Completion;
+        return true;
+    }
+
+    /// <inheritdoc cref="TryResolveCompleteKit"/>
+    public bool TryGetCompleteKit(uint itemTemplateId, uint designId, out bool completeKit) =>
+        TryResolveCompleteKit(_housingItemHousings, itemTemplateId, designId, out completeKit);
 
     /// <summary>
     /// Fills in binding offsets that the json table does not define, from the model the house actually uses.

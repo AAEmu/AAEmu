@@ -1,4 +1,3 @@
-using System.Drawing;
 using System.Numerics;
 
 using AAEmu.Commons.Utils;
@@ -74,6 +73,13 @@ public class HousingManager(
     private Dictionary<ushort, House> _housesTl = []; // TODO or so mb tlId is id in the active zone? or type of house
     private List<uint> _removedHousings = [];
     private bool _isCheckingTaxTiming;
+
+    /// <summary>
+    /// Houses whose plot bounds were already reported as missing content. Guards the loud-missing
+    /// log in <see cref="GetHouseAtLocation"/>, which scans every house per lookup, against
+    /// repeating the same error on every placement attempt.
+    /// </summary>
+    private readonly HashSet<uint> _plotBoundsMissingLogged = [];
 
     /// <summary>
     /// The house each character is currently working on, by character id (id -> house).
@@ -202,6 +208,7 @@ public class HousingManager(
         _houses = [];
         _housesTl = [];
         _removedHousings = [];
+        _plotBoundsMissingLogged.Clear();
 
         worldInstance ??= worldManager.GetWorld(WorldManager.DefaultInstanceId);
 
@@ -1121,6 +1128,21 @@ public class HousingManager(
             return;
         }
 
+        // The kit variant comes from item_housings: completion 't' is the complete kit that places
+        // an already-finished house, 'f' the design that builds through housing_build_steps. The
+        // row must name both the held item and the requested design — a design the item does not
+        // name is refused loudly rather than defaulted, so nothing can be built from a mismatched
+        // (and therefore unpriced) pair.
+        if (!HousingGameData.Instance.TryGetCompleteKit(sourceDesignItem.TemplateId, designId,
+                out var completeKit))
+        {
+            Logger.Error(
+                "Build refused: item template {0} (instance {1}) has no item_housings row naming design {2}",
+                sourceDesignItem.TemplateId, itemId, designId);
+            connection.ActiveChar.SendErrorMessage(ErrorMessageType.HouseCannotCreate);
+            return;
+        }
+
         // The client picks the spot, so the zone it lands in is checked against housing_areas before
         // the house is persisted — without this a design could be planted anywhere on the map and,
         // once written, would reload there on every start regardless of whether the ground allows it.
@@ -1313,10 +1335,9 @@ public class HousingManager(
         zRot = PositionAndRotation.FromRollPitchYawSBytes(0, 0, yaw).Z;
         house.Transform.Local.SetRotation(0, 0, zRot);
 
-        if (house.Template.BuildSteps.Count > 0)
-            house.CurrentStep = 0;
-        else
-            house.CurrentStep = -1;
+        // A complete kit (item_housings.completion = 't') places the house finished; a plain design
+        // starts the housing_build_steps ladder, and a design without steps is finished outright.
+        house.CurrentStep = completeKit || house.Template.BuildSteps.Count == 0 ? -1 : 0;
         house.OwnerId = connection.ActiveChar.Id;
         house.CoOwnerId = connection.ActiveChar.Id;
         house.AccountId = connection.AccountId;
@@ -2488,20 +2509,33 @@ public class HousingManager(
         }
         if (isForSale)
         {
-            var radius = house.Template?.GardenRadius ?? 0f;
+            // Loud missing content: without the housing_sizes row the corner positions are unknown,
+            // so the posts are skipped instead of being stacked on the anchor with a guessed radius.
+            if (house.Template is null || house.Template.HousingSize is null)
+            {
+                Logger.Error(
+                    "For-sale markers skipped for house {0}: its housing template/size row is missing, so the plot corners are unknown",
+                    house.Id);
+                return;
+            }
+
+            var radius = house.Template.GardenRadius;
+            var housePos = house.Transform.World.Position;
+            var yaw = house.Transform.World.Rotation.Z;
             for (var postId = 0; postId < 4; postId++)
             {
                 var xMultiplier = postId % 2 == 0 ? -1 : 1f;
                 var yMultiplier = postId / 2 == 0 ? -1 : 1f;
-                var zRot = (135f + 90f * postId % 360).DegToRad();
+                // Marker facing stays diagonal to the plot; the house yaw rides along so a post on a
+                // rotated plot still faces outward from its corner (inferred: the plot, not the map,
+                // defines the markers' orientation — see HousingPlotGeometry's evidence note).
+                var zRot = yaw + (135f + 90f * postId % 360).DegToRad();
 
                 var doodad = doodadManager.Create(house.ParentWorld,  0, ForSaleMarkerDoodadId, null, true);
-                // location
-                doodad.Transform.Local.SetPosition(
-                    // 10.x: plot corner from housing_sizes.garden_radius (axis-aligned; TODO rotate by yaw)
-                    radius * xMultiplier + house.Transform.World.Position.X,
-                    radius * yMultiplier + house.Transform.World.Position.Y,
-                    +house.Transform.World.Position.Z);
+                // location: the local plot corner rotated into world space by the house yaw
+                var (cornerX, cornerY) = HousingPlotGeometry.WorldPoint(yaw, housePos.X, housePos.Y,
+                    radius * xMultiplier, radius * yMultiplier);
+                doodad.Transform.Local.SetPosition(cornerX, cornerY, housePos.Z);
                 // adjust height to the floor
                 doodad.Transform.Local.SetHeight(doodad.ParentWorld.Template.GeoData.GetHeight(doodad.Transform.World.Position));// worldManager.GetHeight(doodad.Transform)));
                 doodad.Transform.Local.SetZRotation(zRot);
@@ -3442,17 +3476,31 @@ public class HousingManager(
         if (world == null)
             return null;
 
-        // TODO: Check if all houses actually use a square shape aligned to grid
+        // 10.x: the plot is the housing_sizes.garden_radius square, and it turns with the house
+        // yaw (CS 0x1A0 RotateHouse / SC 0x0FE HouseRotated rotate the whole plot), so the world
+        // point is tested in the house's local frame — see HousingPlotGeometry for the formula
+        // and its evidence note.
         foreach (var h in _houses)
         {
             var house = h.Value;
             if (house.ParentWorld != world)
                 continue;
-            // 10.x: plot bounds from housing_sizes.garden_radius
-            var r = house.Template?.GardenRadius ?? 0f;
-            var bounds = new RectangleF(house.Transform.World.Position.X - r, house.Transform.World.Position.Y - r,
-                r * 2f, r * 2f);
-            if (bounds.Contains(x, y))
+
+            // Loud missing content: without the template or its housing_sizes row the plot size is
+            // unknown, and guessing a radius would silently accept or reject placements. The house
+            // simply claims nothing until the content row exists.
+            if (house.Template is null || house.Template.HousingSize is null)
+            {
+                if (_plotBoundsMissingLogged.Add(house.Id))
+                    Logger.Error(
+                        "House {0} has no housing template/size row; its plot bounds are unknown and it matches no location until the content is fixed",
+                        house.Id);
+                continue;
+            }
+
+            var housePos = house.Transform.World.Position;
+            if (HousingPlotGeometry.ContainsPoint(house.Template.GardenRadius,
+                    house.Transform.World.Rotation.Z, housePos.X, housePos.Y, x, y))
                 return house;
         }
         return null;
