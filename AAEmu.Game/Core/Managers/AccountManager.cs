@@ -400,11 +400,24 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
                 using var command = connection.CreateCommand();
                 command.Connection = connection;
                 command.Transaction = transaction;
-                command.CommandText = "INSERT INTO accounts (account_id, credits) VALUES(@acc_id, @credits_amount) ON DUPLICATE KEY UPDATE credits = credits + @credits_amount";
+                if (creditsAmount < 0)
+                {
+                    command.CommandText =
+                        "UPDATE accounts SET credits = credits + @credits_amount WHERE account_id = @acc_id AND credits >= @need";
+                    command.Parameters.AddWithValue("@need", -creditsAmount);
+                }
+                else
+                {
+                    command.CommandText =
+                        "INSERT INTO accounts (account_id, credits) VALUES(@acc_id, @credits_amount) ON DUPLICATE KEY UPDATE credits = credits + @credits_amount";
+                }
+
                 command.Parameters.AddWithValue("@acc_id", accountId);
                 command.Parameters.AddWithValue("@credits_amount", creditsAmount);
                 command.Prepare();
-                return command.ExecuteNonQuery() > 0;
+                return creditsAmount < 0
+                    ? command.ExecuteNonQuery() == 1
+                    : command.ExecuteNonQuery() > 0;
             }
             catch (Exception e)
             {

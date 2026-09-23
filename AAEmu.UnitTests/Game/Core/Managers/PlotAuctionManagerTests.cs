@@ -62,6 +62,7 @@ public sealed class PlotAuctionManagerTests
     private ItemManager _items;
     private SqliteConnection _content;
     private InMemoryPlotAuctionStore _store;
+    private CharacterMoneyWallet _wallet;
     private PlotAuctionManager _manager;
     private CharacterMock _alice;
     private CharacterMock _bob;
@@ -121,9 +122,13 @@ public sealed class PlotAuctionManagerTests
             now.AddHours(-2), now.AddHours(-1), now.AddMinutes(10));
 
         _store = new InMemoryPlotAuctionStore();
+        _wallet = new CharacterMoneyWallet();
+        _wallet.Track(1, _alice);
+        _wallet.Track(2, _bob);
+        _wallet.Track(3, _carl);
         _manager = new PlotAuctionManager(_world.Object, _items);
         _manager.UseStore(_store);
-        _manager.UseWallet(new CharacterMoneyWallet());
+        _manager.UseWallet(_wallet);
         _manager.LoadContent(_content);
     }
 
@@ -216,15 +221,11 @@ public sealed class PlotAuctionManagerTests
         await Assert.That(_manager.AuctionFor(ActiveConfigId)).IsNotNull();
         await Assert.That(_alice.Money).IsEqualTo(StartingMoney - FirstFloor);
 
-        // Bob's bid displaces the offline Alice: refund rides a letter instead of a wallet.
+        // Bob's bid displaces the offline Alice: the refund is credits on her account.
         await Assert.That(_manager.PlaceBid(_bob, ActivityId, ActiveConfigId, SecondFloor))
             .IsEqualTo(PlotAuctionErrorCodes.Success);
-        await Assert.That(_alice.Money).IsEqualTo(StartingMoney - FirstFloor);
-
-        var refunds = RefundLetters(AliceId);
-        await Assert.That(refunds.Count).IsEqualTo(1);
-        await Assert.That(refunds[0].Body.CopperCoins).IsEqualTo((int)FirstFloor);
-        await Assert.That(refunds[0].MailType).IsEqualTo(MailType.AucBidFail);
+        await Assert.That(_alice.Money).IsEqualTo(StartingMoney);
+        await Assert.That(RefundLetters(AliceId)).IsEmpty();
 
         var rows = _manager.BidsFor(ActiveConfigId);
         await Assert.That(rows.Count).IsEqualTo(1);
@@ -339,11 +340,9 @@ public sealed class PlotAuctionManagerTests
         await Assert.That(prize.OwnerId).IsEqualTo(BobId);
         await Assert.That(prize.SlotType).IsEqualTo(SlotType.Mail);
 
-        // Loser refunds: exactly one letter, for exactly the held amount.
-        var refunds = RefundLetters(CarlId);
-        await Assert.That(refunds.Count).IsEqualTo(1);
-        await Assert.That(refunds[0].Body.CopperCoins).IsEqualTo((int)FirstFloor);
-        await Assert.That(_carl.Money).IsEqualTo(StartingMoney - FirstFloor);
+        // Loser refunds: credits back on the account, not a copper letter.
+        await Assert.That(RefundLetters(CarlId)).IsEmpty();
+        await Assert.That(_carl.Money).IsEqualTo(StartingMoney);
 
         // Escrow consumed, state settled.
         await Assert.That(_manager.BidsFor(EndedConfigId)).IsEmpty();
@@ -452,6 +451,10 @@ public sealed class PlotAuctionManagerTests
     /// </summary>
     private sealed class CharacterMoneyWallet : IPlotAuctionWallet
     {
+        private readonly Dictionary<uint, Character> _byAccount = [];
+
+        public void Track(uint accountId, Character character) => _byAccount[accountId] = character;
+
         public bool TryApply(Character character, long signedAmount, Func<MySqlConnection, MySqlTransaction, bool> persist)
         {
             if (character == null || persist == null)
@@ -463,6 +466,13 @@ public sealed class PlotAuctionManagerTests
                 return true;
             character.Money -= signedAmount;
             return false;
+        }
+
+        public bool TryCreditAccount(uint accountId, long amount, Func<MySqlConnection, MySqlTransaction, bool> persist)
+        {
+            if (amount <= 0 || !_byAccount.TryGetValue(accountId, out var character))
+                return false;
+            return TryApply(character, amount, persist);
         }
     }
 

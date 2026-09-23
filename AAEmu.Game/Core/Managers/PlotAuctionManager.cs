@@ -496,6 +496,9 @@ public class PlotAuctionManager : Singleton<PlotAuctionManager>, ILoadable, IIni
     /// </summary>
     private bool TryConsumeEscrowNoLock(PlotAuction auction, PlotAuctionConfig config, PlotAuctionBid bid, bool prize)
     {
+        if (!prize)
+            return RefundEscrowNoLock(auction, bid);
+
         var bids = BidsOfNoLock(auction.Id);
         if (!_store.DeleteBid(bid.AuctionId, bid.CharacterId))
         {
@@ -506,7 +509,7 @@ public class PlotAuctionManager : Singleton<PlotAuctionManager>, ILoadable, IIni
 
         bids.Remove(bid.CharacterId);
 
-        if (!DeliverNoLock(config, bid, prize))
+        if (!DeliverPrizeNoLock(config, bid, _worldManager.GetCharacterById(bid.CharacterId)))
         {
             bids[bid.CharacterId] = bid;
             if (!_store.UpsertBid(bid))
@@ -519,36 +522,55 @@ public class PlotAuctionManager : Singleton<PlotAuctionManager>, ILoadable, IIni
         return true;
     }
 
-    private bool DeliverNoLock(PlotAuctionConfig config, PlotAuctionBid bid, bool prize)
+    /// <summary>Credits a bid whose row is already gone (a prize that had nothing to deliver).</summary>
+    private bool CreditBid(PlotAuctionBid bid)
     {
         var online = _worldManager.GetCharacterById(bid.CharacterId);
-        if (prize)
-            return DeliverPrizeNoLock(config, bid, online);
+        if (online != null)
+            return _wallet.TryApply(online, bid.Amount, (_, _) => true);
 
+        var accountId = NameManager.Instance.GetCharacterAccount(bid.CharacterId);
+        return accountId != 0 && _wallet.TryCreditAccount(accountId, bid.Amount, (_, _) => true);
+    }
+
+    /// <summary>
+    /// Returns the held credits and deletes the bid row in one step. Online or not, the refund
+    /// is account credits — a copper letter would pay a different currency than the bid.
+    /// </summary>
+    private bool RefundEscrowNoLock(PlotAuction auction, PlotAuctionBid bid)
+    {
+        var bids = BidsOfNoLock(auction.Id);
+        var online = _worldManager.GetCharacterById(bid.CharacterId);
+        bool credited;
         if (online != null)
         {
-            if (_wallet.TryApply(online, bid.Amount, (_, _) => true))
-                return true;
-            Logger.Warn("Plot auction: cannot return {0} credits to online {1}; lettering it instead",
-                bid.Amount, online.Name);
+            credited = _wallet.TryApply(online, bid.Amount, (connection, transaction) =>
+                _store.DeleteBid(bid.AuctionId, bid.CharacterId, connection, transaction));
+        }
+        else
+        {
+            var accountId = NameManager.Instance.GetCharacterAccount(bid.CharacterId);
+            if (accountId == 0)
+            {
+                Logger.Error(
+                    "Plot auction: no account resolves for offline {0} on auction {1}; {2} credits stay escrowed",
+                    bid.CharacterId, bid.AuctionId, bid.Amount);
+                return false;
+            }
+
+            credited = _wallet.TryCreditAccount(accountId, bid.Amount, (connection, transaction) =>
+                _store.DeleteBid(bid.AuctionId, bid.CharacterId, connection, transaction));
         }
 
-        var name = NameManager.Instance.GetCharacterName(bid.CharacterId);
-        if (string.IsNullOrWhiteSpace(name))
+        if (!credited)
         {
-            Logger.Error(
-                "Plot auction: no character name resolves for {0} on auction {1}; {2} copper stays escrowed",
-                bid.CharacterId, bid.AuctionId, bid.Amount);
+            Logger.Error("Plot auction: could not return {0} credits for bid {1}/{2}",
+                bid.Amount, bid.AuctionId, bid.CharacterId);
             return false;
         }
 
-        var mail = MailForPlotAuction.ForBidRefund(bid.CharacterId, name, config.Name, bid.Amount);
-        if (MailManager.Instance.SendBatch([mail]))
-            return true;
-
-        Logger.Error("Plot auction: refund letter for {0} on auction {1} was refused",
-            bid.CharacterId, bid.AuctionId);
-        return false;
+        bids.Remove(bid.CharacterId);
+        return true;
     }
 
     private bool DeliverPrizeNoLock(PlotAuctionConfig config, PlotAuctionBid bid, Character online)
@@ -607,7 +629,7 @@ public class PlotAuctionManager : Singleton<PlotAuctionManager>, ILoadable, IIni
             // Paying for nothing would be worse than refusing: hand the bid back instead.
             Logger.Error("Plot auction: config {0} has no deliverable rewards; refunding winner {1}",
                 config.Id, bid.CharacterId);
-            return DeliverNoLock(config, bid, prize: false);
+            return CreditBid(bid);
         }
 
         var mail = MailForPlotAuction.ForPrize(bid.CharacterId, name, config.Name, bid.Amount, prizes);

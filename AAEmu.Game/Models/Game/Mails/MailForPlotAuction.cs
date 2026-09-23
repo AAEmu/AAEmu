@@ -3,13 +3,9 @@ using AAEmu.Game.Models.Game.Items;
 namespace AAEmu.Game.Models.Game.Mails;
 
 /// <summary>
-/// The plot auction's two letters: the bid refund (exit, outbid, or losing at settlement) and
-/// the winner's prize. Retail moves this money through the Bill service instead
-/// (buySource=2, reason plot_auction / plot_auction_refund — re/research/bill-server-10.0.2.13),
-/// which World does not have, so refunds ride the wallet-when-online / letter-when-offline path
-/// every other in-tree settlement uses. Sender keys and body shapes are the ones MailForAuction
-/// already ships for these two mail types (its /testmail comments document the exact argument
-/// lists the client expects); the subject/body name is the auction's own config name.
+/// The plot auction's prize letter. Bid refunds credit the bidder's account, online or not.
+/// Sender keys and body shapes are the ones MailForAuction already ships; the subject is the
+/// auction's own config name.
 /// </summary>
 public sealed class MailForPlotAuction : BaseMail
 {

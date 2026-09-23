@@ -13,6 +13,9 @@ namespace AAEmu.Game.Core.Managers;
 internal interface IPlotAuctionWallet
 {
     bool TryApply(Character character, long signedAmount, Func<MySqlConnection, MySqlTransaction, bool> persist);
+
+    /// <summary>Credits an account that has no live character, on the same transaction as <paramref name="persist"/>.</summary>
+    bool TryCreditAccount(uint accountId, long amount, Func<MySqlConnection, MySqlTransaction, bool> persist);
 }
 
 /// <summary>Account credits. A positive amount is a refund; a negative amount is a bid.</summary>
@@ -20,31 +23,81 @@ internal sealed class AccountCreditWallet : IPlotAuctionWallet
 {
     public bool TryApply(Character character, long signedAmount, Func<MySqlConnection, MySqlTransaction, bool> persist)
     {
-        if (character == null || persist == null)
+        if (character == null)
+            return false;
+        var applied = Apply(character.AccountId, signedAmount, persist, out var credits);
+        if (!applied || signedAmount == 0)
+            return applied;
+
+        var notice = signedAmount > 0 ? (byte)2 : (byte)0;
+        character.SendPacket(new SCICSCashPointPacket(credits, 0, true, notice));
+        return true;
+    }
+
+    public bool TryCreditAccount(uint accountId, long amount, Func<MySqlConnection, MySqlTransaction, bool> persist) =>
+        amount > 0 && Apply(accountId, amount, persist, out _);
+
+    private static bool Apply(uint accountId, long signedAmount, Func<MySqlConnection, MySqlTransaction, bool> persist, out int credits)
+    {
+        credits = 0;
+        if (persist == null || accountId == 0)
             return false;
         if (signedAmount == 0)
-            return persist(null, null);
+        {
+            try
+            {
+                return persist(null, null);
+            }
+            catch (Exception ex)
+            {
+                NLog.LogManager.GetCurrentClassLogger().Error(ex, "Plot auction wallet persist failed for account {0}", accountId);
+                return false;
+            }
+        }
+
         if (signedAmount > int.MaxValue || signedAmount < int.MinValue)
             return false;
 
-        using var connection = MySQL.CreateConnection();
-        using var transaction = connection.BeginTransaction();
-        if (!AccountManager.Instance.AddCreditsOn(character.AccountId, (int)signedAmount, connection, transaction))
+        MySqlConnection connection = null;
+        MySqlTransaction transaction = null;
+        try
         {
-            transaction.Rollback();
+            connection = MySQL.CreateConnection();
+            transaction = connection.BeginTransaction();
+            if (!AccountManager.Instance.AddCreditsOn(accountId, (int)signedAmount, connection, transaction))
+            {
+                transaction.Rollback();
+                return false;
+            }
+
+            if (!persist(connection, transaction))
+            {
+                transaction.Rollback();
+                return false;
+            }
+
+            transaction.Commit();
+            credits = AccountManager.Instance.GetAccountDetails(accountId).Credits;
+            return true;
+        }
+        catch (Exception ex)
+        {
+            NLog.LogManager.GetCurrentClassLogger().Error(ex, "Plot auction wallet update failed for account {0}", accountId);
+            try
+            {
+                transaction?.Rollback();
+            }
+            catch (Exception rollbackEx)
+            {
+                NLog.LogManager.GetCurrentClassLogger().Error(rollbackEx, "Plot auction wallet rollback failed for account {0}", accountId);
+            }
+
             return false;
         }
-
-        if (!persist(connection, transaction))
+        finally
         {
-            transaction.Rollback();
-            return false;
+            transaction?.Dispose();
+            connection?.Dispose();
         }
-
-        transaction.Commit();
-        var details = AccountManager.Instance.GetAccountDetails(character.AccountId);
-        var notice = signedAmount > 0 ? (byte)2 : (byte)0;
-        character.SendPacket(new SCICSCashPointPacket(details.Credits, 0, true, notice));
-        return true;
     }
 }
