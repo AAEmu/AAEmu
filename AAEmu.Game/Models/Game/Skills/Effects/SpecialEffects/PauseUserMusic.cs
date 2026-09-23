@@ -31,6 +31,9 @@ public class PauseUserMusic : SpecialEffectAction
 
         // A pause keeps the play buffs (the player resumes where they left off); a stop ends the
         // performance and drops them.
+        if (target == null)
+            return;
+
         if (skill?.Id == SkillsEnum.CloseTheScore)
             MusicManager.EndPerformance(target);
         else
