@@ -38,7 +38,7 @@ public class ResidentPacketShapeTests
         expected.Write(75u);       // point (personal service points)
         expected.Write(150u);      // zonePoint (zone aggregate)
         expected.Write(250ul);     // moneyAmount (personal charge)
-        expected.Write(500ul);     // moneyAmount2 (zone charge aggregate)
+        expected.Write(500ul);     // moneyAmount2 (zone hunting charge)
 
         // i16 + u64 + u32 x3 + u64 x2 = 38 bytes.
         await Assert.That(body.Length).IsEqualTo(38);

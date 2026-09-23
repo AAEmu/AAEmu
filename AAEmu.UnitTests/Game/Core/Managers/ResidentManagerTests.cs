@@ -5,10 +5,9 @@ using AAEmu.Game.Models.Game.Residents;
 namespace AAEmu.UnitTests.Game.Core.Managers;
 
 /// <summary>
-/// Resident point/charge settlement and the development state machine end to end against the
-/// in-memory store: rows settle exactly once per character/zone, unresolved charge fields are
-/// refused loudly, contribution crosses content thresholds into doodad/board phases, and both
-/// kinds of state round-trip through the store the way a restart reads them back.
+/// Resident point and charge settlement against the in-memory store: rows settle once per
+/// character and zone, an unresolved type2 is refused, hunting charge is kept apart from local
+/// charge, and a settlement does not move tribute doodads.
 /// </summary>
 [NotInParallel]
 public sealed class ResidentManagerTests
@@ -19,7 +18,6 @@ public sealed class ResidentManagerTests
 
     private ResidentManager _manager;
     private InMemoryResidentStateStore _store;
-    private readonly List<LocalDevelopmentPlan> _applied = [];
 
     [Before(Test)]
     public void Setup()
@@ -32,14 +30,11 @@ public sealed class ResidentManagerTests
         _manager = ResidentManager.Instance;
         _manager.ResetForTest();
         _manager.UseStore(_store);
-        _applied.Clear();
-        _manager.PhaseApplier = (_, plan) => _applied.Add(plan);
     }
 
     [After(Test)]
     public void Teardown()
     {
-        _manager.PhaseApplier = null;
         _manager.ResetForTest();
         LocalDevelopmentGameData.Instance.ResetForTest();
     }
@@ -78,56 +73,33 @@ public sealed class ResidentManagerTests
     }
 
     [Test]
-    public async Task Charge_SettlesOnceAndRefusesTheUnresolvedFieldsLoudly()
+    public async Task Charge_SettlesLocalAndHuntingApartAndRefusesAnUnresolvedType()
     {
         await Assert.That(_manager.AddCharge(CharacterId, ZoneGroup, type2: 0, moneyAmount: 5000, moneyAmount2: 0))
             .IsEqualTo(ResidentSettleStatus.Settled);
-        await Assert.That(_manager.AddCharge(CharacterId, ZoneGroup, type2: 0, moneyAmount: 50, moneyAmount2: 0))
+        await Assert.That(_manager.AddCharge(CharacterId, ZoneGroup, type2: 0, moneyAmount: 50, moneyAmount2: 9))
             .IsEqualTo(ResidentSettleStatus.Settled);
 
-        // type2 and the second moneyAmount have no modelled meaning: non-zero refuses the
-        // whole settlement, and nothing lands in the store.
         await Assert.That(_manager.AddCharge(CharacterId, ZoneGroup, type2: 7, moneyAmount: 10, moneyAmount2: 0))
-            .IsEqualTo(ResidentSettleStatus.Refused);
-        await Assert.That(_manager.AddCharge(CharacterId, ZoneGroup, type2: 0, moneyAmount: 10, moneyAmount2: 9))
             .IsEqualTo(ResidentSettleStatus.Refused);
 
         var rows = _store.LoadAll();
         await Assert.That(rows.Count).IsEqualTo(1);
         await Assert.That(rows[0].Charge).IsEqualTo(5050ul);
+        await Assert.That(rows[0].HuntingCharge).IsEqualTo(9ul);
         await Assert.That(_manager.GetZoneChargeSum(ZoneGroup16)).IsEqualTo(5050ul);
+        await Assert.That(_manager.GetZoneHuntingChargeSum(ZoneGroup16)).IsEqualTo(9ul);
     }
 
     [Test]
-    public async Task Contribution_CrossesContentThresholdsIntoDoodadAndBoardPhases()
+    public async Task ServicePoints_DoNotMoveTheTributeDoodad()
     {
-        // Below every threshold: the base phase, no board notice.
-        _manager.AddServicePoint(CharacterId, ZoneGroup, 0);
-        await Assert.That(_applied[^1].Level).IsEqualTo(0u);
-        await Assert.That(_applied[^1].DoodadPhase).IsEqualTo((uint?)40000);
-        await Assert.That(_applied[^1].BoardPhase).IsNull();
+        await Assert.That(_manager.AddServicePoint(CharacterId, ZoneGroup, 60)).IsEqualTo(ResidentSettleStatus.Settled);
+        await Assert.That(_manager.AddServicePoint(CharacterId, ZoneGroup, 40)).IsEqualTo(ResidentSettleStatus.Settled);
 
-        // Cross the first threshold (60): level 1 picks doodad_phase_1 and the 60-board phase.
-        _manager.AddServicePoint(CharacterId, ZoneGroup, 60);
-        await Assert.That(_applied[^1].Level).IsEqualTo(1u);
-        await Assert.That(_applied[^1].DoodadPhase).IsEqualTo((uint?)40001);
-        await Assert.That(_applied[^1].BoardPhase).IsEqualTo((uint?)47635);
-
-        // Total 100 crosses the second threshold: level 2, board flips to the 100-notice.
-        _manager.AddServicePoint(CharacterId, ZoneGroup, 40);
-        await Assert.That(_applied[^1].Level).IsEqualTo(2u);
-        await Assert.That(_applied[^1].DoodadPhase).IsEqualTo((uint?)40002);
-        await Assert.That(_applied[^1].BoardPhase).IsEqualTo((uint?)47636);
-
-        var state = _manager.GetDevelopmentState(ZoneGroup16);
-        await Assert.That(state).IsNotNull();
-        await Assert.That(state.DevelopmentLevel).IsEqualTo(2u);
-        await Assert.That(state.DoodadPhase).IsEqualTo(40002u);
-        await Assert.That(state.BoardPhase).IsEqualTo(47636u);
-
-        var stored = _store.LoadDevelopmentStates();
-        await Assert.That(stored.Count).IsEqualTo(1);
-        await Assert.That(stored[0]).IsEqualTo(state);
+        await Assert.That(_manager.GetServicePoint(CharacterId, ZoneGroup16)).IsEqualTo(100u);
+        await Assert.That(_manager.GetDevelopmentState(ZoneGroup16)).IsNull();
+        await Assert.That(_store.LoadDevelopmentStates()).IsEmpty();
     }
 
     [Test]
@@ -137,7 +109,6 @@ public sealed class ResidentManagerTests
         // row: the contribution must still settle, the phase step must be the loud skip.
         var status = _manager.AddServicePoint(CharacterId, 4000, 10);
         await Assert.That(status).IsEqualTo(ResidentSettleStatus.SettledDevelopmentSkipped);
-        await Assert.That(_applied).IsEmpty();
         await Assert.That(_manager.GetDevelopmentState(4000)).IsNull();
         await Assert.That(_store.LoadAll().Count).IsEqualTo(1);
 
@@ -147,35 +118,6 @@ public sealed class ResidentManagerTests
         await Assert.That(_manager.AddCharge(CharacterId, -1, type2: 0, moneyAmount: 5, moneyAmount2: 0))
             .IsEqualTo(ResidentSettleStatus.Refused);
         await Assert.That(_store.LoadAll().Count).IsEqualTo(1);
-        await Assert.That(_applied).IsEmpty();
-    }
-
-    [Test]
-    public async Task UndefinedDoodadPhase_SkipsTheAlmightyAndKeepsTheRestOfThePlan()
-    {
-        var definition = new LocalDevelopmentDefinition
-        {
-            Id = 34,
-            ZoneGroupId = 57,
-            DoodadAlmightyId = 11592,
-            BoardDoodadId = 13602,
-            DoodadPhases = [-1, -1, -1, -1], // content default: nothing defined
-        };
-        definition.BoardRows.Add(new LocalDevelopmentBoardRow(10, 5, 47643, 60));
-        LocalDevelopmentGameData.Instance.SeedForTest(definition);
-
-        var status = _manager.AddServicePoint(CharacterId, 57, 60);
-
-        await Assert.That(status).IsEqualTo(ResidentSettleStatus.Settled);
-        var plan = _applied[^1];
-        await Assert.That(plan.Level).IsEqualTo(1u);
-        await Assert.That(plan.DoodadPhase).IsNull(); // loud skip — never a fallback func group
-        await Assert.That(plan.BoardPhase).IsEqualTo((uint?)47643);
-
-        var state = _manager.GetDevelopmentState(57);
-        await Assert.That(state.DevelopmentLevel).IsEqualTo(1u);
-        await Assert.That(state.DoodadPhase).IsEqualTo(0u); // nothing applied
-        await Assert.That(state.BoardPhase).IsEqualTo(47643u);
     }
 
     [Test]
@@ -185,17 +127,15 @@ public sealed class ResidentManagerTests
         _manager.AddServicePoint(CharacterId, ZoneGroup, 40);
         _manager.AddCharge(CharacterId, ZoneGroup, type2: 0, moneyAmount: 250, moneyAmount2: 0);
 
-        var developmentBefore = _manager.GetDevelopmentState(ZoneGroup16);
         var pointBefore = _manager.GetServicePoint(CharacterId, ZoneGroup16);
         var chargeBefore = _manager.GetCharge(CharacterId, ZoneGroup16);
 
-        // Drop every in-memory row and reload from the same store: what a restart reads back.
         _manager.LoadFromStore();
 
-        await Assert.That(_manager.GetDevelopmentState(ZoneGroup16)).IsEqualTo(developmentBefore);
+        await Assert.That(_manager.GetDevelopmentState(ZoneGroup16)).IsNull();
         await Assert.That(_manager.GetServicePoint(CharacterId, ZoneGroup16)).IsEqualTo(pointBefore);
         await Assert.That(_manager.GetCharge(CharacterId, ZoneGroup16)).IsEqualTo(chargeBefore);
         await Assert.That(_store.LoadAll().Count).IsEqualTo(1);
-        await Assert.That(_store.LoadDevelopmentStates().Count).IsEqualTo(1);
+        await Assert.That(_store.LoadDevelopmentStates()).IsEmpty();
     }
 }

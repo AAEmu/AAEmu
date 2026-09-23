@@ -1014,7 +1014,7 @@ public class HousingManager(
             point,
             ResidentManager.Instance.GetZonePointSum(zoneGroup16),
             ResidentManager.Instance.GetCharge(character.Id, zoneGroup16),
-            ResidentManager.Instance.GetZoneChargeSum(zoneGroup16)));
+            ResidentManager.Instance.GetZoneHuntingChargeSum(zoneGroup16)));
     }
 
     /// <summary>
@@ -1025,6 +1025,8 @@ public class HousingManager(
     /// </summary>
     public void ResidentAddServicePoint(GameConnection connection, short zoneGroup, ulong type2, uint point)
     {
+        if (!IsResidentDevCommand(connection))
+            return;
         var character = connection.ActiveChar;
         if (character == null)
             return;
@@ -1048,12 +1050,13 @@ public class HousingManager(
     }
 
     /// <summary>
-    /// CSAddResidentCharge: a resident pays a charge into a zone group's balance. type2 and the
-    /// second moneyAmount are refused loudly inside the settlement when non-zero — their
-    /// 10.0.2.13 meaning is unresolved; nothing is written on a refusal.
+    /// CSAddResidentCharge: a dev-client command. moneyAmount is local charge and moneyAmount2 is
+    /// hunting charge. type2 is still unresolved: a non-zero value refuses the settlement.
     /// </summary>
     public void ResidentAddCharge(GameConnection connection, short zoneGroup, ulong type2, ulong moneyAmount, ulong moneyAmount2)
     {
+        if (!IsResidentDevCommand(connection))
+            return;
         var character = connection.ActiveChar;
         if (character == null)
             return;
@@ -1083,6 +1086,8 @@ public class HousingManager(
     /// </summary>
     public void ResidentBalanceAll(GameConnection connection)
     {
+        if (!IsResidentDevCommand(connection))
+            return;
         var character = connection.ActiveChar;
         if (character == null)
             return;
@@ -1096,6 +1101,18 @@ public class HousingManager(
 
         foreach (var groupId in groups)
             SendTownhallState(connection, (short)groupId);
+    }
+
+    /// <summary>
+    /// The three resident balance packets are dev-client console commands. A retail client does
+    /// not send them, so they require the same gmFlag as the GM console.
+    /// </summary>
+    private static bool IsResidentDevCommand(GameConnection connection)
+    {
+        if (connection?.GetAttribute("gmFlag") != null)
+            return true;
+        Logger.Warn("Resident dev command rejected — no gmFlag");
+        return false;
     }
 
     private uint GetResidentCount(int zoneGroup)

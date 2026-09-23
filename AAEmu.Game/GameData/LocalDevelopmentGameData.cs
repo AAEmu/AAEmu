@@ -13,8 +13,8 @@ namespace AAEmu.Game.GameData;
 
 /// <summary>
 /// <c>local_developments</c> (one row per zone group's development: the almighty/board doodad ids
-/// and the <c>doodad_phase_0..3</c> ladder) joined with <c>local_development_boards</c> (the board
-/// notices whose <c>show_text</c> carries the contribution threshold as an ASCII digit-run).
+/// and the <c>doodad_phase_0..3</c> ladder) joined with <c>local_development_boards</c> (stockpile
+/// notices). <c>show_text</c> is the notice's item count, not a contribution threshold.
 /// </summary>
 /// <remarks>
 /// Only ids, phases and parsed thresholds are loaded. <c>phase_effect_*</c> is locale display text,
@@ -92,27 +92,16 @@ public class LocalDevelopmentGameData : Singleton<LocalDevelopmentGameData>, IGa
                     continue;
                 }
 
-                var showText = reader.GetString("show_text", string.Empty);
-                var threshold = LocalDevelopmentRules.ParseThreshold(showText);
-                if (threshold == null)
-                {
-                    // Loud skip: a board notice without an ASCII digit-run announces no threshold.
-                    Logger.Warn("Local development board row {0} (development {1}): show_text carries no ASCII digit-run threshold; row skipped",
-                        rowId, developmentId);
-                    skippedRowCount++;
-                    continue;
-                }
-
                 definition.BoardRows.Add(new LocalDevelopmentBoardRow(
                     rowId,
                     reader.GetUInt32("local_development_board_type_id", 0),
                     reader.GetUInt32("show_phase", 0),
-                    threshold));
+                    null));
                 boardRowCount++;
             }
         }
 
-        Logger.Info("Loaded {0} local developments across {1} zone groups, {2} board threshold rows ({3} skipped)",
+        Logger.Info("Loaded {0} local developments across {1} zone groups, {2} board notice rows ({3} skipped)",
             _byDevelopmentId.Count, _byZoneGroup.Count, boardRowCount, skippedRowCount);
     }
 

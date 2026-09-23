@@ -9,6 +9,7 @@ public sealed record CharacterResidentState(
     ushort ZoneGroupId,
     uint ServicePoint,
     ulong Charge,
+    ulong HuntingCharge,
     DateTime UpdatedAt);
 
 /// <summary>

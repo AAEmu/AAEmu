@@ -20,14 +20,14 @@ public sealed class MySqlResidentStateStore : IResidentStateStore
     private const string MigrationFile = "SQL/updates/2026-09-23_aaemu_game_resident_state.sql";
 
     private const string SelectCharacters = """
-        SELECT owner, zone_group_id, service_point, charge, updated_at
+        SELECT owner, zone_group_id, service_point, charge, hunting_charge, updated_at
         FROM character_resident_state
         """;
 
     private const string UpsertCharacterSql = """
-        INSERT INTO character_resident_state (owner, zone_group_id, service_point, charge, updated_at)
-        VALUES (@owner, @zone_group_id, @service_point, @charge, @updated_at)
-        ON DUPLICATE KEY UPDATE service_point = VALUES(service_point), charge = VALUES(charge), updated_at = VALUES(updated_at)
+        INSERT INTO character_resident_state (owner, zone_group_id, service_point, charge, hunting_charge, updated_at)
+        VALUES (@owner, @zone_group_id, @service_point, @charge, @hunting_charge, @updated_at)
+        ON DUPLICATE KEY UPDATE service_point = VALUES(service_point), charge = VALUES(charge), hunting_charge = VALUES(hunting_charge), updated_at = VALUES(updated_at)
         """;
 
     private const string SelectDevelopments = """
@@ -57,6 +57,7 @@ public sealed class MySqlResidentStateStore : IResidentStateStore
                     (ushort)reader.GetUInt32("zone_group_id"),
                     reader.GetUInt32("service_point"),
                     reader.GetUInt64("charge"),
+                    reader.GetUInt64("hunting_charge"),
                     ServerCalendar.AsUtc(reader.GetDateTime("updated_at"))));
             }
             return rows;
@@ -81,8 +82,9 @@ public sealed class MySqlResidentStateStore : IResidentStateStore
             command.Parameters.AddWithValue("@zone_group_id", row.ZoneGroupId);
             command.Parameters.AddWithValue("@service_point", row.ServicePoint);
             command.Parameters.AddWithValue("@charge", row.Charge);
+            command.Parameters.AddWithValue("@hunting_charge", row.HuntingCharge);
             command.Parameters.AddWithValue("@updated_at", row.UpdatedAt);
-            return command.ExecuteNonQuery() == 1;
+            return command.ExecuteNonQuery() > 0;
         }
         catch (MySqlException ex)
         {
@@ -133,7 +135,7 @@ public sealed class MySqlResidentStateStore : IResidentStateStore
             command.Parameters.AddWithValue("@doodad_phase", state.DoodadPhase);
             command.Parameters.AddWithValue("@board_phase", state.BoardPhase);
             command.Parameters.AddWithValue("@updated_at", state.UpdatedAt);
-            return command.ExecuteNonQuery() == 1;
+            return command.ExecuteNonQuery() > 0;
         }
         catch (MySqlException ex)
         {

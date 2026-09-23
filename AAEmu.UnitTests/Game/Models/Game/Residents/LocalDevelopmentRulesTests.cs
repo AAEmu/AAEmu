@@ -117,7 +117,7 @@ public class LocalDevelopmentRulesTests
     }
 
     [Test]
-    public async Task Load_ReadsDevelopmentsAndSkipsBoardRowsWithoutAThreshold()
+    public async Task Load_ReadsDevelopmentsAndKeepsBoardNoticesWithoutAThreshold()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -157,9 +157,10 @@ public class LocalDevelopmentRulesTests
         await Assert.That(definition.DoodadAlmightyId).IsEqualTo(11590u);
         await Assert.That(definition.BoardDoodadId).IsEqualTo(13600u);
         await Assert.That(definition.DoodadPhases[1]).IsEqualTo(40001);
-        await Assert.That(definition.BoardRows.Count).IsEqualTo(1);
+        await Assert.That(definition.BoardRows.Count).IsEqualTo(2);
         await Assert.That(definition.BoardRows[0].ShowPhase).IsEqualTo(47635u);
-        await Assert.That(definition.BoardRows[0].Threshold).IsEqualTo((uint?)20);
+        await Assert.That(definition.BoardRows[0].Threshold).IsNull();
+        await Assert.That(definition.BoardRows[1].Threshold).IsNull();
 
         // A zone group with no local_developments row resolves to null: the state machine
         // skips loudly for it instead of guessing.
