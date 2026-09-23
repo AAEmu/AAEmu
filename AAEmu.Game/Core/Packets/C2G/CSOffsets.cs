@@ -303,6 +303,7 @@ public static class CSOffsets
     public const ushort CSClearSecondPasswordPacket = 0x182;
     public const ushort CSCofferSubbagOpenPacket = 0x0A3;
     public const ushort CSContentRosterMemberListPacket = 0x203;
+    public const ushort CSSurveyFormReplyPacket = 0x204; // 10.0.2.13 client serializer: u32 type, u8 forceFuture
     public const ushort CSCreateSecondPasswordPacket = 0x180;
     public const ushort CSDeclareExpeditionWarPacket = 0x010;
     public const ushort CSDelegateSquadLeaderPacket = 0x1E5;
@@ -522,6 +523,7 @@ public static class CSOffsets
     public const ushort CSChangeButlerNamePacket = 0x1F6;
     public const ushort CSArchePassUpgradePacket = 0x1FC;
     public const ushort CSShowCurrentWorld = 0x1FF;
+    public const ushort CSContentRosterDeletePacket = 0x201; // 10.0.2.13 client serializer: u32 count, count x u64 value [array]
     public const ushort CSContentRosterSavePacket = 0x202;
     public const ushort CSRandomShopInfoRefreshPacket = 0x207;
     public const ushort CSSelectInstanceDifficultPacket = 0x208;

@@ -82,4 +82,7 @@ public class ContentConfigGameData : Singleton<ContentConfigGameData>, IGameData
 
     /// <summary>For tests: seeds values without a database.</summary>
     public void SetForTest(string name, long value) => _values[name] = value;
+
+    /// <summary>For tests: drops a seeded row so the missing-row path can be exercised.</summary>
+    public void RemoveForTest(string name) => _values.TryRemove(name, out _);
 }
