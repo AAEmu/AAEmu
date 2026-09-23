@@ -327,12 +327,13 @@ public class InstantGameManager : Singleton<InstantGameManager>, IInstantGameMan
     {
         foreach (var game in _instantGames.ToList())
         {
-            if (game.Phase != InstantGamePhase.Filling)
+            if (game.Phase != InstantGamePhase.Filling && game.Phase != InstantGamePhase.Opening)
                 continue;
 
-            var empty = game.PlayerCount == 0;
+            var empty = game.PlayerCount == 0 && game.Phase == InstantGamePhase.Filling;
             var cleanupTermMs = BattlefieldGameData.Instance.GetBattlefield(game.BattlefieldId)?.MatchingCleanupTermMs ?? 0u;
-            var expired = IndunMatchReadyRules.IsInviteExpired(game.FillingSinceUtc, now, cleanupTermMs);
+            var since = game.Phase == InstantGamePhase.Opening ? game.OpeningSinceUtc : game.FillingSinceUtc;
+            var expired = IndunMatchReadyRules.IsInviteExpired(since, now, cleanupTermMs);
             if (!empty && !expired)
                 continue;
 

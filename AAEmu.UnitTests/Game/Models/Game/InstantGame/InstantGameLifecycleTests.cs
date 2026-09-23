@@ -431,8 +431,16 @@ public class InstantGameLifecycleTests
         var members = TestEnvironment.Field<Dictionary<Character, InstantGameTeamMember>>(game, "_members");
         var droppedMember = members[dropping];
 
+        dropping.OriginFaction = new SystemFaction { Id = (FactionsEnum)101 };
+        dropping.Faction = new SystemFaction { Id = (FactionsEnum)2 };
+
+        // Let the in-flight respawn either send or observe that the player is still seated,
+        // then logout must not write anything further.
+        await Task.Delay(200);
         var packetsBefore = env.SessionOf(dropping).Packets.Count;
         env.Manager.OnCharacterLogout(dropping);
+        await Task.Delay(200);
+        await Assert.That(dropping.Faction.Id).IsEqualTo((FactionsEnum)101);
 
         // Nothing is written to a connection that is going away.
         await Assert.That(env.SessionOf(dropping).Packets.Count).IsEqualTo(packetsBefore);

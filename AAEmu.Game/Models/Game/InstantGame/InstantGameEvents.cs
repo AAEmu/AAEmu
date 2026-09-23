@@ -68,6 +68,8 @@ public partial class InstantGame
 
     public void OnKill(object sender, OnKillArgs args)
     {
+        if (Phase != InstantGamePhase.Playing)
+            return;
         if (args.Killer is not Character killer || args.Victim is not Character victim)
             return;
 
@@ -108,34 +110,39 @@ public partial class InstantGame
         {
             await Delay(TimeSpan.FromSeconds(Math.Max(0, _battlefield.RuleSet.TimeResurrectionDelay)),
                 _endGameTokenSource.Token);
-            if (Phase != InstantGamePhase.Playing)
+            var stillHere = false;
+            lock (_rosterLock)
+                stillHere = Phase == InstantGamePhase.Playing && _members.ContainsKey(victim);
+            if (!stillHere || victim.Level <= 0)
                 return;
 
             // TODO: Prevent fall damage for both killer and victim on teleport
-            victim.BroadcastPacket(new SCCharacterResurrectedPacket(victim.ObjId, spawn.X, spawn.Y, spawn.Z, spawn.RotationZ), true); // Ressurrect
-            victim.ResetAllSkillCooldowns(false); // Skill Cooldown Reset
-            victim.Buffs.RemoveAllEffects(); // Buff Reset
-
-            victim.Hp = victim.MaxHp; // Full HP
-            victim.Mp = victim.MaxMp; // Full MP
-            victim.BroadcastPacket(new SCUnitPointsPacket(victim.ObjId, victim.Hp, victim.Mp), true); // Reset HP and MP
+            victim.BroadcastPacket(new SCCharacterResurrectedPacket(victim.ObjId, spawn.X, spawn.Y, spawn.Z, spawn.RotationZ), true);
+            victim.ResetAllSkillCooldowns(false);
+            victim.Buffs.RemoveAllEffects();
+            if (victim.Level > 0)
+            {
+                victim.Hp = victim.MaxHp;
+                victim.Mp = victim.MaxMp;
+                victim.BroadcastPacket(new SCUnitPointsPacket(victim.ObjId, victim.Hp, victim.Mp), true);
+            }
 
             spawn = corps == InstantCorps.Corps1 ? _battlefield.Spawns.Corps2Spawn : _battlefield.Spawns.Corps1Spawn;
 
-            // Reset killer
             if (_battlefield.Id == (uint)InstantGameType.Gladiator)
             {
                 if (killer.Hp == 0)
-                {
-                    // Killer somehow died
                     killer.BroadcastPacket(new SCCharacterResurrectedPacket(killer.ObjId, spawn.X, spawn.Y, spawn.Z, spawn.RotationZ), true);
-                }
                 else
                     killer.SendPacket(new SCTeleportUnitPacket(0, 0, spawn.X, spawn.Y, spawn.Z, spawn.RotationZ));
 
-                killer.Hp = killer.MaxHp;
-                killer.Mp = killer.MaxMp;
-                killer.BroadcastPacket(new SCUnitPointsPacket(killer.ObjId, killer.Hp, killer.Mp), true);
+                if (killer.Level > 0)
+                {
+                    killer.Hp = killer.MaxHp;
+                    killer.Mp = killer.MaxMp;
+                    killer.BroadcastPacket(new SCUnitPointsPacket(killer.ObjId, killer.Hp, killer.Mp), true);
+                }
+
                 killer.Buffs.RemoveAllEffects();
                 killer.ResetAllSkillCooldowns(false);
             }

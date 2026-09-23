@@ -38,6 +38,7 @@ public partial class InstantGame
     private readonly uint _worldInstanceId;
     private readonly Action _releaseWorld;
 
+    private readonly object _rosterLock = new();
     private readonly CancellationTokenSource _endGameTokenSource;
     private int _resultSent;
     private int _finishStarted;
@@ -57,6 +58,9 @@ public partial class InstantGame
     /// gives up after the battle field's <c>instances.matching_cleanup_term</c>.
     /// </summary>
     internal DateTime FillingSinceUtc { get; set; }
+
+    /// <summary>When the match entered Opening, so a countdown that never starts can be reaped.</summary>
+    internal DateTime OpeningSinceUtc { get; set; }
 
     internal int PlayerCount => _players.Count;
 
@@ -130,7 +134,7 @@ public partial class InstantGame
 
         var maxEntry = (uint)(_battlefield.RuleSet.CorpsSize * 2);
         character.SendPacket(new SCInviteToInstantGamePacket(
-            invitationTime: InstantGameWireContract.InviteWindowMs,
+            invitationTime: _battlefield.MatchingCleanupTermMs,
             zoneInstanceId: _zoneInstanceId,
             type: _battlefield.Id,
             matchingKey: _worldInstanceId,
@@ -171,6 +175,13 @@ public partial class InstantGame
         if (character == null)
             return false;
 
+        lock (_rosterLock)
+            return ReleasePlayerNoLock(character);
+    }
+
+    private bool ReleasePlayerNoLock(Character character)
+    {
+        var wasMember = _members.ContainsKey(character);
         var released = _players.Remove(character);
         foreach (var side in _corps.Values)
             side.Remove(character);
@@ -186,6 +197,8 @@ public partial class InstantGame
 
         // Unsubscribing a handler that was never added is a no-op, so this is safe on every path.
         character.Events.OnKill -= OnKill;
+        if (wasMember && character.OriginFaction != null)
+            character.Faction = character.OriginFaction;
         if (character.CurrentInstantGame == this)
             character.CurrentInstantGame = null;
         return released;
@@ -241,6 +254,8 @@ public partial class InstantGame
     {
         if (character == null || Phase != InstantGamePhase.Filling)
             return;
+        if (character.Transform?.InstanceId != _worldInstanceId)
+            return;
         if (!_characterCorps.TryGetValue(character, out var corps))
             return;
         if (_members.ContainsKey(character))
@@ -289,6 +304,7 @@ public partial class InstantGame
         if (Phase != InstantGamePhase.Filling)
             return;
         Phase = InstantGamePhase.Opening;
+        OpeningSinceUtc = ServerCalendar.UtcNow;
 
         BroadcastPacket(new SCInstantGameReadyPacket(_zoneInstanceId, _battlefield.Id,
             Helpers.UnixTimeNowInMilli(), BuildReadyRoster()));
@@ -325,43 +341,26 @@ public partial class InstantGame
         BroadcastPacket(new SCInstantGameStartPacket(_zoneInstanceId, Helpers.UnixTimeNowInMilli(),
             InstantGameWireContract.FirstRound));
 
-        // Reset players on Start
-        Task.Run(async () =>
-        {
-            // The reset grace after Start comes from content (instant_game_start_reset_delay_seconds);
-            // no row means no grace, logged loudly. Never a literal.
-            var startResetDelay =
-                AAEmu.Game.GameData.ContentConfigGameData.Instance.TryGetInt("instant_game_start_reset_delay_seconds", out var resetDelaySeconds) && resetDelaySeconds > 0
-                    ? TimeSpan.FromSeconds(resetDelaySeconds)
-                    : TimeSpan.Zero;
-            if (startResetDelay == TimeSpan.Zero)
-                NLog.LogManager.GetCurrentClassLogger()
-                    .Warn("content_configs row 'instant_game_start_reset_delay_seconds' is absent: the start reset applies immediately.");
-            await Delay(startResetDelay, _endGameTokenSource.Token);
-            foreach (var (character, _) in _characterCorps)
-            {
-                if (character == null)
-                {
-                    continue;
-                }
-
-                // Reset HP and MP
-                // Reset HP
-                character.Hp = character.MaxHp;
-                character.Mp = character.MaxMp;
-                character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
-                // Reset Buffs
-                character.Buffs.RemoveAllEffects();
-                // Reset Cooldowns
-                character.ResetAllSkillCooldowns(false);
-            }
-        }, _endGameTokenSource.Token);
         Task.Run(async () =>
         {
             await Delay(TimeSpan.FromMinutes(_battlefield.RuleSet.TimePlaying), _endGameTokenSource.Token);
             ApplyTimeOver();
             await EndGame();
         }, _endGameTokenSource.Token);
+
+        // Content has no start-reset delay, so the reset runs on this call. A character with no
+        // level yet has no computed max, and forcing it would throw.
+        foreach (var (character, _) in _characterCorps)
+        {
+            if (character == null || character.Level <= 0)
+                continue;
+
+            character.Hp = character.MaxHp;
+            character.Mp = character.MaxMp;
+            character.BroadcastPacket(new SCUnitPointsPacket(character.ObjId, character.Hp, character.Mp), true);
+            character.Buffs.RemoveAllEffects();
+            character.ResetAllSkillCooldowns(false);
+        }
     }
 
     /// <summary>
@@ -475,9 +474,9 @@ public partial class InstantGame
     {
         if (Interlocked.Exchange(ref _tornDown, 1) != 0)
             return false;
-        Phase = InstantGamePhase.Finished;
         foreach (var character in _players.ToList())
             LeaveInstantGame(character);
+        Phase = InstantGamePhase.Finished;
         return true;
     }
 
@@ -501,6 +500,7 @@ public partial class InstantGame
             return;
 
         var enteredMatch = _members.ContainsKey(character);
+        var diedInMatch = enteredMatch && _members.TryGetValue(character, out var member) && member.Deaths > 0;
         var insideCopy = character.Transform != null && character.Transform.InstanceId == _worldInstanceId;
 
         ReleasePlayer(character);
@@ -520,6 +520,16 @@ public partial class InstantGame
         }
 
         character.DisabledSetPosition = true;
+
+        if (diedInMatch && character.Level > 0 && character.MainWorldPosition != null)
+        {
+            var home = character.MainWorldPosition.World.Position;
+            var homeRot = character.MainWorldPosition.World.Rotation;
+            character.Hp = character.MaxHp;
+            character.Mp = character.MaxMp;
+            character.BroadcastPacket(
+                new SCCharacterResurrectedPacket(character.ObjId, home.X, home.Y, home.Z, homeRot.Z), true);
+        }
 
         if (character.MainWorldPosition == null)
         {
@@ -541,7 +551,9 @@ public partial class InstantGame
     private void MoveCharacterToWorld(Character character, uint zoneId, float x, float y, float z)
     {
         character.DisabledSetPosition = true;
-        character.MainWorldPosition ??= character.Transform.CloneDetached(character);
+        if (character.MainWorldPosition == null ||
+            character.Transform.InstanceId == WorldManager.DefaultInstanceId)
+            character.MainWorldPosition = character.Transform.CloneDetached(character);
         character.Transform.ApplyWorldSpawnPosition(
             new WorldSpawnPosition { ZoneId = zoneId, X = x, Y = y, Z = z }, _worldInstanceId);
         character.SendPacket(new SCLoadInstancePacket(_worldInstanceId, zoneId, x, y, z, 0, 0, 0));
