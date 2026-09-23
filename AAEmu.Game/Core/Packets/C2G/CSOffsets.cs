@@ -90,6 +90,7 @@ public static class CSOffsets
     public const ushort CSJoinUserChatChannelPacket = 0x096;
     public const ushort CSLeaveChatChannelPacket = 0x097;
     public const ushort CSSendChatMessagePacket = 0x098;
+    public const ushort CSOneAndOneChatAddMessagePacket = 0x1D5; // 10.0.2.13, one-to-one chat
     public const ushort CSConsoleCmdUsedPacket = 0x09A;
     public const ushort CSGmCommandPacket = 0x10A; // 10.0.2.13 — real X2Gm / gm_console
     public const ushort CSGmNoticePacket = 0x10B; // 10.0.2.13 — X2Gm:NoticeEx

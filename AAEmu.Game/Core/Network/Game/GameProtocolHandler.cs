@@ -63,6 +63,8 @@ public class GameProtocolHandler : BaseProtocolHandler
                 {
                     // On crash, force people out of the chat channels so we don't get phantom or duplicates
                     Managers.ChatManager.Instance.LeaveAllChannels(con.ActiveChar);
+                    // One-to-one sessions are per-connection state with nowhere to be persisted.
+                    Managers.ChatManager.Instance.CloseDirectChatSessions(con.ActiveChar);
                     // ObjectIdManager.Instance.ReleaseId(con.ActiveChar.BcId);
                 }
                 con.OnDisconnect();

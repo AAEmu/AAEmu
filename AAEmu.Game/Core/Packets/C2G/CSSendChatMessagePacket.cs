@@ -59,9 +59,10 @@ public class CSSendChatMessagePacket() : GamePacket(CSOffsets.CSSendChatMessageP
                     Connection.ActiveChar.SendErrorMessage(ErrorMessageType.WhisperNoTarget);
                 }
                 else
-                if (target.Faction.MotherId != Connection.ActiveChar.Faction.MotherId)
+                if (!SocialChatAuthorization.CanSendDirectChat(Connection.ActiveChar, target))
                 {
-                    // Diplomacy-aware whisper rules still need direct chat/native evidence.
+                    // Same diplomacy rule as the native one-to-one packet family - see
+                    // SocialChatAuthorization.CanSendDirectChat.
                     Connection.ActiveChar.SendErrorMessage(ErrorMessageType.ChatCannotWhisperToHostile);
                 }
                 else
@@ -70,6 +71,10 @@ public class CSSendChatMessagePacket() : GamePacket(CSOffsets.CSSendChatMessageP
                     target.SendPacket(packet);
                     var packet_me = new SCChatMessagePacket(ChatType.Whispered, target, message, ability, languageType);
                     Connection.SendPacket(packet_me);
+                    // Announce the one-to-one session both clients need before the native
+                    // CS/SC one-to-one packets can carry anything (once per pair, no-op after
+                    // the first whisper).
+                    ChatManager.Instance.StartDirectChat(Connection.ActiveChar, target);
                 }
                 break;
             case ChatType.White: //say

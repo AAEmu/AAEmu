@@ -1,6 +1,10 @@
 ﻿using System.Collections.Concurrent;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.GameData;
+using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Chat;
 using AAEmu.Game.Models.Game.Expeditions;
@@ -26,6 +30,22 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
     private ConcurrentDictionary<long, ChatChannel> RaidChannels { get; }= new();
     private ConcurrentDictionary<FactionsEnum, ChatChannel> GuildChannels { get; }= new();
     private ConcurrentDictionary<long, ChatChannel> FamilyChannels { get; } = new();
+
+    /// <summary>Open one-to-one chat sessions, keyed by the id the clients were given.</summary>
+    private ConcurrentDictionary<long, DirectChatSession> DirectChats { get; } = new();
+
+    /// <summary>Last accepted one-to-one send per character, for the content-configured interval.</summary>
+    private ConcurrentDictionary<uint, DateTime> DirectChatLastSend { get; } = new();
+
+    private long _nextDirectChatId;
+    private bool _directChatRateGapLogged;
+
+    /// <summary>
+    /// <c>content_configs</c> name for the minimum seconds between two one-to-one messages from
+    /// the same character. Shipped 10.0.2.13 content has no row by this name, so the limiter is
+    /// off until an operator adds one - see <see cref="IsDirectChatRateLimited"/>.
+    /// </summary>
+    public const string DirectChatIntervalConfig = "one_and_one_chat_interval";
 
     /// <summary>
     /// The single server-wide channel (client calls it CSM, command /u).
@@ -475,5 +495,160 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
             Logger.Error("Should not be able to get a null channel from GetRaidChat !");
             return NullChannel;
         }
+    }
+
+    /// <summary>Opens (or returns) the one-to-one session between two characters and announces it to both.</summary>
+    /// <remarks>
+    /// The client cannot ask for a session: its only one-to-one request,
+    /// CSOneAndOneChatAddMessagePacket, quotes an id the server must have handed out first, so the
+    /// server opens one. The trigger is an inference, not a pinned retail exchange - the client
+    /// ships an "ignore whisper invitation" option, which only makes sense if a delivered whisper
+    /// invites both ends into a window - and announcement is once per pair: a second whisper on
+    /// the same conversation must not open a second window.
+    /// </remarks>
+    /// <returns>The session, or null when the pair cannot be authorized.</returns>
+    public DirectChatSession StartDirectChat(Character first, Character second)
+    {
+        if (first == null || second == null)
+            return null;
+
+        foreach (var session in DirectChats.Values)
+        {
+            if (session.Involves(first.Id) && session.Involves(second.Id))
+                return session;
+        }
+
+        if (!SocialChatAuthorization.CanSendDirectChat(first, second))
+        {
+            Logger.Warn("Refusing one-to-one chat start between {0} and {1}",
+                first.Name, second.Name);
+            return null;
+        }
+
+        var created = new DirectChatSession
+        {
+            Id = Interlocked.Increment(ref _nextDirectChatId),
+            CharacterA = first,
+            CharacterB = second
+        };
+        if (!DirectChats.TryAdd(created.Id, created))
+            return DirectChats.GetValueOrDefault(created.Id);
+
+        first.SendPacket(new SCOneAndOneChatStartPacket(created.Id, second.Name));
+        second.SendPacket(new SCOneAndOneChatStartPacket(created.Id, first.Name));
+        return created;
+    }
+
+    /// <summary>Delivers one one-to-one message on an already-open session.</summary>
+    /// <remarks>
+    /// Offline ends are dropped rather than parked: the shipped database has no one-to-one chat
+    /// or chat-log table to park into, mail is a separate system with its own types, and the
+    /// client keeps window history in its own memory only.
+    /// </remarks>
+    /// <param name="sender">The character that sent the message.</param>
+    /// <param name="chatId">The session id quoted back from the client.</param>
+    /// <param name="message">The already length-checked message text.</param>
+    /// <returns>How many characters received it (the peer plus the sender's own echo), or 0.</returns>
+    public int SendDirectChatMessage(Character sender, long chatId, string message)
+    {
+        if (sender == null)
+        {
+            Logger.Error("One-to-one chat message without a sender (chat={0})", chatId);
+            return 0;
+        }
+
+        if (!DirectChats.TryGetValue(chatId, out var session))
+        {
+            Logger.Error("One-to-one chat message from {0} quotes unknown session {1}",
+                sender.Name, chatId);
+            return 0;
+        }
+
+        var peer = session.PeerOf(sender);
+        if (peer == null)
+        {
+            Logger.Error("One-to-one chat message from {0} quotes session {1} it is not part of",
+                sender.Name, chatId);
+            return 0;
+        }
+
+        if (!sender.IsOnline || !peer.IsOnline)
+        {
+            // Dropped, not parked - see SendDirectChatMessage remarks.
+            sender.SendErrorMessage(ErrorMessageType.WhisperNoTarget);
+            return 0;
+        }
+
+        if (!SocialChatAuthorization.CanSendDirectChat(sender, peer))
+        {
+            sender.SendErrorMessage(ErrorMessageType.ChatCannotWhisperToHostile);
+            return 0;
+        }
+
+        if (IsDirectChatRateLimited(sender, out var intervalSeconds))
+        {
+            Logger.Warn("One-to-one chat message from {0} dropped: content_configs '{1}' = {2}s",
+                sender.Name, DirectChatIntervalConfig, intervalSeconds);
+            return 0;
+        }
+
+        var isSpeakerGm = sender.Connection?.GetAttribute("gmFlag") != null;
+        var packet = new SCOneAndOneChatAddMessagePacket(chatId, sender.Name, message, isSpeakerGm);
+        peer.SendPacket(packet);
+        // The window shows nothing for text its own user typed until the server echoes it back.
+        sender.SendPacket(packet);
+        DirectChatLastSend[sender.Id] = ServerCalendar.UtcNow;
+        return 2;
+    }
+
+    /// <summary>Tears down every one-to-one session a character is in, plus its rate-limit stamp.</summary>
+    /// <returns>How many sessions were removed.</returns>
+    public int CloseDirectChatSessions(Character character)
+    {
+        if (character == null)
+            return 0;
+
+        var removed = 0;
+        foreach (var pair in DirectChats)
+        {
+            if (pair.Value.Involves(character.Id) && DirectChats.TryRemove(pair.Key, out _))
+                removed++;
+        }
+
+        DirectChatLastSend.TryRemove(character.Id, out _);
+        return removed;
+    }
+
+    /// <summary>
+    /// True when this send has to be dropped because it is inside the content-configured interval.
+    /// </summary>
+    /// <remarks>
+    /// The interval comes from a <c>content_configs</c> row and nowhere else. Shipped content
+    /// ships no such row, so there is nothing to fall back to: the limiter is simply off and the
+    /// gap is logged once, loudly, for whoever runs the server - never a made-up number. A row
+    /// present but zero or negative means the operator turned it off explicitly.
+    /// </remarks>
+    private bool IsDirectChatRateLimited(Character sender, out long intervalSeconds)
+    {
+        if (!ContentConfigGameData.Instance.TryGet(DirectChatIntervalConfig, out intervalSeconds))
+        {
+            if (!_directChatRateGapLogged)
+            {
+                _directChatRateGapLogged = true;
+                Logger.Warn(
+                    "content_configs has no '{0}' row: one-to-one chat rate limiting is OFF on this server",
+                    DirectChatIntervalConfig);
+            }
+
+            return false;
+        }
+
+        if (intervalSeconds <= 0)
+            return false;
+
+        if (!DirectChatLastSend.TryGetValue(sender.Id, out var last))
+            return false;
+
+        return ServerCalendar.UtcNow - last < TimeSpan.FromSeconds(intervalSeconds);
     }
 }

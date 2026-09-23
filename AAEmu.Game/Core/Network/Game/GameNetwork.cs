@@ -115,6 +115,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSJoinUserChatChannelPacket, 1, typeof(CSJoinUserChatChannelPacket));
         RegisterPacket(CSOffsets.CSLeaveChatChannelPacket, 1, typeof(CSLeaveChatChannelPacket));
         RegisterPacket(CSOffsets.CSSendChatMessagePacket, 1, typeof(CSSendChatMessagePacket));
+        RegisterPacket(CSOffsets.CSOneAndOneChatAddMessagePacket, 1, typeof(CSOneAndOneChatAddMessagePacket));
         RegisterPacket(CSOffsets.CSConsoleCmdUsedPacket, 1, typeof(CSConsoleCmdUsedPacket));
         RegisterPacket(CSOffsets.CSGmCommandPacket, 1, typeof(CSGmCommandPacket));
         RegisterPacket(CSOffsets.CSGmNoticePacket, 1, typeof(CSGmNoticePacket));
