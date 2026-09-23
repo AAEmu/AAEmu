@@ -89,13 +89,70 @@ public class AccountReturnManager : Singleton<AccountReturnManager>
         }
     }
 
+    /// <summary>
+    /// The sighting that decides eligibility. A qualifying absence is written on the account so a
+    /// later login, which stamps last_login again on disconnect, still sees it.
+    /// </summary>
+    private DateTime? ResolveSighting(uint accountId, DateTime? lastSeenUtc)
+    {
+        var fresh = lastSeenUtc ?? GetLastSeenUtc(accountId);
+        if (fresh is DateTime seen && ReturnAccountRules.IsEligible(seen, DateTime.UtcNow))
+        {
+            RememberQualifying(accountId, seen);
+            return seen;
+        }
+
+        return ReadQualifying(accountId) ?? fresh;
+    }
+
+    private void RememberQualifying(uint accountId, DateTime seen)
+    {
+        try
+        {
+            using var connection = _connectionFactory();
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                """
+                UPDATE accounts
+                SET return_qualifying_login = @seen
+                WHERE account_id = @account_id
+                  AND (return_qualifying_login IS NULL OR return_qualifying_login > @seen)
+                """;
+            command.Parameters.AddWithValue("@account_id", accountId);
+            command.Parameters.AddWithValue("@seen", ServerCalendar.AsUtc(seen));
+            command.ExecuteNonQuery();
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, "RememberQualifying failed for account {0}", accountId);
+        }
+    }
+
+    private DateTime? ReadQualifying(uint accountId)
+    {
+        try
+        {
+            using var connection = _connectionFactory();
+            using var command = connection.CreateCommand();
+            command.CommandText = "SELECT return_qualifying_login FROM accounts WHERE account_id=@account_id";
+            command.Parameters.AddWithValue("@account_id", accountId);
+            var result = command.ExecuteScalar();
+            return result is null or DBNull ? null : ServerCalendar.AsUtc(Convert.ToDateTime(result));
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, "ReadQualifying failed for account {0}", accountId);
+            return null;
+        }
+    }
+
     /// <summary>The status <c>SCReturnAccountStatus</c> carries: a reward is configured, the content
     /// days allow it and this account has not claimed it yet.</summary>
     public bool IsRewardAvailable(uint accountId, DateTime? lastSeenUtc = null)
     {
         if (!ReturnAccountRules.HasReward)
             return false;
-        var lastSeen = lastSeenUtc ?? GetLastSeenUtc(accountId);
+        var lastSeen = ResolveSighting(accountId, lastSeenUtc);
         if (lastSeen is not { } seen)
             return false;
         if (!ReturnAccountRules.IsEligible(seen, DateTime.UtcNow))
@@ -120,7 +177,7 @@ public class AccountReturnManager : Singleton<AccountReturnManager>
             return AccountReturnClaimResult.NoRewardConfigured;
         }
 
-        var lastSeen = lastSeenUtc ?? GetLastSeenUtc(accountId);
+        var lastSeen = ResolveSighting(accountId, lastSeenUtc);
         if (lastSeen is not { } seen)
         {
             Logger.Info("Account {0} return claim refused: no last-seen timestamp", accountId);

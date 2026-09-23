@@ -10,3 +10,6 @@ CREATE TABLE IF NOT EXISTS `account_return_claims` (
     `reward_item_type` INT UNSIGNED NOT NULL,
     PRIMARY KEY (`account_id`)
 ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COMMENT = 'Account-return reward claims, one per account';
+
+ALTER TABLE `accounts`
+    ADD COLUMN `return_qualifying_login` DATETIME NULL DEFAULT NULL;

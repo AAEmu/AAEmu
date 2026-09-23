@@ -55,7 +55,11 @@ public class CSTakeReturnAccountItemPacket() : GamePacket(CSOffsets.CSTakeReturn
         }, seen);
 
         if (result == AccountReturnClaimResult.Claimed && batch != null)
+        {
+            if (rewardItem != null)
+                ItemManager.Instance.PublishPersistedItems([rewardItem]);
             MailManager.Instance.PublishPreparedBatch(batch, alreadyPersisted: true);
+        }
         else
         {
             if (batch != null)
