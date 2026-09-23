@@ -8,6 +8,7 @@ public static class SCOffsets
     public const ushort SCLeaveWorldGrantedPacket = 0x3;
     public const ushort SCLeaveWorldCanceledPacket = 0x4;
     public const ushort SCWorldQueuePacket = 0x5;
+    public const ushort SCDepartureServerGrantedPacket = 0x6; // 10.0.2.13: empty body (catalog_SC.md row 16, opcode 0x006)
     public const ushort SCInitialConfigPacket = 0x7;
     public const ushort SCTrionConfigPacket = 0x07;
     public const ushort SCExpeditionListPacket = 0xA; // 10.0.2.13

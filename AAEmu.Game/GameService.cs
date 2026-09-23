@@ -119,6 +119,13 @@ public sealed class GameService : IHostedService, IDisposable
         CharacterManager.Instance.CheckForDeletedCharacters();
         CharacterManager.Instance.StartOnlineTracking();
 
+        // A restart can strand a departure that was journaled but never settled
+        // (character_transfer_journals.state = parked). Resolve every one of those back to its
+        // departure snapshot, in character-id order, before the game channel opens.
+        var recoveredCrossServerTransfers = CrossServerTransferManager.Instance.RecoverInterruptedTransfers();
+        if (recoveredCrossServerTransfers > 0)
+            Logger.Info("Recovered {0} interrupted cross-server transfer(s)", recoveredCrossServerTransfers);
+
         GameNetwork.Instance.Start();
         StreamNetwork.Instance.Start();
         LoginNetwork.Instance.Start();

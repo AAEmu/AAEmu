@@ -1315,6 +1315,18 @@ CREATE TABLE IF NOT EXISTS `conflict_zone_runtime_states` (
   PRIMARY KEY (`zone_group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Durable conflict-zone counters, state and transition deadline';
 
+CREATE TABLE IF NOT EXISTS `character_transfer_journals` (
+  `character_id` INT UNSIGNED NOT NULL,
+  `account_id` INT UNSIGNED NOT NULL,
+  `source_server_key` VARCHAR(64) NOT NULL,
+  `target_server_key` VARCHAR(64) NOT NULL,
+  `state` TINYINT UNSIGNED NOT NULL COMMENT '1 parked, 2 transferred, 3 rolled back, 4 re-entered',
+  `snapshot_json` TEXT NOT NULL,
+  `created_at` DATETIME(6) NOT NULL,
+  `updated_at` DATETIME(6) NOT NULL,
+  PRIMARY KEY (`character_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Cross-server transfer journal: departure parks, settle/rollback/re-entry consume, one live transfer per character';
+
 CREATE TABLE IF NOT EXISTS `dominion_locked_zones` (
   `zone_id` smallint unsigned NOT NULL COMMENT 'zone_group_id the castle system is locked for',
   `locked_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
