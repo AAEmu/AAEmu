@@ -74,6 +74,9 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
         // In-world start/complete checks read the journal after the local player exists.
         Connection.ActiveChar.Quests.SendInitialState();
 
+        // The chronicle (saga book) records ride the same world-entry burst as the quest lists.
+        Connection.ActiveChar.SagaProgress?.SendInitialState();
+
         // Achievements are pushed, never requested: the client opens its window from whatever this list says,
         // so progress the character already carries — their level and ability levels, and anything records
         // kept from an earlier session — has to be resolved before it goes out. Nothing is sent for these:
