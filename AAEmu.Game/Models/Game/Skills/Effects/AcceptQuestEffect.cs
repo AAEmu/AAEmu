@@ -35,7 +35,7 @@ public class AcceptQuestEffect : EffectTemplate
             if (item.Template.ImplId == ItemImplEnum.AcceptQuest)
             {
                 // Try to find it's actual QuestId
-                var itemQuestId = QuestManager.Instance.GetQuestIdFromStarterItemNew(skillItem.ItemTemplateId);
+                var itemQuestId = QuestManager.Instance.GetQuestIdFromStarterItem(skillItem.ItemTemplateId);
                 if (itemQuestId > 0)
                 {
                     // Add alternative quest by Id

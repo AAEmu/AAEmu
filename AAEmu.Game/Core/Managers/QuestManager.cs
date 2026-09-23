@@ -271,43 +271,6 @@ public partial class QuestManager(ITaskManager taskManager, IZoneManager zoneMan
     /// <returns>Quest Id the item is supposed to start</returns>
     public uint GetQuestIdFromStarterItem(uint itemTemplateId)
     {
-        // This is a very ugly reverse search function
-        foreach (var actTemplate in _actTemplatesByDetailType["QuestActConAcceptItem"].Values)
-        {
-            if (actTemplate is not QuestActConAcceptItem actAcceptItem)
-                continue;
-            if (actAcceptItem.ItemId != itemTemplateId)
-                continue;
-
-            // find quest_acts data
-            foreach (var actList in _actsByComponent.Values)
-            {
-                foreach (var questAct in actList)
-                {
-                    if (questAct.DetailType == "QuestActConAcceptItem" && questAct.DetailId == actAcceptItem.DetailId)
-                    {
-                        // Use component Id to check if it's a starter, and return contextId (QuestId)
-                        foreach (var (questId, questContext) in _questTemplates)
-                        {
-                            if (questContext.Components.TryGetValue(questAct.ParentComponent.Id, out var questComponent) &&
-                                questComponent.KindId == QuestComponentKind.Start)
-                                return questId;
-                        }
-                    }
-                }
-            }
-        }
-
-        return 0;
-    }
-
-    /// <summary>
-    /// Simplified version of GetQuestIdFromStarterItem
-    /// </summary>
-    /// <param name="itemTemplateId">Item id</param>
-    /// <returns>Gets the target quest which accepts the item</returns>
-    public uint GetQuestIdFromStarterItemNew(uint itemTemplateId)
-    {
         foreach (var foundActs in _actTemplatesByDetailType["QuestActConAcceptItem"].Values.Where(qAcceptItem => qAcceptItem is QuestActConAcceptItem questActConAcceptItem && questActConAcceptItem.ItemId == itemTemplateId))
         {
             var matchingAct = _actTemplatesByDetailType["QuestActConAcceptItem"].Values

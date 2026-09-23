@@ -370,13 +370,6 @@ public class QuestManagerTests
 
     #endregion
 
-    #region GetQuestIdFromStarterItem Tests
-
-    // Note: These methods require Load() to be called first to initialize the dictionary keys
-    // Testing them without Load() throws KeyNotFoundException
-
-    #endregion
-
     #region Quest Timeout Task Management Tests
 
     [Test]
