@@ -22,7 +22,9 @@ public class MerchantReopenGood
 public class MerchantReopenGroup
 {
     public uint Id { get; init; }
+    public int Rank { get; init; }
     public int Weight { get; init; }
+    public int DistributionWeight { get; init; }
     public List<MerchantReopenGood> Goods { get; } = [];
 }
 
@@ -148,7 +150,7 @@ public class MerchantReopenPackGameData : Singleton<MerchantReopenPackGameData>,
 
         using (var command = connection.CreateCommand())
         {
-            command.CommandText = "SELECT id, merchant_reopen_pack_id, weight FROM merchant_reopen_groups";
+            command.CommandText = "SELECT id, merchant_reopen_pack_id, rank, weight, distribution_weight FROM merchant_reopen_groups";
             command.Prepare();
             using var sqliteReader = command.ExecuteReader();
             using var reader = new SQLiteWrapperReader(sqliteReader);
@@ -157,7 +159,9 @@ public class MerchantReopenPackGameData : Singleton<MerchantReopenPackGameData>,
                 var group = new MerchantReopenGroup
                 {
                     Id = reader.GetUInt32("id"),
-                    Weight = reader.GetInt32("weight")
+                    Rank = reader.GetInt32("rank"),
+                    Weight = reader.GetInt32("weight"),
+                    DistributionWeight = reader.GetInt32("distribution_weight")
                 };
                 var packId = reader.GetUInt32("merchant_reopen_pack_id");
                 if (!packs.TryGetValue(packId, out var pack))

@@ -16,13 +16,9 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// u32 type · u8 freeCnt · u8 chargeCnt · u64 dbid · u64 recordTime · then the "displayGoods"
 /// map: u32 Size, and per pair u32 key + element
 /// (u8 type · u32 cost · u32 type · u8 order · u8 buyAmount · u32 type).
-/// The element's first byte and its two trailing u32s are named only "type" by the serializer -
-/// three distinct fields the corpus does not further pin - so they are written as zero and
-/// flagged; cost, order and buyAmount are the pinned fields (order is the offer slot, buyAmount
-/// the remaining count, which the buy acknowledgement drives to zero). freeCnt/chargeCnt are the
-/// SPENT counters: the client enables its refresh button while either sits below the pack max
-/// (x2ui/store/buy.lua). recordTime is unix seconds, the in-tree convention for u64 times
-/// (SCICSExchangeRatioPacket).
+/// The element's first byte is the item grade. cost, order and buyAmount are the pinned fields
+/// (order is the offer slot, buyAmount the remaining count). The trailing u32 is the content good
+/// row. freeCnt/chargeCnt are the SPENT counters. recordTime is unix seconds.
 /// </remarks>
 public class SCRandomShopInfoPacket(
     short errorMessage,
@@ -70,7 +66,7 @@ public class SCRandomShopInfoPacket(
         foreach (var offer in DisplayGoods)
         {
             stream.Write((uint)offer.Slot);            // map key
-            stream.Write((byte)0);                     // element type byte - undecoded
+            stream.Write(offer.Grade);                 // item grade
             stream.Write((uint)offer.Cost);
             stream.Write(offer.ItemId);                // the item this offer sells
             stream.Write((byte)offer.Slot);            // order

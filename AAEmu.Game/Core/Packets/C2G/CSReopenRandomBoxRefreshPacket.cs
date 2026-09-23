@@ -8,8 +8,6 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Merchant;
-using AAEmu.Game.Models.Game.Skills;
-using AAEmu.Game.Models.Game.Skills.Effects;
 
 using NLog;
 
@@ -56,7 +54,7 @@ public class CSReopenRandomBoxRefreshPacket() : GamePacket(CSOffsets.CSReopenRan
 
         var packId = (uint)TypeValue;
         var box = character.Inventory.GetItemById((ulong)ItemId);
-        if (box == null || !BoxOpensPack(box, packId))
+        if (box == null || !ReopenBoxItemRules.OpensPack(box, packId))
         {
             Logger.Warn(
                 "Reopen box refresh refused for character {0} item {1}: not a box they hold for pack {2}",
@@ -75,11 +73,15 @@ public class CSReopenRandomBoxRefreshPacket() : GamePacket(CSOffsets.CSReopenRan
                 {
                     if (charged && pack != null)
                         RefundOpen(character, pack);
-                });
+                },
+                expired => ReopenBoxItemRules.MailExpiredRoll(character, expired));
 
             if (result == ReopenRefreshResult.Refreshed)
             {
                 Connection.SendPacket(new SCReopenRandomBoxRefreshPacket(0));
+                var state = ReopenBoxManager.Instance.TryGetState(character.Id, ItemId);
+                if (state != null)
+                    Connection.SendPacket(new SCReopenRandomBoxInfoPacket(state, pack));
                 return;
             }
 
@@ -130,22 +132,5 @@ public class CSReopenRandomBoxRefreshPacket() : GamePacket(CSOffsets.CSReopenRan
         }
 
         character.TryRefundCurrency((uint)pack.Currency, pack.ChargePoint, ItemTaskType.StoreBuy);
-    }
-
-    private static bool BoxOpensPack(Item box, uint packId)
-    {
-        if (box.Template == null || box.Template.UseSkillId == 0)
-            return false;
-        var skill = SkillManager.Instance.GetSkillTemplate(box.Template.UseSkillId);
-        if (skill == null)
-            return false;
-        foreach (var effect in skill.Effects)
-        {
-            if (effect.Template is GainMerchantReopenPackItemEffect reopen &&
-                reopen.MerchantReopenPackId == packId)
-                return true;
-        }
-
-        return false;
     }
 }

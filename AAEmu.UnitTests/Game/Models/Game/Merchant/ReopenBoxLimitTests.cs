@@ -29,11 +29,15 @@ public class ReopenBoxLimitTests
 
         await Assert.That(manager.TryRefresh(50, 8001, 2, false, now))
             .IsEqualTo(ReopenRefreshResult.Refreshed);
+        await Assert.That(manager.TryGetState(50, 8001).FreeUsed).IsEqualTo(0);
+
         var later = now.AddMinutes(1);
         await Assert.That(manager.TryRefresh(50, 8001, 2, false, later))
             .IsEqualTo(ReopenRefreshResult.Refreshed);
         var later2 = later.AddMinutes(1);
         await Assert.That(manager.TryRefresh(50, 8001, 2, false, later2))
+            .IsEqualTo(ReopenRefreshResult.Refreshed);
+        await Assert.That(manager.TryRefresh(50, 8001, 2, false, later2.AddMinutes(1)))
             .IsEqualTo(ReopenRefreshResult.CounterExhausted);
 
         var persisted = store.LoadAll().Single();
@@ -82,10 +86,16 @@ public class ReopenBoxLimitTests
         await Assert.That(manager.TryRefresh(53, 8004, 2, false, now))
             .IsEqualTo(ReopenRefreshResult.Refreshed);
 
+        var delivered = new List<ReopenBoxState>();
         await Assert.That(manager.TryRefresh(53, 8004, 2, false, now.AddMinutes(59)))
             .IsEqualTo(ReopenRefreshResult.Refreshed);
-        await Assert.That(manager.TryRefresh(53, 8004, 2, false, now.AddMinutes(60)))
-            .IsEqualTo(ReopenRefreshResult.Expired);
+        var beforeExpiry = manager.TryGetState(53, 8004).GoodId;
+        await Assert.That(manager.TryRefresh(53, 8004, 2, false, now.AddMinutes(60),
+                deliverExpired: delivered.Add))
+            .IsEqualTo(ReopenRefreshResult.Refreshed);
+        await Assert.That(delivered.Count).IsEqualTo(1);
+        await Assert.That(delivered[0].GoodId).IsEqualTo(beforeExpiry);
+        await Assert.That(manager.TryGetState(53, 8004).HasRoll).IsTrue();
     }
 
     [Test]

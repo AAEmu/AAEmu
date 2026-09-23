@@ -83,7 +83,7 @@ public class ReopenBoxManager : Singleton<ReopenBoxManager>, ILoadable
     /// </summary>
     public ReopenRefreshResult TryRefresh(
         uint characterId, long itemId, uint packId, bool isCharge, DateTime nowUtc, Func<bool> chargePayment = null,
-        Action refundCharge = null)
+        Action refundCharge = null, Action<ReopenBoxState> deliverExpired = null)
     {
         var pack = RequirePack(packId);
         var now = ServerCalendar.AsUtc(nowUtc);
@@ -98,25 +98,38 @@ public class ReopenBoxManager : Singleton<ReopenBoxManager>, ILoadable
             if (state.Settled)
                 return ReopenRefreshResult.AlreadySettled;
 
-            if (pack.LifeTime > 0 && now >= state.RefreshAvailableAt)
-                return ReopenRefreshResult.Expired;
-
-            var max = isCharge ? pack.ChargeCount : pack.FreeCount;
-            if (!_store.TrySpendOpen(characterId, itemId, isCharge, max))
-                return ReopenRefreshResult.CounterExhausted;
-
-            if (isCharge && pack.ChargePoint > 0 && !(chargePayment?.Invoke() ?? false))
+            if (pack.LifeTime > 0 && state.HasRoll && now >= state.RefreshAvailableAt)
             {
-                _store.ReleaseOpen(characterId, itemId, isCharge);
-                return ReopenRefreshResult.PaymentFailed;
+                var expired = state.Copy();
+                _states.Remove((characterId, itemId));
+                _store.Forget(characterId, itemId);
+                deliverExpired?.Invoke(expired);
+                state = GetOrCreateNoLock(characterId, itemId, packId, now);
+            }
+
+            var opening = !isCharge && !state.HasRoll;
+            if (!opening)
+            {
+                var max = isCharge ? pack.ChargeCount : pack.FreeCount;
+                if (!_store.TrySpendOpen(characterId, itemId, isCharge, max))
+                    return ReopenRefreshResult.CounterExhausted;
+
+                if (isCharge && pack.ChargePoint > 0 && !(chargePayment?.Invoke() ?? false))
+                {
+                    _store.ReleaseOpen(characterId, itemId, isCharge);
+                    return ReopenRefreshResult.PaymentFailed;
+                }
             }
 
             var good = MerchantReopenPackGameData.Roll(pack, Random.Shared);
             if (good == null)
             {
-                _store.ReleaseOpen(characterId, itemId, isCharge);
-                if (isCharge && pack.ChargePoint > 0)
-                    refundCharge?.Invoke();
+                if (!opening)
+                {
+                    _store.ReleaseOpen(characterId, itemId, isCharge);
+                    if (isCharge && pack.ChargePoint > 0)
+                        refundCharge?.Invoke();
+                }
                 Logger.Error(
                     "Reopen box: pack {0} yielded no draw for character {1} item {2} - the open was released",
                     packId, characterId, itemId);
@@ -126,10 +139,13 @@ public class ReopenBoxManager : Singleton<ReopenBoxManager>, ILoadable
             var group = FindGroup(pack, good);
             var previous = Snapshot(state);
 
-            if (isCharge)
-                state.ChargeUsed++;
-            else
-                state.FreeUsed++;
+            if (!opening)
+            {
+                if (isCharge)
+                    state.ChargeUsed++;
+                else
+                    state.FreeUsed++;
+            }
             state.PackId = packId;
             state.RolledAt = now;
             state.GroupId = group?.Id ?? 0;
@@ -141,7 +157,8 @@ public class ReopenBoxManager : Singleton<ReopenBoxManager>, ILoadable
             if (!_store.Save(state))
             {
                 Restore(state, previous);
-                _store.ReleaseOpen(characterId, itemId, isCharge);
+                if (!opening)
+                    _store.ReleaseOpen(characterId, itemId, isCharge);
                 refundCharge?.Invoke();
                 throw new InvalidOperationException(
                     $"reopen box: refusing to keep character {characterId} item {itemId} roll: the state write failed");
@@ -161,6 +178,7 @@ public class ReopenBoxManager : Singleton<ReopenBoxManager>, ILoadable
         uint characterId, long itemId, DateTime nowUtc, Func<ReopenBoxState, bool> grant)
     {
         ReopenBoxState state;
+        ReopenBoxState snapshot;
         lock (_stateLock)
         {
             if (!_states.TryGetValue((characterId, itemId), out state))
@@ -169,11 +187,12 @@ public class ReopenBoxManager : Singleton<ReopenBoxManager>, ILoadable
                 return ReopenClaimResult.NotRolled;
             if (state.Settled)
                 return ReopenClaimResult.AlreadySettled;
+            snapshot = state.Copy();
+            state.Settled = true;
         }
 
         if (!_store.TrySettle(characterId, itemId))
         {
-            // Another claim (this process or another) holds it: mirror the durable state.
             lock (_stateLock)
                 state.Settled = true;
             return ReopenClaimResult.AlreadySettled;
@@ -182,7 +201,7 @@ public class ReopenBoxManager : Singleton<ReopenBoxManager>, ILoadable
         var granted = false;
         try
         {
-            granted = grant?.Invoke(state) ?? false;
+            granted = grant?.Invoke(snapshot) ?? false;
         }
         catch
         {
@@ -218,8 +237,10 @@ public class ReopenBoxManager : Singleton<ReopenBoxManager>, ILoadable
     public void Forget(uint characterId, long itemId)
     {
         lock (_stateLock)
+        {
             _states.Remove((characterId, itemId));
-        _store.Forget(characterId, itemId);
+            _store.Forget(characterId, itemId);
+        }
     }
 
     private ReopenBoxState GetOrCreateNoLock(uint characterId, long itemId, uint packId, DateTime now)

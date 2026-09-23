@@ -75,6 +75,24 @@ public class ReopenBoxState
 
     /// <summary>A roll is on the table when a good was drawn.</summary>
     public bool HasRoll => GoodId != 0;
+
+    public ReopenBoxState Copy() => new()
+    {
+        CharacterId = CharacterId,
+        ItemId = ItemId,
+        PackId = PackId,
+        FreeUsed = FreeUsed,
+        ChargeUsed = ChargeUsed,
+        RolledAt = RolledAt,
+        RefreshAvailableAt = RefreshAvailableAt,
+        OpenedAt = OpenedAt,
+        GroupId = GroupId,
+        GoodId = GoodId,
+        RewardItemId = RewardItemId,
+        RewardGrade = RewardGrade,
+        RewardCount = RewardCount,
+        Settled = Settled
+    };
 }
 
 /// <summary>

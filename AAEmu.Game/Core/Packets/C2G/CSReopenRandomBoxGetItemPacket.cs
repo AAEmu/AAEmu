@@ -103,7 +103,7 @@ public class CSReopenRandomBoxGetItemPacket() : GamePacket(CSOffsets.CSReopenRan
         }
 
         var box = state.ItemId < 0 ? null : character.Inventory.GetItemById((ulong)state.ItemId);
-        if (box == null ||
+        if (box == null || !ReopenBoxItemRules.OpensPack(box, state.PackId) ||
             character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillEffectGainItem, box.TemplateId, 1, box) != 1)
             return false;
 
