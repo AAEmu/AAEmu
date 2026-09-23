@@ -17,7 +17,11 @@ public interface IRandomShopStateStore
     /// Atomically claims one offer slot (sold 0 -&gt; 1). Returns false when the slot is already
     /// sold - the conditional update is the exactly-once gate under concurrency.
     /// </summary>
-    bool TryClaimOffer(uint characterId, uint packId, int slot);
+    /// <summary>
+    /// Claims the offer only when the row is still that good, rolled at <paramref name="rolledAt"/>.
+    /// A refresh that replaced the window makes this return false.
+    /// </summary>
+    bool TryClaimOffer(uint characterId, uint packId, int slot, uint goodId, DateTime rolledAt);
 
     /// <summary>Releases a claim taken before payment (the payment failed).</summary>
     bool ReleaseOffer(uint characterId, uint packId, int slot);

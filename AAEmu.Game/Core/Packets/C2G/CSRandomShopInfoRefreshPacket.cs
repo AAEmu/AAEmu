@@ -21,7 +21,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 /// <remarks>
 /// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
 /// field name alongside the value:
-/// bool refreshFree, sbyte shopType, bc bc (3 bytes), int type
+/// bool refreshFree, sbyte shopType, bc npc, bc doodad, int type
 /// </remarks>
 public class CSRandomShopInfoRefreshPacket() : GamePacket(CSOffsets.CSRandomShopInfoRefreshPacket, 1)
 {
@@ -29,14 +29,16 @@ public class CSRandomShopInfoRefreshPacket() : GamePacket(CSOffsets.CSRandomShop
 
     public bool RefreshFree { get; private set; }
     public sbyte ShopType { get; private set; }
-    public uint Bc { get; private set; }
+    public uint NpcObjId { get; private set; }
+    public uint DoodadObjId { get; private set; }
     public int Type { get; private set; }
 
     public override void Read(PacketStream stream)
     {
         RefreshFree = stream.ReadBoolean();
         ShopType = stream.ReadSByte();
-        Bc = stream.ReadBc();
+        NpcObjId = stream.ReadBc();
+        DoodadObjId = stream.ReadBc();
         Type = stream.ReadInt32();
         HandleRefresh();
     }
@@ -46,12 +48,9 @@ public class CSRandomShopInfoRefreshPacket() : GamePacket(CSOffsets.CSRandomShop
         if (Connection?.ActiveChar is not { } character)
             return;
 
-        var packId = character.ParentWorld?.GetNpc(Bc)?.Template?.MerchantRandomPackId ?? 0;
+        var packId = RandomShopMerchantRange.ResolvePackId(character, NpcObjId, DoodadObjId);
         if (packId == 0)
-        {
-            Logger.Warn("Random shop refresh: npc obj {0} runs no random shop (merchant_random_pack_id 0)", Bc);
             return;
-        }
 
         var pack = RandomMerchantManager.Instance.TryGetPack(packId);
         try
@@ -61,7 +60,8 @@ public class CSRandomShopInfoRefreshPacket() : GamePacket(CSOffsets.CSRandomShop
                 packId,
                 RefreshFree,
                 DateTime.UtcNow,
-                RefreshFree ? null : () => pack != null && ChargeRefresh(character, pack));
+                RefreshFree ? null : () => pack != null && ChargeRefresh(character, pack),
+                RefreshFree ? null : () => { if (pack != null) RefundRefresh(character, pack); });
 
             if (result == RandomShopRefreshResult.Refreshed)
             {
@@ -91,6 +91,15 @@ public class CSRandomShopInfoRefreshPacket() : GamePacket(CSOffsets.CSRandomShop
         switch (pack.RefreshCurrency)
         {
             case ContentCurrencyType.ItemPoint:
+                var held = 0;
+                foreach (var item in character.Inventory.Bag.Items)
+                {
+                    if (item.TemplateId == pack.RefreshItemId)
+                        held += item.Count;
+                }
+
+                if (held < pack.RefreshPoint)
+                    return false;
                 return character.Inventory.Bag.ConsumeItem(
                            ItemTaskType.StoreBuy, pack.RefreshItemId, pack.RefreshPoint, null) == pack.RefreshPoint;
             case ContentCurrencyType.LivingPoint:
@@ -105,6 +114,26 @@ public class CSRandomShopInfoRefreshPacket() : GamePacket(CSOffsets.CSRandomShop
                     "Random shop: refresh_currency_id {0} of pack {1} has no charge path - refusing the paid refresh",
                     pack.RefreshCurrencyId, pack.Id);
                 return false;
+        }
+    }
+
+    private static void RefundRefresh(Character character, RandomMerchantPack pack)
+    {
+        if (pack.RefreshPoint <= 0)
+            return;
+
+        switch (pack.RefreshCurrency)
+        {
+            case ContentCurrencyType.ItemPoint:
+                character.Inventory.Bag.AcquireDefaultItemEx(
+                    ItemTaskType.StoreBuy, pack.RefreshItemId, pack.RefreshPoint, -1, out _, out _, 0);
+                break;
+            case ContentCurrencyType.LivingPoint:
+                character.ChangeGamePoints(GamePointKind.Vocation, pack.RefreshPoint);
+                break;
+            case ContentCurrencyType.Gold:
+                character.AddMoney(SlotType.Inventory, pack.RefreshPoint, ItemTaskType.StoreBuy);
+                break;
         }
     }
 }

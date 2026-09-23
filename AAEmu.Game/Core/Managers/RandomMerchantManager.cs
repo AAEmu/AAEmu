@@ -135,7 +135,8 @@ public class RandomMerchantManager : Singleton<RandomMerchantManager>, ILoadable
     /// allowance back (ReleaseRefresh) instead of leaking it.
     /// </summary>
     public RandomShopRefreshResult TryRefresh(
-        uint characterId, uint packId, bool isFree, DateTime nowUtc, Func<bool> chargePayment = null)
+        uint characterId, uint packId, bool isFree, DateTime nowUtc, Func<bool> chargePayment = null,
+        Action refundCharge = null)
     {
         var pack = RequirePack(packId);
         if (!pack.RefreshUse)
@@ -184,6 +185,8 @@ public class RandomMerchantManager : Singleton<RandomMerchantManager>, ILoadable
                 window.FreeUsed = previousFree;
                 window.ChargeUsed = previousCharge;
                 _store.ReleaseRefresh(characterId, packId, period, isFree);
+                if (!isFree)
+                    refundCharge?.Invoke();
                 throw;
             }
 
@@ -192,49 +195,42 @@ public class RandomMerchantManager : Singleton<RandomMerchantManager>, ILoadable
     }
 
     /// <summary>
-    /// Sells one offer slot exactly once. The durable sold 0 -&gt; 1 claim in the store is the
-    /// concurrency gate and runs outside the window lock on purpose: two racing buys both reach
-    /// it, exactly one wins, and only the winner's payment callback can run.
+    /// Sells one offer slot exactly once. The claim is the good the buyer saw (good id and the
+    /// window's rolled-at), taken under the window lock so a refresh cannot replace the row
+    /// between the lookup and the write. Payment runs after the claim; a refused payment releases it.
     /// </summary>
     public RandomShopPurchaseResult TryPurchase(
         uint characterId, uint packId, int slot, DateTime nowUtc, Func<bool> chargePayment)
     {
         RequirePack(packId);
+        GetWindow(characterId, packId, nowUtc);
 
         RandomShopOffer offer;
-        RandomShopWindow window;
         lock (_windowLock)
         {
-            window = GetWindow(characterId, packId, nowUtc);
+            if (!_windows.TryGetValue((characterId, packId), out var window))
+                return RandomShopPurchaseResult.OfferNotFound;
+
             offer = window.Offers.FirstOrDefault(candidate => candidate.Slot == slot);
             if (offer == null)
                 return RandomShopPurchaseResult.OfferNotFound;
             if (offer.Sold)
                 return RandomShopPurchaseResult.AlreadySold;
-        }
 
-        if (!_store.TryClaimOffer(characterId, packId, slot))
-        {
-            // Another buyer (this process or another) holds the claim: mirror the durable state.
-            lock (_windowLock)
-                offer.Sold = true;
-            return RandomShopPurchaseResult.AlreadySold;
+            if (!_store.TryClaimOffer(characterId, packId, slot, offer.GoodId, window.RolledAt))
+                return RandomShopPurchaseResult.AlreadySold;
         }
 
         if (!(chargePayment?.Invoke() ?? false))
         {
             _store.ReleaseOffer(characterId, packId, slot);
+            lock (_windowLock)
+                offer.Sold = false;
             return RandomShopPurchaseResult.PaymentFailed;
         }
 
         lock (_windowLock)
-        {
             offer.Sold = true;
-            if (!_store.SaveWindow(window))
-                Logger.Error(
-                    "Random shop: character {0} sold pack {1} slot {2}, but the window rewrite failed (the claim row already holds sold = 1)",
-                    characterId, packId, slot);
-        }
 
         return RandomShopPurchaseResult.Purchased;
     }

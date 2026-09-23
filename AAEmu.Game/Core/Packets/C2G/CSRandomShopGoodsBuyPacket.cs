@@ -35,6 +35,10 @@ public class CSRandomShopGoodsBuyPacket() : GamePacket(CSOffsets.CSRandomShopGoo
         Type = stream.ReadUInt32();
         UseAaPoint = stream.ReadBoolean();
 
+        if (Connection?.ActiveChar is { } character &&
+            RandomShopMerchantRange.ResolvePackId(character, NpcObjId, DoodadObjId) == 0)
+            return;
+
         Logger.Error(
             "Random shop buy refused: character {0}, npc obj {1}, pack type {2} - the requested-offer list layout is not decoded",
             Connection?.ActiveChar?.Id ?? 0u, NpcObjId, Type);

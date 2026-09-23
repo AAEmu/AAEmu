@@ -22,7 +22,7 @@ public class CSBuyItemsPacket() : GamePacket(CSOffsets.CSBuyItemsPacket, 1)
 {
     private const byte MaxBuyEntries = 12;
     private const byte MaxBuybackEntries = 16;
-    private const float MerchantInteractionRange = 3f;
+    internal const float MerchantInteractionRange = 3f;
 
     public override void Read(PacketStream stream)
     {

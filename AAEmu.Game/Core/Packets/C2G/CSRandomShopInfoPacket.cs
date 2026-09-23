@@ -18,18 +18,16 @@ public class CSRandomShopInfoPacket() : GamePacket(CSOffsets.CSRandomShopInfoPac
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    public sbyte Unnamed1 { get; private set; }
     public sbyte ShopType { get; private set; }
-    public uint Bc { get; private set; }
-    public uint Bc2 { get; private set; }
+    public uint NpcObjId { get; private set; }
+    public uint DoodadObjId { get; private set; }
     public int TypeValue { get; private set; }
 
     public override void Read(PacketStream stream)
     {
-        Unnamed1 = stream.ReadSByte();
         ShopType = stream.ReadSByte();
-        Bc = stream.ReadBc();
-        Bc2 = stream.ReadBc();
+        NpcObjId = stream.ReadBc();
+        DoodadObjId = stream.ReadBc();
         TypeValue = stream.ReadInt32();
         HandleWindowOpen();
     }
@@ -39,12 +37,9 @@ public class CSRandomShopInfoPacket() : GamePacket(CSOffsets.CSRandomShopInfoPac
         if (Connection?.ActiveChar is not { } character)
             return;
 
-        var packId = character.ParentWorld?.GetNpc(Bc)?.Template?.MerchantRandomPackId ?? 0;
+        var packId = RandomShopMerchantRange.ResolvePackId(character, NpcObjId, DoodadObjId);
         if (packId == 0)
-        {
-            Logger.Warn("Random shop info: npc obj {0} runs no random shop (merchant_random_pack_id 0)", Bc);
             return;
-        }
 
         try
         {

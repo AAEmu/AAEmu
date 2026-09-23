@@ -22,12 +22,19 @@ public class RandomMerchantGameData : Singleton<RandomMerchantGameData>, IGameDa
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
     private IReadOnlyDictionary<uint, RandomMerchantPack> _packs = new Dictionary<uint, RandomMerchantPack>();
+    private Dictionary<uint, uint> _packByDoodadTemplate = [];
 
     public IReadOnlyDictionary<uint, RandomMerchantPack> Packs => _packs;
 
     /// <summary>One pack by <c>merchant_random_packs.id</c>, or null when no such row was loaded.</summary>
     public RandomMerchantPack GetPack(uint packId) =>
         _packs.TryGetValue(packId, out var pack) ? pack : null;
+
+    /// <summary>
+    /// The pack a doodad template opens through <c>DoodadFuncRandomStoreUi</c>, or 0 when it has none.
+    /// </summary>
+    public uint GetPackIdForDoodad(uint doodadTemplateId) =>
+        _packByDoodadTemplate.TryGetValue(doodadTemplateId, out var packId) ? packId : 0;
 
     public void Load(SqliteConnection connection)
     {
@@ -103,9 +110,29 @@ public class RandomMerchantGameData : Singleton<RandomMerchantGameData>, IGameDa
         }
 
         _packs = RandomMerchantContentBuilder.Build(packRows, groupRows, goodRows);
+        _packByDoodadTemplate = LoadDoodadPacks(connection);
         Logger.Info(
             "Loaded {0} random merchant packs ({1} usable), {2} group rows, {3} good rows",
             _packs.Count, _packs.Values.Count(pack => pack.Usable), groupRows.Count, goodRows.Count);
+    }
+
+    private static Dictionary<uint, uint> LoadDoodadPacks(SqliteConnection connection)
+    {
+        var byDoodad = new Dictionary<uint, uint>();
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            SELECT g.doodad_almighty_id, u.merchant_random_pack_id
+            FROM doodad_funcs f
+            JOIN doodad_func_groups g ON g.id = f.doodad_func_group_id
+            JOIN doodad_func_random_store_uis u ON u.id = f.actual_func_id
+            WHERE f.actual_func_type = 'DoodadFuncRandomStoreUi'
+            """;
+        using var sqliteReader = command.ExecuteReader();
+        using var reader = new SQLiteWrapperReader(sqliteReader);
+        while (reader.Read())
+            byDoodad[reader.GetUInt32("doodad_almighty_id")] = reader.GetUInt32("merchant_random_pack_id");
+        return byDoodad;
     }
 
     public void PostLoad()

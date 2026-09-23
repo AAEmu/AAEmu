@@ -25,14 +25,16 @@ public sealed class InMemoryRandomShopStore : IRandomShopStateStore
         return true;
     }
 
-    public bool TryClaimOffer(uint characterId, uint packId, int slot)
+    public bool TryClaimOffer(uint characterId, uint packId, int slot, uint goodId, DateTime rolledAt)
     {
         lock (_lock)
         {
             if (!_windows.TryGetValue((characterId, packId), out var window))
                 return false;
+            if (window.RolledAt != rolledAt)
+                return false;
             var offer = window.Offers.FirstOrDefault(candidate => candidate.Slot == slot);
-            if (offer == null || offer.Sold)
+            if (offer == null || offer.Sold || offer.GoodId != goodId)
                 return false;
             offer.Sold = true;
             return true;

@@ -140,19 +140,24 @@ public sealed class MySqlRandomShopStore : IRandomShopStateStore
         }
     }
 
-    public bool TryClaimOffer(uint characterId, uint packId, int slot)
+    public bool TryClaimOffer(uint characterId, uint packId, int slot, uint goodId, DateTime rolledAt)
     {
         try
         {
             using var connection = MySQL.CreateConnection();
             using var command = connection.CreateCommand();
-            // sold 0 -> 1 only: the affected-row count is the exactly-once gate.
+            // sold 0 -> 1 only, and only for the offer the buyer saw. A refresh changes rolled_at.
             command.CommandText =
-                "UPDATE character_random_shop_offers SET sold = 1 " +
-                "WHERE character_id = @character_id AND pack_id = @pack_id AND slot = @slot AND sold = 0";
+                "UPDATE character_random_shop_offers o " +
+                "JOIN character_random_shop_windows w ON w.character_id = o.character_id AND w.pack_id = o.pack_id " +
+                "SET o.sold = 1 " +
+                "WHERE o.character_id = @character_id AND o.pack_id = @pack_id AND o.slot = @slot AND o.sold = 0 " +
+                "AND o.good_id = @good_id AND w.rolled_at = @rolled_at";
             command.Parameters.AddWithValue("@character_id", characterId);
             command.Parameters.AddWithValue("@pack_id", packId);
             command.Parameters.AddWithValue("@slot", slot);
+            command.Parameters.AddWithValue("@good_id", goodId);
+            command.Parameters.AddWithValue("@rolled_at", rolledAt);
             return command.ExecuteNonQuery() == 1;
         }
         catch (Exception ex)
