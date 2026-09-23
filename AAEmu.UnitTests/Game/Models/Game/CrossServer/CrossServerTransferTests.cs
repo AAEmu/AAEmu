@@ -207,12 +207,12 @@ public class CrossServerTransferTests
         var restarted = Manager(store);
         await Assert.That(restarted.RecoverInterruptedTransfers()).IsEqualTo(1);
         await Assert.That(store.Get(CharacterId).State).IsEqualTo(CrossServerTransferState.RolledBack);
-        await Assert.That(row.Money).IsEqualTo(500);
+        await Assert.That(row.Money).IsEqualTo(123);
         await Assert.That(row.TransferRequestTime).IsEqualTo(default(DateTime));
 
         // Recovery never runs twice: the second pass finds nothing parked.
         await Assert.That(restarted.RecoverInterruptedTransfers()).IsEqualTo(0);
-        await Assert.That(store.RestoreWrites).IsEqualTo(1);
+        await Assert.That(store.RestoreWrites).IsEqualTo(0);
 
         // A settled transfer is not "interrupted": recovery must leave it alone.
         var settledStore = StoreWithCharacter();
@@ -253,6 +253,21 @@ public class CrossServerTransferTests
         await Assert.That(() => CrossServerCharacterSnapshot.FromJson("")).Throws<InvalidDataException>();
         await Assert.That(() => CrossServerCharacterSnapshot.FromJson("   ")).Throws<InvalidDataException>();
         await Assert.That(() => CrossServerCharacterSnapshot.FromJson("{ not json")).Throws<InvalidDataException>();
+    }
+
+    [Test]
+    public async Task LiveWallet_OverridesTheStoredSnapshot()
+    {
+        var store = StoreWithCharacter(money: 500, money2: 25, aaPoint: 9);
+        var manager = Manager(store);
+
+        var result = manager.RequestDeparture(CharacterId, AccountId, "peer-9", ParkedAt, liveMoney: 777, liveMoney2: 3, liveAaPoint: 11);
+
+        await Assert.That(result.Outcome).IsEqualTo(CrossServerTransferOutcome.Granted);
+        await Assert.That(store.Get(CharacterId).Snapshot.Money).IsEqualTo(777);
+        await Assert.That(store.Get(CharacterId).Snapshot.Money2).IsEqualTo(3);
+        await Assert.That(store.Get(CharacterId).Snapshot.AaPoint).IsEqualTo(11);
+        await Assert.That(store.Characters[CharacterId].Money).IsEqualTo(500);
     }
 
     [Test]

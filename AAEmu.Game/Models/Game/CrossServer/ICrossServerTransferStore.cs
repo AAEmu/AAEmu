@@ -35,6 +35,12 @@ public interface ICrossServerTransferStore
     /// </summary>
     bool TryRestore(ulong characterId, CrossServerCharacterSnapshot snapshot, CrossServerTransferState expected, CrossServerTransferState next);
 
+    /// <summary>
+    /// Closes a Parked journal and clears the character's park marker without writing the
+    /// snapshot's money back. <see langword="false"/> when the journal is not Parked.
+    /// </summary>
+    bool TryAbandonParked(ulong characterId);
+
     /// <summary>Every journal row, ordered by character id so recovery is deterministic.</summary>
     IReadOnlyList<CrossServerTransferJournal> LoadAll();
 }

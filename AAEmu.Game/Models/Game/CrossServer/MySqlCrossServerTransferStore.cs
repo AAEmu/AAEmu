@@ -236,6 +236,46 @@ public sealed class MySqlCrossServerTransferStore : ICrossServerTransferStore
         }
     }
 
+    public bool TryAbandonParked(ulong characterId)
+    {
+        using var connection = MySQL.CreateConnection();
+        using var transaction = connection.BeginTransaction();
+        try
+        {
+            if (ReadState(connection, transaction, characterId, forUpdate: true) != CrossServerTransferState.Parked)
+            {
+                transaction.Rollback();
+                return false;
+            }
+
+            Execute(connection, transaction,
+                "UPDATE `characters` SET `transfer_request_time` = @cleared WHERE `id` = @id",
+                ("@cleared", DateTime.MinValue), ("@id", characterId));
+            Execute(connection, transaction,
+                "UPDATE `character_transfer_journals` SET `state` = @next, `updated_at` = @updated WHERE `character_id` = @id",
+                ("@next", (byte)CrossServerTransferState.RolledBack),
+                ("@updated", DateTime.UtcNow),
+                ("@id", characterId));
+
+            transaction.Commit();
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Cross-server abandon of parked journal failed for character {0}", characterId);
+            try
+            {
+                transaction.Rollback();
+            }
+            catch (Exception rollbackEx)
+            {
+                Logger.Error(rollbackEx, "Rollback of parked-journal abandon failed for character {0}", characterId);
+            }
+
+            return false;
+        }
+    }
+
     public IReadOnlyList<CrossServerTransferJournal> LoadAll()
     {
         var rows = new List<CrossServerTransferJournal>();

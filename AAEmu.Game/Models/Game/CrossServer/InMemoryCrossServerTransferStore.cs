@@ -125,6 +125,19 @@ public sealed class InMemoryCrossServerTransferStore : ICrossServerTransferStore
         return true;
     }
 
+    public bool TryAbandonParked(ulong characterId)
+    {
+        if (!_journals.TryGetValue(characterId, out var journal) || journal.State != CrossServerTransferState.Parked)
+            return false;
+
+        if (!_characters.TryGetValue(characterId, out var row))
+            return false;
+
+        row.TransferRequestTime = default;
+        _journals[characterId] = journal with { State = CrossServerTransferState.RolledBack, UpdatedUtc = DateTime.UtcNow };
+        return true;
+    }
+
     public IReadOnlyList<CrossServerTransferJournal> LoadAll() =>
         _journals.Values.OrderBy(j => j.CharacterId).ToList();
 }

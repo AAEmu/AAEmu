@@ -35,6 +35,11 @@ public class GameConnection
     /// </summary>
     public bool EncryptionActive { get; set; }
 
+    /// <summary>
+    /// Set only when this connection is sent a foreign-server passport. Departure is refused without it.
+    /// </summary>
+    public bool ForeignPassportIssued { get; set; }
+
     public Character ActiveChar { get; set; }
     public Dictionary<uint, Character> Characters { get; set; }
     public Dictionary<uint, House> Houses { get; set; }

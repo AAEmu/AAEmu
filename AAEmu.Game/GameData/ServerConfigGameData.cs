@@ -1,5 +1,3 @@
-using System.Globalization;
-
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.CrossServer;
@@ -12,45 +10,51 @@ using NLog;
 namespace AAEmu.Game.GameData;
 
 /// <summary>
-/// Game servers named by the content database table <c>server_configs</c>.
-/// A departure with no requested target uses the single other row. Zero peers or more than one
-/// is not a destination, and the caller refuses instead of guessing.
+/// Rows of <c>server_configs</c>. Each row is a group of logic ids
+/// (<c>logic_ids</c>), not a destination server. A departure with no explicit target
+/// therefore has no peer to resolve here.
 /// </summary>
 [GameData]
 public class ServerConfigGameData : Singleton<ServerConfigGameData>, IGameDataLoader, ICrossServerDirectory
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
-    private List<uint> _serverIds = [];
+    private int _groupCount;
 
     public void Load(SqliteConnection connection)
     {
-        var ids = new List<uint>();
+        var count = 0;
         using var command = connection.CreateCommand();
-        command.CommandText = "SELECT id FROM server_configs ORDER BY id";
+        command.CommandText = "SELECT id, logic_ids, server_name FROM server_configs ORDER BY id";
         using var sqliteReader = command.ExecuteReader();
         using var reader = new SQLiteWrapperReader(sqliteReader);
         while (reader.Read())
-            ids.Add(reader.GetUInt32("id"));
+        {
+            count++;
+            if (reader.IsDBNull("logic_ids") || string.IsNullOrWhiteSpace(reader.GetString("logic_ids")))
+                Logger.Error("server_configs id {0} has no logic_ids", reader.GetUInt32("id"));
+        }
 
-        _serverIds = ids;
-        if (ids.Count == 0)
+        _groupCount = count;
+        if (count == 0)
             Logger.Error("server_configs is empty; a cross-server departure with no named target will be refused");
+        else
+            Logger.Info("server_configs loaded {0} group(s); none of them names a departure destination", count);
     }
 
     public void PostLoad()
     {
     }
 
+    /// <summary>
+    /// Always null. <c>server_configs</c> does not name a peer server, so an unnamed
+    /// departure is refused. An explicit target key is resolved by the caller before this.
+    /// </summary>
     public string ResolvePeerKey(byte ownServerId)
     {
-        var peers = _serverIds.Where(id => id != ownServerId).ToList();
-        if (peers.Count == 1)
-            return peers[0].ToString(CultureInfo.InvariantCulture);
-
         Logger.Error(
-            "Cross-server departure target unresolved: server_configs named {0} peer(s) for server id {1}; exactly one is required.",
-            peers.Count, ownServerId);
+            "Cross-server departure target unresolved: server_configs has {0} group(s) and names no peer for server id {1}.",
+            _groupCount, ownServerId);
         return null;
     }
 }

@@ -19,8 +19,9 @@ namespace AAEmu.Game.Core.Managers;
 /// character's money comes back and its items are proven untouched, or nothing is written.</item>
 /// <item><b>Re-entry</b> is only legal from a settled transfer and consumes it exactly once;
 /// re-entry with no departure is refused.</item>
-/// <item><b>Restart mid-transfer</b> is resolved deterministically at startup: every Parked row
-/// (ordered by character id) is rolled back, so recovery is idempotent and never re-runs.</item>
+/// <item><b>Restart</b> closes every journal still Parked without writing the snapshot back.
+/// A departure only parks the character; they keep playing, so restoring departure-time money
+/// would duplicate gold spent since then and erase gold earned since then.</item>
 /// </list>
 /// </para>
 /// </summary>
@@ -45,7 +46,9 @@ public class CrossServerTransferManager(
     /// <paramref name="parkedAtUtc"/> is the park timestamp the caller must also mirror onto the
     /// live character so a later save cannot erase the marker the store just wrote.
     /// </summary>
-    public CrossServerDepartureResult RequestDeparture(ulong characterId, uint accountId, string targetServerKey, DateTime parkedAtUtc)
+    public CrossServerDepartureResult RequestDeparture(
+        ulong characterId, uint accountId, string targetServerKey, DateTime parkedAtUtc,
+        long? liveMoney = null, long? liveMoney2 = null, long? liveAaPoint = null)
     {
         var target = ResolveTarget(targetServerKey);
         if (string.IsNullOrWhiteSpace(target))
@@ -57,7 +60,17 @@ public class CrossServerTransferManager(
         }
 
         var snapshot = Store.CaptureSnapshot(characterId);
-        if (snapshot == null)
+        if (snapshot != null && liveMoney != null && liveMoney2 != null && liveAaPoint != null)
+        {
+            snapshot = snapshot with
+            {
+                Money = liveMoney.Value,
+                Money2 = liveMoney2.Value,
+                AaPoint = liveAaPoint.Value,
+            };
+        }
+
+        if (snapshot == null || snapshot.CharacterId != characterId)
         {
             Logger.Error("Cross-server departure refused for character {0}: no characters row to snapshot.", characterId);
             return new CrossServerDepartureResult(CrossServerTransferOutcome.RefusedCharacterMissing, target, parkedAtUtc);
@@ -166,10 +179,10 @@ public class CrossServerTransferManager(
     }
 
     /// <summary>
-    /// Startup recovery for a restart that happened mid-transfer: every journal still Parked is
-    /// rolled back to its snapshot, in character-id order. Running it twice is a no-op — the
-    /// second pass finds no Parked rows — so the outcome after a restart is always the same.
-    /// Returns how many characters were restored.
+    /// Closes journals that are still Parked after a restart, without writing their snapshots
+    /// back onto the character. The character never left this process, so the live wallet is
+    /// the one to keep. Running it twice is a no-op.
+    /// Returns how many journals were closed.
     /// </summary>
     public int RecoverInterruptedTransfers()
     {
@@ -181,17 +194,17 @@ public class CrossServerTransferManager(
         var recovered = 0;
         foreach (var journal in interrupted)
         {
-            if (Store.TryRestore(journal.CharacterId, journal.Snapshot, CrossServerTransferState.Parked, CrossServerTransferState.RolledBack))
+            if (Store.TryAbandonParked(journal.CharacterId))
             {
                 recovered++;
                 Logger.Warn(
-                    "Recovered cross-server departure interrupted by restart for character {0}: rolled back to the departure snapshot.",
+                    "Closed parked cross-server departure for character {0} on restart without restoring the snapshot.",
                     journal.CharacterId);
             }
             else
             {
                 Logger.Error(
-                    "Cross-server recovery could not restore character {0}: snapshot no longer matches the live character.",
+                    "Cross-server recovery could not close the parked journal for character {0}.",
                     journal.CharacterId);
             }
         }

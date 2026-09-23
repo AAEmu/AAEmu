@@ -32,6 +32,14 @@ public class CSDepartToForeignServerPacket() : GamePacket(CSOffsets.CSDepartToFo
             return;
         }
 
+        if (!connection.ForeignPassportIssued)
+        {
+            Logger.Error(
+                "Cross-server departure refused for {0}: no passport was issued on this connection.",
+                character.Name);
+            return;
+        }
+
         // characters.transfer_request_time is the park marker and is written by every
         // Character.Save(), so the live character must carry the same timestamp the journal is
         // about to persist; on refusal the previous value is put back untouched.
@@ -40,7 +48,8 @@ public class CSDepartToForeignServerPacket() : GamePacket(CSOffsets.CSDepartToFo
         character.TransferRequestTime = parkedAtUtc;
 
         var result = CrossServerTransferManager.Instance.RequestDeparture(
-            character.Id, connection.AccountId, targetServerKey: null, parkedAtUtc);
+            character.Id, connection.AccountId, targetServerKey: null, parkedAtUtc,
+            character.Money, character.Money2, character.AaPoint);
 
         if (result.Outcome != CrossServerTransferOutcome.Granted)
         {
