@@ -70,6 +70,7 @@ public class CSReopenRandomBoxGetItemPacket() : GamePacket(CSOffsets.CSReopenRan
             if (result == ReopenClaimResult.Claimed)
             {
                 Connection.SendPacket(new SCReopenRandomBoxGetItemPacket(0));
+                Connection.SendPacket(new SCReopenRandomBoxRemovePacket(ItemId, Type1));
                 return;
             }
 
@@ -98,6 +99,11 @@ public class CSReopenRandomBoxGetItemPacket() : GamePacket(CSOffsets.CSReopenRan
                 character.Id, state.ItemId, state.RewardItemId, state.RewardCount);
             return false;
         }
+
+        var box = state.ItemId < 0 ? null : character.Inventory.GetItemById((ulong)state.ItemId);
+        if (box != null &&
+            character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillEffectGainItem, box.TemplateId, 1, box) != 1)
+            return false;
 
         if (character.Inventory.Bag.SpaceLeftForItem(state.RewardItemId) >= state.RewardCount)
         {

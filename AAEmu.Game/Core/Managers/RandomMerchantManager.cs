@@ -247,6 +247,8 @@ public class RandomMerchantManager : Singleton<RandomMerchantManager>, ILoadable
     private static RandomMerchantPack StaticPackLookup(uint packId) =>
         RandomMerchantGameData.Instance.GetPack(packId);
 
+    public RandomMerchantPack FindPack(uint packId) => _packLookup(packId);
+
     private RandomMerchantPack RequirePack(uint packId)
     {
         var pack = _packLookup(packId);

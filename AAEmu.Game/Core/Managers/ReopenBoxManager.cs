@@ -82,7 +82,8 @@ public class ReopenBoxManager : Singleton<ReopenBoxManager>, ILoadable
     /// charge or the roll fails, so nothing leaks.
     /// </summary>
     public ReopenRefreshResult TryRefresh(
-        uint characterId, long itemId, uint packId, bool isCharge, DateTime nowUtc, Func<bool> chargePayment = null)
+        uint characterId, long itemId, uint packId, bool isCharge, DateTime nowUtc, Func<bool> chargePayment = null,
+        Action refundCharge = null)
     {
         var pack = RequirePack(packId);
         var now = ServerCalendar.AsUtc(nowUtc);
@@ -94,8 +95,11 @@ public class ReopenBoxManager : Singleton<ReopenBoxManager>, ILoadable
                 throw new RandomMerchantContentException(
                     $"reopen box: item {itemId} was opened against pack {state.PackId}, not {packId} - refusing");
 
-            if (now < state.RefreshAvailableAt)
-                return ReopenRefreshResult.CooldownActive;
+            if (state.Settled)
+                return ReopenRefreshResult.AlreadySettled;
+
+            if (pack.LifeTime > 0 && now >= state.RefreshAvailableAt)
+                return ReopenRefreshResult.Expired;
 
             var max = isCharge ? pack.ChargeCount : pack.FreeCount;
             if (!_store.TrySpendOpen(characterId, itemId, isCharge, max))
@@ -126,18 +130,17 @@ public class ReopenBoxManager : Singleton<ReopenBoxManager>, ILoadable
                 state.FreeUsed++;
             state.PackId = packId;
             state.RolledAt = now;
-            state.RefreshAvailableAt = now.AddMinutes(pack.LifeTime);
             state.GroupId = group?.Id ?? 0;
             state.GoodId = good.Id;
             state.RewardItemId = good.ItemId;
             state.RewardGrade = good.GradeId;
             state.RewardCount = good.Count;
-            state.Settled = false;
 
             if (!_store.Save(state))
             {
                 Restore(state, previous);
                 _store.ReleaseOpen(characterId, itemId, isCharge);
+                refundCharge?.Invoke();
                 throw new InvalidOperationException(
                     $"reopen box: refusing to keep character {characterId} item {itemId} roll: the state write failed");
             }
@@ -214,13 +217,15 @@ public class ReopenBoxManager : Singleton<ReopenBoxManager>, ILoadable
         if (_states.TryGetValue((characterId, itemId), out var state))
             return state;
 
+        var openedPack = _packLookup(packId);
+        var lifeMinutes = openedPack?.LifeTime ?? 0;
         state = new ReopenBoxState
         {
             CharacterId = characterId,
             ItemId = itemId,
             PackId = packId,
             RolledAt = now,
-            RefreshAvailableAt = now
+            RefreshAvailableAt = lifeMinutes > 0 ? now.AddMinutes(lifeMinutes) : DateTime.MaxValue
         };
         if (!_store.Save(state))
             throw new InvalidOperationException(

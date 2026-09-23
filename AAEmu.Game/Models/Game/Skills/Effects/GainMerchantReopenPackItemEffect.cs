@@ -2,6 +2,8 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Merchant;
+using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Skills.Templates;
@@ -20,16 +22,10 @@ public class GainMerchantReopenPackItemEffect : EffectTemplate
 {
     public uint MerchantReopenPackId { get; set; }
 
-    /// <summary>Minutes before the pack may be opened again; the shipped rows run 10, 70 and 1440.</summary>
+    /// <summary>Minutes the opened box stays available. The pack row is what the session uses.</summary>
     public int LifeTime { get; set; }
 
     public override bool OnActionTime => false;
-
-    /// <summary>
-    /// Account attribute kind the reopen cooldown is filed under. Above enum_account_attribute_kinds' three
-    /// shipped values so it cannot collide with a client-known kind.
-    /// </summary>
-    private const uint ReopenCooldownKind = 1000;
 
     public override void Apply(BaseUnit caster, SkillCaster casterObj, BaseUnit target, SkillCastTarget targetObj,
         CastAction castObj, EffectSource source, SkillObject skillObject, DateTime time,
@@ -37,47 +33,16 @@ public class GainMerchantReopenPackItemEffect : EffectTemplate
     {
         if (caster is not Character character)
             return;
-
-        // Still cooling down from the last open of this same pack.
-        var cooldown = AccountAttributeManager.Instance.Find(character.AccountId, ReopenCooldownKind, MerchantReopenPackId, 0);
-        if (cooldown is { IsExpired: false })
+        if (casterObj is not SkillItem skillItem || skillItem.ItemId == 0)
         {
-            character.SendErrorMessage(ErrorMessageType.CraftCooldown);
+            Logger.Warn("GainMerchantReopenPackItemEffect: pack {0} was used without a box item instance", MerchantReopenPackId);
             return;
         }
 
-        var good = MerchantReopenPackGameData.Instance.Roll(MerchantReopenPackId);
-        if (good == null)
-        {
-            Logger.Warn($"GainMerchantReopenPackItemEffect: pack {MerchantReopenPackId} yielded nothing for {character.Name}");
-            return;
-        }
-
-        Logger.Debug($"GainMerchantReopenPackItemEffect: pack {MerchantReopenPackId} -> item {good.ItemId} x{good.Count} grade {good.GradeId} for {character.Name}");
-
-        // Straight to the bag when it fits, otherwise to the mail attachment container, which is how the rest
-        // of the grant paths avoid dropping a reward a full inventory cannot take.
-        if (character.Inventory.Bag.SpaceLeftForItem(good.ItemId) >= good.Count)
-        {
-            character.Inventory.Bag.AcquireDefaultItemEx(ItemTaskType.SkillEffectGainItem, good.ItemId,
-                good.Count, good.GradeId, out _, out _, character.Id);
-        }
-        else
-        {
-            character.Inventory.MailAttachments.AcquireDefaultItemEx(ItemTaskType.Invalid, good.ItemId,
-                good.Count, good.GradeId, out _, out _, character.Id);
-            character.SendErrorMessage(ErrorMessageType.BagFull);
-        }
-
-        // LifeTime is the reopen cooldown in minutes. It is per account rather than per character - the box
-        // belongs to the account - so it is recorded through the account attribute store under the pack id,
-        // which is what stops a player shuffling characters to reopen the same box immediately.
-        if (LifeTime > 0)
-        {
-            AccountAttributeManager.Instance.Change(
-                character.AccountId, ReopenCooldownKind, MerchantReopenPackId,
-                0, true, 1, LifeTime);
-        }
-
+        var opened = ReopenBoxManager.Instance.TryRefresh(
+            character.Id, (long)skillItem.ItemId, MerchantReopenPackId, false, time);
+        if (opened != ReopenRefreshResult.Refreshed && opened != ReopenRefreshResult.AlreadySettled)
+            Logger.Warn("GainMerchantReopenPackItemEffect: pack {0} did not open for {1}: {2}",
+                MerchantReopenPackId, character.Name, opened);
     }
 }

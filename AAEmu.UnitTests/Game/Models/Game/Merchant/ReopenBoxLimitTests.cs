@@ -29,11 +29,10 @@ public class ReopenBoxLimitTests
 
         await Assert.That(manager.TryRefresh(50, 8001, 2, false, now))
             .IsEqualTo(ReopenRefreshResult.Refreshed);
-        // Cooldown would fire next, so move past life_time to exercise only the counter.
-        var later = now.AddMinutes(61);
+        var later = now.AddMinutes(1);
         await Assert.That(manager.TryRefresh(50, 8001, 2, false, later))
             .IsEqualTo(ReopenRefreshResult.Refreshed);
-        var later2 = later.AddMinutes(61);
+        var later2 = later.AddMinutes(1);
         await Assert.That(manager.TryRefresh(50, 8001, 2, false, later2))
             .IsEqualTo(ReopenRefreshResult.CounterExhausted);
 
@@ -47,7 +46,7 @@ public class ReopenBoxLimitTests
     {
         var manager = NewManager(out _, out _);
         var now = ReopenBoxTestContent.Moment;
-        var later = now.AddMinutes(61);
+        var later = now.AddMinutes(1);
 
         await Assert.That(manager.TryRefresh(51, 8002, 2, true, now, () => true))
             .IsEqualTo(ReopenRefreshResult.Refreshed);
@@ -67,7 +66,7 @@ public class ReopenBoxLimitTests
             .IsEqualTo(ReopenRefreshResult.Refreshed);
         var firstGood = manager.TryGetState(52, 8003).GoodId;
 
-        var result = manager.TryRefresh(52, 8003, 2, true, now.AddMinutes(61), () => false);
+        var result = manager.TryRefresh(52, 8003, 2, true, now.AddMinutes(1), () => false);
 
         await Assert.That(result).IsEqualTo(ReopenRefreshResult.PaymentFailed);
         await Assert.That(manager.TryGetState(52, 8003).GoodId).IsEqualTo(firstGood);
@@ -76,7 +75,7 @@ public class ReopenBoxLimitTests
     }
 
     [Test]
-    public async Task LifeTimeCooldown_BlocksTheNextRollUntilItElapses()
+    public async Task LifeTime_ClosesTheBoxInsteadOfSpacingRolls()
     {
         var manager = NewManager(out _, out _);
         var now = ReopenBoxTestContent.Moment;
@@ -84,11 +83,9 @@ public class ReopenBoxLimitTests
             .IsEqualTo(ReopenRefreshResult.Refreshed);
 
         await Assert.That(manager.TryRefresh(53, 8004, 2, false, now.AddMinutes(59)))
-            .IsEqualTo(ReopenRefreshResult.CooldownActive);
-        await Assert.That(manager.TryRefresh(53, 8004, 2, false, now.AddMinutes(60)))
             .IsEqualTo(ReopenRefreshResult.Refreshed);
-
-        await Assert.That(manager.TryGetState(53, 8004).FreeUsed).IsEqualTo(2);
+        await Assert.That(manager.TryRefresh(53, 8004, 2, false, now.AddMinutes(60)))
+            .IsEqualTo(ReopenRefreshResult.Expired);
     }
 
     [Test]
@@ -99,7 +96,7 @@ public class ReopenBoxLimitTests
         await Assert.That(manager.TryRefresh(54, 8005, 2, false, now))
             .IsEqualTo(ReopenRefreshResult.Refreshed);
 
-        await Assert.That(() => manager.TryRefresh(54, 8005, 99, false, now.AddMinutes(61)))
+        await Assert.That(() => manager.TryRefresh(54, 8005, 99, false, now.AddMinutes(1)))
             .Throws<RandomMerchantContentException>();
     }
 }

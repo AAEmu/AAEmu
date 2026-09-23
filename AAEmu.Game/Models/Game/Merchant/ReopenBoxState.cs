@@ -8,8 +8,10 @@ public enum ReopenRefreshResult
     Refreshed,
     /// <summary>The pack ships fewer paid opens than requested (or the free budget is spent).</summary>
     CounterExhausted,
-    /// <summary>The box's reopen cooldown (life_time minutes from content) has not elapsed.</summary>
-    CooldownActive,
+    /// <summary>life_time minutes from the first open have elapsed, so the box is closed.</summary>
+    Expired,
+    /// <summary>The reward was already taken. A refresh does not open a new claim.</summary>
+    AlreadySettled,
     /// <summary>The paid-open charge callback refused.</summary>
     PaymentFailed,
     /// <summary>The content yielded no draw - the roll was released, nothing was spent.</summary>
@@ -52,7 +54,7 @@ public class ReopenBoxState
     /// <summary>When the current roll was made (the record struct's openDate/refreshDate base).</summary>
     public DateTime RolledAt { get; set; }
 
-    /// <summary>When the box may be rolled again: RolledAt + pack life_time minutes.</summary>
+    /// <summary>When the open box closes: first open + pack life_time minutes. MaxValue means the pack has no lifetime.</summary>
     public DateTime RefreshAvailableAt { get; set; }
 
     /// <summary>When the first reward of this box state was claimed (record openDate).</summary>

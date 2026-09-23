@@ -8,6 +8,8 @@ using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Merchant;
+using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Effects;
 
 using NLog;
 
@@ -53,12 +55,27 @@ public class CSReopenRandomBoxRefreshPacket() : GamePacket(CSOffsets.CSReopenRan
         }
 
         var packId = (uint)TypeValue;
+        var box = character.Inventory.GetItemById((ulong)ItemId);
+        if (box == null || !BoxOpensPack(box, packId))
+        {
+            Logger.Warn(
+                "Reopen box refresh refused for character {0} item {1}: not a box they hold for pack {2}",
+                character.Id, ItemId, packId);
+            return;
+        }
+
         var pack = ReopenBoxManager.Instance.TryGetPack(packId);
+        var charged = false;
         try
         {
             var result = ReopenBoxManager.Instance.TryRefresh(
                 character.Id, ItemId, packId, IsCharge, DateTime.UtcNow,
-                IsCharge ? () => pack != null && ChargeOpen(character, pack) : null);
+                IsCharge ? () => charged = pack != null && ChargeOpen(character, pack) : null,
+                () =>
+                {
+                    if (charged && pack != null)
+                        RefundOpen(character, pack);
+                });
 
             if (result == ReopenRefreshResult.Refreshed)
             {
@@ -88,9 +105,47 @@ public class CSReopenRandomBoxRefreshPacket() : GamePacket(CSOffsets.CSReopenRan
             return true; // content prices it at zero - nothing is charged
 
         if (pack.Currency == ContentCurrencyType.ItemPoint)
+        {
+            if (pack.ChargeItemId == 0)
+                return false;
+            character.Inventory.Bag.GetAllItemsByTemplate(pack.ChargeItemId, -1, out _, out var held);
+            if (held < pack.ChargePoint)
+                return false;
             return character.Inventory.Bag.ConsumeItem(
                        ItemTaskType.StoreBuy, pack.ChargeItemId, pack.ChargePoint, null) == pack.ChargePoint;
+        }
 
         return character.TryPayCurrency((uint)pack.Currency, pack.ChargePoint, false, ItemTaskType.StoreBuy);
+    }
+
+    private static void RefundOpen(Character character, MerchantReopenPack pack)
+    {
+        if (pack.ChargePoint <= 0)
+            return;
+        if (pack.Currency == ContentCurrencyType.ItemPoint)
+        {
+            character.Inventory.Bag.AcquireDefaultItem(
+                ItemTaskType.StoreBuy, pack.ChargeItemId, pack.ChargePoint, -1);
+            return;
+        }
+
+        character.TryPayCurrency((uint)pack.Currency, -pack.ChargePoint, false, ItemTaskType.StoreBuy);
+    }
+
+    private static bool BoxOpensPack(Item box, uint packId)
+    {
+        if (box.Template == null || box.Template.UseSkillId == 0)
+            return false;
+        var skill = SkillManager.Instance.GetSkillTemplate(box.Template.UseSkillId);
+        if (skill == null)
+            return false;
+        foreach (var effect in skill.Effects)
+        {
+            if (effect.Template is GainMerchantReopenPackItemEffect reopen &&
+                reopen.MerchantReopenPackId == packId)
+                return true;
+        }
+
+        return false;
     }
 }

@@ -119,17 +119,14 @@ public class ReopenBoxSettlementTests
     }
 
     [Test]
-    public async Task NextRoll_ClearsTheClaimFlagForTheNewDraw()
+    public async Task Claim_IsFinalAndDoesNotRearmOnRefresh()
     {
         var manager = RolledManager(out _, out var itemId);
         await Assert.That(manager.TryClaim(60, itemId, ReopenBoxTestContent.Moment, _ => true))
             .IsEqualTo(ReopenClaimResult.Claimed);
 
         var rerolled = manager.TryRefresh(60, itemId, 4, false, ReopenBoxTestContent.Moment.AddMinutes(1));
-        await Assert.That(rerolled).IsEqualTo(ReopenRefreshResult.Refreshed);
-        await Assert.That(manager.TryGetState(60, itemId).Settled).IsFalse();
-
-        var result = manager.TryClaim(60, itemId, ReopenBoxTestContent.Moment.AddMinutes(1), _ => true);
-        await Assert.That(result).IsEqualTo(ReopenClaimResult.Claimed);
+        await Assert.That(rerolled).IsEqualTo(ReopenRefreshResult.AlreadySettled);
+        await Assert.That(manager.TryGetState(60, itemId).Settled).IsTrue();
     }
 }

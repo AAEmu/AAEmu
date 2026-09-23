@@ -72,10 +72,10 @@ public class SCRandomShopInfoPacket(
             stream.Write((uint)offer.Slot);            // map key
             stream.Write((byte)0);                     // element type byte - undecoded
             stream.Write((uint)offer.Cost);
-            stream.Write(0u);                          // element type u32 - undecoded
+            stream.Write(offer.ItemId);                // the item this offer sells
             stream.Write((byte)offer.Slot);            // order
             stream.Write((byte)(offer.Sold ? 0 : 1));  // buyAmount = remaining
-            stream.Write(0u);                          // element type u32 - undecoded
+            stream.Write(offer.GoodId);                // the content good row
         }
 
         return stream;
