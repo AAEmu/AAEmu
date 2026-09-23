@@ -114,7 +114,7 @@ public class RandomMerchantManager : Singleton<RandomMerchantManager>, ILoadable
                 CharacterId = characterId,
                 PackId = packId,
                 PeriodStart = period,
-                RolledAt = now,
+                RolledAt = ToStoredRolledAt(now),
                 FreeUsed = 0,
                 ChargeUsed = 0,
                 Offers = RollOffers(pack)
@@ -173,7 +173,7 @@ public class RandomMerchantManager : Singleton<RandomMerchantManager>, ILoadable
             try
             {
                 window.Offers = RollOffers(pack);
-                window.RolledAt = ServerCalendar.AsUtc(nowUtc);
+                window.RolledAt = ToStoredRolledAt(nowUtc);
                 if (!_store.SaveWindow(window))
                     throw new InvalidOperationException(
                         $"random shop: refusing to keep character {characterId} pack {packId} refresh: the state write failed");
@@ -233,6 +233,15 @@ public class RandomMerchantManager : Singleton<RandomMerchantManager>, ILoadable
             offer.Sold = true;
 
         return RandomShopPurchaseResult.Purchased;
+    }
+
+    /// <summary>
+    /// <c>rolled_at</c> is a whole-second DATETIME. Sub-second ticks never match the stored value.
+    /// </summary>
+    internal static DateTime ToStoredRolledAt(DateTime value)
+    {
+        var utc = ServerCalendar.AsUtc(value);
+        return new DateTime(utc.Ticks - utc.Ticks % TimeSpan.TicksPerSecond, DateTimeKind.Utc);
     }
 
     private static RandomMerchantPack StaticPackLookup(uint packId) =>
