@@ -21,6 +21,13 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
+    /// <summary>
+    /// Where the songs are persisted. Production runs against the configured MySQL; the persistence
+    /// tests point it at an isolated fixture so a save/relog round-trip can be exercised without a
+    /// developer's database. Internal to keep the DI constructor as it is.
+    /// </summary>
+    internal Func<MySqlConnection> ConnectionFactory { get; set; } = MySQL.CreateConnection;
+
     private Dictionary<uint, SongData> _uploadQueue = []; // playerId, song
     private Dictionary<uint, SongData> _allSongs = []; // songId, song
     private Dictionary<uint, byte[]> _midiCache = []; // playerId, midi data
@@ -39,7 +46,7 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
 
         LoadNoteLimit();
 
-        using (var connection = MySQL.CreateConnection())
+        using (var connection = ConnectionFactory())
         {
             using (var command = connection.CreateCommand())
             {
@@ -98,7 +105,7 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         // keep pointing at it, so a later save must never take its id over.
         songData.Id = musicIdManager.GetNextId();
 
-        using (var connection = MySQL.CreateConnection())
+        using (var connection = ConnectionFactory())
         {
             using (var command = connection.CreateCommand())
             {
@@ -468,8 +475,9 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         if (buffs == null)
             return;
 
-        // 1155 = Play Song: the instrument play buffs and the memorized score alike.
-        foreach (var buff in SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.PlaySong))
+        // 1155 = Play Song: the instrument play buffs and the memorized score alike. An unseeded
+        // skill table answers with null, which must still end the performance cleanly.
+        foreach (var buff in SkillManager.Instance.GetBuffsByTagId((uint)TagsEnum.PlaySong) ?? [])
         {
             if (buffs.CheckBuff(buff))
                 buffs.RemoveBuff(buff);
