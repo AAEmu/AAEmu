@@ -556,6 +556,8 @@ public static class SCOffsets
     public const ushort SCEventEmptyPacket = 0x2DF; // 10.0.2.13 SC_PACKET_EVENT_EMPTY (735)
     public const ushort SCFactionPowerScorePacket = 0x00C; // 10.0.2.13 SC_PACKET_FACTION_POWER_SCORE (12)
     public const ushort SCIncreasedFavoritePortalLimitPacket = 0x08D; // 10.0.2.13 SC_PACKET_INCREASED_FAVORITE_PORTAL_LIMIT (141)
+    public const ushort SCZonePermissionChangedPacket = 0x086; // 10.0.2.13 (body not sent yet)
+    public const ushort SCZonePermissionExpelledPacket = 0x087; // 10.0.2.13 (u8 option)
     public const ushort SCInstanceVisitCountsPacket = 0x1EC; // 10.0.2.13 SC_PACKET_INSTANCE_VISIT_COUNTS (492)
     public const ushort SCInstanceVisitCountChangePacket = 0x1EE; // 10.0.2.13 SC_PACKET_INSTANCE_VISIT_COUNT_CHANGE (494)
     public const ushort SCFavoriteCraftsPacket = 0x23A; // 10.0.2.13 SC_PACKET_FAVORITE_CRAFTS (570)

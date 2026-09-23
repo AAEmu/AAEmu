@@ -4,6 +4,7 @@ using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Indun;
 
 namespace AAEmu.Game.Core.Packets.C2G;
@@ -30,6 +31,7 @@ public class CSEnterSysInstancePacket() : GamePacket(CSOffsets.CSEnterSysInstanc
         if (dungeonZone == null)
         {
             Logger.Warn("CSEnterSysInstance: no IndunZone for instances.id={0} (bc={1})", InstId, Bc);
+            character.SendErrorMessage(ErrorMessageType.InvalidStateInstance);
             return;
         }
 
@@ -39,6 +41,7 @@ public class CSEnterSysInstancePacket() : GamePacket(CSOffsets.CSEnterSysInstanc
             Logger.Warn(
                 "CSEnterSysInstance: zone group {0} has no zone keys (instances.id={1})",
                 dungeonZone.ZoneGroupId, InstId);
+            character.SendErrorMessage(ErrorMessageType.InvalidStateInstance);
             return;
         }
 
@@ -47,6 +50,7 @@ public class CSEnterSysInstancePacket() : GamePacket(CSOffsets.CSEnterSysInstanc
         if (zone == null)
         {
             Logger.Warn("CSEnterSysInstance: missing zone for key {0}", zoneKeys[0]);
+            character.SendErrorMessage(ErrorMessageType.InvalidStateInstance);
             return;
         }
 

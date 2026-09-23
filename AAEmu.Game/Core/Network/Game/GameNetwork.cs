@@ -354,6 +354,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSFactionIssuanceOfMobilizationOrderPacket, 1, typeof(CSFactionIssuanceOfMobilizationOrderPacket));
         RegisterPacket(CSOffsets.CSRefreshBotCheckInfoPacket, 1, typeof(CSRefreshBotCheckInfoPacket));
         RegisterPacket(CSOffsets.CSAnswerBotCheckInfoPacket, 1, typeof(CSAnswerBotCheckInfoPacket));
+        RegisterPacket(CSOffsets.CSAnswerZonePermissionPacket, 1, typeof(CSAnswerZonePermissionPacket));
         RegisterPacket(CSOffsets.CSReportSpammerPacket, 1, typeof(CSReportSpammerPacket));
         RegisterPacket(CSOffsets.CSTeamHandOverOwnerResponsePacket, 1, typeof(CSTeamHandOverOwnerResponsePacket));
         RegisterPacket(CSOffsets.CSTeamOwnerOfferResponsePacket, 1, typeof(CSTeamOwnerOfferResponsePacket));

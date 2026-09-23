@@ -7,6 +7,9 @@ internal sealed class IndunDifficultySelectionState
 
     internal bool IsReservedBy(uint characterId) => characterId != 0 && _selectorId == characterId;
 
+    /// <summary>True while any character holds this selection open.</summary>
+    internal bool IsHeld => _selectorId != null;
+
     internal bool Reserve(uint characterId, byte? selected, Action completion)
     {
         if (characterId == 0 || selected != null || (_selectorId != null && _selectorId != characterId))
