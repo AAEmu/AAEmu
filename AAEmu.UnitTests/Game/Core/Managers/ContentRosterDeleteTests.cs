@@ -39,7 +39,7 @@ public class ContentRosterDeleteTests
             return removed;
         }
 
-        public ulong Insert(ulong accountId, string title, DateTime createdAt)
+        public ulong Insert(ulong accountId, string title, DateTime createdAt, IReadOnlyList<uint> memberCharacterIds)
         {
             var id = _ownerByRosterId.Count == 0 ? 1UL : _ownerByRosterId.Keys.Max() + 1;
             _ownerByRosterId[id] = accountId;

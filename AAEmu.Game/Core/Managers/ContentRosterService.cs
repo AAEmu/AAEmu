@@ -6,6 +6,7 @@ using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Team;
 using MySql.Data.MySqlClient;
 using NLog;
 
@@ -48,8 +49,8 @@ public interface IContentRosterStore
     /// <summary>Removes owned rows; returns how many rows actually went away.</summary>
     int DeleteOwned(ulong accountId, IReadOnlyList<ulong> rosterIds);
 
-    /// <summary>Inserts one saved roster and returns its id. 0 when the write failed.</summary>
-    ulong Insert(ulong accountId, string title, DateTime createdAt);
+    /// <summary>Inserts one saved roster and its raid members. 0 when the write failed.</summary>
+    ulong Insert(ulong accountId, string title, DateTime createdAt, IReadOnlyList<uint> memberCharacterIds);
 }
 
 public sealed class MySqlContentRosterStore : IContentRosterStore
@@ -123,12 +124,14 @@ public sealed class MySqlContentRosterStore : IContentRosterStore
         return command.ExecuteNonQuery();
     }
 
-    public ulong Insert(ulong accountId, string title, DateTime createdAt)
+    public ulong Insert(ulong accountId, string title, DateTime createdAt, IReadOnlyList<uint> memberCharacterIds)
     {
         try
         {
             using var connection = _connectionFactory();
+            using var transaction = connection.BeginTransaction();
             using var command = connection.CreateCommand();
+            command.Transaction = transaction;
             command.CommandText =
                 """
                 INSERT INTO account_content_rosters (account_id, save_title, created_at)
@@ -139,7 +142,26 @@ public sealed class MySqlContentRosterStore : IContentRosterStore
             command.Parameters.AddWithValue("@created_at", new DateTimeOffset(ServerCalendar.AsUtc(createdAt)).ToUnixTimeSeconds());
             if (command.ExecuteNonQuery() != 1)
                 return 0;
-            return (ulong)command.LastInsertedId;
+            var id = (ulong)command.LastInsertedId;
+            if (memberCharacterIds != null)
+            {
+                foreach (var characterId in memberCharacterIds.Distinct())
+                {
+                    using var member = connection.CreateCommand();
+                    member.Transaction = transaction;
+                    member.CommandText =
+                        """
+                        INSERT INTO account_content_roster_members (roster_id, character_id)
+                        VALUES (@roster_id, @character_id)
+                        """;
+                    member.Parameters.AddWithValue("@roster_id", id);
+                    member.Parameters.AddWithValue("@character_id", characterId);
+                    member.ExecuteNonQuery();
+                }
+            }
+
+            transaction.Commit();
+            return id;
         }
         catch (Exception ex)
         {
@@ -168,7 +190,7 @@ public sealed class ContentRosterService
 
     public const string SaveCoolTimeKey = "content_roster_save_cool_time";
     public const string MinMemberSizeKey = "content_roster_min_member_size";
-    public const int MaxTitleChars = 255;
+    public const int MaxTitleBytes = 80;
 
     public ContentRosterService(IContentRosterStore store)
     {
@@ -222,7 +244,7 @@ public sealed class ContentRosterService
         var team = TeamManager.Instance.GetActiveTeamByUnit(character.Id);
         if (team == null || team.IsParty)
             return ContentRosterSaveOutcome.Failed(ErrorMessageType.ContentRosterNotFoundTeam);
-        if (team.OwnerId != character.Id)
+        if (team.OwnerId != character.Id && !team.IsOfficer(character.Id))
             return ContentRosterSaveOutcome.Failed(ErrorMessageType.ContentRosterNotUsableOwner);
 
         var minMembers = ContentConfigGameData.Instance.RequireInt(MinMemberSizeKey);
@@ -237,7 +259,7 @@ public sealed class ContentRosterService
             return ContentRosterSaveOutcome.Failed(ErrorMessageType.ContentRosterSaveCoolTime);
 
         var trimmed = title.Trim();
-        var id = _store.Insert(accountId, trimmed, now);
+        var id = _store.Insert(accountId, trimmed, now, MemberIds(team));
         if (id == 0)
             return ContentRosterSaveOutcome.Failed(ErrorMessageType.ContentRosterSaveFailed);
 
@@ -247,15 +269,32 @@ public sealed class ContentRosterService
 
     private static bool TitleFits(string title)
     {
-        if (string.IsNullOrWhiteSpace(title) || title.Trim().Length > MaxTitleChars)
+        if (string.IsNullOrWhiteSpace(title))
             return false;
-        foreach (var ch in title)
+        var trimmed = title.Trim();
+        if (System.Text.Encoding.UTF8.GetByteCount(trimmed) > MaxTitleBytes)
+            return false;
+        foreach (var ch in trimmed)
         {
             if (char.IsSurrogate(ch))
                 return false;
         }
 
         return true;
+    }
+
+    private static List<uint> MemberIds(Team team)
+    {
+        var ids = new List<uint>();
+        if (team?.Members == null)
+            return ids;
+        foreach (var member in team.Members)
+        {
+            if (member?.Character != null)
+                ids.Add(member.Character.Id);
+        }
+
+        return ids;
     }
 }
 
