@@ -48,8 +48,7 @@ public static class AccountConnectionState
     {
         ArgumentNullException.ThrowIfNull(connection);
         connection.AccountTier = (premiumPoint, premiumGrade);
-        connection.Payment.Method = AccountTierPaymentRules.MethodForTier(
-            premiumGrade, PremiumGameData.Instance.FirstPaidGradeId);
+        // Payment.Method feeds labor, credit and loyalty. It is not derived here.
         connection.Entitlements = entitlements is null ? [] : entitlements.ToList();
     }
 }

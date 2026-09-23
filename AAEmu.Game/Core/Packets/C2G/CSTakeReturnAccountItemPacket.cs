@@ -16,8 +16,8 @@ namespace AAEmu.Game.Core.Packets.C2G;
 /// <remarks>
 /// Every parameterless C2S type folds onto that one read function, so the shared address is
 /// identical-COMDAT folding, not a base-class fall-through. The reward item type comes from
-/// <c>content_configs return_account_reward_item_type</c> (enum 275) resolved through
-/// <c>const_item_types</c>; a missing row refuses the grant loudly instead of falling back.
+/// <c>content_configs return_account_reward_item_type</c> is the reward item template id.
+/// A missing template refuses the grant loudly instead of falling back.
 /// </remarks>
 public class CSTakeReturnAccountItemPacket() : GamePacket(CSOffsets.CSTakeReturnAccountItemPacket, 1)
 {
@@ -36,9 +36,11 @@ public class CSTakeReturnAccountItemPacket() : GamePacket(CSOffsets.CSTakeReturn
         }
 
         PreparedMailBatch batch = null;
+        Item rewardItem = null;
+        var seen = connection.HasPreviousLogin ? connection.PreviousLoginUtc : (DateTime?)null;
         var result = AccountReturnManager.Instance.TryClaim(connection.AccountId, (db, tx) =>
         {
-            var mail = BuildRewardMail(character);
+            var mail = BuildRewardMail(character, out rewardItem);
             if (mail == null)
                 return false;
             if (!MailManager.Instance.TryPrepareBatch([mail], out batch))
@@ -50,12 +52,17 @@ public class CSTakeReturnAccountItemPacket() : GamePacket(CSOffsets.CSTakeReturn
 
             MailManager.Instance.PersistPreparedBatch([mail], db, tx);
             return true;
-        });
+        }, seen);
 
         if (result == AccountReturnClaimResult.Claimed && batch != null)
             MailManager.Instance.PublishPreparedBatch(batch, alreadyPersisted: true);
-        else if (batch != null)
-            MailManager.Instance.CancelPreparedBatch(batch);
+        else
+        {
+            if (batch != null)
+                MailManager.Instance.CancelPreparedBatch(batch);
+            if (rewardItem != null)
+                ItemManager.Instance.DiscardUnpersistedItems([rewardItem]);
+        }
 
         Logger.Info("TakeReturnAccountItem account {0}: {1}", connection.AccountId, result);
 
@@ -63,31 +70,33 @@ public class CSTakeReturnAccountItemPacket() : GamePacket(CSOffsets.CSTakeReturn
         connection.SendPacket(new SCReturnAccountStatusPacket(
             result == AccountReturnClaimResult.Claimed
                 ? false
-                : AccountReturnManager.Instance.IsRewardAvailable(connection.AccountId)));
+                : AccountReturnManager.Instance.IsRewardAvailable(connection.AccountId, seen)));
     }
 
-    private static BaseMail BuildRewardMail(Character character)
+    private static BaseMail BuildRewardMail(Character character, out Item item)
     {
-        var rewardType = (uint)ReturnAccountRules.RewardItemType;
-        var itemId = ItemManager.Instance.GetConstItemIdByType(rewardType);
+        item = null;
+        var itemId = (uint)ReturnAccountRules.RewardItemType;
         if (itemId == 0)
         {
             Logger.Error(
-                "TakeReturnAccountItem: const_item_types row '{0}' behind '{1}' is missing; no reward granted",
-                rewardType, ReturnAccountRules.RewardItemTypeKey);
+                "TakeReturnAccountItem: '{0}' ships no reward item; no reward granted",
+                ReturnAccountRules.RewardItemTypeKey);
             return null;
         }
 
         var template = ItemManager.Instance.GetTemplate(itemId);
         if (template == null)
         {
-            Logger.Error("TakeReturnAccountItem: item template {0} behind type '{1}' is missing",
+            Logger.Error("TakeReturnAccountItem: item template {0} from '{1}' is missing",
                 itemId, ReturnAccountRules.RewardItemTypeKey);
             return null;
         }
 
         var grade = template.FixedGrade > 0 ? (byte)template.FixedGrade : (byte)0;
-        var item = ItemManager.Instance.Create(itemId, 1, grade);
+        item = ItemManager.Instance.CreateUnpersisted(itemId, 1, grade);
+        if (item == null)
+            return null;
         item.OwnerId = character.Id;
         item.SlotType = SlotType.Mail;
 

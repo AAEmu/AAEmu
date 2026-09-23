@@ -43,6 +43,14 @@ public class GameConnection
     /// <summary>Premium point and grade for this account, loaded at <see cref="LoadAccount"/>.</summary>
     public (int Point, uint Grade) AccountTier { get; set; }
 
+    /// <summary>
+    /// <c>accounts.last_login</c> from before this session stamped it. Return-reward days are
+    /// measured from this, because the stamp itself runs at login.
+    /// </summary>
+    public DateTime PreviousLoginUtc { get; set; }
+
+    public bool HasPreviousLogin { get; set; }
+
     /// <summary>Account attributes (memberships, ULC, listing grants) loaded at <see cref="LoadAccount"/>.</summary>
     public List<AccountAttribute> Entitlements { get; set; } = [];
     public Task LeaveTask { get; set; }

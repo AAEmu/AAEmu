@@ -116,7 +116,8 @@ public class AccountConnectionStateTests
 
         AccountConnectionState.Apply(connection, 0, 1, []);
 
-        await Assert.That(connection.Payment.Method).IsEqualTo(PaymentMethodType.None);
+        // Loading the tier does not rewrite the payment method the labor ticks read.
+        await Assert.That(connection.Payment.Method).IsEqualTo(PaymentMethodType.Premium);
         await Assert.That(connection.Entitlements).IsEmpty();
     }
 

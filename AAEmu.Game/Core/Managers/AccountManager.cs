@@ -210,6 +210,8 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
             return;
         _accounts.TryAdd(connection.AccountId, connection);
         var lastLogin = UpdateLoginTime(connection.AccountId, DateTime.UtcNow);
+        connection.PreviousLoginUtc = lastLogin;
+        connection.HasPreviousLogin = true;
         var accountDetails = GetAccountDetails(connection.AccountId);
         if (lastLogin < DateTime.UtcNow.Date)
         {

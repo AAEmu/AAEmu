@@ -161,7 +161,9 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
         try
         {
             Connection.SendPacket(new SCReturnAccountStatusPacket(
-                AccountReturnManager.Instance.IsRewardAvailable(Connection.AccountId)));
+                AccountReturnManager.Instance.IsRewardAvailable(
+                    Connection.AccountId,
+                    Connection.HasPreviousLogin ? Connection.PreviousLoginUtc : null)));
         }
         catch (InvalidOperationException ex)
         {

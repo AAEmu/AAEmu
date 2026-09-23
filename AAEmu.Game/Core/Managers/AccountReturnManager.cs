@@ -91,11 +91,11 @@ public class AccountReturnManager : Singleton<AccountReturnManager>
 
     /// <summary>The status <c>SCReturnAccountStatus</c> carries: a reward is configured, the content
     /// days allow it and this account has not claimed it yet.</summary>
-    public bool IsRewardAvailable(uint accountId)
+    public bool IsRewardAvailable(uint accountId, DateTime? lastSeenUtc = null)
     {
         if (!ReturnAccountRules.HasReward)
             return false;
-        var lastSeen = GetLastSeenUtc(accountId);
+        var lastSeen = lastSeenUtc ?? GetLastSeenUtc(accountId);
         if (lastSeen is not { } seen)
             return false;
         if (!ReturnAccountRules.IsEligible(seen, DateTime.UtcNow))
@@ -109,7 +109,8 @@ public class AccountReturnManager : Singleton<AccountReturnManager>
     /// </summary>
     public AccountReturnClaimResult TryClaim(
         uint accountId,
-        Func<MySqlConnection, MySqlTransaction, bool> grantOn)
+        Func<MySqlConnection, MySqlTransaction, bool> grantOn,
+        DateTime? lastSeenUtc = null)
     {
         if (!ReturnAccountRules.HasReward)
         {
@@ -119,7 +120,7 @@ public class AccountReturnManager : Singleton<AccountReturnManager>
             return AccountReturnClaimResult.NoRewardConfigured;
         }
 
-        var lastSeen = GetLastSeenUtc(accountId);
+        var lastSeen = lastSeenUtc ?? GetLastSeenUtc(accountId);
         if (lastSeen is not { } seen)
         {
             Logger.Info("Account {0} return claim refused: no last-seen timestamp", accountId);
