@@ -1013,7 +1013,7 @@ public class HousingManager(
             GetResidentCount(zoneGroup),
             point,
             ResidentManager.Instance.GetZonePointSum(zoneGroup16),
-            ResidentManager.Instance.GetCharge(character.Id, zoneGroup16),
+            ResidentManager.Instance.GetZoneChargeSum(zoneGroup16),
             ResidentManager.Instance.GetZoneHuntingChargeSum(zoneGroup16)));
     }
 

@@ -1,5 +1,4 @@
 using AAEmu.Game.Core.Managers;
-using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Residents;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
@@ -22,10 +21,6 @@ public sealed class ResidentManagerTests
     [Before(Test)]
     public void Setup()
     {
-        var content = LocalDevelopmentGameData.Instance;
-        content.ResetForTest();
-        content.SeedForTest(TwoThresholdDevelopment());
-
         _store = new InMemoryResidentStateStore();
         _manager = ResidentManager.Instance;
         _manager.ResetForTest();
@@ -36,22 +31,6 @@ public sealed class ResidentManagerTests
     public void Teardown()
     {
         _manager.ResetForTest();
-        LocalDevelopmentGameData.Instance.ResetForTest();
-    }
-
-    private static LocalDevelopmentDefinition TwoThresholdDevelopment()
-    {
-        var definition = new LocalDevelopmentDefinition
-        {
-            Id = 32,
-            ZoneGroupId = ZoneGroup16,
-            DoodadAlmightyId = 11590,
-            BoardDoodadId = 13600,
-            DoodadPhases = [40000, 40001, 40002, 40003],
-        };
-        definition.BoardRows.Add(new LocalDevelopmentBoardRow(1, 5, 47635, 60));
-        definition.BoardRows.Add(new LocalDevelopmentBoardRow(2, 5, 47636, 100));
-        return definition;
     }
 
     [Test]
@@ -98,18 +77,13 @@ public sealed class ResidentManagerTests
         await Assert.That(_manager.AddServicePoint(CharacterId, ZoneGroup, 40)).IsEqualTo(ResidentSettleStatus.Settled);
 
         await Assert.That(_manager.GetServicePoint(CharacterId, ZoneGroup16)).IsEqualTo(100u);
-        await Assert.That(_manager.GetDevelopmentState(ZoneGroup16)).IsNull();
-        await Assert.That(_store.LoadDevelopmentStates()).IsEmpty();
     }
 
     [Test]
-    public async Task ZoneGroupWithoutDevelopment_SettlesTheRowAndSkipsThePhaseLoudly()
+    public async Task AnyZoneGroup_SettlesTheRow()
     {
-        // Quest resident acts target zone groups (33/34/43/44) that have no local_developments
-        // row: the contribution must still settle, the phase step must be the loud skip.
         var status = _manager.AddServicePoint(CharacterId, 4000, 10);
-        await Assert.That(status).IsEqualTo(ResidentSettleStatus.SettledDevelopmentSkipped);
-        await Assert.That(_manager.GetDevelopmentState(4000)).IsNull();
+        await Assert.That(status).IsEqualTo(ResidentSettleStatus.Settled);
         await Assert.That(_store.LoadAll().Count).IsEqualTo(1);
 
         // An invalid zone group refuses outright: nothing written, no development run.
@@ -132,10 +106,8 @@ public sealed class ResidentManagerTests
 
         _manager.LoadFromStore();
 
-        await Assert.That(_manager.GetDevelopmentState(ZoneGroup16)).IsNull();
         await Assert.That(_manager.GetServicePoint(CharacterId, ZoneGroup16)).IsEqualTo(pointBefore);
         await Assert.That(_manager.GetCharge(CharacterId, ZoneGroup16)).IsEqualTo(chargeBefore);
         await Assert.That(_store.LoadAll().Count).IsEqualTo(1);
-        await Assert.That(_store.LoadDevelopmentStates()).IsEmpty();
     }
 }

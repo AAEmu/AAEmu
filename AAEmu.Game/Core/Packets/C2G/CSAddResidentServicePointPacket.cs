@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
 /// A resident contributes service points to a zone group: settled into
-/// <c>character_resident_state</c> and run through the development state machine.
+/// <c>character_resident_state</c>.
 /// </summary>
 /// <remarks>
 /// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each

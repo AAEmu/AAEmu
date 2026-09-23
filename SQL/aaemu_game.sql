@@ -1537,12 +1537,3 @@ CREATE TABLE IF NOT EXISTS `character_resident_state` (
   `updated_at` datetime(6) NOT NULL,
   PRIMARY KEY (`owner`, `zone_group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Resident service points and charges per zone group';
-
-CREATE TABLE IF NOT EXISTS `local_development_state` (
-  `zone_group_id` smallint unsigned NOT NULL,
-  `development_level` int unsigned NOT NULL DEFAULT 0,
-  `doodad_phase` int unsigned NOT NULL DEFAULT 0,
-  `board_phase` int unsigned NOT NULL DEFAULT 0,
-  `updated_at` datetime(6) NOT NULL,
-  PRIMARY KEY (`zone_group_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Last applied local-development level and doodad/board phases per zone group';

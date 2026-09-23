@@ -30,17 +30,6 @@ public sealed class MySqlResidentStateStore : IResidentStateStore
         ON DUPLICATE KEY UPDATE service_point = VALUES(service_point), charge = VALUES(charge), hunting_charge = VALUES(hunting_charge), updated_at = VALUES(updated_at)
         """;
 
-    private const string SelectDevelopments = """
-        SELECT zone_group_id, development_level, doodad_phase, board_phase, updated_at
-        FROM local_development_state
-        """;
-
-    private const string UpsertDevelopmentSql = """
-        INSERT INTO local_development_state (zone_group_id, development_level, doodad_phase, board_phase, updated_at)
-        VALUES (@zone_group_id, @development_level, @doodad_phase, @board_phase, @updated_at)
-        ON DUPLICATE KEY UPDATE development_level = VALUES(development_level), doodad_phase = VALUES(doodad_phase), board_phase = VALUES(board_phase), updated_at = VALUES(updated_at)
-        """;
-
     public IReadOnlyList<CharacterResidentState> LoadAll()
     {
         try
@@ -90,57 +79,6 @@ public sealed class MySqlResidentStateStore : IResidentStateStore
         {
             Logger.Error(ex, "Resident state: could not persist character {0} zone group {1} (see {2})",
                 row.OwnerId, row.ZoneGroupId, MigrationFile);
-            return false;
-        }
-    }
-
-    public IReadOnlyList<LocalDevelopmentState> LoadDevelopmentStates()
-    {
-        try
-        {
-            var rows = new List<LocalDevelopmentState>();
-            using var connection = MySQL.CreateConnection();
-            using var command = connection.CreateCommand();
-            command.CommandText = SelectDevelopments;
-            using var reader = command.ExecuteReader();
-            while (reader.Read())
-            {
-                rows.Add(new LocalDevelopmentState(
-                    (ushort)reader.GetUInt32("zone_group_id"),
-                    reader.GetUInt32("development_level"),
-                    reader.GetUInt32("doodad_phase"),
-                    reader.GetUInt32("board_phase"),
-                    ServerCalendar.AsUtc(reader.GetDateTime("updated_at"))));
-            }
-            return rows;
-        }
-        catch (MySqlException ex)
-        {
-            Logger.Error(ex, "Resident state: could not load local_development_state; degrade to empty (see {0})", MigrationFile);
-            return [];
-        }
-    }
-
-    public bool UpsertDevelopmentState(LocalDevelopmentState state)
-    {
-        if (state == null)
-            return false;
-        try
-        {
-            using var connection = MySQL.CreateConnection();
-            using var command = connection.CreateCommand();
-            command.CommandText = UpsertDevelopmentSql;
-            command.Parameters.AddWithValue("@zone_group_id", state.ZoneGroupId);
-            command.Parameters.AddWithValue("@development_level", state.DevelopmentLevel);
-            command.Parameters.AddWithValue("@doodad_phase", state.DoodadPhase);
-            command.Parameters.AddWithValue("@board_phase", state.BoardPhase);
-            command.Parameters.AddWithValue("@updated_at", state.UpdatedAt);
-            return command.ExecuteNonQuery() > 0;
-        }
-        catch (MySqlException ex)
-        {
-            Logger.Error(ex, "Resident state: could not persist development state for zone group {0} (see {1})",
-                state.ZoneGroupId, MigrationFile);
             return false;
         }
     }

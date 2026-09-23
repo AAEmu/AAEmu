@@ -9,8 +9,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 /// and dummy quest 9334). The client reader LoadQuestActSupplyResidentPointDescs reads
 /// id, point, zone_group_id. The points settle into <c>character_resident_state</c> through the
 /// ResidentManager — a server-originated contribution, so unlike the client packet it needs no
-/// residency gate. Zone groups without a <c>local_developments</c> row still settle; the
-/// development phase step skips loudly for them.
+/// residency gate.
 /// </summary>
 public class QuestActSupplyResidentPoint(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {

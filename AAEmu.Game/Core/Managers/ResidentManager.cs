@@ -1,5 +1,4 @@
 using AAEmu.Commons.Utils;
-using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Residents;
 
@@ -20,10 +19,9 @@ public class ResidentManager : Singleton<ResidentManager>, ILoadable
 
     private readonly object _lock = new();
     private Dictionary<(uint Owner, ushort ZoneGroup), CharacterResidentState> _states = [];
-    private Dictionary<ushort, LocalDevelopmentState> _developmentStates = [];
     private IResidentStateStore _store = new InMemoryResidentStateStore();
 
-    /// <summary>Reads the persisted settlement and development state.</summary>
+    /// <summary>Reads the persisted settlement.</summary>
     public void Load()
     {
         lock (_lock)
@@ -54,20 +52,15 @@ public class ResidentManager : Singleton<ResidentManager>, ILoadable
         {
             _store = new InMemoryResidentStateStore();
             _states = [];
-            _developmentStates = [];
         }
     }
 
     private void LoadFromStoreNoLock()
     {
         _states = [];
-        _developmentStates = [];
         foreach (var row in _store.LoadAll())
             _states[(row.OwnerId, row.ZoneGroupId)] = row;
-        foreach (var state in _store.LoadDevelopmentStates())
-            _developmentStates[state.ZoneGroupId] = state;
-        Logger.Info("Resident state: loaded {0} character row(s), {1} development state(s)",
-            _states.Count, _developmentStates.Count);
+        Logger.Info("Resident state: loaded {0} character row(s)", _states.Count);
     }
 
     /// <summary>One character's settled row for a zone group, or null when nothing has been contributed yet.</summary>
@@ -131,17 +124,7 @@ public class ResidentManager : Singleton<ResidentManager>, ILoadable
                 .ToList();
     }
 
-    /// <summary>The last applied development state for a zone group, or null when nothing has been applied yet.</summary>
-    public LocalDevelopmentState GetDevelopmentState(ushort zoneGroup)
-    {
-        lock (_lock)
-            return _developmentStates.GetValueOrDefault(zoneGroup);
-    }
-
-    /// <summary>
-    /// Settles resident service points for one character and zone group, then runs the
-    /// development state machine for that zone group.
-    /// </summary>
+    /// <summary>Settles resident service points for one character and zone group.</summary>
     public ResidentSettleStatus AddServicePoint(uint characterId, short zoneGroupId, uint point)
     {
         if (!IsValidZoneGroup(zoneGroupId))
@@ -157,10 +140,7 @@ public class ResidentManager : Singleton<ResidentManager>, ILoadable
             ServicePoint = (uint)Math.Min(uint.MaxValue, (ulong)row.ServicePoint + point),
         });
 
-        // Charge does not feed the ladder; only points are contribution.
-        return RunDevelopment(zoneGroup)
-            ? ResidentSettleStatus.Settled
-            : ResidentSettleStatus.SettledDevelopmentSkipped;
+        return ResidentSettleStatus.Settled;
     }
 
     /// <summary>
@@ -201,24 +181,6 @@ public class ResidentManager : Singleton<ResidentManager>, ILoadable
 
         // The charge settles into the balance; it does not move the development level.
         return ResidentSettleStatus.Settled;
-    }
-
-    /// <summary>
-    /// Confirms the zone group has a development row. Stockpile notice counts are not contribution
-    /// thresholds, and a settlement does not push a tribute doodad's phase — that doodad advances
-    /// through its own devote chain.
-    /// Returns false (loud skip) when <c>local_developments</c> has no row for the zone group.
-    /// </summary>
-    private bool RunDevelopment(ushort zoneGroup)
-    {
-        var definition = LocalDevelopmentGameData.Instance.GetByZoneGroup(zoneGroup);
-        if (definition == null)
-        {
-            Logger.Warn("Local development: no local_developments row for zone group {0}; contribution phase skipped", zoneGroup);
-            return false;
-        }
-
-        return true;
     }
 
     private void UpsertCharacterRow(uint characterId, ushort zoneGroup, Func<CharacterResidentState, CharacterResidentState> mutate)
