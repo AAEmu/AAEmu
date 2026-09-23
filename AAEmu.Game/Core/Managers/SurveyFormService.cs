@@ -22,6 +22,14 @@ public enum SurveyFormReplyResult : byte
 public sealed record SurveyFormReplyOutcome(uint FormId, SurveyFormReplyResult Result)
 {
     public bool Success => Result == SurveyFormReplyResult.Success;
+
+    public ErrorMessageType Error => Result switch
+    {
+        SurveyFormReplyResult.Success => ErrorMessageType.NoErrorMessage,
+        SurveyFormReplyResult.AlreadyReplied => ErrorMessageType.SurveyFormAlreadyDone,
+        SurveyFormReplyResult.NotOpen => ErrorMessageType.SurveyFormInvalidPeriod,
+        _ => ErrorMessageType.SurveyFormInvalidCommon
+    };
 }
 
 /// <summary>Per-account survey replies (<c>account_survey_form_replies</c>).</summary>

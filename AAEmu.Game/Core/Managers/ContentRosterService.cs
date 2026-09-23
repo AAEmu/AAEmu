@@ -1,8 +1,8 @@
 using System.IO;
 
 using AAEmu.Commons.Utils.DB;
-using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Game;
 using MySql.Data.MySqlClient;
 using NLog;
 
@@ -24,6 +24,13 @@ public enum ContentRosterDeleteResult : byte
 public sealed record ContentRosterDeleteOutcome(ContentRosterDeleteResult Result, int DeletedCount)
 {
     public bool Success => Result == ContentRosterDeleteResult.Success;
+
+    public ErrorMessageType Error => Result switch
+    {
+        ContentRosterDeleteResult.Success => ErrorMessageType.NoErrorMessage,
+        ContentRosterDeleteResult.UnknownRoster => ErrorMessageType.ContentRosterNotFound,
+        _ => ErrorMessageType.ContentRosterDeleteFailed
+    };
 }
 
 /// <summary>Account-scoped content-roster rows (<c>account_content_rosters</c>).</summary>
@@ -37,6 +44,9 @@ public interface IContentRosterStore
 
     /// <summary>Removes owned rows; returns how many rows actually went away.</summary>
     int DeleteOwned(ulong accountId, IReadOnlyList<ulong> rosterIds);
+
+    /// <summary>Inserts one saved roster and returns its id. 0 when the write failed.</summary>
+    ulong Insert(ulong accountId, string title, DateTime createdAt);
 }
 
 public sealed class MySqlContentRosterStore : IContentRosterStore
@@ -109,6 +119,36 @@ public sealed class MySqlContentRosterStore : IContentRosterStore
         return command.ExecuteNonQuery();
     }
 
+    public ulong Insert(ulong accountId, string title, DateTime createdAt)
+    {
+        using var connection = _connectionFactory();
+        using var transaction = connection.BeginTransaction();
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText =
+            """
+            INSERT INTO account_content_rosters (id, account_id, save_title, created_at)
+            SELECT COALESCE(MAX(id), 0) + 1, @account_id, @save_title, @created_at
+            FROM account_content_rosters
+            """;
+        command.Parameters.AddWithValue("@account_id", accountId);
+        command.Parameters.AddWithValue("@save_title", title ?? string.Empty);
+        command.Parameters.AddWithValue("@created_at", new DateTimeOffset(ServerCalendar.AsUtc(createdAt)).ToUnixTimeSeconds());
+        if (command.ExecuteNonQuery() != 1)
+        {
+            transaction.Rollback();
+            return 0;
+        }
+
+        using var read = connection.CreateCommand();
+        read.Transaction = transaction;
+        read.CommandText = "SELECT MAX(id) FROM account_content_rosters WHERE account_id = @account_id";
+        read.Parameters.AddWithValue("@account_id", accountId);
+        var id = Convert.ToUInt64(read.ExecuteScalar());
+        transaction.Commit();
+        return id;
+    }
+
     private static List<ulong> DistinctIds(IReadOnlyList<ulong> rosterIds) =>
         rosterIds == null ? [] : [.. rosterIds.Distinct()];
 
@@ -118,27 +158,13 @@ public sealed class MySqlContentRosterStore : IContentRosterStore
 
 /// <summary>
 /// Content roster removal: ownership is checked against <c>account_content_rosters</c>, then the
-/// batch is deleted and a definitive result is returned. The edit cooldown comes from the shipped
-/// <c>content_configs</c> row (key only in C#; value lives in the database).
+/// batch is deleted and a definitive result is returned. The save cooldown is not a delete gate.
 /// </summary>
 public sealed class ContentRosterService
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    /// <summary>Catalog key of the only roster cool-time row shipped in 10.0.2.13 content.</summary>
-    public const string SaveCoolTimeKey = "content_roster_save_cool_time";
-
     private readonly IContentRosterStore _store;
-    private readonly Dictionary<ulong, DateTime> _lastDeleteAt = new();
-
-    /// <summary>Seconds; 0 or less = the gated check is disabled.</summary>
-    private int _cooldownSeconds;
-
-    private bool _cooldownResolved;
-    private int _cooldownMissingWarnings;
-
-    /// <summary>How many times the missing <see cref="SaveCoolTimeKey"/> row was reported (warn-once).</summary>
-    public int CooldownMissingWarnings => _cooldownMissingWarnings;
 
     public ContentRosterService(IContentRosterStore store)
     {
@@ -156,14 +182,6 @@ public sealed class ContentRosterService
             return new ContentRosterDeleteOutcome(ContentRosterDeleteResult.InvalidRequest, 0);
 
         var ids = rosterIds.Distinct().ToList();
-
-        var cooldownSeconds = ResolveCooldownSeconds();
-        if (cooldownSeconds > 0 &&
-            _lastDeleteAt.TryGetValue(accountId, out var lastAt) &&
-            ServerCalendar.AsUtc(now) - ServerCalendar.AsUtc(lastAt) < TimeSpan.FromSeconds(cooldownSeconds))
-        {
-            return new ContentRosterDeleteOutcome(ContentRosterDeleteResult.Cooldown, 0);
-        }
 
         var existing = _store.QueryExisting(ids);
         if (ids.Any(id => !existing.Contains(id)))
@@ -189,35 +207,13 @@ public sealed class ContentRosterService
             return new ContentRosterDeleteOutcome(ContentRosterDeleteResult.InvalidRequest, deleted);
         }
 
-        _lastDeleteAt[accountId] = now;
         return new ContentRosterDeleteOutcome(ContentRosterDeleteResult.Success, deleted);
     }
 
-    /// <summary>
-    /// Optional-key semantics: the cooldown row is read once, a missing row is warned about once
-    /// and disables the check — never a literal fallback.
-    /// </summary>
-    private int ResolveCooldownSeconds()
+    public ulong Save(ulong accountId, string title, DateTime now)
     {
-        if (_cooldownResolved)
-            return _cooldownSeconds;
-
-        _cooldownResolved = true;
-        if (ContentConfigGameData.Instance.TryGetInt(SaveCoolTimeKey, out var seconds))
-        {
-            _cooldownSeconds = seconds;
-            if (seconds <= 0)
-                Logger.Info("content_configs row '{0}' is {1}; content-roster delete cooldown is off.",
-                    SaveCoolTimeKey, seconds);
-        }
-        else
-        {
-            _cooldownMissingWarnings++;
-            _cooldownSeconds = 0;
-            Logger.Warn("Required content_configs row '{0}' is missing; the content-roster delete " +
-                        "cooldown is disabled until the shipped row is available.", SaveCoolTimeKey);
-        }
-
-        return _cooldownSeconds;
+        if (string.IsNullOrWhiteSpace(title))
+            return 0;
+        return _store.Insert(accountId, title.Trim(), now);
     }
 }

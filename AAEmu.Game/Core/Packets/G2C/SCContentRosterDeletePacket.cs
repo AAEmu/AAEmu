@@ -12,13 +12,13 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// 10.0.2.13 client serializer field order:
 /// u8 result, u8 isExpired, u16 ErrorMessage
 /// </remarks>
-public class SCContentRosterDeletePacket(ContentRosterDeleteResult result, bool isExpired, ErrorMessageType errorMessage)
+public class SCContentRosterDeletePacket(bool result, bool isExpired, ErrorMessageType errorMessage)
     : GamePacket(SCOffsets.SCContentRosterDeletePacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
-        stream.Write((byte)result);
-        stream.Write((byte)(isExpired ? 1 : 0));
+        stream.Write(result);
+        stream.Write(isExpired);
         stream.Write((ushort)errorMessage);
         return stream;
     }

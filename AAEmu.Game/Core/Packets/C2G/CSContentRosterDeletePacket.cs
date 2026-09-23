@@ -48,9 +48,9 @@ public class CSContentRosterDeletePacket() : GamePacket(CSOffsets.CSContentRoste
                 connection.AccountId, RosterIds, ServerCalendar.UtcNow);
 
             connection.SendPacket(new SCContentRosterDeletePacket(
-                outcome.Result,
+                outcome.Success,
                 isExpired: false,
-                outcome.Success ? ErrorMessageType.NoErrorMessage : ErrorMessageType.InternalError));
+                outcome.Error));
         }
     }
 }

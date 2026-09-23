@@ -38,6 +38,13 @@ public class ContentRosterDeleteTests
 
             return removed;
         }
+
+        public ulong Insert(ulong accountId, string title, DateTime createdAt)
+        {
+            var id = _ownerByRosterId.Count == 0 ? 1UL : _ownerByRosterId.Keys.Max() + 1;
+            _ownerByRosterId[id] = accountId;
+            return id;
+        }
     }
 
     [Test]
@@ -92,50 +99,18 @@ public class ContentRosterDeleteTests
     }
 
     [Test]
-    public async Task Delete_CooldownComesFromTheSeededContentRow()
+    public async Task Delete_IsNotGatedByTheSaveCooldown()
     {
-        ContentConfigGameData.Instance.SetForTest(ContentRosterService.SaveCoolTimeKey, 60);
-        try
-        {
-            var store = new FakeContentRosterStore();
-            store.Seed(1, 7);
-            store.Seed(2, 7);
-            var service = new ContentRosterService(store);
-
-            var first = service.Delete(7, [1], BaseTime);
-            var withinCooldown = service.Delete(7, [2], BaseTime.AddSeconds(30));
-
-            await Assert.That(first.Result).IsEqualTo(ContentRosterDeleteResult.Success);
-            await Assert.That(withinCooldown.Result).IsEqualTo(ContentRosterDeleteResult.Cooldown);
-            await Assert.That(store.Contains(2)).IsTrue();
-            await Assert.That(service.CooldownMissingWarnings).IsEqualTo(0);
-
-            var afterCooldown = service.Delete(7, [2], BaseTime.AddSeconds(61));
-
-            await Assert.That(afterCooldown.Result).IsEqualTo(ContentRosterDeleteResult.Success);
-            await Assert.That(store.Contains(2)).IsFalse();
-        }
-        finally
-        {
-            ContentConfigGameData.Instance.RemoveForTest(ContentRosterService.SaveCoolTimeKey);
-        }
-    }
-
-    [Test]
-    public async Task Delete_MissingContentRow_WarnsOnceAndDisablesTheCooldown()
-    {
-        ContentConfigGameData.Instance.RemoveForTest(ContentRosterService.SaveCoolTimeKey);
         var store = new FakeContentRosterStore();
         store.Seed(1, 7);
         store.Seed(2, 7);
         var service = new ContentRosterService(store);
 
         var first = service.Delete(7, [1], BaseTime);
-        var secondOneSecondLater = service.Delete(7, [2], BaseTime.AddSeconds(1));
+        var immediately = service.Delete(7, [2], BaseTime);
 
         await Assert.That(first.Result).IsEqualTo(ContentRosterDeleteResult.Success);
-        await Assert.That(secondOneSecondLater.Result).IsEqualTo(ContentRosterDeleteResult.Success);
+        await Assert.That(immediately.Result).IsEqualTo(ContentRosterDeleteResult.Success);
         await Assert.That(store.Contains(2)).IsFalse();
-        await Assert.That(service.CooldownMissingWarnings).IsEqualTo(1);
     }
 }

@@ -44,9 +44,9 @@ public class CSSurveyFormReplyPacket() : GamePacket(CSOffsets.CSSurveyFormReplyP
                 connection.AccountId, TypeValue, connection.ActiveChar.Id, ServerCalendar.UtcNow, ForceFuture);
 
             connection.SendPacket(new SCSurveyFormSavePacket(
-                outcome.Success ? ErrorMessageType.NoErrorMessage : ErrorMessageType.InternalError,
+                outcome.Error,
                 TypeValue,
-                (byte)outcome.Result));
+                outcome.Success));
         }
     }
 }

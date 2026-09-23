@@ -824,5 +824,10 @@ public enum ErrorMessageType : short
     // Returned by the 10.0.2.13 client's RegisterHarvest path.
     ButlerHarvestGradeInsufficient = 0x496,
     ButlerGardenSizeInsufficient = 0x497,
-    ButlerProductionCostInsufficient = 0x498
+    ButlerProductionCostInsufficient = 0x498,
+    ContentRosterDeleteFailed = 1200,                               // "content_roster_delete_failed";
+    ContentRosterNotFound = 1202,                                   // "content_roster_not_found";
+    SurveyFormAlreadyDone = 1225,                                   // "survey_form_already_done";
+    SurveyFormInvalidPeriod = 1226,                                 // "survey_form_invalid_period";
+    SurveyFormInvalidCommon = 1227,                                 // "survey_form_invalid_common";
 }
