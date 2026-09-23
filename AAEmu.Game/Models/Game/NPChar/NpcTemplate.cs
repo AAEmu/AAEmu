@@ -87,6 +87,9 @@ public class NpcTemplate
     public bool UsesCharacterAppearance { get; set; }
     public uint DefaultFaceItemId { get; set; }
     public uint MerchantPackId { get; set; }
+
+    /// <summary><c>npcs.merchant_random_pack_id</c> - the <c>merchant_random_packs</c> row this NPC's random shop window rolls from (0 = the NPC runs no random shop).</summary>
+    public uint MerchantRandomPackId { get; set; }
     public uint EquipClothsId { get; set; }
     public uint EquipWeaponsId { get; set; }
 

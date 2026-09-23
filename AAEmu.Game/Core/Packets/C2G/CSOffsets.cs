@@ -370,6 +370,7 @@ public static class CSOffsets
     public const ushort CSRaidApplicantRejectPacket = 0x1D2;
     public const ushort CSRaidRecruitDetailPacket = 0x1CD;
     public const ushort CSRaidRecruitOptionPacket = 0x1CC;
+    public const ushort CSRandomShopGoodsBuyPacket = 0x205;
     public const ushort CSRandomShopInfoPacket = 0x206;
     public const ushort CSRankRewardSnapshotPacket = 0x18A;
     public const ushort CSRankSnapshotPacket = 0x189;
