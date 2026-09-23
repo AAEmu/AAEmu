@@ -793,6 +793,7 @@ public class NpcManager(
                             FactionId = (FactionsEnum)reader.GetUInt32("faction_id"),
                             SkillTrainer = reader.GetBoolean("skill_trainer", true),
                             Merchant = reader.GetBoolean("merchant", true),
+                            MerchantRandomPackId = reader.GetUInt32("merchant_random_pack_id"),
                             NpcNicknameId = reader.GetInt32("npc_nickname_id"),
                             Auctioneer = reader.GetBoolean("auctioneer", true),
                             ShowNameTag = reader.GetBoolean("show_name_tag", true),

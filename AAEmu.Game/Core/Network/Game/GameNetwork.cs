@@ -502,6 +502,8 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSArchePassNormalCompletePacket, 1, typeof(CSArchePassNormalCompletePacket));
         RegisterPacket(CSOffsets.CSShowCurrentWorld, 1, typeof(CSShowCurrentWorld));
         RegisterPacket(CSOffsets.CSContentRosterSavePacket, 1, typeof(CSContentRosterSavePacket));
+        RegisterPacket(CSOffsets.CSRandomShopGoodsBuyPacket, 1, typeof(CSRandomShopGoodsBuyPacket));
+        RegisterPacket(CSOffsets.CSRandomShopInfoPacket, 1, typeof(CSRandomShopInfoPacket));
         RegisterPacket(CSOffsets.CSRandomShopInfoRefreshPacket, 1, typeof(CSRandomShopInfoRefreshPacket));
         RegisterPacket(CSOffsets.CSSelectInstanceDifficultPacket, 1, typeof(CSSelectInstanceDifficultPacket));
 
