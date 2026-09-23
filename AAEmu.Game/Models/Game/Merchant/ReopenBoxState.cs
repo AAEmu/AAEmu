@@ -103,4 +103,7 @@ public interface IReopenBoxStateStore
 
     /// <summary>Releases a claim taken before the grant failed.</summary>
     bool ReleaseSettle(uint characterId, long itemId);
+
+    /// <summary>Drops the row so a remaining stack of the same item id can be opened again.</summary>
+    bool Forget(uint characterId, long itemId);
 }

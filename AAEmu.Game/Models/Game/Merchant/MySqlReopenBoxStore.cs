@@ -190,4 +190,24 @@ public sealed class MySqlReopenBoxStore : IReopenBoxStateStore
             return false;
         }
     }
+
+    public bool Forget(uint characterId, long itemId)
+    {
+        try
+        {
+            using var connection = MySQL.CreateConnection();
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                "DELETE FROM character_reopen_boxes WHERE character_id = @character_id AND item_id = @item_id";
+            command.Parameters.AddWithValue("@character_id", characterId);
+            command.Parameters.AddWithValue("@item_id", itemId);
+            return command.ExecuteNonQuery() > 0;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Reopen box: failed to drop the state for character {0} item {1}",
+                characterId, itemId);
+            return false;
+        }
+    }
 }

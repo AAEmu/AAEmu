@@ -806,6 +806,7 @@ public static class SCOffsets
     public const ushort SCRandomShopInfoRefreshPacket = 0x36A;
     public const ushort SCRandomShopInfoResetPacket = 0x369;
     public const ushort SCReopenRandomBoxGetItemPacket = 0x385;
+    public const ushort SCReopenRandomBoxInfoPacket = 0x386;
     public const ushort SCReopenRandomBoxRefreshPacket = 0x387;
     public const ushort SCReopenRandomBoxRemovePacket = 0x388;
     public const ushort SCReportBadwordUserPacket = 0x2D0;

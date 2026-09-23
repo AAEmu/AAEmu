@@ -86,6 +86,12 @@ public sealed class InMemoryReopenBoxStore : IReopenBoxStateStore
         }
     }
 
+    public bool Forget(uint characterId, long itemId)
+    {
+        lock (_lock)
+            return _states.Remove((characterId, itemId));
+    }
+
     /// <summary>Deep copy so caller mutations never alias the durable rows.</summary>
     private static ReopenBoxState Clone(ReopenBoxState state) => new()
     {

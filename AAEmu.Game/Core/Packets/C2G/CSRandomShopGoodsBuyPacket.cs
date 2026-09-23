@@ -60,25 +60,18 @@ public class CSRandomShopGoodsBuyPacket() : GamePacket(CSOffsets.CSRandomShopGoo
         if (Connection?.ActiveChar is not { } character)
             return;
 
-        var packId = character.ParentWorld?.GetNpc(NpcObjId)?.Template?.MerchantRandomPackId ?? 0;
+        var packId = RandomShopMerchantRange.ResolvePackId(character, NpcObjId, DoodadObjId);
         if (packId == 0)
-        {
-            Logger.Warn("Random shop buy: npc obj {0} runs no random shop (merchant_random_pack_id 0)", NpcObjId);
             return;
-        }
 
         var now = DateTime.UtcNow;
         var bought = new List<uint>(RequestedGoods.Count);
         foreach (var key in RequestedGoods)
         {
-            var offer = RandomMerchantManager.Instance
-                .GetWindow(character.Id, packId, now)
-                .Offers.FirstOrDefault(candidate => candidate.Slot == (int)key);
-
             var pack = RandomMerchantManager.Instance.FindPack(packId);
             var result = RandomMerchantManager.Instance.TryPurchase(
                 character.Id, packId, (int)key, now,
-                offer == null || pack == null ? null : () => ChargeAndGrant(character, pack, offer));
+                pack == null ? null : claimed => ChargeAndGrant(character, pack, claimed));
 
             switch (result)
             {

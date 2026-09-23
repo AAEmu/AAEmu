@@ -129,7 +129,7 @@ public class CSReopenRandomBoxRefreshPacket() : GamePacket(CSOffsets.CSReopenRan
             return;
         }
 
-        character.TryPayCurrency((uint)pack.Currency, -pack.ChargePoint, false, ItemTaskType.StoreBuy);
+        character.TryRefundCurrency((uint)pack.Currency, pack.ChargePoint, ItemTaskType.StoreBuy);
     }
 
     private static bool BoxOpensPack(Item box, uint packId)

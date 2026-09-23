@@ -113,7 +113,7 @@ public class RandomMerchantGameData : Singleton<RandomMerchantGameData>, IGameDa
         _packByDoodadTemplate = LoadDoodadPacks(connection);
         Logger.Info(
             "Loaded {0} random merchant packs ({1} usable), {2} group rows, {3} good rows",
-            _packs.Count, _packs.Values.Count(pack => pack.Usable), groupRows.Count, goodRows.Count);
+            _packs.Count, _packs.Values.Count(pack => pack.Usable), groupRows.Count, goodRows.Count        );
     }
 
     private static Dictionary<uint, uint> LoadDoodadPacks(SqliteConnection connection)

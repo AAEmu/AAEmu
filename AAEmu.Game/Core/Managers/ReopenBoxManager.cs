@@ -115,6 +115,8 @@ public class ReopenBoxManager : Singleton<ReopenBoxManager>, ILoadable
             if (good == null)
             {
                 _store.ReleaseOpen(characterId, itemId, isCharge);
+                if (isCharge && pack.ChargePoint > 0)
+                    refundCharge?.Invoke();
                 Logger.Error(
                     "Reopen box: pack {0} yielded no draw for character {1} item {2} - the open was released",
                     packId, characterId, itemId);
@@ -210,6 +212,14 @@ public class ReopenBoxManager : Singleton<ReopenBoxManager>, ILoadable
         }
 
         return ReopenClaimResult.Claimed;
+    }
+
+    /// <summary>Drops a settled row so a leftover stack of the same item can be opened again.</summary>
+    public void Forget(uint characterId, long itemId)
+    {
+        lock (_stateLock)
+            _states.Remove((characterId, itemId));
+        _store.Forget(characterId, itemId);
     }
 
     private ReopenBoxState GetOrCreateNoLock(uint characterId, long itemId, uint packId, DateTime now)

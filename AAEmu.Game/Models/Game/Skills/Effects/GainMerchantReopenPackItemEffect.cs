@@ -1,5 +1,6 @@
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Merchant;
@@ -41,8 +42,17 @@ public class GainMerchantReopenPackItemEffect : EffectTemplate
 
         var opened = ReopenBoxManager.Instance.TryRefresh(
             character.Id, (long)skillItem.ItemId, MerchantReopenPackId, false, time);
-        if (opened != ReopenRefreshResult.Refreshed && opened != ReopenRefreshResult.AlreadySettled)
+        if (opened != ReopenRefreshResult.Refreshed)
+        {
             Logger.Warn("GainMerchantReopenPackItemEffect: pack {0} did not open for {1}: {2}",
                 MerchantReopenPackId, character.Name, opened);
+            return;
+        }
+
+        var state = ReopenBoxManager.Instance.TryGetState(character.Id, (long)skillItem.ItemId);
+        if (state == null)
+            return;
+        var pack = ReopenBoxManager.Instance.TryGetPack(MerchantReopenPackId);
+        character.SendPacket(new SCReopenRandomBoxInfoPacket(state, pack?.LifeTime ?? LifeTime));
     }
 }
