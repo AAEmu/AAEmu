@@ -13,11 +13,14 @@ public interface IPlotAuctionStore
     IReadOnlyList<PlotAuctionBid> LoadBids();
 
     /// <summary>Inserts or updates one auction row. False means "not durably written".</summary>
-    bool UpsertAuction(PlotAuction auction);
+    bool UpsertAuction(PlotAuction auction, MySql.Data.MySqlClient.MySqlConnection connection = null,
+        MySql.Data.MySqlClient.MySqlTransaction transaction = null);
 
     /// <summary>Inserts or updates one escrow row. False means "not durably written".</summary>
-    bool UpsertBid(PlotAuctionBid bid);
+    bool UpsertBid(PlotAuctionBid bid, MySql.Data.MySqlClient.MySqlConnection connection = null,
+        MySql.Data.MySqlClient.MySqlTransaction transaction = null);
 
     /// <summary>Removes one escrow row. False means the row was not there / not written.</summary>
-    bool DeleteBid(uint auctionId, uint characterId);
+    bool DeleteBid(uint auctionId, uint characterId, MySql.Data.MySqlClient.MySqlConnection connection = null,
+        MySql.Data.MySqlClient.MySqlTransaction transaction = null);
 }

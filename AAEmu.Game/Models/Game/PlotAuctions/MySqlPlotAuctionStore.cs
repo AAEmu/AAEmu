@@ -1,6 +1,8 @@
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Models;
 
+using MySql.Data.MySqlClient;
+
 using NLog;
 
 namespace AAEmu.Game.Models.Game.PlotAuctions;
@@ -88,58 +90,75 @@ public sealed class MySqlPlotAuctionStore : IPlotAuctionStore
         return rows;
     }
 
-    public bool UpsertAuction(PlotAuction auction)
+    public bool UpsertAuction(PlotAuction auction, MySqlConnection connection = null, MySqlTransaction transaction = null)
     {
         if (auction == null || auction.Id == 0)
             return false;
+        var ownConnection = connection == null;
+        connection ??= MySQL.CreateConnection();
         try
         {
-            using var connection = MySQL.CreateConnection();
             using var command = connection.CreateCommand();
+            command.Transaction = transaction;
             command.CommandText = UpsertAuctionSql;
             command.Parameters.AddWithValue("@id", auction.Id);
             command.Parameters.AddWithValue("@activity_id", auction.ActivityId);
             command.Parameters.AddWithValue("@settled", auction.Settled ? (byte)1 : (byte)0);
             command.Parameters.AddWithValue("@base_price", auction.BasePrice);
             command.Parameters.AddWithValue("@updated_unix", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-            return command.ExecuteNonQuery() == 1;
+            return command.ExecuteNonQuery() > 0;
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Plot auction: failed to upsert auction {0}", auction.Id);
             return false;
         }
+        finally
+        {
+            if (ownConnection)
+                connection.Dispose();
+        }
     }
 
-    public bool UpsertBid(PlotAuctionBid bid)
+    public bool UpsertBid(PlotAuctionBid bid, MySqlConnection connection = null, MySqlTransaction transaction = null)
     {
         if (bid == null || bid.AuctionId == 0 || bid.CharacterId == 0)
             return false;
+        var ownConnection = connection == null;
+        connection ??= MySQL.CreateConnection();
         try
         {
-            using var connection = MySQL.CreateConnection();
             using var command = connection.CreateCommand();
+            command.Transaction = transaction;
             command.CommandText = UpsertBidSql;
             command.Parameters.AddWithValue("@auction_id", bid.AuctionId);
             command.Parameters.AddWithValue("@character_id", bid.CharacterId);
             command.Parameters.AddWithValue("@bid_amount", bid.Amount);
             command.Parameters.AddWithValue("@bid_time_unix",
                 new DateTimeOffset(ServerCalendarAsUtc(bid.BidTimeUtc)).ToUnixTimeSeconds());
-            return command.ExecuteNonQuery() == 1;
+            return command.ExecuteNonQuery() > 0;
         }
         catch (Exception ex)
         {
             Logger.Error(ex, "Plot auction: failed to upsert bid {0}/{1}", bid.AuctionId, bid.CharacterId);
             return false;
         }
+        finally
+        {
+            if (ownConnection)
+                connection.Dispose();
+        }
     }
 
-    public bool DeleteBid(uint auctionId, uint characterId)
+    public bool DeleteBid(uint auctionId, uint characterId, MySqlConnection connection = null,
+        MySqlTransaction transaction = null)
     {
+        var ownConnection = connection == null;
+        connection ??= MySQL.CreateConnection();
         try
         {
-            using var connection = MySQL.CreateConnection();
             using var command = connection.CreateCommand();
+            command.Transaction = transaction;
             command.CommandText =
                 "DELETE FROM character_plot_auction_bids WHERE auction_id = @auction_id AND character_id = @character_id";
             command.Parameters.AddWithValue("@auction_id", auctionId);
@@ -150,6 +169,11 @@ public sealed class MySqlPlotAuctionStore : IPlotAuctionStore
         {
             Logger.Error(ex, "Plot auction: failed to delete bid {0}/{1}", auctionId, characterId);
             return false;
+        }
+        finally
+        {
+            if (ownConnection)
+                connection.Dispose();
         }
     }
 

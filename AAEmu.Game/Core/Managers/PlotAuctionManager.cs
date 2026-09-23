@@ -45,32 +45,17 @@ public class PlotAuctionManager : Singleton<PlotAuctionManager>, ILoadable, IIni
 {
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
-    private const string ExitGuardSecondsKey = "plot_auction_exit_guard_seconds";
-    private static bool _exitGuardMissingWarned;
+    /// <summary>
+    /// The client disables its exit button for the last 20 minutes of the bid window. Content has
+    /// no row for that lock, so the server uses the same window.
+    /// </summary>
+    internal static readonly TimeSpan ExitLockout = TimeSpan.FromMinutes(20);
 
     /// <summary>
-    /// The client disables its exit button inside the final minutes of the bid window
-    /// (limited_auction_tab.lua LAST_20_MINUTES_SECONDS). Shipped content carries no row for the
-    /// server-side mirror, so the guard applies only when a <c>content_configs</c> row with this key
-    /// exists; with no row exits are allowed and the gap is logged once, loudly. Never a literal.
+    /// How soon a settlement that still holds escrow rows is tried again. The due-time sweep skips
+    /// auctions whose end has already passed, so a failed hand-over has to arm its own retry.
     /// </summary>
-    internal static TimeSpan ExitLockout
-    {
-        get
-        {
-            if (AAEmu.Game.GameData.ContentConfigGameData.Instance.TryGetInt(ExitGuardSecondsKey, out var seconds) && seconds > 0)
-                return TimeSpan.FromSeconds(seconds);
-            if (!_exitGuardMissingWarned)
-            {
-                _exitGuardMissingWarned = true;
-                Logger.Warn(
-                    "content_configs row '{0}' is absent: auction exits carry no closing-window guard.",
-                    ExitGuardSecondsKey);
-            }
-
-            return TimeSpan.Zero;
-        }
-    }
+    private static readonly TimeSpan SettlementRetryInterval = TimeSpan.FromMinutes(1);
 
     private readonly object _lock = new();
     private readonly IWorldManager _worldManager;
@@ -80,6 +65,11 @@ public class PlotAuctionManager : Singleton<PlotAuctionManager>, ILoadable, IIni
     private Dictionary<uint, PlotAuction> _auctions = [];
     private Dictionary<uint, Dictionary<uint, PlotAuctionBid>> _bids = [];
     private IPlotAuctionStore _store = new InMemoryPlotAuctionStore();
+    private IPlotAuctionWallet _wallet = new AccountCreditWallet();
+
+    /// <summary>Tests stand in for account credits. Production uses <see cref="AccountCreditWallet"/>.</summary>
+    internal void UseWallet(IPlotAuctionWallet wallet) =>
+        _wallet = wallet ?? new AccountCreditWallet();
     private PlotAuctionSettleTask _settleTask;
 
     public PlotAuctionManager(IWorldManager worldManager, IItemManager itemManager)
@@ -423,13 +413,6 @@ public class PlotAuctionManager : Singleton<PlotAuctionManager>, ILoadable, IIni
         // A standing bid is still held, so only the difference is charged — the same
         // cash + currentBid budget the client validates its input against.
         var delta = bidAmount - current;
-        if (delta > 0 && !character.SubtractMoney(SlotType.Inventory, delta, ItemTaskType.Auction))
-        {
-            Logger.Info("Plot auction: {0} cannot escrow {1} copper for auction {2}",
-                character.Name, delta, config.Id);
-            return PlotAuctionErrorCodes.UnknownError;
-        }
-
         var previousBase = auction.BasePrice;
         auction.BasePrice = bidAmount;
         var replacement = new PlotAuctionBid
@@ -440,26 +423,15 @@ public class PlotAuctionManager : Singleton<PlotAuctionManager>, ILoadable, IIni
             BidTimeUtc = now,
         };
 
-        var written = _store.UpsertBid(replacement);
-        var auctionWritten = written && _store.UpsertAuction(auction);
-        if (!written || !auctionWritten)
+        var row = auction;
+        var written = _wallet.TryApply(character, -delta, (connection, transaction) =>
+            _store.UpsertBid(replacement, connection, transaction) &&
+            _store.UpsertAuction(row, connection, transaction));
+        if (!written)
         {
-            // An insert can report false for a row MySQL kept anyway — drop it before the
-            // rollback so a surviving row cannot resurrect escrow nobody paid for (the
-            // craft-order post idiom). Then put the previous state and the money back.
-            _store.DeleteBid(replacement.AuctionId, replacement.CharacterId);
-            if (standing != null)
-            {
-                bids[standing.CharacterId] = standing;
-                _store.UpsertBid(standing);
-            }
-
             auction.BasePrice = previousBase;
-            _store.UpsertAuction(auction);
-            if (delta > 0 && !character.AddMoney(SlotType.Inventory, delta, ItemTaskType.Auction))
-                Logger.Error("Plot auction: failed to return {0} copper to {1} after a rejected bid",
-                    delta, character.Name);
-            Logger.Error("Plot auction: could not persist bid {0}/{1}", config.Id, character.Id);
+            Logger.Info("Plot auction: {0} cannot escrow {1} credits for auction {2}",
+                character.Name, delta, config.Id);
             return PlotAuctionErrorCodes.UnknownError;
         }
 
@@ -555,11 +527,10 @@ public class PlotAuctionManager : Singleton<PlotAuctionManager>, ILoadable, IIni
 
         if (online != null)
         {
-            if (online.AddMoney(SlotType.Inventory, bid.Amount, ItemTaskType.Auction))
+            if (_wallet.TryApply(online, bid.Amount, (_, _) => true))
                 return true;
-            Logger.Warn("Plot auction: cannot return {0} copper to online {1}; lettering it instead",
+            Logger.Warn("Plot auction: cannot return {0} credits to online {1}; lettering it instead",
                 bid.Amount, online.Name);
-            // fall through to the letter — the character is here but refused the credit
         }
 
         var name = NameManager.Instance.GetCharacterName(bid.CharacterId);
@@ -738,7 +709,16 @@ public class PlotAuctionManager : Singleton<PlotAuctionManager>, ILoadable, IIni
         }
 
         if (earliest == null)
-            return;
+        {
+            var overdue = _auctions.Any(pair =>
+                !pair.Value.Settled &&
+                _configs.TryGetValue(pair.Key, out var config) &&
+                ServerCalendar.AsUtc(config.BidEndUtc) <= now);
+            if (!overdue)
+                return;
+            earliest = now + SettlementRetryInterval;
+        }
+
         var delay = earliest.Value - now;
         if (delay <= TimeSpan.Zero)
             return;

@@ -10,7 +10,8 @@ public sealed class InMemoryPlotAuctionStore : IPlotAuctionStore
 
     public IReadOnlyList<PlotAuctionBid> LoadBids() => _bids.Values.ToList();
 
-    public bool UpsertAuction(PlotAuction auction)
+    public bool UpsertAuction(PlotAuction auction, MySql.Data.MySqlClient.MySqlConnection connection = null,
+        MySql.Data.MySqlClient.MySqlTransaction transaction = null)
     {
         if (auction == null || auction.Id == 0)
             return false;
@@ -18,7 +19,8 @@ public sealed class InMemoryPlotAuctionStore : IPlotAuctionStore
         return true;
     }
 
-    public bool UpsertBid(PlotAuctionBid bid)
+    public bool UpsertBid(PlotAuctionBid bid, MySql.Data.MySqlClient.MySqlConnection connection = null,
+        MySql.Data.MySqlClient.MySqlTransaction transaction = null)
     {
         if (bid == null || bid.AuctionId == 0 || bid.CharacterId == 0)
             return false;
@@ -26,6 +28,7 @@ public sealed class InMemoryPlotAuctionStore : IPlotAuctionStore
         return true;
     }
 
-    public bool DeleteBid(uint auctionId, uint characterId) =>
+    public bool DeleteBid(uint auctionId, uint characterId, MySql.Data.MySqlClient.MySqlConnection connection = null,
+        MySql.Data.MySqlClient.MySqlTransaction transaction = null) =>
         _bids.Remove((auctionId, characterId));
 }

@@ -16,6 +16,7 @@ using AAEmu.Game.Models.Game.World.Zones;
 using AAEmu.UnitTests.Utils.Mocks;
 
 using Microsoft.Data.Sqlite;
+using MySql.Data.MySqlClient;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AAEmu.UnitTests.Game.Core.Managers;
@@ -122,6 +123,7 @@ public sealed class PlotAuctionManagerTests
         _store = new InMemoryPlotAuctionStore();
         _manager = new PlotAuctionManager(_world.Object, _items);
         _manager.UseStore(_store);
+        _manager.UseWallet(new CharacterMoneyWallet());
         _manager.LoadContent(_content);
     }
 
@@ -241,6 +243,7 @@ public sealed class PlotAuctionManagerTests
         // A restart reads content and store back into a fresh manager.
         var restarted = new PlotAuctionManager(_world.Object, _items);
         restarted.UseStore(_store);
+        restarted.UseWallet(new CharacterMoneyWallet());
         restarted.LoadContent(_content);
         restarted.LoadFromStore();
 
@@ -294,8 +297,6 @@ public sealed class PlotAuctionManagerTests
     [Test]
     public async Task Exit_InsideTheLast20Minutes_IsRefusedAndTheEscrowStaysHeld()
     {
-        // The closing-window guard comes from content (20 minutes here); no literal lives in the manager.
-        AAEmu.Game.GameData.ContentConfigGameData.Instance.SetForTest("plot_auction_exit_guard_seconds", 1200);
         await Assert.That(_manager.PlaceBid(_alice, ActivityId, LockoutConfigId, FirstFloor))
             .IsEqualTo(PlotAuctionErrorCodes.Success);
 
@@ -307,18 +308,15 @@ public sealed class PlotAuctionManagerTests
     }
 
     [Test]
-    public async Task Exit_WithoutAGuardRow_IsAllowedNearCloseAndRefundsTheEscrow()
+    public async Task Exit_NearClose_StaysRefusedWithoutAContentRow()
     {
-        // A 0 row exercises the same no-guard path as an absent row (the singleton cannot unseed),
-        // and the escrow returns exactly once.
-        AAEmu.Game.GameData.ContentConfigGameData.Instance.SetForTest("plot_auction_exit_guard_seconds", 0);
         await Assert.That(_manager.PlaceBid(_alice, ActivityId, LockoutConfigId, FirstFloor))
             .IsEqualTo(PlotAuctionErrorCodes.Success);
 
         var exit = _manager.ExitBid(_alice, ActivityId, LockoutConfigId);
-        await Assert.That(exit).IsEqualTo(PlotAuctionErrorCodes.Success);
-        await Assert.That(_alice.Money).IsEqualTo(StartingMoney);
-        await Assert.That(_manager.BidsFor(LockoutConfigId).Count).IsEqualTo(0);
+        await Assert.That(exit).IsEqualTo(PlotAuctionErrorCodes.AuctionEnded);
+        await Assert.That(_alice.Money).IsEqualTo(StartingMoney - FirstFloor);
+        await Assert.That(_manager.BidsFor(LockoutConfigId).Count).IsEqualTo(1);
     }
 
     [Test]
@@ -447,6 +445,26 @@ public sealed class PlotAuctionManagerTests
 
     private static CharacterMock Character(uint id, string name) =>
         new() { Id = id, Name = name, Money = StartingMoney };
+
+    /// <summary>
+    /// Stands in for account credits. The production wallet writes the accounts table; this one
+    /// moves the character's money field so the suite does not need MySQL.
+    /// </summary>
+    private sealed class CharacterMoneyWallet : IPlotAuctionWallet
+    {
+        public bool TryApply(Character character, long signedAmount, Func<MySqlConnection, MySqlTransaction, bool> persist)
+        {
+            if (character == null || persist == null)
+                return false;
+            if (signedAmount < 0 && character.Money < -signedAmount)
+                return false;
+            character.Money += signedAmount;
+            if (persist(null, null))
+                return true;
+            character.Money -= signedAmount;
+            return false;
+        }
+    }
 
     private List<BaseMail> MailsOfType(MailType type) =>
         _mails._allPlayerMails.Values.Where(m => m.MailType == type).ToList();
