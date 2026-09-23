@@ -151,7 +151,10 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
                     character.SendErrorMessage(butler.Error);
             });
 
-            // Warm the resident map at world entry; the townhall Region tab reads cache.
+            // Warm the resident map at world entry; the townhall Region tab reads cache. A fresh
+            // client session starts with an empty resident map, so the announce bookkeeping from
+            // the previous session must be dropped or the diff would announce nothing.
+            HousingManager.Instance.ResetResidentAnnounce(character.Id);
             HousingManager.Instance.SendResidentMap(Connection, character.Id);
 
             foreach (var conflict in ZoneManager.Instance.GetConflicts())

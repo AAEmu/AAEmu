@@ -836,14 +836,14 @@ public class UnitReqs
 
             case UnitReqsKindType.ResidentServicePoint:
                 // 0x39795C50: resident of the zone group (else 0xA3 / 0x3C2), then service points at least value2
-                // (else 0xA3 / 0x3C3). The server does not model resident service points yet and reports zero,
-                // so the two rows (100, 150) fail on the point test until it does.
+                // (else 0xA3 / 0x3C3). The points are the character's settled resident state for the group.
                 var serviceGroupId = Value1 == 0 ? CurrentZoneGroupId(owner) : Value1;
                 var isServiceResident = player != null && serviceGroupId != null &&
                                         HousingManager.Instance.IsResidentOfZoneGroup(player.Id, serviceGroupId.Value);
                 if (!isServiceResident)
                     return RetNative((SkillResult)ResidentServicePointNativeResult, ResidentFailureDetail, 0, false);
-                const int modelledResidentServicePoints = 0;
+                var modelledResidentServicePoints = ResidentManager.Instance
+                    .GetServicePoint(player.Id, (ushort)serviceGroupId.Value);
                 return RetNative((SkillResult)ResidentServicePointNativeResult, ResidentServicePointFailureDetail, 0,
                     modelledResidentServicePoints >= Value2);
 
