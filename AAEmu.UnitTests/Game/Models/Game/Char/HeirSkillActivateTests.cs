@@ -1,6 +1,7 @@
 using System.Reflection;
 
 using AAEmu.Game.Core.Managers;
+using AAEmu.UnitTests.Utils;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Heirs;
@@ -23,19 +24,24 @@ public class HeirSkillActivateTests
 
     private Dictionary<uint, HeirSkill> _savedHeirRows;
     private Dictionary<uint, HeirSkillDetail> _savedSuccessors;
-    private Dictionary<uint, SkillTemplate> _savedSkills;
+    private SingletonScope<SkillManager> _skills;
 
     [Before(Test)]
     public void SaveCatalogs()
     {
         _savedHeirRows = Rows();
         _savedSuccessors = Successors();
-        _savedSkills = Skills();
         Set(HeirGameData.Instance, "_skillsById", new Dictionary<uint, HeirSkill>());
         Set(HeirGameData.Instance, "_successorsBySkillId", new Dictionary<uint, HeirSkillDetail>());
-        Set(SkillManager.Instance, "_skills", new Dictionary<uint, SkillTemplate>());
         typeof(HeirGameData).GetProperty(nameof(HeirGameData.StartLevel))!
             .SetValue(HeirGameData.Instance, (byte)0);
+
+        // A fresh manager: the process-wide SkillManager.Instance throws once another test
+        // has cleared the service provider.
+        _skills = new SingletonScope<SkillManager>(new SkillManager(
+            Mock.Of<IAnimationManager>().Object,
+            Mock.Of<IPlotManager>().Object));
+        Set(SkillManager.Instance, "_skills", new Dictionary<uint, SkillTemplate>());
     }
 
     [After(Test)]
@@ -43,7 +49,7 @@ public class HeirSkillActivateTests
     {
         Set(HeirGameData.Instance, "_skillsById", _savedHeirRows);
         Set(HeirGameData.Instance, "_successorsBySkillId", _savedSuccessors);
-        Set(SkillManager.Instance, "_skills", _savedSkills);
+        _skills.Dispose();
     }
 
     [Test]
