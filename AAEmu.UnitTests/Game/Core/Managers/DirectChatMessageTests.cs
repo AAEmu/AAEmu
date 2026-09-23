@@ -192,6 +192,55 @@ public class DirectChatMessageTests
     }
 
     [Test]
+    public async Task ABlockListEntry_RefusesTheWindowAndALaterMessage()
+    {
+        var manager = new ChatManager();
+        var pair = Pair(41031, 41032,
+            (uint)FactionsEnum.NuiaAlliance, (uint)FactionsEnum.NuiaAlliance);
+        pair.Receiver.Blocked = new CharacterBlocked(pair.Receiver);
+        pair.Receiver.Blocked.BlockedList[pair.Sender.Id] = new BlockedTemplate
+        {
+            Owner = pair.Receiver.Id,
+            BlockedId = pair.Sender.Id
+        };
+
+        await Assert.That(manager.StartDirectChat(pair.Sender, pair.Receiver)).IsNull();
+        await Assert.That(CountOf(pair.SenderWire, SCOffsets.SCOneAndOneChatStartPacket)).IsEqualTo(0);
+        await Assert.That(CountOf(pair.ReceiverWire, SCOffsets.SCOneAndOneChatStartPacket)).IsEqualTo(0);
+
+        pair.Receiver.Blocked.BlockedList.Clear();
+        var session = manager.StartDirectChat(pair.Sender, pair.Receiver);
+        await Assert.That(session).IsNotNull();
+        pair.Sender.Blocked = new CharacterBlocked(pair.Sender);
+        pair.Sender.Blocked.BlockedList[pair.Receiver.Id] = new BlockedTemplate
+        {
+            Owner = pair.Sender.Id,
+            BlockedId = pair.Receiver.Id
+        };
+
+        await Assert.That(manager.SendDirectChatMessage(pair.Sender, session.Id, "after the block")).IsEqualTo(0);
+        await Assert.That(CountOf(pair.ReceiverWire, SCOffsets.SCOneAndOneChatAddMessagePacket)).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task ClosingASession_DropsItSoTheNextWhisperOpensANewOne()
+    {
+        var manager = new ChatManager();
+        var pair = Pair(41041, 41042,
+            (uint)FactionsEnum.NuiaAlliance, (uint)FactionsEnum.NuiaAlliance);
+        var first = manager.StartDirectChat(pair.Sender, pair.Receiver);
+        await Assert.That(first).IsNotNull();
+
+        await Assert.That(manager.CloseDirectChatSessions(pair.Sender)).IsEqualTo(1);
+        await Assert.That(manager.SendDirectChatMessage(pair.Receiver, first.Id, "still there")).IsEqualTo(0);
+
+        var again = manager.StartDirectChat(pair.Sender, pair.Receiver);
+        await Assert.That(again).IsNotNull();
+        await Assert.That(again.Id).IsNotEqualTo(first.Id);
+        await Assert.That(manager.SendDirectChatMessage(pair.Sender, again.Id, "again")).IsEqualTo(2);
+    }
+
+    [Test]
     public async Task HostileFaction_IsBlockedAndNothingIsDelivered()
     {
         var manager = new ChatManager();

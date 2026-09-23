@@ -34,6 +34,9 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
     /// <summary>Open one-to-one chat sessions, keyed by the id the clients were given.</summary>
     private ConcurrentDictionary<long, DirectChatSession> DirectChats { get; } = new();
 
+    /// <summary>The same sessions keyed by the ordered pair of character ids, so one pair has one window.</summary>
+    private ConcurrentDictionary<long, DirectChatSession> DirectChatsByPair { get; } = new();
+
     /// <summary>Last accepted one-to-one send per character, for the content-configured interval.</summary>
     private ConcurrentDictionary<uint, DateTime> DirectChatLastSend { get; } = new();
 
@@ -512,12 +515,6 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
         if (first == null || second == null)
             return null;
 
-        foreach (var session in DirectChats.Values)
-        {
-            if (session.Involves(first.Id) && session.Involves(second.Id))
-                return session;
-        }
-
         if (!SocialChatAuthorization.CanSendDirectChat(first, second))
         {
             Logger.Warn("Refusing one-to-one chat start between {0} and {1}",
@@ -525,18 +522,31 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
             return null;
         }
 
+        var pairKey = DirectChatPairKey(first.Id, second.Id);
+        if (DirectChatsByPair.TryGetValue(pairKey, out var open))
+            return open;
+
         var created = new DirectChatSession
         {
             Id = Interlocked.Increment(ref _nextDirectChatId),
             CharacterA = first,
             CharacterB = second
         };
-        if (!DirectChats.TryAdd(created.Id, created))
-            return DirectChats.GetValueOrDefault(created.Id);
+        if (!DirectChatsByPair.TryAdd(pairKey, created))
+            return DirectChatsByPair.GetValueOrDefault(pairKey);
 
+        DirectChats[created.Id] = created;
         first.SendPacket(new SCOneAndOneChatStartPacket(created.Id, second.Name));
         second.SendPacket(new SCOneAndOneChatStartPacket(created.Id, first.Name));
         return created;
+    }
+
+    /// <summary>One key for a pair, independent of which side asked first.</summary>
+    private static long DirectChatPairKey(uint firstId, uint secondId)
+    {
+        var low = Math.Min(firstId, secondId);
+        var high = Math.Max(firstId, secondId);
+        return ((long)low << 32) | high;
     }
 
     /// <summary>Delivers one one-to-one message on an already-open session.</summary>
@@ -611,8 +621,11 @@ public class ChatManager : Singleton<ChatManager>, IChatManager
         var removed = 0;
         foreach (var pair in DirectChats)
         {
-            if (pair.Value.Involves(character.Id) && DirectChats.TryRemove(pair.Key, out _))
-                removed++;
+            if (!pair.Value.Involves(character.Id) || !DirectChats.TryRemove(pair.Key, out var session))
+                continue;
+
+            DirectChatsByPair.TryRemove(DirectChatPairKey(session.CharacterA.Id, session.CharacterB.Id), out _);
+            removed++;
         }
 
         DirectChatLastSend.TryRemove(character.Id, out _);
