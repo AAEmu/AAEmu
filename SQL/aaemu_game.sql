@@ -1585,7 +1585,7 @@ CREATE TABLE IF NOT EXISTS `character_resident_state` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Resident service points and charges per zone group';
 
 CREATE TABLE IF NOT EXISTS `account_content_rosters` (
-  `id` bigint unsigned NOT NULL,
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `account_id` int unsigned NOT NULL,
   `save_title` varchar(255) NOT NULL DEFAULT '',
   `created_at` int unsigned NOT NULL DEFAULT 0,

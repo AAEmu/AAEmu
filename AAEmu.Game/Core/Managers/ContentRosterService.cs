@@ -1,8 +1,11 @@
+using System.Collections.Concurrent;
 using System.IO;
 
 using AAEmu.Commons.Utils.DB;
+using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Char;
 using MySql.Data.MySqlClient;
 using NLog;
 
@@ -51,6 +54,7 @@ public interface IContentRosterStore
 
 public sealed class MySqlContentRosterStore : IContentRosterStore
 {
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private readonly Func<MySqlConnection> _connectionFactory;
 
     public MySqlContentRosterStore() : this(MySQL.CreateConnection)
@@ -121,32 +125,27 @@ public sealed class MySqlContentRosterStore : IContentRosterStore
 
     public ulong Insert(ulong accountId, string title, DateTime createdAt)
     {
-        using var connection = _connectionFactory();
-        using var transaction = connection.BeginTransaction();
-        using var command = connection.CreateCommand();
-        command.Transaction = transaction;
-        command.CommandText =
-            """
-            INSERT INTO account_content_rosters (id, account_id, save_title, created_at)
-            SELECT COALESCE(MAX(id), 0) + 1, @account_id, @save_title, @created_at
-            FROM account_content_rosters
-            """;
-        command.Parameters.AddWithValue("@account_id", accountId);
-        command.Parameters.AddWithValue("@save_title", title ?? string.Empty);
-        command.Parameters.AddWithValue("@created_at", new DateTimeOffset(ServerCalendar.AsUtc(createdAt)).ToUnixTimeSeconds());
-        if (command.ExecuteNonQuery() != 1)
+        try
         {
-            transaction.Rollback();
+            using var connection = _connectionFactory();
+            using var command = connection.CreateCommand();
+            command.CommandText =
+                """
+                INSERT INTO account_content_rosters (account_id, save_title, created_at)
+                VALUES (@account_id, @save_title, @created_at)
+                """;
+            command.Parameters.AddWithValue("@account_id", accountId);
+            command.Parameters.AddWithValue("@save_title", title ?? string.Empty);
+            command.Parameters.AddWithValue("@created_at", new DateTimeOffset(ServerCalendar.AsUtc(createdAt)).ToUnixTimeSeconds());
+            if (command.ExecuteNonQuery() != 1)
+                return 0;
+            return (ulong)command.LastInsertedId;
+        }
+        catch (Exception ex)
+        {
+            Logger.Error(ex, "Roster save insert failed");
             return 0;
         }
-
-        using var read = connection.CreateCommand();
-        read.Transaction = transaction;
-        read.CommandText = "SELECT MAX(id) FROM account_content_rosters WHERE account_id = @account_id";
-        read.Parameters.AddWithValue("@account_id", accountId);
-        var id = Convert.ToUInt64(read.ExecuteScalar());
-        transaction.Commit();
-        return id;
     }
 
     private static List<ulong> DistinctIds(IReadOnlyList<ulong> rosterIds) =>
@@ -165,6 +164,11 @@ public sealed class ContentRosterService
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
 
     private readonly IContentRosterStore _store;
+    private readonly ConcurrentDictionary<ulong, DateTime> _lastSaveAt = new();
+
+    public const string SaveCoolTimeKey = "content_roster_save_cool_time";
+    public const string MinMemberSizeKey = "content_roster_min_member_size";
+    public const int MaxTitleChars = 255;
 
     public ContentRosterService(IContentRosterStore store)
     {
@@ -210,10 +214,53 @@ public sealed class ContentRosterService
         return new ContentRosterDeleteOutcome(ContentRosterDeleteResult.Success, deleted);
     }
 
-    public ulong Save(ulong accountId, string title, DateTime now)
+    public ContentRosterSaveOutcome Save(Character character, string title, DateTime now)
     {
-        if (string.IsNullOrWhiteSpace(title))
-            return 0;
-        return _store.Insert(accountId, title.Trim(), now);
+        if (character == null || !TitleFits(title))
+            return ContentRosterSaveOutcome.Failed(ErrorMessageType.ContentRosterSaveFailed);
+
+        var team = TeamManager.Instance.GetActiveTeamByUnit(character.Id);
+        if (team == null || team.IsParty)
+            return ContentRosterSaveOutcome.Failed(ErrorMessageType.ContentRosterNotFoundTeam);
+        if (team.OwnerId != character.Id)
+            return ContentRosterSaveOutcome.Failed(ErrorMessageType.ContentRosterNotUsableOwner);
+
+        var minMembers = ContentConfigGameData.Instance.RequireInt(MinMemberSizeKey);
+        if (team.MembersCount() < minMembers)
+            return ContentRosterSaveOutcome.Failed(ErrorMessageType.ContentRosterSaveMemberSize);
+
+        var cooldownSeconds = ContentConfigGameData.Instance.RequireInt(SaveCoolTimeKey);
+        var accountId = (ulong)character.AccountId;
+        if (cooldownSeconds > 0 &&
+            _lastSaveAt.TryGetValue(accountId, out var lastAt) &&
+            ServerCalendar.AsUtc(now) - ServerCalendar.AsUtc(lastAt) < TimeSpan.FromSeconds(cooldownSeconds))
+            return ContentRosterSaveOutcome.Failed(ErrorMessageType.ContentRosterSaveCoolTime);
+
+        var trimmed = title.Trim();
+        var id = _store.Insert(accountId, trimmed, now);
+        if (id == 0)
+            return ContentRosterSaveOutcome.Failed(ErrorMessageType.ContentRosterSaveFailed);
+
+        _lastSaveAt[accountId] = now;
+        return new ContentRosterSaveOutcome(true, ErrorMessageType.NoErrorMessage, (long)id, now, trimmed);
     }
+
+    private static bool TitleFits(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title) || title.Trim().Length > MaxTitleChars)
+            return false;
+        foreach (var ch in title)
+        {
+            if (char.IsSurrogate(ch))
+                return false;
+        }
+
+        return true;
+    }
+}
+
+public sealed record ContentRosterSaveOutcome(bool Success, ErrorMessageType Error, long Id, DateTime RecordedAt, string Title)
+{
+    public static ContentRosterSaveOutcome Failed(ErrorMessageType error) =>
+        new(false, error, 0, DateTime.UnixEpoch, string.Empty);
 }

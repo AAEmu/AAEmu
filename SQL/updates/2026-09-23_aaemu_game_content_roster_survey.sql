@@ -7,7 +7,7 @@
 -- primary key and doubles as the exactly-once guard.
 
 CREATE TABLE IF NOT EXISTS `account_content_rosters` (
-  `id` bigint unsigned NOT NULL,
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `account_id` int unsigned NOT NULL,
   `save_title` varchar(255) NOT NULL DEFAULT '',
   `created_at` int unsigned NOT NULL DEFAULT 0,

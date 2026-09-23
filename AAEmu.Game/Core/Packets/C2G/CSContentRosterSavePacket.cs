@@ -23,9 +23,11 @@ public class CSContentRosterSavePacket() : GamePacket(CSOffsets.CSContentRosterS
         if (Connection is not { ActiveChar: not null } connection)
             return;
 
-        var id = ContentRosterService.Instance.Save(connection.AccountId, SaveTitle, ServerCalendar.UtcNow);
+        var outcome = ContentRosterService.Instance.Save(connection.ActiveChar, SaveTitle, ServerCalendar.UtcNow);
+        var recorded = outcome.RecordedAt == DateTime.UnixEpoch
+            ? 0L
+            : new DateTimeOffset(ServerCalendar.AsUtc(outcome.RecordedAt)).ToUnixTimeSeconds();
         connection.SendPacket(new SCContentRosterSavePacket(
-            id != 0,
-            id != 0 ? ErrorMessageType.NoErrorMessage : ErrorMessageType.InternalError));
+            outcome.Success, outcome.Error, outcome.Id, recorded, outcome.Title));
     }
 }

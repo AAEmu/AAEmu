@@ -826,7 +826,13 @@ public enum ErrorMessageType : short
     ButlerGardenSizeInsufficient = 0x497,
     ButlerProductionCostInsufficient = 0x498,
     ContentRosterDeleteFailed = 1200,                               // "content_roster_delete_failed";
+    ContentRosterListFull = 1201,                                   // "content_roster_list_full";
     ContentRosterNotFound = 1202,                                   // "content_roster_not_found";
+    ContentRosterNotFoundTeam = 1203,                               // "content_roster_not_found_team";
+    ContentRosterNotUsableOwner = 1204,                             // "content_roster_not_usable_owner";
+    ContentRosterSaveMemberSize = 1205,                             // "content_roster_save_member_size";
+    ContentRosterSaveCoolTime = 1206,                               // "content_roster_save_cool_time";
+    ContentRosterSaveFailed = 1207,                                 // "content_roster_save_failed";
     SurveyFormAlreadyDone = 1225,                                   // "survey_form_already_done";
     SurveyFormInvalidPeriod = 1226,                                 // "survey_form_invalid_period";
     SurveyFormInvalidCommon = 1227,                                 // "survey_form_invalid_common";
