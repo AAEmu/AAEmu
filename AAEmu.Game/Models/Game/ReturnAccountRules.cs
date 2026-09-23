@@ -5,7 +5,7 @@ namespace AAEmu.Game.Models.Game;
 
 /// <summary>
 /// Account-return ("welcome back") reward rules. Every gameplay number - how many days the account
-/// must have been away, how many days away before the reward ages out, and which item type the reward
+/// must have been away, how many days away before the reward ages out, and which item template the reward
 /// carries - comes from <c>content_configs</c> by catalog name. This class holds only the key strings
 /// and the day arithmetic; a missing row fails loudly through
 /// <see cref="ContentConfigGameData.RequireInt"/>.
@@ -21,7 +21,7 @@ public static class ReturnAccountRules
     /// <summary>Days of absence required before a return claim is eligible.</summary>
     public const string RestDayKey = "return_account_rest_day";
 
-    /// <summary>The <c>const_item_types</c> id the reward grants.</summary>
+    /// <summary>The item template id the reward grants.</summary>
     public const string RewardItemTypeKey = "return_account_reward_item_type";
 
     /// <summary>Days of absence after which the reward is blocked.</summary>
@@ -36,7 +36,7 @@ public static class ReturnAccountRules
     /// <summary>Days of absence the content requires. Missing row throws.</summary>
     public static int RestDays => ContentConfigGameData.Instance.RequireInt(RestDayKey);
 
-    /// <summary>Content's reward item type (<c>const_item_types.id</c>). Missing row throws.</summary>
+    /// <summary>Content's reward item template id. Missing row throws.</summary>
     public static int RewardItemType => ContentConfigGameData.Instance.RequireInt(RewardItemTypeKey);
 
     /// <summary>Days of absence after which the reward is blocked. Missing row throws.</summary>

@@ -84,14 +84,15 @@ public class AccountReturnManager : Singleton<AccountReturnManager>
         }
         catch (Exception e)
         {
-            Logger.Error(e, "IsClaimed failed for account {0}", accountId);
+            Logger.Error(e, "IsClaimed failed");
             return false;
         }
     }
 
     /// <summary>
     /// The sighting that decides eligibility. A qualifying absence is written on the account so a
-    /// later login, which stamps last_login again on disconnect, still sees it.
+    /// later login, which stamps last_login again on disconnect, still sees it. A newer qualifying
+    /// sighting replaces an older one, so an absence that has aged out does not hide the next one.
     /// </summary>
     private DateTime? ResolveSighting(uint accountId, DateTime? lastSeenUtc)
     {
@@ -116,7 +117,7 @@ public class AccountReturnManager : Singleton<AccountReturnManager>
                 UPDATE accounts
                 SET return_qualifying_login = @seen
                 WHERE account_id = @account_id
-                  AND (return_qualifying_login IS NULL OR return_qualifying_login > @seen)
+                  AND (return_qualifying_login IS NULL OR return_qualifying_login < @seen)
                 """;
             command.Parameters.AddWithValue("@account_id", accountId);
             command.Parameters.AddWithValue("@seen", ServerCalendar.AsUtc(seen));
@@ -124,7 +125,7 @@ public class AccountReturnManager : Singleton<AccountReturnManager>
         }
         catch (Exception e)
         {
-            Logger.Error(e, "RememberQualifying failed for account {0}", accountId);
+            Logger.Error(e, "RememberQualifying failed");
         }
     }
 
@@ -141,7 +142,7 @@ public class AccountReturnManager : Singleton<AccountReturnManager>
         }
         catch (Exception e)
         {
-            Logger.Error(e, "ReadQualifying failed for account {0}", accountId);
+            Logger.Error(e, "ReadQualifying failed");
             return null;
         }
     }
