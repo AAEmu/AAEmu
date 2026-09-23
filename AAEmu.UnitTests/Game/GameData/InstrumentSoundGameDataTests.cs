@@ -42,6 +42,20 @@ public class InstrumentSoundGameDataTests : SqliteTestBase
         {
             command.CommandText =
                 """
+                CREATE TABLE const_buff_types (
+                    id INTEGER PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    buff_id INTEGER NOT NULL
+                );
+                CREATE TABLE holdables (
+                    id INTEGER PRIMARY KEY,
+                    code TEXT NOT NULL
+                );
+                CREATE TABLE item_weapons (
+                    id INTEGER PRIMARY KEY,
+                    item_id INTEGER NOT NULL,
+                    holdable_id INTEGER NOT NULL
+                );
                 CREATE TABLE instrument_sounds (
                     id INTEGER PRIMARY KEY,
                     item_id INTEGER NOT NULL,
@@ -84,6 +98,26 @@ public class InstrumentSoundGameDataTests : SqliteTestBase
         await Assert.That(InstrumentSoundGameData.Instance.UnknownBuffIds).IsEmpty();
         await Assert.That(InstrumentSoundGameData.Instance.KindKeys)
             .IsEquivalentTo(new List<string> { "item", "doodad" });
+    }
+
+    [Test]
+    public async Task AnItemRowWithNoBuff_TakesThePlayBuffItsHoldableNames()
+    {
+        Execute("INSERT INTO enum_instrument_sound_kinds (id, name) VALUES (1, 'item')");
+        Execute("INSERT INTO buffs (id, name) VALUES (4242, 'string play'), (4243, 'wind play')");
+        Execute("INSERT INTO const_buff_types (id, name, buff_id) VALUES " +
+                "(1, 'string_play', 4242), (2, 'wind_play', 4243)");
+        Execute("INSERT INTO holdables (id, code) VALUES (1, 'string_instrument'), (2, 'tube_instrument')");
+        Execute("INSERT INTO item_weapons (id, item_id, holdable_id) VALUES (1, 70001, 1), (2, 70002, 2)");
+        Execute("INSERT INTO instrument_sounds (id, item_id, midi, kind_id, buff_id) VALUES " +
+                "(1, 70001, 1, 1, NULL), (2, 70002, 2, 1, NULL)");
+
+        InstrumentSoundGameData.Instance.Load(Connection);
+
+        await Assert.That(InstrumentSoundGameData.Instance.TryGetItem(70001, out var strings)).IsTrue();
+        await Assert.That(strings.BuffId).IsEqualTo(4242u);
+        await Assert.That(InstrumentSoundGameData.Instance.TryGetItem(70002, out var wind)).IsTrue();
+        await Assert.That(wind.BuffId).IsEqualTo(4243u);
     }
 
     [Test]

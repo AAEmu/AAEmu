@@ -27,7 +27,8 @@ namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
 /// <c>instrument_sounds</c> row, see <c>UnitReqs</c>).
 ///
 /// The buff is applied only when it is not on the player already, so a repeated play of the same
-/// instrument applies it exactly once; the MIDI is announced once per performance.
+/// instrument applies it exactly once. The MIDI is announced on every play, including one that
+/// finds the buff already on, so a pause and a score change still reach the neighbours.
 /// </remarks>
 public class PlayUserMusic : SpecialEffectAction
 {
@@ -88,7 +89,12 @@ public class PlayUserMusic : SpecialEffectAction
                 return;
 
             case InstrumentPlayOutcome.AlreadyApplied:
+                // The buff stays for the whole performance, including a pause. A resumed score or a
+                // different one still has to be announced; only the buff is once.
                 Logger.Trace("Player {0} ({1}) is already playing their {2}", player.Name, player.Id, decision.Source);
+                player.BroadcastPacket(
+                    new SCSendUserMusicPacket(player.ObjId, player.Name, MusicManager.Instance.GetMidiCache(player.Id)),
+                    true);
                 return;
         }
 

@@ -17,34 +17,47 @@ namespace AAEmu.Game.Models.Game.Music;
 /// </remarks>
 public static class MusicInstrumentAccess
 {
-    /// <summary>Permission check with the doodad's own house resolved through <see cref="HousingManager"/>.</summary>
+    /// <summary>Permission check with the doodad's owner resolved from its <see cref="Doodad.OwnerType"/>.</summary>
     public static bool MayPlayThrough(Character player, Doodad instrument) =>
-        MayPlayThrough(player, instrument, ResolveHouse(instrument));
+        MayPlayThrough(player, instrument, ResolveHouse(instrument), ResolveSlaveOwnerId(instrument));
 
-    /// <summary>The house a house-owned doodad points at, or null when it owns no house id.</summary>
+    /// <summary>The house a house-owned doodad points at, or null when it is not a house doodad.</summary>
     public static House ResolveHouse(Doodad instrument) =>
-        instrument != null && instrument.OwnerDbId > 0
+        instrument is { OwnerType: DoodadOwnerType.Housing, OwnerDbId: > 0 }
             ? HousingManager.Instance.GetHouseById(instrument.OwnerDbId)
             : null;
 
     /// <summary>
-    /// The decision itself, with the house resolved by the caller so it can be exercised without a
-    /// world: a house-owned doodad answers through the house's permission, a character-owned one
-    /// only for its owner, and a system (world-spawned) one for everyone.
+    /// The character who owns the slave a slave-mounted doodad is attached to. The slave is looked up
+    /// by the doodad's owner database id; when that slave is not in the world, the character id stamped
+    /// on the doodad is used. Zero when the doodad is not a slave's.
     /// </summary>
-    public static bool MayPlayThrough(Character player, Doodad instrument, House house)
+    public static uint ResolveSlaveOwnerId(Doodad instrument)
+    {
+        if (instrument is not { OwnerType: DoodadOwnerType.Slave })
+            return 0;
+
+        var fromSlave = instrument.OwnerDbId > 0
+            ? instrument.ParentWorld?.SlaveManager?.FindSlaveByDbId(instrument.OwnerDbId)?.GetOwnerCharacter()?.Id ?? 0
+            : 0;
+        return fromSlave != 0 ? fromSlave : instrument.OwnerId;
+    }
+
+    /// <summary>
+    /// The decision itself, with the owner resolved by the caller so it can be exercised without a
+    /// world. A house doodad answers through the house's permission, a slave doodad only for the
+    /// slave's owner, a character-owned one only for that character, and a system one for everyone.
+    /// </summary>
+    public static bool MayPlayThrough(Character player, Doodad instrument, House house, uint slaveOwnerCharacterId)
     {
         if (player == null || instrument == null)
             return false;
 
-        if (instrument.OwnerDbId > 0)
-            return house != null && house.AllowedToInteract(player);
-
         return instrument.OwnerType switch
         {
+            DoodadOwnerType.Housing => house != null && house.AllowedToInteract(player),
+            DoodadOwnerType.Slave => slaveOwnerCharacterId != 0 && slaveOwnerCharacterId == player.Id,
             DoodadOwnerType.Character => instrument.OwnerId == player.Id,
-            // Claims a house but names none to ask: not permission.
-            DoodadOwnerType.Housing => false,
             _ => true,
         };
     }

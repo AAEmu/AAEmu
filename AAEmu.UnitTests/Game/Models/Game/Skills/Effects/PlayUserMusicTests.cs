@@ -63,6 +63,9 @@ public class PlayUserMusicTests : IDisposable
                 "midi INTEGER NOT NULL, kind_id INTEGER NOT NULL, buff_id INTEGER)");
         Execute("INSERT INTO enum_instrument_sound_kinds (id, name) VALUES (1, 'item'), (2, 'doodad')");
         Execute("INSERT INTO buffs (id, name) VALUES (91001, 'piano play'), (91002, 'lute play')");
+        Execute("CREATE TABLE const_buff_types (id INTEGER PRIMARY KEY, name TEXT NOT NULL, buff_id INTEGER NOT NULL)");
+        Execute("CREATE TABLE holdables (id INTEGER PRIMARY KEY, code TEXT NOT NULL)");
+        Execute("CREATE TABLE item_weapons (id INTEGER PRIMARY KEY, item_id INTEGER NOT NULL, holdable_id INTEGER NOT NULL)");
         Execute("INSERT INTO instrument_sounds (id, item_id, midi, kind_id, buff_id) VALUES " +
                 "(1, 90001, 0, 2, 91001), " + // the placed piano
                 "(2, 90002, 24, 1, 91002), " + // an instrument item
@@ -124,7 +127,7 @@ public class PlayUserMusicTests : IDisposable
         Play(player); // the same performance asked for twice
 
         var announcements = player.Broadcasts.OfType<SCSendUserMusicPacket>().ToList();
-        await Assert.That(announcements.Count).IsEqualTo(1);
+        await Assert.That(announcements.Count).IsEqualTo(2);
         await Assert.That(buffs.AppliedBuffs).IsEquivalentTo(new List<uint> { PianoBuff });
 
         // The buff the content row carries is on them, so a third play resolves as already applied.
@@ -203,6 +206,21 @@ public class PlayUserMusicTests : IDisposable
 
         await Assert.That(player.Broadcasts).IsEmpty();
         await Assert.That(((RecordingBuffs)player.Buffs).AppliedBuffs).IsEmpty();
+    }
+
+    [Test]
+    public async Task PlayingAgainAfterAPause_AnnouncesTheScoreAgainWithoutReapplyingTheBuff()
+    {
+        var player = SeatedAt(OwnerId, PianoDoodad, DoodadOwnerType.System);
+        var buffs = (RecordingBuffs)player.Buffs;
+
+        Play(player);
+        Pause(player);
+        Play(player);
+
+        await Assert.That(player.Broadcasts.OfType<SCSendUserMusicPacket>().Count()).IsEqualTo(2);
+        await Assert.That(player.Broadcasts.OfType<SCPauseUserMusicPacket>().Count()).IsEqualTo(1);
+        await Assert.That(buffs.AppliedBuffs).IsEquivalentTo(new List<uint> { PianoBuff });
     }
 
     [Test]

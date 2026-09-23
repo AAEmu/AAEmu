@@ -21,8 +21,9 @@ namespace AAEmu.Game.GameData;
 /// doodads: the grand piano, the drumset, the pipe organs, the festival variants).
 ///
 /// A row is dropped, loudly, when the content cannot answer for it: a kind the enum does not name,
-/// or a <c>buff_id</c> no <c>buffs</c> row carries. Nothing falls back to a literal — a dropped row
-/// makes the source look like the non-instrument it then is, and the play path refuses it.
+/// or a <c>buff_id</c> no <c>buffs</c> row carries. An item row that names no buff takes the play
+/// buff <c>const_buff_types</c> names for its holdable (<c>string_instrument</c> → <c>string_play</c>,
+/// <c>tube_instrument</c> → <c>wind_play</c>). A missing const row is logged and the item keeps no buff.
 /// </remarks>
 [GameData]
 public class InstrumentSoundGameData : Singleton<InstrumentSoundGameData>, IGameDataLoader
@@ -34,6 +35,18 @@ public class InstrumentSoundGameData : Singleton<InstrumentSoundGameData>, IGame
 
     /// <summary><c>enum_instrument_sound_kinds.name</c> of the rows keyed by doodad template id.</summary>
     public const string DoodadKindKey = "doodad";
+
+    /// <summary><c>const_buff_types.name</c> of the buff a string instrument plays with when its row names none.</summary>
+    public const string StringPlayBuffKey = "string_play";
+
+    /// <summary><c>const_buff_types.name</c> of the buff a wind instrument plays with when its row names none.</summary>
+    public const string WindPlayBuffKey = "wind_play";
+
+    /// <summary><c>holdables.code</c> of a string instrument.</summary>
+    public const string StringInstrumentHoldableCode = "string_instrument";
+
+    /// <summary><c>holdables.code</c> of a wind instrument. The shipped code is the tube, not "wind".</summary>
+    public const string WindInstrumentHoldableCode = "tube_instrument";
 
     /// <summary>One <c>instrument_sounds</c> row: the midi patch a source plays with and the buff it carries.</summary>
     public readonly record struct InstrumentSound(uint SourceId, uint Midi, uint BuffId);
@@ -89,6 +102,9 @@ public class InstrumentSoundGameData : Singleton<InstrumentSoundGameData>, IGame
                 buffIds.Add(reader.GetUInt32("id"));
         }
 
+        var playBuffByHoldableCode = LoadPlayBuffsByHoldable(connection);
+        var holdableCodeByItem = LoadHoldableCodes(connection, playBuffByHoldableCode.Keys);
+
         var unknownKindRowIds = new List<uint>();
         var unknownBuffIds = new List<uint>();
         using (var command = connection.CreateCommand())
@@ -115,7 +131,13 @@ public class InstrumentSoundGameData : Singleton<InstrumentSoundGameData>, IGame
                     continue;
                 }
 
-                var sound = new InstrumentSound(reader.GetUInt32("item_id"), reader.GetUInt32("midi", 0), buffId);
+                var sourceId = reader.GetUInt32("item_id");
+                if (kindName == ItemKindKey && buffId == 0 &&
+                    holdableCodeByItem.TryGetValue(sourceId, out var holdableCode) &&
+                    playBuffByHoldableCode.TryGetValue(holdableCode, out var playBuff))
+                    buffId = playBuff;
+
+                var sound = new InstrumentSound(sourceId, reader.GetUInt32("midi", 0), buffId);
                 if (kindName == ItemKindKey)
                     _items[sound.SourceId] = sound;
                 else
@@ -134,6 +156,64 @@ public class InstrumentSoundGameData : Singleton<InstrumentSoundGameData>, IGame
 
     public void PostLoad()
     {
+    }
+
+    /// <summary>
+    /// <c>const_buff_types</c> play buffs keyed by the holdable code they belong to. A missing name
+    /// is logged and that holdable gets no fallback.
+    /// </summary>
+    private static Dictionary<string, uint> LoadPlayBuffsByHoldable(SqliteConnection connection)
+    {
+        var byName = new Dictionary<string, uint>(StringComparer.Ordinal);
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT name, buff_id FROM const_buff_types WHERE name IN (@string, @wind)";
+            command.Parameters.AddWithValue("@string", StringPlayBuffKey);
+            command.Parameters.AddWithValue("@wind", WindPlayBuffKey);
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+                byName[reader.GetString("name")] = reader.GetUInt32("buff_id");
+        }
+
+        var byHoldable = new Dictionary<string, uint>(StringComparer.Ordinal);
+        if (byName.TryGetValue(StringPlayBuffKey, out var stringBuff) && stringBuff != 0)
+            byHoldable[StringInstrumentHoldableCode] = stringBuff;
+        else
+            Logger.Error("const_buff_types has no '{0}' row; string instruments with no instrument_sounds buff keep none",
+                StringPlayBuffKey);
+
+        if (byName.TryGetValue(WindPlayBuffKey, out var windBuff) && windBuff != 0)
+            byHoldable[WindInstrumentHoldableCode] = windBuff;
+        else
+            Logger.Error("const_buff_types has no '{0}' row; wind instruments with no instrument_sounds buff keep none",
+                WindPlayBuffKey);
+
+        return byHoldable;
+    }
+
+    /// <summary>Item template id to holdable code, for the codes a missing play buff can fall back through.</summary>
+    private static Dictionary<uint, string> LoadHoldableCodes(SqliteConnection connection, ICollection<string> codes)
+    {
+        var byItem = new Dictionary<uint, string>();
+        if (codes.Count == 0)
+            return byItem;
+
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            SELECT iw.item_id, h.code
+            FROM item_weapons iw
+            JOIN holdables h ON h.id = iw.holdable_id
+            WHERE h.code IN (@string, @wind)
+            """;
+        command.Parameters.AddWithValue("@string", StringInstrumentHoldableCode);
+        command.Parameters.AddWithValue("@wind", WindInstrumentHoldableCode);
+        using var sqliteReader = command.ExecuteReader();
+        using var reader = new SQLiteWrapperReader(sqliteReader);
+        while (reader.Read())
+            byItem[reader.GetUInt32("item_id")] = reader.GetString("code");
+        return byItem;
     }
 
     /// <summary>The equipped-item instrument this template id is, if content says it is one.</summary>

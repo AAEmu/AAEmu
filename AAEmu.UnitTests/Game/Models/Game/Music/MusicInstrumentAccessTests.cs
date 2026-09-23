@@ -38,8 +38,8 @@ public class MusicInstrumentAccessTests
     {
         var instrument = InstrumentAt(DoodadOwnerType.System);
 
-        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(StrangerId), instrument, null)).IsTrue();
-        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(OwnerId), instrument, null)).IsTrue();
+        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(StrangerId), instrument, null, 0)).IsTrue();
+        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(OwnerId), instrument, null, 0)).IsTrue();
     }
 
     [Test]
@@ -47,8 +47,8 @@ public class MusicInstrumentAccessTests
     {
         var instrument = InstrumentAt(DoodadOwnerType.Character, OwnerId);
 
-        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(OwnerId), instrument, null)).IsTrue();
-        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(StrangerId), instrument, null)).IsFalse();
+        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(OwnerId), instrument, null, 0)).IsTrue();
+        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(StrangerId), instrument, null, 0)).IsFalse();
     }
 
     [Test]
@@ -58,12 +58,12 @@ public class MusicInstrumentAccessTests
         var privateHouse = HouseWith(alwaysPublic: false);
         var publicHouse = HouseWith(alwaysPublic: true);
 
-        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(OwnerId), instrument, privateHouse)).IsTrue();
+        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(OwnerId), instrument, privateHouse, 0)).IsTrue();
 
         var stranger = Player(StrangerId);
         stranger.AccountId = 77; // NameManager knows no account for the owner, so this is not them.
-        await Assert.That(MusicInstrumentAccess.MayPlayThrough(stranger, instrument, privateHouse)).IsFalse();
-        await Assert.That(MusicInstrumentAccess.MayPlayThrough(stranger, instrument, publicHouse)).IsTrue();
+        await Assert.That(MusicInstrumentAccess.MayPlayThrough(stranger, instrument, privateHouse, 0)).IsFalse();
+        await Assert.That(MusicInstrumentAccess.MayPlayThrough(stranger, instrument, publicHouse, 0)).IsTrue();
     }
 
     [Test]
@@ -71,8 +71,8 @@ public class MusicInstrumentAccessTests
     {
         var instrument = InstrumentAt(DoodadOwnerType.Housing, OwnerId, houseId: 12);
 
-        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(OwnerId), instrument, null)).IsFalse();
-        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(StrangerId), instrument, null)).IsFalse();
+        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(OwnerId), instrument, null, 0)).IsFalse();
+        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(StrangerId), instrument, null, 0)).IsFalse();
     }
 
     [Test]
@@ -80,7 +80,18 @@ public class MusicInstrumentAccessTests
     {
         var instrument = InstrumentAt(DoodadOwnerType.Housing);
 
-        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(OwnerId), instrument, null)).IsFalse();
+        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(OwnerId), instrument, null, 0)).IsFalse();
+    }
+
+    [Test]
+    public async Task ASlaveMountedInstrumentIsOnlyForTheSlavesOwner()
+    {
+        // OwnerDbId is the slave, the same shape a house id has. It must not be asked as a house.
+        var instrument = InstrumentAt(DoodadOwnerType.Slave, ownerId: 0, houseId: 12);
+
+        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(OwnerId), instrument, null, OwnerId)).IsTrue();
+        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(StrangerId), instrument, null, OwnerId)).IsFalse();
+        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(OwnerId), instrument, HouseWith(true), 0)).IsFalse();
     }
 
     [Test]
@@ -88,7 +99,7 @@ public class MusicInstrumentAccessTests
     {
         var instrument = InstrumentAt(DoodadOwnerType.System);
 
-        await Assert.That(MusicInstrumentAccess.MayPlayThrough(null, instrument, null)).IsFalse();
-        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(OwnerId), null, null)).IsFalse();
+        await Assert.That(MusicInstrumentAccess.MayPlayThrough(null, instrument, null, 0)).IsFalse();
+        await Assert.That(MusicInstrumentAccess.MayPlayThrough(Player(OwnerId), null, null, 0)).IsFalse();
     }
 }
