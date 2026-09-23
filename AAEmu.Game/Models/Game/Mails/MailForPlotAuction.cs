@@ -9,9 +9,6 @@ namespace AAEmu.Game.Models.Game.Mails;
 /// </summary>
 public sealed class MailForPlotAuction : BaseMail
 {
-    /// <summary>Same key the item auction's lost-bid letter uses (client ships the locale entry).</summary>
-    public const string RefundSender = ".auctionBidFail";
-
     /// <summary>Same key the item auction's won-bid letter uses.</summary>
     public const string PrizeSender = ".auctionBidWin";
 
@@ -22,24 +19,6 @@ public sealed class MailForPlotAuction : BaseMail
         var now = DateTime.UtcNow;
         Body.SendDate = now;
         Body.RecvDate = now;
-    }
-
-    /// <summary>Held bid money coming back: <c>body('&lt;auction name&gt;')</c>, one argument,
-    /// exactly what the ".auctionBidFail" entry consumes.</summary>
-    public static MailForPlotAuction ForBidRefund(uint receiverId, string receiverName, string auctionName, long copper)
-    {
-        var mail = new MailForPlotAuction
-        {
-            MailType = MailType.AucBidFail,
-            ReceiverName = receiverName ?? string.Empty,
-            Title = auctionName ?? string.Empty,
-        };
-        mail.Header.SenderName = RefundSender;
-        mail.Header.ReceiverId = receiverId;
-        mail.Body.Text = $"body('{auctionName}')";
-        if (copper > 0)
-            mail.AttachMoney(checked((int)copper));
-        return mail;
     }
 
     /// <summary>The prize to a winner: <c>body('&lt;auction name&gt;', count, price)</c> — the

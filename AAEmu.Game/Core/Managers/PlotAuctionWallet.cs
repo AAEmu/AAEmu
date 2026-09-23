@@ -25,21 +25,22 @@ internal sealed class AccountCreditWallet : IPlotAuctionWallet
     {
         if (character == null)
             return false;
-        var applied = Apply(character.AccountId, signedAmount, persist, out var credits);
+        var applied = Apply(character.AccountId, signedAmount, persist, out var credits, out var loyalty);
         if (!applied || signedAmount == 0)
             return applied;
 
         var notice = signedAmount > 0 ? (byte)2 : (byte)0;
-        character.SendPacket(new SCICSCashPointPacket(credits, 0, true, notice));
+        character.SendPacket(new SCICSCashPointPacket(credits, loyalty, true, notice));
         return true;
     }
 
     public bool TryCreditAccount(uint accountId, long amount, Func<MySqlConnection, MySqlTransaction, bool> persist) =>
-        amount > 0 && Apply(accountId, amount, persist, out _);
+        amount > 0 && Apply(accountId, amount, persist, out _, out _);
 
-    private static bool Apply(uint accountId, long signedAmount, Func<MySqlConnection, MySqlTransaction, bool> persist, out int credits)
+    private static bool Apply(uint accountId, long signedAmount, Func<MySqlConnection, MySqlTransaction, bool> persist, out int credits, out int loyalty)
     {
         credits = 0;
+        loyalty = 0;
         if (persist == null || accountId == 0)
             return false;
         if (signedAmount == 0)
@@ -50,7 +51,7 @@ internal sealed class AccountCreditWallet : IPlotAuctionWallet
             }
             catch (Exception ex)
             {
-                NLog.LogManager.GetCurrentClassLogger().Error(ex, "Plot auction wallet persist failed for account {0}", accountId);
+                NLog.LogManager.GetCurrentClassLogger().Error(ex, "Plot auction wallet persist failed");
                 return false;
             }
         }
@@ -77,19 +78,21 @@ internal sealed class AccountCreditWallet : IPlotAuctionWallet
             }
 
             transaction.Commit();
-            credits = AccountManager.Instance.GetAccountDetails(accountId).Credits;
+            var details = AccountManager.Instance.GetAccountDetails(accountId);
+            credits = details.Credits;
+            loyalty = details.Loyalty;
             return true;
         }
         catch (Exception ex)
         {
-            NLog.LogManager.GetCurrentClassLogger().Error(ex, "Plot auction wallet update failed for account {0}", accountId);
+            NLog.LogManager.GetCurrentClassLogger().Error(ex, "Plot auction wallet update failed");
             try
             {
                 transaction?.Rollback();
             }
             catch (Exception rollbackEx)
             {
-                NLog.LogManager.GetCurrentClassLogger().Error(rollbackEx, "Plot auction wallet rollback failed for account {0}", accountId);
+                NLog.LogManager.GetCurrentClassLogger().Error(rollbackEx, "Plot auction wallet rollback failed");
             }
 
             return false;
