@@ -14,9 +14,8 @@ using AAEmu.UnitTests.Utils;
 namespace AAEmu.UnitTests.Game.Core.Packets.C2G;
 
 /// <summary>
-/// The zone-permission request (CS 0x058) judged against the ask the server opened: only a character
-/// holding one may settle permission, and every answer — accepted, declined, unsolicited or malformed —
-/// leaves the client with a definitive packet.
+/// The zone-permission answer (CS 0x058) is a stub until an ask is opened and the state refresh
+/// has a body. An answer sends nothing. The ask itself is still judged by the manager.
 /// </summary>
 [NotInParallel]
 public sealed class CSAnswerZonePermissionPacketTests
@@ -55,79 +54,55 @@ public sealed class CSAnswerZonePermissionPacketTests
     public void ReleaseManager() => _indun.Dispose();
 
     [Test]
-    public async Task AcceptedAnswer_WithOpenAsk_SettlesItAndAnswersWithTheRefresh()
+    public async Task Answer_SendsNothingUntilAnAskIsOpened()
     {
         await Assert.That(IndunManager.Instance.OpenZonePermissionAsk(_character, ZoneGroupId)).IsTrue();
 
         var mark = _sent.Count;
         Answer(1);
-
-        await Assert.That(_sent.Count).IsEqualTo(mark + 1);
-        var (opcode, body) = SentPacket.Read(_sent[mark]);
-        await Assert.That(opcode).IsEqualTo(SCOffsets.SCZonePermissionChangedPacket);
-        await Assert.That(body.Length).IsEqualTo(0);
-        await Assert.That(IndunManager.Instance.HasOpenZonePermissionAsk(CharacterId)).IsFalse();
-    }
-
-    [Test]
-    public async Task DeclinedAnswer_WithOpenAsk_StillGetsADefinitiveResultAndClosesTheAsk()
-    {
-        IndunManager.Instance.OpenZonePermissionAsk(_character, ZoneGroupId);
-
-        var mark = _sent.Count;
         Answer(0);
-
-        await Assert.That(_sent.Count).IsEqualTo(mark + 1);
-        var (opcode, body) = SentPacket.Read(_sent[mark]);
-        await Assert.That(opcode).IsEqualTo(SCOffsets.SCZonePermissionChangedPacket);
-        await Assert.That(body.Length).IsEqualTo(0);
-        await Assert.That(IndunManager.Instance.HasOpenZonePermissionAsk(CharacterId)).IsFalse();
-    }
-
-    [Test]
-    public async Task AnswerWithoutAnOpenAsk_IsRefusedWithAnErrorAndChangesNothing()
-    {
-        var mark = _sent.Count;
-        Answer(1);
-
-        await Assert.That(_sent.Count).IsEqualTo(mark + 1);
-        await AssertError(mark, ErrorMessageType.InvalidStateInstance);
-        await Assert.That(IndunManager.Instance.HasOpenZonePermissionAsk(CharacterId)).IsFalse();
-    }
-
-    [Test]
-    public async Task SecondAnswer_AfterTheAskSettled_IsRefusedWithAnError()
-    {
-        IndunManager.Instance.OpenZonePermissionAsk(_character, ZoneGroupId);
-        Answer(1);
-
-        var mark = _sent.Count;
-        Answer(1);
-
-        await Assert.That(_sent.Count).IsEqualTo(mark + 1);
-        await AssertError(mark, ErrorMessageType.InvalidStateInstance);
-    }
-
-    [Test]
-    public async Task MalformedAnswer_FailsLoudAndLeavesTheAskForALegitimateAnswer()
-    {
-        IndunManager.Instance.OpenZonePermissionAsk(_character, ZoneGroupId);
-
-        var mark = _sent.Count;
         Answer(7);
 
-        // Garbage never settles permission, and it never burns the ask either: the dialog can only
-        // produce 0 or 1, so anything else is refused without touching the state it names.
-        await Assert.That(_sent.Count).IsEqualTo(mark + 1);
-        await AssertError(mark, ErrorMessageType.InvalidStateInstance);
+        await Assert.That(_sent.Count).IsEqualTo(mark);
         await Assert.That(IndunManager.Instance.HasOpenZonePermissionAsk(CharacterId)).IsTrue();
+    }
 
-        mark = _sent.Count;
-        Answer(1);
-        await Assert.That(_sent.Count).IsEqualTo(mark + 1);
-        var (opcode, _) = SentPacket.Read(_sent[mark]);
-        await Assert.That(opcode).IsEqualTo(SCOffsets.SCZonePermissionChangedPacket);
+    [Test]
+    public async Task AcceptedAnswer_SettlesTheAsk()
+    {
+        IndunManager.Instance.OpenZonePermissionAsk(_character, ZoneGroupId);
+
+        await Assert.That(IndunManager.Instance.AnswerZonePermission(_character, 1))
+            .IsEqualTo(ZonePermissionVerdict.Accepted);
         await Assert.That(IndunManager.Instance.HasOpenZonePermissionAsk(CharacterId)).IsFalse();
+    }
+
+    [Test]
+    public async Task DeclinedAnswer_SettlesTheAsk()
+    {
+        IndunManager.Instance.OpenZonePermissionAsk(_character, ZoneGroupId);
+
+        await Assert.That(IndunManager.Instance.AnswerZonePermission(_character, 0))
+            .IsEqualTo(ZonePermissionVerdict.Declined);
+        await Assert.That(IndunManager.Instance.HasOpenZonePermissionAsk(CharacterId)).IsFalse();
+    }
+
+    [Test]
+    public async Task AnswerWithoutAnOpenAsk_ChangesNothing()
+    {
+        await Assert.That(IndunManager.Instance.AnswerZonePermission(_character, 1))
+            .IsEqualTo(ZonePermissionVerdict.NoOpenAsk);
+        await Assert.That(IndunManager.Instance.HasOpenZonePermissionAsk(CharacterId)).IsFalse();
+    }
+
+    [Test]
+    public async Task MalformedAnswer_LeavesTheAskOpen()
+    {
+        IndunManager.Instance.OpenZonePermissionAsk(_character, ZoneGroupId);
+
+        await Assert.That(IndunManager.Instance.AnswerZonePermission(_character, 7))
+            .IsEqualTo(ZonePermissionVerdict.Malformed);
+        await Assert.That(IndunManager.Instance.HasOpenZonePermissionAsk(CharacterId)).IsTrue();
     }
 
     [Test]
@@ -153,16 +128,4 @@ public sealed class CSAnswerZonePermissionPacketTests
     private void Answer(byte value) =>
         new CSAnswerZonePermissionPacket { Connection = _connection }
             .Read(new PacketStream().Write(value));
-
-    private async Task AssertError(int index, ErrorMessageType expected)
-    {
-        var (opcode, body) = SentPacket.Read(_sent[index]);
-        await Assert.That(opcode).IsEqualTo(SCOffsets.SCErrorMsgPacket);
-        var stream = new PacketStream(body);
-        await Assert.That(stream.ReadInt16()).IsEqualTo((short)expected);
-        await Assert.That(stream.ReadInt16()).IsEqualTo((short)expected);
-        await Assert.That(stream.ReadUInt32()).IsEqualTo(0u);
-        await Assert.That(stream.ReadBoolean()).IsTrue();
-        await Assert.That(stream.LeftBytes).IsEqualTo(0);
-    }
 }

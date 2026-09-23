@@ -40,9 +40,9 @@ public class IndunManager(ITickManager tickManager, IWorldManager worldManager, 
     private readonly Dictionary<uint, ZonePermissionSession> _zonePermissionAsks = [];
 
     /// <summary>
-    /// Opens the zone-permission ask for a character. The 10.0.2.13 catalog has no dedicated
-    /// server-to-client ask packet (SC 0x086 carries no fields), so this records the authority an
-    /// answer is judged against and leaves the prompt to whatever opens it.
+    /// Opens the zone-permission ask for a character. Nothing in the live path calls this yet:
+    /// the answer packet stays a stub until an ask is opened and the permission-state refresh
+    /// has a body. This records the authority that answer will be judged against.
     /// </summary>
     /// <param name="character">Who is being asked.</param>
     /// <param name="zoneGroupId">The zone group the ask is for; 0 is not a zone group and is refused.</param>
