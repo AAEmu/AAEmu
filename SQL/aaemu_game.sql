@@ -134,6 +134,29 @@ CREATE TABLE IF NOT EXISTS `character_quest_cinema_end_effects` (
   PRIMARY KEY (`owner`, `component_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Quest cinema-end effects still owed to the character';
 
+CREATE TABLE IF NOT EXISTS `character_saga_groups` (
+  `owner` int unsigned NOT NULL COMMENT 'characters.id',
+  `saga_quest_group_id` int unsigned NOT NULL COMMENT 'saga_quest_groups.id',
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT 'SagaGroupStatus: 0 active, 1 complete; row absent = locked',
+  `completed_count` smallint unsigned NOT NULL DEFAULT 0 COMMENT 'Completed member quests of the group',
+  PRIMARY KEY (`owner`,`saga_quest_group_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Saga group progression per character';
+
+CREATE TABLE IF NOT EXISTS `character_saga_reward_grants` (
+  `owner` int unsigned NOT NULL COMMENT 'characters.id',
+  `saga_quest_group_id` int unsigned NOT NULL COMMENT 'saga_quest_groups.id, or 0 for GF-W14 milestone-scope grants',
+  `grant_key` int unsigned NOT NULL COMMENT 'Content key of the grant (group milestone_id; GF-W14 milestone keys)',
+  PRIMARY KEY (`owner`,`saga_quest_group_id`,`grant_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Saga rewards granted exactly once per character';
+
+CREATE TABLE IF NOT EXISTS `character_milestones` (
+  `owner` int unsigned NOT NULL COMMENT 'characters.id',
+  `milestone_id` int unsigned NOT NULL COMMENT 'milestones.id',
+  `status` tinyint NOT NULL DEFAULT 0 COMMENT 'MilestoneStatus: 0 active, 1 complete; row absent = not started',
+  `completed_count` smallint unsigned NOT NULL DEFAULT 0 COMMENT 'Finished quests of the milestone trigger chain',
+  PRIMARY KEY (`owner`,`milestone_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Milestone progression per character';
+
 CREATE TABLE IF NOT EXISTS `character_arche_passes` (
   `owner` int unsigned NOT NULL,
   `pass_id` int unsigned NOT NULL,

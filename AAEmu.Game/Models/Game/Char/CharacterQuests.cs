@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.Quests;
 using AAEmu.Game.Models.Game.Quests.Acts;
 using AAEmu.Game.Models.Game.Quests.Static;
 using AAEmu.Game.Models.Game.Quests.Templates;
+using AAEmu.Game.Models.Game.Sagas;
 using AAEmu.Game.Models.Spheres;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Slaves;
@@ -302,6 +303,19 @@ public class CharacterQuests(Character owner)
         {
             Logger.Error($"Failed to start new Quest {questId}, invalid Id");
             NotifyAcceptFailed(questId, QuestStatusFailed.InvalidQuest, answerClient);
+            return false;
+        }
+
+        // Saga-group quests need the group's chronicle info record first: buying the episode in the
+        // chronicle book is what creates it, and ChronicleInfoNeed is the reason the client renders
+        // when it is missing. GM forced adds bypass it like the other accept gates.
+        if (!forcibly && Owner.SagaProgress != null &&
+            Owner.SagaProgress.EvaluateStartGate(questId) == SagaStartGate.ChronicleInfoNeed)
+        {
+            LogAcceptRefused(answerClient,
+                "User {0} ({1}) cannot accept saga quest {2}: its group's chronicle info is not bought",
+                Owner.Name, Owner.Id, questId);
+            NotifyAcceptFailed(questId, QuestStatusFailed.ChronicleInfoNeed, answerClient);
             return false;
         }
 
@@ -765,6 +779,12 @@ public class CharacterQuests(Character owner)
         completedBlock.Body.Set(completedQuestBlockIndex, isCompleted);
         if (isCompleted)
         {
+            // Saga groups advance from the same completion edge; the state counts from these bits,
+            // so a repeated Set(true) cannot double-count.
+            Owner.SagaProgress?.OnQuestCompleted(questId);
+            // Milestones advance from the same edge through their reversed quest → milestone
+            // trigger — replay-safe for the same reason: counts come from these bits.
+            Owner.Milestones?.OnQuestCompleted(questId);
             Owner.Events?.OnQuestComplete(Owner, new OnQuestCompleteArgs
             {
                 QuestId = questId

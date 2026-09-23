@@ -919,6 +919,18 @@ public partial class Character : Unit, ICharacter
     public ItemContainer BuyBackItems { get; set; }
     public BondDoodad Bonding { get; set; }
     public CharacterQuests Quests { get; set; }
+
+    /// <summary>
+    /// Saga (chronicle) group progression: eligibility, progress and reward grants for the
+    /// character's bought saga groups.
+    /// </summary>
+    public CharacterSagaProgress SagaProgress { get; set; }
+
+    /// <summary>
+    /// Milestone progression: reversed quest triggers, release-window eligibility and
+    /// milestone-keyed grants riding the saga grant ledger.
+    /// </summary>
+    public CharacterMilestoneProgress Milestones { get; set; }
     public CharacterMails Mails { get; set; }
     public CharacterAppellations Appellations { get; set; }
     public CharacterAbilities Abilities { get; set; }
@@ -4083,6 +4095,16 @@ public partial class Character : Unit, ICharacter
             Quests = new CharacterQuests(this);
             Quests.Load(connection);
             Quests.CheckDailyResetAtLogin();
+            // Saga state is derived from the completed-quest bits, so it loads and reconciles
+            // right behind the quests it reads.
+            SagaProgress = new CharacterSagaProgress(this);
+            SagaProgress.Load(connection);
+            SagaProgress.Reconcile();
+            // Milestones derive from the same completed-quest bits and key their grants onto the
+            // saga ledger, so they load and reconcile right behind it.
+            Milestones = new CharacterMilestoneProgress(this, SagaProgress.State);
+            Milestones.Load(connection);
+            Milestones.Reconcile();
             Mates = new CharacterMates(this);
             Mates.Load(connection);
             Butler = ButlerManager.Instance.GetOrCreate(Id);
@@ -4378,6 +4400,8 @@ public partial class Character : Unit, ICharacter
             Blocked?.Save(connection, transaction);
             Skills?.Save(connection, transaction);
             Quests?.Save(connection, transaction);
+            SagaProgress?.Save(connection, transaction);
+            Milestones?.Save(connection, transaction);
             Mates?.Save(connection, transaction);
             Butler?.Save(connection, transaction);
             

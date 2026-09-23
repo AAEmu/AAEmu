@@ -617,7 +617,9 @@ public static class SCOffsets
     public const ushort SCChangeSquadMemberRoleBcast = 0x314;
     public const ushort SCChangeSquadOpenTypeBcast = 0x317;
     public const ushort SCChargeSkillCooldownChangedPacket = 0x31D;
+    public const ushort SCChronicleInfoBuyPacket = 0x355;
     public const ushort SCChronicleInfoDeletePacket = 0x356;
+    public const ushort SCChronicleInfoListPacket = 0x357;
     public const ushort SCChronicleInfoUpdatePacket = 0x358;
     public const ushort SCCompletedArchePassPacket = 0x340;
     public const ushort SCConnectStateMemberPacket = 0x310;
