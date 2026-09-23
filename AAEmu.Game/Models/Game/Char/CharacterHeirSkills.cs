@@ -33,9 +33,6 @@ public sealed class CharacterHeirSkills(Character owner)
             !gameData.TryGetSelectableSuccessor(heirSkillId, successorSkillId, Owner.HeirStep, out var successor))
             return false;
 
-        if (!Owner.Skills.Skills.ContainsKey(heirSkill.SkillId))
-            return false;
-
         // active_item_id is acquisition metadata, but the native activation request contains no
         // item or cost field. Do not invent item consumption or a lock rule in this handler.
         var baseTemplate = SkillManager.Instance.GetSkillTemplate(heirSkill.SkillId);
@@ -51,6 +48,18 @@ public sealed class CharacterHeirSkills(Character owner)
             var hasCurrent = _activeSuccessors.TryGetValue(heirSkillId, out var currentSuccessorId);
             if (hasCurrent != isChange || currentSuccessorId == successorSkillId)
                 return false;
+
+            // The successor replaces the base skill. The client can choose it before that base is
+            // learned (including right after a tree reset), so learn the base through the normal
+            // path first. No points or the wrong tree refuses the activation.
+            if (!Owner.Skills.Skills.ContainsKey(heirSkill.SkillId) &&
+                !Owner.Skills.AddSkill(heirSkill.SkillId))
+            {
+                Logger.Info(
+                    "ActivateHeirSkill reject {0}: base skill {1} could not be learned",
+                    Owner.Name, heirSkill.SkillId);
+                return false;
+            }
 
             if (!TryPersistSelection(heirSkillId, successorSkillId))
                 return false;
@@ -239,8 +248,14 @@ public sealed class CharacterHeirSkills(Character owner)
         }
     }
 
+    /// <summary>Tests supply this so a selection can be checked without a database.</summary>
+    internal Func<uint, uint, bool> PersistForTest { get; set; }
+
     private bool TryPersistSelection(uint heirSkillId, uint successorSkillId)
     {
+        if (PersistForTest != null)
+            return PersistForTest(heirSkillId, successorSkillId);
+
         try
         {
             using var connection = MySQL.CreateConnection();
