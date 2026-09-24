@@ -1,6 +1,7 @@
 using System.Reflection;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils.DB;
+using AAEmu.Commons.Utils.Updater;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.Stream;
@@ -67,6 +68,13 @@ public static class Program
         var preBootConfig = new AppConfiguration();
         configurationRoot.Bind(preBootConfig);
         MySQL.SetConfiguration(preBootConfig.Connections.MySQLProvider);
+
+        if (!MySqlDatabaseBootstrap.EnsureDatabase(preBootConfig.Connections.MySQLProvider, "aaemu_game.sql"))
+        {
+            Logger.Fatal("Failed to prepare the MySQL game database.");
+            LogManager.Flush();
+            return 1;
+        }
 
         try
         {
