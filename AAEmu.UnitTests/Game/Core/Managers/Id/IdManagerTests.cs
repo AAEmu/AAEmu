@@ -6,22 +6,22 @@ public class IdManagerTests
 {
     #region TheoryData for Parameterized Tests
 
-    public static IEnumerable<(IIdManager, uint)> IdManagerFirstIdData() =>
+    public static IEnumerable<Func<(IIdManager, uint)>> IdManagerFirstIdData() =>
     [
-        (new CharacterIdManager(), 0x00000001u),
-        (new ItemIdManager(), 0x01000000u),
-        (new ObjectIdManager(), 0x00000100u),
-        (new DoodadIdManager(), 0x00000001u),
-        (new AuctionIdManager(), 0x00000001u),
+        () => (new CharacterIdManager(), 0x00000001u),
+        () => (new ItemIdManager(), 0x01000000u),
+        () => (new ObjectIdManager(), 0x00000100u),
+        () => (new DoodadIdManager(), 0x00000001u),
+        () => (new AuctionIdManager(), 0x00000001u),
     ];
 
-    public static IEnumerable<IIdManager> IdManagerData() =>
+    public static IEnumerable<Func<IIdManager>> IdManagerData() =>
     [
-        new CharacterIdManager(),
-        new ItemIdManager(),
-        new ObjectIdManager(),
-        new DoodadIdManager(),
-        new AuctionIdManager(),
+        () => new CharacterIdManager(),
+        () => new ItemIdManager(),
+        () => new ObjectIdManager(),
+        () => new DoodadIdManager(),
+        () => new AuctionIdManager(),
     ];
 
     #endregion

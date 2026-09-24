@@ -1,3 +1,4 @@
+#nullable enable
 
 using AAEmu.Commons.Utils;
 
@@ -5,7 +6,7 @@ namespace AAEmu.UnitTests.Commons.Utils;
 
 public class RandomElementByWeightTests
 {
-    private class TestItem
+    private sealed class TestItem
     {
         public string Name { get; set; } = "";
         public float Weight { get; set; }

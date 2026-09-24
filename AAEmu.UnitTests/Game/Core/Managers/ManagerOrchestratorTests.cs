@@ -18,28 +18,50 @@ public class ManagerOrchestratorTests
     private interface IC : ILoadable;
 
     /// <summary>A has no dependencies.</summary>
-    private class A : IA { public void Load() { } }
+    private sealed class A : IA { public void Load() { } }
 
     /// <summary>B depends on A (takes IA in its constructor).</summary>
-    private class B(IA a) : IB { public void Load() { } }
+    private sealed class B(IA a) : IB
+    {
+        public IA Dependency { get; } = a;
+        public void Load() { }
+    }
 
     /// <summary>C depends on B (takes IB in its constructor).</summary>
-    private class C(IB b) : IC { public void Load() { } }
+    private sealed class C(IB b) : IC
+    {
+        public IB Dependency { get; } = b;
+        public void Load() { }
+    }
 
     // For cycle detection
     private interface IX : ILoadable;
     private interface IY : ILoadable;
 
-    private class CycleX(IY y) : IX { public void Load() { } }
-    private class CycleY(IX x) : IY { public void Load() { } }
+    private sealed class CycleX(IY y) : IX
+    {
+        public IY Dependency { get; } = y;
+        public void Load() { }
+    }
+
+    private sealed class CycleY(IX x) : IY
+    {
+        public IX Dependency { get; } = x;
+        public void Load() { }
+    }
 
     // For Lazy<T> skip test
     private interface IP : ILoadable;
     private interface IQ : ILoadable;
 
     /// <summary>P takes Q as Lazy&lt;IQ&gt; — should NOT create a dependency edge.</summary>
-    private class P(Lazy<IQ> q) : IP { public void Load() { } }
-    private class Q : IQ { public void Load() { } }
+    private sealed class P(Lazy<IQ> q) : IP
+    {
+        public Lazy<IQ> Dependency { get; } = q;
+        public void Load() { }
+    }
+
+    private sealed class Q : IQ { public void Load() { } }
 
     // -------------------------------------------------------------------------
     // Helpers
@@ -192,7 +214,7 @@ public class ManagerOrchestratorTests
     }
 
     // Tracking helper — injected via type registration so ImplementationType is set in the descriptor.
-    private class TrackingA(List<string> log) : ILoadable
+    private sealed class TrackingA(List<string> log) : ILoadable
     {
         public void Load() => log.Add("A");
     }

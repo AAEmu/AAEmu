@@ -68,7 +68,7 @@ public class BuffTests
     public async Task Constructor_WithNullParameters_DoesNotThrow()
     {
         // Act & Assert
-        Exception? exception = null;
+        Exception exception = null;
         try
         {
             new Buff(null!, null!, null!, null!, null!, DateTime.UtcNow);
