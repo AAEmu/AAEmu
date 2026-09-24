@@ -801,8 +801,12 @@ public static class SCOffsets
     public const ushort SCRaidApplicantAddPacket = 0x2FF;
     public const ushort SCRaidApplicantListPacket = 0x303;
     public const ushort SCRandomShopBaseInfoUpdatePacket = 0x36B;
+    public const ushort SCRandomShopGoodsBuyPacket = 0x367;
+    public const ushort SCRandomShopInfoPacket = 0x368;
     public const ushort SCRandomShopInfoRefreshPacket = 0x36A;
     public const ushort SCRandomShopInfoResetPacket = 0x369;
+    public const ushort SCReopenRandomBoxGetItemPacket = 0x385;
+    public const ushort SCReopenRandomBoxRefreshPacket = 0x387;
     public const ushort SCReopenRandomBoxRemovePacket = 0x388;
     public const ushort SCReportBadwordUserPacket = 0x2D0;
     public const ushort SCReputationChangedPacket = 0x2A5;

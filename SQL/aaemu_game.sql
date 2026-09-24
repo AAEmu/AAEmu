@@ -1616,3 +1616,21 @@ CREATE TABLE IF NOT EXISTS `account_return_claims` (
   PRIMARY KEY (`account_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Account-return reward claims, one per account';
 
+CREATE TABLE IF NOT EXISTS `character_reopen_boxes` (
+  `character_id` INT UNSIGNED NOT NULL,
+  `item_id` BIGINT UNSIGNED NOT NULL COMMENT 'Box item instance id from the wire (u64)',
+  `pack_id` INT UNSIGNED NOT NULL COMMENT 'merchant_reopen_packs.id the box draws from',
+  `free_used` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Free opens spent (pack free_count is the max)',
+  `charge_used` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Paid opens spent (pack charge_count is the max)',
+  `rolled_at` DATETIME NOT NULL COMMENT 'When the current reward was rolled',
+  `refresh_available_at` DATETIME NOT NULL COMMENT 'First open plus life_time minutes: the box closes then',
+  `opened_at` DATETIME NULL COMMENT 'When the first reward of this box was claimed (wire openDate)',
+  `group_id` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'merchant_reopen_groups.id of the current draw',
+  `good_id` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'merchant_reopen_goods.id of the current draw; 0 = no roll',
+  `reward_item_id` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Item granted by the current draw',
+  `reward_grade` TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT 'Grade of the granted item',
+  `reward_count` INT NOT NULL DEFAULT 0 COMMENT 'merchant_reopen_goods.count of the current draw',
+  `settled` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'Reward claimed exactly once: the claim flips 0 -> 1',
+  PRIMARY KEY (`character_id`, `item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Per-character reopen-box item state';
+
