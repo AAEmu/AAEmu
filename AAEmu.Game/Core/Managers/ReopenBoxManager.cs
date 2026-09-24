@@ -83,7 +83,7 @@ public class ReopenBoxManager : Singleton<ReopenBoxManager>, ILoadable
     /// </summary>
     public ReopenRefreshResult TryRefresh(
         uint characterId, long itemId, uint packId, bool isCharge, DateTime nowUtc, Func<bool> chargePayment = null,
-        Action refundCharge = null, Action<ReopenBoxState> deliverExpired = null)
+        Action refundCharge = null, Func<ReopenBoxState, bool?> settleExpired = null)
     {
         var pack = RequirePack(packId);
         var now = ServerCalendar.AsUtc(nowUtc);
@@ -101,9 +101,15 @@ public class ReopenBoxManager : Singleton<ReopenBoxManager>, ILoadable
             if (pack.LifeTime > 0 && state.HasRoll && now >= state.RefreshAvailableAt)
             {
                 var expired = state.Copy();
+                var stillHeld = settleExpired?.Invoke(expired);
+                if (stillHeld == null)
+                    return ReopenRefreshResult.Expired;
+
                 _states.Remove((characterId, itemId));
                 _store.Forget(characterId, itemId);
-                deliverExpired?.Invoke(expired);
+                if (stillHeld == false)
+                    return ReopenRefreshResult.Expired;
+
                 state = GetOrCreateNoLock(characterId, itemId, packId, now);
             }
 

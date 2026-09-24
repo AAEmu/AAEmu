@@ -81,7 +81,7 @@ public class ReopenBoxLimitTests
     [Test]
     public async Task LifeTime_ClosesTheBoxInsteadOfSpacingRolls()
     {
-        var manager = NewManager(out _, out _);
+        var manager = NewManager(out var store, out _);
         var now = ReopenBoxTestContent.Moment;
         await Assert.That(manager.TryRefresh(53, 8004, 2, false, now))
             .IsEqualTo(ReopenRefreshResult.Refreshed);
@@ -90,12 +90,19 @@ public class ReopenBoxLimitTests
         await Assert.That(manager.TryRefresh(53, 8004, 2, false, now.AddMinutes(59)))
             .IsEqualTo(ReopenRefreshResult.Refreshed);
         var beforeExpiry = manager.TryGetState(53, 8004).GoodId;
+        await Assert.That(manager.TryRefresh(53, 8004, 2, false, now.AddMinutes(60)))
+            .IsEqualTo(ReopenRefreshResult.Expired);
+        await Assert.That(manager.TryGetState(53, 8004).GoodId).IsEqualTo(beforeExpiry);
+
         await Assert.That(manager.TryRefresh(53, 8004, 2, false, now.AddMinutes(60),
-                deliverExpired: delivered.Add))
-            .IsEqualTo(ReopenRefreshResult.Refreshed);
+                settleExpired: expired =>
+                {
+                    delivered.Add(expired);
+                    return false;
+                }))
+            .IsEqualTo(ReopenRefreshResult.Expired);
         await Assert.That(delivered.Count).IsEqualTo(1);
-        await Assert.That(delivered[0].GoodId).IsEqualTo(beforeExpiry);
-        await Assert.That(manager.TryGetState(53, 8004).HasRoll).IsTrue();
+        await Assert.That(store.LoadAll().Any(row => row.ItemId == 8004)).IsFalse();
     }
 
     [Test]

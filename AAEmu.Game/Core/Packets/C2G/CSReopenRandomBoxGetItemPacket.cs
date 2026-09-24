@@ -64,15 +64,20 @@ public class CSReopenRandomBoxGetItemPacket() : GamePacket(CSOffsets.CSReopenRan
         var now = DateTime.UtcNow;
         try
         {
+            ReopenBoxState claimed = null;
             var result = ReopenBoxManager.Instance.TryClaim(character.Id, ItemId, now,
-                state => GrantReward(character, state));
+                state =>
+                {
+                    claimed = state;
+                    return GrantReward(character, state);
+                });
 
             if (result == ReopenClaimResult.Claimed)
             {
                 if (character.Inventory.GetItemById((ulong)ItemId) != null)
                     ReopenBoxManager.Instance.Forget(character.Id, ItemId);
                 Connection.SendPacket(new SCReopenRandomBoxGetItemPacket(0));
-                Connection.SendPacket(new SCReopenRandomBoxRemovePacket(ItemId, Type1));
+                Connection.SendPacket(new SCReopenRandomBoxRemovePacket(ItemId, (int)(claimed?.PackId ?? 0)));
                 return;
             }
 
@@ -103,22 +108,22 @@ public class CSReopenRandomBoxGetItemPacket() : GamePacket(CSOffsets.CSReopenRan
         }
 
         var box = state.ItemId < 0 ? null : character.Inventory.GetItemById((ulong)state.ItemId);
-        if (box == null || !ReopenBoxItemRules.OpensPack(box, state.PackId) ||
-            character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillEffectGainItem, box.TemplateId, 1, box) != 1)
+        if (box == null || !ReopenBoxItemRules.OpensPack(box, state.PackId))
+            return false;
+        var templateId = box.TemplateId;
+        if (character.Inventory.Bag.ConsumeItem(ItemTaskType.SkillEffectGainItem, templateId, 1, box) != 1)
             return false;
 
-        if (character.Inventory.Bag.SpaceLeftForItem(state.RewardItemId) >= state.RewardCount)
-        {
-            character.Inventory.Bag.AcquireDefaultItemEx(ItemTaskType.SkillEffectGainItem, state.RewardItemId,
+        var granted = character.Inventory.Bag.SpaceLeftForItem(state.RewardItemId) >= state.RewardCount
+            ? character.Inventory.Bag.AcquireDefaultItemEx(ItemTaskType.SkillEffectGainItem, state.RewardItemId,
+                state.RewardCount, state.RewardGrade, out _, out _, character.Id)
+            : character.Inventory.MailAttachments.AcquireDefaultItemEx(ItemTaskType.SkillEffectGainItem, state.RewardItemId,
                 state.RewardCount, state.RewardGrade, out _, out _, character.Id);
-        }
-        else
-        {
-            character.Inventory.MailAttachments.AcquireDefaultItemEx(ItemTaskType.Invalid, state.RewardItemId,
-                state.RewardCount, state.RewardGrade, out _, out _, character.Id);
-            character.SendErrorMessage(ErrorMessageType.BagFull);
-        }
+        if (granted)
+            return true;
 
-        return true;
+        character.Inventory.Bag.AcquireDefaultItem(ItemTaskType.SkillEffectGainItem, templateId, 1, -1);
+        Logger.Error("Reopen box: reward item {0} was not granted; the box unit was returned", state.RewardItemId);
+        return false;
     }
 }

@@ -68,7 +68,7 @@ public class CSRandomShopGoodsBuyPacket() : GamePacket(CSOffsets.CSRandomShopGoo
         var bought = new List<uint>(RequestedGoods.Count);
         foreach (var key in RequestedGoods)
         {
-            var pack = RandomMerchantManager.Instance.FindPack(packId);
+            var pack = RandomMerchantManager.Instance.TryGetPack(packId);
             var result = RandomMerchantManager.Instance.TryPurchase(
                 character.Id, packId, (int)key, now,
                 pack == null ? null : claimed => ChargeAndGrant(character, pack, claimed));

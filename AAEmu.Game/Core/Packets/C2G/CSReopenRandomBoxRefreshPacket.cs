@@ -74,7 +74,7 @@ public class CSReopenRandomBoxRefreshPacket() : GamePacket(CSOffsets.CSReopenRan
                     if (charged && pack != null)
                         RefundOpen(character, pack);
                 },
-                expired => ReopenBoxItemRules.MailExpiredRoll(character, expired));
+                expired => ReopenBoxItemRules.SettleExpired(character, expired));
 
             if (result == ReopenRefreshResult.Refreshed)
             {

@@ -43,7 +43,7 @@ public class GainMerchantReopenPackItemEffect : EffectTemplate
 
         var opened = ReopenBoxManager.Instance.TryRefresh(
             character.Id, (long)skillItem.ItemId, MerchantReopenPackId, false, time,
-            deliverExpired: expired => ReopenBoxItemRules.MailExpiredRoll(character, expired));
+            settleExpired: expired => ReopenBoxItemRules.SettleExpired(character, expired));
         if (opened != ReopenRefreshResult.Refreshed)
         {
             Logger.Warn("GainMerchantReopenPackItemEffect: pack {0} did not open for {1}: {2}",
