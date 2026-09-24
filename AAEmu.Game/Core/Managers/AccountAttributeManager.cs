@@ -50,11 +50,17 @@ public class AccountAttributeManager : Singleton<AccountAttributeManager>, IAcco
 
     public void Load()
     {
+        using var connection = MySQL.CreateConnection();
+        Load(connection);
+    }
+
+    /// <summary>Loads from an already-open connection so tests can drive an isolated schema.</summary>
+    public void Load(MySqlConnection connection)
+    {
         lock (_lock)
         {
             _byAccount.Clear();
 
-            using var connection = MySQL.CreateConnection();
             using var command = connection.CreateCommand();
             command.CommandText = "SELECT * FROM account_attributes";
             command.Prepare();

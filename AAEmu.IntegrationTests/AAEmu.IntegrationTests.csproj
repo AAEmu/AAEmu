@@ -42,6 +42,8 @@
                       LogicalName="AAEmu.IntegrationTests.Migrations.2026-09-13_aaemu_game_expedition_descriptor_state.sql" />
     <EmbeddedResource Include="..\SQL\updates\2026-09-13_aaemu_game_expedition_public_assignments.sql"
                       LogicalName="AAEmu.IntegrationTests.Migrations.2026-09-13_aaemu_game_expedition_public_assignments.sql" />
+    <EmbeddedResource Include="..\SQL\updates\2026-09-23_aaemu_game_account_return_claims.sql"
+                      LogicalName="AAEmu.IntegrationTests.Migrations.2026-09-23_aaemu_game_account_return_claims.sql" />
   </ItemGroup>
 
   <ItemGroup>

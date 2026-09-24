@@ -1608,3 +1608,10 @@ CREATE TABLE IF NOT EXISTS `account_survey_form_replies` (
   PRIMARY KEY (`account_id`, `survey_form_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='One survey-form reply per account; the primary key is the exactly-once guard';
 
+CREATE TABLE IF NOT EXISTS `account_return_claims` (
+  `account_id` int unsigned NOT NULL,
+  `claimed_at` datetime NOT NULL,
+  `reward_item_type` int unsigned NOT NULL,
+  PRIMARY KEY (`account_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Account-return reward claims, one per account';
+

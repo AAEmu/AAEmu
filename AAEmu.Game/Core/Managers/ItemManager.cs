@@ -42,6 +42,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     private Dictionary<uint, Holdable> _holdables;
     private Dictionary<string, uint> _constHoldableTypes;
     private Dictionary<string, uint> _constItemTypes;
+    private Dictionary<uint, uint> _constItemTypesById;
     private HashSet<uint> _itemInstrumentSounds;
     private Dictionary<uint, HashSet<uint>> _itemTags;
     private Dictionary<uint, Wearable> _wearables;
@@ -172,6 +173,17 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
     public uint GetConstItemId(string name)
     {
         return _constItemTypes?.GetValueOrDefault(name, 0u) ?? 0u;
+    }
+
+    /// <summary>Item id behind a <c>const_item_types</c> id, or 0 when absent.</summary>
+    public uint GetConstItemIdByType(uint typeId) =>
+        _constItemTypesById?.GetValueOrDefault(typeId, 0u) ?? 0u;
+
+    /// <summary>For tests: seeds a const item type without opening compact.</summary>
+    public void SetConstItemByTypeForTest(uint typeId, uint itemId)
+    {
+        _constItemTypesById ??= new Dictionary<uint, uint>();
+        _constItemTypesById[typeId] = itemId;
     }
 
     /// <summary>For tests: seeds a const item without opening compact.</summary>
@@ -570,6 +582,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
         _holdables = [];
         _constHoldableTypes = new Dictionary<string, uint>(StringComparer.Ordinal);
         _constItemTypes = new Dictionary<string, uint>(StringComparer.Ordinal);
+        _constItemTypesById = new Dictionary<uint, uint>();
         _itemInstrumentSounds = [];
         _itemTags = [];
         _wearables = [];
@@ -789,7 +802,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT name, item_id FROM const_item_types";
+                command.CommandText = "SELECT id, name, item_id FROM const_item_types";
                 command.Prepare();
                 using (var sqliteReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteReader))
@@ -797,8 +810,12 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                     while (reader.Read())
                     {
                         var name = reader.GetString("name", string.Empty);
+                        var itemId = reader.GetUInt32("item_id", 0);
                         if (!string.IsNullOrEmpty(name))
-                            _constItemTypes[name] = reader.GetUInt32("item_id", 0);
+                            _constItemTypes[name] = itemId;
+                        var typeId = reader.GetUInt32("id", 0);
+                        if (typeId != 0)
+                            _constItemTypesById[typeId] = itemId;
                     }
                 }
             }
