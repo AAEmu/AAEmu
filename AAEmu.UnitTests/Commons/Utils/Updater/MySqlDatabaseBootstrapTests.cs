@@ -108,16 +108,20 @@ public class MySqlDatabaseBootstrapTests
     [Test]
     public async Task SortUpdateFiles_UsesStableOrdinalIgnoreCaseOrder()
     {
+        var temporaryPath = Path.GetTempPath();
+        var indexFile = Path.Combine(temporaryPath,
+            "2026-05-13_aaemu_game_character_cooldowns_expires_at_index.sql");
+        var updateFile = Path.Combine(temporaryPath, "2026-05-13_aaemu_game_character_cooldowns.sql");
         var files = new List<string>
         {
-            @"D:\temp\2026-05-13_aaemu_game_character_cooldowns_expires_at_index.sql",
-            @"D:\temp\2026-05-13_aaemu_game_character_cooldowns.sql"
+            indexFile,
+            updateFile
         };
 
         MySqlDatabaseUpdater.SortUpdateFiles(files);
 
-        await Assert.That(files[0]).IsEqualTo(@"D:\temp\2026-05-13_aaemu_game_character_cooldowns.sql");
-        await Assert.That(files[1]).IsEqualTo(@"D:\temp\2026-05-13_aaemu_game_character_cooldowns_expires_at_index.sql");
+        await Assert.That(files[0]).IsEqualTo(updateFile);
+        await Assert.That(files[1]).IsEqualTo(indexFile);
     }
 
     [Test]
