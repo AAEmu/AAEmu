@@ -8,8 +8,7 @@ namespace AAEmu.Login.IntegrationTests.Fixtures;
 
 public class MySqlFixture : IAsyncLifetime
 {
-    private readonly MySqlContainer _container = new MySqlBuilder()
-        .WithImage("mysql:8.0")
+    private readonly MySqlContainer _container = new MySqlBuilder("mysql:8.0")
         .WithDatabase("aaemu_login")
         .WithUsername("test")
         .WithPassword("test")

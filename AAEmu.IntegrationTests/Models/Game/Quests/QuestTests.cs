@@ -27,14 +27,14 @@ using Microsoft.Extensions.Configuration;
 using Moq;
 
 using Xunit;
-// TODO: Re-enable the quest related test
-// ReSharper disable UnusedMember.Local
-#pragma warning disable IDE0051
 
 namespace AAEmu.IntegrationTests.Models.Game.Quests;
 
 public class QuestTests
 {
+    private const string SkipReason =
+        "Disabled in the Quest System Rewrite (#1001, commit 50130e2): pending a rewrite for the new quest system by someone familiar with it.";
+
     private static bool s_managersLoaded;
 
     private static void LoadManagers()
@@ -102,8 +102,8 @@ public class QuestTests
         LoadManagers();
     }
 
-    // [Fact]
-    private void Start_WhenQuestStart_AllActsAreQuestActConAcceptNpc_And_TargetNpcIsNotValid_ShouldNotStartQuest()
+    [Fact(Skip = SkipReason)]
+    public void Start_WhenQuestStart_AllActsAreQuestActConAcceptNpc_And_TargetNpcIsNotValid_ShouldNotStartQuest()
     {
         // Arrange
         var questIds = GetAllQuests_Where_ComponentKindStart_HasAllActsAs_QuestActConAcceptNpc().ToArray();
@@ -130,8 +130,8 @@ public class QuestTests
         }
     }
 
-    // [Fact]
-    private void Start_DoodadQuestsSupplyingItem_WhenBagIsNotFull_ShouldAddToCharacterBag()
+    [Fact(Skip = SkipReason)]
+    public void Start_DoodadQuestsSupplyingItem_WhenBagIsNotFull_ShouldAddToCharacterBag()
     {
         // Arrange
         var questIds = GetQuestIdsWithComponentKindContainingActDetailType(
@@ -161,8 +161,8 @@ public class QuestTests
         }
     }
 
-    // [Fact]
-    private void Start_DoodadQuestsSupplyingItem_WhenBagAndBackIsFull_ShouldAddToCharacterBag()
+    [Fact(Skip = SkipReason)]
+    public void Start_DoodadQuestsSupplyingItem_WhenBagAndBackIsFull_ShouldAddToCharacterBag()
     {
         // Arrange
         var questIds = GetQuestIdsWithComponentKindContainingActDetailType(
@@ -197,8 +197,8 @@ public class QuestTests
         }
     }
 
-    // [Fact]
-    private void Start_ActCheckTimer_ShouldStartSchedulerAndSendCharacterMessage()
+    [Fact(Skip = SkipReason)]
+    public void Start_ActCheckTimer_ShouldStartSchedulerAndSendCharacterMessage()
     {
         // Arrange
         var questIds = GetQuestIdsWithComponentKindContainingActDetailType(
@@ -237,8 +237,8 @@ public class QuestTests
         }
     }
 
-    // [Fact]
-    private void Start_ActConAcceptNpcWhenTargetingCorrectNpc_ShouldStartQuestSuccessfully()
+    [Fact(Skip = SkipReason)]
+    public void Start_ActConAcceptNpcWhenTargetingCorrectNpc_ShouldStartQuestSuccessfully()
     {
         // Arrange
         var questIds = GetQuestIdsWithComponentKindContainingActDetailType(
@@ -285,8 +285,8 @@ public class QuestTests
         }
     }
 
-    // [Fact]
-    private void UseSkillAndBuff_MockedWorldManager_WhenQuestUseSkill_ShouldUseOnSelfOrTargetNpc()
+    [Fact(Skip = SkipReason)]
+    public void UseSkillAndBuff_MockedWorldManager_WhenQuestUseSkill_ShouldUseOnSelfOrTargetNpc()
     {
         // Arrange
         var questIds = GetQuestIdsWithComponentKindContainingActDetailType(
@@ -340,8 +340,8 @@ public class QuestTests
         }
     }
 
-    // [Fact]
-    private void UseSkillAndBuff_WhenQuestUseSkill_ShouldUseOnSelfOrTargetNpc()
+    [Fact(Skip = SkipReason)]
+    public void UseSkillAndBuff_WhenQuestUseSkill_ShouldUseOnSelfOrTargetNpc()
     {
         // Arrange
         var questIds = GetQuestIdsWithComponentKindContainingActDetailType(
@@ -405,8 +405,8 @@ public class QuestTests
         }
     }
 
-    // [Fact]
-    private void UseSkillAndBuff_WhenQuestUseBuff_ShouldUseOnSelfOrTargetNpc()
+    [Fact(Skip = SkipReason)]
+    public void UseSkillAndBuff_WhenQuestUseBuff_ShouldUseOnSelfOrTargetNpc()
     {
         // Arrange
         var questIds = GetQuestIdsWithComponentKindContainingActDetailType(

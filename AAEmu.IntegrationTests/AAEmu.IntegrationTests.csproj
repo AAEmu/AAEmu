@@ -4,6 +4,8 @@
     <NoWarn>CA1859</NoWarn>
     <!-- Enable Testing Platform support for xunit -->
     <UseMicrosoftTestingPlatformRunner>true</UseMicrosoftTestingPlatformRunner>
+    <!-- Every test here is currently skipped (see QuestTests.SkipReason); MTP reports an all-skipped run as exit code 8 (zero tests ran) -->
+    <TestingPlatformCommandLineArguments>$(TestingPlatformCommandLineArguments) --ignore-exit-code 8</TestingPlatformCommandLineArguments>
   </PropertyGroup>
   
   <ItemGroup>
