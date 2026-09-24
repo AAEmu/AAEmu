@@ -12,6 +12,7 @@ using AAEmu.Game.Models.Tasks.Duels;
 using AAEmu.Game.Utils;
 
 using NLog;
+using AAEmu.Game.Models.Game.World;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -79,7 +80,7 @@ public class DuelManager : Singleton<DuelManager>, IDuelManager
                 };
                 _combatFlag.Position.X = duel.Challenger.Transform.World.Position.X - (duel.Challenger.Transform.World.Position.X - duel.Challenged.Transform.World.Position.X) / 2;
                 _combatFlag.Position.Y = duel.Challenger.Transform.World.Position.Y - (duel.Challenger.Transform.World.Position.Y - duel.Challenged.Transform.World.Position.Y) / 2;
-                _combatFlag.Position.Z = challenged.ParentWorld.Template.GeoData.GetHeight(_combatFlag.Position.AsPositionVector());
+                _combatFlag.Position.Z = challenged.ParentWorld.Template.Floor.GetFloor(_combatFlag.Position.X, _combatFlag.Position.Y, _combatFlag.Position.Z, FloorContext.Spawn);
 
                 duel.DuelFlag = _combatFlag.Spawn(0); // set CombatFlag
 

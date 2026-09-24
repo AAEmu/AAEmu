@@ -1185,7 +1185,7 @@ public class HousingManager(
                     house.Template.GardenRadius * yMultiplier + house.Transform.World.Position.Y,
                     +house.Transform.World.Position.Z);
                 // adjust height to the floor
-                doodad.Transform.Local.SetHeight(doodad.ParentWorld.Template.GeoData.GetHeight(doodad.Transform.World.Position));// worldManager.GetHeight(doodad.Transform)));
+                doodad.Transform.Local.SetHeight(doodad.ParentWorld.Template.Floor.GetFloor(doodad.Transform.World.Position.X, doodad.Transform.World.Position.Y, doodad.Transform.World.Position.Z, FloorContext.Spawn));// worldManager.GetHeight(doodad.Transform)));
                 doodad.Transform.Local.SetZRotation(zRot);
                 //doodad.Transform.WorldId = world.Template.Id;
                 doodad.Transform.InstanceId = world.Id;
