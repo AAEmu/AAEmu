@@ -51,6 +51,8 @@ public class CSContentRosterDeletePacket() : GamePacket(CSOffsets.CSContentRoste
                 outcome.Success,
                 isExpired: false,
                 outcome.Error));
+            if (outcome.Success)
+                connection.SendPacket(ContentRosterService.Instance.ListPacket(connection.AccountId));
         }
     }
 }

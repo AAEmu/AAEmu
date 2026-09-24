@@ -123,8 +123,7 @@ public sealed class SurveyFormService
 
         if (!SurveyFormGameData.Instance.TryGet(formId, out var form))
         {
-            Logger.Warn("Survey reply for account {0}: survey_forms row {1} does not exist.",
-                accountId, formId);
+            Logger.Warn("Survey reply: survey_forms row {0} does not exist.", formId);
             return new SurveyFormReplyOutcome(formId, SurveyFormReplyResult.UnknownForm);
         }
 
@@ -133,8 +132,8 @@ public sealed class SurveyFormService
         var end = ServerCalendar.AsUtc(form.End);
         if (moment < start || moment > end)
         {
-            Logger.Warn("Survey reply for account {0}: form {1} is not open at {2:u} (window {3:u} .. {4:u}).",
-                accountId, formId, moment, start, end);
+            Logger.Warn("Survey reply: form {0} is not open at {1:u} (window {2:u} .. {3:u}).",
+                formId, moment, start, end);
             return new SurveyFormReplyOutcome(formId, SurveyFormReplyResult.NotOpen);
         }
 

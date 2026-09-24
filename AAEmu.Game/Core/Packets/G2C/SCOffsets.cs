@@ -623,6 +623,7 @@ public static class SCOffsets
     public const ushort SCChronicleInfoDeletePacket = 0x356;
     public const ushort SCChronicleInfoListPacket = 0x357;
     public const ushort SCContentRosterDeletePacket = 0x35E; // 10.0.2.13: bool result, bool isExpired, u16 ErrorMessage
+    public const ushort SCContentRosterListPacket = 0x35F; // 10.0.2.13: i32 count, then the save info record
     public const ushort SCContentRosterSavePacket = 0x360; // 10.0.2.13: bool result, u16 ErrorMessage
     public const ushort SCSurveyFormSavePacket = 0x364; // 10.0.2.13: u16 ErrorMessage, u32 type, bool result
     public const ushort SCChronicleInfoUpdatePacket = 0x358;

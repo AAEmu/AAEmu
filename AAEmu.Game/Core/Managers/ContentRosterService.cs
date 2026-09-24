@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.IO;
 
 using AAEmu.Commons.Utils.DB;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
@@ -24,6 +25,8 @@ public enum ContentRosterDeleteResult : byte
     NotOwner = 3,
     Cooldown = 4,
 }
+
+public readonly record struct ContentRosterHeader(ulong Id, string Title, long CreatedUnix);
 
 public sealed record ContentRosterDeleteOutcome(ContentRosterDeleteResult Result, int DeletedCount)
 {
@@ -51,6 +54,9 @@ public interface IContentRosterStore
 
     /// <summary>Inserts one saved roster and its raid members. 0 when the write failed.</summary>
     ulong Insert(ulong accountId, string title, DateTime createdAt, IReadOnlyList<uint> memberCharacterIds);
+
+    /// <summary>The account's saved roster headers, oldest first.</summary>
+    IReadOnlyList<ContentRosterHeader> List(ulong accountId);
 }
 
 public sealed class MySqlContentRosterStore : IContentRosterStore
@@ -170,6 +176,31 @@ public sealed class MySqlContentRosterStore : IContentRosterStore
         }
     }
 
+    public IReadOnlyList<ContentRosterHeader> List(ulong accountId)
+    {
+        var rows = new List<ContentRosterHeader>();
+        using var connection = _connectionFactory();
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            """
+            SELECT id, save_title, created_at
+            FROM account_content_rosters
+            WHERE account_id = @account_id
+            ORDER BY id
+            """;
+        command.Parameters.AddWithValue("@account_id", accountId);
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            rows.Add(new ContentRosterHeader(
+                Convert.ToUInt64(reader.GetValue(0)),
+                reader.GetString(1),
+                Convert.ToInt64(reader.GetValue(2))));
+        }
+
+        return rows;
+    }
+
     private static List<ulong> DistinctIds(IReadOnlyList<ulong> rosterIds) =>
         rosterIds == null ? [] : [.. rosterIds.Distinct()];
 
@@ -212,28 +243,35 @@ public sealed class ContentRosterService
         var existing = _store.QueryExisting(ids);
         if (ids.Any(id => !existing.Contains(id)))
         {
-            Logger.Warn("Roster delete for account {0}: {1} id(s) are not in account_content_rosters.",
-                accountId, ids.Count(id => !existing.Contains(id)));
+            Logger.Warn("Roster delete: {0} id(s) are not in account_content_rosters.",
+                ids.Count(id => !existing.Contains(id)));
             return new ContentRosterDeleteOutcome(ContentRosterDeleteResult.UnknownRoster, 0);
         }
 
         var owned = _store.QueryOwned(accountId, ids);
         if (ids.Any(id => !owned.Contains(id)))
         {
-            Logger.Warn("Roster delete for account {0}: {1} id(s) belong to another account.",
-                accountId, ids.Count(id => !owned.Contains(id)));
+            Logger.Warn("Roster delete: {0} id(s) belong to another account.",
+                ids.Count(id => !owned.Contains(id)));
             return new ContentRosterDeleteOutcome(ContentRosterDeleteResult.NotOwner, 0);
         }
 
         var deleted = _store.DeleteOwned(accountId, ids);
         if (deleted != ids.Count)
         {
-            Logger.Error("Roster delete for account {0}: removed {1} of {2} row(s).",
-                accountId, deleted, ids.Count);
+            Logger.Error("Roster delete: removed {0} of {1} row(s).", deleted, ids.Count);
             return new ContentRosterDeleteOutcome(ContentRosterDeleteResult.InvalidRequest, deleted);
         }
 
         return new ContentRosterDeleteOutcome(ContentRosterDeleteResult.Success, deleted);
+    }
+
+    public SCContentRosterListPacket ListPacket(ulong accountId)
+    {
+        var rows = _store.List(accountId)
+            .Select(row => new ContentRosterListRow((long)row.Id, row.CreatedUnix, row.Title))
+            .ToList();
+        return new SCContentRosterListPacket(rows);
     }
 
     public ContentRosterSaveOutcome Save(Character character, string title, DateTime now)

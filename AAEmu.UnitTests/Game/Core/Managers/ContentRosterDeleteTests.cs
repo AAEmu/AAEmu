@@ -45,6 +45,8 @@ public class ContentRosterDeleteTests
             _ownerByRosterId[id] = accountId;
             return id;
         }
+
+        public IReadOnlyList<ContentRosterHeader> List(ulong accountId) => [];
     }
 
     [Test]

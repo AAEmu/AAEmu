@@ -29,5 +29,7 @@ public class CSContentRosterSavePacket() : GamePacket(CSOffsets.CSContentRosterS
             : new DateTimeOffset(ServerCalendar.AsUtc(outcome.RecordedAt)).ToUnixTimeSeconds();
         connection.SendPacket(new SCContentRosterSavePacket(
             outcome.Success, outcome.Error, outcome.Id, recorded, outcome.Title));
+        if (outcome.Success)
+            connection.SendPacket(ContentRosterService.Instance.ListPacket((ulong)connection.AccountId));
     }
 }
