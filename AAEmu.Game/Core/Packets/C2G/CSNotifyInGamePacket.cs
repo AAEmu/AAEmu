@@ -155,6 +155,21 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
         Connection.SendPacket(new SCAccountAttributeConfigPacket());
         AccountAttributePublisher.Send(Connection);
 
+        // Account-return availability for the welcome-back reward window: content days decide the
+        // window and the claim ledger decides whether this account still has one to take. A missing
+        // content_configs row is logged loudly and skips the packet instead of blocking world entry.
+        try
+        {
+            Connection.SendPacket(new SCReturnAccountStatusPacket(
+                AccountReturnManager.Instance.IsRewardAvailable(
+                    Connection.AccountId,
+                    Connection.HasPreviousLogin ? Connection.PreviousLoginUtc : null)));
+        }
+        catch (InvalidOperationException ex)
+        {
+            Logger.Error(ex, "NotifyInGame: account-return status not sent; required content_configs rows are missing");
+        }
+
         // Mirror interest armed on NotifyInGameCompleted — not here during load.
         Logger.Info($"NotifyInGame: {Connection.ActiveChar?.Name} ({Connection.ActiveChar?.Id}) zoneAuth={WorldIntegration.ZoneAuthority}");
     }

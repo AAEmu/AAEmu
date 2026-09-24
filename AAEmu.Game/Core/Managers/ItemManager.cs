@@ -789,7 +789,7 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
 
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "SELECT name, item_id FROM const_item_types";
+                command.CommandText = "SELECT id, name, item_id FROM const_item_types";
                 command.Prepare();
                 using (var sqliteReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteReader))
@@ -797,8 +797,9 @@ public class ItemManager(ISkillManager skillManager, IItemIdManager itemIdManage
                     while (reader.Read())
                     {
                         var name = reader.GetString("name", string.Empty);
+                        var itemId = reader.GetUInt32("item_id", 0);
                         if (!string.IsNullOrEmpty(name))
-                            _constItemTypes[name] = reader.GetUInt32("item_id", 0);
+                            _constItemTypes[name] = itemId;
                     }
                 }
             }

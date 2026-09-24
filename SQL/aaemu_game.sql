@@ -198,6 +198,7 @@ CREATE TABLE IF NOT EXISTS `accounts` (
   `loyalty` INT(11) NOT NULL DEFAULT '0',
   `last_updated` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `last_login` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `return_qualifying_login` DATETIME NULL DEFAULT NULL,
   `last_labor_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `last_credits_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `last_loyalty_tick` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -1607,4 +1608,11 @@ CREATE TABLE IF NOT EXISTS `account_survey_form_replies` (
   `replied_at` int unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY (`account_id`, `survey_form_id`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='One survey-form reply per account; the primary key is the exactly-once guard';
+
+CREATE TABLE IF NOT EXISTS `account_return_claims` (
+  `account_id` int unsigned NOT NULL,
+  `claimed_at` datetime NOT NULL,
+  `reward_item_type` int unsigned NOT NULL,
+  PRIMARY KEY (`account_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Account-return reward claims, one per account';
 

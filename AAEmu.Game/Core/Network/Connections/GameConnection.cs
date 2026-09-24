@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Network.Game;
 using AAEmu.Game.Models;
+using AAEmu.Game.Models.Account;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Housing;
 
@@ -38,6 +39,15 @@ public class GameConnection
     public Character ActiveChar { get; set; }
     public Dictionary<uint, Character> Characters { get; set; }
     public Dictionary<uint, House> Houses { get; set; }
+
+    /// <summary>
+    /// <c>accounts.last_login</c> from before this session stamped it. Return-reward days are
+    /// measured from this, because the stamp itself runs at login.
+    /// </summary>
+    public DateTime PreviousLoginUtc { get; set; }
+
+    public bool HasPreviousLogin { get; set; }
+
     public Task LeaveTask { get; set; }
     public CancellationTokenSource CancelTokenSource { get; set; }
     public DateTime LastPing { get; set; }
@@ -169,8 +179,6 @@ public class GameConnection
     /// </summary>
     public void LoadAccount()
     {
-        // TODO: Load payment and account tier information
-
         // Load character info for this account
         Characters.Clear();
         using (var connection = MySQL.CreateConnection())
