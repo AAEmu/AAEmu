@@ -142,6 +142,7 @@ public class CSNotifyInGamePacket() : GamePacket(CSOffsets.CSNotifyInGamePacket,
         ItemWallet.ConvertOwnedMileage(Connection.ActiveChar);
         ItemWallet.ConvertOwnedCashPacks(Connection.ActiveChar);
         ScheduleItemManager.Instance.SendActive(Connection.ActiveChar);
+        Connection.SendPacket(ContentRosterService.Instance.ListPacket(Connection.AccountId));
 
         // Territory ownership for the world map and the territory UI (both the Hero/faction and the guild
         // castle systems), then the Hero panel state.

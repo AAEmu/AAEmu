@@ -1583,3 +1583,28 @@ CREATE TABLE IF NOT EXISTS `character_resident_state` (
   `updated_at` datetime(6) NOT NULL,
   PRIMARY KEY (`owner`, `zone_group_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Resident service points and charges per zone group';
+
+CREATE TABLE IF NOT EXISTS `account_content_rosters` (
+  `id` bigint unsigned NOT NULL AUTO_INCREMENT,
+  `account_id` int unsigned NOT NULL,
+  `save_title` varchar(255) NOT NULL DEFAULT '',
+  `created_at` int unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`) USING BTREE,
+  KEY `idx_account_content_rosters_account` (`account_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Account-scoped content roster rows (content roster save/delete)';
+
+CREATE TABLE IF NOT EXISTS `account_content_roster_members` (
+  `roster_id` bigint unsigned NOT NULL,
+  `character_id` int unsigned NOT NULL,
+  PRIMARY KEY (`roster_id`, `character_id`) USING BTREE,
+  CONSTRAINT `fk_account_content_roster_members_roster` FOREIGN KEY (`roster_id`) REFERENCES `account_content_rosters` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Characters saved with a content roster';
+
+CREATE TABLE IF NOT EXISTS `account_survey_form_replies` (
+  `account_id` int unsigned NOT NULL,
+  `survey_form_id` int unsigned NOT NULL,
+  `character_id` int unsigned NOT NULL DEFAULT 0,
+  `replied_at` int unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`account_id`, `survey_form_id`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='One survey-form reply per account; the primary key is the exactly-once guard';
+
