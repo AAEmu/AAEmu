@@ -15,8 +15,14 @@ public class AreaTriggerManager : Singleton<AreaTriggerManager>, IAreaTriggerMan
     private readonly object _addLock = new();
     private readonly object _remLock = new();
 
+    /// <summary>Area-edge memory shared with the Zone enter/leave relay.</summary>
+    public AreaEdgeTracker AreaEdges => AreaEdgeTracker.Shared;
+
     public void Initialize()
     {
+        // Area membership is per-session: the next enter edge rebuilds it, so a boot
+        // must start from empty rather than inherit the previous run's edges.
+        AreaEdges.Reset();
         TickManager.Instance.OnTick.Subscribe(Tick, TimeSpan.FromMilliseconds(200), true);
     }
 

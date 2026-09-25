@@ -153,7 +153,11 @@ public static class Program
             Logger.Info(
                 "WZUnitState (non-player) → zoneId={0} obj={1} bodyLen={2}", zone.ZoneId, objId, body.Length);
         };
-        WorldIntegration.OnPlayerLeave = bcId => enter.LeaveZone(bcId);
+        WorldIntegration.OnPlayerLeave = bcId =>
+        {
+            AAEmu.Game.Models.Game.World.AreaEdgeTracker.Shared.ForgetUnit(bcId);
+            enter.LeaveZone(bcId);
+        };
         WorldIntegration.OnZoneNpcSpawn = WorldIntegration.MirrorZoneNpcSpawn;
         WorldIntegration.OnZoneNpcRemove = WorldIntegration.MirrorZoneNpcRemove;
         WorldIntegration.OnZoneNpcKilled = bcId =>
@@ -1417,6 +1421,7 @@ public static class Program
         {
             ZoneQuestAreaBridge.OnLeave(unitId, areaId, v1, v2);
         };
+        WorldIntegration.OnZoneAreaEvent = DoodadAreaTriggerRuntime.OnZoneAreaEvent;
         WorldIntegration.IsWorldOwnedGimmick = objId =>
             AAEmu.Game.Core.Managers.World.WorldManager.Instance.GetWorlds()
                 .Any(w => w.GimmickManager?.OwnsGimmick(objId) == true);
@@ -1542,6 +1547,7 @@ public static class Program
             WorldIntegration.RelayMoleCheckToZone = null;
             WorldIntegration.OnZoneEnterArea = null;
             WorldIntegration.OnZoneLeaveArea = null;
+            WorldIntegration.OnZoneAreaEvent = null;
             WorldIntegration.OnZoneRemoveHouse = null;
             WorldIntegration.IsWorldOwnedGimmick = null;
             WorldIntegration.OnZoneRequestStaticGimmick = null;

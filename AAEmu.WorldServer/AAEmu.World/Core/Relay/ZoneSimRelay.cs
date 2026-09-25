@@ -38,8 +38,8 @@ public class ZoneSimRelay
         return opcode switch
         {
             ZwOpcodes.CommandResponse => HandleCommandResponse(stream),
-            ZwOpcodes.EnterArea => HandleEnterArea(stream),
-            ZwOpcodes.LeaveArea => HandleLeaveArea(stream),
+            ZwOpcodes.EnterArea => HandleArea(zoneId, stream, bodyLen, entering: true),
+            ZwOpcodes.LeaveArea => HandleArea(zoneId, stream, bodyLen, entering: false),
             ZwOpcodes.NpcSaid => HandleNpcSaid(stream),
             ZwOpcodes.UnitModelPostureChanged => HandleUnitModelPostureChanged(body, stream),
             ZwOpcodes.UnitFell => HandleUnitFell(stream),
@@ -126,30 +126,68 @@ public class ZoneSimRelay
         }
     }
 
-    private static bool HandleEnterArea(PacketStream stream)
+    /// <summary>
+    /// ZW area membership edge (ZWEnterArea 0x23 / ZWLeaveArea 0x24):
+    /// <c>bc unitId + u8 groupId + i32 value1 + i32 value2</c>.
+    /// <c>groupId</c> is the area's group (quest area / district), <c>value1</c> the area
+    /// radius Zone measured, <c>value2</c> the area's secondary value. Zone emits the
+    /// packet only when the radius is non-zero, so a zero value1 is a malformed edge.
+    /// </summary>
+    /// <remarks>
+    /// The area-event hook and the older enter/leave hooks (quest areas and districts)
+    /// are invoked independently: a consumer that throws is logged and cannot take the
+    /// others down with it, and it does not turn a packet that was parsed and dispatched
+    /// into an unhandled one.
+    /// </remarks>
+    private static bool HandleArea(uint zoneId, PacketStream stream, int bodyLen, bool entering)
     {
-        if (stream.Count < 12)
+        const int expectedLength = 3 + sizeof(byte) + sizeof(int) + sizeof(int);
+        if (bodyLen != expectedLength || stream.Count != expectedLength)
             return false;
-        var unitId = stream.ReadBc();
-        var areaId = stream.ReadByte();
-        var v1 = stream.ReadInt32();
-        var v2 = stream.ReadInt32();
-        Logger.Info("ZWEnterArea unit={0} area={1} v1={2} v2={3}", unitId, areaId, v1, v2);
-        WorldIntegration.OnZoneEnterArea?.Invoke(unitId, areaId, v1, v2);
+
+        uint unitId;
+        byte groupId;
+        int value1;
+        int value2;
+        try
+        {
+            unitId = stream.ReadBc();
+            groupId = stream.ReadByte();
+            value1 = stream.ReadInt32();
+            value2 = stream.ReadInt32();
+        }
+        catch
+        {
+            return false;
+        }
+
+        Logger.Info(
+            "ZW{0}Area zone={1} unit={2} group={3} value1={4} value2={5}",
+            entering ? "Enter" : "Leave", zoneId, unitId, groupId, value1, value2);
+
+        InvokeAreaConsumer("area-event", () =>
+            WorldIntegration.OnZoneAreaEvent?.Invoke(zoneId, unitId, groupId, value1, value2, entering));
+        InvokeAreaConsumer(entering ? "enter-area" : "leave-area", () =>
+        {
+            if (entering)
+                WorldIntegration.OnZoneEnterArea?.Invoke(unitId, groupId, value1, value2);
+            else
+                WorldIntegration.OnZoneLeaveArea?.Invoke(unitId, groupId, value1, value2);
+        });
+
         return true;
     }
 
-    private static bool HandleLeaveArea(PacketStream stream)
+    private static void InvokeAreaConsumer(string name, Action consumer)
     {
-        if (stream.Count < 12)
-            return false;
-        var unitId = stream.ReadBc();
-        var areaId = stream.ReadByte();
-        var v1 = stream.ReadInt32();
-        var v2 = stream.ReadInt32();
-        Logger.Info("ZWLeaveArea unit={0} area={1} v1={2} v2={3}", unitId, areaId, v1, v2);
-        WorldIntegration.OnZoneLeaveArea?.Invoke(unitId, areaId, v1, v2);
-        return true;
+        try
+        {
+            consumer();
+        }
+        catch (Exception e)
+        {
+            Logger.Error(e, "ZW area consumer {0} failed; the other area consumers still ran", name);
+        }
     }
 
     /// <summary>

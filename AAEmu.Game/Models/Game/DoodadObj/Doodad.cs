@@ -1593,6 +1593,7 @@ public class Doodad : BaseUnit
         }
 
         AttachAreaTriggers.Clear();
+        AreaTriggerManager.Instance.AreaEdges.ForgetOwner(ObjId);
 
         // Delete associated item if expired
         if (ItemId > 0)
