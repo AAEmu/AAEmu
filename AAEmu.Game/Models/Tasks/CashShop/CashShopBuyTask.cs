@@ -24,13 +24,11 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
             return;
         }
 
-        lock (CashShopManager.Instance.PurchaseSyncRoot)
-        lock (buyer.WalletSyncRoot)
-        AccountManager.Instance.WithAccountLock(buyer.AccountId, () =>
-        {
-            ExecuteLocked();
-            return true;
-        });
+        // The persistence gate, the character state lock, the account lock and the purchase lock are taken in
+        // the one global order (CashShopPurchaseLocking.DocumentedOrder). Taking the gate last is what deadlocked
+        // this task against a craft or a save: the craft holds the gate and waits for the state lock while the
+        // purchase held that lock and waited for the gate.
+        CashShopPurchaseLocking.Execute(buyer, ExecuteLocked);
     }
 
     private void ExecuteLocked()
@@ -81,12 +79,15 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
             return;
         }
 
+        // Nests inside the scope CashShopPurchaseLocking.Execute opened before any lock: the mail rows and the
+        // wallet row below are one snapshot, and the gate is already held for both.
         using (delivery)
         using (MailManager.Instance.DeferPersist())
         {
             CashShopPurchaseStoreResult persisted;
             using (var connection = MySQL.CreateConnection())
             using (var transaction = connection.BeginTransaction())
+            using (CashShopPurchaseLocking.EnterTransaction())
             {
                 try
                 {
@@ -99,7 +100,9 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
                         plan,
                         delivery.Mails,
                         buyer.Money,
-                        buyer.AaPoint);
+                        buyer.AaPoint,
+                        buyer.Money2,
+                        buyer.BankAaPoint);
                     persisted = CashShopPurchaseStore.Stage(
                         connection,
                         transaction,
@@ -157,6 +160,11 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
                 Logger.Info("ICSBuyGood buyer={0} target={1} - {2} x {3}, SKU:{4}",
                     buyerCorrelation, targetCorrelation, line.DeliveryTitle, line.ItemCount, line.SkuId);
             }
+
+            // The purchase transaction made the wallet row durable. Flush the rest of the buyer's row now, while
+            // the gate scope is still open, so a World that dies before the next autosave cannot resurrect the
+            // pre-purchase state of anything the delivery touched.
+            MailManager.Instance.PersistNow();
         }
     }
 

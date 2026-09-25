@@ -31,7 +31,9 @@ public sealed record CashShopPurchaseCommit(
     CashShopPurchasePlan Plan,
     IReadOnlyList<BaseMail> Mails,
     long LiveMoney,
-    long LiveAaPoints);
+    long LiveAaPoints,
+    long LiveMoney2,
+    long LiveBankAaPoints);
 
 public sealed record CashShopPurchaseStoreResult(
     bool Succeeded,
@@ -40,6 +42,8 @@ public sealed record CashShopPurchaseStoreResult(
     long Loyalty,
     long Money,
     long AaPoints,
+    long Money2,
+    long BankAaPoints,
     uint FailedShopId,
     IReadOnlyDictionary<uint, int> RemainingByShop)
 {
@@ -118,9 +122,22 @@ public static class CashShopPurchaseStore
                 return Failure(coinCost > commit.LiveMoney
                     ? CashShopPersistenceFailureReason.InsufficientCoins
                     : CashShopPersistenceFailureReason.InsufficientAaPoints);
-            if (!TryWriteLiveWallet(connection, transaction, commit.BuyerCharacterId,
-                    commit.LiveMoney - coinCost, commit.LiveAaPoints - aaPointCost))
+            if (commit.LiveMoney < 0 || commit.LiveAaPoints < 0 ||
+                commit.LiveMoney2 < 0 || commit.LiveBankAaPoints < 0)
                 return Failure(CashShopPersistenceFailureReason.PersistenceUnavailable);
+
+            // A bank transfer only moves money in memory, so the purchase writes the whole live wallet - pocket
+            // and bank - in its own transaction. Writing money and aa_point alone made a withdrawal durable on
+            // the pocket side only, and a World that died before the next autosave reloaded the gold twice.
+            // A cart that costs neither gold nor AA points leaves the character row alone: there is nothing to
+            // debit, and writing a snapshot taken before the buy would move the row backwards.
+            if (coinCost > 0 || aaPointCost > 0)
+            {
+                if (!TryWriteLiveWallet(connection, transaction, commit.BuyerCharacterId,
+                        commit.LiveMoney - coinCost, commit.LiveAaPoints - aaPointCost,
+                        commit.LiveMoney2, commit.LiveBankAaPoints))
+                    return Failure(CashShopPersistenceFailureReason.PersistenceUnavailable);
+            }
 
             var remainingByShop = new Dictionary<uint, int>();
             foreach (var quantity in plan.QuantitiesByShop)
@@ -159,11 +176,12 @@ public static class CashShopPurchaseStore
             }
 
             if (!TryReadBalances(connection, transaction, commit.BuyerAccountId, commit.BuyerCharacterId,
-                    out var credits, out var loyalty, out var money, out var aaPoints))
+                    out var credits, out var loyalty, out var money, out var aaPoints,
+                    out var money2, out var bankAaPoints))
                 return Failure(CashShopPersistenceFailureReason.PersistenceUnavailable);
 
             return new CashShopPurchaseStoreResult(true, CashShopPersistenceFailureReason.None,
-                credits, loyalty, money, aaPoints, 0,
+                credits, loyalty, money, aaPoints, money2, bankAaPoints, 0,
                 new Dictionary<uint, int>(remainingByShop));
         }
         catch (DbException ex)
@@ -194,13 +212,16 @@ public static class CashShopPurchaseStore
     }
 
     private static bool TryWriteLiveWallet(DbConnection connection, DbTransaction transaction,
-        uint characterId, long money, long aaPoints)
+        uint characterId, long money, long aaPoints, long money2, long bankAaPoints)
     {
         using var command = connection.CreateCommand();
         command.Transaction = transaction;
-        command.CommandText = "UPDATE characters SET money=@money, aa_point=@aa_point WHERE id=@id";
+        command.CommandText = "UPDATE characters SET money=@money, money2=@money2, " +
+                              "aa_point=@aa_point, bank_aa_point=@bank_aa_point WHERE id=@id";
         Add(command, "@money", money);
+        Add(command, "@money2", money2);
         Add(command, "@aa_point", aaPoints);
+        Add(command, "@bank_aa_point", bankAaPoints);
         Add(command, "@id", characterId);
         return command.ExecuteNonQuery() == 1;
     }
@@ -241,9 +262,10 @@ public static class CashShopPurchaseStore
     }
 
     private static bool TryReadBalances(DbConnection connection, DbTransaction transaction, uint accountId,
-        uint characterId, out long credits, out long loyalty, out long money, out long aaPoints)
+        uint characterId, out long credits, out long loyalty, out long money, out long aaPoints,
+        out long money2, out long bankAaPoints)
     {
-        credits = loyalty = money = aaPoints = 0;
+        credits = loyalty = money = aaPoints = money2 = bankAaPoints = 0;
         using (var account = connection.CreateCommand())
         {
             account.Transaction = transaction;
@@ -258,13 +280,16 @@ public static class CashShopPurchaseStore
 
         using var character = connection.CreateCommand();
         character.Transaction = transaction;
-        character.CommandText = "SELECT money,aa_point FROM characters WHERE id=@character_id AND deleted=0";
+        character.CommandText =
+            "SELECT money,aa_point,money2,bank_aa_point FROM characters WHERE id=@character_id AND deleted=0";
         Add(character, "@character_id", characterId);
         using var characterReader = character.ExecuteReader();
         if (!characterReader.Read())
             return false;
         money = Convert.ToInt64(characterReader.GetValue(0));
         aaPoints = Convert.ToInt64(characterReader.GetValue(1));
+        money2 = Convert.ToInt64(characterReader.GetValue(2));
+        bankAaPoints = Convert.ToInt64(characterReader.GetValue(3));
         return true;
     }
 
@@ -286,5 +311,5 @@ public static class CashShopPurchaseStore
     private static CashShopPurchaseStoreResult Failure(
         CashShopPersistenceFailureReason reason,
         uint failedShopId = 0) =>
-        new(false, reason, 0, 0, 0, 0, failedShopId, new Dictionary<uint, int>());
+        new(false, reason, 0, 0, 0, 0, 0, 0, failedShopId, new Dictionary<uint, int>());
 }

@@ -29,7 +29,9 @@ public sealed class CashShopPurchaseStoreTests : IDisposable
         command.CommandText =
             """
             CREATE TABLE accounts (account_id INTEGER PRIMARY KEY, credits INTEGER NOT NULL, loyalty INTEGER NOT NULL);
-            CREATE TABLE characters (id INTEGER PRIMARY KEY, money INTEGER NOT NULL, aa_point INTEGER NOT NULL, deleted INTEGER NOT NULL);
+            CREATE TABLE characters (
+                id INTEGER PRIMARY KEY, money INTEGER NOT NULL, aa_point INTEGER NOT NULL,
+                money2 INTEGER NOT NULL, bank_aa_point INTEGER NOT NULL, deleted INTEGER NOT NULL);
             CREATE TABLE ics_shop_items (shop_id INTEGER PRIMARY KEY, remaining INTEGER NOT NULL);
             CREATE TABLE audit_ics_sales (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -38,7 +40,7 @@ public sealed class CashShopPurchaseStoreTests : IDisposable
                 sale_date TEXT NOT NULL, shop_item_id INTEGER NOT NULL, sku INTEGER NOT NULL,
                 sale_cost INTEGER NOT NULL, sale_currency INTEGER NOT NULL, description TEXT NOT NULL);
             INSERT INTO accounts VALUES (11, 100, 80);
-            INSERT INTO characters VALUES (22, 900, 50, 0);
+            INSERT INTO characters VALUES (22, 900, 50, 400, 25, 0);
             INSERT INTO ics_shop_items VALUES (55, 5);
             """;
         command.ExecuteNonQuery();
@@ -174,7 +176,90 @@ public sealed class CashShopPurchaseStoreTests : IDisposable
         await Assert.That(CountAudit()).IsEqualTo(0);
     }
 
-    private CashShopPurchaseCommit Commit(CashShopPurchasePlan plan, long liveMoney = 900, long liveAaPoints = 50) => new(
+    [Test]
+    public async Task Stage_WritesTheWholeLiveWallet_SoABankTransferSurvivesThePurchase()
+    {
+        // A withdrawal that only moved money in memory: the row still holds the pre-withdrawal bank gold while
+        // the live wallet has already moved it to the pocket. The purchase must write both sides.
+        SetAccount("money", CharacterId, 1_000);
+        SetAccount("money2", CharacterId, 1_000);
+        var plan = Plan(CashShopCurrencyType.Coins, cost: 200, quantity: 1);
+        using var transaction = _connection.BeginTransaction();
+
+        var result = CashShopPurchaseStore.Stage(_connection, transaction,
+            Commit(plan, liveMoney: 1_800, liveAaPoints: 50, liveMoney2: 200, liveBankAaPoints: 25), _ => true);
+        transaction.Commit();
+
+        await Assert.That(result.Succeeded).IsTrue();
+        await Assert.That(ReadAccount("money", CharacterId)).IsEqualTo(1_600L);
+        await Assert.That(ReadAccount("money2", CharacterId)).IsEqualTo(200L);
+        await Assert.That(ReadAccount("aa_point", CharacterId)).IsEqualTo(50L);
+        await Assert.That(ReadAccount("bank_aa_point", CharacterId)).IsEqualTo(25L);
+        await Assert.That(result.Money).IsEqualTo(1_600L);
+        await Assert.That(result.Money2).IsEqualTo(200L);
+        await Assert.That(result.AaPoints).IsEqualTo(50L);
+        await Assert.That(result.BankAaPoints).IsEqualTo(25L);
+    }
+
+    [Test]
+    public async Task Stage_MovesTheBankAaPointSideToo_WhenTheCartSpendsAaPoints()
+    {
+        SetAccount("bank_aa_point", CharacterId, 5_000);
+        var plan = Plan(CashShopCurrencyType.AaPoints, cost: 12, quantity: 1);
+        using var transaction = _connection.BeginTransaction();
+
+        var result = CashShopPurchaseStore.Stage(_connection, transaction,
+            Commit(plan, liveMoney: 900, liveAaPoints: 4_800, liveMoney2: 400, liveBankAaPoints: 4_500), _ => true);
+        transaction.Commit();
+
+        await Assert.That(result.Succeeded).IsTrue();
+        await Assert.That(ReadAccount("aa_point", CharacterId)).IsEqualTo(4_788L);
+        await Assert.That(ReadAccount("bank_aa_point", CharacterId)).IsEqualTo(4_500L);
+        await Assert.That(result.BankAaPoints).IsEqualTo(4_500L);
+    }
+
+    [Test]
+    public async Task Stage_LeavesTheCharacterRowAlone_WhenTheCartCostsNeitherGoldNorAaPoints()
+    {
+        // A credits-only cart has no wallet debit, so the live snapshot must not be written over a row another
+        // path may have made newer than this task's read.
+        SetAccount("money", CharacterId, 777);
+        SetAccount("money2", CharacterId, 333);
+        SetAccount("aa_point", CharacterId, 11);
+        var plan = Plan(CashShopCurrencyType.Credits, cost: 20, quantity: 1);
+        using var transaction = _connection.BeginTransaction();
+
+        var result = CashShopPurchaseStore.Stage(_connection, transaction,
+            Commit(plan, liveMoney: 4_242, liveAaPoints: 4_243, liveMoney2: 4_244, liveBankAaPoints: 4_245), _ => true);
+        transaction.Commit();
+
+        await Assert.That(result.Succeeded).IsTrue();
+        await Assert.That(ReadAccount("money", CharacterId)).IsEqualTo(777L);
+        await Assert.That(ReadAccount("money2", CharacterId)).IsEqualTo(333L);
+        await Assert.That(ReadAccount("aa_point", CharacterId)).IsEqualTo(11L);
+        await Assert.That(ReadAccount("bank_aa_point", CharacterId)).IsEqualTo(25L);
+        await Assert.That(ReadAccount("credits", AccountId)).IsEqualTo(80L);
+    }
+
+    [Test]
+    public async Task Stage_RefusesToWrite_A_NegativeLiveBankBalance()
+    {
+        var plan = Plan(CashShopCurrencyType.AaPoints, cost: 1, quantity: 1);
+        using var transaction = _connection.BeginTransaction();
+
+        var result = CashShopPurchaseStore.Stage(_connection, transaction,
+            Commit(plan, liveMoney2: -1), _ => true);
+        transaction.Rollback();
+
+        await Assert.That(result.Succeeded).IsFalse();
+        await Assert.That(result.Reason).IsEqualTo(CashShopPersistenceFailureReason.PersistenceUnavailable);
+        await Assert.That(ReadAccount("money", CharacterId)).IsEqualTo(900L);
+        await Assert.That(ReadAccount("money2", CharacterId)).IsEqualTo(400L);
+        await Assert.That(CountAudit()).IsEqualTo(0);
+    }
+
+    private CashShopPurchaseCommit Commit(CashShopPurchasePlan plan, long liveMoney = 900, long liveAaPoints = 50,
+        long liveMoney2 = 400, long liveBankAaPoints = 25) => new(
         AccountId,
         CharacterId,
         TargetAccountId,
@@ -183,7 +268,9 @@ public sealed class CashShopPurchaseStoreTests : IDisposable
         plan,
         [new BaseMail { ReceiverName = "target" }],
         liveMoney,
-        liveAaPoints);
+        liveAaPoints,
+        liveMoney2,
+        liveBankAaPoints);
 
     private static CashShopPurchasePlan Plan(CashShopCurrencyType currency, long cost, long quantity) =>
         new(
