@@ -61,6 +61,8 @@ public class Slave : Unit
     public List<Doodad> AttachedDoodads { get; set; }
     public List<Slave> AttachedSlaves { get; set; }
     public Dictionary<AttachPointKind, Character> AttachedCharacters { get; set; }
+    private readonly HashSet<AttachPointKind> _availableSeats = [];
+    public IReadOnlyCollection<AttachPointKind> AvailableSeats => _availableSeats;
     public DateTime SpawnTime { get; init; }
     public sbyte ThrottleRequest { get; set; }
     public sbyte Throttle { get; set; }
@@ -289,6 +291,17 @@ public class Slave : Unit
         HpTriggerPointsPercent.Add(75);
         HpTriggerPointsPercent.Add(100);
     }
+
+    /// <summary>Initializes the rider attach points proven by slave mount-skill joins.</summary>
+    public void InitializeSeatTopology(IEnumerable<AttachPointKind> seats)
+    {
+        _availableSeats.Clear();
+        foreach (var seat in SeatTopologyRules.Normalize(seats))
+            _availableSeats.Add(seat);
+    }
+
+    public bool HasSeat(AttachPointKind attachPoint) =>
+        SeatTopologyRules.IsRiderSeat(attachPoint) && _availableSeats.Contains(attachPoint);
 
     #region Attributes
     [UnitAttribute(UnitAttribute.Str)]
@@ -1075,8 +1088,9 @@ public class Slave : Unit
         ClearAllAggro();
 
         // Unbind all passengers
-        foreach (var character in AttachedCharacters.Values.ToList())
-            ParentWorld.SlaveManager.UnbindSlave(character, TlId, AttachUnitReason.None);
+        SeatTopologyRules.ReleaseAllRiders(
+            AttachedCharacters,
+            (_, character) => ParentWorld.SlaveManager.UnbindSlave(character, TlId, AttachUnitReason.None));
 
         // Schedule full cleanup via slave.Delete() → Hide() + DetachAll() + RemoveObject()
         // This keeps the slave visible and selectable during the death animation

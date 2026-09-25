@@ -537,11 +537,19 @@ public sealed class Mate : Unit
         Skills = [];
         Passengers = [];
         Equipment = new MateEquipmentContainer(0, SlotType.EquipmentMate, false, this);
+    }
 
-        // TODO: Spawn this with the correct amount of seats depending on the template
-        // 2 seats by default
-        Passengers.Add(AttachPointKind.Driver, new MatePassengerInfo { _objId = 0, _reason = 0 });
-        Passengers.Add(AttachPointKind.Passenger0, new MatePassengerInfo { _objId = 0, _reason = 0 });
+    /// <summary>
+    /// Initializes only the rider attach points proven by the mate's mount-skill joins. No default
+    /// passenger seat is assumed and capacity is never used as a topology.
+    /// </summary>
+    public void InitializeSeatTopology(IEnumerable<AttachPointKind> seats)
+    {
+        Passengers.Clear();
+        foreach (var seat in SeatTopologyRules.Normalize(seats))
+        {
+            Passengers.TryAdd(seat, new MatePassengerInfo { _objId = 0, _reason = 0 });
+        }
     }
 
     /// <summary>

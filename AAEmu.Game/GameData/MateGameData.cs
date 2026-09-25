@@ -15,6 +15,7 @@ public class MateGameData : Singleton<MateGameData>, IGameDataLoader
     private Dictionary<uint, MountSkills> _mountSkills = [];
     private Dictionary<uint, MountAttachedSkills> _mountAttachedSkills = [];
     private Dictionary<uint, MateEquipSlotPack> _mateEquipSlotPacks = [];
+    private readonly MateSeatCatalog _seatCatalog = new();
 
     /// <summary>mate_equip_pack_groups keyed by the mate's npc: the packs it may wear.</summary>
     private readonly Dictionary<uint, List<uint>> _mateEquipPacks = [];
@@ -55,6 +56,12 @@ public class MateGameData : Singleton<MateGameData>, IGameDataLoader
     /// </summary>
     public byte GetMateType(uint equipSlotPackId) =>
         _mateEquipSlotPacks.TryGetValue(equipSlotPackId, out var pack) ? pack.MateTypeId : (byte)0;
+
+    /// <summary>
+    /// Rider attach points explicitly joined to this NPC through mount skills. The catalog never
+    /// infers seats from a capacity or equipment field.
+    /// </summary>
+    public IReadOnlyList<AttachPointKind> GetMateSeats(uint npcId) => _seatCatalog.GetSeats(npcId);
 
     /// <summary>
     /// Gets a list of pet skill Ids
@@ -309,6 +316,8 @@ public class MateGameData : Singleton<MateGameData>, IGameDataLoader
         }
 
         #endregion MateTables
+
+        _seatCatalog.Load(connection);
     }
 
     public void PostLoad()
