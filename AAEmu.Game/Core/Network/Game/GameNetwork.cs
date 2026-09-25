@@ -84,6 +84,8 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSSpecialtyRatioPacket, 1, typeof(CSSpecialtyRatioPacket));
         RegisterPacket(CSOffsets.CSListSpecialtyGoodsPacket, 1, typeof(CSListSpecialtyGoodsPacket));
         RegisterPacket(CSOffsets.CSBuySpecialtyItemPacket, 1, typeof(CSBuySpecialtyItemPacket));
+        RegisterPacket(CSOffsets.CSFakeBuySpecialtyItemPacket, 1, typeof(CSFakeBuySpecialtyItemPacket));
+        RegisterPacket(CSOffsets.CSFakeSellSpecialtyItemPacket, 1, typeof(CSFakeSellSpecialtyItemPacket));
         RegisterPacket(CSOffsets.CSSpecialtyRecordLoadPacket, 1, typeof(CSSpecialtyRecordLoadPacket));
         RegisterPacket(CSOffsets.CSDepositMoneyPacket, 1, typeof(CSDepositMoneyPacket));
         RegisterPacket(CSOffsets.CSWithdrawMoneyPacket, 1, typeof(CSWithdrawMoneyPacket));

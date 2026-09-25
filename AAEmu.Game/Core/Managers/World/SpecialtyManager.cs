@@ -2152,6 +2152,28 @@ public class SpecialtyManager(
         return true;
     }
 
+    /// <summary>
+    /// Refuses the developer-only fake specialty packets. They carry no quote, price, or request
+    /// identity, so accepting one would create an unproven market mutation. Refusal is stateless
+    /// and therefore safe to repeat after a reconnect or retry.
+    /// </summary>
+    public void RejectFakeSpecialtyOperation(
+        Character player,
+        SpecialtyFakeOperationKind kind,
+        uint type,
+        int itemCount)
+    {
+        var decision = SpecialtyFakeOperationPolicy.Evaluate(type, itemCount);
+        Logger.Warn(
+            "Rejected fake specialty {0} request: type {1}, count {2}, decision {3}, character {4}.",
+            kind,
+            type,
+            itemCount,
+            decision,
+            player?.Name ?? "<none>");
+        player?.SendErrorMessage(ErrorMessageType.Invalid);
+    }
+
     public bool BuySpecialty(
         Character player,
         uint npcObjId,
