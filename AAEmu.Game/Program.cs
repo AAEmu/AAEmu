@@ -224,6 +224,8 @@ public static class Program
                 services.AddSingleton<GameScheduleManager>();
                 services.AddSingleton<IGameScheduleManager>(sp => sp.GetRequiredService<GameScheduleManager>());
 
+                services.AddSingleton<EventCenterRuntimeManager>();
+
                 services.AddSingleton<HeroManager>();
                 services.AddSingleton<IHeroManager>(sp => sp.GetRequiredService<HeroManager>());
 
