@@ -1,10 +1,6 @@
 using AAEmu.Commons.Network;
-using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
-using AAEmu.Game.Core.Packets.G2C;
-using AAEmu.Game.Models.Game.Merchant;
-
-using NLog;
+using AAEmu.Game.Core.Packets;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
@@ -17,8 +13,6 @@ namespace AAEmu.Game.Core.Packets.C2G;
 /// </remarks>
 public class CSRandomShopInfoPacket() : GamePacket(CSOffsets.CSRandomShopInfoPacket, 1)
 {
-    private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
-
     public sbyte ShopType { get; private set; }
     public uint NpcObjId { get; private set; }
     public uint DoodadObjId { get; private set; }
@@ -42,22 +36,9 @@ public class CSRandomShopInfoPacket() : GamePacket(CSOffsets.CSRandomShopInfoPac
         if (packId == 0)
             return;
 
-        try
-        {
-            var window = RandomMerchantManager.Instance.GetWindow(character.Id, packId, DateTime.UtcNow);
-            Connection.SendPacket(new SCRandomShopInfoPacket(
-                0,
-                TypeValue < 0 ? 0u : (uint)TypeValue,
-                packId,
-                (byte)Math.Min(window.FreeUsed, byte.MaxValue),
-                (byte)Math.Min(window.ChargeUsed, byte.MaxValue),
-                character.Id,
-                window.RolledAt,
-                window.Offers));
-        }
-        catch (RandomMerchantContentException ex)
-        {
-            Logger.Error(ex, "Random shop info refused for character {0}, pack {1}", character.Id, packId);
-        }
+        RandomShopUiService.SendInfo(
+            character,
+            packId,
+            TypeValue < 0 ? 0u : (uint)TypeValue);
     }
 }

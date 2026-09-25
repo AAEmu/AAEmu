@@ -116,7 +116,7 @@ public class RandomMerchantGameData : Singleton<RandomMerchantGameData>, IGameDa
             _packs.Count, _packs.Values.Count(pack => pack.Usable), groupRows.Count, goodRows.Count);
     }
 
-    private static Dictionary<uint, uint> LoadDoodadPacks(SqliteConnection connection)
+    internal static Dictionary<uint, uint> LoadDoodadPacks(SqliteConnection connection)
     {
         var byDoodad = new Dictionary<uint, uint>();
         using var command = connection.CreateCommand();
@@ -131,7 +131,17 @@ public class RandomMerchantGameData : Singleton<RandomMerchantGameData>, IGameDa
         using var sqliteReader = command.ExecuteReader();
         using var reader = new SQLiteWrapperReader(sqliteReader);
         while (reader.Read())
-            byDoodad[reader.GetUInt32("doodad_almighty_id")] = reader.GetUInt32("merchant_random_pack_id");
+        {
+            var doodadAlmightyId = reader.GetUInt32("doodad_almighty_id");
+            var packId = reader.GetUInt32("merchant_random_pack_id");
+            if (doodadAlmightyId == 0 || packId == 0)
+                throw new InvalidDataException(
+                    $"DoodadFuncRandomStoreUi row has an invalid doodad/pack link {doodadAlmightyId}/{packId}");
+
+            if (!byDoodad.TryAdd(doodadAlmightyId, packId))
+                throw new InvalidDataException(
+                    $"Duplicate DoodadFuncRandomStoreUi doodad_almighty_id {doodadAlmightyId}");
+        }
         return byDoodad;
     }
 
