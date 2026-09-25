@@ -1,5 +1,6 @@
-using AAEmu.Game.Models.Game.Char;
+﻿using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.StaticValues;
 
 using Portal = AAEmu.Game.Models.Game.Portal;
@@ -19,6 +20,6 @@ public interface IPortalManager : ILoadable
     uint GetDistrictReturnPoint(uint districtId);
     uint GetDistrictReturnPoint(uint districtId, FactionsEnum factionId);
     uint GetDistrictIdByReturnPoint(uint returnPointId, FactionsEnum factionId);
-    void OpenPortal(Character owner, SkillObjectUnk1 portalEffectObj);
+    void OpenPortal(Character owner, SkillObjectUnk1 portalEffectObj, OpenPortalEffect effect);
     Portal GetClosestReturnPortal(Character character);
 }

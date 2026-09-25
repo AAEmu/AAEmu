@@ -136,6 +136,7 @@ public class GameConnection
                 subscriber.Dispose();
 
             ActiveChar.Events?.OnDisconnect(this, new OnDisconnectArgs { Player = ActiveChar });
+            PortalManager.Instance.DeleteOwnerPortals(ActiveChar);
             ActiveChar.RemoveAndDespawnActiveOwnedMatesSlaves();
         }
 

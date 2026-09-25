@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Skills;
+using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Teleport;
 using AAEmu.Game.Models.Game.Units;
@@ -28,7 +29,7 @@ using Portal = AAEmu.Game.Models.Game.Portal;
 
 namespace AAEmu.Game.Core.Managers;
 
-public class PortalManager(ILocalizationManager localizationManager, IWorldManager worldManager, IZoneManager zoneManager, INpcManager npcManager, IObjectIdManager objectIdManager, ITaskManager taskManager) : Singleton<PortalManager>, IPortalManager
+public class PortalManager(ILocalizationManager localizationManager, IWorldManager worldManager, IZoneManager zoneManager, INpcManager npcManager, IObjectIdManager objectIdManager) : Singleton<PortalManager>, IPortalManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -43,6 +44,8 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
     private Dictionary<uint, OpenPortalReagents> _openPortalInlandReagents;
     private Dictionary<uint, OpenPortalReagents> _openPortalOutlandReagents;
     private Dictionary<uint, DistrictReturnPoints> _districtReturnPoints;
+    private readonly Dictionary<uint, HashSet<Models.Game.Units.Portal>> _ownerPortals = [];
+    private readonly Lock _ownerPortalsLock = new();
 
     public List<Portal> GetRecallBySubZoneId(uint subZoneId)
     {
@@ -424,65 +427,127 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
         return true;
     }
 
-    private bool CheckCanOpenPortal(Character owner, uint targetZoneId)
+    protected virtual bool CheckCanOpenPortal(Character owner, uint targetZoneId, uint openPortalEffectId)
     {
         var targetContinent = zoneManager.GetTargetIdByZoneId(targetZoneId);
         var ownerContinent = zoneManager.GetTargetIdByZoneId(owner.Transform.ZoneId);
+        var source = targetContinent == ownerContinent ? _openPortalInlandReagents : _openPortalOutlandReagents;
+        if (source == null)
+        {
+            Logger.Error("OpenPortal reagent tables are not loaded");
+            return false;
+        }
 
-        if (targetContinent == ownerContinent)
+        var reagents = OpenPortalReagentRules.ForEffect(source.Values, openPortalEffectId);
+
+        if (reagents.Count == 0)
         {
-            foreach (var (_, value) in _openPortalInlandReagents)
-            {
-                if (CheckItemAndRemove(owner, value.ItemId, value.Amount)) return true;
-            }
+            Logger.Error("OpenPortal effect {0} has no {1} reagent rows", openPortalEffectId,
+                targetContinent == ownerContinent ? "inland" : "outland");
+            return false;
         }
-        else
+
+        foreach (var reagent in reagents)
         {
-            foreach (var (_, value) in _openPortalOutlandReagents)
-            {
-                if (CheckItemAndRemove(owner, value.ItemId, value.Amount)) return true;
-            }
+            if (CheckItemAndRemove(owner, reagent.ItemId, reagent.Amount))
+                return true;
         }
-        return false; // Not enough items
+        return false;
     }
 
-    /// <summary>open_portal_effects id 1: enter_portal_npc_id — the green portal you walk into.</summary>
-    private const uint EntrancePortalNpcId = 3891;
-    /// <summary>open_portal_effects id 1: exit_portal_npc_id — the yellow portal at the destination.</summary>
-    private const uint ExitPortalNpcId = 6629;
+    protected void RegisterLivePortal(Character owner, Models.Game.Units.Portal portal)
+    {
+        lock (_ownerPortalsLock)
+        {
+            if (!_ownerPortals.TryGetValue(owner.Id, out var portals))
+            {
+                portals = [];
+                _ownerPortals[owner.Id] = portals;
+            }
+            portals.Add(portal);
+        }
+    }
+
+    protected virtual void DeleteLivePortal(Models.Game.Units.Portal portal) => portal.Delete();
+
+    /// <summary>Deletes what is still live: a pair member the cascade already removed is skipped.</summary>
+    private static void DeleteAlive(IEnumerable<Models.Game.Units.Portal> portals, Action<Models.Game.Units.Portal> delete)
+    {
+        foreach (var portal in portals)
+        {
+            // Portal.Delete cascades to the linked portal; without this guard the second member of the
+            // pair is deleted again and is sent a second death packet.
+            if (!portal.IsDeadOrDeleted)
+                delete(portal);
+        }
+    }
+
+    public void DeleteOwnerPortals(Character owner)
+    {
+        Models.Game.Units.Portal[] owned;
+        lock (_ownerPortalsLock)
+        {
+            if (owner == null || !_ownerPortals.TryGetValue(owner.Id, out var portals))
+                return;
+
+            owned = [.. portals];
+            _ownerPortals.Remove(owner.Id);
+        }
+
+        DeleteAlive(owned, DeleteLivePortal);
+    }
+
+    private void DeleteOwnerPortals(Character owner, Portal sourcePortal)
+    {
+        Models.Game.Units.Portal[] matched;
+        lock (_ownerPortalsLock)
+        {
+            if (owner == null || sourcePortal == null || !_ownerPortals.TryGetValue(owner.Id, out var portals))
+                return;
+
+            matched = [.. portals.Where(portal => ReferenceEquals(portal.SourcePortal, sourcePortal))];
+            foreach (var portal in matched)
+                portals.Remove(portal);
+            if (portals.Count == 0)
+                _ownerPortals.Remove(owner.Id);
+        }
+
+        DeleteAlive(matched, DeleteLivePortal);
+    }
 
     /// <summary>
-    /// Create a portal Npc object and returns it
+    /// Create a portal Npc object and returns it.
     /// </summary>
-    /// <param name="owner"></param>
-    /// <param name="isExit"></param>
-    /// <param name="portalInfo"></param>
-    /// <param name="portalEffectObj"></param>
-    /// <returns></returns>
-    private Models.Game.Units.Portal MakePortal(Unit owner, bool isExit, Portal portalInfo, SkillObjectUnk1 portalEffectObj)
+    protected virtual Models.Game.Units.Portal MakePortal(Character owner, bool isExit, Portal portalInfo,
+        SkillObjectUnk1 portalEffectObj, uint templateId)
     {
-        var portalPointDestination = new Transform(null, null, 
+        var template = npcManager.GetTemplate(templateId);
+        if (template == null)
+        {
+            Logger.Error("OpenPortal NPC template {0} is not loaded", templateId);
+            return null;
+        }
+
+        var portalPointDestination = new Transform(null, null,
             portalInfo.ZoneId,
             owner.Transform.InstanceId,
             portalInfo.X, portalInfo.Y, portalInfo.Z,
             0f, 0f, portalInfo.ZRot);
 
-        // TODO: Add support for different types of teleport books
-        var templateId = isExit ? ExitPortalNpcId : EntrancePortalNpcId;
-        var template = npcManager.GetTemplate(templateId);
         var portalNpc = new Models.Game.Units.Portal
         {
             ParentWorld = owner.ParentWorld,
             ObjId = objectIdManager.GetNextId(),
-            OwnerId = ((Character)owner).Id,
+            OwnerId = owner.Id,
             TemplateId = templateId,
             Template = template,
             ModelId = template.ModelId,
-            Faction = owner.Faction, // INFO - FactionManager.Instance.GetFaction(template.FactionId)
+            Faction = owner.Faction,
             Level = template.Level,
             Name = portalInfo.Name,
             TeleportPosition = portalPointDestination,
             IsExit = isExit,
+            SourcePortal = portalInfo,
             Transform = { ZoneId = portalInfo.ZoneId }
         };
 
@@ -503,29 +568,64 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
 
         portalNpc.Hp = portalNpc.MaxHp;
         portalNpc.Mp = portalNpc.MaxMp;
-        
-        portalNpc.Spawn();
 
-        var killTask = new KillPortalTask(portalNpc);
-        taskManager.Schedule(killTask, TimeSpan.FromSeconds(30));
+        portalNpc.Spawn();
         return portalNpc;
     }
 
-    public void OpenPortal(Character owner, SkillObjectUnk1 portalEffectObj)
+    public void OpenPortal(Character owner, SkillObjectUnk1 portalEffectObj, OpenPortalEffect effect)
     {
-        var portalInfo = owner.Portals.GetPortalInfo((uint)portalEffectObj.Id);
-        if (!CheckCanOpenPortal(owner, portalInfo.ZoneId)) return;
+        if (owner == null || portalEffectObj == null || effect == null)
+            return;
 
-        var entrance = MakePortal(owner, false, portalInfo, portalEffectObj);   // Entrance (green)
-        var exit = MakePortal(owner, true, portalInfo, portalEffectObj);    // Exit (yellow)
-        // Linked the 2 portals
+        if (!OpenPortalNpcRules.TryResolve(effect, out var enterNpcId, out var exitNpcId))
+        {
+            Logger.Error("OpenPortal effect {0} is missing an enter/exit NPC template", effect.Id);
+            return;
+        }
+
+        if (npcManager.GetTemplate(enterNpcId) == null || npcManager.GetTemplate(exitNpcId) == null)
+        {
+            Logger.Error("OpenPortal effect {0} references an NPC template that is not loaded", effect.Id);
+            return;
+        }
+
+        if (portalEffectObj.Id < 0)
+        {
+            Logger.Warn("OpenPortal effect {0} received a negative portal id", effect.Id);
+            return;
+        }
+
+        var portalInfo = owner.Portals.GetPortalInfo((uint)portalEffectObj.Id);
+        if (portalInfo == null)
+        {
+            Logger.Warn("OpenPortal effect {0} cannot resolve portal id {1}", effect.Id, portalEffectObj.Id);
+            return;
+        }
+
+        if (!CheckCanOpenPortal(owner, portalInfo.ZoneId, effect.Id))
+            return;
+
+        var entrance = MakePortal(owner, false, portalInfo, portalEffectObj, enterNpcId);
+        if (entrance == null)
+            return;
+
+        var exit = MakePortal(owner, true, portalInfo, portalEffectObj, exitNpcId);
+        if (exit == null)
+        {
+            entrance.Delete();
+            return;
+        }
+
         entrance.LinkedPortal = exit;
         exit.LinkedPortal = entrance;
+        RegisterLivePortal(owner, entrance);
+        RegisterLivePortal(owner, exit);
     }
 
     public static void UsePortal(Character character, uint objId)
     {
-        // TODO - Cooldown between portals
+        // No cooldown is applied here: no authoritative content/protocol value has been identified.
         if (character.ParentWorld.GetNpc(objId) is not Models.Game.Units.Portal portal) return;
 
         //have Overburdened buff cannot UsePortal
@@ -559,12 +659,21 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
         }
     }
 
-    public static void DeletePortal(Character owner, byte type, uint id)
+    public void DeletePortal(Character owner, byte type, uint id)
     {
         var isPrivate = type != 1;
-        var portalInfo = owner.Portals.GetPortalInfo(id);
-        if (portalInfo == null) return;
+        // The wire type says which book the client named. A type-agnostic lookup answers from the
+        // district book first, so deleting a private entry would tear down the district entry's live
+        // pair and leave the private one standing.
+        var portalInfo = isPrivate
+            ? owner.Portals.GetPrivatePortalInfo(id)
+            : owner.Portals.GetDistrictPortalInfo(id);
+        if (portalInfo == null)
+            return;
+
         owner.Portals.RemoveFromBookPortal(portalInfo, isPrivate);
+        // Match the book entry, not its id: the two id spaces overlap.
+        DeleteOwnerPortals(owner, portalInfo);
     }
 
     /// <summary>

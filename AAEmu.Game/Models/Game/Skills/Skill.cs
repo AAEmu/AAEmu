@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -602,8 +602,9 @@ public class Skill
                     return SkillResult.InvalidLocation;
                 }
 
-                // copy OpenPortalEffect.cs
-                var portalInfo = (SkillObjectUnk1)skillObject;
+                if (skillObject is not SkillObjectUnk1 portalInfo || portalInfo.Id < 0)
+                    return SkillResult.InvalidTarget;
+
                 trp = character.Portals.GetPortalInfo((uint)portalInfo.Id);
             }
 

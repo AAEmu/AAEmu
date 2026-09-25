@@ -266,6 +266,7 @@ public class EnterWorldManager(
             // Despawn and unmount everybody from owned Mates
             activeChar.ParentWorld.MateManager.RemoveAndDespawnAllActiveOwnedMates(activeChar);
             activeChar.ParentWorld.SlaveManager.RemoveAndDespawnAllActiveOwnedSlaves(activeChar);
+            PortalManager.Instance.DeleteOwnerPortals(activeChar);
 
             // Check if still mounted on somebody else's mount and dismount that if needed
             activeChar.ForceDismount(/*AttachUnitReason.PrefabChanged*/); // Dismounting a mount because of unsummoning sends "10" for this

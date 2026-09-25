@@ -1,4 +1,4 @@
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
@@ -2030,7 +2030,14 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 {
                     while (reader.Read())
                     {
-                        var template = new OpenPortalEffect { Id = reader.GetUInt32("id", 0), Distance = reader.GetFloat("distance", 0f) };
+                        var template = new OpenPortalEffect
+                        {
+                            Id = reader.GetUInt32("id", 0),
+                            Distance = reader.GetFloat("distance", 0f),
+                            EnterPortalNpcId = reader.GetUInt32("enter_portal_npc_id"),
+                            ExitPortalNpcId = reader.GetUInt32("exit_portal_npc_id"),
+                            FactionPermission = reader.GetBoolean("faction_permission")
+                        };
                         _effects["OpenPortalEffect"][template.Id] = template;
                     }
                 }

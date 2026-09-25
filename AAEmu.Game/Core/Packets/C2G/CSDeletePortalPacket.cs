@@ -13,6 +13,6 @@ public class CSDeletePortalPacket() : GamePacket(CSOffsets.CSDeletePortalPacket,
 
         Logger.Debug("DeletePortal, PortalType: {0}, PortalId: {1}", portalType, portalId);
 
-        PortalManager.DeletePortal(Connection.ActiveChar, portalType, portalId);
+        PortalManager.Instance.DeletePortal(Connection.ActiveChar, portalType, portalId);
     }
 }

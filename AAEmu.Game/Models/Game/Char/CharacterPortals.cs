@@ -22,18 +22,21 @@ public class CharacterPortals(Character owner)
     public CharacterFavoritePortals FavoritePortals { get; } = new(owner);
     public Character Owner { get; set; } = owner;
 
-    public Portal GetPortalInfo(uint id)
+    /// <summary>
+    /// Resolves a district entry. District entries answer to two ids: their own key and the
+    /// return-point id carried in <see cref="Portal.Type"/>, so both forms are accepted here.
+    /// </summary>
+    public Portal GetDistrictPortalInfo(uint id)
     {
         if (DistrictPortals.TryGetValue(id, out var info))
             return info;
-        // Client may pass either wire id (district) or the return-point id stored in Type.
         foreach (var portal in DistrictPortals.Values)
         {
             if (portal.Type == id)
                 return portal;
         }
 
-        return PrivatePortals.TryGetValue(id, out var privatePortal) ? privatePortal : null;
+        return null;
     }
 
     public bool OwnsPortal(FavoritePortalRef favorite)
@@ -79,6 +82,21 @@ public class CharacterPortals(Character owner)
             return true;
         }
     }
+
+    /// <summary>
+    /// Resolves a private entry by its own id only. Only district entries carry a
+    /// <see cref="Portal.Type"/>, so the return-point fallback does not apply here.
+    /// </summary>
+    public Portal GetPrivatePortalInfo(uint id) =>
+        PrivatePortals.TryGetValue(id, out var privatePortal) ? privatePortal : null;
+
+    /// <summary>
+    /// Type-agnostic lookup for callers that only have an id. District entries win, because their ids
+    /// are the ones the client sends for a return point. Use the typed lookups when the caller knows
+    /// which book was named: private book ids and district ids share one id space.
+    /// </summary>
+    public Portal GetPortalInfo(uint id) =>
+        GetDistrictPortalInfo(id) ?? GetPrivatePortalInfo(id);
 
     public void RemoveFromBookPortal(Portal portal, bool isPrivate)
     {
@@ -137,15 +155,19 @@ public class CharacterPortals(Character owner)
         }
     }
 
-    public void AddPrivatePortal(float x, float y, float z, float zRot, uint zoneId, string name)
+    public bool TryAddPrivatePortal(float x, float y, float z, float zRot, uint zoneId, string name,
+        out Portal portal)
     {
+        portal = null;
+        if (!PrivatePortalCreationRules.IsValid(name, x, y, z, zRot))
+            return false;
+
         if (PersistenceGate.IsSaveHeld)
             throw new InvalidOperationException("Private portal creation cannot run inside a persistence save.");
         using var persistenceOperation = PersistenceOperationScope.Enter();
         lock (_saveSync)
         {
-            // TODO - Only working by command
-            var newPortal = new Portal
+            portal = new Portal
             {
                 Id = PrivateBookIdManager.Instance.GetNextId(),
                 Name = name,
@@ -156,13 +178,24 @@ public class CharacterPortals(Character owner)
                 ZRot = zRot,
                 Owner = Owner.Id
             };
-            PrivatePortals.Add(newPortal.Id, newPortal);
-            Owner.SendPacket(new SCCharacterPortalsPacket([newPortal]));
+            PrivatePortals.Add(portal.Id, portal);
+            Owner.SendPacket(new SCCharacterPortalsPacket([portal]));
         }
+
+        return true;
+    }
+
+    public void AddPrivatePortal(float x, float y, float z, float zRot, uint zoneId, string name)
+    {
+        if (!TryAddPrivatePortal(x, y, z, zRot, zoneId, name, out _))
+            Logger.Warn("Private portal creation refused for {0}: invalid name or coordinates", Owner.Name);
     }
 
     public bool ChangePrivatePortalName(uint id, string name)
     {
+        if (!PrivatePortalCreationRules.IsValidName(name))
+            return false;
+
         if (PersistenceGate.IsSaveHeld)
             throw new InvalidOperationException("Private portal rename cannot run inside a persistence save.");
         using var persistenceOperation = PersistenceOperationScope.Enter();
