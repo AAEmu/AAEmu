@@ -96,6 +96,18 @@ public class SCFamilyPacketWireTests
     }
 
     [Test]
+    public async Task FamilyRoleChange_WritesSignedFamilyMemberAndRole()
+    {
+        var stream = new SCFamilyChangeMemberRolePacket(42, uint.MaxValue, 4).Write(new PacketStream());
+
+        stream.Rollback();
+        await Assert.That(stream.ReadInt32()).IsEqualTo(42);
+        await Assert.That(stream.ReadUInt64()).IsEqualTo(uint.MaxValue);
+        await Assert.That(stream.ReadInt32()).IsEqualTo(4);
+        await Assert.That(stream.LeftBytes).IsEqualTo(0);
+    }
+
+    [Test]
     public async Task ExpeditionLists_RejectMoreThanNativeTwentyEntries()
     {
         var expeditions = Enumerable.Range(0, 21).Select(_ => new Expedition()).ToList();

@@ -5,7 +5,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO(v10): the body is parsed but nothing acts on it yet.
+/// Routes a member-capacity request to the content-row purchase and persistence path.
 /// </summary>
 /// <remarks>
 /// packet has no body. Every parameterless C2S type folds onto that one function, so the

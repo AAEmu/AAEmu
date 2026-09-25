@@ -122,6 +122,62 @@ public class FamilyManagerTests
     }
 
     [Test]
+    public async Task FamilyAdministration_NonOwnerCannotMutateRoleNoticeRenameOrCapacity()
+    {
+        var owner = NewCharacter(1, 10, "Owner");
+        var member = NewCharacter(2, 10, "Member");
+        var family = NewFamily(owner, member);
+        family.Name = "Original";
+        family.Notice = "Before";
+        var saves = 0;
+        var purchases = Mock.Of<IFamilyPurchaseService>();
+        var manager = NewManager(Mock.Of<IWorldManager>(), _ => saves++, purchases, family);
+
+        manager.ChangeMemberRole(member, member.Id, 2);
+        manager.SetNotice(member, "After");
+        manager.SetName(member, "Renamed");
+        manager.IncreaseMemberLimit(member);
+
+        await Assert.That(family.GetMember(member)?.Role).IsEqualTo((byte)0);
+        await Assert.That(family.Notice).IsEqualTo("Before");
+        await Assert.That(family.Name).IsEqualTo("Original");
+        await Assert.That(saves).IsEqualTo(0);
+        purchases.Rename(Any<Character>(), Any<Family>(), Any<string>(), Any<long>()).WasCalled(Times.Never);
+        purchases.Expand(Any<Character>(), Any<Family>(), Any<uint>(), Any<int>()).WasCalled(Times.Never);
+    }
+
+    [Test]
+    public async Task FamilyAdministration_NoticeEnforcesUtf8LimitBeforePersistence()
+    {
+        var owner = NewCharacter(1, 10, "Owner");
+        var family = NewFamily(owner);
+        var saves = 0;
+        var manager = NewManager(Mock.Of<IWorldManager>(), _ => saves++, family);
+
+        manager.SetNotice(owner, new string('a', 800));
+        manager.SetNotice(owner, new string('a', 801));
+
+        await Assert.That(family.Notice).IsEqualTo(new string('a', 800));
+        await Assert.That(saves).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task FamilyAdministration_OwnerRenameUsesPurchasePath()
+    {
+        var owner = NewCharacter(1, 10, "Owner");
+        var family = NewFamily(owner);
+        family.Name = "Original";
+        var purchases = Mock.Of<IFamilyPurchaseService>();
+        purchases.Rename(Any<Character>(), Any<Family>(), Any<string>(), Any<long>())
+            .Returns(new FamilyPurchaseResult(true, FamilyPurchaseFailure.None));
+        var manager = NewManager(Mock.Of<IWorldManager>(), _ => { }, purchases, family);
+
+        manager.SetName(owner, "Renamed");
+
+        purchases.Rename(Any<Character>(), Any<Family>(), Any<string>(), Any<long>()).WasCalled(Times.Once);
+    }
+
+    [Test]
     public async Task ReplyToInvite_RejectsInviteeFromReplacedSession()
     {
         var inviter = NewCharacter(1, 0, "Inviter");

@@ -199,6 +199,39 @@ summon expiry is AAEmu server policy aligned with the shipped dialog display tim
 retail-server deadline. Portal/summon yaw follows AAEmu's radians convention, while the wire
 unit has not been separately proven.
 
+## Family administration slice (S03)
+
+The merged family request packets are now routed through the existing owner-authority and persistence
+paths for the four administration actions covered by S03:
+
+- `CSFamilyChangeMemberRolePacket` (`u64 memberId`, `u32 roleId`) checks that the caller is the current
+  family owner, the target is a roster member, the role exists in `family_roles`, the target is not the
+  owner, and the role's content `role_count` has room. A successful change stores `role` and
+  `role_update_time` through `family_members` and publishes `SCFamilyChangeMemberRolePacket`.
+- `CSFamilyIncreaseMemberPacket` (no body) selects only the next consecutive `family_member_limits` row
+  and passes that row's item and count to the family purchase service. The optimistic family-row update
+  and item consumption share one transaction; a rejected or stale expansion does not mutate the live
+  family. The expanded descriptor is published after the commit.
+- `CSFamilyNameSetPacket` (`string name`) requires the current owner, the existing name policy, and the
+  configured name-change delay. For an existing family name, the configured ticket/item count and the
+  family row update commit together through the purchase service; the first name of a newly created
+  family remains the no-cost path. The authoritative descriptor is published after commit.
+- `CSFamilyNoticeSetPacket` (`string notice`) requires the current owner and enforces the 800-byte UTF-8
+  read limit before persistence. The notice is written in the family transaction and the descriptor is
+  published only after the commit.
+
+Family-name validation keeps the existing 12-rune/letter policy and now also checks the 256-byte family-name
+read limit. Role and capacity decisions are centralized in `FamilyProgressionRules` and consume the loaded
+`family_roles` and `family_member_limits` catalogs; no role id, cap, item id, count, or limit is introduced
+by this slice. `SCFamilyChangeMemberRolePacket` and descriptor wire tests cover the proven field order and
+UTF-8 boundaries; the existing family purchase integration tests cover optimistic conflict and rollback.
+
+**Blocked remainder:** the client exposes a 604800-second role-change guide period, but no shipped
+content row or server algorithm establishes the authoritative cooldown. The existing value remains
+policy in the merged code and is not treated as retail parity here. The optional `SCFamilyNameChangeNotifyPacket`
+(0x062) has no server-side caller in the current family path; the safe slice uses the proven full
+`SCFamilyDescPacket` broadcast. Neither gap is guessed or added in this slice.
+
 ## Deployment and verification
 
 Apply ordered `SQL/updates` migrations while World is stopped, then start World so content data and
