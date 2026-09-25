@@ -1,6 +1,5 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using System.Data;
-using System.Data.Common;
 using System.Drawing;
 
 using AAEmu.Commons.Network;
@@ -4110,43 +4109,8 @@ public partial class Character : Unit, ICharacter
         HousingManager.Instance.UpdateOwnedHousingFaction(Id, Faction.Id);
     }
 
-    internal void PrepareMatesSave(DbConnection connection, DbTransaction transaction)
-    {
-        Mates?.PrepareSaveCommit(connection, transaction);
-    }
-
-    internal void ConfirmMatesSave(DbTransaction transaction)
-    {
-        Mates?.ConfirmSave(transaction);
-    }
-
-    internal void DiscardMatesSave(DbTransaction transaction)
-    {
-        Mates?.DiscardSave(transaction);
-    }
-
-    public void CommitMatesSaveTransaction(DbConnection connection, DbTransaction transaction)
-    {
-        PrepareMatesSave(connection, transaction);
-        transaction.Commit();
-        ConfirmMatesSave(transaction);
-    }
-
-    public void RollbackMatesSaveTransaction(DbTransaction transaction)
-    {
-        try
-        {
-            transaction.Rollback();
-        }
-        finally
-        {
-            DiscardMatesSave(transaction);
-        }
-    }
-
     public bool SaveDirectlyToDatabase()
     {
-        Mates?.WaitForCommitGate();
         // Try to save New Character
         bool saved;
         using (var sqlConnection = MySQL.CreateConnection())
@@ -4158,7 +4122,7 @@ public partial class Character : Unit, ICharacter
                     saved = Save(sqlConnection, transaction);
                     if (!saved)
                     {
-                        RollbackMatesSaveTransaction(transaction);
+                        transaction.Rollback();
                         DiscardAccountLiveClears();
                         return false;
                     }
@@ -4167,7 +4131,7 @@ public partial class Character : Unit, ICharacter
                     // everything from the DB (GameConnection.LoadAccount), so freshly-created gear — including the
                     // face/hair/body appearance parts — must be written now, not left for the periodic SaveManager.
                     ItemManager.Instance.Save(sqlConnection, transaction);
-                    CommitMatesSaveTransaction(sqlConnection, transaction);
+                    transaction.Commit();
                     ConfirmAccountLiveSaved();
                 }
                 catch (Exception e)
@@ -4176,7 +4140,7 @@ public partial class Character : Unit, ICharacter
                     Logger.Error(e, $"Character save failed for {Id} - {Name}");
                     try
                     {
-                        RollbackMatesSaveTransaction(transaction);
+                        transaction.Rollback();
                     }
                     catch (Exception eRollback)
                     {

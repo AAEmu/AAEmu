@@ -5,7 +5,6 @@ using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.Units;
-using AAEmu.Game.Models.Game.Units.Static;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.UnitTests.Utils;
 
@@ -13,159 +12,76 @@ using Microsoft.Data.Sqlite;
 
 namespace AAEmu.UnitTests.Game.Models.Game.Mates;
 
+/// <summary>
+/// Mate progress write-through. A mate row is only ever upserted, so <c>Save</c> takes a snapshot
+/// under the save lock and no mate write is ever rejected because a save transaction is in flight:
+/// the party-kill and logout paths below run exactly like the shipped gameplay threads do.
+/// </summary>
 [NotInParallel]
 public class CharacterMatesPersistenceTests
 {
     [Test]
-    public async Task SaveLoad_RoundTripsRecoverySnapshots()
+    public async Task SaveLoad_RoundTripsProgress()
     {
         using var connection = CreateConnection();
-        InsertMate(connection, 101, 1001, 7, 11, 13);
-        InsertMate(connection, 102, 1002, null, null, null);
+        InsertMate(connection, 101, 1001);
+        InsertMate(connection, 102, 1002);
         var (owner, mates) = CreateOwnerAndMates(77);
 
         mates.Load(connection);
         await Assert.That(mates.GetMateInfo(1001).Xp).IsEqualTo(10);
-        await Assert.That(mates.GetMateInfo(1001).RecoveryState.HasValue).IsFalse();
-        await Assert.That(mates.GetMateInfo(1002).RecoveryState.HasValue).IsFalse();
+        await Assert.That(mates.GetMateInfo(1002).Level).IsEqualTo((ushort)5);
 
         mates.UpdateMateInfo(1001, db => db.Xp = 17);
-        using (var transaction = connection.BeginTransaction())
-        {
-            mates.Save(connection, transaction);
-            mates.PrepareSaveCommit(connection, transaction);
-            transaction.Commit();
-            mates.ConfirmSave(transaction);
-        }
+        SaveAndCommit(connection, mates);
 
         var (_, reloaded) = CreateOwnerAndMates(77);
         reloaded.Load(connection);
         await Assert.That(reloaded.GetMateInfo(1001).Xp).IsEqualTo(17);
-        await Assert.That(reloaded.GetMateInfo(1001).RecoveryState.HasValue).IsFalse();
+        // A mate the save did not touch keeps its own row.
+        await Assert.That(reloaded.GetMateInfo(1002)).IsNotNull();
+        await Assert.That(reloaded.GetMateInfo(1002).Xp).IsEqualTo(10);
         await Assert.That(owner.Id).IsEqualTo(77u);
     }
 
     [Test]
-    public async Task Removal_RollbackKeepsRow_CommitRemovesIt()
+    public async Task MateInfoSnapshotsAreDetached_AndUpdatesWriteThrough()
     {
         using var connection = CreateConnection();
-        InsertMate(connection, 101, 1001, 7, 11, 13);
+        InsertMate(connection, 101, 1001);
         var (_, mates) = CreateOwnerAndMates(77);
         mates.Load(connection);
 
-        await Assert.That(mates.RemoveMate(1001)).IsTrue();
-        using (var rolledBack = connection.BeginTransaction())
-        {
-            mates.Save(connection, rolledBack);
-            rolledBack.Rollback();
-        }
+        // A detached snapshot can never mutate the owned row behind the update API.
+        var snapshot = mates.GetMateInfo(1001);
+        snapshot.Hp = 1;
+        await Assert.That(mates.GetMateInfo(1001).Hp).IsEqualTo(70);
 
-        var (_, afterRollback) = CreateOwnerAndMates(77);
-        afterRollback.Load(connection);
-        await Assert.That(afterRollback.GetMateInfo(1001)).IsNotNull();
-        await Assert.That(afterRollback.GetMateInfo(1001).Xp).IsEqualTo(10);
+        var updated = mates.UpdateMateInfo(1001, db => db.Hp = 2);
+        await Assert.That(updated.Hp).IsEqualTo(2);
+        updated.Hp = 3;
+        await Assert.That(mates.GetMateInfo(1001).Hp).IsEqualTo(2);
 
-        using (var committed = connection.BeginTransaction())
-        {
-            mates.Save(connection, committed);
-            mates.PrepareSaveCommit(connection, committed);
-            committed.Commit();
-            mates.ConfirmSave(committed);
-        }
-
-        var (_, afterCommit) = CreateOwnerAndMates(77);
-        afterCommit.Load(connection);
-        await Assert.That(afterCommit.GetMateInfo(1001)).IsNull();
+        // The identity columns are preserved by an update that does not touch them.
+        var afterIdentity = mates.UpdateMateInfo(1001, db => db.Xp = 42);
+        await Assert.That(afterIdentity.Id).IsEqualTo(101u);
+        await Assert.That(afterIdentity.ItemId).IsEqualTo(1001ul);
+        await Assert.That(afterIdentity.Owner).IsEqualTo(77u);
     }
 
     [Test]
-    public async Task Removal_UsesCompositeKey_AndKeepsSameNpcOtherItem()
+    public async Task UpdateMateInfo_ForUnknownItem_IsANoOp()
     {
-        using var connection = CreateConnection();
-        InsertMate(connection, 101, 1001, 7, 11, 13);
-        InsertMate(connection, 101, 1002, 17, 19, 23);
         var (_, mates) = CreateOwnerAndMates(77);
-        mates.Load(connection);
 
-        await Assert.That(mates.RemoveMate(1001)).IsTrue();
-        using (var transaction = connection.BeginTransaction())
-        {
-            mates.Save(connection, transaction);
-            mates.PrepareSaveCommit(connection, transaction);
-            transaction.Commit();
-            mates.ConfirmSave(transaction);
-        }
-
-        var (_, reloaded) = CreateOwnerAndMates(77);
-        reloaded.Load(connection);
-        await Assert.That(reloaded.GetMateInfo(1001)).IsNull();
-        await Assert.That(reloaded.GetMateInfo(1002)).IsNotNull();
-        await Assert.That(reloaded.GetMateInfo(1002).Xp).IsEqualTo(10);
+        await Assert.That(mates.UpdateMateInfo(9999, db => db.Xp = 5)).IsNull();
     }
 
     [Test]
-    public async Task Removal_ReAddDuringOpenSave_IsFlushedBeforeCommit()
+    public async Task CaptureActiveMateState_PersistsSummonedProgress()
     {
         using var connection = CreateConnection();
-        InsertMate(connection, 101, 1001, 7, 11, 13);
-        var (_, mates) = CreateOwnerAndMates(77);
-        mates.Load(connection);
-        var removed = mates.GetMateInfo(1001);
-
-        await Assert.That(mates.RemoveMate(1001)).IsTrue();
-        using (var transaction = connection.BeginTransaction())
-        {
-            mates.Save(connection, transaction);
-            mates.RestoreMate(removed);
-            mates.PrepareSaveCommit(connection, transaction);
-            transaction.Commit();
-            mates.ConfirmSave(transaction);
-        }
-
-        var (_, reloaded) = CreateOwnerAndMates(77);
-        reloaded.Load(connection);
-        await Assert.That(reloaded.GetMateInfo(1001)).IsNotNull();
-        await Assert.That(reloaded.GetMateInfo(1001).Xp).IsEqualTo(10);
-    }
-
-    [Test]
-    public async Task Removal_NewerMarkerSurvivesOlderCommit()
-    {
-        using var connection = CreateConnection();
-        InsertMate(connection, 101, 1001, 7, 11, 13);
-        InsertMate(connection, 102, 1002, 17, 19, 23);
-        var (_, mates) = CreateOwnerAndMates(77);
-        mates.Load(connection);
-
-        await Assert.That(mates.RemoveMate(1001)).IsTrue();
-        using (var firstSave = connection.BeginTransaction())
-        {
-            mates.Save(connection, firstSave);
-            await Assert.That(mates.RemoveMate(1002)).IsTrue();
-            mates.PrepareSaveCommit(connection, firstSave);
-            firstSave.Commit();
-            mates.ConfirmSave(firstSave);
-        }
-
-        using (var secondSave = connection.BeginTransaction())
-        {
-            mates.Save(connection, secondSave);
-            mates.PrepareSaveCommit(connection, secondSave);
-            secondSave.Commit();
-            mates.ConfirmSave(secondSave);
-        }
-
-        var (_, reloaded) = CreateOwnerAndMates(77);
-        reloaded.Load(connection);
-        await Assert.That(reloaded.GetMateInfo(1001)).IsNull();
-        await Assert.That(reloaded.GetMateInfo(1002)).IsNull();
-    }
-
-    [Test]
-    public async Task CaptureActiveMateState_PersistsDespawnRecovery()
-    {
-        using var connection = CreateConnection();
-        InsertMate(connection, 101, 1001, 7, 11, 13);
+        InsertMate(connection, 101, 1001);
         var (_, mates) = CreateOwnerAndMates(77);
         mates.Load(connection);
         var active = new Mate
@@ -176,18 +92,11 @@ public class CharacterMatesPersistenceTests
             Experience = 123,
             Mileage = 45,
             Hp = 67,
-            Mp = 89,
-            RecoveryState = new MateRecoveryState(29, 31, 37)
+            Mp = 89
         };
 
         mates.CaptureActiveMateState(active);
-        using (var transaction = connection.BeginTransaction())
-        {
-            mates.Save(connection, transaction);
-            mates.PrepareSaveCommit(connection, transaction);
-            transaction.Commit();
-            mates.ConfirmSave(transaction);
-        }
+        SaveAndCommit(connection, mates);
 
         var (_, reloaded) = CreateOwnerAndMates(77);
         reloaded.Load(connection);
@@ -196,168 +105,120 @@ public class CharacterMatesPersistenceTests
         await Assert.That(saved.Mp).IsEqualTo(89);
         await Assert.That(saved.Xp).IsEqualTo(123);
         await Assert.That(saved.Level).IsEqualTo((ushort)9);
-        await Assert.That(saved.RecoveryState.HasValue).IsFalse();
+        await Assert.That(saved.Mileage).IsEqualTo(45);
     }
 
+    /// <summary>
+    /// The party-kill loop in <c>Npc.DoDie</c> calls <c>Mate.AddExp</c> per mate, and that is the
+    /// only write <c>AddExp</c> makes to the owned row. Before the gate was removed a save in its
+    /// commit window made this call throw, which aborted the loop and cost the rest of the party
+    /// their mate XP, honor and quest credit.
+    /// </summary>
     [Test]
-    public async Task MateInfoSnapshotsAreDetached_AndUpdatesUseGate()
+    public async Task PartyKillLoop_DuringWorldSave_DoesNotThrow_AndReachesEveryMate()
     {
         using var connection = CreateConnection();
-        InsertMate(connection, 101, 1001, 7, 11, 13);
+        InsertMate(connection, 101, 1001);
+        InsertMate(connection, 102, 1002);
+        InsertMate(connection, 103, 1003);
         var (_, mates) = CreateOwnerAndMates(77);
         mates.Load(connection);
 
-        var snapshot = mates.GetMateInfo(1001);
-        snapshot.Hp = 1;
-        await Assert.That(mates.GetMateInfo(1001).Hp).IsEqualTo(70);
+        // A world save has already snapshotted this character and has not committed yet.
+        using var worldSave = connection.BeginTransaction();
+        mates.Save(connection, worldSave);
 
-        var updated = mates.UpdateMateInfo(1001, db => db.Hp = 2);
-        await Assert.That(updated.Hp).IsEqualTo(2);
-        updated.Hp = 3;
-        await Assert.That(mates.GetMateInfo(1001).Hp).IsEqualTo(2);
-    }
-
-    [Test]
-    public async Task CharacterSaveTransactionSeam_RollbackDiscardsAndPreservesMarker()
-    {
-        using var connection = CreateConnection();
-        InsertMate(connection, 101, 1001, 7, 11, 13);
-        var (owner, mates) = CreateOwnerAndMates(77);
-        owner.Mates = mates;
-        mates.Load(connection);
-        await Assert.That(mates.RemoveMate(1001)).IsTrue();
-
-        using (var transaction = connection.BeginTransaction())
+        var awarded = new List<ulong>();
+        foreach (var itemId in new ulong[] { 1001, 1002, 1003 })
         {
-            mates.Save(connection, transaction);
-            owner.RollbackMatesSaveTransaction(transaction);
+            // Mate.AddExp -> owner.Mates.UpdateMateInfo(itemId, db => { db.Xp; db.Level; }).
+            var updated = mates.UpdateMateInfo(itemId, db => db.Xp = db.Xp + 5);
+            awarded.Add(itemId);
+            await Assert.That(updated).IsNotNull();
         }
+        await Assert.That(awarded).IsEquivalentTo(new ulong[] { 1001, 1002, 1003 });
 
-        await Assert.That(mates.RemoveMate(1001)).IsFalse();
-        using (var retry = connection.BeginTransaction())
-        {
-            mates.Save(connection, retry);
-            owner.CommitMatesSaveTransaction(connection, retry);
-        }
+        worldSave.Commit();
 
+        // The next save carries the XP the kill loop awarded during the previous one.
+        SaveAndCommit(connection, mates);
         var (_, reloaded) = CreateOwnerAndMates(77);
         reloaded.Load(connection);
-        await Assert.That(reloaded.GetMateInfo(1001)).IsNull();
+        await Assert.That(reloaded.GetMateInfo(1001).Xp).IsEqualTo(15);
+        await Assert.That(reloaded.GetMateInfo(1002).Xp).IsEqualTo(15);
+        await Assert.That(reloaded.GetMateInfo(1003).Xp).IsEqualTo(15);
     }
 
+    /// <summary>
+    /// <c>GameConnection.OnDisconnect</c> reaches <c>RemoveAndDespawnAllActiveOwnedMates</c> before
+    /// <c>SaveAndRemoveFromWorld</c>. A throw inside that capture stranded the character in the world
+    /// with no save at all, so the logout capture must tolerate an in-flight world save.
+    /// </summary>
     [Test]
-    public async Task HeroManagerTransactionSeam_RollbackDiscardsAndPreservesMarker()
+    public async Task LogoutDuringWorldSave_CapturesProgressAndDoesNotThrow()
     {
         using var connection = CreateConnection();
-        InsertMate(connection, 101, 1001, 7, 11, 13);
-        var (owner, mates) = CreateOwnerAndMates(77);
-        owner.Mates = mates;
-        mates.Load(connection);
-        await Assert.That(mates.RemoveMate(1001)).IsTrue();
-
-        using (var transaction = connection.BeginTransaction())
+        InsertMate(connection, 101, 1001);
+        using var worldScope = TestDungeonWorld.InstallWorldManager();
+        using var world = TestDungeonWorld.CreateWorld(9910, 0);
+        using var taskScope = new SingletonScope<TaskManager>(new TaskManager(Mock.Of<ITickManager>().Object));
+        world.MateManager = new MateManager(world);
+        world.SlaveManager = new SlaveManager(world);
+        var owner = new Character(new UnitCustomModelParams())
         {
-            mates.Save(connection, transaction);
-            HeroManager.RollbackMatesSaveTransaction(transaction, [owner]);
-        }
-
-        using (var retry = connection.BeginTransaction())
+            Id = 77,
+            ObjId = 7001
+        };
+        TestDungeonWorld.Enter(world, owner);
+        owner.Mates = new CharacterMates(owner);
+        owner.Mates.Load(connection);
+        AddActiveMate(world, owner, new Mate
         {
-            mates.Save(connection, retry);
-            HeroManager.CommitMatesSaveTransaction(connection, retry, [owner]);
-        }
+            ObjId = 8001,
+            TlId = 9001,
+            OwnerId = owner.Id,
+            OwnerObjId = owner.ObjId,
+            ItemId = 1001,
+            Name = "synthetic-active-mate",
+            Hp = 67,
+            Mp = 89,
+            Level = 9,
+            Experience = 123,
+            Mileage = 45
+        });
 
+        // A world save is mid-commit when the socket drops.
+        using var worldSave = connection.BeginTransaction();
+        owner.Mates.Save(connection, worldSave);
+
+        // The first statement of the production logout chain, and the one that holds the mate
+        // capture. (Its wrapper's slave half needs a live Character.Connection, which this PR
+        // does not touch.)
+        world.MateManager.RemoveAndDespawnAllActiveOwnedMates(owner);
+
+        // The capture must have run even though the world save never committed.
+        var captured = owner.Mates.GetMateInfo(1001);
+        await Assert.That(captured.Xp).IsEqualTo(123);
+        await Assert.That(captured.Hp).IsEqualTo(67);
+
+        worldSave.Commit();
+
+        // The logout's own save then persists the captured progress.
+        SaveAndCommit(connection, owner.Mates);
         var (_, reloaded) = CreateOwnerAndMates(77);
         reloaded.Load(connection);
-        await Assert.That(reloaded.GetMateInfo(1001)).IsNull();
+        var saved = reloaded.GetMateInfo(1001);
+        await Assert.That(saved.Xp).IsEqualTo(123);
+        await Assert.That(saved.Level).IsEqualTo((ushort)9);
+        await Assert.That(saved.Hp).IsEqualTo(67);
+        await Assert.That(saved.Mp).IsEqualTo(89);
     }
 
     [Test]
-    public async Task DirectSaveFailure_DiscardsGate_AndNextSaveRemovesMarker()
+    public async Task DespawnMate_UsesRealMateManagerPath_AndCapturesProgress()
     {
         using var connection = CreateConnection();
-        InsertMate(connection, 101, 1001, 7, 11, 13);
-        var (_, mates) = CreateOwnerAndMates(77);
-        mates.Load(connection);
-        await AssertRollbackDiscardsGateAndNextSaveDeletes(connection, mates);
-    }
-
-    [Test]
-    public async Task HeroSaveFailure_DiscardsGate_AndNextSaveRemovesMarker()
-    {
-        using var connection = CreateConnection();
-        InsertMate(connection, 101, 1001, 7, 11, 13);
-        var (_, mates) = CreateOwnerAndMates(77);
-        mates.Load(connection);
-        await AssertRollbackDiscardsGateAndNextSaveDeletes(connection, mates);
-    }
-
-    [Test]
-    public async Task CommitConfirm_LeavesNoMarker_AndNextSaveRemovesRow()
-    {
-        using var connection = CreateConnection();
-        InsertMate(connection, 101, 1001, 7, 11, 13);
-        var (_, mates) = CreateOwnerAndMates(77);
-        mates.Load(connection);
-        await Assert.That(mates.RemoveMate(1001)).IsTrue();
-
-        using (var transaction = connection.BeginTransaction())
-        {
-            mates.Save(connection, transaction);
-            mates.PrepareSaveCommit(connection, transaction);
-            transaction.Commit();
-            mates.ConfirmSave(transaction);
-        }
-
-        using (var nextSave = connection.BeginTransaction())
-        {
-            mates.Save(connection, nextSave);
-            mates.PrepareSaveCommit(connection, nextSave);
-            nextSave.Commit();
-            mates.ConfirmSave(nextSave);
-        }
-
-        var (_, reloaded) = CreateOwnerAndMates(77);
-        reloaded.Load(connection);
-        await Assert.That(reloaded.GetMateInfo(1001)).IsNull();
-    }
-
-    private static async Task AssertRollbackDiscardsGateAndNextSaveDeletes(
-        SqliteConnection connection,
-        CharacterMates mates)
-    {
-        var original = mates.GetMateInfo(1001);
-        await Assert.That(mates.RemoveMate(1001)).IsTrue();
-        using (var transaction = connection.BeginTransaction())
-        {
-            mates.Save(connection, transaction);
-            mates.PrepareSaveCommit(connection, transaction);
-            Assert.Throws<InvalidOperationException>(() =>
-                mates.UpdateMateInfo(1001, db => db.Hp = 1));
-            transaction.Rollback();
-            mates.DiscardSave(transaction);
-        }
-
-        await Assert.That(original).IsNotNull();
-        await Assert.That(mates.RemoveMate(1001)).IsFalse();
-        using (var nextSave = connection.BeginTransaction())
-        {
-            mates.Save(connection, nextSave);
-            mates.PrepareSaveCommit(connection, nextSave);
-            nextSave.Commit();
-            mates.ConfirmSave(nextSave);
-        }
-
-        var (_, reloaded) = CreateOwnerAndMates(77);
-        reloaded.Load(connection);
-        await Assert.That(reloaded.GetMateInfo(1001)).IsNull();
-    }
-
-    [Test]
-    public async Task DespawnMate_UsesRealMateManagerPath_AndCapturesRecovery()
-    {
-        using var connection = CreateConnection();
-        InsertMate(connection, 101, 1001, 7, 11, 13);
+        InsertMate(connection, 101, 1001);
         using var worldScope = TestDungeonWorld.InstallWorldManager();
         using var world = TestDungeonWorld.CreateWorld(9910, 0);
         using var taskScope = new SingletonScope<TaskManager>(new TaskManager(Mock.Of<ITickManager>().Object));
@@ -383,14 +244,9 @@ public class CharacterMatesPersistenceTests
             Mp = 89,
             Level = 9,
             Experience = 123,
-            Mileage = 45,
-            RecoveryState = new MateRecoveryState(29, 31, 37)
+            Mileage = 45
         };
-        active.ParentWorld = world;
-        var activeMates = (Dictionary<uint, List<Mate>>)typeof(MateManager)
-            .GetField("_activeMates", BindingFlags.Instance | BindingFlags.NonPublic)!
-            .GetValue(world.MateManager)!;
-        activeMates[owner.Id] = [active];
+        AddActiveMate(world, owner, active);
 
         owner.Mates.DespawnMate(active.TlId);
 
@@ -398,7 +254,62 @@ public class CharacterMatesPersistenceTests
         var saved = owner.Mates.GetMateInfo(1001);
         await Assert.That(saved.Hp).IsEqualTo(67);
         await Assert.That(saved.Mp).IsEqualTo(89);
-        await Assert.That(saved.RecoveryState!.Value).IsEqualTo(active.RecoveryState);
+        await Assert.That(saved.Xp).IsEqualTo(123);
+    }
+
+    /// <summary>
+    /// The live mate carries the authored recovery values; nothing recovery-related is persisted,
+    /// so the owned row schema must not grow a column for it and the values must come back from
+    /// content on the next summon instead of from a stored profile.
+    /// </summary>
+    [Test]
+    public async Task RecoveryValues_LiveOnTheMate_AndAreNotPersisted()
+    {
+        using var connection = CreateConnection();
+        InsertMate(connection, 101, 1001);
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('mates') WHERE name LIKE 'mate_revive%'";
+            await Assert.That(Convert.ToInt32(command.ExecuteScalar())).IsEqualTo(0);
+        }
+
+        var (_, mates) = CreateOwnerAndMates(77);
+        mates.Load(connection);
+        var recovery = new MateRecoveryState(29, 31, 37);
+        var active = new Mate
+        {
+            ItemId = 1001,
+            Name = "synthetic-active-mate",
+            Hp = 70,
+            Mp = 80,
+            RecoveryState = recovery
+        };
+
+        mates.CaptureActiveMateState(active);
+        SaveAndCommit(connection, mates);
+
+        var (_, reloaded) = CreateOwnerAndMates(77);
+        reloaded.Load(connection);
+        // Progress still round-trips; the recovery profile is not part of the row.
+        await Assert.That(reloaded.GetMateInfo(1001).Hp).IsEqualTo(70);
+        await Assert.That(active.RecoveryState).IsEqualTo(recovery);
+    }
+
+    private static void AddActiveMate(WorldInstance world, Character owner, Mate mate)
+    {
+        mate.ParentWorld = world;
+        var activeMates = (Dictionary<uint, List<Mate>>)typeof(MateManager)
+            .GetField("_activeMates", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(world.MateManager)!;
+        activeMates[owner.Id] = [mate];
+    }
+
+    private static void SaveAndCommit(SqliteConnection connection, CharacterMates mates)
+    {
+        using var transaction = connection.BeginTransaction();
+        mates.Save(connection, transaction);
+        transaction.Commit();
     }
 
     private static (Character Owner, CharacterMates Mates) CreateOwnerAndMates(uint ownerId)
@@ -431,13 +342,7 @@ public class CharacterMatesPersistenceTests
         return connection;
     }
 
-    private static void InsertMate(
-        SqliteConnection connection,
-        uint id,
-        ulong itemId,
-        int? reviveDelay,
-        int? reviveHpPercent,
-        int? reviveMpPercent)
+    private static void InsertMate(SqliteConnection connection, uint id, ulong itemId)
     {
         using var command = connection.CreateCommand();
         command.CommandText = """

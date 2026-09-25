@@ -1,11 +1,10 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
-using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Tasks;
 using AAEmu.Game.Models.Tasks.SaveTask;
 
@@ -141,11 +140,9 @@ public class SaveManager(
 
                     // Characters
                     var savedCharacters = 0;
-                    var attemptedCharacterList = new List<Character>();
                     var characterSaveFailed = false;
                     foreach (var c in worldManager.GetAllCharacters())
                     {
-                        attemptedCharacterList.Add(c);
                         if (c.Save(connection, transaction))
                         {
                             savedCharacters++;
@@ -193,8 +190,6 @@ public class SaveManager(
                         {
                             Logger.Error(eRollback);
                         }
-                        foreach (var character in attemptedCharacterList)
-                            character.DiscardMatesSave(transaction);
 
                         DiscardAccountLiveClears();
                     }
@@ -208,11 +203,7 @@ public class SaveManager(
                     {
                         try
                         {
-                            foreach (var character in attemptedCharacterList)
-                                character.PrepareMatesSave(connection, transaction);
                             transaction.Commit();
-                            foreach (var character in attemptedCharacterList)
-                                character.ConfirmMatesSave(transaction);
                             ConfirmAccountLiveSaved();
 
                             if (savedHouses.Item1 + savedHouses.Item2 > 0)
@@ -245,8 +236,6 @@ public class SaveManager(
                             {
                                 Logger.Error(eRollback);
                             }
-                            foreach (var character in attemptedCharacterList)
-                                character.DiscardMatesSave(transaction);
                             DiscardAccountLiveClears();
                         }
                     }

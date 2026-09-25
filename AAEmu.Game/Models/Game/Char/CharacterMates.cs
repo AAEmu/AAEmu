@@ -1,6 +1,5 @@
 ﻿using System.Data;
 using System.Data.Common;
-using System.Runtime.CompilerServices;
 
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
@@ -30,11 +29,7 @@ public class CharacterMates(Character owner)
     private Character Owner { get; set; } = owner;
 
     private readonly Dictionary<ulong, MateDb> _mates = []; // itemId, MountDb
-    private readonly Dictionary<MateDbKey, long> _removedMates = [];
-    private readonly HashSet<DbTransaction> _commitGates = [];
-    private readonly ConditionalWeakTable<DbTransaction, CharacterMatesSaveToken> _saveTokens = new();
     private readonly object _saveSync = new();
-    private long _removalVersion;
 
     public MateDb GetMateInfo(ulong itemId)
     {
@@ -43,14 +38,15 @@ public class CharacterMates(Character owner)
     }
 
     /// <summary>
-    /// Applies a state update under the mate save gate and returns a detached snapshot.
+    /// Applies a state update under the save lock and returns a detached snapshot. The update is an
+    /// in-memory write only; the row reaches the database with the next <see cref="Save"/>, so this
+    /// never blocks a gameplay thread on an unrelated character's save transaction.
     /// </summary>
     public MateDb UpdateMateInfo(ulong itemId, Action<MateDb> update)
     {
         ArgumentNullException.ThrowIfNull(update);
         lock (_saveSync)
         {
-            ThrowIfCommitGateActive();
             if (!_mates.TryGetValue(itemId, out var current))
                 return null;
 
@@ -64,50 +60,10 @@ public class CharacterMates(Character owner)
         }
     }
 
-    /// <summary>
-    /// Removes one owned mate from the in-memory collection and stages its exact database row deletion.
-    /// The marker is cleared only after the transaction that executed the DELETE commits.
-    /// </summary>
-    public bool RemoveMate(ulong itemId)
+    private MateDb CreateNewMate(ulong itemId, NpcTemplate npcTemplate)
     {
         lock (_saveSync)
         {
-            ThrowIfCommitGateActive();
-            if (!_mates.Remove(itemId, out var removed))
-                return false;
-
-            var key = MateDbKey.From(removed);
-            _removedMates[key] = ++_removalVersion;
-            return true;
-        }
-    }
-
-    /// <summary>
-    /// Restores an owned mate, cancelling only a staged deletion for the same full database key.
-    /// This is also used when a summon is recreated while a save transaction is still open.
-    /// </summary>
-    public void RestoreMate(MateDb mate)
-    {
-        ArgumentNullException.ThrowIfNull(mate);
-        if (mate.Owner != Owner.Id)
-            throw new InvalidDataException("A mate cannot be restored under a different owner.");
-
-        lock (_saveSync)
-        {
-            ThrowIfCommitGateActive();
-            _removedMates.Remove(MateDbKey.From(mate));
-            _mates[mate.ItemId] = mate.Clone();
-        }
-    }
-
-    private MateDb CreateNewMate(
-        ulong itemId,
-        NpcTemplate npcTemplate,
-        MateRecoveryState recoveryState)
-    {
-        lock (_saveSync)
-        {
-            ThrowIfCommitGateActive();
             if (_mates.ContainsKey(itemId)) return null;
         }
         var template = new MateDb
@@ -122,14 +78,11 @@ public class CharacterMates(Character owner)
             Xp = ExperienceManager.Instance.GetExpForLevel(npcTemplate.Level, true),
             Hp = 9999,
             Mp = 9999,
-            RecoveryState = recoveryState,
             UpdatedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
         };
         lock (_saveSync)
         {
-            ThrowIfCommitGateActive();
-            _removedMates.Remove(MateDbKey.From(template));
             if (!_mates.TryAdd(template.ItemId, template))
                 return null;
         }
@@ -172,12 +125,10 @@ public class CharacterMates(Character owner)
         var npcId = itemTemplate.NpcId;
         var tlId = (ushort)TlIdManager.Instance.GetNextId();
         var objId = ObjectIdManager.Instance.GetNextId();
-        var mateDbInfo = GetMateInfo(skillData.ItemId);
-        if (mateDbInfo == null)
-            CreateNewMate(skillData.ItemId, template, recoveryState);
-        // The persisted snapshot follows current content on every summon. Legacy/null rows and
-        // content revisions are reconciled here without treating an old value as authoritative.
-        mateDbInfo = UpdateMateInfo(skillData.ItemId, db => db.RecoveryState = recoveryState)
+        if (GetMateInfo(skillData.ItemId) == null)
+            CreateNewMate(skillData.ItemId, template);
+        // The live mate always follows current content; nothing recovery-related is persisted yet.
+        var mateDbInfo = GetMateInfo(skillData.ItemId)
             ?? throw new InvalidDataException($"Owned mate {skillData.ItemId} was not created.");
 
         var mount = new Units.Mate
@@ -260,6 +211,11 @@ public class CharacterMates(Character owner)
         Owner.Buffs.TriggerRemoveOn(BuffRemoveOn.Summoned);
     }
 
+    /// <summary>
+    /// Copies the live mate's persisted fields into its owned row so progress earned while
+    /// summoned survives a despawn, a logout or the periodic save. Runs on gameplay threads
+    /// (party kill, disconnect), so it must never fail because a save transaction is in flight.
+    /// </summary>
     public void CaptureActiveMateState(Units.Mate mateInfo)
     {
         if (mateInfo == null)
@@ -273,7 +229,6 @@ public class CharacterMates(Character owner)
             mateDbInfo.Xp = mateInfo.Experience;
             mateDbInfo.Mileage = mateInfo.Mileage;
             mateDbInfo.Name = mateInfo.Name;
-            mateDbInfo.RecoveryState = mateInfo.RecoveryState;
             mateDbInfo.UpdatedAt = DateTime.UtcNow;
         });
     }
@@ -325,134 +280,24 @@ public class CharacterMates(Character owner)
         command.Parameters.Add(parameter);
     }
 
+    /// <summary>
+    /// Writes every owned mate row inside the caller's transaction. The snapshot is taken under
+    /// the save lock, so a concurrent <see cref="UpdateMateInfo"/> is either included here or lands
+    /// in the in-memory row that the next save writes; it is never rejected and never lost.
+    /// </summary>
     public void Save(DbConnection connection, DbTransaction transaction)
     {
         ArgumentNullException.ThrowIfNull(connection);
         ArgumentNullException.ThrowIfNull(transaction);
 
         MateDb[] mateSnapshot;
-        Dictionary<MateDbKey, long> removalSnapshot;
         lock (_saveSync)
-        {
-            ThrowIfCommitGateActive();
-            mateSnapshot = _mates.Values.ToArray();
-            removalSnapshot = _removedMates.ToDictionary(pair => pair.Key, pair => pair.Value);
-        }
-
-        var token = new CharacterMatesSaveToken(removalSnapshot);
-        _saveTokens.Remove(transaction);
-        _saveTokens.Add(transaction, token);
-
-        try
-        {
-            PersistSnapshot(connection, transaction, mateSnapshot, removalSnapshot.Keys);
-        }
-        catch
-        {
-            _saveTokens.Remove(transaction);
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Flushes state changes made after <see cref="Save"/> but before the outer transaction commits.
-    /// The short commit gate prevents further mate mutations between this final snapshot and commit.
-    /// </summary>
-    public void PrepareSaveCommit(DbConnection connection, DbTransaction transaction)
-    {
-        ArgumentNullException.ThrowIfNull(connection);
-        ArgumentNullException.ThrowIfNull(transaction);
-        if (!_saveTokens.TryGetValue(transaction, out var token))
-            return;
-
-        MateDb[] mateSnapshot;
-        Dictionary<MateDbKey, long> removalSnapshot;
-        lock (_saveSync)
-        {
-            ThrowIfCommitGateActive();
-            mateSnapshot = _mates.Values.ToArray();
-            removalSnapshot = _removedMates.ToDictionary(pair => pair.Key, pair => pair.Value);
-            token.RemovedVersions = removalSnapshot;
-            _commitGates.Add(transaction);
-        }
-
-        try
-        {
-            PersistSnapshot(connection, transaction, mateSnapshot, removalSnapshot.Keys);
-        }
-        catch
-        {
-            lock (_saveSync)
-            {
-                _commitGates.Remove(transaction);
-                Monitor.PulseAll(_saveSync);
-            }
-            throw;
-        }
-    }
-
-    public void ConfirmSave(DbTransaction transaction)
-    {
-        if (transaction == null)
-            return;
-
-        _saveTokens.TryGetValue(transaction, out var token);
-        _saveTokens.Remove(transaction);
-        lock (_saveSync)
-        {
-            _commitGates.Remove(transaction);
-            Monitor.PulseAll(_saveSync);
-            if (token == null)
-                return;
-
-            foreach (var removal in token.RemovedVersions)
-            {
-                if (_removedMates.TryGetValue(removal.Key, out var currentVersion) &&
-                    currentVersion == removal.Value)
-                {
-                    _removedMates.Remove(removal.Key);
-                }
-            }
-        }
-    }
-
-    public void DiscardSave(DbTransaction transaction)
-    {
-        if (transaction == null)
-            return;
-
-        _saveTokens.Remove(transaction);
-        lock (_saveSync)
-        {
-            _commitGates.Remove(transaction);
-            Monitor.PulseAll(_saveSync);
-        }
-    }
-
-    private void PersistSnapshot(
-        DbConnection connection,
-        DbTransaction transaction,
-        IEnumerable<MateDb> mateSnapshot,
-        IEnumerable<MateDbKey> removalSnapshot)
-    {
-        foreach (var removedMate in removalSnapshot)
-        {
-            using var command = connection.CreateCommand();
-            command.Transaction = transaction;
-            command.CommandText =
-                "DELETE FROM mates WHERE id = @id AND item_id = @item_id AND owner = @owner";
-            AddParameter(command, "@id", removedMate.Id);
-            AddParameter(command, "@item_id", removedMate.ItemId);
-            AddParameter(command, "@owner", removedMate.Owner);
-            command.Prepare();
-            command.ExecuteNonQuery();
-        }
+            mateSnapshot = _mates.Values.Select(mate => mate.Clone()).ToArray();
 
         foreach (var value in mateSnapshot)
         {
             using var command = connection.CreateCommand();
             command.Transaction = transaction;
-
             command.CommandText =
                 "REPLACE INTO mates(`id`,`item_id`,`name`,`xp`,`level`,`mileage`,`hp`,`mp`,`owner`,`updated_at`,`created_at`) " +
                 "VALUES (@id, @item_id, @name, @xp, @level, @mileage, @hp, @mp, @owner, @updated_at, @created_at)";
@@ -470,38 +315,6 @@ public class CharacterMates(Character owner)
             command.ExecuteNonQuery();
         }
     }
-
-    /// <summary>
-    /// Blocks until no mate save is inside its commit gate. Logout saves call this so they
-    /// wait for the in-flight transaction instead of failing the whole character write.
-    /// </summary>
-    public void WaitForCommitGate()
-    {
-        lock (_saveSync)
-        {
-            while (_commitGates.Count > 0)
-                Monitor.Wait(_saveSync);
-        }
-    }
-
-    private void ThrowIfCommitGateActive()
-    {
-        if (_commitGates.Count > 0)
-        {
-            throw new InvalidOperationException(
-                "Owned mate state cannot change while its save transaction is being committed.");
-        }
-    }
-
-    private sealed class CharacterMatesSaveToken(IReadOnlyDictionary<MateDbKey, long> removedVersions)
-    {
-        public IReadOnlyDictionary<MateDbKey, long> RemovedVersions { get; set; } = removedVersions;
-    }
-
-    private readonly record struct MateDbKey(uint Id, ulong ItemId, uint Owner)
-    {
-        public static MateDbKey From(MateDb mate) => new(mate.Id, mate.ItemId, mate.Owner);
-    }
 }
 
 public class MateDb
@@ -514,7 +327,6 @@ public class MateDb
     public int Mileage { get; set; }
     public int Hp { get; set; }
     public int Mp { get; set; }
-    public MateRecoveryState? RecoveryState { get; set; }
     public uint Owner { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime CreatedAt { get; set; }
