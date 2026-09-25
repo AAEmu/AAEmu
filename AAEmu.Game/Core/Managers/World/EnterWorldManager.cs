@@ -229,9 +229,9 @@ public class EnterWorldManager(
     }
 
     /// <summary>
-    /// Releases transient ensemble ownership before a world character is removed. The same boundary is
-    /// used by the orderly logout/character-select path and is kept separate from the network hook so
-    /// both exits share one cleanup rule.
+    /// Releases transient music and ensemble ownership before a world character is removed. The same
+    /// boundary is used by the orderly logout/character-select path and is kept separate from the
+    /// network hook so both exits share one cleanup rule.
     /// </summary>
     internal void ReleaseEnsembleBeforeWorldRemoval(Character activeChar)
     {
@@ -270,10 +270,8 @@ public class EnterWorldManager(
             // Check if still mounted on somebody else's mount and dismount that if needed
             activeChar.ForceDismount(/*AttachUnitReason.PrefabChanged*/); // Dismounting a mount because of unsummoning sends "10" for this
 
-            // Leaving to the lobby or character select ends the current performance session; do not
-            // let its MIDI bytes survive into a later entry.
-            MusicManager.Instance.OnCharacterLogout(activeChar);
-
+            // Leaving to the lobby or character select ends the current performance session; the
+            // shared release helper below clears both the MIDI block and ensemble ownership once.
             // Cancel any duel or pending duel invitation. This has to happen before the character is
             // deleted below: a duel that is still running needs the flag removed and both factions
             // restored, and a reservation nobody releases blocks the player from ever duelling again.

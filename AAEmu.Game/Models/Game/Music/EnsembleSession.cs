@@ -1,4 +1,4 @@
-﻿namespace AAEmu.Game.Models.Game.Music;
+namespace AAEmu.Game.Models.Game.Music;
 
 /// <summary>What an invitation answer did, so the caller knows which packet to send and to whom.</summary>
 public enum EnsembleJoinResult
@@ -31,6 +31,12 @@ public class EnsembleSession
     /// so a sixth would be written but never shown.
     /// </summary>
     public const int MaxMembers = 5;
+
+    /// <summary>
+    /// Protocol buffer the client uses for one raw MIDI part. This is a wire limit, not a content
+    /// value: the client builds the standard MIDI file in a 0x8000-byte buffer before sending it.
+    /// </summary>
+    public const int MaximumPartBytes = 0x8000;
 
     private readonly List<uint> _invited = [];
     private readonly List<uint> _members = [];

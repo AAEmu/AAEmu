@@ -5,6 +5,7 @@ using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Music;
+using AAEmu.Game.Models.Game.Units;
 using AAEmu.UnitTests.Utils;
 using AAEmu.UnitTests.Utils.Mocks;
 
@@ -57,6 +58,18 @@ public class MusicManagerTests
         await Assert.That(manager.CacheMidi(PlayerId, second)).IsTrue();
         await Assert.That(manager.TryGetMidiCache(PlayerId, out cached)).IsTrue();
         await Assert.That(cached).IsEquivalentTo(second);
+    }
+
+    [Test]
+    public async Task LogoutEntryPoint_IsOneBaseUnitOverloadSoTheU02PathCannotBeShadowed()
+    {
+        var overloads = typeof(MusicManager)
+            .GetMethods(BindingFlags.Instance | BindingFlags.Public)
+            .Where(method => method.Name == nameof(MusicManager.OnCharacterLogout))
+            .ToArray();
+
+        await Assert.That(overloads.Length).IsEqualTo(1);
+        await Assert.That(overloads[0].GetParameters().Single().ParameterType).IsEqualTo(typeof(BaseUnit));
     }
 
     [Test]

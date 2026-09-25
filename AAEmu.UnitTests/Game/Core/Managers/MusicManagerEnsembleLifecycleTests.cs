@@ -2,7 +2,6 @@ using System.Collections.Concurrent;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Text;
 
 using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
@@ -130,7 +129,7 @@ public class MusicManagerEnsembleLifecycleTests
         var member = environment.NewCharacter(Member, "Member");
         var session = OpenSession(maestro.ObjId, member.ObjId);
         environment.AddSession(session);
-        const string data = "part";
+        var data = new byte[] { 0x4D, 0x54, 0x00, 0xFF };
         const uint size = 4;
 
         await Assert.That(environment.Manager.EnsemblePartReady(member, Second, Maestro, size, data)).IsFalse();
@@ -141,15 +140,15 @@ public class MusicManagerEnsembleLifecycleTests
     }
 
     [Test]
-    public async Task PartRouting_ForwardsAValidatedUtf8PartToTheMaestro()
+    public async Task PartRouting_ForwardsAValidatedRawMidiPartToTheMaestro()
     {
         using var environment = new EnsembleEnvironment();
         var maestro = environment.NewCharacter(Maestro, "Maestro");
         var member = environment.NewCharacter(Member, "Member");
         var session = OpenSession(maestro.ObjId, member.ObjId);
         environment.AddSession(session);
-        const string data = "é";
-        var size = (uint)Encoding.UTF8.GetByteCount(data);
+        var data = new byte[] { 0x4D, 0x54, 0x00, 0xFF, 0x2F, 0x00 };
+        const uint size = 6;
 
         await Assert.That(environment.Manager.EnsemblePartReady(member, Member, Maestro, size, data)).IsTrue();
 
@@ -161,6 +160,10 @@ public class MusicManagerEnsembleLifecycleTests
         await Assert.That(ReadBc(packet, 8)).IsEqualTo(Member);
         await Assert.That(ReadBc(packet, 11)).IsEqualTo(Maestro);
         await Assert.That(BitConverter.ToUInt32(packet, 14)).IsEqualTo(size);
+        // The payload follows the serializer's length-prefixed blob slot, so a u16 block length sits
+        // between the declared size and the bytes.
+        await Assert.That(BitConverter.ToUInt16(packet, 18)).IsEqualTo((ushort)size);
+        await Assert.That(packet.Skip(20).Take((int)size)).IsEquivalentTo(data);
     }
 
     [Test]
@@ -174,8 +177,8 @@ public class MusicManagerEnsembleLifecycleTests
         var secondSession = OpenSession(secondMaestro.ObjId, member.ObjId);
         environment.AddSession(firstSession);
         environment.AddSession(secondSession);
-        const string data = "part";
-        var size = (uint)Encoding.UTF8.GetByteCount(data);
+        var data = new byte[] { 0x4D, 0x54, 0x00, 0xFF };
+        const uint size = 4;
 
         await Assert.That(environment.Manager.EnsemblePartReady(member, Member, SecondMaestro, size, data)).IsTrue();
 
@@ -183,6 +186,27 @@ public class MusicManagerEnsembleLifecycleTests
         await Assert.That(secondSession.Parts.Contains(Member)).IsTrue();
         await Assert.That(environment.Opcodes(firstMaestro.ObjId)).IsEmpty();
         await AssertOpcodes(environment.Opcodes(secondMaestro.ObjId), SCOffsets.SCEnsembleMidiBinReadyPacket);
+    }
+
+    [Test]
+    public async Task EnsembleRegistry_SerializesConcurrentLookupsAndPartRoutes()
+    {
+        using var environment = new EnsembleEnvironment();
+        var maestro = environment.NewCharacter(Maestro, "Maestro");
+        var member = environment.NewCharacter(Member, "Member");
+        var session = OpenSession(maestro.ObjId, member.ObjId);
+        environment.AddSession(session);
+        var data = new byte[] { 0x4D, 0x54, 0x00, 0xFF, 0x2F, 0x00 };
+        const uint size = 6;
+
+        Parallel.For(0, 128, _ =>
+        {
+            environment.Manager.FindEnsemble(member.ObjId);
+            environment.Manager.EnsemblePartReady(member, Member, Maestro, size, data);
+        });
+
+        await Assert.That(session.Parts.Contains(Member)).IsTrue();
+        await Assert.That(environment.Opcodes(member.ObjId)).IsEmpty();
     }
 
     private static async Task AssertOpcodes(ushort[] actual, params ushort[] expected)
@@ -273,12 +297,28 @@ public class MusicManagerEnsembleLifecycleTests
 
     private sealed class RecordingSession(uint sessionId) : ISession
     {
-        public List<byte[]> Packets { get; } = [];
+        private readonly object _packetLock = new();
+        private readonly List<byte[]> _packets = [];
+
+        public IReadOnlyList<byte[]> Packets
+        {
+            get
+            {
+                lock (_packetLock)
+                    return _packets.ToArray();
+            }
+        }
+
         public IPAddress Ip => IPAddress.Loopback;
         public uint SessionId => sessionId;
         public Socket Socket => null!;
 
-        public void SendPacket(byte[] packet) => Packets.Add(packet);
+        public void SendPacket(byte[] packet)
+        {
+            lock (_packetLock)
+                _packets.Add(packet);
+        }
+
         public void AddAttribute(string name, object attribute) { }
         public object GetAttribute(string name) => null;
         public void ClearAttribute(string name) { }

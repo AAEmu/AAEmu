@@ -102,8 +102,8 @@ public class GameConnection
 
         if (ActiveChar != null)
         {
-            // A disconnected character must not leave a playable MIDI block behind for a later
-            // session. The orderly leave-world path clears it separately.
+            // A disconnected character must not leave a playable MIDI block or a resumable ensemble
+            // behind for a later session. The orderly leave-world path clears them separately.
             MusicManager.Instance.OnCharacterLogout(ActiveChar);
 
             // Cancel any duel or pending invitation. This path is the one a crash or an Alt+F4 takes -
@@ -114,10 +114,6 @@ public class GameConnection
             // A battlefield queue slot or match must not outlive the character that filled it: this
             // path releases both (the match unbinds its kill handler and drops every reference).
             InstantGameManager.Instance.OnCharacterLogout(ActiveChar);
-
-            // A started ensemble cannot be resumed after its player leaves the connection. Release it
-            // before the world removes the character so the remaining players still receive cleanup.
-            MusicManager.Instance.OnCharacterLogout(ActiveChar);
 
             // A crash bypasses the normal leave-world task, so it must also release family invitations
             // and mark family/guild presence offline. It is also how a defendant or a juror drops out

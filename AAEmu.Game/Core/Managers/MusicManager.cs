@@ -270,13 +270,28 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
     /// <summary>Drops a player's current performance block so it cannot be replayed later.</summary>
     public bool ClearMidiCache(uint playerId) => _midiCache.TryRemove(playerId, out _);
 
-    /// <summary>Clears session-owned music state when a character leaves the world.</summary>
+    /// <summary>
+    /// Single logout entry point. Both the MIDI cache and the ensemble session are session-owned, and
+    /// both call sites pass a character, so this stays one entry point instead of two overloads where
+    /// the narrower one silently skipped the MIDI cache.
+    /// </summary>
     public void OnCharacterLogout(BaseUnit player)
     {
-        if (player != null)
-            ClearMidiCache(player.Id);
+        if (player == null)
+            return;
+
+        ClearMidiCache(player.Id);
+
+        if (player is Character character)
+            CleanupEnsembleOnLogout(character);
     }
 
+    /// <summary>
+    /// Serializes every access to the ensemble registry and to the mutable session objects it owns.
+    /// Connections, skill effects and the disconnect path can all touch a session concurrently; the
+    /// invariant is that no registry lookup or session mutation happens outside this lock.
+    /// </summary>
+    private readonly object _ensemblesLock = new();
     private readonly Dictionary<uint, EnsembleSession> _ensembles = []; // maestro bc, session
 
     /// <summary>
@@ -288,25 +303,35 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         if (maestro == null || target == null)
             return null;
 
-        if (!_ensembles.TryGetValue(maestro.ObjId, out var session) || !session.IsOpen)
+        lock (_ensemblesLock)
         {
-            session = new EnsembleSession(maestro.ObjId, maestro.Name);
-            _ensembles[maestro.ObjId] = session;
-        }
+            if (!_ensembles.TryGetValue(maestro.ObjId, out var session) || !session.IsOpen)
+            {
+                session = new EnsembleSession(maestro.ObjId, maestro.Name);
+                _ensembles[maestro.ObjId] = session;
+            }
 
-        if (!session.Invite(target.ObjId))
+            if (!session.Invite(target.ObjId))
+                return session;
+
+            target.SendPacket(new SCEnsembleSuggestedPacket(maestro.ObjId));
+            Logger.Info("Ensemble: {0} asked {1} to join ({2} asked so far)",
+                maestro.Name, target.Name, session.Invited.Count);
             return session;
-
-        target.SendPacket(new SCEnsembleSuggestedPacket(maestro.ObjId));
-        Logger.Info("Ensemble: {0} asked {1} to join ({2} asked so far)",
-            maestro.Name, target.Name, session.Invited.Count);
-        return session;
+        }
     }
 
     /// <summary>The ensemble a player is part of, whether they lead it, joined it or were only asked.</summary>
     public EnsembleSession FindEnsemble(uint bc)
     {
-        PruneEnsembles();
+        lock (_ensemblesLock)
+            return FindEnsembleLocked(bc);
+    }
+
+    /// <summary>Registry lookup for code that already holds <see cref="_ensemblesLock"/>.</summary>
+    private EnsembleSession FindEnsembleLocked(uint bc)
+    {
+        PruneEnsemblesLocked();
 
         foreach (var session in _ensembles.Values)
         {
@@ -317,9 +342,9 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         return null;
     }
 
-    private EnsembleSession FindEnsemble(uint memberBc, uint maestroBc)
+    private EnsembleSession FindEnsembleLocked(uint memberBc, uint maestroBc)
     {
-        PruneEnsembles();
+        PruneEnsemblesLocked();
         return _ensembles.TryGetValue(maestroBc, out var session) && session.Involves(memberBc)
             ? session
             : null;
@@ -331,19 +356,22 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         if (member == null)
             return EnsembleJoinResult.NotMember;
 
-        var session = FindEnsemble(member.ObjId);
-        if (session == null)
-            return EnsembleJoinResult.NotMember;
+        lock (_ensemblesLock)
+        {
+            var session = FindEnsembleLocked(member.ObjId);
+            if (session == null)
+                return EnsembleJoinResult.NotMember;
 
-        var result = session.Accept(member.ObjId);
-        if (result != EnsembleJoinResult.Accepted)
+            var result = session.Accept(member.ObjId);
+            if (result != EnsembleJoinResult.Accepted)
+                return result;
+
+            Logger.Info("Ensemble: {0} joined {1}'s ensemble ({2} member(s))",
+                member.Name, session.MaestroName, session.Members.Count);
+            SendToParticipants(session,
+                new SCEnsembleStartedPacket(session.MaestroBc, session.MaestroName, session.Members));
             return result;
-
-        Logger.Info("Ensemble: {0} joined {1}'s ensemble ({2} member(s))",
-            member.Name, session.MaestroName, session.Members.Count);
-        SendToParticipants(session,
-            new SCEnsembleStartedPacket(session.MaestroBc, session.MaestroName, session.Members));
-        return result;
+        }
     }
 
     /// <summary>Turns an invitation down and tells the maestro.</summary>
@@ -352,18 +380,21 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         if (member == null)
             return EnsembleJoinResult.NotMember;
 
-        var session = FindEnsemble(member.ObjId);
-        if (session == null)
-            return EnsembleJoinResult.NotMember;
+        lock (_ensemblesLock)
+        {
+            var session = FindEnsembleLocked(member.ObjId);
+            if (session == null)
+                return EnsembleJoinResult.NotMember;
 
-        var result = session.Reject(member.ObjId);
-        if (result != EnsembleJoinResult.Rejected)
+            var result = session.Reject(member.ObjId);
+            if (result != EnsembleJoinResult.Rejected)
+                return result;
+
+            Logger.Info("Ensemble: {0} turned down {1}'s ensemble", member.Name, session.MaestroName);
+            WorldManager.Instance.GetCharacterByObjId(session.MaestroBc)
+                ?.SendPacket(new SCEnsembleRejectPacket(member.ObjId));
             return result;
-
-        Logger.Info("Ensemble: {0} turned down {1}'s ensemble", member.Name, session.MaestroName);
-        WorldManager.Instance.GetCharacterByObjId(session.MaestroBc)
-            ?.SendPacket(new SCEnsembleRejectPacket(member.ObjId));
-        return result;
+        }
     }
 
     /// <summary>
@@ -371,24 +402,33 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
     /// checked before the session is changed, so a malformed request cannot reserve a member's part.
     /// </summary>
     public bool EnsemblePartReady(Character member, uint claimedMemberBc, uint claimedMaestroBc,
-        uint claimedSize, string data)
+        uint claimedSize, byte[] data)
     {
-        if (member == null || string.IsNullOrEmpty(data) || claimedMemberBc != member.ObjId)
+        if (member == null || data is not { Length: > 0 } || claimedMemberBc != member.ObjId)
             return false;
 
-        var session = FindEnsemble(member.ObjId, claimedMaestroBc);
-        if (session == null || !session.IsMember(member.ObjId))
+        // The client sends a standard MIDI file as raw bytes. Do not decode it as text: its declared
+        // unsigned size is the only length contract, and the client's 0x8000 buffer is the ceiling.
+        if (claimedSize == 0 || claimedSize > EnsembleSession.MaximumPartBytes ||
+            claimedSize != (uint)data.Length)
             return false;
 
-        var size = (uint)System.Text.Encoding.UTF8.GetByteCount(data);
-        if (claimedSize != size || !session.PartReady(member.ObjId))
-            return false;
+        lock (_ensemblesLock)
+        {
+            var session = FindEnsembleLocked(member.ObjId, claimedMaestroBc);
+            if (session == null || !session.IsMember(member.ObjId))
+                return false;
 
-        WorldManager.Instance.GetCharacterByObjId(session.MaestroBc)
-            ?.SendPacket(new SCEnsembleMidiBinReadyPacket(member.ObjId, session.MaestroBc, size, data));
+            if (!session.PartReady(member.ObjId))
+                return false;
 
-        if (session.AllPartsReady)
-            Logger.Info("Ensemble: {0}'s ensemble has every part in and can play", session.MaestroName);
+            WorldManager.Instance.GetCharacterByObjId(session.MaestroBc)
+                ?.SendPacket(new SCEnsembleMidiBinReadyPacket(
+                    member.ObjId, session.MaestroBc, claimedSize, data));
+
+            if (session.AllPartsReady)
+                Logger.Info("Ensemble: {0}'s ensemble has every part in and can play", session.MaestroName);
+        }
 
         return true;
     }
@@ -402,17 +442,20 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         if (maestro == null)
             return false;
 
-        var session = FindEnsemble(maestro.ObjId);
-        if (session == null || session.MaestroBc != maestro.ObjId)
-            return false;
+        lock (_ensemblesLock)
+        {
+            var session = FindEnsembleLocked(maestro.ObjId);
+            if (session == null || session.MaestroBc != maestro.ObjId)
+                return false;
 
-        if (!session.Start())
-            return false;
+            if (!session.Start())
+                return false;
 
-        Logger.Info("Ensemble: {0}'s ensemble starts to perform with {1} member(s)",
-            session.MaestroName, session.Members.Count);
-        SendToParticipants(session, new SCStartToPerformAnEnsemblePacket(session.MaestroBc));
-        return true;
+            Logger.Info("Ensemble: {0}'s ensemble starts to perform with {1} member(s)",
+                session.MaestroName, session.Members.Count);
+            SendToParticipants(session, new SCStartToPerformAnEnsemblePacket(session.MaestroBc));
+            return true;
+        }
     }
 
     /// <summary>Ends the ensemble a player is part of, whether they lead it or are leaving it.</summary>
@@ -421,11 +464,14 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         if (who == null)
             return;
 
-        var session = FindEnsemble(who.ObjId);
-        if (session == null)
-            return;
+        lock (_ensemblesLock)
+        {
+            var session = FindEnsembleLocked(who.ObjId);
+            if (session == null)
+                return;
 
-        LeaveEnsemble(who);
+            LeaveEnsembleLocked(who);
+        }
     }
 
     /// <summary>
@@ -437,7 +483,14 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         if (who == null)
             return;
 
-        var session = FindEnsemble(who.ObjId);
+        lock (_ensemblesLock)
+            LeaveEnsembleLocked(who);
+    }
+
+    /// <summary>Leave handling for code that already holds <see cref="_ensemblesLock"/>.</summary>
+    private void LeaveEnsembleLocked(Character who)
+    {
+        var session = FindEnsembleLocked(who.ObjId);
         if (session == null)
             return;
 
@@ -471,34 +524,37 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
     /// A disconnected performance has no resumable session left to own. Remove it immediately and
     /// close it for everyone still online; open sessions keep the ordinary member/maestro leave rules.
     /// </summary>
-    public void OnCharacterLogout(Character character)
+    private void CleanupEnsembleOnLogout(Character character)
     {
         if (character == null)
             return;
 
-        var session = FindEnsemble(character.ObjId);
-        if (session == null)
-            return;
-
-        if (!session.IsStarted || !session.IsMember(character.ObjId))
+        lock (_ensemblesLock)
         {
-            LeaveEnsemble(character);
-            return;
-        }
+            var session = FindEnsembleLocked(character.ObjId);
+            if (session == null)
+                return;
 
-        var participants = session.Participants();
-        _ensembles.Remove(session.MaestroBc);
-        session.Cancel();
-        Logger.Info("Ensemble: {0}'s started ensemble was cleaned up because {1} disconnected",
-            session.MaestroName, character.Name);
+            if (!session.IsStarted || !session.IsMember(character.ObjId))
+            {
+                LeaveEnsembleLocked(character);
+                return;
+            }
 
-        foreach (var participant in participants)
-        {
-            if (participant == character.ObjId)
-                continue;
+            var participants = session.Participants();
+            _ensembles.Remove(session.MaestroBc);
+            session.Cancel();
+            Logger.Info("Ensemble: {0}'s started ensemble was cleaned up because {1} disconnected",
+                session.MaestroName, character.Name);
 
-            WorldManager.Instance.GetCharacterByObjId(participant)
-                ?.SendPacket(new SCEnsembleCanceledPacket());
+            foreach (var participant in participants)
+            {
+                if (participant == character.ObjId)
+                    continue;
+
+                WorldManager.Instance.GetCharacterByObjId(participant)
+                    ?.SendPacket(new SCEnsembleCanceledPacket());
+            }
         }
     }
 
@@ -512,7 +568,7 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
     /// Drops ensembles whose maestro is no longer in the world — a session is only as long-lived as the
     /// player leading it, and nothing else tells us they logged out.
     /// </summary>
-    private void PruneEnsembles()
+    private void PruneEnsemblesLocked()
     {
         if (_ensembles.Count == 0)
             return;
