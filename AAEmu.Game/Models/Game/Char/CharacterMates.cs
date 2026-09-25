@@ -1,17 +1,20 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System.Data;
+using System.Data.Common;
+using System.Runtime.CompilerServices;
+
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units.Static;
-
-using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char;
 
@@ -27,16 +30,86 @@ public class CharacterMates(Character owner)
     private Character Owner { get; set; } = owner;
 
     private readonly Dictionary<ulong, MateDb> _mates = []; // itemId, MountDb
-    private readonly List<uint> _removedMates = [];
+    private readonly Dictionary<MateDbKey, long> _removedMates = [];
+    private readonly HashSet<DbTransaction> _commitGates = [];
+    private readonly ConditionalWeakTable<DbTransaction, CharacterMatesSaveToken> _saveTokens = new();
+    private readonly object _saveSync = new();
+    private long _removalVersion;
 
     public MateDb GetMateInfo(ulong itemId)
     {
-        return _mates.GetValueOrDefault(itemId);
+        lock (_saveSync)
+            return _mates.GetValueOrDefault(itemId)?.Clone();
     }
 
-    private MateDb CreateNewMate(ulong itemId, NpcTemplate npcTemplate)
+    /// <summary>
+    /// Applies a state update under the mate save gate and returns a detached snapshot.
+    /// </summary>
+    public MateDb UpdateMateInfo(ulong itemId, Action<MateDb> update)
     {
-        if (_mates.ContainsKey(itemId)) return null;
+        ArgumentNullException.ThrowIfNull(update);
+        lock (_saveSync)
+        {
+            ThrowIfCommitGateActive();
+            if (!_mates.TryGetValue(itemId, out var current))
+                return null;
+
+            var updated = current.Clone();
+            update(updated);
+            updated.Id = current.Id;
+            updated.ItemId = current.ItemId;
+            updated.Owner = current.Owner;
+            _mates[itemId] = updated;
+            return updated.Clone();
+        }
+    }
+
+    /// <summary>
+    /// Removes one owned mate from the in-memory collection and stages its exact database row deletion.
+    /// The marker is cleared only after the transaction that executed the DELETE commits.
+    /// </summary>
+    public bool RemoveMate(ulong itemId)
+    {
+        lock (_saveSync)
+        {
+            ThrowIfCommitGateActive();
+            if (!_mates.Remove(itemId, out var removed))
+                return false;
+
+            var key = MateDbKey.From(removed);
+            _removedMates[key] = ++_removalVersion;
+            return true;
+        }
+    }
+
+    /// <summary>
+    /// Restores an owned mate, cancelling only a staged deletion for the same full database key.
+    /// This is also used when a summon is recreated while a save transaction is still open.
+    /// </summary>
+    public void RestoreMate(MateDb mate)
+    {
+        ArgumentNullException.ThrowIfNull(mate);
+        if (mate.Owner != Owner.Id)
+            throw new InvalidDataException("A mate cannot be restored under a different owner.");
+
+        lock (_saveSync)
+        {
+            ThrowIfCommitGateActive();
+            _removedMates.Remove(MateDbKey.From(mate));
+            _mates[mate.ItemId] = mate.Clone();
+        }
+    }
+
+    private MateDb CreateNewMate(
+        ulong itemId,
+        NpcTemplate npcTemplate,
+        MateRecoveryState recoveryState)
+    {
+        lock (_saveSync)
+        {
+            ThrowIfCommitGateActive();
+            if (_mates.ContainsKey(itemId)) return null;
+        }
         var template = new MateDb
         {
             // TODO
@@ -49,11 +122,35 @@ public class CharacterMates(Character owner)
             Xp = ExperienceManager.Instance.GetExpForLevel(npcTemplate.Level, true),
             Hp = 9999,
             Mp = 9999,
+            RecoveryState = recoveryState,
             UpdatedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
         };
-        _mates.Add(template.ItemId, template);
-        return template;
+        lock (_saveSync)
+        {
+            ThrowIfCommitGateActive();
+            _removedMates.Remove(MateDbKey.From(template));
+            if (!_mates.TryAdd(template.ItemId, template))
+                return null;
+        }
+        return template.Clone();
+    }
+
+    public (SummonMateTemplate ItemTemplate, NpcTemplate NpcTemplate, MateRecoveryState RecoveryState)
+        ResolveSummonMate(uint itemTemplateId)
+    {
+        if (ItemManager.Instance.GetTemplate(itemTemplateId) is not SummonMateTemplate itemTemplate)
+        {
+            throw new InvalidDataException(
+                $"Summon mate item {itemTemplateId} has no item_summon_mates template.");
+        }
+
+        var npcId = itemTemplate.NpcId;
+        var npcTemplate = NpcManager.Instance.GetTemplate(npcId)
+            ?? throw new InvalidDataException(
+                $"Summon mate item {itemTemplateId} references missing NPC template {npcId}.");
+        var recoveryState = MateGameData.Instance.GetRecoveryState(itemTemplate);
+        return (itemTemplate, npcTemplate, recoveryState);
     }
 
     public void SpawnMount(SkillItem skillData)
@@ -71,12 +168,17 @@ public class CharacterMates(Character owner)
         var item = Owner.Inventory.GetItemById(skillData.ItemId);
         if (item == null) return;
 
-        var itemTemplate = (SummonMateTemplate)ItemManager.Instance.GetTemplate(item.TemplateId);
+        var (itemTemplate, template, recoveryState) = ResolveSummonMate(item.TemplateId);
         var npcId = itemTemplate.NpcId;
-        var template = NpcManager.Instance.GetTemplate(npcId);
         var tlId = (ushort)TlIdManager.Instance.GetNextId();
         var objId = ObjectIdManager.Instance.GetNextId();
-        var mateDbInfo = GetMateInfo(skillData.ItemId) ?? CreateNewMate(skillData.ItemId, template);
+        var mateDbInfo = GetMateInfo(skillData.ItemId);
+        if (mateDbInfo == null)
+            CreateNewMate(skillData.ItemId, template, recoveryState);
+        // The persisted snapshot follows current content on every summon. Legacy/null rows and
+        // content revisions are reconciled here without treating an old value as authoritative.
+        mateDbInfo = UpdateMateInfo(skillData.ItemId, db => db.RecoveryState = recoveryState)
+            ?? throw new InvalidDataException($"Owned mate {skillData.ItemId} was not created.");
 
         var mount = new Units.Mate
         {
@@ -99,6 +201,7 @@ public class CharacterMates(Character owner)
             Experience = mateDbInfo.Xp,
             Mileage = mateDbInfo.Mileage,
             SpawnDelayTime = 0, // TODO
+            RecoveryState = recoveryState,
             DbInfo = mateDbInfo
         };
 
@@ -141,8 +244,11 @@ public class CharacterMates(Character owner)
 
         // UnitState at spawn carries current Hp; gear MaxHealth is already in MaxHp. Re-push state
         // and points so the pet frame denominator matches server MaxHp (SCUnitPoints alone does not).
-        mateDbInfo.Hp = mount.Hp;
-        mateDbInfo.Mp = mount.Mp;
+        UpdateMateInfo(skillData.ItemId, db =>
+        {
+            db.Hp = mount.Hp;
+            db.Mp = mount.Mp;
+        });
         Owner.SendPacket(new SCUnitStatePacket(mount));
         Owner.SendPacket(new SCUnitPointsPacket(mount.ObjId, mount.Hp, mount.Mp));
         WorldIntegration.RelayUnitPointsToZone?.Invoke(mount.ObjId, mount.Hp, mount.Mp);
@@ -154,24 +260,28 @@ public class CharacterMates(Character owner)
         Owner.Buffs.TriggerRemoveOn(BuffRemoveOn.Summoned);
     }
 
+    public void CaptureActiveMateState(Units.Mate mateInfo)
+    {
+        if (mateInfo == null)
+            return;
+
+        UpdateMateInfo(mateInfo.ItemId, mateDbInfo =>
+        {
+            mateDbInfo.Hp = mateInfo.Hp;
+            mateDbInfo.Mp = mateInfo.Mp;
+            mateDbInfo.Level = mateInfo.Level;
+            mateDbInfo.Xp = mateInfo.Experience;
+            mateDbInfo.Mileage = mateInfo.Mileage;
+            mateDbInfo.Name = mateInfo.Name;
+            mateDbInfo.RecoveryState = mateInfo.RecoveryState;
+            mateDbInfo.UpdatedAt = DateTime.UtcNow;
+        });
+    }
+
     public void DespawnMate(uint tlId)
     {
         var mateInfo = Owner.ParentWorld.MateManager.GetActiveMateByTlId(tlId);
-        if (mateInfo != null)
-        {
-            var mateDbInfo = GetMateInfo(mateInfo.ItemId);
-            if (mateDbInfo != null)
-            {
-                mateDbInfo.Hp = mateInfo.Hp;
-                mateDbInfo.Mp = mateInfo.Mp;
-                mateDbInfo.Level = mateInfo.Level;
-                mateDbInfo.Xp = mateInfo.Experience;
-                mateDbInfo.Mileage = mateInfo.Mileage;
-                mateDbInfo.Name = mateInfo.Name;
-                mateDbInfo.UpdatedAt = DateTime.UtcNow;
-            }
-        }
-
+        CaptureActiveMateState(mateInfo);
         Owner.ParentWorld.MateManager.RemoveActiveMateAndDespawn(Owner, tlId);
     }
 
@@ -179,70 +289,220 @@ public class CharacterMates(Character owner)
     /// Load pet data of the player
     /// </summary>
     /// <param name="connection"></param>
-    public void Load(MySqlConnection connection)
+    public void Load(DbConnection connection)
     {
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT * FROM mates WHERE `owner` = @owner";
-        command.Parameters.AddWithValue("@owner", Owner.Id);
+        AddParameter(command, "@owner", Owner.Id);
         command.Prepare();
         using var reader = command.ExecuteReader();
         while (reader.Read())
         {
+            var reviveDelay = NullableInt32(reader, "mate_revive_delay");
+            var reviveHpPercent = NullableInt32(reader, "mate_revive_hp_percent");
+            var reviveMpPercent = NullableInt32(reader, "mate_revive_mp_percent");
             var template = new MateDb
             {
-                Id = reader.GetUInt32("id"),
-                ItemId = reader.GetUInt64("item_id"),
+                Id = Convert.ToUInt32(reader.GetValue(reader.GetOrdinal("id"))),
+                ItemId = Convert.ToUInt64(reader.GetValue(reader.GetOrdinal("item_id"))),
                 Name = reader.GetString("name"),
                 Xp = reader.GetInt32("xp"),
-                Level = reader.GetUInt16("level"),
+                Level = Convert.ToUInt16(reader.GetValue(reader.GetOrdinal("level"))),
                 Mileage = reader.GetInt32("mileage"),
                 Hp = reader.GetInt32("hp"),
                 Mp = reader.GetInt32("mp"),
-                Owner = reader.GetUInt32("owner"),
+                Owner = Convert.ToUInt32(reader.GetValue(reader.GetOrdinal("owner"))),
+                RecoveryState = MateRecoveryState.FromPersisted(
+                    reviveDelay,
+                    reviveHpPercent,
+                    reviveMpPercent),
                 UpdatedAt = reader.GetDateTime("updated_at"),
                 CreatedAt = reader.GetDateTime("created_at")
             };
-            _mates.Add(template.ItemId, template);
+            lock (_saveSync)
+                _mates.Add(template.ItemId, template);
         }
     }
 
-    public void Save(MySqlConnection connection, MySqlTransaction transaction)
+    private static int? NullableInt32(DbDataReader reader, string columnName)
     {
-        if (_removedMates.Count > 0)
-        {
-            using var command = connection.CreateCommand();
-            command.Connection = connection;
-            command.Transaction = transaction;
+        return reader.IsDBNull(reader.GetOrdinal(columnName))
+            ? null
+            : reader.GetInt32(columnName);
+    }
 
-            command.CommandText = $"DELETE FROM mates WHERE owner = @owner AND id IN({string.Join(",", _removedMates)})";
-            command.Parameters.AddWithValue("@owner", Owner.Id);
-            command.Prepare();
-            command.ExecuteNonQuery();
-            _removedMates.Clear();
+    private static void AddParameter(DbCommand command, string name, object value)
+    {
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = name;
+        parameter.Value = value;
+        command.Parameters.Add(parameter);
+    }
+
+    public void Save(DbConnection connection, DbTransaction transaction)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(transaction);
+
+        MateDb[] mateSnapshot;
+        Dictionary<MateDbKey, long> removalSnapshot;
+        lock (_saveSync)
+        {
+            ThrowIfCommitGateActive();
+            mateSnapshot = _mates.Values.ToArray();
+            removalSnapshot = _removedMates.ToDictionary(pair => pair.Key, pair => pair.Value);
         }
 
-        foreach (var (_, value) in _mates)
+        var token = new CharacterMatesSaveToken(removalSnapshot);
+        _saveTokens.Remove(transaction);
+        _saveTokens.Add(transaction, token);
+
+        try
+        {
+            PersistSnapshot(connection, transaction, mateSnapshot, removalSnapshot.Keys);
+        }
+        catch
+        {
+            _saveTokens.Remove(transaction);
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Flushes state changes made after <see cref="Save"/> but before the outer transaction commits.
+    /// The short commit gate prevents further mate mutations between this final snapshot and commit.
+    /// </summary>
+    public void PrepareSaveCommit(DbConnection connection, DbTransaction transaction)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(transaction);
+        if (!_saveTokens.TryGetValue(transaction, out var token))
+            return;
+
+        MateDb[] mateSnapshot;
+        Dictionary<MateDbKey, long> removalSnapshot;
+        lock (_saveSync)
+        {
+            ThrowIfCommitGateActive();
+            mateSnapshot = _mates.Values.ToArray();
+            removalSnapshot = _removedMates.ToDictionary(pair => pair.Key, pair => pair.Value);
+            token.RemovedVersions = removalSnapshot;
+            _commitGates.Add(transaction);
+        }
+
+        try
+        {
+            PersistSnapshot(connection, transaction, mateSnapshot, removalSnapshot.Keys);
+        }
+        catch
+        {
+            lock (_saveSync)
+                _commitGates.Remove(transaction);
+            throw;
+        }
+    }
+
+    public void ConfirmSave(DbTransaction transaction)
+    {
+        if (transaction == null)
+            return;
+
+        _saveTokens.TryGetValue(transaction, out var token);
+        _saveTokens.Remove(transaction);
+        lock (_saveSync)
+        {
+            _commitGates.Remove(transaction);
+            if (token == null)
+                return;
+
+            foreach (var removal in token.RemovedVersions)
+            {
+                if (_removedMates.TryGetValue(removal.Key, out var currentVersion) &&
+                    currentVersion == removal.Value)
+                {
+                    _removedMates.Remove(removal.Key);
+                }
+            }
+        }
+    }
+
+    public void DiscardSave(DbTransaction transaction)
+    {
+        if (transaction == null)
+            return;
+
+        _saveTokens.Remove(transaction);
+        lock (_saveSync)
+            _commitGates.Remove(transaction);
+    }
+
+    private void PersistSnapshot(
+        DbConnection connection,
+        DbTransaction transaction,
+        IEnumerable<MateDb> mateSnapshot,
+        IEnumerable<MateDbKey> removalSnapshot)
+    {
+        foreach (var removedMate in removalSnapshot)
         {
             using var command = connection.CreateCommand();
-            command.Connection = connection;
+            command.Transaction = transaction;
+            command.CommandText =
+                "DELETE FROM mates WHERE id = @id AND item_id = @item_id AND owner = @owner";
+            AddParameter(command, "@id", removedMate.Id);
+            AddParameter(command, "@item_id", removedMate.ItemId);
+            AddParameter(command, "@owner", removedMate.Owner);
+            command.Prepare();
+            command.ExecuteNonQuery();
+        }
+
+        foreach (var value in mateSnapshot)
+        {
+            using var command = connection.CreateCommand();
             command.Transaction = transaction;
 
             command.CommandText =
-                "REPLACE INTO mates(`id`,`item_id`,`name`,`xp`,`level`,`mileage`,`hp`,`mp`,`owner`,`updated_at`,`created_at`) " +
-                "VALUES (@id, @item_id, @name, @xp, @level, @mileage, @hp, @mp, @owner, @updated_at, @created_at)";
-            command.Parameters.AddWithValue("@id", value.Id);
-            command.Parameters.AddWithValue("@item_id", value.ItemId);
-            command.Parameters.AddWithValue("@name", value.Name);
-            command.Parameters.AddWithValue("@xp", value.Xp);
-            command.Parameters.AddWithValue("@level", value.Level);
-            command.Parameters.AddWithValue("@mileage", value.Mileage);
-            command.Parameters.AddWithValue("@hp", value.Hp);
-            command.Parameters.AddWithValue("@mp", value.Mp);
-            command.Parameters.AddWithValue("@owner", value.Owner);
-            command.Parameters.AddWithValue("@updated_at", value.UpdatedAt);
-            command.Parameters.AddWithValue("@created_at", value.CreatedAt);
+                "REPLACE INTO mates(`id`,`item_id`,`name`,`xp`,`level`,`mileage`,`hp`,`mp`,`owner`," +
+                "`mate_revive_delay`,`mate_revive_hp_percent`,`mate_revive_mp_percent`,`updated_at`,`created_at`) " +
+                "VALUES (@id, @item_id, @name, @xp, @level, @mileage, @hp, @mp, @owner," +
+                "@mate_revive_delay,@mate_revive_hp_percent,@mate_revive_mp_percent,@updated_at,@created_at)";
+            AddParameter(command, "@id", value.Id);
+            AddParameter(command, "@item_id", value.ItemId);
+            AddParameter(command, "@name", value.Name);
+            AddParameter(command, "@xp", value.Xp);
+            AddParameter(command, "@level", value.Level);
+            AddParameter(command, "@mileage", value.Mileage);
+            AddParameter(command, "@hp", value.Hp);
+            AddParameter(command, "@mp", value.Mp);
+            AddParameter(command, "@owner", value.Owner);
+            AddParameter(command, "@mate_revive_delay",
+                value.RecoveryState?.MateReviveDelay ?? (object)DBNull.Value);
+            AddParameter(command, "@mate_revive_hp_percent",
+                value.RecoveryState?.MateReviveHpPercent ?? (object)DBNull.Value);
+            AddParameter(command, "@mate_revive_mp_percent",
+                value.RecoveryState?.MateReviveMpPercent ?? (object)DBNull.Value);
+            AddParameter(command, "@updated_at", value.UpdatedAt);
+            AddParameter(command, "@created_at", value.CreatedAt);
             command.ExecuteNonQuery();
         }
+    }
+
+    private void ThrowIfCommitGateActive()
+    {
+        if (_commitGates.Count > 0)
+        {
+            throw new InvalidOperationException(
+                "Owned mate state cannot change while its save transaction is being committed.");
+        }
+    }
+
+    private sealed class CharacterMatesSaveToken(IReadOnlyDictionary<MateDbKey, long> removedVersions)
+    {
+        public IReadOnlyDictionary<MateDbKey, long> RemovedVersions { get; set; } = removedVersions;
+    }
+
+    private readonly record struct MateDbKey(uint Id, ulong ItemId, uint Owner)
+    {
+        public static MateDbKey From(MateDb mate) => new(mate.Id, mate.ItemId, mate.Owner);
     }
 }
 
@@ -256,7 +516,10 @@ public class MateDb
     public int Mileage { get; set; }
     public int Hp { get; set; }
     public int Mp { get; set; }
+    public MateRecoveryState? RecoveryState { get; set; }
     public uint Owner { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    public MateDb Clone() => (MateDb)MemberwiseClone();
 }

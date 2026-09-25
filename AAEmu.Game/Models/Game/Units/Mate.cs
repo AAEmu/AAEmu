@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.World;
@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Containers;
+using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -67,6 +68,7 @@ public sealed class Mate : Unit
     public int Experience { get; set; }
     public int Mileage { get; set; }
     public uint SpawnDelayTime { get; set; }
+    public MateRecoveryState RecoveryState { get; set; }
     public List<uint> Skills { get; set; }
     public MateDb DbInfo { get; set; }
     public Task MateXpUpdateTask { get; set; }

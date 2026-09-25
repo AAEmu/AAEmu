@@ -970,6 +970,9 @@ CREATE TABLE IF NOT EXISTS `mates` (
   `hp` int NOT NULL,
   `mp` int NOT NULL,
   `owner` int unsigned NOT NULL,
+  `mate_revive_delay` int DEFAULT NULL COMMENT 'Snapshot of npcs.mate_revive_delay; null until the mate is summoned from content',
+  `mate_revive_hp_percent` int DEFAULT NULL COMMENT 'Snapshot of npcs.mate_revive_hp_percent; null until the mate is summoned from content',
+  `mate_revive_mp_percent` int DEFAULT NULL COMMENT 'Snapshot of npcs.mate_revive_mp_percent; null until the mate is summoned from content',
   `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`,`item_id`,`owner`) USING BTREE

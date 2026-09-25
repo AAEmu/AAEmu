@@ -1,6 +1,7 @@
 using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.DoodadObj.Static;
+using AAEmu.Game.Models.Game.Items.Templates;
 using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Utils.DB;
 
@@ -16,6 +17,7 @@ public class MateGameData : Singleton<MateGameData>, IGameDataLoader
     private Dictionary<uint, MountAttachedSkills> _mountAttachedSkills = [];
     private Dictionary<uint, MateEquipSlotPack> _mateEquipSlotPacks = [];
     private readonly MateSeatCatalog _seatCatalog = new();
+    private Dictionary<uint, MateRecoveryState> _mateRecoveryByNpc = [];
 
     /// <summary>mate_equip_pack_groups keyed by the mate's npc: the packs it may wear.</summary>
     private readonly Dictionary<uint, List<uint>> _mateEquipPacks = [];
@@ -58,10 +60,31 @@ public class MateGameData : Singleton<MateGameData>, IGameDataLoader
         _mateEquipSlotPacks.TryGetValue(equipSlotPackId, out var pack) ? pack.MateTypeId : (byte)0;
 
     /// <summary>
+    /// <summary>
     /// Boardable attach points proven by the NPC's mount-skill rows, model_bindings rows keyed by
     /// npcs.model_id, and the item-summon driver rule. Capacity is never used as topology.
     /// </summary>
     public IReadOnlyList<AttachPointKind> GetMateSeats(uint npcId) => _seatCatalog.GetSeats(npcId);
+
+    /// <summary>
+    /// Returns the recovery profile attached to a summonable mate NPC. The summon item resolves
+    /// the NPC through <c>item_summon_mates</c>; a missing NPC/profile is content corruption and
+    /// must fail instead of substituting a shipped-looking default.
+    /// </summary>
+    public MateRecoveryState GetRecoveryState(uint npcId)
+    {
+        if (_mateRecoveryByNpc.TryGetValue(npcId, out var state))
+            return state;
+
+        throw new KeyNotFoundException(
+            $"No mate recovery profile is loaded for NPC template {npcId}.");
+    }
+
+    public MateRecoveryState GetRecoveryState(SummonMateTemplate summonMateTemplate)
+    {
+        ArgumentNullException.ThrowIfNull(summonMateTemplate);
+        return GetRecoveryState(summonMateTemplate.NpcId);
+    }
 
     /// <summary>
     /// Gets a list of pet skill Ids
@@ -185,6 +208,7 @@ public class MateGameData : Singleton<MateGameData>, IGameDataLoader
         _mountSkills = [];
         _mountAttachedSkills = [];
         _mateEquipSlotPacks = [];
+        _mateRecoveryByNpc = [];
 
         #region MateTables
 
@@ -311,6 +335,26 @@ public class MateGameData : Singleton<MateGameData>, IGameDataLoader
                     }
 
                     items.Add(itemId);
+                }
+            }
+        }
+
+        // The summon path resolves its NPC key through item_summon_mates; the catalog itself stays
+        // keyed by npcs.id so GM/other mate creation paths cannot silently lose the profile.
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText =
+                "SELECT id, mate_revive_delay, mate_revive_hp_percent, mate_revive_mp_percent FROM npcs";
+            command.Prepare();
+            using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+            {
+                while (reader.Read())
+                {
+                    var npcId = reader.GetUInt32("id");
+                    _mateRecoveryByNpc.Add(npcId, new MateRecoveryState(
+                        reader.GetInt32("mate_revive_delay"),
+                        reader.GetInt32("mate_revive_hp_percent"),
+                        reader.GetInt32("mate_revive_mp_percent")));
                 }
             }
         }

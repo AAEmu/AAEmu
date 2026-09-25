@@ -1,4 +1,4 @@
-using AAEmu.Commons.Utils;
+﻿using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
@@ -7,6 +7,8 @@ using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game;
+using System.Data.Common;
+
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.DoodadObj;
 using AAEmu.Game.Models.Game.DoodadObj.Funcs;
@@ -142,6 +144,33 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
         return $"Phase: {phase}{overrideText}. Cycle {cycle.Id} schedule: {windows}";
     }
 
+    public static void CommitMatesSaveTransaction(
+        DbConnection connection,
+        DbTransaction transaction,
+        IEnumerable<Character> characters)
+    {
+        foreach (var character in characters)
+            character.PrepareMatesSave(connection, transaction);
+        transaction.Commit();
+        foreach (var character in characters)
+            character.ConfirmMatesSave(transaction);
+    }
+
+    public static void RollbackMatesSaveTransaction(
+        DbTransaction transaction,
+        IEnumerable<Character> characters)
+    {
+        try
+        {
+            transaction.Rollback();
+        }
+        finally
+        {
+            foreach (var character in characters)
+                character.DiscardMatesSave(transaction);
+        }
+    }
+
     /// <summary>
     /// Start of a cycle's LeadershipRanking: the running period total becomes the frozen previous-period
     /// figure (the voter gate) and the running total restarts. Guarded by hero_period_resets so a restart
@@ -180,7 +209,11 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
                 var rolled = HeroElectionRules.RollLeadershipPeriod(character.LeadershipPeriodPoint, character.LeadershipPoint);
                 character.LeadershipPeriodPoint = rolled.Period;
                 character.LeadershipPoint = rolled.Current;
-                character.Save(connection, transaction);
+                if (!character.Save(connection, transaction))
+                {
+                    throw new InvalidOperationException(
+                        $"Character {character.Id} save failed during leadership period reset.");
+                }
             }
 
             using (var mark = connection.CreateCommand())
@@ -193,11 +226,23 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
                 mark.ExecuteNonQuery();
             }
 
-            transaction.Commit();
+            CommitMatesSaveTransaction(
+                connection,
+                transaction,
+                rolledOnline.Select(entry => entry.Character));
         }
         catch (Exception ex)
         {
-            transaction.Rollback();
+            try
+            {
+                RollbackMatesSaveTransaction(
+                    transaction,
+                    rolledOnline.Select(entry => entry.Character));
+            }
+            catch (Exception rollbackException)
+            {
+                Logger.Error(rollbackException, "Hero cycle {0}: leadership reset rollback failed", cycle.Id);
+            }
             foreach (var (character, period, current) in rolledOnline)
             {
                 character.LeadershipPeriodPoint = period;
