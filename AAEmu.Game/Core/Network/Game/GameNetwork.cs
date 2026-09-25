@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 
 using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
@@ -152,6 +152,11 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSSetOverHeadMarkerPacket, 1, typeof(CSSetOverHeadMarkerPacket));
         RegisterPacket(CSOffsets.CSSetPingPosPacket, 1, typeof(CSSetPingPosPacket));
         RegisterPacket(CSOffsets.CSAskRiskyTeamActionPacket, 1, typeof(CSAskRiskyTeamActionPacket));
+        RegisterPacket(CSOffsets.CSTeamJointInfoPacket, 1, typeof(CSTeamJointInfoPacket));
+        RegisterPacket(CSOffsets.CSTeamJointPacket, 1, typeof(CSTeamJointPacket));
+        RegisterPacket(CSOffsets.CSTeamJointBreakPacket, 1, typeof(CSTeamJointBreakPacket));
+        RegisterPacket(CSOffsets.CSTeamSummonGetPacket, 1, typeof(CSTeamSummonGetPacket));
+        RegisterPacket(CSOffsets.CSTeamSummonReplyPacket, 1, typeof(CSTeamSummonReplyPacket));
         RegisterPacket(CSOffsets.CSMoveUnitPacket, 1, typeof(CSMoveUnitPacket));
         RegisterPacket(CSOffsets.CSSkillControllerStatePacket, 1, typeof(CSSkillControllerStatePacket));
         RegisterPacket(CSOffsets.CSCreateSkillControllerPacket, 1, typeof(CSCreateSkillControllerPacket));
@@ -430,9 +435,6 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSFamilyIncreaseMemberPacket, 1, typeof(CSFamilyIncreaseMemberPacket));
         RegisterPacket(CSOffsets.CSResetVisualRacePacket, 1, typeof(CSResetVisualRacePacket));
         RegisterPacket(CSOffsets.CSTeamTestRaidCreatePacket, 1, typeof(CSTeamTestRaidCreatePacket));
-        RegisterPacket(CSOffsets.CSTeamJointInfoPacket, 1, typeof(CSTeamJointInfoPacket));
-        RegisterPacket(CSOffsets.CSTeamSummonGetPacket, 1, typeof(CSTeamSummonGetPacket));
-        RegisterPacket(CSOffsets.CSTeamSummonReplyPacket, 1, typeof(CSTeamSummonReplyPacket));
         RegisterPacket(CSOffsets.CSFollowRespPacket, 1, typeof(CSFollowRespPacket));
         // CSExpandAbilitySetSlotPacket registered with the other ability-set CS packets above.
         RegisterPacket(CSOffsets.CSHeroDropoutComebackAccept, 1, typeof(CSHeroDropoutComebackAccept));

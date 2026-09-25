@@ -633,6 +633,8 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
     private void DisbandTeam(Team activeTeam)
     {
         _ownerHandoverOffers.Remove(activeTeam.Id);
+        if (TeamJointManager.TryGet(out var jointManager))
+            jointManager.OnTeamDisbanded(activeTeam.Id);
         RaidRecruitmentManager.Instance.OnTeamDisbanded(activeTeam);
         activeTeam.BroadcastPacket(new SCTeamDismissedPacket((int)activeTeam.Id));
         foreach (var member in activeTeam.Members)
@@ -1000,6 +1002,12 @@ public class TeamManager(IWorldManager worldManager, IChatManager chatManager, I
         var activeTeam = GetActiveTeamByUnit(unit.Id);
         var memberInfo = activeTeam?.ChangeStatus(unit);
         if (memberInfo == null) return;
+
+        // IsOnline going false is the one signal every despawn path shares, so pending joint
+        // requests, summon rounds and break asks owned by this character are released here. A
+        // joint session only goes away when the team itself does, through DisbandTeam below.
+        if (TeamJointManager.TryGet(out var jointManager))
+            jointManager.OnCharacterLogout(unit.Id);
 
         if (_ownerHandoverOffers.TryGetValue(activeTeam.Id, out var offer) &&
             (offer.OwnerId == unit.Id || offer.CandidateId == unit.Id))

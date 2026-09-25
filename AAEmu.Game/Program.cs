@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using AAEmu.Commons.IO;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Commons.Utils.Updater;
@@ -13,6 +13,7 @@ using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Butlers;
 using AAEmu.Game.Models.Game.CrossServer;
 using AAEmu.Game.Models.Game.Items.Loots;
+using AAEmu.Game.Models.Game.Team;
 using AAEmu.Game.Models.Game.Trading;
 using AAEmu.Game.Services;
 using AAEmu.Game.Services.WebApi;
@@ -360,6 +361,8 @@ public static class Program
 
                 services.AddSingleton<TeamManager>();
                 services.AddSingleton<ITeamManager>(sp => sp.GetRequiredService<TeamManager>());
+                services.AddSingleton<ITeamJointContext, WorldTeamJointContext>();
+                services.AddSingleton<TeamJointManager>();
                 services.AddSingleton<RaidRecruitmentManager>();
 
                 services.AddSingleton<TickManager>();

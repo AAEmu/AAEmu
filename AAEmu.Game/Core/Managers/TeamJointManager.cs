@@ -1,0 +1,549 @@
+﻿using System.Collections.Concurrent;
+
+using AAEmu.Commons.Utils;
+using AAEmu.Game.Core.Packets.G2C;
+using AAEmu.Game.Models.Game;
+using AAEmu.Game.Models.Game.Team;
+
+using Microsoft.Extensions.DependencyInjection;
+
+using NLog;
+
+namespace AAEmu.Game.Core.Managers;
+
+/// <summary>
+/// World-authoritative state for raid-team joint requests and the consent phase of team summon.
+/// Teams stay independent objects; the joint roster only describes the client-visible ordering.
+/// All world access goes through <see cref="ITeamJointContext"/>, so every flow below is
+/// deterministic and testable without a running World.
+/// </summary>
+public sealed class TeamJointManager(ITeamJointContext context, TimeProvider timeProvider = null)
+    : Singleton<TeamJointManager>
+{
+    private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
+    private static readonly TimeSpan RequestLifetime = TimeSpan.FromMinutes(1);
+
+    private readonly TimeProvider _timeProvider = timeProvider ?? TimeProvider.System;
+    private readonly ITeamJointContext _context = context;
+    private readonly ConcurrentDictionary<uint, JointSession> _sessions = new();
+    private readonly ConcurrentDictionary<uint, PendingJoint> _pendingJoints = new();
+    private readonly ConcurrentDictionary<uint, PendingSummon> _pendingSummons = new();
+    private readonly ConcurrentDictionary<uint, PendingBreak> _pendingBreaks = new();
+
+    /// <summary>Pending joint requests, keyed by the requesting team.</summary>
+    internal int PendingJointCount => _pendingJoints.Count;
+
+    /// <summary>Active joint sessions.</summary>
+    internal int SessionCount => _sessions.Count;
+
+    /// <summary>Pending summon rounds, keyed by recipient.</summary>
+    internal int PendingSummonCount => _pendingSummons.Count;
+
+    /// <summary>Pending break asks.</summary>
+    internal int PendingBreakCount => _pendingBreaks.Count;
+
+    /// <summary>The joint state currently published on a team, or null when it is not federated.</summary>
+    public TeamJointRoster? GetSession(uint teamId) =>
+        _sessions.Values.FirstOrDefault(session => session.Contains(teamId))?.Roster;
+
+    public static bool TryGet(out TeamJointManager manager)
+    {
+        manager = SingletonContainer.ServiceProvider?.GetService<TeamJointManager>();
+        return manager != null;
+    }
+
+    public void RequestJointInfo(uint requesterId, ulong type, sbyte mode, string targetName, sbyte worldId)
+    {
+        PurgeExpired();
+
+        if (!TeamJointModes.IsKnownWireMode(mode) || !TeamJointModes.IsRequestMode(mode))
+        {
+            Logger.Warn("Team joint request from {0} used unknown mode {1}.", requesterId, mode);
+            _context.SendError(requesterId, ErrorMessageType.TeamNoRights);
+            return;
+        }
+
+        // The target context menu is invoked with an empty name and this packet carries no target
+        // unit id, so there is nothing to resolve it against. Refuse instead of guessing.
+        if (mode == TeamJointModes.MenuTargetRequest || string.IsNullOrWhiteSpace(targetName))
+        {
+            Logger.Warn("Team joint request from {0} carried no resolvable target name (mode {1}).",
+                requesterId, mode);
+            _context.SendError(requesterId, ErrorMessageType.TeamInviteeOffline);
+            return;
+        }
+
+        if (!_context.IsLocalWorld(worldId))
+        {
+            _context.SendError(requesterId, ErrorMessageType.TeamInviteeOffline);
+            return;
+        }
+
+        var sourceTeam = _context.FindTeamByMember(requesterId);
+        var targetCharacter = _context.FindCharacterByName(targetName);
+        var targetTeam = targetCharacter == null ? null : _context.FindTeamByMember(targetCharacter.Id);
+
+        if (sourceTeam == null || targetTeam == null || targetCharacter == null ||
+            !sourceTeam.CanManage(requesterId) || !targetTeam.IsRaid || sourceTeam.Id == targetTeam.Id)
+        {
+            _context.SendError(requesterId, ErrorMessageType.TeamNoRights);
+            return;
+        }
+
+        if (_sessions.Values.Any(session => session.Contains(sourceTeam.Id) || session.Contains(targetTeam.Id)))
+        {
+            _context.SendError(requesterId, ErrorMessageType.TeamInviteeInTeam);
+            return;
+        }
+
+        if (_pendingJoints.Values.Any(pending =>
+                pending.SourceTeamId == sourceTeam.Id || pending.TargetTeamId == targetTeam.Id))
+        {
+            _context.SendError(requesterId, ErrorMessageType.TeamLoading);
+            return;
+        }
+
+        if (!TeamJointRules.Fits(sourceTeam.MemberCount, targetTeam.MemberCount, Team.RaidMemberLimit))
+        {
+            _context.SendError(requesterId, ErrorMessageType.TeamFull);
+            return;
+        }
+
+        var sourceOwner = OnlineTeamOwner(sourceTeam);
+        var targetOwner = OnlineTeamOwner(targetTeam);
+        if (sourceOwner == null || targetOwner == null)
+        {
+            _context.SendError(requesterId, ErrorMessageType.TeamInvitorOffline);
+            return;
+        }
+
+        _pendingJoints[sourceTeam.Id] = new PendingJoint(
+            sourceTeam.Id,
+            targetTeam.Id,
+            requesterId,
+            type,
+            _timeProvider.GetUtcNow() + RequestLifetime);
+
+        _context.Send(requesterId, new SCTeamJointInfoPacket(TeamJointModes.RequestPrompt, new TeamJointInfo(
+            unchecked((long)type),
+            targetOwner.Name,
+            targetTeam.Id,
+            targetTeam.MemberCount,
+            0,
+            false)));
+    }
+
+    public void RespondToJoint(uint responderId, ulong type, bool myTeamLeader, bool accept, bool timeout)
+    {
+        PurgeExpired();
+        var team = _context.FindTeamByMember(responderId);
+        if (team == null)
+            return;
+
+        // The dictionary is keyed by the requesting team, so the answering side is found by role.
+        PendingJoint pending = null;
+        if (_pendingJoints.TryGetValue(team.Id, out var keyed) &&
+            (keyed.SourceTeamId == team.Id || keyed.TargetTeamId == team.Id))
+            pending = keyed;
+        pending ??= _pendingJoints.Values.FirstOrDefault(value => value.TargetTeamId == team.Id);
+        if (pending == null)
+            return;
+
+        if (pending.Type != type)
+        {
+            _pendingJoints.TryRemove(pending.SourceTeamId, out _);
+            _context.SendError(responderId, ErrorMessageType.TeamLoading);
+            return;
+        }
+
+        var isSource = pending.SourceTeamId == team.Id;
+        var otherTeam = _context.FindTeam(isSource ? pending.TargetTeamId : pending.SourceTeamId);
+        if (otherTeam == null || !team.CanManage(responderId))
+        {
+            _context.SendError(responderId, ErrorMessageType.TeamNoRights);
+            return;
+        }
+
+        if (isSource)
+        {
+            if (!accept || timeout)
+            {
+                _pendingJoints.TryRemove(pending.SourceTeamId, out _);
+                NotifyJointRejected(pending, timeout);
+                return;
+            }
+
+            if (!_pendingJoints.TryUpdate(pending.SourceTeamId, pending with { LeaderChoice = myTeamLeader }, pending))
+                return;
+
+            var sourceOwner = OnlineTeamOwner(team);
+            var targetOwner = OnlineTeamOwner(otherTeam);
+            if (sourceOwner == null || targetOwner == null)
+            {
+                _pendingJoints.TryRemove(pending.SourceTeamId, out _);
+                return;
+            }
+
+            _context.Send(targetOwner.Id, new SCTeamJointInfoPacket(TeamJointModes.ResponsePrompt,
+                new TeamJointInfo(
+                    unchecked((long)type),
+                    sourceOwner.Name,
+                    team.Id,
+                    team.MemberCount,
+                    0,
+                    myTeamLeader)));
+            return;
+        }
+
+        if (!accept || timeout)
+        {
+            _pendingJoints.TryRemove(pending.SourceTeamId, out _);
+            NotifyJointRejected(pending, timeout);
+            return;
+        }
+
+        // The client's response frame has no role control: it echoes the flag it was given. A
+        // different value is a protocol error, not a legitimate decline.
+        if (myTeamLeader != pending.LeaderChoice)
+        {
+            _pendingJoints.TryRemove(pending.SourceTeamId, out _);
+            Logger.Warn("Team joint {0} answered with leader {1} but was offered {2}.",
+                pending.SourceTeamId, myTeamLeader, pending.LeaderChoice);
+            _context.SendError(responderId, ErrorMessageType.TeamNoRights);
+            return;
+        }
+
+        CommitJoint(pending with { LeaderChoice = myTeamLeader });
+    }
+
+    public void RespondToJointBreak(uint responderId, bool ask, bool accept)
+    {
+        var team = _context.FindTeamByMember(responderId);
+        if (team == null)
+            return;
+        var session = _sessions.Values.FirstOrDefault(value => value.Contains(team.Id));
+        if (session == null)
+            return;
+
+        if (ask)
+        {
+            if (!team.CanBreak(responderId))
+            {
+                _context.SendError(responderId, ErrorMessageType.TeamNoRights);
+                return;
+            }
+
+            if (!_pendingBreaks.TryAdd(session.JointId, new PendingBreak(team.Id, responderId)))
+                return;
+            var otherOwner = OnlineTeamOwner(_context.FindTeam(session.GetOtherTeamId(team.Id)));
+            if (otherOwner != null)
+                _context.Send(otherOwner.Id, new SCTeamJointBreakPacket(true, false));
+            return;
+        }
+
+        if (!_pendingBreaks.TryGetValue(session.JointId, out var pending) || pending.RequesterTeamId == team.Id)
+            return;
+        if (!team.CanManage(responderId))
+        {
+            _context.SendError(responderId, ErrorMessageType.TeamNoRights);
+            return;
+        }
+
+        _pendingBreaks.TryRemove(session.JointId, out _);
+        if (accept)
+        {
+            Dissolve(session.JointId);
+            return;
+        }
+
+        var requesterOwner = OnlineTeamOwner(_context.FindTeam(pending.RequesterTeamId));
+        if (requesterOwner != null)
+            _context.Send(requesterOwner.Id, new SCTeamJointBreakPacket(false, false));
+    }
+
+    public IReadOnlyList<uint> RequestSummons(uint summonerId)
+    {
+        PurgeExpired();
+        var team = _context.FindTeamByMember(summonerId);
+        var summoner = _context.FindCharacterById(summonerId);
+        if (team == null || summoner == null || !team.IsRaid || team.OwnerId != summonerId || !summoner.IsOnline)
+        {
+            if (summonerId != 0)
+                _context.SendError(summonerId, ErrorMessageType.TeamNoRights);
+            return [];
+        }
+
+        var targets = team.OnlineMemberIds
+            .Where(id => id != summonerId)
+            .Select(id => _context.FindCharacterById(id))
+            .Where(character => character is { IsOnline: true })
+            .Where(character => !_pendingSummons.ContainsKey(character.Id))
+            .ToArray();
+        if (targets.Length == 0)
+            return [];
+
+        foreach (var target in targets)
+        {
+            _pendingSummons[target.Id] = new PendingSummon(
+                target.Id,
+                summonerId,
+                summoner.Name,
+                _timeProvider.GetUtcNow() + RequestLifetime);
+            _context.Send(target.Id, new SCTeamSummonSuggestPacket(
+                summoner.Name,
+                team.Id,
+                summoner.ZoneId,
+                summoner.X,
+                summoner.Y,
+                summoner.Z));
+        }
+
+        var ids = targets.Select(target => target.Id).ToArray();
+        _context.Send(summonerId, new SCTeamSummonGetPacket(ids));
+        return ids;
+    }
+
+    public bool ReplyToSummon(uint recipientId, bool accepted, string summonerName)
+    {
+        PurgeExpired();
+        if (!_pendingSummons.TryGetValue(recipientId, out var pending) ||
+            !string.Equals(pending.SummonerName, summonerName, StringComparison.Ordinal))
+            return false;
+
+        if (!accepted)
+            return _pendingSummons.TryRemove(new KeyValuePair<uint, PendingSummon>(recipientId, pending));
+
+        // Consume the round before acting on it. A duplicated accept finds nothing left to consume
+        // and is refused, so one round can never emit the consent packet twice.
+        if (!_pendingSummons.TryRemove(new KeyValuePair<uint, PendingSummon>(recipientId, pending)))
+            return false;
+
+        var summoner = _context.FindCharacterById(pending.SummonerId);
+        var recipient = _context.FindCharacterById(recipientId);
+        if (summoner is not { IsOnline: true } || recipient is not { IsOnline: true } || recipient.IsInBattle)
+            return false;
+
+        _context.Send(recipientId, new SCTeamSummonPacket());
+        return true;
+    }
+
+    /// <summary>
+    /// Releases everything the character owns. A joint session is only dissolved when the team the
+    /// character owned goes away with it; a member of a still-running raid going offline must not
+    /// tear the federation down. TeamManager disbands that team separately, which arrives here
+    /// through <see cref="OnTeamDisbanded"/>.
+    /// </summary>
+    public void OnCharacterLogout(uint characterId)
+    {
+        PurgeExpired();
+        if (characterId == 0)
+            return;
+
+        // Only the round's own character owns it. A raid member who is not the requesting owner or
+        // officer, and not the leader who raised a break, must not cancel work someone else started.
+        RemovePendingSummonsOf(characterId);
+        RemovePendingJointsRaisedBy(characterId);
+        RemovePendingBreaksRaisedBy(characterId);
+
+        var team = _context.FindTeamByMember(characterId);
+        if (team == null)
+            return;
+
+        if (team.OwnerId == characterId && !team.HasOnlineMembersExcept(characterId))
+            ReleaseForTeam(team.Id, team.Id);
+    }
+
+    public void OnTeamDisbanded(uint teamId)
+    {
+        if (teamId == 0)
+            return;
+        ReleaseForTeam(teamId, teamId);
+    }
+
+    private void ReleaseForTeam(uint teamId, uint skipTeamId)
+    {
+        // The whole team is going away, so every request that names it goes with it regardless of
+        // which character raised it.
+        RemovePendingJointsForTeam(teamId);
+        DropSummonsForTeam(teamId);
+
+        foreach (var session in _sessions.Values.Where(value => value.Contains(teamId)).ToArray())
+            Dissolve(session.JointId, skipTeamId);
+    }
+
+    private void RemovePendingSummonsOf(uint characterId)
+    {
+        foreach (var entry in _pendingSummons)
+        {
+            if (entry.Value.SummonerId == characterId || entry.Value.RecipientId == characterId)
+                _pendingSummons.TryRemove(entry.Key, out _);
+        }
+    }
+
+    private void RemovePendingJointsRaisedBy(uint characterId)
+    {
+        foreach (var entry in _pendingJoints)
+        {
+            if (entry.Value.RequesterCharacterId == characterId)
+                _pendingJoints.TryRemove(entry.Key, out _);
+        }
+    }
+
+    private void RemovePendingBreaksRaisedBy(uint characterId)
+    {
+        foreach (var entry in _pendingBreaks)
+        {
+            if (entry.Value.RequesterCharacterId == characterId)
+                _pendingBreaks.TryRemove(entry.Key, out _);
+        }
+    }
+
+    private void RemovePendingJointsForTeam(uint teamId)
+    {
+        foreach (var entry in _pendingJoints)
+        {
+            if (entry.Value.SourceTeamId == teamId || entry.Value.TargetTeamId == teamId)
+                _pendingJoints.TryRemove(entry.Key, out _);
+        }
+    }
+
+    private void DropSummonsForTeam(uint teamId)
+    {
+        var team = _context.FindTeam(teamId);
+        if (team == null)
+            return;
+        foreach (var memberId in team.OnlineMemberIds)
+            _pendingSummons.TryRemove(memberId, out _);
+    }
+
+    private void CommitJoint(PendingJoint pending)
+    {
+        var sourceTeam = _context.FindTeam(pending.SourceTeamId);
+        var targetTeam = _context.FindTeam(pending.TargetTeamId);
+        if (sourceTeam == null || targetTeam == null || !sourceTeam.IsRaid || !targetTeam.IsRaid ||
+            !TeamJointRules.Fits(sourceTeam.MemberCount, targetTeam.MemberCount, Team.RaidMemberLimit))
+        {
+            _pendingJoints.TryRemove(pending.SourceTeamId, out _);
+            return;
+        }
+
+        var leaderTeamId = pending.LeaderChoice ? pending.SourceTeamId : pending.TargetTeamId;
+        var followerTeamId = leaderTeamId == pending.SourceTeamId ? pending.TargetTeamId : pending.SourceTeamId;
+        var leaderCount = leaderTeamId == pending.SourceTeamId ? sourceTeam.MemberCount : targetTeam.MemberCount;
+        var followerCount = followerTeamId == pending.SourceTeamId ? sourceTeam.MemberCount : targetTeam.MemberCount;
+
+        var roster = new TeamJointRoster(pending.SourceTeamId, leaderTeamId);
+        if (!roster.TryAdd(leaderTeamId, leaderCount, Team.RaidMemberLimit) ||
+            !roster.TryAdd(followerTeamId, followerCount, Team.RaidMemberLimit))
+            return;
+
+        _pendingJoints.TryRemove(pending.SourceTeamId, out _);
+        _sessions[roster.JointId] = new JointSession(roster);
+        PublishJoint(roster, pending.Type);
+    }
+
+    private void PublishJoint(TeamJointRoster roster, ulong type)
+    {
+        foreach (var entry in roster.Entries)
+        {
+            var order = checked((int)roster.GetOrder(entry.TeamId));
+            _context.ApplyJoint(entry.TeamId, roster.JointId, entry.IsLeader, order);
+            foreach (var memberId in OnlineMemberIdsOf(entry.TeamId))
+            {
+                _context.SendTeamHeader(entry.TeamId, memberId);
+                _context.Send(memberId, new SCTeamJointPacket(
+                    roster.GetOtherTeamId(entry.TeamId),
+                    roster.LeaderTeamId,
+                    unchecked((long)type),
+                    SCTeamJointPacket.PacketModeUnresolved,
+                    order));
+            }
+        }
+    }
+
+    private void Dissolve(uint jointId, uint skipTeamId = 0)
+    {
+        if (!_sessions.TryRemove(jointId, out var session))
+            return;
+        _pendingBreaks.TryRemove(jointId, out _);
+
+        foreach (var entry in session.Roster.Entries)
+        {
+            _context.ClearJoint(entry.TeamId);
+            if (entry.TeamId == skipTeamId)
+                continue;
+            foreach (var memberId in OnlineMemberIdsOf(entry.TeamId))
+            {
+                _context.SendTeamHeader(entry.TeamId, memberId);
+                _context.Send(memberId, new SCTeamJointBreakPacket(false, true));
+            }
+        }
+    }
+
+    private void NotifyJointRejected(PendingJoint pending, bool timeout)
+    {
+        var sourceOwner = OnlineTeamOwner(_context.FindTeam(pending.SourceTeamId));
+        var targetOwner = OnlineTeamOwner(_context.FindTeam(pending.TargetTeamId));
+        var packet = new SCTeamJointPacket(
+            pending.TargetTeamId,
+            pending.SourceTeamId,
+            unchecked((long)pending.Type),
+            SCTeamJointPacket.PacketModeUnresolved,
+            0);
+        if (sourceOwner != null)
+            _context.Send(sourceOwner.Id, packet);
+        if (!timeout && targetOwner != null)
+            _context.Send(targetOwner.Id, packet);
+    }
+
+    private void PurgeExpired()
+    {
+        var now = _timeProvider.GetUtcNow();
+        foreach (var entry in _pendingJoints.Where(entry => entry.Value.ExpiresAt <= now))
+            _pendingJoints.TryRemove(entry.Key, out _);
+        foreach (var entry in _pendingSummons.Where(entry => entry.Value.ExpiresAt <= now))
+            _pendingSummons.TryRemove(entry.Key, out _);
+    }
+
+    private TeamJointCharacterSnapshot? OnlineTeamOwner(TeamJointTeamSnapshot? team)
+    {
+        if (team == null)
+            return null;
+        var owner = _context.FindCharacterById(team.OwnerId);
+        return owner is { IsOnline: true } ? owner : null;
+    }
+
+    private uint[] OnlineMemberIdsOf(uint teamId)
+    {
+        var team = _context.FindTeam(teamId);
+        if (team == null)
+            return [];
+        return team.OnlineMemberIds
+            .Where(id => _context.FindCharacterById(id) is { IsOnline: true })
+            .ToArray();
+    }
+
+    private sealed record PendingJoint(
+        uint SourceTeamId,
+        uint TargetTeamId,
+        uint RequesterCharacterId,
+        ulong Type,
+        DateTimeOffset ExpiresAt,
+        bool LeaderChoice = false);
+
+    private sealed record PendingBreak(uint RequesterTeamId, uint RequesterCharacterId);
+
+    private sealed record PendingSummon(
+        uint RecipientId,
+        uint SummonerId,
+        string SummonerName,
+        DateTimeOffset ExpiresAt);
+
+    private sealed class JointSession(TeamJointRoster roster)
+    {
+        public TeamJointRoster Roster { get; } = roster;
+        public uint JointId => Roster.JointId;
+        public bool Contains(uint teamId) => Roster.Contains(teamId);
+        public uint GetOtherTeamId(uint teamId) => Roster.GetOtherTeamId(teamId);
+    }
+}

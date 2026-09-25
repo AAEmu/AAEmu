@@ -1,10 +1,12 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO(v10): the body is parsed but nothing acts on it yet.
+/// Requests joint information for a named raid team; the world manager owns the authorization
+/// and the pending handshake state.
 /// </summary>
 /// <remarks>
 /// which passes each field name alongside the value:
@@ -23,5 +25,8 @@ public class CSTeamJointInfoPacket() : GamePacket(CSOffsets.CSTeamJointInfoPacke
         Mode = stream.ReadSByte();
         Name = stream.ReadString();
         WorldId = stream.ReadSByte();
+
+        if (Connection?.ActiveChar is { } character)
+            TeamJointManager.Instance.RequestJointInfo(character.Id, Type, Mode, Name, WorldId);
     }
 }
