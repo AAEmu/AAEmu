@@ -301,7 +301,7 @@ public class Slave : Unit
     }
 
     public bool HasSeat(AttachPointKind attachPoint) =>
-        SeatTopologyRules.IsRiderSeat(attachPoint) && _availableSeats.Contains(attachPoint);
+        SeatTopologyRules.IsBoardableAttachPoint(attachPoint) && _availableSeats.Contains(attachPoint);
 
     #region Attributes
     [UnitAttribute(UnitAttribute.Str)]

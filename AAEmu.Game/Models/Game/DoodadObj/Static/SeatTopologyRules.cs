@@ -3,7 +3,7 @@
 public static class SeatTopologyRules
 {
     /// <summary>
-    /// Only the rider positions are seats. Mount skills also name mast, sail, equipment and
+    /// Only the rider positions are passenger seats. Mount skills also name mast, sail, equipment and
     /// presentation attach points; those must never be exposed as passenger capacity.
     /// </summary>
     public static bool IsRiderSeat(AttachPointKind attachPoint) =>
@@ -16,6 +16,13 @@ public static class SeatTopologyRules
             or AttachPointKind.Passenger5
             or AttachPointKind.Passenger6;
 
+    /// <summary>
+    /// Attach points that can carry a character onto a slave. The telescope is a content-backed
+    /// DoodadFuncAttachment point, not a passenger slot, but it uses the same BindSlave path.
+    /// </summary>
+    public static bool IsBoardableAttachPoint(AttachPointKind attachPoint) =>
+        IsRiderSeat(attachPoint) || attachPoint == AttachPointKind.Telescope;
+
     public static bool TryNormalize(int rawAttachPoint, out AttachPointKind attachPoint)
     {
         if (rawAttachPoint < byte.MinValue || rawAttachPoint > byte.MaxValue)
@@ -25,12 +32,12 @@ public static class SeatTopologyRules
         }
 
         attachPoint = (AttachPointKind)(byte)rawAttachPoint;
-        return IsRiderSeat(attachPoint);
+        return IsBoardableAttachPoint(attachPoint);
     }
 
     public static IReadOnlyList<AttachPointKind> Normalize(IEnumerable<AttachPointKind> attachPoints) =>
         (attachPoints ?? [])
-            .Where(IsRiderSeat)
+            .Where(IsBoardableAttachPoint)
             .Distinct()
             .OrderBy(point => (byte)point)
             .ToArray();

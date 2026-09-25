@@ -759,8 +759,9 @@ public class SlaveGameData : Singleton<SlaveGameData>, IGameDataLoader
     }
 
     /// <summary>
-    /// Rider attach points explicitly joined to this slave through slave_mount_skills. Capacity is
-    /// deliberately not consulted: it is a count, not a topology.
+    /// Boardable attach points proven by slave_mount_skills, model_bindings rows keyed by
+    /// slaves.model_id, the mountable driver rule, and slave doodad bindings. Capacity is never
+    /// used as topology.
     /// </summary>
     public IReadOnlyList<AttachPointKind> GetSlaveSeats(uint slaveTemplateId) =>
         _seatCatalog.GetSeats(slaveTemplateId);

@@ -61,16 +61,22 @@ public class MateSeatCatalogTests
         Execute(connection, "INSERT INTO mount_attached_skills VALUES (701, 1), (701, 2), (701, 35)");
         Execute(connection, "CREATE TABLE item_summon_mates (npc_id INTEGER NOT NULL)");
         Execute(connection, "INSERT INTO item_summon_mates VALUES (808)");
+        Execute(connection, "CREATE TABLE npcs (id INTEGER PRIMARY KEY, model_id INTEGER NOT NULL)");
+        Execute(connection, "CREATE TABLE model_bindings (owner_id INTEGER NOT NULL, owner_type TEXT NOT NULL, attach_point_id INTEGER NOT NULL)");
+        Execute(connection, "INSERT INTO npcs VALUES (404, 901), (808, 902)");
+        Execute(connection, "INSERT INTO model_bindings VALUES (901, 'Model', 1), (901, 'Model', 2), (901, 'Model', 80)");
 
         var catalog = new MateSeatCatalog();
         catalog.Load(connection);
 
         await Assert.That(catalog.HasSeat(808, AttachPointKind.Driver)).IsTrue();
+        await Assert.That(catalog.HasSeat(404, AttachPointKind.Telescope)).IsTrue();
 
         await Assert.That(catalog.GetSeats(404)).IsEquivalentTo(new[]
         {
             AttachPointKind.Driver,
             AttachPointKind.Passenger0,
+            AttachPointKind.Telescope,
         });
     }
 

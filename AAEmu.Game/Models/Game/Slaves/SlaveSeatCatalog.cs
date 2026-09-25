@@ -41,6 +41,20 @@ public sealed class SlaveSeatCatalog
         }
 
         command.CommandText = """
+            SELECT s.id AS template_id, mb.attach_point_id
+            FROM slaves AS s
+            INNER JOIN model_bindings AS mb
+                ON mb.owner_id = s.model_id
+               AND mb.owner_type = 'Model'
+            ORDER BY s.id, mb.attach_point_id
+            """;
+        using (var modelBindings = new SQLiteWrapperReader(command.ExecuteReader()))
+        {
+            while (modelBindings.Read())
+                Add(modelBindings.GetUInt32("template_id"), modelBindings.GetInt32("attach_point_id"));
+        }
+
+        command.CommandText = """
             SELECT owner_id, attach_point_id
             FROM slave_doodad_bindings
             WHERE owner_type = 'Slave'
@@ -48,7 +62,7 @@ public sealed class SlaveSeatCatalog
         using (var bindings = new SQLiteWrapperReader(command.ExecuteReader()))
         {
             while (bindings.Read())
-                AddBinding(bindings.GetUInt32("owner_id"), bindings.GetInt32("attach_point_id"));
+                Add(bindings.GetUInt32("owner_id"), bindings.GetInt32("attach_point_id"));
         }
     }
 
@@ -81,19 +95,5 @@ public sealed class SlaveSeatCatalog
         }
 
         seats.Add(attachPoint);
-    }
-
-    private void AddBinding(uint slaveId, int rawAttachPoint)
-    {
-        if (rawAttachPoint <= byte.MinValue || rawAttachPoint > byte.MaxValue)
-            return;
-
-        if (!_seatsBySlave.TryGetValue(slaveId, out var seats))
-        {
-            seats = [];
-            _seatsBySlave[slaveId] = seats;
-        }
-
-        seats.Add((AttachPointKind)(byte)rawAttachPoint);
     }
 }

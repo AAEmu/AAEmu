@@ -35,6 +35,20 @@ public sealed class MateSeatCatalog
             while (mates.Read())
                 Add(mates.GetUInt32("npc_id"), (int)AttachPointKind.Driver);
         }
+
+        command.CommandText = """
+            SELECT n.id AS template_id, mb.attach_point_id
+            FROM npcs AS n
+            INNER JOIN model_bindings AS mb
+                ON mb.owner_id = n.model_id
+               AND mb.owner_type = 'Model'
+            ORDER BY n.id, mb.attach_point_id
+            """;
+        using (var modelBindings = new SQLiteWrapperReader(command.ExecuteReader()))
+        {
+            while (modelBindings.Read())
+                Add(modelBindings.GetUInt32("template_id"), modelBindings.GetInt32("attach_point_id"));
+        }
     }
 
     public void LoadFromRows(IEnumerable<(uint TemplateId, int AttachPointId)> rows)

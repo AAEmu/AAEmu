@@ -58,8 +58,8 @@ public class MateGameData : Singleton<MateGameData>, IGameDataLoader
         _mateEquipSlotPacks.TryGetValue(equipSlotPackId, out var pack) ? pack.MateTypeId : (byte)0;
 
     /// <summary>
-    /// Rider attach points explicitly joined to this NPC through mount skills. The catalog never
-    /// infers seats from a capacity or equipment field.
+    /// Boardable attach points proven by the NPC's mount-skill rows, model_bindings rows keyed by
+    /// npcs.model_id, and the item-summon driver rule. Capacity is never used as topology.
     /// </summary>
     public IReadOnlyList<AttachPointKind> GetMateSeats(uint npcId) => _seatCatalog.GetSeats(npcId);
 

@@ -53,6 +53,42 @@ public class SeatTopologyTests
     }
 
     [Test]
+    public async Task Slave_AllowsContentProvenTelescopeAndPassengerPoints()
+    {
+        var slave = new Slave();
+        slave.InitializeSeatTopology([
+            AttachPointKind.Passenger0,
+            AttachPointKind.Passenger1,
+            AttachPointKind.Telescope,
+            AttachPointKind.Cannon0,
+        ]);
+
+        await Assert.That(slave.HasSeat(AttachPointKind.Passenger0)).IsTrue();
+        await Assert.That(slave.HasSeat(AttachPointKind.Passenger1)).IsTrue();
+        await Assert.That(slave.HasSeat(AttachPointKind.Telescope)).IsTrue();
+        await Assert.That(slave.HasSeat(AttachPointKind.Cannon0)).IsFalse();
+    }
+
+    [Test]
+    public async Task Mate_AllowsTheSameContentProvenBoardablePoints()
+    {
+        var mate = new Mate();
+        mate.InitializeSeatTopology([
+            AttachPointKind.Driver,
+            AttachPointKind.Passenger0,
+            AttachPointKind.Telescope,
+            AttachPointKind.Box0,
+        ]);
+
+        await Assert.That(mate.Passengers.Keys).IsEquivalentTo(new[]
+        {
+            AttachPointKind.Driver,
+            AttachPointKind.Passenger0,
+            AttachPointKind.Telescope,
+        });
+    }
+
+    [Test]
     public async Task DeathCleanup_ReleasesEveryRiderFromAStableSnapshot()
     {
         var riders = new Dictionary<AttachPointKind, object>
