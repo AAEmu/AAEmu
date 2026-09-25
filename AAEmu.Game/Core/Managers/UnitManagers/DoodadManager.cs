@@ -326,6 +326,10 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                 }
             }
 
+            // doodad_func_local_development_board_ui_opens - the interaction opens the client's local
+            // development board window; the board type travels with the descriptor.
+            LoadLocalDevelopmentBoardUiOpenDescs(connection, _funcTemplates);
+
             // doodad_func_expedition_ui_opens - the interaction itself opens the client UI; the server
             // refreshes the expedition snapshot used by that UI.
             using (var command = connection.CreateCommand())
@@ -2586,6 +2590,38 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
     }
 
     /// <summary>
+    /// Reads the local-development board descriptors: one board type per interaction function.
+    /// </summary>
+    /// <remarks>
+    /// Split out of <see cref="Load"/> so the row shape can be pinned by tests without the whole
+    /// compact database. A row that repeats an id is content corruption and fails loudly instead of
+    /// silently replacing the descriptor the client already knows.
+    /// </remarks>
+    internal static void LoadLocalDevelopmentBoardUiOpenDescs(SqliteConnection connection,
+        IDictionary<string, Dictionary<uint, DoodadFuncTemplate>> funcTemplates)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(funcTemplates);
+
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT id, local_development_board_type_id FROM doodad_func_local_development_board_ui_opens";
+        command.Prepare();
+        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+        while (reader.Read())
+        {
+            var func = new DoodadFuncLocalDevelopmentBoardUiOpen
+            {
+                Id = reader.GetUInt32("id"),
+                LocalDevelopmentBoardTypeId = reader.GetUInt32("local_development_board_type_id")
+            };
+            if (!funcTemplates[nameof(DoodadFuncLocalDevelopmentBoardUiOpen)].TryAdd(func.Id, func))
+                throw new InvalidOperationException(
+                    $"Duplicate doodad_func_local_development_board_ui_opens id {func.Id}");
+        }
+    }
+
+    /// <summary>
     /// Zone WZCreateDoodad looks up modelId in the models registry; path comes from PrefabModel
     /// </summary>
     private void LoadZoneModelIdMap(SqliteConnection connection)
@@ -3109,6 +3145,33 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                 foreach (var func in GetFuncsForGroup(group.Id))
                 {
                     if (func.FuncType != nameof(DoodadFuncCraftOrderBoardUiOpen))
+                        continue;
+                    dest.Add(template.Id);
+                    goto NextTemplate;
+                }
+            }
+
+            NextTemplate: ;
+        }
+    }
+
+    /// <summary>
+    /// Templates whose F-key opens a local development board. They are not <c>client_doodad</c> and
+    /// have no quest func, so LevelPack must list them or the cell <c>doodad.g</c> stands stay
+    /// unplanted and the client never receives the descriptor that opens the board.
+    /// </summary>
+    public void AddLocalDevelopmentBoardTemplateIds(ISet<uint> dest)
+    {
+        if (dest == null || _templates == null)
+            return;
+
+        foreach (var template in _templates.Values)
+        {
+            foreach (var group in template.FuncGroups)
+            {
+                foreach (var func in GetFuncsForGroup(group.Id))
+                {
+                    if (func.FuncType != nameof(DoodadFuncLocalDevelopmentBoardUiOpen))
                         continue;
                     dest.Add(template.Id);
                     goto NextTemplate;

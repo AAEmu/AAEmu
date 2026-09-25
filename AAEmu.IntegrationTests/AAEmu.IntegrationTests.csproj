@@ -9,6 +9,8 @@
   <ItemGroup>
     <ProjectReference Include="..\AAEmu.Commons\AAEmu.Commons.csproj" />
     <ProjectReference Include="..\AAEmu.Game\AAEmu.Game.csproj" />
+    <!-- Level-pack placement tests read the real doodad.g cells through the production catalog. -->
+    <ProjectReference Include="..\AAEmu.WorldServer\AAEmu.World\AAEmu.World.csproj" />
   </ItemGroup>
 
   <ItemGroup>
