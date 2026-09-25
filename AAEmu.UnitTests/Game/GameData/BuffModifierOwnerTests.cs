@@ -1,4 +1,5 @@
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game.Expeditions;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Static;
 
@@ -107,6 +108,10 @@ public class BuffModifierOwnerTests : SqliteTestBase
         await Assert.That(grade.Count).IsEqualTo(1);
         await Assert.That(grade[0].OwnerType).IsEqualTo("ExpeditionBuffGrade");
         await Assert.That(grade[0].Value).IsEqualTo(-20000);
+
+        var semantics = GuildBuffDurationRules.Classify(
+            new ExpeditionBuffGrade { Id = 10 }, BuffGameData.Instance.GetGradeModifiers(10));
+        await Assert.That(semantics).IsEqualTo(GuildBuffDurationSemantics.AppliedThroughBuffModifier);
     }
 
     [Test]

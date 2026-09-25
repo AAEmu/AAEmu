@@ -19,8 +19,10 @@ public class ExpeditionBuffGameData : Singleton<ExpeditionBuffGameData>, IGameDa
     private Dictionary<uint, ExpeditionBuffTemplate> _buffsById = [];
     private Dictionary<uint, List<ExpeditionBuffGrade>> _gradesByBuffId = [];
     private Dictionary<uint, List<(UnitAttribute Attribute, UnitModifierType ModifierType, long Value)>> _bonusesByGradeId = [];
+    private IReadOnlyList<string> _contentDiagnostics = [];
 
     public IEnumerable<ExpeditionBuffTemplate> Buffs => _buffsById.Values;
+    public IReadOnlyList<string> ContentDiagnostics => _contentDiagnostics;
 
     public ExpeditionBuffTemplate GetBuff(uint buffId) => _buffsById.GetValueOrDefault(buffId);
 
@@ -44,6 +46,7 @@ public class ExpeditionBuffGameData : Singleton<ExpeditionBuffGameData>, IGameDa
         _buffsById = [];
         _gradesByBuffId = [];
         _bonusesByGradeId = [];
+        _contentDiagnostics = [];
 
         using (var command = connection.CreateCommand())
         {
@@ -110,6 +113,62 @@ public class ExpeditionBuffGameData : Singleton<ExpeditionBuffGameData>, IGameDa
 
     public void PostLoad()
     {
+        var diagnostics = new List<string>();
+        var gradeIds = new HashSet<uint>();
+        var noItemId = 0u;
+
+        foreach (var buff in _buffsById.Values.OrderBy(row => row.Id))
+        {
+            if (!_gradesByBuffId.TryGetValue(buff.Id, out var grades) || grades.Count == 0)
+            {
+                diagnostics.Add($"buff {buff.Id} has no grades");
+                continue;
+            }
+
+            var expectedGrade = 1u;
+            foreach (var grade in grades.OrderBy(row => row.Grade))
+            {
+                if (grade.Id == 0 || !gradeIds.Add(grade.Id))
+                    diagnostics.Add($"buff {buff.Id} grade {grade.Grade} has a duplicate or empty grade id");
+                if (grade.ExpeditionBuffId != buff.Id)
+                    diagnostics.Add($"grade {grade.Id} points at buff {grade.ExpeditionBuffId}, not {buff.Id}");
+                if (grade.Grade != expectedGrade)
+                    diagnostics.Add($"buff {buff.Id} grade sequence has {grade.Grade}, expected {expectedGrade}");
+                expectedGrade++;
+                if (buff.ExpeditionLevelId == 0 || grade.ExpeditionLevelId == 0)
+                    diagnostics.Add($"buff {buff.Id} grade {grade.Grade} has no expedition level requirement");
+                if (grade.Contribution < 0)
+                    diagnostics.Add($"grade {grade.Id} has a negative contribution cost");
+                if (grade.Count < 0 || (grade.ItemId == noItemId && grade.Count != 0) ||
+                    (grade.ItemId != noItemId && grade.Count <= 0))
+                    diagnostics.Add($"grade {grade.Id} has an invalid item cost");
+                if (grade.SummonLimit < 0 || grade.PortalPointLimit < 0)
+                    diagnostics.Add($"grade {grade.Id} has a negative capacity bonus");
+            }
+        }
+
+        foreach (var ownerId in _bonusesByGradeId.Keys)
+        {
+            if (!gradeIds.Contains(ownerId))
+                diagnostics.Add($"unit modifier owner {ownerId} has no expedition buff grade");
+        }
+
+        _contentDiagnostics = diagnostics;
+        if (diagnostics.Count > 0)
+            throw new InvalidOperationException("Expedition buff content is inconsistent: " + string.Join("; ", diagnostics));
+    }
+
+    /// <summary>
+    /// Classifies the only duration behavior that is authored for a purchased grade: a duration
+    /// modifier row. The grade table itself has no expiry/TTL field, so no grade timer is inferred.
+    /// </summary>
+    internal GuildBuffDurationSemantics GetDurationSemantics(uint buffId, byte grade)
+    {
+        var gradeTemplate = GetGrade(buffId, grade);
+        if (gradeTemplate == null)
+            return GuildBuffDurationSemantics.UnknownGrade;
+
+        return GuildBuffDurationRules.Classify(gradeTemplate, BuffGameData.Instance.GetGradeModifiers(gradeTemplate.Id));
     }
 
     /// <summary>

@@ -1318,50 +1318,30 @@ public class ExpeditionManager(IExpeditionIdManager expeditionIdManager, ITeamMa
         {
 
         var grade = ExpeditionBuffGameData.Instance.GetGrade(buffId, targetGrade);
-        if (grade == null)
-        {
-            Logger.Warn("ExpeditionBuffGrade purchase rejected: no game data for buffId={0} grade={1} (character {2}, expedition {3})", buffId, targetGrade, character.Name, expedition.Name);
-            character.SendErrorMessage(ErrorMessageType.Invalid);
-            return false;
-        }
-
         var currentGrade = expedition.PurchasedBuffGrades.GetValueOrDefault(buffId, (byte)0);
-        if (targetGrade != currentGrade + 1)
-        {
-            Logger.Warn("ExpeditionBuffGrade purchase rejected: buffId={0} requested grade={1} but current grade is {2} (must buy {3} next) (character {4}, expedition {5})",
-                buffId, targetGrade, currentGrade, currentGrade + 1, character.Name, expedition.Name);
-            character.SendErrorMessage(ErrorMessageType.Invalid);
-            return false;
-        }
-
-        if (expedition.Level < grade.ExpeditionLevelId)
-        {
-            Logger.Warn("ExpeditionBuffGrade purchase rejected: buffId={0} grade={1} requires expedition level {2}, expedition {3} is level {4}",
-                buffId, targetGrade, grade.ExpeditionLevelId, expedition.Name, expedition.Level);
-            character.SendErrorMessage(ErrorMessageType.Invalid);
-            return false;
-        }
-
-        // expedition_buff_grades.housing requires the guild to already have its Guild Residence placed.
-        if (grade.Housing && expedition.ResidenceHouseId == 0)
-        {
-            Logger.Warn("ExpeditionBuffGrade purchase rejected: buffId={0} grade={1} requires the guild to have a placed Guild Residence, expedition {2} has none",
-                buffId, targetGrade, expedition.Name);
-            character.SendErrorMessage(ErrorMessageType.Invalid);
-            return false;
-        }
-
-        if (grade.Contribution < 0 || grade.Count < 0)
-            return false;
-        var contributionCost = (uint)grade.Contribution;
         var member = expedition.GetMember(character);
-        if (member == null || member.ContributionPoint < contributionCost)
+        if (member == null)
         {
-            Logger.Warn("ExpeditionBuffGrade purchase rejected: buffId={0} grade={1} costs {2} contribution, character {3} could not pay",
-                buffId, targetGrade, grade.Contribution, character.Name);
+            Logger.Warn("ExpeditionBuffGrade purchase rejected: character {0} is not a member of expedition {1}",
+                character.Name, expedition.Name);
             character.SendErrorMessage(ErrorMessageType.NotEnoughRequiredItem);
             return false;
         }
+
+        var decision = GuildBuffPurchaseRules.Evaluate(
+            ExpeditionBuffGameData.Instance.GetBuff(buffId), grade, currentGrade, expedition.Level,
+            expedition.ResidenceHouseId, member.ContributionPoint);
+        if (!decision.IsAllowed)
+        {
+            Logger.Warn("ExpeditionBuffGrade purchase rejected: buffId={0} grade={1} reason={2} (character {3}, expedition {4})",
+                buffId, targetGrade, decision.Reason, character.Name, expedition.Name);
+            character.SendErrorMessage(decision.Reason == GuildBuffPurchaseRejection.InsufficientContribution
+                ? ErrorMessageType.NotEnoughRequiredItem
+                : ErrorMessageType.Invalid);
+            return false;
+        }
+
+        var contributionCost = (uint)grade!.Contribution;
 
         lock (member)
         lock (character.Inventory.MutationSyncRoot)
