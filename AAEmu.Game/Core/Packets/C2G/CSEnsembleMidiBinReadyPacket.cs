@@ -1,4 +1,4 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
 
@@ -24,7 +24,22 @@ public class CSEnsembleMidiBinReadyPacket() : GamePacket(CSOffsets.CSEnsembleMid
         Bc = stream.ReadBc();
         Bc2 = stream.ReadBc();
         Size = stream.ReadUInt32();
-        Data = stream.ReadString();
+
+        // ReadString turns a negative/short length into an empty string. Parse the signed length here
+        // so malformed and zero-length payloads stay rejected instead of becoming a ready part.
+        var dataLength = stream.ReadInt16();
+        if (dataLength <= 0)
+        {
+            Data = string.Empty;
+            return;
+        }
+
+        var dataBytes = stream.ReadBytes(dataLength);
+        Data = dataBytes.Length == dataLength
+            ? System.Text.Encoding.UTF8.GetString(dataBytes).Trim('\0')
+            : string.Empty;
+        if (Data.Length == 0)
+            Data = string.Empty;
     }
 
     public override void Execute()
@@ -33,7 +48,7 @@ public class CSEnsembleMidiBinReadyPacket() : GamePacket(CSOffsets.CSEnsembleMid
         if (character == null)
             return;
 
-        if (!MusicManager.Instance.EnsemblePartReady(character, Data))
+        if (!MusicManager.Instance.EnsemblePartReady(character, Bc, Bc2, Size, Data))
             Logger.Warn("Ensemble: {0} sent a part that belongs to no ensemble of theirs", character.Name);
     }
 }

@@ -1,4 +1,4 @@
-namespace AAEmu.Game.Models.Game.Music;
+﻿namespace AAEmu.Game.Models.Game.Music;
 
 /// <summary>What an invitation answer did, so the caller knows which packet to send and to whom.</summary>
 public enum EnsembleJoinResult
@@ -150,6 +150,9 @@ public class EnsembleSession
 
         return _members.Remove(bc);
     }
+
+    /// <summary>Whether the player is seated in the ensemble, rather than only invited.</summary>
+    public bool IsMember(uint bc) => _members.Contains(bc);
 
     /// <summary>The player this ensemble belongs to, invited or seated.</summary>
     public bool Involves(uint bc)

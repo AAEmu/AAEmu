@@ -317,6 +317,14 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         return null;
     }
 
+    private EnsembleSession FindEnsemble(uint memberBc, uint maestroBc)
+    {
+        PruneEnsembles();
+        return _ensembles.TryGetValue(maestroBc, out var session) && session.Involves(memberBc)
+            ? session
+            : null;
+    }
+
     /// <summary>Takes an invitation up and tells the ensemble who is in it now.</summary>
     public EnsembleJoinResult AcceptEnsemble(Character member)
     {
@@ -359,23 +367,25 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
     }
 
     /// <summary>
-    /// A member's part arrived: the maestro is handed it. The performance itself starts when the maestro
-    /// plays the ensemble skill, not here — a part arriving is not the same as everybody being ready.
+    /// A member's part arrived: the maestro is handed it. The sender, maestro, and byte count are
+    /// checked before the session is changed, so a malformed request cannot reserve a member's part.
     /// </summary>
-    public bool EnsemblePartReady(Character member, string data)
+    public bool EnsemblePartReady(Character member, uint claimedMemberBc, uint claimedMaestroBc,
+        uint claimedSize, string data)
     {
-        if (member == null)
+        if (member == null || string.IsNullOrEmpty(data) || claimedMemberBc != member.ObjId)
             return false;
 
-        var session = FindEnsemble(member.ObjId);
-        if (session == null || !session.PartReady(member.ObjId))
+        var session = FindEnsemble(member.ObjId, claimedMaestroBc);
+        if (session == null || !session.IsMember(member.ObjId))
             return false;
 
-        var payload = data ?? string.Empty;
-        var size = (uint)System.Text.Encoding.UTF8.GetByteCount(payload);
+        var size = (uint)System.Text.Encoding.UTF8.GetByteCount(data);
+        if (claimedSize != size || !session.PartReady(member.ObjId))
+            return false;
 
         WorldManager.Instance.GetCharacterByObjId(session.MaestroBc)
-            ?.SendPacket(new SCEnsembleMidiBinReadyPacket(member.ObjId, session.MaestroBc, size, payload));
+            ?.SendPacket(new SCEnsembleMidiBinReadyPacket(member.ObjId, session.MaestroBc, size, data));
 
         if (session.AllPartsReady)
             Logger.Info("Ensemble: {0}'s ensemble has every part in and can play", session.MaestroName);
@@ -420,7 +430,7 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
 
     /// <summary>
     /// Takes one player out of their ensemble. Losing the maestro ends it for everyone; losing a member
-    /// only tells the rest to drop that member's part.
+    /// only tells the rest to drop that member's part, including after the performance has started.
     /// </summary>
     public void LeaveEnsemble(Character who)
     {
@@ -433,9 +443,10 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
 
         var participants = session.Participants();
         var wasMaestro = who.ObjId == session.MaestroBc;
-        session.Leave(who.ObjId);
+        if (!session.Leave(who.ObjId))
+            return;
 
-        if (!session.IsOpen)
+        if (wasMaestro)
         {
             Logger.Info("Ensemble: {0}'s ensemble ended because {1} left", session.MaestroName, who.Name);
             _ensembles.Remove(session.MaestroBc);
@@ -448,11 +459,46 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
             return;
         }
 
-        if (!wasMaestro)
+        SendToParticipants(session, new SCDeleteEnsembleSoundPacket(who.ObjId));
+        if (session.IsOpen)
         {
-            SendToParticipants(session, new SCDeleteEnsembleSoundPacket(who.ObjId));
             SendToParticipants(session,
                 new SCEnsembleStartedPacket(session.MaestroBc, session.MaestroName, session.Members));
+        }
+    }
+
+    /// <summary>
+    /// A disconnected performance has no resumable session left to own. Remove it immediately and
+    /// close it for everyone still online; open sessions keep the ordinary member/maestro leave rules.
+    /// </summary>
+    public void OnCharacterLogout(Character character)
+    {
+        if (character == null)
+            return;
+
+        var session = FindEnsemble(character.ObjId);
+        if (session == null)
+            return;
+
+        if (!session.IsStarted || !session.IsMember(character.ObjId))
+        {
+            LeaveEnsemble(character);
+            return;
+        }
+
+        var participants = session.Participants();
+        _ensembles.Remove(session.MaestroBc);
+        session.Cancel();
+        Logger.Info("Ensemble: {0}'s started ensemble was cleaned up because {1} disconnected",
+            session.MaestroName, character.Name);
+
+        foreach (var participant in participants)
+        {
+            if (participant == character.ObjId)
+                continue;
+
+            WorldManager.Instance.GetCharacterByObjId(participant)
+                ?.SendPacket(new SCEnsembleCanceledPacket());
         }
     }
 

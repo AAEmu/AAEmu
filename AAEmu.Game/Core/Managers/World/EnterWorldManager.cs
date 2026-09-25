@@ -229,6 +229,16 @@ public class EnterWorldManager(
     }
 
     /// <summary>
+    /// Releases transient ensemble ownership before a world character is removed. The same boundary is
+    /// used by the orderly logout/character-select path and is kept separate from the network hook so
+    /// both exits share one cleanup rule.
+    /// </summary>
+    internal void ReleaseEnsembleBeforeWorldRemoval(Character activeChar)
+    {
+        MusicManager.Instance.OnCharacterLogout(activeChar);
+    }
+
+    /// <summary>
     /// Actually leave the game world and return connection to lobby state
     /// Also despawns all owned mounts/pet/vehicles still in the world
     /// </summary>
@@ -273,6 +283,10 @@ public class EnterWorldManager(
             // slot or match must not survive the character, or the queue fills with ghosts and the
             // match keeps a handle on a character that is about to be deleted.
             InstantGameManager.Instance.OnCharacterLogout(activeChar);
+
+            // The network-disconnect hook is not the only exit: logout and character selection call
+            // this path directly. Release a started ensemble before the world removes its character.
+            ReleaseEnsembleBeforeWorldRemoval(activeChar);
 
             // A defendant or a juror leaving the world has to leave their trial behind, and an arrest
             // that is still counting down holds a promise to a character who is about to be gone.

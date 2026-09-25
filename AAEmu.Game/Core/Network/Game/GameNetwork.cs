@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 
 using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils;
@@ -446,6 +446,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSRunZoneCommand, 1, typeof(CSRunZoneCommand));
         RegisterPacket(CSOffsets.CSICSBuyCountRequestPacket, 1, typeof(CSICSBuyCountRequestPacket));
         RegisterPacket(CSOffsets.CSEnsembleAcceptPacket, 1, typeof(CSEnsembleAcceptPacket));
+        RegisterPacket(CSOffsets.CSEnsembleMidiBinReadyPacket, 1, typeof(CSEnsembleMidiBinReadyPacket));
         RegisterPacket(CSOffsets.CSEnsembleRejectPacket, 1, typeof(CSEnsembleRejectPacket));
         RegisterPacket(CSOffsets.CSRankRankerAppearance, 1, typeof(CSRankRankerAppearance));
         RegisterPacket(CSOffsets.CSAntibotTransferWorldPacket, 1, typeof(CSAntibotTransferWorldPacket));
