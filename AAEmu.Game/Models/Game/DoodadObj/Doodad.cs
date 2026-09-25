@@ -240,25 +240,89 @@ public class Doodad : BaseUnit
     public uint Type2 { get; init; }
 
     /// <summary>
-    /// Doodad specific data
+    /// Doodad specific data. Mutations are persisted before the setter returns; a failed write
+    /// restores the previous in-memory value so callers never broadcast a rolled-back state.
     /// </summary>
     public int Data
     {
         get => _data;
-        set
+        set => TrySetData(value);
+    }
+
+    /// <summary>Test seam for proving a failed persistence write does not publish a new value.</summary>
+    internal Func<bool> PersistDataForTest { get; set; }
+
+    /// <summary>
+    /// Applies and persists a data value atomically from the caller's point of view. Persistent
+    /// doodads use their normal save path; system doodads use the phase store. The test hook is
+    /// intentionally internal and is never set by production code.
+    /// </summary>
+    internal bool TrySetData(int value)
+    {
+        if (value == _data)
+            return true;
+
+        var previous = _data;
+        _data = value;
+        try
         {
-            if (value != _data)
+            if (PersistDataForTest != null)
             {
-                _data = value;
-                if (IsPersistent)
+                if (!PersistDataForTest())
                 {
-                    Save();
-                }
-                else
-                {
-                    WorldDoodadPhaseStore.Save(this);
+                    _data = previous;
+                    return false;
                 }
             }
+            else if (IsPersistent)
+            {
+                if (!TryPersistData())
+                {
+                    _data = previous;
+                    return false;
+                }
+            }
+            else if (!WorldDoodadPhaseStore.Save(this))
+            {
+                _data = previous;
+                return false;
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _data = previous;
+            Logger.Warn(ex, "Doodad {0} data persistence failed; restored {1}", ObjId, previous);
+            return false;
+        }
+    }
+
+    private bool TryPersistData()
+    {
+        if (!IsPersistent || IsPlacementPending)
+            return true;
+
+        using var connection = MySQL.CreateConnection();
+        using var transaction = connection.BeginTransaction();
+        try
+        {
+            Save(connection, transaction);
+            transaction.Commit();
+            return true;
+        }
+        catch
+        {
+            try
+            {
+                transaction.Rollback();
+            }
+            catch (Exception rollbackException)
+            {
+                Logger.Error(rollbackException, "Doodad {0} data transaction rollback failed", ObjId);
+            }
+
+            throw;
         }
     }
 

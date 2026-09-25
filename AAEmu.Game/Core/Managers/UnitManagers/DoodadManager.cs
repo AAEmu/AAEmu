@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.Creatures;
@@ -445,6 +445,25 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                 }
             }
 
+
+            // doodad_func_resident_townhall_ui_opens - id-only rows. The interaction opens the
+            // public townhall window; the function sends the current persisted state for its zone.
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT id FROM doodad_func_resident_townhall_ui_opens";
+                command.Prepare();
+                using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
+                {
+                    while (reader.Read())
+                    {
+                        var func = new DoodadFuncResidentTownhallUiOpen
+                        {
+                            Id = reader.GetUInt32("id")
+                        };
+                        _funcTemplates[nameof(DoodadFuncResidentTownhallUiOpen)].Add(func.Id, func);
+                    }
+                }
+            }
 
             // doodad_func_buy_fish_items
             using (var command = connection.CreateCommand())
@@ -3400,30 +3419,71 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
 
     public static bool ChangeDoodadData(Character player, Doodad doodad, int data)
     {
-        // TODO: Can non-coffer doodads that use this packet only be changed by their owner ?
-        if (doodad.OwnerId != player.Id)
-        {
+        if (player == null || doodad == null || !CanChangeDoodadData(player, doodad))
             return false;
-        }
 
         if (doodad is DoodadCoffer)
         {
-            switch (data)
-            {
-                case (int)HousingPermission.Family when player.Family <= 0:
-                    player.SendErrorMessage(ErrorMessageType.FamilyNotExist); // Not sure
-                    return false;
-                case (int)HousingPermission.Guild when player.Expedition is not { Id: > 0 }:
-                    player.SendErrorMessage(ErrorMessageType.OnlyExpeditionMember); // Not sure
-                    return false;
-            }
+            var requestedPermission = (HousingPermission)data;
+            if (!HousingPermissionRules.IsDefined(requestedPermission) ||
+                !HousingPermissionRules.CanSelect(player, requestedPermission))
+                return false;
+
+            // The active DoodadFuncCofferPerm row owns who may change the data. The content
+            // currently supplies only Public and Owner rows; all other enum values fail closed.
+            var permissionFunction = doodad.CurrentFuncs?
+                .FirstOrDefault(func => func.FuncType == nameof(DoodadFuncCofferPerm));
+            if (permissionFunction == null ||
+                DoodadManager.Instance.GetFuncTemplate(permissionFunction.FuncId, permissionFunction.FuncType)
+                    is not DoodadFuncCofferPerm ||
+                !CanUseCofferPermission(player, doodad, (DoodadFuncPermission)permissionFunction.PermId))
+                return false;
+        }
+        else if (doodad.OwnerId != player.Id)
+        {
+            // Non-coffer doodads retain the existing owner-only data mutation rule.
+            return false;
         }
 
-        doodad.Data = data;
+        // Data persistence must succeed before any client sees the new value. TrySetData restores
+        // the previous in-memory value on failure, so the broadcast cannot advertise a rolled-back state.
+        if (!doodad.TrySetData(data))
+            return false;
 
         doodad.BroadcastPacket(new SCDoodadChangedPacket(doodad.ObjId, doodad.Data), false);
-
         return true;
+    }
+
+    private static bool CanChangeDoodadData(Character player, Doodad doodad)
+    {
+        if (!doodad.IsVisible || doodad.ObjId == 0 || player.ParentWorld == null ||
+            doodad.ParentWorld == null || player.ParentWorld != doodad.ParentWorld)
+            return false;
+
+        if (!WorldManager.GetAround<Doodad>(player).Any(candidate => ReferenceEquals(candidate, doodad)))
+            return false;
+
+        if (!doodad.AllowedToInteract(player))
+            return false;
+
+        return doodad is not DoodadCoffer coffer || ReferenceEquals(coffer.OpenedBy, player);
+    }
+
+    /// <summary>
+    /// Resolves the two permission values proven by the shipped coffer-permission rows. The broader
+    /// DoodadFuncPermission enum is not silently reinterpreted for this housing path.
+    /// </summary>
+    internal static bool CanUseCofferPermission(Character player, Doodad doodad, DoodadFuncPermission permission)
+    {
+        if (player == null || doodad == null || doodad.OwnerId == 0)
+            return false;
+
+        return permission switch
+        {
+            DoodadFuncPermission.Public => true,
+            DoodadFuncPermission.Owner => doodad.OwnerId == player.Id,
+            _ => false
+        };
     }
 
     public List<uint> GetDoodadFuncConsumeChangerItemList(uint doodadFuncConsumeChangerId)
