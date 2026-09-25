@@ -13,4 +13,7 @@ public interface IGameScheduleManager : ILoadable
     HashSet<uint> GetScheduledSpawnerTemplateIds();
     HashSet<int> GetRunningGameScheduleIds();
     IReadOnlyList<uint> GetSpawnerIdsForSchedule(int gameScheduleId);
+
+    /// <summary>Every loaded schedule row, keyed by its content id. Read-only view of the content table.</summary>
+    IReadOnlyDictionary<int, GameSchedules> GetSchedules();
 }
