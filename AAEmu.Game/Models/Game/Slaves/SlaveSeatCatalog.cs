@@ -23,10 +23,32 @@ public sealed class SlaveSeatCatalog
             """;
         command.Prepare();
 
-        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
-        while (reader.Read())
+        using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
         {
-            Add(reader.GetUInt32("slave_id"), reader.GetInt32("attach_point_id"));
+            while (reader.Read())
+                Add(reader.GetUInt32("slave_id"), reader.GetInt32("attach_point_id"));
+        }
+
+        command.CommandText = """
+            SELECT id
+            FROM slaves
+            WHERE mountable = 't'
+            """;
+        using (var mountable = new SQLiteWrapperReader(command.ExecuteReader()))
+        {
+            while (mountable.Read())
+                Add(mountable.GetUInt32("id"), (int)AttachPointKind.Driver);
+        }
+
+        command.CommandText = """
+            SELECT owner_id, attach_point_id
+            FROM slave_doodad_bindings
+            WHERE owner_type = 'Slave'
+            """;
+        using (var bindings = new SQLiteWrapperReader(command.ExecuteReader()))
+        {
+            while (bindings.Read())
+                AddBinding(bindings.GetUInt32("owner_id"), bindings.GetInt32("attach_point_id"));
         }
     }
 
@@ -59,5 +81,19 @@ public sealed class SlaveSeatCatalog
         }
 
         seats.Add(attachPoint);
+    }
+
+    private void AddBinding(uint slaveId, int rawAttachPoint)
+    {
+        if (rawAttachPoint <= byte.MinValue || rawAttachPoint > byte.MaxValue)
+            return;
+
+        if (!_seatsBySlave.TryGetValue(slaveId, out var seats))
+        {
+            seats = [];
+            _seatsBySlave[slaveId] = seats;
+        }
+
+        seats.Add((AttachPointKind)(byte)rawAttachPoint);
     }
 }

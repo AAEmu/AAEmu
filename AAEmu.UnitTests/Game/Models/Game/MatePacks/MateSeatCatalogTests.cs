@@ -59,9 +59,13 @@ public class MateSeatCatalogTests
         Execute(connection, "INSERT INTO npc_mount_skills VALUES (404, 701)");
         Execute(connection, "INSERT INTO mount_skills VALUES (701)");
         Execute(connection, "INSERT INTO mount_attached_skills VALUES (701, 1), (701, 2), (701, 35)");
+        Execute(connection, "CREATE TABLE item_summon_mates (npc_id INTEGER NOT NULL)");
+        Execute(connection, "INSERT INTO item_summon_mates VALUES (808)");
 
         var catalog = new MateSeatCatalog();
         catalog.Load(connection);
+
+        await Assert.That(catalog.HasSeat(808, AttachPointKind.Driver)).IsTrue();
 
         await Assert.That(catalog.GetSeats(404)).IsEquivalentTo(new[]
         {

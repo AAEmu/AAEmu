@@ -23,10 +23,17 @@ public sealed class MateSeatCatalog
             """;
         command.Prepare();
 
-        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
-        while (reader.Read())
+        using (var reader = new SQLiteWrapperReader(command.ExecuteReader()))
         {
-            Add(reader.GetUInt32("npc_id"), reader.GetInt32("attach_point_id"));
+            while (reader.Read())
+                Add(reader.GetUInt32("npc_id"), reader.GetInt32("attach_point_id"));
+        }
+
+        command.CommandText = "SELECT DISTINCT npc_id FROM item_summon_mates";
+        using (var mates = new SQLiteWrapperReader(command.ExecuteReader()))
+        {
+            while (mates.Read())
+                Add(mates.GetUInt32("npc_id"), (int)AttachPointKind.Driver);
         }
     }
 

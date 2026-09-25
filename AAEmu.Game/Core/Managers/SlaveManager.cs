@@ -1154,6 +1154,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
             };
 
             ApplySlaveBonuses(childSlave);
+            childSlave.InitializeSeatTopology(SlaveGameData.Instance.GetSlaveSeats(childSlaveTemplate.Id));
 
             if (isLoadedPlayerChildSlave)
             {
@@ -1391,6 +1392,7 @@ public class SlaveManager(WorldInstance parentWorldInstance)
         };
 
         ApplySlaveBonuses(childSlave);
+        childSlave.InitializeSeatTopology(SlaveGameData.Instance.GetSlaveSeats(childSlaveTemplate.Id));
         childSlave.Hp = childSlave.MaxHp;
         childSlave.Mp = childSlave.MaxMp;
 

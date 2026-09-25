@@ -60,14 +60,22 @@ public class SlaveSeatCatalogTests
         Execute(connection, "INSERT INTO slave_mount_skills VALUES (404, 701)");
         Execute(connection, "INSERT INTO mount_skills VALUES (701)");
         Execute(connection, "INSERT INTO mount_attached_skills VALUES (701, 1), (701, 3), (701, 35)");
+        Execute(connection, "CREATE TABLE slaves (id INTEGER PRIMARY KEY, mountable TEXT NOT NULL)");
+        Execute(connection, "CREATE TABLE slave_doodad_bindings (owner_id INTEGER NOT NULL, owner_type TEXT NOT NULL, attach_point_id INTEGER NOT NULL)");
+        Execute(connection, "INSERT INTO slaves VALUES (55, 't'), (404, 'f')");
+        Execute(connection, "INSERT INTO slave_doodad_bindings VALUES (404, 'Slave', 80)");
 
         var catalog = new SlaveSeatCatalog();
         catalog.Load(connection);
+
+        await Assert.That(catalog.HasSeat(55, AttachPointKind.Driver)).IsTrue();
+        await Assert.That(catalog.HasSeat(404, AttachPointKind.Telescope)).IsTrue();
 
         await Assert.That(catalog.GetSeats(404)).IsEquivalentTo(new[]
         {
             AttachPointKind.Driver,
             AttachPointKind.Passenger1,
+            AttachPointKind.Telescope,
         });
     }
 
