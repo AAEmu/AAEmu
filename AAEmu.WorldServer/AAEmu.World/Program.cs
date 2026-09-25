@@ -691,6 +691,14 @@ public static class Program
             Logger.Debug("WZConflictZoneState (zone ready) → zoneId={0} instance={1} group={2} state={3}",
                 zoneId, instanceId, groupId, warState);
         };
+        WorldIntegration.RelayCvFCombatRelationsToZones = CombatRelationRelay.PublishCvF;
+        WorldIntegration.RelayFvFCombatRelationsToZones = CombatRelationRelay.PublishFvF;
+        WorldIntegration.NotifyZoneReadyForCombatRelations = (zoneId, instanceId) =>
+        {
+            if (PlayerEnterService.ForZoneInstance(zoneId, instanceId) is not { } readyZone)
+                return;
+            CombatRelationRelay.PublishToZone(readyZone);
+        };
         WorldIntegration.RelayConflictZoneStateToZone = (zoneGroupId, warState) =>
         {
             if (ConflictZoneGameData.Instance.GetSpawners(zoneGroupId).Count == 0)
@@ -1496,6 +1504,10 @@ public static class Program
             WorldIntegration.NotifyZoneReadyForDoodads = null;
             WorldIntegration.NotifyZoneReadyForHousing = null;
             WorldIntegration.NotifyZoneReadyForGimmicks = null;
+            WorldIntegration.NotifyZoneReadyForCombatRelations = null;
+            WorldIntegration.RelayCvFCombatRelationsToZones = null;
+            WorldIntegration.RelayFvFCombatRelationsToZones = null;
+            CombatRelationRelay.Reset();
             WorldIntegration.NotifyZoneReadyForConflictZone = null;
             WorldIntegration.RelayCharacterZoneHandoff = null;
             WorldIntegration.RelayRemoveDoodadToZone = null;

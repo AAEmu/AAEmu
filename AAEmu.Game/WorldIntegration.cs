@@ -13,6 +13,7 @@ using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Dominions;
 using AAEmu.Game.Models.Game.DoodadObj;
+using AAEmu.Game.Models.Game.Faction;
 using AAEmu.Game.Models.Game.Gimmicks;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
@@ -426,6 +427,15 @@ public static class WorldIntegration
     /// sent, because a zone that comes online during a term is seeded without the overlay.
     /// </summary>
     public static Action RelayFactionRelationsToZones { get; set; }
+
+    /// <summary>
+    /// Transport-only WZ CvF/FvF relation publications. A content-backed publisher must provide
+    /// versioned full-state or delta records; this seam deliberately does not map faction tables.
+    /// The World relay accumulates and replays those records when a zone reaches ZoneLoaded.
+    /// </summary>
+    public static Action<CombatRelationPublication> RelayCvFCombatRelationsToZones { get; set; }
+    public static Action<CombatRelationPublication> RelayFvFCombatRelationsToZones { get; set; }
+    public static Action<uint, uint> NotifyZoneReadyForCombatRelations { get; set; }
 
     /// <summary>WZUnitExpeditionChanged (0x01A). Args: unit, old expedition, new expedition.</summary>
     public static Action<uint, int, int> RelayUnitExpeditionChangedToZone { get; set; }
