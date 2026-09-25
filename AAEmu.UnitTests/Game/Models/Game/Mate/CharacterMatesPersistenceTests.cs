@@ -215,6 +215,42 @@ public class CharacterMatesPersistenceTests
     }
 
     [Test]
+    public async Task LogoutSweep_RemovesTheActiveMateEntryKeyedByOwnerId()
+    {
+        using var worldScope = TestDungeonWorld.InstallWorldManager();
+        using var world = TestDungeonWorld.CreateWorld(9911, 0);
+        using var taskScope = new SingletonScope<TaskManager>(new TaskManager(Mock.Of<ITickManager>().Object));
+        world.MateManager = new MateManager(world);
+        var owner = new Character(new UnitCustomModelParams())
+        {
+            Id = 77,
+            ObjId = 7001
+        };
+        TestDungeonWorld.Enter(world, owner);
+
+        // Character.Id is the database character id; Mate.OwnerObjId is the runtime object id.
+        // They are deliberately different here, as they are in the shipped character/mate model.
+        var mate = new Mate
+        {
+            ObjId = 8001,
+            TlId = 9001,
+            OwnerId = owner.Id,
+            OwnerObjId = owner.ObjId,
+            ItemId = 1001,
+            Name = "synthetic-active-mate"
+        };
+        AddActiveMate(world, owner, mate);
+
+        world.MateManager.RemoveAndDespawnAllActiveOwnedMates(owner);
+
+        // The dictionary is keyed by owner.Id everywhere else; the logout sweep must remove that
+        // exact entry, so no despawned mate can be returned by a later owner lookup.
+        await Assert.That(world.MateManager.GetActiveMates(owner.Id)).IsEmpty();
+        await Assert.That(world.MateManager.GetActiveMateByTlId(mate.TlId)).IsNull();
+        await Assert.That(world.MateManager.GetActiveMateByMateObjId(mate.ObjId)).IsNull();
+    }
+
+    [Test]
     public async Task DespawnMate_UsesRealMateManagerPath_AndCapturesProgress()
     {
         using var connection = CreateConnection();

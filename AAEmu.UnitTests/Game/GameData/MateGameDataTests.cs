@@ -98,9 +98,11 @@ public class MateGameDataTests
               CREATE TABLE item_summon_mates (id INTEGER PRIMARY KEY, item_id INTEGER NOT NULL, npc_id INTEGER NOT NULL);
               CREATE TABLE npcs (
                   id INTEGER PRIMARY KEY,
+                  model_id INTEGER NOT NULL DEFAULT 0,
                   mate_revive_delay INTEGER NOT NULL,
                   mate_revive_hp_percent INTEGER NOT NULL,
                   mate_revive_mp_percent INTEGER NOT NULL);
+              CREATE TABLE model_bindings (owner_id INTEGER NOT NULL, owner_type TEXT NOT NULL, attach_point_id INTEGER NOT NULL);
               INSERT INTO npcs(id, mate_revive_delay, mate_revive_hp_percent, mate_revive_mp_percent)
               VALUES (101, 7, 11, 13), (202, 17, 19, 23);
               INSERT INTO item_summon_mates(id, item_id, npc_id) VALUES (1, 501, 101), (2, 502, 303);
@@ -113,7 +115,8 @@ public class MateGameDataTests
               CREATE TABLE mate_equip_pack_groups (id INTEGER PRIMARY KEY, npc_id INTEGER NOT NULL, mate_equip_pack_id INTEGER NOT NULL);
               CREATE TABLE mate_equip_pack_items (id INTEGER PRIMARY KEY, mate_equip_pack_id INTEGER NOT NULL, item_id INTEGER NOT NULL);
               CREATE TABLE item_summon_mates (id INTEGER PRIMARY KEY, item_id INTEGER NOT NULL, npc_id INTEGER NOT NULL);
-              CREATE TABLE npcs (id INTEGER PRIMARY KEY);
+              CREATE TABLE npcs (id INTEGER PRIMARY KEY, model_id INTEGER NOT NULL DEFAULT 0);
+              CREATE TABLE model_bindings (owner_id INTEGER NOT NULL, owner_type TEXT NOT NULL, attach_point_id INTEGER NOT NULL);
               """;
         command.ExecuteNonQuery();
         return connection;
