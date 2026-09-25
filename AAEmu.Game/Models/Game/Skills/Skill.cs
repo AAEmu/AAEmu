@@ -1,4 +1,4 @@
-using System.Numerics;
+﻿using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -374,6 +374,16 @@ public class Skill
         {
             Logger.Trace($"Skill: SkillResult.InvalidTarget! - Skill {Template.Id} vs dropped-line fish {target.ObjId}");
             return SkillResult.InvalidTarget;
+        }
+
+        var fishingStartResult = FishingStartRules.ValidateStart(Template, unit, target);
+        if (fishingStartResult != SkillResult.Success)
+        {
+            Logger.Trace(
+                "Skill: SkillResult.{0}! - Skill {1} aimed outside the water volume",
+                fishingStartResult,
+                Template.Id);
+            return fishingStartResult;
         }
 
         // skill_reqs: a buff or buff tag on the caster or on the target that forbids or requires the cast
