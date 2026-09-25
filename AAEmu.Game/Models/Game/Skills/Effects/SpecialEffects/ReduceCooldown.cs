@@ -1,4 +1,4 @@
-using AAEmu.Game.Core.Managers;
+﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Units;
 
 namespace AAEmu.Game.Models.Game.Skills.Effects.SpecialEffects;
@@ -29,10 +29,6 @@ public sealed class ReduceCooldown : SpecialEffectAction
                 : [];
 
         foreach (var affectedSkillId in affected.Distinct())
-        {
-            var remaining = unit.Cooldowns.GetRemaining(affectedSkillId);
-            var reduction = flatMilliseconds + remaining.TotalMilliseconds * percent / 100d;
-            unit.Cooldowns.ReduceCooldown(affectedSkillId, TimeSpan.FromMilliseconds(reduction));
-        }
+            unit.Cooldowns.ApplyCooldownReduction(affectedSkillId, flatMilliseconds, percent);
     }
 }

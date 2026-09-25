@@ -132,17 +132,24 @@ public class UnitCooldowns
         return state.EndTime > DateTime.UtcNow ? state.EndTime - DateTime.UtcNow : TimeSpan.Zero;
     }
 
-    /// <summary>Shortens a running cooldown; a negative reduction extends it.</summary>
-    public void ReduceCooldown(uint skillId, TimeSpan reduction)
+    /// <summary>Applies an authored percent-or-flat cooldown reduction to a running cooldown.</summary>
+    public void ApplyCooldownReduction(uint skillId, int flatMilliseconds, int percent)
     {
-        if (!_cooldowns.TryGetValue(skillId, out var state))
-            return;
+        while (_cooldowns.TryGetValue(skillId, out var state))
+        {
+            var now = DateTime.UtcNow;
+            var originalDuration = TimeSpan.FromMilliseconds(state.Duration);
+            var remaining = state.EndTime > now ? state.EndTime - now : TimeSpan.Zero;
+            var remainingAfterReduction = CooldownReductionRules.CalculateRemaining(
+                originalDuration,
+                remaining,
+                flatMilliseconds,
+                percent);
+            var updated = state with { EndTime = now + remainingAfterReduction };
 
-        var adjusted = state.EndTime - reduction;
-        if (adjusted <= DateTime.UtcNow)
-            RemoveCooldown(skillId);
-        else
-            _cooldowns[skillId] = state with { EndTime = adjusted };
+            if (_cooldowns.TryUpdate(skillId, updated, state))
+                return;
+        }
     }
 
     /// <summary>
