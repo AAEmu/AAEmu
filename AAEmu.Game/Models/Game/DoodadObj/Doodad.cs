@@ -1,4 +1,4 @@
-﻿using System.Collections.Concurrent;
+using System.Collections.Concurrent;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game;
@@ -240,13 +240,39 @@ public class Doodad : BaseUnit
     public uint Type2 { get; init; }
 
     /// <summary>
-    /// Doodad specific data. Ordinary writers assign the field; the coffer permission path uses
-    /// <see cref="TrySetData"/> so only that change rolls back when persistence fails.
+    /// Doodad specific data. Assigning the property saves the change, exactly as it did before the
+    /// housing-permissions work: persistent doodads write the full row and system doodads update the
+    /// phase store. Writers that must roll back on a failed save (currently only the coffer-permission
+    /// packet) use <see cref="TrySetData"/> instead of assigning this property.
     /// </summary>
     public int Data
     {
         get => _data;
-        set => _data = value;
+        set
+        {
+            if (value != _data)
+            {
+                _data = value;
+                PersistDataOnChange();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Persists a <see cref="Data"/> change made by an ordinary writer. This is the exact pre-PR save
+    /// behaviour; it lives in its own method only so a test can substitute a row recorder instead of
+    /// requiring a live database.
+    /// </summary>
+    protected virtual void PersistDataOnChange()
+    {
+        if (IsPersistent)
+        {
+            Save();
+        }
+        else
+        {
+            WorldDoodadPhaseStore.Save(this);
+        }
     }
 
     /// <summary>Test seam for proving a failed persistence write does not publish a new value.</summary>
