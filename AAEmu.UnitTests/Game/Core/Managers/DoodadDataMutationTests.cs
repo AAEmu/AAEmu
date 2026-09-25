@@ -107,12 +107,25 @@ public sealed class DoodadDataMutationTests
     }
 
     [Test]
-    public async Task ChangeDoodadData_RejectsUnopenedCofferWithoutMutation()
+    public async Task ChangeDoodadData_AllowsAnUnopenedCoffer()
     {
         var fixture = CreateFixture();
         fixture.Coffer.OpenedBy = null;
+        var target = (int)HousingPermission.Public;
 
-        var changed = DoodadManager.ChangeDoodadData(fixture.Player, fixture.Coffer, (int)HousingPermission.Public);
+        var changed = DoodadManager.ChangeDoodadData(fixture.Player, fixture.Coffer, target);
+
+        await Assert.That(changed).IsTrue();
+        await Assert.That(fixture.Coffer.Data).IsEqualTo(target);
+        await Assert.That(fixture.Sent.Count).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task ChangeDoodadData_RejectsAPermissionOutsideTheEnum()
+    {
+        var fixture = CreateFixture();
+
+        var changed = DoodadManager.ChangeDoodadData(fixture.Player, fixture.Coffer, 258);
 
         await Assert.That(changed).IsFalse();
         await Assert.That(fixture.Coffer.Data).IsEqualTo((int)HousingPermission.Private);

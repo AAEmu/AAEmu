@@ -25,6 +25,9 @@ public static class HousingPermissionRules
         if (actor == null || ownerId == 0 || !IsDefined(permission))
             return false;
 
+        if (actor.Id == ownerId)
+            return true;
+
         switch (permission)
         {
             case HousingPermission.Public:

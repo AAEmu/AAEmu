@@ -3424,6 +3424,9 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
 
         if (doodad is DoodadCoffer)
         {
+            if (data < 0 || data > (int)HousingPermission.Family)
+                return false;
+
             var requestedPermission = (HousingPermission)data;
             if (!HousingPermissionRules.IsDefined(requestedPermission) ||
                 !HousingPermissionRules.CanSelect(player, requestedPermission))
@@ -3466,7 +3469,7 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
         if (!doodad.AllowedToInteract(player))
             return false;
 
-        return doodad is not DoodadCoffer coffer || ReferenceEquals(coffer.OpenedBy, player);
+        return true;
     }
 
     /// <summary>

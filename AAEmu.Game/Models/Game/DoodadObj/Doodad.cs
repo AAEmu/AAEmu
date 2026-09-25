@@ -240,13 +240,13 @@ public class Doodad : BaseUnit
     public uint Type2 { get; init; }
 
     /// <summary>
-    /// Doodad specific data. Mutations are persisted before the setter returns; a failed write
-    /// restores the previous in-memory value so callers never broadcast a rolled-back state.
+    /// Doodad specific data. Ordinary writers assign the field; the coffer permission path uses
+    /// <see cref="TrySetData"/> so only that change rolls back when persistence fails.
     /// </summary>
     public int Data
     {
         get => _data;
-        set => TrySetData(value);
+        set => _data = value;
     }
 
     /// <summary>Test seam for proving a failed persistence write does not publish a new value.</summary>
