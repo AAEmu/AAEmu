@@ -1519,20 +1519,24 @@ public class Doodad : BaseUnit
             return;
         }
 
-        using (var connection = MySQL.CreateConnection())
-        {
-            using (var command = connection.CreateCommand())
-            {
-                command.CommandText = "DELETE FROM doodads WHERE id = @id";
-                command.Parameters.AddWithValue("@id", DbId);
-                command.Prepare();
-                command.ExecuteNonQuery();
-            }
-        }
-
-        ParentWorld.SpawnManager.RemovePlayerDoodad(this);
+        DeletePersistentRow();
+        RemoveFromSpawnManager();
         IsPersistent = false;
     }
+
+    /// <summary>Deletes the persistent row represented by this in-memory doodad.</summary>
+    protected virtual void DeletePersistentRow()
+    {
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM doodads WHERE id = @id";
+        command.Parameters.AddWithValue("@id", DbId);
+        command.Prepare();
+        command.ExecuteNonQuery();
+    }
+
+    /// <summary>Unlinks this doodad from its owning world's player-doodad registry.</summary>
+    protected virtual void RemoveFromSpawnManager() => ParentWorld.SpawnManager.RemovePlayerDoodad(this);
 
     /// <summary>
     /// Save this Doodad to database if it's marked as persistent
