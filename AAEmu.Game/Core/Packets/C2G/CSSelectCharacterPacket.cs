@@ -128,7 +128,8 @@ public class CSSelectCharacterPacket() : GamePacket(CSOffsets.CSSelectCharacterP
             // 10.0.2.13 world-entry init packets the client requires to populate its player-frame and side panels.
             // The reference server emits each (empty/default) in the select burst; absent, the client dereferences
             // the uninitialized structure when the matching UI window shows and crashes on load.
-            Connection.SendPacket(new SCIncreasedFavoritePortalLimitPacket());
+            Connection.SendPacket(new SCIncreasedFavoritePortalLimitPacket(
+                FavoritePortalCapacityRules.GetBonus(character)));
             Connection.SendPacket(new SCWorldRestrictOwnerChangePacket(false));
             Connection.SendPacket(new SCPlayerGameDataPacket(character));
             Connection.SendPacket(new SCInstanceVisitCountsPacket(

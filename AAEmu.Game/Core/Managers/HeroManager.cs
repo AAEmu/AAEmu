@@ -149,9 +149,11 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
     /// </summary>
     private static void EnsureLeadershipPeriodReset(HeroCycle cycle)
     {
+        using var persistenceSave = PersistenceSaveScope.Enter();
         using var connection = MySQL.CreateConnection();
         using var transaction = connection.BeginTransaction();
         var rolledOnline = new List<(Character Character, int Period, int Current)>();
+        var portalSaves = new List<(Character Character, PortalSaveCommitToken? Token)>();
         try
         {
             using (var check = connection.CreateCommand())
@@ -180,7 +182,14 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
                 var rolled = HeroElectionRules.RollLeadershipPeriod(character.LeadershipPeriodPoint, character.LeadershipPoint);
                 character.LeadershipPeriodPoint = rolled.Period;
                 character.LeadershipPoint = rolled.Current;
-                character.Save(connection, transaction);
+                if (!HeroCharacterSaveRules.TrySave(
+                        (out PortalSaveCommitToken? portalToken) =>
+                            character.Save(connection, transaction, out portalToken),
+                        out var portalSaveToken))
+                {
+                    throw new InvalidOperationException($"Character {character.Id} save failed during hero reset.");
+                }
+                portalSaves.Add((character, portalSaveToken));
             }
 
             using (var mark = connection.CreateCommand())
@@ -194,9 +203,13 @@ public class HeroManager(ITaskManager taskManager) : Singleton<HeroManager>, IHe
             }
 
             transaction.Commit();
+            foreach (var (character, token) in portalSaves)
+                character.ConfirmPortalSaveCommitted(token);
         }
         catch (Exception ex)
         {
+            foreach (var (character, token) in portalSaves)
+                character.DiscardPortalSaveCommit(token);
             transaction.Rollback();
             foreach (var (character, period, current) in rolledOnline)
             {

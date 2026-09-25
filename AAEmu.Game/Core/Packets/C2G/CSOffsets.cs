@@ -408,6 +408,7 @@ public static class CSOffsets
     public const ushort CSUnbindEquipBindedPacket = 0x07F;
     public const ushort CSUnlockLearnSkillPacket = 0xD9;
     public const ushort CSUpdateFavoriteCraftsPacket = 0x14B;
+    public const ushort CSUpdateFavoritePortalPacket = 0x1BC;
     public const ushort CSUpdateTabNameByAboxResponsePacket = 0x171;
     public const ushort CSVoteReputationPacket = 0x1A3;
     public const ushort CSWorldRayCastingPacket = 0x116;

@@ -443,6 +443,7 @@ public class GameNetwork : Singleton<GameNetwork>
         RegisterPacket(CSOffsets.CSRequestCraftOrderFeePacket, 1, typeof(CSRequestCraftOrderFeePacket));
         RegisterPacket(CSOffsets.CSRequestCraftOrderItemsPacket, 1, typeof(CSRequestCraftOrderItemsPacket));
         RegisterPacket(CSOffsets.CSUpdateFavoriteCraftsPacket, 1, typeof(CSUpdateFavoriteCraftsPacket));
+        RegisterPacket(CSOffsets.CSUpdateFavoritePortalPacket, 1, typeof(CSUpdateFavoritePortalPacket));
         RegisterPacket(CSOffsets.CSRunZoneCommand, 1, typeof(CSRunZoneCommand));
         RegisterPacket(CSOffsets.CSICSBuyCountRequestPacket, 1, typeof(CSICSBuyCountRequestPacket));
         RegisterPacket(CSOffsets.CSEnsembleAcceptPacket, 1, typeof(CSEnsembleAcceptPacket));

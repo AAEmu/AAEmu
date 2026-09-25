@@ -944,6 +944,17 @@ public partial class Character : Unit, ICharacter
     /// <summary>The collection/encyclopedia entries this character has discovered.</summary>
     public CharacterCollections Collections { get; set; }
     public CharacterPortals Portals { get; set; }
+    private readonly PortalSaveCommitCoordinator _portalSaveCommits = new();
+    internal bool ConfirmPortalSaveCommitted(PortalSaveCommitToken? token)
+    {
+        if (!_portalSaveCommits.Confirm(token) || token == null)
+            return false;
+
+        Portals?.OnSaveCommitted(token.Version);
+        return true;
+    }
+
+    internal void DiscardPortalSaveCommit(PortalSaveCommitToken? token) => _portalSaveCommits.Discard(token);
     public CharacterFriends Friends { get; set; }
     public CharacterBlocked Blocked { get; set; }
     public CharacterFavoriteCrafts FavoriteCrafts { get; set; }
@@ -4112,6 +4123,8 @@ public partial class Character : Unit, ICharacter
     public bool SaveDirectlyToDatabase()
     {
         // Try to save New Character
+        using var persistenceSave = PersistenceSaveScope.Enter();
+        PortalSaveCommitToken? portalSaveToken = null;
         bool saved;
         using (var sqlConnection = MySQL.CreateConnection())
         {
@@ -4119,7 +4132,7 @@ public partial class Character : Unit, ICharacter
             {
                 try
                 {
-                    saved = Save(sqlConnection, transaction);
+                    saved = Save(sqlConnection, transaction, out portalSaveToken);
                     if (!saved)
                     {
                         transaction.Rollback();
@@ -4132,11 +4145,13 @@ public partial class Character : Unit, ICharacter
                     // face/hair/body appearance parts — must be written now, not left for the periodic SaveManager.
                     ItemManager.Instance.Save(sqlConnection, transaction);
                     transaction.Commit();
+                    ConfirmPortalSaveCommitted(portalSaveToken);
                     ConfirmAccountLiveSaved();
                 }
                 catch (Exception e)
                 {
                     saved = false;
+                    DiscardPortalSaveCommit(portalSaveToken);
                     Logger.Error(e, $"Character save failed for {Id} - {Name}");
                     try
                     {
@@ -4212,8 +4227,16 @@ public partial class Character : Unit, ICharacter
         return saved;
     }
 
-    public bool Save(MySqlConnection connection, MySqlTransaction transaction)
+    public bool Save(MySqlConnection connection, MySqlTransaction transaction) =>
+        Save(connection, transaction, out _);
+
+    internal bool Save(
+        MySqlConnection connection,
+        MySqlTransaction transaction,
+        out PortalSaveCommitToken? portalSaveToken)
     {
+        portalSaveToken = null;
+        var portalSaveVersion = 0UL;
         bool result;
         try
         {
@@ -4384,7 +4407,7 @@ public partial class Character : Unit, ICharacter
             Appellations?.Save(connection, transaction);
             // Save active buffs that should persist across logout (SaveRuleId > 0)
             Buffs?.SaveActiveBuffs(connection, transaction, Id);
-            Portals?.Save(connection, transaction);
+            portalSaveVersion = Portals?.Save(connection, transaction) ?? 0;
             Friends?.Save(connection, transaction);
             Blocked?.Save(connection, transaction);
             Skills?.Save(connection, transaction);
@@ -4392,8 +4415,9 @@ public partial class Character : Unit, ICharacter
             SagaProgress?.Save(connection, transaction);
             Mates?.Save(connection, transaction);
             Butler?.Save(connection, transaction);
-            
+
             result = true;
+            portalSaveToken = _portalSaveCommits.Complete(portalSaveVersion, result);
         }
         catch (Exception ex)
         {

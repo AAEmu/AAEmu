@@ -54,3 +54,31 @@ public static class PersistenceGate
     /// <summary>True while this thread is taking a snapshot.</summary>
     public static bool IsSaveHeld => Gate.IsWriteLockHeld;
 }
+
+internal sealed class PersistenceSaveScope : IDisposable
+{
+    private readonly bool _ownsGate;
+    private bool _disposed;
+
+    private PersistenceSaveScope(bool ownsGate) => _ownsGate = ownsGate;
+
+    public static PersistenceSaveScope Enter()
+    {
+        if (PersistenceGate.IsSaveHeld)
+            return new PersistenceSaveScope(false);
+        if (PersistenceGate.IsOperationHeld)
+            throw new InvalidOperationException("A persistence save cannot start inside a live operation.");
+
+        PersistenceGate.EnterSave();
+        return new PersistenceSaveScope(true);
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+            return;
+        _disposed = true;
+        if (_ownsGate)
+            PersistenceGate.ExitSave();
+    }
+}
