@@ -1,4 +1,5 @@
-﻿using AAEmu.Game.Core.Managers.World;
+﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
 
@@ -46,17 +47,13 @@ public class CommercialMail : BaseMail
     }
 
     /// <summary>
-    /// Actually moves attached items to the mail, and generates title and body
+    /// Builds the commercial-mail envelope without changing a live inventory. The caller stages
+    /// this mail on its own transaction through <see cref="MailManager.TryDeliverOn"/>, then publishes
+    /// it only after that transaction commits.
     /// </summary>
-    public void FinalizeMail()
+    public void PrepareForTransactionalDelivery()
     {
         Body.Attachments = _items;
-
-        // If the player is exists, move it to their mail container first
-        var targetCharacter = WorldManager.Instance.GetCharacter(_receiverName);
-        if (targetCharacter != null)
-            foreach (var item in Body.Attachments)
-                targetCharacter.Inventory.MailAttachments.AddOrMoveExistingItem(ItemTaskType.Invalid, item);
 
         // Title looks like it should be the item shop entry names (in multiple language?)
         // Title = "title('Rainbow Pumpkin Taffy|Rainbow Pumpkin Taffy|Rainbow Pumpkin Taffy|彩虹南瓜糖|Радужный марципан')";
@@ -71,5 +68,20 @@ public class CommercialMail : BaseMail
         var expireDateString = "2100,12,31,00,00,00";
         Body.Text = "body(" + isPresent + ",'" + gifterName + "','" + _purchasedItemTitle.Replace("'", "\\'") + "')" +
                     "|gift:" + giftString + ";|refund:" + refundString + ";|limit:" + expireDateString + ";";
+    }
+
+    /// <summary>
+    /// Builds the envelope and stages the attachments in the target's live mail container for the
+    /// legacy immediate-send path. Purchases use <see cref="PrepareForTransactionalDelivery"/> instead.
+    /// </summary>
+    public void FinalizeMail()
+    {
+        PrepareForTransactionalDelivery();
+
+        // If the player exists, move it to their mail container first
+        var targetCharacter = WorldManager.Instance.GetCharacter(_receiverName);
+        if (targetCharacter != null)
+            foreach (var item in Body.Attachments)
+                targetCharacter.Inventory.MailAttachments.AddOrMoveExistingItem(ItemTaskType.Invalid, item);
     }
 }
