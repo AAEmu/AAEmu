@@ -52,14 +52,17 @@ public static class DominionClaimRules
     public static bool ShouldPayOnSiegeWeek(DateTime lastPaidUtc, DateTime? currentWeekStartUtc) =>
         currentWeekStartUtc is { } week && lastPaidUtc < week;
 
-    /// <summary><c>content_configs.dominion_tax_limit</c>. A missing or non-positive limit pays the full pool.</summary>
-    public static long CapTax(long total, long? limit)
+    /// <summary>
+    /// <c>content_configs.dominion_tax_limit</c>. The limit is required content: a missing or
+    /// non-positive value is a startup/configuration error, never permission to pay the full pool.
+    /// </summary>
+    public static long CapTax(long total, long limit)
     {
+        if (limit <= 0)
+            throw new InvalidOperationException("dominion_tax_limit must be a positive content value.");
         if (total <= 0)
             return 0;
-        if (limit is not { } cap || cap <= 0)
-            return total;
-        return total < cap ? total : cap;
+        return total < limit ? total : limit;
     }
 
     /// <summary>
@@ -100,7 +103,7 @@ public static class DominionClaimRules
     /// <summary>
     /// Weekly mail amount: 0 when the siege week has not rolled, otherwise the capped pool.
     /// </summary>
-    public static long TaxDue(DateTime lastPaidUtc, DateTime? currentWeekStartUtc, long pool, long? limit) =>
+    public static long TaxDue(DateTime lastPaidUtc, DateTime? currentWeekStartUtc, long pool, long limit) =>
         ShouldPayOnSiegeWeek(lastPaidUtc, currentWeekStartUtc) ? CapTax(pool, limit) : 0;
 
     /// <summary>

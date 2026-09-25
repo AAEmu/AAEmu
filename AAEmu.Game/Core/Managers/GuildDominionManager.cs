@@ -55,6 +55,11 @@ public class GuildDominionManager(IExpeditionManager expeditionManager, IGameDat
         _guildDominions = [];
         _guardTowerSettingIdByZone = [];
 
+        // Guild claims use the same DominionData tax fields and initial-rate path as faction claims.
+        // Require the same W08B content rows instead of letting one claim store run on a fallback.
+        HeroContentConfig.RequireDominionTaxBounds(out _, out _);
+        HeroContentConfig.RequireDominionTaxLimit();
+
         using var connection = MySQL.CreateConnection();
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT * FROM guild_dominions";

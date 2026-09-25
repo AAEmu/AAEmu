@@ -112,6 +112,11 @@ public class DominionManager(ITaskManager taskManager, IExpeditionManager expedi
         _dominions = [];
         _guardTowerSettingIdByZone = [];
 
+        // These are W08B tax-pool prerequisites. A missing bound/limit is a content error, not a
+        // reason to silently pay the whole pool or to accept an unpriced tax rate.
+        HeroContentConfig.RequireDominionTaxBounds(out _, out _);
+        HeroContentConfig.RequireDominionTaxLimit();
+
         using var connection = MySQL.CreateConnection();
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT * FROM dominions";
@@ -375,7 +380,7 @@ public class DominionManager(ITaskManager taskManager, IExpeditionManager expedi
                 continue;
 
             var total = dominion.CurHouseTaxMoney + dominion.CurHuntTaxMoney + dominion.PeaceTaxMoney;
-            var limit = HeroContentConfig.TryGetDominionTaxLimit(out var configuredLimit) ? configuredLimit : (int?)null;
+            var limit = HeroContentConfig.RequireDominionTaxLimit();
             var payable = (int)DominionClaimRules.CapTax(total, limit);
             if (payable <= 0)
             {
@@ -906,12 +911,12 @@ public class DominionManager(ITaskManager taskManager, IExpeditionManager expedi
     /// <summary>internal so GuildDominionManager (old castle system) can build the same TerritoryData shape without duplicating this logic - pure data transform, not manager state.</summary>
     internal static DominionTerritoryData BuildTerritoryData(uint guardTowerSettingId)
     {
+        if (guardTowerSettingId == 0)
+            return new DominionTerritoryData();
+
         var settings = SiegeGameData.Instance.GetGuardTowerSettings(guardTowerSettingId);
         if (settings == null)
-        {
-            Logger.Warn("No guard_tower_settings row for id {0}; using zeroed TerritoryData", guardTowerSettingId);
-            return new DominionTerritoryData();
-        }
+            throw new InvalidOperationException($"Required guard_tower_settings row {guardTowerSettingId} is missing.");
 
         return new DominionTerritoryData
         {
