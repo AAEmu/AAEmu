@@ -23,6 +23,13 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
     private Dictionary<uint, IndunRoom> _indunRooms;
     private Dictionary<uint, List<IndunRound>> _indunRounds;
     private Dictionary<uint, HashSet<byte>> _difficultiesByZoneGroup;
+    private Dictionary<uint, List<InstanceReward>> _instanceRewards;
+    private Dictionary<uint, InstanceRewardMailText> _instanceRewardMailTexts;
+    private HashSet<uint> _instanceRewardIds;
+    private HashSet<uint> _instanceRewardMailTextIds;
+    private HashSet<uint> _instanceIdsWithDifficultyInfo;
+    private Dictionary<uint, InstanceRewardKindDefinition> _instanceRewardKinds;
+    private Dictionary<uint, InstanceRewardMailKindDefinition> _instanceRewardMailKinds;
 
     public IndunZone GetDungeonZone(uint zoneGroupId)
     {
@@ -77,6 +84,41 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
         return [];
     }
 
+    /// <summary>
+    /// Returns every reward row whose authored range contains <paramref name="selectionValue"/>.
+    /// A reward kind can intentionally publish overlapping rows; they are all part of one mail.
+    /// </summary>
+    public IReadOnlyList<InstanceReward> GetInstanceRewards(uint instanceId, uint instanceRewardKindId, int selectionValue)
+    {
+        if (_instanceRewards == null || !_instanceRewards.TryGetValue(instanceId, out var rewards))
+            throw new InvalidDataException($"instance_rewards has no rows for instance {instanceId}");
+
+        return IndunRewardSelectionRules.Select(rewards, instanceRewardKindId, selectionValue);
+    }
+
+    /// <summary>The mail copy is keyed by the instance catalog id, not the transient world id.</summary>
+    public InstanceRewardMailText GetInstanceRewardMailText(uint instanceId)
+    {
+        if (_instanceRewardMailTexts != null && _instanceRewardMailTexts.TryGetValue(instanceId, out var text))
+            return text;
+
+        throw new InvalidDataException($"instance_reward_mail_texts has no row for instance {instanceId}");
+    }
+
+    public bool HasInstanceRewardKind(uint instanceId, uint instanceRewardKindId) =>
+        _instanceRewards != null && _instanceRewards.TryGetValue(instanceId, out var rewards) &&
+        rewards.Any(reward => reward.InstanceRewardKindId == instanceRewardKindId);
+
+    public string GetInstanceRewardKindName(uint instanceRewardKindId)
+    {
+        if (_instanceRewardKinds != null && _instanceRewardKinds.TryGetValue(instanceRewardKindId, out var kind))
+            return kind.Name;
+        throw new InvalidDataException($"enum_instance_reward_kinds has no kind {instanceRewardKindId}");
+    }
+
+    public bool HasInstanceRewardMailText(uint instanceId) =>
+        _instanceRewardMailTexts != null && _instanceRewardMailTexts.ContainsKey(instanceId);
+
     public bool IsDifficultyAvailable(uint zoneGroupId, byte difficult) =>
         _difficultiesByZoneGroup != null &&
         _difficultiesByZoneGroup.TryGetValue(zoneGroupId, out var difficulties) &&
@@ -84,6 +126,32 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
 
     public bool HasDifficultyOptions(uint zoneGroupId) =>
         _difficultiesByZoneGroup != null && _difficultiesByZoneGroup.ContainsKey(zoneGroupId);
+
+    /// <summary>
+    /// True when the shipped <c>instance_difficult_infos</c> table supplies the selection source
+    /// for a dungeon copy. It is deliberately separate from zone-group difficulty options.
+    /// </summary>
+    public bool HasInstanceDifficultyInfo(uint instanceId) =>
+        _instanceIdsWithDifficultyInfo != null && _instanceIdsWithDifficultyInfo.Contains(instanceId);
+
+    /// <summary>
+    /// Resolves only a difficulty value that is both evidence-backed by the instance table and
+    /// present in the authored reward range for this kind. A non-difficulty reward kind cannot use
+    /// this path.
+    /// </summary>
+    public bool TryGetAuthoredDifficultySelection(
+        uint instanceId,
+        uint instanceRewardKindId,
+        byte? difficulty,
+        out int selectionValue)
+    {
+        selectionValue = 0;
+        if (_instanceRewards == null || !_instanceRewards.TryGetValue(instanceId, out var rewards))
+            return false;
+
+        return IndunRewardSelectionRules.TryResolveAuthoredDifficultySelection(
+            rewards, HasInstanceDifficultyInfo(instanceId), difficulty, instanceRewardKindId, out selectionValue);
+    }
 
     private void AddIndunEvent(IndunEvent indunEvent)
     {
@@ -117,6 +185,49 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
         _indunRooms = [];
         _indunRounds = [];
         _difficultiesByZoneGroup = [];
+        _instanceRewards = [];
+        _instanceRewardMailTexts = [];
+        _instanceRewardIds = [];
+        _instanceRewardMailTextIds = [];
+        _instanceIdsWithDifficultyInfo = [];
+        _instanceRewardKinds = [];
+        _instanceRewardMailKinds = [];
+
+        #region Reward catalogs
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT id, name FROM enum_instance_reward_kinds";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var id = reader.GetUInt32("id");
+                var name = reader.GetString("name");
+                if (id == 0 || string.IsNullOrWhiteSpace(name))
+                    throw new InvalidDataException("enum_instance_reward_kinds has an invalid row");
+                if (!_instanceRewardKinds.TryAdd(id, new InstanceRewardKindDefinition(id, name)))
+                    throw new InvalidDataException($"enum_instance_reward_kinds has duplicate id {id}");
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT id, name FROM enum_instance_reward_mail_kinds";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var id = reader.GetUInt32("id");
+                var name = reader.GetString("name");
+                if (id == 0 || string.IsNullOrWhiteSpace(name))
+                    throw new InvalidDataException("enum_instance_reward_mail_kinds has an invalid row");
+                if (!_instanceRewardMailKinds.TryAdd(id, new InstanceRewardMailKindDefinition(id, name)))
+                    throw new InvalidDataException($"enum_instance_reward_mail_kinds has duplicate id {id}");
+            }
+        }
+        #endregion
 
         #region Actions
         using (var command = connection.CreateCommand())
@@ -272,9 +383,13 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
         }
         using (var command = connection.CreateCommand())
         {
-            command.CommandText = @"SELECT indun_actions.*, instance_reward_kind_id FROM indun_actions
+            command.CommandText = @"SELECT indun_actions.*, instance_reward_kind_id,
+                                           enum_instance_reward_kinds.name AS instance_reward_kind_name
+                                    FROM indun_actions
                                         LEFT JOIN indun_action_send_mail_rewards
                                         ON indun_actions.detail_id = indun_action_send_mail_rewards.id
+                                        LEFT JOIN enum_instance_reward_kinds
+                                        ON instance_reward_kind_id = enum_instance_reward_kinds.id
                                         WHERE indun_actions.detail_type = 'IndunActionSendMailReward'";
             command.Prepare();
             using (var sqliteReader = command.ExecuteReader())
@@ -282,13 +397,18 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
             {
                 while (reader.Read())
                 {
+                    var kindId = reader.GetUInt32("instance_reward_kind_id", 0);
+                    if (kindId == 0 || reader.IsDBNull("instance_reward_kind_name") ||
+                        !_instanceRewardKinds.TryGetValue(kindId, out var kindDefinition) ||
+                        !string.Equals(reader.GetString("instance_reward_kind_name"), kindDefinition.Name, StringComparison.Ordinal))
+                        throw new InvalidDataException("IndunActionSendMailReward has no enum_instance_reward_kinds join");
                     var action = new IndunActionSendMailReward
                     {
                         Id = reader.GetUInt32("id"),
                         DetailId = reader.GetUInt32("detail_id"),
                         ZoneGroupId = reader.GetUInt16("zone_group_id"),
                         NextActionId = reader.GetUInt32("next_action_id", 0),
-                        InstanceRewardKindId = reader.GetUInt32("instance_reward_kind_id", 0)
+                        InstanceRewardKindId = kindId
                     };
 
                     _indunActions.Add(action.Id, action);
@@ -797,14 +917,145 @@ public class IndunGameData : Singleton<IndunGameData>, IGameDataLoader
         }
         #endregion
 
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT DISTINCT idi.instance_id
+                                    FROM instance_difficult_infos idi
+                                    JOIN instances i ON i.id = idi.instance_id
+                                    WHERE i.target_type = 'IndunZone'";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+                _instanceIdsWithDifficultyInfo.Add(reader.GetUInt32("instance_id"));
+        }
+
+        #region Instance rewards
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT r.id, r.instance_id, r.instance_reward_kind_id, r.start_range, r.end_range,
+                                           r.reward_amount, r.use_game_score, r.reward_target_id, r.reward_target_type,
+                                           r.give_ignore_visited_count, r.apply_config,
+                                           rk.name AS instance_reward_kind_name
+                                    FROM instance_rewards r
+                                    LEFT JOIN enum_instance_reward_kinds rk ON rk.id = r.instance_reward_kind_id
+                                    ORDER BY r.instance_id, r.instance_reward_kind_id, r.id";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var rewardId = reader.GetUInt32("id");
+                var instanceId = reader.GetUInt32("instance_id");
+                var rewardKindId = reader.GetUInt32("instance_reward_kind_id");
+                var targetId = reader.GetUInt32("reward_target_id");
+                if (rewardId == 0 || instanceId == 0 || rewardKindId == 0 || targetId == 0)
+                    throw new InvalidDataException($"instance_rewards {rewardId} has a zero catalog id");
+                if (reader.IsDBNull("instance_reward_kind_name") ||
+                    !_instanceRewardKinds.TryGetValue(rewardKindId, out var rewardKindDefinition) ||
+                    !string.Equals(reader.GetString("instance_reward_kind_name"), rewardKindDefinition.Name, StringComparison.Ordinal))
+                    throw new InvalidDataException($"instance_rewards {rewardId} has no enum_instance_reward_kinds join");
+                if (!_instanceRewardIds.Add(rewardId))
+                    throw new InvalidDataException($"instance_rewards has duplicate id {rewardId}");
+
+                var targetTypeText = reader.GetString("reward_target_type");
+                if (!Enum.TryParse<InstanceRewardTargetType>(targetTypeText, true, out var targetType))
+                {
+                    throw new InvalidDataException(
+                        $"instance_rewards {rewardId} has unsupported reward_target_type '{targetTypeText}'");
+                }
+
+                var startRange = reader.GetInt32("start_range");
+                var endRange = reader.GetInt32("end_range");
+                if (startRange > endRange)
+                    throw new InvalidDataException($"instance_rewards {rewardId} has an inverted range");
+
+                var rewardAmount = reader.GetInt32("reward_amount");
+                if (rewardAmount < 0)
+                    throw new InvalidDataException($"instance_rewards {rewardId} has a negative reward_amount");
+
+                var reward = new InstanceReward(
+                    rewardId,
+                    instanceId,
+                    rewardKindId,
+                    startRange,
+                    endRange,
+                    rewardAmount,
+                    reader.GetBoolean("use_game_score"),
+                    targetId,
+                    targetType,
+                    reader.GetBoolean("give_ignore_visited_count"),
+                    reader.GetBoolean("apply_config"));
+
+                if (!_instanceRewards.TryGetValue(reward.InstanceId, out var instanceRewards))
+                {
+                    instanceRewards = [];
+                    _instanceRewards.Add(reward.InstanceId, instanceRewards);
+                }
+                instanceRewards.Add(reward);
+            }
+        }
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = @"SELECT m.id, m.instance_id, m.mail_sender, m.mail_title, m.mail_body, m.mail_kind_id,
+                                           k.name AS mail_kind_name
+                                    FROM instance_reward_mail_texts m
+                                    LEFT JOIN enum_instance_reward_mail_kinds k ON k.id = m.mail_kind_id
+                                    ORDER BY m.instance_id, m.id";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var textId = reader.GetUInt32("id");
+                var instanceId = reader.GetUInt32("instance_id");
+                if (textId == 0 || instanceId == 0)
+                    throw new InvalidDataException($"instance_reward_mail_texts {textId} has a zero catalog id");
+                if (!_instanceRewardMailTextIds.Add(textId))
+                    throw new InvalidDataException($"instance_reward_mail_texts has duplicate id {textId}");
+                if (_instanceRewardMailTexts.ContainsKey(instanceId))
+                    throw new InvalidDataException($"instance_reward_mail_texts has duplicate rows for instance {instanceId}");
+
+                var sender = reader.GetString("mail_sender");
+                var title = reader.GetString("mail_title");
+                var body = reader.GetString("mail_body");
+                var mailKindId = reader.GetUInt32("mail_kind_id");
+                if (mailKindId == 0 || string.IsNullOrWhiteSpace(sender) || string.IsNullOrWhiteSpace(title) || string.IsNullOrWhiteSpace(body))
+                    throw new InvalidDataException($"instance_reward_mail_texts {textId} has incomplete mail text");
+                if (reader.IsDBNull("mail_kind_name") ||
+                    !_instanceRewardMailKinds.TryGetValue(mailKindId, out var mailKindDefinition) ||
+                    !string.Equals(reader.GetString("mail_kind_name"), mailKindDefinition.Name, StringComparison.Ordinal) ||
+                    !Enum.TryParse<InstanceRewardMailKind>(mailKindDefinition.Name, true, out var mailKind))
+                {
+                    throw new InvalidDataException(
+                        $"instance_reward_mail_texts {textId} has no supported enum_instance_reward_mail_kinds join");
+                }
+
+                _instanceRewardMailTexts.Add(instanceId, new InstanceRewardMailText(
+                    textId,
+                    instanceId,
+                    sender,
+                    title,
+                    body,
+                    mailKindId,
+                    mailKind));
+            }
+        }
+
+        // Some legacy indun_actions rows use this action class but have no instance_rewards
+        // catalogue entry. Their joins are checked at execution by the delivery service, so
+        // loading the complete action catalog does not turn those legacy rows into a boot failure.
+        #endregion
+
         var eventCount = 0;
         foreach (var events in _indunEvents.Values)
             eventCount += events.Count;
         var roundCount = 0;
         foreach (var rounds in _indunRounds.Values)
             roundCount += rounds.Count;
-        // Content has 357 actions, 263 events and 77 rounds; a lower count here means a kind went unloaded.
-        Logger.Info($"Loaded {_indunActions.Count} indun actions, {eventCount} indun events, {roundCount} indun rounds");
+        var instanceRewardCount = _instanceRewards.Values.Sum(rewards => rewards.Count);
+        Logger.Info($"Loaded {_indunActions.Count} indun actions, {eventCount} indun events, {roundCount} indun rounds, {instanceRewardCount} instance rewards, {_instanceRewardMailTexts.Count} instance reward mail texts");
     }
 
     public void PostLoad()
