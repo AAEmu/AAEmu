@@ -362,19 +362,27 @@ public class DoodadAreaTriggerRuntimeTests
             var edges = new AreaEdgeTracker();
             var candidate = Candidate(objId: 900, npcId: 0, isEnter: true, inRange: true);
             using var dispatching = new ManualResetEventSlim(false);
+            using var releaseDispatch = new ManualResetEventSlim(false);
 
             var dispatch = Task.Run(() => DoodadAreaTriggerRuntime.ApplyEnterEdges(
                 ZoneId, UnitId, GroupId, [candidate], edges,
                 (_, _) =>
                 {
                     dispatching.Set();
-                    Thread.Sleep(2);
+                    releaseDispatch.Wait(TimeSpan.FromSeconds(10));
                     return true;
                 }));
 
-            // The leave lands while the dispatch body is running.
-            dispatching.Wait(1000);
+            // Do not let a slow CI worker turn this into a false race: the leave must
+            // only be issued after the dispatch body is definitely inside its callback.
+            var dispatchStarted = dispatching.Wait(TimeSpan.FromSeconds(10));
+            if (!dispatchStarted)
+                releaseDispatch.Set();
+            await Assert.That(dispatchStarted).IsTrue();
+
+            // The leave lands while the dispatch body is still running.
             edges.ForgetMembership(ZoneId, UnitId, GroupId);
+            releaseDispatch.Set();
             await dispatch;
 
             // Whatever the interleaving, no membership may survive the leave: that would
