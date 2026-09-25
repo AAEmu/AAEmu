@@ -417,8 +417,9 @@ public class ZoneConflict(
                 publication.CurrentState);
         }
 
-        // Under ZoneAuthority the Zone hosts own NPC spawning, so they need the state to arm the
-        // conflict_zone_npc_spawners rows for peace/war. Null in the monolithic server.
+        // Under ZoneAuthority the Zone hosts keep the war state for their unit/skill requirement
+        // evaluators, and World re-applies the group's conflict_zone_npc_spawners rows for the new
+        // state (the host does not arm them from this state). Null in the monolithic server.
         try
         {
             WorldIntegration.RelayConflictZoneStateToZone?.Invoke(ZoneGroupId, (byte)publication.CurrentState);
