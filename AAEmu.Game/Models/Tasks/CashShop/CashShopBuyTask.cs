@@ -24,10 +24,11 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
             return;
         }
 
+        lock (CashShopManager.Instance.PurchaseSyncRoot)
+        lock (buyer.WalletSyncRoot)
         AccountManager.Instance.WithAccountLock(buyer.AccountId, () =>
         {
-            lock (CashShopManager.Instance.PurchaseSyncRoot)
-                ExecuteLocked();
+            ExecuteLocked();
             return true;
         });
     }
@@ -72,7 +73,8 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
         }
         catch (Exception ex)
         {
-            Logger.Error(ex, "ICS purchase delivery could not be created for character {0}", buyer.Name);
+            var correlation = CashShopLogCorrelation.ForBuyer(buyer.AccountId, buyer.Id);
+            Logger.Error(ex, "ICS purchase delivery could not be created for buyer correlation {0}", correlation);
             FailBuy(new CashShopPurchaseFailure(
                 CashShopPurchaseFailureReason.InvalidContent,
                 plan.Lines[0].ShopId));
@@ -81,7 +83,6 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
 
         using (delivery)
         using (MailManager.Instance.DeferPersist())
-        lock (buyer.WalletSyncRoot)
         {
             CashShopPurchaseStoreResult persisted;
             using (var connection = MySQL.CreateConnection())
@@ -96,7 +97,9 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
                         targetPlayer.Id,
                         ServerCalendar.UtcNow,
                         plan,
-                        delivery.Mails);
+                        delivery.Mails,
+                        buyer.Money,
+                        buyer.AaPoint);
                     persisted = CashShopPurchaseStore.Stage(
                         connection,
                         transaction,
@@ -127,7 +130,8 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
                     {
                         // The original database failure is the useful one.
                     }
-                    Logger.Error(ex, "ICS purchase persistence failed for character {0}", buyer.Name);
+                    var correlation = CashShopLogCorrelation.ForBuyer(buyer.AccountId, buyer.Id);
+                    Logger.Error(ex, "ICS purchase persistence failed for buyer correlation {0}", correlation);
                     FailBuy(new CashShopPurchaseFailure(
                         CashShopPurchaseFailureReason.InvalidContent,
                         plan.Lines[0].ShopId));
@@ -147,22 +151,26 @@ public class CashShopBuyTask(byte buyMode, Character buyer, Character targetPlay
             CashShopManager.Instance.SendBuyCounts(buyer.Connection, buyer.AccountId, buyer.Id);
 
             foreach (var line in plan.Lines)
-                Logger.Info("ICSBuyGood {0} -> {1} - {2} x {3}, SKU:{4}",
-                    buyer.Name, targetPlayer.Name, line.DeliveryTitle, line.ItemCount, line.SkuId);
+            {
+                var buyerCorrelation = CashShopLogCorrelation.ForBuyer(buyer.AccountId, buyer.Id);
+                var targetCorrelation = CashShopLogCorrelation.ForBuyer(targetPlayer.AccountId, targetPlayer.Id);
+                Logger.Info("ICSBuyGood buyer={0} target={1} - {2} x {3}, SKU:{4}",
+                    buyerCorrelation, targetCorrelation, line.DeliveryTitle, line.ItemCount, line.SkuId);
+            }
         }
     }
 
     private void ApplyCommittedBuyerState(CashShopPurchasePlan plan, CashShopPurchaseStoreResult persisted)
     {
-        buyer.Money = persisted.Money;
-        buyer.AaPoint = persisted.AaPoints;
+        var coinCost = plan.CostOf(CashShopCurrencyType.Coins);
+        var aaPointCost = plan.CostOf(CashShopCurrencyType.AaPoints);
+        buyer.Money -= coinCost;
+        buyer.AaPoint -= aaPointCost;
         buyer.BmPoint = checked((int)persisted.Loyalty);
 
         var walletTasks = new List<ItemTask>();
-        var coinCost = plan.CostOf(CashShopCurrencyType.Coins);
         if (coinCost > 0)
             walletTasks.Add(new MoneyChange(-coinCost));
-        var aaPointCost = plan.CostOf(CashShopCurrencyType.AaPoints);
         if (aaPointCost > 0)
             walletTasks.Add(new AAPointUpdate(-aaPointCost));
         if (walletTasks.Count > 0)

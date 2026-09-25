@@ -1,5 +1,6 @@
 ﻿using System.Data;
 using System.Data.Common;
+using System.Security.Cryptography;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.StaticValues;
@@ -28,7 +29,9 @@ public sealed record CashShopPurchaseCommit(
     uint TargetCharacterId,
     DateTime SaleDateUtc,
     CashShopPurchasePlan Plan,
-    IReadOnlyList<BaseMail> Mails);
+    IReadOnlyList<BaseMail> Mails,
+    long LiveMoney,
+    long LiveAaPoints);
 
 public sealed record CashShopPurchaseStoreResult(
     bool Succeeded,
@@ -62,6 +65,25 @@ public sealed record CashShopPurchaseStoreResult(
 }
 
 /// <summary>
+/// Produces a process-scoped, opaque correlation value for purchase diagnostics. The account and
+/// character identifiers are hashed with a per-process salt and are never returned or logged.
+/// </summary>
+internal static class CashShopLogCorrelation
+{
+    private static readonly byte[] ProcessSalt = RandomNumberGenerator.GetBytes(32);
+
+    public static string ForBuyer(uint accountId, uint characterId)
+    {
+        var input = new byte[ProcessSalt.Length + (sizeof(uint) * 2)];
+        ProcessSalt.CopyTo(input, 0);
+        BitConverter.TryWriteBytes(input.AsSpan(ProcessSalt.Length, sizeof(uint)), accountId);
+        BitConverter.TryWriteBytes(input.AsSpan(ProcessSalt.Length + sizeof(uint), sizeof(uint)), characterId);
+        var digest = SHA256.HashData(input);
+        return Convert.ToHexString(digest.AsSpan(0, 8));
+    }
+}
+
+/// <summary>
 /// Stages the database side of an ICS purchase on a caller-owned transaction. The caller commits
 /// only after every balance, stock, audit row, and mail delivery has been staged successfully.
 /// </summary>
@@ -90,12 +112,15 @@ public static class CashShopPurchaseStore
                     plan.CostOf(CashShopCurrencyType.Loyalty), out _))
                 return Failure(CashShopPersistenceFailureReason.InsufficientLoyalty);
 
-            if (!TryDebit(connection, transaction, "money", "id", commit.BuyerCharacterId,
-                    plan.CostOf(CashShopCurrencyType.Coins), out _))
-                return Failure(CashShopPersistenceFailureReason.InsufficientCoins);
-            if (!TryDebit(connection, transaction, "aa_point", "id", commit.BuyerCharacterId,
-                    plan.CostOf(CashShopCurrencyType.AaPoints), out _))
-                return Failure(CashShopPersistenceFailureReason.InsufficientAaPoints);
+            var coinCost = plan.CostOf(CashShopCurrencyType.Coins);
+            var aaPointCost = plan.CostOf(CashShopCurrencyType.AaPoints);
+            if (coinCost < 0 || aaPointCost < 0 || commit.LiveMoney < coinCost || commit.LiveAaPoints < aaPointCost)
+                return Failure(coinCost > commit.LiveMoney
+                    ? CashShopPersistenceFailureReason.InsufficientCoins
+                    : CashShopPersistenceFailureReason.InsufficientAaPoints);
+            if (!TryWriteLiveWallet(connection, transaction, commit.BuyerCharacterId,
+                    commit.LiveMoney - coinCost, commit.LiveAaPoints - aaPointCost))
+                return Failure(CashShopPersistenceFailureReason.PersistenceUnavailable);
 
             var remainingByShop = new Dictionary<uint, int>();
             foreach (var quantity in plan.QuantitiesByShop)
@@ -143,8 +168,8 @@ public static class CashShopPurchaseStore
         }
         catch (DbException ex)
         {
-            Logger.Error(ex, "ICS purchase persistence failed for account {0} character {1}",
-                commit.BuyerAccountId, commit.BuyerCharacterId);
+            var correlation = CashShopLogCorrelation.ForBuyer(commit.BuyerAccountId, commit.BuyerCharacterId);
+            Logger.Error(ex, "ICS purchase persistence failed for buyer correlation {0}", correlation);
             return Failure(CashShopPersistenceFailureReason.PersistenceUnavailable);
         }
     }
@@ -166,6 +191,18 @@ public static class CashShopPurchaseStore
         Add(command, "@id", id);
         affected = command.ExecuteNonQuery() == 1;
         return affected;
+    }
+
+    private static bool TryWriteLiveWallet(DbConnection connection, DbTransaction transaction,
+        uint characterId, long money, long aaPoints)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText = "UPDATE characters SET money=@money, aa_point=@aa_point WHERE id=@id";
+        Add(command, "@money", money);
+        Add(command, "@aa_point", aaPoints);
+        Add(command, "@id", characterId);
+        return command.ExecuteNonQuery() == 1;
     }
 
     private static bool TryConsumeStock(DbConnection connection, DbTransaction transaction, uint shopId,

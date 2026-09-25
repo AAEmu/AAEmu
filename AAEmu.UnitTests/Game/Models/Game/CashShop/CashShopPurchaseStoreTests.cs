@@ -139,8 +139,13 @@ public sealed class CashShopPurchaseStoreTests : IDisposable
             transaction.Rollback();
 
             var messages = string.Join(Environment.NewLine, target.Logs);
+            var correlation = CashShopLogCorrelation.ForBuyer(AccountId, CharacterId);
             await Assert.That(messages).Contains(
-                $"ICS purchase persistence failed for account {AccountId} character {CharacterId}");
+                $"ICS purchase persistence failed for buyer correlation {correlation}");
+            await Assert.That(messages).DoesNotContain(AccountId.ToString());
+            await Assert.That(messages).DoesNotContain(CharacterId.ToString());
+            await Assert.That(correlation).IsNotEqualTo(AccountId.ToString());
+            await Assert.That(correlation).IsNotEqualTo(CharacterId.ToString());
             await Assert.That(result.Succeeded).IsFalse();
             await Assert.That(result.Reason).IsEqualTo(CashShopPersistenceFailureReason.PersistenceUnavailable);
             await Assert.That(result.ClientFailure.WireError).IsEqualTo(ErrorMessageType.IngameShopBuyFail);
@@ -160,7 +165,7 @@ public sealed class CashShopPurchaseStoreTests : IDisposable
         var plan = Plan(CashShopCurrencyType.AaPoints, cost: 12, quantity: 1);
         using var transaction = _connection.BeginTransaction();
 
-        var result = CashShopPurchaseStore.Stage(_connection, transaction, Commit(plan), _ => true);
+        var result = CashShopPurchaseStore.Stage(_connection, transaction, Commit(plan, liveAaPoints: 5), _ => true);
         transaction.Rollback();
 
         await Assert.That(result.Succeeded).IsFalse();
@@ -169,14 +174,16 @@ public sealed class CashShopPurchaseStoreTests : IDisposable
         await Assert.That(CountAudit()).IsEqualTo(0);
     }
 
-    private CashShopPurchaseCommit Commit(CashShopPurchasePlan plan) => new(
+    private CashShopPurchaseCommit Commit(CashShopPurchasePlan plan, long liveMoney = 900, long liveAaPoints = 50) => new(
         AccountId,
         CharacterId,
         TargetAccountId,
         TargetCharacterId,
         new DateTime(2026, 9, 23, 12, 0, 0, DateTimeKind.Utc),
         plan,
-        [new BaseMail { ReceiverName = "target" }]);
+        [new BaseMail { ReceiverName = "target" }],
+        liveMoney,
+        liveAaPoints);
 
     private static CashShopPurchasePlan Plan(CashShopCurrencyType currency, long cost, long quantity) =>
         new(
