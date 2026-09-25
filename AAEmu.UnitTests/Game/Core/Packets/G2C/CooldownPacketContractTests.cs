@@ -8,7 +8,7 @@ namespace AAEmu.UnitTests.Game.Core.Packets.G2C;
 public class CooldownPacketContractTests
 {
     [Test]
-    public async Task ReducePacket_PreservesSignedReductionFields()
+    public async Task ReducePacket_PreservesAuthoredNegativeValues()
     {
         var body = new SCSkillCooldownReducePacket(
                 0x123456,
@@ -41,7 +41,7 @@ public class CooldownPacketContractTests
     }
 
     [Test]
-    public async Task ChargePacket_PreservesSignedReductionFields()
+    public async Task ChargePacket_PreservesAuthoredNegativeValues()
     {
         var body = new SCChargeSkillCooldownChangedPacket(0x123456, 0x11223344, -7, -3, -11)
             .Write(new PacketStream())

@@ -21,10 +21,10 @@ public class CooldownReductionRulesTests
     }
 
     [Test]
-    public async Task PercentBranch_WinsWhenBothValuesArePresent()
+    public async Task PercentBranch_UsesOriginalDurationWhenFlatIsZero()
     {
         await Assert.That(CooldownReductionRules.CalculateRemaining(
-                TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(8), flatMilliseconds: 250, percent: 50))
+                TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(8), flatMilliseconds: 0, percent: 50))
             .IsEqualTo(TimeSpan.FromSeconds(3));
     }
 
@@ -45,19 +45,35 @@ public class CooldownReductionRulesTests
     }
 
     [Test]
-    public async Task NegativePercentBranch_DoesNotExtendTheCooldown()
+    public async Task NegativePercentBranch_ExtendsTheCooldown()
     {
         await Assert.That(CooldownReductionRules.CalculateRemaining(
                 TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(4), flatMilliseconds: 0, percent: -50))
-            .IsEqualTo(TimeSpan.FromSeconds(4));
+            .IsEqualTo(TimeSpan.FromSeconds(9));
     }
 
     [Test]
-    public async Task NegativeFlatBranch_DoesNotExtendTheCooldown()
+    public async Task NegativeFlatBranch_ExtendsTheCooldown()
     {
         await Assert.That(CooldownReductionRules.CalculateRemaining(
                 TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(4), flatMilliseconds: -250, percent: 0))
-            .IsEqualTo(TimeSpan.FromSeconds(4));
+            .IsEqualTo(TimeSpan.FromMilliseconds(4250));
+    }
+
+    [Test]
+    public async Task NegativeReduction_IsCappedAtOriginalDuration()
+    {
+        await Assert.That(CooldownReductionRules.CalculateRemaining(
+                TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(4), flatMilliseconds: -10_000, percent: 0))
+            .IsEqualTo(TimeSpan.FromSeconds(10));
+    }
+
+    [Test]
+    public async Task NegativePercentReduction_IsCappedAtOriginalDuration()
+    {
+        await Assert.That(CooldownReductionRules.CalculateRemaining(
+                TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(4), flatMilliseconds: 0, percent: -200))
+            .IsEqualTo(TimeSpan.FromSeconds(10));
     }
 
     [Test]

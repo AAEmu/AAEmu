@@ -7,8 +7,8 @@ public static class CooldownReductionRules
 {
     /// <summary>
     /// Selects the authored percent branch when present, otherwise the flat branch. Percent is
-    /// calculated from the original duration; the resulting remaining time is bounded by the
-    /// original duration, and negative reductions do not extend a cooldown.
+    /// calculated from the original duration. A negative authored reduction extends the remaining
+    /// time, bounded by the original duration.
     /// </summary>
     public static TimeSpan CalculateRemaining(TimeSpan originalDuration, TimeSpan remaining,
         int flatMilliseconds, int percent)
@@ -21,9 +21,8 @@ public static class CooldownReductionRules
         var requestedReduction = percent != 0
             ? originalMilliseconds * percent / 100d
             : flatMilliseconds;
-        var nonNegativeReduction = Math.Max(0d, requestedReduction);
         var remainingAfterReduction = Math.Clamp(
-            currentMilliseconds - nonNegativeReduction,
+            currentMilliseconds - requestedReduction,
             0d,
             originalMilliseconds);
 

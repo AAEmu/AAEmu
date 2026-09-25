@@ -132,7 +132,10 @@ public class UnitCooldowns
         return state.EndTime > DateTime.UtcNow ? state.EndTime - DateTime.UtcNow : TimeSpan.Zero;
     }
 
-    /// <summary>Applies an authored percent-or-flat cooldown reduction to a running cooldown.</summary>
+    /// <summary>
+    /// Applies an authored percent-or-flat cooldown reduction to a running cooldown. A negative
+    /// authored value extends the remaining time, bounded by the original duration.
+    /// </summary>
     public void ApplyCooldownReduction(uint skillId, int flatMilliseconds, int percent)
     {
         while (_cooldowns.TryGetValue(skillId, out var state))
