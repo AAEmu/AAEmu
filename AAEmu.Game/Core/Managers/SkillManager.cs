@@ -2968,6 +2968,10 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 }
                 Logger.Info("Skill Products loaded");
 
+                // Content-only C08 diagnostic. It reports the type-146 row/link matrix and never
+                // enumerates targets or changes the action's behavior.
+                LoseTargetingContentAudit.Inspect(connection);
+
                 OnSkillsLoaded?.Invoke(this, EventArgs.Empty);
             }
         }
