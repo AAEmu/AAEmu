@@ -1,3 +1,5 @@
+﻿using System.Collections.Concurrent;
+
 using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.Core.Managers.Id;
@@ -30,7 +32,7 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
 
     private Dictionary<uint, SongData> _uploadQueue = []; // playerId, song
     private Dictionary<uint, SongData> _allSongs = []; // songId, song
-    private Dictionary<uint, byte[]> _midiCache = []; // playerId, midi data
+    private readonly ConcurrentDictionary<uint, byte[]> _midiCache = new(); // playerId, midi data
 
     /// <summary>
     /// Longest score a player may save, taken from the shipped composition steps and bounded by
@@ -42,7 +44,7 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
     {
         _uploadQueue = [];
         _allSongs = [];
-        _midiCache = [];
+        _midiCache.Clear();
 
         LoadNoteLimit();
 
@@ -238,17 +240,41 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         return null;
     }
 
-    public void CacheMidi(uint playerId, byte[] midiData)
+    /// <summary>Replaces a player's current performance block, refusing an absent or empty body.</summary>
+    public bool CacheMidi(uint playerId, byte[] midiData)
     {
-        _midiCache.Remove(playerId);
-        _midiCache.Add(playerId, midiData);
+        if (midiData is not { Length: > 0 })
+        {
+            Logger.Warn("Refusing to cache an empty MIDI block for player {0}", playerId);
+            ClearMidiCache(playerId);
+            return false;
+        }
+
+        _midiCache[playerId] = midiData;
+        return true;
     }
 
-    public byte[] GetMidiCache(uint playerId)
+    /// <summary>Returns only a non-empty performance block.</summary>
+    public bool TryGetMidiCache(uint playerId, out byte[] midiData)
     {
-        if (_midiCache.TryGetValue(playerId, out var data))
-            return data;
-        return [];
+        if (_midiCache.TryGetValue(playerId, out var data) && data is { Length: > 0 })
+        {
+            midiData = data;
+            return true;
+        }
+
+        midiData = null;
+        return false;
+    }
+
+    /// <summary>Drops a player's current performance block so it cannot be replayed later.</summary>
+    public bool ClearMidiCache(uint playerId) => _midiCache.TryRemove(playerId, out _);
+
+    /// <summary>Clears session-owned music state when a character leaves the world.</summary>
+    public void OnCharacterLogout(BaseUnit player)
+    {
+        if (player != null)
+            ClearMidiCache(player.Id);
     }
 
     private readonly Dictionary<uint, EnsembleSession> _ensembles = []; // maestro bc, session
@@ -469,6 +495,7 @@ public class MusicManager(IMusicIdManager musicIdManager, IItemManager itemManag
         if (player == null)
             return;
 
+        MusicManager.Instance.ClearMidiCache(player.Id);
         player.BroadcastPacket(new SCPauseUserMusicPacket(player.ObjId), true);
 
         var buffs = player.Buffs;

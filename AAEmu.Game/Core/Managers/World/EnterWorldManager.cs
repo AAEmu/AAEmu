@@ -1,4 +1,4 @@
-using AAEmu.Commons.Cryptography;
+﻿using AAEmu.Commons.Cryptography;
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Connections;
@@ -259,6 +259,10 @@ public class EnterWorldManager(
 
             // Check if still mounted on somebody else's mount and dismount that if needed
             activeChar.ForceDismount(/*AttachUnitReason.PrefabChanged*/); // Dismounting a mount because of unsummoning sends "10" for this
+
+            // Leaving to the lobby or character select ends the current performance session; do not
+            // let its MIDI bytes survive into a later entry.
+            MusicManager.Instance.OnCharacterLogout(activeChar);
 
             // Cancel any duel or pending duel invitation. This has to happen before the character is
             // deleted below: a duel that is still running needs the flag removed and both factions
