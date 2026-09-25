@@ -200,7 +200,11 @@ public class RandomMerchantManager : Singleton<RandomMerchantManager>, ILoadable
     /// between the lookup and the write. Payment runs after the claim; a refused payment releases it.
     /// </summary>
     public RandomShopPurchaseResult TryPurchase(
-        uint characterId, uint packId, int slot, DateTime nowUtc, Func<bool> chargePayment)
+        uint characterId, uint packId, int slot, DateTime nowUtc, Func<bool> chargePayment) =>
+        TryPurchase(characterId, packId, slot, nowUtc, _ => chargePayment?.Invoke() ?? false);
+
+    public RandomShopPurchaseResult TryPurchase(
+        uint characterId, uint packId, int slot, DateTime nowUtc, Func<RandomShopOffer, bool> chargePayment)
     {
         RequirePack(packId);
         GetWindow(characterId, packId, nowUtc);
@@ -221,7 +225,7 @@ public class RandomMerchantManager : Singleton<RandomMerchantManager>, ILoadable
                 return RandomShopPurchaseResult.AlreadySold;
         }
 
-        if (!(chargePayment?.Invoke() ?? false))
+        if (!(chargePayment?.Invoke(offer) ?? false))
         {
             _store.ReleaseOffer(characterId, packId, slot);
             lock (_windowLock)

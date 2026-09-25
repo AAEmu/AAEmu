@@ -302,6 +302,7 @@ public static class Program
                 services.AddSingleton<IRadarManager>(sp => sp.GetRequiredService<RadarManager>());
 
                 services.AddSingleton<RandomMerchantManager>();
+                services.AddSingleton<ReopenBoxManager>();
 
                 services.AddSingleton<SaveManager>();
                 services.AddSingleton<ISaveManager>(sp => sp.GetRequiredService<SaveManager>());

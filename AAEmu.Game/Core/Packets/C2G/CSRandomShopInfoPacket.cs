@@ -1,6 +1,7 @@
 using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Network.Game;
+using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game.Merchant;
 
 using NLog;
@@ -43,14 +44,16 @@ public class CSRandomShopInfoPacket() : GamePacket(CSOffsets.CSRandomShopInfoPac
 
         try
         {
-            // Rolls (or re-rolls on a new UTC day) and persists the viewer's window. The reply,
-            // SCRandomShopInfoPacket, carries a shopDisplayInfo payload whose container layout the
-            // corpus does not resolve, so no reply is written yet - the window is ready for the
-            // refresh path and the reply is withheld rather than guessed.
-            RandomMerchantManager.Instance.GetWindow(character.Id, packId, DateTime.UtcNow);
-            Logger.Warn(
-                "Random shop info: window ready for character {0}, pack {1}; SCRandomShopInfoPacket reply withheld (shopDisplayInfo layout not decoded)",
-                character.Id, packId);
+            var window = RandomMerchantManager.Instance.GetWindow(character.Id, packId, DateTime.UtcNow);
+            Connection.SendPacket(new SCRandomShopInfoPacket(
+                0,
+                TypeValue < 0 ? 0u : (uint)TypeValue,
+                packId,
+                (byte)Math.Min(window.FreeUsed, byte.MaxValue),
+                (byte)Math.Min(window.ChargeUsed, byte.MaxValue),
+                character.Id,
+                window.RolledAt,
+                window.Offers));
         }
         catch (RandomMerchantContentException ex)
         {
