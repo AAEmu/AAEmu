@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Models.Game.Items;
@@ -26,6 +26,69 @@ public class MusicManagerTests
         await Assert.That(manager).IsNotNull();
         Mock.VerifyNoOtherCalls(mockMusicId);
         Mock.VerifyNoOtherCalls(mockItem);
+    }
+
+    [Test]
+    public async Task MidiCache_FailedReplacementClearsThePreviousBlock()
+    {
+        var manager = CreateManager(null);
+        await Assert.That(manager.CacheMidi(PlayerId, [0x4D, 0x54])).IsTrue();
+
+        await Assert.That(manager.CacheMidi(PlayerId, null)).IsFalse();
+        await Assert.That(manager.TryGetMidiCache(PlayerId, out var missing)).IsFalse();
+        await Assert.That(missing).IsNull();
+
+        await Assert.That(manager.CacheMidi(PlayerId, [])).IsFalse();
+        await Assert.That(manager.TryGetMidiCache(PlayerId, out missing)).IsFalse();
+        await Assert.That(missing).IsNull();
+    }
+
+    [Test]
+    public async Task MidiCache_ReplacesOnlyWithAValidBlock()
+    {
+        var manager = CreateManager(null);
+        var first = new byte[] { 0x4D, 0x54 };
+        var second = new byte[] { 0x68, 0x64 };
+
+        await Assert.That(manager.CacheMidi(PlayerId, first)).IsTrue();
+        await Assert.That(manager.TryGetMidiCache(PlayerId, out var cached)).IsTrue();
+        await Assert.That(cached).IsEquivalentTo(first);
+
+        await Assert.That(manager.CacheMidi(PlayerId, second)).IsTrue();
+        await Assert.That(manager.TryGetMidiCache(PlayerId, out cached)).IsTrue();
+        await Assert.That(cached).IsEquivalentTo(second);
+    }
+
+    [Test]
+    public async Task MidiCache_LogoutInvalidationClearsOnlyThatPlayer()
+    {
+        var manager = CreateManager(null);
+        await Assert.That(manager.CacheMidi(PlayerId, [0x4D, 0x54])).IsTrue();
+        await Assert.That(manager.CacheMidi(OtherPlayerId, [0x68, 0x64])).IsTrue();
+
+        manager.OnCharacterLogout(new CharacterMock { Id = PlayerId });
+
+        await Assert.That(manager.TryGetMidiCache(PlayerId, out _)).IsFalse();
+        await Assert.That(manager.TryGetMidiCache(OtherPlayerId, out var other)).IsTrue();
+        await Assert.That(other).IsEquivalentTo(new byte[] { 0x68, 0x64 });
+    }
+
+    [Test]
+    public async Task MidiCache_ConcurrentReplacementAndReadsRemainSafe()
+    {
+        var manager = CreateManager(null);
+        var payloads = Enumerable.Range(0, 64)
+            .Select(index => new[] { (byte)index, (byte)(index + 1), (byte)(index + 2) })
+            .ToArray();
+
+        Parallel.ForEach(payloads, payload =>
+        {
+            manager.CacheMidi(PlayerId, payload);
+            manager.TryGetMidiCache(PlayerId, out _);
+        });
+
+        await Assert.That(manager.TryGetMidiCache(PlayerId, out var cached)).IsTrue();
+        await Assert.That(payloads.Any(payload => payload.SequenceEqual(cached))).IsTrue();
     }
 
     [Test]

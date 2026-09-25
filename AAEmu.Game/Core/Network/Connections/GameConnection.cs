@@ -1,4 +1,4 @@
-using System.Net;
+﻿using System.Net;
 using AAEmu.Commons.Network;
 using AAEmu.Commons.Network.Core;
 using AAEmu.Commons.Utils.DB;
@@ -102,6 +102,10 @@ public class GameConnection
 
         if (ActiveChar != null)
         {
+            // A disconnected character must not leave a playable MIDI block behind for a later
+            // session. The orderly leave-world path clears it separately.
+            MusicManager.Instance.OnCharacterLogout(ActiveChar);
+
             // Cancel any duel or pending invitation. This path is the one a crash or an Alt+F4 takes -
             // it never reaches EnterWorldManager.LeaveWorldTask - so without it a player who dropped
             // mid-duel stayed registered as duelling and was refused every duel after relogging.
