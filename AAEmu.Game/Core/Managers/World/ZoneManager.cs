@@ -241,10 +241,15 @@ public class ZoneManager(
                             for (var i = 0; i < 5; i++)
                             {
                                 template.NumKills[i] = reader.GetInt32($"num_kills_{i}");
-                                template.NoKillMin[i] = reader.GetInt32($"no_kill_min_{i}");
                                 template.NumNpcKills[i] = reader.GetInt32($"num_npc_kills_{i}", 0);
                                 template.NumQuestCompletions[i] = reader.GetInt32($"num_quest_completions_{i}", 0);
                             }
+
+                            var noKillMinutes = new int[ConflictZoneNoKillDecayMetadata.TroubleStateCount];
+                            for (var i = 0; i < noKillMinutes.Length; i++)
+                                noKillMinutes[i] = reader.GetInt32($"no_kill_min_{i}");
+                            template.BindNoKillDecayMetadata(
+                                new ConflictZoneNoKillDecayMetadata(zoneGroupId, noKillMinutes));
 
                             for (var i = 0; i < template.DailyWarStarts.Length; i++)
                             {
@@ -315,6 +320,22 @@ public class ZoneManager(
 
             Logger.Info("Loaded {0} climate elems", _climateElem.Count);
         }
+
+        var missingNoKillMetadata = _conflicts.Values
+            .Where(conflict => conflict.NoKillDecayMetadata == null)
+            .Select(conflict => conflict.ZoneGroupId)
+            .ToArray();
+        if (missingNoKillMetadata.Length > 0)
+        {
+            throw new InvalidOperationException(
+                $"Conflict zones missing no-kill metadata: {string.Join(',', missingNoKillMetadata)}.");
+        }
+
+        var configuredNoKillMetadata = _conflicts.Values.Count(conflict => conflict.NoKillDecayMetadata.IsConfigured);
+        Logger.Info(
+            "Loaded conflict-zone no-kill metadata: {0} rows, {1} configured; runtime decay remains deferred until semantics are evidenced",
+            _conflicts.Count,
+            configuredNoKillMetadata);
     }
 
     private void OnZoneConflictStateChanged(

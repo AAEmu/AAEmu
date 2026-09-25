@@ -166,8 +166,9 @@ public class ZoneConflictTests
     public async Task ThresholdEscalation_PreservesConflictDeadlineAndAdvancesToWar()
     {
         var conflict = SteppedZone();
-        for (var level = 0; level < conflict.NoKillMin.Length; level++)
-            conflict.NoKillMin[level] = 10;
+        conflict.BindNoKillDecayMetadata(new ConflictZoneNoKillDecayMetadata(
+            conflict.ZoneGroupId,
+            Enumerable.Repeat(10, ConflictZoneNoKillDecayMetadata.TroubleStateCount)));
 
         var before = DateTime.UtcNow;
         conflict.AddZoneKill(6);
