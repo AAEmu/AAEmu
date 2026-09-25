@@ -31,6 +31,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     private HashSet<uint> _raceAssignedDefaultSkillIds = [];
     private Dictionary<(byte Race, byte Gender), HashSet<uint>> _defaultSkillIdsByRaceGender = [];
     private List<uint> _commonSkills = [];
+    private readonly SkillEquipSlotCatalog _skillEquipSlots = new();
     private Dictionary<AbilityType, List<SkillTemplate>> _startAbilitySkills = [];
     private Dictionary<uint, PassiveBuffTemplate> _passiveBuffs = [];
     private Dictionary<uint, EffectType> _types = [];
@@ -106,6 +107,18 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     public SkillTemplate GetSkillTemplate(uint id)
     {
         return _skills.GetValueOrDefault(id);
+    }
+
+    /// <summary>Read-only audit of the content switches that have native loader ownership.</summary>
+    public SkillContentFieldAuditReport GetSkillContentFieldAudit() =>
+        SkillContentFieldAudit.Build(_skills.Values, _skillEquipSlots);
+
+    /// <summary>Resolves a skill link through the loaded <c>enum_equip_slot</c> rows.</summary>
+    public bool TryGetLinkedEquipSlot(uint skillId, out EquipSlotDefinition definition)
+    {
+        var skill = GetSkillTemplate(skillId);
+        definition = null!;
+        return skill != null && _skillEquipSlots.TryGet(skill.LinkEquipSlotId, out definition);
     }
 
     /// <summary>Skill id behind a <c>const_skill_types</c> name, or 0 when the constant is absent.</summary>
@@ -583,6 +596,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
         using (var connection = SQLite.CreateConnection())
         {
             Logger.Info("Loading skills...");
+            _skillEquipSlots.Load(connection);
             using (var command = connection.CreateCommand())
             {
                 command.CommandText = "SELECT * FROM skills";
@@ -641,6 +655,7 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                         template.LevelStep = reader.GetInt32("level_step", 0);
                         template.ValidHeight = reader.GetFloat("valid_height", 0f);
                         template.TargetValidHeight = reader.GetFloat("target_valid_height", 0f);
+                        SkillContentFieldReader.Apply(reader, template);
                         template.StopCastingOnBigHit = reader.GetBoolean("stop_casting_on_big_hit", true);
                         template.StopChannelingOnBigHit = reader.GetBoolean("stop_channeling_on_big_hit", true);
                         template.AutoLearn = reader.GetBoolean("auto_learn", true);
@@ -733,7 +748,16 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
                 }
             }
 
-            Logger.Info($"Loaded {_skills.Count} skills");
+            _skillEquipSlots.ValidateSkillLinks(_skills.Values);
+            var skillFieldAudit = SkillContentFieldAudit.Build(_skills.Values, _skillEquipSlots);
+            Logger.Info(
+                "Loaded {0} skills | content fields: auto_fire={1}, sensitive_operation={2}, " +
+                "valid_height_edge_to_edge={3}, linked equip slots={4}",
+                skillFieldAudit.TotalSkills,
+                skillFieldAudit.AutoFireCount,
+                skillFieldAudit.SensitiveOperationCount,
+                skillFieldAudit.ValidHeightEdgeToEdgeCount,
+                skillFieldAudit.LinkedSkillCount);
 
             using (var command = connection.CreateCommand())
             {
