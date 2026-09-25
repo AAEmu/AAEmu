@@ -248,6 +248,15 @@ public static class Program
                 services.AddSingleton<IButlerChargeContextResolver>(
                     sp => sp.GetRequiredService<ButlerFarmingAdmissionResolver>());
                 services.AddSingleton<ButlerFarmingService>();
+                services.AddSingleton<IButlerSpecialtyTradeJobProcessor>(
+                    sp => sp.GetRequiredService<ButlerFarmingService>());
+                services.AddSingleton<IButlerSpecialtyTradeSettlement, ButlerSpecialtyTradeSettlement>();
+                services.AddSingleton<IButlerSpecialtyTradePersistence>(sp =>
+                    new MySqlButlerSpecialtyTradePersistence(
+                        sp.GetRequiredService<IButlerRepository>(),
+                        sp.GetRequiredService<IItemManager>(),
+                        sp.GetRequiredService<ISpecialtyMarketStore>(),
+                        MySQL.CreateConnection));
                 services.AddSingleton<ButlerChargeService>();
                 services.AddSingleton<IButlerChargeService>(
                     sp => sp.GetRequiredService<ButlerChargeService>());

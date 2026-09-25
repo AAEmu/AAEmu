@@ -10,6 +10,7 @@ public sealed class CharacterButler(uint characterId)
 
     private readonly Dictionary<sbyte, ulong> _permanentDatas = [];
     private readonly Dictionary<long, ButlerHarvestJob> _harvestJobs = [];
+    private readonly Dictionary<long, ButlerSpecialtyTradeJob> _specialtyTradeJobs = [];
     private readonly Dictionary<ulong, ButlerStoredItem> _storedItems = [];
 
     /// <summary>
@@ -30,6 +31,7 @@ public sealed class CharacterButler(uint characterId)
 
     public IReadOnlyDictionary<sbyte, ulong> PermanentDatas => _permanentDatas;
     public IReadOnlyDictionary<long, ButlerHarvestJob> HarvestJobs => _harvestJobs;
+    public IReadOnlyDictionary<long, ButlerSpecialtyTradeJob> SpecialtyTradeJobs => _specialtyTradeJobs;
     public IReadOnlyDictionary<ulong, ButlerStoredItem> StoredItems => _storedItems;
 
     internal CharacterButlerRecord Snapshot() =>
@@ -55,6 +57,9 @@ public sealed class CharacterButler(uint characterId)
         _harvestJobs.Clear();
         foreach (var job in state.HarvestJobs)
             _harvestJobs.Add(job.JobId, job);
+        _specialtyTradeJobs.Clear();
+        foreach (var job in state.SpecialtyTradeJobs ?? Array.Empty<ButlerSpecialtyTradeJob>())
+            _specialtyTradeJobs.Add(job.JobId, job);
         _storedItems.Clear();
         foreach (var item in state.StoredItems ?? Array.Empty<ButlerStoredItem>())
             _storedItems.Add(item.ItemId, item);
@@ -65,6 +70,9 @@ public sealed class CharacterButler(uint characterId)
 
     internal IReadOnlyList<ButlerHarvestJob> SnapshotHarvestJobs() => [.. _harvestJobs.Values];
 
+    internal IReadOnlyList<ButlerSpecialtyTradeJob> SnapshotSpecialtyTradeJobs() =>
+        [.. _specialtyTradeJobs.Values];
+
     internal void ApplyPermanentData(sbyte key, ulong value) => _permanentDatas[key] = value;
 
     internal void RemovePermanentData(sbyte key) => _permanentDatas.Remove(key);
@@ -74,6 +82,13 @@ public sealed class CharacterButler(uint characterId)
     internal bool RemoveHarvestJob(long jobId) => _harvestJobs.Remove(jobId);
 
     internal void ClearHarvestJobs() => _harvestJobs.Clear();
+
+    internal void ApplySpecialtyTradeJob(ButlerSpecialtyTradeJob job) =>
+        _specialtyTradeJobs[job.JobId] = job;
+
+    internal bool RemoveSpecialtyTradeJob(long jobId) => _specialtyTradeJobs.Remove(jobId);
+
+    internal void ClearSpecialtyTradeJobs() => _specialtyTradeJobs.Clear();
 
     internal IReadOnlyList<ButlerStoredItem> SnapshotStoredItems() => [.. _storedItems.Values];
 
@@ -107,7 +122,8 @@ public readonly record struct CharacterButlerStateRecord(
     CharacterButlerRecord Butler,
     IReadOnlyDictionary<sbyte, ulong> PermanentDatas,
     IReadOnlyList<ButlerHarvestJob> HarvestJobs,
-    IReadOnlyList<ButlerStoredItem> StoredItems = null);
+    IReadOnlyList<ButlerStoredItem> StoredItems = null,
+    IReadOnlyList<ButlerSpecialtyTradeJob> SpecialtyTradeJobs = null);
 
 /// <summary>
 /// Logical farmhand item location. The actual persistent item remains in the character's System container.

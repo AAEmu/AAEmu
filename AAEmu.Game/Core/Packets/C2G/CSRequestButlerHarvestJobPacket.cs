@@ -108,6 +108,13 @@ internal static class ButlerPacketErrorMap
         ButlerFarmingOperationFailure.NotEnoughGardenSize => ErrorMessageType.ButlerGardenSizeInsufficient,
         ButlerFarmingOperationFailure.NotEnoughProductionCost => ErrorMessageType.ButlerProductionCostInsufficient,
         ButlerFarmingOperationFailure.NotEnoughLaborPower => ErrorMessageType.NotEnoughLaborPower,
+        ButlerFarmingOperationFailure.DuplicateSpecialtyTrade => ErrorMessageType.AlreadyRequested,
+        ButlerFarmingOperationFailure.JobNotFound => ErrorMessageType.InvalidTarget,
+        ButlerFarmingOperationFailure.NotBound => ErrorMessageType.InteractionPermissionDeny,
+        ButlerFarmingOperationFailure.Busy => ErrorMessageType.AlreadyRequested,
+        ButlerFarmingOperationFailure.ConcurrentChange => ErrorMessageType.AlreadyRequested,
+        ButlerFarmingOperationFailure.InvalidContent => ErrorMessageType.Invalid,
+        ButlerFarmingOperationFailure.NoSpecialtyTradeSlot => ErrorMessageType.Invalid,
         _ => ErrorMessageType.InternalError
     };
 }

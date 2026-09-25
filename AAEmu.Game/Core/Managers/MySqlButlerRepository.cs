@@ -45,18 +45,22 @@ public sealed class MySqlButlerRepository : IButlerRepository
             _ => new Dictionary<sbyte, ulong>());
         var jobs = records.ToDictionary(record => record.CharacterId,
             _ => new List<ButlerHarvestJob>());
+        var specialtyTradeJobs = records.ToDictionary(record => record.CharacterId,
+            _ => new List<ButlerSpecialtyTradeJob>());
         var storedItems = records.ToDictionary(record => record.CharacterId,
             _ => new List<ButlerStoredItem>());
 
         LoadPermanentDatas(connection, permanentDatas);
         LoadHarvestJobs(connection, jobs);
+        LoadSpecialtyTradeJobs(connection, specialtyTradeJobs);
         LoadStoredItems(connection, storedItems);
 
         return [.. records.Select(record => new CharacterButlerStateRecord(
             record,
             permanentDatas.GetValueOrDefault(record.CharacterId) ?? new Dictionary<sbyte, ulong>(),
             jobs.GetValueOrDefault(record.CharacterId) ?? [],
-            storedItems.GetValueOrDefault(record.CharacterId) ?? []))];
+            storedItems.GetValueOrDefault(record.CharacterId) ?? [],
+            specialtyTradeJobs.GetValueOrDefault(record.CharacterId) ?? []))];
     }
 
     public bool TryChangeHouse(CharacterButlerRecord record, uint expectedHouseId)
@@ -202,6 +206,54 @@ public sealed class MySqlButlerRepository : IButlerRepository
         command.Parameters.AddWithValue("@character_id", characterId);
         command.Prepare();
         return command.ExecuteNonQuery();
+    }
+
+    public int DeleteAllSpecialtyTradeJobs(uint characterId, MySqlConnection connection,
+        MySqlTransaction transaction)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText =
+            "DELETE FROM character_butler_specialty_trade_jobs WHERE character_id=@character_id";
+        command.Parameters.AddWithValue("@character_id", characterId);
+        command.Prepare();
+        return command.ExecuteNonQuery();
+    }
+
+    public long InsertSpecialtyTradeJob(uint characterId, ButlerSpecialtyTradeJobCandidate candidate,
+        MySqlConnection connection, MySqlTransaction transaction)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText =
+            "INSERT INTO character_butler_specialty_trade_jobs " +
+            "(character_id, npc_id, specialty_type, to_zone_group_type, product_item_id, created_time, delivery_time) " +
+            "VALUES (@character_id, @npc_id, @specialty_type, @to_zone_group_type, @product_item_id, " +
+            "@created_time, @delivery_time)";
+        command.Parameters.AddWithValue("@character_id", characterId);
+        command.Parameters.AddWithValue("@npc_id", candidate.NpcId);
+        command.Parameters.AddWithValue("@specialty_type", candidate.SpecialtyType);
+        command.Parameters.AddWithValue("@to_zone_group_type", candidate.ToZoneGroupType);
+        command.Parameters.AddWithValue("@product_item_id", candidate.ProductItemId);
+        command.Parameters.AddWithValue("@created_time", candidate.CreatedTime);
+        command.Parameters.AddWithValue("@delivery_time", candidate.DeliveryTime);
+        command.Prepare();
+        if (command.ExecuteNonQuery() != 1 || command.LastInsertedId <= 0)
+            throw new InvalidOperationException("Could not assign a durable farmhand specialty-trade job id.");
+        return command.LastInsertedId;
+    }
+
+    public bool DeleteSpecialtyTradeJob(uint characterId, long jobId, MySqlConnection connection,
+        MySqlTransaction transaction)
+    {
+        using var command = connection.CreateCommand();
+        command.Transaction = transaction;
+        command.CommandText =
+            "DELETE FROM character_butler_specialty_trade_jobs WHERE id=@id AND character_id=@character_id";
+        command.Parameters.AddWithValue("@id", jobId);
+        command.Parameters.AddWithValue("@character_id", characterId);
+        command.Prepare();
+        return command.ExecuteNonQuery() == 1;
     }
 
     public bool TryInsertHarvestCompletion(long jobId, ushort cycleNumber, long completedAt,
@@ -367,6 +419,61 @@ public sealed class MySqlButlerRepository : IButlerRepository
                 reader.GetUInt16("remaining_repeat_count"),
                 reader.GetUInt32("lp_for_calc_exp"),
                 reader.GetInt64("update_time")));
+        }
+    }
+
+    public bool TryLoadSpecialtyTradeJob(uint characterId, long jobId, out ButlerSpecialtyTradeJob job)
+    {
+        job = null;
+        using var connection = MySQL.CreateConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT id, npc_id, specialty_type, to_zone_group_type, product_item_id, created_time, delivery_time " +
+            "FROM character_butler_specialty_trade_jobs WHERE id=@id AND character_id=@character_id";
+        command.Parameters.AddWithValue("@id", jobId);
+        command.Parameters.AddWithValue("@character_id", characterId);
+        command.Prepare();
+        using var reader = command.ExecuteReader();
+        if (!reader.Read())
+            return false;
+        job = ReadSpecialtyTradeJob(reader);
+        return true;
+    }
+
+    private static ButlerSpecialtyTradeJob ReadSpecialtyTradeJob(MySqlDataReader reader)
+    {
+        var zoneGroup = reader.GetInt32("to_zone_group_type");
+        if (zoneGroup is < 0 or > ushort.MaxValue)
+            throw new InvalidDataException("Specialty trade job has an invalid zone group.");
+        var job = new ButlerSpecialtyTradeJob(
+            reader.GetInt64("id"),
+            reader.GetUInt32("npc_id"),
+            reader.GetUInt32("specialty_type"),
+            checked((ushort)zoneGroup),
+            reader.GetUInt32("product_item_id"),
+            reader.GetInt64("created_time"),
+            reader.GetUInt32("delivery_time"));
+        if (job.JobId <= 0 || job.NpcId == 0 || job.SpecialtyType == 0 || job.ProductItemId == 0 ||
+            job.CreatedTime < 0 || job.DeliveryTime == 0)
+            throw new InvalidDataException("Specialty trade job contains invalid durable state.");
+        return job;
+    }
+
+    private static void LoadSpecialtyTradeJobs(MySqlConnection connection,
+        IDictionary<uint, List<ButlerSpecialtyTradeJob>> target)
+    {
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT id, character_id, npc_id, specialty_type, to_zone_group_type, product_item_id, " +
+            "created_time, delivery_time FROM character_butler_specialty_trade_jobs";
+        command.Prepare();
+        using var reader = command.ExecuteReader();
+        while (reader.Read())
+        {
+            var characterId = reader.GetUInt32("character_id");
+            if (!target.TryGetValue(characterId, out var characterJobs))
+                continue;
+            characterJobs.Add(ReadSpecialtyTradeJob(reader));
         }
     }
 

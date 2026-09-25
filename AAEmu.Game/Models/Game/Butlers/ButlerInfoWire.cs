@@ -152,9 +152,9 @@ public readonly record struct ButlerHarvestDataWire(
 /// </summary>
 public readonly record struct ButlerSpecialtyTradeDataWire(
     uint SpecialtyType,
-    short ToZoneGroupType,
-    long CreatedTime,
-    uint DeliveryTime)
+    ushort ToZoneGroupType,
+    ulong CreatedTime,
+    int DeliveryTime)
 {
     internal void Write(PacketStream stream)
     {

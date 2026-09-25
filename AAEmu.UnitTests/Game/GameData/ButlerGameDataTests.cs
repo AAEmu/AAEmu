@@ -70,6 +70,21 @@ public class ButlerGameDataTests : SqliteTestBase
                 butler_harvest_grade_id INTEGER NOT NULL,
                 is_under_water BOOLEAN
             );
+            CREATE TABLE butler_specialty_trades (
+                id INTEGER PRIMARY KEY,
+                npc_id INTEGER NOT NULL,
+                craft_id INTEGER NOT NULL,
+                delivery_min_time INTEGER NOT NULL,
+                delivery_max_time INTEGER NOT NULL,
+                consume_production_cost INTEGER NOT NULL
+            );
+            CREATE TABLE specialty_npcs (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                npc_id INTEGER NOT NULL,
+                specialty_bundle_id INTEGER NOT NULL,
+                zone_group_id INTEGER NOT NULL
+            );
             CREATE TABLE doodad_func_bind_butlers (id INTEGER PRIMARY KEY);
             """);
     }
@@ -99,6 +114,9 @@ public class ButlerGameDataTests : SqliteTestBase
         await Assert.That(data.TryGetTradeSlotExpansion(1, 25, out var tradeByLevel)).IsTrue();
         await Assert.That(tradeByLevel.RequireItemCount).IsEqualTo(2u);
         await Assert.That(data.TryGetTradeSlotExpansionByTotalCount(1, 1, out _)).IsTrue();
+        await Assert.That(data.TryGetTradeSlotExpansion(1, 40, out var lastTradeExpansion)).IsTrue();
+        await Assert.That(lastTradeExpansion.TotalExpandSlotCount).IsEqualTo(6u);
+        await Assert.That(data.TryGetTradeSlotExpansionByTotalCount(1, 6, out _)).IsTrue();
 
         await Assert.That(data.TryGetHarvestGrade(2, out var grade)).IsTrue();
         await Assert.That(grade.Description).IsEqualTo("Advanced");
@@ -107,9 +125,25 @@ public class ButlerGameDataTests : SqliteTestBase
         await Assert.That(harvest.BonusLootPackId).IsNull();
         await Assert.That(harvest.IsUnderWater.GetValueOrDefault()).IsTrue();
         await Assert.That(data.GetHarvests(2).Count).IsEqualTo(1);
+        await Assert.That(data.TryGetSpecialtyTrade(1, 5, out var specialty)).IsTrue();
+        await Assert.That(specialty.Id).IsEqualTo(1u);
+        await Assert.That(specialty.CraftId).IsEqualTo(7001u);
+        await Assert.That(specialty.ZoneGroupId).IsEqualTo(5u);
+        await Assert.That(specialty.ConsumeProductionCost).IsEqualTo(50u);
+        await Assert.That(data.TryGetSpecialtyTrade(7001, 5, out _)).IsFalse();
 
         await Assert.That(data.IsBindingDoodadFunc(77)).IsTrue();
         await Assert.That(data.TryGetBindingDoodadFunc(78, out _)).IsFalse();
+    }
+
+    [Test]
+    public void Load_RejectsDuplicateCraftAndZoneSpecialtyRows()
+    {
+        Seed();
+        Execute("INSERT INTO specialty_npcs VALUES (2, 'Other', 17972, 11, 5); INSERT INTO butler_specialty_trades VALUES (2, 17972, 7001, 1500, 1800, 50);");
+        var data = new ButlerGameData();
+
+        Assert.Throws<InvalidDataException>(() => data.Load(Connection));
     }
 
     [Test]
@@ -178,8 +212,15 @@ public class ButlerGameDataTests : SqliteTestBase
             INSERT INTO butler_levels VALUES (1, 1, 10, 1000, 3, 500, 'Garden expansion', 2, 2);
             INSERT INTO butler_func_garden_expand_slots VALUES (1, 1, 10, 1, 49000, 3);
             INSERT INTO butler_func_trade_expand_slots VALUES (1, 1, 25, 1, 49000, 2);
+            INSERT INTO butler_func_trade_expand_slots VALUES (2, 1, 28, 2, 49000, 2);
+            INSERT INTO butler_func_trade_expand_slots VALUES (3, 1, 31, 3, 49000, 3);
+            INSERT INTO butler_func_trade_expand_slots VALUES (4, 1, 34, 4, 49000, 3);
+            INSERT INTO butler_func_trade_expand_slots VALUES (5, 1, 37, 5, 49000, 6);
+            INSERT INTO butler_func_trade_expand_slots VALUES (6, 1, 40, 6, 49000, 10);
             INSERT INTO butler_harvest_grades VALUES (2, 2, 'Advanced');
             INSERT INTO butler_harvests VALUES (100, 10, 60, 2, 3, 4, 50, 5, 10, NULL, 2, 1);
+            INSERT INTO specialty_npcs VALUES (1, 'Trade', 17971, 10, 5);
+            INSERT INTO butler_specialty_trades VALUES (1, 17971, 7001, 1500, 1800, 50);
             INSERT INTO doodad_func_bind_butlers VALUES (77);
             """);
     }

@@ -734,6 +734,68 @@ public partial class SpecialtyManagerTests
         await AssertMarketEquals(store.Load(), invalid);
     }
 
+    [Test]
+    public async Task ButlerTradeDelivery_RequiresTheJobNpcAndAdvancesOneMarketRevision()
+    {
+        var store = new InMemoryMarketStore(CreatePersistedMarket());
+        var manager = CreateRestoredMarketManager(store);
+
+        var accepted = manager.TryPrepareButlerTradeDelivery(1, 31832, 8, out var market);
+        var rejected = manager.TryPrepareButlerTradeDelivery(99, 31832, 8, out _);
+
+        await Assert.That(accepted).IsTrue();
+        await Assert.That(market.Expected.Revision).IsEqualTo(7L);
+        await Assert.That(market.Updated.Revision).IsEqualTo(8L);
+        await Assert.That(rejected).IsFalse();
+
+        store.Commit(market);
+        manager.CommitButlerTradeMarketWrite(market);
+        await Assert.That(store.Load().Revision).IsEqualTo(8L);
+        await Assert.That(MarketState(manager).Revision).IsEqualTo(8L);
+    }
+
+    [Test]
+    public async Task ButlerTradeDelivery_RejectsAProductOutsideTheNpcBundle()
+    {
+        var store = new InMemoryMarketStore(CreatePersistedMarket());
+        var manager = CreateRestoredMarketManager(store);
+
+        var accepted = manager.TryPrepareButlerTradeDelivery(1, 999999, 8, out _);
+
+        await Assert.That(accepted).IsFalse();
+    }
+
+    [Test]
+    public async Task ButlerTradeDelivery_PrepareDoesNotPublishBeforeDurableCommit()
+    {
+        var store = new InMemoryMarketStore(CreatePersistedMarket());
+        var manager = CreateRestoredMarketManager(store);
+        var before = MarketState(manager);
+        await Assert.That(manager.TryPrepareButlerTradeDelivery(1, 31832, 8, out var market)).IsTrue();
+
+        await Assert.That(MarketState(manager)).IsSameReferenceAs(before);
+        store.CommitFailure = new IOException("simulated rollback");
+        await Assert.That(() => store.Commit(market)).Throws<IOException>();
+        await Assert.That(MarketState(manager)).IsSameReferenceAs(before);
+        await Assert.That(store.Load().Revision).IsEqualTo(7L);
+    }
+
+    [Test]
+    public async Task ButlerTradeDelivery_StaleConcurrentWriteCannotDoubleCommit()
+    {
+        var store = new InMemoryMarketStore(CreatePersistedMarket());
+        var manager = CreateRestoredMarketManager(store);
+        await Assert.That(manager.TryPrepareButlerTradeDelivery(1, 31832, 8, out var first)).IsTrue();
+        await Assert.That(manager.TryPrepareButlerTradeDelivery(1, 31832, 8, out var second)).IsTrue();
+
+        store.Commit(first);
+        manager.CommitButlerTradeMarketWrite(first);
+        await Assert.That(() => store.Commit(second)).Throws<SpecialtyMarketConflictException>();
+
+        await Assert.That(store.Load().Revision).IsEqualTo(8L);
+        await Assert.That(MarketState(manager).Revision).IsEqualTo(8L);
+    }
+
     private static SpecialtyManager CreateRestoredMarketManager(
         InMemoryMarketStore store,
         bool ambiguousMaterialTags = false,

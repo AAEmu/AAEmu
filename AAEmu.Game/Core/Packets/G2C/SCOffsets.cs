@@ -613,6 +613,7 @@ public static class SCOffsets
     public const ushort SCButlerInitInfoPacket = 0x345;
     public const ushort SCButlerLookChangedPacket = 0x34D;
     public const ushort SCButlerSpawnedPacket = 0x347;
+    public const ushort SCButlerSpecialtyTradeUpdatedPacket = 0x34E;
     public const ushort SCChangeAbilitySetPassiveBuffPacket = 0x14C;
     public const ushort SCChangeSquadMemberRatingPacket = 0x31C;
     public const ushort SCChangeSquadMemberAbilityPacket = 0x318;

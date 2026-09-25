@@ -9,7 +9,7 @@ public interface IButlerRepository
     IReadOnlyList<CharacterButlerStateRecord> LoadAllStates() =>
         [.. LoadAll().Select(record => new CharacterButlerStateRecord(
             record, new Dictionary<sbyte, ulong>(), Array.Empty<ButlerHarvestJob>(),
-            Array.Empty<ButlerStoredItem>()))];
+            Array.Empty<ButlerStoredItem>(), Array.Empty<ButlerSpecialtyTradeJob>()))];
     bool TryChangeHouse(CharacterButlerRecord record, uint expectedHouseId);
     bool TryChangeHouse(CharacterButlerRecord record, uint expectedHouseId, MySqlConnection connection,
         MySqlTransaction transaction) => throw new NotSupportedException();
@@ -27,6 +27,14 @@ public interface IButlerRepository
         MySqlTransaction transaction) => throw new NotSupportedException();
     int DeleteAllHarvestJobs(uint characterId, MySqlConnection connection,
         MySqlTransaction transaction) => throw new NotSupportedException();
+    int DeleteAllSpecialtyTradeJobs(uint characterId, MySqlConnection connection,
+        MySqlTransaction transaction) => throw new NotSupportedException();
+    long InsertSpecialtyTradeJob(uint characterId, ButlerSpecialtyTradeJobCandidate candidate,
+        MySqlConnection connection, MySqlTransaction transaction) => throw new NotSupportedException();
+    bool DeleteSpecialtyTradeJob(uint characterId, long jobId, MySqlConnection connection,
+        MySqlTransaction transaction) => throw new NotSupportedException();
+    bool TryLoadSpecialtyTradeJob(uint characterId, long jobId, out ButlerSpecialtyTradeJob job) =>
+        throw new NotSupportedException();
     bool TryInsertHarvestCompletion(long jobId, ushort cycleNumber, long completedAt,
         MySqlConnection connection, MySqlTransaction transaction) => throw new NotSupportedException();
     void SaveStoredItem(uint characterId, ButlerStoredItem item, MySqlConnection connection,

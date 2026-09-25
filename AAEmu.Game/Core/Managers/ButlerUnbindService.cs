@@ -106,6 +106,11 @@ public sealed class ButlerUnbindService(
                     throw new InvalidOperationException(
                         $"Farmhand unbind removed {removedJobs}/{harvestJobs.Count} harvest jobs for character {butler.CharacterId}.");
 
+                var removedSpecialtyJobs = repository.DeleteAllSpecialtyTradeJobs(butler.CharacterId, connection, transaction);
+                if (removedSpecialtyJobs != butler.SpecialtyTradeJobs.Count)
+                    throw new InvalidOperationException(
+                        $"Farmhand unbind removed {removedSpecialtyJobs}/{butler.SpecialtyTradeJobs.Count} specialty-trade jobs for character {butler.CharacterId}.");
+
                 var removedItems = repository.DeleteAllStoredItems(butler.CharacterId, connection, transaction);
                 if (removedItems != storedItems.Count)
                     throw new InvalidOperationException(
@@ -120,6 +125,7 @@ public sealed class ButlerUnbindService(
 
                 butler.Apply(proposed);
                 butler.ClearHarvestJobs();
+                butler.ClearSpecialtyTradeJobs();
                 butler.ClearStoredItems();
                 mailPlan?.Commit();
                 return Succeeded(previousHouseId);

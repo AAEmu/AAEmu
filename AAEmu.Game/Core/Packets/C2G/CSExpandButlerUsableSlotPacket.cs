@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// Expands the farmhand's garden-job slot count.
+/// Expands a farmhand job slot capacity.
 /// </summary>
 /// <remarks>
 /// which passes each field name alongside the value:
@@ -36,17 +36,31 @@ public class CSExpandButlerUsableSlotPacket() : GamePacket(CSOffsets.CSExpandBut
             return;
         }
 
-        // The 10.0.2.13 garden expansion sender uses kind 2. Specialty expansion is a distinct
-        // content path and remains disabled until its server lifecycle is implemented.
-        if (Kind != 2)
+        ButlerFarmingOperationFailure failure;
+        switch (Kind)
         {
-            SendFailure(ErrorMessageType.InternalError);
-            return;
+            case 2:
+            {
+                var result = service.ExpandGardenSlots(character);
+                if (result.Success)
+                    return;
+                failure = result.Failure;
+                break;
+            }
+            case 3:
+            {
+                var result = service.ExpandSpecialtyTradeSlots(character);
+                if (result.Success)
+                    return;
+                failure = result.Failure;
+                break;
+            }
+            default:
+                failure = ButlerFarmingOperationFailure.InvalidContent;
+                break;
         }
 
-        var result = service.ExpandGardenSlots(character);
-        if (!result.Success)
-            SendFailure(ButlerPacketErrorMap.From(result.Failure));
+        SendFailure(ButlerPacketErrorMap.From(failure));
     }
 
     private void SendFailure(ErrorMessageType error) =>

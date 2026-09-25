@@ -2687,6 +2687,37 @@ public class SpecialtyManager(
         return true;
     }
 
+    internal bool TryPrepareButlerTradeDelivery(uint npcId, uint productItemId, uint zoneGroupId,
+        out SpecialtyMarketWrite market)
+    {
+        lock (_marketLock)
+        {
+            market = null;
+            if (!_specialtyNpcs.TryGetValue(npcId, out var specialtyNpc) ||
+                specialtyNpc.ZoneGroupId != zoneGroupId ||
+                !_specialtyBundleItemsMapped.TryGetValue(productItemId, out var bundles) ||
+                !bundles.TryGetValue(specialtyNpc.SpecialtyBundleId, out _))
+                return false;
+
+            market = PrepareSaleMarketWrite(productItemId, zoneGroupId);
+            return market != null;
+        }
+    }
+
+    internal void CommitButlerTradeMarketWrite(SpecialtyMarketWrite market)
+    {
+        ArgumentNullException.ThrowIfNull(market);
+        lock (_marketLock)
+        {
+            if (_market.Revision != market.Expected.Revision)
+            {
+                RestoreMarketState();
+                return;
+            }
+            _market = market.Updated;
+        }
+    }
+
     internal SpecialtyMarketWrite PrepareSaleMarketWrite(uint itemId, uint destinationZoneGroupId)
     {
         lock (_marketLock)

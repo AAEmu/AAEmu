@@ -1,6 +1,7 @@
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Butlers;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Crafts;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Actions;
@@ -8,8 +9,8 @@ using AAEmu.Game.Models.Game.Items.Actions;
 namespace AAEmu.Game.Core.Managers;
 
 /// <summary>
-/// Content-backed admission for Farmhand gardening and harvest registration. Callers hold the Farmhand operation
-/// and state locks; this resolver does not acquire Farmhand, house, inventory, or database locks.
+/// Content-backed admission for Farmhand gardening, harvest, and specialty-trade registration. Callers hold the
+/// Farmhand operation and state locks; this resolver does not acquire Farmhand, house, inventory, or database locks.
 /// </summary>
 public sealed class ButlerFarmingAdmissionResolver :
     IButlerFarmingAdmissionResolver,
@@ -22,6 +23,8 @@ public sealed class ButlerFarmingAdmissionResolver :
     private readonly ButlerGameData _butlerGameData;
     private readonly Func<uint, ButlerGardenTemplate?> _findGardenTemplate;
     private readonly IItemManager _itemManager;
+    private readonly ICraftManager _craftManager;
+    private readonly ISkillManager _skillManager;
 
     public ButlerFarmingAdmissionResolver()
         : this(
@@ -29,7 +32,9 @@ public sealed class ButlerFarmingAdmissionResolver :
             itemTemplateId => HousingGameData.Instance.TryGetButlerGardenTemplate(itemTemplateId, out var template)
                 ? template
                 : null,
-            ItemManager.Instance)
+            ItemManager.Instance,
+            CraftManager.Instance,
+            SkillManager.Instance)
     {
     }
 
@@ -37,10 +42,22 @@ public sealed class ButlerFarmingAdmissionResolver :
         ButlerGameData butlerGameData,
         Func<uint, ButlerGardenTemplate?> findGardenTemplate,
         IItemManager itemManager)
+        : this(butlerGameData, findGardenTemplate, itemManager, null, null)
+    {
+    }
+
+    internal ButlerFarmingAdmissionResolver(
+        ButlerGameData butlerGameData,
+        Func<uint, ButlerGardenTemplate?> findGardenTemplate,
+        IItemManager itemManager,
+        ICraftManager craftManager,
+        ISkillManager skillManager)
     {
         _butlerGameData = butlerGameData ?? throw new ArgumentNullException(nameof(butlerGameData));
         _findGardenTemplate = findGardenTemplate ?? throw new ArgumentNullException(nameof(findGardenTemplate));
         _itemManager = itemManager ?? throw new ArgumentNullException(nameof(itemManager));
+        _craftManager = craftManager;
+        _skillManager = skillManager;
     }
 
     public bool TryResolveGarden(uint itemTemplateId, out ButlerGardenStorageItem garden)
@@ -152,8 +169,47 @@ public sealed class ButlerFarmingAdmissionResolver :
                 butler.RemainProductionCost),
             harvest.ConsumeLp.Value,
             ItemTaskType.RequestButlerHarvestRegister,
-            false);
+            butler.SpecialtyTradeJobs.Count > 0);
         return true;
+    }
+
+    public bool TryResolveSpecialtyTrade(
+        Character character,
+        CharacterButler butler,
+        uint specialtyType,
+        short toZoneGroupType,
+        out ButlerSpecialtyTradeAdmissionContext context)
+    {
+        context = default;
+        if (character == null || butler == null || character.Id != butler.CharacterId ||
+            specialtyType == 0 || toZoneGroupType <= 0 || _craftManager == null || _skillManager == null ||
+            !_butlerGameData.TryGetUniqueTemplate(out var butlerTemplate) ||
+            !TryResolveCurrentLevel(butler, out _, out var level) ||
+            !_butlerGameData.TryGetSpecialtyTrade(specialtyType, checked((ushort)toZoneGroupType),
+                out var trade) ||
+            !_craftManager.TryGetCraft(trade.CraftId, out var craft) ||
+            craft == null || craft.SkillId == 0 || _skillManager.GetSkillTemplate(craft.SkillId) == null)
+            return false;
+
+        var skill = _skillManager.GetSkillTemplate(craft.SkillId);
+        var expandedSlotCount = butler.PermanentDatas.GetValueOrDefault(
+            ButlerFarmingService.SpecialtyTradeSlotExpansionPermanentDataKey);
+        if (expandedSlotCount > uint.MaxValue)
+            return false;
+        if (expandedSlotCount > 0 &&
+            !_butlerGameData.TryGetTradeSlotExpansionByTotalCount(butlerTemplate.Id,
+                checked((uint)expandedSlotCount), out _))
+            return false;
+        return ButlerSpecialtyTradeRules.TryCreateAdmissionContext(
+            butlerTemplate,
+            level,
+            trade,
+            craft,
+            skill,
+            butler.SpecialtyTradeJobs.Values.ToArray(),
+            butlerTemplate.DefaultSpecialtyTradeSlotCount,
+            checked((uint)expandedSlotCount),
+            out context);
     }
 
     public bool TryResolveNextGardenSlotExpansion(
@@ -172,6 +228,33 @@ public sealed class ButlerFarmingAdmissionResolver :
         // The client names item task 188 UpdateButlerPermanentDatas. Garden expansion persists permanent key 2,
         // so this uses that exact task identity for the consumed expansion item.
         context = new ButlerGardenSlotExpansionContext(
+            expansion,
+            butlerTemplate.Id,
+            level.Level,
+            ItemTaskType.UpdateButlerPermanentDatas);
+        return true;
+    }
+
+    public bool TryResolveNextSpecialtyTradeSlotExpansion(
+        Character character,
+        CharacterButler butler,
+        out ButlerSpecialtyTradeSlotExpansionContext context)
+    {
+        context = default;
+        if (character == null || butler == null || character.Id != butler.CharacterId ||
+            !_butlerGameData.TryGetUniqueTemplate(out var butlerTemplate) ||
+            !TryResolveCurrentLevel(butler, out _, out var level))
+            return false;
+
+        var expandedSlots = butler.PermanentDatas.GetValueOrDefault(
+            ButlerFarmingService.SpecialtyTradeSlotExpansionPermanentDataKey);
+        if (expandedSlots >= uint.MaxValue ||
+            !_butlerGameData.TryGetTradeSlotExpansionByTotalCount(butlerTemplate.Id,
+                checked((uint)expandedSlots + 1), out var expansion) ||
+            expansion.Level > level.Level)
+            return false;
+
+        context = new ButlerSpecialtyTradeSlotExpansionContext(
             expansion,
             butlerTemplate.Id,
             level.Level,
