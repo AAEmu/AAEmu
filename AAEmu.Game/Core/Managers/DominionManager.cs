@@ -15,6 +15,7 @@ using AAEmu.Game.Models.Game.Heroes;
 using AAEmu.Game.Models.Game.Housing;
 using AAEmu.Game.Models.Game.Mails;
 using AAEmu.Game.Models.Game.NPChar;
+using AAEmu.Game.Models.Game.Sieges;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Models.StaticValues;
 using AAEmu.Game.Models.Tasks.Dominions;
@@ -819,6 +820,41 @@ public class DominionManager(ITaskManager taskManager, IExpeditionManager expedi
         command.Parameters.AddWithValue("@zoneId", zoneId);
         command.Prepare();
         command.ExecuteNonQuery();
+    }
+
+    public void ApplySettlement(ushort zoneId, SiegeSettlementRecord record)
+    {
+        if (!_dominions.TryGetValue(zoneId, out var dominion))
+        {
+            Logger.Warn("Settlement for zone group {0} applied to no dominion", zoneId);
+            return;
+        }
+
+        // The row is already written - the settlement wrote it in the same transaction as the outcome and the
+        // score reset - so this mirrors the stored decision in memory and tells the clients. Nothing here can
+        // leave the database half settled, which is why it does not write.
+        var changed = record.WinnerFactionId != 0 && dominion.OwningFactionId != record.WinnerFactionId;
+        if (record.WinnerFactionId != 0)
+        {
+            dominion.OwningFactionId = record.WinnerFactionId;
+            dominion.FactionId = (FactionsEnum)record.WinnerFactionId;
+            // A settled dominion belongs to a nation, not to the guild that declared it last cycle.
+            dominion.ExpeditionId = 0;
+        }
+
+        dominion.LastSiegeEndTime = record.SettledAtUtc;
+        dominion.ReignStartTime = record.SettledAtUtc;
+
+        if (changed)
+        {
+            // The receiver changes its owner display from this packet: zone group, the new owner, and a
+            // timestamp. 'bestowed' rather than 'declared' - nobody declared this one.
+            WorldManager.Instance.BroadcastPacketToServer(
+                new SCDominionOwnerChangedPacket(zoneId, record.WinnerFactionId,
+                    (ulong)Helpers.UnixTime(record.SettledAtUtc), true));
+        }
+
+        ResyncZone(zoneId);
     }
 
     public void SendAllDominionsTo(GameConnection connection)
