@@ -20,8 +20,6 @@ public static class CombatRelationRelay
 
     private static readonly Dictionary<RelationKey, CombatRelationEntry> CvfState = [];
     private static readonly Dictionary<RelationKey, CombatRelationEntry> FvfState = [];
-    private static readonly Dictionary<RelationKey, CombatRelationEntry> CvfTombstones = [];
-    private static readonly Dictionary<RelationKey, CombatRelationEntry> FvfTombstones = [];
     private static ulong _cvfVersion;
     private static ulong _fvfVersion;
     private static bool _cvfInitialized;
@@ -44,8 +42,6 @@ public static class CombatRelationRelay
         {
             CvfState.Clear();
             FvfState.Clear();
-            CvfTombstones.Clear();
-            FvfTombstones.Clear();
             _cvfVersion = 0;
             _fvfVersion = 0;
             _cvfInitialized = false;
@@ -62,17 +58,9 @@ public static class CombatRelationRelay
         lock (Sync)
         {
             if (_cvfInitialized)
-            {
-                var entries = BuildOutbound(Snapshot(CvfState), CvfTombstones.Values.ToArray());
-                ValidatePacketSize(entries);
-                TrySend(zone, new WZCvFCombatRelationshipPacket(entries), "WZCvFCombatRelationship", entries.Length);
-            }
+                SendChunks(zone, Snapshot(CvfState), isCvF: true);
             if (_fvfInitialized)
-            {
-                var entries = BuildOutbound(Snapshot(FvfState), FvfTombstones.Values.ToArray());
-                ValidatePacketSize(entries);
-                TrySend(zone, new WZFvFCombatRelationshipPacket(entries), "WZFvFCombatRelationship", entries.Length);
-            }
+                SendChunks(zone, Snapshot(FvfState), isCvF: false);
         }
     }
 
@@ -92,75 +80,66 @@ public static class CombatRelationRelay
                 throw new InvalidOperationException($"Combat-relation publication {publication.Version} is stale; current version is {currentVersion}.");
 
             var next = new Dictionary<RelationKey, CombatRelationEntry>(state);
-            var tombstoneState = isCvF ? CvfTombstones : FvfTombstones;
-            var nextTombstones = new Dictionary<RelationKey, CombatRelationEntry>(tombstoneState);
             if (publication.Kind == CombatRelationPublicationKind.FullState)
                 next.Clear();
 
-            var tombstones = new List<CombatRelationEntry>();
+            var removals = new List<CombatRelationEntry>();
             var seen = new HashSet<RelationKey>();
             foreach (var entry in publication.Entries)
             {
-                var key = new RelationKey(entry.Faction1, entry.Faction2);
+                var key = KeyOf(entry, isCvF);
                 if (!seen.Add(key))
-                    throw new InvalidDataException("A combat-relation publication cannot contain the same faction pair more than once.");
+                    throw new InvalidDataException("A combat-relation publication cannot contain the same relation more than once.");
 
-                if (entry.RelationType == 0)
+                if (entry.Code == 0)
                 {
-                    next.Remove(key);
-                    nextTombstones[key] = entry;
-                    tombstones.Add(entry);
+                    if (next.Remove(key, out var removed))
+                        removals.Add(new CombatRelationEntry(removed.Faction1, removed.Faction2, 0, 0));
+                    continue;
                 }
-                else
-                {
-                    next[key] = entry;
-                    nextTombstones.Remove(key);
-                }
+
+                // A zone insert ignores a key that is already present, so a live value
+                // has to be cleared before the replacement record in the same send.
+                if (state.TryGetValue(key, out var previous) && previous.Code != 0 && previous.Code != entry.Code)
+                    removals.Add(new CombatRelationEntry(previous.Faction1, previous.Faction2, 0, 0));
+
+                next[key] = entry;
             }
 
             if (publication.Kind == CombatRelationPublicationKind.FullState)
             {
-                foreach (var key in state.Keys.Where(key => !next.ContainsKey(key)))
+                foreach (var existing in state)
                 {
-                    var tombstone = new CombatRelationEntry(key.Faction1, key.Faction2, 0, 0);
-                    nextTombstones[key] = tombstone;
-                    tombstones.Add(tombstone);
+                    if (!next.ContainsKey(existing.Key))
+                        removals.Add(new CombatRelationEntry(existing.Value.Faction1, existing.Value.Faction2, 0, 0));
                 }
             }
-
-            var snapshot = Snapshot(next);
-            var outbound = BuildOutbound(snapshot, tombstones);
-            ValidatePacketSize(outbound);
-            ValidatePacketSize(BuildOutbound(snapshot, nextTombstones.Values.ToArray()));
 
             state.Clear();
             foreach (var entry in next)
                 state[entry.Key] = entry.Value;
-            tombstoneState.Clear();
-            foreach (var entry in nextTombstones)
-                tombstoneState[entry.Key] = entry.Value;
             currentVersion = publication.Version;
             initialized = true;
 
-            ZonePacket packet = isCvF
-                ? new WZCvFCombatRelationshipPacket(outbound)
-                : new WZFvFCombatRelationshipPacket(outbound);
-            Broadcast(packet, isCvF ? "WZCvFCombatRelationship" : "WZFvFCombatRelationship", outbound.Length);
+            var outbound = BuildOutbound(Snapshot(next), removals);
+            BroadcastChunks(outbound, isCvF);
         }
     }
+
+    private static RelationKey KeyOf(CombatRelationEntry entry, bool isCvF) =>
+        isCvF ? new RelationKey(entry.Faction1, 0) : new RelationKey(entry.Faction1, entry.Faction2);
 
     private static CombatRelationEntry[] BuildOutbound(
         IReadOnlyList<CombatRelationEntry> snapshot,
         IReadOnlyList<CombatRelationEntry> tombstones)
     {
-        var orderedTombstones = tombstones
+        var orderedRemovals = tombstones
             .GroupBy(entry => new RelationKey(entry.Faction1, entry.Faction2))
             .Select(group => group.First())
-            .Where(entry => !snapshot.Any(current => current.Faction1 == entry.Faction1 && current.Faction2 == entry.Faction2))
             .OrderBy(entry => entry.Faction1)
             .ThenBy(entry => entry.Faction2)
             .ToArray();
-        return [.. snapshot, .. orderedTombstones];
+        return [.. orderedRemovals, .. snapshot];
     }
 
     private static CombatRelationEntry[] Snapshot(Dictionary<RelationKey, CombatRelationEntry> state) =>
@@ -171,20 +150,39 @@ public static class CombatRelationRelay
 
     private static void ValidatePublication(IReadOnlyList<CombatRelationEntry> entries)
     {
-        if (entries.Count > WZCombatRelationPacket.MaxEntriesPerPacket)
-            throw new ArgumentOutOfRangeException(nameof(entries), $"A relation publication carries at most {WZCombatRelationPacket.MaxEntriesPerPacket} records.");
+        ArgumentNullException.ThrowIfNull(entries);
     }
 
-    private static void ValidatePacketSize(CombatRelationEntry[] entries)
-    {
-        if (entries.Length > WZCombatRelationPacket.MaxEntriesPerPacket)
-            throw new InvalidOperationException($"The canonical combat-relation state plus tombstones exceeds {WZCombatRelationPacket.MaxEntriesPerPacket} records.");
-    }
-
-    private static void Broadcast(ZonePacket packet, string name, int count)
+    private static void BroadcastChunks(IReadOnlyList<CombatRelationEntry> entries, bool isCvF)
     {
         foreach (var zone in PlayerEnterService.AllLoadedZones())
+            SendChunks(zone, entries, isCvF);
+    }
+
+    private static void SendChunks(ZoneConnection zone, IReadOnlyList<CombatRelationEntry> entries, bool isCvF)
+    {
+        var name = isCvF ? "WZCvFCombatRelationship" : "WZFvFCombatRelationship";
+        if (entries.Count == 0)
+        {
+            ZonePacket empty = isCvF
+                ? new WZCvFCombatRelationshipPacket([])
+                : new WZFvFCombatRelationshipPacket([]);
+            TrySend(zone, empty, name, 0);
+            return;
+        }
+
+        for (var offset = 0; offset < entries.Count; offset += WZCombatRelationPacket.MaxEntriesPerPacket)
+        {
+            var count = Math.Min(WZCombatRelationPacket.MaxEntriesPerPacket, entries.Count - offset);
+            var chunk = new CombatRelationEntry[count];
+            for (var i = 0; i < count; i++)
+                chunk[i] = entries[offset + i];
+
+            ZonePacket packet = isCvF
+                ? new WZCvFCombatRelationshipPacket(chunk)
+                : new WZFvFCombatRelationshipPacket(chunk);
             TrySend(zone, packet, name, count);
+        }
     }
 
     private static void TrySend(ZoneConnection zone, ZonePacket packet, string name, int? count = null)

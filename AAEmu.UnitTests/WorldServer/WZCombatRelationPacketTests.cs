@@ -7,12 +7,12 @@ namespace AAEmu.UnitTests.WorldServer;
 public class WZCombatRelationPacketTests
 {
     [Test]
-    public async Task CvF_WritesCountAndFourUInt32Fields()
+    public async Task CvF_WritesACharacterKeyAndTwoBytes()
     {
         var entries = new[]
         {
-            new CombatRelationEntry(11, 22, 0, 0xA1B2C3D4),
-            new CombatRelationEntry(33, 44, 7, 0x01020304),
+            new CombatRelationEntry(11, 22, 0, 4),
+            new CombatRelationEntry(33, 44, 7, 3),
         };
 
         var frame = new PacketStream(new WZCvFCombatRelationshipPacket(entries).Encode());
@@ -22,16 +22,15 @@ public class WZCombatRelationPacketTests
         await Assert.That(frame.ReadByte()).IsEqualTo((byte)entries.Length);
         foreach (var entry in entries)
         {
-            await Assert.That(frame.ReadUInt32()).IsEqualTo(entry.Faction1);
-            await Assert.That(frame.ReadUInt32()).IsEqualTo(entry.Faction2);
-            await Assert.That(frame.ReadUInt32()).IsEqualTo(entry.RelationType);
-            await Assert.That(frame.ReadUInt32()).IsEqualTo(entry.Flags);
+            await Assert.That(frame.ReadUInt64()).IsEqualTo(entry.Faction1);
+            await Assert.That(frame.ReadByte()).IsEqualTo(entry.Code);
+            await Assert.That(frame.ReadByte()).IsEqualTo(entry.Reason);
         }
         await Assert.That(frame.Pos).IsEqualTo(frame.Count);
     }
 
     [Test]
-    public async Task FvF_WritesTheSameBodyWithItsOpcode()
+    public async Task FvF_WritesTwoFactionIdsAndTwoBytes()
     {
         var entries = new[] { new CombatRelationEntry(101, 202, 3, 9) };
         var frame = new PacketStream(new WZFvFCombatRelationshipPacket(entries).Encode());
@@ -39,10 +38,10 @@ public class WZCombatRelationPacketTests
         await Assert.That(frame.ReadUInt16()).IsEqualTo((ushort)(2 + 1 + WZCombatRelationPacket.EntrySize));
         await Assert.That(frame.ReadUInt16()).IsEqualTo(WzOpcodes.FvFCombatRelationship);
         await Assert.That(frame.ReadByte()).IsEqualTo((byte)1);
-        await Assert.That(frame.ReadUInt32()).IsEqualTo(101u);
-        await Assert.That(frame.ReadUInt32()).IsEqualTo(202u);
-        await Assert.That(frame.ReadUInt32()).IsEqualTo(3u);
-        await Assert.That(frame.ReadUInt32()).IsEqualTo(9u);
+        await Assert.That(frame.ReadInt32()).IsEqualTo(101);
+        await Assert.That(frame.ReadInt32()).IsEqualTo(202);
+        await Assert.That(frame.ReadByte()).IsEqualTo((byte)3);
+        await Assert.That(frame.ReadByte()).IsEqualTo((byte)9);
         await Assert.That(frame.Pos).IsEqualTo(frame.Count);
     }
 
@@ -60,13 +59,12 @@ public class WZCombatRelationPacketTests
     {
         var body = new PacketStream();
         body.Write((byte)1);
-        body.Write(1u);
-        body.Write(2u);
-        body.Write(3u);
-        body.Write(4u);
+        body.Write(1ul);
+        body.Write((byte)3);
+        body.Write((byte)4);
         var truncated = new PacketStream(body.GetBytes()[..^2]);
 
-        Assert.Throws<InvalidDataException>(() => WZCombatRelationPacket.Decode(truncated));
+        Assert.Throws<InvalidDataException>(() => WZCombatRelationPacket.Decode(truncated, characterKey: true));
     }
 
     [Test]
@@ -76,6 +74,6 @@ public class WZCombatRelationPacketTests
         body.Write((byte)0);
         body.Write((byte)0xFF);
 
-        Assert.Throws<InvalidDataException>(() => WZCombatRelationPacket.Decode(body));
+        Assert.Throws<InvalidDataException>(() => WZCombatRelationPacket.Decode(body, characterKey: true));
     }
 }

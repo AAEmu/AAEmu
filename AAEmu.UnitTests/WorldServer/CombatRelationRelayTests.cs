@@ -67,15 +67,15 @@ public class CombatRelationRelayTests
 
         var delta = await ReadEntries(zone.Session.Packets.Single());
         await Assert.That(delta.Count).IsEqualTo(2);
-        await Assert.That(delta.Any(entry => entry.Faction1 == 10 && entry.Faction2 == 20 && entry.RelationType == 0)).IsTrue();
-        await Assert.That(delta.Any(entry => entry.Faction1 == 30 && entry.Faction2 == 40 && entry.RelationType == 2)).IsTrue();
+        await Assert.That(delta.Any(entry => entry.Faction1 == 10 && entry.Code == 0)).IsTrue();
+        await Assert.That(delta.Any(entry => entry.Faction1 == 30 && entry.Code == 2)).IsTrue();
 
         zone.Session.Packets.Clear();
         CombatRelationRelay.PublishToZone(zone.Connection);
         var replay = await ReadEntries(zone.Session.Packets.Single());
-        await Assert.That(replay.Count).IsEqualTo(2);
-        await Assert.That(replay.Any(entry => entry.Faction1 == 10 && entry.Faction2 == 20 && entry.RelationType == 0)).IsTrue();
-        await Assert.That(replay.Any(entry => entry.Faction1 == 30 && entry.Faction2 == 40 && entry.RelationType == 2)).IsTrue();
+        await Assert.That(replay.Count).IsEqualTo(1);
+        await Assert.That(replay[0].Faction1).IsEqualTo(30u);
+        await Assert.That(replay[0].Code).IsEqualTo((byte)2);
     }
 
     [Test]
@@ -99,7 +99,7 @@ public class CombatRelationRelayTests
         CombatRelationRelay.PublishToZone(zone.Connection);
         var replay = await ReadEntries(zone.Session.Packets.Single());
         await Assert.That(replay.Count).IsEqualTo(1);
-        await Assert.That(replay[0].RelationType).IsEqualTo(2u);
+        await Assert.That(replay[0].Code).IsEqualTo((byte)2);
     }
 
     [Test]
@@ -120,14 +120,12 @@ public class CombatRelationRelayTests
         var entries = await ReadEntries(zone.Session.Packets.Single());
         await Assert.That(entries.Count).IsEqualTo(1);
         await Assert.That(entries[0].Faction1).IsEqualTo(10u);
-        await Assert.That(entries[0].Faction2).IsEqualTo(20u);
-        await Assert.That(entries[0].RelationType).IsEqualTo(0u);
+        await Assert.That(entries[0].Code).IsEqualTo((byte)0);
 
         var replacement = AddZone(200, 0);
         CombatRelationRelay.PublishToZone(replacement.Connection);
         var replay = await ReadEntries(replacement.Session.Packets.Single());
-        await Assert.That(replay.Count).IsEqualTo(1);
-        await Assert.That(replay[0].RelationType).IsEqualTo(0u);
+        await Assert.That(replay.Count).IsEqualTo(0);
     }
 
     [Test]
@@ -146,9 +144,9 @@ public class CombatRelationRelayTests
         await Assert.That(zone.Session.Packets.Count).IsEqualTo(2);
         var first = await ReadEntries(zone.Session.Packets[0]);
         var second = await ReadEntries(zone.Session.Packets[1]);
-        await Assert.That(first.Any(entry => entry.Faction1 == 10 && entry.Faction2 == 20)).IsTrue();
-        await Assert.That(second.Any(entry => entry.Faction1 == 10 && entry.Faction2 == 20)).IsTrue();
-        await Assert.That(second.Any(entry => entry.Faction1 == 30 && entry.Faction2 == 40)).IsTrue();
+        await Assert.That(first.Any(entry => entry.Faction1 == 10)).IsTrue();
+        await Assert.That(second.Any(entry => entry.Faction1 == 10)).IsTrue();
+        await Assert.That(second.Any(entry => entry.Faction1 == 30)).IsTrue();
     }
 
     [Test]
@@ -163,7 +161,7 @@ public class CombatRelationRelayTests
         var frame = new PacketStream(zone.Session.Packets.Single());
         frame.ReadUInt16();
         await Assert.That(frame.ReadUInt16()).IsEqualTo(WzOpcodes.FvFCombatRelationship);
-        var entries = WZCombatRelationPacket.Decode(frame);
+        var entries = WZCombatRelationPacket.Decode(frame, characterKey: false);
         await Assert.That(entries.Count).IsEqualTo(1);
     }
 
@@ -204,8 +202,8 @@ public class CombatRelationRelayTests
         await Assert.That(first.Session.Packets).IsEmpty();
         var secondEntries = await ReadEntries(second.Session.Packets.Single());
         await Assert.That(secondEntries.Count).IsEqualTo(2);
-        await Assert.That(secondEntries.Any(entry => entry.Faction1 == 10 && entry.Faction2 == 20 && entry.RelationType == 1)).IsTrue();
-        await Assert.That(secondEntries.Any(entry => entry.Faction1 == 30 && entry.Faction2 == 40 && entry.RelationType == 2)).IsTrue();
+        await Assert.That(secondEntries.Any(entry => entry.Faction1 == 10 && entry.Code == 1)).IsTrue();
+        await Assert.That(secondEntries.Any(entry => entry.Faction1 == 30 && entry.Code == 2)).IsTrue();
 
         var replacement = AddZone(300, 0);
         CombatRelationRelay.PublishToZone(replacement.Connection);
@@ -259,35 +257,32 @@ public class CombatRelationRelayTests
     }
 
     [Test]
-    public async Task ReplayOversize_DoesNotCommitThePublication()
+    public async Task LargeState_IsSplitAcrossPacketsAndReplayOmitsRemovals()
     {
         var zone = AddZone(100, 0);
-        var full = Enumerable.Range(1, 200)
+        var full = Enumerable.Range(1, 300)
             .Select(i => new CombatRelationEntry((uint)i, 1000, 1, 1))
             .ToArray();
         CombatRelationRelay.PublishCvF(new CombatRelationPublication(
             1,
             CombatRelationPublicationKind.FullState,
             full));
+
+        await Assert.That(zone.Session.Packets.Count).IsEqualTo(2);
         zone.Session.Packets.Clear();
 
-        for (var i = 0; i < 56; i++)
-        {
-            var publication = new CombatRelationPublication(
-                (ulong)(2 + i),
-                CombatRelationPublicationKind.Delta,
-                [new CombatRelationEntry((uint)(10000 + i), 20000, 0, 0)]);
-            if (i == 55)
-                Assert.Throws<InvalidOperationException>(() => CombatRelationRelay.PublishCvF(publication));
-            else
-                CombatRelationRelay.PublishCvF(publication);
-        }
+        CombatRelationRelay.PublishCvF(new CombatRelationPublication(
+            2,
+            CombatRelationPublicationKind.Delta,
+            [new CombatRelationEntry(1, 1000, 0, 0)]));
 
-        zone.Session.Packets.Clear();
-        CombatRelationRelay.PublishToZone(zone.Connection);
-        var replay = await ReadEntries(zone.Session.Packets.Single());
-        await Assert.That(replay.Count).IsEqualTo(255);
-        await Assert.That(replay.Any(entry => entry.Faction1 == 10055 && entry.Faction2 == 20000)).IsFalse();
+        var replacement = AddZone(200, 0);
+        CombatRelationRelay.PublishToZone(replacement.Connection);
+        var replay = new List<CombatRelationEntry>();
+        foreach (var packet in replacement.Session.Packets)
+            replay.AddRange(await ReadEntries(packet));
+        await Assert.That(replay.Count).IsEqualTo(299);
+        await Assert.That(replay.Any(entry => entry.Faction1 == 1)).IsFalse();
     }
 
     [Test]
@@ -326,9 +321,8 @@ public class CombatRelationRelayTests
         var entries = await ReadEntries(packets[0]);
         await Assert.That(entries.Count).IsEqualTo(1);
         await Assert.That(entries[0].Faction1).IsEqualTo(faction1);
-        await Assert.That(entries[0].Faction2).IsEqualTo(faction2);
-        await Assert.That(entries[0].RelationType).IsEqualTo(relationType);
-        await Assert.That(entries[0].Flags).IsEqualTo(flags);
+        await Assert.That(entries[0].Code).IsEqualTo((byte)relationType);
+        await Assert.That(entries[0].Reason).IsEqualTo((byte)flags);
     }
 
     private static async Task<IReadOnlyList<CombatRelationEntry>> ReadEntries(byte[] packet)
@@ -336,7 +330,7 @@ public class CombatRelationRelayTests
         var stream = new PacketStream(packet);
         stream.ReadUInt16();
         stream.ReadUInt16();
-        return WZCombatRelationPacket.Decode(stream);
+        return WZCombatRelationPacket.Decode(stream, characterKey: true);
     }
 
     private sealed record ZoneFixture(ZoneConnection Connection, RecordingSession Session);

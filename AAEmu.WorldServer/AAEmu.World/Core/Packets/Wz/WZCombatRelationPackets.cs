@@ -4,16 +4,18 @@ using AAEmu.Game.Models.Game.Faction;
 namespace AAEmu.World.Core.Packets.Wz;
 
 /// <summary>
-/// Shared WZ combat-relation packet body: one count byte followed by four uint32 fields per record.
+/// Shared count prefix. Each record is 10 bytes: a character relation is one u64 key plus two u8
+/// fields, and a faction relation is two i32 ids plus the same two u8 fields.
 /// </summary>
 public abstract class WZCombatRelationPacket : ZonePacket
 {
-    public const int EntrySize = 16;
+    public const int EntrySize = 10;
     public const int MaxEntriesPerPacket = byte.MaxValue;
 
     private readonly CombatRelationEntry[] _entries;
+    private readonly bool _characterKey;
 
-    protected WZCombatRelationPacket(ushort opcode, IReadOnlyList<CombatRelationEntry> entries)
+    protected WZCombatRelationPacket(ushort opcode, IReadOnlyList<CombatRelationEntry> entries, bool characterKey)
         : base(opcode)
     {
         ArgumentNullException.ThrowIfNull(entries);
@@ -21,10 +23,10 @@ public abstract class WZCombatRelationPacket : ZonePacket
             throw new ArgumentOutOfRangeException(nameof(entries), $"A relation packet carries at most {MaxEntriesPerPacket} records.");
 
         _entries = entries.ToArray();
+        _characterKey = characterKey;
     }
 
-    /// <summary>Decodes and validates a complete WZ combat-relation body.</summary>
-    public static IReadOnlyList<CombatRelationEntry> Decode(PacketStream body)
+    public static IReadOnlyList<CombatRelationEntry> Decode(PacketStream body, bool characterKey)
     {
         ArgumentNullException.ThrowIfNull(body);
         if (body.Count < sizeof(byte))
@@ -38,13 +40,7 @@ public abstract class WZCombatRelationPacket : ZonePacket
 
         var entries = new CombatRelationEntry[count];
         for (var i = 0; i < count; i++)
-        {
-            entries[i] = new CombatRelationEntry(
-                body.ReadUInt32(),
-                body.ReadUInt32(),
-                body.ReadUInt32(),
-                body.ReadUInt32());
-        }
+            entries[i] = characterKey ? ReadCharacter(body) : ReadFaction(body);
 
         return entries;
     }
@@ -54,15 +50,35 @@ public abstract class WZCombatRelationPacket : ZonePacket
         stream.Write(checked((byte)_entries.Length));
         foreach (var entry in _entries)
         {
-            stream.Write(entry.Faction1);
-            stream.Write(entry.Faction2);
-            stream.Write(entry.RelationType);
-            stream.Write(entry.Flags);
+            if (_characterKey)
+            {
+                stream.Write((ulong)entry.Faction1);
+            }
+            else
+            {
+                stream.Write((int)entry.Faction1);
+                stream.Write((int)entry.Faction2);
+            }
+
+            stream.Write(entry.Code);
+            stream.Write(entry.Reason);
         }
     }
+
+    private static CombatRelationEntry ReadCharacter(PacketStream body)
+    {
+        var key = body.ReadUInt64();
+        if (key > uint.MaxValue)
+            throw new InvalidDataException("Character relation key does not fit the publication id.");
+
+        return new CombatRelationEntry((uint)key, 0, body.ReadByte(), body.ReadByte());
+    }
+
+    private static CombatRelationEntry ReadFaction(PacketStream body) =>
+        new((uint)body.ReadInt32(), (uint)body.ReadInt32(), body.ReadByte(), body.ReadByte());
 }
 
-/// <summary>WZ CvF combat relationships (opcode 0x027).</summary>
+/// <summary>WZ character-versus-faction relationships (opcode 0x027).</summary>
 public sealed class WZCvFCombatRelationshipPacket : WZCombatRelationPacket
 {
     public WZCvFCombatRelationshipPacket()
@@ -71,12 +87,12 @@ public sealed class WZCvFCombatRelationshipPacket : WZCombatRelationPacket
     }
 
     public WZCvFCombatRelationshipPacket(IReadOnlyList<CombatRelationEntry> entries)
-        : base(WzOpcodes.CvFCombatRelationship, entries)
+        : base(WzOpcodes.CvFCombatRelationship, entries, characterKey: true)
     {
     }
 }
 
-/// <summary>WZ FvF combat relationships (opcode 0x028).</summary>
+/// <summary>WZ faction-versus-faction relationships (opcode 0x028).</summary>
 public sealed class WZFvFCombatRelationshipPacket : WZCombatRelationPacket
 {
     public WZFvFCombatRelationshipPacket()
@@ -85,7 +101,7 @@ public sealed class WZFvFCombatRelationshipPacket : WZCombatRelationPacket
     }
 
     public WZFvFCombatRelationshipPacket(IReadOnlyList<CombatRelationEntry> entries)
-        : base(WzOpcodes.FvFCombatRelationship, entries)
+        : base(WzOpcodes.FvFCombatRelationship, entries, characterKey: false)
     {
     }
 }
