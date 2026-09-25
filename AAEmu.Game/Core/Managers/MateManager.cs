@@ -398,7 +398,10 @@ public class MateManager(WorldInstance parentWorldInstance)
                     AttachUnitReason.SlaveBinding);
 
             if (mate.OwnerObjId > 0)
+            {
                 markForDeleteObj.Add(mate.OwnerObjId);
+                character.Mates?.CaptureActiveMateState(mate);
+            }
             WithdrawMateFromZone(mate);
             mate.Delete();
             ObjectIdManager.Instance.ReleaseId(mate.ObjId);

@@ -4146,6 +4146,7 @@ public partial class Character : Unit, ICharacter
 
     public bool SaveDirectlyToDatabase()
     {
+        Mates?.WaitForCommitGate();
         // Try to save New Character
         bool saved;
         using (var sqlConnection = MySQL.CreateConnection())

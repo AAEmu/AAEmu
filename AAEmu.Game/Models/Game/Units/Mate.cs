@@ -598,19 +598,22 @@ public sealed class Mate : Unit
         Level = newLevel;
 
         UpdateMateItemData();
-        DbInfo.Xp = Experience;
-        DbInfo.Level = Level;
-
         var owner = WorldManager.Instance.GetCharacterByObjId(OwnerObjId);
-        owner.SendPacket(new SCExpChangedPacket(ObjId, expDelta, false));
+        owner?.Mates.UpdateMateInfo(ItemId, db =>
+        {
+            db.Xp = Experience;
+            db.Level = Level;
+        });
+
+        owner?.SendPacket(new SCExpChangedPacket(ObjId, expDelta, false));
 
         if (leveledUp)
         {
             Hp = MaxHp;
             Mp = MaxMp;
             BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
-            owner.SendPacket(new SCUnitStatePacket(this));
-            owner.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+            owner?.SendPacket(new SCUnitStatePacket(this));
+            owner?.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
             if (WorldIntegration.ZoneAuthority)
             {
                 WorldIntegration.RelayLevelChangedToZone?.Invoke(ObjId, Level);

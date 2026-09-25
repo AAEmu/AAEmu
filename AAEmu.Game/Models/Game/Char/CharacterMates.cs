@@ -298,9 +298,6 @@ public class CharacterMates(Character owner)
         using var reader = command.ExecuteReader();
         while (reader.Read())
         {
-            var reviveDelay = NullableInt32(reader, "mate_revive_delay");
-            var reviveHpPercent = NullableInt32(reader, "mate_revive_hp_percent");
-            var reviveMpPercent = NullableInt32(reader, "mate_revive_mp_percent");
             var template = new MateDb
             {
                 Id = Convert.ToUInt32(reader.GetValue(reader.GetOrdinal("id"))),
@@ -312,23 +309,12 @@ public class CharacterMates(Character owner)
                 Hp = reader.GetInt32("hp"),
                 Mp = reader.GetInt32("mp"),
                 Owner = Convert.ToUInt32(reader.GetValue(reader.GetOrdinal("owner"))),
-                RecoveryState = MateRecoveryState.FromPersisted(
-                    reviveDelay,
-                    reviveHpPercent,
-                    reviveMpPercent),
                 UpdatedAt = reader.GetDateTime("updated_at"),
                 CreatedAt = reader.GetDateTime("created_at")
             };
             lock (_saveSync)
                 _mates.Add(template.ItemId, template);
         }
-    }
-
-    private static int? NullableInt32(DbDataReader reader, string columnName)
-    {
-        return reader.IsDBNull(reader.GetOrdinal(columnName))
-            ? null
-            : reader.GetInt32(columnName);
     }
 
     private static void AddParameter(DbCommand command, string name, object value)
@@ -397,7 +383,10 @@ public class CharacterMates(Character owner)
         catch
         {
             lock (_saveSync)
+            {
                 _commitGates.Remove(transaction);
+                Monitor.PulseAll(_saveSync);
+            }
             throw;
         }
     }
@@ -412,6 +401,7 @@ public class CharacterMates(Character owner)
         lock (_saveSync)
         {
             _commitGates.Remove(transaction);
+            Monitor.PulseAll(_saveSync);
             if (token == null)
                 return;
 
@@ -433,7 +423,10 @@ public class CharacterMates(Character owner)
 
         _saveTokens.Remove(transaction);
         lock (_saveSync)
+        {
             _commitGates.Remove(transaction);
+            Monitor.PulseAll(_saveSync);
+        }
     }
 
     private void PersistSnapshot(
@@ -461,10 +454,8 @@ public class CharacterMates(Character owner)
             command.Transaction = transaction;
 
             command.CommandText =
-                "REPLACE INTO mates(`id`,`item_id`,`name`,`xp`,`level`,`mileage`,`hp`,`mp`,`owner`," +
-                "`mate_revive_delay`,`mate_revive_hp_percent`,`mate_revive_mp_percent`,`updated_at`,`created_at`) " +
-                "VALUES (@id, @item_id, @name, @xp, @level, @mileage, @hp, @mp, @owner," +
-                "@mate_revive_delay,@mate_revive_hp_percent,@mate_revive_mp_percent,@updated_at,@created_at)";
+                "REPLACE INTO mates(`id`,`item_id`,`name`,`xp`,`level`,`mileage`,`hp`,`mp`,`owner`,`updated_at`,`created_at`) " +
+                "VALUES (@id, @item_id, @name, @xp, @level, @mileage, @hp, @mp, @owner, @updated_at, @created_at)";
             AddParameter(command, "@id", value.Id);
             AddParameter(command, "@item_id", value.ItemId);
             AddParameter(command, "@name", value.Name);
@@ -474,15 +465,22 @@ public class CharacterMates(Character owner)
             AddParameter(command, "@hp", value.Hp);
             AddParameter(command, "@mp", value.Mp);
             AddParameter(command, "@owner", value.Owner);
-            AddParameter(command, "@mate_revive_delay",
-                value.RecoveryState?.MateReviveDelay ?? (object)DBNull.Value);
-            AddParameter(command, "@mate_revive_hp_percent",
-                value.RecoveryState?.MateReviveHpPercent ?? (object)DBNull.Value);
-            AddParameter(command, "@mate_revive_mp_percent",
-                value.RecoveryState?.MateReviveMpPercent ?? (object)DBNull.Value);
             AddParameter(command, "@updated_at", value.UpdatedAt);
             AddParameter(command, "@created_at", value.CreatedAt);
             command.ExecuteNonQuery();
+        }
+    }
+
+    /// <summary>
+    /// Blocks until no mate save is inside its commit gate. Logout saves call this so they
+    /// wait for the in-flight transaction instead of failing the whole character write.
+    /// </summary>
+    public void WaitForCommitGate()
+    {
+        lock (_saveSync)
+        {
+            while (_commitGates.Count > 0)
+                Monitor.Wait(_saveSync);
         }
     }
 

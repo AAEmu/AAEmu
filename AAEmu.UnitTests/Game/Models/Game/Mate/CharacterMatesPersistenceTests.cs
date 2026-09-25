@@ -25,10 +25,11 @@ public class CharacterMatesPersistenceTests
         var (owner, mates) = CreateOwnerAndMates(77);
 
         mates.Load(connection);
-        await Assert.That(mates.GetMateInfo(1001).RecoveryState!.Value.MateReviveDelay).IsEqualTo(7);
+        await Assert.That(mates.GetMateInfo(1001).Xp).IsEqualTo(10);
+        await Assert.That(mates.GetMateInfo(1001).RecoveryState.HasValue).IsFalse();
         await Assert.That(mates.GetMateInfo(1002).RecoveryState.HasValue).IsFalse();
 
-        mates.UpdateMateInfo(1001, db => db.RecoveryState = new MateRecoveryState(17, 19, 23));
+        mates.UpdateMateInfo(1001, db => db.Xp = 17);
         using (var transaction = connection.BeginTransaction())
         {
             mates.Save(connection, transaction);
@@ -39,11 +40,8 @@ public class CharacterMatesPersistenceTests
 
         var (_, reloaded) = CreateOwnerAndMates(77);
         reloaded.Load(connection);
-        var state = reloaded.GetMateInfo(1001).RecoveryState!.Value;
-        await Assert.That(state.MateReviveDelay).IsEqualTo(17);
-        await Assert.That(state.MateReviveHpPercent).IsEqualTo(19);
-        await Assert.That(state.MateReviveMpPercent).IsEqualTo(23);
-        await Assert.That(reloaded.GetMateInfo(1002).RecoveryState.HasValue).IsFalse();
+        await Assert.That(reloaded.GetMateInfo(1001).Xp).IsEqualTo(17);
+        await Assert.That(reloaded.GetMateInfo(1001).RecoveryState.HasValue).IsFalse();
         await Assert.That(owner.Id).IsEqualTo(77u);
     }
 
@@ -65,7 +63,7 @@ public class CharacterMatesPersistenceTests
         var (_, afterRollback) = CreateOwnerAndMates(77);
         afterRollback.Load(connection);
         await Assert.That(afterRollback.GetMateInfo(1001)).IsNotNull();
-        await Assert.That(afterRollback.GetMateInfo(1001).RecoveryState!.Value.MateReviveDelay).IsEqualTo(7);
+        await Assert.That(afterRollback.GetMateInfo(1001).Xp).IsEqualTo(10);
 
         using (var committed = connection.BeginTransaction())
         {
@@ -102,7 +100,7 @@ public class CharacterMatesPersistenceTests
         reloaded.Load(connection);
         await Assert.That(reloaded.GetMateInfo(1001)).IsNull();
         await Assert.That(reloaded.GetMateInfo(1002)).IsNotNull();
-        await Assert.That(reloaded.GetMateInfo(1002).RecoveryState!.Value.MateReviveDelay).IsEqualTo(17);
+        await Assert.That(reloaded.GetMateInfo(1002).Xp).IsEqualTo(10);
     }
 
     [Test]
@@ -127,7 +125,7 @@ public class CharacterMatesPersistenceTests
         var (_, reloaded) = CreateOwnerAndMates(77);
         reloaded.Load(connection);
         await Assert.That(reloaded.GetMateInfo(1001)).IsNotNull();
-        await Assert.That(reloaded.GetMateInfo(1001).RecoveryState!.Value.MateReviveDelay).IsEqualTo(7);
+        await Assert.That(reloaded.GetMateInfo(1001).Xp).IsEqualTo(10);
     }
 
     [Test]
@@ -196,7 +194,9 @@ public class CharacterMatesPersistenceTests
         var saved = reloaded.GetMateInfo(1001);
         await Assert.That(saved.Hp).IsEqualTo(67);
         await Assert.That(saved.Mp).IsEqualTo(89);
-        await Assert.That(saved.RecoveryState!.Value).IsEqualTo(active.RecoveryState);
+        await Assert.That(saved.Xp).IsEqualTo(123);
+        await Assert.That(saved.Level).IsEqualTo((ushort)9);
+        await Assert.That(saved.RecoveryState.HasValue).IsFalse();
     }
 
     [Test]
@@ -423,9 +423,6 @@ public class CharacterMatesPersistenceTests
                 hp INTEGER NOT NULL,
                 mp INTEGER NOT NULL,
                 owner INTEGER NOT NULL,
-                mate_revive_delay INTEGER NULL,
-                mate_revive_hp_percent INTEGER NULL,
-                mate_revive_mp_percent INTEGER NULL,
                 updated_at TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 PRIMARY KEY (id, item_id, owner));
@@ -446,16 +443,12 @@ public class CharacterMatesPersistenceTests
         command.CommandText = """
             INSERT INTO mates(
                 id, item_id, name, xp, level, mileage, hp, mp, owner,
-                mate_revive_delay, mate_revive_hp_percent, mate_revive_mp_percent,
                 updated_at, created_at)
             VALUES ($id, $item, 'synthetic-mate', 10, 5, 6, 70, 80, 77,
-                $delay, $hp, $mp, $updated, $created);
+                $updated, $created);
             """;
         command.Parameters.AddWithValue("$id", id);
         command.Parameters.AddWithValue("$item", itemId);
-        command.Parameters.AddWithValue("$delay", reviveDelay ?? (object)DBNull.Value);
-        command.Parameters.AddWithValue("$hp", reviveHpPercent ?? (object)DBNull.Value);
-        command.Parameters.AddWithValue("$mp", reviveMpPercent ?? (object)DBNull.Value);
         command.Parameters.AddWithValue("$updated", DateTime.UtcNow);
         command.Parameters.AddWithValue("$created", DateTime.UtcNow);
         command.ExecuteNonQuery();
