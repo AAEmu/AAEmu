@@ -90,6 +90,61 @@ public class CraftManagerTests
     }
 
     [Test]
+    public async Task LoadCraftMetadata_AllowsEmptyOptionalDescriptionAndPackName()
+    {
+        using var connection = CreateMetadataDatabase();
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "UPDATE craft_lines SET desc = ''; UPDATE craft_packs SET name = '';";
+            command.ExecuteNonQuery();
+        }
+        var manager = CreateManager();
+        manager.LoadCrafts(connection);
+
+        manager.LoadCraftMetadata(connection);
+
+        await Assert.That(manager.TryGetCraftLine(50, out var line)).IsTrue();
+        await Assert.That(line.Description).IsEqualTo(string.Empty);
+        await Assert.That(manager.TryGetCraftPack(5, out var pack)).IsTrue();
+        await Assert.That(pack.Name).IsEqualTo(string.Empty);
+    }
+
+    [Test]
+    public async Task LoadCraftMetadata_AllowsNullOptionalDescriptionAndPackName()
+    {
+        using var connection = CreateMetadataDatabase();
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "UPDATE craft_lines SET desc = NULL; UPDATE craft_packs SET name = NULL;";
+            command.ExecuteNonQuery();
+        }
+        var manager = CreateManager();
+        manager.LoadCrafts(connection);
+
+        manager.LoadCraftMetadata(connection);
+
+        await Assert.That(manager.TryGetCraftLine(50, out var line)).IsTrue();
+        await Assert.That(line.Description).IsEqualTo(string.Empty);
+        await Assert.That(manager.TryGetCraftPack(5, out var pack)).IsTrue();
+        await Assert.That(pack.Name).IsEqualTo(string.Empty);
+    }
+
+    [Test]
+    public void LoadCraftMetadata_EmptyRequiredLineNameFailsLoudly()
+    {
+        using var connection = CreateMetadataDatabase();
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "UPDATE craft_lines SET name = '';";
+            command.ExecuteNonQuery();
+        }
+        var manager = CreateManager();
+        manager.LoadCrafts(connection);
+
+        Assert.Throws<InvalidDataException>(() => manager.LoadCraftMetadata(connection));
+    }
+
+    [Test]
     public async Task LoadCraftMetadata_RetainsMismatchedCAndDReferences()
     {
         using var connection = CreateMetadataDatabase();

@@ -337,7 +337,8 @@ public class CraftManager : Singleton<CraftManager>, ICraftManager
                 {
                     Id = id,
                     Name = ReadRequiredString(reader, "name", "craft_lines"),
-                    Description = ReadRequiredString(reader, "desc", "craft_lines")
+                    // The shipped catalog legitimately stores an empty description for most lines.
+                    Description = ReadOptionalString(reader, "desc")
                 });
             }
         }
@@ -410,7 +411,8 @@ public class CraftManager : Singleton<CraftManager>, ICraftManager
             _craftPacks.Add(id, new CraftPack
             {
                 Id = id,
-                Name = ReadRequiredString(reader, "name", "craft_packs")
+                // Pack names are display metadata; the shipped schema allows an empty name.
+                Name = ReadOptionalString(reader, "name")
             });
         }
     }
@@ -473,6 +475,16 @@ public class CraftManager : Singleton<CraftManager>, ICraftManager
         if (string.IsNullOrWhiteSpace(value))
             throw new InvalidDataException($"{table}.{column} is empty.");
         return value;
+    }
+
+    /// <summary>
+    /// Reads shipped display metadata that is allowed to be empty. A null or empty value is a valid
+    /// catalog state and must not prevent the World from starting; identifiers and names that are
+    /// required for indexing continue to use <see cref="ReadRequiredString"/>.
+    /// </summary>
+    private static string ReadOptionalString(SQLiteWrapperReader reader, string column)
+    {
+        return reader.IsDBNull(column) ? string.Empty : reader.GetString(column) ?? string.Empty;
     }
 
     /// <summary>
