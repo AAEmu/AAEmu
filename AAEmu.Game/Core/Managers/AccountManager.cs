@@ -29,8 +29,36 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
     public T WithAccountLock<T>(uint accountId, Func<T> operation)
     {
         ArgumentNullException.ThrowIfNull(operation);
-        lock (GetAccountLock(accountId))
-            return operation();
+        using var scope = EnterAccountLock(accountId);
+        return operation();
+    }
+
+    /// <summary>
+    /// Takes the same lock <see cref="WithAccountLock{T}"/> takes and holds it until the returned scope is
+    /// disposed, for a caller that already owns the enclosing scopes of the documented lock order (the World
+    /// persistence gate and the character state lock) and therefore cannot wrap its whole body in a lambda.
+    /// </summary>
+    internal IDisposable EnterAccountLock(uint accountId)
+    {
+        var accountLock = GetAccountLock(accountId);
+        Monitor.Enter(accountLock);
+        return new AccountLockScope(accountLock);
+    }
+
+    /// <summary>True when this thread already holds the account lock for <paramref name="accountId"/>.</summary>
+    internal bool IsAccountLockHeld(uint accountId) => Monitor.IsEntered(GetAccountLock(accountId));
+
+    private sealed class AccountLockScope(object accountLock) : IDisposable
+    {
+        private bool _disposed;
+
+        public void Dispose()
+        {
+            if (_disposed)
+                return;
+            _disposed = true;
+            Monitor.Exit(accountLock);
+        }
     }
 
     /// <summary>
@@ -45,7 +73,7 @@ public class AccountManager(ITickManager tickManager, ITimedRewardsManager timed
         MySqlTransaction transaction)
     {
         if (connection == null || transaction == null || debit.AccountId == 0 ||
-            !Monitor.IsEntered(GetAccountLock(debit.AccountId)))
+            !IsAccountLockHeld(debit.AccountId))
             return false;
 
         try

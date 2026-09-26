@@ -24,6 +24,9 @@ public class CashShopManager(IWorldManager worldManager, IAccountManager account
     public Dictionary<uint, IcsItem> ShopItems { get; set; } = [];
     public List<IcsMenu> MenuItems { get; set; } = [];
 
+    /// <summary>Serializes cart validation, stock reservation, audit, and delivery publication.</summary>
+    internal object PurchaseSyncRoot { get; } = new();
+
     public void CreditDisperseTick(TimeSpan delta)
     {
         var characters = worldManager.GetAllCharacters();
@@ -386,6 +389,21 @@ public class CashShopManager(IWorldManager worldManager, IAccountManager account
             return false;
         }
         return true;
+    }
+
+    /// <summary>Applies the stock values read back from the committed purchase transaction.</summary>
+    internal void ApplyCommittedStock(IReadOnlyDictionary<uint, int> remainingByShop)
+    {
+        if (remainingByShop == null)
+            return;
+        lock (PurchaseSyncRoot)
+        {
+            foreach (var (shopId, remaining) in remainingByShop)
+            {
+                if (ShopItems.TryGetValue(shopId, out var shopItem))
+                    shopItem.Remaining = remaining;
+            }
+        }
     }
 
     private void ResolveShopItemDisplayNames()
