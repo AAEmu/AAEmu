@@ -103,8 +103,12 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
             return;
         }
 
+        // A team may sit on EITHER side of an outstanding ask. Comparing only source-to-source and
+        // target-to-target let C ask A while A was already asking B, which is how one team ended up
+        // party to two pending joints at once.
         if (_pendingJoints.Values.Any(pending =>
-                pending.SourceTeamId == sourceTeam.Id || pending.TargetTeamId == targetTeam.Id))
+                pending.SourceTeamId == sourceTeam.Id || pending.TargetTeamId == targetTeam.Id ||
+                pending.SourceTeamId == targetTeam.Id || pending.TargetTeamId == sourceTeam.Id))
         {
             _context.SendError(requesterId, ErrorMessageType.TeamLoading);
             return;
@@ -218,7 +222,15 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
         // handle_task.lua:2829/:2836) against a RESPONSE-side one (leader => responder is the
         // owner, handle_task.lua:2883/:2890; joint_view.lua:462-463 agrees). Both values are
         // valid answers; the echoed one selects the leading team in CommitJoint.
-        CommitJoint(pending with { LeaderChoice = myTeamLeader });
+        // The echoed flag is deliberately NOT used to pick the leader. Whether the native
+        // X2Team:JointOk inverts it before sending is not recoverable here: the Lua hands
+        // infoTable["leader"] straight through (handle_task.lua:2910) and the binding is opaque, so
+        // the polarity is a standing disagreement. Accepting either value would let a crafted answer
+        // choose the owner, so the server's own stored LeaderChoice decides instead. That is correct
+        // whichever way the client resolves it, and the echo is logged for diagnosis only.
+        Logger.Debug("Team joint answer from {0} echoed leader={1}; using the stored choice {2}.",
+            responderId, myTeamLeader, pending.LeaderChoice);
+        CommitJoint(pending);
     }
 
     public void RespondToJointBreak(uint responderId, bool ask, bool accept)
@@ -238,11 +250,18 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
                 return;
             }
 
+            var otherOwner = OnlineTeamOwner(_context.FindTeam(session.GetOtherTeamId(team.Id)));
+            if (otherOwner == null)
+            {
+                // Recording an ask nobody received leaves the session stuck: every later break ask
+                // returns silently and only a disband clears it.
+                Logger.Warn("Team joint break ask from {0} dropped: the other owner is offline.", responderId);
+                return;
+            }
+
             if (!_pendingBreaks.TryAdd(session.JointId, new PendingBreak(team.Id, responderId)))
                 return;
-            var otherOwner = OnlineTeamOwner(_context.FindTeam(session.GetOtherTeamId(team.Id)));
-            if (otherOwner != null)
-                _context.Send(otherOwner.Id, new SCTeamJointBreakPacket(true, false));
+            _context.Send(otherOwner.Id, new SCTeamJointBreakPacket(true, false));
             return;
         }
 
@@ -429,6 +448,15 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
             !TeamJointRules.Fits(sourceTeam.MemberCount, targetTeam.MemberCount, Team.RaidMemberLimit))
         {
             _pendingJoints.TryRemove(pending.SourceTeamId, out _);
+            return;
+        }
+
+        // Re-check at commit. Between the ask and the answer either team can have joined another
+        // joint through a different ask, and a stale pending entry would then overwrite its JointId.
+        if (_sessions.Values.Any(existing => existing.Contains(sourceTeam.Id) || existing.Contains(targetTeam.Id)))
+        {
+            _pendingJoints.TryRemove(pending.SourceTeamId, out _);
+            _context.SendError(OnlineTeamOwner(sourceTeam)?.Id ?? 0, ErrorMessageType.TeamInviteeInTeam);
             return;
         }
 
