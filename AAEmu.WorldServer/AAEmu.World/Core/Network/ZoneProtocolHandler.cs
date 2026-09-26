@@ -170,7 +170,7 @@ public class ZoneProtocolHandler : BaseProtocolHandler
                 break;
             default:
                 if (_combatRelay.IsCombatOpcode(opcode))
-                    _combatRelay.OnZwOpcode(opcode, body.GetBytes(), bodyLen);
+                    _combatRelay.OnZwOpcode(connection, opcode, body.GetBytes(), bodyLen);
                 else if (_zoneSimRelay.TryHandle(connection, opcode, body.GetBytes(), bodyLen))
                 {
                     // handled (areas/housing/gimmick/mole/…)

@@ -87,6 +87,14 @@ public class ZoneHostConfig
     public string RuntimeLogRoot { get; set; } = "";
     public bool Dedicated { get; set; } = true;
     public bool DisableRendering { get; set; } = true;
+    /// <summary>Native movement skip setting for standing NPCs. Matches the Zone Manager default.</summary>
+    public int NpcMoveSkipStanding { get; set; }
+    /// <summary>Native movement skip setting for NPCs whose AI is disabled. Matches the Zone Manager default.</summary>
+    public int NpcMoveSkipDisabledAi { get; set; }
+    /// <summary>Native NPC movement skip setting. Matches the Zone Manager default.</summary>
+    public int NpcMovementSkip { get; set; }
+    /// <summary>Enables the native AI system update loop.</summary>
+    public int AiSystemUpdate { get; set; } = 1;
     public string ExtraArguments { get; set; } = "";
     /// <summary>Seconds to wait for ZoneLoaded after starting a copy.</summary>
     public int ReadyTimeoutSeconds { get; set; } = 120;

@@ -10,6 +10,7 @@ using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.World.Core.Packets.Zw;
+using AAEmu.World.Core.Network;
 
 using NLog;
 
@@ -41,7 +42,7 @@ public class CombatRelay
 
     public bool IsCombatOpcode(ushort opcode) => CombatOpcodes.Contains(opcode);
 
-    public void OnZwOpcode(ushort opcode, byte[] body, int bodyLen)
+    public void OnZwOpcode(ZoneConnection connection, ushort opcode, byte[] body, int bodyLen)
     {
         if (Environment.GetEnvironmentVariable("AAEMU_DISABLE_ZONE_COMBAT_RELAY") == "1")
             return;
@@ -70,14 +71,14 @@ public class CombatRelay
 
             if (!shouldRelay)
             {
-                if (opcode == 0x000B && TryRelay(opcode, body ?? [], relayToClients: false))
+                if (opcode == 0x000B && TryRelay(connection, opcode, body ?? [], relayToClients: false))
                     Logger.Info("Combat ZW 0x{0:X4} len={1} → lifecycle processed (SC relay gated)", opcode, bodyLen);
                 else
                     Logger.Info("Combat ZW 0x{0:X4} len={1} (SC relay gated — AAEMU_ZW_SC_RELAY=1 or safe opcode)", opcode, bodyLen);
                 return;
             }
 
-            if (TryRelay(opcode, body ?? []))
+            if (TryRelay(connection, opcode, body ?? []))
                 Logger.Info("Combat ZW 0x{0:X4} len={1} → SC relayed", opcode, bodyLen);
             else
                 Logger.Info("Combat ZW 0x{0:X4} len={1} → SC relay pending/unhandled", opcode, bodyLen);
@@ -88,7 +89,7 @@ public class CombatRelay
         }
     }
 
-    private bool TryRelay(ushort zwOpcode, byte[] body, bool relayToClients = true)
+    private bool TryRelay(ZoneConnection connection, ushort zwOpcode, byte[] body, bool relayToClients = true)
     {
         var stream = new PacketStream();
         if (body.Length > 0)
@@ -97,11 +98,11 @@ public class CombatRelay
 
         return zwOpcode switch
         {
-            0x0018 => RelayStartSkill(stream),
+            0x0018 => RelayStartSkill(connection, stream),
             0x0019 => RelayStopSkill(stream),
             0x001A => RelayStopCasting(stream),
             0x0009 => RelaySkillControllerState(stream),
-            0x000D => RelayAggroHostile(stream),
+            0x000D => RelayAggroHostile(connection, stream),
             ZwOpcodes.AiAggro => RelayAiAggro(stream),
             0x000A => RelayCreateBuff(stream),
             0x000B => RelayRemoveBuff(stream, relayToClients),
@@ -183,7 +184,7 @@ public class CombatRelay
     /// Zone AI requests the cast; World runs the normal skill pipeline, whose ZoneAuthority bridge
     /// acknowledges it with WZSkillStarted/Fired/Ended and applies the data-defined effects.
     /// </summary>
-    private bool RelayStartSkill(PacketStream stream)
+    private bool RelayStartSkill(ZoneConnection connection, PacketStream stream)
     {
         if (stream.Count < 8)
             return false;
@@ -235,9 +236,13 @@ public class CombatRelay
         // the zone marks almighty is the zone asking for its own cadence, so it bypasses the gate too.
         var bypassGcd = casterUnit is not Npc || NpcSwingGateRules.BypassesWorldGate(casterIsNpc: true, almighty);
         var result = skill.Use(casterUnit, caster, target, skillObject, bypassGcd, out _, out _);
-        Logger.Debug(
-            "ZWStartSkill caster={0} skill={1} targetType={2} almighty={3} result={4} tl={5}",
-            casterId, skillId, targetType, almighty, result, skill.TlId);
+        if (Logger.IsDebugEnabled)
+        {
+            Logger.Debug(
+                "ZWStartSkill caster={0} skill={1} targetType={2} almighty={3} result={4} tl={5} {6} casterContext=[{7}]",
+                casterId, skillId, targetType, almighty, result, skill.TlId,
+                NpcAiDiagnostics.Source(connection), NpcAiDiagnostics.Unit(connection, casterId));
+        }
 
         return true;
     }
@@ -316,13 +321,21 @@ public class CombatRelay
         return true;
     }
 
-    private bool RelayAggroHostile(PacketStream stream)
+    private bool RelayAggroHostile(ZoneConnection connection, PacketStream stream)
     {
         if (stream.Count < 6)
             return false;
 
         var npcId = stream.ReadBc();
         var targetId = stream.ReadBc();
+
+        if (Logger.IsDebugEnabled)
+        {
+            Logger.Debug(
+                "ZWMakeAggroTargetHostile {0} npcContext=[{1}] targetContext=[{2}]",
+                NpcAiDiagnostics.Source(connection), NpcAiDiagnostics.Unit(connection, npcId),
+                NpcAiDiagnostics.Unit(connection, targetId));
+        }
 
         if (!WorldIntegration.IsStreamedUnitForAnyClient(npcId) &&
             !WorldIntegration.IsStreamedUnitForAnyClient(targetId))

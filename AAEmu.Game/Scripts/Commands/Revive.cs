@@ -34,15 +34,7 @@ public class Revive : ICommand
         {
             if (targetPlayer.Hp == 0)
             {
-                targetPlayer.Hp = targetPlayer.MaxHp;
-                targetPlayer.Mp = targetPlayer.MaxMp;
-                targetPlayer.BroadcastPacket(
-                    new SCCharacterResurrectedPacket(targetPlayer.ObjId, targetPlayer.Transform.World.Position.X,
-                        targetPlayer.Transform.World.Position.Y, targetPlayer.Transform.World.Position.Z,
-                        targetPlayer.Transform.World.Rotation.Z), true);
-                targetPlayer.BroadcastPacket(
-                    new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp), true);
-                targetPlayer.PostUpdateCurrentHp(targetPlayer, 0, targetPlayer.Hp, KillReason.Unknown);
+                ReviveCharacter(targetPlayer);
             }
             else
             {
@@ -53,5 +45,34 @@ public class Revive : ICommand
         {
             character.SendMessage("Cannot revive this target");
         }
+    }
+
+    internal static void ReviveCharacter(Character targetPlayer)
+    {
+        var position = targetPlayer.Transform.World.Position;
+        var rotation = targetPlayer.Transform.World.Rotation.Z;
+
+        // Keep the dedicated server's player mirror in the same lifecycle state as World. The
+        // client resurrection path uses this order while World HP is still zero, so stale
+        // Zone hits cannot kill the player again between resurrection and points sync.
+        if (WorldIntegration.ZoneAuthority)
+        {
+            WorldIntegration.RelayUnitResurrectionToZone?.Invoke(
+                targetPlayer.ObjId, position.X, position.Y, position.Z, rotation);
+            WorldIntegration.RelayCombatClearedToZone?.Invoke(targetPlayer.ObjId);
+        }
+
+        targetPlayer.Hp = targetPlayer.MaxHp;
+        targetPlayer.Mp = targetPlayer.MaxMp;
+
+        if (WorldIntegration.ZoneAuthority)
+            WorldIntegration.RelayUnitPointsToZone?.Invoke(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp);
+
+        targetPlayer.BroadcastPacket(
+            new SCCharacterResurrectedPacket(
+                targetPlayer.ObjId, position.X, position.Y, position.Z, rotation), true);
+        targetPlayer.BroadcastPacket(
+            new SCUnitPointsPacket(targetPlayer.ObjId, targetPlayer.Hp, targetPlayer.Mp), true);
+        targetPlayer.PostUpdateCurrentHp(targetPlayer, 0, targetPlayer.Hp, KillReason.Unknown);
     }
 }

@@ -774,7 +774,9 @@ public class NpcManager(
                 }
 
                 // Load the actual Npc list
-                command.CommandText = "SELECT * from npcs";
+                command.CommandText =
+                    "SELECT npcs.*, ai_files.name AS ai_file_name FROM npcs " +
+                    "LEFT JOIN ai_files ON ai_files.id = npcs.ai_file_id";
                 command.Prepare();
                 using (var sqliteDataReader = command.ExecuteReader())
                 using (var reader = new SQLiteWrapperReader(sqliteDataReader))
@@ -833,6 +835,9 @@ public class NpcManager(
                             AbsoluteReturnDistance = reader.GetFloat("absolute_return_distance"),
                             Repairman = reader.GetBoolean("repairman", true),
                             ActivateAiAlways = reader.GetBoolean("activate_ai_always", true),
+                            AiFileId = reader.GetUInt32("ai_file_id", 0),
+                            AiFileName = reader.GetString("ai_file_name", string.Empty),
+                            NpcAiParamId = reader.GetUInt32("npc_ai_param_id", 0),
                             Specialty = reader.GetBoolean("specialty", true),
                             TradeGoodBuy = reader.GetBoolean("tradegood_buy", true),
                             SpecialtyCoinId = reader.GetUInt32("specialty_coin_id", 0),

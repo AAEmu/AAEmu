@@ -32,9 +32,57 @@ public class ZoneHostCommandLineTests
         await Assert.That(spec.Arguments).Contains("7");
         await Assert.That(spec.Arguments).Contains("+sv_port");
         await Assert.That(spec.Arguments).Contains("65003");
+        await AssertCVar(spec.Arguments, "npc_move_skip_standing", "0");
+        await AssertCVar(spec.Arguments, "npc_move_skip_disabledAI", "0");
+        await AssertCVar(spec.Arguments, "npc_movement_skip", "0");
+        await AssertCVar(spec.Arguments, "ai_systemupdate", "1");
         await Assert.That(spec.Environment[ZoneHostCommandLine.DllEnvironment])
             .Contains("zone_native.dll");
         await Assert.That(spec.Executable.Contains("AAchina", StringComparison.OrdinalIgnoreCase)).IsFalse();
+    }
+
+    [Test]
+    public async Task Build_CustomAiSchedulingAndExtraArguments_AppearInOverrideOrder()
+    {
+        var spec = ZoneHostCommandLine.Build(
+            new ZoneHostConfig
+            {
+                Executable = Path.Combine(Path.GetTempPath(), "AAEmu.ZoneHost.exe"),
+                WorkingDirectory = Path.GetTempPath(),
+                NativeDll = Path.Combine(Path.GetTempPath(), "zone_native.dll"),
+                NpcMoveSkipStanding = 40,
+                NpcMoveSkipDisabledAi = 80,
+                NpcMovementSkip = 1,
+                AiSystemUpdate = 0,
+                ExtraArguments = "+npc_move_skip_standing 7 +ai_systemupdate 1"
+            },
+            "instance_howling_abyss",
+            7,
+            65003,
+            Path.Combine(Path.GetTempPath(), "howling-7"),
+            "ArcheAge-howling-7.log");
+
+        await AssertCVar(spec.Arguments, "npc_move_skip_standing", "40");
+        await AssertCVar(spec.Arguments, "npc_move_skip_disabledAI", "80");
+        await AssertCVar(spec.Arguments, "npc_movement_skip", "1");
+        await AssertCVar(spec.Arguments, "ai_systemupdate", "0");
+
+        var arguments = spec.Arguments.ToList();
+        var configuredStanding = arguments.IndexOf("+npc_move_skip_standing");
+        var overrideStanding = arguments.LastIndexOf("+npc_move_skip_standing");
+        var configuredAi = arguments.IndexOf("+ai_systemupdate");
+        var overrideAi = arguments.LastIndexOf("+ai_systemupdate");
+        await Assert.That(arguments[overrideStanding + 1]).IsEqualTo("7");
+        await Assert.That(arguments[overrideAi + 1]).IsEqualTo("1");
+        await Assert.That(overrideStanding).IsGreaterThan(configuredStanding);
+        await Assert.That(overrideAi).IsGreaterThan(configuredAi);
+    }
+
+    private static async Task AssertCVar(IReadOnlyList<string> arguments, string name, string value)
+    {
+        var index = arguments.ToList().IndexOf($"+{name}");
+        await Assert.That(index).IsGreaterThanOrEqualTo(0);
+        await Assert.That(arguments[index + 1]).IsEqualTo(value);
     }
 
     [Test]

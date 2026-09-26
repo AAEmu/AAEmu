@@ -58,6 +58,10 @@ public class NpcTemplate
     public float AbsoluteReturnDistance { get; set; }
     public bool Repairman { get; set; }
     public bool ActivateAiAlways { get; set; }
+    /// <summary>Native AI script metadata retained for Zone-host diagnostics.</summary>
+    public uint AiFileId { get; set; }
+    public string AiFileName { get; set; } = string.Empty;
+    public uint NpcAiParamId { get; set; }
     public bool Specialty { get; set; }
     public bool TradeGoodBuy { get; set; }
     public uint SpecialtyCoinId { get; set; }

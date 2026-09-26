@@ -37,6 +37,10 @@
     "WorldPort": 1240,
     "SvPortBase": 65000,
     "RuntimeLogRoot": "",
+    "NpcMoveSkipStanding": 0,
+    "NpcMoveSkipDisabledAi": 0,
+    "NpcMovementSkip": 0,
+    "AiSystemUpdate": 1,
     "ReadyTimeoutSeconds": 120
   }
 }
