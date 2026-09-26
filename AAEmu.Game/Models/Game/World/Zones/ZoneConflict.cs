@@ -34,11 +34,33 @@ public class ZoneConflict(
     private DateTime _scheduledStateTime = DateTime.MinValue;
     public ushort ZoneGroupId { get; set; }
     public int[] NumKills { get; } = new int[5];
-    public int[] NoKillMin { get; } = new int[5];
+    public ConflictZoneNoKillDecayMetadata NoKillDecayMetadata { get; private set; }
     public int[] NumNpcKills { get; } = new int[5];
     public int[] NumQuestCompletions { get; } = new int[5];
     public ConflictZoneDailyWarStart[] DailyWarStarts { get; } =
         Enumerable.Repeat(new ConflictZoneDailyWarStart(-1, 0), 12).ToArray();
+
+    /// <summary>
+    /// Binds the content-loaded no-kill metadata. The values are diagnostic until a reversible
+    /// behavior contract for conflict decay is evidenced.
+    /// </summary>
+    public void BindNoKillDecayMetadata(ConflictZoneNoKillDecayMetadata metadata)
+    {
+        ArgumentNullException.ThrowIfNull(metadata);
+        if (metadata.ZoneGroupId != ZoneGroupId)
+        {
+            throw new InvalidOperationException(
+                $"Conflict zone {ZoneGroupId} cannot bind no-kill metadata for zone {metadata.ZoneGroupId}.");
+        }
+
+        NoKillDecayMetadata = metadata;
+    }
+
+    /// <summary>Returns a diagnostic string, refusing to invent a default when loading was skipped.</summary>
+    public string GetNoKillDecayDiagnostic() =>
+        (NoKillDecayMetadata ?? throw new InvalidOperationException(
+            $"Conflict zone {ZoneGroupId} has no no-kill metadata bound."))
+        .ToDiagnostic();
 
     public int ConflictMin { get; set; }
     public int WarMin { get; set; }
