@@ -103,41 +103,6 @@ public class PublicFarmManager(ITaskManager taskManager, IWorldManager worldMana
         return false;
     }
 
-    public uint GetPlantedCount(Character character, FarmType farmType)
-    {
-        if (character?.ParentWorld?.SpawnManager == null)
-            return 0;
-
-        if (GetCommonFarmDoodads(character).TryGetValue(farmType, out var doodadList))
-            return (uint)doodadList.Count;
-
-        return 0;
-    }
-
-    public int RemoveCharacterFarms(Character character)
-    {
-        if (character?.ParentWorld?.SpawnManager == null)
-            return 0;
-
-        var removed = 0;
-        // GetCommonFarmDoodads already materialises fresh lists, and Delete() only mutates the spawn
-        // manager's own player-doodad collection, so walking these lists is safe.
-        foreach (var doodadList in GetCommonFarmDoodads(character).Values)
-        {
-            foreach (var doodad in doodadList)
-            {
-                // Defensive: only the owner's own crops go away with the owner's request.
-                if (doodad.OwnerId != character.Id)
-                    continue;
-
-                doodad.Delete();
-                removed++;
-            }
-        }
-
-        return removed;
-    }
-
     public Dictionary<FarmType, List<Doodad>> GetCommonFarmDoodads(Character character)
     {
         var list = new Dictionary<FarmType, List<Doodad>>();
