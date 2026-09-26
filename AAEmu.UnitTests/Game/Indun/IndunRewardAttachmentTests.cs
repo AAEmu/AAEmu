@@ -58,7 +58,7 @@ public class IndunRewardAttachmentTests
     }
 
     private static IndunRewardDeliveryService Service(IItemManager items, ILocalizationManager l10n) =>
-        new(() => null!, Mock.Of<IMailManager>().Object, items, l10n);
+        new(() => null!, Mock.Of<IMailManager>().Object, items, null, l10n);
 
     [Test]
     public async Task AnUncappedFixedGradeDoesNotRefuseTheReward()

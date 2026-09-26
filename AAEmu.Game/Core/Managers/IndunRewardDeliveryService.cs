@@ -1,4 +1,4 @@
-﻿using AAEmu.Commons.Utils;
+using AAEmu.Commons.Utils;
 using AAEmu.Commons.Utils.DB;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Indun;
@@ -52,8 +52,8 @@ public sealed class IndunRewardDeliveryService : Singleton<IndunRewardDeliverySe
         Func<MySqlConnection> openConnection,
         IMailManager mailManager,
         IItemManager itemManager,
-        ILocalizationManager localizationManager = null,
-        Action<MySqlTransaction> commit = null)
+        Action<MySqlTransaction> commit = null,
+        ILocalizationManager localizationManager = null)
     {
         _openConnection = openConnection ?? throw new ArgumentNullException(nameof(openConnection));
         _mailManager = mailManager ?? throw new ArgumentNullException(nameof(mailManager));
