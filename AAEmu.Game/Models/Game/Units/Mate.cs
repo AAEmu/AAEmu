@@ -8,6 +8,7 @@ using AAEmu.Game.Models.Game.DoodadObj.Static;
 using AAEmu.Game.Models.Game.Formulas;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Containers;
+using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.Models;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
@@ -67,6 +68,7 @@ public sealed class Mate : Unit
     public int Experience { get; set; }
     public int Mileage { get; set; }
     public uint SpawnDelayTime { get; set; }
+    public MateRecoveryState RecoveryState { get; set; }
     public List<uint> Skills { get; set; }
     public MateDb DbInfo { get; set; }
     public Task MateXpUpdateTask { get; set; }
@@ -596,19 +598,22 @@ public sealed class Mate : Unit
         Level = newLevel;
 
         UpdateMateItemData();
-        DbInfo.Xp = Experience;
-        DbInfo.Level = Level;
-
         var owner = WorldManager.Instance.GetCharacterByObjId(OwnerObjId);
-        owner.SendPacket(new SCExpChangedPacket(ObjId, expDelta, false));
+        owner?.Mates.UpdateMateInfo(ItemId, db =>
+        {
+            db.Xp = Experience;
+            db.Level = Level;
+        });
+
+        owner?.SendPacket(new SCExpChangedPacket(ObjId, expDelta, false));
 
         if (leveledUp)
         {
             Hp = MaxHp;
             Mp = MaxMp;
             BroadcastPacket(new SCLevelChangedPacket(ObjId, Level), true);
-            owner.SendPacket(new SCUnitStatePacket(this));
-            owner.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
+            owner?.SendPacket(new SCUnitStatePacket(this));
+            owner?.SendPacket(new SCUnitPointsPacket(ObjId, Hp, Mp));
             if (WorldIntegration.ZoneAuthority)
             {
                 WorldIntegration.RelayLevelChangedToZone?.Invoke(ObjId, Level);

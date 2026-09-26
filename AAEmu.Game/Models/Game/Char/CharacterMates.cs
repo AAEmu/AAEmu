@@ -1,17 +1,19 @@
-﻿using AAEmu.Game.Core.Managers;
+﻿using System.Data;
+using System.Data.Common;
+
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Items;
 using AAEmu.Game.Models.Game.Items.Templates;
+using AAEmu.Game.Models.Game.Mate;
 using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Buffs;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.Game.Units.Static;
-
-using MySql.Data.MySqlClient;
 
 namespace AAEmu.Game.Models.Game.Char;
 
@@ -27,16 +29,43 @@ public class CharacterMates(Character owner)
     private Character Owner { get; set; } = owner;
 
     private readonly Dictionary<ulong, MateDb> _mates = []; // itemId, MountDb
-    private readonly List<uint> _removedMates = [];
+    private readonly object _saveSync = new();
 
     public MateDb GetMateInfo(ulong itemId)
     {
-        return _mates.GetValueOrDefault(itemId);
+        lock (_saveSync)
+            return _mates.GetValueOrDefault(itemId)?.Clone();
+    }
+
+    /// <summary>
+    /// Applies a state update under the save lock and returns a detached snapshot. The update is an
+    /// in-memory write only; the row reaches the database with the next <see cref="Save"/>, so this
+    /// never blocks a gameplay thread on an unrelated character's save transaction.
+    /// </summary>
+    public MateDb UpdateMateInfo(ulong itemId, Action<MateDb> update)
+    {
+        ArgumentNullException.ThrowIfNull(update);
+        lock (_saveSync)
+        {
+            if (!_mates.TryGetValue(itemId, out var current))
+                return null;
+
+            var updated = current.Clone();
+            update(updated);
+            updated.Id = current.Id;
+            updated.ItemId = current.ItemId;
+            updated.Owner = current.Owner;
+            _mates[itemId] = updated;
+            return updated.Clone();
+        }
     }
 
     private MateDb CreateNewMate(ulong itemId, NpcTemplate npcTemplate)
     {
-        if (_mates.ContainsKey(itemId)) return null;
+        lock (_saveSync)
+        {
+            if (_mates.ContainsKey(itemId)) return null;
+        }
         var template = new MateDb
         {
             // TODO
@@ -52,8 +81,29 @@ public class CharacterMates(Character owner)
             UpdatedAt = DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
         };
-        _mates.Add(template.ItemId, template);
-        return template;
+        lock (_saveSync)
+        {
+            if (!_mates.TryAdd(template.ItemId, template))
+                return null;
+        }
+        return template.Clone();
+    }
+
+    public (SummonMateTemplate ItemTemplate, NpcTemplate NpcTemplate, MateRecoveryState RecoveryState)
+        ResolveSummonMate(uint itemTemplateId)
+    {
+        if (ItemManager.Instance.GetTemplate(itemTemplateId) is not SummonMateTemplate itemTemplate)
+        {
+            throw new InvalidDataException(
+                $"Summon mate item {itemTemplateId} has no item_summon_mates template.");
+        }
+
+        var npcId = itemTemplate.NpcId;
+        var npcTemplate = NpcManager.Instance.GetTemplate(npcId)
+            ?? throw new InvalidDataException(
+                $"Summon mate item {itemTemplateId} references missing NPC template {npcId}.");
+        var recoveryState = MateGameData.Instance.GetRecoveryState(itemTemplate);
+        return (itemTemplate, npcTemplate, recoveryState);
     }
 
     public void SpawnMount(SkillItem skillData)
@@ -71,12 +121,15 @@ public class CharacterMates(Character owner)
         var item = Owner.Inventory.GetItemById(skillData.ItemId);
         if (item == null) return;
 
-        var itemTemplate = (SummonMateTemplate)ItemManager.Instance.GetTemplate(item.TemplateId);
+        var (itemTemplate, template, recoveryState) = ResolveSummonMate(item.TemplateId);
         var npcId = itemTemplate.NpcId;
-        var template = NpcManager.Instance.GetTemplate(npcId);
         var tlId = (ushort)TlIdManager.Instance.GetNextId();
         var objId = ObjectIdManager.Instance.GetNextId();
-        var mateDbInfo = GetMateInfo(skillData.ItemId) ?? CreateNewMate(skillData.ItemId, template);
+        if (GetMateInfo(skillData.ItemId) == null)
+            CreateNewMate(skillData.ItemId, template);
+        // The live mate always follows current content; nothing recovery-related is persisted yet.
+        var mateDbInfo = GetMateInfo(skillData.ItemId)
+            ?? throw new InvalidDataException($"Owned mate {skillData.ItemId} was not created.");
 
         var mount = new Units.Mate
         {
@@ -99,6 +152,7 @@ public class CharacterMates(Character owner)
             Experience = mateDbInfo.Xp,
             Mileage = mateDbInfo.Mileage,
             SpawnDelayTime = 0, // TODO
+            RecoveryState = recoveryState,
             DbInfo = mateDbInfo
         };
 
@@ -141,8 +195,11 @@ public class CharacterMates(Character owner)
 
         // UnitState at spawn carries current Hp; gear MaxHealth is already in MaxHp. Re-push state
         // and points so the pet frame denominator matches server MaxHp (SCUnitPoints alone does not).
-        mateDbInfo.Hp = mount.Hp;
-        mateDbInfo.Mp = mount.Mp;
+        UpdateMateInfo(skillData.ItemId, db =>
+        {
+            db.Hp = mount.Hp;
+            db.Mp = mount.Mp;
+        });
         Owner.SendPacket(new SCUnitStatePacket(mount));
         Owner.SendPacket(new SCUnitPointsPacket(mount.ObjId, mount.Hp, mount.Mp));
         WorldIntegration.RelayUnitPointsToZone?.Invoke(mount.ObjId, mount.Hp, mount.Mp);
@@ -154,24 +211,32 @@ public class CharacterMates(Character owner)
         Owner.Buffs.TriggerRemoveOn(BuffRemoveOn.Summoned);
     }
 
+    /// <summary>
+    /// Copies the live mate's persisted fields into its owned row so progress earned while
+    /// summoned survives a despawn, a logout or the periodic save. Runs on gameplay threads
+    /// (party kill, disconnect), so it must never fail because a save transaction is in flight.
+    /// </summary>
+    public void CaptureActiveMateState(Units.Mate mateInfo)
+    {
+        if (mateInfo == null)
+            return;
+
+        UpdateMateInfo(mateInfo.ItemId, mateDbInfo =>
+        {
+            mateDbInfo.Hp = mateInfo.Hp;
+            mateDbInfo.Mp = mateInfo.Mp;
+            mateDbInfo.Level = mateInfo.Level;
+            mateDbInfo.Xp = mateInfo.Experience;
+            mateDbInfo.Mileage = mateInfo.Mileage;
+            mateDbInfo.Name = mateInfo.Name;
+            mateDbInfo.UpdatedAt = DateTime.UtcNow;
+        });
+    }
+
     public void DespawnMate(uint tlId)
     {
         var mateInfo = Owner.ParentWorld.MateManager.GetActiveMateByTlId(tlId);
-        if (mateInfo != null)
-        {
-            var mateDbInfo = GetMateInfo(mateInfo.ItemId);
-            if (mateDbInfo != null)
-            {
-                mateDbInfo.Hp = mateInfo.Hp;
-                mateDbInfo.Mp = mateInfo.Mp;
-                mateDbInfo.Level = mateInfo.Level;
-                mateDbInfo.Xp = mateInfo.Experience;
-                mateDbInfo.Mileage = mateInfo.Mileage;
-                mateDbInfo.Name = mateInfo.Name;
-                mateDbInfo.UpdatedAt = DateTime.UtcNow;
-            }
-        }
-
+        CaptureActiveMateState(mateInfo);
         Owner.ParentWorld.MateManager.RemoveActiveMateAndDespawn(Owner, tlId);
     }
 
@@ -179,68 +244,74 @@ public class CharacterMates(Character owner)
     /// Load pet data of the player
     /// </summary>
     /// <param name="connection"></param>
-    public void Load(MySqlConnection connection)
+    public void Load(DbConnection connection)
     {
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT * FROM mates WHERE `owner` = @owner";
-        command.Parameters.AddWithValue("@owner", Owner.Id);
+        AddParameter(command, "@owner", Owner.Id);
         command.Prepare();
         using var reader = command.ExecuteReader();
         while (reader.Read())
         {
             var template = new MateDb
             {
-                Id = reader.GetUInt32("id"),
-                ItemId = reader.GetUInt64("item_id"),
+                Id = Convert.ToUInt32(reader.GetValue(reader.GetOrdinal("id"))),
+                ItemId = Convert.ToUInt64(reader.GetValue(reader.GetOrdinal("item_id"))),
                 Name = reader.GetString("name"),
                 Xp = reader.GetInt32("xp"),
-                Level = reader.GetUInt16("level"),
+                Level = Convert.ToUInt16(reader.GetValue(reader.GetOrdinal("level"))),
                 Mileage = reader.GetInt32("mileage"),
                 Hp = reader.GetInt32("hp"),
                 Mp = reader.GetInt32("mp"),
-                Owner = reader.GetUInt32("owner"),
+                Owner = Convert.ToUInt32(reader.GetValue(reader.GetOrdinal("owner"))),
                 UpdatedAt = reader.GetDateTime("updated_at"),
                 CreatedAt = reader.GetDateTime("created_at")
             };
-            _mates.Add(template.ItemId, template);
+            lock (_saveSync)
+                _mates.Add(template.ItemId, template);
         }
     }
 
-    public void Save(MySqlConnection connection, MySqlTransaction transaction)
+    private static void AddParameter(DbCommand command, string name, object value)
     {
-        if (_removedMates.Count > 0)
+        var parameter = command.CreateParameter();
+        parameter.ParameterName = name;
+        parameter.Value = value;
+        command.Parameters.Add(parameter);
+    }
+
+    /// <summary>
+    /// Writes every owned mate row inside the caller's transaction. The snapshot is taken under
+    /// the save lock, so a concurrent <see cref="UpdateMateInfo"/> is either included here or lands
+    /// in the in-memory row that the next save writes; it is never rejected and never lost.
+    /// </summary>
+    public void Save(DbConnection connection, DbTransaction transaction)
+    {
+        ArgumentNullException.ThrowIfNull(connection);
+        ArgumentNullException.ThrowIfNull(transaction);
+
+        MateDb[] mateSnapshot;
+        lock (_saveSync)
+            mateSnapshot = _mates.Values.Select(mate => mate.Clone()).ToArray();
+
+        foreach (var value in mateSnapshot)
         {
             using var command = connection.CreateCommand();
-            command.Connection = connection;
             command.Transaction = transaction;
-
-            command.CommandText = $"DELETE FROM mates WHERE owner = @owner AND id IN({string.Join(",", _removedMates)})";
-            command.Parameters.AddWithValue("@owner", Owner.Id);
-            command.Prepare();
-            command.ExecuteNonQuery();
-            _removedMates.Clear();
-        }
-
-        foreach (var (_, value) in _mates)
-        {
-            using var command = connection.CreateCommand();
-            command.Connection = connection;
-            command.Transaction = transaction;
-
             command.CommandText =
                 "REPLACE INTO mates(`id`,`item_id`,`name`,`xp`,`level`,`mileage`,`hp`,`mp`,`owner`,`updated_at`,`created_at`) " +
                 "VALUES (@id, @item_id, @name, @xp, @level, @mileage, @hp, @mp, @owner, @updated_at, @created_at)";
-            command.Parameters.AddWithValue("@id", value.Id);
-            command.Parameters.AddWithValue("@item_id", value.ItemId);
-            command.Parameters.AddWithValue("@name", value.Name);
-            command.Parameters.AddWithValue("@xp", value.Xp);
-            command.Parameters.AddWithValue("@level", value.Level);
-            command.Parameters.AddWithValue("@mileage", value.Mileage);
-            command.Parameters.AddWithValue("@hp", value.Hp);
-            command.Parameters.AddWithValue("@mp", value.Mp);
-            command.Parameters.AddWithValue("@owner", value.Owner);
-            command.Parameters.AddWithValue("@updated_at", value.UpdatedAt);
-            command.Parameters.AddWithValue("@created_at", value.CreatedAt);
+            AddParameter(command, "@id", value.Id);
+            AddParameter(command, "@item_id", value.ItemId);
+            AddParameter(command, "@name", value.Name);
+            AddParameter(command, "@xp", value.Xp);
+            AddParameter(command, "@level", value.Level);
+            AddParameter(command, "@mileage", value.Mileage);
+            AddParameter(command, "@hp", value.Hp);
+            AddParameter(command, "@mp", value.Mp);
+            AddParameter(command, "@owner", value.Owner);
+            AddParameter(command, "@updated_at", value.UpdatedAt);
+            AddParameter(command, "@created_at", value.CreatedAt);
             command.ExecuteNonQuery();
         }
     }
@@ -259,4 +330,6 @@ public class MateDb
     public uint Owner { get; set; }
     public DateTime UpdatedAt { get; set; }
     public DateTime CreatedAt { get; set; }
+
+    public MateDb Clone() => (MateDb)MemberwiseClone();
 }
