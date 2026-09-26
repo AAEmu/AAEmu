@@ -6,7 +6,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 /// Ready: casts skill_id on the character once the component's report act has completed
 /// (QuestSupplySkillRules). The act never completes the ORed Ready component by itself, and the
 /// cast is recorded on the QuestAct so a later evaluation does not repeat it. The client reader
-/// LoadQuestActSupplySkillDescs (x2game-dev.dll FUN_39d438a0) reads id and skill_id.
+/// LoadQuestActSupplySkillDescs reads id and skill_id.
 /// </summary>
 public class QuestActSupplySkill(QuestComponentTemplate parentComponent) : QuestActTemplate(parentComponent)
 {

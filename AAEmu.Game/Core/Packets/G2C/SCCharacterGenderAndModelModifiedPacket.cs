@@ -5,12 +5,12 @@ using AAEmu.Game.Models.Game.Char;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Tells everyone in range (and the owner) a character's appearance changed. 10.0.2.13 body
-/// (x2game-dev.dll serializer FUN_39c75160): type u64 character id, two i32 item ids, the appearance
-/// block (FUN_39399a30), bool genderTransfer. The receiver (FUN_39780ee0) writes the two ids into
+/// Tells everyone in range (and the owner) a character's appearance changed. 10.0.2.13 body:
+/// type u64 character id, two i32 item ids, the appearance
+/// block, bool genderTransfer. The receiver writes the two ids into
 /// equipment records unit+0x1090 and unit+0x1230, which with the 0xd0 record stride from unit+0x50
 /// are slots 20 (hair) and 22 (horns); the tail slot is not carried. On the owner's client the
-/// handler (FUN_394dc910) then sends CSLeaveBeautyshop while shop mode is on, and genderTransfer
+/// handler then sends CSLeaveBeautyshop while shop mode is on, and genderTransfer
 /// true also raises its "already gender transferred" flag.
 /// </summary>
 public class SCCharacterGenderAndModelModifiedPacket(Character character, uint hairItemId, uint hornItemId, bool genderTransfer)

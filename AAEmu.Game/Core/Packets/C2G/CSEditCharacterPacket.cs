@@ -8,16 +8,16 @@ using AAEmu.Game.Models.Game.Units;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// The lobby's ApplyEditCharacter. 10.0.2.13 body (x2game-dev.dll serializer FUN_39c76eb0):
+/// The lobby's ApplyEditCharacter. 10.0.2.13 body:
 ///   type        : u64   character id
 ///   name        : string, capacity 0x80
 ///   CharRace    : u8
 ///   CharGender  : u8
-///   type x7     : i32   body items, face .. beard (equipment slots 19..25)
-///   appearance  : FUN_39399a30, the block CSCreateCharacter and the unit state share
+/// type x7     : i32   body items, face.. beard (equipment slots 19..25)
+/// appearance  : the block CSCreateCharacter and the unit state share
 ///   ability x3  : u8
 ///   level       : u8
-/// The same fields as CSCreateCharacter (FUN_39c76eb0 differs only by the leading id and the missing
+/// The same fields as CSCreateCharacter (it differs only by the leading id and the missing
 /// introZoneId), so the reader is shared.
 /// </summary>
 public class CSEditCharacterPacket() : GamePacket(CSOffsets.CSEditCharacterPacket, 1)

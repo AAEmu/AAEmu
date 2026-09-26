@@ -9,7 +9,7 @@ namespace AAEmu.UnitTests.Game.Core.Packets.G2C;
 /// BidResponse = activityId, auctionConfigId, errorCode, bidAmount (four s32);
 /// BidUpdate = activityId, auctionConfigId, newBidAmount (three s32);
 /// Info = activityId, then the bidInfoMap: u32 count, and per pair a u32 key plus the six-s32
-/// value struct (sub_3940F0B0 / sub_393C7BB0 in the client's deserializer).
+/// value struct in the client's deserializer.
 /// </summary>
 public class PlotAuctionPacketTests
 {

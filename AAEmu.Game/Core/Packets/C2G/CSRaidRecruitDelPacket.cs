@@ -5,7 +5,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// X2Team:RaidRecruitDel(). No body (empty serializer x2game-dev.dll FUN_395e5690): the poster deletes
+/// X2Team:RaidRecruitDel. No body (empty serializer): the poster deletes
 /// their own post; the applicants listed on it go with it (ui_texts 8853).
 /// </summary>
 public class CSRaidRecruitDelPacket() : GamePacket(CSOffsets.CSRaidRecruitDelPacket, 1)

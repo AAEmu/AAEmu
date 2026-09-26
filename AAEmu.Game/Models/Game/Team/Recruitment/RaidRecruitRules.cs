@@ -77,32 +77,32 @@ public static class RaidRecruitRules
 {
     /// <summary>
     /// ui_texts 11291 "Can be applied to up to 3 raids at the same time"; the client's list builder
-    /// x2game-dev.dll FUN_396dad70 sets fullApplicant when its own application map holds more than 2.
+    /// sets fullApplicant when its own application map holds more than 2.
     /// </summary>
     public const int MaxApplicationsPerCharacter = 3;
 
     /// <summary>
-    /// The client's maxApplicantCount is the float constant DAT_39fed3f8 = 100 (FUN_396dad70), and the
-    /// SCRaidApplicantList reader FUN_39c75eb0 stops at 100 rows.
+    /// The client applies a maxApplicantCount of 100, and the SCRaidApplicantList reader
+    /// stops at 100 rows.
     /// </summary>
     public const int MaxApplicantsPerRecruitment = 100;
 
-    /// <summary>The SCRaidRecruitList reader FUN_39c7f4c0 stops at 0x32 rows.</summary>
+    /// <summary>The SCRaidRecruitList reader stops at 0x32 rows.</summary>
     public const int ListLimit = 50;
 
-    /// <summary>The record serializer FUN_39c7ca70 reads msg into a 200 byte field.</summary>
+    /// <summary>The record serializer reads msg into a 200 byte field.</summary>
     public const int MessageByteLimit = 200;
 
-    /// <summary>ownerName and charName are read into 0x80 byte fields (FUN_39c7ca70, FUN_39c6e120).</summary>
+    /// <summary>ownerName and charName are read into 0x80 byte fields.</summary>
     public const int NameByteLimit = 128;
 
     /// <summary>
-    /// RAID_RECRUIT_EXPIRE_DELAY_MINUTE, registered for Lua from DAT_3a0182e8 = 20 (FUN_399f6490) and shown
-    /// in ui_texts 8858: posts are auto-deleted "$2 minutes after Departure Time".
+    /// RAID_RECRUIT_EXPIRE_DELAY_MINUTE, registered for Lua as 20 and shown in
+    /// ui_texts 8858: posts are auto-deleted "$2 minutes after Departure Time".
     /// </summary>
     public const int ExpireDelayMinutes = 20;
 
-    /// <summary>X2Team:GetRaidRecruitExpense (FUN_399f3a70) answers 10000 when no expense band covers the delay.</summary>
+    /// <summary>X2Team:GetRaidRecruitExpense answers 10000 when no expense band covers the delay.</summary>
     public const long DefaultExpense = 10000;
 
     public static RaidRecruitError ValidatePost(
@@ -154,7 +154,7 @@ public static class RaidRecruitRules
 
     /// <summary>
     /// The next occurrence of hour:minute on the clock, one day out when it has already passed. Mirrors
-    /// GetRaidRecruitExpense (FUN_399f3a70), which builds the tm from local time, replaces hour and minute
+    /// GetRaidRecruitExpense, which builds the tm from local time, replaces hour and minute
     /// and adds 86400 s when hour &lt; now.hour or (hour == now.hour and minute &lt;= now.minute).
     /// </summary>
     public static DateTimeOffset Departure(DateTimeOffset now, uint hour, uint minute)
@@ -237,7 +237,7 @@ public static class RaidRecruitRules
         if (check.ApplicantId == check.OwnerId ||
             (check.RecruitTeamId != 0 && check.ApplicantTeamId == check.RecruitTeamId))
             return RaidRecruitError.OwnRaid;
-        // NOT_JOIN_RAID (1002): the client refuses a detail while its own team is recruiting (FUN_399f1b10).
+        // NOT_JOIN_RAID (1002): the client refuses a detail while its own team is recruiting.
         if (check.ApplicantIsRecruiting)
             return RaidRecruitError.ApplicantIsRecruiting;
         // RAID_APPLY_IS_DUPLICATE (1013).

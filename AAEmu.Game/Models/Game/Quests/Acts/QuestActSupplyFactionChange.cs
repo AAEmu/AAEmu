@@ -7,7 +7,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 /// 161 pirates on 12 rows, 0 on 3 rows of quests gated on being a pirate so back to the birth
 /// faction, 199 and 200 the player-nation factions under 149 and 148 on 11 rows, 148 on one), with
 /// ignore_limit on 6 rows and inferior_escape on 3. The client reader
-/// LoadQuestActSupplyFactionChangeDescs (x2game-dev.dll FUN_39d48070) reads id, ignore_limit,
+/// LoadQuestActSupplyFactionChangeDescs reads id, ignore_limit,
 /// inferior_escape, system_faction_id. The limit the flag skips is faction_change_limit_nums (a
 /// count per level band) and the accept-side kinds 123 FactionPower, 124
 /// FactionChangePossibleFromTo and 125 FactionChangeCooldown of unit_reqs, none of which the server

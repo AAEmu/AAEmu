@@ -5,8 +5,8 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// X2Team:RaidApplicantList(): bool bSubRecruiter, u64 type (x2game-dev.dll FUN_39c6bdb0). The binding
-/// FUN_399f1db0 sends the client's team owner id and raises the flag only for a siege raid's officer.
+/// X2Team:RaidApplicantList: bool bSubRecruiter, u64 type. The binding
+/// sends the client's team owner id and raises the flag only for a siege raid's officer.
 /// Answered with SCRaidApplicantList.
 /// </summary>
 public class CSRaidApplicantListPacket() : GamePacket(CSOffsets.CSRaidApplicantListPacket, 1)

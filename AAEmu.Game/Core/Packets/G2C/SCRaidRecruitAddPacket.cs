@@ -5,8 +5,8 @@ using AAEmu.Game.Models.Game.Team.Recruitment;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// The recruiter's own post, sent to the poster and the recruiting team once it is up. Body is one record
-/// (x2game-dev.dll FUN_39c7f4a0 delegates to the record serializer FUN_39c7ca70); the client keeps it as
+/// The recruiter's own post, sent to the poster and the recruiting team once it is up. Body is one
+/// record; the client keeps it as
 /// the team's recruit (X2Team:HasMyTeamRecruit) and draws the applicant window's header from it.
 /// </summary>
 public class SCRaidRecruitAddPacket(RaidRecruitRecord record) : GamePacket(SCOffsets.SCRaidRecruitAddPacket, 1)

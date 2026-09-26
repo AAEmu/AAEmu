@@ -1129,8 +1129,8 @@ public class HousingManager(
     }
 
     /// <summary>
-    /// unit_reqs kind 91 IsResident. The client's check (x2game-dev.dll 0x39173FE0) is a lookup in the
-    /// resident map that <see cref="SendResidentMap"/> feeds, so residency is the same rule: an owned
+    /// unit_reqs kind 91 IsResident. The client checks the same rule: a lookup in the
+    /// resident map that <see cref="SendResidentMap"/> feeds, so residency is an owned
     /// house in one of the group's zones.
     /// </summary>
     public bool IsResidentOfZoneGroup(uint characterId, uint zoneGroupId)
@@ -1616,7 +1616,7 @@ public class HousingManager(
         if (isAuthorized)
         {
             // VERIFY: check if tax paid, cannot manually demolish or sell a house with unpaid taxes ?
-            // Note - ZeromusXYZ: I'm disabling this "feature", as it would prevent you from demolishing freshly placed buildings that you want to move 
+            // Note - ZeromusXYZ: I'm disabling this "feature", as it would prevent you from demolishing freshly placed buildings that you want to move
             /*
             if (house.TaxDueDate <= DateTime.UtcNow)
             {
@@ -3583,11 +3583,11 @@ public class HousingManager(
         }
         else
         {
-            // Non-stackable items are stored in the owner's system container as to retain crafter information and such 
+            // Non-stackable items are stored in the owner's system container as to retain crafter information and such
             res = player.Inventory.SystemContainer.AddOrMoveExistingItem(ItemTaskType.DoodadCreate, item);
         }
 
-        // Logger.Debug($"DecorateHouse => DoodadTemplate: {doodad.TemplateId} , DoodadId {doodad.ObjId}, Pos: {doodad.Transform}");
+        // Logger.Debug($"DecorateHouse => DoodadTemplate: {doodad.TemplateId}, DoodadId {doodad.ObjId}, Pos: {doodad.Transform}");
         return res;
     }
 
@@ -3608,7 +3608,7 @@ public class HousingManager(
     }
 
     /// <summary>
-    /// Returns a house where the given position falls within boundaries of the house 
+    /// Returns a house where the given position falls within boundaries of the house
     /// </summary>
     /// <param name="world">World instance containing the position.</param>
     /// <param name="x"></param>

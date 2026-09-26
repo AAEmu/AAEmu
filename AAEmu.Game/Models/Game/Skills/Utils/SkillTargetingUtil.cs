@@ -34,7 +34,7 @@ public static class SkillTargetingUtil
             case SkillTargetRelation.Raid:
                 var team = TeamManager.Instance.GetTeamByObjId(caster.ObjId);
                 // A caster in no raid keeps every one of its active mates, not the first one MateManager
-                // lists (x2game-dev.dll FUN_39800cc0 admits a pet to a party or raid cast through its
+                // lists (admits a pet to a party or raid cast through its
                 // owner). A mate casting resolves through its owner too; caster.Id was the mate's own id.
                 var mates = ActiveMateObjIds(caster);
                 units = team == null ? units.Where(o => mates.Contains(o.ObjId)) : units.Where(o => team.IsObjMember(o.ObjId));

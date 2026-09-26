@@ -6,16 +6,16 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// The distance band a cast is measured against and the two verdicts it can fail with.
 /// </summary>
 /// <remarks>
-/// x2game-dev.dll: the client validates a unit-target cast in FUN_39800cc0. It resolves the target by
-/// target type and calls X2::Unit::ValidateLocation (FUN_39263a90) only when that unit is not the caster
-/// itself; a self cast is never measured. ValidateLocation builds the band in FUN_39261740: min_range and
+/// The client validates a unit-target cast in two steps. It resolves the target by
+/// target type and measures only when that unit is not the caster itself; a self cast is
+/// never measured. The band is built from: min_range and
 /// max_range from the skill record, or from the equipped holdable when weapon_slot_for_range_id names a
 /// slot, then skill attribute 17 (min_range) on the minimum and attribute 2 (range) on the maximum, and a
-/// maximum that ends up below the minimum is lifted to min + 0.5 (DAT_39fe8e24). FUN_39d1e4e0 then judges,
-/// in this order: TOO_CLOSE_RANGE (0xE) when min > 0 and distance <= min, TOO_FAR_RANGE (0xF) when
-/// distance > max. So a target standing at exactly min_range is too close and one at exactly max_range is
-/// in range. The distance is FUN_39d1e360: the smallest shape-to-shape distance from the caster's collision
-/// shape to any of the target's (FUN_39d7f730 double-dispatches on the two shape kinds), so it is measured
+/// maximum that ends up below the minimum is lifted to min + 0.5, then it judges,
+/// in this order: TOO_CLOSE_RANGE (0xE) when min &gt; 0 and distance &lt;= min, TOO_FAR_RANGE (0xF) when
+/// distance &gt; max. So a target standing at exactly min_range is too close and one at exactly max_range is
+/// in range. The distance is: the smallest shape-to-shape distance from the caster's collision
+/// shape to any of the target's (double-dispatches on the two shape kinds), so it is measured
 /// edge to edge, which is what BaseUnit.GetDistanceTo does with the actor model radii.
 ///
 /// content, 10.0.2.13 game_decrypted: 975 of 38,043 skills carry a min_range. 123 of them target self
@@ -26,7 +26,7 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// </remarks>
 public static class SkillRangeRules
 {
-    /// <summary>FUN_39261740: a maximum that fell below the minimum is lifted this far above it.</summary>
+    /// <summary>How far a maximum that fell below the minimum is lifted above it.</summary>
     public const double MaxBelowMinLift = 0.5;
 
     /// <summary>The band in metres. <see cref="MaxUnbounded"/> means no far limit applies to this cast.</summary>
@@ -43,14 +43,15 @@ public static class SkillRangeRules
     }
 
     /// <summary>
-    /// Whether the band is measured at all. FUN_39800cc0 skips ValidateLocation when the resolved target is
-    /// the caster, so the 123 self-target skills with a minimum (the distance to oneself being 0) fire.
+    /// Whether the band is measured at all. The client skips the check when the resolved
+    /// target is the caster, so the 123 self-target skills with a minimum (the distance to
+    /// oneself being 0) fire.
     /// </summary>
     public static bool Measures(uint casterObjId, uint targetObjId) => casterObjId != targetObjId;
 
     /// <summary>
     /// The verdict for <paramref name="distance"/> against <paramref name="band"/>, or null when the cast
-    /// is in range. Too close is judged first, as in FUN_39d1e4e0.
+    /// is in range. Too close is judged first, as the client does.
     /// </summary>
     public static SkillResult? Check(double distance, Band band)
     {

@@ -4,7 +4,7 @@ namespace AAEmu.UnitTests.Game.Models.Game.Skills.Static;
 
 /// <summary>
 /// Pins SkillResultErrorKeyToId: every SkillResultKeys member must land on the byte whose client symbol
-/// (x2game-dev.dll FUN_39D23B10) spells that key back, except the keys the client has no symbol for, which
+/// spells that key back, except the keys the client has no symbol for, which
 /// are pinned one by one to what the client's own evaluators write.
 /// </summary>
 public class SkillResultKeyMappingTests
@@ -74,7 +74,7 @@ public class SkillResultKeyMappingTests
     [Test]
     public async Task NotHeroNotCandidate_IsPlainFailure()
     {
-        // Kind 128 has no symbol; the client evaluator FUN_39795090 writes FAILURE (0x01), so the text is
+        // Kind 128 has no symbol; the client evaluator writes FAILURE (0x01), so the text is
         // skill_failure, not skill_urk_not_hero ("Heroes cannot use this").
         await Assert.That(SkillResultHelper.SkillResultErrorKeyToId(SkillResultKeys.skill_urk_not_hero_not_candidate))
             .IsEqualTo(SkillResult.Failure);
@@ -84,7 +84,7 @@ public class SkillResultKeyMappingTests
     [Test]
     public async Task LeadershipPeriod_ReusesTheLeadershipTotalByte()
     {
-        // Kind 127 has no symbol; the client evaluator FUN_39795810 writes 0x90 (URK_LEADERSHIP_TOTAL) with
+        // Kind 127 has no symbol; the client evaluator writes 0x90 (URK_LEADERSHIP_TOTAL) with
         // detail 0x355 (WRONG_LEADERSHIP_POINT). The detail is UnitReqs' job; the byte is pinned here.
         await Assert.That(SkillResultHelper.SkillResultErrorKeyToId(SkillResultKeys.skill_urk_leadership_period))
             .IsEqualTo(SkillResult.UrkLeadershipTotal);

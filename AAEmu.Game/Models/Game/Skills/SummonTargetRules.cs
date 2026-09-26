@@ -5,10 +5,10 @@ namespace AAEmu.Game.Models.Game.Skills;
 /// 10, 26 and 21).
 /// </summary>
 /// <remarks>
-/// x2game-dev.dll FUN_39800cc0 resolves these before anything else is validated. A pet cast (10) ignores the
-/// unit the packet names and takes the first pet of the caster's own pet list (FUN_3974c7c0 walks the pet
+/// Resolves these before anything else is validated. A pet cast (10) ignores the
+/// unit the packet names and takes the first pet of the caster's own pet list (walks the pet
 /// manager's collection and returns the first live entry), NO_TARGET when there is none. A my_slave cast
-/// (26) takes the one unit the slave manager holds as "my slave" (FUN_39755390), the hull the server
+/// (26) takes the one unit the slave manager holds as "my slave", the hull the server
 /// announced with SCMySlavePacket. A child_slave cast (21) has no branch of its own: it takes the unit the
 /// packet names, so the server has to check that unit is a part of the caster's own slave. The owned lists
 /// are passed in world order, so the first entry is the earliest summon.

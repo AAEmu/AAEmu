@@ -3,8 +3,8 @@ namespace AAEmu.Game.Models.Game.Indun;
 /// <summary>
 /// Pure rules for the per-copy round counter that <c>indun_rounds</c> drives through
 /// <c>IndunActionNextRound</c> and <c>IndunActionRoundAlarm</c>, and that the client shows through
-/// SCIndunInitialRoundInfoPacket (0x2D9, serializer x2game-dev.dll 0x39c543c0: curRound i8, totalRound i8,
-/// playing) and SCIndunRoundPlayStatusPacket (0x2DB, serializer 0x39c544e0: playing, success, round i8,
+/// SCIndunInitialRoundInfoPacket (0x2D9, serializer: curRound i8, totalRound i8,
+/// playing) and SCIndunRoundPlayStatusPacket (0x2DB, serializer: playing, success, round i8,
 /// nextRoundBoss, showUi). Neither binary constructs the packets, so what each flag means comes from the
 /// content chains cited on the rule that uses it.
 /// </summary>

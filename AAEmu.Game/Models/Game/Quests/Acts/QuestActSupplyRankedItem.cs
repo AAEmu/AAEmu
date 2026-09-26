@@ -8,7 +8,7 @@ namespace AAEmu.Game.Models.Game.Quests.Acts;
 /// through QuestActObjConquestWar or QuestActObjFactionCompetition, which the server holds open
 /// because it has no war result or competition ranking). Rows 1 to 16 give 43779 x8, x4, x2, x1
 /// for ranks 1 to 4 on quests 6572 and 9025 to 9027; rows 18 to 26 give 47674 x24, x20, x16 on
-/// 9871 and 9897. The client reader LoadQuestActSupplyRankedItemDescs (x2game-dev.dll FUN_39d42fb0)
+/// 9871 and 9897. The client reader LoadQuestActSupplyRankedItemDescs
 /// reads id, count, grade_id, item_id, rank. Without a rank to compare the accept is refused
 /// (QuestRewardSupportRules) and a quest that still reaches this act reports once and completes
 /// without the item.

@@ -20,7 +20,7 @@ public enum ItemProcTargetSide
 /// <summary>
 /// The trigger, chance, target and cooldown decisions of <c>item_procs</c> (202 rows). Kinds are
 /// <c>enum_proc_chance_type</c>; the populated ones are 1-7, 9, 10, 13, 14, 17, 18 and 19. The client reads the
-/// same twelve columns in <c>x2game-dev.dll 0x39b14b20</c> (LoadItemProcDescs: id, chance_kind_id, chance_param,
+/// same twelve columns in the native loader (LoadItemProcDescs: id, chance_kind_id, chance_param,
 /// chance_rate, cooldown_sec, description, finisher, item_level_based_chance_bonus, or_unit_reqs, skill_id,
 /// trigger_skill_id, trigger_tag_id), packs finisher and or_unit_reqs into two flag bits and attaches the
 /// <c>unit_reqs</c> rows with owner_type "ItemProc" to each row.
@@ -151,7 +151,7 @@ public static class ItemProcRules
     /// Which unit the proc skill is cast at, from the proc skill's own <c>skills.target_type_id</c>. Self (0,
     /// 162 rows) is the wearer. Friendly (1, 2 rows), hostile (4, 36) and any_unit (5, 2), the other 40 rows,
     /// are the unit on the other side of the event: proc 109's text is "즉시 적 대상에게 피해를 입히지만" (deals
-    /// damage to the enemy target at once) and proc 111's is "대상에게 ... 생명력을 추가로 치유합니다" (heals the
+    /// damage to the enemy target at once) and proc 111's is "대상에게... 생명력을 추가로 치유합니다" (heals the
     /// target for more), both on the target of the fired skill. The relation check is the skill's own: a
     /// hostile proc skill handed a friendly unit fails its target resolution and does not fire. Target types
     /// no row ships are unsupported.

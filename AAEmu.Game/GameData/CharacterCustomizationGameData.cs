@@ -54,7 +54,7 @@ public class CharacterCustomizationGameData : Singleton<CharacterCustomizationGa
         _ticketItemIds = [];
 
         // 478 rows: the hair (category 1), horn (2) and tail (3) items each model may wear. two_tone and
-        // use_pallet are the flags the client reads back before sending (x2game-dev.dll FUN_39d17d00).
+        // use_pallet are the flags the client reads back before sending.
         ReadRows(connection, "SELECT item_id, category_id, model_id, two_tone, use_pallet FROM customizing_item_assets", reader =>
         {
             var modelId = reader.GetUInt32("model_id");
@@ -116,7 +116,7 @@ public class CharacterCustomizationGameData : Singleton<CharacterCustomizationGa
         ReadRows(connection, "SELECT id, model_id FROM body_diffuse_maps", reader =>
             _bodyDiffuseMaps.Add((reader.GetUInt32("model_id"), reader.GetUInt32("id"))));
 
-        // 1787 rows; category is enum_face_decal_category (1 scar .. 6 pupil).
+        // 1787 rows; category is enum_face_decal_category (1 scar.. 6 pupil).
         ReadRows(connection, "SELECT id, category_id, model_id, movable, npc_only FROM face_decal_assets", reader =>
             _faceDecals[reader.GetUInt32("id")] = new FaceDecalAsset(
                 reader.GetUInt32("model_id"),

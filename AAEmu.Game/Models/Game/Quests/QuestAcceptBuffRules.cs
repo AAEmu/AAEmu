@@ -9,7 +9,7 @@ namespace AAEmu.Game.Models.Game.Quests;
 /// 25912), so the acceptor is the buff the trigger fired from. A quest started another way (a
 /// CSStartQuestContext with no source, or quest 5277 whose buff 838 has no trigger) passes while
 /// the character still carries the buff. The client reader LoadQuestActConAcceptBuffDescs
-/// (x2game-dev.dll FUN_39d42050) reads id and buff_id.
+/// reads id and buff_id.
 /// </summary>
 public static class QuestAcceptBuffRules
 {

@@ -810,7 +810,7 @@ public enum ErrorMessageType : short
     AlreadyHaveOtherFactionRelation = 1139,								// "already_have_other_faction_relation";
     TargetAlreadyHaveOtherFactionRelation = 1140,						// "target_already_have_other_faction_relation";
     // Raid recruitment, ids from enum_error_messages. The client raises 1121 and 1127 itself before
-    // posting (x2game-dev.dll FUN_399f1860) and 1002 and 1012 before asking for a detail (FUN_399f1b10),
+    // posting and 1002 and 1012 before asking for a detail,
     // so these are the codes its UI already renders.
     NotChangeRaidRecruitOwner = 1000,                           // "not_change_raid_recruit_owner";
     NotChangeRaidRecruitTarget = 1001,                          // "not_change_raid_recruit_target";

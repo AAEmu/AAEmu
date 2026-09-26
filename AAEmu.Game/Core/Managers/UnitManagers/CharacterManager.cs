@@ -565,10 +565,10 @@ public class CharacterManager(
 
         var accountDetails = accountManager.GetAccountDetails(connection.AccountId);
 
-        // Get default access level for all users 
+        // Get default access level for all users
         var useAccessLevel = AppConfiguration.Instance.Account.AccessLevelDefault;
 
-        // If it's the first character created, use first character access level settings 
+        // If it's the first character created, use first character access level settings
         if (nameManager.NoNamesRegistered())
             useAccessLevel = Math.Max(AppConfiguration.Instance.Account.AccessLevelFirstCharacter, useAccessLevel);
 
@@ -1271,7 +1271,7 @@ public class CharacterManager(
         //inventory.Equip[(int) slot] = item;
     }
 
-    /// <summary>buffs.id 3619 강제 연행 (forced escort to trial); the client's own gate refuses the shop under it (FUN_396f6c60).</summary>
+    /// <summary>buffs.id 3619 강제 연행 (forced escort to trial); the client's own gate refuses the shop under it.</summary>
     private const uint EscortBuffId = 3619;
 
     /// <summary>enum_equip_slot 22 'horns'; the server enum still calls it Reserved.</summary>
@@ -1386,7 +1386,7 @@ public class CharacterManager(
         if (charge == BeautyshopCharge.Rejected)
         {
             Logger.Debug($"Beautyshop: {character.Name} ({character.Id}) holds no valid ticket (client offered {request.TicketItemId} x{request.TicketCount}) and no free window runs");
-            // The code the client itself shows for a missing ticket (FUN_396105e0, 0x2d2). The session stays open.
+            // The code the client itself shows for a missing ticket (0x2d2). The session stays open.
             character.SendErrorMessage(ErrorMessageType.NotEnoughRequiredItem);
             return;
         }
@@ -1414,7 +1414,7 @@ public class CharacterManager(
             character.Equipment?.GetItemBySlot((int)EquipmentItemSlot.Hair)?.TemplateId ?? 0,
             character.Equipment?.GetItemBySlot((int)HornsSlot)?.TemplateId ?? 0,
             genderTransfer: false), true);
-        // The owner's client answers with CSLeaveBeautyshop (FUN_394dc910), which closes the session.
+        // The owner's client answers with CSLeaveBeautyshop, which closes the session.
     }
 
     /// <summary>

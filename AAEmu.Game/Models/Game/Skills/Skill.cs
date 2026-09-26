@@ -48,7 +48,7 @@ public class Skill
 
     /// <summary>
     /// Why <see cref="GetInitialTarget"/> found nothing, when the client's own answer for that refusal
-    /// (x2game-dev.dll FUN_39800cc0) is more specific than NoTarget.
+    /// is more specific than NoTarget.
     /// </summary>
     private SkillResult? _initialTargetFailure;
 
@@ -472,7 +472,7 @@ public class Skill
         // Use() before ever reaching this code, so 315 of the 534 ability skills — every plot_only one —
         // could be cast from any distance at all.
         var skillRange = caster.ApplySkillModifiers(this, SkillAttribute.Range, Template.MaxRange);
-        // x2game-dev.dll FUN_39261740 puts skill attribute 17 (min_range) on the minimum the same way
+        // The same rule puts skill attribute 17 (min_range) on the minimum the same way
         // attribute 2 goes on the maximum; one skill_modifiers row carries it (2144, buff 27701, +4).
         var skillMinRange = caster.ApplySkillModifiers(this, SkillAttribute.MinRange, Template.MinRange);
         var targetDist = unit.GetDistanceTo(target, true);
@@ -481,7 +481,7 @@ public class Skill
         var maxRangeCheck = skillRange;
 
         // HackFix: for quest Unblock the Spring ( 3707 ), unable to use the boulder because of being "too close"
-        // The range of skill Remove Stone ( 16462 ) is defined as 100~200 which can't possibly be correct 
+        // The range of skill Remove Stone ( 16462 ) is defined as 100~200 which can't possibly be correct
         if (Template.TargetType == SkillTargetType.Doodad && Template.MinRange >= 100)
         {
             minRangeCheck = Template.MinRange / 100.0;
@@ -525,7 +525,7 @@ public class Skill
 
         // The band and its verdicts are SkillRangeRules: too close at or inside the minimum, too far beyond
         // the maximum, and nothing measured at all when the resolved target is the caster (the client skips
-        // ValidateLocation for a self cast, FUN_39800cc0). The old strict "closer than" let a target standing
+        // ValidateLocation for a self cast). The old strict "closer than" let a target standing
         // exactly at min_range through, and the missing self exemption refused every self-target kit skill
         // that carries a minimum, since the distance to oneself is 0.
         // TODO: Remove exception for doodads
@@ -794,7 +794,7 @@ public class Skill
 
                     if (target != null && caster.ObjId == target.ObjId)
                     {
-                        // x2game-dev.dll FUN_39800cc0: an others cast (16) on oneself is INVALID_TARGET.
+                        // An others cast (16) aimed at oneself is INVALID_TARGET.
                         _initialTargetFailure = SkillResult.InvalidTarget;
                         return null;
                     }
@@ -814,7 +814,7 @@ public class Skill
 
                     if (target != null && caster.ObjId == target.ObjId)
                     {
-                        // x2game-dev.dll FUN_39800cc0: a friendly_others cast (17) on oneself is CANNOT_USE_FOR_SELF.
+                        // A friendly_others cast (17) aimed at oneself is CANNOT_USE_FOR_SELF.
                         _initialTargetFailure = SkillResult.CannotUseForSelf;
                         return null;
                     }
@@ -1090,7 +1090,7 @@ public class Skill
             // 1 (00) - удар похож на 2 удар сбоку, NPC - strike similar to 2, side strike, NPC
             // 91 - удар сверху (немного справа) - strike from above (slightly from the right)
             // 92 - удар наотмашь слева вниз направо - swing from left to right downwards
-            // 0 - удар не наносится (расстояние большое и надо подойти поближе), no strike is made (distance is too great and need to get closer) f=1, c=15 
+            // 0 - удар не наносится (расстояние большое и надо подойти поближе), no strike is made (distance is too great and need to get closer) f=1, c=15
             var effectDelay = new Dictionary<int, short> { { 0, 46 }, { 1, 35 } };
             var fireAnimId = new Dictionary<int, int> { { 0, 3 }, { 1, 87 } };
             var effectDelay2 = new Dictionary<int, short> { { 0, 0 }, { 1, 0 } };
@@ -1169,7 +1169,7 @@ public class Skill
         //
         //         if (caster is Character chr)
         //         {
-        //             chr.SendMessage("Target is too far ...");
+        // chr.SendMessage("Target is too far ...");
         //         }
         //         return;
         //     }
@@ -1229,7 +1229,7 @@ public class Skill
         caster.BroadcastPacket(new SCSkillStoppedPacket(unit.ObjId, Id), true);
         if (WorldIntegration.ZoneAuthority)
             WorldIntegration.RelaySkillStoppedToZone?.Invoke(unit.ObjId, (int)Id);
-        //unit.AutoAttackTask = null;
+        // unit.AutoAttackTask = null;
         //unit.IsAutoAttack = false; // turned off auto attack
         RelayZoneSkillEndedIfNeeded();
         SkillTlIdManager.ReleaseId(TlId);
@@ -1756,7 +1756,7 @@ public class Skill
                     continue;
                 }
 
-                // Blocking buffs and tags checks 
+                // Blocking buffs and tags checks
                 if (effect.SourceBuffTagId > 0 && !caster.Buffs.CheckBuffs(SkillManager.Instance.GetBuffsByTagId(effect.SourceBuffTagId)))
                 {
                     // TODO Commented out the code for the Id=2255 quest to work. Restore after finding a solution to the lack of a debuff.
@@ -1837,7 +1837,7 @@ public class Skill
                     continue;
                 }
 
-                // prevents an NPC Spawn Skill to be duplicated 
+                // prevents an NPC Spawn Skill to be duplicated
                 if (lastAppliedEffect != null &&
                     effect.Template is NpcSpawnerSpawnEffect &&
                     effect.EffectId == lastAppliedEffect.EffectId &&

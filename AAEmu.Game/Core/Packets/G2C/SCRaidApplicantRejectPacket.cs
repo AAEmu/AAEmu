@@ -4,8 +4,8 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Tells an applicant the recruiter declined them: u64 type, the post's owner id (x2game-dev.dll
-/// FUN_39c688d0; ui_texts 8856).
+/// Tells an applicant the recruiter declined them: u64 type, the post's owner id.
+/// The decline message is ui_texts 8856.
 /// </summary>
 public class SCRaidApplicantRejectPacket(ulong @type) : GamePacket(SCOffsets.SCRaidApplicantRejectPacket, 1)
 {

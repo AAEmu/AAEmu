@@ -7,7 +7,7 @@ public sealed record RaidRecruitType(int Id, string Name, bool Visible, string I
 
 /// <summary>
 /// A raid_recruit_sub_types row (16 rows). Level and GearScore are the floors the post dialog starts the
-/// limit fields from and refuses to go under (client dialog.lua, Satisfy()).
+/// limit fields from and refuses to go under (client dialog.lua, Satisfy).
 /// </summary>
 public sealed record RaidRecruitSubType(int Id, string Name, int TypeId, int Level, string Comment, int GearScore);
 
@@ -42,7 +42,7 @@ public readonly record struct RaidRecruitPostRequest(
     uint LimitGearPoint);
 
 /// <summary>
-/// One recruitment record as the client's shared record serializer x2game-dev.dll FUN_39c7ca70 lays it out
+/// One recruitment record as the client's shared record serializer lays it out
 /// (432 bytes per entry; CSRaidRecruitAdd, SCRaidRecruitAdd, SCRaidApplicantAdd and each SCRaidRecruitList
 /// row all delegate to it). The i32 at +0x9c has no name and no reader, so it is not modelled.
 /// </summary>
@@ -71,7 +71,7 @@ public readonly record struct RaidRecruitRecord(
     long ExpireTime,
     long AddExpireTime);
 
-/// <summary>One SCRaidApplicantList row, serializer x2game-dev.dll FUN_39c6e120 (160 bytes per entry).</summary>
+/// <summary>One SCRaidApplicantList row, serializer (160 bytes per entry).</summary>
 public readonly record struct RaidApplicantRecord(
     ulong CharacterId,
     string Name,
@@ -184,7 +184,7 @@ public sealed class RaidRecruitment
         Owner.GearScore,
         CreateTime,
         ExpireTime,
-        // addExpireTime is named by the serializer but never read by the client's list or detail builders
-        // (FUN_396dad70, FUN_394ddb20); its meaning is unknown, so it stays 0.
+        // addExpireTime is named by the serializer but never read by the client's list or detail builders;
+        // its meaning is unknown, so it stays 0.
         0);
 }

@@ -302,7 +302,7 @@ public class UnitRequirementsGameData : Singleton<UnitRequirementsGameData>, IGa
 
         if (res)
             return new UnitReqsValidationResult(SkillResultKeys.ok, 0, 0);
-        // The list evaluator (x2game-dev.dll 0x39796DA0) returns the first failure of an AND group with the
+        // The list evaluator returns the first failure of an AND group with the
         // row's display gate, but an OR group that exhausts its rows answers UNIT_REQS_OR_FAIL (0x31) with
         // zero detail and value and the gate left on.
         return skillTemplate.OrUnitReqs
