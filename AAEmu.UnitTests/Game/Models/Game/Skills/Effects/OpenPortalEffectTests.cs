@@ -1,4 +1,4 @@
-﻿using System.Reflection;
+using System.Reflection;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -131,7 +131,10 @@ public class OpenPortalEffectTests
     private static void Apply(OpenPortalEffect effect, Character owner, float x, float y, float z) =>
         effect.Apply(owner, new SkillCasterUnit(owner.ObjId), owner, new SkillCastUnitTarget(owner.ObjId),
             new CastSkill(SkillId, 1), new EffectSource(),
-            new SkillObjectUnk1 { Type = 1, Id = (int)PortalId, X = x, Y = y, Z = z }, DateTime.UtcNow);
+            // Type 2 names the private book, matching the entry CreateOwner puts in PrivatePortals.
+            // The cast path resolves the book the client names, so a mismatched type byte no longer
+            // falls through to the other book.
+            new SkillObjectUnk1 { Type = 2, Id = (int)PortalId, X = x, Y = y, Z = z }, DateTime.UtcNow);
 
     private static void SetField(object target, string name, object value) =>
         target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(target, value);

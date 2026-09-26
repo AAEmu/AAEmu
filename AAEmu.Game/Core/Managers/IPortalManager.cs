@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
 using AAEmu.Game.Models.StaticValues;

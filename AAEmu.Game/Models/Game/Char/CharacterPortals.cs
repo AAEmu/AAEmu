@@ -98,6 +98,24 @@ public class CharacterPortals(Character owner)
     public Portal GetPortalInfo(uint id) =>
         GetDistrictPortalInfo(id) ?? GetPrivatePortalInfo(id);
 
+    /// <summary>
+    /// The wire type byte that names which book an id belongs to: 1 is a district return point,
+    /// anything else is a private portal. This is the same encoding
+    /// <c>PortalManager.DeletePortal</c> parses, kept in one place so the cast, the use and the
+    /// delete paths cannot drift apart.
+    /// </summary>
+    public const byte DistrictPortalType = 1;
+
+    public static bool IsPrivatePortalType(byte type) => type != DistrictPortalType;
+
+    /// <summary>
+    /// Resolves the entry the client actually named. Callers holding a type byte must use this
+    /// rather than <see cref="GetPortalInfo"/>: a private entry that collides with a visited
+    /// district id would otherwise resolve to the district destination.
+    /// </summary>
+    public Portal GetPortalInfoByType(uint id, byte type) =>
+        IsPrivatePortalType(type) ? GetPrivatePortalInfo(id) : GetDistrictPortalInfo(id);
+
     public void RemoveFromBookPortal(Portal portal, bool isPrivate)
     {
         if (PersistenceGate.IsSaveHeld)

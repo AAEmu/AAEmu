@@ -152,6 +152,70 @@ public class OpenPortalLifecycleTests
         await Assert.That(manager.Deleted.Any(portal => ReferenceEquals(portal, exit))).IsTrue();
     }
 
+    [Test]
+    public async Task OpenPortal_ResolvesTheBookTheCastNamesWhenIdsCollide()
+    {
+        // Private book ids and district_return_points ids share one id space, so a cast that
+        // names the private book must not open the district destination.
+        const uint sharedId = 4097;
+        var (manager, owner) = CreateManager(sharedId);
+        owner.Portals.PrivatePortals[sharedId] = new AAEmu.Game.Models.Game.Portal
+        {
+            Id = sharedId, Name = "private-camp", ZoneId = 11, X = 1f, Y = 2f, Z = 3f
+        };
+        owner.Portals.DistrictPortals[sharedId] = new AAEmu.Game.Models.Game.Portal
+        {
+            Id = sharedId, Name = "district-camp", ZoneId = 22, X = 4f, Y = 5f, Z = 6f
+        };
+
+        // Type 1 names the district book.
+        manager.OpenPortal(owner,
+            new SkillObjectUnk1 { Type = 1, Id = (int)sharedId, X = 1f, Y = 2f, Z = 3f }, CreateEffect());
+        await Assert.That(manager.Created).HasCount().EqualTo(2);
+        await Assert.That(manager.Created[0].SourcePortal.Name).IsEqualTo("district-camp");
+        await Assert.That(manager.Created[0].SourcePortal.ZoneId).IsEqualTo(22u);
+
+        // Any other type names the private book.
+        manager.Created.Clear();
+        manager.OpenPortal(owner,
+            new SkillObjectUnk1 { Type = 2, Id = (int)sharedId, X = 1f, Y = 2f, Z = 3f }, CreateEffect());
+        await Assert.That(manager.Created).HasCount().EqualTo(2);
+        await Assert.That(manager.Created[0].SourcePortal.Name).IsEqualTo("private-camp");
+        await Assert.That(manager.Created[0].SourcePortal.ZoneId).IsEqualTo(11u);
+    }
+
+    [Test]
+    public async Task OpenPortal_ClosesTheOwnersPreviousPairForTheSameBookEntry()
+    {
+        // Without a client-side expiry a repeated cast would leave one live pair per cast. Opening
+        // a new pair for the same book entry retires the previous one, bounding it to one pair.
+        var (manager, owner) = CreateManager();
+        manager.OpenPortal(owner,
+            new SkillObjectUnk1 { Id = (int)BookPortalId, X = 10f, Y = 20f, Z = 30f }, CreateEffect());
+        var firstEntrance = manager.Created[0];
+        var firstExit = manager.Created[1];
+        await Assert.That(manager.Created).HasCount().EqualTo(2);
+
+        manager.OpenPortal(owner,
+            new SkillObjectUnk1 { Id = (int)BookPortalId, X = 10f, Y = 20f, Z = 30f }, CreateEffect());
+
+        await Assert.That(manager.Deleted.Any(p => ReferenceEquals(p, firstEntrance))).IsTrue();
+        await Assert.That(manager.Deleted.Any(p => ReferenceEquals(p, firstExit))).IsTrue();
+        // The fresh pair is still registered after the old one is retired.
+        await Assert.That(manager.Created).HasCount().EqualTo(4);
+        await Assert.That(manager.Created[3].LinkedPortal).IsSameReferenceAs(manager.Created[2]);
+    }
+
+    [Test]
+    public async Task OnlyMyPortalFlagHonoursThePortalBookType()
+    {
+        // The wire encoding the cast, the use and the delete paths share.
+        await Assert.That(AAEmu.Game.Models.Game.Char.CharacterPortals.IsPrivatePortalType(2)).IsTrue();
+        await Assert.That(AAEmu.Game.Models.Game.Char.CharacterPortals.IsPrivatePortalType(0)).IsTrue();
+        await Assert.That(AAEmu.Game.Models.Game.Char.CharacterPortals.IsPrivatePortalType(1)).IsFalse();
+        await Assert.That(AAEmu.Game.Models.Game.Char.CharacterPortals.DistrictPortalType).IsEqualTo((byte)1);
+    }
+
     private static OpenPortalEffect CreateEffect() => new()
     {
         Id = 1,
@@ -160,7 +224,7 @@ public class OpenPortalLifecycleTests
         ExitPortalNpcId = ExitNpcId
     };
 
-    private static (RecordingPortalManager Manager, Character Owner) CreateManager()
+    private static (RecordingPortalManager Manager, Character Owner) CreateManager(uint bookPortalId = BookPortalId)
     {
         var npcManager = Mock.Of<INpcManager>();
         npcManager.GetTemplate(EnterNpcId).Returns(new NpcTemplate { Id = EnterNpcId, ModelId = 1, Level = 1 });
@@ -169,9 +233,9 @@ public class OpenPortalLifecycleTests
         var manager = new RecordingPortalManager(npcManager.Object);
         var owner = new Character(new UnitCustomModelParams()) { Id = 7, ObjId = 7, Name = "Owner" };
         owner.Portals = new CharacterPortals(owner);
-        owner.Portals.PrivatePortals[BookPortalId] = new AAEmu.Game.Models.Game.Portal
+        owner.Portals.PrivatePortals[bookPortalId] = new AAEmu.Game.Models.Game.Portal
         {
-            Id = BookPortalId,
+            Id = bookPortalId,
             Name = "camp",
             ZoneId = 1,
             X = 10f,

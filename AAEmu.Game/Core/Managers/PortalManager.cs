@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 using AAEmu.Commons.Exceptions;
 using AAEmu.Commons.IO;
@@ -596,7 +596,9 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
             return;
         }
 
-        var portalInfo = owner.Portals.GetPortalInfo((uint)portalEffectObj.Id);
+        // The cast names the book in portalEffectObj.Type, so resolve through the typed lookup:
+        // a private entry that collides with a visited district id must not open the district one.
+        var portalInfo = owner.Portals.GetPortalInfoByType((uint)portalEffectObj.Id, portalEffectObj.Type);
         if (portalInfo == null)
         {
             Logger.Warn("OpenPortal effect {0} cannot resolve portal id {1}", effect.Id, portalEffectObj.Id);
@@ -619,14 +621,33 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
 
         entrance.LinkedPortal = exit;
         exit.LinkedPortal = entrance;
+
+        // A previous pair for the same book entry is now redundant: the new one serves the same
+        // destination. Removing it bounds a live portal set to one pair per book entry, which is
+        // what a client-side expiry would have achieved, without inventing a duration that no
+        // shipped content or protocol value provides.
+        DeleteOwnerPortals(owner, portalInfo);
+
         RegisterLivePortal(owner, entrance);
         RegisterLivePortal(owner, exit);
     }
 
-    public static void UsePortal(Character character, uint objId)
+    public static void UsePortal(Character character, uint objId, bool onlyMyPortal = false)
     {
         // No cooldown is applied here: no authoritative content/protocol value has been identified.
         if (character.ParentWorld.GetNpc(objId) is not Models.Game.Units.Portal portal) return;
+
+        // The client's onlyMyPortal flag asks the server to restrict the use to the owner's own
+        // portal. Portals now outlive a single cast, so without this a stale pair stays usable by
+        // anyone who walks into it. A portal with no book entry (a GM-created one) has no owner
+        // to compare against, so the flag is not enforceable for it.
+        var portalOwnerId = portal.SourcePortal?.Owner;
+        if (onlyMyPortal && portalOwnerId != character.Id)
+        {
+            Logger.Warn("UsePortal: character {0} refused portal {1} owned by {2} because onlyMyPortal was set",
+                character.Id, portal.ObjId, portalOwnerId ?? 0);
+            return;
+        }
 
         //have Overburdened buff cannot UsePortal
         if (character.Buffs.CheckBuffTag((uint)BuffConstants.TagOverburdened))

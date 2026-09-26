@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+using System.Numerics;
 
 using AAEmu.Commons.Utils;
 using AAEmu.Game.Core.Managers;
@@ -605,7 +605,9 @@ public class Skill
                 if (skillObject is not SkillObjectUnk1 portalInfo || portalInfo.Id < 0)
                     return SkillResult.InvalidTarget;
 
-                trp = character.Portals.GetPortalInfo((uint)portalInfo.Id);
+                // Resolve through the book the cast names; the type-agnostic lookup would prefer a
+                // visited district entry over a colliding private id.
+                trp = character.Portals.GetPortalInfoByType((uint)portalInfo.Id, portalInfo.Type);
             }
 
             if (trp != null)
