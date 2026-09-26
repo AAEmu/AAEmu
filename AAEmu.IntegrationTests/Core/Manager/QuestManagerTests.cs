@@ -7,7 +7,6 @@ using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Char;
 using AAEmu.Game.Models.Game.World;
 using AAEmu.Game.Utils.DB;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 
@@ -51,17 +50,9 @@ public class QuestManagerTests
         if (_managersLoaded)
             return;
 
-        // Locate Config.json in the test project directory
-        var testProjectDir = Path.GetDirectoryName(typeof(QuestManagerTests).Assembly.Location);
-        var mainConfig = Path.Combine(testProjectDir, "Config.json");
-
-        var configurationBuilder = new ConfigurationBuilder();
-        configurationBuilder.AddJsonFile(mainConfig);
-        configurationBuilder.AddUserSecrets<QuestManager>();
-        var configurationBuilderResult = configurationBuilder.Build();
-        configurationBuilderResult.Bind(AppConfiguration.Instance);
-
-        MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
+        // Base Config.json + Configurations overlay + gitignored Config.Local.json, with a loud
+        // failure if a %wildcard% survived. See IntegrationTestConfiguration.
+        IntegrationTestConfiguration.EnsureLoaded();
 
         // Configure a minimal DI container so singletons with constructor dependencies can be resolved
         var services = new ServiceCollection();
@@ -83,6 +74,7 @@ public class QuestManagerTests
         TaskIdManager.Instance.Initialize();
         TaskManager.Instance.Initialize();
         // ZoneManager.Instance.Load(); // Skipped in tests to avoid requiring WorldManager DI
+        IntegrationTestConfiguration.RequireCompactDatabase();
         QuestManager.Instance.Load();
 
         _managersLoaded = true;

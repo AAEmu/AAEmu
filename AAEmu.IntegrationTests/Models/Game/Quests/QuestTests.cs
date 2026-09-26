@@ -22,8 +22,6 @@ using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Units;
 using AAEmu.Game.Utils.DB;
 
-using Microsoft.Extensions.Configuration;
-
 using Moq;
 
 using Xunit;
@@ -42,25 +40,9 @@ public class QuestTests
         if (s_managersLoaded)
             return;
 
-        var configurationBuilder = new ConfigurationBuilder();
-
-        // Load the various config files
-        var mainConfig = Path.Combine(FileManager.AppPath, "Config.json");
-        var configFiles = Directory.GetFiles(Path.Combine(FileManager.AppPath, "Configurations"), "*.json", SearchOption.AllDirectories).ToList();
-        configFiles.Sort();
-
-        // Add the old main Config.json file if it exists (as first entry)
-        if (File.Exists(mainConfig))
-            configFiles.Insert(0, mainConfig);
-
-        // Add config json files
-        foreach (var file in configFiles)
-            configurationBuilder.AddJsonFile(file);
-
-        var configurationBuilderResult = configurationBuilder.Build();
-        configurationBuilderResult.Bind(AppConfiguration.Instance);
-
-        MySQL.SetConfiguration(AppConfiguration.Instance.Connections.MySQLProvider);
+        // Base Config.json + Configurations overlay + gitignored Config.Local.json, with a loud
+        // failure if a %wildcard% survived. See IntegrationTestConfiguration.
+        IntegrationTestConfiguration.EnsureLoaded();
 
         // Loads all quests from DB
         TickManager.Instance.Initialize();
