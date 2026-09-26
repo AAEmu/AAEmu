@@ -29,8 +29,7 @@ public sealed class SkillEquipSlotCatalog
 
     public void Load(SqliteConnection connection)
     {
-        _byId.Clear();
-        _byName.Clear();
+        var rows = new List<(int Id, string Name, string? Category)>();
 
         using var command = connection.CreateCommand();
         command.CommandText = "SELECT id, name, category FROM enum_equip_slot";
@@ -39,11 +38,28 @@ public sealed class SkillEquipSlotCatalog
         using var reader = new SQLiteWrapperReader(sqliteReader);
         while (reader.Read())
         {
-            var name = reader.GetString("name");
-            var definition = new EquipSlotDefinition(
+            rows.Add((
                 reader.GetInt32("id"),
-                name,
-                reader.IsDBNull("category") ? null : reader.GetString("category"))
+                reader.GetString("name"),
+                reader.IsDBNull("category") ? null : reader.GetString("category")));
+        }
+
+        LoadDefinitions(rows);
+    }
+
+    /// <summary>
+    /// Builds the catalog from rows already read. The database path and the test path
+    /// share this so <see cref="EquipSlotDefinition.IsNoLink"/> is derived the same way
+    /// in both.
+    /// </summary>
+    public void LoadDefinitions(IEnumerable<(int Id, string Name, string? Category)> rows)
+    {
+        _byId.Clear();
+        _byName.Clear();
+
+        foreach (var (id, name, category) in rows)
+        {
+            var definition = new EquipSlotDefinition(id, name, category)
             {
                 IsNoLink = string.Equals(name, NoLinkSlotName, StringComparison.Ordinal)
             };

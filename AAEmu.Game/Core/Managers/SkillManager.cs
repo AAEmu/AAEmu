@@ -113,12 +113,28 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     public SkillContentFieldAuditReport GetSkillContentFieldAudit() =>
         SkillContentFieldAudit.Build(_skills.Values, _skillEquipSlots);
 
-    /// <summary>Resolves a skill link through the loaded <c>enum_equip_slot</c> rows.</summary>
+    /// <summary>
+    /// Resolves a skill link through the loaded <c>enum_equip_slot</c> rows.
+    /// <para>
+    /// The catalog carries a no-link sentinel row named <c>invalid</c>. A skill whose
+    /// <c>link_equip_slot_id</c> points at that row has NO link, so this reports false:
+    /// the row resolving successfully is a property of the catalog, not evidence that
+    /// the skill equips anything. Returning true for the sentinel made callers print
+    /// <c>slot=-1 slot_name=invalid</c> where they should print no slot at all. The
+    /// sentinel is identified by <see cref="EquipSlotDefinition.IsNoLink"/>, which the
+    /// catalog sets from the row's own name, so no id is hardcoded here.
+    /// </para>
+    /// </summary>
     public bool TryGetLinkedEquipSlot(uint skillId, out EquipSlotDefinition definition)
     {
         var skill = GetSkillTemplate(skillId);
         definition = null!;
-        return skill != null && _skillEquipSlots.TryGet(skill.LinkEquipSlotId, out definition);
+        if (skill == null || !_skillEquipSlots.TryGet(skill.LinkEquipSlotId, out var resolved))
+            return false;
+        if (resolved.IsNoLink)
+            return false;
+        definition = resolved;
+        return true;
     }
 
     /// <summary>Skill id behind a <c>const_skill_types</c> name, or 0 when the constant is absent.</summary>
@@ -132,6 +148,16 @@ public class SkillManager(IAnimationManager animationManager, IPlotManager plotM
     {
         _constSkillTypes[name] = skillId;
     }
+
+    /// <summary>For tests: seeds a skill template without opening compact.</summary>
+    public void SetSkillForTest(SkillTemplate template) => _skills[template.Id] = template;
+
+    /// <summary>
+    /// For tests: installs the equip-slot catalog without opening compact, through the
+    /// same row builder the database path uses.
+    /// </summary>
+    public void SetEquipSlotDefinitionsForTest(IEnumerable<(int Id, string Name, string? Category)> rows) =>
+        _skillEquipSlots.LoadDefinitions(rows);
 
     /// <summary>The skill the client uses to take a rider off whatever it is attached to.</summary>
     public bool IsDetachSkill(uint skillId)
