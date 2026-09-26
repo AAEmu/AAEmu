@@ -64,6 +64,32 @@ public class NpcSpawnRelay
         new(zoneId, instanceId, bcId);
 
     /// <summary>
+    /// The one place a spawn announcement is tested for permission to exist. Two independent
+    /// conditions can refuse it: the spawner template's schedule window
+    /// (<see cref="NpcScheduleGate"/>) and the placement's own conflict-zone state
+    /// (<see cref="ConflictSpawnerGate"/>). They are checked here so the spawn path and the remirror
+    /// path can never drift apart.
+    /// </summary>
+    /// <param name="conflictGroupId">
+    /// The conflict group that refused, or 0 when the schedule window was the cause. Only used to
+    /// pick the right counter for logging.
+    /// </param>
+    private static bool IsClosed(ZoneConnection connection, ZwSpawnNpcParsed parsed, out uint conflictGroupId)
+    {
+        // Conflict first: it keys the exact placement, so it is the narrower test and the one that
+        // distinguishes "this placement is not authored in the current state" from "this template is
+        // outside its window".
+        if (ConflictSpawnerGate.IsClosed(connection.ZoneId, parsed.SpawnerId, parsed.SpawnerType))
+        {
+            conflictGroupId = ConflictSpawnerGate.ResolveZoneGroup(connection.ZoneId);
+            return true;
+        }
+
+        conflictGroupId = 0;
+        return NpcScheduleGate.IsClosed(parsed.SpawnerType);
+    }
+
+    /// <summary>
     /// Drop WZNpcState markers for one zone copy (Zone disconnect / ZWJoin remap).
     /// </summary>
     public static void ResetNpcStateSentForZone(uint zoneId, string reason) =>
@@ -169,13 +195,22 @@ public class NpcSpawnRelay
 
         // Reject before a bcId is spent. Leaving the announcement unacknowledged keeps Zone from
         // running NpcManager::Create, so the NPC exists nowhere.
-        if (parsed != null && NpcScheduleGate.IsClosed(parsed.SpawnerType))
+        if (parsed != null && IsClosed(connection, parsed, out var conflictGroupId))
         {
             // WZNpcSpawnFailed has the identical SpawnNpc payload serializer, so echo the exact
             // announcement rather than reconstructing variable strings/creator/reason fields.
             connection.SendPacket(new WZNpcSpawnFailedPacket(raw));
-            NpcScheduleGate.CountSuppressed(
-                connection.ZoneId, parsed.SpawnerId, parsed.SpawnerType, parsed.TemplateId);
+            if (conflictGroupId != 0)
+            {
+                ConflictSpawnerGate.CountSuppressed(
+                    connection.ZoneId, conflictGroupId, parsed.SpawnerId, parsed.SpawnerType, parsed.TemplateId);
+            }
+            else
+            {
+                NpcScheduleGate.CountSuppressed(
+                    connection.ZoneId, parsed.SpawnerId, parsed.SpawnerType, parsed.TemplateId);
+            }
+
             if (TowerDefGameData.Instance.IsTowerDefEventSpawner(parsed.SpawnerType))
             {
                 Logger.Warn(
@@ -268,8 +303,9 @@ public class NpcSpawnRelay
                 continue;
             }
 
-            // A window can close between the original mirror and a remirror pass.
-            if (NpcScheduleGate.IsClosed(parsed.SpawnerType))
+            // A window can close between the original mirror and a remirror pass, and a conflict
+            // group can enter or leave its state for the same reason.
+            if (IsClosed(connection, parsed, out _))
                 continue;
 
             if (TryMirror(connection, bcId, parsed))

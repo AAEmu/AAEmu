@@ -11,28 +11,31 @@ using NLog;
 namespace AAEmu.World.Core.Relay;
 
 /// <summary>
-/// Drives the shipped <c>conflict_zone_npc_spawners</c> rows for a conflict zone group: when the
-/// group enters war or peace, the placements bound to that state are armed and the placements bound
-/// to the complementary state are retired, so the spawners visibly toggle.
+/// Publishes the closed placement set for a conflict zone group when that group enters war or
+/// peace, and despawns whatever the state being left had standing.
 /// </summary>
 /// <remarks>
 /// <para>
 /// The Zone host receives the war state on WZConflictZoneState (0x084) and stores it, but the only
 /// consumers of that state are the unit/skill-requirement evaluators — the host never arms the
-/// conflict spawners itself. World therefore owns the toggle and reuses the existing
-/// WZActivateNpcSpawnersInArea (0x042) path the player-scoped and prewarm arming already use.
+/// conflict spawners itself. World therefore owns the toggle.
 /// </para>
 /// <para>
-/// 0x042 is a circle (centre + radius), not a per-placement id, so each placement is announced as a
-/// circle centred on the placement's own zone-local coordinates. The radius is the existing typed
-/// <c>NpcSpawnerActivate.Radius</c> knob; no radius, id, or coordinate is invented here. A placement
-/// that is not present in the zone's <c>npc_spawners.g</c> catalog is skipped and logged — the
-/// content id is never invented to fill a gap.
+/// <b>This relay no longer sends WZActivateNpcSpawnersInArea (0x042) for conflict state.</b> 0x042
+/// carries only a centre and a radius and cannot address a single placement. Measured against the
+/// shipped <c>npc_spawners.g</c> files, the configured 1024 m circle covers 126–208 of a zone's
+/// placements — for conflict group 15 in zone 137 it covers all 208. Announcing a circle per
+/// placement therefore switched off nearly every native spawner in the zone, and because nothing
+/// gated the resulting <c>ZWSpawnNpc</c> by conflict state, the re-arms from
+/// <see cref="PlayerEnterService"/> and from the schedule-window paths brought war NPCs back during
+/// peace. The toggle is enforced instead by <see cref="ConflictSpawnerGate"/> on the spawn
+/// announcement, which keys the exact placement and therefore never touches a native one.
 /// </para>
 /// <para>
-/// Retirement follows the schedule gate's deferred-despawn pattern: the bcId stays registered and
-/// stays allocated until the Zone answers with its own ZWRemoveNpc, so a late confirmation cannot
-/// free an id another unit already took.
+/// Retirement of placements that are already live still needs an active push, and that is what
+/// <c>use_despawn</c> rows get: <see cref="RetireLiveSpawns"/> matches on exact placement identity
+/// (id and type) and follows the schedule gate's deferred-despawn pattern, so the bcId stays
+/// registered and allocated until the Zone answers with its own ZWRemoveNpc.
 /// </para>
 /// </remarks>
 public static class ConflictZoneSpawnerRelay
@@ -54,10 +57,13 @@ public static class ConflictZoneSpawnerRelay
         zoneId => ZoneManager.Instance.GetZoneByKey(zoneId)?.GroupId ?? 0;
 
     /// <summary>Restores the production resolvers after a test overrides them.</summary>
-    internal static void ResetForTest() =>
+    internal static void ResetForTest()
+    {
         (ResolvePlacements, ResolveZoneGroup, ResolveRows) = (ZoneSpawnerPlacementCatalog.GetAll,
             zoneId => ZoneManager.Instance.GetZoneByKey(zoneId)?.GroupId ?? 0,
             groupId => AAEmu.Game.GameData.ConflictZoneGameData.Instance.GetSpawners(groupId));
+        ConflictSpawnerGate.ResetForTest();
+    }
 
     /// <summary>
     /// The shipped <c>conflict_zone_npc_spawners</c> rows for a group. Defaults to the loaded game
@@ -67,10 +73,11 @@ public static class ConflictZoneSpawnerRelay
         groupId => AAEmu.Game.GameData.ConflictZoneGameData.Instance.GetSpawners(groupId);
 
     /// <summary>
-    /// Re-arm the group on every transition and on every ZoneLoaded. <paramref name="warState"/> is
-    /// the same byte the WZConflictZoneState packet carries (<see cref="ZoneConflictType"/>); it is
-    /// taken as a byte so the two existing Program.cs hook points forward the wire value unchanged,
-    /// and an unknown byte degrades to the empty (no dedicated spawner) set.
+    /// Republish the group's closed placement set on every transition and on every ZoneLoaded, and
+    /// despawn whatever the state being left had standing. <paramref name="warState"/> is the same
+    /// byte the WZConflictZoneState packet carries (<see cref="ZoneConflictType"/>); it is taken as
+    /// a byte so the two Program.cs hook points forward the wire value unchanged, and an unknown
+    /// byte degrades to the empty (no dedicated spawner) set.
     /// </summary>
     public static void Apply(ushort zoneGroupId, byte warState)
     {
@@ -84,20 +91,13 @@ public static class ConflictZoneSpawnerRelay
 
         var state = (ZoneConflictType)warState;
         var plan = ConflictZoneSpawnerRules.BuildPlan(zoneGroupId, state, ResolveRows(zoneGroupId));
-        if (plan.Arm.Count == 0 && plan.Retire.Count == 0)
-        {
-            // Escalation states (tension…conflict, battle) carry no dedicated spawner rows, and a
-            // group with no rows has nothing to toggle. Not an error: the war state is still on the
-            // wire for requirement checks.
-            Logger.Debug(
-                "ConflictZoneSpawnerRelay group={0} state={1} — no spawner rows for this state",
-                zoneGroupId, state);
-            return;
-        }
 
-        var armed = 0;
-        var deactivated = 0;
-        var skipped = 0;
+        // The retire set IS the closed set: exactly the placements that must not hold live NPCs while
+        // this state is in force. The arm set needs no entry — those placements announce and are
+        // accepted, which is the gate simply having no opinion about them.
+        var closed = new HashSet<ConflictSpawnerKey>(plan.Retire.Count);
+        var unresolved = 0;
+        var retiredLive = 0;
 
         foreach (var zone in PlayerEnterService.AllLoadedZones())
         {
@@ -108,7 +108,8 @@ public static class ConflictZoneSpawnerRelay
             if (placements.Count == 0)
             {
                 Logger.Warn(
-                    "ConflictZoneSpawnerRelay group={0} zoneId={1} — no npc_spawners.g placements parsed; skipping",
+                    "ConflictZoneSpawnerRelay group={0} zoneId={1} — no npc_spawners.g placements parsed; " +
+                    "its closed placements cannot be typed this pass",
                     zoneGroupId, zone.ZoneId);
                 continue;
             }
@@ -117,42 +118,40 @@ public static class ConflictZoneSpawnerRelay
             foreach (var placement in placements)
                 byId[placement.PlacementId] = placement;
 
-            foreach (var action in plan.Arm)
-            {
-                if (TryResolve(byId, zone, zoneGroupId, action, out var armPlacement))
-                {
-                    SendArm(zone, zoneGroupId, armPlacement);
-                    armed++;
-                }
-                else
-                {
-                    skipped++;
-                }
-            }
-
             foreach (var action in plan.Retire)
             {
-                if (!TryResolve(byId, zone, zoneGroupId, action, out var retirePlacement))
+                if (!TryResolve(byId, zone, zoneGroupId, action, out var placement))
                 {
-                    skipped++;
+                    unresolved++;
                     continue;
                 }
 
-                SendRetire(zone, zoneGroupId, retirePlacement, action);
-                deactivated++;
+                closed.Add(new ConflictSpawnerKey(action.NpcSpawnerId, placement.SpawnerType));
+
+                // Only use_despawn rows need an active push: without it an NPC that is already live
+                // would keep running until it happened to die on its own.
+                if (action.UseDespawn
+                    && RetireLiveSpawns(zone, zoneGroupId, action.NpcSpawnerId, placement.SpawnerType))
+                {
+                    retiredLive++;
+                }
             }
         }
 
-        if (armed > 0 || deactivated > 0 || skipped > 0)
+        // Published last and unconditionally, so a group that stops resolving its placements clears
+        // a previously published closed set instead of leaving a stale one armed.
+        ConflictSpawnerGate.Publish(zoneGroupId, closed);
+
+        if (closed.Count > 0 || unresolved > 0 || retiredLive > 0)
         {
             Logger.Info(
-                "ConflictZoneSpawnerRelay group={0} state={1} armed={2} deactivated={3} skipped={4}",
-                zoneGroupId, state, armed, deactivated, skipped);
+                "ConflictZoneSpawnerRelay group={0} state={1} closedPlacements={2} unresolved={3} retiredLive={4}",
+                zoneGroupId, state, closed.Count, unresolved, retiredLive);
         }
     }
 
     /// <summary>
-    /// Resolves a placement id to its zone-local geometry. Returns false (and counts a skip) when
+    /// Resolves a placement id to its zone-local spawner type. Returns false (and counts a skip) when
     /// the zone's <c>npc_spawners.g</c> does not carry the id — the content id is never invented.
     /// </summary>
     private static bool TryResolve(
@@ -172,47 +171,9 @@ public static class ConflictZoneSpawnerRelay
     }
 
     /// <summary>
-    /// Arms one placement by announcing its own circle. The position is already zone-local because it
-    /// was parsed from <c>npc_spawners.g</c>, which is the space 0x042 is evaluated in.
-    /// </summary>
-    private static void SendArm(
-        ZoneConnection zone,
-        ushort group,
-        ZoneSpawnerPlacementCatalog.SpawnerPlacement placement)
-    {
-        var radius = ArmRadius();
-        zone.SendPacket(new WZActivateNpcSpawnersInAreaPacket(
-            placement.X, placement.Y, placement.Z, radius, activate: true));
-        Logger.Debug(
-            "ConflictZoneSpawnerRelay arm group={0} zoneId={1} placement={2} local=({3:F1},{4:F1},{5:F1}) r={6:F0}",
-            group, zone.ZoneId, placement.PlacementId, placement.X, placement.Y, placement.Z, radius);
-    }
-
-    /// <summary>
-    /// Retires one placement: deactivate its circle, then, when the row's <c>use_despawn</c> is set,
-    /// retire whatever it currently has live through the shared deferred despawn path.
-    /// </summary>
-    private static void SendRetire(
-        ZoneConnection zone,
-        ushort group,
-        ZoneSpawnerPlacementCatalog.SpawnerPlacement placement,
-        ConflictZoneSpawnerAction action)
-    {
-        var radius = ArmRadius();
-        zone.SendPacket(new WZActivateNpcSpawnersInAreaPacket(
-            placement.X, placement.Y, placement.Z, radius, activate: false));
-
-        if (action.UseDespawn)
-            RetireLiveSpawns(zone, group, placement.PlacementId, placement.SpawnerType);
-
-        Logger.Debug(
-            "ConflictZoneSpawnerRelay retire group={0} zoneId={1} placement={2} despawn={3}",
-            group, zone.ZoneId, placement.PlacementId, action.UseDespawn);
-    }
-
-    /// <summary>
     /// Sends GO_TO_DESPAWN for every tracked NPC announced by this exact placement, then drops the
-    /// mirror via <c>OnZoneNpcRemove</c> and forgets the NpcStateSent marker.
+    /// mirror via <c>OnZoneNpcRemove</c> and forgets the NpcStateSent marker. Returns the number
+    /// actually retired.
     /// </summary>
     /// <remarks>
     /// The bcId stays registered in <c>zone.Units</c> and stays allocated: the Zone answers
@@ -220,7 +181,7 @@ public static class ConflictZoneSpawnerRelay
     /// ordinary path. Releasing it here would let ObjectIdManager hand the same id to a new unit
     /// before that confirmation lands, and the late ZWRemoveNpc would then delete the wrong one.
     /// </remarks>
-    private static void RetireLiveSpawns(
+    private static bool RetireLiveSpawns(
         ZoneConnection zone,
         ushort group,
         uint placementId,
@@ -251,22 +212,7 @@ public static class ConflictZoneSpawnerRelay
                 "ConflictZoneSpawnerRelay group={0} zoneId={1} retired {2} live NPCs for placement={3} (type={4})",
                 group, zone.ZoneId, retired, placementId, spawnerType);
         }
-    }
 
-    /// <summary>
-    /// The arming radius for a single placement. Reuses the one typed knob the other 0x042 senders
-    /// use. A non-positive or non-finite configured radius is a configuration error and is rejected
-    /// loudly rather than silently falling back to a magic default.
-    /// </summary>
-    private static float ArmRadius()
-    {
-        var configured = WorldRuntime.Config.NpcSpawnerActivate.Radius;
-        if (!float.IsFinite(configured) || configured <= 0f)
-        {
-            throw new InvalidOperationException(
-                "NpcSpawnerActivate.Radius must be a finite value > 0 for conflict spawner arming");
-        }
-
-        return configured;
+        return retired > 0;
     }
 }
