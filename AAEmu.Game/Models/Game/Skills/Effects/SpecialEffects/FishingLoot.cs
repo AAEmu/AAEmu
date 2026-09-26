@@ -28,22 +28,39 @@ public class FishingLoot : SpecialEffectAction
 
         Logger.Debug("Special effects: FishingLoot value1 {0}, value2 {1}, value3 {2}, value4 {3}", value1, value2, value3, value4);
 
-        var zoneGroupId = ZoneManager.Instance.GetZoneByKey(target.Transform.ZoneId).GroupId;
-        var zoneGroup = ZoneManager.Instance.GetZoneGroupById(zoneGroupId);
+        if (target == null)
+        {
+            Logger.Warn("FishingLoot reached without a target for {0}", character.Name);
+            character.SendErrorMessage(FishingLootReplyRules.Reply(false, false, false, false)!.Value);
+            return;
+        }
+
+        var zone = ZoneManager.Instance.GetZoneByKey(target.Transform.ZoneId);
+        var zoneGroup = zone == null ? null : ZoneManager.Instance.GetZoneGroupById(zone.GroupId);
         if (zoneGroup == null)
         {
-            Logger.Warn($"{character.Name} seems to be trying to fish out of bounds.");
+            Logger.Warn("{0} seems to be trying to fish out of bounds.", character.Name);
+            character.SendErrorMessage(FishingLootReplyRules.Reply(true, false, false, false)!.Value);
             return;
         }
 
         var lootTableId = target.Transform.World.Position.Z > 101 ? zoneGroup.FishingLandLootPackId : zoneGroup.FishingSeaLootPackId;
-
         var pack = LootGameData.Instance.GetPack(lootTableId);
 
         if (pack == null || pack.Loots.Count <= 0)
+        {
+            Logger.Error(
+                "FishingLoot has no usable loot pack id={0} for zone={1} character={2}",
+                lootTableId,
+                target.Transform.ZoneId,
+                character.Name);
+            character.SendErrorMessage(FishingLootReplyRules.Reply(true, pack != null, pack?.Loots.Count > 0, false)!.Value);
             return;
+        }
 
-        if (!pack.GiveLootPack(character, ActabilityType.Fishing, ItemTaskType.SkillEffectGainItem))
-            character.SendErrorMessage(ErrorMessageType.BagFull);
+        var delivered = pack.GiveLootPack(character, ActabilityType.Fishing, ItemTaskType.SkillEffectGainItem);
+        var reply = FishingLootReplyRules.Reply(true, true, true, delivered);
+        if (reply.HasValue)
+            character.SendErrorMessage(reply.Value);
     }
 }

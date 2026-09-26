@@ -376,6 +376,16 @@ public class Skill
             return SkillResult.InvalidTarget;
         }
 
+        var fishingStartResult = FishingStartRules.ValidateStart(Template, unit, target);
+        if (fishingStartResult != SkillResult.Success)
+        {
+            Logger.Trace(
+                "Skill: SkillResult.{0}! - Skill {1} aimed outside the water volume",
+                fishingStartResult,
+                Template.Id);
+            return fishingStartResult;
+        }
+
         // skill_reqs: a buff or buff tag on the caster or on the target that forbids or requires the cast
         // (rooted/stunned/fear "cannot use while X", gliding "only while X"). Checked once the target is
         // resolved, because 91 of the 338 rows read the target.
