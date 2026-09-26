@@ -147,6 +147,21 @@ public class SiegeGameData : Singleton<SiegeGameData>, IGameDataLoader
     private Dictionary<uint, DominionTaxInKind> _dominionTaxInKinds = [];
     private readonly HashSet<uint> _uniqueDominionHousingDesigns = [];
     private readonly HashSet<uint> _lodestoneTemplateIds = [];
+    private SiegeFactionRoles _factionRoles;
+    private SiegeWinPoints _winPoints;
+
+    /// <summary>
+    /// The alliances a siege is fought between, and which of them can hold ground. Loaded from
+    /// <c>siege_factions</c> + <c>siege_faction_troops</c>; the raider is the alliance the troop table
+    /// gives an offense troop and no defense troop. Null until <see cref="Load"/> has run.
+    /// </summary>
+    public SiegeFactionRoles FactionRoles => _factionRoles;
+
+    /// <summary>
+    /// The score each side must reach to win, from <c>content_configs</c> - required rows, so a database
+    /// without them fails at startup instead of settling a siege against a guessed threshold.
+    /// </summary>
+    public SiegeWinPoints WinPoints => _winPoints;
 
     public void Load(SqliteConnection connection)
     {
@@ -420,10 +435,78 @@ public class SiegeGameData : Singleton<SiegeGameData>, IGameDataLoader
         }
 
         Logger.Info("Loaded {0} lodestone housing templates", _lodestoneTemplateIds.Count);
+
+        LoadFactionRoles(connection);
+    }
+
+    /// <summary>
+    /// The alliances a siege is fought between: <c>siege_factions</c> for the roster, and the offense /
+    /// defense flags of its <c>siege_faction_troops</c> rows for what each one can do. A troop row for an
+    /// alliance the roster does not list is refused here - it would otherwise produce a side the settlement
+    /// could not name.
+    /// </summary>
+    private void LoadFactionRoles(SqliteConnection connection)
+    {
+        var rows = new List<SiegeFactionRole>();
+
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT faction_id, member_count FROM siege_factions";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+                rows.Add(new SiegeFactionRole(reader.GetUInt32("faction_id"),
+                    reader.GetUInt32("member_count"), false, false));
+        }
+
+        var roster = rows.Select(row => row.FactionId).ToHashSet();
+        using (var command = connection.CreateCommand())
+        {
+            command.CommandText = "SELECT faction_id, is_offense FROM siege_faction_troops";
+            command.Prepare();
+            using var sqliteReader = command.ExecuteReader();
+            using var reader = new SQLiteWrapperReader(sqliteReader);
+            while (reader.Read())
+            {
+                var factionId = reader.GetUInt32("faction_id");
+                if (!roster.Contains(factionId))
+                    throw new InvalidOperationException(
+                        $"siege_faction_troops row for faction {factionId}, which siege_factions does not list.");
+                var index = rows.FindIndex(row => row.FactionId == factionId);
+                var row = rows[index];
+                rows[index] = reader.GetBoolean("is_offense")
+                    ? row with { CanBeOffense = true }
+                    : row with { CanBeDefense = true };
+            }
+        }
+
+        _factionRoles = SiegeFactionRoles.FromRows(rows);
+        Logger.Info("Loaded {0} siege alliances; raider is faction {1}", rows.Count, _factionRoles.RaiderFactionId);
     }
 
     public void PostLoad()
     {
+        // The win points decide who owns a dominion, so they are required rows, checked here rather than at
+        // the first settlement: a missing row must stop the boot that loads the content, not be discovered
+        // an hour later when a siege ends.
+        var configs = ContentConfigGameData.Instance;
+        _winPoints = new SiegeWinPoints(
+            RequirePositiveWinPoint(configs, SiegeScoreSide.Defense),
+            RequirePositiveWinPoint(configs, SiegeScoreSide.Offense),
+            RequirePositiveWinPoint(configs, SiegeScoreSide.Outlaw));
+
+        Logger.Info("Siege win points: defense {0}, offense {1}, outlaw {2}",
+            _winPoints.Defense, _winPoints.Offense, _winPoints.Outlaw);
+    }
+
+    private static uint RequirePositiveWinPoint(ContentConfigGameData configs, SiegeScoreSide side)
+    {
+        var key = SiegeContentConfigKeys.KeyFor(side);
+        var value = configs.RequireInt(key);
+        if (value <= 0)
+            throw new InvalidOperationException($"content_configs row '{key}' is {value}; a siege win point must be positive.");
+        return (uint)value;
     }
 
     public GuardTowerSettings GetGuardTowerSettings(uint id) => _guardTowerSettings.GetValueOrDefault(id);

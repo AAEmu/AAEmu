@@ -1,6 +1,7 @@
 using AAEmu.Game.Core.Network.Connections;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Housing;
+using AAEmu.Game.Models.Game.Sieges;
 
 namespace AAEmu.Game.Core.Managers;
 
@@ -35,6 +36,15 @@ public interface IDominionManager : ILoadable
 
     /// <summary>System-driven (not player-driven) siege-phase update; used by SiegeManager's schedule tick.</summary>
     void UpdateSiegePeriod(ushort zoneId, byte period);
+
+    /// <summary>
+    /// Applies a settled siege to a claimed zone group: an alliance that broke through takes the claim (and
+    /// with it the reign the guild had), and the siege's end and the new reign start are stamped either way.
+    /// The dominions row is already written - the settlement wrote it in the same transaction as the outcome -
+    /// so this mirrors the stored decision in memory and tells the clients and the zone. Re-applying a record
+    /// is a no-op, which is what lets a retry after a restart finish what an interrupted attempt started.
+    /// </summary>
+    void ApplySettlement(ushort zoneId, SiegeSettlementRecord record);
 
     /// <summary>Weekly: mails out each dominion's current tax pool to its owning Expedition's leader and resets it. Called by DominionTaxPayoutTask; also callable directly for tests/GM use.</summary>
     void PayoutTax();

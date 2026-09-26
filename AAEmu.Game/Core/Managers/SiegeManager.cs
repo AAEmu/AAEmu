@@ -16,15 +16,18 @@ namespace AAEmu.Game.Core.Managers;
 /// <summary>
 /// Ticks the siege-cycle state machine (enum_siege_periods) for every claimed Dominion off the recurring
 /// siege_zones/siege_plans schedule in SiegeGameData, gates DeclareDominion to its real declare-window, and owns
-/// raid-team registration + score counters (new `siege_raid_team_members`/`siege_scores` tables).
+/// raid-team registration (the <c>siege_raid_team_members</c> table).
+///
+/// Score and settlement: the guard tower's magic power a side has purified, destroyed or kept is the siege score
+/// (the three counters of <c>siege_scores</c>), each side's win point is a content_configs row, and the dominion
+/// changes hands when the siege period ends with an attacker over its win point. Who produces the magic-power
+/// score is the guard-tower runtime, which is not part of this slice - see Docs/W08A_SIEGE_SCORE.md.
 ///
 /// Raid-commander election (SCElectSiegeRaidOwnerPacket) is NOT built - a separate voting subsystem similar to
 /// Hero's, lower priority, not done here.
-///
-/// Score tallying: a PvP kill in a zone group that is in the Siege period awards a point to the killer's
-/// registered raid-team side. Unregistered killers score nothing.
 /// </summary>
-public class SiegeManager(ITaskManager taskManager, IDominionManager dominionManager) : Singleton<SiegeManager>, ISiegeManager
+public class SiegeManager(ITaskManager taskManager, IDominionManager dominionManager, ISiegeScoreStore scoreStore)
+    : Singleton<SiegeManager>, ISiegeManager
 {
     private static Logger Logger { get; } = LogManager.GetCurrentClassLogger();
 
@@ -71,18 +74,55 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
     {
         var now = DateTime.UtcNow;
         var changed = 0;
+        var settled = 0;
+        var failed = 0;
+        var unsettleable = 0;
         foreach (var dominion in dominionManager.Dominions)
         {
             var period = GetScheduledPeriod(dominion.ZoneId, now);
-            if (dominion.SiegeTimers.SiegePeriod == (byte)period)
+            var previous = dominion.SiegeTimers.SiegePeriod;
+            if (previous == (byte)period)
                 continue;
+
+            // A siege settles the moment its period ends, and that is the only moment it can: a cycle that
+            // never reached the Siege period (a declare window that ran straight back to peace) has no
+            // transition, so it never produces a winner either.
+            if (previous == (byte)SiegePeriod.Siege && period != SiegePeriod.Siege)
+            {
+                switch (SettleZoneGroup(dominion.ZoneId, now))
+                {
+                    case SiegeSettlementResult.Settled:
+                        settled++;
+                        break;
+                    case SiegeSettlementResult.Failed:
+                        // The phase is left where it is on purpose. Writing the new period first would end the
+                        // siege for good and leave the dominion unwon for ever, with nothing to notice the
+                        // settlement never happened; this way the next tick tries again. Only a transient
+                        // fault reaches here, so the retry is bounded by the fault clearing. The reason is
+                        // already logged by the settle itself.
+                        failed++;
+                        continue;
+                    case SiegeSettlementResult.Unsettleable:
+                        // Content that cannot produce an outcome will not produce one on the next tick either,
+                        // so holding the period would keep this zone group in Siege for ever and log every
+                        // tick. The period advances and the dominion is left exactly as it stands; the fault
+                        // is logged at Error by the settle itself.
+                        unsettleable++;
+                        break;
+                    case SiegeSettlementResult.AlreadySettled:
+                        settled++;
+                        break;
+                }
+            }
 
             dominionManager.UpdateSiegePeriod(dominion.ZoneId, (byte)period);
             changed++;
         }
 
-        if (changed > 0)
-            Logger.Info("SiegeManager.Tick: {0} dominion(s) changed siege period", changed);
+        if (changed > 0 || failed > 0 || unsettleable > 0)
+            Logger.Info("SiegeManager.Tick: {0} dominion(s) changed siege period, {1} settled, " +
+                "{2} deferred on a transient fault, {3} advanced past content that cannot settle",
+                changed, settled, failed, unsettleable);
     }
 
     public void RegisterForRaidTeam(GameConnection connection, ushort zoneId, bool isOffense)
@@ -112,7 +152,10 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
 
         _offenseRosters.Invalidate(zoneId);
 
-        character.SendPacket(new SCSiegeMemberPacket(0, (int)zoneId, character.Id, true));
+        // The client finds its dominion record by the zone group and then the team by the alliance the
+        // character fights for, so both are sent as themselves: a score/member packet keyed on anything else
+        // (a literal 0, the zone group in the team slot) is looked up, misses, and is dropped client-side.
+        character.SendPacket(new SCSiegeMemberPacket(zoneId, (int)AllianceOfFaction(character), character.Id, true));
     }
 
     /// <summary>
@@ -289,7 +332,8 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
 
         _offenseRosters.Invalidate(zoneId);
 
-        character.SendPacket(new SCSiegeMemberPacket(0, (int)zoneId, character.Id, false));
+        character.SendPacket(
+            new SCSiegeMemberPacket(zoneId, (int)AllianceOfFaction(character), character.Id, false));
     }
 
     public List<SiegeRaidTeam> GetRaidTeams(ushort zoneId)
@@ -385,64 +429,175 @@ public class SiegeManager(ITaskManager taskManager, IDominionManager dominionMan
     public uint AllianceOfFaction(Character character) =>
         character?.Faction == null ? 0 : AllianceOf((uint)character.Faction.Id);
 
-    public void AddScore(ushort zoneId, uint outlawDelta, uint defenseDelta, uint offenseDelta)
+    /// <summary>
+    /// Adds guard-tower magic power to one side of a zone group's siege score and pushes the new totals to the
+    /// client.
+    /// </summary>
+    /// <remarks>
+    /// The caller is the guard-tower runtime: the shipped siege guide makes the purified/destroyed magic power
+    /// the score, and nothing else - a PvP kill is not a score event, which is why there is no kill hook here.
+    /// The award is refused outside a siege of a zone group that has a <c>siege_zones</c> row, and the amount
+    /// is whatever the caller measured, never a literal in this file.
+    /// <para/>
+    /// The client writes the three counters it is sent rather than adding to them, so this broadcasts the whole
+    /// score read back from the row. A delta would leave every client showing the last award as the total.
+    /// </remarks>
+    /// <returns>The state that was stored, or null when the award was refused.</returns>
+    public SiegeScoreState AwardScore(ushort zoneGroupId, SiegeScoreSide side, uint amount)
     {
-        using var connection = MySQL.CreateConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = """
-            INSERT INTO siege_scores (zone_id, outlaw_point, defense_point, offense_point)
-            VALUES (@z, @o, @d, @f)
-            ON DUPLICATE KEY UPDATE
-                outlaw_point = outlaw_point + @o,
-                defense_point = defense_point + @d,
-                offense_point = offense_point + @f
-            """;
-        command.Parameters.AddWithValue("@z", zoneId);
-        command.Parameters.AddWithValue("@o", outlawDelta);
-        command.Parameters.AddWithValue("@d", defenseDelta);
-        command.Parameters.AddWithValue("@f", offenseDelta);
-        command.Prepare();
-        command.ExecuteNonQuery();
+        if (SiegeGameData.Instance.GetSiegeZoneSchedule(zoneGroupId) == null)
+        {
+            Logger.Warn("Siege score refused: zone group {0} has no siege_zones schedule", zoneGroupId);
+            return null;
+        }
 
-        WorldManager.Instance.BroadcastPacketToServer(new SCSiegeScorePointPacket(0, outlawDelta, defenseDelta, offenseDelta));
+        if (GetScheduledPeriod(zoneGroupId, DateTime.UtcNow) != SiegePeriod.Siege)
+        {
+            Logger.Warn("Siege score refused: zone group {0} is not in its siege period", zoneGroupId);
+            return null;
+        }
+
+        if (amount == 0)
+        {
+            Logger.Warn("Siege score refused: {0} side of zone group {1} was awarded 0", side, zoneGroupId);
+            return null;
+        }
+
+        var state = scoreStore.Add(zoneGroupId, side, amount);
+
+        BroadcastScore(zoneGroupId, state);
+        return state;
     }
 
-    public void OnCharacterKilled(Character killer, Character victim)
+    /// <summary>
+    /// Settles the siege of one zone group: reads the score, decides the outcome from the content win points,
+    /// records it with the score reset and the dominion change in one transaction, and then tells the clients.
+    /// </summary>
+    /// <returns>
+    /// <see cref="SiegeSettlementResult.Failed"/> means nothing was written, so the caller must leave the
+    /// siege period alone and try again - that is what keeps a failed settlement recoverable instead of lost.
+    /// </returns>
+    private SiegeSettlementResult SettleZoneGroup(ushort zoneGroupId, DateTime nowUtc)
     {
-        var zone = ZoneManager.Instance.GetZoneByKey(victim.Transform.ZoneId);
-        if (zone == null)
-            return;
+        var dominion = dominionManager.GetByZoneId(zoneGroupId);
+        if (dominion == null)
+        {
+            Logger.Error("Zone group {0} left its siege period with no dominion to settle; it cannot settle again", zoneGroupId);
+            return SiegeSettlementResult.Unsettleable;
+        }
 
-        var zoneId = (ushort)zone.GroupId;
-        if (GetScheduledPeriod(zoneId, DateTime.UtcNow) != SiegePeriod.Siege)
-            return;
+        var weekStart = SiegeGameData.Instance.GetCurrentCycleWeekStart(zoneGroupId, nowUtc);
+        if (weekStart == null)
+        {
+            // Content carries no siege_plans cycle for this zone group. No later tick will find one, so this
+            // is a permanent fault: the period advances rather than retrying against the same missing row.
+            Logger.Error("Zone group {0} left its siege period with no siege_plans cycle; not settled and not retryable", zoneGroupId);
+            return SiegeSettlementResult.Unsettleable;
+        }
 
-        var isOffense = GetRaidTeamSide(zoneId, killer.Id);
-        if (isOffense == null)
-            return; // Killer isn't registered for this zone's raid team - no confirmed "outlaw" scoring rule to fall back on.
+        var defenderFactionId = dominion.OwningFactionId != 0
+            ? dominion.OwningFactionId
+            : (uint)dominion.FactionId;
 
-        AddScore(zoneId, 0, isOffense.Value ? 0u : 1u, isOffense.Value ? 1u : 0u);
+        var decision = ResolveOutcome(zoneGroupId, defenderFactionId);
+        if (decision == null)
+        {
+            // The alliances a siege is fought between are content, so a content fault here is permanent too.
+            return SiegeSettlementResult.Unsettleable;
+        }
+
+        var record = new SiegeSettlementRecord
+        {
+            ZoneGroupId = zoneGroupId,
+            CycleWeekStart = weekStart.Value,
+            SettledAtUtc = nowUtc,
+            Score = scoreStore.Read(zoneGroupId),
+            Outcome = decision.Value.Outcome,
+            DefenderFactionId = decision.Value.DefenderFactionId,
+            WinnerFactionId = decision.Value.WinnerFactionId,
+            Reason = decision.Value.Reason,
+        };
+
+        SiegeSettlementRecord settled;
+        try
+        {
+            // The outcome row, the zeroed counters and the dominion's new owner are written together, so the
+            // database never holds a winner nobody was given. A duplicate means an earlier attempt (or an
+            // earlier boot) already settled this cycle: its record comes back instead, and applying it again
+            // is a no-op write, so the two halves of the work converge.
+            settled = scoreStore.Settle(record);
+        }
+        catch (Exception ex)
+        {
+            // A store that threw is a transient fault: the database may be back next tick, so the period stays
+            // put and the settlement is retried. This is the only failure that is meant to be retried.
+            Logger.Error(ex, "Zone group {0} could not be settled for cycle {1:yyyy-MM-dd}; the siege period stays put",
+                zoneGroupId, weekStart.Value);
+            return SiegeSettlementResult.Failed;
+        }
+
+        var wasOnRecord = settled != record;
+        Logger.Info("Zone group {0} siege settled: {1} - {2}", zoneGroupId, settled.Outcome, settled.Reason);
+
+        // Only now, with the row written, is the in-memory dominion and the clients told. A World that dies
+        // between the commit and here re-reads the same record on its next tick.
+        dominionManager.ApplySettlement(zoneGroupId, settled);
+        BroadcastScore(zoneGroupId, SiegeScoreState.Empty(zoneGroupId));
+
+        return wasOnRecord ? SiegeSettlementResult.AlreadySettled : SiegeSettlementResult.Settled;
     }
 
-    private static bool? GetRaidTeamSide(ushort zoneId, uint characterId)
+    /// <summary>
+    /// The outcome for a zone group, or null when the content cannot produce one (which is a failure to
+    /// settle, not a reason to hand the dominion to somebody).
+    /// </summary>
+    private SiegeSettlementDecision? ResolveOutcome(ushort zoneGroupId, uint defenderFactionId)
     {
-        using var connection = MySQL.CreateConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "SELECT is_offense FROM siege_raid_team_members WHERE zone_id=@z AND character_id=@c";
-        command.Parameters.AddWithValue("@z", zoneId);
-        command.Parameters.AddWithValue("@c", characterId);
-        command.Prepare();
-        using var reader = command.ExecuteReader();
-        return reader.Read() ? reader.GetBoolean(0) : null;
+        try
+        {
+            return SiegeScoreRules.Resolve(scoreStore.Read(zoneGroupId), SiegeGameData.Instance.WinPoints,
+                SiegeGameData.Instance.FactionRoles, defenderFactionId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            // The alliances a siege is fought between are content; content that cannot name them cannot settle.
+            Logger.Error(ex, "Zone group {0} cannot be settled: {1}", zoneGroupId, ex.Message);
+            return null;
+        }
     }
 
-    public void ResetScore(ushort zoneId)
+    /// <summary>
+    /// Sends the whole score of a zone group's siege. The first field is the zone group: the receiver looks its
+    /// dominion record up by it, and a score sent for any other key is dropped.
+    /// </summary>
+    private static void BroadcastScore(ushort zoneGroupId, SiegeScoreState state) =>
+        WorldManager.Instance.BroadcastPacketToServer(
+            new SCSiegeScorePointPacket(zoneGroupId, state.OutlawPoint, state.DefensePoint, state.OffensePoint));
+
+    public void ResetScore(ushort zoneGroupId)
     {
-        using var connection = MySQL.CreateConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "REPLACE INTO siege_scores (zone_id, outlaw_point, defense_point, offense_point) VALUES (@z, 0, 0, 0)";
-        command.Parameters.AddWithValue("@z", zoneId);
-        command.Prepare();
-        command.ExecuteNonQuery();
+        scoreStore.Reset(zoneGroupId);
+        BroadcastScore(zoneGroupId, SiegeScoreState.Empty(zoneGroupId));
     }
+}
+
+/// <summary>What settling one zone group's siege produced.</summary>
+public enum SiegeSettlementResult
+{
+    /// <summary>Nothing was written. The caller must leave the siege period alone so the next tick retries.</summary>
+    Failed = 0,
+
+    /// <summary>This attempt recorded the outcome.</summary>
+    Settled = 1,
+
+    /// <summary>The cycle was already on record; that outcome was re-applied instead of a new one.</summary>
+    AlreadySettled = 2,
+
+    /// <summary>
+    /// Nothing was written because the content cannot produce a settlement at all, and retrying will not
+    /// change that. The caller must still advance the siege period: leaving it in place is what turns a
+    /// permanent content fault into a zone group that never leaves its siege period and logs every tick
+    /// for ever.
+    /// </summary>
+    Unsettleable = 3,
 }

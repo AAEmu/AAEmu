@@ -1,11 +1,27 @@
 ﻿using AAEmu.Game.Core.Managers;
 using AAEmu.Game.GameData;
 using AAEmu.Game.Models.Game.Dominions;
+using AAEmu.Game.Models.Game.Sieges;
+using AAEmu.UnitTests.Utils;
 
 namespace AAEmu.UnitTests.Game.GameData;
 
 public class SiegeGameDataW08BContentTests : SqliteTestBase
 {
+    /// <summary>
+    /// <c>SiegeGameData.PostLoad</c> also reads the three siege win points from the content-config
+    /// singleton. This fixture only covers the dominion-tax/guard-tower catalogs, so it supplies the
+    /// win points rather than asserting on them.
+    /// </summary>
+    private static ContentConfigGameData SeededWinPoints()
+    {
+        var configs = new ContentConfigGameData();
+        configs.SetForTest(SiegeContentConfigKeys.DefenseWinPoint, 1000);
+        configs.SetForTest(SiegeContentConfigKeys.OffenseWinPoint, 100);
+        configs.SetForTest(SiegeContentConfigKeys.OutlawWinPoint, 100);
+        return configs;
+    }
+
     protected override void CreateTestSchema()
     {
         base.CreateTestSchema();
@@ -38,6 +54,18 @@ public class SiegeGameDataW08BContentTests : SqliteTestBase
             CREATE TABLE skill_effects (id INTEGER PRIMARY KEY, skill_id INTEGER NOT NULL, effect_id INTEGER NOT NULL);
             CREATE TABLE effects (id INTEGER PRIMARY KEY, actual_type TEXT, actual_id INTEGER);
             CREATE TABLE special_effects (id INTEGER PRIMARY KEY, special_effect_type_id INTEGER NOT NULL);
+            -- The faction-role loader also runs and refuses an empty roster, so seed the minimal
+            -- alliance set it needs. This fixture asserts nothing about faction roles.
+            CREATE TABLE siege_factions (faction_id INTEGER PRIMARY KEY, member_count INTEGER);
+            CREATE TABLE siege_faction_troops (id INTEGER PRIMARY KEY, faction_id INTEGER, is_offense TEXT);
+            INSERT INTO siege_factions VALUES (114, 15);
+            INSERT INTO siege_factions VALUES (148, 50);
+            INSERT INTO siege_factions VALUES (149, 50);
+            INSERT INTO siege_faction_troops VALUES (1, 114, 't');
+            INSERT INTO siege_faction_troops VALUES (2, 148, 'f');
+            INSERT INTO siege_faction_troops VALUES (3, 148, 't');
+            INSERT INTO siege_faction_troops VALUES (4, 149, 'f');
+            INSERT INTO siege_faction_troops VALUES (5, 149, 't');
             """);
         SeedValidContent();
     }
@@ -47,6 +75,7 @@ public class SiegeGameDataW08BContentTests : SqliteTestBase
     {
         var data = new SiegeGameData();
         data.Load(Connection);
+        using var _ = new SingletonScope<ContentConfigGameData>(SeededWinPoints());
         data.PostLoad();
 
         var settings = data.GetGuardTowerSettings(1);
@@ -65,6 +94,7 @@ public class SiegeGameDataW08BContentTests : SqliteTestBase
     {
         var data = new SiegeGameData();
         data.Load(Connection);
+        using var _ = new SingletonScope<ContentConfigGameData>(SeededWinPoints());
         data.PostLoad();
 
         await Assert.That(data.IsLodestoneTemplate(2)).IsTrue();

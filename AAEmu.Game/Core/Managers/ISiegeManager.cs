@@ -54,17 +54,17 @@ public interface ISiegeManager : ILoadable
     /// </summary>
     void ForgetOffenseRaidTeams();
 
-    /// <summary>Adds to a zone group's running siege score counters and broadcasts the update. No confirmed automatic trigger yet - see SiegeManager's doc comment.</summary>
-    void AddScore(ushort zoneId, uint outlawDelta, uint defenseDelta, uint offenseDelta);
-
-    /// <summary>Zeroes a zone group's score counters (start of a new siege cycle).</summary>
-    void ResetScore(ushort zoneId);
+    /// <summary>
+    /// Adds guard-tower magic power to one side of a zone group's siege score and broadcasts the whole score
+    /// read back from the row. Refused (null) for a zone group with no siege_zones schedule, outside its siege
+    /// period, or for a zero amount. The amount is the caller's measured magic power - there is no kill-based
+    /// award, because the shipped siege guide makes the purified/destroyed magic power the score.
+    /// </summary>
+    SiegeScoreState AwardScore(ushort zoneGroupId, SiegeScoreSide side, uint amount);
 
     /// <summary>
-    /// Automatic siege-score hook: called on every PvP kill (see Unit.DoDie). Awards a point to the killer's
-    /// registered raid-team side (siege_raid_team_members) if the victim died in a zone group currently in the
-    /// Siege period and the killer is registered for that zone's raid team. No-op otherwise (unregistered kills
-    /// award nothing - "outlaw" scoring semantics are unconfirmed, see SiegeManager's doc comment).
+    /// Zeroes a zone group's score counters and pushes the cleared score (start of a new siege cycle, or a GM
+    /// reset). The settlement does this itself after recording the outcome.
     /// </summary>
-    void OnCharacterKilled(Character killer, Character victim);
+    void ResetScore(ushort zoneGroupId);
 }

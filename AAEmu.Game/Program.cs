@@ -329,6 +329,7 @@ public static class Program
                 services.AddSingleton<ShipyardManager>();
                 services.AddSingleton<IShipyardManager>(sp => sp.GetRequiredService<ShipyardManager>());
 
+                services.AddSingleton<ISiegeScoreStore, MySqlSiegeScoreStore>();
                 services.AddSingleton<SiegeManager>();
                 services.AddSingleton<ISiegeManager>(sp => sp.GetRequiredService<SiegeManager>());
 
