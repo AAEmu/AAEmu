@@ -632,10 +632,25 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
         RegisterLivePortal(owner, exit);
     }
 
-    public static void UsePortal(Character character, uint objId, bool onlyMyPortal = false)
+    /// <summary>
+    /// Walks the character through the portal unit it named. The object id arrives from the client, so
+    /// it resolves any open portal in the world and the character has to be one that can reach it.
+    /// </summary>
+    public void UsePortal(Character character, uint objId, bool onlyMyPortal = false)
     {
         // No cooldown is applied here: no authoritative content/protocol value has been identified.
         if (character.ParentWorld.GetNpc(objId) is not Models.Game.Units.Portal portal) return;
+
+        // The client only sends the use for a portal it collided with, so a portal outside the
+        // character's neighbourhood is a forged id and is refused. Portals outlive a single cast, so
+        // without this a crafted use teleports the sender to any open pair's destination.
+        var portalPosition = portal.Transform.World.Position;
+        if (!PortalUseRules.IsReachableFrom(character, portalPosition))
+        {
+            Logger.Warn("UsePortal: character {0} refused portal {1} at ({2:0.0}, {3:0.0}, {4:0.0}) because it is outside the character's neighbourhood",
+                character.Name, portal.ObjId, portalPosition.X, portalPosition.Y, portalPosition.Z);
+            return;
+        }
 
         // The client's onlyMyPortal flag asks the server to restrict the use to the owner's own
         // portal. Portals now outlive a single cast, so without this a stale pair stays usable by
@@ -656,6 +671,15 @@ public class PortalManager(ILocalizationManager localizationManager, IWorldManag
             return;
         }
 
+        ApplyPortalUse(character, portal);
+    }
+
+    /// <summary>
+    /// Confirms the use to the client and lands the character at the portal's destination. Split from
+    /// the decision so the decision can be exercised without a landing.
+    /// </summary>
+    protected virtual void ApplyPortalUse(Character character, Models.Game.Units.Portal portal)
+    {
         var destination = portal.TeleportPosition;
         var position = destination.World.Position;
 

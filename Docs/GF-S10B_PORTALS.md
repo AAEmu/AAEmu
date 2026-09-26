@@ -38,6 +38,13 @@ portal packets already present in the tree.
    the portal unit rather than from hp, which depends on the template's stat formula. The registry
    is guarded by a lock because the cast flow and the disconnect path both touch it.
 6. Keep the existing shared landing path for walking through a created portal.
+7. Refuse a portal use the character cannot reach. The object id in `CSUsePortal` is client supplied
+   and resolves any open portal in the world, so with pairs living until logout a forged use could
+   teleport the sender to any pair's destination. `PortalUseRules` requires the portal to be in the
+   region neighbourhood the character can see the world from, the same authority that already guards
+   the other client-named targets (`CSGetDoodadManikinSkin`, `CSDoodadQuestNotiPacket` and the static
+   gimmick grasp). The guard runs before the ownership check, so a remote probe does not get an
+   answer that depends on the portal's owner.
 
 ## Deliberately not claimed
 
@@ -53,6 +60,15 @@ portal packets already present in the tree.
   district/expedition variant selection is left to that missing evidence.
 - **Faction-permission enforcement:** the flag is loaded and preserved as content, but its client
   semantics are not proven strongly enough to apply an authorization rule.
+- **Portal use radius:** no shipped content provides a distance a character may walk a portal from.
+  `open_portal_effects.distance` (3.0 on all 11 rows) is the radius the caster may place the portal
+  inside — the open path already applies it — and the portal `npcs` rows carry no interaction range,
+  no AI params and no interaction set. A contact distance also cannot be derived from the model: six
+  of the eight portal models named by `open_portal_effects` (3038, 3039, 3201, 3202, 3243, 3244) have
+  no `actor_models` row at all, so their `ModelSize` is 0 and a model-radius guard would refuse every
+  legitimate use of those templates. The reachability guard therefore uses the region neighbourhood
+  rather than a distance, and a true walk-in contact radius stays a follow-up that needs a content or
+  protocol source.
 
 ## Verification
 

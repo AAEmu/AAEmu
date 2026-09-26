@@ -18,6 +18,6 @@ public class CSUsePortalPacket() : GamePacket(CSOffsets.CSUsePortalPacket, 1)
         // onlyMyPortal is the client asking the server to restrict the use to the owner's own
         // portal. It was read and logged but never enforced, so any player could use another
         // character's stale pair.
-        PortalManager.UsePortal(Connection.ActiveChar, objId, onlyMyPortal);
+        PortalManager.Instance.UsePortal(Connection.ActiveChar, objId, onlyMyPortal);
     }
 }
