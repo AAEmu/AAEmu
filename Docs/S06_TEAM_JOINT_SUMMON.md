@@ -13,7 +13,7 @@ Read from the extracted client UI and the packet schema before writing any handl
 
 | Client behaviour |
 |---|
-| `X2Team:JointInfoReq(TEAM_JOINT_MENU_CHAT / MENU_TARGET, name)` opens the *request* frame |
+| `X2Team:JointInfoReq(TEAM_JOINT_MENU_CHAT / MENU_TARGET, name)` is an **info query**: the server answers with the **same** mode and the target team id, and the joint menu opens from that reply. Only mode 3 opens the *request* frame |
 | The request frame collects a `leader` choice and sends `X2Team:JointOk(leader)` |
 | The *response* frame has no role choice; it echoes the server's `leader` flag back through `JointOk(leader)` / `JointCancel(leader, timeout)` |
 | Response frame reads `name`, `memberCount`, `leader`; `leader` decides crown_gold/officer and the role text |
@@ -26,11 +26,16 @@ Read from the extracted client UI and the packet schema before writing any handl
 ## Implemented
 
 **Joint handshake.** `CSTeamJointInfoPacket` (0x0C3) → `TeamJointManager.RequestJointInfo`:
-rejects any mode outside 1–4 and any mode that is not a client request mode, refuses the
-target-context-menu path (see below), authorizes the requester as a raid owner/officer, resolves
-the named target in this World, refuses a party target / a self-team / an already-jointed or
-already-pending team, checks the combined member count against `Team.RaidMemberLimit`, and answers
-with `SCTeamJointInfoPacket` (0x120) in **mode 3** so the client renders the request frame.
+rejects any mode outside 1–4 and any mode that is not a client request mode, authorizes the
+requester as a raid owner/officer, resolves the named target in this World, refuses a party target /
+a self-team / an already-jointed or already-pending team, and checks the combined member count
+against `Team.RaidMemberLimit`.
+
+The two menu modes are **info queries**, not handshake steps. Mode 1/2 is answered with
+`SCTeamJointInfoPacket` (0x120) carrying the **same** mode and the target team id, which is what
+opens the client's joint menu; a target that cannot be joined is answered with team id 0 so the
+menu still renders. Only **mode 3** opens the request frame and leaves a pending round behind, and
+it answers in mode 3.
 
 `CSTeamJointPacket` (0x0C4) carries the two-step answer. The requesting side records its leader
 choice and forwards `SCTeamJointInfoPacket` in **mode 4** to the other team's owner; the second
@@ -115,26 +120,30 @@ runs in production rather than only when the manager is called by hand. Deleting
   needs the special-effect class and a teleport reason, neither of which is evidence-backed yet.
 - **`SCTeamSummonGetPacket.type` meaning.** The field is a u32 and the client dialog ignores it;
   the team id is sent. The client reads only name, zone id and position.
-- **`SCTeamJointPacket.packetMode`.** The client switches on it, but the mode table for *that*
-  packet was never recovered and it is **not** the `SCTeamJointInfoPacket` numbering. It is written
-  as `SCTeamJointPacket.PacketModeUnresolved` (0) and is the only byte in this slice that is not
-  evidence-backed; every other field of that packet is measured. Whoever recovers the table changes
-  one constant.
+- **`SCTeamJointPacket.packetMode`.** This packet has its own mode table, not the
+  `SCTeamJointInfoPacket` numbering. Only **mode 1** ("set") makes a member's client store the
+  joint; any other mode takes the relay branch, echoes a joint-info packet back to the server and
+  leaves the request refused, so the joint would exist only server-side. A committed joint therefore
+  goes out as `PacketModeSet` (1) and a refused one as the same mode with `targetTeamId` 0.
 - **Target-context-menu request path (mode 2).** The client invokes that menu with an *empty* name
-  and this packet carries no target unit id, so there is nothing to resolve it against. The native
-  binding filling the name before sending was not established, so the path is refused explicitly
-  and loudly (logged warning plus `TeamInviteeOffline`) rather than guessing. The chat-menu path
-  (mode 1) is fully implemented.
+  and this packet carries no target unit id, so there is nothing to resolve it against. The server
+  therefore falls back to the requester's current selection and, failing that, answers the query with
+  a zero team id rather than opening a request frame. The chat-menu path (mode 1) carries the name
+  and needs no fallback.
 - **Three-or-more-raid federation** — see *Session lifetime and ownership*.
 
 ## Tests
 
-`AAEmu.UnitTests` — full suite, 5976 passing:
+`AAEmu.UnitTests` — full suite, 6664 passing:
 
 - `TeamJointFlowTests` — the whole stateful slice against an in-memory `ITeamJointContext` and a
   controllable clock: request→prompt→commit for both leader roles, leader-flag mismatch, wrong type
   token, decline and timeout, expiry, all four known wire modes plus rejection of server-only and
-  out-of-range modes, target-menu/empty-name refusal, foreign world, officer authorization, party
+  out-of-range modes, **mode 1/2 answered as an info query with the same mode and no pending round**
+  (including a target that cannot be joined answered with team id 0), **every member receiving the
+  commit with the storing mode**, **a refusal carrying the storing mode with a zero target team id**,
+  **an expired break ask telling the asker the round lapsed**, target-menu/empty-name resolution
+  through the requester's selection, foreign world, officer authorization, party
   and self targets, over-capacity; break ask/accept/decline and leader-only authority; disband
   cleanup including the skipped-team fan-out; disconnect cleanup for a member, for an owner whose
   team survives, and for the last online owner; **ownership of pending state** — a plain member's
@@ -145,7 +154,7 @@ runs in production rather than only when the manager is called by hand. Deleting
 - `TeamJointSetOfflineIntegrationTests` — the real `Character.IsOnline = false` → `TeamManager.SetOffline`
   → joint-manager path, built from real `TeamManager`/`Team`/`Character` objects and singleton slots.
 - `SCTeamJointSummonPacketWireTests` — every new G2C packet's field order and width, all four joint
-  modes on the wire, and the unresolved `packetMode` byte pinned.
+  modes on the wire, and the storing `packetMode` byte pinned as the literal 1.
 - `CSTeamJointSummonPacketReadTests` — every S06 C2G packet's parse, including the empty body.
 - `TeamJointRosterTests` — roster ordering, duplicate/over-capacity/non-leader-first refusal, follower
   removal re-indexing, leader removal refusal, authorization/capacity rules, and the `Team` header

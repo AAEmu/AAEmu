@@ -11,12 +11,29 @@ public sealed class SCTeamJointPacket(
     int jointOrder) : GamePacket(SCOffsets.SCTeamJointPacket, 1)
 {
     /// <summary>
-    /// The value of <c>packetMode</c> is not established: the client switches on it, but the mode
-    /// table for this packet was never recovered, and it is NOT the same numbering as
-    /// <c>SCTeamJointInfoPacket.mode</c> (see <see cref="Models.Game.Team.TeamJointModes"/>). Zero is
-    /// written as the neutral value; it is the only byte in this slice that is not evidence-backed.
+    /// The <c>packetMode</c> byte of this packet is a different table from
+    /// <see cref="SCTeamJointInfoPacket"/>'s (see <see cref="Models.Game.Team.TeamJointModes"/>).
+    /// Mode 1 is the only value that makes a member's client *store* the joint: any other mode
+    /// takes the relay branch instead, which echoes a joint-info packet back to the server and
+    /// leaves the request refused, so a joint announced under it exists only on the server.
     /// </summary>
-    public const byte PacketModeUnresolved = 0;
+    public const byte PacketModeSet = 1;
+
+    /// <summary>
+    /// The mode paired with <see cref="PacketModeSet"/> that reports a refused joint: the same
+    /// storing mode with <c>targetTeamId</c> zero, which is how the client is told there is no
+    /// joint to store.
+    /// </summary>
+    public const byte PacketModeSetRefused = 1;
+
+    /// <summary>The other team this member's client is being told about, or 0 to clear the joint.</summary>
+    public uint TargetTeamId { get; } = targetTeamId;
+
+    /// <summary>The joint this member's client is being told to store.</summary>
+    public uint LeaderTeamId { get; } = leaderTeamId;
+
+    /// <summary>How the client should treat the packet. See <see cref="PacketModeSet"/>.</summary>
+    public byte PacketMode { get; } = packetMode;
 
     public override PacketStream Write(PacketStream stream)
     {

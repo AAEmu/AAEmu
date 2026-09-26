@@ -145,12 +145,12 @@ public class TeamJointSetOfflineIntegrationTests
 
         // Carol's raid is the only one available, so the request targets a member of the same team
         // and is refused; what matters here is that Alice's own request disappears with her.
-        fixture.Joints.RequestJointInfo(Alice, 1UL, TeamJointModes.MenuChatRequest, "Carol", 1);
+        fixture.Joints.RequestJointInfo(Alice, 1UL, TeamJointModes.ContextRequest, "Carol", 1);
         await Assert.That(fixture.Joints.PendingJointCount).IsEqualTo(0);
 
         // give Alice a second raid to target so a real request exists
         fixture.World.AddCharacter(2u, "Bob").AddTeam(200u, 2u, false, 2u);
-        fixture.Joints.RequestJointInfo(Alice, 1UL, TeamJointModes.MenuChatRequest, "Bob", 1);
+        fixture.Joints.RequestJointInfo(Alice, 1UL, TeamJointModes.ContextRequest, "Bob", 1);
         await Assert.That(fixture.Joints.PendingJointCount).IsEqualTo(1);
 
         carol.IsOnline = false;  // a plain member must not cancel Alice's request

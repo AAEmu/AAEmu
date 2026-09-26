@@ -37,4 +37,17 @@ public static class TeamJointModes
     /// <summary>True for the modes a client may originate a request with: the two menu queries
     /// and the raid popup's own invite entry.</summary>
     public static bool IsRequestMode(sbyte mode) => mode is MenuChatRequest or MenuTargetRequest or ContextRequest;
+
+    /// <summary>
+    /// True for the two menu modes, which only ask what a named team is. The client sends them to
+    /// fill in the joint menu and renders the answer; it does not treat them as the start of a
+    /// handshake, so the server answers with the same mode instead of opening the request frame.
+    /// </summary>
+    public static bool IsInfoQueryMode(sbyte mode) => mode is MenuChatRequest or MenuTargetRequest;
+
+    /// <summary>
+    /// True for the one mode that actually asks the player to confirm a joint, so it is the only
+    /// request that leaves a pending round behind.
+    /// </summary>
+    public static bool OpensRequestFrame(sbyte mode) => mode == ContextRequest;
 }

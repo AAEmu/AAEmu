@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Core.Packets.G2C;
 using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Team;
@@ -33,8 +33,85 @@ public class TeamJointFlowTests
 
     private static void DriveToResponsePrompt(TeamJointManager manager, bool myTeamLeader)
     {
-        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "Bob", 1);
+        // Mode 3 is the only mode that opens the request frame and leaves a pending round; the two
+        // menu modes are info queries and are answered without one.
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.ContextRequest, "Bob", 1);
         manager.RespondToJoint(Alice, JointType, myTeamLeader, true, false);
+    }
+
+    [Test]
+    public async Task Request_ModeOneIsAnInfoQueryAnsweredWithTheSameModeAndNoPendingRound()
+    {
+        var (manager, world, _) = Build();
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "Bob", 1);
+
+        var replies = world.PacketsTo<SCTeamJointInfoPacket>(Alice);
+        await Assert.That(replies.Count).IsEqualTo(1);
+        await Assert.That(replies[0].Mode).IsEqualTo(TeamJointModes.MenuChatRequest);
+        await Assert.That(replies[0].Info.TargetTeamId).IsEqualTo(TeamB);
+        // The point of the fix: a menu query must not leave a one-minute pending request behind.
+        await Assert.That(manager.PendingJointCount).IsEqualTo(0);
+        await Assert.That(manager.SessionCount).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Request_ModeTwoIsAnInfoQueryAnsweredWithTheSameMode()
+    {
+        var (manager, world, _) = Build();
+        world.SelectedTargets[Alice] = Bob;
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuTargetRequest, string.Empty, 1);
+
+        var replies = world.PacketsTo<SCTeamJointInfoPacket>(Alice);
+        await Assert.That(replies.Count).IsEqualTo(1);
+        await Assert.That(replies[0].Mode).IsEqualTo(TeamJointModes.MenuTargetRequest);
+        await Assert.That(replies[0].Info.TargetTeamId).IsEqualTo(TeamB);
+        await Assert.That(manager.PendingJointCount).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Request_InfoQueryForATargetThatCannotBeJoinedAnswersZeroWithoutAnError()
+    {
+        var (manager, world, _) = Build();
+        world.AddCharacter(9u, "PartyPaul");
+        world.AddTeam(300u, 9u, isParty: true, 9u);
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "PartyPaul", 1);
+
+        var replies = world.PacketsTo<SCTeamJointInfoPacket>(Alice);
+        await Assert.That(replies.Count).IsEqualTo(1);
+        await Assert.That(replies[0].Info.TargetTeamId).IsEqualTo(0u);
+        await Assert.That(world.Errors.Count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task Commit_ReachesEveryMemberWithTheStoringMode()
+    {
+        var (manager, world, _) = Build();
+        DriveToResponsePrompt(manager, myTeamLeader: true);
+        manager.RespondToJoint(Bob, JointType, myTeamLeader: true, accept: true, timeout: false);
+
+        var commits = world.PacketsTo<SCTeamJointPacket>(Alice)
+            .Concat(world.PacketsTo<SCTeamJointPacket>(Carol))
+            .Concat(world.PacketsTo<SCTeamJointPacket>(Bob))
+            .ToArray();
+        await Assert.That(commits.Length).IsEqualTo(3);
+        // Mode 1 is the only value a member's client stores; anything else is relayed back and the
+        // joint then exists only on the server.
+        await Assert.That(commits.All(packet => packet.PacketMode == SCTeamJointPacket.PacketModeSet)).IsTrue();
+        await Assert.That(commits.All(packet => packet.PacketMode == 1)).IsTrue();
+        await Assert.That(commits.All(packet => packet.TargetTeamId != 0u)).IsTrue();
+    }
+
+    [Test]
+    public async Task Refusal_ReachesTheRequesterWithTheStoringModeAndZeroTarget()
+    {
+        var (manager, world, _) = Build();
+        DriveToResponsePrompt(manager, myTeamLeader: true);
+        manager.RespondToJoint(Bob, JointType, myTeamLeader: true, accept: false, timeout: false);
+
+        var refusal = world.PacketsTo<SCTeamJointPacket>(Alice);
+        await Assert.That(refusal.Count).IsEqualTo(1);
+        await Assert.That(refusal[0].PacketMode).IsEqualTo(SCTeamJointPacket.PacketModeSetRefused);
+        await Assert.That(refusal[0].TargetTeamId).IsEqualTo(0u);
     }
 
     // ---------- joint request ----------
@@ -43,7 +120,7 @@ public class TeamJointFlowTests
     public async Task Request_AnswersRequesterWithModeThreeAndOpensPending()
     {
         var (manager, world, _) = Build();
-        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "Bob", 1);
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.ContextRequest, "Bob", 1);
 
         var prompt = world.PacketsTo<SCTeamJointInfoPacket>(Alice);
         await Assert.That(prompt.Count).IsEqualTo(1);
@@ -86,21 +163,26 @@ public class TeamJointFlowTests
     {
         var (manager, world, _) = Build();
 
-        // Mode 2 with no name and nothing selected is still refused: there is nothing to resolve.
+        // The target-menu mode with no name and nothing selected is refused: there is nothing to
+        // resolve against.
         manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuTargetRequest, string.Empty, 1);
         await Assert.That(manager.PendingJointCount).IsEqualTo(0);
+        await Assert.That(world.Errors.Single().Error).IsEqualTo(ErrorMessageType.TeamInviteeOffline);
 
         // Mode 1 carries the name, so a blank one is refused the same way.
         manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "  ", 1);
         await Assert.That(manager.PendingJointCount).IsEqualTo(0);
-        await Assert.That(world.Errors.All(entry => entry.Error == ErrorMessageType.TeamInviteeOffline)).IsTrue();
+        await Assert.That(world.Errors.Last().Error).IsEqualTo(ErrorMessageType.TeamInviteeOffline);
 
-        // Mode 2 with no name now resolves through the requester's current selection.
+        // The target-menu mode with no name now resolves through the requester's current selection
+        // and, being an info query, is answered rather than turned into a pending request.
         world.SelectedTargets[Alice] = Bob;
         manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuTargetRequest, string.Empty, 1);
 
-        await Assert.That(manager.PendingJointCount).IsEqualTo(1);
-        await Assert.That(world.PacketsTo<SCTeamJointInfoPacket>(Alice).Count).IsEqualTo(1);
+        var reply = world.PacketsTo<SCTeamJointInfoPacket>(Alice);
+        await Assert.That(reply.Count).IsEqualTo(1);
+        await Assert.That(reply[0].Info.TargetTeamId).IsEqualTo(TeamB);
+        await Assert.That(manager.PendingJointCount).IsEqualTo(0);
     }
 
     [Test]
@@ -112,7 +194,7 @@ public class TeamJointFlowTests
         // A party member is a character but cannot start a joint, so the request is refused on the
         // usual party-target rules rather than on the name being missing.
         world.SelectedTargets[Alice] = 9u;
-        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuTargetRequest, string.Empty, 1);
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.ContextRequest, string.Empty, 1);
 
         await Assert.That(manager.PendingJointCount).IsEqualTo(0);
         await Assert.That(world.Errors.Count).IsEqualTo(1);
@@ -122,7 +204,7 @@ public class TeamJointFlowTests
     public async Task Request_RejectsForeignWorld()
     {
         var (manager, world, _) = Build();
-        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "Bob", 7);
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.ContextRequest, "Bob", 7);
 
         await Assert.That(manager.PendingJointCount).IsEqualTo(0);
         await Assert.That(world.Errors.Single().Error).IsEqualTo(ErrorMessageType.TeamInviteeOffline);
@@ -132,12 +214,12 @@ public class TeamJointFlowTests
     public async Task Request_RequiresRaidOwnerOrOfficerOfTheSourceTeam()
     {
         var (manager, world, _) = Build();
-        manager.RequestJointInfo(Carol, JointType, TeamJointModes.MenuChatRequest, "Bob", 1);
+        manager.RequestJointInfo(Carol, JointType, TeamJointModes.ContextRequest, "Bob", 1);
         await Assert.That(manager.PendingJointCount).IsEqualTo(0);
         await Assert.That(world.Errors.Single().Error).IsEqualTo(ErrorMessageType.TeamNoRights);
 
         world.SetOfficer(TeamA, Carol);
-        manager.RequestJointInfo(Carol, JointType, TeamJointModes.MenuChatRequest, "Bob", 1);
+        manager.RequestJointInfo(Carol, JointType, TeamJointModes.ContextRequest, "Bob", 1);
         await Assert.That(manager.PendingJointCount).IsEqualTo(1);
     }
 
@@ -145,12 +227,12 @@ public class TeamJointFlowTests
     public async Task Request_RejectsPartyTargetAndSelfTarget()
     {
         var (manager, world, _) = Build();
-        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "Alice", 1);
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.ContextRequest, "Alice", 1);
         await Assert.That(manager.PendingJointCount).IsEqualTo(0);
 
         world.AddTeam(300u, 9u, isParty: true, 9u);
         world.AddCharacter(9u, "PartyPaul");
-        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "PartyPaul", 1);
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.ContextRequest, "PartyPaul", 1);
         await Assert.That(manager.PendingJointCount).IsEqualTo(0);
         await Assert.That(world.CountPackets<SCTeamJointInfoPacket>()).IsEqualTo(0);
     }
@@ -166,7 +248,7 @@ public class TeamJointFlowTests
         world.AddTeam(TeamB, Bob, false, [Bob, .. many]);
         var manager = new TeamJointManager(world, clock);
 
-        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "Bob", 1);
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.ContextRequest, "Bob", 1);
         await Assert.That(manager.PendingJointCount).IsEqualTo(0);
         await Assert.That(world.Errors.Single().Error).IsEqualTo(ErrorMessageType.TeamFull);
     }
@@ -230,14 +312,14 @@ public class TeamJointFlowTests
         // two sessions with its JointId overwritten.
         var (manager, world, _) = Build();
 
-        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "Bob", 1);
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.ContextRequest, "Bob", 1);
         await Assert.That(manager.PendingJointCount).IsEqualTo(1);
 
         // Now Bob asks Alice: the same two teams with the sides reversed. Source-to-source and
         // target-to-target both miss, so the narrow check let it through - and one team ended up
         // party to two pending joints.
         world.Errors.Clear();
-        manager.RequestJointInfo(Bob, JointType, TeamJointModes.MenuChatRequest, "Alice", 1);
+        manager.RequestJointInfo(Bob, JointType, TeamJointModes.ContextRequest, "Alice", 1);
 
         await Assert.That(manager.PendingJointCount).IsEqualTo(1);
         await Assert.That(world.Errors.Count).IsEqualTo(1);
@@ -378,6 +460,26 @@ public class TeamJointFlowTests
     }
 
     [Test]
+    public async Task BreakAsk_ExpiredAskTellsTheAskerTheRoundLapsed()
+    {
+        var (manager, world, clock) = Build();
+        DriveToResponsePrompt(manager, myTeamLeader: true);
+        manager.RespondToJoint(Bob, JointType, myTeamLeader: true, accept: true, timeout: false);
+        world.Sent.Clear();
+        manager.RespondToJointBreak(Alice, ask: true, accept: false);
+        await Assert.That(manager.PendingBreakCount).IsEqualTo(1);
+
+        clock.Advance(TimeSpan.FromMinutes(1) + TimeSpan.FromSeconds(1));
+        // Any later traffic purges the stale ask. The asker must be told, otherwise the prompt it
+        // raised stays on screen with nothing behind it.
+        manager.RespondToJointBreak(Bob, ask: false, accept: true);
+
+        await Assert.That(world.PacketsTo<SCTeamJointBreakPacket>(Alice).Count).IsEqualTo(1);
+        await Assert.That(manager.PendingBreakCount).IsEqualTo(0);
+        await Assert.That(manager.SessionCount).IsEqualTo(1);
+    }
+
+    [Test]
     public async Task AlreadyJointed_TeamCannotStartAnotherRequest()
     {
         var (manager, world, _) = Build();
@@ -385,7 +487,7 @@ public class TeamJointFlowTests
         manager.RespondToJoint(Bob, JointType, myTeamLeader: true, accept: true, timeout: false);
         world.Errors.Clear();
 
-        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "Bob", 1);
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.ContextRequest, "Bob", 1);
         await Assert.That(manager.PendingJointCount).IsEqualTo(0);
         await Assert.That(world.Errors.Single().Error).IsEqualTo(ErrorMessageType.TeamInviteeInTeam);
     }
@@ -554,7 +656,7 @@ public class TeamJointFlowTests
         world.AddTeam(TeamB, Bob, false, Bob);
         var manager = new TeamJointManager(world, clock);
 
-        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "Bob", 1);
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.ContextRequest, "Bob", 1);
         manager.RespondToJoint(Alice, JointType, true, true, false);
         manager.RespondToJoint(Bob, JointType, true, true, false);
         await Assert.That(manager.SessionCount).IsEqualTo(1);
@@ -596,7 +698,7 @@ public class TeamJointFlowTests
     public async Task Disconnect_OfAPlainMemberDoesNotCancelTheOwnersPendingRequest()
     {
         var (manager, world, _) = Build();
-        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "Bob", 1);
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.ContextRequest, "Bob", 1);
         await Assert.That(manager.PendingJointCount).IsEqualTo(1);
 
         // Carol never opened this request; her logout must leave Alice's handshake alone.
@@ -613,7 +715,7 @@ public class TeamJointFlowTests
     public async Task Disconnect_OfTheRequestingOwnerCancelsTheirOwnPendingRequest()
     {
         var (manager, world, _) = Build();
-        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "Bob", 1);
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.ContextRequest, "Bob", 1);
         await Assert.That(manager.PendingJointCount).IsEqualTo(1);
 
         manager.OnCharacterLogout(Alice);
@@ -660,7 +762,7 @@ public class TeamJointFlowTests
         world.AddTeam(TeamB, Bob, false, Bob, 4u);
         var manager = new TeamJointManager(world, clock);
 
-        manager.RequestJointInfo(Alice, JointType, TeamJointModes.MenuChatRequest, "Bob", 1);
+        manager.RequestJointInfo(Alice, JointType, TeamJointModes.ContextRequest, "Bob", 1);
         // The requester claims the leading side, so ALICE's team is the joint leader and only she may
         // raise the ask. The echoed flag is not consulted.
         manager.RespondToJoint(Alice, JointType, true, true, false);

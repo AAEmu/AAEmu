@@ -93,7 +93,38 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
         if (sourceTeam == null || targetTeam == null || targetCharacter == null ||
             !sourceTeam.CanManage(requesterId) || !targetTeam.IsRaid || sourceTeam.Id == targetTeam.Id)
         {
+            if (TeamJointModes.IsInfoQueryMode(mode))
+            {
+                // An info query is a question about a named team, not a request to federate, so a
+                // target that cannot be joined is answered with a zero team id rather than an
+                // error: the menu has to render either way.
+                _context.Send(requesterId, new SCTeamJointInfoPacket(mode, new TeamJointInfo(
+                    unchecked((long)type),
+                    targetCharacter?.Name ?? resolvedTargetName,
+                    0,
+                    0,
+                    0,
+                    false)));
+                return;
+            }
+
             _context.SendError(requesterId, ErrorMessageType.TeamNoRights);
+            return;
+        }
+
+        if (TeamJointModes.IsInfoQueryMode(mode))
+        {
+            // The client asks mode 1/2 to learn what a team is and opens its joint menu from the
+            // answer, so the reply carries the SAME mode the request used. Opening the request frame
+            // here instead made a raid owner who right-clicked a name sit on a one-minute pending
+            // request with no menu, which is what the popup is for.
+            _context.Send(requesterId, new SCTeamJointInfoPacket(mode, new TeamJointInfo(
+                unchecked((long)type),
+                targetCharacter.Name,
+                targetTeam.Id,
+                targetTeam.MemberCount,
+                0,
+                false)));
             return;
         }
 
@@ -493,7 +524,7 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
                     roster.GetOtherTeamId(entry.TeamId),
                     roster.LeaderTeamId,
                     unchecked((long)type),
-                    SCTeamJointPacket.PacketModeUnresolved,
+                    SCTeamJointPacket.PacketModeSet,
                     order));
             }
         }
@@ -522,11 +553,13 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
     {
         var sourceOwner = OnlineTeamOwner(_context.FindTeam(pending.SourceTeamId));
         var targetOwner = OnlineTeamOwner(_context.FindTeam(pending.TargetTeamId));
+        // A refused joint is announced with the same storing mode and a zero target team id, which
+        // is how a member's client is told to store "no joint" instead of relaying the packet back.
         var packet = new SCTeamJointPacket(
-            pending.TargetTeamId,
+            0,
             pending.SourceTeamId,
             unchecked((long)pending.Type),
-            SCTeamJointPacket.PacketModeUnresolved,
+            SCTeamJointPacket.PacketModeSetRefused,
             0);
         if (sourceOwner != null)
             _context.Send(sourceOwner.Id, packet);
@@ -542,7 +575,20 @@ public sealed class TeamJointManager(ITeamJointContext context, TimeProvider tim
         foreach (var entry in _pendingSummons.Where(entry => entry.Value.ExpiresAt <= now))
             _pendingSummons.TryRemove(entry.Key, out _);
         foreach (var entry in _pendingBreaks.Where(entry => entry.Value.ExpiresAt <= now))
-            _pendingBreaks.TryRemove(entry.Key, out _);
+        {
+            if (!_pendingBreaks.TryRemove(entry.Key, out var expired))
+                continue;
+            // A break ask nobody answered inside its lifetime used to disappear here, so the ask
+            // was still on the asker's screen and the answer that arrived a moment later found
+            // nothing and was dropped. The joint surviving is the signal the ask is still live, so
+            // the asker is told the round lapsed.
+            if (_sessions.ContainsKey(entry.Key))
+            {
+                var asker = OnlineTeamOwner(_context.FindTeam(expired.RequesterTeamId));
+                if (asker != null)
+                    _context.Send(asker.Id, new SCTeamJointBreakPacket(false, false));
+            }
+        }
     }
 
     private TeamJointCharacterSnapshot? OnlineTeamOwner(TeamJointTeamSnapshot? team)
