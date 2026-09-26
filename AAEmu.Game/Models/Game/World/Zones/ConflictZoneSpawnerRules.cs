@@ -17,18 +17,18 @@ public readonly record struct ConflictZoneSpawnerAction(uint NpcSpawnerId, bool 
 /// only the shipped <c>conflict_zone_npc_spawners</c> rows for the group.
 /// </summary>
 /// <remarks>
+/// <para>
 /// The Zone host keeps the war state for unit-requirement checks but never arms the spawners from
-/// it, so World owns this toggle. The state → spawner-kind mapping is exactly the shipped
-/// <c>enum_conflict_zone_state_kinds</c> contract:
-/// <list type="bullet">
-///   <item><description><see cref="ZoneConflictType.War"/> (war) → <see cref="ConflictZoneStateKind.War"/>.</description></item>
-///   <item><description><see cref="ZoneConflictType.Peace"/> (peace) → <see cref="ConflictZoneStateKind.Peace"/>.</description></item>
-///   <item><description>every escalation step (tension…conflict) and battle → no dedicated spawner set.</description></item>
-/// </list>
-/// Escalation states carry no spawner rows in the shipped content, so they resolve to an empty
-/// action set rather than guessing a fallback. A missing group or a group with no rows also yields
-/// an empty set. No id, coordinate, radius, or rate is invented here — the caller owns the
-/// per-placement geometry and the packet.
+/// it, so World owns this toggle. A row is armed for exactly one state kind — the
+/// <c>enum_conflict_zone_state_kinds</c> value it carries (1 = peace, 2 = war; 0 = none, which no
+/// row uses). A state therefore has a spawner opinion whenever the group has rows at all, including
+/// the escalation states between them: see <see cref="BuildPlan"/> for the per-row rule and for why
+/// an escalation state must not resolve to "nothing to say".
+/// </para>
+/// <para>
+/// No id, coordinate, radius, or rate is invented here — the caller owns the per-placement geometry
+/// and the packet.
+/// </para>
 /// </remarks>
 public static class ConflictZoneSpawnerRules
 {
@@ -87,16 +87,39 @@ public static class ConflictZoneSpawnerRules
 
     /// <summary>
     /// The complete toggle for one group in one state, as the World relay applies it to each owning
-    /// zone: the rows of the active state (armed or retired per their own <c>spawn_activate</c>) plus
-    /// the retirement of the complementary state's rows.
+    /// zone: every shipped row of the group, resolved to armed or retired for <b>this</b> state.
     /// </summary>
     /// <remarks>
-    /// A peace↔war switch must retire the state being left, not only arm the state being entered:
-    /// groups 63 and 147 carry both peace and war rows, so entering war arms the war rows and
-    /// deactivates the peace rows (and vice versa). Rows whose <c>spawn_activate=false</c> stay an
-    /// explicit deactivation within their own state (group 139's single peace row) and are re-armed
-    /// when their state is left, because leaving that state means the row no longer suppresses the
-    /// placement. A placement id never appears in both sets.
+    /// <para>
+    /// Each row states what its own state kind authorises for its placement, so the decision for any
+    /// state — including the escalation states, which have no rows of their own — follows from one
+    /// rule applied per row:
+    /// </para>
+    /// <list type="bullet">
+    ///   <item><description>
+    ///     a <c>spawn_activate=true</c> row is <b>closed in every state except its own</b>. It arms
+    ///     the placement only while that kind is in force, so a war row is closed throughout
+    ///     Tension..Conflict as well as in Peace.
+    ///   </description></item>
+    ///   <item><description>
+    ///     a <c>spawn_activate=false</c> row is <b>closed only while its own state is in force</b> and
+    ///     open everywhere else, because leaving that state means the row stops suppressing it.
+    ///   </description></item>
+    /// </list>
+    /// <para>
+    /// Two consequences are deliberate. A peace↔war switch retires the state being left as well as
+    /// arming the state being entered, which is what groups 63 and 147 (both peace and war rows)
+    /// need. And an escalation state is <b>not</b> an empty plan: escalation is neither Peace nor
+    /// War, so no row is in force and every <c>true</c> row's placement is closed. Treating escalation
+    /// as "no opinion" would publish an empty closed set, which the gate reads as "this group has no
+    /// rows" and opens everything — the war placements of the 48 <c>true</c> rows in the shipped
+    /// content would come back for the whole escalation stretch, which for these groups is most of
+    /// each cycle.
+    /// </para>
+    /// <para>
+    /// A placement id never appears in both sets. A group with no rows still yields an empty plan,
+    /// which is the one case where an empty result genuinely means "nothing to say".
+    /// </para>
     /// </remarks>
     public static ConflictZoneSpawnerPlan BuildPlan(
         ushort zoneGroupId,
@@ -105,29 +128,21 @@ public static class ConflictZoneSpawnerRules
     {
         ArgumentNullException.ThrowIfNull(rows);
 
-        var kind = ResolveStateKind(state);
-        if (kind == ConflictZoneStateKind.None || rows.Count == 0)
+        if (rows.Count == 0)
             return new ConflictZoneSpawnerPlan([], []);
 
+        var kind = ResolveStateKind(state);
         var arm = new List<ConflictZoneSpawnerAction>(rows.Count);
         var retire = new List<ConflictZoneSpawnerAction>(rows.Count);
 
         foreach (var row in rows)
         {
-            if (row.ZoneStateKindId == kind)
-            {
-                // In-state: honour the row's own flag verbatim.
-                var action = new ConflictZoneSpawnerAction(row.NpcSpawnerId, row.SpawnActivate, row.UseDespawn);
-                (action.Activate ? arm : retire).Add(action);
-            }
-            else if (row.ZoneStateKindId == ComplementaryKind(kind))
-            {
-                // Complementary state being left: the row no longer applies, so the placement reverts
-                // to the opposite of what that row enforced — an armed row is retired, a suppressed
-                // row is re-armed.
-                var action = new ConflictZoneSpawnerAction(row.NpcSpawnerId, !row.SpawnActivate, row.UseDespawn);
-                (action.Activate ? arm : retire).Add(action);
-            }
+            // No row carries kind None, so during escalation every row reads as out-of-state.
+            var inState = row.ZoneStateKindId == kind;
+            var closed = row.SpawnActivate ? !inState : inState;
+
+            var action = new ConflictZoneSpawnerAction(row.NpcSpawnerId, Activate: !closed, row.UseDespawn);
+            (closed ? retire : arm).Add(action);
         }
 
         // Stable order keeps a republish (ZoneLoaded / reconnect) deterministic and diffable.
@@ -135,14 +150,6 @@ public static class ConflictZoneSpawnerRules
         retire.Sort(static (a, b) => a.NpcSpawnerId.CompareTo(b.NpcSpawnerId));
         return new ConflictZoneSpawnerPlan(arm, retire);
     }
-
-    /// <summary>The other peace/war spawner kind — the state whose rows are retired when this one is active.</summary>
-    private static ConflictZoneStateKind ComplementaryKind(ConflictZoneStateKind kind) => kind switch
-    {
-        ConflictZoneStateKind.War => ConflictZoneStateKind.Peace,
-        ConflictZoneStateKind.Peace => ConflictZoneStateKind.War,
-        _ => ConflictZoneStateKind.None
-    };
 }
 
 /// <summary>

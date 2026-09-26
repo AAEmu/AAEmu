@@ -243,11 +243,91 @@ public class ConflictZoneSpawnerRulesTests
     }
 
     [Test]
-    public async Task BuildPlan_EscalationStateProducesEmptyArmAndRetire()
+    public async Task BuildPlan_EscalationClosesEveryArmedRowInsteadOfReturningAnEmptyPlan()
     {
+        // The regression this pins: escalation is neither Peace nor War, so no row is in force. An
+        // empty plan here would be published as an empty closed set, which the gate reads as "this
+        // group has no rows" and opens everything — the war placements would return for the whole
+        // escalation stretch, which for these groups is most of each cycle.
         var plan = ConflictZoneSpawnerRules.BuildPlan(15, ZoneConflictType.Conflict, WarAndPeaceRows());
 
         await Assert.That(plan.Arm).IsEmpty();
+        await Assert.That(plan.Retire.Count).IsEqualTo(2);
+        await Assert.That(plan.Retire[0].NpcSpawnerId).IsEqualTo(9001u); // the war row
+        await Assert.That(plan.Retire[1].NpcSpawnerId).IsEqualTo(9002u); // the peace row
+        foreach (var retire in plan.Retire)
+            await Assert.That(retire.Activate).IsFalse();
+    }
+
+    [Test]
+    public async Task BuildPlan_EveryEscalationStateClosesTheWarRows()
+    {
+        // Group 19's shipped shape: a single war row and no peace row, so it has no Peace state to
+        // fall back to. Its war placement must be closed at every step of the escalation ladder.
+        ConflictZoneSpawnerEntry[] rows = [new(516, ConflictZoneStateKind.War, true, true)];
+
+        foreach (var state in new[]
+                 {
+                     ZoneConflictType.Tension, ZoneConflictType.Danger, ZoneConflictType.Dispute,
+                     ZoneConflictType.Unrest, ZoneConflictType.Crisis, ZoneConflictType.Conflict
+                 })
+        {
+            var plan = ConflictZoneSpawnerRules.BuildPlan(19, state, rows);
+
+            await Assert.That(plan.Retire.Count).IsEqualTo(1);
+            await Assert.That(plan.Retire[0].NpcSpawnerId).IsEqualTo(516u);
+            await Assert.That(plan.Arm).IsEmpty();
+        }
+    }
+
+    [Test]
+    public async Task BuildPlan_AFalseRowStaysOpenThroughEscalation()
+    {
+        // Group 139's shipped shape: one peace row with spawn_activate=false. It suppresses only
+        // while Peace is in force, so escalation — where the row does not apply — re-arms it. This is
+        // the one row shape whose behaviour is unchanged by closing on escalation.
+        ConflictZoneSpawnerEntry[] rows = [new(213307, ConflictZoneStateKind.Peace, false, true)];
+
+        var plan = ConflictZoneSpawnerRules.BuildPlan(139, ZoneConflictType.Crisis, rows);
+
+        await Assert.That(plan.Arm.Count).IsEqualTo(1);
+        await Assert.That(plan.Arm[0].NpcSpawnerId).IsEqualTo(213307u);
+        await Assert.That(plan.Arm[0].Activate).IsTrue();
         await Assert.That(plan.Retire).IsEmpty();
+    }
+
+    [Test]
+    public async Task BuildPlan_OnlyAGroupWithNoRowsYieldsAnEmptyPlan()
+    {
+        // The distinction that was lost: an empty result now means "this group has nothing to say",
+        // which is a property of the rows, not of the state.
+        var plan = ConflictZoneSpawnerRules.BuildPlan(999, ZoneConflictType.Conflict, []);
+
+        await Assert.That(plan.Arm).IsEmpty();
+        await Assert.That(plan.Retire).IsEmpty();
+    }
+
+    [Test]
+    public async Task BuildPlan_TheClosedSetIsComplementaryToTheArmedSetInEveryState()
+    {
+        // Walks the whole state ladder rather than sampling: whatever the state, a placement is in
+        // exactly one of the two sets, so the gate and the re-arm can never disagree about it.
+        ConflictZoneSpawnerEntry[] rows =
+        [
+            new(9001, ConflictZoneStateKind.War, true, true),
+            new(9002, ConflictZoneStateKind.Peace, true, true),
+            new(9003, ConflictZoneStateKind.Peace, false, true)
+        ];
+
+        foreach (ZoneConflictType state in Enum.GetValues<ZoneConflictType>())
+        {
+            var plan = ConflictZoneSpawnerRules.BuildPlan(1, state, rows);
+
+            var armIds = plan.Arm.Select(a => a.NpcSpawnerId).ToHashSet();
+            var retireIds = plan.Retire.Select(a => a.NpcSpawnerId).ToHashSet();
+
+            await Assert.That(armIds.Overlaps(retireIds)).IsFalse();
+            await Assert.That(armIds.Union(retireIds).Count).IsEqualTo(rows.Length);
+        }
     }
 }

@@ -56,12 +56,21 @@ public static class ConflictZoneSpawnerRelay
     internal static Func<uint, uint> ResolveZoneGroup { get; set; } =
         zoneId => ZoneManager.Instance.GetZoneByKey(zoneId)?.GroupId ?? 0;
 
+    /// <summary>
+    /// Re-announces the activate sphere for a zone so a placement that just left the closed set
+    /// spawns again. Defaults to the real protocol path; the unit tests substitute a recorder so the
+    /// re-arm can be observed without standing up the schedule gate and its DI-owned managers.
+    /// </summary>
+    internal static Action<ZoneConnection, string> ReactivateSpawners { get; set; } =
+        ZoneProtocolHandler.ReactivateNpcSpawners;
+
     /// <summary>Restores the production resolvers after a test overrides them.</summary>
     internal static void ResetForTest()
     {
         (ResolvePlacements, ResolveZoneGroup, ResolveRows) = (ZoneSpawnerPlacementCatalog.GetAll,
             zoneId => ZoneManager.Instance.GetZoneByKey(zoneId)?.GroupId ?? 0,
             groupId => AAEmu.Game.GameData.ConflictZoneGameData.Instance.GetSpawners(groupId));
+        ReactivateSpawners = ZoneProtocolHandler.ReactivateNpcSpawners;
         ConflictSpawnerGate.ResetForTest();
     }
 
@@ -96,7 +105,7 @@ public static class ConflictZoneSpawnerRelay
         // this state is in force. The arm set needs no entry — those placements announce and are
         // accepted, which is the gate simply having no opinion about them.
         var closed = new HashSet<ConflictSpawnerKey>(plan.Retire.Count);
-        var unresolved = 0;
+        var unresolved = new List<uint>();
         var retiredLive = 0;
 
         foreach (var zone in PlayerEnterService.AllLoadedZones())
@@ -120,9 +129,9 @@ public static class ConflictZoneSpawnerRelay
 
             foreach (var action in plan.Retire)
             {
-                if (!TryResolve(byId, zone, zoneGroupId, action, out var placement))
+                if (!TryResolve(byId, action, out var placement))
                 {
-                    unresolved++;
+                    unresolved.Add(action.NpcSpawnerId);
                     continue;
                 }
 
@@ -138,37 +147,63 @@ public static class ConflictZoneSpawnerRelay
             }
         }
 
-        // Published last and unconditionally, so a group that stops resolving its placements clears
-        // a previously published closed set instead of leaving a stale one armed.
+        // Published before the re-arm below, and unconditionally, so a group that stops resolving its
+        // placements clears a previously published closed set instead of leaving a stale one armed,
+        // and so the re-arm flood is judged against this state rather than the one it replaces.
         ConflictSpawnerGate.Publish(zoneGroupId, closed);
 
-        if (closed.Count > 0 || unresolved > 0 || retiredLive > 0)
+        // A placement that has just left the closed set has no NPC standing and will not announce
+        // itself again on its own: the Zone only re-announces on an activate sphere, which arrives
+        // on a player enter or a schedule window. Without this the placement stays empty until one of
+        // those happens by chance. Publishing first is what makes this safe — the flood passes
+        // through the gate, and everything still closed is refused again rather than respawning.
+        if (plan.Arm.Count > 0)
+            ReArmZones(zoneGroupId, plan.Arm.Count);
+
+        // One line per apply, not one per placement: a group whose rows do not resolve in a given
+        // zone used to emit a warn for every row on every transition.
+        if (unresolved.Count > 0)
+        {
+            Logger.Warn(
+                "ConflictZoneSpawnerRelay group={0} state={1} — {2} closed placement(s) are not in their " +
+                "zone's npc_spawners.g and were skipped this pass: {3}",
+                zoneGroupId, state, unresolved.Count, string.Join(",", unresolved.Distinct().Order()));
+        }
+
+        if (closed.Count > 0 || unresolved.Count > 0 || retiredLive > 0)
         {
             Logger.Info(
-                "ConflictZoneSpawnerRelay group={0} state={1} closedPlacements={2} unresolved={3} retiredLive={4}",
-                zoneGroupId, state, closed.Count, unresolved, retiredLive);
+                "ConflictZoneSpawnerRelay group={0} state={1} armed={2} closedPlacements={3} unresolved={4} retiredLive={5}",
+                zoneGroupId, state, plan.Arm.Count, closed.Count, unresolved.Count, retiredLive);
         }
     }
 
     /// <summary>
-    /// Resolves a placement id to its zone-local spawner type. Returns false (and counts a skip) when
-    /// the zone's <c>npc_spawners.g</c> does not carry the id — the content id is never invented.
+    /// Re-announces the activate sphere for the group's loaded zones so the placements that just left
+    /// the closed set spawn again. Mirrors the schedule gate's re-arm, and is a no-op for a group
+    /// with nothing to re-arm.
+    /// </summary>
+    private static void ReArmZones(ushort zoneGroupId, int armedCount)
+    {
+        foreach (var zone in PlayerEnterService.AllLoadedZones())
+        {
+            if (ResolveZoneGroup(zone.ZoneId) != zoneGroupId)
+                continue;
+
+            ReactivateSpawners(zone, $"{armedCount} conflict placements re-armed");
+        }
+    }
+
+    /// <summary>
+    /// Resolves a placement id to its zone-local spawner type. Returns false when the zone's
+    /// <c>npc_spawners.g</c> does not carry the id — the content id is never invented, and the caller
+    /// reports the misses once per apply instead of once per row.
     /// </summary>
     private static bool TryResolve(
         Dictionary<uint, ZoneSpawnerPlacementCatalog.SpawnerPlacement> byId,
-        ZoneConnection zone,
-        ushort groupId,
         ConflictZoneSpawnerAction action,
-        out ZoneSpawnerPlacementCatalog.SpawnerPlacement placement)
-    {
-        if (byId.TryGetValue(action.NpcSpawnerId, out placement))
-            return true;
-
-        Logger.Warn(
-            "ConflictZoneSpawnerRelay group={0} zoneId={1} placement={2} is not in this zone's npc_spawners.g — skipped",
-            groupId, zone.ZoneId, action.NpcSpawnerId);
-        return false;
-    }
+        out ZoneSpawnerPlacementCatalog.SpawnerPlacement placement) =>
+        byId.TryGetValue(action.NpcSpawnerId, out placement);
 
     /// <summary>
     /// Sends GO_TO_DESPAWN for every tracked NPC announced by this exact placement, then drops the

@@ -41,6 +41,10 @@ public class ConflictZoneSpawnerRelayTests
         ConflictZoneSpawnerRelay.ResolveZoneGroup = zoneId => zoneId == ZoneUnderTest ? 63u : 7u;
         ConflictZoneSpawnerRelay.ResolvePlacements = _ => [];
         ConflictZoneSpawnerRelay.ResolveRows = _ => [];
+        // The re-arm reaches the schedule gate and its DI-owned managers, which a unit test cannot
+        // stand up, so it is stubbed like the resolvers above. A test that asserts on the re-arm
+        // installs its own recorder.
+        ConflictZoneSpawnerRelay.ReactivateSpawners = (_, _) => { };
     }
 
     [After(Test)]
@@ -325,17 +329,71 @@ public class ConflictZoneSpawnerRelayTests
     }
 
     [Test]
-    public async Task EscalationState_ClosesNothingAndSendsNothing()
+    public async Task EscalationState_ClosesTheWarPlacementAndSendsNoCircle()
     {
+        // Escalation is neither Peace nor War, so this war row is not in force and its placement is
+        // closed. Publishing an empty set here is what used to happen, and the gate reads an empty set
+        // as "this group has no rows" — the war placement then came back for the whole escalation
+        // stretch, which for a war-only group like 19 is most of each cycle.
         Rows(63, new ConflictZoneSpawnerEntry(200747, ConflictZoneStateKind.War, true, true));
         Placements((ZoneUnderTest, [(200747, 20800)]));
         var zone = AddZone(ZoneUnderTest, 0);
 
         ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.Conflict);
 
+        // No circle is sent for conflict state at all — that is unchanged.
         await Assert.That(zone.Session.Packets.Count).IsEqualTo(0);
-        await Assert.That(ConflictSpawnerGate.ClosedCount(63)).IsEqualTo(0);
+        await Assert.That(ConflictSpawnerGate.ClosedCount(63)).IsEqualTo(1);
+        await Assert.That(Closed(ZoneUnderTest, 200747, 20800)).IsTrue();
+    }
+
+    [Test]
+    public async Task ALaterStateThatRearmsAPlacement_ReAnnouncesTheZone()
+    {
+        // A placement that has just left the closed set has no NPC standing and will not announce
+        // itself again on its own: the Zone only re-announces on an activate sphere, which otherwise
+        // arrives on a player enter or a schedule window. Without this the placement stays empty
+        // until one of those happens by chance.
+        Rows(63,
+            new ConflictZoneSpawnerEntry(200747, ConflictZoneStateKind.War, true, true),
+            new ConflictZoneSpawnerEntry(169343, ConflictZoneStateKind.Peace, true, true));
+        Placements((ZoneUnderTest, [(200747, 20800), (169343, 20779)]));
+        AddZone(ZoneUnderTest, 0);
+
+        var reArms = new List<string>();
+        ConflictZoneSpawnerRelay.ReactivateSpawners = (_, reason) => reArms.Add(reason);
+
+        // Entering war arms the war row, so the zone has to re-announce.
+        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.War);
+
+        await Assert.That(reArms.Count).IsEqualTo(1);
+        await Assert.That(Closed(ZoneUnderTest, 169343, 20779)).IsTrue();
         await Assert.That(Closed(ZoneUnderTest, 200747, 20800)).IsFalse();
+
+        // And a state that arms nothing must not ask for a re-announce.
+        reArms.Clear();
+        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.Conflict);
+
+        await Assert.That(reArms).IsEmpty();
+    }
+
+    [Test]
+    public async Task AGroupWithNoRowsAtAll_PublishesNothingAndDoesNotRearm()
+    {
+        // The one case where an empty result genuinely means "nothing to say": a property of the
+        // rows, not of the state. Contrast with the escalation case above, where the same empty
+        // armed set must NOT be published.
+        Rows(63);
+        Placements((ZoneUnderTest, [(200747, 20800)]));
+        AddZone(ZoneUnderTest, 0);
+
+        var reArms = 0;
+        ConflictZoneSpawnerRelay.ReactivateSpawners = (_, _) => reArms++;
+
+        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.Conflict);
+
+        await Assert.That(ConflictSpawnerGate.ClosedCount(63)).IsEqualTo(0);
+        await Assert.That(reArms).IsEqualTo(0);
     }
 
     [Test]
