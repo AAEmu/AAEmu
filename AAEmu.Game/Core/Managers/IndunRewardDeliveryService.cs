@@ -33,10 +33,14 @@ internal enum ClaimCommitState
 /// </summary>
 public sealed class IndunRewardDeliveryService : Singleton<IndunRewardDeliveryService>
 {
+    /// <summary>Catalog key for the localization table the authored mail strings are read back from.</summary>
+    public const string InstanceRewardMailTextTable = "instance_reward_mail_texts";
+
     private static readonly Logger Logger = LogManager.GetCurrentClassLogger();
     private readonly Func<MySqlConnection> _openConnection;
     private readonly IMailManager _mailManager;
     private readonly IItemManager _itemManager;
+    private readonly ILocalizationManager _localization;
     private readonly Action<MySqlTransaction> _commit;
 
     public IndunRewardDeliveryService()
@@ -48,11 +52,13 @@ public sealed class IndunRewardDeliveryService : Singleton<IndunRewardDeliverySe
         Func<MySqlConnection> openConnection,
         IMailManager mailManager,
         IItemManager itemManager,
+        ILocalizationManager localizationManager = null,
         Action<MySqlTransaction> commit = null)
     {
         _openConnection = openConnection ?? throw new ArgumentNullException(nameof(openConnection));
         _mailManager = mailManager ?? throw new ArgumentNullException(nameof(mailManager));
         _itemManager = itemManager ?? throw new ArgumentNullException(nameof(itemManager));
+        _localization = localizationManager ?? LocalizationManager.Instance;
         _commit = commit ?? (transaction => transaction.Commit());
     }
 
@@ -307,17 +313,21 @@ public sealed class IndunRewardDeliveryService : Singleton<IndunRewardDeliverySe
         {
             MailType = IndunRewardMailKindRules.Map(text.MailKind),
             ReceiverName = recipient.Name,
-            Title = text.MailTitle,
+            // The shipped columns hold Korean. The client localizes these itself off
+            // X2BattleField:GetInstanceRewardMailInfo(instanceId, mailKind) for the .indunRoundReward
+            // sender, but the envelope fields still need a value, so each string is read back through
+            // the localization table and falls back to the authored text when no row exists.
+            Title = Localized("mail_title", text.Id, text.MailTitle),
             Header =
             {
                 SenderId = 0,
-                SenderName = text.MailSender,
+                SenderName = Localized("mail_sender", text.Id, text.MailSender),
                 ReceiverId = recipient.Id,
                 Status = MailStatus.Unread
             },
             Body =
             {
-                Text = text.MailBody,
+                Text = Localized("mail_body", text.Id, text.MailBody),
                 SendDate = now,
                 RecvDate = now
             }
@@ -325,26 +335,68 @@ public sealed class IndunRewardDeliveryService : Singleton<IndunRewardDeliverySe
 
         foreach (var reward in rewards)
         {
-            if (reward.UseGameScore || reward.GiveIgnoreVisitedCount || reward.ApplyConfig)
-                throw new InvalidOperationException("W03A does not yet interpret instance reward option flags");
-            if (reward.RewardTargetType != InstanceRewardTargetType.Item)
-                throw new InvalidOperationException($"W03A does not yet map reward target type {reward.RewardTargetType}");
-
-            var template = _itemManager.GetTemplate(reward.RewardTargetId) ??
-                throw new InvalidDataException($"instance_rewards target item {reward.RewardTargetId} is missing");
-            if (template.FixedGrade < 0)
-                throw new InvalidDataException($"instance_rewards target item {reward.RewardTargetId} has no fixed grade");
-            var grade = checked((byte)template.FixedGrade);
-            var item = _itemManager.Create(reward.RewardTargetId, reward.RewardAmount, grade) ??
-                throw new InvalidOperationException($"Failed to create instance reward item {reward.RewardTargetId}");
-            item.OwnerId = recipient.Id;
-            item.SlotType = SlotType.Mail;
-            createdItems.Add(item);
-            mail.Body.Attachments.Add(item);
+            foreach (var item in BuildAttachments(reward, recipient.Id))
+            {
+                createdItems.Add(item);
+                mail.Body.Attachments.Add(item);
+            }
         }
 
         return mail;
     }
+
+    /// <summary>
+    /// Turns one authored reward row into the mail attachments it needs, splitting the amount across
+    /// as many items as the template's stack size requires.
+    /// </summary>
+    /// <remarks>
+    /// A template with a <c>fixed_grade</c> of -1 is uncapped, which is the common shipped case;
+    /// <see cref="IItemManager.Create"/> already applies the fixed grade when there is one, so the
+    /// item is created at grade 0 and left alone otherwise.
+    /// </remarks>
+    internal List<Item> BuildAttachments(InstanceReward reward, ulong ownerId)
+    {
+        if (reward.UseGameScore || reward.GiveIgnoreVisitedCount || reward.ApplyConfig)
+            throw new InvalidOperationException("W03A does not yet interpret instance reward option flags");
+        if (reward.RewardTargetType != InstanceRewardTargetType.Item)
+            throw new InvalidOperationException($"W03A does not yet map reward target type {reward.RewardTargetType}");
+
+        var template = _itemManager.GetTemplate(reward.RewardTargetId) ??
+            throw new InvalidDataException($"instance_rewards target item {reward.RewardTargetId} is missing");
+        if (template.MaxCount <= 0)
+        {
+            throw new InvalidDataException(
+                $"instance_rewards target item {reward.RewardTargetId} has no positive stack size, " +
+                $"so an amount of {reward.RewardAmount} cannot be split into deliveries");
+        }
+
+        var items = new List<Item>();
+        var remaining = reward.RewardAmount;
+        while (remaining > 0)
+        {
+            var count = Math.Min(remaining, template.MaxCount);
+            var item = _itemManager.Create(reward.RewardTargetId, count, 0) ??
+                throw new InvalidOperationException($"Failed to create instance reward item {reward.RewardTargetId}");
+            item.OwnerId = ownerId;
+            item.SlotType = SlotType.Mail;
+            // Matches the butler and public-quest delivery paths: an item that exists only inside the
+            // mail being assembled must not be reachable by a world save before the transaction holds
+            // it, or a crash between the two writes it twice.
+            item.ExcludeFromWorldSave = true;
+            items.Add(item);
+            remaining -= count;
+        }
+
+        return items;
+    }
+
+    /// <summary>
+    /// Reads one authored mail string back through the localization table, falling back to the
+    /// authored value when the table has no row for it. The fallback is the shipped text, not an
+    /// invented one.
+    /// </summary>
+    private string Localized(string column, uint textId, string authored) =>
+        _localization.Get(InstanceRewardMailTextTable, column, textId, authored);
 
     private void PublishRecovered(BaseMail mail)
     {
