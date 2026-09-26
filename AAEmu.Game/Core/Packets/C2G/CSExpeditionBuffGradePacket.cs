@@ -5,24 +5,24 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// Requests purchasing/upgrading one prestige-shop buff to a specific grade. Wire: expeditionId,
-/// buffId, grade (all int32/uint32) - the old code mixed up expeditionId and buffId, so every
-/// purchase failed the grade lookup.
+/// Requests purchasing/upgrading one prestige-shop buff to a specific grade. Wire: u32 expeditionId,
+/// u32 buffId, s32 grade - the old code mixed up expeditionId and buffId, so every purchase failed
+/// the grade lookup.
 /// </summary>
 public class CSExpeditionBuffGradePacket() : GamePacket(CSOffsets.CSExpeditionBuffGradePacket, 1)
 {
     public int ExpeditionId { get; private set; }
     public int BuffId { get; private set; }
-    public uint Grade { get; private set; }
+    public int Grade { get; private set; }
 
     public override void Read(PacketStream stream)
     {
         ExpeditionId = stream.ReadInt32();
         BuffId = stream.ReadInt32();
-        Grade = stream.ReadUInt32();
+        Grade = stream.ReadInt32();
 
         var character = Connection.ActiveChar;
-        if (character?.Expedition == null || BuffId <= 0 || Grade is 0 or > byte.MaxValue)
+        if (character?.Expedition == null || BuffId <= 0 || Grade is <= 0 or > byte.MaxValue)
         {
             Logger.Warn(
                 "ExpeditionBuffGrade: rejected before dispatch - expeditionId={0}, buffId={1}, grade={2}, character={3}, hasExpedition={4}",

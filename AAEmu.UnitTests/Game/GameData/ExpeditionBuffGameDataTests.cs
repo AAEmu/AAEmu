@@ -51,6 +51,29 @@ public sealed class ExpeditionBuffGameDataTests : SqliteTestBase
     }
 
     [Test]
+    public async Task PostLoadAcceptsTheAuthoredGradeSequence()
+    {
+        ExpeditionBuffGameData.Instance.Load(Connection);
+        ExpeditionBuffGameData.Instance.PostLoad();
+
+        await Assert.That(ExpeditionBuffGameData.Instance.ContentDiagnostics).IsEmpty();
+    }
+
+    [Test]
+    public async Task PostLoadRejectsAnOrphanEffectOwner()
+    {
+        using var command = Connection.CreateCommand();
+        command.CommandText =
+            "INSERT INTO unit_modifiers VALUES (3, 999, 'ExpeditionBuffGrade', 196, 0, 10, 't')";
+        command.ExecuteNonQuery();
+
+        ExpeditionBuffGameData.Instance.Load(Connection);
+        var exception = Assert.Throws<InvalidOperationException>(() => ExpeditionBuffGameData.Instance.PostLoad());
+
+        await Assert.That(exception.Message).Contains("owner 999");
+    }
+
+    [Test]
     public async Task ExpeditionSumsPurchasedCapacityBenefits()
     {
         ExpeditionBuffGameData.Instance.Load(Connection);
