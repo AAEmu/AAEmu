@@ -26,6 +26,17 @@ public sealed class EventCenterRows : ICommand
 
     public string[] CommandNames { get; set; } = ["eventcenter_rows"];
 
+    /// <summary>
+    /// How many matching rows a gap listing prints before it stops and reports the remainder.
+    /// </summary>
+    /// <remarks>
+    /// A diagnostic bound chosen by this command, not a limit recovered from the client. Several gaps
+    /// are set on every projected row, so an unbounded listing pushes hundreds of chat lines at a
+    /// client that is not asking for them. The per-gap counts printed without an argument are the
+    /// part meant for scanning; the listing exists to sample.
+    /// </remarks>
+    public const int MaxListedRows = 20;
+
     public void OnLoad()
     {
         CommandManager.Instance.Register(CommandNames, this);
@@ -61,12 +72,33 @@ public sealed class EventCenterRows : ICommand
                 return;
             }
 
+            // TryParse also accepts "0" and "None", and a zero-valued flag matches every row through
+            // HasFlag, so the listing would print the whole catalog while claiming to filter.
+            if (wanted == EventCenterRowGap.None)
+            {
+                CommandManager.SendErrorText(
+                    this,
+                    messageOutput,
+                    "'None' (0) is not a filter — it is the absence of every gap. " +
+                    $"Name a gap to list; without an argument this command reports the per-gap counts.");
+                return;
+            }
+
             var matching = catalog.Rows.Where(row => row.Gaps.HasFlag(wanted)).ToList();
             CommandManager.SendNormalText(
                 this, messageOutput, $"Gap {wanted} on {matching.Count} row(s):");
-            foreach (var row in matching)
+            foreach (var row in matching.Take(MaxListedRows))
             {
                 SendRow(this, messageOutput, row);
+            }
+
+            if (matching.Count > MaxListedRows)
+            {
+                CommandManager.SendNormalText(
+                    this,
+                    messageOutput,
+                    $"  ... {matching.Count - MaxListedRows} more row(s) not listed " +
+                    $"(at most {MaxListedRows} are printed).");
             }
 
             return;

@@ -14,7 +14,9 @@ public sealed class EventCenterRowCatalog
 {
     public static EventCenterRowCatalog Empty { get; } = new([]);
 
-    private EventCenterRowCatalog(IReadOnlyList<EventCenterRowProjection> rows)
+    // Internal rather than private so a test can pin the command's own listing behaviour against a
+    // catalog of a chosen size. Content projection still goes through Build.
+    internal EventCenterRowCatalog(IReadOnlyList<EventCenterRowProjection> rows)
     {
         Rows = rows;
         GapCounts = new ReadOnlyDictionary<EventCenterRowGap, int>(
