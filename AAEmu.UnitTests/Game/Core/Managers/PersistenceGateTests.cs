@@ -94,4 +94,168 @@ public class PersistenceGateTests
         await Assert.That(heldAfterTheInnerScopeClosed).IsTrue();
         await Assert.That(heldAfterTheOuterScopeClosed).IsFalse();
     }
+
+    /// <summary>
+    /// A save asked for from inside a live operation cannot take the gate: the reader already held here
+    /// forbids the recursive write, so the request has to be refused. <c>TryEnter</c> reports that refusal
+    /// instead of throwing, which lets a caller with its own failure path (a character save) treat it as the
+    /// ordinary unsuccessful outcome it is rather than losing the save to an escaping exception.
+    /// </summary>
+    [Test]
+    public async Task TryEnterSave_InsideAHeldOperation_RefusesWithoutThrowingAndLeavesTheOperationIntact()
+    {
+        bool entered;
+        bool scopeReturnedNull;
+        bool operationStillHeld;
+        bool saveTakenAfterwards;
+        bool operationHeldAfterRelease;
+
+        PersistenceGate.EnterOperation();
+        try
+        {
+            entered = PersistenceSaveScope.TryEnter(out var scope);
+            scopeReturnedNull = scope is null;
+            operationStillHeld = PersistenceGate.IsOperationHeld;
+        }
+        finally
+        {
+            PersistenceGate.ExitOperation();
+        }
+
+        // The refusal must not have poisoned the gate: a save taken afterwards still succeeds.
+        saveTakenAfterwards = PersistenceSaveScope.TryEnter(out var taken);
+        try
+        {
+            operationHeldAfterRelease = PersistenceGate.IsSaveHeld;
+        }
+        finally
+        {
+            taken?.Dispose();
+        }
+
+        await Assert.That(entered).IsFalse();
+        await Assert.That(scopeReturnedNull).IsTrue();
+        await Assert.That(operationStillHeld).IsTrue();
+        await Assert.That(saveTakenAfterwards).IsTrue();
+        await Assert.That(operationHeldAfterRelease).IsTrue();
+    }
+
+    /// <summary>
+    /// The free-thread case still takes the gate, and a save already running on this thread reports a
+    /// non-owning scope so the nested request does not try to release a lock it never took.
+    /// </summary>
+    [Test]
+    public async Task TryEnterSave_OnAFreeThread_TakesTheGateAndReleasesIt()
+    {
+        bool entered;
+        bool saveHeldWhileTaken;
+        bool saveHeldAfterRelease;
+
+        entered = PersistenceSaveScope.TryEnter(out var scope);
+        try
+        {
+            saveHeldWhileTaken = PersistenceGate.IsSaveHeld;
+        }
+        finally
+        {
+            scope?.Dispose();
+        }
+
+        saveHeldAfterRelease = PersistenceGate.IsSaveHeld;
+
+        await Assert.That(entered).IsTrue();
+        await Assert.That(scope).IsNotNull();
+        await Assert.That(saveHeldWhileTaken).IsTrue();
+        await Assert.That(saveHeldAfterRelease).IsFalse();
+    }
+
+    [Test]
+    public async Task TryEnterSave_InsideAnAlreadyHeldSave_ReportsANonOwningScope()
+    {
+        bool outerEntered;
+        bool nestedEntered;
+        bool nestedOwnsGate;
+        bool saveHeldAfterNestedScopeClosed;
+
+        outerEntered = PersistenceSaveScope.TryEnter(out var outer);
+        try
+        {
+            nestedEntered = PersistenceSaveScope.TryEnter(out var nested);
+            nestedOwnsGate = nested is not null;
+            nested?.Dispose();
+            saveHeldAfterNestedScopeClosed = PersistenceGate.IsSaveHeld;
+        }
+        finally
+        {
+            outer?.Dispose();
+        }
+
+        await Assert.That(outerEntered).IsTrue();
+        await Assert.That(nestedEntered).IsTrue();
+        await Assert.That(nestedOwnsGate).IsTrue();
+        // Disposing the nested scope released nothing, so the outer save is still holding the gate.
+        await Assert.That(saveHeldAfterNestedScopeClosed).IsTrue();
+        await Assert.That(PersistenceGate.IsSaveHeld).IsFalse();
+    }
+
+    /// <summary>
+    /// The throwing form still refuses an inside-operation save, so the two entry points cannot drift.
+    /// </summary>
+    [Test]
+    public async Task EnterSave_InsideAHeldOperation_Throws()
+    {
+        var threw = false;
+
+        PersistenceGate.EnterOperation();
+        try
+        {
+            try
+            {
+                PersistenceSaveScope.Enter();
+            }
+            catch (InvalidOperationException)
+            {
+                threw = true;
+            }
+        }
+        finally
+        {
+            PersistenceGate.ExitOperation();
+        }
+
+        await Assert.That(threw).IsTrue();
+    }
+
+    /// <summary>
+    /// A character save requested while a money operation owns the gate reports a failed save instead of
+    /// throwing. The logout path reaches the save after the character has already left the world, so an
+    /// escaping exception there would drop the save with nothing logged and nothing to retry against.
+    /// </summary>
+    [Test]
+    public async Task CharacterSave_InsideAHeldOperation_ReturnsFalseInsteadOfThrowing()
+    {
+        var character = new AAEmu.UnitTests.Utils.Mocks.CharacterMock();
+        var saved = false;
+        var threw = false;
+
+        PersistenceGate.EnterOperation();
+        try
+        {
+            saved = character.SaveDirectlyToDatabase();
+        }
+        catch
+        {
+            threw = true;
+        }
+        finally
+        {
+            PersistenceGate.ExitOperation();
+        }
+
+        await Assert.That(threw).IsFalse();
+        await Assert.That(saved).IsFalse();
+        // The refusal released nothing it did not take.
+        await Assert.That(PersistenceGate.IsOperationHeld).IsFalse();
+        await Assert.That(PersistenceGate.IsSaveHeld).IsFalse();
+    }
 }

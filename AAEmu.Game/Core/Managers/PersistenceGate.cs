@@ -64,13 +64,38 @@ internal sealed class PersistenceSaveScope : IDisposable
 
     public static PersistenceSaveScope Enter()
     {
-        if (PersistenceGate.IsSaveHeld)
-            return new PersistenceSaveScope(false);
-        if (PersistenceGate.IsOperationHeld)
+        if (!TryEnter(out var scope))
             throw new InvalidOperationException("A persistence save cannot start inside a live operation.");
+        return scope!;
+    }
+
+    /// <summary>
+    /// Takes the save side of the gate, or reports that it cannot. <paramref name="scope"/> is never null when
+    /// this returns true, and is null when the caller is already inside a live operation on this thread and so
+    /// must not start a snapshot.
+    /// </summary>
+    /// <remarks>
+    /// A caller that has to treat that refusal as an ordinary, recoverable outcome (a character save, say, which
+    /// already reports failure by returning false) uses this rather than <see cref="Enter"/>: the throwing form
+    /// would abandon the caller's own error handling and let the refusal escape as an unrelated-looking
+    /// exception.
+    /// </remarks>
+    public static bool TryEnter(out PersistenceSaveScope? scope)
+    {
+        if (PersistenceGate.IsSaveHeld)
+        {
+            scope = new PersistenceSaveScope(false);
+            return true;
+        }
+        if (PersistenceGate.IsOperationHeld)
+        {
+            scope = null;
+            return false;
+        }
 
         PersistenceGate.EnterSave();
-        return new PersistenceSaveScope(true);
+        scope = new PersistenceSaveScope(true);
+        return true;
     }
 
     public void Dispose()

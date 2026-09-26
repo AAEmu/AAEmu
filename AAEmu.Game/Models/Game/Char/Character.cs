@@ -4123,7 +4123,23 @@ public partial class Character : Unit, ICharacter
     public bool SaveDirectlyToDatabase()
     {
         // Try to save New Character
-        using var persistenceSave = PersistenceSaveScope.Enter();
+        // The gate refusal is reported as a normal failed save rather than an escaping exception: this method
+        // already has a failure path that logs and returns false, and a logout reaches it after the character
+        // has been removed from the world, so a throw here would lose the save with no log line explaining why.
+        if (!PersistenceSaveScope.TryEnter(out var persistenceSave))
+        {
+            Logger.Error("Character save refused for {0} - {1}: a live persistence operation owns the save gate.", Id, Name);
+            return false;
+        }
+
+        using (persistenceSave)
+        {
+            return SaveDirectlyToDatabaseCore();
+        }
+    }
+
+    private bool SaveDirectlyToDatabaseCore()
+    {
         PortalSaveCommitToken? portalSaveToken = null;
         bool saved;
         using (var sqlConnection = MySQL.CreateConnection())
