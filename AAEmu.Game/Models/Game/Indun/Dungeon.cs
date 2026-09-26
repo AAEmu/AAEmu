@@ -64,11 +64,21 @@ public class Dungeon : IPreparedIndunInstance
 
     // ReSharper disable once ChangeFieldTypeToSystemThreadingLock
     private readonly object _lock = new();
+    private static readonly string _liveRewardRunEpoch = $"{Environment.ProcessId}:{DateTime.UtcNow.Ticks}";
+    private static long _liveRewardRunSequence;
 
     public bool IsTeamOwned { get => _isTeamOwned; }
     public Character GetCharacterOwner { get => _characterOwner; }
     public Team.Team GetOwnerTeam { get => _ownerTeam; }
     public uint GetZoneGroupId { get => _indunZone.ZoneGroupId; }
+    public uint GetInstanceCatalogId { get => _indunZone.InstanceCatalogId; }
+
+    /// <summary>
+    /// Logical reward-run identity. The default is a live-copy key and is intentionally not a
+    /// process-restart recovery mechanism; a caller that rehydrates a dungeon must pass a persisted
+    /// rewardRunId to the constructor.
+    /// </summary>
+    public string RewardRunId { get; } = string.Empty;
     public bool IsSystem { get; init; }
     public bool FinishedLoading { get; set; }
     private readonly DateTime _createTime = DateTime.UtcNow;
@@ -82,16 +92,17 @@ public class Dungeon : IPreparedIndunInstance
     /// <param name="overrideInstanceId"></param>
     /// <param name="fixedInstanceId"></param>
     /// <param name="channelId"></param>
-    public Dungeon(IndunZone indunZone, Character character, uint channelId, Team.Team team, bool overrideInstanceId = false, uint fixedInstanceId = 0)
-        : this(indunZone, character, channelId, team, existingWorld: null, overrideInstanceId, fixedInstanceId)
+    /// <param name="rewardRunId">Persisted logical run identity for rehydrated copies; null uses the live-only fallback.</param>
+    public Dungeon(IndunZone indunZone, Character character, uint channelId, Team.Team team, bool overrideInstanceId = false, uint fixedInstanceId = 0, string rewardRunId = null)
+        : this(indunZone, character, channelId, team, existingWorld: null, overrideInstanceId, fixedInstanceId, rewardRunId)
     {
     }
 
     /// <summary>
     /// Attach a dungeon to a pre-warmed <see cref="WorldInstance"/> (warm ZoneHost pool claim).
     /// </summary>
-    public Dungeon(IndunZone indunZone, Character character, uint channelId, Team.Team team, WorldInstance existingWorld)
-        : this(indunZone, character, channelId, team, existingWorld, overrideInstanceId: false, fixedInstanceId: 0)
+    public Dungeon(IndunZone indunZone, Character character, uint channelId, Team.Team team, WorldInstance existingWorld, string rewardRunId = null)
+        : this(indunZone, character, channelId, team, existingWorld, overrideInstanceId: false, fixedInstanceId: 0, rewardRunId)
     {
     }
 
@@ -102,7 +113,8 @@ public class Dungeon : IPreparedIndunInstance
         Team.Team team,
         WorldInstance existingWorld,
         bool overrideInstanceId,
-        uint fixedInstanceId)
+        uint fixedInstanceId,
+        string rewardRunId)
     {
         _indunZone = indunZone;
         _leaveRequests = new ConcurrentDictionary<uint, DateTime>();
@@ -142,6 +154,9 @@ public class Dungeon : IPreparedIndunInstance
         }
 
         World.DungeonInstance = this;
+        RewardRunId = string.IsNullOrWhiteSpace(rewardRunId)
+            ? $"live:{_liveRewardRunEpoch}:{Interlocked.Increment(ref _liveRewardRunSequence)}:{World.Id}:{_indunZone.InstanceCatalogId}:{_indunZone.ZoneGroupId}"
+            : rewardRunId;
         _zoneInstanceId = new ZoneInstanceId(zoneKeys.First(), World.Id);
 
         // Grant access here. The manager queues the player once so the create dialog is not stacked.
@@ -851,7 +866,7 @@ public class Dungeon : IPreparedIndunInstance
         character.SendPacket(new SCIndunInitialRoundInfoPacket(current, total, playing));
     }
 
-    /// <summary>IndunActionSendMailReward: the first claim per copy per instance_reward_kind_id wins.</summary>
+    /// <summary>In-memory fast marker; the durable W03A ledger is authoritative for a logical run.</summary>
     internal bool TryClaimMailReward(uint instanceRewardKindId)
     {
         lock (_lock)
