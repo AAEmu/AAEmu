@@ -15,8 +15,25 @@ public sealed class Portal : Npc
     public Transform TeleportPosition { get; set; }
     public Npc LinkedPortal { get; set; }
 
+    /// <summary>
+    /// The book entry this temporary portal was opened from. Identity is the entry object itself,
+    /// never its id: private book ids and district_return_points ids share one id space, so the same
+    /// id can name a private entry and a district entry at the same time.
+    /// </summary>
+    public AAEmu.Game.Models.Game.Portal SourcePortal { get; init; }
+
     /// <summary>The yellow portal that appears at the destination; it is not walked through.</summary>
     public bool IsExit { get; init; }
+
+    /// <summary>
+    /// Set once this portal is dead or has been deleted. It is the lifecycle state the cascade and the
+    /// manager's cleanup read, replacing the old <c>hp &gt; 0</c> test, which depended on the portal
+    /// template's stat formula rather than on what actually happened to the unit.
+    /// </summary>
+    public bool IsDeadOrDeleted { get; private set; }
+
+    /// <summary>Set once the unit has been removed from the world; keeps Delete() idempotent.</summary>
+    public bool IsDeleted { get; private set; }
 
     public override byte UnitStateFlag => IsExit ? ExitFlag : EntranceFlag;
 
@@ -24,22 +41,28 @@ public sealed class Portal : Npc
     {
         // Make sure to mark this portal as "dead" to avoid loops
         Hp = 0;
-        // Remove the linked portal as well if it's still alive
-        if (LinkedPortal is { Hp: > 0 })
+        // Remove the linked portal as well if it is still alive
+        if (LinkedPortal is Portal { IsDeadOrDeleted: false } linked)
         {
-            LinkedPortal.Delete();
+            linked.Delete();
         }
     }
 
     public override void DoDie(BaseUnit killer, KillReason killReason)
     {
         base.DoDie(killer, killReason);
+        IsDeadOrDeleted = true;
         KillLinkedPortal();
     }
 
     public override void Delete()
     {
-        // Broadcast its kill effect to be sure it's removed 
+        if (IsDeleted)
+            return;
+
+        IsDeleted = true;
+        IsDeadOrDeleted = true;
+        // Broadcast its kill effect to be sure it's removed
         BroadcastPacket(new SCUnitDeathPacket(ObjId, KillReason.PortalTimeout), false);
         // Do normal despawn handling
         base.Delete();

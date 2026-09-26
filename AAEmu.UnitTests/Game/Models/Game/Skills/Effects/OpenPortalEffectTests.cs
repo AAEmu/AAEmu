@@ -6,6 +6,7 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
 using AAEmu.Game.Models.Game.Char;
+using AAEmu.Game.Models.Game.NPChar;
 using AAEmu.Game.Models.Game.OpenPortal;
 using AAEmu.Game.Models.Game.Skills;
 using AAEmu.Game.Models.Game.Skills.Effects;
@@ -28,7 +29,9 @@ namespace AAEmu.UnitTests.Game.Models.Game.Skills.Effects;
 public class OpenPortalEffectTests
 {
     private const uint PortalId = 4097;
-    private const uint SkillId = 11216; // 공간의 문을 여는 중..
+    private const uint SkillId = 11216;
+    private const uint EnterNpcId = 7001;
+    private const uint ExitNpcId = 7002;
 
     private static readonly FieldInfo PortalManagerInstanceField =
         typeof(Singleton<PortalManager>).GetField("s_instance", BindingFlags.Static | BindingFlags.NonPublic)!;
@@ -47,7 +50,7 @@ public class OpenPortalEffectTests
         var zoneManager = Mock.Of<IZoneManager>();
         InstallPortalManager(zoneManager.Object);
         var owner = CreateOwner(1000f, 1000f, 100f);
-        var effect = new OpenPortalEffect { Distance = 3f };
+        var effect = new OpenPortalEffect { Distance = 3f, EnterPortalNpcId = EnterNpcId, ExitPortalNpcId = ExitNpcId };
 
         // 100 units west / south: only the +X and +Y sides were compared before, so both passed.
         Apply(effect, owner, 900f, 1000f, 100f);
@@ -66,7 +69,7 @@ public class OpenPortalEffectTests
         var zoneManager = Mock.Of<IZoneManager>();
         InstallPortalManager(zoneManager.Object);
 
-        Apply(new OpenPortalEffect { Distance = 3f }, CreateOwner(1000f, 1000f, 100f), 1002f, 1002f, 100f); // 2.83 away
+        Apply(new OpenPortalEffect { Distance = 3f, EnterPortalNpcId = EnterNpcId, ExitPortalNpcId = ExitNpcId }, CreateOwner(1000f, 1000f, 100f), 1002f, 1002f, 100f); // 2.83 away
 
         // target zone + owner zone.
         zoneManager.GetTargetIdByZoneId(Any<uint>()).WasCalled(Times.Exactly(2));
@@ -80,7 +83,7 @@ public class OpenPortalEffectTests
         var zoneManager = Mock.Of<IZoneManager>();
         InstallPortalManager(zoneManager.Object);
 
-        Apply(new OpenPortalEffect { Distance = 3f }, CreateOwner(1000f, 1000f, 100f), 1000f, 1000f, 250f);
+        Apply(new OpenPortalEffect { Distance = 3f, EnterPortalNpcId = EnterNpcId, ExitPortalNpcId = ExitNpcId }, CreateOwner(1000f, 1000f, 100f), 1000f, 1000f, 250f);
 
         zoneManager.GetTargetIdByZoneId(Any<uint>()).WasCalled(Times.Never);
     }
@@ -91,20 +94,22 @@ public class OpenPortalEffectTests
         var zoneManager = Mock.Of<IZoneManager>();
         InstallPortalManager(zoneManager.Object);
 
-        Apply(new OpenPortalEffect { Distance = 3f }, CreateOwner(1000f, 1000f, 100f), 1000f, 1000f, 102f);
+        Apply(new OpenPortalEffect { Distance = 3f, EnterPortalNpcId = EnterNpcId, ExitPortalNpcId = ExitNpcId }, CreateOwner(1000f, 1000f, 100f), 1000f, 1000f, 102f);
 
         zoneManager.GetTargetIdByZoneId(Any<uint>()).WasCalled(Times.Exactly(2));
     }
 
     private static void InstallPortalManager(IZoneManager zoneManager)
     {
+        var npcManager = Mock.Of<INpcManager>();
+        npcManager.GetTemplate(EnterNpcId).Returns(new NpcTemplate { Id = EnterNpcId, ModelId = 1, Level = 1 });
+        npcManager.GetTemplate(ExitNpcId).Returns(new NpcTemplate { Id = ExitNpcId, ModelId = 2, Level = 1 });
         var portalManager = new PortalManager(
             Mock.Of<ILocalizationManager>().Object,
             Mock.Of<IWorldManager>().Object,
             zoneManager,
-            Mock.Of<INpcManager>().Object,
-            Mock.Of<IObjectIdManager>().Object,
-            Mock.Of<ITaskManager>().Object);
+            npcManager.Object,
+            Mock.Of<IObjectIdManager>().Object);
         // The reagent tables are loaded from content on startup; emptying them keeps OpenPortal from
         // spawning a portal NPC, so the zone lookup above is the last thing it does.
         SetField(portalManager, "_openPortalInlandReagents", new Dictionary<uint, OpenPortalReagents>());
@@ -126,7 +131,10 @@ public class OpenPortalEffectTests
     private static void Apply(OpenPortalEffect effect, Character owner, float x, float y, float z) =>
         effect.Apply(owner, new SkillCasterUnit(owner.ObjId), owner, new SkillCastUnitTarget(owner.ObjId),
             new CastSkill(SkillId, 1), new EffectSource(),
-            new SkillObjectUnk1 { Type = 1, Id = (int)PortalId, X = x, Y = y, Z = z }, DateTime.UtcNow);
+            // Type 2 names the private book, matching the entry CreateOwner puts in PrivatePortals.
+            // The cast path resolves the book the client names, so a mismatched type byte no longer
+            // falls through to the other book.
+            new SkillObjectUnk1 { Type = 2, Id = (int)PortalId, X = x, Y = y, Z = z }, DateTime.UtcNow);
 
     private static void SetField(object target, string name, object value) =>
         target.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(target, value);

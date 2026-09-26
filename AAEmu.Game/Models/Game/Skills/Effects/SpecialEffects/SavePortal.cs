@@ -27,13 +27,21 @@ public class SavePortal : SpecialEffectAction
             {
                 if (so.Id == 0)
                 {
-                    character.Portals.AddPrivatePortal(character.Transform.World.Position.X,
-                        character.Transform.World.Position.Y, character.Transform.World.Position.Z,
-                        character.Transform.World.Rotation.Z, character.Transform.ZoneId, so.Name);
+                    if (!character.Portals.TryAddPrivatePortal(character.Transform.World.Position.X,
+                            character.Transform.World.Position.Y, character.Transform.World.Position.Z,
+                            character.Transform.World.Rotation.Z, character.Transform.ZoneId, so.Name, out _))
+                    {
+                        Logger.Warn("SavePortal refused an invalid private portal name");
+                    }
+                }
+                else if (so.Id > 0)
+                {
+                    if (!character.Portals.ChangePrivatePortalName((uint)so.Id, so.Name))
+                        Logger.Warn("SavePortal could not rename private portal {0}", so.Id);
                 }
                 else
                 {
-                    character.Portals.ChangePrivatePortalName((uint)so.Id, so.Name);
+                    Logger.Warn("SavePortal received a negative private portal id {0}", so.Id);
                 }
             }
         }
