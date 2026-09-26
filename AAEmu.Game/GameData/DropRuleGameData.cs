@@ -1,4 +1,5 @@
-﻿using AAEmu.Commons.Utils;
+﻿using System.Collections.Concurrent;
+using AAEmu.Commons.Utils;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models.Game.Items.Loots;
 using AAEmu.Game.Utils.DB;
@@ -20,7 +21,11 @@ public sealed class DropRuleGameData : Singleton<DropRuleGameData>, IGameDataLoa
     // NPC subjects are read one at a time, on demand, and cached here. They are deliberately not loaded at
     // boot: the shipped npcs table is 19,522 rows, nothing in this slice reads them at startup, and building
     // the whole map cost about 1.4 s of boot and held every row for the life of the process.
-    private readonly Dictionary<uint, DropRuleSubject> _npcSubjects = [];
+    // ConcurrentDictionary, not Dictionary: the cache is filled lazily from whatever thread first
+    // asks for an npc, and a reset can clear it from another. There is no consumer yet, so the
+    // safe type costs nothing now; leaving a plain Dictionary for "whoever adds the first caller"
+    // is how this class would grow a race nobody wrote.
+    private readonly ConcurrentDictionary<uint, DropRuleSubject> _npcSubjects = new();
     private readonly Func<SqliteConnection> _openConnection;
     private readonly List<MissingLootPackMembership> _missingLootPackMemberships = [];
     private int _orphanMembershipCount;
