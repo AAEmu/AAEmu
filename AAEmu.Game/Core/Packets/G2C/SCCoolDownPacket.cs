@@ -6,7 +6,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 
 public class SCCooldownsPacket(UnitCooldowns cooldowns) : GamePacket(SCOffsets.SCCooldownsPacket, 1)
 {
-    // Native reserves 0x708 bytes per bucket: u32 count followed by 150 12-byte entries.
+    // The wire reserves a fixed 150-entry capacity for each bucket.
     private const int MaximumEntriesPerBucket = 150;
 
     public override PacketStream Write(PacketStream stream)
@@ -16,13 +16,12 @@ public class SCCooldownsPacket(UnitCooldowns cooldowns) : GamePacket(SCOffsets.S
         stream.Write((uint)skillEntries.Count);
         foreach (var entry in skillEntries)
         {
-            stream.Write(unchecked((int)entry.SkillId));
-            stream.Write(unchecked((int)entry.Duration));
-            stream.Write(unchecked((int)entry.Remaining));
+            stream.Write(entry.SkillId);
+            stream.Write(entry.Duration);
+            stream.Write(entry.Remaining);
         }
 
-        // AAEmu currently has no independent tag or charge cooldown stores. The native body still
-        // requires both counts when those buckets are empty.
+        // The protocol requires both counts even when those buckets are empty.
         stream.Write(0u); // tagCount
         stream.Write(0u); // chargeCount
 

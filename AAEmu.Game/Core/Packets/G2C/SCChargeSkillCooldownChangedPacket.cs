@@ -1,16 +1,14 @@
-using AAEmu.Commons.Network;
+﻿using AAEmu.Commons.Network;
 using AAEmu.Game.Core.Network.Game;
 
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// TODO: nothing constructs this packet yet.
+/// Charge-cooldown change packet. The client serializer writes type through its i32 slot and
+/// percent/count/reduce through its u32 slot; the C# int values preserve authored negative content
+/// while producing the same four-byte wire values.
 /// </summary>
-/// <remarks>
-/// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
-/// value's name alongside the value:
-/// </remarks>
-public class SCChargeSkillCooldownChangedPacket(uint bc, int @type, uint percent, uint count, uint reduce) : GamePacket(SCOffsets.SCChargeSkillCooldownChangedPacket, 1)
+public class SCChargeSkillCooldownChangedPacket(uint bc, uint @type, int percent, int count, int reduce) : GamePacket(SCOffsets.SCChargeSkillCooldownChangedPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
