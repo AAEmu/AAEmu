@@ -2374,6 +2374,9 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
                 }
             }
 
+            // doodad_func_random_store_uis - typed descriptor for the client random-shop window.
+            LoadRandomStoreUiFunctions(connection);
+
             // doodad_func_timers
             using (var command = connection.CreateCommand())
             {
@@ -2644,6 +2647,44 @@ public class DoodadManager(INonUnitObjectIdManager objectIdManager, IDoodadIdMan
             if (!funcTemplates[nameof(DoodadFuncLocalDevelopmentBoardUiOpen)].TryAdd(func.Id, func))
                 throw new InvalidOperationException(
                     $"Duplicate doodad_func_local_development_board_ui_opens id {func.Id}");
+        }
+    }
+
+    /// <summary>
+    /// Loads the shipped random-shop descriptor table. The descriptor is a typed function template;
+    /// its merchant pack is resolved by <see cref="RandomMerchantGameData"/> at interaction time.
+    /// </summary>
+    internal void LoadRandomStoreUiFunctions(SqliteConnection connection)
+    {
+        if (connection == null)
+            throw new ArgumentNullException(nameof(connection));
+
+        if (!_funcTemplates.TryGetValue(nameof(DoodadFuncRandomStoreUi), out var templates))
+        {
+            templates = [];
+            _funcTemplates[nameof(DoodadFuncRandomStoreUi)] = templates;
+        }
+
+        using var command = connection.CreateCommand();
+        command.CommandText =
+            "SELECT id, merchant_random_pack_id FROM doodad_func_random_store_uis ORDER BY id";
+        command.Prepare();
+        using var reader = new SQLiteWrapperReader(command.ExecuteReader());
+        while (reader.Read())
+        {
+            var id = reader.GetUInt32("id");
+            var packId = reader.GetUInt32("merchant_random_pack_id");
+            if (id == 0 || packId == 0)
+                throw new InvalidDataException(
+                    $"DoodadFuncRandomStoreUi descriptor {id} has an invalid merchant pack {packId}");
+
+            var descriptor = new DoodadFuncRandomStoreUi
+            {
+                Id = id,
+                MerchantRandomPackId = packId
+            };
+            if (!templates.TryAdd(id, descriptor))
+                throw new InvalidDataException($"Duplicate DoodadFuncRandomStoreUi descriptor id {id}");
         }
     }
 
