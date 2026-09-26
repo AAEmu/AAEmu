@@ -144,8 +144,15 @@ public sealed class CashShopPurchaseStoreTests : IDisposable
             var correlation = CashShopLogCorrelation.ForBuyer(AccountId, CharacterId);
             await Assert.That(messages).Contains(
                 $"ICS purchase persistence failed for buyer correlation {correlation}");
-            await Assert.That(messages).DoesNotContain(AccountId.ToString());
-            await Assert.That(messages).DoesNotContain(CharacterId.ToString());
+
+            // The point of the correlation hash is that the raw ids are not in the line. That is asserted by
+            // comparing the whole message against the ids standing alone as tokens, NOT by substring search:
+            // AccountId is 11 and the correlation is a 16-character hex digest, so "11" appears inside it by
+            // chance in roughly 62% of runs. A substring check on a two-digit id against a random hex string
+            // tests the digest's alphabet, not the logging, and fails most of the time.
+            AssertIdentifiersAbsent(messages, correlation);
+
+            // And the two are genuinely different values, not the id relabelled.
             await Assert.That(correlation).IsNotEqualTo(AccountId.ToString());
             await Assert.That(correlation).IsNotEqualTo(CharacterId.ToString());
             await Assert.That(result.Succeeded).IsFalse();
@@ -331,4 +338,33 @@ public sealed class CashShopPurchaseStoreTests : IDisposable
     }
 
     public void Dispose() => _connection.Dispose();
+
+    /// <summary>
+    /// Fails when a raw account or character id appears in the captured log as a value of its own — a word
+    /// bounded by non-digits, or a standalone number. The correlation token is removed first, because it is a
+    /// hex digest that can contain a two-digit id by chance and says nothing about the ids being logged.
+    /// </summary>
+    private static void AssertIdentifiersAbsent(string messages, string correlation)
+    {
+        ArgumentNullException.ThrowIfNull(messages);
+        ArgumentNullException.ThrowIfNull(correlation);
+
+        var withoutCorrelation = messages.Replace(correlation, "<correlation>", StringComparison.Ordinal);
+
+        foreach (var id in new[] { AccountId, CharacterId, TargetAccountId, TargetCharacterId })
+        {
+            var digits = id.ToString();
+            var index = withoutCorrelation.IndexOf(digits, StringComparison.Ordinal);
+            while (index >= 0)
+            {
+                var boundedOnLeft = index == 0 || !char.IsDigit(withoutCorrelation[index - 1]);
+                var end = index + digits.Length;
+                var boundedOnRight = end >= withoutCorrelation.Length || !char.IsDigit(withoutCorrelation[end]);
+                if (boundedOnLeft && boundedOnRight)
+                    Assert.Fail($"The captured log contains the raw id {digits}: {withoutCorrelation}");
+
+                index = withoutCorrelation.IndexOf(digits, index + 1, StringComparison.Ordinal);
+            }
+        }
+    }
 }
