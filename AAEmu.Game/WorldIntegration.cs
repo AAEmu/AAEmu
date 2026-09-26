@@ -539,8 +539,10 @@ public static class WorldIntegration
     public static Action<byte[]> RelaySiegeStateToZone { get; set; }
 
     /// <summary>
-    /// WZConflictZoneState: a conflict zone group entered a new honor-point war state, so the Zone
-    /// hosts simulating that group can re-arm the <c>conflict_zone_npc_spawners</c> rows for it.
+    /// WZConflictZoneState: a conflict zone group entered a new honor-point war state. The host
+    /// stores it for its unit/skill requirement evaluators; the receiver also re-applies the group's
+    /// <c>conflict_zone_npc_spawners</c> rows for the new state, because the host never arms them
+    /// from the state itself.
     /// Args: zone group id, war state byte (ZoneConflictType).
     /// </summary>
     public static Action<ushort, byte> RelayConflictZoneStateToZone { get; set; }
