@@ -33,8 +33,22 @@ public class Craft
     /// </summary>
     public uint ActabilityGroupId { get; set; }
 
+    /// <summary>Whether the shipped craft row is restricted to actability use.</summary>
+    public bool UseOnlyActability { get; set; }
+
+    /// <summary>
+    /// Optional product-pack reference stored on the craft row. The current 10.0.2.13 compact
+    /// catalog has no product-pack table, so consumers must not infer a join from this value.
+    /// </summary>
+    public uint? ProductPackId { get; set; }
+
+    public uint? CraftCCategoryId { get; set; }
+    public uint? CraftDCategoryId { get; set; }
+
     public List<CraftProduct> CraftProducts { get; set; } = [];
     public List<CraftMaterial> CraftMaterials { get; set; } = [];
+    public List<CraftLineComponent> CraftLineComponents { get; set; } = [];
+    public HashSet<uint> CraftPackIds { get; set; } = [];
     public bool IsPack { get; set; }
 
     public bool ResultsInBackpack
