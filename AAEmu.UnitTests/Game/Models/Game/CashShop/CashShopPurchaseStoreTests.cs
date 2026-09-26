@@ -146,17 +146,12 @@ public sealed class CashShopPurchaseStoreTests : IDisposable
                 $"ICS purchase persistence failed for buyer correlation {correlation}");
 
             // The point of the correlation hash is that the raw ids are not in the line. That is asserted by
-            // matching the ids only where they stand alone as values, NOT by substring search. The correlation
-            // is 16 hex characters over a 16-symbol alphabet and the ids are two characters, so each of the 15
-            // possible start positions hits with probability (1/16)^2 = 1/256. That is a 5.41% chance per id per
-            // run (exact recurrence, matching a 1,000,000-trial estimate), and about 10.6% for the run as
-            // written here, which checks both "11" and "22".
-            //
-            // A substring check at that rate is not a gate anyone can trust: it fails roughly every tenth run
-            // for a reason that has nothing to do with the ids being logged, and it is what turned an unrelated
-            // branch red. Note that a genuine leak is still caught by the old form — a leaked id is written
-            // into the line as a value, so it appears as a substring regardless — so this is about the false
-            // positives, not about losing detection.
+            // comparing the whole message against the ids standing alone as tokens, NOT by substring search:
+            // AccountId is 11 and the correlation is a 16-character hex digest, so "11" can land inside it by
+            // chance. Per start position that is (1/16)^2 for a two-character id, over 15 start positions, so a
+            // run of this test fails for an unrelated reason roughly 5% of the time per id and about 10% with
+            // both ids asserted. A substring check on a two-digit id against a random hex string mostly tests
+            // the digest's alphabet, not the logging.
             AssertIdentifiersAbsent(messages, correlation);
 
             // And the two are genuinely different values, not the id relabelled.
