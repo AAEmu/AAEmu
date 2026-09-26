@@ -206,6 +206,8 @@ public static class SCOffsets
     public const ushort SCChatFailedPacket = 0x105; // 10.0.2.13
     public const ushort SCChatLocalizedMessagePacket = 0x106; // 10.0.2.13
     public const ushort SCChatSpamDelayPacket = 0x107; // 10.0.2.13 SCChatSpamConfig (1.2 was 0xd3)
+    public const ushort SCOneAndOneChatStartPacket = 0x307; // 10.0.2.13, one-to-one chat
+    public const ushort SCOneAndOneChatAddMessagePacket = 0x308; // 10.0.2.13, one-to-one chat
     public const ushort SCAskToJoinTeamPacket = 0x109; // 10.0.2.13
     public const ushort SCAskToJoinTeamAreaPacket = 0x10A; // 10.0.2.13
     public const ushort SCJoinedTeamPacket = 0x10B; // 10.0.2.13

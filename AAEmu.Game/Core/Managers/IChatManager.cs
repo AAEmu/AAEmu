@@ -10,6 +10,7 @@ public interface IChatManager : IInitializable
 {
     List<ChatChannel> ListAllChannels();
     void LeaveAllChannels(Character character);
+    int CloseDirectChatSessions(Character character);
     int CleanUpChannels();
     ChatChannel GetFactionChat(FactionsEnum factionMotherId);
     ChatChannel GetFactionChat(Character character);

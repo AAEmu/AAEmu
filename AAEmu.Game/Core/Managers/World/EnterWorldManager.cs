@@ -294,8 +294,10 @@ public class EnterWorldManager(
             // Remove from Team (raid/party)
             teamManager.MemberRemoveFromTeam(activeChar, activeChar, RiskyAction.Leave);
 
-            // Remove from all Chat
+            // Remove from all Chat. One-to-one sessions are closed here: a normal logout clears the
+            // active character before the connection drop, so the disconnect path never sees them.
             chatManager.LeaveAllChannels(activeChar);
+            chatManager.CloseDirectChatSessions(activeChar);
 
             // Handle Family, including a pending invitation for a character with no family yet.
             familyManager.OnCharacterLogout(activeChar);

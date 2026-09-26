@@ -50,4 +50,23 @@ public static class SocialChatAuthorization
         var member = expedition.GetMember(character);
         return member != null && expedition.GetPolicyByRole(member.Role)?.Chat == true;
     }
+
+    /// <summary>One-to-one (direct) chat: both ends present and neither side hostile to the other.</summary>
+    /// <remarks>
+    /// The diplomacy rule is the one the whisper path has always used - the two characters have to
+    /// share a mother faction - and it is shared here so the whisper command and the native
+    /// one-to-one packet family cannot drift apart. It fails closed: a character whose faction is
+    /// not resolved yet, a self-send and an unknown peer are all "no".
+    /// </remarks>
+    public static bool CanSendDirectChat(Character sender, Character receiver) =>
+        sender != null && receiver != null &&
+        sender.Id != receiver.Id &&
+        sender.IsOnline && receiver.IsOnline &&
+        sender.Faction != null && receiver.Faction != null &&
+        sender.Faction.MotherId == receiver.Faction.MotherId;
+
+    /// <summary>True when either character's block list names the other.</summary>
+    public static bool EitherHasBlocked(Character first, Character second) =>
+        first?.Blocked?.Contains(second?.Id ?? 0) == true ||
+        second?.Blocked?.Contains(first?.Id ?? 0) == true;
 }
