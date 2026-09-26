@@ -1,4 +1,4 @@
-﻿using AAEmu.Game.Core.Managers;
+using AAEmu.Game.Core.Managers;
 using AAEmu.Game.Models.Game.Sieges;
 
 using Microsoft.Data.Sqlite;
@@ -14,6 +14,15 @@ public class SiegeScoreStoreTests : IDisposable
     private const ushort ZoneGroup = 33;
     private static readonly DateTime CycleStart = new(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc);
     private static readonly DateTime SettledAt = new(2026, 9, 4, 23, 0, 0, DateTimeKind.Utc);
+
+    /// <summary>
+    /// The reign the seeded dominion already began, deliberately far from <see cref="SettledAt"/> so
+    /// that "moved" and "did not move" can never be satisfied by the same value.
+    /// </summary>
+    private static readonly DateTime ReignBeganAt = new(2026, 5, 12, 8, 30, 0, DateTimeKind.Utc);
+
+    /// <summary>A previous siege's end, likewise distinct from <see cref="SettledAt"/>.</summary>
+    private static readonly DateTime LastSiegeEndedAt = new(2026, 8, 28, 23, 0, 0, DateTimeKind.Utc);
 
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"siege-score-{Guid.NewGuid():N}.db");
     private readonly SqliteConnection _setup = new();
@@ -160,8 +169,11 @@ public class SiegeScoreStoreTests : IDisposable
     }
 
     [Test]
-    public async Task Settle_StampsTheReignWithoutChangingTheOwnerWhenTheDefenceHeld()
+    public async Task Settle_LeavesTheReignStartAloneWhenTheDefenceHeld()
     {
+        // The owner did not change, so the reign the client shows via X2Dominion:GetReignStartDate must
+        // not move. It used to: the store wrote reign_start_time on every settlement, so the database
+        // drifted away from the in-memory dominion and the moved date came back on the next restart.
         SeedDominion(expeditionId: 0, factionId: 148);
         _store.Add(ZoneGroup, SiegeScoreSide.Offense, 40);
 
@@ -169,9 +181,14 @@ public class SiegeScoreStoreTests : IDisposable
 
         await Assert.That(settled.Outcome).IsEqualTo(SiegeOutcome.DefenseHeld);
         await Assert.That(settled.WinnerFactionId).IsEqualTo(0u);
+
         var row = ReadDominion();
         await Assert.That(row.FactionId).IsEqualTo(148u);
-        await Assert.That(row.ReignStartTime).IsEqualTo(SettledAt);
+        // Unchanged, and distinct from SettledAt so a stray write cannot satisfy this.
+        await Assert.That(row.ReignStartTime).IsEqualTo(ReignBeganAt);
+        await Assert.That(row.ReignStartTime).IsNotEqualTo(SettledAt);
+        // The siege really did end, so the siege-end clock does move.
+        await Assert.That(row.LastSiegeEndTime).IsEqualTo(SettledAt);
     }
 
     [Test]
@@ -244,25 +261,57 @@ public class SiegeScoreStoreTests : IDisposable
         Reason = "test",
     };
 
-    private void SeedDominion(uint expeditionId, uint factionId)
+    private void SeedDominion(uint expeditionId, uint factionId, DateTime? reignStart = null)
     {
+        // Always written, never left NULL. A NULL would make "the reign start did not move" and "the
+        // reign start moved" indistinguishable, because both would read back as nothing — and the bug
+        // this suite exists to catch is precisely a write that should not have happened.
         using var command = _setup.CreateCommand();
         command.CommandText =
-            "INSERT INTO dominions (zone_id, expedition_id, faction_id) VALUES (@z, @e, @f)";
+            "INSERT INTO dominions (zone_id, expedition_id, faction_id, reign_start_time, last_siege_end_time) " +
+            "VALUES (@z, @e, @f, @r, @l)";
         command.Parameters.AddWithValue("@z", ZoneGroup);
         command.Parameters.AddWithValue("@e", expeditionId);
         command.Parameters.AddWithValue("@f", factionId);
+        command.Parameters.AddWithValue("@r", (reignStart ?? ReignBeganAt).ToString("O"));
+        command.Parameters.AddWithValue("@l", LastSiegeEndedAt.ToString("O"));
         command.ExecuteNonQuery();
     }
 
     private (uint ExpeditionId, uint FactionId, DateTime ReignStartTime, DateTime LastSiegeEndTime) ReadDominion()
     {
         using var command = _setup.CreateCommand();
-        command.CommandText = "SELECT expedition_id, faction_id, last_siege_end_time, reign_start_time FROM dominions";
+        // Columns are addressed BY NAME, never by position. This helper used to select
+        // (expedition_id, faction_id, last_siege_end_time, reign_start_time) and then map index 2 to
+        // ReignStartTime and index 3 to LastSiegeEndTime -- i.e. it returned the two dates swapped.
+        // The consequence was worse than a wrong read: the test that asserted the store did NOT stamp
+        // the reign was asserting against last_siege_end_time, which the store always sets. So it
+        // passed with the store's real behaviour and would have passed again with the original bug
+        // restored -- a test that could not fail.
+        command.CommandText =
+            "SELECT expedition_id, faction_id, last_siege_end_time, reign_start_time FROM dominions";
         using var reader = command.ExecuteReader();
         reader.Read();
-        return (Convert.ToUInt32(reader.GetValue(0)), Convert.ToUInt32(reader.GetValue(1)),
-            Convert.ToDateTime(reader.GetValue(2)), Convert.ToDateTime(reader.GetValue(3)));
+        uint Col(string name) => Convert.ToUInt32(reader[reader.GetOrdinal(name)]);
+
+        // The stored stamp is read as the wall-clock value the server wrote and marked Utc. It is
+        // deliberately NOT ToUniversalTime()'d: a persisted timestamp arrives as DateTimeKind.
+        // Unspecified, and converting one as if it were local shifts it by the machine's offset --
+        // which moved this by three hours here and would have failed on any machine in another zone.
+        DateTime Stamp(string name)
+        {
+            var value = reader[reader.GetOrdinal(name)];
+            var asText = value is DateTime parsed
+                ? parsed.ToString("O")
+                : Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture);
+            return DateTime.SpecifyKind(
+                DateTime.Parse(asText!, System.Globalization.CultureInfo.InvariantCulture,
+                    System.Globalization.DateTimeStyles.RoundtripKind),
+                DateTimeKind.Utc);
+        }
+
+        return (Col("expedition_id"), Col("faction_id"),
+            Stamp("reign_start_time"), Stamp("last_siege_end_time"));
     }
 
     private long ScoreOnRecord(string column)

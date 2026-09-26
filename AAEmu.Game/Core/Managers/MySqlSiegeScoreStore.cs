@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using System.Data.Common;
 
 using AAEmu.Commons.Utils.DB;
@@ -192,13 +192,17 @@ public sealed class MySqlSiegeScoreStore : ISiegeScoreStore
         using (var dominion = connection.CreateCommand())
         {
             dominion.Transaction = transaction;
-            // The siege ended either way, so the reign clock moves on. An alliance that broke through also
-            // takes the claim, and a settled dominion belongs to a nation rather than to the guild that
-            // declared it last cycle, so the guild link goes with it.
+            // The siege ended either way, so the siege-end clock moves on. The reign start clock does
+            // NOT: it records when the current owner took the claim, and a defended siege leaves that
+            // owner in place. Moving it here would make the database drift away from the in-memory
+            // dominion, and the moved date would come back for the client (X2Dominion:GetReignStartDate)
+            // on the next restart. An alliance that broke through DOES take the claim, and a settled
+            // dominion belongs to a nation rather than to the guild that declared it last cycle, so
+            // the guild link goes with it -- and that branch is the only one that starts a new reign.
             if (record.WinnerFactionId == 0)
             {
                 dominion.CommandText =
-                    "UPDATE dominions SET last_siege_end_time = @settled, reign_start_time = @settled WHERE zone_id = @z";
+                    "UPDATE dominions SET last_siege_end_time = @settled WHERE zone_id = @z";
             }
             else
             {

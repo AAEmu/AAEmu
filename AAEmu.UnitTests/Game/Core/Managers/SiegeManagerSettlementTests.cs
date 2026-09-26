@@ -428,7 +428,12 @@ public class SiegeManagerSettlementTests : IDisposable
             }
 
             dominion.LastSiegeEndTime = record.SettledAtUtc;
-            dominion.ReignStartTime = record.SettledAtUtc;
+            // Mirrors DominionManager.ApplySettlement: the reign start may only move when the dominion
+            // changed hands. This fake used to move it unconditionally, which meant a test could not
+            // tell a correct settlement from one that stamped a defended siege — a fake that agrees
+            // with the code it stands in for hides the defect it should be able to show.
+            if (record.WinnerFactionId != 0)
+                dominion.ReignStartTime = record.SettledAtUtc;
         }
 
         public DominionData GetDominionAtPosition(ushort zoneId, float x, float y) => null!;
