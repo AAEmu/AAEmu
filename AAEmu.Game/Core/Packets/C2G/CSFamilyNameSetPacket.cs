@@ -5,7 +5,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.C2G;
 
 /// <summary>
-/// TODO(v10): the body is parsed but nothing acts on it yet.
+/// Routes a family-name request to the owner-authority, ticket-cost, and persistence path.
 /// </summary>
 /// <remarks>
 /// which passes each field name alongside the value:

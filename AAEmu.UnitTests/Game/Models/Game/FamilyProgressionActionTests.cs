@@ -25,6 +25,20 @@ public class FamilyProgressionActionTests
     }
 
     [Test]
+    public async Task FamilyTextAdministration_UsesUtf8ByteLimits()
+    {
+        await Assert.That(FamilyProgressionRules.IsWithinFamilyNameByteLimit(new string('a', 256))).IsTrue();
+        await Assert.That(FamilyProgressionRules.IsWithinFamilyNameByteLimit(new string('a', 257))).IsFalse();
+        await Assert.That(FamilyProgressionRules.IsValidNotice(new string('a', 800))).IsTrue();
+        await Assert.That(FamilyProgressionRules.IsValidNotice(new string('a', 801))).IsFalse();
+        await Assert.That(FamilyProgressionRules.IsWithinFamilyNameByteLimit(new string('\u00E9', 128))).IsTrue();
+        await Assert.That(FamilyProgressionRules.IsWithinFamilyNameByteLimit(new string('\u00E9', 129))).IsFalse();
+        await Assert.That(FamilyProgressionRules.IsValidNotice(new string('\u00E9', 400))).IsTrue();
+        await Assert.That(FamilyProgressionRules.IsValidNotice(new string('\u00E9', 401))).IsFalse();
+        await Assert.That(FamilyProgressionRules.IsValidNotice(null)).IsFalse();
+    }
+
+    [Test]
     public async Task ExpeditionQuestReward_ForwardsConfiguredPointToNormalManagerPath()
     {
         var character = new Character(new UnitCustomModelParams());

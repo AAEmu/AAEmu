@@ -1,4 +1,5 @@
 using AAEmu.Game.GameData;
+using AAEmu.Game.Models.Game;
 using AAEmu.Game.Models.Game.Families;
 
 namespace AAEmu.UnitTests.Game.GameData;
@@ -39,6 +40,38 @@ public class FamilyGameDataTests : SqliteTestBase
         await Assert.That(data.GetMemberLimit(12).ItemCount).IsEqualTo(8);
         await Assert.That(data.MaxMemberLimit).IsEqualTo(12);
         await Assert.That(data.GetRole(4).RoleCount).IsEqualTo(5);
+    }
+
+    [Test]
+    public async Task AdministrationRules_UseLoadedRoleCapacityAndNextMemberLimit()
+    {
+        ContentConfigGameData.Instance.SetForTest(FamilyContentConfig.MaximumCountKey, 8);
+        Execute(
+            """
+            INSERT INTO family_member_limits VALUES (1, 9, 7001, 1), (2, 10, 7001, 2);
+            INSERT INTO family_roles VALUES (1, '7002', 'Owner', 1), (4, '7003', 'Member', 2);
+            """);
+        var data = new FamilyGameData();
+        data.Load(Connection);
+        data.PostLoad();
+
+        var owner = new FamilyMember { Id = 1, Role = 1 };
+        var target = new FamilyMember { Id = 2, Role = 0 };
+        var family = new Family { Id = 10 };
+        family.AddMember(owner);
+        family.AddMember(target);
+
+        await Assert.That(FamilyProgressionRules.TryGetAssignableRole(family, target, 4, data, out var role)).IsTrue();
+        await Assert.That(role.RoleCount).IsEqualTo(2);
+        await Assert.That(FamilyProgressionRules.TryGetNextMemberLimit(family, data, out var next)).IsTrue();
+        await Assert.That(next.Count).IsEqualTo(9);
+        await Assert.That(next.ItemId).IsEqualTo(7001u);
+        await Assert.That(next.ItemCount).IsEqualTo(1);
+
+        family.AddMember(new FamilyMember { Id = 3, Role = 4 });
+        family.AddMember(new FamilyMember { Id = 4, Role = 4 });
+        await Assert.That(FamilyProgressionRules.TryGetAssignableRole(family, target, 4, data, out _)).IsFalse();
+        await Assert.That(FamilyProgressionRules.TryGetAssignableRole(family, owner, 4, data, out _)).IsFalse();
     }
 
     [Test]
