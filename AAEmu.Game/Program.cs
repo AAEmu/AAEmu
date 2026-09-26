@@ -7,9 +7,11 @@ using AAEmu.Game.Core.Managers.Id;
 using AAEmu.Game.Core.Managers.Stream;
 using AAEmu.Game.Core.Managers.UnitManagers;
 using AAEmu.Game.Core.Managers.World;
+using AAEmu.Game.GameData;
 using AAEmu.Game.GameData.Framework;
 using AAEmu.Game.Models;
 using AAEmu.Game.Models.Game.Butlers;
+using AAEmu.Game.Models.Game.CrossServer;
 using AAEmu.Game.Models.Game.Items.Loots;
 using AAEmu.Game.Models.Game.Trading;
 using AAEmu.Game.Services;
@@ -154,6 +156,15 @@ public static class Program
                 services.AddSingleton<ICraftManager>(sp => sp.GetRequiredService<CraftManager>());
                 services.AddSingleton<CraftOrderManager>();
                 services.AddSingleton<ResidentManager>();
+
+                // GF-S15 cross-server transfers: the journal store, the content-backed peer
+                // lookup, and the state machine the departure/re-entry packets drive.
+                services.AddSingleton<ICrossServerTransferStore, MySqlCrossServerTransferStore>();
+                services.AddSingleton<ICrossServerDirectory>(_ => ServerConfigGameData.Instance);
+                services.AddSingleton(provider => new CrossServerTransferManager(
+                    provider.GetRequiredService<ICrossServerTransferStore>(),
+                    AppConfiguration.Instance.Id,
+                    provider.GetRequiredService<ICrossServerDirectory>()));
 
                 services.AddSingleton<CrimeManager>();
                 services.AddSingleton<ICrimeManager>(sp => sp.GetRequiredService<CrimeManager>());
