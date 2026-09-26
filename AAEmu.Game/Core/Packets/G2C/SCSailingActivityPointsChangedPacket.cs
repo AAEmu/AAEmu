@@ -10,7 +10,7 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// Field order, widths and names come from the 10.0.2.13 client's serializer, which passes each
 /// value's name alongside the value:
 /// </remarks>
-public class SCSailingActivityPointsChangedPacket(uint activityId, uint totalPoints) : GamePacket(SCOffsets.SCSailingActivityPointsChangedPacket, 1)
+public class SCSailingActivityPointsChangedPacket(int activityId, int totalPoints) : GamePacket(SCOffsets.SCSailingActivityPointsChangedPacket, 1)
 {
     public override PacketStream Write(PacketStream stream)
     {
