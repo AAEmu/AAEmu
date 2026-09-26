@@ -832,8 +832,11 @@ public static class SCOffsets
     public const ushort SCResidentMemberListPacket = 0x3C;
     public const ushort SCReturnAccountStatusPacket = 0x334;
 
-    public const ushort SCSailingActivityEnterResponsePacket = 0x390;
+    public const ushort SCSailingActivityStageUnlockedPacket = 0x38D;
+    public const ushort SCSailingActivityClaimRewardResponsePacket = 0x38E;
     public const ushort SCSailingActivityErrorPacket = 0x38F;
+    public const ushort SCSailingActivityEnterResponsePacket = 0x390;
+    public const ushort SCSailingActivityListPacket = 0x391;
     public const ushort SCSailingActivityPointsChangedPacket = 0x392;
     public const ushort SCSecondPassReservedClearTimePacket = 0x26D;
     public const ushort SCSelectedInstanceDifficultPacket = 0x2DC;

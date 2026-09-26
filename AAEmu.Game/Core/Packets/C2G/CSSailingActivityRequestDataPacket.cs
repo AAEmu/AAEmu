@@ -12,10 +12,10 @@ namespace AAEmu.Game.Core.Packets.C2G;
 /// </remarks>
 public class CSSailingActivityRequestDataPacket() : GamePacket(CSOffsets.CSSailingActivityRequestDataPacket, 1)
 {
-    public uint ActivityId { get; private set; }
+    public int ActivityId { get; private set; }
 
     public override void Read(PacketStream stream)
     {
-        ActivityId = stream.ReadUInt32();
+        ActivityId = stream.ReadInt32();
     }
 }

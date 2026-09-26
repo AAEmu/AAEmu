@@ -388,6 +388,7 @@ public static class CSOffsets
     public const ushort CSResetTodayAssignmentPacket = 0x122;
     public const ushort CSSailingActivityEnterPacket = 0x212;
     public const ushort CSSailingActivityLeavePacket = 0x213;
+    public const ushort CSSailingActivityClaimRewardPacket = 0x214;
     public const ushort CSSailingActivityRequestDataPacket = 0x215;
     public const ushort CSSaveAbilitySetPacket = 0x0D7;
     public const ushort CSSearchAuctionSoldRecordPacket = 0x0FE;
