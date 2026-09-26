@@ -50,7 +50,7 @@ public class SummonTargetRulesTests
     [Test]
     public async Task PickNamed_OnlyAnOwnedPart()
     {
-        // child_slave has no branch of its own in, so the named unit is used and has to be ours.
+        // child_slave has no branch of its own, so the named unit is used and has to be ours.
         await Assert.That(SummonTargetRules.PickNamed([Sail], Sail)).IsEqualTo(Sail);
         await Assert.That(SummonTargetRules.PickNamed([Sail], Stranger)).IsEqualTo(0u);
         await Assert.That(SummonTargetRules.PickNamed([Sail], 0)).IsEqualTo(0u);

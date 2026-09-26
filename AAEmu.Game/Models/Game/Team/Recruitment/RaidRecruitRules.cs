@@ -77,7 +77,7 @@ public static class RaidRecruitRules
 {
     /// <summary>
     /// ui_texts 11291 "Can be applied to up to 3 raids at the same time"; the client's list builder
-    /// Sets fullApplicant when its own application map holds more than 2.
+    /// sets fullApplicant when its own application map holds more than 2.
     /// </summary>
     public const int MaxApplicationsPerCharacter = 3;
 

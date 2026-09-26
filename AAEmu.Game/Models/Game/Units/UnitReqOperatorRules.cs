@@ -3,15 +3,14 @@ using AAEmu.Game.Models.Game.World.Zones;
 namespace AAEmu.Game.Models.Game.Units;
 
 /// <summary>
-/// Comparison rules of the unit_reqs kinds, recovered from the 10.0.2.13 client evaluator
-/// Each method
-/// mirrors one client handler; the caller supplies the state and the row operands. The client
-/// record reads value1 at +4, value2 at +8 and value3 at +0xC of the kind field.
+/// Comparison rules of the unit_reqs kinds, recovered from the 10.0.2.13 client evaluator.
+/// Each method mirrors one client handler; the caller supplies the state and the row operands.
+/// The client record reads value1 at +4, value2 at +8 and value3 at +0xC of the kind field.
 /// </summary>
 public static class UnitReqOperatorRules
 {
     /// <summary>
-    /// Kinds 44 CrimePoint, 45 HonorPoint and 50 LivingPoint, 46 CrimeRecord
+    /// Kinds 44 CrimePoint, 45 HonorPoint and 50 LivingPoint, 46 CrimeRecord,
     /// 47 JuryPoint, 77/78/127 leadership:
     /// value1 picks the bound and value2 is the threshold. 0 is "at least", anything else "at most".
     /// </summary>
@@ -19,7 +18,7 @@ public static class UnitReqOperatorRules
         => mode == 0 ? actual >= threshold : actual <= threshold;
 
     /// <summary>
-    /// Kinds 26, 95, 96, 97, 138 and 139
+    /// Kinds 26, 95, 96, 97, 138 and 139:
     /// value1 0 compares the absolute pool, anything else the integer percent cur*100/max.
     /// "LessThan" kinds pass at or below value2, "MoreThan" kinds at or above it.
     /// </summary>
@@ -125,8 +124,8 @@ public static class UnitReqOperatorRules
         => value1 == 0 ? isHero : heroGrade != 0 && heroGrade == value1;
 
     /// <summary>
-    /// Kinds 116 Dual (value1, the duel id) and 117 ExpeditionBattle: value2 0 needs the state
-    /// set, 1 needs it clear, any other value2 passes.
+    /// Kinds 116 Dual and 117 ExpeditionBattle: value1 picks the unit whose state is read, and
+    /// value2 0 needs the state set, 1 needs it clear, any other value2 passes.
     /// </summary>
     public static bool PassesStateGate(uint value2, bool state)
         => value2 switch

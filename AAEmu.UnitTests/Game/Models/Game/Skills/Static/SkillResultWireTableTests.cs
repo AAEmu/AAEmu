@@ -85,7 +85,7 @@ public class SkillResultWireTableTests
     [Test]
     public async Task UrkUnknown_SitsOnTheByteTheDisplayPathSwallows()
     {
-        // 0x40 has no case in and the display path returns for it before any message
+        // 0x40 has no case in the table and the display path returns for it before any message
         // is built, so the fail-closed result shows nothing at all rather than a wrong text.
         await Assert.That((byte)SkillResult.UrkUnknown).IsEqualTo((byte)0x40);
         await Assert.That(SkillResultClientTable.SymbolFor(0x40)).IsEqualTo("URK_UNKNOWN");

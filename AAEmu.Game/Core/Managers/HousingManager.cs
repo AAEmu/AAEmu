@@ -222,8 +222,8 @@ public class HousingManager(
 
         worldInstance ??= worldManager.GetWorld(WorldManager.DefaultInstanceId);
 
-        // var housingAreas = new Dictionary<uint, HousingAreas>
-        // var houseTaxes = new Dictionary<uint, HouseTax>
+        // var housingAreas = new Dictionary<uint, HousingAreas>();
+        // var houseTaxes = new Dictionary<uint, HouseTax>();
 
         Logger.Info("Loading Player Buildings ...");
         using (var connection = MySQL.CreateConnection())

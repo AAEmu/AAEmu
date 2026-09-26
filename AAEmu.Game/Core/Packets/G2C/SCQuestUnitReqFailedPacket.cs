@@ -11,8 +11,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// </summary>
 /// <remarks>
 /// Body serializer: <c>type</c> (the quest context id) as a 4-byte int,
-/// <c>bc</c> as the three-byte object id, then the result through, which is the skill cast
-/// tail: a flag byte followed by <c>c</c> (result u8), <c>e</c> (u16), <c>p</c> (u32) and <c>d</c> (the
+/// <c>bc</c> as the three-byte object id, then the result through the skill-cast tail: a flag
+/// byte followed by <c>c</c> (result u8), <c>e</c> (u16), <c>p</c> (u32) and <c>d</c> (the
 /// display gate), each written only when it differs from its default of 0, 0, 0 and true.
 /// The handler hands it to a resolver, which acts only when <c>bc</c> is the local player:
 /// it formats the result through the skill-result display path (which drops results above

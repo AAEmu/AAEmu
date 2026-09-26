@@ -4,7 +4,7 @@ using AAEmu.Game.Core.Network.Game;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Tells an applicant the recruiter approved them: u64 type (the post's owner id), u32 role
+/// Tells an applicant the recruiter approved them: u64 type (the post's owner id), u32 role.
 /// The client opens the 60 s accept popup and answers with
 /// CSRaidApplicantAcceptReply, which is what seats them.
 /// </summary>

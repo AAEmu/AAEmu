@@ -20,7 +20,7 @@ public class UnitReqsFailureDetailTests
 
     /// <summary>
     /// The shape every content row has (all six are value1 0, value2 1000): the client evaluator
-    /// Reads value1 as the bound selector (0 means at least) and value2 as the threshold.
+    /// reads value1 as the bound selector (0 means at least) and value2 as the threshold.
     /// </summary>
     private static UnitReqs LeadershipPeriodAtLeast(uint threshold) =>
         new() { KindType = UnitReqsKindType.LeadershipPeriod, Value1 = 0, Value2 = threshold };

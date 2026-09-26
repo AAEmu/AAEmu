@@ -5,8 +5,8 @@ using AAEmu.Game.Models.Game.Units;
 namespace AAEmu.Game.Models.Game.Char;
 
 /// <summary>
-/// CSBeautyshopData (0x185) as the client fills it in PayBeautyShop (via
-/// ): the model view's race and gender, its hair, horn and tail slots (equipment slots 20,
+/// CSBeautyshopData (0x185) as the client fills it in PayBeautyShop:
+/// the model view's race and gender, its hair, horn and tail slots (equipment slots 20,
 /// 22, 23), the appearance block, and the ticket it found in the bag with the count it needs (1), or
 /// the none id with count 0 when it found none.
 /// </summary>

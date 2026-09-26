@@ -9,8 +9,8 @@ namespace AAEmu.Game.Core.Packets.G2C;
 /// </summary>
 /// <remarks>
 /// Field order pinned from the 10.0.2.13 client two independent ways: the extracted schema
-/// (— u32 activityId@16, then a nested serializer call
-/// At object offset 24) and the serializer's own field reads, which take a
+/// (u32 activityId at offset 16, then a nested serializer call
+/// at object offset 24) and the serializer's own field reads, which take a
 /// u32 "Size" and then per pair a u32 key followed by the value struct
 /// (plotId, myBidAmount, myRanking, currentWinningBid, totalBidders, basePrice — six s32).
 /// The catalog line that shows activityId alone stopped at the scalar; the map is the payload

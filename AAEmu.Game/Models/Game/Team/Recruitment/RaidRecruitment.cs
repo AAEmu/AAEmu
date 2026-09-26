@@ -184,7 +184,7 @@ public sealed class RaidRecruitment
         Owner.GearScore,
         CreateTime,
         ExpireTime,
-        // addExpireTime is named by the serializer but never read by the client's list or detail builders
+        // addExpireTime is named by the serializer but never read by the client's list or detail builders;
         // its meaning is unknown, so it stays 0.
         0);
 }

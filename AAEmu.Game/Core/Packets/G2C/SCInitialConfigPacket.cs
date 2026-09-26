@@ -32,7 +32,7 @@ public class SCInitialConfigPacket : GamePacket
         stream.Write(config.Host);   // host (zstring, cap 259)
         _features.Write(stream); // fset (31-byte bitmap; catalog in Features/Feature.cs)
 
-        // Characters per page of the character list, read through X2:GetCandidateOnceRetrieveCount
+        // Characters per page of the character list, read through X2:GetCandidateOnceRetrieveCount.
         // Only consulted while the useCharacterListPage feature is enabled.
         stream.Write(config.CandidateRetrieveCount); // count (u32)
 

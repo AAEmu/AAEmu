@@ -211,7 +211,7 @@ public static class SkillResultClientTable
         new(0xCB, "URK_SOURCE_HEALTH_MORE_THAN", SkillResult.UrkSourceHealthMoreThan),
     ];
 
-    /// <summary>The symbol returns for a wire byte.</summary>
+    /// <summary>The symbol this table returns for a wire byte.</summary>
     public static string SymbolFor(byte wire) => Rows.FirstOrDefault(r => r.Wire == wire)?.Symbol ?? "URK_UNKNOWN";
 
     /// <summary>The ui_texts key the client UI looks up for a symbol.</summary>

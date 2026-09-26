@@ -3,7 +3,7 @@ using AAEmu.Commons.Network;
 namespace AAEmu.Game.Models.Game.Team.Recruitment;
 
 /// <summary>
-/// The wire shapes the 10.0.2.13 client reads and writes for the board, taken from its own serializers
+/// The wire shapes the 10.0.2.13 client reads and writes for the board, taken from its own serializers:
 /// the record, the applicant row and the detail.
 /// Field names are the literals those functions pass; widths are their stream vtable slots.
 /// </summary>

@@ -6,7 +6,7 @@ using AAEmu.Game.Models.Game.Units;
 namespace AAEmu.UnitTests.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Pins the body reads: type i32, bc, then the flagged tail of.
+/// Pins the body reads: type i32, bc, then the flagged tail.
 /// </summary>
 public class SCQuestUnitReqFailedPacketTests
 {

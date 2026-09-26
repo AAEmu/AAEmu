@@ -118,7 +118,7 @@ public static class BeautyshopEditRules
     /// <summary>
     /// A requested hair, horn or tail item must be a customizing_item_assets row for the character's
     /// model with the category of the slot it is meant for (the client checks the same row and
-    /// category in before sending; horn is only kept for CharRace 8 and tail for 6 there,
+    /// category before sending; horn is only kept for CharRace 8 and tail for 6 there,
     /// which the per-model rows already encode: category 2 exists only for models 24/25, category 3
     /// only for 20/21).
     /// </summary>

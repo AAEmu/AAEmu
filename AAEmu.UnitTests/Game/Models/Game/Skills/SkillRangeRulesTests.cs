@@ -4,7 +4,7 @@ using AAEmu.Game.Models.Game.Skills.Static;
 namespace AAEmu.UnitTests.Game.Models.Game.Skills;
 
 /// <summary>
-/// The range band as judges it: too close at or inside min_range, too far beyond
+/// The range band as the client judges it: too close at or inside min_range, too far beyond
 /// max_range, and no measurement when the target is the caster. The bands are real rows:
 /// 12161 돌진 (hostile, 5..15), 13281 다발 사격 (the player's ground skill, 10..50), 46100 술통 기뢰 (self,
 /// 3..0), holdables 0 fist (0..3) and 19 bow (0..20), and skill_modifiers 2144 (+4 min_range on tag 3849).

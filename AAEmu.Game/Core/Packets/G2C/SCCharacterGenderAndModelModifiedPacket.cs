@@ -5,7 +5,7 @@ using AAEmu.Game.Models.Game.Char;
 namespace AAEmu.Game.Core.Packets.G2C;
 
 /// <summary>
-/// Tells everyone in range (and the owner) a character's appearance changed. 10.0.2.13 body
+/// Tells everyone in range (and the owner) a character's appearance changed. 10.0.2.13 body:
 /// type u64 character id, two i32 item ids, the appearance
 /// block, bool genderTransfer. The receiver writes the two ids into
 /// equipment records unit+0x1090 and unit+0x1230, which with the 0xd0 record stride from unit+0x50
