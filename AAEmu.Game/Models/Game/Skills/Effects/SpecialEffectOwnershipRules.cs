@@ -37,7 +37,7 @@ public enum SpecialEffectOwnership
 /// Client-visual is decided by shape and by what the server owns: those rows sit on plot_effects,
 /// which the client replays from the SCPlotEvent it receives, or on skill_effects every viewer
 /// replays from SCSkillFired; the server has no animation, fx or projectile object to act on, and
-/// Carries its own SpecialEffectDesc executor (RTTI, vftable)
+/// Carries its own SpecialEffectDesc executor so the effect is dispatched in the host process
 /// for exactly that. The per-type client handler list was not recovered, so a type is only marked
 /// client-visual when its name, its values and its placement all say so.
 /// </remarks>
