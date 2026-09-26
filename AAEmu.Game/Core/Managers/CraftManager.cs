@@ -654,7 +654,11 @@ public class CraftManager : Singleton<CraftManager>, ICraftManager
             craft.IsPack = true;
         }
 
+        // A pack id with no craft_packs row is the shape of the shipped catalog, not a fault: the 10.0.2.13
+        // compact leaves 1183 of 12379 craft_pack_crafts rows pointing at pack ids it does not define. The rows
+        // are still loaded, so the craft exists and can be attempted; only the pack grouping is missing.
+        // Logging this at Error would bury real startup faults under a line that fires on every boot.
         if (_unresolvedCraftPackIds.Count > 0)
-            Logger.Error("craft_pack_crafts references {0} pack ids without craft_packs rows.", _unresolvedCraftPackIds.Count);
+            Logger.Warn("craft_pack_crafts references {0} pack ids without craft_packs rows.", _unresolvedCraftPackIds.Count);
     }
 }
