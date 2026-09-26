@@ -82,13 +82,35 @@ public static class ConflictZoneSpawnerRelay
         groupId => AAEmu.Game.GameData.ConflictZoneGameData.Instance.GetSpawners(groupId);
 
     /// <summary>
-    /// Republish the group's closed placement set on every transition and on every ZoneLoaded, and
-    /// despawn whatever the state being left had standing. <paramref name="warState"/> is the same
-    /// byte the WZConflictZoneState packet carries (<see cref="ZoneConflictType"/>); it is taken as
-    /// a byte so the two Program.cs hook points forward the wire value unchanged, and an unknown
-    /// byte degrades to the empty (no dedicated spawner) set.
+    /// The ZoneLoaded half of the toggle. A zone that has just loaded is told the group's war state
+    /// and is <b>not</b> re-armed.
     /// </summary>
-    public static void Apply(ushort zoneGroupId, byte warState)
+    /// <remarks>
+    /// Re-arming exists to bring back placements that the state being left had closed, and a
+    /// freshly loaded zone has never closed anything: it has no live spawns to retire and no
+    /// activate sphere of its own yet, so the announce circle would be a whole-zone activate that
+    /// skips the prewarm step and the deferred arming a normal load goes through. The closed set is
+    /// still published, so the gate is correct for whatever the zone spawns on its own.
+    /// </remarks>
+    public static void ApplyOnZoneLoaded(ushort zoneGroupId, byte warState) =>
+        Apply(zoneGroupId, warState, reArm: false);
+
+    /// <summary>
+    /// The transition half of the toggle. This is the only path that re-arms, because a transition
+    /// is the one event that closes placements and therefore the one that leaves holes to refill.
+    /// </summary>
+    public static void ApplyOnTransition(ushort zoneGroupId, byte warState) =>
+        Apply(zoneGroupId, warState, reArm: true);
+
+    /// <summary>
+    /// Republish the group's closed placement set and despawn whatever the state being left had
+    /// standing, re-arming the zones only when <paramref name="reArm"/> is set.
+    /// <paramref name="warState"/> is the same byte the WZConflictZoneState packet carries
+    /// (<see cref="ZoneConflictType"/>); it is taken as a byte so the two Program.cs hook points
+    /// forward the wire value unchanged, and an unknown byte degrades to the empty (no dedicated
+    /// spawner) set.
+    /// </summary>
+    private static void Apply(ushort zoneGroupId, byte warState, bool reArm)
     {
         if (!Enum.IsDefined(typeof(ZoneConflictType), warState))
         {
@@ -157,7 +179,7 @@ public static class ConflictZoneSpawnerRelay
         // on a player enter or a schedule window. Without this the placement stays empty until one of
         // those happens by chance. Publishing first is what makes this safe — the flood passes
         // through the gate, and everything still closed is refused again rather than respawning.
-        if (plan.Arm.Count > 0)
+        if (reArm && plan.Arm.Count > 0)
             ReArmZones(zoneGroupId, plan.Arm.Count);
 
         // One line per apply, not one per placement: a group whose rows do not resolve in a given

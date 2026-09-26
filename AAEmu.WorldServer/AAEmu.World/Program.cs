@@ -712,10 +712,12 @@ public static class Program
             AAEmu.Game.Core.Managers.GuildDominionManager.Instance.RelayAllToZone(zoneId);
         };
         // The Zone host stores the war state on WZConflictZoneState for its requirement checks but
-        // does not arm the conflict spawners from it, so World drives the toggle itself: on
-        // ZoneLoaded and on every later transition, ConflictZoneSpawnerRelay re-applies the group's
-        // peace/war placements through the existing activate/despawn paths. Only groups that actually
-        // have spawner rows are told; every other conflict group is client-only (SCConflictZoneState).
+        // does not arm the conflict spawners from it, so World drives the toggle itself. Only a
+        // transition re-arms: a zone that has just loaded has closed nothing, so re-announcing there
+        // would be a whole-zone activate that skips the prewarm and deferred arming a normal load
+        // goes through. Both paths publish the group's closed placement set. Only groups that
+        // actually have spawner rows are told; every other conflict group is client-only
+        // (SCConflictZoneState).
         WorldIntegration.NotifyZoneReadyForConflictZone = (zoneId, instanceId) =>
         {
             if (!TryGetConflictZoneState(zoneId, out var groupId, out var warState))
@@ -727,7 +729,7 @@ public static class Program
             readyZone.SendPacket(new WZConflictZoneStatePacket((short)groupId, warState));
             Logger.Debug("WZConflictZoneState (zone ready) → zoneId={0} instance={1} group={2} state={3}",
                 zoneId, instanceId, groupId, warState);
-            ConflictZoneSpawnerRelay.Apply(groupId, warState);
+            ConflictZoneSpawnerRelay.ApplyOnZoneLoaded(groupId, warState);
         };
         WorldIntegration.RelayCvFCombatRelationsToZones = CombatRelationRelay.PublishCvF;
         WorldIntegration.RelayFvFCombatRelationsToZones = CombatRelationRelay.PublishFvF;
@@ -749,8 +751,9 @@ public static class Program
                 Logger.Debug("WZConflictZoneState → zoneId={0} group={1} state={2}", zone.ZoneId, zoneGroupId, warState);
             }
             // The state packet only reaches the host's requirement checks; arm/retire the group's
-            // conflict_zone_npc_spawners placements here so the spawners actually toggle.
-            ConflictZoneSpawnerRelay.Apply(zoneGroupId, warState);
+            // conflict_zone_npc_spawners placements here so the spawners actually toggle. A
+            // transition is the one event that closes placements, so this is the re-arm path.
+            ConflictZoneSpawnerRelay.ApplyOnTransition(zoneGroupId, warState);
         };
 
         // WZConflictZoneState `type` is the zone-group key, matching how the client packet keys the

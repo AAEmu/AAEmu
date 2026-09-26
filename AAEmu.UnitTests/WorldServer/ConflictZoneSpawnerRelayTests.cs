@@ -68,7 +68,7 @@ public class ConflictZoneSpawnerRelayTests
         Placements((ZoneUnderTest, [(169343, 20779), (169344, 20779), (200747, 20800)]));
         AddZone(ZoneUnderTest, 0);
 
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.War);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.War);
 
         await Assert.That(Closed(ZoneUnderTest, 169343, 20779)).IsTrue();
         await Assert.That(Closed(ZoneUnderTest, 169344, 20779)).IsTrue();
@@ -84,10 +84,83 @@ public class ConflictZoneSpawnerRelayTests
         Placements((ZoneUnderTest, [(169343, 20779), (200747, 20800)]));
         AddZone(ZoneUnderTest, 0);
 
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.Peace);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.Peace);
 
         await Assert.That(Closed(ZoneUnderTest, 200747, 20800)).IsTrue();
         await Assert.That(Closed(ZoneUnderTest, 169343, 20779)).IsFalse();
+    }
+
+    [Test]
+    public async Task AZoneLoad_PublishesTheClosedSetWithoutReArming()
+    {
+        // A zone that has just loaded has closed nothing, so it must not be re-announced: a
+        // whole-zone activate here would skip the prewarm and the deferred arming a normal load
+        // goes through. The closed set still has to be published, or the gate would be judging
+        // this zone's spawns against whatever the previous transition left behind.
+        Rows(63,
+            new ConflictZoneSpawnerEntry(169343, ConflictZoneStateKind.Peace, true, false),
+            new ConflictZoneSpawnerEntry(200747, ConflictZoneStateKind.War, true, false));
+        Placements((ZoneUnderTest, [(169343, 20779), (200747, 20800)]));
+        AddZone(ZoneUnderTest, 0);
+        var reArms = RecordReArms();
+
+        ConflictZoneSpawnerRelay.ApplyOnZoneLoaded(63, (byte)ZoneConflictType.Peace);
+
+        await Assert.That(reArms).IsEmpty();
+        // Published anyway: peace closes the war row, and that is the gate the spawn path reads.
+        await Assert.That(Closed(ZoneUnderTest, 200747, 20800)).IsTrue();
+    }
+
+    [Test]
+    public async Task ATransition_ReArmsTheZoneSoPlacementsThatLeftTheClosedSetComeBack()
+    {
+        // The counterpart: a transition is the one event that closes placements, so it is the one
+        // path that re-arms. Same zone, same rows, same state as the load case above — only the
+        // entry point differs.
+        Rows(63,
+            new ConflictZoneSpawnerEntry(169343, ConflictZoneStateKind.Peace, true, false),
+            new ConflictZoneSpawnerEntry(200747, ConflictZoneStateKind.War, true, false));
+        Placements((ZoneUnderTest, [(169343, 20779), (200747, 20800)]));
+        AddZone(ZoneUnderTest, 0);
+        var reArms = RecordReArms();
+
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.Peace);
+
+        await Assert.That(reArms.Count).IsEqualTo(1);
+        await Assert.That(Closed(ZoneUnderTest, 200747, 20800)).IsTrue();
+    }
+
+    [Test]
+    public async Task TheClosedSetIsPublishedBeforeTheReArmFloodIsSent()
+    {
+        // The re-arm announces the whole zone, so the placements that are still closed in the new
+        // state get refused again on the way through. That only holds if the gate is already
+        // carrying this state when the flood is sent, which is why Publish comes first.
+        Rows(63,
+            new ConflictZoneSpawnerEntry(169343, ConflictZoneStateKind.Peace, true, false),
+            new ConflictZoneSpawnerEntry(200747, ConflictZoneStateKind.War, true, false));
+        Placements((ZoneUnderTest, [(169343, 20779), (200747, 20800)]));
+        AddZone(ZoneUnderTest, 0);
+
+        // Read the gate from inside the re-arm, so this pins the order rather than the end state.
+        var closedDuringReArm = new List<bool>();
+        ConflictZoneSpawnerRelay.ReactivateSpawners = (_, _) =>
+            closedDuringReArm.Add(Closed(ZoneUnderTest, 200747, 20800));
+
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.Peace);
+
+        await Assert.That(closedDuringReArm).IsEquivalentTo(new[] { true });
+    }
+
+    /// <summary>
+    /// Counts re-arm sends through the relay's own seam. The re-arm reaches the schedule gate and its
+    /// DI-owned managers, which a unit test cannot stand up, so it is stubbed and counted here.
+    /// </summary>
+    private List<string> RecordReArms()
+    {
+        var reArms = new List<string>();
+        ConflictZoneSpawnerRelay.ReactivateSpawners = (zone, reason) => reArms.Add(reason);
+        return reArms;
     }
 
     [Test]
@@ -100,7 +173,7 @@ public class ConflictZoneSpawnerRelayTests
         Placements((ZoneUnderTest, [(213307, 999)]));
         AddZone(ZoneUnderTest, 0);
 
-        ConflictZoneSpawnerRelay.Apply(139, (byte)ZoneConflictType.War);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(139, (byte)ZoneConflictType.War);
 
         await Assert.That(Closed(ZoneUnderTest, 213307, 999)).IsFalse();
     }
@@ -113,7 +186,7 @@ public class ConflictZoneSpawnerRelayTests
         Placements((ZoneUnderTest, [(213307, 999)]));
         AddZone(ZoneUnderTest, 0);
 
-        ConflictZoneSpawnerRelay.Apply(139, (byte)ZoneConflictType.Peace);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(139, (byte)ZoneConflictType.Peace);
 
         await Assert.That(Closed(ZoneUnderTest, 213307, 999)).IsTrue();
     }
@@ -132,8 +205,8 @@ public class ConflictZoneSpawnerRelayTests
 
         // War arms the row (nothing closed); peace retires it (the row no longer applies). Both
         // passes must emit nothing.
-        ConflictZoneSpawnerRelay.Apply(15, (byte)ZoneConflictType.War);
-        ConflictZoneSpawnerRelay.Apply(15, (byte)ZoneConflictType.Peace);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(15, (byte)ZoneConflictType.War);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(15, (byte)ZoneConflictType.Peace);
 
         // Sanity: the peace pass really did close the placement, so this is not vacuous.
         await Assert.That(Closed(ZoneUnderTest, 60463, 20779)).IsTrue();
@@ -156,7 +229,7 @@ public class ConflictZoneSpawnerRelayTests
         ]));
         AddZone(ZoneUnderTest, 0);
 
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.Peace);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.Peace);
 
         await Assert.That(Closed(ZoneUnderTest, 200747, 20800)).IsTrue();
         await Assert.That(Closed(ZoneUnderTest, 120120, 23183)).IsFalse();
@@ -173,7 +246,7 @@ public class ConflictZoneSpawnerRelayTests
         Placements((ZoneUnderTest, [(200747, 20800)]));
         var zone = AddZone(ZoneUnderTest, 0);
 
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.Peace);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.Peace);
         await Assert.That(Closed(ZoneUnderTest, 200747, 20800)).IsTrue();
 
         // Stand in for the player-enter / schedule-window re-arm: a raw activate circle for the very
@@ -193,7 +266,7 @@ public class ConflictZoneSpawnerRelayTests
         Placements((ZoneUnderTest, [(200747, 20800)]));
         AddZone(ZoneUnderTest, 0);
 
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.Peace);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.Peace);
 
         // Even with the schedule gate reporting nothing closed for this template, the conflict gate
         // still holds the placement.
@@ -221,7 +294,7 @@ public class ConflictZoneSpawnerRelayTests
         AddZone(ZoneUnderTest, 0);
         AddZone(200, 0);
 
-        ConflictZoneSpawnerRelay.Apply(15, (byte)ZoneConflictType.Peace);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(15, (byte)ZoneConflictType.Peace);
 
         // The id is the same in both zones, so this also pins that the key is resolved per zone
         // rather than being a bare group-wide id.
@@ -240,7 +313,7 @@ public class ConflictZoneSpawnerRelayTests
         Placements((ZoneUnderTest, [(200747, 20800)])); // 424242 is absent from the zone's .g
         var zone = AddZone(ZoneUnderTest, 0);
 
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.Peace);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.Peace);
 
         // 200747 is a war row, so entering peace retires it; 424242 cannot be typed because the
         // zone's catalog does not carry it, so it is never admitted to the closed set under a
@@ -261,7 +334,7 @@ public class ConflictZoneSpawnerRelayTests
         Placements((ZoneUnderTest, [(169343, 20779), (169344, 20779)]));
         AddZone(ZoneUnderTest, 0);
 
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.War);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.War);
 
         // Both are peace rows so both close here, but on distinct keys — assert the set has two
         // entries and that a third id under the same type is not a member.
@@ -283,7 +356,7 @@ public class ConflictZoneSpawnerRelayTests
         zone.Connection.Units.RegisterWithId(3, CreateSpawnBody(200747, 20800));
 
         // Enter war: only the peace placement 169343 is retired.
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.War);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.War);
 
         var despawns = zone.Session.Packets
             .Where(p => Opcode(p) == (ushort)WzOpcodes.NpcStartDespawn)
@@ -304,7 +377,7 @@ public class ConflictZoneSpawnerRelayTests
         var zone = AddZone(ZoneUnderTest, 0);
         zone.Connection.Units.RegisterWithId(1, CreateSpawnBody(169343, 20779));
 
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.War);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.War);
 
         // Both halves: the live NPC is despawned AND the placement is refused from re-announcing.
         await Assert.That(zone.Session.Packets.Count(p => Opcode(p) == (ushort)WzOpcodes.NpcStartDespawn))
@@ -320,7 +393,7 @@ public class ConflictZoneSpawnerRelayTests
         var zone = AddZone(ZoneUnderTest, 0);
         zone.Connection.Units.RegisterWithId(1, CreateSpawnBody(169343, 20779));
 
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.War);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.War);
 
         await Assert.That(zone.Session.Packets.Count(p => Opcode(p) == (ushort)WzOpcodes.NpcStartDespawn))
             .IsEqualTo(0);
@@ -339,7 +412,7 @@ public class ConflictZoneSpawnerRelayTests
         Placements((ZoneUnderTest, [(200747, 20800)]));
         var zone = AddZone(ZoneUnderTest, 0);
 
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.Conflict);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.Conflict);
 
         // No circle is sent for conflict state at all — that is unchanged.
         await Assert.That(zone.Session.Packets.Count).IsEqualTo(0);
@@ -364,7 +437,7 @@ public class ConflictZoneSpawnerRelayTests
         ConflictZoneSpawnerRelay.ReactivateSpawners = (_, reason) => reArms.Add(reason);
 
         // Entering war arms the war row, so the zone has to re-announce.
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.War);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.War);
 
         await Assert.That(reArms.Count).IsEqualTo(1);
         await Assert.That(Closed(ZoneUnderTest, 169343, 20779)).IsTrue();
@@ -372,7 +445,7 @@ public class ConflictZoneSpawnerRelayTests
 
         // And a state that arms nothing must not ask for a re-announce.
         reArms.Clear();
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.Conflict);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.Conflict);
 
         await Assert.That(reArms).IsEmpty();
     }
@@ -390,7 +463,7 @@ public class ConflictZoneSpawnerRelayTests
         var reArms = 0;
         ConflictZoneSpawnerRelay.ReactivateSpawners = (_, _) => reArms++;
 
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.Conflict);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.Conflict);
 
         await Assert.That(ConflictSpawnerGate.ClosedCount(63)).IsEqualTo(0);
         await Assert.That(reArms).IsEqualTo(0);
@@ -403,7 +476,7 @@ public class ConflictZoneSpawnerRelayTests
         Placements((ZoneUnderTest, [(200747, 20800)]));
         var zone = AddZone(ZoneUnderTest, 0);
 
-        ConflictZoneSpawnerRelay.Apply(63, 200);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, 200);
 
         await Assert.That(zone.Session.Packets.Count).IsEqualTo(0);
         await Assert.That(ConflictSpawnerGate.ClosedCount(63)).IsEqualTo(0);
@@ -416,13 +489,13 @@ public class ConflictZoneSpawnerRelayTests
         Placements((ZoneUnderTest, [(200747, 20800)]));
         AddZone(ZoneUnderTest, 0);
 
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.Peace);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.Peace);
         await Assert.That(Closed(ZoneUnderTest, 200747, 20800)).IsTrue();
 
         // The zone's catalog stops resolving (level files moved, zone reloading). The set must not
         // stay armed from the previous pass.
         ConflictZoneSpawnerRelay.ResolvePlacements = _ => [];
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.Peace);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.Peace);
 
         await Assert.That(ConflictSpawnerGate.ClosedCount(63)).IsEqualTo(0);
         await Assert.That(Closed(ZoneUnderTest, 200747, 20800)).IsFalse();
@@ -440,7 +513,7 @@ public class ConflictZoneSpawnerRelayTests
         Placements((ZoneUnderTest, [(200747, 20800)]));
         var zone = AddZone(ZoneUnderTest, 0);
 
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.Peace);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.Peace);
 
         var bcId = new NpcSpawnRelay().OnSpawn(zone.Connection, CreateSpawnBody(200747, 20800));
 
@@ -458,7 +531,7 @@ public class ConflictZoneSpawnerRelayTests
         Placements((ZoneUnderTest, [(200747, 20800), (120120, 23183)]));
         var zone = AddZone(ZoneUnderTest, 0);
 
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.Peace);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.Peace);
 
         // The conflict placement is refused: the gate answers it before a bcId is spent, so
         // OnSpawn returns 0 and no allocator is touched.
@@ -496,13 +569,13 @@ public class ConflictZoneSpawnerRelayTests
         Placements((ZoneUnderTest, [(200747, 20800)]));
         var zone = AddZone(ZoneUnderTest, 0);
 
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.Peace);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.Peace);
         await Assert.That(new NpcSpawnRelay().OnSpawn(zone.Connection, CreateSpawnBody(200747, 20800)))
             .IsEqualTo(0u);
 
         // Entering war authorises the war row, so the same placement must no longer be refused. As
         // above, getting past the gate is proven by reaching the allocator.
-        ConflictZoneSpawnerRelay.Apply(63, (byte)ZoneConflictType.War);
+        ConflictZoneSpawnerRelay.ApplyOnTransition(63, (byte)ZoneConflictType.War);
         var reachedRegister = false;
         try
         {
